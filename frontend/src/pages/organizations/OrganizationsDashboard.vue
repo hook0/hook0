@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import type { Component } from 'vue';
+import type { RouteLocationRaw } from 'vue-router';
 import { CreditCard, Users, FolderOpen, FileText, Database, Settings, Box } from 'lucide-vue-next';
 
 import { useRouteIds } from '@/composables/useRouteIds';
@@ -28,6 +30,7 @@ import Hook0Avatar from '@/components/Hook0Avatar.vue';
 import ApplicationsList from '@/pages/organizations/applications/ApplicationsList.vue';
 
 const { t } = useI18n();
+const router = useRouter();
 const { organizationId } = useRouteIds();
 
 const {
@@ -118,7 +121,15 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
 });
 
 /** Quota cards shown in the developer-plan notice section. */
-const quotaCards = computed<{ icon: Component; value: number | undefined; label: string }[]>(() => {
+interface QuotaCard {
+  icon: Component;
+  value: number | undefined;
+  label: string;
+  to?: RouteLocationRaw;
+  onClick?: () => void;
+}
+
+const quotaCards = computed<QuotaCard[]>(() => {
   if (!organization.value) return [];
   const q = organization.value.quotas;
   return [
@@ -126,24 +137,43 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
       icon: markRaw(Users),
       value: q.members_per_organization_limit,
       label: t('organizations.consumptionMembers'),
+      to: { name: routes.OrganizationsTeam, params: { organization_id: organizationId.value } },
     },
     {
       icon: markRaw(FolderOpen),
       value: q.applications_per_organization_limit,
       label: t('organizations.consumptionApplications'),
+      onClick: scrollToApps,
     },
     {
       icon: markRaw(FileText),
       value: q.events_per_day_limit,
       label: t('organizations.consumptionEventsPerDay'),
+      onClick: scrollToChart,
     },
     {
       icon: markRaw(Database),
       value: q.days_of_events_retention_limit,
       label: t('organizations.consumptionRetention'),
+      onClick: scrollToChart,
     },
   ];
 });
+
+function onQuotaCardActivate(card: QuotaCard) {
+  if (card.to) {
+    void router.push(card.to);
+  } else if (card.onClick) {
+    card.onClick();
+  }
+}
+
+function onQuotaCardKeydown(event: KeyboardEvent, card: QuotaCard) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    onQuotaCardActivate(card);
+  }
+}
 </script>
 
 <template>
@@ -262,7 +292,11 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
               <Hook0Card
                 v-for="card in quotaCards"
                 :key="card.label"
-                class="org-dashboard__quota-card"
+                class="org-dashboard__quota-card org-dashboard__quota-card--clickable"
+                tabindex="0"
+                role="button"
+                @click="onQuotaCardActivate(card)"
+                @keydown="onQuotaCardKeydown($event, card)"
               >
                 <Hook0CardContent>
                   <Hook0Stack direction="row" align="center" gap="sm">
@@ -380,5 +414,20 @@ const quotaCards = computed<{ icon: Component; value: number | undefined; label:
 
 .org-dashboard__quota-card :deep(.hook0-card-content) {
   padding: 0.75rem 1rem;
+}
+
+.org-dashboard__quota-card--clickable {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.org-dashboard__quota-card--clickable:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.org-dashboard__quota-card--clickable:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 </style>
