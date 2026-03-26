@@ -311,6 +311,11 @@
     "unknownErrorDetail": "An unknown error occurred: {message}",
     "unknownErrorTitle": "Unknown Error"
   },
+  "forms": {
+    "enterName": "Enter a name",
+    "fillRequiredFields": "Fill all required fields",
+    "selectServiceResourceVerb": "Select a service, resource type, and verb"
+  },
   "eventTypes": {
     "confirmDeactivate": "Delete event type {name}?",
     "create": "Create event type",
@@ -521,6 +526,8 @@
     "roleChanged": "Role of {email} updated to {role}.",
     "roleEditor": "Editor",
     "roleViewer": "Viewer",
+    "cannotChangeOwnRole": "You cannot change your own role",
+    "noPermissionToChangeRole": "You don't have permission to change roles",
     "subtitle": "Manage who has access to this organization and their permissions.",
     "title": "Members"
   },
