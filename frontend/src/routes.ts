@@ -35,6 +35,7 @@ export const routes = {
   ApplicationSecretsNew: 'ApplicationSecretsNew',
 
   EventsList: 'EventsList',
+  EventsSend: 'EventsSend',
   EventsDetail: 'EventsDetail',
 
   EventTypesList: 'EventTypesList',
@@ -235,6 +236,13 @@ export default [
     path: '/organizations/:organization_id/applications/:application_id/events',
     component: () => import('@/pages/organizations/applications/events/EventsList.vue'),
     meta: { title: 'Events' },
+  },
+
+  {
+    name: routes.EventsSend,
+    path: '/organizations/:organization_id/applications/:application_id/events/send',
+    component: () => import('@/pages/organizations/applications/events/EventsSend.vue'),
+    meta: { title: 'Send Event' },
   },
 
   {

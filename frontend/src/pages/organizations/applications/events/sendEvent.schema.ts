@@ -2,9 +2,14 @@ import { z } from 'zod';
 
 export const sendEventSchema = z.object({
   eventType: z.string().min(1, 'Event type is required'),
-  labels: z.record(z.string(), z.string()).refine((val) => Object.keys(val).length > 0, {
-    message: 'At least one label is required',
-  }),
+  labels: z
+    .array(
+      z.object({
+        key: z.string().min(1, 'Label key is required'),
+        value: z.string().min(1, 'Label value is required'),
+      })
+    )
+    .min(1, 'At least one label is required'),
   occurredAt: z.coerce.date({ message: 'Occurred at date is required' }),
   payload: z
     .string()
@@ -22,4 +27,5 @@ export const sendEventSchema = z.object({
     ),
 });
 
+export type SendEventForm = z.infer<typeof sendEventSchema>;
 export type SendEventFormValues = z.infer<typeof sendEventSchema>;

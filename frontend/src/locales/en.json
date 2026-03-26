@@ -384,6 +384,17 @@
     "sourceIp": "Source IP",
     "subtitle": "Events sent by your application to Hook0. Each event triggers matching subscriptions.",
     "title": "Inbound Events",
+    "tabs": {
+      "easy": "Easy way",
+      "curl": "cURL",
+      "javascript": "JavaScript",
+      "rust": "Rust"
+    },
+    "selectSecret": "Application Secret",
+    "noSecretsYet": "No application secrets yet.",
+    "createSecret": "Create one",
+    "tutorialTokenNote": "In production, use an application secret instead of your session token.",
+    "regenerateId": "Regenerate",
     "type": "Event Type"
   },
   "eventsPerDayChart": {
