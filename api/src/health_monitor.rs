@@ -158,6 +158,7 @@ async fn evaluate_subscriptions(
                             from webhook.request_attempt ra2
                             where ra2.subscription__id = a.subscription__id
                               and (ra2.succeeded_at is not null or ra2.failed_at is not null)
+                              and ra2.created_at > now() - make_interval(secs => $1)
                             order by ra2.created_at desc
                             limit $3
                         ) sub
@@ -205,43 +206,126 @@ async fn evaluate_subscriptions(
     .await
 }
 
+/// Describes a side-effect (email / Hook0 event) to perform after the
+/// transaction has been committed.
+enum HealthAction {
+    Warning(HealthActionInfo),
+    Disabled(HealthActionInfo),
+    Recovered(HealthActionInfo),
+}
+
+/// Data needed to send emails and Hook0 events outside the transaction.
+struct HealthActionInfo {
+    subscription_id: Uuid,
+    organization_id: Uuid,
+    application_id: Uuid,
+    application_name: Option<String>,
+    description: Option<String>,
+    target_url: String,
+    failure_percent: f64,
+    disabled_at: Option<DateTime<Utc>>,
+    retry_schedule: Option<RetrySchedulePayload>,
+}
+
+impl HealthActionInfo {
+    fn from_sub(sub: &SubscriptionHealth, disabled_at: Option<DateTime<Utc>>) -> Self {
+        Self {
+            subscription_id: sub.subscription__id,
+            organization_id: sub.organization__id,
+            application_id: sub.application__id,
+            application_name: sub.application_name.clone(),
+            description: sub.description.clone(),
+            target_url: sub.target_url.clone(),
+            failure_percent: sub.failure_percent,
+            disabled_at,
+            retry_schedule: sub.retry_schedule__id.map(|id| RetrySchedulePayload {
+                retry_schedule_id: id,
+                name: sub.retry_schedule_name.clone().unwrap_or_default(),
+                strategy: sub.retry_strategy.clone().unwrap_or_default(),
+                max_retries: sub.retry_max_retries.unwrap_or(0),
+                custom_intervals: sub.retry_custom_intervals.clone(),
+                linear_delay: sub.retry_linear_delay,
+            }),
+        }
+    }
+}
+
 async fn run_health_check(
     db: &PgPool,
     mailer: &Mailer,
     hook0_client: &Option<Hook0Client>,
     config: &HealthMonitorConfig,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Transaction-level advisory lock: auto-released on commit/rollback.
-    // Safe with connection pools (no lock leak on error).
-    let mut tx = db.begin().await?;
+    // Phase 1: transaction — evaluate health, insert events, disable subs.
+    let actions = {
+        let mut tx = db.begin().await?;
 
-    let acquired: bool =
-        sqlx::query_scalar("SELECT pg_try_advisory_xact_lock($1)")
-            .bind(ADVISORY_LOCK_ID)
-            .fetch_one(&mut *tx)
-            .await?;
+        let acquired: bool =
+            sqlx::query_scalar("SELECT pg_try_advisory_xact_lock($1)")
+                .bind(ADVISORY_LOCK_ID)
+                .fetch_one(&mut *tx)
+                .await?;
 
-    if !acquired {
-        info!("Health monitor: another instance holds the lock, skipping");
-        return Ok(());
-    }
+        if !acquired {
+            info!("Health monitor: another instance holds the lock, skipping");
+            return Ok(());
+        }
 
-    let subscriptions = evaluate_subscriptions(&mut tx, config).await?;
-    info!(
-        "Health monitor: evaluated {} subscriptions",
-        subscriptions.len()
-    );
+        let subscriptions = evaluate_subscriptions(&mut tx, config).await?;
+        info!(
+            "Health monitor: evaluated {} subscriptions",
+            subscriptions.len()
+        );
 
-    for sub in &subscriptions {
-        if let Err(e) = process_subscription(&mut tx, mailer, hook0_client, config, sub).await {
-            warn!(
-                "Health monitor: error processing subscription {}: {e}",
-                sub.subscription__id
-            );
+        let mut actions = Vec::new();
+        for sub in &subscriptions {
+            match process_subscription(&mut tx, config, sub).await {
+                Ok(mut sub_actions) => actions.append(&mut sub_actions),
+                Err(e) => {
+                    warn!(
+                        "Health monitor: error processing subscription {}: {e}",
+                        sub.subscription__id
+                    );
+                }
+            }
+        }
+
+        tx.commit().await?;
+        actions
+    };
+
+    // Phase 2: best-effort side-effects (no transaction held).
+    for action in &actions {
+        let (info, kind) = match action {
+            HealthAction::Warning(info) => (info, EmailKind::Warning),
+            HealthAction::Disabled(info) => (info, EmailKind::Disabled),
+            HealthAction::Recovered(info) => (info, EmailKind::Recovered),
+        };
+
+        send_email_best_effort(mailer, db, info, kind, config).await;
+
+        if let HealthAction::Disabled(info) = action {
+            if let Some(client) = hook0_client {
+                let disabled_at = info.disabled_at.unwrap_or_else(Utc::now);
+                let event = EventSubscriptionDisabled {
+                    subscription: SubscriptionDisabledPayload {
+                        subscription_id: info.subscription_id,
+                        organization_id: info.organization_id,
+                        application_id: info.application_id,
+                        description: info.description.clone(),
+                        target: info.target_url.clone(),
+                        disabled_at,
+                    },
+                    retry_schedule: info.retry_schedule.clone(),
+                };
+                let hook0_event: Hook0ClientEvent = event.into();
+                if let Err(e) = client.send_event(&hook0_event.mk_hook0_event()).await {
+                    warn!("Health monitor: failed to send subscription.disabled Hook0 event: {e}");
+                }
+            }
         }
     }
 
-    tx.commit().await?;
     Ok(())
 }
 
@@ -253,16 +337,16 @@ enum EmailKind {
 
 async fn process_subscription(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    mailer: &Mailer,
-    hook0_client: &Option<Hook0Client>,
     config: &HealthMonitorConfig,
     sub: &SubscriptionHealth,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<Vec<HealthAction>, Box<dyn std::error::Error>> {
     let ratio = sub.failure_percent;
     let warning_pct = config.warning_failure_percent as f64;
     let disable_pct = config.disable_failure_percent as f64;
     let last_status = sub.last_health_status.as_deref();
     let last_at = sub.last_health_at;
+
+    let mut actions = Vec::new();
 
     match last_status {
         Some("disabled") => {}
@@ -277,28 +361,34 @@ async fn process_subscription(
 
         Some("warning") if ratio < warning_pct => {
             insert_health_event(tx, sub.subscription__id, "resolved").await?;
-            send_email_best_effort(mailer, tx, sub, EmailKind::Recovered, config).await;
+            actions.push(HealthAction::Recovered(HealthActionInfo::from_sub(sub, None)));
         }
 
         Some("warning") => {
-            disable_subscription(tx, mailer, hook0_client, sub, config).await?;
+            let disabled_at = disable_subscription(tx, sub).await?;
+            if let Some(at) = disabled_at {
+                actions.push(HealthAction::Disabled(HealthActionInfo::from_sub(sub, Some(at))));
+            }
         }
 
         _ if ratio >= disable_pct => {
             insert_health_event(tx, sub.subscription__id, "warning").await?;
-            send_email_best_effort(mailer, tx, sub, EmailKind::Warning, config).await;
-            disable_subscription(tx, mailer, hook0_client, sub, config).await?;
+            actions.push(HealthAction::Warning(HealthActionInfo::from_sub(sub, None)));
+            let disabled_at = disable_subscription(tx, sub).await?;
+            if let Some(at) = disabled_at {
+                actions.push(HealthAction::Disabled(HealthActionInfo::from_sub(sub, Some(at))));
+            }
         }
 
         _ if ratio >= warning_pct => {
             insert_health_event(tx, sub.subscription__id, "warning").await?;
-            send_email_best_effort(mailer, tx, sub, EmailKind::Warning, config).await;
+            actions.push(HealthAction::Warning(HealthActionInfo::from_sub(sub, None)));
         }
 
         _ => {}
     }
 
-    Ok(())
+    Ok(actions)
 }
 
 async fn insert_health_event(
@@ -316,110 +406,85 @@ async fn insert_health_event(
     Ok(())
 }
 
+/// Disables a subscription and inserts a 'disabled' health event atomically.
+/// Returns `Some(disabled_at)` if it actually disabled, `None` if already disabled.
 async fn disable_subscription(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    mailer: &Mailer,
-    hook0_client: &Option<Hook0Client>,
     sub: &SubscriptionHealth,
-    config: &HealthMonitorConfig,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let result = sqlx::query(
+) -> Result<Option<DateTime<Utc>>, Box<dyn std::error::Error>> {
+    let disabled_at: Option<DateTime<Utc>> = sqlx::query_scalar(
         r#"
         WITH updated AS (
             UPDATE webhook.subscription
             SET is_enabled = false
             WHERE subscription__id = $1 AND is_enabled = true
             RETURNING subscription__id
+        ),
+        inserted AS (
+            INSERT INTO webhook.subscription_health_event (subscription__id, status)
+            SELECT subscription__id, 'disabled' FROM updated
+            RETURNING created_at
         )
-        INSERT INTO webhook.subscription_health_event (subscription__id, status)
-        SELECT subscription__id, 'disabled' FROM updated
+        SELECT created_at FROM inserted
         "#,
     )
     .bind(sub.subscription__id)
-    .execute(&mut **tx)
+    .fetch_optional(&mut **tx)
     .await?;
 
-    if result.rows_affected() == 0 {
-        return Ok(());
+    if disabled_at.is_some() {
+        info!(
+            "Health monitor: disabled subscription {}",
+            sub.subscription__id
+        );
     }
 
-    info!(
-        "Health monitor: disabled subscription {}",
-        sub.subscription__id
-    );
-
-    // Best-effort email
-    send_email_best_effort(mailer, tx, sub, EmailKind::Disabled, config).await;
-
-    // Best-effort Hook0 event
-    if let Some(client) = hook0_client {
-        let event = EventSubscriptionDisabled {
-            subscription: SubscriptionDisabledPayload {
-                subscription_id: sub.subscription__id,
-                organization_id: sub.organization__id,
-                application_id: sub.application__id,
-                description: sub.description.clone(),
-                target: sub.target_url.clone(),
-                disabled_at: Utc::now(),
-            },
-            retry_schedule: sub.retry_schedule__id.map(|id| RetrySchedulePayload {
-                retry_schedule_id: id,
-                name: sub.retry_schedule_name.clone().unwrap_or_default(),
-                strategy: sub.retry_strategy.clone().unwrap_or_default(),
-                max_retries: sub.retry_max_retries.unwrap_or(0),
-                custom_intervals: sub.retry_custom_intervals.clone(),
-                linear_delay: sub.retry_linear_delay,
-            }),
-        };
-        let hook0_event: Hook0ClientEvent = event.into();
-        if let Err(e) = client.send_event(&hook0_event.mk_hook0_event()).await {
-            warn!("Health monitor: failed to send subscription.disabled Hook0 event: {e}");
-        }
-    }
-
-    Ok(())
+    Ok(disabled_at)
 }
 
 async fn send_email_best_effort(
     mailer: &Mailer,
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    sub: &SubscriptionHealth,
+    db: &PgPool,
+    info: &HealthActionInfo,
     kind: EmailKind,
     config: &HealthMonitorConfig,
 ) {
-    let description = sub
+    let description = info
         .description
         .clone()
-        .unwrap_or_else(|| sub.subscription__id.to_string());
-    let app_name = sub
+        .unwrap_or_else(|| info.subscription_id.to_string());
+    let app_name = info
         .application_name
         .clone()
-        .unwrap_or_else(|| sub.application__id.to_string());
-    let evaluation_window = format!("{}h", config.time_window.as_secs() / 3600);
+        .unwrap_or_else(|| info.application_id.to_string());
+    let evaluation_window = humantime::format_duration(config.time_window).to_string();
 
     let mail = match kind {
         EmailKind::Warning => Mail::SubscriptionWarning {
             application_name: app_name,
             subscription_description: description,
-            subscription_id: sub.subscription__id,
-            target_url: sub.target_url.clone(),
-            failure_percent: sub.failure_percent,
+            subscription_id: info.subscription_id,
+            target_url: info.target_url.clone(),
+            failure_percent: info.failure_percent,
             evaluation_window,
         },
         EmailKind::Disabled => Mail::SubscriptionDisabled {
             application_name: app_name,
             subscription_description: description,
-            subscription_id: sub.subscription__id,
-            target_url: sub.target_url.clone(),
-            failure_percent: sub.failure_percent,
+            subscription_id: info.subscription_id,
+            target_url: info.target_url.clone(),
+            failure_percent: info.failure_percent,
             evaluation_window,
-            disabled_at: Utc::now().to_rfc3339(),
+            disabled_at: info
+                .disabled_at
+                .unwrap_or_else(Utc::now)
+                .to_rfc3339(),
         },
         EmailKind::Recovered => Mail::SubscriptionRecovered {
             application_name: app_name,
             subscription_description: description,
-            subscription_id: sub.subscription__id,
-            target_url: sub.target_url.clone(),
+            subscription_id: info.subscription_id,
+            target_url: info.target_url.clone(),
         },
     };
 
@@ -438,15 +503,15 @@ async fn send_email_best_effort(
         WHERE ou.organization__id = $1
         "#,
     )
-    .bind(sub.organization__id)
-    .fetch_all(&mut **tx)
+    .bind(info.organization_id)
+    .fetch_all(db)
     .await
     {
         Ok(users) => users,
         Err(e) => {
             warn!(
                 "Health monitor: failed to query org users for email (org {}): {e}",
-                sub.organization__id
+                info.organization_id
             );
             return;
         }
