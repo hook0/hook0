@@ -126,7 +126,7 @@ async fn test_reconnect_after_server_disconnect() {
 
     // Delete previous webhooks to avoid confusion
     let _ = client
-        .delete(&format!("{}/api/tokens/{}/webhooks", base_url, new_token))
+        .delete(format!("{}/api/tokens/{}/webhooks", base_url, new_token))
         .send()
         .await;
 
@@ -322,7 +322,7 @@ async fn test_reconnect_after_connection_drop() {
 
     // Delete previous webhooks
     let _ = client
-        .delete(&format!("{}/api/tokens/{}/webhooks", base_url, new_token))
+        .delete(format!("{}/api/tokens/{}/webhooks", base_url, new_token))
         .send()
         .await;
 
