@@ -19,8 +19,8 @@ const EventTypesNew = defineAsyncComponent(
 const SubscriptionsEdit = defineAsyncComponent(
   () => import('@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue')
 );
-const EventsList = defineAsyncComponent(
-  () => import('@/pages/organizations/applications/events/EventsList.vue')
+const EventsSend = defineAsyncComponent(
+  () => import('@/pages/organizations/applications/events/EventsSend.vue')
 );
 
 type Props = {
@@ -145,11 +145,7 @@ function handleFormDone() {
           :tutorial-mode="true"
           @tutorial-subscription-created="handleFormDone"
         />
-        <EventsList
-          v-else-if="step === 5"
-          :tutorial-mode="true"
-          @tutorial-event-sent="handleFormDone"
-        />
+        <EventsSend v-else-if="step === 5" :tutorial-mode="true" @event-sent="handleFormDone" />
       </Hook0Stack>
     </Hook0Stack>
   </WizardStepLayout>

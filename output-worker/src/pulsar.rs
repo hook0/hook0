@@ -80,11 +80,7 @@ pub async fn load_waiting_request_attempts_from_db(
                 e.event_type__name AS event_type_name,
                 e.payload,
                 e.payload_content_type,
-                s.secret,
-                rs.strategy AS retry_strategy,
-                rs.max_retries AS retry_max_retries,
-                rs.custom_intervals AS retry_custom_intervals,
-                rs.linear_delay AS retry_linear_delay
+                s.secret
             FROM webhook.request_attempt AS ra
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
             INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
@@ -92,7 +88,6 @@ pub async fn load_waiting_request_attempts_from_db(
             LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id
             INNER JOIN event.application AS a ON a.application__id = s.application__id
             LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
-            LEFT JOIN webhook.retry_schedule AS rs ON rs.retry_schedule__id = s.retry_schedule__id
             WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL
                 AND a.deleted_at IS NULL
                 AND COALESCE(sw.worker__id, ow.worker__id) = $1
@@ -399,68 +394,30 @@ async fn handle_message(
                 not_cancelled: bool,
                 not_done: bool,
                 delay_until: Option<DateTime<Utc>>,
-                retry_strategy: Option<String>,
-                retry_max_retries: Option<i32>,
-                retry_custom_intervals: Option<Vec<i32>>,
-                retry_linear_delay: Option<i32>,
             }
             let fetch_start = std::time::Instant::now();
-            let raw_status: Option<RawRequestAttemptStatus> = query_as!(
+            let request_attempt_status = match query_as!(
                 RawRequestAttemptStatus,
                 r#"
                     SELECT
                         (s.is_enabled AND a.deleted_at IS NULL) AS "not_cancelled!",
                         (ra.succeeded_at IS NULL AND ra.failed_at IS NULL) AS "not_done!",
-                        ra.delay_until,
-                        rs.strategy AS retry_strategy,
-                        rs.max_retries AS retry_max_retries,
-                        rs.custom_intervals AS retry_custom_intervals,
-                        rs.linear_delay AS retry_linear_delay
+                        ra.delay_until
                     FROM webhook.request_attempt AS ra
                     INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                     INNER JOIN event.application AS a ON a.application__id = s.application__id
                     INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
-                    LEFT JOIN webhook.retry_schedule AS rs ON rs.retry_schedule__id = s.retry_schedule__id
                     WHERE ra.request_attempt__id = $1
                 "#,
                 attempt.request_attempt_id,
             )
             .fetch_optional(pool)
-            .await?;
-
-            let schedule_config = raw_status.as_ref().and_then(|rs| {
-                use crate::ScheduleConfig;
-                use std::str::FromStr;
-                let strategy_str = rs.retry_strategy.as_ref()?;
-                let strategy = crate::RetryStrategy::from_str(strategy_str).ok()?;
-                let max_retries = rs.retry_max_retries?;
-                match strategy {
-                    crate::RetryStrategy::Exponential => Some(ScheduleConfig::Exponential { max_retries }),
-                    crate::RetryStrategy::Linear => {
-                        let delay_secs = rs.retry_linear_delay?;
-                        Some(ScheduleConfig::Linear { max_retries, delay_secs })
-                    }
-                    crate::RetryStrategy::Custom => {
-                        let intervals_secs = rs.retry_custom_intervals.clone()?;
-                        if intervals_secs.len() != usize::try_from(max_retries).unwrap_or(0) {
-                            warn!("Custom schedule intervals len {} != max_retries {}, falling back to default",
-                                intervals_secs.len(), max_retries);
-                            return None;
-                        }
-                        Some(ScheduleConfig::Custom { max_retries, intervals_secs })
-                    }
-                }
-            });
-            if schedule_config.is_none() && raw_status.as_ref().and_then(|rs| rs.retry_strategy.as_ref()).is_some() {
-                warn!("Unknown retry strategy {:?}, falling back to default", raw_status.as_ref().and_then(|rs| rs.retry_strategy.as_ref()));
-            }
-
-            let request_attempt_status = match raw_status {
+            .await?
+            {
                 Some(RawRequestAttemptStatus {
                     not_cancelled: true,
                     not_done: true,
                     delay_until: Some(d),
-                    ..
                 }) if d > (Utc::now() + DELAY_TOLERANCE) => RequestAttemptStatus::Delayed {
                     delay_until: d,
                     lead: d - Utc::now(),
@@ -469,7 +426,6 @@ async fn handle_message(
                     not_cancelled: true,
                     not_done: true,
                     delay_until,
-                    ..
                 }) => RequestAttemptStatus::Ready { delay_until },
                 Some(RawRequestAttemptStatus {
                     not_cancelled: true,
@@ -623,7 +579,7 @@ async fn handle_message(
 
                         // Creating a retry request or giving up
                         if let Some(retry_in) =
-                            compute_next_retry(&mut tx, &attempt, &response, config.max_retries, schedule_config.as_ref())
+                            compute_next_retry(&mut tx, &attempt, &response, config.max_retries)
                                 .await?
                         {
                             let next_retry_count = attempt.retry_count + 1;

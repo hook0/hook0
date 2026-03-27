@@ -42,6 +42,7 @@ test.describe("Logs", () => {
     page,
     request,
   }) => {
+    test.slow(); // This test creates event type + subscription + sends event + navigates multiple pages
     const env = await loginAndCreateApp(page, request, "event-link");
 
     // Create an event type
@@ -110,6 +111,7 @@ test.describe("Logs", () => {
     );
     await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-test="events-send-button"]').click();
+    await page.waitForURL('**/events/send');
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
     await page
       .locator('[data-test="send-event-type-select"]')
@@ -147,6 +149,9 @@ test.describe("Logs", () => {
     await page.locator('[data-test="send-event-submit-button"]').click();
     await sendEventResponse;
 
+    // After send, page navigates to event detail — wait for it before navigating away
+    await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
+
     // Navigate to logs and wait for data
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
@@ -181,6 +186,7 @@ test.describe("Logs", () => {
     page,
     request,
   }) => {
+    test.slow(); // This test creates event type + subscription + sends event + navigates multiple pages
     const env = await loginAndCreateApp(page, request, "with-logs");
 
     // Create an event type
@@ -264,6 +270,7 @@ test.describe("Logs", () => {
     );
     await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-test="events-send-button"]').click();
+    await page.waitForURL('**/events/send');
 
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
     await page
@@ -301,6 +308,9 @@ test.describe("Logs", () => {
     );
     await page.locator('[data-test="send-event-submit-button"]').click();
     await sendEventResponse;
+
+    // After send, page navigates to event detail — wait for it before navigating away
+    await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
 
     // Navigate to logs page and poll for data to appear (webhook processing takes time)
     await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/logs`);

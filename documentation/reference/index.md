@@ -12,6 +12,7 @@ Technical specifications for Hook0. Use this reference when you need exact detai
 | Understand an error | [Error Codes](error-codes.md) |
 | Define event payloads | [Event Schemas](event-schemas.md) |
 | Use AI assistants | [MCP Server](mcp.md) |
+| Use the CLI | [CLI Reference](cli.mdx) |
 
 ---
 
@@ -74,6 +75,20 @@ Complete list of HTTP status codes and Hook0-specific error codes with resolutio
 ### [MCP Server for AI Assistants](mcp.md)
 
 Control Hook0 using natural language with Claude, Cursor, Windsurf, or any MCP-compatible AI assistant.
+
+---
+
+## CLI
+
+### [CLI Reference](cli.mdx)
+
+Command-line interface for managing webhooks, forwarding events locally, and interacting with the Hook0 API.
+
+**Key capabilities:**
+- Forward webhooks to localhost via WebSocket tunnel (`hook0 listen`)
+- Send test events with an interactive TUI (`hook0 example`)
+- Manage events, subscriptions, and applications
+- Replay failed events with filtering
 
 ---
 

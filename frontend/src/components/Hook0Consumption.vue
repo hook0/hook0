@@ -59,11 +59,21 @@ const enrichedConsumptions = computed<EnrichedConsumption[]>(() => {
     </Hook0CardHeader>
     <Hook0CardContent>
       <div class="consumption">
-        <div
+        <component
+          :is="quota.to ? 'router-link' : 'div'"
           v-for="(quota, index) in enrichedConsumptions"
           :key="quota.name"
+          v-bind="quota.to ? { to: quota.to } : {}"
           class="consumption__row"
-          :class="{ 'consumption__row--bordered': index > 0 }"
+          :class="{
+            'consumption__row--bordered': index > 0,
+            'consumption__row--clickable': !!quota.to || !!quota.onClick,
+          }"
+          :tabindex="quota.onClick ? 0 : undefined"
+          :role="quota.onClick ? 'button' : undefined"
+          @click="quota.onClick?.()"
+          @keydown.enter="quota.onClick?.()"
+          @keydown.space.prevent="quota.onClick?.()"
         >
           <div class="consumption__label">
             <span class="consumption__name">
@@ -116,7 +126,7 @@ const enrichedConsumptions = computed<EnrichedConsumption[]>(() => {
               />
             </div>
           </div>
-        </div>
+        </component>
       </div>
     </Hook0CardContent>
   </Hook0Card>
@@ -137,6 +147,23 @@ const enrichedConsumptions = computed<EnrichedConsumption[]>(() => {
 
 .consumption__row--bordered {
   border-top: 1px solid var(--color-border);
+}
+
+.consumption__row--clickable {
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.15s ease;
+}
+
+.consumption__row--clickable:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.consumption__row--clickable:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 @media (min-width: 640px) {

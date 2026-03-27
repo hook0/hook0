@@ -66,10 +66,6 @@ pub struct CreateArgs {
 
 #[derive(Args, Debug)]
 pub struct ListArgs {
-    /// Filter by label (key=value, can be repeated)
-    #[arg(long, short = 'l', value_parser = parse_label)]
-    pub label: Vec<(String, String)>,
-
     /// Show only enabled subscriptions
     #[arg(long)]
     pub enabled: bool,
@@ -212,7 +208,7 @@ async fn create(cli: &Cli, args: &CreateArgs) -> Result<()> {
 async fn list(cli: &Cli, args: &ListArgs) -> Result<()> {
     let (client, _, profile) = require_auth(cli)?;
 
-    let labels: HashMap<String, String> = args.label.iter().cloned().collect();
+    let labels = HashMap::new();
     let mut subscriptions = client
         .list_subscriptions(&profile.application_id, &labels)
         .await?;

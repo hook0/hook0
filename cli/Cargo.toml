@@ -18,11 +18,11 @@ heck = "0.5"
 
 [dependencies]
 # CLI Framework
-clap = { version = "4.5", features = ["derive", "env", "wrap_help"] }
-clap_complete = "4.5"
+clap = { version = "4.6", features = ["derive", "env", "wrap_help"] }
+clap_complete = "4.6"
 
 # Async Runtime
-tokio = { version = "1.35", features = ["full"] }
+tokio = { version = "1.50", features = ["full"] }
 
 # HTTP Client
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
@@ -41,7 +41,7 @@ toml = "0.8"
 base64 = "0.22"
 
 # Output formatting
-comfy-table = "7.1"
+comfy-table = "7.2"
 console = "0.15"
 indicatif = "0.17"
 
@@ -64,10 +64,10 @@ anyhow = "1.0"
 
 # Utilities
 chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1.10", features = ["v4", "serde"] }
+uuid = { version = "1.22", features = ["v4", "serde"] }
 url = "2.5"
 dialoguer = "0.11"
-webbrowser = "1.0"
+webbrowser = "1.2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 atty = "0.2"
@@ -77,14 +77,15 @@ default = ["tui"]
 tui = ["dep:ratatui", "dep:crossterm", "dep:axum", "dep:portpicker"]
 
 [dev-dependencies]
-tempfile = "3.10"
+tempfile = "3.27"
 wiremock = "0.6"
 tokio-test = "0.4"
-assert_cmd = "2.0"
+assert_cmd = "2.2"
 predicates = "3.1"
 hook0-play = { path = "../play" }
 portpicker = "0.1"
 axum = { version = "0.8", features = ["macros"] }
+clap-markdown = "0.1.5"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3.6", features = ["apple-native"] }
