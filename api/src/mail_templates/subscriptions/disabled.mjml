@@ -1,0 +1,71 @@
+<mjml>
+    <mj-head>
+        <mj-title>Subscription Disabled</mj-title>
+        <mj-style inline="inline">
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+                background-color: #f9f9f9;
+                font-family: Arial, sans-serif;
+            }
+            h1, h2 {
+                color: #333333;
+            }
+            h1 {
+                font-size: 26px;
+                margin-bottom: 10px;
+            }
+            h2 {
+                font-size: 20px;
+                margin-top: 20px;
+                margin-bottom: 10px;
+            }
+            p {
+                font-size: 16px;
+                line-height: 1.5;
+                color: #555555;
+            }
+            .button {
+                background-color: #f45e43;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 5px;
+                font-size: 16px;
+                cursor: pointer;
+                text-decoration: none;
+                display: inline-block;
+                margin-top: 20px;
+                color: white;
+            }
+            .small {
+                font-size: 12px;
+                color: #888888;
+            }
+        </mj-style>
+    </mj-head>
+    <mj-body>
+        <mj-section background-color="#ffffff" padding="20px" border-radius="8px" box-shadow="0 0 10px rgba(0, 0, 0, 0.1)">
+            <mj-column>
+                <mj-image src="{ $logo_url }" alt="Hook0" width="120px" />
+                <mj-text align="center">
+                    <h1>Subscription Disabled</h1>
+                    <p>Your subscription <strong>{ $subscription_description }</strong> in application <strong>{ $application_name }</strong> has been automatically disabled due to persistent delivery failures.</p>
+                </mj-text>
+                <mj-text align="center">
+                    <h2>Details:</h2>
+                    <p>Subscription ID: <strong>{ $subscription_id }</strong></p>
+                    <p>Target URL: <strong>{ $target_url }</strong></p>
+                    <p>Failure rate: <strong>{ $failure_percent }%</strong> over the last <strong>{ $evaluation_window }</strong></p>
+                    <p>Disabled at: <strong>{ $disabled_at }</strong></p>
+                </mj-text>
+                <mj-text align="center">
+                    <p>To re-activate this subscription, ensure your target endpoint is reachable and responding correctly, then re-enable it via the API with a PUT request setting <strong>is_enabled: true</strong>.</p>
+                </mj-text>
+                <mj-text align="center">
+                    <p class="small">Questions? Reach out to our support team at <a href="mailto:{ $support_email_address }">{ $support_email_address }</a>.</p>
+                </mj-text>
+            </mj-column>
+        </mj-section>
+    </mj-body>
+</mjml>
