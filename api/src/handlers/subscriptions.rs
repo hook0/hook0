@@ -1017,6 +1017,20 @@ pub async fn edit(
                 report_cancelled_request_attempts(cancelled_request_attempts);
             }
 
+            let auto_disabled_at: Option<DateTime<Utc>> = sqlx::query_scalar(
+                r#"
+                SELECT she.created_at AS auto_disabled_at
+                FROM webhook.subscription_health_event she
+                WHERE she.subscription__id = $1 AND she.status = 'disabled'
+                ORDER BY she.created_at DESC
+                LIMIT 1
+                "#,
+            )
+            .bind(s.subscription__id)
+            .fetch_optional(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?;
+
             let labels: HashMap<String, String> =
                 serde_json::from_value(s.labels).unwrap_or_else(|_| HashMap::new());
             let first_label = labels
@@ -1038,7 +1052,7 @@ pub async fn edit(
                 labels,
                 target: body.target.clone(),
                 retry_schedule_id: s.retry_schedule__id,
-                auto_disabled_at: None,
+                auto_disabled_at,
                 created_at: s.created_at,
                 updated_at: s.updated_at,
                 dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),

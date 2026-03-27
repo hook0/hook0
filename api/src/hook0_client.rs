@@ -192,7 +192,9 @@ impl Hook0ClientEvent {
             Self::RetryScheduleCreated(e) => to_event(e, None),
             Self::RetryScheduleUpdated(e) => to_event(e, None),
             Self::RetryScheduleRemoved(e) => to_event(e, None),
-            Self::SubscriptionDisabled(e) => to_event(e, None),
+            Self::SubscriptionDisabled(ref e) => {
+                to_event(e.clone(), Some(e.subscription.disabled_at))
+            }
         }
     }
 }
@@ -949,6 +951,7 @@ impl Event for EventSubscriptionDisabled {
 
     fn labels(&self) -> Vec<(String, String)> {
         vec![
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
             (
                 ORGANIZATION_LABEL.to_owned(),
                 self.subscription.organization_id.to_string(),
