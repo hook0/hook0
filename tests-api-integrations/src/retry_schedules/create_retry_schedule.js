@@ -188,7 +188,7 @@ export default function (baseUrl, service_token, organization_id) {
 
   const schedule = JSON.parse(res.body);
 
-  // --- Valid: linear schedule (verify variant works) ---
+  // --- Valid: linear schedule (verify variant works, then delete) ---
   res = http.post(
     url,
     JSON.stringify({
@@ -203,8 +203,16 @@ export default function (baseUrl, service_token, organization_id) {
   check(res, {
     'Create linear schedule returns 201': (r) => r.status === 201,
   });
+  if (res.status === 201) {
+    const linear_id = JSON.parse(res.body).retry_schedule_id;
+    http.del(
+      `${baseUrl}api/v1/retry_schedules/${linear_id}?organization_id=${organization_id}`,
+      null,
+      params
+    );
+  }
 
-  // --- Valid: custom schedule (verify variant works) ---
+  // --- Valid: custom schedule (verify variant works, then delete) ---
   res = http.post(
     url,
     JSON.stringify({
@@ -219,6 +227,14 @@ export default function (baseUrl, service_token, organization_id) {
   check(res, {
     'Create custom schedule returns 201': (r) => r.status === 201,
   });
+  if (res.status === 201) {
+    const custom_id = JSON.parse(res.body).retry_schedule_id;
+    http.del(
+      `${baseUrl}api/v1/retry_schedules/${custom_id}?organization_id=${organization_id}`,
+      null,
+      params
+    );
+  }
 
   // --- Invalid: duplicate name same org ---
   res = http.post(

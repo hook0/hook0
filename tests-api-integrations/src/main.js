@@ -17,6 +17,7 @@ import get_retry_schedule from './retry_schedules/get_retry_schedule.js';
 import update_retry_schedule from './retry_schedules/update_retry_schedule.js';
 import delete_retry_schedule from './retry_schedules/delete_retry_schedule.js';
 import assign_to_subscription from './retry_schedules/assign_to_subscription.js';
+import delete_all_retry_schedules from './retry_schedules/delete_all_retry_schedules.js';
 import reactivation_tests from './health_monitor/reactivation_tests.js';
 import {
   test_b1_failure_disables_subscription,
@@ -170,18 +171,11 @@ function scenario_1() {
       throw new Error('Failed to verify environment_variables response');
     }
 
-    if (application_id && !config.keepTestApplication) {
-      // TODO: wait for the request attempts to be successful instead of waiting 3s
-      setTimeout(() => {
-        delete_application(h, application_id, s);
-      }, 3000);
-    }
-  } catch (error) {
-    console.error(error.message);
+    console.log('✓ Basic workflow test passed');
+  } finally {
     if (application_id && !config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
-    throw error;
   }
 }
 
@@ -280,16 +274,10 @@ function scenario_subscription_deletion() {
     console.log(
       `✓ Subscription deletion test passed: ${failed_attempts.length} attempts marked as failed`
     );
-
+  } finally {
     if (application_id && !config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
-  } catch (error) {
-    console.error('Subscription deletion test failed:', error.message);
-    if (application_id && !config.keepTestApplication) {
-      delete_application(h, application_id, s);
-    }
-    throw error;
   }
 }
 
@@ -413,16 +401,10 @@ function scenario_subscription_disable() {
     console.log(
       `✓ Subscription disable test passed: ${failed_attempts.length} attempts marked as failed`
     );
-
+  } finally {
     if (application_id && !config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
-  } catch (error) {
-    console.error('Subscription disable test failed:', error.message);
-    if (application_id && !config.keepTestApplication) {
-      delete_application(h, application_id, s);
-    }
-    throw error;
   }
 }
 
@@ -431,7 +413,11 @@ function scenario_retry_schedules() {
   const s = config.serviceToken;
   const o = config.organizationId;
 
+  // Safety net: delete any leftover schedules from previous runs
+  delete_all_retry_schedules(h, s, o);
+
   let application_id = null;
+  const created_schedule_ids = [];
 
   try {
     // 1. Setup — create an application and subscription to test against
@@ -457,11 +443,13 @@ function scenario_retry_schedules() {
     if (!isNotNull(schedule_1)) {
       throw new Error('Failed to create retry schedule 1');
     }
+    created_schedule_ids.push(schedule_1.retry_schedule_id);
 
     const schedule_2 = create_retry_schedule(h, s, o);
     if (!isNotNull(schedule_2)) {
       throw new Error('Failed to create retry schedule 2');
     }
+    created_schedule_ids.push(schedule_2.retry_schedule_id);
 
     // 3. List retry schedules
     const schedules = list_retry_schedules(h, s, o);
@@ -495,16 +483,18 @@ function scenario_retry_schedules() {
     }
 
     console.log('✓ Retry schedules test passed');
-
+  } finally {
+    // Clean up all tracked schedules (ignore errors for already-deleted ones)
+    for (const sid of created_schedule_ids) {
+      try {
+        delete_retry_schedule(h, s, o, sid);
+      } catch (_) {
+        // Schedule may already be deleted by the test — that's fine
+      }
+    }
     if (application_id && !config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
-  } catch (error) {
-    console.error('Retry schedules test failed:', error.message);
-    if (application_id && !config.keepTestApplication) {
-      delete_application(h, application_id, s);
-    }
-    throw error;
   }
 }
 
@@ -532,16 +522,10 @@ function scenario_retry_schedule_subscription_assignment() {
     }
 
     console.log('✓ Retry schedule subscription assignment scenario passed');
-
+  } finally {
     if (application_id && !config.keepTestApplication) {
       delete_application(h, application_id, s);
     }
-  } catch (error) {
-    console.error('Retry schedule subscription assignment test failed:', error.message);
-    if (application_id && !config.keepTestApplication) {
-      delete_application(h, application_id, s);
-    }
-    throw error;
   }
 }
 

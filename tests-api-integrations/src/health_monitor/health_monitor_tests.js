@@ -122,7 +122,7 @@ export function test_b1_failure_disables_subscription(config) {
     const disabled = wait_for_condition(() => {
       const sub = get_subscription(h, s, sub_id, ctx.application_id);
       return sub && sub.is_enabled === false;
-    }, 60000, 3000);
+    }, 30000, 2000);
 
     if (!disabled) {
       const sub = get_subscription(h, s, sub_id, ctx.application_id);
@@ -148,11 +148,8 @@ export function test_b1_failure_disables_subscription(config) {
     }
 
     console.log('B1 PASSED: 100% failure -> subscription auto-disabled with warning + disabled events');
+  } finally {
     cleanup(config, application_id);
-  } catch (error) {
-    console.error('B1 FAILED:', error.message);
-    cleanup(config, application_id);
-    throw error;
   }
 }
 
@@ -198,11 +195,8 @@ export function test_b2_success_stays_enabled(config) {
     }
 
     console.log('B2 PASSED: 100% success -> subscription stays enabled, no health events');
+  } finally {
     cleanup(config, application_id);
-  } catch (error) {
-    console.error('B2 FAILED:', error.message);
-    cleanup(config, application_id);
-    throw error;
   }
 }
 
@@ -233,7 +227,7 @@ export function test_b3_reenable_after_autodisable(config) {
     const disabled = wait_for_condition(() => {
       const sub = get_subscription(h, s, sub_id, ctx.application_id);
       return sub && sub.is_enabled === false;
-    }, 60000, 3000);
+    }, 30000, 2000);
 
     if (!disabled) {
       throw new Error('B3: subscription was not auto-disabled within timeout (prerequisite for re-enable test)');
@@ -266,20 +260,17 @@ export function test_b3_reenable_after_autodisable(config) {
       throw new Error('B3: Expected health events after re-enable');
     }
 
-    // Events are ordered by created_at; the last one should be resolved/user
-    const last_event = events[events.length - 1];
-    if (last_event.status !== 'resolved' || last_event.source !== 'user') {
+    // Events are ordered by created_at DESC; events[0] is the most recent
+    const latest_event = events[0];
+    if (latest_event.status !== 'resolved' || latest_event.source !== 'user') {
       throw new Error(
-        `B3: Expected last health event to be status=resolved source=user, got status=${last_event.status} source=${last_event.source}`
+        `B3: Expected latest health event to be status=resolved source=user, got status=${latest_event.status} source=${latest_event.source}`
       );
     }
 
     console.log('B3 PASSED: re-enable after auto-disable creates resolved/user health event');
+  } finally {
     cleanup(config, application_id);
-  } catch (error) {
-    console.error('B3 FAILED:', error.message);
-    cleanup(config, application_id);
-    throw error;
   }
 }
 
@@ -310,7 +301,7 @@ export function test_b4_full_lifecycle(config) {
     const disabled = wait_for_condition(() => {
       const sub = get_subscription(h, s, sub_id, ctx.application_id);
       return sub && sub.is_enabled === false;
-    }, 60000, 3000);
+    }, 30000, 2000);
 
     if (!disabled) {
       throw new Error('B4: subscription was not auto-disabled within timeout');
@@ -353,11 +344,8 @@ export function test_b4_full_lifecycle(config) {
     }
 
     console.log('B4 PASSED: full lifecycle healthy -> disabled -> re-enable -> healthy');
+  } finally {
     cleanup(config, application_id);
-  } catch (error) {
-    console.error('B4 FAILED:', error.message);
-    cleanup(config, application_id);
-    throw error;
   }
 }
 
@@ -416,11 +404,8 @@ export function test_c1_user_disabled_not_evaluated(config) {
     }
 
     console.log('C1 PASSED: user-disabled subscription not evaluated by cron');
+  } finally {
     cleanup(config, application_id);
-  } catch (error) {
-    console.error('C1 FAILED:', error.message);
-    cleanup(config, application_id);
-    throw error;
   }
 }
 
@@ -445,8 +430,9 @@ export function test_c2_below_min_sample_size(config) {
     application_id = ctx.application_id;
     const sub_id = ctx.subscription.subscription_id;
 
-    // Send only 2 events (below min_sample_size of 5)
-    send_n_events(s, h, ctx.application_id, ctx.event_type, { hm_test: 'c2' }, 2);
+    // Send only 1 event — with retries, this produces ~3 attempts in 15s,
+    // staying below min_sample_size of 5 (which counts attempts, not events)
+    send_n_events(s, h, ctx.application_id, ctx.event_type, { hm_test: 'c2' }, 1);
 
     // Wait for cron ticks
     sleep(15);
@@ -468,11 +454,8 @@ export function test_c2_below_min_sample_size(config) {
     }
 
     console.log('C2 PASSED: below min_sample_size -> no evaluation');
+  } finally {
     cleanup(config, application_id);
-  } catch (error) {
-    console.error('C2 FAILED:', error.message);
-    cleanup(config, application_id);
-    throw error;
   }
 }
 
@@ -534,7 +517,7 @@ export function test_c3_independent_evaluation(config) {
     const sub_a_disabled = wait_for_condition(() => {
       const sub = get_subscription(h, s, sub_a.subscription_id, application_id);
       return sub && sub.is_enabled === false;
-    }, 60000, 3000);
+    }, 30000, 2000);
 
     if (!sub_a_disabled) {
       throw new Error('C3: subscription A was not auto-disabled within timeout');
@@ -569,10 +552,7 @@ export function test_c3_independent_evaluation(config) {
     }
 
     console.log('C3 PASSED: subscriptions evaluated independently');
+  } finally {
     cleanup(config, application_id);
-  } catch (error) {
-    console.error('C3 FAILED:', error.message);
-    cleanup(config, application_id);
-    throw error;
   }
 }
