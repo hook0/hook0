@@ -44,7 +44,7 @@ function statusCodeClass(code: number | undefined | null): string {
 <template>
   <Hook0PageLayout :title="t('responses.detail')">
     <!-- Loading skeleton -->
-    <Hook0Card v-if="isLoading || !response">
+    <Hook0Card v-if="isLoading">
       <Hook0CardHeader>
         <template #header>{{ t('responses.detail') }}</template>
       </Hook0CardHeader>

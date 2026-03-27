@@ -165,12 +165,14 @@ test.describe("Response Detail", () => {
     // Poll until a response link appears
     const responseLink = await waitForResponseLink(page);
 
-    // The link should render a truncated UUID (contains the ellipsis character from Hook0Uuid)
+    // Extract the full response UUID from the link href
+    const href = await responseLink.getAttribute("href");
+    const fullId = href!.split("/responses/")[1].split("?")[0];
+
+    // Hook0Uuid truncates to 20 chars: first 9 + \u2026 + last 10
+    const expectedText = `${fullId.slice(0, 9)}\u2026${fullId.slice(-10)}`;
     const linkText = await responseLink.textContent();
-    expect(linkText).toBeTruthy();
-    expect(linkText!.length).toBeGreaterThan(0);
-    // Hook0Uuid with truncated=true renders middle-truncated text with \u2026 (…)
-    expect(linkText).toContain("\u2026");
+    expect(linkText!.trim()).toBe(expectedText);
   });
 
   test("should navigate to response detail page when clicking response ID", async ({ page, request }) => {
