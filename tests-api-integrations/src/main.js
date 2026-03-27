@@ -11,6 +11,12 @@ import query_request_attempts from './database/query_request_attempts.js';
 import delete_application from './applications/delete_application.js';
 import get_quota from './unauthentified/quotas.js';
 import get_environment_variables from './unauthentified/environment_variables.js';
+import create_retry_schedule from './retry_schedules/create_retry_schedule.js';
+import list_retry_schedules from './retry_schedules/list_retry_schedules.js';
+import get_retry_schedule from './retry_schedules/get_retry_schedule.js';
+import update_retry_schedule from './retry_schedules/update_retry_schedule.js';
+import delete_retry_schedule from './retry_schedules/delete_retry_schedule.js';
+import assign_to_subscription from './retry_schedules/assign_to_subscription.js';
 
 export const config = getEnvironmentVariables();
 
@@ -410,8 +416,103 @@ function scenario_subscription_disable() {
   }
 }
 
+function scenario_retry_schedules() {
+  const h = config.apiOrigin;
+  const s = config.serviceToken;
+  const o = config.organizationId;
+
+  let application_id = null;
+
+  try {
+    // 1. Setup — create an application and subscription to test against
+    application_id = create_application(h, o, s);
+    if (!isNotNull(application_id)) {
+      throw new Error('Failed to create application');
+    }
+
+    const event_type = create_event_type(h, s, application_id);
+    if (!isNotNull(event_type)) {
+      throw new Error('Failed to create event type');
+    }
+
+    const subscription = create_subscription(h, s, application_id, [event_type], config.targetUrl, {
+      test_label: 'test_value',
+    });
+    if (!isNotNull(subscription)) {
+      throw new Error('Failed to create subscription');
+    }
+
+    // 2. Create retry schedules
+    const schedule_1 = create_retry_schedule(h, s, application_id);
+    if (!isNotNull(schedule_1)) {
+      throw new Error('Failed to create retry schedule 1');
+    }
+
+    const schedule_2 = create_retry_schedule(h, s, application_id);
+    if (!isNotNull(schedule_2)) {
+      throw new Error('Failed to create retry schedule 2');
+    }
+
+    // 3. List retry schedules
+    const schedules = list_retry_schedules(h, s, application_id);
+    if (!isNotNull(schedules) || schedules.length < 2) {
+      throw new Error(
+        'Expected at least 2 retry schedules | Found: ' + (schedules ? schedules.length : 0)
+      );
+    }
+
+    // 4. Get individual retry schedules
+    const fetched_1 = get_retry_schedule(h, s, application_id, schedule_1.retry_schedule_id);
+    if (!isNotNull(fetched_1)) {
+      throw new Error('Failed to get retry schedule 1');
+    }
+
+    const fetched_2 = get_retry_schedule(h, s, application_id, schedule_2.retry_schedule_id);
+    if (!isNotNull(fetched_2)) {
+      throw new Error('Failed to get retry schedule 2');
+    }
+
+    // 5. Update retry schedule
+    const updated = update_retry_schedule(h, s, application_id, schedule_1.retry_schedule_id);
+    if (!isNotNull(updated)) {
+      throw new Error('Failed to update retry schedule 1');
+    }
+
+    // 6. Assign retry schedule to subscription
+    const assigned = assign_to_subscription(
+      h,
+      s,
+      application_id,
+      subscription.subscription_id,
+      schedule_1.retry_schedule_id
+    );
+    if (!isNotNull(assigned)) {
+      throw new Error('Failed to assign retry schedule to subscription');
+    }
+
+    // 7. Delete retry schedules (delete schedule_2 which is not assigned)
+    const deleted = delete_retry_schedule(h, s, application_id, schedule_2.retry_schedule_id);
+    if (!isNotNull(deleted)) {
+      throw new Error('Failed to delete retry schedule 2');
+    }
+
+    console.log('✓ Retry schedules test passed');
+
+    if (application_id && !config.keepTestApplication) {
+      delete_application(h, application_id, s);
+    }
+  } catch (error) {
+    console.error('Retry schedules test failed:', error.message);
+    if (application_id && !config.keepTestApplication) {
+      delete_application(h, application_id, s);
+    }
+    throw error;
+  }
+}
+
 export default function () {
   scenario_1();
   scenario_subscription_deletion();
   scenario_subscription_disable();
+  scenario_retry_schedules();
 }
