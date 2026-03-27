@@ -30,6 +30,7 @@ use uuid::Uuid;
 mod cloudflare_turnstile;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
+mod health_monitor;
 mod handlers;
 mod hook0_client;
 mod iam;
