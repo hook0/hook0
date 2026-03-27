@@ -107,7 +107,10 @@ function createNew(event: MouseEvent) {
 }
 
 function closeDialog() {
-  void router.push({ name: routes.ServicesTokenList, params: { organization_id: organizationId.value } });
+  void router.push({
+    name: routes.ServicesTokenList,
+    params: { organization_id: organizationId.value },
+  });
 }
 
 function confirmCreate() {
