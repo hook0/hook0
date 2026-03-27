@@ -175,6 +175,7 @@
     "newEventType": "New event type",
     "newOrganization": "New organization",
     "newSubscription": "New subscription",
+    "responseDetail": "Response Detail",
     "selectApplication": "Select application",
     "selectOrganization": "Select organization",
     "serviceTokenDetail": "Token Details",
@@ -665,6 +666,19 @@
     "irreversibleWarning": "This action is irreversible and cannot be undone.",
     "organizationDeleted": "Organization deleted",
     "organizationDeletedMessage": "Organization \"{name}\" deleted."
+  },
+  "responses": {
+    "body": "Response Body",
+    "detail": "Response Detail",
+    "elapsedTime": "Elapsed Time",
+    "elapsedTimeMs": "{ms}ms",
+    "error": "Error",
+    "headers": "Response Headers",
+    "httpStatusCode": "HTTP Status Code",
+    "id": "Response ID",
+    "noBody": "No body content",
+    "noHeaders": "No headers",
+    "summary": "Response Summary"
   },
   "serviceTokens": {
     "addToConfig": "Add this to your {file}:",

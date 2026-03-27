@@ -78,6 +78,13 @@ export const instanceConfigKeys = {
   all: ['instanceConfig'] as const,
 };
 
+export const responseKeys = {
+  all: ['responses'] as const,
+  details: () => [...responseKeys.all, 'detail'] as const,
+  detail: (id: string, applicationId: string) =>
+    [...responseKeys.details(), id, applicationId] as const,
+};
+
 export const serviceTokenKeys = {
   all: ['serviceTokens'] as const,
   lists: () => [...serviceTokenKeys.all, 'list'] as const,
