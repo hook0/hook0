@@ -497,16 +497,7 @@ fn test_event_get_with_details() {
 
     // Get the event ID from list
     let output = cli(cfg.path())
-        .args([
-            "--profile",
-            &prof,
-            "--output",
-            "json",
-            "event",
-            "list",
-            "--limit",
-            "1",
-        ])
+        .args(["--profile", &prof, "--output", "json", "event", "list"])
         .output()
         .unwrap();
     let events: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
@@ -1408,105 +1399,9 @@ fn test_override_mode_requires_application_id() {
 // Event list filters: --until, --page, --status, --label combinations
 // =============================================================================
 
-#[test]
-fn test_event_list_all_filters() {
-    let cfg = tempfile::tempdir().unwrap();
-    let (secret, app_id, api_url) = credentials();
-    let prof = login(cfg.path(), &secret, &app_id, &api_url);
-    let t = tag();
-    let et = format!("{}.filt.created", t);
-
-    let _ = cli(cfg.path())
-        .args(["--profile", &prof, "event-type", "create", &et])
-        .output();
-
-    // Send a few events with different labels
-    for label in &["region=us", "region=eu", "region=ap"] {
-        cli(cfg.path())
-            .args(["--profile", &prof, "event", "send", &et, "-l", label])
-            .assert()
-            .success();
-    }
-
-    // --until
-    cli(cfg.path())
-        .args(["--profile", &prof, "event", "list", "--until", "0s"])
-        .assert()
-        .success();
-
-    // --since + --until combined
-    cli(cfg.path())
-        .args([
-            "--profile",
-            &prof,
-            "event",
-            "list",
-            "--since",
-            "1h",
-            "--until",
-            "0s",
-        ])
-        .assert()
-        .success();
-
-    // --page
-    cli(cfg.path())
-        .args([
-            "--profile",
-            &prof,
-            "event",
-            "list",
-            "--page",
-            "1",
-            "--limit",
-            "1",
-        ])
-        .assert()
-        .success();
-
-    cli(cfg.path())
-        .args([
-            "--profile",
-            &prof,
-            "event",
-            "list",
-            "--page",
-            "2",
-            "--limit",
-            "1",
-        ])
-        .assert()
-        .success();
-
-    // --label filter (verify command succeeds, API may or may not filter)
-    cli(cfg.path())
-        .args(["--profile", &prof, "event", "list", "-l", "region=us"])
-        .assert()
-        .success();
-
-    // --event-type filter (json, verify parseable)
-    let output = cli(cfg.path())
-        .args([
-            "--profile",
-            &prof,
-            "--output",
-            "json",
-            "event",
-            "list",
-            "--event-type",
-            &et,
-        ])
-        .output()
-        .unwrap();
-    assert!(output.status.success());
-    let _: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout)
-        .expect("filtered event list should be valid JSON array");
-
-    let _ = cli(cfg.path())
-        .args(["--profile", &prof, "event-type", "delete", &et, "--yes"])
-        .output();
-    cleanup(cfg.path(), &prof);
-}
+// test_event_list_all_filters removed: event list filters (--until, --since,
+// --page, --limit, --label, --event-type) were removed because the API does
+// not support them (query params are silently ignored server-side).
 
 // =============================================================================
 // Subscription list --label filter
@@ -1571,23 +1466,7 @@ fn test_subscription_list_label_filter() {
     let all: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
     assert!(all.len() >= 2);
 
-    // List with --label team=alpha (verify command succeeds and returns JSON)
-    let output = cli(cfg.path())
-        .args([
-            "--profile",
-            &prof,
-            "--output",
-            "json",
-            "subscription",
-            "list",
-            "-l",
-            "team=alpha",
-        ])
-        .output()
-        .unwrap();
-    assert!(output.status.success());
-    let _: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout)
-        .expect("label-filtered subscription list should be valid JSON");
+    // Note: --label filter was removed from subscription list (API ignores it server-side)
 
     // Cleanup — only delete subs owned by this test (matching team label)
     for sub in &all {
@@ -1697,16 +1576,7 @@ fn test_replay_real() {
 
     // Get event ID
     let output = cli(cfg.path())
-        .args([
-            "--profile",
-            &prof,
-            "--output",
-            "json",
-            "event",
-            "list",
-            "--limit",
-            "1",
-        ])
+        .args(["--profile", &prof, "--output", "json", "event", "list"])
         .output()
         .unwrap();
     let events: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
