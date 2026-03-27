@@ -77,12 +77,61 @@ export const options = {
       maxDuration: '2m',
       exec: 'scenario_health_monitor_reactivation',
     },
-    health_monitor: {
+    health_monitor_b1: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_b1',
+    },
+    health_monitor_b2: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_b2',
+    },
+    health_monitor_b3: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_b3',
+    },
+    health_monitor_b4: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_b4',
+    },
+    health_monitor_b5: {
       executor: 'shared-iterations',
       vus: 1,
       iterations: 1,
       maxDuration: '3m',
-      exec: 'scenario_health_monitor',
+      exec: 'scenario_b5',
+    },
+    health_monitor_c1: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_c1',
+    },
+    health_monitor_c2: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_c2',
+    },
+    health_monitor_c3: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_c3',
     },
   },
   thresholds: {
@@ -587,13 +636,11 @@ export function scenario_health_monitor_reactivation() {
   reactivation_tests(h, s, o, config.targetUrl);
 }
 
-export function scenario_health_monitor() {
-  test_b1_failure_disables_subscription(config);
-  test_b2_success_stays_enabled(config);
-  test_b3_reenable_after_autodisable(config);
-  test_b4_full_lifecycle(config);
-  test_b5_adaptive_windowing(config);
-  test_c1_user_disabled_not_evaluated(config);
-  test_c2_below_min_sample_size(config);
-  test_c3_independent_evaluation(config);
-}
+export function scenario_b1() { test_b1_failure_disables_subscription(config); }
+export function scenario_b2() { test_b2_success_stays_enabled(config); }
+export function scenario_b3() { test_b3_reenable_after_autodisable(config); }
+export function scenario_b4() { test_b4_full_lifecycle(config); }
+export function scenario_b5() { test_b5_adaptive_windowing(config); }
+export function scenario_c1() { test_c1_user_disabled_not_evaluated(config); }
+export function scenario_c2() { test_c2_below_min_sample_size(config); }
+export function scenario_c3() { test_c3_independent_evaluation(config); }
