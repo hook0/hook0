@@ -114,6 +114,7 @@ struct SubscriptionHealth {
     total: i64,
     last_health_status: Option<String>,
     last_health_at: Option<DateTime<Utc>>,
+    last_health_source: Option<String>,
     last_health_user_id: Option<Uuid>,
     retry_schedule__id: Option<Uuid>,
     retry_schedule_name: Option<String>,
@@ -180,6 +181,7 @@ async fn evaluate_subscriptions(
             w.total,
             lh.status as last_health_status,
             lh.created_at as last_health_at,
+            lh.source as last_health_source,
             lh.user__id as last_health_user_id,
             s.retry_schedule__id,
             rs.name as retry_schedule_name,
@@ -191,7 +193,7 @@ async fn evaluate_subscriptions(
         inner join webhook.subscription s using (subscription__id)
         inner join event.application app on app.application__id = s.application__id
         left join lateral (
-            select she.status, she.created_at, she.user__id
+            select she.status, she.created_at, she.source, she.user__id
             from webhook.subscription_health_event she
             where she.subscription__id = w.subscription__id
             order by she.created_at desc
@@ -362,12 +364,10 @@ async fn process_subscription(
         Some("warning") if ratio >= warning_pct && ratio < disable_pct => {}
 
         Some("warning") if ratio < warning_pct => {
-            // Skip recovery email if the last event was a manual user action —
-            // the user already re-enabled and knows about it.
-            if sub.last_health_user_id.is_some() {
-                insert_health_event(tx, sub.subscription__id, "resolved", None).await?;
-            } else {
-                insert_health_event(tx, sub.subscription__id, "resolved", None).await?;
+            // Skip recovery email if the last event was a manual user action (re-enable via API) —
+            // the user already knows about it. Only send recovery email for system-originated events.
+            insert_health_event(tx, sub.subscription__id, "resolved", "system", None).await?;
+            if sub.last_health_source.as_deref() != Some("user") {
                 actions.push(HealthAction::Recovered(HealthActionInfo::from_sub(sub, None)));
             }
         }
@@ -380,7 +380,7 @@ async fn process_subscription(
         }
 
         _ if ratio >= disable_pct => {
-            insert_health_event(tx, sub.subscription__id, "warning", None).await?;
+            insert_health_event(tx, sub.subscription__id, "warning", "system", None).await?;
             actions.push(HealthAction::Warning(HealthActionInfo::from_sub(sub, None)));
             let disabled_at = disable_subscription(tx, sub).await?;
             if let Some(at) = disabled_at {
@@ -389,7 +389,7 @@ async fn process_subscription(
         }
 
         _ if ratio >= warning_pct => {
-            insert_health_event(tx, sub.subscription__id, "warning", None).await?;
+            insert_health_event(tx, sub.subscription__id, "warning", "system", None).await?;
             actions.push(HealthAction::Warning(HealthActionInfo::from_sub(sub, None)));
         }
 
@@ -399,18 +399,21 @@ async fn process_subscription(
     Ok(actions)
 }
 
-/// user_id: None = automatic (system/health monitor), Some = manual action by this user
+/// source: "system" = automatic (health monitor), "user" = manual (API PUT).
+/// When source is "user" and user_id is None, the action was via a service token.
 async fn insert_health_event(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     subscription_id: Uuid,
     status: &str,
+    source: &str,
     user_id: Option<Uuid>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "INSERT INTO webhook.subscription_health_event (subscription__id, status, user__id) VALUES ($1, $2, $3)",
+        "INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id) VALUES ($1, $2, $3, $4)",
     )
     .bind(subscription_id)
     .bind(status)
+    .bind(source)
     .bind(user_id)
     .execute(&mut **tx)
     .await?;
@@ -432,8 +435,8 @@ async fn disable_subscription(
             RETURNING subscription__id
         ),
         inserted AS (
-            INSERT INTO webhook.subscription_health_event (subscription__id, status, user__id)
-            SELECT subscription__id, 'disabled', NULL FROM updated
+            INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id)
+            SELECT subscription__id, 'disabled', 'system', NULL FROM updated
             RETURNING created_at
         )
         SELECT created_at FROM inserted

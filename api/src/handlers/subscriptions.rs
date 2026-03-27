@@ -963,7 +963,7 @@ pub async fn edit(
             // Insert a 'resolved' health event when re-enabling a subscription
             if body.is_enabled && previous_is_enabled == Some(false) {
                 query(
-                    "INSERT INTO webhook.subscription_health_event (subscription__id, status, user__id) VALUES ($1, 'resolved', $2)"
+                    "INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id) VALUES ($1, 'resolved', 'user', $2)"
                 )
                 .bind(&s.subscription__id)
                 .bind(auth_user_id)
