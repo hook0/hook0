@@ -62,7 +62,7 @@ pub async fn run_health_monitor(
 }
 
 #[derive(Debug, sqlx::FromRow)]
-#[allow(non_snake_case)]
+#[allow(non_snake_case, dead_code)]
 struct SubscriptionHealth {
     subscription__id: Uuid,
     application__id: Uuid,
