@@ -587,10 +587,7 @@ export function scenario_health_monitor_reactivation() {
   reactivation_tests(h, s, o, config.targetUrl);
 }
 
-// NOTE: Health monitor e2e tests (Groups B+C) require waiting for cron cycles
-// and delivery attempts. The default maxDuration of 1m may not be sufficient.
-// Consider setting MAX_DURATION=5m when running with health monitor tests enabled.
-function scenario_health_monitor() {
+export function scenario_health_monitor() {
   test_b1_failure_disables_subscription(config);
   test_b2_success_stays_enabled(config);
   test_b3_reenable_after_autodisable(config);
@@ -599,14 +596,4 @@ function scenario_health_monitor() {
   test_c1_user_disabled_not_evaluated(config);
   test_c2_below_min_sample_size(config);
   test_c3_independent_evaluation(config);
-}
-
-export default function () {
-  scenario_1();
-  scenario_subscription_deletion();
-  scenario_subscription_disable();
-  scenario_retry_schedules();
-  scenario_retry_schedule_subscription_assignment();
-  scenario_health_monitor_reactivation();
-  scenario_health_monitor();
 }
