@@ -125,6 +125,7 @@ const onSubmit = handleSubmit((values) => {
             autocomplete="email"
             data-test="login-email-input"
             :disabled="isLoading"
+            autofocus
           />
 
           <Hook0Input
