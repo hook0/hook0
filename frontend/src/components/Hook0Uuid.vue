@@ -47,7 +47,7 @@ const display = computed(() => (props.truncated ? middleTruncate(props.value, 20
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   line-height: 1.4;
-  color: var(--color-text-primary);
+  color: inherit;
 }
 
 .hook0-uuid--linked {

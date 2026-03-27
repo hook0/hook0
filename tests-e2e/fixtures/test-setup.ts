@@ -32,15 +32,16 @@ async function loginAsNewUser(
   const email = `test-${testId}-${timestamp}@hook0.local`;
   const password = `TestPassword123!${timestamp}`;
 
-  // Register via API
+  // Register via API — response contains organization_id
   const registerResponse = await request.post(`${API_BASE_URL}/register`, {
     data: { email, first_name: "Test", last_name: "User", password },
   });
   expect(registerResponse.status()).toBeLessThan(400);
+  const registerData = await registerResponse.json();
+  const organizationId = registerData.organization_id;
 
-  // Verify email and get org ID
-  const verificationResult = await verifyEmailViaMailpit(request, email);
-  const organizationId = verificationResult.organizationId;
+  // Verify email (pass org ID so we don't need DB access)
+  await verifyEmailViaMailpit(request, email, organizationId);
   expect(organizationId).toBeTruthy();
 
   // Login via UI
