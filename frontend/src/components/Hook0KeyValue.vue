@@ -91,11 +91,13 @@ type Props = {
   value: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
+  showSeparator?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
   keyPlaceholder: undefined,
   valuePlaceholder: undefined,
+  showSeparator: false,
 });
 const rawEmit = defineEmits<{
   'update:modelValue': [value: Hook0KeyValueKeyValuePair[] | Hook0KeyValuePlainObject];
@@ -149,6 +151,7 @@ function add() {
         :data-test="`kv-key-input-${index}`"
         @input="emitUpdate()"
       />
+      <span v-if="props.showSeparator" class="kv-separator" aria-hidden="true">=</span>
       <Hook0Input
         v-model="item.value"
         type="text"
@@ -197,6 +200,15 @@ function add() {
 
 .col-span-1 {
   flex-shrink: 0;
+}
+
+.kv-separator {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  user-select: none;
 }
 
 /* Make buttons match input height */

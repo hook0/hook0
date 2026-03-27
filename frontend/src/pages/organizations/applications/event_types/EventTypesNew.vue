@@ -146,6 +146,9 @@ const onSubmit = handleSubmit((values) => {
             :type="tutorialMode ? 'submit' : 'button'"
             :loading="createMutation.isPending.value"
             :disabled="!service || !resourceType || !verb"
+            :tooltip="
+              !service || !resourceType || !verb ? t('forms.selectServiceResourceVerb') : undefined
+            "
             data-test="event-type-submit-button"
             @click="onSubmit"
           >

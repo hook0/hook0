@@ -1,0 +1,6 @@
+apiVersion: v2
+name: hook0-play
+description: Hook0 Play - Webhook relay server with inspection and local tunneling
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

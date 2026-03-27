@@ -14,11 +14,10 @@ import { ref, watch, onMounted, onBeforeUnmount, onUnmounted, nextTick } from 'v
 import { useResizeObserver } from '@vueuse/core';
 import type { ComponentPublicInstance } from 'vue';
 import { useRouter } from 'vue-router';
-import { Search, BookOpen, Code2 } from 'lucide-vue-next';
+import { Search } from 'lucide-vue-next';
 import { routes } from '@/routes';
 import { useUiStore } from '@/stores/ui';
 import { useI18n } from 'vue-i18n';
-import { DOCS_URL, API_DOCS_URL } from '@/constants/externalLinks';
 import Hook0Logo from '@/components/Hook0Logo.vue';
 import Hook0ContextBar from '@/components/Hook0TopNavContextBar.vue';
 import Hook0UserMenu from '@/components/Hook0TopNavUserMenu.vue';
@@ -193,30 +192,6 @@ onUnmounted(removeAfterEach);
 
       <!-- Right section -->
       <div class="hook0-topnav__right">
-        <!-- Documentation -->
-        <a
-          :href="DOCS_URL"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="hook0-topnav__icon-link"
-          :aria-label="t('nav.documentation') + ' (' + t('common.opensInNewTab') + ')'"
-          :title="t('nav.documentation')"
-        >
-          <BookOpen :size="16" aria-hidden="true" />
-        </a>
-
-        <!-- API Reference -->
-        <a
-          :href="API_DOCS_URL"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="hook0-topnav__icon-link"
-          :aria-label="t('nav.apiReference') + ' (' + t('common.opensInNewTab') + ')'"
-          :title="t('nav.apiReference')"
-        >
-          <Code2 :size="16" aria-hidden="true" />
-        </a>
-
         <!-- User Menu -->
         <Hook0UserMenu ref="userMenuRef" @close-dropdowns="onUserMenuCloseDropdowns" />
       </div>
@@ -380,38 +355,6 @@ onUnmounted(removeAfterEach);
   }
 }
 
-/* Icon-only nav links (Documentation, API Reference) */
-.hook0-topnav__icon-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  border-radius: var(--radius-md);
-  transition:
-    color 0.15s ease,
-    background-color 0.15s ease;
-  flex-shrink: 0;
-}
-
-.hook0-topnav__icon-link:hover {
-  color: var(--color-text-primary);
-  background-color: var(--color-bg-tertiary);
-}
-
-.hook0-topnav__icon-link:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-@media (max-width: 639px) {
-  .hook0-topnav__icon-link {
-    display: none;
-  }
-}
-
 /* --------------------------------------------------------------------------
    Row 2: Tab Bar
    -------------------------------------------------------------------------- */
@@ -511,7 +454,6 @@ onUnmounted(removeAfterEach);
 
 @media (prefers-reduced-motion: reduce) {
   .hook0-topnav__search,
-  .hook0-topnav__icon-link,
   .hook0-topnav__tab {
     transition: none;
   }

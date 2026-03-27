@@ -91,6 +91,7 @@ const sidebars = {
         "reference/configuration",
         "reference/error-codes",
         "reference/mcp",
+        "reference/cli",
         {
           type: "category",
           label: "SDKs",
