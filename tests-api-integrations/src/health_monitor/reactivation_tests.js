@@ -207,7 +207,11 @@ function test_a3_preserves_data(baseUrl, service_token, organization_id, applica
   check(final_sub, {
     'A3: is_enabled restored to true': (s) => s.is_enabled === true,
     'A3: description unchanged': (s) => s.description === original_description,
-    'A3: labels unchanged': (s) => JSON.stringify(s.labels) === JSON.stringify(original_labels),
+    'A3: labels unchanged': (s) => {
+        const keys_a = Object.keys(s.labels || {}).sort();
+        const keys_b = Object.keys(original_labels || {}).sort();
+        return keys_a.length === keys_b.length && keys_a.every((k, i) => k === keys_b[i] && s.labels[k] === original_labels[k]);
+      },
     'A3: metadata unchanged': (s) => JSON.stringify(s.metadata) === JSON.stringify(original_metadata),
     'A3: event_types unchanged': (s) => JSON.stringify(s.event_types) === JSON.stringify(original_event_types),
     'A3: target unchanged': (s) => JSON.stringify(s.target) === JSON.stringify(original_target),

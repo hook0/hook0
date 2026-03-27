@@ -16,7 +16,6 @@ use crate::hook0_client::{
 };
 use crate::mailer::{Mail, Mailer};
 
-const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(60);
 const ADVISORY_LOCK_ID: i64 = 42_000_001;
 
 #[derive(Clone)]
@@ -44,7 +43,6 @@ pub async fn run_health_monitor(
     hook0_client: &Option<Hook0Client>,
     config: &HealthMonitorConfig,
 ) {
-    actix_web::rt::time::sleep(STARTUP_GRACE_PERIOD).await;
     info!(
         "Health monitor started (interval: {:?}, warning: {}%, disable: {}%)",
         config.interval, config.warning_failure_percent, config.disable_failure_percent
