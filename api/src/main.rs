@@ -1092,6 +1092,33 @@ async fn main() -> anyhow::Result<()> {
         .await
         .expect("Could not initialize mailer; check SMTP configuration");
 
+        // Spawn health monitor background task
+        if config.enable_health_monitor {
+            let hm_db = housekeeping_pool.clone();
+            let hm_semaphore = housekeeping_semaphore.clone();
+            let hm_mailer = mailer.clone();
+            let hm_hook0_client = hook0_client.clone();
+            let hm_config = health_monitor::HealthMonitorConfig {
+                interval: config.health_monitor_interval,
+                warning_failure_percent: config.health_monitor_warning_failure_percent,
+                disable_failure_percent: config.health_monitor_disable_failure_percent,
+                time_window: config.health_monitor_time_window,
+                message_window: config.health_monitor_message_window,
+                min_sample_size: config.health_monitor_min_sample_size,
+                warning_cooldown: config.health_monitor_warning_cooldown,
+            };
+            actix_web::rt::spawn(async move {
+                health_monitor::run_health_monitor(
+                    &hm_semaphore,
+                    &hm_db,
+                    &hm_mailer,
+                    &hm_hook0_client,
+                    &hm_config,
+                )
+                .await;
+            });
+        }
+
         // Initialize state
         let initial_state = State {
             db: pool,
