@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router';
 
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useResponseDetail } from './useResponseQueries';
+import { filterSensitiveHeaders } from './responseHeaders';
 import { routes } from '@/routes';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
@@ -19,15 +20,6 @@ import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 
-const SENSITIVE_HEADERS = new Set([
-  'cookie',
-  'set-cookie',
-  'authorization',
-  'www-authenticate',
-  'proxy-authorization',
-  'proxy-authenticate',
-]);
-
 const { t } = useI18n();
 const route = useRoute();
 const { responseId, applicationId } = useRouteIds();
@@ -39,14 +31,7 @@ const eventId = computed(() => {
   return typeof q === 'string' ? q : '';
 });
 
-const filteredHeaders = computed(() => {
-  if (!response.value?.headers) return null;
-  const entries = Object.entries(response.value.headers).filter(
-    ([key]) => !SENSITIVE_HEADERS.has(key.toLowerCase())
-  );
-  if (entries.length === 0) return null;
-  return Object.fromEntries(entries);
-});
+const filteredHeaders = computed(() => filterSensitiveHeaders(response.value?.headers));
 
 function statusCodeClass(code: number | undefined | null): string {
   if (!code) return 'response-status--unknown';

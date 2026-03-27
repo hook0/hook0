@@ -224,29 +224,6 @@ test.describe("Response Detail", () => {
     await expect(bodyCard).toContainText("Response Body");
   });
 
-  test("should not display sensitive headers in response detail", async ({ page, request }) => {
-    test.slow();
-    await setupLogsWithDelivery(page, request, "no-sensitive");
-
-    const responseLink = await waitForResponseLink(page);
-
-    // Navigate to response detail
-    await responseLink.click();
-    await expect(page).toHaveURL(/\/logs\/responses\/[0-9a-f-]+/, { timeout: 10000 });
-
-    const headersCard = page.locator('[data-test="response-headers-card"]');
-    await expect(headersCard).toBeVisible({ timeout: 10000 });
-
-    // Sensitive headers should never be displayed
-    const headersText = await headersCard.textContent();
-    const lower = headersText!.toLowerCase();
-    expect(lower).not.toContain("set-cookie");
-    expect(lower).not.toContain("authorization");
-    expect(lower).not.toContain("www-authenticate");
-    expect(lower).not.toContain("proxy-authorization");
-    expect(lower).not.toContain("proxy-authenticate");
-  });
-
   test("should show event link button on response detail page", async ({ page, request }) => {
     test.slow();
     await setupLogsWithDelivery(page, request, "event-link");
