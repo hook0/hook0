@@ -478,19 +478,7 @@ function scenario_retry_schedules() {
       throw new Error('Failed to update retry schedule 1');
     }
 
-    // 6. Assign retry schedule to subscription
-    const assigned = assign_to_subscription(
-      h,
-      s,
-      application_id,
-      subscription.subscription_id,
-      schedule_1.retry_schedule_id
-    );
-    if (!isNotNull(assigned)) {
-      throw new Error('Failed to assign retry schedule to subscription');
-    }
-
-    // 7. Delete retry schedules (delete schedule_2 which is not assigned)
+    // 6. Delete retry schedules (delete schedule_2 which is not assigned)
     const deleted = delete_retry_schedule(h, s, application_id, schedule_2.retry_schedule_id);
     if (!isNotNull(deleted)) {
       throw new Error('Failed to delete retry schedule 2');
@@ -510,9 +498,47 @@ function scenario_retry_schedules() {
   }
 }
 
+function scenario_retry_schedule_subscription_assignment() {
+  const h = config.apiOrigin;
+  const s = config.serviceToken;
+  const o = config.organizationId;
+
+  let application_id = null;
+
+  try {
+    application_id = create_application(h, o, s);
+    if (!isNotNull(application_id)) {
+      throw new Error('Failed to create application');
+    }
+
+    const event_type = create_event_type(h, s, application_id);
+    if (!isNotNull(event_type)) {
+      throw new Error('Failed to create event type');
+    }
+
+    const result = assign_to_subscription(h, s, o, application_id, event_type, config.targetUrl);
+    if (!isNotNull(result)) {
+      throw new Error('Retry schedule subscription assignment tests failed');
+    }
+
+    console.log('✓ Retry schedule subscription assignment scenario passed');
+
+    if (application_id && !config.keepTestApplication) {
+      delete_application(h, application_id, s);
+    }
+  } catch (error) {
+    console.error('Retry schedule subscription assignment test failed:', error.message);
+    if (application_id && !config.keepTestApplication) {
+      delete_application(h, application_id, s);
+    }
+    throw error;
+  }
+}
+
 export default function () {
   scenario_1();
   scenario_subscription_deletion();
   scenario_subscription_disable();
   scenario_retry_schedules();
+  scenario_retry_schedule_subscription_assignment();
 }
