@@ -64,7 +64,7 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
       consumption: application.value.quotas.days_of_events_retention_limit,
       quota: application.value.quotas.days_of_events_retention_limit,
       displayValue: String(application.value.quotas.days_of_events_retention_limit),
-      displayUnit: t('common.days'),
+      displayUnit: t('common.days', application.value.quotas.days_of_events_retention_limit ?? 0),
     },
   ];
 });

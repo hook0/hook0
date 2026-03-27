@@ -106,7 +106,7 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
       consumption: organization.value.quotas.days_of_events_retention_limit,
       quota: organization.value.quotas.days_of_events_retention_limit,
       displayValue: String(organization.value.quotas.days_of_events_retention_limit),
-      displayUnit: t('common.days'),
+      displayUnit: t('common.days', organization.value.quotas.days_of_events_retention_limit ?? 0),
       onClick: scrollToChart,
     },
   ];

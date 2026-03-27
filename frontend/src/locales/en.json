@@ -242,7 +242,7 @@
     "createdAt": "Created at",
     "current": "Current",
     "dashboard": "Dashboard",
-    "days": "days",
+    "days": "day | days",
     "delete": "Delete",
     "description": "Description",
     "documentation": "Documentation",
