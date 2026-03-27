@@ -158,6 +158,7 @@ const [name, nameAttrs] = defineField('name');
                 type="button"
                 :loading="createMutation.isPending.value || updateMutation.isPending.value"
                 :disabled="!name"
+                :tooltip="!name ? t('forms.enterName') : undefined"
                 data-test="organization-submit-button"
                 @click="onSubmit"
                 >{{ isNew ? t('common.create') : t('common.save') }}
