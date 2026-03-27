@@ -163,15 +163,30 @@ export default [
   },
   {
     name: routes.ServicesTokenList,
-    path: '/organizations/:organization_id/services_tokens',
+    path: '/organizations/:organization_id/service_tokens',
     component: () => import('@/pages/organizations/services_token/ServicesTokenList.vue'),
     meta: { title: 'Service Tokens' },
   },
   {
     name: routes.ServiceTokenView,
-    path: '/organizations/:organization_id/services_tokens/:service_token_id',
+    path: '/organizations/:organization_id/service_tokens/:service_token_id',
     component: () => import('@/pages/organizations/services_token/ServiceTokenView.vue'),
     meta: { title: 'Service Token' },
+  },
+  // Redirects from old URLs (services_tokens → service_tokens)
+  {
+    path: '/organizations/:organization_id/services_tokens',
+    redirect: (to: { params: { organization_id: string } }) => ({
+      name: routes.ServicesTokenList,
+      params: { organization_id: to.params.organization_id },
+    }),
+  },
+  {
+    path: '/organizations/:organization_id/services_tokens/:service_token_id',
+    redirect: (to: { params: Record<string, string> }) => ({
+      name: routes.ServiceTokenView,
+      params: to.params,
+    }),
   },
   {
     name: routes.OrganizationsTeam,
