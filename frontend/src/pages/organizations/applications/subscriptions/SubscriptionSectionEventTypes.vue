@@ -53,11 +53,10 @@ function toggleEventType(index: number, selected: boolean) {
       <span class="sub-row__hint">
         <i18n-t keypath="subscriptions.eventTypesHint" tag="span">
           <template #link>
-            <router-link
-              :to="{ name: routes.EventTypesList }"
-              target="_blank"
-              style="color: var(--color-primary); text-decoration: none"
-              >event types</router-link
+            <Hook0Button
+              variant="link"
+              :to="{ name: routes.EventTypesList, params: $route.params }"
+              >{{ t('subscriptions.eventTypesLink') }}</Hook0Button
             >
           </template>
         </i18n-t>
@@ -156,7 +155,7 @@ function toggleEventType(index: number, selected: boolean) {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition:
     border-color 0.15s ease,

@@ -3,6 +3,11 @@ import { RouteLocationRaw, useRouter } from 'vue-router';
 import { ref, computed, onMounted, onUpdated, useSlots, useAttrs } from 'vue';
 
 import Hook0Spinner from '@/components/Hook0Spinner.vue';
+import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
+
+defineOptions({
+  inheritAttrs: false,
+});
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'link' | 'icon';
 type ButtonSize = 'xs' | 'sm' | 'md' | 'lg';
@@ -180,7 +185,7 @@ const spinnerSize: Record<ButtonSize, number> = {
     class="hook0-button"
     :class="[
       variant,
-      variant !== 'icon' ? sizeClasses[size] : '',
+      variant !== 'icon' && variant !== 'link' ? sizeClasses[size] : '',
       { loading: loadingStatus, 'full-width': fullWidth },
     ]"
     :aria-disabled="loadingStatus || disabled || undefined"
@@ -202,6 +207,34 @@ const spinnerSize: Record<ButtonSize, number> = {
       <slot name="right" />
     </span>
   </a>
+  <!-- Disabled button with tooltip: wrap in Hook0Tooltip so hover works on disabled element -->
+  <Hook0Tooltip v-else-if="disabled && tooltip" :content="tooltip">
+    <button
+      :type="buttonType"
+      class="hook0-button"
+      :class="[
+        variant,
+        variant !== 'icon' && variant !== 'link' ? sizeClasses[size] : '',
+        { loading: loadingStatus, 'full-width': fullWidth },
+      ]"
+      :disabled="loadingStatus || disabled"
+      :aria-disabled="loadingStatus || disabled || undefined"
+      :aria-busy="loadingStatus || undefined"
+      v-bind="filteredAttrs"
+      @click="onClick($event)"
+    >
+      <span v-if="hasSlot('left') && !loadingStatus" class="hook0-button-left">
+        <slot name="left" />
+      </span>
+      <Hook0Spinner v-if="loadingStatus" :size="spinnerSize[size]" />
+      <span v-else class="hook0-button-center">
+        <slot />
+      </span>
+      <span v-if="hasSlot('right') && !loadingStatus" class="hook0-button-right">
+        <slot name="right" />
+      </span>
+    </button>
+  </Hook0Tooltip>
   <!-- Render as <button> for all other cases (actions, submit, etc.) -->
   <button
     v-else
@@ -209,7 +242,7 @@ const spinnerSize: Record<ButtonSize, number> = {
     class="hook0-button"
     :class="[
       variant,
-      variant !== 'icon' ? sizeClasses[size] : '',
+      variant !== 'icon' && variant !== 'link' ? sizeClasses[size] : '',
       { loading: loadingStatus, 'full-width': fullWidth },
     ]"
     :disabled="loadingStatus || disabled"
@@ -322,7 +355,7 @@ const spinnerSize: Record<ButtonSize, number> = {
 
 .hook0-button.link {
   background-color: transparent;
-  color: var(--color-primary);
+  color: var(--color-link);
   border: 1px solid transparent;
   padding-left: 0;
   padding-right: 0;
@@ -330,8 +363,9 @@ const spinnerSize: Record<ButtonSize, number> = {
 }
 
 .hook0-button.link:hover:not([disabled]) {
-  color: var(--color-primary-hover);
+  color: var(--color-link);
   text-decoration: underline;
+  opacity: 0.8;
 }
 
 .hook0-button.icon {

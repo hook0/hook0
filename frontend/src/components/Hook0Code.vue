@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Codemirror } from 'vue-codemirror';
 import { json } from '@codemirror/lang-json';
-import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView } from 'codemirror';
-import { computed, ref } from 'vue';
+import { EditorState, type Extension } from '@codemirror/state';
+import { StreamLanguage } from '@codemirror/language';
+import { computed, ref, shallowRef, watch } from 'vue';
 import { Copy } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { useClipboardCopy } from '@/composables/useClipboardCopy';
@@ -15,17 +16,72 @@ defineOptions({
   inheritAttrs: false,
 });
 
+type CodeLanguage = 'json' | 'javascript' | 'bash' | 'rust';
+
 type Props = {
   code: string;
   inline?: boolean;
+  language?: CodeLanguage;
+  editable?: boolean;
 };
 const props = withDefaults(defineProps<Props>(), {
   code: '',
   inline: false,
+  language: 'json',
+  editable: true,
 });
 const code = computed(() => props.code);
 
-const extensions = [json(), oneDark, EditorView.lineWrapping];
+const lightTheme = EditorView.theme({
+  '&': {
+    backgroundColor: 'var(--color-bg-secondary)',
+    color: 'var(--color-text-primary)',
+  },
+  '.cm-gutters': {
+    backgroundColor: 'var(--color-bg-tertiary)',
+    color: 'var(--color-text-tertiary)',
+    borderRight: '1px solid var(--color-border)',
+  },
+  '.cm-activeLine': {
+    backgroundColor: 'var(--color-bg-tertiary)',
+  },
+  '.cm-activeLineGutter': {
+    backgroundColor: 'var(--color-bg-tertiary)',
+  },
+});
+
+// Dynamic language loading to avoid bundling all languages upfront
+const langExtension = shallowRef<Extension | null>(null);
+
+function loadLanguage(lang: CodeLanguage) {
+  if (lang === 'json') {
+    langExtension.value = json();
+  } else if (lang === 'javascript') {
+    void import('@codemirror/lang-javascript').then((mod) => {
+      langExtension.value = mod.javascript({ typescript: true });
+    });
+  } else if (lang === 'rust') {
+    void import('@codemirror/lang-rust').then((mod) => {
+      langExtension.value = mod.rust();
+    });
+  } else if (lang === 'bash') {
+    void import('@codemirror/legacy-modes/mode/shell').then((mod) => {
+      langExtension.value = StreamLanguage.define(mod.shell);
+    });
+  } else {
+    langExtension.value = null;
+  }
+}
+
+watch(() => props.language, loadLanguage, { immediate: true });
+
+const extensions = computed(() => {
+  const base: Extension[] = [lightTheme, EditorView.lineWrapping];
+  if (!props.editable) {
+    base.push(EditorState.readOnly.of(true), EditorView.editable.of(false));
+  }
+  return langExtension.value ? [langExtension.value, ...base] : base;
+});
 
 const view = ref<EditorView | undefined>(undefined);
 
@@ -47,7 +103,7 @@ function copyToClipboard() {
     <Codemirror
       v-model="code"
       :style="{ minHeight: '100px' }"
-      :autofocus="true"
+      :autofocus="false"
       :indent-with-tab="true"
       :tab-size="2"
       :extensions="extensions"
@@ -92,8 +148,8 @@ function copyToClipboard() {
   height: 2rem;
   border-radius: var(--radius-sm);
   border: none;
-  background-color: color-mix(in srgb, var(--color-on-dark) 10%, transparent);
-  color: color-mix(in srgb, var(--color-on-dark) 60%, transparent);
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition:
     background-color 0.15s ease,
@@ -101,7 +157,7 @@ function copyToClipboard() {
 }
 
 .hook0-code-copy:hover {
-  background-color: color-mix(in srgb, var(--color-on-dark) 20%, transparent);
-  color: var(--color-on-dark);
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-primary);
 }
 </style>

@@ -36,6 +36,8 @@ import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
 import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
+import Hook0Badge from '@/components/Hook0Badge.vue';
+import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
 
 const { t } = useI18n();
 
@@ -166,10 +168,34 @@ const columns: ColumnDef<User, unknown>[] = [
     enableSorting: true,
     cell: (info) => {
       const row = info.row.original;
+      const isOwnRow = isCurrentUserRow(row);
+      const canEditMember = canEdit('member');
+      const isEditable = !isOwnRow && canEditMember;
+
+      if (!isEditable) {
+        const tooltipContent = isOwnRow
+          ? t('members.cannotChangeOwnRole')
+          : t('members.noPermissionToChangeRole');
+
+        return h(
+          Hook0Tooltip,
+          { content: tooltipContent },
+          {
+            default: () =>
+              h(
+                Hook0Badge,
+                {},
+                {
+                  default: () => row.role.charAt(0).toUpperCase() + row.role.slice(1),
+                }
+              ),
+          }
+        );
+      }
+
       return h(Hook0TableCellSelect, {
         options: cellRoleOptions,
         modelValue: row.role,
-        disabled: isCurrentUserRow(row) || !canEdit('member'),
         onChange: (role: string) => handleRoleChange(role, row),
       });
     },

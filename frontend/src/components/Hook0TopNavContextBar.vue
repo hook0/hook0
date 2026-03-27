@@ -459,10 +459,14 @@ defineExpose({ closeDropdowns, focusActiveTrigger, hasOpenDropdown });
 }
 
 .hook0-topnav__context-ghost-icon {
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  font-weight: 500;
-  flex-shrink: 0;
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .hook0-topnav__context-ghost-icon {
+    display: inline;
+    color: var(--color-text-tertiary);
+  }
 }
 
 /* Hide text labels on mobile — keep icons only */

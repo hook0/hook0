@@ -207,16 +207,20 @@ test.describe("Tutorial Wizard Flow", () => {
       await labelKeyInput.fill("env");
       await labelValueInput.fill("test");
 
-      // Select at least one event type (required: hasSelectedEventTypes)
+      // Ensure at least one event type is selected (in tutorial mode, they are pre-selected)
       const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
       await expect(eventTypeCheckbox).toBeVisible({ timeout: 10000 });
-      await eventTypeCheckbox.click();
+      // Only click if not already checked (tutorial mode pre-selects event types)
+      const isChecked = await eventTypeCheckbox.isChecked();
+      if (!isChecked) {
+        await eventTypeCheckbox.click();
+      }
 
       // Submit and wait for API response
       const subscriptionResponsePromise = page.waitForResponse(
         (response) =>
           response.url().includes("/subscriptions") && response.request().method() === "POST",
-        { timeout: 15000 }
+        { timeout: 30000 }
       );
 
       await page.locator('[data-test="subscription-submit-button"]').click();

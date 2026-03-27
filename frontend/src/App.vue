@@ -76,7 +76,7 @@ const showFullScreen = computed(() => {
         <!-- Page content -->
         <RouterView v-slot="{ Component }">
           <Transition name="page" mode="out-in">
-            <div :key="route.fullPath">
+            <div :key="route.path">
               <component :is="Component" />
             </div>
           </Transition>

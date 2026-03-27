@@ -137,11 +137,11 @@ const createdAt = ref('');
 const isEnabled = ref(true);
 const dedicatedWorkers = ref<string[]>([]);
 const eventTypes = ref<SelectableEventType[]>([]);
-const labels = ref<Hook0KeyValueKeyValuePair[]>([]);
+const labels = ref<Hook0KeyValueKeyValuePair[]>([{ key: 'user_id', value: '1' }]);
 const metadata = ref<Hook0KeyValueKeyValuePair[]>([]);
 const headersKv = ref<Hook0KeyValueKeyValuePair[]>([]);
 const headersMap = ref<Record<string, string>>({});
-const labelsMap = ref<Record<string, string>>({});
+const labelsMap = ref<Record<string, string>>({ user_id: '1' });
 const metadataMap = ref<Record<string, string>>({});
 
 const httpMethods = 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption);
@@ -183,9 +183,12 @@ watch(
       return { ...eventType, selected: false };
     }
 
+    // In tutorial mode, pre-select all event types (the one just created in the previous step)
     const selectedNames = subscriptionData.value
       ? subscriptionData.value.event_types
-      : ([] as string[]);
+      : props.tutorialMode
+        ? et.map((e) => e.event_type_name)
+        : ([] as string[]);
 
     eventTypes.value = intersectWith<SelectableEventType, SelectableEventType, string>(
       (a) => a.event_type_name,
@@ -320,8 +323,23 @@ const onSubmit = handleSubmit((values) => {
 });
 
 // Computed: whether the non-validated parts are ready
-const hasRequiredLabels = computed(() => Object.keys(labelsMap.value).length > 0);
+const hasRequiredLabels = computed(() => {
+  const entries = Object.entries(labelsMap.value);
+  return (
+    entries.length > 0 && entries.every(([k, v]) => k.trim().length > 0 && v.trim().length > 0)
+  );
+});
 const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.selected));
+
+const missingFieldsTooltip = computed(() => {
+  const missing: string[] = [];
+  if (!targetUrl.value) missing.push(t('subscriptions.fields.endpoint'));
+  if (!description.value) missing.push(t('subscriptions.fields.name'));
+  if (!hasSelectedEventTypes.value) missing.push(t('subscriptions.fields.eventTypes'));
+  if (!hasRequiredLabels.value) missing.push(t('subscriptions.fields.labels'));
+  if (missing.length === 0) return undefined;
+  return t('forms.missingFields', { fields: missing.join(', ') });
+});
 </script>
 
 <template>
@@ -465,6 +483,7 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
                 :disabled="
                   !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
                 "
+                :tooltip="missingFieldsTooltip"
                 data-test="subscription-submit-button"
                 @click="onSubmit"
                 >{{ isNew ? t('common.create') : t('common.save') }}
@@ -478,6 +497,7 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
                 :disabled="
                   !targetUrl || !description || !hasRequiredLabels || !hasSelectedEventTypes
                 "
+                :tooltip="missingFieldsTooltip"
                 data-test="subscription-submit-button"
                 @click="onSubmit"
                 >{{ t('subscriptions.createFirstSubscription') }}
