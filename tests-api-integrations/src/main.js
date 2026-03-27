@@ -443,18 +443,18 @@ function scenario_retry_schedules() {
     }
 
     // 2. Create retry schedules
-    const schedule_1 = create_retry_schedule(h, s, application_id);
+    const schedule_1 = create_retry_schedule(h, s, o);
     if (!isNotNull(schedule_1)) {
       throw new Error('Failed to create retry schedule 1');
     }
 
-    const schedule_2 = create_retry_schedule(h, s, application_id);
+    const schedule_2 = create_retry_schedule(h, s, o);
     if (!isNotNull(schedule_2)) {
       throw new Error('Failed to create retry schedule 2');
     }
 
     // 3. List retry schedules
-    const schedules = list_retry_schedules(h, s, application_id);
+    const schedules = list_retry_schedules(h, s, o);
     if (!isNotNull(schedules) || schedules.length < 2) {
       throw new Error(
         'Expected at least 2 retry schedules | Found: ' + (schedules ? schedules.length : 0)
@@ -462,24 +462,24 @@ function scenario_retry_schedules() {
     }
 
     // 4. Get individual retry schedules
-    const fetched_1 = get_retry_schedule(h, s, application_id, schedule_1.retry_schedule_id);
+    const fetched_1 = get_retry_schedule(h, s, o, schedule_1.retry_schedule_id);
     if (!isNotNull(fetched_1)) {
       throw new Error('Failed to get retry schedule 1');
     }
 
-    const fetched_2 = get_retry_schedule(h, s, application_id, schedule_2.retry_schedule_id);
+    const fetched_2 = get_retry_schedule(h, s, o, schedule_2.retry_schedule_id);
     if (!isNotNull(fetched_2)) {
       throw new Error('Failed to get retry schedule 2');
     }
 
     // 5. Update retry schedule
-    const updated = update_retry_schedule(h, s, application_id, schedule_1.retry_schedule_id);
+    const updated = update_retry_schedule(h, s, o, schedule_1.retry_schedule_id);
     if (!isNotNull(updated)) {
       throw new Error('Failed to update retry schedule 1');
     }
 
     // 6. Delete retry schedules (delete schedule_2 which is not assigned)
-    const deleted = delete_retry_schedule(h, s, application_id, schedule_2.retry_schedule_id);
+    const deleted = delete_retry_schedule(h, s, o, schedule_2.retry_schedule_id);
     if (!isNotNull(deleted)) {
       throw new Error('Failed to delete retry schedule 2');
     }
