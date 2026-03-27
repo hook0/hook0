@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use chrono::{DateTime, Utc};
 use lettre::{Address, message::Mailbox};
@@ -50,15 +50,55 @@ pub async fn run_health_monitor(
         config.interval, config.warning_failure_percent, config.disable_failure_percent
     );
 
+    // Force cleanup on first iteration by backdating the timestamp.
+    let mut last_cleanup = Instant::now() - Duration::from_secs(86400);
+
     while let Ok(permit) = housekeeping_semaphore.acquire().await {
         if let Err(e) = run_health_check(db, mailer, hook0_client, config).await {
             error!("Health monitor error: {e}");
         }
+
+        if last_cleanup.elapsed() > Duration::from_secs(86400) {
+            match cleanup_old_health_events(db).await {
+                Ok(n) => {
+                    if n > 0 {
+                        info!("Health monitor: cleaned up {n} old health events");
+                    }
+                }
+                Err(e) => warn!("Health monitor: cleanup error: {e}"),
+            }
+            last_cleanup = Instant::now();
+        }
+
         drop(permit);
         actix_web::rt::time::sleep(config.interval).await;
     }
 
     warn!("Health monitor stopped (semaphore closed)");
+}
+
+/// Removes resolved health events older than 90 days,
+/// keeping the latest event per subscription regardless of age.
+///
+/// Example: a subscription with events at -100d (resolved), -80d (resolved), -10d (warning)
+/// deletes only the -100d row; the -80d row is kept because -10d is newer.
+async fn cleanup_old_health_events(db: &PgPool) -> Result<u64, sqlx::Error> {
+    let result = sqlx::query(
+        r#"
+        DELETE FROM webhook.subscription_health_event d
+        WHERE d.created_at < now() - interval '90 days'
+          AND d.status = 'resolved'
+          AND EXISTS (
+            SELECT 1 FROM webhook.subscription_health_event newer
+            WHERE newer.subscription__id = d.subscription__id
+              AND newer.created_at > d.created_at
+          )
+        "#,
+    )
+    .execute(db)
+    .await?;
+
+    Ok(result.rows_affected())
 }
 
 #[derive(Debug, sqlx::FromRow)]
