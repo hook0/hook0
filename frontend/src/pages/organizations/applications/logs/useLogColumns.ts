@@ -1,5 +1,6 @@
 import { h } from 'vue';
 import { useRoute } from 'vue-router';
+import Hook0Uuid from '@/components/Hook0Uuid.vue';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
 
@@ -10,7 +11,7 @@ import { routes } from '@/routes';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
 import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
-import Hook0Uuid from '@/components/Hook0Uuid.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
 
 const dateFmt = new Intl.DateTimeFormat(undefined, {
   month: 'short',
@@ -97,19 +98,32 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
       cell: (info) => {
         const row = info.row.original;
         const eventType = row.event_type_name;
-        const uuid = h(Hook0Uuid, {
-          value: String(info.getValue()),
-          truncated: true,
-          linked: true,
-          'data-test': 'log-event-link',
-        });
+        const link = h(
+          Hook0Button,
+          {
+            variant: 'link',
+            to: {
+              name: routes.EventsDetail,
+              params: { ...route.params, event_id: row.event_id },
+            },
+            onClick: (e: MouseEvent) => e.stopPropagation(),
+            'data-test': 'log-event-link',
+            style: 'color: var(--color-link)',
+          },
+          () =>
+            h(Hook0Uuid, {
+              value: String(info.getValue()),
+              truncated: true,
+              style: 'color: inherit',
+            })
+        );
         if (eventType) {
           return h('div', { class: 'log-event-cell' }, [
-            uuid,
+            link,
             h('span', { class: 'log-event-type' }, eventType),
           ]);
         }
-        return uuid;
+        return link;
       },
     },
     {
