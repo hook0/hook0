@@ -1,4 +1,4 @@
-import { sleep } from 'k6';
+import { check, sleep } from 'k6';
 import create_application from '../applications/create_application.js';
 import delete_application from '../applications/delete_application.js';
 import create_event_type from '../event_types/create_event_type.js';
@@ -137,8 +137,10 @@ export function test_b1_failure_disables_subscription(config) {
       throw new Error('B1: Failed to fetch health events');
     }
 
-    const has_warning = events.some((e) => e.status === 'warning' && e.source === 'system');
-    const has_disabled = events.some((e) => e.status === 'disabled' && e.source === 'system');
+    const warning_event = events.find((e) => e.status === 'warning' && e.source === 'system');
+    const disabled_event = events.find((e) => e.status === 'disabled' && e.source === 'system');
+    const has_warning = warning_event !== undefined;
+    const has_disabled = disabled_event !== undefined;
 
     if (!has_warning) {
       throw new Error('B1: Expected a warning health event from system, found none');
@@ -146,6 +148,13 @@ export function test_b1_failure_disables_subscription(config) {
     if (!has_disabled) {
       throw new Error('B1: Expected a disabled health event from system, found none');
     }
+
+    check(warning_event, {
+      'B1: warning event user_id is null (system)': (e) => e.user_id === null,
+    });
+    check(disabled_event, {
+      'B1: disabled event user_id is null (system)': (e) => e.user_id === null,
+    });
 
     console.log('B1 PASSED: 100% failure -> subscription auto-disabled with warning + disabled events');
   } finally {
@@ -267,6 +276,10 @@ export function test_b3_reenable_after_autodisable(config) {
         `B3: Expected latest health event to be status=resolved source=user, got status=${latest_event.status} source=${latest_event.source}`
       );
     }
+
+    check(latest_event, {
+      'B3: resolved event user_id is null (service token)': (e) => e.user_id === null,
+    });
 
     console.log('B3 PASSED: re-enable after auto-disable creates resolved/user health event');
   } finally {

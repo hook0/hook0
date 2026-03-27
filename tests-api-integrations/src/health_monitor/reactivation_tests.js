@@ -91,6 +91,7 @@ function test_a1_reenable_disabled(baseUrl, service_token, organization_id, appl
     'A1: 1 health event after re-enable': (e) => e.length === 1,
     'A1: health event status is resolved': (e) => e.length > 0 && e[0].status === 'resolved',
     'A1: health event source is user': (e) => e.length > 0 && e[0].source === 'user',
+    'A1: health event user_id is null (service token)': (e) => e.length > 0 && e[0].user_id === null,
   });
 
   console.log('A1: Re-enable disabled subscription test passed');
