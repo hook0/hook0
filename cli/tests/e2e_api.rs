@@ -649,7 +649,7 @@ fn test_subscription_full_lifecycle() {
         )
     });
     assert_eq!(sub["subscription_id"].as_str().unwrap(), sub_id);
-    assert_eq!(sub["is_enabled"].as_bool().unwrap(), true);
+    assert!(sub["is_enabled"].as_bool().unwrap());
 
     // Disable
     cli(cfg.path())
@@ -672,7 +672,7 @@ fn test_subscription_full_lifecycle() {
         .output()
         .unwrap();
     let sub: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(sub["is_enabled"].as_bool().unwrap(), false);
+    assert!(!sub["is_enabled"].as_bool().unwrap());
 
     // Enable
     cli(cfg.path())
@@ -1782,7 +1782,7 @@ fn test_whoami_override_mode() {
         .unwrap();
     assert!(output.status.success());
     let whoami: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(whoami["authenticated"].as_bool().unwrap(), true);
+    assert!(whoami["authenticated"].as_bool().unwrap());
 }
 
 /// Bug 14: login -o json must produce clean JSON (no progress text)
@@ -1813,7 +1813,7 @@ fn test_login_json_output_clean() {
     // stdout must be valid JSON (no progress text mixed in)
     let json: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("login -o json stdout must be valid JSON");
-    assert_eq!(json["success"].as_bool().unwrap(), true);
+    assert!(json["success"].as_bool().unwrap());
     assert!(json.get("profile").is_some());
 
     cleanup(cfg.path(), &prof);
@@ -1936,7 +1936,7 @@ fn test_delete_json_output() {
     assert!(output.status.success());
     let json: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("event-type delete json should be valid");
-    assert_eq!(json["deleted"].as_bool().unwrap(), true);
+    assert!(json["deleted"].as_bool().unwrap());
 
     // subscription delete -o json
     let _ = cli(cfg.path())
@@ -1978,7 +1978,7 @@ fn test_delete_json_output() {
     assert!(output.status.success());
     let json: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("subscription delete json should be valid");
-    assert_eq!(json["deleted"].as_bool().unwrap(), true);
+    assert!(json["deleted"].as_bool().unwrap());
 
     let _ = cli(cfg.path())
         .args(["--profile", &prof, "event-type", "delete", &et, "--yes"])

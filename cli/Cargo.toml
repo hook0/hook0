@@ -13,26 +13,26 @@ build = "build.rs"
 [build-dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-reqwest = { version = "0.12", features = ["blocking", "rustls-tls"], default-features = false }
+reqwest = { version = "0.13", features = ["blocking", "rustls"], default-features = false }
 heck = "0.5"
 
 [dependencies]
 # CLI Framework
-clap = { version = "4.5", features = ["derive", "env", "wrap_help"] }
-clap_complete = "4.5"
+clap = { version = "4.6", features = ["derive", "env", "wrap_help"] }
+clap_complete = "4.6"
 
 # Async Runtime
 tokio = { version = "1.35", features = ["full"] }
 
 # HTTP Client
-reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+reqwest = { version = "0.13", features = ["json", "query", "rustls"], default-features = false }
 
 # WebSocket (tunneling)
-tokio-tungstenite = { version = "0.26", features = ["rustls-tls-webpki-roots"] }
+tokio-tungstenite = { version = "0.29", features = ["rustls-tls-webpki-roots"] }
 futures-util = "0.3"
 
 # Random token generation
-rand = "0.8"
+rand = "0.10"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -41,13 +41,13 @@ toml = "0.8"
 base64 = "0.22"
 
 # Output formatting
-comfy-table = "7.1"
-console = "0.15"
+comfy-table = "7.2"
+console = "0.16"
 indicatif = "0.17"
 
 # TUI (optional)
-ratatui = { version = "0.29", optional = true }
-crossterm = { version = "0.28", features = ["event-stream"], optional = true }
+ratatui = { version = "0.30", optional = true }
+crossterm = { version = "0.29", features = ["event-stream"], optional = true }
 axum = { version = "0.8", optional = true }
 portpicker = { version = "0.1", optional = true }
 
@@ -66,7 +66,7 @@ anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.10", features = ["v4", "serde"] }
 url = "2.5"
-dialoguer = "0.11"
+dialoguer = "0.12"
 webbrowser = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

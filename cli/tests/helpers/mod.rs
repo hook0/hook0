@@ -1,5 +1,6 @@
 //! Shared test helpers for E2E tests.
 //! Provides: hooks server startup, echo server, CLI spawning, TCP proxy, and polling utilities.
+#![allow(dead_code)]
 
 use axum::{
     body::Bytes,
