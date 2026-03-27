@@ -209,4 +209,11 @@ function closeSidePanel() {
   color: var(--color-text-secondary);
   cursor: default;
 }
+
+:deep(.log-response) {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  cursor: default;
+}
 </style>

@@ -157,5 +157,38 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
           h('span', { class: 'log-duration' }, computeDuration(info.row.original))
         ),
     },
+    {
+      id: 'response',
+      header: t('logs.response'),
+      cell: (info) => {
+        const row = info.row.original;
+        if (!row.response_id) {
+          return h('span', { class: 'log-response' }, '\u2014');
+        }
+        return h(
+          Hook0Button,
+          {
+            variant: 'link',
+            to: {
+              name: routes.ResponseDetail,
+              params: {
+                ...route.params,
+                response_id: row.response_id,
+              },
+              query: { event_id: row.event_id },
+            },
+            onClick: (e: MouseEvent) => e.stopPropagation(),
+            'data-test': 'log-response-link',
+            style: 'color: var(--color-link)',
+          },
+          () =>
+            h(Hook0Uuid, {
+              value: row.response_id!,
+              truncated: true,
+              style: 'color: inherit',
+            })
+        );
+      },
+    },
   ];
 }
