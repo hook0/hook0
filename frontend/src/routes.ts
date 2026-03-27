@@ -49,6 +49,7 @@ export const routes = {
 
   WebhooksList: 'WebhooksList',
   LogsList: 'LogsList',
+  ResponseDetail: 'ResponseDetail',
   APIDocumentation: 'APIDocumentation',
   APIDocumentationForApplication: 'APIDocumentationForApplication',
   Error404: '404',
@@ -316,7 +317,12 @@ export default [
     component: () => import('@/pages/organizations/applications/logs/LogList.vue'),
     meta: { title: 'Delivery Logs' },
   },
-
+  {
+    name: routes.ResponseDetail,
+    path: '/organizations/:organization_id/applications/:application_id/logs/responses/:response_id',
+    component: () => import('@/pages/organizations/applications/logs/ResponseDetail.vue'),
+    meta: { title: 'Response Detail' },
+  },
   {
     name: routes.APIDocumentationForApplication,
     path: '/organizations/:organization_id/applications/:application_id/documentation',
