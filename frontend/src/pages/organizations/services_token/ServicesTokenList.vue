@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { h, markRaw, ref } from 'vue';
+import { h, markRaw, ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 import type { ColumnDef } from '@tanstack/vue-table';
 import { Plus, Bot, BookOpen, Check, Key, Pencil, Trash2 } from 'lucide-vue-next';
 
@@ -59,12 +60,31 @@ const createMutation = useCreateServiceToken();
 const updateMutation = useUpdateServiceToken();
 const removeMutation = useRemoveServiceToken();
 
-const showCreateDialog = ref(false);
-const newTokenName = ref('');
+// Route-based dialogs
+const route = useRoute();
+const router = useRouter();
+const isCreateRoute = computed(() => route.name === routes.ServiceTokenNew);
+const isEditRoute = computed(() => route.name === routes.ServiceTokenEdit);
 
-const showEditDialog = ref(false);
+const newTokenName = ref('');
 const editTokenName = ref('');
 const tokenToEdit = ref<ServiceToken | null>(null);
+
+// Load token to edit when entering edit route
+watch(
+  [isEditRoute, serviceTokens],
+  ([editing, tokens]) => {
+    if (editing && tokens) {
+      const tokenId = route.params.service_token_id as string;
+      const token = tokens.find((t) => t.token_id === tokenId);
+      if (token) {
+        tokenToEdit.value = token;
+        editTokenName.value = token.name;
+      }
+    }
+  },
+  { immediate: true }
+);
 
 const {
   showDeleteDialog,
@@ -83,12 +103,16 @@ function createNew(event: MouseEvent) {
   event.stopImmediatePropagation();
   event.preventDefault();
   newTokenName.value = '';
-  showCreateDialog.value = true;
+  void router.push({ name: routes.ServiceTokenNew, params: route.params });
+}
+
+function closeDialog() {
+  void router.push({ name: routes.ServicesTokenList, params: { organization_id: organizationId.value } });
 }
 
 function confirmCreate() {
   const name = newTokenName.value.trim();
-  showCreateDialog.value = false;
+  closeDialog();
   newTokenName.value = '';
   if (!name) return;
 
@@ -112,13 +136,16 @@ function confirmCreate() {
 function handleEdit(row: ServiceToken) {
   tokenToEdit.value = row;
   editTokenName.value = row.name;
-  showEditDialog.value = true;
+  void router.push({
+    name: routes.ServiceTokenEdit,
+    params: { organization_id: organizationId.value, service_token_id: row.token_id },
+  });
 }
 
 function confirmEdit() {
   const row = tokenToEdit.value;
   const name = editTokenName.value.trim();
-  showEditDialog.value = false;
+  closeDialog();
   tokenToEdit.value = null;
   editTokenName.value = '';
   if (!row || !name) return;
@@ -353,11 +380,11 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
     </template>
 
     <Hook0Dialog
-      :open="showCreateDialog"
+      :open="isCreateRoute"
       variant="default"
       :title="t('serviceTokens.create')"
       @close="
-        showCreateDialog = false;
+        closeDialog();
         newTokenName = '';
       "
       @confirm="confirmCreate()"
@@ -373,11 +400,11 @@ const columns: ColumnDef<ServiceToken, unknown>[] = [
     </Hook0Dialog>
 
     <Hook0Dialog
-      :open="showEditDialog"
+      :open="isEditRoute"
       variant="default"
       :title="t('serviceTokens.editAction')"
       @close="
-        showEditDialog = false;
+        closeDialog();
         tokenToEdit = null;
         editTokenName = '';
       "

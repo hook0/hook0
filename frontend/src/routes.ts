@@ -23,6 +23,8 @@ export const routes = {
   OrganizationsNew: 'OrganizationsNew',
 
   ServicesTokenList: 'ServicesTokenList',
+  ServiceTokenNew: 'ServiceTokenNew',
+  ServiceTokenEdit: 'ServiceTokenEdit',
   ServiceTokenView: 'ServiceTokenView',
 
   ApplicationsDashboard: 'ApplicationsDashboard',
@@ -168,6 +170,18 @@ export default [
     meta: { title: 'Service Tokens' },
   },
   {
+    name: routes.ServiceTokenNew,
+    path: '/organizations/:organization_id/service_tokens/new',
+    component: () => import('@/pages/organizations/services_token/ServicesTokenList.vue'),
+    meta: { title: 'New Service Token' },
+  },
+  {
+    name: routes.ServiceTokenEdit,
+    path: '/organizations/:organization_id/service_tokens/:service_token_id/edit',
+    component: () => import('@/pages/organizations/services_token/ServicesTokenList.vue'),
+    meta: { title: 'Edit Service Token' },
+  },
+  {
     name: routes.ServiceTokenView,
     path: '/organizations/:organization_id/service_tokens/:service_token_id',
     component: () => import('@/pages/organizations/services_token/ServiceTokenView.vue'),
@@ -176,11 +190,11 @@ export default [
   // Redirects from old URLs (services_tokens → service_tokens)
   {
     path: '/organizations/:organization_id/services_tokens',
-    redirect: (to) => to.path.replace('services_tokens', 'service_tokens'),
+    redirect: (to: { path: string }) => to.path.replace('services_tokens', 'service_tokens'),
   },
   {
     path: '/organizations/:organization_id/services_tokens/:service_token_id',
-    redirect: (to) => to.path.replace('services_tokens', 'service_tokens'),
+    redirect: (to: { path: string }) => to.path.replace('services_tokens', 'service_tokens'),
   },
   {
     name: routes.OrganizationsTeam,
