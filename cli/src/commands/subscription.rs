@@ -389,7 +389,7 @@ async fn delete(cli: &Cli, args: &DeleteArgs) -> Result<()> {
         .delete_subscription(&args.subscription_id, &profile.application_id)
         .await?;
 
-    crate::output::output_deleted(cli.output, "Subscription", &args.subscription_id);
+    crate::output::output_deleted(cli.output, "Subscription", args.subscription_id);
 
     Ok(())
 }

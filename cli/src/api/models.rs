@@ -638,11 +638,11 @@ mod tests {
 
     #[test]
     fn test_event_filters() {
-        let mut filters = EventFilters::default();
-        filters.event_type = Some("user.account.created".to_string());
-        filters
-            .labels
-            .insert("tenant_id".to_string(), "org123".to_string());
+        let filters = EventFilters {
+            event_type: Some("user.account.created".to_string()),
+            labels: HashMap::from([("tenant_id".to_string(), "org123".to_string())]),
+            ..Default::default()
+        };
 
         let query = filters.to_query_params();
         assert!(query.len() >= 2);
