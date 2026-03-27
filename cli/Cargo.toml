@@ -64,7 +64,7 @@ anyhow = "1.0"
 
 # Utilities
 chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1.22", features = ["v4", "serde"] }
+uuid = { version = "1.23", features = ["v4", "serde"] }
 url = "2.5"
 dialoguer = "0.12"
 webbrowser = "1.2"

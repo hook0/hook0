@@ -57,7 +57,7 @@ strum = { version = "0.28.0", features = ["derive"] }
 thiserror = "2.0.18"
 tokio = { version = "1.50.0" }
 url = "2.5.8"
-uuid = { version = "1.22.0", features = ["serde", "v4", "v7"] }
+uuid = { version = "1.23.0", features = ["serde", "v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
@@ -66,7 +66,7 @@ pprof = { version = "0.15.0", features = ["protobuf-codec"], optional = true }
 tikv-jemallocator = { version = "0.6.1", optional = true }
 
 [dev-dependencies]
-insta = { version = "1.46", features = ["json"] }
+insta = { version = "1.47", features = ["json"] }
 test-log = { version = "0.2.19", default-features = false, features = ["trace", "color", "unstable"] }
 
 [features]

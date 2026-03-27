@@ -31,7 +31,7 @@ bytes = "1.11"
 base64 = "0.22"
 
 # UUID for tokens and IDs
-uuid = { version = "1.22", features = ["v4", "serde"] }
+uuid = { version = "1.23", features = ["v4", "serde"] }
 
 # Random token generation
 rand = "0.8"
