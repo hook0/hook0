@@ -1495,6 +1495,10 @@ async fn main() -> anyhow::Result<()> {
                                         .route(web::get().to(handlers::subscriptions::get))
                                         .route(web::put().to(handlers::subscriptions::edit))
                                         .route(web::delete().to(handlers::subscriptions::delete)),
+                                )
+                                .service(
+                                    web::resource("/{subscription_id}/health_events")
+                                        .route(web::get().to(handlers::subscription_health_events::list)),
                                 ),
                         )
                         .service(
