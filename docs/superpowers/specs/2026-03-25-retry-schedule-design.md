@@ -25,7 +25,7 @@ This is Phase 1 of ticket #42. Phases 2-3 (auto-deactivation + email notificatio
 
 ### Out of scope
 
-- Automatic subscription deactivation + email notifications (Phase 2 — see `2026-03-25-auto-deactivation-design.md`)
+- Automatic subscription deactivation + email notifications (Phase 2 — see `2026-03-26-auto-deactivation-design.md`)
 - Manual retry/recover/replay APIs (Phase 3)
 - Frontend UI for retry schedule management
 
@@ -272,7 +272,7 @@ Decisions made during the design interview:
 
 ## 7. Open Questions for Future Phases
 
-1. **~~Email notifications vs custom schedules~~** — **Resolved in Phase 2 spec.** Fixed calendar thresholds (3d/5d) are incompatible with configurable schedules. Phase 2 explores aggregated health evaluation instead. See `2026-03-25-auto-deactivation-design.md`, section 7 (open questions Q2/Q3).
+1. **~~Email notifications vs custom schedules~~** — **Resolved in Phase 2 spec.** Fixed calendar thresholds (3d/5d) are incompatible with configurable schedules. Phase 2 uses an adaptive failure ratio (time-based for low volume, message-count-based for high volume) with a periodic health monitor cron. See `2026-03-26-auto-deactivation-design.md`, section 3.3.
 
 2. **Frontend warning on delete**: The delete API allows deletion of assigned schedules (SET NULL). The frontend should show a confirmation dialog listing affected subscriptions and in-progress retries. This requires an endpoint (or query param on DELETE) that returns the list of affected subscriptions — to be designed in the frontend phase.
 
