@@ -137,6 +137,7 @@ const onSubmit = handleSubmit((values) => {
             autocomplete="email"
             data-test="register-email-input"
             :disabled="isLoading"
+            autofocus
             @focus="handleFormStart"
           />
 
