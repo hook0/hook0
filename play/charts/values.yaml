@@ -17,6 +17,8 @@ service:
 ingress:
   enabled: true
   host: play.hook0.com
+  clusterIssuer: "letsencrypt-prod"
+  annotations: {}
 
 play:
   host: "0.0.0.0"
