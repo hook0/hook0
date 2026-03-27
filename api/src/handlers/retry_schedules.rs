@@ -18,7 +18,7 @@ use crate::iam::{authorize, Action};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
-pub const MAX_INTERVAL_SECS: i32 = 604_800;
+pub const MAX_INTERVAL_SECS: i32 = 604_800; // 7 days
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, EnumString, Apiv2Schema)]
 #[serde(rename_all = "lowercase")]
@@ -29,6 +29,9 @@ pub enum RetryStrategy {
     Custom,
 }
 
+// Note: `strategy` is String because `sqlx::query_as!` maps TEXT columns to String.
+// Converting to RetryStrategy would require an intermediate raw struct + manual mapping,
+// which adds complexity without meaningful safety gain (the DB values are already validated on write).
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct RetrySchedule {
     pub retry_schedule_id: Uuid,
@@ -40,6 +43,25 @@ pub struct RetrySchedule {
     pub linear_delay: Option<i32>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+/// Trait for retry schedule input structs that carry strategy-dependent fields.
+/// Centralizes cross-field validation that `validator` 0.20 cannot express declaratively.
+trait ValidateStrategyFields {
+    fn strategy(&self) -> RetryStrategy;
+    fn max_retries(&self) -> i32;
+    fn linear_delay(&self) -> Option<i32>;
+    fn custom_intervals(&self) -> Option<&[i32]>;
+
+    /// Validate cross-field constraints between strategy and its dependent fields.
+    fn validate_strategy_fields(&self) -> Result<(), Hook0Problem> {
+        validate_strategy_fields(
+            self.strategy(),
+            self.max_retries(),
+            self.linear_delay(),
+            self.custom_intervals(),
+        )
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
@@ -54,6 +76,13 @@ pub struct RetrySchedulePost {
     pub linear_delay: Option<i32>,
 }
 
+impl ValidateStrategyFields for RetrySchedulePost {
+    fn strategy(&self) -> RetryStrategy { self.strategy }
+    fn max_retries(&self) -> i32 { self.max_retries }
+    fn linear_delay(&self) -> Option<i32> { self.linear_delay }
+    fn custom_intervals(&self) -> Option<&[i32]> { self.custom_intervals.as_deref() }
+}
+
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct RetrySchedulePut {
     #[validate(non_control_character, length(min = 2, max = 200))]
@@ -65,9 +94,50 @@ pub struct RetrySchedulePut {
     pub linear_delay: Option<i32>,
 }
 
+impl ValidateStrategyFields for RetrySchedulePut {
+    fn strategy(&self) -> RetryStrategy { self.strategy }
+    fn max_retries(&self) -> i32 { self.max_retries }
+    fn linear_delay(&self) -> Option<i32> { self.linear_delay }
+    fn custom_intervals(&self) -> Option<&[i32]> { self.custom_intervals.as_deref() }
+}
+
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct RetryScheduleQs {
     pub organization_id: Uuid,
+}
+
+// --- Validation helpers: DRY the strategy-dependent field checks ---
+
+/// Return an error if `value` is `Some` — the field must be absent for this strategy.
+fn require_none<T>(field: &'static str, value: &Option<T>, strategy: &str) -> Result<(), Hook0Problem> {
+    if value.is_some() {
+        return Err(Hook0Problem::Validation(mk_validation_error(
+            field,
+            &format!("{field} must be None for {strategy} strategy"),
+        )));
+    }
+    Ok(())
+}
+
+/// Return the inner value or error — the field is required for this strategy.
+fn require_some<'a, T>(field: &'static str, value: &'a Option<T>, strategy: &str) -> Result<&'a T, Hook0Problem> {
+    value.as_ref().ok_or_else(|| {
+        Hook0Problem::Validation(mk_validation_error(
+            field,
+            &format!("{field} is required for {strategy} strategy"),
+        ))
+    })
+}
+
+/// Return an error if `value` is outside `[min, max]`.
+fn require_range(field: &'static str, value: i32, min: i32, max: i32) -> Result<(), Hook0Problem> {
+    if !(min..=max).contains(&value) {
+        return Err(Hook0Problem::Validation(mk_validation_error(
+            field,
+            &format!("{field} must be between {min} and {max}"),
+        )));
+    }
+    Ok(())
 }
 
 pub fn validate_strategy_fields(
@@ -78,48 +148,17 @@ pub fn validate_strategy_fields(
 ) -> Result<(), Hook0Problem> {
     match strategy {
         RetryStrategy::Exponential => {
-            if custom_intervals.is_some() {
-                return Err(Hook0Problem::Validation(
-                    mk_validation_error("custom_intervals", "custom_intervals must be None for exponential strategy"),
-                ));
-            }
-            if linear_delay.is_some() {
-                return Err(Hook0Problem::Validation(
-                    mk_validation_error("linear_delay", "linear_delay must be None for exponential strategy"),
-                ));
-            }
+            require_none("custom_intervals", &custom_intervals, "exponential")?;
+            require_none("linear_delay", &linear_delay, "exponential")?;
         }
         RetryStrategy::Linear => {
-            if custom_intervals.is_some() {
-                return Err(Hook0Problem::Validation(
-                    mk_validation_error("custom_intervals", "custom_intervals must be None for linear strategy"),
-                ));
-            }
-            let Some(delay) = linear_delay else {
-                return Err(Hook0Problem::Validation(
-                    mk_validation_error("linear_delay", "linear_delay is required for linear strategy"),
-                ));
-            };
-            if !(1..=MAX_INTERVAL_SECS).contains(&delay) {
-                return Err(Hook0Problem::Validation(
-                    mk_validation_error("linear_delay", "linear_delay must be between 1 and 604800"),
-                ));
-            }
+            require_none("custom_intervals", &custom_intervals, "linear")?;
+            let delay = require_some("linear_delay", &linear_delay, "linear")?;
+            require_range("linear_delay", *delay, 1, MAX_INTERVAL_SECS)?;
         }
         RetryStrategy::Custom => {
-            if linear_delay.is_some() {
-                return Err(Hook0Problem::Validation(
-                    mk_validation_error("linear_delay", "linear_delay must be None for custom strategy"),
-                ));
-            }
-            let intervals = match custom_intervals {
-                Some(i) => i,
-                None => {
-                    return Err(Hook0Problem::Validation(
-                        mk_validation_error("custom_intervals", "custom_intervals is required for custom strategy"),
-                    ));
-                }
-            };
+            require_none("linear_delay", &linear_delay, "custom")?;
+            let intervals = require_some("custom_intervals", &custom_intervals, "custom")?;
             if intervals.len() != max_retries as usize {
                 return Err(Hook0Problem::Validation(
                     mk_validation_error("custom_intervals", "custom_intervals length must equal max_retries"),
@@ -128,9 +167,7 @@ pub fn validate_strategy_fields(
             for (i, &val) in intervals.iter().enumerate() {
                 if !(1..=MAX_INTERVAL_SECS).contains(&val) {
                     let msg = format!("custom_intervals[{i}] must be between 1 and {MAX_INTERVAL_SECS}");
-                    return Err(Hook0Problem::Validation(
-                        mk_validation_error("custom_intervals", &msg),
-                    ));
+                    return Err(Hook0Problem::Validation(mk_validation_error("custom_intervals", &msg)));
                 }
             }
         }
@@ -227,13 +264,10 @@ pub async fn create(
     }
 
     let strategy_str = body.strategy.to_string();
-    validate_strategy_fields(
-        body.strategy,
-        body.max_retries,
-        body.linear_delay,
-        body.custom_intervals.as_deref(),
-    )?;
+    body.validate_strategy_fields()?;
 
+    // Atomic INSERT with quota check: the WHERE subquery counts existing rows for this org
+    // and only proceeds if under the limit, preventing TOCTOU race conditions.
     let max_per_org = i64::from(state.max_retry_schedules_per_org);
     let schedule = query_as!(
         RetrySchedule,
@@ -379,12 +413,7 @@ pub async fn edit(
     }
 
     let strategy_str = body.strategy.to_string();
-    validate_strategy_fields(
-        body.strategy,
-        body.max_retries,
-        body.linear_delay,
-        body.custom_intervals.as_deref(),
-    )?;
+    body.validate_strategy_fields()?;
 
     let schedule = query_as!(
         RetrySchedule,
@@ -469,6 +498,8 @@ pub async fn delete(
         return Err(Hook0Problem::Forbidden);
     }
 
+    // DELETE...RETURNING captures the row data in one atomic operation,
+    // so we can emit the event with the deleted schedule's fields.
     struct DeletedRow {
         name: String,
         strategy: String,
@@ -519,6 +550,7 @@ pub async fn delete(
     }
 }
 
+/// Unit tests for strategy-dependent field validation logic.
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -640,7 +672,7 @@ mod tests {
 
     #[test]
     fn custom_rejects_empty_intervals() {
-        // max_retries=1 but empty intervals → len mismatch
+        // max_retries=1 but empty intervals -> len mismatch
         let result = validate_strategy_fields(RetryStrategy::Custom, 1, None, Some(&[]));
         assert!(result.is_err());
     }
