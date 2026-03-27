@@ -40,6 +40,7 @@ pub const EVENT_TYPES: &[&str] = &[
     "api.retry_schedule.created",
     "api.retry_schedule.updated",
     "api.retry_schedule.removed",
+    "api.subscription.disabled",
 ];
 
 pub fn initialize(
@@ -137,6 +138,7 @@ pub enum Hook0ClientEvent {
     RetryScheduleCreated(EventRetryScheduleCreated),
     RetryScheduleUpdated(EventRetryScheduleUpdated),
     RetryScheduleRemoved(EventRetryScheduleRemoved),
+    SubscriptionDisabled(EventSubscriptionDisabled),
 }
 
 impl Hook0ClientEvent {
@@ -190,6 +192,7 @@ impl Hook0ClientEvent {
             Self::RetryScheduleCreated(e) => to_event(e, None),
             Self::RetryScheduleUpdated(e) => to_event(e, None),
             Self::RetryScheduleRemoved(e) => to_event(e, None),
+            Self::SubscriptionDisabled(e) => to_event(e, None),
         }
     }
 }
@@ -910,5 +913,60 @@ impl Event for EventRetryScheduleRemoved {
 impl From<EventRetryScheduleRemoved> for Hook0ClientEvent {
     fn from(e: EventRetryScheduleRemoved) -> Self {
         Self::RetryScheduleRemoved(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SubscriptionDisabledPayload {
+    pub subscription_id: Uuid,
+    pub organization_id: Uuid,
+    pub application_id: Uuid,
+    pub description: Option<String>,
+    pub target: String,
+    pub disabled_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RetrySchedulePayload {
+    pub retry_schedule_id: Uuid,
+    pub name: String,
+    pub strategy: String,
+    pub max_retries: i32,
+    pub custom_intervals: Option<Vec<i32>>,
+    pub linear_delay: Option<i32>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventSubscriptionDisabled {
+    pub subscription: SubscriptionDisabledPayload,
+    pub retry_schedule: Option<RetrySchedulePayload>,
+}
+
+impl Event for EventSubscriptionDisabled {
+    fn event_type(&self) -> &'static str {
+        "api.subscription.disabled"
+    }
+
+    fn labels(&self) -> Vec<(String, String)> {
+        vec![
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                self.subscription.organization_id.to_string(),
+            ),
+            (
+                APPLICATION_LABEL.to_owned(),
+                self.subscription.application_id.to_string(),
+            ),
+            (
+                "subscription_id".to_owned(),
+                self.subscription.subscription_id.to_string(),
+            ),
+        ]
+    }
+}
+
+impl From<EventSubscriptionDisabled> for Hook0ClientEvent {
+    fn from(e: EventSubscriptionDisabled) -> Self {
+        Self::SubscriptionDisabled(e)
     }
 }
