@@ -25,6 +25,7 @@ import {
   test_b2_success_stays_enabled,
   test_b3_reenable_after_autodisable,
   test_b4_full_lifecycle,
+  test_b5_adaptive_windowing,
   test_c1_user_disabled_not_evaluated,
   test_c2_below_min_sample_size,
   test_c3_independent_evaluation,
@@ -33,11 +34,58 @@ import {
 export const config = getEnvironmentVariables();
 
 export const options = {
-  vus: config.vus,
-  iterations: config.iterations,
-  duration: config.maxDuration,
+  scenarios: {
+    basic_workflow: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_basic_workflow',
+    },
+    subscription_deletion: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_subscription_deletion',
+    },
+    subscription_disable: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_subscription_disable',
+    },
+    retry_schedules: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_retry_schedules',
+    },
+    retry_schedule_subscription_assignment: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_retry_schedule_subscription_assignment',
+    },
+    health_monitor_reactivation: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_health_monitor_reactivation',
+    },
+    health_monitor: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '3m',
+      exec: 'scenario_health_monitor',
+    },
+  },
   thresholds: {
-    // the rate of successful checks should be at 100%
     checks: ['rate>=1.0'],
   },
 };
@@ -46,7 +94,7 @@ function isNotNull(value) {
   return value && value !== null;
 }
 
-function scenario_1() {
+export function scenario_basic_workflow() {
   const h = config.apiOrigin;
   const s = config.serviceToken;
   const o = config.organizationId;
@@ -180,7 +228,7 @@ function scenario_1() {
   }
 }
 
-function scenario_subscription_deletion() {
+export function scenario_subscription_deletion() {
   const h = config.apiOrigin;
   const s = config.serviceToken;
   const o = config.organizationId;
@@ -282,7 +330,7 @@ function scenario_subscription_deletion() {
   }
 }
 
-function scenario_subscription_disable() {
+export function scenario_subscription_disable() {
   const h = config.apiOrigin;
   const s = config.serviceToken;
   const o = config.organizationId;
@@ -409,7 +457,7 @@ function scenario_subscription_disable() {
   }
 }
 
-function scenario_retry_schedules() {
+export function scenario_retry_schedules() {
   const h = config.apiOrigin;
   const s = config.serviceToken;
   const o = config.organizationId;
@@ -500,7 +548,7 @@ function scenario_retry_schedules() {
   }
 }
 
-function scenario_retry_schedule_subscription_assignment() {
+export function scenario_retry_schedule_subscription_assignment() {
   const h = config.apiOrigin;
   const s = config.serviceToken;
   const o = config.organizationId;
@@ -531,7 +579,7 @@ function scenario_retry_schedule_subscription_assignment() {
   }
 }
 
-function scenario_health_monitor_reactivation() {
+export function scenario_health_monitor_reactivation() {
   const h = config.apiOrigin;
   const s = config.serviceToken;
   const o = config.organizationId;
@@ -547,6 +595,7 @@ function scenario_health_monitor() {
   test_b2_success_stays_enabled(config);
   test_b3_reenable_after_autodisable(config);
   test_b4_full_lifecycle(config);
+  test_b5_adaptive_windowing(config);
   test_c1_user_disabled_not_evaluated(config);
   test_c2_below_min_sample_size(config);
   test_c3_independent_evaluation(config);

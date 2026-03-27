@@ -363,6 +363,89 @@ export function test_b4_full_lifecycle(config) {
 }
 
 // ---------------------------------------------------------------------------
+// B5: High-volume windowing — recent successes override old failures
+// ---------------------------------------------------------------------------
+
+/**
+ * @description Tests adaptive windowing: with HEALTH_MONITOR_MESSAGE_WINDOW=10,
+ * the health monitor evaluates only the last 10 attempts when total attempts exceed
+ * the window. A subscription disabled by failures, then re-enabled with a healthy
+ * target and 12 new successes, must NOT be re-disabled — proving the monitor uses
+ * the last-10 window (0% failure) instead of the full window (~50% failure).
+ * @example
+ *   test_b5_adaptive_windowing(config)
+ */
+export function test_b5_adaptive_windowing(config) {
+  const h = config.apiOrigin;
+  const s = config.serviceToken;
+  const o = config.organizationId;
+  let application_id = null;
+
+  try {
+    // Phase 1: create subscription to failing target, send 12 events (all fail)
+    const ctx = create_test_context(config, config.targetUrlFailing, { hm_test: 'b5' });
+    application_id = ctx.application_id;
+    const sub_id = ctx.subscription.subscription_id;
+
+    send_n_events(s, h, ctx.application_id, ctx.event_type, { hm_test: 'b5' }, 12);
+
+    // Wait for health monitor to auto-disable (100% failure rate)
+    const disabled = wait_for_condition(() => {
+      const sub = get_subscription(h, s, sub_id, ctx.application_id);
+      return sub && sub.is_enabled === false;
+    }, 30000, 2000);
+
+    if (!disabled) {
+      throw new Error('B5: subscription was not auto-disabled within timeout (prerequisite)');
+    }
+
+    // Phase 2: re-enable with healthy target
+    const update_payload = {
+      application_id: ctx.application_id,
+      is_enabled: true,
+      event_types: [ctx.event_type],
+      target: {
+        type: 'http',
+        method: 'POST',
+        url: config.targetUrl,
+        headers: {},
+      },
+      description: ctx.subscription.description,
+      metadata: ctx.subscription.metadata || {},
+      labels: ctx.subscription.labels,
+    };
+
+    const updated = update_subscription(h, s, sub_id, ctx.application_id, update_payload);
+    if (!isNotNull(updated)) {
+      throw new Error('B5: Failed to re-enable subscription with healthy target');
+    }
+
+    // Phase 3: send 12 events to healthy target (all succeed)
+    // After this: ~12 failures + 12 successes = ~24 total attempts.
+    // Full-window ratio: ~50% failure. Last-10 window ratio: 0% failure.
+    send_n_events(s, h, ctx.application_id, ctx.event_type, { hm_test: 'b5' }, 12);
+
+    // Wait for worker to deliver + health monitor to tick several times
+    sleep(20);
+
+    // Phase 4: subscription must still be enabled — proves last-10 window is used
+    const sub_final = get_subscription(h, s, sub_id, ctx.application_id);
+    if (!isNotNull(sub_final)) {
+      throw new Error('B5: Failed to fetch subscription after healthy events');
+    }
+    if (sub_final.is_enabled !== true) {
+      throw new Error(
+        `B5: subscription should stay enabled (last-10 window = 0% failure), got is_enabled=${sub_final.is_enabled}`
+      );
+    }
+
+    console.log('B5 PASSED: adaptive windowing — recent successes override old failures');
+  } finally {
+    cleanup(config, application_id);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // C1: User-disabled subscription not evaluated by cron
 // ---------------------------------------------------------------------------
 
