@@ -17,6 +17,7 @@ import get_retry_schedule from './retry_schedules/get_retry_schedule.js';
 import update_retry_schedule from './retry_schedules/update_retry_schedule.js';
 import delete_retry_schedule from './retry_schedules/delete_retry_schedule.js';
 import assign_to_subscription from './retry_schedules/assign_to_subscription.js';
+import reactivation_tests from './health_monitor/reactivation_tests.js';
 
 export const config = getEnvironmentVariables();
 
@@ -535,10 +536,19 @@ function scenario_retry_schedule_subscription_assignment() {
   }
 }
 
+function scenario_health_monitor_reactivation() {
+  const h = config.apiOrigin;
+  const s = config.serviceToken;
+  const o = config.organizationId;
+
+  reactivation_tests(h, s, o, config.targetUrl);
+}
+
 export default function () {
   scenario_1();
   scenario_subscription_deletion();
   scenario_subscription_disable();
   scenario_retry_schedules();
   scenario_retry_schedule_subscription_assignment();
+  scenario_health_monitor_reactivation();
 }
