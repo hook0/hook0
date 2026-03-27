@@ -461,6 +461,38 @@ struct Config {
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30d")]
     soft_deleted_applications_cleanup_grace_period: Duration,
 
+    /// [Housekeeping] Enable the subscription health monitor background task
+    #[clap(long, env, default_value_t = false)]
+    enable_health_monitor: bool,
+
+    /// [Housekeeping] How often the health monitor runs
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30m")]
+    health_monitor_interval: Duration,
+
+    /// [Housekeeping] Failure % threshold for warning email
+    #[clap(long, env, default_value_t = 80)]
+    health_monitor_warning_failure_percent: u8,
+
+    /// [Housekeeping] Failure % threshold for deactivation
+    #[clap(long, env, default_value_t = 95)]
+    health_monitor_disable_failure_percent: u8,
+
+    /// [Housekeeping] Time window for low-volume health evaluation
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "24h")]
+    health_monitor_time_window: Duration,
+
+    /// [Housekeeping] Message count window for high-volume health evaluation
+    #[clap(long, env, default_value_t = 100)]
+    health_monitor_message_window: u32,
+
+    /// [Housekeeping] Minimum completed attempts in window before health evaluation applies
+    #[clap(long, env, default_value_t = 5)]
+    health_monitor_min_sample_size: u32,
+
+    /// [Housekeeping] Cooldown after resolved before new warning email
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1h")]
+    health_monitor_warning_cooldown: Duration,
+
     /// [Web Server] If true, the secured HTTP headers will be enabled
     #[clap(long, env, default_value = "true")]
     enable_security_headers: bool,
@@ -622,6 +654,20 @@ impl std::fmt::Debug for PulsarConfig {
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
+
+    if config.enable_health_monitor {
+        assert!(
+            config.health_monitor_warning_failure_percent < config.health_monitor_disable_failure_percent,
+            "health_monitor_warning_failure_percent ({}) must be < health_monitor_disable_failure_percent ({})",
+            config.health_monitor_warning_failure_percent,
+            config.health_monitor_disable_failure_percent,
+        );
+        assert!(
+            (1..=100).contains(&config.health_monitor_warning_failure_percent)
+                && (1..=100).contains(&config.health_monitor_disable_failure_percent),
+            "health_monitor failure percents must be in [1, 100]"
+        );
+    }
 
     if let Some(biscuit_private_key) = config.biscuit_private_key {
         // Initialize app logger as well as Sentry integration
