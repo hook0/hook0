@@ -247,18 +247,8 @@ export default function (baseUrl, service_token, organization_id, application_id
     JSON.stringify(update_nonexistent_payload),
     auth_headers
   );
-  if (
-    !check(update_nonexistent_res, {
-      'Update with nonexistent schedule returns 200': (r) => r.status === 200,
-    })
-  ) {
-    console.warn('Nonexistent schedule update response', update_nonexistent_res.body);
-    return null;
-  }
-  const sub_nonexistent = JSON.parse(update_nonexistent_res.body);
-  check(sub_nonexistent, {
-    'Nonexistent schedule UUID results in retry_schedule_id null': (s) =>
-      s.retry_schedule_id === null,
+  check(update_nonexistent_res, {
+    'Update with nonexistent schedule returns 404': (r) => r.status === 404,
   });
 
   console.log('All retry schedule subscription assignment tests passed');

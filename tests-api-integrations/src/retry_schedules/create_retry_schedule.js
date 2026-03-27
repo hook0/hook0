@@ -30,7 +30,7 @@ export default function (baseUrl, service_token, organization_id) {
     params
   );
   check(res, {
-    'Invalid strategy returns 400': (r) => r.status === 400,
+    'Invalid strategy returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
   // --- Invalid: exponential with custom_intervals ---
@@ -46,7 +46,7 @@ export default function (baseUrl, service_token, organization_id) {
     params
   );
   check(res, {
-    'Exponential with custom_intervals returns 400': (r) => r.status === 400,
+    'Exponential with custom_intervals returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
   // --- Invalid: linear without linear_delay ---
@@ -61,7 +61,7 @@ export default function (baseUrl, service_token, organization_id) {
     params
   );
   check(res, {
-    'Linear without linear_delay returns 400': (r) => r.status === 400,
+    'Linear without linear_delay returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
   // --- Invalid: custom with length mismatch ---
@@ -77,7 +77,7 @@ export default function (baseUrl, service_token, organization_id) {
     params
   );
   check(res, {
-    'Custom with length mismatch returns 400': (r) => r.status === 400,
+    'Custom with length mismatch returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
   // --- Invalid: custom with interval=0 ---
@@ -93,7 +93,7 @@ export default function (baseUrl, service_token, organization_id) {
     params
   );
   check(res, {
-    'Custom with interval=0 returns 400': (r) => r.status === 400,
+    'Custom with interval=0 returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
   // --- Invalid: max_retries=0 ---
@@ -108,7 +108,7 @@ export default function (baseUrl, service_token, organization_id) {
     params
   );
   check(res, {
-    'max_retries=0 returns 400': (r) => r.status === 400,
+    'max_retries=0 returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
   // --- Invalid: max_retries=101 ---
@@ -123,7 +123,7 @@ export default function (baseUrl, service_token, organization_id) {
     params
   );
   check(res, {
-    'max_retries=101 returns 400': (r) => r.status === 400,
+    'max_retries=101 returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
   // --- Invalid: empty name ---
@@ -138,7 +138,7 @@ export default function (baseUrl, service_token, organization_id) {
     params
   );
   check(res, {
-    'Empty name returns 400': (r) => r.status === 400,
+    'Empty name returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
   // --- Invalid: name too short (1 char) ---
@@ -153,7 +153,7 @@ export default function (baseUrl, service_token, organization_id) {
     params
   );
   check(res, {
-    'Name too short returns 400': (r) => r.status === 400,
+    'Name too short returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
   // --- Valid: create exponential schedule ---

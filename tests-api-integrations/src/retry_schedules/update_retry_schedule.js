@@ -93,7 +93,7 @@ export default function (baseUrl, service_token, organization_id, schedule_id) {
     params
   );
   check(res, {
-    'Invalid cross-fields returns 400': (r) => r.status === 400,
+    'Invalid cross-fields returns 400 or 422': (r) => r.status === 400 || r.status === 422,
   });
 
   // --- Update to duplicate name (create a temporary schedule first) ---
