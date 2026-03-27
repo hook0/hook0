@@ -49,7 +49,7 @@ mod tests {
     fn test_get_endpoint() {
         // If we have endpoints, test the lookup function
         if let Some(first) = API_ENDPOINTS.first() {
-            let found = get_endpoint(&first.name);
+            let found = get_endpoint(first.name);
             assert!(found.is_some(), "Should find endpoint by name");
             assert_eq!(found.unwrap().name, first.name);
         }
