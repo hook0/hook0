@@ -44,7 +44,6 @@ pub struct Subscription {
     pub labels: HashMap<String, String>,
     pub target: Target,
     pub retry_schedule_id: Option<Uuid>,
-    pub auto_disabled_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub dedicated_workers: Vec<String>,
@@ -226,7 +225,6 @@ pub async fn list(
         labels: Value,
         retry_schedule_id: Option<Uuid>,
         target_json: Option<Value>,
-        auto_disabled_at: Option<DateTime<Utc>>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
         dedicated_workers: Option<Vec<String>>,
@@ -259,17 +257,9 @@ pub async fn list(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.subscription__id, subs.is_enabled, subs.description, subs.secret, subs.metadata, subs.labels, subs.retry_schedule__id AS retry_schedule_id, subs.created_at, subs.updated_at, subs.event_types, targets.target_json, subs.dedicated_workers, health.auto_disabled_at
+            SELECT subs.subscription__id, subs.is_enabled, subs.description, subs.secret, subs.metadata, subs.labels, subs.retry_schedule__id AS retry_schedule_id, subs.created_at, subs.updated_at, subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
-            LEFT JOIN LATERAL (
-                SELECT she.created_at AS auto_disabled_at
-                FROM webhook.subscription_health_event she
-                WHERE she.subscription__id = subs.subscription__id
-                  AND she.status = 'disabled'
-                ORDER BY she.created_at DESC
-                LIMIT 1
-            ) health ON true
         "#,
     )
     .bind(&qs.application_id)
@@ -305,7 +295,6 @@ pub async fn list(
                 target: serde_json::from_value(s.target_json.unwrap())
                     .expect("Could not parse subscription target"),
                 retry_schedule_id: s.retry_schedule_id,
-                auto_disabled_at: s.auto_disabled_at,
                 created_at: s.created_at,
                 updated_at: s.updated_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
@@ -378,7 +367,6 @@ pub async fn get(
         labels: Value,
         retry_schedule_id: Option<Uuid>,
         target_json: Option<Value>,
-        auto_disabled_at: Option<DateTime<Utc>>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
         dedicated_workers: Option<Vec<String>>,
@@ -411,17 +399,9 @@ pub async fn get(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.application__id, subs.subscription__id, subs.is_enabled, subs.description, subs.secret, subs.metadata, subs.labels, subs.retry_schedule__id AS retry_schedule_id, subs.created_at, subs.updated_at, subs.event_types, targets.target_json, subs.dedicated_workers, health.auto_disabled_at
+            SELECT subs.application__id, subs.subscription__id, subs.is_enabled, subs.description, subs.secret, subs.metadata, subs.labels, subs.retry_schedule__id AS retry_schedule_id, subs.created_at, subs.updated_at, subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
-            LEFT JOIN LATERAL (
-                SELECT she.created_at AS auto_disabled_at
-                FROM webhook.subscription_health_event she
-                WHERE she.subscription__id = subs.subscription__id
-                  AND she.status = 'disabled'
-                ORDER BY she.created_at DESC
-                LIMIT 1
-            ) health ON true
             LIMIT 1
         "#,
     )
@@ -458,7 +438,6 @@ pub async fn get(
                 target: serde_json::from_value(s.target_json.unwrap())
                     .expect("Could not parse subscription target"),
                 retry_schedule_id: s.retry_schedule_id,
-                auto_disabled_at: s.auto_disabled_at,
                 created_at: s.created_at,
                 updated_at: s.updated_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
@@ -719,7 +698,6 @@ pub async fn create(
         labels,
         target: body.target.clone(),
         retry_schedule_id: subscription.retry_schedule__id,
-        auto_disabled_at: None,
         created_at: subscription.created_at,
         updated_at: subscription.updated_at,
         dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
@@ -772,7 +750,7 @@ pub async fn edit(
         _ => Err(Hook0Problem::LabelsAmbiguity),
     }?;
 
-    if authorize_for_application(
+    let auth_token = authorize_for_application(
         &state.db,
         &biscuit,
         Action::SubscriptionEdit {
@@ -783,10 +761,13 @@ pub async fn edit(
         state.debug_authorizer,
     )
     .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .map_err(|_| Hook0Problem::Forbidden)?;
+
+    // Extract user_id from Biscuit token when available (service tokens have no user)
+    let auth_user_id = match &auth_token {
+        crate::iam::AuthorizedToken::User(u) => Some(u.user_id),
+        _ => None,
+    };
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -982,9 +963,10 @@ pub async fn edit(
             // Insert a 'resolved' health event when re-enabling a subscription
             if body.is_enabled && previous_is_enabled == Some(false) {
                 query(
-                    "INSERT INTO webhook.subscription_health_event (subscription__id, status) VALUES ($1, 'resolved')"
+                    "INSERT INTO webhook.subscription_health_event (subscription__id, status, user__id) VALUES ($1, 'resolved', $2)"
                 )
                 .bind(&s.subscription__id)
+                .bind(auth_user_id)
                 .execute(&mut *tx)
                 .await
                 .map_err(Hook0Problem::from)?;
@@ -1017,20 +999,6 @@ pub async fn edit(
                 report_cancelled_request_attempts(cancelled_request_attempts);
             }
 
-            let auto_disabled_at: Option<DateTime<Utc>> = sqlx::query_scalar(
-                r#"
-                SELECT she.created_at AS auto_disabled_at
-                FROM webhook.subscription_health_event she
-                WHERE she.subscription__id = $1 AND she.status = 'disabled'
-                ORDER BY she.created_at DESC
-                LIMIT 1
-                "#,
-            )
-            .bind(s.subscription__id)
-            .fetch_optional(&state.db)
-            .await
-            .map_err(Hook0Problem::from)?;
-
             let labels: HashMap<String, String> =
                 serde_json::from_value(s.labels).unwrap_or_else(|_| HashMap::new());
             let first_label = labels
@@ -1052,7 +1020,6 @@ pub async fn edit(
                 labels,
                 target: body.target.clone(),
                 retry_schedule_id: s.retry_schedule__id,
-                auto_disabled_at,
                 created_at: s.created_at,
                 updated_at: s.updated_at,
                 dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),

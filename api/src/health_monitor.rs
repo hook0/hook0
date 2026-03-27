@@ -114,6 +114,7 @@ struct SubscriptionHealth {
     total: i64,
     last_health_status: Option<String>,
     last_health_at: Option<DateTime<Utc>>,
+    last_health_user_id: Option<Uuid>,
     retry_schedule__id: Option<Uuid>,
     retry_schedule_name: Option<String>,
     retry_strategy: Option<String>,
@@ -179,6 +180,7 @@ async fn evaluate_subscriptions(
             w.total,
             lh.status as last_health_status,
             lh.created_at as last_health_at,
+            lh.user__id as last_health_user_id,
             s.retry_schedule__id,
             rs.name as retry_schedule_name,
             rs.strategy as retry_strategy,
@@ -189,7 +191,7 @@ async fn evaluate_subscriptions(
         inner join webhook.subscription s using (subscription__id)
         inner join event.application app on app.application__id = s.application__id
         left join lateral (
-            select she.status, she.created_at
+            select she.status, she.created_at, she.user__id
             from webhook.subscription_health_event she
             where she.subscription__id = w.subscription__id
             order by she.created_at desc
@@ -360,8 +362,14 @@ async fn process_subscription(
         Some("warning") if ratio >= warning_pct && ratio < disable_pct => {}
 
         Some("warning") if ratio < warning_pct => {
-            insert_health_event(tx, sub.subscription__id, "resolved").await?;
-            actions.push(HealthAction::Recovered(HealthActionInfo::from_sub(sub, None)));
+            // Skip recovery email if the last event was a manual user action —
+            // the user already re-enabled and knows about it.
+            if sub.last_health_user_id.is_some() {
+                insert_health_event(tx, sub.subscription__id, "resolved", None).await?;
+            } else {
+                insert_health_event(tx, sub.subscription__id, "resolved", None).await?;
+                actions.push(HealthAction::Recovered(HealthActionInfo::from_sub(sub, None)));
+            }
         }
 
         Some("warning") => {
@@ -372,7 +380,7 @@ async fn process_subscription(
         }
 
         _ if ratio >= disable_pct => {
-            insert_health_event(tx, sub.subscription__id, "warning").await?;
+            insert_health_event(tx, sub.subscription__id, "warning", None).await?;
             actions.push(HealthAction::Warning(HealthActionInfo::from_sub(sub, None)));
             let disabled_at = disable_subscription(tx, sub).await?;
             if let Some(at) = disabled_at {
@@ -381,7 +389,7 @@ async fn process_subscription(
         }
 
         _ if ratio >= warning_pct => {
-            insert_health_event(tx, sub.subscription__id, "warning").await?;
+            insert_health_event(tx, sub.subscription__id, "warning", None).await?;
             actions.push(HealthAction::Warning(HealthActionInfo::from_sub(sub, None)));
         }
 
@@ -391,16 +399,19 @@ async fn process_subscription(
     Ok(actions)
 }
 
+/// user_id: None = automatic (system/health monitor), Some = manual action by this user
 async fn insert_health_event(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     subscription_id: Uuid,
     status: &str,
+    user_id: Option<Uuid>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "INSERT INTO webhook.subscription_health_event (subscription__id, status) VALUES ($1, $2)",
+        "INSERT INTO webhook.subscription_health_event (subscription__id, status, user__id) VALUES ($1, $2, $3)",
     )
     .bind(subscription_id)
     .bind(status)
+    .bind(user_id)
     .execute(&mut **tx)
     .await?;
     Ok(())
@@ -421,8 +432,8 @@ async fn disable_subscription(
             RETURNING subscription__id
         ),
         inserted AS (
-            INSERT INTO webhook.subscription_health_event (subscription__id, status)
-            SELECT subscription__id, 'disabled' FROM updated
+            INSERT INTO webhook.subscription_health_event (subscription__id, status, user__id)
+            SELECT subscription__id, 'disabled', NULL FROM updated
             RETURNING created_at
         )
         SELECT created_at FROM inserted

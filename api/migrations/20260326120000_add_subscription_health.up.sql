@@ -5,6 +5,10 @@ create table webhook.subscription_health_event (
         on delete cascade,
     status text not null
         check (status in ('warning', 'disabled', 'resolved')),
+    -- NULL = automatic (system/health monitor), NOT NULL = manual action by this user
+    user__id uuid
+        references iam.user(user__id)
+        on delete set null,
     created_at timestamptz not null default statement_timestamp(),
     constraint subscription_health_event_pkey primary key (health_event__id)
 );
