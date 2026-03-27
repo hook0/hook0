@@ -9,8 +9,9 @@
  * <Hook0UserMenu ref="userMenuRef" @close-dropdowns="closeAll" />
  */
 import { ref } from 'vue';
-import { Settings, LogOut, Sun, Moon } from 'lucide-vue-next';
+import { Settings, LogOut, Sun, Moon, BookOpen, CodeXml } from 'lucide-vue-next';
 import { routes } from '@/routes';
+import { DOCS_URL, API_DOCS_URL } from '@/constants/externalLinks';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
 import { useI18n } from 'vue-i18n';
@@ -94,6 +95,29 @@ defineExpose({ closeDropdowns, focusTrigger, hasOpenDropdown });
           <Settings :size="16" aria-hidden="true" />
           {{ t('nav.settings') }}
         </router-link>
+
+        <a
+          :href="DOCS_URL"
+          target="_blank"
+          rel="noopener"
+          class="hook0-topnav__dropdown-item"
+          role="menuitem"
+        >
+          <BookOpen :size="16" aria-hidden="true" />
+          {{ t('nav.documentation') }}
+        </a>
+
+        <a
+          :href="API_DOCS_URL"
+          target="_blank"
+          rel="noopener"
+          class="hook0-topnav__dropdown-item"
+          role="menuitem"
+        >
+          <CodeXml :size="16" aria-hidden="true" />
+          {{ t('nav.apiReference') }}
+        </a>
+
         <Hook0Button
           variant="ghost"
           class="hook0-topnav__dropdown-item"

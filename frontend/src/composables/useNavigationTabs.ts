@@ -82,8 +82,8 @@ export function useNavigationTabs() {
         ...(appSecretCompat
           ? [
               {
-                id: 'api-keys',
-                label: t('nav.apiKeys'),
+                id: 'application-secrets',
+                label: t('nav.applicationSecrets'),
                 icon: KeyRound,
                 to: { name: routes.ApplicationSecretsList, params },
                 active: route.name === routes.ApplicationSecretsList,

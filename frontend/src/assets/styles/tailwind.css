@@ -74,6 +74,7 @@
   /* Brand / Primary (Green) */
   --color-primary: #22c55e;
   --color-primary-hover: #16a34a;
+  --color-link: #41c572;
   --color-primary-light: #f0fdf4;
   --color-primary-text: #ffffff;
   --color-on-dark: #ffffff;
@@ -148,6 +149,7 @@
 
   --color-primary: #4ade80;
   --color-primary-hover: #86efac;
+  --color-link: #41c572;
   --color-primary-light: #052e16;
   --color-primary-text: #052e16;
   --color-on-dark: #ffffff;

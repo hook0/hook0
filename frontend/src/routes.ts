@@ -35,6 +35,7 @@ export const routes = {
   ApplicationSecretsNew: 'ApplicationSecretsNew',
 
   EventsList: 'EventsList',
+  EventsSend: 'EventsSend',
   EventsDetail: 'EventsDetail',
 
   EventTypesList: 'EventTypesList',
@@ -220,7 +221,14 @@ export default [
     path: '/organizations/:organization_id/applications/:application_id/application_secrets',
     component: () =>
       import('@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue'),
-    meta: { title: 'API Keys' },
+    meta: { title: 'Application Secrets' },
+  },
+  {
+    name: routes.ApplicationSecretsNew,
+    path: '/organizations/:organization_id/applications/:application_id/application_secrets/new',
+    component: () =>
+      import('@/pages/organizations/applications/application_secrets/ApplicationSecretsList.vue'),
+    meta: { title: 'New Application Secret' },
   },
 
   {
@@ -228,6 +236,13 @@ export default [
     path: '/organizations/:organization_id/applications/:application_id/events',
     component: () => import('@/pages/organizations/applications/events/EventsList.vue'),
     meta: { title: 'Events' },
+  },
+
+  {
+    name: routes.EventsSend,
+    path: '/organizations/:organization_id/applications/:application_id/events/send',
+    component: () => import('@/pages/organizations/applications/events/EventsSend.vue'),
+    meta: { title: 'Send Event' },
   },
 
   {

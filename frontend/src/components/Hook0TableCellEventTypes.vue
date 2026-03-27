@@ -48,8 +48,13 @@ withDefaults(defineProps<Props>(), {
   white-space: nowrap;
 }
 
+.cell-event-types__item--link {
+  color: var(--color-link);
+  font-weight: 500;
+}
+
 .cell-event-types__item--link:hover {
-  color: var(--color-text-primary);
+  color: var(--color-primary-hover);
   text-decoration: underline;
   text-underline-offset: 2px;
 }

@@ -38,6 +38,7 @@ test.describe("Events", () => {
 
     // Click send event button
     await page.locator('[data-test="events-send-button"]').click();
+    await page.waitForURL('**/events/send');
 
     // Verify send event form is visible
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
@@ -59,6 +60,7 @@ test.describe("Events", () => {
     await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/events`);
     await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 15000 });
     await page.locator('[data-test="events-send-button"]').click();
+    await page.waitForURL('**/events/send');
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
 
     // Select event type
@@ -102,8 +104,8 @@ test.describe("Events", () => {
     // Verify success notification is shown
     await expectToast(page);
 
-    // Verify form is closed and events list is shown
-    await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
+    // After send, page now navigates to event detail page
+    await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
   });
 
   test("should display events list with sent event", async ({ page, request }) => {
@@ -112,7 +114,8 @@ test.describe("Events", () => {
     const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
 
-    // Wait for events list to refresh
+    // After send, page navigates to event detail — go back to events list
+    await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/events`);
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
     // Verify events table has at least 1 row (wait for table data to load)
@@ -139,16 +142,17 @@ test.describe("Events", () => {
 
     // Click send event button to open form
     await page.locator('[data-test="events-send-button"]').click();
+    await page.waitForURL('**/events/send');
 
     // Wait for form
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
 
     // Click cancel
     await page.locator('[data-test="send-event-cancel-button"]').click();
+    await page.waitForURL('**/events');
 
     // Verify form is closed and events list is shown
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('[data-test="send-event-form"]')).not.toBeVisible();
   });
 
   test("should add and remove labels when sending event", async ({ page, request }) => {
@@ -163,6 +167,7 @@ test.describe("Events", () => {
 
     // Open send event form
     await page.locator('[data-test="events-send-button"]').click();
+    await page.waitForURL('**/events/send');
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
 
     // Row 0 already exists (KV component starts with one empty pair).
@@ -201,7 +206,8 @@ test.describe("Events", () => {
     const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
 
-    // Wait for events list
+    // After send, page navigates to event detail — go back to events list
+    await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/events`);
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
     // Wait for event row to appear (query is invalidated after send via TanStack Query onSuccess)
@@ -211,8 +217,8 @@ test.describe("Events", () => {
       expect(rowCount).toBeGreaterThanOrEqual(1);
     }).toPass({ timeout: 15000 });
 
-    // Click on the Event ID cell to open side panel (avoid clicking event_type column which is a RouterLink)
-    await rows.first().locator("td").first().click();
+    // Click on a non-link cell to open side panel (Event ID and Event Type are now links, use received_at column instead)
+    await rows.first().locator("td").nth(1).click();
 
     // Verify side panel is visible
     await expect(page.locator('[data-test="side-panel"]')).toBeVisible({ timeout: 10000 });
@@ -230,7 +236,8 @@ test.describe("Events", () => {
     const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
 
-    // Wait for events list to show
+    // After send, page navigates to event detail — go back to events list
+    await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/events`);
     await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
 
     // Wait for event row to appear
@@ -240,8 +247,8 @@ test.describe("Events", () => {
       expect(rowCount).toBeGreaterThanOrEqual(1);
     }).toPass({ timeout: 15000 });
 
-    // Click on the Event ID cell to open side panel (avoid clicking event_type column which is a RouterLink)
-    await rows.first().locator("td").first().click();
+    // Click on a non-link cell to open side panel (Event ID and Event Type are now links, use received_at column instead)
+    await rows.first().locator("td").nth(1).click();
     await expect(page.locator('[data-test="side-panel"]')).toBeVisible({ timeout: 10000 });
 
     // Click the "full page" button in the side panel to navigate to event detail
@@ -259,22 +266,7 @@ test.describe("Events", () => {
     const response = await sendTestEvent(page, env);
     expect(response.status()).toBeLessThan(400);
 
-    // Wait for events list
-    await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
-
-    // Wait for event row to appear
-    const rows = page.locator('[data-test="events-table"] [row-id]');
-    await expect(async () => {
-      const rowCount = await rows.count();
-      expect(rowCount).toBeGreaterThanOrEqual(1);
-    }).toPass({ timeout: 15000 });
-
-    // Click on the Event ID cell to open side panel, then navigate to full detail page
-    await rows.first().locator("td").first().click();
-    await expect(page.locator('[data-test="side-panel"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="event-panel-full-page"]').click();
-
-    // Verify we're on the event detail page
+    // After send, page navigates directly to event detail page
     await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
     await expect(page.locator('[data-test="event-detail-page"]')).toBeVisible({ timeout: 10000 });
 
@@ -290,9 +282,9 @@ test.describe("Events", () => {
     const detailPage = page.locator('[data-test="event-detail-page"]');
     await expect(detailPage).toContainText('application/json', { timeout: 30000 });
 
-    // Verify labels section displays the label we sent
-    await expect(detailPage).toContainText("all", { timeout: 15000 });
-    await expect(detailPage).toContainText("yes", { timeout: 15000 });
+    // Verify labels section displays the label we sent (default: user_id=1)
+    await expect(detailPage).toContainText("user_id", { timeout: 15000 });
+    await expect(detailPage).toContainText("1", { timeout: 15000 });
 
     // Verify payload content is displayed (we sent the default '{"test": true}')
     await expect(detailPage).toContainText("test", { timeout: 15000 });
