@@ -61,13 +61,14 @@ test.describe("Service Token Detail", () => {
     });
 
     // Navigate to service tokens page
-    await page.goto(`/organizations/${organizationId}/services_tokens`);
+    await page.goto(`/organizations/${organizationId}/service_tokens`);
     await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({
       timeout: 10000,
     });
 
     // Create a service token via UI (uses Hook0Dialog modal)
     await page.locator('[data-test="service-tokens-create-button"]').click();
+    await page.waitForURL('**/service_tokens/new');
 
     const dialogInput = page.locator('[data-test="service-token-name-input"]');
     await expect(dialogInput).toBeVisible({ timeout: 5000 });
@@ -107,7 +108,7 @@ test.describe("Service Token Detail", () => {
 
     // Step 2: Verify URL changed to the service token detail page
     await expect(page).toHaveURL(
-      /\/organizations\/[^/]+\/services_tokens\/[0-9a-f-]+/,
+      /\/organizations\/[^/]+\/service_tokens\/[0-9a-f-]+/,
       { timeout: 10000 }
     );
 
@@ -127,7 +128,7 @@ test.describe("Service Token Detail", () => {
 
     // Step 2: Wait for detail page to load
     await expect(page).toHaveURL(
-      /\/organizations\/[^/]+\/services_tokens\/[0-9a-f-]+/,
+      /\/organizations\/[^/]+\/service_tokens\/[0-9a-f-]+/,
       { timeout: 10000 }
     );
 
@@ -143,7 +144,7 @@ test.describe("Service Token Detail", () => {
     await tokenLink.click();
 
     await expect(page).toHaveURL(
-      /\/organizations\/[^/]+\/services_tokens\/[0-9a-f-]+/,
+      /\/organizations\/[^/]+\/service_tokens\/[0-9a-f-]+/,
       { timeout: 10000 }
     );
 
@@ -166,7 +167,7 @@ test.describe("Service Token Detail", () => {
     await tokenLink.click();
 
     await expect(page).toHaveURL(
-      /\/organizations\/[^/]+\/services_tokens\/[0-9a-f-]+/,
+      /\/organizations\/[^/]+\/service_tokens\/[0-9a-f-]+/,
       { timeout: 10000 }
     );
 
@@ -178,7 +179,7 @@ test.describe("Service Token Detail", () => {
 
     // Step 3: Verify URL changed back to the service tokens list
     await expect(page).toHaveURL(
-      new RegExp(`/organizations/${env.organizationId}/services_tokens$`),
+      new RegExp(`/organizations/${env.organizationId}/service_tokens$`),
       { timeout: 10000 }
     );
 

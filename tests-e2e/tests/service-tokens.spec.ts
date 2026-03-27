@@ -45,13 +45,14 @@ test.describe("Service Tokens", () => {
     });
 
     // Navigate to service tokens page
-    await page.goto(`/organizations/${organizationId}/services_tokens`);
+    await page.goto(`/organizations/${organizationId}/service_tokens`);
 
     // Verify service tokens card is visible
     await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({ timeout: 10000 });
 
     // Step 1: Create a service token via UI (uses Hook0Dialog modal)
     await page.locator('[data-test="service-tokens-create-button"]').click();
+    await page.waitForURL('**/service_tokens/new');
 
     // Fill the name in the dialog modal
     const dialogInput = page.locator('[data-test="service-token-name-input"]');
@@ -118,7 +119,7 @@ test.describe("Service Tokens", () => {
     });
 
     // Navigate to service tokens page
-    await page.goto(`/organizations/${organizationId}/services_tokens`);
+    await page.goto(`/organizations/${organizationId}/service_tokens`);
 
     // Verify page elements
     await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({ timeout: 10000 });
@@ -162,13 +163,14 @@ test.describe("Service Tokens", () => {
     });
 
     // Navigate to service tokens page
-    await page.goto(`/organizations/${organizationId}/services_tokens`);
+    await page.goto(`/organizations/${organizationId}/service_tokens`);
     await expect(page.locator('[data-test="service-tokens-create-button"]')).toBeVisible({
       timeout: 10000,
     });
 
     // Step 2: Click create to open Hook0Dialog modal
     await page.locator('[data-test="service-tokens-create-button"]').click();
+    await page.waitForURL('**/service_tokens/new');
 
     // Fill the name in the dialog modal
     const dialogInput = page.locator('[data-test="service-token-name-input"]');
@@ -237,20 +239,21 @@ test.describe("Service Tokens", () => {
     });
 
     // Navigate to service tokens page
-    await page.goto(`/organizations/${organizationId}/services_tokens`);
+    await page.goto(`/organizations/${organizationId}/service_tokens`);
     await expect(page.locator('[data-test="service-tokens-create-button"]')).toBeVisible({
       timeout: 10000,
     });
 
     // Click create button to open the Hook0Dialog modal
     await page.locator('[data-test="service-tokens-create-button"]').click();
+    await page.waitForURL('**/service_tokens/new');
 
     // Wait for the dialog to appear, then click cancel
     await expect(page.locator('[data-test="dialog-cancel-button"]')).toBeVisible({ timeout: 5000 });
     await page.locator('[data-test="dialog-cancel-button"]').click();
 
     // Should still be on the same page
-    await expect(page).toHaveURL(/\/services_tokens/, {
+    await expect(page).toHaveURL(/\/service_tokens$/, {
       timeout: 5000,
     });
 
@@ -295,11 +298,12 @@ test.describe("Service Tokens", () => {
     });
 
     // Navigate to service tokens page
-    await page.goto(`/organizations/${organizationId}/services_tokens`);
+    await page.goto(`/organizations/${organizationId}/service_tokens`);
     await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({ timeout: 10000 });
 
     // Step 1: Create a service token via UI
     await page.locator('[data-test="service-tokens-create-button"]').click();
+    await page.waitForURL('**/service_tokens/new');
 
     const dialogInput = page.locator('[data-test="service-token-name-input"]');
     await expect(dialogInput).toBeVisible({ timeout: 5000 });
@@ -388,11 +392,12 @@ test.describe("Service Tokens", () => {
     });
 
     // Navigate to service tokens page
-    await page.goto(`/organizations/${organizationId}/services_tokens`);
+    await page.goto(`/organizations/${organizationId}/service_tokens`);
     await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({ timeout: 10000 });
 
     // Step 1: Create a service token via UI
     await page.locator('[data-test="service-tokens-create-button"]').click();
+    await page.waitForURL('**/service_tokens/new');
 
     const createDialogInput = page.locator('[data-test="service-token-name-input"]');
     await expect(createDialogInput).toBeVisible({ timeout: 5000 });
@@ -421,6 +426,7 @@ test.describe("Service Tokens", () => {
     // Step 2: Click "Edit" on the first row to open edit dialog
     const editLink = rows.first().locator('[data-test="token-edit-action"]');
     await editLink.click();
+    await page.waitForURL('**/edit');
 
     // Fill the new name in the edit dialog
     const editDialogInput = page.locator('[data-test="service-token-edit-name-input"]');
