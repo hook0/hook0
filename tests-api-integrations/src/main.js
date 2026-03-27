@@ -18,6 +18,15 @@ import update_retry_schedule from './retry_schedules/update_retry_schedule.js';
 import delete_retry_schedule from './retry_schedules/delete_retry_schedule.js';
 import assign_to_subscription from './retry_schedules/assign_to_subscription.js';
 import reactivation_tests from './health_monitor/reactivation_tests.js';
+import {
+  test_b1_failure_disables_subscription,
+  test_b2_success_stays_enabled,
+  test_b3_reenable_after_autodisable,
+  test_b4_full_lifecycle,
+  test_c1_user_disabled_not_evaluated,
+  test_c2_below_min_sample_size,
+  test_c3_independent_evaluation,
+} from './health_monitor/health_monitor_tests.js';
 
 export const config = getEnvironmentVariables();
 
@@ -544,6 +553,19 @@ function scenario_health_monitor_reactivation() {
   reactivation_tests(h, s, o, config.targetUrl);
 }
 
+// NOTE: Health monitor e2e tests (Groups B+C) require waiting for cron cycles
+// and delivery attempts. The default maxDuration of 1m may not be sufficient.
+// Consider setting MAX_DURATION=5m when running with health monitor tests enabled.
+function scenario_health_monitor() {
+  test_b1_failure_disables_subscription(config);
+  test_b2_success_stays_enabled(config);
+  test_b3_reenable_after_autodisable(config);
+  test_b4_full_lifecycle(config);
+  test_c1_user_disabled_not_evaluated(config);
+  test_c2_below_min_sample_size(config);
+  test_c3_independent_evaluation(config);
+}
+
 export default function () {
   scenario_1();
   scenario_subscription_deletion();
@@ -551,4 +573,5 @@ export default function () {
   scenario_retry_schedules();
   scenario_retry_schedule_subscription_assignment();
   scenario_health_monitor_reactivation();
+  scenario_health_monitor();
 }

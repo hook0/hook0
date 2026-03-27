@@ -25,12 +25,15 @@ export function getEnvironmentVariables() {
     );
   }
 
+  const targetUrlFailing = __ENV.TARGET_URL_FAILING || 'http://localhost:19999';
+
   return {
     vus,
     iterations,
     maxDuration,
     apiOrigin: apiOrigin.endsWith('/') ? apiOrigin : `${apiOrigin}/`,
     targetUrl,
+    targetUrlFailing,
     serviceToken,
     organizationId,
     keepTestApplication,
