@@ -80,7 +80,8 @@ pub async fn load_waiting_request_attempts_from_db(
                 e.event_type__name AS event_type_name,
                 e.payload,
                 e.payload_content_type,
-                s.secret
+                s.secret,
+                ra.source
             FROM webhook.request_attempt AS ra
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
             INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
@@ -361,6 +362,7 @@ pub async fn look_for_work(
 enum RequestAttemptStatus {
     Ready {
         delay_until: Option<DateTime<Utc>>,
+        source: String,
     },
     Delayed {
         delay_until: DateTime<Utc>,
@@ -394,15 +396,17 @@ async fn handle_message(
                 not_cancelled: bool,
                 not_done: bool,
                 delay_until: Option<DateTime<Utc>>,
+                source: String,
             }
             let fetch_start = std::time::Instant::now();
             let request_attempt_status = match query_as!(
                 RawRequestAttemptStatus,
                 r#"
                     SELECT
-                        (s.is_enabled AND a.deleted_at IS NULL) AS "not_cancelled!",
+                        ((s.is_enabled OR ra.source = 'user') AND a.deleted_at IS NULL) AS "not_cancelled!",
                         (ra.succeeded_at IS NULL AND ra.failed_at IS NULL) AS "not_done!",
-                        ra.delay_until
+                        ra.delay_until,
+                        ra.source AS "source!"
                     FROM webhook.request_attempt AS ra
                     INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                     INNER JOIN event.application AS a ON a.application__id = s.application__id
@@ -418,6 +422,7 @@ async fn handle_message(
                     not_cancelled: true,
                     not_done: true,
                     delay_until: Some(d),
+                    ..
                 }) if d > (Utc::now() + DELAY_TOLERANCE) => RequestAttemptStatus::Delayed {
                     delay_until: d,
                     lead: d - Utc::now(),
@@ -426,7 +431,8 @@ async fn handle_message(
                     not_cancelled: true,
                     not_done: true,
                     delay_until,
-                }) => RequestAttemptStatus::Ready { delay_until },
+                    source,
+                }) => RequestAttemptStatus::Ready { delay_until, source },
                 Some(RawRequestAttemptStatus {
                     not_cancelled: true,
                     not_done: false,
@@ -441,7 +447,7 @@ async fn handle_message(
             stats.record_db_fetch(fetch_start.elapsed());
 
             match request_attempt_status {
-                RequestAttemptStatus::Ready { delay_until } => {
+                RequestAttemptStatus::Ready { delay_until, source } => {
                     // Record queue lag: time between becoming eligible and pickup
                     let eligible_at = delay_until
                         .unwrap_or(attempt.created_at)
@@ -578,7 +584,10 @@ async fn handle_message(
                         .await?;
 
                         // Creating a retry request or giving up
-                        if let Some(retry_in) =
+                        if source == "user" {
+                            // Manual retry — one-shot, no automatic re-retry
+                            info!(request_attempt_id = %attempt.request_attempt_id, "Manual retry failed, no automatic re-retry");
+                        } else if let Some(retry_in) =
                             compute_next_retry(&mut tx, &attempt, &response, config.max_retries)
                                 .await?
                         {

@@ -289,6 +289,7 @@ pub struct RequestAttemptWithOptionalPayload {
     pub payload: Option<Vec<u8>>,
     pub payload_content_type: String,
     pub secret: Uuid,
+    pub source: String,
 }
 
 #[tokio::main]

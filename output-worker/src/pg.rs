@@ -61,7 +61,8 @@ pub async fn look_for_work(
                     e.event_type__name AS event_type_name,
                     e.payload AS payload,
                     e.payload_content_type AS payload_content_type,
-                    s.secret
+                    s.secret,
+                    ra.source
                 FROM webhook.request_attempt AS ra
                 INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                 LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
@@ -73,7 +74,7 @@ pub async fn look_for_work(
                 WHERE
                     ra.succeeded_at IS NULL
                     AND ra.failed_at IS NULL
-                    AND s.is_enabled
+                    AND (s.is_enabled OR ra.source = 'user')
                     AND s.deleted_at IS NULL
                     AND (ra.delay_until IS NULL OR ra.delay_until <= statement_timestamp())
                     AND (
@@ -289,7 +290,10 @@ pub async fn look_for_work(
                     .await?;
 
                     // Creating a retry request or giving up
-                    if let Some(retry_in) = compute_next_retry(
+                    if attempt.source == "user" {
+                        // Manual retry — one-shot, no automatic re-retry
+                        info!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Manual retry failed, no automatic re-retry");
+                    } else if let Some(retry_in) = compute_next_retry(
                         &mut tx,
                         &attempt_with_payload,
                         &response,
