@@ -30,6 +30,13 @@ import {
   test_c2_below_min_sample_size,
   test_c3_independent_evaluation,
 } from './health_monitor/health_monitor_tests.js';
+import {
+  test_retry_failed_attempt,
+  test_retry_succeeded_attempt,
+  test_retry_nonexistent_attempt,
+  test_retry_on_disabled_subscription,
+  test_retry_source_in_list_response,
+} from './retry/retry_request_attempt.js';
 
 export const config = getEnvironmentVariables();
 
@@ -132,6 +139,41 @@ export const options = {
       iterations: 1,
       maxDuration: '2m',
       exec: 'scenario_c3',
+    },
+    manual_retry_1: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_retry_1',
+    },
+    manual_retry_2: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_retry_2',
+    },
+    manual_retry_3: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_retry_3',
+    },
+    manual_retry_4: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_retry_4',
+    },
+    manual_retry_5: {
+      executor: 'shared-iterations',
+      vus: 1,
+      iterations: 1,
+      maxDuration: '2m',
+      exec: 'scenario_retry_5',
     },
   },
   thresholds: {
@@ -644,3 +686,9 @@ export function scenario_b5() { test_b5_adaptive_windowing(config); }
 export function scenario_c1() { test_c1_user_disabled_not_evaluated(config); }
 export function scenario_c2() { test_c2_below_min_sample_size(config); }
 export function scenario_c3() { test_c3_independent_evaluation(config); }
+
+export function scenario_retry_1() { test_retry_failed_attempt(config); }
+export function scenario_retry_2() { test_retry_succeeded_attempt(config); }
+export function scenario_retry_3() { test_retry_nonexistent_attempt(config); }
+export function scenario_retry_4() { test_retry_on_disabled_subscription(config); }
+export function scenario_retry_5() { test_retry_source_in_list_response(config); }
