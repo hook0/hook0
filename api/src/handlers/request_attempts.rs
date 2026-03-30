@@ -1,8 +1,8 @@
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
-use paperclip::actix::web::{Data, Json, Query};
-use paperclip::actix::{Apiv2Schema, api_v2_operation};
+use paperclip::actix::web::{Data, Json, Path, Query};
+use paperclip::actix::{Apiv2Schema, CreatedJson, api_v2_operation};
 use paperclip::v2::models::{DataType, DataTypeFormat, DefaultSchemaRaw};
 use paperclip::v2::schema::Apiv2Schema as Apiv2SchemaTrait;
 use serde::{Deserialize, Serialize};
@@ -13,7 +13,7 @@ use tracing::error;
 use url::Url;
 use uuid::Uuid;
 
-use crate::iam::{Action, authorize_for_application};
+use crate::iam::{Action, AuthorizedToken, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::pagination::{Cursor, EncodedDescCursor, NextPageParts, Paginated};
 use crate::problems::Hook0Problem;
@@ -405,6 +405,109 @@ pub async fn list(
         data: Json(request_attempts),
         next_page_parts,
     })
+}
+
+#[derive(Debug, Serialize, Apiv2Schema, sqlx::FromRow)]
+pub struct RetryResponse {
+    pub request_attempt_id: Uuid,
+    pub event_id: Uuid,
+    pub subscription_id: Uuid,
+    pub source: String,
+    pub user_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub retry_count: i16,
+}
+
+#[api_v2_operation(
+    summary = "Retry a request attempt",
+    description = "Creates a new request attempt for the same event and subscription as the original attempt. The new attempt is marked with source='user' and linked to the authenticated user.",
+    operation_id = "requestAttempts.retry",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Subscriptions Management")
+)]
+pub async fn retry(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    request_attempt_id: Path<Uuid>,
+) -> Result<CreatedJson<RetryResponse>, Hook0Problem> {
+    let request_attempt_id = request_attempt_id.into_inner();
+
+    // Fetch original attempt to get event_id, subscription_id, application_id
+    #[derive(sqlx::FromRow)]
+    #[allow(non_snake_case)]
+    struct OriginalAttempt {
+        event__id: Uuid,
+        subscription__id: Uuid,
+        application__id: Uuid,
+    }
+
+    let original = sqlx::query_as::<_, OriginalAttempt>(
+        "
+            SELECT ra.event__id, ra.subscription__id, ra.application__id
+            FROM webhook.request_attempt AS ra
+            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+            INNER JOIN event.application AS a ON a.application__id = ra.application__id
+            WHERE ra.request_attempt__id = $1
+                AND s.deleted_at IS NULL
+                AND a.deleted_at IS NULL
+        ",
+    )
+    .bind(request_attempt_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?
+    .ok_or(Hook0Problem::NotFound)?;
+
+    // Authorize
+    let authorized_token = authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::RequestAttemptRetry {
+            application_id: &original.application__id,
+        },
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .await
+    .map_err(|_| Hook0Problem::Forbidden)?;
+
+    let auth_user_id = match authorized_token {
+        AuthorizedToken::User(u) => Some(u.user_id),
+        _ => None,
+    };
+
+    // Insert new attempt with source='user'
+    let new_attempt = sqlx::query_as::<_, RetryResponse>(
+        "
+            INSERT INTO webhook.request_attempt (event__id, subscription__id, application__id, source, user__id)
+            VALUES ($1, $2, $3, 'user', $4)
+            RETURNING
+                request_attempt__id AS request_attempt_id,
+                event__id AS event_id,
+                subscription__id AS subscription_id,
+                source,
+                user__id AS user_id,
+                created_at,
+                retry_count
+        ",
+    )
+    .bind(original.event__id)
+    .bind(original.subscription__id)
+    .bind(original.application__id)
+    .bind(auth_user_id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    // TODO: Pulsar publish for manual retries
+    // When Pulsar is configured, the new attempt should be published to the worker topic
+    // so it gets picked up immediately. For now, PG-polling mode will pick it up.
+    // To implement: fetch subscription target details (http_method, http_url, http_headers, secret,
+    // worker_id) and follow the send_request_attempts_to_pulsar pattern in events.rs.
+
+    Ok(CreatedJson(new_attempt))
 }
 
 #[cfg(test)]
