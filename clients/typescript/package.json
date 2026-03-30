@@ -26,8 +26,7 @@
   "description": "TypeScript SDK for Hook0 Open-Source Webhooks as a service for SaaS",
   "homepage": "https://hook0.com/",
   "dependencies": {
-    "url": "^0.11.4",
-    "uuid": "^11.0.5"
+    "url": "^0.11.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",

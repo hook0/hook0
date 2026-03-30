@@ -192,7 +192,6 @@ curl -X POST "$HOOK0_API/event" \
   -H "Content-Type: application/json" \
   -d '{
     "application_id": "'"$APP_ID"'",
-    "event_id": "'$(uuidgen)'",
     "event_type": "user.account.created",
     "payload": "{\"user_id\": 123, \"email\": \"john.doe@example.com\"}",
     "payload_content_type": "application/json",
@@ -202,10 +201,6 @@ curl -X POST "$HOOK0_API/event" \
     "occurred_at": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"
   }'
 ```
-
-:::tip Event ID Format
-The `event_id` **must be a valid UUID** (e.g., `550e8400-e29b-41d4-a716-446655440000`). Using `$(uuidgen)` generates this automatically. Non-UUID values will be rejected by the API.
-:::
 
 :::warning Payload Format
 The `payload` field must be a **JSON-encoded string**, not a raw object. See [Understanding Payload Format](#understanding-payload-format) below for details.

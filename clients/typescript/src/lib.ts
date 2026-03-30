@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
 import { URL } from 'url';
 import { Signature } from './index';
 
@@ -11,8 +10,8 @@ export class Hook0ClientError extends Error {
    * @param eventId - ID of the event
    * @param error - Error details
    */
-  static EventSending(eventId: string, error: Error): Hook0ClientError {
-    return new Hook0ClientError(`Sending event ${eventId} failed: ${error}`);
+  static EventSending(eventId: string | undefined, error: Error): Hook0ClientError {
+    return new Hook0ClientError(`Sending event${eventId ? ' ' + eventId : ''} failed: ${error}`);
   }
 
   /**
@@ -116,7 +115,8 @@ export class Hook0Client {
         throw Hook0ClientError.EventSending(fullEvent.eventId, new Error(body));
       }
 
-      return fullEvent.eventId;
+      const body = (await response.json()) as { event_id: string };
+      return body.event_id;
     } catch (error) {
       throw Hook0ClientError.EventSending(
         fullEvent.eventId,
@@ -237,7 +237,7 @@ export class Event {
  * Represents a full event ready to be sent
  */
 class FullEvent {
-  public eventId: string;
+  public eventId: string | undefined;
 
   /**
    * Constructor for FullEvent
@@ -260,7 +260,7 @@ class FullEvent {
     public labels: Record<string, string> = {},
     eventId?: string
   ) {
-    this.eventId = eventId || uuidv4();
+    this.eventId = eventId;
   }
 
   /**
