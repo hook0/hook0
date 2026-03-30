@@ -1,5 +1,7 @@
 # Automatic Subscription Deactivation — Implementation Plan
 
+**Status:** Implemented. See git log on `feat/auto-deactivation` for actual commits.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a periodic health monitor to the API that evaluates subscription failure ratios, sends warning/deactivation/recovery emails, disables unhealthy subscriptions, and emits Hook0 events.

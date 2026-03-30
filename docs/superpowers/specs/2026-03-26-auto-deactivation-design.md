@@ -72,8 +72,19 @@ CREATE TABLE webhook.subscription_health_event (
         ON DELETE CASCADE,
     status text NOT NULL
         CHECK (status IN ('warning', 'disabled', 'resolved')),
+    -- 'system' = automatic (health monitor), 'user' = manual action (API PUT)
+    -- When source = 'user' and user__id IS NULL, the action was performed via a service token
+    source text NOT NULL
+        CHECK (source IN ('system', 'user')),
+    -- NULL = automatic (system/health monitor), NOT NULL = manual action by this user
+    user__id uuid
+        REFERENCES iam.user(user__id)
+        ON DELETE SET NULL,
     created_at timestamptz NOT NULL DEFAULT statement_timestamp(),
-    CONSTRAINT subscription_health_event_pkey PRIMARY KEY (health_event__id)
+    CONSTRAINT subscription_health_event_pkey PRIMARY KEY (health_event__id),
+    CONSTRAINT subscription_health_event_source_user_check CHECK (
+        source != 'system' OR user__id IS NULL
+    )
 );
 
 CREATE INDEX idx_subscription_health_event_sub_id
@@ -110,6 +121,8 @@ erDiagram
         uuid health_event__id PK
         uuid subscription__id FK
         text status "warning | disabled | resolved"
+        text source "system | user"
+        uuid user__id FK "nullable"
         timestamptz created_at
     }
     request_attempt {
@@ -130,8 +143,8 @@ WITH updated AS (
     WHERE subscription__id = $1 AND is_enabled = true
     RETURNING subscription__id
 )
-INSERT INTO webhook.subscription_health_event (subscription__id, status)
-SELECT subscription__id, 'disabled' FROM updated;
+INSERT INTO webhook.subscription_health_event (subscription__id, status, source)
+SELECT subscription__id, 'disabled', 'system' FROM updated;
 ```
 
 If the subscription is already disabled (by user or by a concurrent tick), the UPDATE matches 0 rows and the INSERT is skipped. No orphaned health events.
@@ -145,8 +158,9 @@ WITH updated AS (
     WHERE subscription__id = $1 AND is_enabled = false
     RETURNING subscription__id
 )
-INSERT INTO webhook.subscription_health_event (subscription__id, status)
-SELECT subscription__id, 'resolved' FROM updated;
+INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id)
+SELECT subscription__id, 'resolved', 'user', $2 FROM updated;
+-- $2 = authenticated user's UUID (NULL for service token)
 ```
 
 Only inserts `resolved` when `is_enabled` actually transitions from `false` to `true`. A PUT that sends `is_enabled: true` on an already-enabled subscription is a no-op.
@@ -365,11 +379,16 @@ Emitted by the health monitor at deactivation. No Hook0 events for warning or re
 
 ### 3.6. API Changes
 
-**Subscription response:** Add `auto_disabled_at: Option<DateTime<Utc>>` derived from the latest `disabled` health event via LATERAL JOIN. This allows API consumers to distinguish user-disabled from system-disabled subscriptions. Performance depends on the `idx_subscription_health_event_sub_id` index — validate with realistic data volumes before shipping.
+**Subscription PUT handler:** When `is_enabled` transitions from `false` to `true`, use the CTE pattern from section 3.2 to atomically re-enable and insert a `resolved` health event (with `source = 'user'` and the authenticated user's `user__id`, or NULL for service tokens). A PUT that does not change `is_enabled` must not insert health events.
 
-**Subscription PUT handler:** When `is_enabled` transitions from `false` to `true`, use the CTE pattern from section 3.2 to atomically re-enable and insert a `resolved` health event. A PUT that does not change `is_enabled` must not insert health events.
+**Health events read-only endpoint:**
 
-No new API endpoints.
+- `GET /api/v1/subscriptions/{subscription_id}/health_events?organization_id={org_id}&limit={limit}`
+- Role: **Viewer** (read-only)
+- Default limit: 50, max limit: 100
+- Ordered by `created_at DESC`
+- Returns: `health_event_id`, `subscription_id`, `status`, `source`, `user_id`, `created_at`
+- Purpose: testing, debugging, and future dashboard integration
 
 ### 3.7. Configuration
 
@@ -395,7 +414,7 @@ Note: args use `--health-monitor-*` prefix to avoid collision with existing `--h
 - Email recipients resolved via SQL scoped to `organization__id` (same pattern as quota emails)
 - Hook0 event emitted via authenticated hook0-client (same auth as other API events)
 - `pg_try_advisory_lock` prevents concurrent evaluation across API replicas
-- No new public API endpoints — no new attack surface
+- Health events endpoint is read-only (Viewer role), scoped to organization via Biscuit auth
 - Health thresholds are server-side only — users cannot manipulate them
 
 ## 5. Industry Benchmark
@@ -437,7 +456,7 @@ Hook0 is unique in offering per-subscription configurable retry schedules (Phase
 | 1   | Architecture              | Health monitor as API background task (not inline in worker)                                                                                                   | **Yes** — Svix does inline; we use background task because ratio-based health needs aggregated queries |
 | 2   | Health metric             | Adaptive failure ratio — message-count-based for high volume, time-based for low volume                                                                        | **Yes** — ticket uses fixed 5-day calendar threshold                                                   |
 | 3   | Health thresholds         | Global server config (env vars), not user-configurable                                                                                                         | —                                                                                                      |
-| 4   | Subscription status model | Keep `is_enabled` bool. Auto-disable status derived from health event log via LATERAL JOIN                                                                     | Simplified, no denormalization                                                                         |
+| 4   | Subscription status model | Keep `is_enabled` bool. Auto-disable status derived from health event log (queried via health events API)                                                      | Simplified, no denormalization                                                                         |
 | 5   | Warning threshold         | 80% failure ratio                                                                                                                                              | **Yes** — ticket uses 3-day calendar threshold                                                         |
 | 6   | Disable threshold         | 95% failure ratio                                                                                                                                              | **Yes** — ticket uses 5-day calendar threshold                                                         |
 | 7   | Deactivation email        | Sent when subscription is auto-disabled                                                                                                                        | Aligned                                                                                                |
@@ -457,6 +476,9 @@ Hook0 is unique in offering per-subscription configurable retry schedules (Phase
 | 21  | DB pool                   | Uses `housekeeping_pool` (no statement timeout)                                                                                                                | —                                                                                                      |
 | 22  | Data retention            | Cleanup job removes resolved events older than 90 days (keeps latest per subscription)                                                                         | —                                                                                                      |
 | 23  | Failure definition        | `failed_at IS NOT NULL` = failed; in-flight attempts excluded from ratio                                                                                       | —                                                                                                      |
+| 24  | Health event audit trail  | `source` + `user__id` columns on health events. `source` disambiguates service token actions (`user__id` NULL but `source = 'user'`)                           | —                                                                                                      |
+| 25  | No `auto_disabled_at`     | No `auto_disabled_at` in subscription API response — derive from health events if needed                                                                       | Simplified from original design                                                                        |
+| 26  | Health events API         | Read-only `GET /subscriptions/{id}/health_events` endpoint (Viewer role, limit 50/max 100) for testing and future dashboard                                    | —                                                                                                      |
 
 ## 7. Open Questions for Future Phases
 
