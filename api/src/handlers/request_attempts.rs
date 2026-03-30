@@ -6,7 +6,6 @@ use paperclip::actix::{Apiv2Schema, CreatedJson, api_v2_operation};
 use paperclip::v2::models::{DataType, DataTypeFormat, DefaultSchemaRaw};
 use paperclip::v2::schema::Apiv2Schema as Apiv2SchemaTrait;
 use serde::{Deserialize, Serialize};
-use sqlx::query_as;
 use std::cmp::max;
 use std::collections::BTreeMap;
 use tracing::error;
@@ -31,6 +30,8 @@ pub struct RequestAttempt {
     pub delay_until: Option<DateTime<Utc>>,
     pub response_id: Option<Uuid>,
     pub retry_count: i16,
+    pub source: String,
+    pub user_id: Option<Uuid>,
     pub status: RequestAttemptStatus,
 }
 
@@ -275,6 +276,7 @@ pub async fn list(
 
     let pagination = qs.pagination_cursor.unwrap_or_default().0;
 
+    #[derive(sqlx::FromRow)]
     #[allow(non_snake_case)]
     struct RawRequestAttempt {
         request_attempt__id: Uuid,
@@ -289,9 +291,10 @@ pub async fn list(
         response__id: Option<Uuid>,
         retry_count: i16,
         event_type__name: String,
+        source: String,
+        user__id: Option<Uuid>,
     }
-    let raw_request_attempts = query_as!(
-        RawRequestAttempt,
+    let raw_request_attempts = sqlx::query_as::<_, RawRequestAttempt>(
         "
             SELECT
                 ra.request_attempt__id,
@@ -305,7 +308,9 @@ pub async fn list(
                 ra.response__id,
                 ra.retry_count,
                 s.description AS subscription__description,
-                e.event_type__name
+                e.event_type__name,
+                ra.source,
+                ra.user__id
             FROM webhook.request_attempt AS ra
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
             INNER JOIN event.event AS e ON e.event__id = ra.event__id
@@ -320,15 +325,15 @@ pub async fn list(
                 ra.request_attempt__id ASC
             LIMIT 50
         ",
-        &qs.application_id,
-        qs.event_id,
-        qs.subscription_id,
-        min_created_at,
-        max_created_at,
-        pagination.date,
-        pagination.id,
-        &event_type_names,
     )
+    .bind(&qs.application_id)
+    .bind(qs.event_id)
+    .bind(qs.subscription_id)
+    .bind(min_created_at)
+    .bind(max_created_at)
+    .bind(pagination.date)
+    .bind(pagination.id)
+    .bind(&event_type_names)
     .fetch_all(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
@@ -353,6 +358,8 @@ pub async fn list(
             delay_until: ra.delay_until,
             response_id: ra.response__id,
             retry_count: ra.retry_count,
+            source: ra.source.clone(),
+            user_id: ra.user__id,
             status: RequestAttemptStatus::compute(
                 &Utc::now(),
                 &ra.created_at,
