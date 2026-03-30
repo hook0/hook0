@@ -160,6 +160,7 @@ async fn evaluate_subscriptions(
                             where ra2.subscription__id = a.subscription__id
                               and (ra2.succeeded_at is not null or ra2.failed_at is not null)
                               and ra2.created_at > now() - make_interval(secs => $1)
+                              and ra2.source = 'system'
                             order by ra2.created_at desc
                             limit $3
                         ) sub

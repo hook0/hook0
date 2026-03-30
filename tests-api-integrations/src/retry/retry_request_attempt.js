@@ -195,6 +195,11 @@ export function test_retry_succeeded_attempt(config) {
       throw new Error(`T2: Expected 201, got ${res.status}: ${res.body}`);
     }
 
+    const body = JSON.parse(res.body);
+    check(body, {
+      'T2: retry response source is user': (b) => b.source === 'user',
+    });
+
     console.log('T2 PASSED: retry succeeded attempt');
   } finally {
     cleanup(config, application_id);
@@ -289,6 +294,11 @@ export function test_retry_on_disabled_subscription(config) {
       throw new Error(`T4: Expected 201, got ${res.status}: ${res.body}`);
     }
 
+    const body = JSON.parse(res.body);
+    check(body, {
+      'T4: retry response source is user': (b) => b.source === 'user',
+    });
+
     console.log('T4 PASSED: retry on disabled subscription');
   } finally {
     cleanup(config, application_id);
@@ -342,14 +352,15 @@ export function test_retry_source_in_list_response(config) {
       throw new Error(`T5: Retry failed with status ${res.status}: ${res.body}`);
     }
 
-    // List all attempts for this event — should now include both system and user source
-    // Wait briefly for the new attempt to appear in the list
-    sleep(1);
-    const all_attempts = list_request_attempt(h, s, ctx.application_id, event_id);
-    if (!isNotNull(all_attempts) || all_attempts.length < 2) {
-      throw new Error(
-        `T5: Expected at least 2 attempts after retry, found ${all_attempts ? all_attempts.length : 0}`
-      );
+    // Poll until at least 2 attempts appear in the list (retry has been dispatched)
+    const all_attempts = poll_until(() => {
+      const attempts = list_request_attempt(h, s, ctx.application_id, event_id);
+      if (!isNotNull(attempts) || attempts.length < 2) return null;
+      return attempts;
+    }, 30000, 2000);
+
+    if (!all_attempts) {
+      throw new Error('T5: Expected at least 2 attempts after retry within timeout');
     }
 
     const system_attempts = all_attempts.filter((a) => a.source === 'system');
