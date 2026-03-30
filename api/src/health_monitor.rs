@@ -143,6 +143,7 @@ async fn evaluate_subscriptions(
               and s.deleted_at is null
               and ra.created_at > now() - make_interval(secs => $1)
               and (ra.succeeded_at is not null or ra.failed_at is not null)
+              and ra.source = 'system'
             group by ra.subscription__id
             having count(*) >= $2
         ),
