@@ -50,53 +50,27 @@ flowchart LR
 
 ### 3.1. Database
 
-**New table `webhook.principal`:**
-
-Shared table for tracking who performed an action (system or user). Used by `subscription_health_event` (Phase 2) and `request_attempt` (Phase 3). Standard IAM term — the entity that acts.
+**Inline columns on `webhook.request_attempt`:**
 
 ```sql
-create table webhook.principal (
-    principal__id uuid not null default public.gen_random_uuid(),
-    -- 'system' = automatic (health monitor, dispatch trigger, worker retry)
-    -- 'user' = manual action via API (user token or service token)
-    source text not null
-        check (source in ('system', 'user')),
-    -- NULL = system or service token action
-    -- NOT NULL = action by this specific user
-    -- When source = 'user' and user__id IS NULL, the action was via a service token
-    user__id uuid
-        references iam.user(user__id)
-        on delete set null,
-    constraint principal_pkey primary key (principal__id),
-    -- source = 'system' must have user__id = NULL
-    constraint principal_source_user_check check (
-        source != 'system' or user__id is null
-    )
-);
-```
-
-**Migration on `webhook.request_attempt`:**
-
-```sql
--- Add FK to principal table. Default to a system principal for existing rows.
--- 1. Insert a single system principal row for backfill
-insert into webhook.principal (principal__id, source)
-values ('00000000-0000-0000-0000-000000000001', 'system');
-
--- 2. Add column with default pointing to the system principal
 alter table webhook.request_attempt
-    add column principal__id uuid not null
-        default '00000000-0000-0000-0000-000000000001'
-        references webhook.principal(principal__id);
+    add column source text not null default 'system'
+        check (source in ('system', 'user'));
+
+alter table webhook.request_attempt
+    add column user__id uuid
+        references iam.user(user__id)
+        on delete set null;
+
+alter table webhook.request_attempt
+    add constraint request_attempt_source_user_check
+        check (source != 'system' or user__id is null);
 ```
 
-The dispatch trigger and worker retry INSERTs use the DEFAULT (system principal). The retry API handler creates a new principal row with `source = 'user'` and the authenticated `user__id`.
-
-**Phase 2 migration refactor:** Since nothing is deployed yet, the Phase 2 migration (`20260326120000_add_subscription_health.up.sql`) will be modified in-place to:
-1. Create `webhook.principal` table
-2. Use `principal__id FK` on `subscription_health_event` instead of inline `source`/`user__id` columns
-
-No ALTER needed — the original CREATE TABLE is rewritten. The Phase 2 Rust code (`health_monitor.rs`, `subscriptions.rs`) must also be updated to INSERT into `principal` first, then reference `principal__id`.
+Notes:
+- `default 'system'` handles existing rows, dispatch trigger, and worker retry INSERTs
+- Same pattern as `subscription_health_event` (Phase 2) — independent provenance tracking on independent entities
+- Inline columns avoid write amplification on the hot path (no separate table to INSERT into before every attempt)
 
 ### 3.2. API Handler
 
@@ -109,24 +83,16 @@ No ALTER needed — the original CREATE TABLE is rewritten. The Phase 2 Rust cod
 1. Fetch the original attempt (verify it exists, get `event__id`, `subscription__id`, `application__id`)
 2. No check on `is_enabled` — bypass for debugging disabled subscriptions
 3. No check on attempt status — succeeded, failed, and in-flight attempts can all be retried. Retrying an in-flight attempt creates a second concurrent delivery (idempotent endpoints expected).
-4. Create a principal: INSERT into `webhook.principal(source, user__id)` with `source = 'user'` and the authenticated user's UUID (NULL for service tokens). Get back `principal__id`.
-5. INSERT a new request_attempt (note: `application__id` is required, has no DEFAULT):
+4. INSERT a new request_attempt with `source = 'user'` and the authenticated user's UUID (NULL for service tokens):
 
 ```sql
--- Step 1: create the principal
-insert into webhook.principal (source, user__id) values ('user', $4)
-returning principal__id;
-
--- Step 2: create the retry attempt
-insert into webhook.request_attempt (event__id, subscription__id, application__id, principal__id)
-values ($1, $2, $3, $5)
+insert into webhook.request_attempt (event__id, subscription__id, application__id, source, user__id)
+values ($1, $2, $3, 'user', $4)
 returning request_attempt__id, event__id, subscription__id, created_at, retry_count;
 ```
 
-Both in the same transaction.
-
-6. If Pulsar is configured: publish a message to the `request_attempts_producer` with the new attempt (same pattern as `events.rs` dispatch handler). This ensures the worker picks it up in Pulsar mode.
-7. Return 201 Created with the new attempt
+5. If Pulsar is configured: publish a message to the `request_attempts_producer` with the new attempt (same pattern as `events.rs` dispatch handler). This ensures the worker picks it up in Pulsar mode.
+6. Return 201 Created with the new attempt
 
 **Response:**
 
@@ -135,10 +101,8 @@ Both in the same transaction.
   "request_attempt_id": "uuid",
   "event_id": "uuid",
   "subscription_id": "uuid",
-  "principal": {
-    "source": "user",
-    "user_id": "uuid|null"
-  },
+  "source": "user",
+  "user_id": "uuid|null",
   "created_at": "timestamptz",
   "retry_count": 0
 }
@@ -157,7 +121,7 @@ Two modifications to the output worker.
 The `source = 'user'` check must be placed **before** calling `compute_next_retry`. When the worker processes a failed attempt:
 
 ```
-if principal.source == "user":
+if ra.source == "user":
     // Manual retry — one-shot, no automatic re-retry
     mark failed_at = now()
     return
@@ -172,7 +136,7 @@ For disabled subscriptions, the existing `is_enabled` check inside `compute_next
 **PG path (`pg.rs`):** The fetch query filters on `s.is_enabled = true`. Modify to:
 
 ```sql
-where (s.is_enabled = true or p.source = 'user')
+where (s.is_enabled = true or ra.source = 'user')
   and s.deleted_at is null
   and a.deleted_at is null
   ...
@@ -181,7 +145,7 @@ where (s.is_enabled = true or p.source = 'user')
 **Pulsar path (`pulsar.rs`):** The status-check query computes `(s.is_enabled AND a.deleted_at IS NULL) AS "not_cancelled!"`. Modify the computation to:
 
 ```sql
-((s.is_enabled or p.source = 'user') and a.deleted_at is null) as "not_cancelled!"
+((s.is_enabled or ra.source = 'user') and a.deleted_at is null) as "not_cancelled!"
 ```
 
 Both paths must add `ra.source` to the SELECT so the worker struct has access to it for the check in 3.3.1. Add `source: String` (or `Option<String>`) to the `RequestAttemptWithOptionalPayload` struct.
@@ -191,7 +155,7 @@ Both paths must add `ra.source` to the SELECT so the worker struct has access to
 The health evaluation query in `health_monitor.rs` must exclude manual attempts from the failure ratio. Add to the `attempt_stats` CTE WHERE clause:
 
 ```sql
-and p.source = 'system'
+and ra.source = 'system'
 ```
 
 This ensures manual retries (which may deliberately target failing endpoints for debugging) do not contribute to auto-deactivation.
@@ -204,18 +168,16 @@ The existing request_attempt GET/LIST handlers (`api/src/handlers/request_attemp
 
 | File | Action | Responsibility |
 |---|---|---|
-| `api/migrations/20260326120000_add_subscription_health.up.sql` | Modify (Phase 2) | Add `webhook.principal` table, use `principal__id` FK on `subscription_health_event` instead of inline `source`/`user__id` |
-| `api/migrations/2026MMDD_add_request_attempt_principal.up.sql` | Create | Add `principal__id` FK to `request_attempt` |
-| `api/migrations/2026MMDD_add_request_attempt_principal.down.sql` | Create | Rollback |
-| `api/src/handlers/request_attempts.rs` | Modify | Add retry endpoint + `principal` in response + Pulsar publish |
-| `api/src/health_monitor.rs` | Modify | Refactor to use `principal__id` JOIN instead of `source`/`user__id` columns |
+| `api/migrations/2026MMDD_add_request_attempt_source.up.sql` | Create | Add `source` and `user__id` columns to `request_attempt` |
+| `api/migrations/2026MMDD_add_request_attempt_source.down.sql` | Create | Rollback |
+| `api/src/handlers/request_attempts.rs` | Modify | Add retry endpoint + `source`/`user_id` in response + Pulsar publish |
 | `api/src/handlers/mod.rs` | Modify | Route registration |
 | `api/src/main.rs` | Modify | Route registration |
 | `api/src/iam.rs` | Modify | Add `RequestAttemptRetry` action (Editor role) |
 | `output-worker/src/main.rs` | Modify | `source` check before `compute_next_retry` |
 | `output-worker/src/pg.rs` | Modify | Fetch query WHERE clause + SELECT `source` |
 | `output-worker/src/pulsar.rs` | Modify | `not_cancelled` computation + SELECT `source` |
-| `api/src/health_monitor.rs` | Modify | Add `and p.source = 'system'` to evaluation query |
+| `api/src/health_monitor.rs` | Modify | Add `and ra.source = 'system'` to evaluation query |
 
 ## 5. Security
 
@@ -236,14 +198,14 @@ The existing request_attempt GET/LIST handlers (`api/src/handlers/request_attemp
 | 5 | Retry succeeded attempts | Allowed — useful for re-delivery | **Yes** — Svix only allows on failed |
 | 6 | Retry in-flight attempts | Allowed — creates concurrent delivery (idempotent endpoints expected) | — |
 | 7 | Mechanism | API inserts new request_attempt, worker picks it up | Aligned with Svix |
-| 8 | Manual marker | `source` + `user__id` on request_attempt (same pattern as health_event) | — |
+| 8 | Manual marker | Inline `source` + `user__id` on request_attempt — preferred over shared `principal` table to avoid write amplification on the hot path | — |
 | 9 | Health monitor | Excludes `source = 'user'` from ratio | — |
 | 10 | Route | `POST /api/v1/request_attempts/{id}/retry` | Adapted from ticket's `/messages/{id}/retry` |
 | 11 | Auth | New `RequestAttemptRetry` IAM action, Editor role, org-scoped | — |
-| 15 | Pulsar support | API publishes to Pulsar producer after INSERT (same pattern as event dispatch) | — |
-| 12 | Hook0 event | None for retry | — |
-| 13 | Rate limiting | Existing API rate limiter, no specific limit | — |
-| 14 | Worker source check | Before `compute_next_retry`, not after | — |
+| 12 | Pulsar support | API publishes to Pulsar producer after INSERT (same pattern as event dispatch) | — |
+| 13 | Hook0 event | None for retry | — |
+| 14 | Rate limiting | Existing API rate limiter, no specific limit | — |
+| 15 | Worker source check | Before `compute_next_retry`, not after | — |
 
 ## 7. Open Questions for Future Phases
 
