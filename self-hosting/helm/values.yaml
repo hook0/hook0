@@ -35,7 +35,7 @@ postgres:
   replicaCount: 1
   image:
     repository: postgres
-    tag: "15"
+    tag: "18"
   env:
     POSTGRES_DB: hook0
     POSTGRES_PASSWORD: "postgres"

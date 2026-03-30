@@ -56,7 +56,7 @@ describe('Hook0Client', () => {
     jest.clearAllMocks();
   });
 
-  test('should send an event successfully (201 Created)', async () => {
+  test('should send an event with client-provided eventId (201 Created)', async () => {
     mockFetch.mockResolvedValue(
       makeFakeFetchResponse({
         ok: true,
@@ -78,9 +78,39 @@ describe('Hook0Client', () => {
 
     const eventId = await client.sendEvent(event);
 
-    expect(eventId).toBeDefined();
     expect(eventId).toStrictEqual('00000000-0000-0000-0000-000000000000');
     expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  test('should send an event without eventId and return server-generated id (201 Created)', async () => {
+    const serverGeneratedId = '01961234-5678-7abc-8def-0123456789ab';
+    mockFetch.mockResolvedValue(
+      makeFakeFetchResponse({
+        ok: true,
+        json: async () => ({
+          application_id: 'app-123',
+          event_id: serverGeneratedId,
+          received_at: new Date().toISOString(),
+        }),
+      })
+    );
+
+    const event = new Event(
+      'auth.user.create',
+      '{"email": "test@example.com"}',
+      'application/json',
+      { environment: 'production' }
+    );
+
+    const eventId = await client.sendEvent(event);
+
+    expect(eventId).toStrictEqual(serverGeneratedId);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    // Verify the request body does not contain event_id
+    const callArgs = mockFetch.mock.calls[0] as [string, RequestInit];
+    const requestBody = JSON.parse(callArgs[1].body as string);
+    expect(requestBody.event_id).toBeUndefined();
   });
 
   test('should fail when too many events are sent (429 Too Many Requests)', async () => {

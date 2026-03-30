@@ -31,7 +31,7 @@ Hook0 events follow this structure:
 
 ```json
 {
-  "event_id": "string (UUID)",
+  "event_id": "string (UUID, optional — server generates UUIDv7 if omitted)",
   "event_type": "string",
   "payload": "object",
   "labels": "object (optional)",

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                    INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, labels)\n                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, statement_timestamp(), $9)\n                    RETURNING application__id AS application_id, event__id AS event_id, received_at\n                ",
+  "query": "\n                    INSERT INTO event.event (application__id, event__id, event_type__name, payload, payload_content_type, ip, metadata, occurred_at, received_at, labels)\n                    VALUES ($1, COALESCE($2, uuidv7()), $3, $4, $5, $6, $7, $8, statement_timestamp(), $9)\n                    RETURNING application__id AS application_id, event__id AS event_id, received_at\n                ",
   "describe": {
     "columns": [
       {
@@ -38,5 +38,5 @@
       false
     ]
   },
-  "hash": "28630bcf9952a728913af3e5c027484e29122463d784d0593ae49a8f3324b835"
+  "hash": "ab6f7641dd12d2dadc6331008baf9fb7c74dd2c1a2fd32dcea2d91c415dbabc3"
 }

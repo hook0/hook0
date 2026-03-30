@@ -69,7 +69,7 @@ Every event must include at least one [label](labels.md). Labels are key-value p
 
 ## Idempotency
 
-Each event has a unique `event_id` (UUID). If you send an event with the same ID twice, Hook0 rejects the duplicate.
+Each event has a unique `event_id` (UUID). The `event_id` field is optional when ingesting events — if omitted, the server generates a UUIDv7 automatically. If you provide your own `event_id` and send the same ID twice, Hook0 rejects the duplicate. This prevents accidental double-delivery when clients retry with the same `event_id`.
 
 ## What's next?
 
