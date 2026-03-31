@@ -464,6 +464,7 @@
     "settings": "Settings"
   },
   "logs": {
+    "backToLogs": "Back to Delivery Logs",
     "body": "Body",
     "duration": "Duration",
     "durationTooltip": "Total time from event creation to endpoint response",
