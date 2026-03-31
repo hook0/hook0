@@ -1092,6 +1092,8 @@ export interface components {
       response_id?: string;
       /** Format: int32 */
       retry_count: number;
+      /** Format: int32 */
+      http_response_status?: number;
       status: string;
       subscription: {
         description?: string;
