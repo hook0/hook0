@@ -2,12 +2,11 @@ import { test, expect } from "@playwright/test";
 import { loginAndCreateApp } from "../fixtures/test-setup";
 
 /**
- * Response Detail E2E tests for Hook0.
+ * Log Detail E2E tests for Hook0.
  *
- * Tests for viewing webhook delivery response details from the logs table.
- * Following the Three-Step Verification Pattern.
+ * Tests for the drawer (LogSidePanel) and LogDetail full page flows.
  */
-test.describe("Response Detail", () => {
+test.describe("Log Detail", () => {
   /**
    * Helper to set up an environment with an event type, subscription, and sent event.
    * Navigates to the logs page and waits for at least one log row to appear.
@@ -17,14 +16,14 @@ test.describe("Response Detail", () => {
     request: import("@playwright/test").APIRequestContext,
     testId: string
   ) {
-    const env = await loginAndCreateApp(page, request, `resp-${testId}`);
+    const env = await loginAndCreateApp(page, request, `log-${testId}`);
 
     // Create an event type
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/event_types/new`
     );
     await expect(page.locator('[data-test="event-type-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="event-type-service-input"]').fill("resp");
+    await page.locator('[data-test="event-type-service-input"]').fill("log");
     await page.locator('[data-test="event-type-resource-input"]').fill("test");
     await page.locator('[data-test="event-type-verb-input"]').fill("created");
 
@@ -44,7 +43,7 @@ test.describe("Response Detail", () => {
     await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({ timeout: 10000 });
     await page
       .locator('[data-test="subscription-description-input"]')
-      .fill(`Resp Test Sub ${env.timestamp}`);
+      .fill(`Log Test Sub ${env.timestamp}`);
     await page.locator('[data-test="subscription-method-select"]').selectOption("POST");
     await page.locator('[data-test="subscription-url-input"]').fill("https://webhook.site/test");
 
@@ -87,7 +86,7 @@ test.describe("Response Detail", () => {
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
     await page
       .locator('[data-test="send-event-type-select"]')
-      .selectOption("resp.test.created");
+      .selectOption("log.test.created");
 
     const eventLabelKey = page.locator(
       '[data-test="send-event-labels"] [data-test="kv-key-input-0"]'
@@ -136,128 +135,135 @@ test.describe("Response Detail", () => {
   }
 
   /**
-   * Helper to poll until a response link appears in the logs table.
-   * Reloads the page until the response_id is populated (webhook processing takes time).
+   * Helper to poll until a log row has response data available (webhook processing takes time).
+   * Reloads the page until at least one row is visible with data.
    */
-  async function waitForResponseLink(page: import("@playwright/test").Page) {
-    const responseLink = page.locator('[data-test="log-response-link"]').first();
+  async function waitForResponseInRow(page: import("@playwright/test").Page) {
     await expect(async () => {
       await page.reload();
       await expect(page.locator('[data-test="logs-table"]')).toBeVisible({ timeout: 10000 });
-      await expect(responseLink).toBeVisible({ timeout: 5000 });
+      await expect(
+        page.locator('[data-test="logs-table"] [row-id]').first()
+      ).toBeVisible({ timeout: 5000 });
     }).toPass({ timeout: 30000 });
-    return responseLink;
   }
 
-  test("should display Response column header in logs table", async ({ page, request }) => {
+  test("should open drawer with event and response when clicking a log row", async ({
+    page,
+    request,
+  }) => {
     test.slow();
-    await setupLogsWithDelivery(page, request, "col-header");
+    await setupLogsWithDelivery(page, request, "drawer-open");
+    await waitForResponseInRow(page);
 
-    // Verify the Response column header is visible in the table
-    const table = page.locator('[data-test="logs-table"]');
-    await expect(table).toContainText("Response");
+    // Click on the first log row
+    const firstRow = page.locator('[data-test="logs-table"] [row-id]').first();
+    await firstRow.click();
+
+    // Verify the drawer (side panel) opens
+    const sidePanel = page.locator('[data-test="side-panel"]');
+    await expect(sidePanel).toBeVisible({ timeout: 10000 });
+
+    // Verify the drawer contains event metadata (event_type)
+    await expect(sidePanel).toContainText("log.test.created");
+
+    // Verify the drawer contains event payload section
+    await expect(sidePanel).toContainText("Payload");
+
+    // Verify the drawer contains response summary with HTTP status code
+    await expect(sidePanel).toContainText("Response Summary");
+    await expect(sidePanel).toContainText("HTTP Status Code");
+
+    // Verify the drawer contains response headers section
+    await expect(sidePanel).toContainText("Response Headers");
+
+    // Verify the drawer contains response body section
+    await expect(sidePanel).toContainText("Response Body");
   });
 
-  test("should show truncated response ID link when response exists", async ({ page, request }) => {
+  test("should navigate to LogDetail page via Open full page button", async ({
+    page,
+    request,
+  }) => {
     test.slow();
-    await setupLogsWithDelivery(page, request, "resp-link");
+    await setupLogsWithDelivery(page, request, "full-page");
+    await waitForResponseInRow(page);
 
-    // Poll until a response link appears
-    const responseLink = await waitForResponseLink(page);
+    // Click on the first log row to open the drawer
+    const firstRow = page.locator('[data-test="logs-table"] [row-id]').first();
+    await firstRow.click();
 
-    // Extract the full response UUID from the link href
-    const href = await responseLink.getAttribute("href");
-    const fullId = href!.split("/responses/")[1].split("?")[0];
+    // Verify the drawer opens
+    const sidePanel = page.locator('[data-test="side-panel"]');
+    await expect(sidePanel).toBeVisible({ timeout: 10000 });
 
-    // Hook0Uuid truncates to 20 chars: first 9 + \u2026 + last 10
-    const expectedText = `${fullId.slice(0, 9)}\u2026${fullId.slice(-10)}`;
-    const linkText = await responseLink.textContent();
-    expect(linkText!.trim()).toBe(expectedText);
+    // Click the "Open full page" button
+    await page.locator('[data-test="log-panel-full-page"]').click();
+
+    // Verify URL changed to /logs/[request_attempt_id] (UUID pattern)
+    await expect(page).toHaveURL(
+      /\/logs\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      { timeout: 10000 }
+    );
+
+    // Verify the log-detail-page test element is visible
+    await expect(page.locator('[data-test="log-detail-page"]')).toBeVisible({ timeout: 10000 });
+
+    // Verify it shows the same content sections as the drawer
+    const detailPage = page.locator('[data-test="log-detail-page"]');
+    await expect(detailPage).toContainText("log.test.created");
+    await expect(detailPage).toContainText("Payload");
+    await expect(detailPage).toContainText("Response Summary");
   });
 
-  test("should navigate to response detail page when clicking response ID", async ({ page, request }) => {
+  test("should show error for non-existent request attempt", async ({ page, request }) => {
     test.slow();
-    await setupLogsWithDelivery(page, request, "nav-detail");
+    const env = await loginAndCreateApp(page, request, "log-not-found");
 
-    // Poll until a response link appears
-    const responseLink = await waitForResponseLink(page);
+    // Navigate directly to a non-existent request attempt
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/logs/00000000-0000-0000-0000-000000000000`
+    );
 
-    // Click the response ID link
-    await responseLink.click();
-
-    // Verify URL changed to the response detail page
-    await expect(page).toHaveURL(/\/logs\/responses\/[0-9a-f-]+/, { timeout: 10000 });
-
-    // Verify response detail card is visible
-    await expect(page.locator('[data-test="response-detail-card"]')).toBeVisible({
-      timeout: 10000,
-    });
+    // Verify error card appears (Hook0ErrorCard renders when the query fails)
+    await expect(page.locator('[data-test="error-card"]')).toBeVisible({ timeout: 15000 });
   });
 
-  test("should display response detail with all sections", async ({ page, request }) => {
+  test("should redirect old response detail URLs to logs", async ({ page, request }) => {
     test.slow();
-    await setupLogsWithDelivery(page, request, "detail-sections");
+    const env = await loginAndCreateApp(page, request, "log-redirect");
 
-    const responseLink = await waitForResponseLink(page);
+    // Navigate to the old URL pattern
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/logs/responses/00000000-0000-0000-0000-000000000000`
+    );
 
-    // Navigate to response detail
-    await responseLink.click();
-    await expect(page).toHaveURL(/\/logs\/responses\/[0-9a-f-]+/, { timeout: 10000 });
-
-    const detailPage = page.locator('[data-test="response-detail-page"]');
-    await expect(detailPage).toBeVisible({ timeout: 10000 });
-
-    // Verify the summary card is present with expected fields
-    const summaryCard = page.locator('[data-test="response-detail-card"]');
-    await expect(summaryCard).toBeVisible();
-    await expect(summaryCard).toContainText("Response Summary");
-    await expect(summaryCard).toContainText("Response ID");
-    await expect(summaryCard).toContainText("HTTP Status Code");
-    await expect(summaryCard).toContainText("Elapsed Time");
-
-    // Verify headers section is present
-    const headersCard = page.locator('[data-test="response-headers-card"]');
-    await expect(headersCard).toBeVisible();
-    await expect(headersCard).toContainText("Response Headers");
-
-    // Verify body section is present
-    const bodyCard = page.locator('[data-test="response-body-card"]');
-    await expect(bodyCard).toBeVisible();
-    await expect(bodyCard).toContainText("Response Body");
+    // Verify the page redirected to the logs list
+    await expect(page).toHaveURL(
+      new RegExp(
+        `/organizations/${env.organizationId}/applications/${env.applicationId}/logs$`
+      ),
+      { timeout: 10000 }
+    );
+    await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
   });
 
-  test("should show event link button on response detail page", async ({ page, request }) => {
-    test.slow();
-    await setupLogsWithDelivery(page, request, "event-link");
-
-    const responseLink = await waitForResponseLink(page);
-
-    // Navigate to response detail
-    await responseLink.click();
-    await expect(page).toHaveURL(/\/logs\/responses\/[0-9a-f-]+/, { timeout: 10000 });
-    await expect(page.locator('[data-test="response-detail-card"]')).toBeVisible({ timeout: 10000 });
-
-    // The event link button should be visible (event_id is passed via query param)
-    const eventLink = page.locator('[data-test="response-event-link"]');
-    await expect(eventLink).toBeVisible();
-
-    // Clicking it should navigate to the event detail page
-    await eventLink.click();
-    await expect(page).toHaveURL(/\/events\/[0-9a-f-]+$/, { timeout: 10000 });
-    await expect(page.locator('[data-test="event-detail-page"]')).toBeVisible({ timeout: 10000 });
-  });
-
-  test("should navigate back to logs from response detail", async ({ page, request }) => {
+  test("should navigate back from LogDetail to logs", async ({ page, request }) => {
     test.slow();
     const env = await setupLogsWithDelivery(page, request, "back-nav");
+    await waitForResponseInRow(page);
 
-    const responseLink = await waitForResponseLink(page);
+    // Click on the first log row to open the drawer
+    const firstRow = page.locator('[data-test="logs-table"] [row-id]').first();
+    await firstRow.click();
 
-    // Navigate to response detail
-    await responseLink.click();
-    await expect(page.locator('[data-test="response-detail-card"]')).toBeVisible({
-      timeout: 10000,
-    });
+    // Open full page
+    const sidePanel = page.locator('[data-test="side-panel"]');
+    await expect(sidePanel).toBeVisible({ timeout: 10000 });
+    await page.locator('[data-test="log-panel-full-page"]').click();
+
+    // Verify we're on the LogDetail page
+    await expect(page.locator('[data-test="log-detail-page"]')).toBeVisible({ timeout: 10000 });
 
     // Go back
     await page.goBack();
@@ -265,7 +271,7 @@ test.describe("Response Detail", () => {
     // Verify we're back on the logs page
     await expect(page).toHaveURL(
       new RegExp(
-        `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
+        `/organizations/${env.organizationId}/applications/${env.applicationId}/logs$`
       ),
       { timeout: 10000 }
     );
