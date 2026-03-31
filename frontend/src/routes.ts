@@ -50,7 +50,6 @@ export const routes = {
   WebhooksList: 'WebhooksList',
   LogsList: 'LogsList',
   LogDetail: 'LogDetail',
-  ResponseDetail: 'ResponseDetail',
   APIDocumentation: 'APIDocumentation',
   APIDocumentationForApplication: 'APIDocumentationForApplication',
   Error404: '404',
@@ -318,11 +317,23 @@ export default [
     component: () => import('@/pages/organizations/applications/logs/LogList.vue'),
     meta: { title: 'Delivery Logs' },
   },
+  // Redirect old ResponseDetail URLs to logs list
   {
-    name: routes.ResponseDetail,
     path: '/organizations/:organization_id/applications/:application_id/logs/responses/:response_id',
-    component: () => import('@/pages/organizations/applications/logs/ResponseDetail.vue'),
-    meta: { title: 'Response Detail' },
+    redirect: (to: { params: Record<string, string | string[]> }) => ({
+      name: 'LogsList',
+      params: {
+        organization_id: to.params.organization_id,
+        application_id: to.params.application_id,
+      },
+    }),
+  },
+  // New LogDetail route
+  {
+    name: routes.LogDetail,
+    path: '/organizations/:organization_id/applications/:application_id/logs/:request_attempt_id',
+    component: () => import('@/pages/organizations/applications/logs/LogDetail.vue'),
+    meta: { title: 'Delivery Detail' },
   },
   {
     name: routes.APIDocumentationForApplication,
