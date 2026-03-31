@@ -78,6 +78,15 @@ export const instanceConfigKeys = {
   all: ['instanceConfig'] as const,
 };
 
+export const retryScheduleKeys = {
+  all: ['retrySchedules'] as const,
+  lists: () => [...retryScheduleKeys.all, 'list'] as const,
+  list: (organizationId: string) => [...retryScheduleKeys.lists(), organizationId] as const,
+  details: () => [...retryScheduleKeys.all, 'detail'] as const,
+  detail: (id: string, organizationId: string) =>
+    [...retryScheduleKeys.details(), id, organizationId] as const,
+};
+
 export const serviceTokenKeys = {
   all: ['serviceTokens'] as const,
   lists: () => [...serviceTokenKeys.all, 'list'] as const,

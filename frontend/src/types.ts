@@ -1135,6 +1135,37 @@ export interface components {
       /** Format: uuid */
       organization_id: string;
     };
+    RetrySchedule: {
+      /** Format: uuid */
+      retry_schedule_id: string;
+      /** Format: uuid */
+      organization_id: string;
+      name: string;
+      strategy: string;
+      max_retries: number;
+      custom_intervals?: number[] | null;
+      linear_delay?: number | null;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      updated_at: string;
+    };
+    RetrySchedulePost: {
+      /** Format: uuid */
+      organization_id: string;
+      name: string;
+      strategy: string;
+      max_retries: number;
+      custom_intervals?: number[] | null;
+      linear_delay?: number | null;
+    };
+    RetrySchedulePut: {
+      name: string;
+      strategy: string;
+      max_retries: number;
+      custom_intervals?: number[] | null;
+      linear_delay?: number | null;
+    };
     Subscription: {
       /** Format: uuid */
       application_id: string;
@@ -1157,6 +1188,10 @@ export interface components {
       /** Format: uuid */
       secret: string;
       /** Format: uuid */
+      retry_schedule_id?: string | null;
+      /** Format: double */
+      failure_percent?: number | null;
+      /** Format: uuid */
       subscription_id: string;
       target: {
         headers: Record<string, never>;
@@ -1166,6 +1201,8 @@ export interface components {
         /** Format: url */
         url: string;
       };
+      /** Format: date-time */
+      updated_at: string;
     };
     SubscriptionPost: {
       /** Format: uuid */
@@ -1174,6 +1211,8 @@ export interface components {
       description?: string;
       event_types: string[];
       is_enabled: boolean;
+      /** Format: uuid */
+      retry_schedule_id?: string | null;
       /** @description _Kept for backward compatibility, you should use `labels`_ */
       label_key?: string;
       /** @description _Kept for backward compatibility, you should use `labels`_ */

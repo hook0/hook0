@@ -33,13 +33,13 @@ export default function (baseUrl, service_token, organization_id) {
     'Invalid strategy returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
-  // --- Invalid: exponential with custom_intervals ---
+  // --- Invalid: increasing with custom_intervals ---
   res = http.post(
     url,
     JSON.stringify({
       organization_id,
       name: 'k6_exp_with_intervals_' + uuidv4(),
-      strategy: 'exponential',
+      strategy: 'increasing',
       max_retries: 3,
       custom_intervals: [10, 20, 30],
     }),
@@ -102,7 +102,7 @@ export default function (baseUrl, service_token, organization_id) {
     JSON.stringify({
       organization_id,
       name: 'k6_zero_retries_' + uuidv4(),
-      strategy: 'exponential',
+      strategy: 'increasing',
       max_retries: 0,
     }),
     params
@@ -117,7 +117,7 @@ export default function (baseUrl, service_token, organization_id) {
     JSON.stringify({
       organization_id,
       name: 'k6_101_retries_' + uuidv4(),
-      strategy: 'exponential',
+      strategy: 'increasing',
       max_retries: 101,
     }),
     params
@@ -132,7 +132,7 @@ export default function (baseUrl, service_token, organization_id) {
     JSON.stringify({
       organization_id,
       name: '',
-      strategy: 'exponential',
+      strategy: 'increasing',
       max_retries: 3,
     }),
     params
@@ -147,7 +147,7 @@ export default function (baseUrl, service_token, organization_id) {
     JSON.stringify({
       organization_id,
       name: 'x',
-      strategy: 'exponential',
+      strategy: 'increasing',
       max_retries: 3,
     }),
     params
@@ -156,14 +156,14 @@ export default function (baseUrl, service_token, organization_id) {
     'Name too short returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
-  // --- Valid: create exponential schedule ---
-  const schedule_name = 'k6_exponential_' + uuidv4();
+  // --- Valid: create increasing schedule ---
+  const schedule_name = 'k6_increasing_' + uuidv4();
   res = http.post(
     url,
     JSON.stringify({
       organization_id,
       name: schedule_name,
-      strategy: 'exponential',
+      strategy: 'increasing',
       max_retries: 5,
     }),
     params
@@ -242,7 +242,7 @@ export default function (baseUrl, service_token, organization_id) {
     JSON.stringify({
       organization_id,
       name: schedule_name,
-      strategy: 'exponential',
+      strategy: 'increasing',
       max_retries: 3,
     }),
     params

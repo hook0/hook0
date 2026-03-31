@@ -136,6 +136,7 @@ const APP_LEVEL_FEATURES: Record<string, string> = {
   [routes.SubscriptionsList]: routes.SubscriptionsList,
   [routes.SubscriptionsNew]: routes.SubscriptionsList, // Falls back to list
   [routes.SubscriptionsDetail]: routes.SubscriptionsList, // Falls back to list
+  [routes.SubscriptionsEdit]: routes.SubscriptionsList, // Falls back to list
   [routes.LogsList]: routes.LogsList,
   [routes.ApplicationSecretsList]: routes.ApplicationSecretsList,
   [routes.ApplicationSecretsDetail]: routes.ApplicationSecretsList, // Falls back to list

@@ -46,6 +46,7 @@ pub struct Subscription {
     pub retry_schedule_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub failure_percent: Option<f64>,
     pub dedicated_workers: Vec<String>,
 }
 
@@ -224,6 +225,7 @@ pub async fn list(
         metadata: Value,
         labels: Value,
         retry_schedule_id: Option<Uuid>,
+        failure_percent: Option<f64>,
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
@@ -234,7 +236,7 @@ pub async fn list(
         r#"
             WITH subs AS (
                 SELECT
-                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.retry_schedule__id, s.created_at, s.updated_at,
+                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.retry_schedule__id, s.failure_percent, s.created_at, s.updated_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -257,7 +259,7 @@ pub async fn list(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.subscription__id, subs.is_enabled, subs.description, subs.secret, subs.metadata, subs.labels, subs.retry_schedule__id AS retry_schedule_id, subs.created_at, subs.updated_at, subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.subscription__id, subs.is_enabled, subs.description, subs.secret, subs.metadata, subs.labels, subs.retry_schedule__id AS retry_schedule_id, subs.failure_percent, subs.created_at, subs.updated_at, subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
         "#,
@@ -295,6 +297,7 @@ pub async fn list(
                 target: serde_json::from_value(s.target_json.unwrap())
                     .expect("Could not parse subscription target"),
                 retry_schedule_id: s.retry_schedule_id,
+                failure_percent: s.failure_percent,
                 created_at: s.created_at,
                 updated_at: s.updated_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
@@ -366,6 +369,7 @@ pub async fn get(
         metadata: Value,
         labels: Value,
         retry_schedule_id: Option<Uuid>,
+        failure_percent: Option<f64>,
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
@@ -376,7 +380,7 @@ pub async fn get(
         r#"
             WITH subs AS (
                 SELECT
-                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.retry_schedule__id, s.created_at, s.updated_at,
+                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.retry_schedule__id, s.failure_percent, s.created_at, s.updated_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -399,7 +403,7 @@ pub async fn get(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.application__id, subs.subscription__id, subs.is_enabled, subs.description, subs.secret, subs.metadata, subs.labels, subs.retry_schedule__id AS retry_schedule_id, subs.created_at, subs.updated_at, subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.application__id, subs.subscription__id, subs.is_enabled, subs.description, subs.secret, subs.metadata, subs.labels, subs.retry_schedule__id AS retry_schedule_id, subs.failure_percent, subs.created_at, subs.updated_at, subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
             LIMIT 1
@@ -438,6 +442,7 @@ pub async fn get(
                 target: serde_json::from_value(s.target_json.unwrap())
                     .expect("Could not parse subscription target"),
                 retry_schedule_id: s.retry_schedule_id,
+                failure_percent: s.failure_percent,
                 created_at: s.created_at,
                 updated_at: s.updated_at,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
@@ -698,6 +703,7 @@ pub async fn create(
         labels,
         target: body.target.clone(),
         retry_schedule_id: subscription.retry_schedule__id,
+        failure_percent: None,
         created_at: subscription.created_at,
         updated_at: subscription.updated_at,
         dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
@@ -798,6 +804,7 @@ pub async fn edit(
         metadata: Value,
         labels: Value,
         retry_schedule__id: Option<Uuid>,
+        failure_percent: Option<f64>,
         target__id: Uuid,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
@@ -819,7 +826,7 @@ pub async fn edit(
             UPDATE webhook.subscription
             SET is_enabled = $1, description = $2, metadata = $3, labels = $4, retry_schedule__id = (SELECT retry_schedule__id FROM webhook.retry_schedule WHERE retry_schedule__id = $7 AND organization__id = (SELECT organization__id FROM event.application WHERE application__id = $6 AND deleted_at IS NULL)), updated_at = statement_timestamp()
             WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL
-            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, retry_schedule__id, target__id, created_at, updated_at
+            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, retry_schedule__id, failure_percent, target__id, created_at, updated_at
         ",
         &body.is_enabled,
         body.description,
@@ -1020,6 +1027,7 @@ pub async fn edit(
                 labels,
                 target: body.target.clone(),
                 retry_schedule_id: s.retry_schedule__id,
+                failure_percent: s.failure_percent,
                 created_at: s.created_at,
                 updated_at: s.updated_at,
                 dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),

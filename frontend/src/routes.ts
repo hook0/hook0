@@ -44,6 +44,11 @@ export const routes = {
   SubscriptionsList: 'SubscriptionsList',
   SubscriptionsNew: 'SubscriptionsNew',
   SubscriptionsDetail: 'SubscriptionsDetail',
+  SubscriptionsEdit: 'SubscriptionsEdit',
+
+  RetrySchedulesList: 'RetrySchedulesList',
+  RetrySchedulesNew: 'RetrySchedulesNew',
+  RetrySchedulesEdit: 'RetrySchedulesEdit',
 
   WebhooksList: 'WebhooksList',
   LogsList: 'LogsList',
@@ -174,6 +179,24 @@ export default [
     meta: { title: 'Service Token' },
   },
   {
+    name: routes.RetrySchedulesList,
+    path: '/organizations/:organization_id/retry_schedules',
+    component: () => import('@/pages/organizations/retry_schedules/RetrySchedulesList.vue'),
+    meta: { title: 'Retry Schedules' },
+  },
+  {
+    name: routes.RetrySchedulesNew,
+    path: '/organizations/:organization_id/retry_schedules/new',
+    component: () => import('@/pages/organizations/retry_schedules/RetrySchedulesEdit.vue'),
+    meta: { title: 'New Retry Schedule' },
+  },
+  {
+    name: routes.RetrySchedulesEdit,
+    path: '/organizations/:organization_id/retry_schedules/:retry_schedule_id',
+    component: () => import('@/pages/organizations/retry_schedules/RetrySchedulesEdit.vue'),
+    meta: { title: 'Edit Retry Schedule' },
+  },
+  {
     name: routes.OrganizationsTeam,
     path: '/organizations/:organization_id/members',
     component: () => import('@/pages/organizations/MembersList.vue'),
@@ -284,8 +307,15 @@ export default [
     name: routes.SubscriptionsDetail,
     path: '/organizations/:organization_id/applications/:application_id/subscriptions/:subscription_id',
     component: () =>
-      import('@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue'),
+      import('@/pages/organizations/applications/subscriptions/SubscriptionsDetail.vue'),
     meta: { title: 'Subscription' },
+  },
+  {
+    name: routes.SubscriptionsEdit,
+    path: '/organizations/:organization_id/applications/:application_id/subscriptions/:subscription_id/edit',
+    component: () =>
+      import('@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue'),
+    meta: { title: 'Edit Subscription' },
   },
   {
     name: routes.LogsList,

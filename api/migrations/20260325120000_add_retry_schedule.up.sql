@@ -5,8 +5,8 @@ create table webhook.retry_schedule (
         references iam.organization(organization__id)
         on update cascade on delete cascade,
     name text not null check (length(name) > 1),
-    strategy text not null check (strategy in ('exponential', 'linear', 'custom')),
-    max_retries integer not null check (max_retries > 0 and max_retries <= 100),
+    strategy text not null check (strategy in ('increasing', 'linear', 'custom')),
+    max_retries integer not null check (max_retries > 0 and max_retries <= 15),
     custom_intervals integer[],
     linear_delay integer,
     created_at timestamptz not null default statement_timestamp(),
@@ -15,7 +15,7 @@ create table webhook.retry_schedule (
     constraint retry_schedule_org_name_unique unique (organization__id, name),
     constraint retry_schedule_strategy_fields_check check (
         case strategy
-            when 'exponential' then
+            when 'increasing' then
                 custom_intervals is null and linear_delay is null
             when 'linear' then
                 custom_intervals is null

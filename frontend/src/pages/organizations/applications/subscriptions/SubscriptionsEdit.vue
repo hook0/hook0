@@ -32,6 +32,7 @@ import SubscriptionSectionEventTypes from './SubscriptionSectionEventTypes.vue';
 import type { SelectableEventType } from './subscription.types';
 import SubscriptionSectionLabels from './SubscriptionSectionLabels.vue';
 import SubscriptionSectionAdvanced from './SubscriptionSectionAdvanced.vue';
+import { useRetryScheduleList } from '../../retry_schedules/useRetryScheduleQueries';
 
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0CopyField from '@/components/Hook0CopyField.vue';
@@ -99,7 +100,7 @@ function toApiRecord(map: Record<string, string>): Record<string, never> {
 }
 
 const router = useRouter();
-const { applicationId, subscriptionId } = useRouteIds();
+const { organizationId, applicationId, subscriptionId } = useRouteIds();
 const isNew = computed(() => !subscriptionId.value);
 
 // Queries
@@ -144,6 +145,22 @@ const headersMap = ref<Record<string, string>>({});
 const labelsMap = ref<Record<string, string>>({ user_id: '1' });
 const metadataMap = ref<Record<string, string>>({});
 
+const selectedRetryScheduleId = ref<string | null>(null);
+
+// Retry schedule list for selector
+const { data: retrySchedules } = useRetryScheduleList(organizationId);
+const retryScheduleOptions = computed(() => {
+  const options: Hook0SelectSingleOption[] = [
+    { value: '', label: t('retrySchedules.defaultSchedule') },
+  ];
+  if (retrySchedules.value) {
+    retrySchedules.value.forEach((s) => {
+      options.push({ value: s.retry_schedule_id, label: s.name });
+    });
+  }
+  return options;
+});
+
 const httpMethods = 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption);
 
 // Populate form from subscription data (edit mode)
@@ -168,6 +185,7 @@ watch(
       metadataMap.value = { ...sub.metadata };
       headersKv.value = recordToKvPairs(sub.target.headers);
       headersMap.value = { ...sub.target.headers } as unknown as Record<string, string>;
+      selectedRetryScheduleId.value = sub.retry_schedule_id ?? null;
     }
   },
   { immediate: true }
@@ -273,6 +291,7 @@ const onSubmit = handleSubmit((values) => {
         labels: toApiRecord(labelsMap.value),
         is_enabled: isEnabled.value,
         event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
+        retry_schedule_id: selectedRetryScheduleId.value || null,
       },
       {
         onSuccess: () => {
@@ -308,6 +327,7 @@ const onSubmit = handleSubmit((values) => {
         event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
         dedicated_workers: dedicatedWorkers.value.length > 0 ? dedicatedWorkers.value : undefined,
         application_id: applicationId.value,
+        retry_schedule_id: selectedRetryScheduleId.value || null,
       },
     },
     {
@@ -458,8 +478,11 @@ const missingFieldsTooltip = computed(() => {
                 <SubscriptionSectionAdvanced
                   :headers-kv="headersKv"
                   :metadata="metadata"
+                  :retry-schedule-id="selectedRetryScheduleId"
+                  :retry-schedule-options="retryScheduleOptions"
                   @update:headers="onHeadersUpdate($event)"
                   @update:metadata="onMetadataUpdate($event)"
+                  @update:retry-schedule-id="selectedRetryScheduleId = $event"
                 />
               </div>
             </Hook0CardContent>

@@ -582,6 +582,7 @@
     "types": "Types",
     "userMenu": "User menu",
     "userSettings": "User Settings",
+    "retrySchedules": "Retry Schedules",
     "webhooks": "Subscriptions"
   },
   "orgAppSelector": {
@@ -842,7 +843,11 @@
     "url": "Endpoint URL",
     "urlHelp": "The URL that will receive webhook payloads",
     "webhookSiteHint": "Need a test URL? Use {link} to get one instantly.",
-    "webhookSiteName": "Webhook.site"
+    "webhookSiteName": "Webhook.site",
+    "retryScheduleLabel": "Retry Schedule",
+    "retryScheduleHint": "Choose a retry schedule or leave empty to use the default policy.",
+    "editAction": "Edit",
+    "detailAction": "View"
   },
   "tutorial": {
     "applicationCreated": "Application created",
@@ -1002,6 +1007,85 @@
     "required": "{field} is required",
     "validEmail": "Enter a valid email address",
     "validRole": "Select a valid role",
-    "validUrl": "Enter a valid URL"
+    "validUrl": "Enter a valid URL",
+    "minLength": "{field} must be at least {min} characters",
+    "arrayLength": "{field} must have exactly {length} items"
+  },
+  "retrySchedules": {
+    "title": "Retry Schedules",
+    "create": "New Retry Schedule",
+    "created": "Retry schedule created",
+    "edit": "Edit Retry Schedule",
+    "updated": "Retry schedule updated",
+    "delete": "Delete Retry Schedule",
+    "deleteConfirm": "Are you sure you want to delete this retry schedule? Subscriptions using it will revert to the default retry policy.",
+    "deleted": "Retry schedule deleted",
+    "nameColumn": "Name",
+    "strategyColumn": "Strategy",
+    "maxRetriesColumn": "Max Retries",
+    "delayColumn": "Delay",
+    "createdAtColumn": "Created",
+    "strategyIncreasing": "Increasing",
+    "strategyLinear": "Linear",
+    "strategyCustom": "Custom",
+    "delayIncreasing": "3s → 10h escalating",
+    "delayLinear": "{delay} fixed",
+    "delayCustom": "{count} custom intervals",
+    "defaultSchedule": "Default",
+    "defaultScheduleDesc": "Built-in increasing schedule: 3s, 10s, 3min, 30min, 1h, 3h, 5h, then 10h for subsequent retries.",
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "e.g. Aggressive then patient",
+      "strategy": "Strategy",
+      "strategyIncreasingDesc": "Uses the built-in escalating schedule (3s, 10s, 3min, 30min, 1h, 3h, 5h, 10h…)",
+      "strategyLinearDesc": "Fixed delay between each retry",
+      "strategyCustomDesc": "Define a custom delay for each retry attempt",
+      "maxRetries": "Max Retries",
+      "linearDelay": "Delay (seconds)",
+      "customIntervals": "Custom Intervals",
+      "addInterval": "Add interval",
+      "retryNumber": "Retry #{number}",
+      "intervalSeconds": "Delay (seconds)"
+    },
+    "preview": {
+      "title": "Retry Preview",
+      "retryColumn": "Retry",
+      "delayColumn": "Delay"
+    },
+    "empty": {
+      "title": "No retry schedules",
+      "description": "Create a retry schedule to customize how failed webhooks are retried.",
+      "cta": "Create retry schedule"
+    }
+  },
+  "subscriptionDetail": {
+    "title": "Subscription Details",
+    "editAction": "Edit",
+    "sectionHealth": "Delivery Health",
+    "sectionConfig": "Configuration",
+    "sectionRetrySchedule": "Retry Schedule",
+    "sectionRecentDeliveries": "Recent Deliveries",
+    "targetUrl": "Target URL",
+    "httpMethod": "HTTP Method",
+    "eventTypes": "Event Types",
+    "labels": "Labels",
+    "headers": "Headers",
+    "metadata": "Metadata",
+    "retrySchedule": "Retry Schedule",
+    "noDeliveries": "No recent deliveries",
+    "statusOk": "OK",
+    "statusFailed": "Failed",
+    "statusColumn": "Status",
+    "dateColumn": "Date",
+    "responseCodeColumn": "Response Code",
+    "retryCountColumn": "Retry"
+  },
+  "health": {
+    "healthy": "Healthy",
+    "warning": "Warning",
+    "disabled": "Disabled",
+    "noData": "N/A",
+    "failureRate": "Failure rate",
+    "healthColumn": "Health"
   }
 }

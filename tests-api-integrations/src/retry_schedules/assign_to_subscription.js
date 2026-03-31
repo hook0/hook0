@@ -15,11 +15,11 @@ export default function (baseUrl, service_token, organization_id, application_id
     },
   };
 
-  // --- Step 1: Create a retry schedule (exponential, max_retries: 10) ---
+  // --- Step 1: Create a retry schedule (increasing, max_retries: 10) ---
   const schedule_payload = {
     organization_id,
-    name: 'k6-test-exponential-' + Date.now(),
-    strategy: 'exponential',
+    name: 'k6-test-increasing-' + Date.now(),
+    strategy: 'increasing',
     max_retries: 10,
   };
 

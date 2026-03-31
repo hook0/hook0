@@ -350,6 +350,15 @@ async fn process_subscription(
 
     let mut actions = Vec::new();
 
+    // Persist current failure_percent to subscription table for frontend display
+    sqlx::query(
+        "UPDATE webhook.subscription SET failure_percent = $1 WHERE subscription__id = $2",
+    )
+    .bind(ratio)
+    .bind(sub.subscription__id)
+    .execute(&mut **tx)
+    .await?;
+
     match last_status {
         Some("disabled") => {}
 

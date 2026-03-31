@@ -25,7 +25,7 @@ pub const MAX_INTERVAL_SECS: i32 = 604_800; // 7 days
 #[strum(serialize_all = "lowercase")]
 #[sqlx(type_name = "text", rename_all = "lowercase")]
 pub enum RetryStrategy {
-    Exponential,
+    Increasing,
     Linear,
     Custom,
 }
@@ -50,7 +50,7 @@ pub struct RetrySchedulePost {
     #[validate(non_control_character, length(min = 2, max = 200))]
     pub name: String,
     pub strategy: RetryStrategy,
-    #[validate(range(min = 1, max = 100))]
+    #[validate(range(min = 1, max = 15))]
     pub max_retries: i32,
     pub custom_intervals: Option<Vec<i32>>,
     pub linear_delay: Option<i32>,
@@ -68,7 +68,7 @@ pub struct RetrySchedulePut {
     #[validate(non_control_character, length(min = 2, max = 200))]
     pub name: String,
     pub strategy: RetryStrategy,
-    #[validate(range(min = 1, max = 100))]
+    #[validate(range(min = 1, max = 15))]
     pub max_retries: i32,
     pub custom_intervals: Option<Vec<i32>>,
     pub linear_delay: Option<i32>,
@@ -122,9 +122,9 @@ pub fn validate_strategy_fields(
     custom_intervals: Option<&[i32]>,
 ) -> Result<(), validator::ValidationError> {
     match strategy {
-        RetryStrategy::Exponential => {
-            require_none("custom_intervals", &custom_intervals, "exponential")?;
-            require_none("linear_delay", &linear_delay, "exponential")?;
+        RetryStrategy::Increasing => {
+            require_none("custom_intervals", &custom_intervals, "increasing")?;
+            require_none("linear_delay", &linear_delay, "increasing")?;
         }
         RetryStrategy::Linear => {
             require_none("custom_intervals", &custom_intervals, "linear")?;
@@ -511,26 +511,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn exponential_valid() {
-        let result = validate_strategy_fields(RetryStrategy::Exponential, 5, None, None);
+    fn increasing_valid() {
+        let result = validate_strategy_fields(RetryStrategy::Increasing, 5, None, None);
         assert!(result.is_ok());
     }
 
     #[test]
-    fn exponential_rejects_custom_intervals() {
-        let result = validate_strategy_fields(RetryStrategy::Exponential, 3, None, Some(&[10, 20, 30]));
+    fn increasing_rejects_custom_intervals() {
+        let result = validate_strategy_fields(RetryStrategy::Increasing, 3, None, Some(&[10, 20, 30]));
         assert!(result.is_err());
     }
 
     #[test]
-    fn exponential_rejects_linear_delay() {
-        let result = validate_strategy_fields(RetryStrategy::Exponential, 3, Some(60), None);
+    fn increasing_rejects_linear_delay() {
+        let result = validate_strategy_fields(RetryStrategy::Increasing, 3, Some(60), None);
         assert!(result.is_err());
     }
 
     #[test]
-    fn exponential_rejects_both_fields() {
-        let result = validate_strategy_fields(RetryStrategy::Exponential, 3, Some(60), Some(&[10, 20, 30]));
+    fn increasing_rejects_both_fields() {
+        let result = validate_strategy_fields(RetryStrategy::Increasing, 3, Some(60), Some(&[10, 20, 30]));
         assert!(result.is_err());
     }
 

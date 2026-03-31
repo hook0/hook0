@@ -56,7 +56,7 @@ export default function (baseUrl, service_token, organization_id, schedule_id) {
     return null;
   }
 
-  // --- Change strategy exponential -> linear ---
+  // --- Change strategy increasing -> linear ---
   res = http.put(
     url,
     JSON.stringify({
@@ -104,7 +104,7 @@ export default function (baseUrl, service_token, organization_id, schedule_id) {
     JSON.stringify({
       organization_id,
       name: dup_name,
-      strategy: 'exponential',
+      strategy: 'increasing',
       max_retries: 3,
     }),
     params

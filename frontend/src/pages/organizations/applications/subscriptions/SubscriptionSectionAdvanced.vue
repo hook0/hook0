@@ -2,26 +2,55 @@
 import { useI18n } from 'vue-i18n';
 
 import type { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
+import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
 
 import Hook0KeyValue from '@/components/Hook0KeyValue.vue';
+import Hook0Select from '@/components/Hook0Select.vue';
 
 const { t } = useI18n();
 
 type Props = {
   headersKv: Hook0KeyValueKeyValuePair[];
   metadata: Hook0KeyValueKeyValuePair[];
+  retryScheduleId?: string | null;
+  retryScheduleOptions?: Hook0SelectSingleOption[];
 };
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+  retryScheduleId: null,
+  retryScheduleOptions: () => [],
+});
 
 const emit = defineEmits<{
   'update:headers': [value: Hook0KeyValueKeyValuePair[] | Record<string, string>];
   'update:metadata': [value: Hook0KeyValueKeyValuePair[] | Record<string, string>];
+  'update:retryScheduleId': [value: string | null];
 }>();
 </script>
 
 <template>
   <div class="sub-section">
+    <!-- Retry Schedule -->
+    <div v-if="retryScheduleOptions.length > 0" class="sub-row">
+      <div class="sub-row__label">
+        <span class="sub-row__title sub-row__title--muted">{{
+          t('subscriptions.retryScheduleLabel')
+        }}</span>
+        <span class="sub-row__hint">{{ t('subscriptions.retryScheduleHint') }}</span>
+      </div>
+      <div class="sub-row__content">
+        <Hook0Select
+          :model-value="retryScheduleId ?? ''"
+          :options="retryScheduleOptions"
+          :label="t('subscriptions.retryScheduleLabel')"
+          @update:model-value="emit('update:retryScheduleId', $event || null)"
+        />
+        <p v-if="!retryScheduleId" class="sub-row__hint sub-row__default-policy">
+          {{ t('retrySchedules.defaultScheduleDesc') }}
+        </p>
+      </div>
+    </div>
+
     <!-- Headers -->
     <div class="sub-row">
       <div class="sub-row__label">
