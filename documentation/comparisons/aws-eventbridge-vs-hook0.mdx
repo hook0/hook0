@@ -1,0 +1,160 @@
+---
+title: "Hook0 vs AWS EventBridge: Event Bus vs Webhook Delivery"
+description: "Compare AWS EventBridge and Hook0 for webhook delivery. EventBridge is an internal event bus. Hook0 is a webhook delivery server for external HTTP endpoints."
+keywords: [AWS EventBridge vs Hook0, webhook vs event bus, EventBridge webhooks, AWS webhook alternative, event-driven architecture]
+---
+
+import Head from '@docusaurus/Head';
+
+<Head>
+  <script type="application/ld+json">
+    {JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "Hook0 vs AWS EventBridge: Event Bus vs Webhook Delivery",
+      "description": "Compare AWS EventBridge and Hook0 for webhook delivery to external endpoints",
+      "url": "https://documentation.hook0.com/comparisons/aws-eventbridge-vs-hook0",
+      "publisher": {"@type": "Organization", "name": "Hook0", "url": "https://www.hook0.com"}
+    })}
+  </script>
+</Head>
+
+# Hook0 vs AWS EventBridge
+
+AWS EventBridge and Hook0 both deal with events, but they solve different problems.
+
+EventBridge is an event bus for routing events between AWS services and your own applications, mostly within your AWS account.
+
+Hook0 is a webhook delivery server. It sends HTTP POST requests to external endpoints (your customers' servers) with retry logic, signatures, and delivery tracking.
+
+## The actual difference
+
+```mermaid
+flowchart LR
+    subgraph EventBridge["EventBridge (internal event routing)"]
+        direction LR
+        L1[Your Lambda]:::external --> EB1[EventBridge]:::processing
+        EB1 --> SQS[Your SQS Queue]:::external
+        EB1 --> SF[Your Step Function]:::external
+        EB1 --> AWS[Another AWS Service]:::external
+    end
+
+    subgraph Hook0Flow["Hook0 (external webhook delivery)"]
+        direction LR
+        A1[Your App]:::external --> H1[Hook0]:::hook0
+        H1 --> C1["customer-a.com/webhooks"]:::customer
+        H1 --> C2["customer-b.com/webhooks"]:::customer
+        H1 --> C3["partner.example.com/api/events"]:::customer
+    end
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
+    classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
+    classDef processing fill:#ede9fe,stroke:#a78bfa,color:#3b0764
+
+    click H1 "/explanation/what-is-hook0" "What is Hook0?"
+    click C1 "/concepts/subscriptions" "Subscriptions"
+```
+
+EventBridge can send events to HTTP endpoints via API Destinations, but it wasn't designed for this. Hook0 was built for delivering webhooks to external HTTP endpoints.
+
+## Feature comparison
+
+**Legend:** ✅ = Full support | ⚠️ = Partial support | ❌ = Not available
+
+| Feature | AWS EventBridge | Hook0 |
+|---------|----------------|-------|
+| **Internal event routing** | ✅ Core focus | ❌ |
+| **External webhook delivery** | ⚠️ Via API Destinations | ✅ Core focus |
+| **HMAC signatures** | ❌ | ✅ |
+| **Per-endpoint retry config** | ⚠️ Limited (max 185 retries) | ✅ Fixed retry schedule + jitter |
+| **Dead letter queue** | ✅ (SQS-based) | ✅ Built-in with replay |
+| **Delivery logs per endpoint** | ❌ | ✅ Full request/response history |
+| **Manual replay** | ❌ | ✅ |
+| **Multi-tenant filtering** | ⚠️ Via event patterns | ✅ Label-based |
+| **Event type hierarchy** | ⚠️ Flat source/detail-type | ✅ Dot-notation hierarchy |
+| **Self-hosting** | ❌ AWS only | ✅ |
+| **Open-source** | ❌ | ✅ SSPL-1.0 |
+| **Dashboard for webhook management** | ❌ | ✅ |
+| **Subscription management API** | ❌ | ✅ |
+| **Cloud provider lock-in** | ✅ AWS only | ❌ Cloud-agnostic |
+| **Connection pooling to endpoints** | ⚠️ Limited (API Destinations have connection limits) | ✅ |
+| **Webhook-specific SDKs** | ❌ | ✅ JS, Rust |
+
+## What goes wrong when you use EventBridge for webhooks
+
+If you try to use EventBridge as a webhook delivery system, you'll hit these problems:
+
+### API Destinations limits
+
+EventBridge API Destinations have a default rate limit of 300 invocations per second per destination. If you're sending webhooks to 1000 customer endpoints, you need 1000 API Destinations, each with its own configuration and monitoring.
+
+### No signature verification
+
+EventBridge doesn't sign outgoing payloads with HMAC. You'd need to add a Lambda between EventBridge and the HTTP endpoint to compute and attach signatures. That adds latency, cost, and another failure point.
+
+### No delivery dashboard
+
+EventBridge has CloudWatch metrics, but no per-endpoint delivery history. To see "what did we send to customer X and did they receive it?", you'd need to build a custom logging and querying layer.
+
+### Cost structure
+
+EventBridge pricing:
+- $1.00 per million events published
+- API Destination invocations: $0.20 per million
+- Plus Lambda costs if you need transformation or signing
+- Plus CloudWatch Logs costs for debugging
+- Plus SQS costs for dead letter queues
+
+At 10M webhooks/month, you're looking at roughly $12-20/month in EventBridge costs alone, not counting the Lambda, CloudWatch, and SQS overhead. The real cost is operational complexity.
+
+Hook0 self-hosted: infrastructure costs only (a PostgreSQL instance and a few workers; optionally Apache Pulsar and S3-compatible storage for high-throughput setups). No per-message charges.
+
+## Using both
+
+EventBridge and Hook0 pair well. Use EventBridge for internal event routing within your AWS account, and Hook0 for external webhook delivery:
+
+```mermaid
+flowchart LR
+    subgraph Internal["Internal events"]
+        direction LR
+        SA[Service A]:::external --> EB[EventBridge]:::processing --> SB["Service B (SQS/Lambda/Step Functions)"]:::external
+    end
+
+    subgraph External["External webhooks"]
+        direction LR
+        EB2[EventBridge]:::processing --> LB[Lambda]:::processing --> H0[Hook0 API]:::hook0 --> CE[Customer endpoints]:::customer
+    end
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
+    classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
+    classDef processing fill:#ede9fe,stroke:#a78bfa,color:#3b0764
+
+    click H0 "/openapi/intro" "Hook0 API"
+    click CE "/concepts/subscriptions" "Subscriptions"
+```
+
+EventBridge handles AWS service integration for internal plumbing. Hook0 handles webhook delivery to external endpoints.
+
+## Pick EventBridge if
+
+- You're routing events between AWS services within your account
+- Your "webhooks" are actually internal service-to-service communication
+- You're already deep in the AWS ecosystem and want tight integration with Lambda, Step Functions, SQS, etc.
+
+## Pick Hook0 if
+
+- You're delivering events to external HTTP endpoints (your customers' servers)
+- You need HMAC signatures on outgoing webhooks
+- You need per-endpoint delivery logs and manual replay
+- You want to avoid AWS lock-in
+- You need multi-tenant webhook routing for a SaaS platform
+- You want to self-host on any cloud provider (or on-premises)
+
+## Further reading
+
+- [All webhook service comparisons](/comparisons) -- full feature matrix across providers
+- [Getting started with Hook0](/tutorials/getting-started) -- send your first webhook in 10 minutes
+- [Webhook retry logic](/explanation/webhook-retry-logic) -- how Hook0 handles automatic retries and dead letter queues
+- [What is Hook0?](/explanation/what-is-hook0) -- architecture and core concepts

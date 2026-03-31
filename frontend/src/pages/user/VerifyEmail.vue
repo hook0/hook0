@@ -86,28 +86,41 @@ onMounted(() => {
 </script>
 
 <template>
-  <Hook0PageLayout variant="fullscreen">
+  <Hook0PageLayout variant="fullscreen" data-test="verify-email-page">
     <template #logo>
       <Hook0Logo variant="image" size="lg" />
     </template>
 
     <!-- Loading State -->
-    <Hook0Card v-if="isLoading && !alert.visible" variant="glow">
+    <Hook0Card v-if="isLoading && !alert.visible" variant="glow" data-test="verify-email-loading">
       <Hook0CardContent>
         <Hook0Stack direction="column" align="center" justify="center" gap="md">
           <Hook0Spinner :size="48" />
-          <span class="verify-email__message">{{ t('auth.verifyEmail.verifying') }}</span>
+          <span class="verify-email__message">
+            {{ t('auth.verifyEmail.verifying') }}
+          </span>
         </Hook0Stack>
       </Hook0CardContent>
     </Hook0Card>
 
     <!-- Error Card -->
-    <Hook0Card v-else-if="alert.visible" variant="glow">
+    <Hook0Card v-else-if="alert.visible" variant="glow" data-test="verify-email-error">
       <Hook0CardContent>
         <Hook0Stack direction="column" gap="lg">
-          <Hook0Alert :type="alert.type" :title="alert.title" :description="alert.description" />
+          <Hook0Alert
+            :type="alert.type"
+            :title="alert.title"
+            :description="alert.description"
+            data-test="verify-email-error-title"
+          />
 
-          <Hook0Button variant="ghost" size="lg" :to="{ name: routes.Login }" full-width>
+          <Hook0Button
+            variant="ghost"
+            size="lg"
+            :to="{ name: routes.Login }"
+            full-width
+            data-test="verify-email-back-to-login"
+          >
             <template #left>
               <ArrowLeft :size="16" aria-hidden="true" />
             </template>

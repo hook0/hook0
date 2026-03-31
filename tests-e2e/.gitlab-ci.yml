@@ -31,6 +31,7 @@ e2e-playwright.test:
     CORS_ALLOWED_ORIGINS: "http://localhost:8001"
     DISABLE_TARGET_IP_CHECK: "true"
     DISABLE_SERVING_WEBAPP: "false"
+    MEMBERS_FEATURE_ENABLED: "true"
     ## Playwright configuration
     BASE_URL: "http://localhost:8001"
     MAILPIT_URL: "http://mailpit:8025"

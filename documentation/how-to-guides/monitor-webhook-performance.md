@@ -1,3 +1,9 @@
+---
+title: Track webhook delivery performance with Hook0's API
+description: "How to track delivery latency, check attempt logs, and set up alerts."
+keywords: [webhook, performance, monitoring, latency, alerts, Hook0]
+---
+
 # Monitor Webhook Performance
 
 Monitoring webhook delivery performance is crucial for ensuring reliability and diagnosing issues in your webhook infrastructure. Hook0 provides multiple mechanisms for tracking webhook performance, delivery status, and error patterns.
@@ -498,3 +504,7 @@ Regular monitoring helps maintain high webhook delivery reliability and quickly 
 ---
 
 *For debugging specific webhook failures, see [Debug Failed Webhooks](debug-failed-webhooks.md).*
+
+*For production patterns on payload design, signatures, and idempotency, see [Webhook best practices](webhook-best-practices.md).*
+
+*For details on retry behavior, circuit breakers, and dead letter queues, see [Webhook retry logic](../explanation/webhook-retry-logic.md).*

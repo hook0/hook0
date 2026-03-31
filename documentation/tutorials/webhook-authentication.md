@@ -1,3 +1,9 @@
+---
+title: Verify webhook signatures with HMAC
+description: "How to verify webhook payloads using HMAC signatures. Includes code examples."
+keywords: [webhook, authentication, HMAC, signature, verification, security]
+---
+
 # Implementing Webhook Authentication
 
 This tutorial covers various webhook authentication methods, from basic signature verification to advanced security patterns. You'll learn how to secure your webhook endpoints and verify webhook authenticity.
@@ -602,6 +608,7 @@ node test-auth.js
 
 - [Securing Webhook Endpoints](../how-to-guides/secure-webhook-endpoints.md)
 - [Debugging Failed Webhook Deliveries](../how-to-guides/debug-failed-webhooks.md)
+- [Webhook best practices](../how-to-guides/webhook-best-practices.md) - Payload design, idempotency, versioning, and more security patterns
 
 ## Troubleshooting
 

@@ -1,11 +1,11 @@
 # Explanation
 
-Understanding-oriented documentation that explains the concepts, design decisions, and architectural choices behind Hook0. These materials help you develop a deeper understanding of how and why Hook0 works the way it does.
+Concepts, design decisions, and architecture behind Hook0. Read these to understand how and why things work the way they do.
 
 ## Introduction
 
 ### [What is Hook0?](what-is-hook0.md)
-A comprehensive introduction to Hook0, including core concepts and fundamental understanding.
+Core concepts and what Hook0 does.
 
 **Topics covered:**
 - The webhook reliability problem
@@ -16,22 +16,22 @@ A comprehensive introduction to Hook0, including core concepts and fundamental u
 
 ---
 
-## Suggested Reading Order
+## Suggested reading order
 
-**Beginner Path:**
+**Beginner path:**
 1. [What is Hook0?](what-is-hook0.md) - Core concepts
 2. [Hook0 Architecture](hook0-architecture.md) - System overview
 3. [Event Processing](event-processing.md) - How events flow
 
-**Advanced Path:**
+**Advanced path:**
 4. [Security Model](security-model.md) - Security architecture
 
 ---
 
-## Architecture & Design
+## Architecture and design
 
-### [System Architecture](hook0-architecture.md)
-Deep dive into Hook0's system architecture and component interactions.
+### [System architecture](hook0-architecture.md)
+How Hook0's components fit together.
 
 **Topics covered:**
 - System architecture overview
@@ -42,8 +42,8 @@ Deep dive into Hook0's system architecture and component interactions.
 
 ---
 
-### [Event Processing](event-processing.md)
-Detailed explanation of how Hook0 processes events from creation to delivery.
+### [Event processing](event-processing.md)
+How events flow from creation to delivery.
 
 **Topics covered:**
 - Event lifecycle stages
@@ -54,13 +54,13 @@ Detailed explanation of how Hook0 processes events from creation to delivery.
 
 ---
 
-## Security & Reliability
+## Security and reliability
 
-### [Security Model](security-model.md)
+### [Security model](security-model.md)
 Hook0's approach to security, authentication, and data protection.
 
 **Topics covered:**
-- Biscuit token authentication system
+- Authentication system (Biscuit tokens for user sessions, Service tokens for programmatic access)
 - Payload signing and verification
 - Transport security (TLS)
 - Authorization and access control
@@ -68,46 +68,42 @@ Hook0's approach to security, authentication, and data protection.
 
 ---
 
-## Design Philosophy
+## Design philosophy
 
-Hook0 is built on several key principles:
-
-### Reliability First
-Every design decision prioritizes reliable event delivery over raw performance. This means:
+### Reliability first
+Every design decision prioritizes reliable delivery over raw performance.
 - Events are persisted before acknowledgment
-- Comprehensive retry mechanisms with exponential backoff
-- Circuit breaker patterns to protect downstream systems
-- Detailed delivery status tracking and reporting
+- Retries on a fixed schedule
+- Circuit breakers protect downstream systems
+- Delivery status tracked for every attempt
 
-### Operational Simplicity
-Hook0 aims to be easy to deploy, monitor, and maintain:
-- Single binary deployment with minimal dependencies
-- Rich observability and monitoring capabilities
-- Clear error messages and debugging information
-- Sensible defaults with escape hatches for customization
+### Operational simplicity
+Easy to deploy, monitor, and maintain.
+- Single binary, minimal dependencies
+- Observability built in
+- Clear error messages
+- Sensible defaults with escape hatches
 
-
-### Developer Experience
-Built for developers who need webhooks to just work:
-- Clear, comprehensive API design
-- Extensive documentation with practical examples
-- Multiple SDK options
+### Developer experience
+Webhooks that just work.
+- Straightforward API
+- Documentation with working examples
+- Multiple SDKs
 - Local development support
 
+## Mental models
 
-## Mental Models
+### Hook0 as a message broker
+Hook0 makes sure your events reach their destinations, the same way a message broker delivers messages between systems.
 
-### Think of Hook0 as a Reliable Message Broker
-Hook0 takes the responsibility of ensuring your application events reach their destinations, just like a message broker ensures messages are delivered between systems.
-
-### Events vs Webhooks
+### Events vs. webhooks
 - **Events** are things that happened in your system
 - **Webhooks** are HTTP requests that deliver event notifications
-- Hook0 transforms events into webhook deliveries reliably
+- Hook0 turns events into reliable webhook deliveries
 
-### Subscriptions as Event Routing Rules
-Subscriptions define which events should trigger webhooks to which endpoints, with what payload format and delivery guarantees.
+### Subscriptions as routing rules
+Subscriptions define which events go to which endpoints, with what delivery guarantees.
 
 ---
 
-*For practical implementation details, see [Tutorials](../tutorials/index.md) and [How-to Guides](../how-to-guides/index.md). For technical specifications, see [Reference](../reference/index.md).*
+For implementation details, see [Tutorials](../tutorials/index.md) and [How-to Guides](../how-to-guides/index.md). For specifications, see [Reference](../reference/index.md).

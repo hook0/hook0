@@ -1,3 +1,9 @@
+---
+title: Getting started with Hook0
+description: "Create an application, register event types, add a subscription, and send your first webhook event."
+keywords: [webhook, getting started, Hook0, tutorial, quickstart]
+---
+
 # Getting Started with Hook0
 
 This tutorial will guide you through creating an application and sending your first webhook event. By the end, you will have a working webhook integration.
@@ -292,6 +298,8 @@ Now that you have the basics, try these advanced tutorials:
 - [Building Your First Webhook Integration](./first-webhook-integration.md)
 - [Setting up Event Types and Subscriptions](./event-types-subscriptions.md)
 - [Implementing Webhook Authentication](./webhook-authentication.md)
+- [Webhook best practices](../how-to-guides/webhook-best-practices.md) - Production patterns for payload design, retries, and security
+- [Webhook retry logic](../explanation/webhook-retry-logic.md) - How Hook0 handles failed deliveries
 
 ## Common Issues
 

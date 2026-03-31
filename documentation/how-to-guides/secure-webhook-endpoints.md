@@ -1,6 +1,6 @@
-# Securing Webhook Endpoints
+# Securing webhook endpoints
 
-This guide provides comprehensive security practices for webhook endpoints, from basic authentication to advanced security patterns. Learn how to protect your webhook receivers against common attacks and security vulnerabilities.
+Security practices for webhook endpoints, from signature verification to attack detection. Covers protecting your webhook receivers against common attacks.
 
 ## Quick Start (5 minutes)
 
@@ -11,17 +11,17 @@ This guide provides comprehensive security practices for webhook endpoints, from
 
 For detailed implementation, see sections below.
 
-## Security Threat Model
+## Security threat model
 
-### Common Webhook Security Threats
+### Common webhook security threats
 
-:::danger Spoofing Attacks
+:::danger Spoofing attacks
 Attackers sending fake webhook requests.
 
 **Mitigation**: Signature verification, IP allowlisting
 :::
 
-:::warning Replay Attacks
+:::warning Replay attacks
 Reusing legitimate webhook requests.
 
 **Mitigation**: Timestamp validation, nonce tracking
@@ -33,19 +33,19 @@ Intercepting and modifying webhook data.
 **Mitigation**: HTTPS, certificate pinning
 :::
 
-:::danger Denial of Service
+:::danger Denial of service
 Overwhelming webhook endpoints with requests.
 
 **Mitigation**: Rate limiting, request validation
 :::
 
-:::warning Data Injection
+:::warning Data injection
 Malicious payloads causing application vulnerabilities.
 
 **Mitigation**: Input validation, sanitization
 :::
 
-## Step 1: Implement Robust Signature Verification
+## Step 1: Signature verification
 
 Hook0 uses HMAC-SHA256 signatures with the v1 format. For complete signature verification implementation in JavaScript, Python, and Go, see [Implementing Webhook Authentication](../tutorials/webhook-authentication.md).
 
@@ -55,9 +55,9 @@ Key security considerations for signature verification:
 - Validate timestamp to prevent replay attacks
 - Use raw request body (not parsed JSON)
 
-## Step 2: Implement Advanced Input Validation
+## Step 2: Input validation
 
-### Schema-Based Validation
+### Schema-based validation
 
 ```javascript
 // webhook-validator.js
@@ -124,7 +124,7 @@ function validateWebhookPayload(payload) {
 module.exports = { validateWebhookPayload };
 ```
 
-### Sanitization and Security Filters
+### Sanitization and security filters
 
 ```javascript
 // security-filters.js
@@ -189,9 +189,9 @@ class SecurityFilters {
 module.exports = SecurityFilters;
 ```
 
-## Step 3: Implement Request Deduplication
+## Step 3: Request deduplication
 
-### Idempotency with In-Memory Storage
+### Idempotency with in-memory storage
 
 ```javascript
 // idempotency-manager.js
@@ -333,13 +333,13 @@ app.post('/webhook', async (req, res) => {
 module.exports = IdempotencyManager;
 ```
 
-:::tip Production Note
-For production environments with multiple instances, use PostgreSQL for idempotency storage instead of in-memory. Query the database to check if an event has been processed before.
+:::tip Production note
+For production with multiple instances, use PostgreSQL for idempotency storage instead of in-memory. Query the database to check if an event has been processed before.
 :::
 
-## Step 4: Implement IP Allowlisting and Geolocation
+## Step 4: IP allowlisting and geolocation
 
-### Advanced IP Filtering
+### IP filtering
 
 ```javascript
 // ip-security.js
@@ -433,9 +433,9 @@ class IPSecurity {
 module.exports = IPSecurity;
 ```
 
-## Step 5: Implement Request Logging and Monitoring
+## Step 5: Request logging and monitoring
 
-### Comprehensive Request Logging
+### Request logging
 
 ```javascript
 // webhook-logger.js
@@ -524,9 +524,9 @@ class WebhookLogger {
 module.exports = WebhookLogger;
 ```
 
-## Step 6: Implement Attack Detection
+## Step 6: Attack detection
 
-### Anomaly Detection System
+### Anomaly detection
 
 ```javascript
 // anomaly-detector.js
@@ -682,9 +682,9 @@ class AnomalyDetector {
 module.exports = AnomalyDetector;
 ```
 
-## Step 7: Complete Secure Webhook Implementation
+## Step 7: Complete secure webhook implementation
 
-### Full Secure Webhook Handler
+### Full secure webhook handler
 
 ```javascript
 // secure-webhook-server.js
@@ -857,7 +857,7 @@ app.listen(PORT, () => {
 module.exports = app;
 ```
 
-## Security Best Practices Summary
+## Security best practices summary
 
 ### Authentication and authorization
 - ✅ Always verify HMAC signatures
@@ -866,38 +866,36 @@ module.exports = app;
 - ✅ Implement timestamp validation to prevent replay attacks
 - ✅ Support multiple secrets for rotation
 
-### Input Validation & Sanitization
+### Input validation and sanitization
 - ✅ Validate all input against strict schemas
 - ✅ Sanitize string inputs to prevent injection attacks
 - ✅ Implement payload size limits
 - ✅ Check content types strictly
 - ✅ Use allowlists for expected values
 
-### Rate Limiting & DoS Protection
+### Rate limiting and DoS protection
 - ✅ Implement rate limiting per IP/signature
 - ✅ Use progressive rate limiting strategies
 - ✅ Monitor for anomalous request patterns
 - ✅ Implement circuit breakers for external dependencies
 
-### Infrastructure Security
+### Infrastructure security
 - ✅ Use HTTPS with valid certificates
 - ✅ Implement proper firewall rules
 - ✅ Use security headers (helmet.js)
 - ✅ Run with minimal privileges
 - ✅ Keep dependencies updated
 
-### Monitoring & Logging
+### Monitoring and logging
 - ✅ Log all security events
 - ✅ Monitor for suspicious patterns
 - ✅ Set up alerting for security incidents
 - ✅ Implement request tracing
 - ✅ Regular security audit logs review
 
-### Error Handling
+### Error handling
 - ✅ Never expose internal system details
 - ✅ Use consistent error response formats
 - ✅ Log errors with sufficient context
 - ✅ Implement graceful degradation
 - ✅ Return appropriate HTTP status codes
-
-Ready to secure your webhook endpoints? Start with signature verification and gradually implement the additional security layers outlined in this guide.

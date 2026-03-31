@@ -1,0 +1,108 @@
+---
+title: "Webhook Service Comparison: Hook0 vs Svix vs Hookdeck vs Hostedhooks"
+description: "Side-by-side feature comparison of webhook infrastructure providers. Compare open-source licensing, self-hosting, pricing models, retry logic, and multi-tenant support."
+keywords: [webhook comparison, Hook0 vs Svix, webhook service, webhook infrastructure, best webhook platform]
+---
+
+import Head from '@docusaurus/Head';
+
+<Head>
+  <script type="application/ld+json">
+    {JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Webhook Service Comparison",
+      "description": "Compare Hook0, Svix, Hookdeck, and Hostedhooks webhook platforms",
+      "url": "https://documentation.hook0.com/comparisons",
+      "mainEntity": {
+        "@type": "ItemList",
+        "itemListElement": [
+          {"@type": "ListItem", "position": 1, "name": "Svix vs Hook0", "url": "https://documentation.hook0.com/comparisons/svix-vs-hook0"},
+          {"@type": "ListItem", "position": 2, "name": "Hookdeck vs Hook0", "url": "https://documentation.hook0.com/comparisons/hookdeck-vs-hook0"},
+          {"@type": "ListItem", "position": 3, "name": "Hostedhooks vs Hook0", "url": "https://documentation.hook0.com/comparisons/hostedhooks-vs-hook0"},
+          {"@type": "ListItem", "position": 4, "name": "Build vs Buy", "url": "https://documentation.hook0.com/comparisons/build-vs-buy"},
+          {"@type": "ListItem", "position": 5, "name": "AWS EventBridge vs Hook0", "url": "https://documentation.hook0.com/comparisons/aws-eventbridge-vs-hook0"}
+        ]
+      }
+    })}
+  </script>
+</Head>
+
+# Webhook service comparison
+
+Pick wrong and you'll spend months migrating later. We've been there. Here's what we know about the webhook infrastructure landscape.
+
+## Feature comparison
+
+**Legend:** ✅ = Full support | ⚠️ = Partial support | ❌ = Not available
+
+| Feature | Hook0 | Svix | Hookdeck | Hostedhooks |
+|---------|-------|------|----------|-------------|
+| **SaaS (managed)** | ✅ | ✅ | ✅ | ✅ |
+| **Self-hosting** | ✅ Full feature parity | ⚠️ Open-core (limited) | ❌ | ❌ |
+| **Open-source license** | ✅ SSPL-1.0 | ⚠️ Open-core | ❌ Proprietary | ❌ Proprietary |
+| **Outbound webhooks** | ✅ | ✅ | ⚠️ Primarily inbound | ✅ |
+| **Inbound webhook proxy** | ❌ | ❌ | ✅ Core focus | ❌ |
+| **Multi-tenant filtering** | ✅ Label-based | ⚠️ Basic | ❌ | ❌ |
+| **HMAC signatures** | ✅ | ✅ | ✅ | ✅ |
+| **Automatic retries** | ✅ Fixed schedule + jitter | ✅ | ✅ | ✅ |
+| **Dead letter queue** | ✅ | ✅ | ✅ | ❌ |
+| **Event type hierarchy** | ✅ Dot-notation | ✅ | ❌ | ⚠️ Flat |
+| **Custom retry schedules** | ✅ | ✅ | ✅ | ❌ |
+| **Delivery logs & replay** | ✅ | ✅ | ✅ | ⚠️ Logs only |
+| **REST API** | ✅ | ✅ | ✅ | ✅ |
+| **SDK support** | JS, Rust | JS, Python, Go, Ruby, Java | JS, Python, Go, Ruby | JS |
+| **Authentication** | Biscuit tokens + Service tokens | API keys | API keys | API keys |
+| **Self-funded** | ✅ | ❌ $13M raised | ❌ $5.5M raised | Unknown |
+
+*Funding and feature data last verified: January 2025*
+
+## Detailed comparisons
+
+- [Svix vs Hook0](svix-vs-hook0.mdx): Both focus on outbound webhooks. Difference: open-core vs open-source.
+- [Hookdeck vs Hook0](hookdeck-vs-hook0.mdx): Hookdeck is an inbound webhook proxy. Hook0 is an outbound webhook server. Different problems.
+- [Hostedhooks vs Hook0](hostedhooks-vs-hook0.mdx): Proprietary vs open-source. Hostedhooks has fewer features but simpler setup.
+- [Build vs Buy](build-vs-buy.mdx): What it actually costs to build webhook infrastructure from scratch.
+- [AWS EventBridge vs Hook0](aws-eventbridge-vs-hook0.mdx): Event bus vs dedicated webhook delivery.
+
+## What matters if you're a startup
+
+**Time to integrate**: Hook0 and Svix both have good APIs. First webhook in under 10 minutes with either. Hookdeck is fast too, but it solves a different problem (receiving webhooks, not sending them).
+
+**Cost at scale**: Self-hosting Hook0 costs you nothing beyond your own infrastructure. With Svix's open-source version, you get a subset of features. With Hookdeck and Hostedhooks, you pay per message with no self-hosting escape hatch.
+
+**Lock-in**: Hook0 is SSPL-1.0. You can view, modify, fork, and self-host the code. The only restriction: if you offer Hook0 as a managed service to others, you must open-source your entire stack. For self-hosting your own webhook infrastructure, there are no extra obligations. If we disappeared tomorrow, your webhook infrastructure would keep running.
+
+## Open-source options
+
+Hook0 is the only webhook server where the self-hosted and cloud versions have the same features. Svix is "open-core" -- the open-source version lacks features available in the paid tier.
+
+If you need source access for auditing, compliance, or to avoid vendor dependency, Hook0 is the only real option here.
+
+## FAQ
+
+### Which webhook service has the best free tier?
+
+Hook0 Cloud offers a free tier for development and testing. But the real free tier is self-hosting: run Hook0 on your own infrastructure with zero per-message costs, forever.
+
+### Can I migrate from Svix to Hook0?
+
+Yes. Both use similar REST API patterns. The main work is mapping Svix's "endpoints" to Hook0's "subscriptions" and updating your SDK calls. Most teams complete the migration in a day.
+
+### Is Hookdeck a replacement for Hook0?
+
+No. They solve different problems. Hookdeck is a webhook *proxy* for receiving and routing inbound webhooks. Hook0 is a webhook *server* for sending outbound webhooks from your application. Many teams use both.
+
+### Do I need a webhook service if I use message queues?
+
+Message queues (RabbitMQ, Kafka, SQS) handle internal communication. Webhooks handle external communication: delivering events to your customers' HTTP endpoints. They're complementary, not competing.
+
+### How does pricing compare at scale?
+
+At 1M events/month: Hook0 Cloud and Svix are in similar price ranges. Hookdeck charges per request. Self-hosting Hook0 eliminates per-message costs entirely. You only pay for compute and storage.
+
+## Next steps
+
+- [Getting started tutorial](/tutorials/getting-started) -- send your first webhook in 10 minutes
+- [Webhook best practices](/how-to-guides/webhook-best-practices) -- production patterns for producers and consumers
+- [What is Hook0?](/explanation/what-is-hook0) -- architecture and core concepts
