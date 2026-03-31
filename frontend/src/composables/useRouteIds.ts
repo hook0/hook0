@@ -17,5 +17,6 @@ export function useRouteIds() {
     eventId: get('event_id'),
     subscriptionId: get('subscription_id'),
     responseId: get('response_id'),
+    requestAttemptId: get('request_attempt_id'),
   };
 }

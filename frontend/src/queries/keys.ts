@@ -68,6 +68,13 @@ export const logKeys = {
   list: (applicationId: string) => [...logKeys.lists(), applicationId] as const,
 };
 
+export const requestAttemptKeys = {
+  all: ['requestAttempts'] as const,
+  details: () => [...requestAttemptKeys.all, 'detail'] as const,
+  detail: (id: string, applicationId: string) =>
+    [...requestAttemptKeys.details(), id, applicationId] as const,
+};
+
 export const secretKeys = {
   all: ['secrets'] as const,
   lists: () => [...secretKeys.all, 'list'] as const,
