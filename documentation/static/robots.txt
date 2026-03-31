@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://documentation.hook0.com/sitemap.xml

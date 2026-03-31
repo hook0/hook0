@@ -16,18 +16,33 @@ An organization is the top-level container in Hook0 that groups [applications](a
 
 ## Relationship to Other Concepts
 
-```
-Organization (Acme Corp)
-    |
-    +-- Members
-    |       +-- Alice (Editor)
-    |       +-- Bob (Viewer)
-    |
-    +-- Applications
-    |       +-- Order Service
-    |       +-- User Service
-    |
-    +-- Plan & Quotas
+```mermaid
+flowchart TD
+    ORG["Organization<br/>(Acme Corp)"]:::external
+    MEM["Members"]:::hook0
+    ALICE["Alice (Editor)"]:::customer
+    BOB["Bob (Viewer)"]:::customer
+    APPS["Applications"]:::hook0
+    ORD["Order Service"]:::customer
+    USR["User Service"]:::customer
+    PLAN["Plan & Quotas"]:::processing
+
+    ORG --> MEM
+    ORG --> APPS
+    ORG --> PLAN
+    MEM --> ALICE
+    MEM --> BOB
+    APPS --> ORD
+    APPS --> USR
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
+    classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
+    classDef processing fill:#ede9fe,stroke:#a78bfa,color:#3b0764
+
+    click APPS "/concepts/applications" "Applications"
+    click ORD "/concepts/applications" "Application"
+    click USR "/concepts/applications" "Application"
 ```
 
 ## Multi-Tenancy

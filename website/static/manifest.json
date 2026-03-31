@@ -1,7 +1,7 @@
 {
   "name": "Hook0 - Webhooks-as-a-Service",
   "short_name": "Hook0",
-  "description": "Open-Source Webhooks-as-a-Service platform. Send webhooks with one API call.",
+  "description": "Free, open-source webhook platform. Send webhooks with one API call.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0f",

@@ -1,77 +1,85 @@
 ---
-title: Service Tokens
+title: Service tokens
 description: API credentials for automated systems and programmatic access to Hook0
 ---
 
-# Service Tokens
+# Service tokens
 
-A service token is a credential that authenticates API requests to Hook0 on behalf of your [organization](organizations.md). Unlike user credentials that require interactive login, service tokens are designed for automated systems and programmatic access.
+A service token authenticates API requests to Hook0 on behalf of your [organization](organizations.md). Unlike user credentials (which require interactive login), service tokens are for automated systems and scripts.
 
-## Key Points
+## Key points
 
 - Service tokens authenticate non-interactive API requests
 - Tokens are scoped to an [organization](organizations.md) by default
-- Tokens can be attenuated (restricted) without contacting Hook0
+- You can attenuate (restrict) tokens without contacting Hook0
 - Revoking a root token invalidates all derived tokens
 
-## Service Tokens vs User Credentials
+## Service tokens vs user credentials
 
-```
-User Login                          Service Token
-    |                                     |
-    v                                     v
-+------------------+              +------------------+
-|  Interactive     |              |  Non-interactive |
-|  Browser session |              |  API calls       |
-|  MFA possible    |              |  Automated       |
-+------------------+              +------------------+
+```mermaid
+flowchart TD
+    A["User Login"]:::customer
+    B["Service Token"]:::external
+    C["Interactive<br/>Browser session<br/>MFA possible"]:::customer
+    D["Non-interactive<br/>API calls<br/>Automated"]:::external
+
+    A --> C
+    B --> D
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
+
+    click B "/concepts/service-tokens" "Service Tokens"
 ```
 
-Service tokens are ideal for:
+Service tokens are the right choice for:
 
 - CI/CD pipelines
 - Backend services
 - Scripts and automation
 - AI assistants and MCP servers
 
-## Biscuit Token Format
+## Biscuit token format
 
-Hook0 uses [Biscuit tokens](https://www.biscuitsec.org/), a modern cryptographic token format with powerful security properties:
+Hook0 uses [Biscuit tokens](https://www.biscuitsec.org/), a cryptographic token format with these properties:
 
-- **Offline attenuation** - Create restricted tokens without contacting Hook0
-- **Cryptographic verification** - Tokens are tamper-proof
-- **Cascading revocation** - Revoking a parent invalidates all children
+- Offline attenuation: create restricted tokens without contacting Hook0
+- Cryptographic verification: tokens are tamper-proof
+- Cascading revocation: revoking a parent invalidates all children
 
 ## Attenuation
 
-Attenuation lets you create restricted versions of a token:
+You can create restricted versions of a token without calling the Hook0 API:
 
+```mermaid
+flowchart TD
+    Root["Root Token<br/>(full access)"]:::processing
+    Root --> A["Attenuated Token A<br/>App: Orders, Expires: 30 days"]:::external
+    Root --> B["Attenuated Token B<br/>App: Users, No expiration"]:::external
+    Root --> C["Attenuated Token C<br/>App: Payments, Expires: 1 hour"]:::external
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef processing fill:#ede9fe,stroke:#a78bfa,color:#3b0764
+
+    click Root "/how-to-guides/manage-service-tokens" "Manage Service Tokens"
 ```
-Root Token (full access)
-    |
-    +-- Attenuated Token A (App: Orders, Expires: 30 days)
-    |
-    +-- Attenuated Token B (App: Users, No expiration)
-    |
-    +-- Attenuated Token C (App: Payments, Expires: 1 hour)
-```
 
-Common restrictions include:
+Common restrictions:
 
-- **[Application](applications.md) scope** - Limit to specific [applications](applications.md)
-- **Expiration** - Automatic token expiry
-- **Operation limits** - Restrict to read-only operations
+- [Application](applications.md) scope: limit to specific [applications](applications.md)
+- Expiration: automatic token expiry
+- Operation limits: restrict to read-only operations
 
-This is particularly useful when sharing tokens with third-party services or temporary workers.
+This is useful when sharing tokens with third-party services or temporary workers.
 
-## Security Best Practices
+## Security practices
 
-- **Store securely** - Treat service tokens like passwords
-- **Use attenuation** - Always restrict tokens for third-party tools
-- **Rotate regularly** - Create new tokens and revoke old ones periodically
-- **Audit usage** - Monitor API calls made with each token
+- Treat service tokens like passwords
+- Always restrict tokens before giving them to third-party tools
+- Rotate periodically: create new tokens and revoke old ones
+- Monitor API calls made with each token
 
-## What's Next?
+## What's next?
 
 - [Managing Service Tokens](/how-to-guides/manage-service-tokens) - Create, attenuate, and revoke tokens
 - [Organizations](organizations.md) - Understanding token scope

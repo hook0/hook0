@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-title" content="Hook0">
 <meta name="format-detection" content="telephone=no">
 
+<!-- Noindex -->
+<% if (locals.pageNoindex) { %><meta name="robots" content="noindex, follow"><% } %>
+
 <!-- SEO Meta Tags -->
 <% if (locals.pageDescription) { %>
 <meta name="description" content="<%= locals.pageDescription %>">
@@ -284,4 +287,34 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
+
+<!-- UTM/MTM Persistence -->
+<script>
+(function() {
+    var STORAGE_KEY = 'hook0_tracking_params';
+    var PARAM_NAMES = ['mtm_source','mtm_medium','mtm_campaign','utm_source','utm_medium','utm_campaign'];
+    var params = new URLSearchParams(window.location.search);
+    var tracked = {};
+    var hasAny = false;
+    PARAM_NAMES.forEach(function(name) {
+        var val = params.get(name);
+        if (val) { tracked[name] = val; hasAny = true; }
+    });
+    if (hasAny) {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(tracked));
+    }
+    document.addEventListener('click', function(e) {
+        var link = e.target.closest('a[href*="app.hook0.com"]');
+        if (!link) return;
+        var stored = sessionStorage.getItem(STORAGE_KEY);
+        if (!stored) return;
+        var data = JSON.parse(stored);
+        var url = new URL(link.href);
+        Object.keys(data).forEach(function(key) {
+            if (!url.searchParams.has(key)) url.searchParams.set(key, data[key]);
+        });
+        link.href = url.toString();
+    }, true);
+})();
 </script>

@@ -53,7 +53,7 @@ This documentation follows the [Diataxis methodology](https://diataxis.fr/):
 
 | Feature | Description |
 |---------|-------------|
-| **Reliable Delivery** | Automatic retries with exponential backoff |
+| **Reliable Delivery** | Automatic retries with a fixed retry schedule |
 | **Security** | HMAC-SHA-256 signatures, TLS encryption |
 | **Observable** | Built-in metrics, logs, and delivery tracking |
 | **High Performance** | Rust-based, handles thousands of events/second |

@@ -1,13 +1,13 @@
 # Tutorials
 
-Learn Hook0 step-by-step with our comprehensive tutorials. These learning-oriented guides will take you from complete beginner to confident Hook0 user.
+Step-by-step guides to get you from zero to working webhooks.
 
-## Learning Path
+## Learning path
 
-Follow these tutorials in order for the best learning experience:
+Follow these tutorials in order:
 
 ### 1. [Getting Started](getting-started.md)
-Your first steps with Hook0. Learn how to install, configure, and send your first webhook event.
+Install, configure, and send your first webhook event.
 
 **What you'll learn:**
 - Installing Hook0 locally
@@ -20,7 +20,7 @@ Your first steps with Hook0. Learn how to install, configure, and send your firs
 ---
 
 ### 2. [First Webhook Integration](first-webhook-integration.md)
-Build a complete e-commerce webhook integration from scratch.
+Build an e-commerce webhook integration from scratch.
 
 **What you'll learn:**
 - Setting up event types for e-commerce events
@@ -33,7 +33,7 @@ Build a complete e-commerce webhook integration from scratch.
 ---
 
 ### 3. [Event Types & Subscriptions](event-types-subscriptions.md)
-Master the core concepts of event management in Hook0.
+Event management in Hook0: types, schemas, subscriptions.
 
 **What you'll learn:**
 - Creating and managing event types
@@ -46,10 +46,10 @@ Master the core concepts of event management in Hook0.
 ---
 
 ### 4. [Webhook Authentication](webhook-authentication.md)
-Implement secure webhook authentication using Biscuit tokens.
+Signature verification and authentication.
 
 **What you'll learn:**
-- Understanding Biscuit token authentication
+- Understanding Hook0 authentication (Biscuit tokens for user sessions, Service tokens for programmatic access)
 - Generating and validating tokens
 - Implementing signature verification
 - Security best practices
@@ -67,15 +67,11 @@ Before starting these tutorials, make sure you have:
 - A code editor of your choice
 - Terminal/command line access
 
-## Getting Help
+## Getting help
 
-If you get stuck during any tutorial:
+If you get stuck:
 
-1. Check the [How-to Guides](../how-to-guides/index.md) for specific problem solutions
-2. Consult the [API Reference](../openapi/intro) for technical details
-3. Visit our [Discord community](https://www.hook0.com/community) for help
+1. Check the [How-to Guides](../how-to-guides/index.md) for specific solutions
+2. See the [API Reference](../openapi/intro) for technical details
+3. Ask on [Discord](https://www.hook0.com/community)
 4. Report issues on [GitHub](https://github.com/hook0/hook0/issues)
-
----
-
-*Ready to start? Begin with [Getting Started](getting-started.md) →*

@@ -1,14 +1,14 @@
-# Building Your First Webhook System with Hook0
+# Building your first webhook system with Hook0
 
-This tutorial demonstrates how to integrate Hook0 into your SaaS platform to provide webhook capabilities to your customers. It uses curl commands to illustrate the API flow, making it easy to understand and implement in any programming language.
+This tutorial walks through integrating Hook0 into a SaaS platform so your customers can receive webhooks. It uses curl commands throughout, so you can follow along in any language.
 
-## What You'll Build
+## What you'll build
 
-A complete webhook delivery system that:
+A webhook delivery system that:
 - Sends events from your SaaS to Hook0
-- Enables customer subscriptions to specific events
-- Handles automatic delivery, retries, and monitoring
-- Supports multi-tenant filtering with labels
+- Lets customers subscribe to specific events
+- Handles delivery, retries, and monitoring automatically
+- Filters events per tenant using labels
 
 ## Prerequisites
 
@@ -17,7 +17,7 @@ A complete webhook delivery system that:
 - Application ID from Hook0
 - Basic understanding of REST APIs and webhooks
 
-### Set Up Environment Variables
+### Set up environment variables
 
 ```bash
 # Set your service token (from dashboard)
@@ -38,36 +38,39 @@ APP_ID=$APP_ID
 EOF
 ```
 
-## Architecture Overview
+## Architecture overview
 
+```mermaid
+flowchart LR
+    A["Your SaaS"]:::external -->|"POST event"| B["Hook0"]:::hook0
+    B -->|"POST webhook"| C["Customer Endpoint"]:::customer
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
+    classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
+
+    click B "/explanation/what-is-hook0" "What is Hook0?"
+    click C "/concepts/subscriptions" "Subscriptions"
 ```
-  +----------+  POST event    +--------+  POST webhook   +----------+
-  | Your     |--------------->|        |---------------->| Customer |
-  | SaaS     |                | Hook0  |                 | Endpoint |
-  +----------+                |        |                 +----------+
-                              +--------+
-```
 
-Your SaaS sends events to Hook0, which manages all webhook complexity including delivery, retries, signature verification, and monitoring.
+Your SaaS sends events to Hook0, which handles delivery, retries, signature verification, and monitoring.
 
-## Understanding the API Flow
+## Understanding the API flow
 
-The integration follows this logical sequence:
-1. **Create Event Types** - Define what events your SaaS can emit
-2. **Create Subscriptions** - Enable customers to receive webhooks
-3. **Send Events** - Push events to Hook0 when actions occur
-4. **Monitor Delivery** - Track webhook success and failures
+The integration has four steps:
+1. **Create event types** - define what events your SaaS emits
+2. **Create subscriptions** - let customers receive webhooks
+3. **Send events** - push events to Hook0 when actions occur
+4. **Monitor delivery** - track webhook success and failures
 
-Let's walk through each step with practical examples.
+## Step 1: Define your event types
 
-## Step 1: Define Your Event Types
-
-Hook0 uses a three-part structure for event types: `service.resource_type.verb`. This provides clear semantics and enables powerful filtering.
+Hook0 uses a three-part structure for event types: `service.resource_type.verb`. This gives clear semantics and makes filtering straightforward.
 
 ### Why define event types first?
 Event types act as a contract between your SaaS and customer webhooks. They must be created before you can send events or create subscriptions.
 
-### Creating a "User Created" Event Type
+### Create a "user created" event type
 
 ```bash
 curl -X POST "$HOOK0_API/event_types" \
@@ -91,7 +94,7 @@ curl -X POST "$HOOK0_API/event_types" \
 }
 ```
 
-### Creating an "Order Completed" Event Type
+### Create an "order completed" event type
 
 ```bash
 curl -X POST "$HOOK0_API/event_types" \
@@ -116,14 +119,14 @@ curl -X POST "$HOOK0_API/event_types" \
 ```
 
 
-## Step 2: Send Events to Hook0
+## Step 2: Send events to Hook0
 
 Once event types are defined, your SaaS can start sending events. The `/api/v1/event` endpoint (singular) accepts individual events.
 
 ### Why this order?
 You must create event types before sending events. Hook0 validates that the event type exists before accepting the event.
 
-### Sending a User Created Event
+### Send a user created event
 
 When a user signs up in your SaaS:
 
@@ -155,10 +158,10 @@ curl -X POST "$HOOK0_API/event" \
 }
 ```
 
-**Key Points:**
-- `event_id`: Must be a valid UUID (e.g., `69f69ecf-0d9e-4c92-a6e0-3b2676343940`)
-- `payload`: Must be a **JSON-encoded string** (not an object) - see warning below
-- `labels`: Critical for multi-tenant filtering - must have at least one key-value pair
+**Key points:**
+- `event_id`: must be a valid UUID (e.g., `69f69ecf-0d9e-4c92-a6e0-3b2676343940`)
+- `payload`: must be a JSON-encoded string, not an object (see warning below)
+- `labels`: required for multi-tenant filtering, must have at least one key-value pair
 
 :::warning Payload Format
 The `payload` field must be a **JSON-encoded string**, not a JSON object:
@@ -172,7 +175,7 @@ This allows Hook0 to forward the exact payload to webhooks without re-serializat
 
 The `tenant_id` label ensures events only go to the right customer.
 
-### Sending an Order Completed Event
+### Send an order completed event
 
 When an order is fulfilled:
 
@@ -203,14 +206,14 @@ curl -X POST "$HOOK0_API/event" \
 }
 ```
 
-## Step 3: Create Customer Subscriptions
+## Step 3: Create customer subscriptions
 
-Subscriptions define where and how webhooks are delivered. Each subscription filters events based on labels, ensuring customers only receive their own events.
+Subscriptions define where and how webhooks get delivered. Each subscription filters events by labels, so customers only receive their own events.
 
 ### Why labels matter for multi-tenancy
 The `labels` object creates a filter. Only events with matching labels are delivered to that subscription. This is how Hook0 supports multi-tenant SaaS platforms.
 
-### Creating a Subscription for a Customer
+### Create a subscription for a customer
 
 ```bash
 curl -X POST "$HOOK0_API/subscriptions" \
@@ -278,7 +281,7 @@ curl -X POST "$HOOK0_API/subscriptions" \
 
 **Important:** Save the `secret` - customers need it to verify webhook signatures.
 
-### How Multi-Tenant Filtering Works
+### How multi-tenant filtering works
 
 ```
 Event labels                 Subscription filter              Result
@@ -287,11 +290,9 @@ tenant_id: "customer_123" -> tenant_id = "customer_123"   ->  ✅ Delivered
 tenant_id: "customer_456" -> tenant_id = "customer_123"   ->  ❌ Skipped
 ```
 
-## Step 4: Monitor Webhook Deliveries
+## Step 4: Monitor webhook deliveries
 
-Hook0 provides comprehensive monitoring to track webhook success and failures.
-
-### List Recent Events
+### List recent events
 
 See what events have been sent:
 
@@ -345,9 +346,9 @@ curl -X GET "$HOOK0_API/events/?application_id=$APP_ID" \
 ]
 ```
 
-### Check Delivery Attempts
+### Check delivery attempts
 
-Monitor webhook delivery attempts and their status:
+Look at webhook delivery attempts and their status:
 
 ```bash
 curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID" \
@@ -378,7 +379,7 @@ curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID" \
 ]
 ```
 
-### Replay Events
+### Replay events
 
 You can manually replay an event when needed for business purposes (e.g., re-triggering a workflow). Note that failed deliveries are automatically retried by Hook0:
 
@@ -391,9 +392,9 @@ curl -X POST "$HOOK0_API/events/{EVENT_ID}/replay" \
   }'
 ```
 
-## Advanced Patterns
+## Advanced patterns
 
-### Bulk Event Processing
+### Bulk event processing
 
 When you need to send multiple events (e.g., batch import), send them individually but with correlation:
 
@@ -431,7 +432,7 @@ curl -X POST "$HOOK0_API/event" \
   }'
 ```
 
-### Environment-Based Filtering
+### Environment-based filtering
 
 Use labels to separate environments:
 
@@ -511,9 +512,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
 
 Since this subscription filters on `environment: "staging"`, it will **not** receive the production event above.
 
-## Complete Integration Example
+## Complete integration example
 
-Here's a practical example showing the complete flow from event creation to webhook delivery:
+Full flow from event creation to webhook delivery:
 
 ### Step 1: Create Event Type (one-time setup)
 
@@ -616,18 +617,18 @@ curl -X POST "$HOOK0_API/event" \
 }
 ```
 
-### Step 4: Automatic Delivery
+### Step 4: Automatic delivery
 
-Hook0 automatically delivers the webhook to `https://customer.example.com/webhooks` with:
+Hook0 delivers the webhook to `https://customer.example.com/webhooks` with:
 - `X-Hook0-Signature` header for verification
 - The event payload
 - Automatic retries on failure
 
 See [Implementing Webhook Authentication](./webhook-authentication.md) for signature verification code in Node.js, Python, and Go.
 
-## Implementation Patterns in Different Languages
+## Implementation in other languages
 
-While this tutorial uses curl for clarity, here's how to implement the same patterns in various languages:
+This tutorial uses curl, but here is the same thing in a few languages:
 
 ### Python
 ```python
@@ -719,34 +720,34 @@ request.body = event.to_json
 response = http.request(request)
 ```
 
-## Best Practices
+## Best practices
 
-### 1. Event Design
-- **Use semantic naming**: `service.resource.verb` structure
-- **Include context**: Add relevant data to help consumers
-- **Be consistent**: Same structure across all events
-- **Version carefully**: Plan for schema evolution
+### 1. Event design
+- Use semantic naming: `service.resource.verb`
+- Include enough context for consumers to act without extra API calls
+- Keep the structure consistent across all events
+- Plan for schema evolution from the start
 
-### 2. Label Strategy
-- **tenant_id**: Always include for multi-tenancy
-- **environment**: Separate prod/staging/dev
-- **region**: Support geographic filtering
+### 2. Label strategy
+- `tenant_id`: always include for multi-tenancy
+- `environment`: separate prod/staging/dev
+- `region`: geographic filtering when needed
 
-### 3. Error Handling
-- **Idempotency**: Use unique event_ids to prevent duplicates
-- **Retry logic**: Implement exponential backoff
-- **Circuit breaker**: Fail fast when Hook0 is down
-- **Local queue**: Buffer events during outages
+### 3. Error handling
+- Use unique `event_id` values to prevent duplicates
+- Implement retry logic with backoff on your side
+- Fail fast when Hook0 is unreachable (circuit breaker)
+- Buffer events locally during outages
 
 ### 4. Security
-- **Never log tokens**: Keep authentication secure
-- **Validate signatures**: Customers should verify webhooks
-- **Encrypt sensitive data**: Do not send PII in plaintext
-- **Rate limit**: Protect against abuse
+- Never log tokens
+- Customers should verify webhook signatures
+- Do not send PII in plaintext
+- Rate-limit your event sending
 
-## Troubleshooting Common Issues
+## Troubleshooting
 
-### Event Not Delivered
+### Event not delivered
 ```bash
 # Check if event was received
 curl -X GET "$HOOK0_API/events?application_id=$APP_ID" \
@@ -765,7 +766,7 @@ curl -H "Authorization: Bearer $HOOK0_TOKEN"  # ✅ Correct
 curl -H "Authorization: $HOOK0_TOKEN"         # ❌ Wrong - missing Bearer
 ```
 
-### Event Type Not Found
+### Event type not found
 ```bash
 # List existing event types
 curl -X GET "$HOOK0_API/event_types?application_id=$APP_ID" \
@@ -776,16 +777,16 @@ curl -X GET "$HOOK0_API/event_types?application_id=$APP_ID" \
 
 ## Summary
 
-You've learned how to:
-1. **Create event types** using the three-part structure
-2. **Send events** with proper labeling for multi-tenancy
-3. **Create subscriptions** with label-based filtering
-4. **Monitor deliveries** and handle failures
-5. **Implement patterns** for bulk processing
+You now know how to:
+1. Create event types using the three-part structure
+2. Send events with labels for multi-tenancy
+3. Create subscriptions with label-based filtering
+4. Monitor deliveries and handle failures
+5. Process events in bulk
 
-The key insight is that Hook0's label system enables powerful multi-tenant webhook delivery while keeping the integration simple. By following this flow - define types, send events, create subscriptions, monitor results - you can build a robust webhook system for your SaaS platform.
+The label system is what makes multi-tenant delivery work without extra complexity. Define types, send events, create subscriptions, check results.
 
-## Next Steps
+## Next steps
 
 - [Event Types and Subscriptions Deep Dive](./event-types-subscriptions.md)
 - [Webhook Authentication and Security](./webhook-authentication.md)

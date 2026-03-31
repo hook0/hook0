@@ -1,0 +1,92 @@
+<!-- How It Works Section -->
+<section class="relative bg-surface-primary py-24 sm:py-32 overflow-hidden">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-30"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-0 left-0 opacity-20"></div>
+    <div class="blur-circle blur-circle--indigo w-64 h-64 bottom-0 right-0 opacity-15"></div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Section Header -->
+        <div class="section__header animate-on-scroll text-center">
+            <span class="section__eyebrow">How It Works</span>
+            <h2 class="section__title">Set up webhooks in 10 minutes</h2>
+            <p class="section__description">
+                From signup to production in three steps
+            </p>
+        </div>
+
+        <!-- Steps -->
+        <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 stagger-children">
+            <!-- Step 1 -->
+            <div class="animate-on-scroll card card--glow relative">
+                <div class="absolute -top-4 -left-4 w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-lg shadow-glow-green">1</div>
+                <div class="pt-4">
+                    <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Register & Configure</h3>
+                    <p class="text-gray-400">Create an account, add your application, and list the event types your subscribers can receive.</p>
+                    <a href="https://documentation.hook0.com/tutorials/getting-started" class="mt-4 link link--arrow text-green-400 hover:text-green-300">
+                        Getting started guide
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="animate-on-scroll card card--glow relative">
+                <div class="absolute -top-4 -left-4 w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-glow-indigo">2</div>
+                <div class="pt-4">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Send Events via API</h3>
+                    <p class="text-gray-400">POST your event once. Hook0 delivers it, retries on failure, signs the payload, and encrypts over TLS.</p>
+                    <a href="https://documentation.hook0.com/tutorials/webhook-authentication" class="mt-4 link link--arrow text-indigo-400 hover:text-indigo-300">
+                        Authentication docs
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="animate-on-scroll card card--glow relative">
+                <div class="absolute -top-4 -left-4 w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-lg shadow-glow-green">3</div>
+                <div class="pt-4">
+                    <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Monitor & Debug</h3>
+                    <p class="text-gray-400">See every delivery attempt, inspect payloads, find out why a delivery failed, and replay events from the dashboard or API.</p>
+                    <a href="https://documentation.hook0.com/how-to-guides/monitor-webhook-performance" class="mt-4 link link--arrow text-green-400 hover:text-green-300">
+                        Monitoring guide
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom CTA -->
+        <div class="mt-12 text-center animate-on-scroll">
+            <a href="https://documentation.hook0.com/explanation/what-is-hook0/" class="link link--arrow text-indigo-400 hover:text-indigo-300 text-lg">
+                What is Hook0?
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                </svg>
+            </a>
+        </div>
+    </div>
+</section>

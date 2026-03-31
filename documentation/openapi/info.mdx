@@ -133,7 +133,7 @@ GET /api/v1/events?limit=50&offset=100&sort=created_at:desc
 When subscribing to events, Hook0 will send webhooks with:
 
 - **Signature verification**: HMAC-SHA256 signature in `X-Hook0-Signature` header
-- **Retry logic**: Automatic retries with exponential backoff
+- **Retry logic**: Automatic retries with a fixed retry schedule
 - **Idempotency**: Event IDs ensure exactly-once delivery
 
 ## SDK Support

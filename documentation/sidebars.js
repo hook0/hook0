@@ -55,6 +55,7 @@ const sidebars = {
         "tutorials/first-webhook-integration",
         "tutorials/event-types-subscriptions",
         "tutorials/webhook-authentication",
+        "tutorials/build-stripe-like-webhooks",
       ],
     },
     {
@@ -71,6 +72,8 @@ const sidebars = {
         "how-to-guides/client-error-handling",
         "how-to-guides/multi-tenant-architecture",
         "how-to-guides/manage-service-tokens",
+        "how-to-guides/troubleshooting",
+        "how-to-guides/webhook-best-practices",
       ],
     },
     {
@@ -114,6 +117,7 @@ const sidebars = {
         "explanation/hook0-architecture",
         "explanation/event-processing",
         "explanation/security-model",
+        "explanation/webhook-retry-logic",
       ],
     },
     {
@@ -193,6 +197,8 @@ const sidebars = {
             "comparisons/svix-vs-hook0",
             "comparisons/hookdeck-vs-hook0",
             "comparisons/hostedhooks-vs-hook0",
+            "comparisons/build-vs-buy",
+            "comparisons/aws-eventbridge-vs-hook0",
           ],
         },
         "resources/security",

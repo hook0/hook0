@@ -31,6 +31,7 @@ const config = {
   organizationName: "hook0",
   projectName: "hook0",
 
+  trailingSlash: false,
   onBrokenLinks: "throw",
 
   staticDirectories: ["static"],
@@ -59,6 +60,9 @@ const config = {
             "**/.docusaurus/**",
             "**/scripts/**",
           ],
+        },
+        sitemap: {
+          ignorePatterns: ['/search', '/search/**', '/self-hosting/_dev-only-warning'],
         },
         blog: false,
         theme: {
@@ -123,9 +127,12 @@ const config = {
   },
 
   // Client modules for Matomo advanced tracking
-  clientModules: process.env.DOCUMENTATION_MATOMO_URL
-    ? [require.resolve("./src/matomo/tracking.js")]
-    : [],
+  clientModules: [
+    require.resolve("./src/mermaid/theme-switcher.js"),
+    ...(process.env.DOCUMENTATION_MATOMO_URL
+      ? [require.resolve("./src/matomo/tracking.js")]
+      : []),
+  ],
 
   // Matomo analytics script (injected in <head>)
   // Uses same configuration as website (piwik.php/piwik.js)
@@ -224,6 +231,12 @@ const config = {
         defaultMode: "dark",
         disableSwitch: false,
         respectPrefersColorScheme: true,
+      },
+      mermaid: {
+        theme: {
+          light: 'base',
+          dark: 'dark',
+        },
       },
       docs: {
         sidebar: {
