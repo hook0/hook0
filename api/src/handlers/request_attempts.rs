@@ -31,6 +31,7 @@ pub struct RequestAttempt {
     pub delay_until: Option<DateTime<Utc>>,
     pub response_id: Option<Uuid>,
     pub retry_count: i16,
+    pub http_response_status: Option<i16>,
     pub status: RequestAttemptStatus,
 }
 
@@ -289,6 +290,7 @@ pub async fn list(
         response__id: Option<Uuid>,
         retry_count: i16,
         event_type__name: String,
+        http_response_status: Option<i16>,
     }
     let raw_request_attempts = query_as!(
         RawRequestAttempt,
@@ -305,10 +307,12 @@ pub async fn list(
                 ra.response__id,
                 ra.retry_count,
                 s.description AS subscription__description,
-                e.event_type__name
+                e.event_type__name,
+                r.http_code AS http_response_status
             FROM webhook.request_attempt AS ra
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
             INNER JOIN event.event AS e ON e.event__id = ra.event__id
+            LEFT JOIN webhook.response AS r ON r.response__id = ra.response__id
             WHERE ra.application__id = $1
                 AND (ra.event__id = $2 OR $2 IS NULL)
                 AND (s.subscription__id = $3 OR $3 IS NULL)
@@ -353,6 +357,7 @@ pub async fn list(
             delay_until: ra.delay_until,
             response_id: ra.response__id,
             retry_count: ra.retry_count,
+            http_response_status: ra.http_response_status,
             status: RequestAttemptStatus::compute(
                 &Utc::now(),
                 &ra.created_at,
