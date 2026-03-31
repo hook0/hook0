@@ -11,19 +11,24 @@ import { useResponseDetail } from './useResponseQueries';
 import { filterSensitiveHeaders } from './responseHeaders';
 import { statusCodeClass } from './responseStatus';
 
+import type { RequestAttemptExtended } from './LogService';
+
 type Props = {
-  eventId: string;
+  attempt: RequestAttemptExtended;
   applicationId: string;
-  responseId: string | null;
-  httpResponseStatus: number | null;
 };
 
 const props = defineProps<Props>();
 const { t } = useI18n();
 
-const eventIdRef = toRef(props, 'eventId');
+const isSent = computed(() => {
+  const type = props.attempt.status.type;
+  return type !== 'waiting' && type !== 'pending';
+});
+
+const eventIdRef = computed(() => props.attempt.event_id);
 const applicationIdRef = toRef(props, 'applicationId');
-const responseIdRef = computed(() => props.responseId ?? '');
+const responseIdRef = computed(() => props.attempt.response_id ?? '');
 
 const { data: eventData, isLoading: eventLoading } = useEventDetail(eventIdRef, applicationIdRef);
 const {
@@ -46,7 +51,7 @@ const hasHiddenHeaders = computed(() => {
 });
 
 const isErrorResponse = computed(() => {
-  const code = responseData.value?.http_code ?? props.httpResponseStatus;
+  const code = responseData.value?.http_code ?? props.attempt.http_response_status;
   return code != null && code >= 400;
 });
 </script>
@@ -116,9 +121,12 @@ const isErrorResponse = computed(() => {
       <Hook0Code :code="eventData.payload_decoded" language="json" :editable="false" />
     </div>
 
-    <!-- Response: no responseId -->
-    <div v-if="!responseId" class="log-detail__section">
-      <h3 class="log-detail__section-title">{{ t('responses.detail') }}</h3>
+    <!-- Response: not sent yet — hide entirely -->
+    <template v-if="!isSent" />
+
+    <!-- Response: sent but no response (timeout) -->
+    <div v-else-if="!attempt.response_id" class="log-detail__section">
+      <h3 class="log-detail__section-title log-detail__section-title--response">{{ t('responses.detail') }}</h3>
       <p class="log-detail__no-response">{{ t('responses.noResponse') }}</p>
     </div>
 
@@ -141,7 +149,7 @@ const isErrorResponse = computed(() => {
     <!-- Response: loaded -->
     <template v-else-if="responseData">
       <div class="log-detail__section">
-        <h3 class="log-detail__section-title">{{ t('responses.detail') }}</h3>
+        <h3 class="log-detail__section-title log-detail__section-title--response">{{ t('responses.detail') }}</h3>
 
         <div class="log-detail__grid">
           <!-- Summary -->
@@ -213,6 +221,12 @@ const isErrorResponse = computed(() => {
   letter-spacing: 0.05em;
   color: var(--color-text-tertiary);
   margin: 0 0 0.75rem;
+}
+
+.log-detail__section-title--response {
+  margin-top: 1.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--color-border);
 }
 
 .log-detail__subsection-title {
@@ -323,6 +337,7 @@ const isErrorResponse = computed(() => {
   font-size: 0.75rem;
   font-weight: 600;
   font-family: var(--font-mono);
+  width: fit-content;
 }
 
 .response-status--success {

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useRouteIds } from '@/composables/useRouteIds';
@@ -23,10 +22,6 @@ const {
   error,
   refetch,
 } = useRequestAttemptDetail(requestAttemptId, applicationId);
-
-const eventId = computed(() => attempt.value?.event_id ?? '');
-const responseId = computed(() => attempt.value?.response_id ?? null);
-const httpResponseStatus = computed(() => attempt.value?.http_response_status ?? null);
 </script>
 
 <template>
@@ -50,10 +45,8 @@ const httpResponseStatus = computed(() => attempt.value?.http_response_status ??
         <Hook0Card>
           <Hook0CardContent>
             <LogDetailContent
-              :event-id="eventId"
+              :attempt="attempt"
               :application-id="applicationId"
-              :response-id="responseId"
-              :http-response-status="httpResponseStatus"
             />
           </Hook0CardContent>
         </Hook0Card>

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
 
 import type { RequestAttemptExtended } from './LogService';
+import { RequestAttemptStatusType } from './LogService';
 import { getStatusConfig } from './logStatusConfig';
 import { routes } from '@/routes';
 
@@ -30,11 +31,27 @@ function fmtDate(val: unknown): string {
   }
 }
 
+function formatRelativeTime(dateStr: string): string {
+  const diff = new Date(dateStr).getTime() - Date.now();
+  if (diff <= 0) return '<1m';
+  const mins = Math.ceil(diff / 60000);
+  if (mins < 60) return `${mins}m`;
+  return `${Math.floor(mins / 60)}h${mins % 60}m`;
+}
+
 function statusLabel(row: RequestAttemptExtended, t: ReturnType<typeof useI18n>['t']): string {
-  const config = getStatusConfig(row.status.type);
-  const shortTitle = t(config.labelKey);
   const httpCode = row.http_response_status;
-  return httpCode ? `${httpCode} ${shortTitle}` : shortTitle;
+  if (httpCode) return `${httpCode}`;
+  // Failed without response = timeout/network error
+  if (row.status.type === RequestAttemptStatusType.Failed && !row.response_id) {
+    return t('logs.statusTimeout');
+  }
+  // Waiting = retrying in X
+  if (row.status.type === RequestAttemptStatusType.Waiting && row.delay_until) {
+    return t('logs.statusQueued', { time: formatRelativeTime(row.delay_until) });
+  }
+  const config = getStatusConfig(row.status.type);
+  return t(config.labelKey);
 }
 
 function statusTooltip(row: RequestAttemptExtended, t: ReturnType<typeof useI18n>['t']): string {
