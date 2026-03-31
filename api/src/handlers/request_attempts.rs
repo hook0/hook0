@@ -1,7 +1,7 @@
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
-use paperclip::actix::web::{Data, Json, Query};
+use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use paperclip::v2::models::{DataType, DataTypeFormat, DefaultSchemaRaw};
 use paperclip::v2::schema::Apiv2Schema as Apiv2SchemaTrait;
@@ -215,6 +215,122 @@ impl RequestAttemptStatus {
             },
             (_, None, None, None) => Self::Pending { since: *created_at },
         }
+    }
+}
+
+#[derive(Debug, Deserialize, Apiv2Schema)]
+pub struct GetQs {
+    application_id: Uuid,
+}
+
+#[api_v2_operation(
+    summary = "Get a request attempt by its ID",
+    description = "Retrieves a single webhook delivery attempt by ID, including delivery status, retry count, timestamps, and HTTP response status.",
+    operation_id = "requestAttempts.get",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Subscriptions Management")
+)]
+pub async fn get(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    qs: Query<GetQs>,
+    request_attempt_id: Path<Uuid>,
+) -> Result<Json<RequestAttempt>, Hook0Problem> {
+    if authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::RequestAttemptGet {
+            application_id: &qs.application_id,
+        },
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .await
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    #[allow(non_snake_case)]
+    struct RawRequestAttempt {
+        request_attempt__id: Uuid,
+        event__id: Uuid,
+        subscription__id: Uuid,
+        subscription__description: Option<String>,
+        created_at: DateTime<Utc>,
+        picked_at: Option<DateTime<Utc>>,
+        failed_at: Option<DateTime<Utc>>,
+        succeeded_at: Option<DateTime<Utc>>,
+        delay_until: Option<DateTime<Utc>>,
+        response__id: Option<Uuid>,
+        retry_count: i16,
+        event_type__name: String,
+        http_response_status: Option<i16>,
+    }
+
+    let raw = query_as!(
+        RawRequestAttempt,
+        "
+            SELECT
+                ra.request_attempt__id,
+                ra.event__id,
+                ra.subscription__id,
+                ra.created_at,
+                ra.picked_at,
+                ra.failed_at,
+                ra.succeeded_at,
+                ra.delay_until,
+                ra.response__id,
+                ra.retry_count,
+                s.description AS subscription__description,
+                e.event_type__name,
+                r.http_code AS http_response_status
+            FROM webhook.request_attempt AS ra
+            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+            INNER JOIN event.event AS e ON e.event__id = ra.event__id
+            LEFT JOIN webhook.response AS r ON r.response__id = ra.response__id
+            WHERE ra.application__id = $1
+                AND ra.request_attempt__id = $2
+        ",
+        &qs.application_id,
+        &request_attempt_id.into_inner(),
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    match raw {
+        Some(ra) => Ok(Json(RequestAttempt {
+            request_attempt_id: ra.request_attempt__id,
+            event_id: ra.event__id,
+            event: EventSummary {
+                event_id: ra.event__id,
+                event_type_name: ra.event_type__name,
+            },
+            subscription: SubscriptionSummary {
+                subscription_id: ra.subscription__id,
+                description: ra.subscription__description,
+            },
+            created_at: ra.created_at,
+            picked_at: ra.picked_at,
+            failed_at: ra.failed_at,
+            succeeded_at: ra.succeeded_at,
+            delay_until: ra.delay_until,
+            response_id: ra.response__id,
+            retry_count: ra.retry_count,
+            http_response_status: ra.http_response_status,
+            status: RequestAttemptStatus::compute(
+                &Utc::now(),
+                &ra.created_at,
+                &ra.picked_at,
+                &ra.failed_at,
+                &ra.succeeded_at,
+                &ra.delay_until,
+            ),
+        })),
+        None => Err(Hook0Problem::NotFound),
     }
 }
 
