@@ -153,8 +153,20 @@ struct Config {
     worker_version: Option<String>,
 
     /// Number of request attempts to handle concurrently (for a worker with pg queue type, this means opening 1 connection to PostgreSQL per concurrent unit)
-    #[clap(long, env, default_value = "1", value_parser = clap::value_parser!(u16).range(1..))]
+    #[clap(long, env, default_value_t = 1, value_parser = clap::value_parser!(u16).range(1..))]
     concurrent: u16,
+
+    /// Retry count cutoff for queue priority classification: if retry_count >= cutoff, item is placed in low priority queue
+    #[clap(long, env, default_value_t = 2)]
+    hp_retry_cutoff: i16,
+
+    /// Number of concurrent slots reserved exclusively for high-priority jobs (first attempts and early retries)
+    #[clap(long, env, default_value_t = 0)]
+    concurrent_hp_reserved: u16,
+
+    /// Number of concurrent slots reserved exclusively for low-priority jobs (later retries)
+    #[clap(long, env, default_value_t = 0)]
+    concurrent_lp_reserved: u16,
 
     /// Maximum number of delivery retries before giving up (the effective number of retries is limited by `MAX_RETRIES`, `MAX_RETRY_WINDOW` and the retry policy)
     #[clap(long, env, default_value_t = 25)]
@@ -192,7 +204,7 @@ struct Config {
     #[clap(long, env, default_value = "v1", value_delimiter = ',')]
     enabled_signature_versions: Vec<SignatureVersion>,
 
-    /// If true, will load waiting request attempts (that can be picked by this worker) from DB into Pulsar before starting working; this is usefull when migrating ta a Pulsar worker; has no effect if worker has not a pulsar queue type
+    /// If true, loads waiting request attempts that can be picked by this worker from the DB into Pulsar before starting work; this is useful when migrating to a Pulsar worker and has no effect if the worker does not use a Pulsar queue type
     #[clap(long, env, default_value_t = false)]
     load_waiting_request_attempts_into_pulsar: bool,
 
@@ -255,6 +267,42 @@ impl std::fmt::Display for WorkerScope {
 enum WorkerQueueType {
     Pg,
     Pulsar,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SlotRole {
+    /// Only picks jobs with retry_count < hp_retry_cutoff
+    HpReserved,
+    /// Only picks jobs with retry_count >= hp_retry_cutoff
+    LpReserved,
+    /// Picks any job (oldest first, no filter)
+    Dynamic,
+}
+
+impl std::fmt::Display for SlotRole {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::HpReserved => write!(f, "hp-reserved"),
+            Self::LpReserved => write!(f, "lp-reserved"),
+            Self::Dynamic => write!(f, "dynamic"),
+        }
+    }
+}
+
+impl SlotRole {
+    pub fn from_unit_id(unit_id: u16, hp_reserved: u16, lp_reserved: u16) -> Self {
+        if unit_id < hp_reserved {
+            Self::HpReserved
+        } else if unit_id < hp_reserved + lp_reserved {
+            Self::LpReserved
+        } else {
+            Self::Dynamic
+        }
+    }
+
+    pub fn is_hp(retry_count: i16, cutoff: i16) -> bool {
+        retry_count < cutoff
+    }
 }
 
 #[derive(Clone)]
@@ -348,6 +396,35 @@ async fn main() -> anyhow::Result<()> {
         warn!(
             "Worker has a pg queue type with CONCURRENT={}, but MAX_DB_CONNECTIONS is smaller ({}); worker with pg queue should have MAX_DB_CONNECTIONS=CONCURRENT",
             config.concurrent, config.max_db_connections
+        );
+    }
+
+    match config
+        .concurrent_hp_reserved
+        .checked_add(config.concurrent_lp_reserved)
+    {
+        Some(reserved) if reserved > config.concurrent => bail!(
+            "CONCURRENT_HP_RESERVED ({}) + CONCURRENT_LP_RESERVED ({}) exceeds CONCURRENT ({})",
+            config.concurrent_hp_reserved,
+            config.concurrent_lp_reserved,
+            config.concurrent
+        ),
+        Some(_) => {
+            // All good
+        }
+        None => bail!(
+            "CONCURRENT_HP_RESERVED ({}) + CONCURRENT_LP_RESERVED ({}) overflows; use lower values",
+            config.concurrent_hp_reserved,
+            config.concurrent_lp_reserved,
+        ),
+    }
+    let priority_enabled = config.concurrent_hp_reserved > 0 || config.concurrent_lp_reserved > 0;
+    let dynamic_slots =
+        config.concurrent - config.concurrent_hp_reserved - config.concurrent_lp_reserved;
+    if priority_enabled {
+        info!(
+            "Priority queue enabled: {} HP-reserved, {} LP-reserved, {dynamic_slots} dynamic, cutoff={}",
+            config.concurrent_hp_reserved, config.concurrent_lp_reserved, config.hp_retry_cutoff
         );
     }
 
@@ -505,7 +582,11 @@ async fn main() -> anyhow::Result<()> {
     let task_tracker = TaskTracker::new();
 
     // Create throughput stats and spawn periodic log task
-    let stats = Arc::new(throughput_log::ThroughputStats::new(config.concurrent));
+    let stats = Arc::new(throughput_log::ThroughputStats::new(
+        config.concurrent,
+        config.concurrent_hp_reserved,
+        config.concurrent_lp_reserved,
+    ));
     if !config.throughput_log_interval.is_zero() {
         let stats_clone = stats.clone();
         let interval = config.throughput_log_interval;
@@ -602,10 +683,11 @@ async fn main() -> anyhow::Result<()> {
                 let wid_clone = wid.clone();
                 let pu_clone = pu.clone();
                 let os_clone = os.clone();
+                let hp_cutoff = c.hp_retry_cutoff;
                 spawn(async move {
                     info!("Loading waiting request attempts from database into Pulsar...");
                     match pulsar::load_waiting_request_attempts_from_db(
-                        &po_clone, &wid_clone, &pu_clone, &os_clone,
+                        &po_clone, &wid_clone, &pu_clone, &os_clone, hp_cutoff,
                     )
                     .await
                     {
@@ -653,6 +735,11 @@ async fn main() -> anyhow::Result<()> {
         // This worker has a 'pg' queue type
 
         for unit_id in 0..config.concurrent {
+            let role = SlotRole::from_unit_id(
+                unit_id,
+                config.concurrent_hp_reserved,
+                config.concurrent_lp_reserved,
+            );
             let p = pool.clone();
             let os = object_storage_config.clone();
             let w = worker.to_owned();
@@ -669,6 +756,7 @@ async fn main() -> anyhow::Result<()> {
                     let t = pg::look_for_work(
                         &cfg,
                         unit_id,
+                        role,
                         &p,
                         &os,
                         &w,
@@ -894,5 +982,58 @@ mod tests {
         let (retries, cumulative) = evaluate_retry_policy(30, window);
         assert_eq!(retries, 2);
         assert!(cumulative < window);
+    }
+
+    #[test]
+    fn test_slot_role_assignment() {
+        let hp_reserved = 2;
+        let lp_reserved = 1;
+        assert_eq!(
+            SlotRole::from_unit_id(0, hp_reserved, lp_reserved),
+            SlotRole::HpReserved
+        );
+        assert_eq!(
+            SlotRole::from_unit_id(1, hp_reserved, lp_reserved),
+            SlotRole::HpReserved
+        );
+        assert_eq!(
+            SlotRole::from_unit_id(2, hp_reserved, lp_reserved),
+            SlotRole::LpReserved
+        );
+        assert_eq!(
+            SlotRole::from_unit_id(3, hp_reserved, lp_reserved),
+            SlotRole::Dynamic
+        );
+        assert_eq!(
+            SlotRole::from_unit_id(4, hp_reserved, lp_reserved),
+            SlotRole::Dynamic
+        );
+    }
+
+    #[test]
+    fn test_slot_role_all_dynamic() {
+        let no_reserved_role = 0;
+        assert_eq!(
+            SlotRole::from_unit_id(0, no_reserved_role, no_reserved_role),
+            SlotRole::Dynamic
+        );
+        assert_eq!(
+            SlotRole::from_unit_id(5, no_reserved_role, no_reserved_role),
+            SlotRole::Dynamic
+        );
+    }
+
+    #[test]
+    fn test_is_hp() {
+        let cutoff = 2;
+        assert!(SlotRole::is_hp(0, cutoff));
+        assert!(SlotRole::is_hp(1, cutoff));
+        assert!(!SlotRole::is_hp(2, cutoff));
+        assert!(!SlotRole::is_hp(3, cutoff));
+        assert!(!SlotRole::is_hp(10, cutoff));
+
+        let cutoff = 1;
+        assert!(SlotRole::is_hp(0, cutoff));
+        assert!(!SlotRole::is_hp(1, cutoff));
     }
 }
