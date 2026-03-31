@@ -13,7 +13,7 @@ import type { RequestAttemptExtended } from './LogService';
 import { routes } from '@/routes';
 import { useOrganizationDetail } from '@/pages/organizations/useOrganizationQueries';
 
-import EventSidePanel from '@/pages/organizations/applications/events/EventSidePanel.vue';
+import LogSidePanel from './LogSidePanel.vue';
 import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
@@ -41,10 +41,10 @@ const columns = useLogColumns();
 
 // Side panel state
 const sidePanelOpen = ref(false);
-const selectedEventId = ref('');
+const selectedRow = ref<RequestAttemptExtended | null>(null);
 
 function handleRowClick(row: RequestAttemptExtended) {
-  selectedEventId.value = row.event_id;
+  selectedRow.value = row;
   sidePanelOpen.value = true;
 }
 
@@ -89,7 +89,7 @@ function closeSidePanel() {
             data-test="logs-table"
             :columns="columns"
             :data="requestAttempts"
-            row-id-field="event_id"
+            row-id-field="request_attempt_id"
             clickable-rows
             @row-click="handleRowClick"
           />
@@ -120,11 +120,14 @@ function closeSidePanel() {
       </Hook0Card>
     </template>
 
-    <!-- Event side panel -->
-    <EventSidePanel
+    <!-- Log side panel -->
+    <LogSidePanel
       :open="sidePanelOpen"
-      :event-id="selectedEventId"
+      :event-id="selectedRow?.event_id ?? ''"
       :application-id="applicationId"
+      :response-id="selectedRow?.response_id ?? null"
+      :request-attempt-id="selectedRow?.request_attempt_id ?? ''"
+      :http-response-status="selectedRow?.http_response_status ?? null"
       @close="closeSidePanel"
     />
   </Hook0PageLayout>
@@ -204,13 +207,6 @@ function closeSidePanel() {
 }
 
 :deep(.log-duration) {
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-  cursor: default;
-}
-
-:deep(.log-response) {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
