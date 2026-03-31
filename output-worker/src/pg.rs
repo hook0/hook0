@@ -14,7 +14,8 @@ use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span}
 use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
-    Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, Worker, compute_next_retry,
+    Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, SlotRole, Worker,
+    compute_next_retry,
 };
 use hook0_protobuf::{ObjectStorageResponse, RequestAttempt};
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -29,6 +30,7 @@ const MAX_POLLING_SLEEP: Duration = Duration::from_secs(10);
 pub async fn look_for_work(
     config: &Config,
     unit_id: u16,
+    slot_role: SlotRole,
     pool: &PgPool,
     object_storage: &Option<ObjectStorageConfig>,
     worker: &Worker,
@@ -37,7 +39,12 @@ pub async fn look_for_work(
     task_tracker: &TaskTracker,
     stats: &ThroughputStats,
 ) -> anyhow::Result<()> {
-    info!(unit_id, "Begin looking for work");
+    let (retry_count_lt, retry_count_gte): (Option<i16>, Option<i16>) = match slot_role {
+        SlotRole::HpReserved => (Some(config.hp_retry_cutoff), None),
+        SlotRole::LpReserved => (None, Some(config.hp_retry_cutoff)),
+        SlotRole::Dynamic => (None, None),
+    };
+    info!(unit_id, %slot_role, "Begin looking for work");
     loop {
         trace!(unit_id, "Fetching next unprocessed request attempt...");
         let mut tx = pool.begin().await?;
@@ -80,6 +87,8 @@ pub async fn look_for_work(
                         ($2 AND COALESCE(sw.worker__id, ow.worker__id) IS NULL)
                         OR COALESCE(sw.worker__id, ow.worker__id) = $1
                     )
+                    AND ($3::smallint IS NULL OR ra.retry_count < $3)
+                    AND ($4::smallint IS NULL OR ra.retry_count >= $4)
                 ORDER BY ra.created_at ASC
                 LIMIT 1
                 FOR UPDATE OF ra
@@ -87,13 +96,16 @@ pub async fn look_for_work(
             ",
             worker.scope.worker_id(),
             worker.scope.is_public(),
+            retry_count_lt,
+            retry_count_gte,
         )
         .fetch_optional(&mut *tx)
         .await?;
         stats.record_db_fetch(fetch_start.elapsed());
 
         if let Some(attempt) = next_attempt {
-            let _slot_guard = stats.slot_enter();
+            let attempt_is_hp = SlotRole::is_hp(attempt.retry_count, config.hp_retry_cutoff);
+            let _slot_guard = stats.slot_enter(attempt_is_hp);
 
             // Record queue lag: time between becoming eligible and now
             let eligible_at = attempt
@@ -101,7 +113,7 @@ pub async fn look_for_work(
                 .unwrap_or(attempt.created_at)
                 .max(attempt.created_at);
             if let Ok(lag) = (Utc::now() - eligible_at).to_std() {
-                stats.record_lag(lag);
+                stats.record_lag(lag, attempt_is_hp);
             }
 
             // Set picked_at
@@ -327,6 +339,7 @@ pub async fn look_for_work(
                     response.is_success(),
                     attempt.retry_count,
                     response.elapsed_time,
+                    config.hp_retry_cutoff,
                 );
 
                 // End OpenTelemetry span

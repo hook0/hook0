@@ -28,7 +28,7 @@ use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
-    compute_next_retry,
+    SlotRole, compute_next_retry,
 };
 use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -41,24 +41,52 @@ const MAX_CONSECUTIVE_CONSUMER_ERRORS: u32 = 10;
 /// Extra time added to the HTTP timeout when draining in-flight tasks after consumer crash
 const DRAIN_TIMEOUT_MARGIN: Duration = Duration::from_secs(5);
 
-type AckMessage = (MessageIdData, Option<OwnedSemaphorePermit>, bool);
+/// Wraps an OwnedSemaphorePermit so that dropping it returns the permit to the correct pool.
+/// The inner permit is held for its Drop semantics, not read directly.
+#[allow(dead_code)]
+enum PriorityPermit {
+    HpReserved(OwnedSemaphorePermit),
+    LpReserved(OwnedSemaphorePermit),
+    Dynamic(OwnedSemaphorePermit),
+}
+
+type AckMessage = (MessageIdData, Option<PriorityPermit>, bool, bool); // (msg_id, permit, is_ok, is_lp)
 
 pub async fn load_waiting_request_attempts_from_db(
     pool: &PgPool,
     worker_id: &Arc<Uuid>,
     pulsar: &Arc<PulsarConfig>,
     object_storage: &Option<ObjectStorageConfig>,
+    hp_retry_cutoff: i16,
 ) -> anyhow::Result<u64> {
-    let topic = format!(
+    let hp_topic = format!(
         "persistent://{}/{}/{}.request_attempt",
         &pulsar.tenant, &pulsar.namespace, worker_id,
     );
-    let mut producer = pulsar
+    let lp_topic = format!(
+        "persistent://{}/{}/{}.request_attempt.lp",
+        &pulsar.tenant, &pulsar.namespace, worker_id,
+    );
+    let mut hp_producer = pulsar
         .pulsar
         .producer()
-        .with_topic(topic)
+        .with_topic(&hp_topic)
         .with_name(format!(
-            "hook0-output-worker.{worker_id}.request-attempts-initial-loading.{}",
+            "hook0-output-worker.{worker_id}.request-attempts-initial-loading.hp.{}",
+            Uuid::now_v7()
+        ))
+        .with_options(ProducerOptions {
+            block_queue_if_full: true,
+            ..Default::default()
+        })
+        .build()
+        .await?;
+    let mut lp_producer = pulsar
+        .pulsar
+        .producer()
+        .with_topic(&lp_topic)
+        .with_name(format!(
+            "hook0-output-worker.{worker_id}.request-attempts-initial-loading.lp.{}",
             Uuid::now_v7()
         ))
         .with_options(ProducerOptions {
@@ -163,6 +191,11 @@ pub async fn load_waiting_request_attempts_from_db(
                 secret: ra.secret,
             };
 
+            let producer = if SlotRole::is_hp(ra.retry_count, hp_retry_cutoff) {
+                &mut hp_producer
+            } else {
+                &mut lp_producer
+            };
             let mut msg_builder = producer
                 .create_message()
                 .event_time(request_attempt.created_at.timestamp_micros() as u64);
@@ -200,15 +233,22 @@ pub async fn look_for_work(
     stats: &Arc<ThroughputStats>,
 ) -> anyhow::Result<()> {
     info!("Begin looking for work");
-    let topic = format!(
-        "persistent://{}/{}/{}.request_attempt",
-        &pulsar.tenant, &pulsar.namespace, worker_id,
+
+    // HP topic = existing topic (API sends initial attempts here)
+    let hp_topic = format!(
+        "persistent://{}/{}/{worker_id}.request_attempt",
+        &pulsar.tenant, &pulsar.namespace,
+    );
+    // LP topic = new topic for retries past the cutoff
+    let lp_topic = format!(
+        "persistent://{}/{}/{worker_id}.request_attempt.lp",
+        &pulsar.tenant, &pulsar.namespace,
     );
 
-    let mut consumer = pulsar
+    let mut hp_consumer = pulsar
         .pulsar
         .consumer()
-        .with_topic(&topic)
+        .with_topic(&hp_topic)
         .with_consumer_name(format!(
             "hook0-output-worker.{worker_id}.consumer.{}",
             Uuid::now_v7()
@@ -223,12 +263,29 @@ pub async fn look_for_work(
         .build::<RequestAttempt>()
         .await?;
 
-    // Create a single producer for retry messages, shared across all tasks
-    let retry_producer = Arc::new(Mutex::new(
+    let mut lp_consumer = pulsar
+        .pulsar
+        .consumer()
+        .with_topic(&lp_topic)
+        .with_consumer_name(format!(
+            "hook0-output-worker.{worker_id}.consumer.lp.{}",
+            Uuid::now_v7()
+        ))
+        .with_subscription("hook0-output-worker.delivery.lp")
+        .with_subscription_type(SubType::Shared)
+        .with_options(ConsumerOptions {
+            durable: Some(true),
+            initial_position: InitialPosition::Earliest,
+            ..Default::default()
+        })
+        .build::<RequestAttempt>()
+        .await?;
+
+    let hp_retry_producer = Arc::new(Mutex::new(
         pulsar
             .pulsar
             .producer()
-            .with_topic(&topic)
+            .with_topic(&hp_topic)
             .with_name(format!(
                 "hook0-output-worker.{worker_id}.request-attempt-retry.{}",
                 Uuid::now_v7()
@@ -241,8 +298,28 @@ pub async fn look_for_work(
             .await?,
     ));
 
-    // This semaphore is what limits the number of inflight webhooks
-    let semaphore = Arc::new(Semaphore::new(config.concurrent.into()));
+    let lp_retry_producer = Arc::new(Mutex::new(
+        pulsar
+            .pulsar
+            .producer()
+            .with_topic(&lp_topic)
+            .with_name(format!(
+                "hook0-output-worker.{worker_id}.request-attempt-retry.lp.{}",
+                Uuid::now_v7()
+            ))
+            .with_options(ProducerOptions {
+                block_queue_if_full: true,
+                ..Default::default()
+            })
+            .build()
+            .await?,
+    ));
+
+    let dynamic_slots =
+        config.concurrent - config.concurrent_hp_reserved - config.concurrent_lp_reserved;
+    let hp_sem = Arc::new(Semaphore::new(config.concurrent_hp_reserved.into()));
+    let lp_sem = Arc::new(Semaphore::new(config.concurrent_lp_reserved.into()));
+    let dynamic_sem = Arc::new(Semaphore::new(dynamic_slots.into()));
 
     // This channel is used to bring back the semaphore permit and the message ID to properly destroy/(N)ACK them
     // This is needed because the webhook sendings happen in a Tokio task (to allow concurrency) but we need mutable access to the Pulsar consumer to (N)ACK messages
@@ -276,55 +353,75 @@ pub async fn look_for_work(
     let mut consecutive_errors: u32 = 0;
 
     loop {
-        // We prepare a future to acquire a permit from the semaphore and then get a message from the Pulsar consumer
-        // This future is not awaited yet!
-        let next_msg = async {
-            let permit = semaphore.clone().acquire_owned().await?;
-            let msg_opt = consumer.try_next().await?;
-            Ok::<_, anyhow::Error>((permit, msg_opt))
+        // Race HP and LP consumers for permits using non-biased select for fairness
+        let hp_next = async {
+            let permit = match hp_sem.clone().try_acquire_owned() {
+                Ok(p) => PriorityPermit::HpReserved(p),
+                Err(_) => PriorityPermit::Dynamic(dynamic_sem.clone().acquire_owned().await?),
+            };
+            let msg_opt = hp_consumer.try_next().await?;
+            Ok::<_, anyhow::Error>((permit, msg_opt, false)) // is_lp = false
         };
 
-        // We need to await 3 async operations at the same time; the first that finishes will be handled, while the others will be cancelled:
-        // 1. We wait for gracefull shutdown to be asked and for inflight webhook tasks to be terminated
+        let lp_next = async {
+            let permit = match lp_sem.clone().try_acquire_owned() {
+                Ok(p) => PriorityPermit::LpReserved(p),
+                Err(_) => PriorityPermit::Dynamic(dynamic_sem.clone().acquire_owned().await?),
+            };
+            let msg_opt = lp_consumer.try_next().await?;
+            Ok::<_, anyhow::Error>((permit, msg_opt, true)) // is_lp = true
+        };
+
+        // Non-biased race between HP and LP for fair dynamic slot allocation
+        let next_msg = async {
+            select! {
+                r = hp_next => r,
+                r = lp_next => r,
+            }
+        };
+
+        // We need to await multiple async operations at the same time; the first that finishes will be handled, while the others will be cancelled:
+        // 1. We wait for graceful shutdown to be asked and for inflight webhook tasks to be terminated
         // 2. We wait for at least 1 `AckMessage` to be available in the channel
-        // 3. We wait for 2 sequential operations: obtaining a permit from the semaphore (= we can take a new job) and obtaining a message from Pulsar consumer (= there is a new job to take), only if gracefull shutdown was not asked
+        // 3. We wait for a permit + message from either HP or LP consumer
         select! {
             biased;
             _ = task_tracker.wait() => {
                 debug!("Waiting for inflight webhooks to be ACKed");
                 while let Ok(msg_ack) = ack_rx.try_recv() {
-                    ack_message(&mut consumer, &topic, &heartbeat_tx, msg_ack).await?;
+                    dispatch_ack(&mut hp_consumer, &hp_topic, &mut lp_consumer, &lp_topic, &heartbeat_tx, msg_ack).await?;
                 }
                 debug!("Every inflight webhook has been ACKed");
                 break;
             }
             Some(msg_ack) = ack_rx.recv() => {
-                ack_message(&mut consumer, &topic, &heartbeat_tx, msg_ack).await?;
+                dispatch_ack(&mut hp_consumer, &hp_topic, &mut lp_consumer, &lp_topic, &heartbeat_tx, msg_ack).await?;
 
                 // After we have (N)ACK the first item, we check if there are more waiting so we can (N)ACK them immediately (because going back to the select! is slower)
                 while let Ok(msg_ack) = ack_rx.try_recv() {
-                    ack_message(&mut consumer, &topic, &heartbeat_tx, msg_ack).await?;
+                    dispatch_ack(&mut hp_consumer, &hp_topic, &mut lp_consumer, &lp_topic, &heartbeat_tx, msg_ack).await?;
                 }
             },
             _ = async { stats_interval.as_mut().unwrap().tick().await }, if stats_interval.is_some() => {
                 // Note: get_stats() blocks the select loop, but it's a lightweight
                 // binary protocol call over the existing connection.
-                match consumer.get_stats().await {
-                    Ok(stats) => {
-                        gather_pulsar_consumer_metrics(&stats);
-                    }
-                    Err(e) => {
-                        warn!("Could not get Pulsar consumer stats: {e}");
-                    }
+                match hp_consumer.get_stats().await {
+                    Ok(stats) => gather_pulsar_consumer_metrics(&stats),
+                    Err(e) => warn!("Could not get Pulsar HP consumer stats: {e}"),
+                }
+                match lp_consumer.get_stats().await {
+                    Ok(stats) => gather_pulsar_consumer_metrics(&stats),
+                    Err(e) => warn!("Could not get Pulsar LP consumer stats: {e}"),
                 }
             },
             result = next_msg, if !task_tracker.is_closed() => {
                 match result {
-                    Ok((permit, Some(msg))) => {
+                    Ok((permit, Some(msg), is_lp)) => {
                         consecutive_errors = 0;
 
                         let ack_tx_for_error = ack_tx.clone();
                         let msg_id = msg.message_id().to_owned();
+                        let error_is_lp = is_lp;
 
                         let ack_tx = ack_tx.clone();
                         let c = config.clone();
@@ -333,35 +430,26 @@ pub async fn look_for_work(
                         let wi = worker_id.clone();
                         let wn = worker_name.clone();
                         let wv = worker_version.clone();
-                        let rp = retry_producer.clone();
+                        let hp_rp = hp_retry_producer.clone();
+                        let lp_rp = lp_retry_producer.clone();
                         let st = stats.clone();
 
                         // We handle the request attempt in a new Tokio task
                         task_tracker.spawn(async move {
                             if let Err(e) = handle_message(
-                                &c,
-                                &po,
-                                &os,
-                                &wi,
-                                &wn,
-                                &wv,
-                                &rp,
-                                msg,
-                                permit,
-                                ack_tx,
-                                &st,
+                                &c, &po, &os, &wi, &wn, &wv, &hp_rp, &lp_rp, msg, permit, ack_tx, &st, is_lp,
                             )
                             .await
                             {
                                 // If the request attempt handling failed, we NACK the message
                                 error!("Error while handling message: {e}");
-                                if let Err(e) = ack_tx_for_error.send((msg_id, None, false)).await {
+                                if let Err(e) = ack_tx_for_error.send((msg_id, None, false, error_is_lp)).await {
                                     error!("Could not send NACK for message (consumer likely restarting): {e}");
                                 }
                             }
                         });
                     }
-                    Ok((_permit, None)) => {
+                    Ok((_permit, None, _is_lp)) => {
                         error!("Pulsar consumer stream ended");
                         break;
                     }
@@ -390,7 +478,16 @@ pub async fn look_for_work(
         drop(ack_tx);
         match timeout(config.timeout + DRAIN_TIMEOUT_MARGIN, async {
             while let Some(msg_ack) = ack_rx.recv().await {
-                if let Err(e) = ack_message(&mut consumer, &topic, &heartbeat_tx, msg_ack).await {
+                if let Err(e) = dispatch_ack(
+                    &mut hp_consumer,
+                    &hp_topic,
+                    &mut lp_consumer,
+                    &lp_topic,
+                    &heartbeat_tx,
+                    msg_ack,
+                )
+                .await
+                {
                     error!("Failed to ACK/NACK message during drain: {e}");
                 }
             }
@@ -428,14 +525,17 @@ async fn handle_message(
     worker_id: &Uuid,
     worker_name: &str,
     worker_version: &str,
-    retry_producer: &Mutex<Producer<TokioExecutor>>,
+    hp_retry_producer: &Mutex<Producer<TokioExecutor>>,
+    lp_retry_producer: &Mutex<Producer<TokioExecutor>>,
     msg: Message<RequestAttempt>,
-    permit: OwnedSemaphorePermit,
+    permit: PriorityPermit,
     ack_tx: Sender<AckMessage>,
     stats: &ThroughputStats,
+    is_lp: bool,
 ) -> anyhow::Result<()> {
     let picked_at = Utc::now();
-    let _slot_guard = stats.slot_enter();
+    let attempt_is_hp = !is_lp;
+    let _slot_guard = stats.slot_enter(attempt_is_hp);
 
     match msg.deserialize() {
         Ok(attempt) => {
@@ -528,7 +628,7 @@ async fn handle_message(
                         .unwrap_or(attempt.created_at)
                         .max(attempt.created_at);
                     if let Ok(lag) = (picked_at - eligible_at).to_std() {
-                        stats.record_lag(lag);
+                        stats.record_lag(lag, attempt_is_hp);
                     }
 
                     // Start OpenTelemetry span
@@ -705,6 +805,13 @@ async fn handle_message(
 
                                 debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = next_retry_count, retry_id = %retry.request_attempt__id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
 
+                                // Route retry to HP or LP topic based on priority cutoff
+                                let retry_producer =
+                                    if SlotRole::is_hp(next_retry_count, config.hp_retry_cutoff) {
+                                        hp_retry_producer
+                                    } else {
+                                        lp_retry_producer
+                                    };
                                 retry_producer
                                     .lock()
                                     .await
@@ -735,6 +842,7 @@ async fn handle_message(
                             response.is_success(),
                             attempt.retry_count,
                             response.elapsed_time,
+                            config.hp_retry_cutoff,
                         );
                     }
 
@@ -742,7 +850,7 @@ async fn handle_message(
                     end_request_attempt_span(span, &response);
 
                     ack_tx
-                        .send((msg.message_id().clone(), Some(permit), true))
+                        .send((msg.message_id().clone(), Some(permit), true, is_lp))
                         .await?;
 
                     Ok(())
@@ -752,6 +860,12 @@ async fn handle_message(
                 RequestAttemptStatus::Delayed { delay_until, lead } => {
                     stats.record_not_ready();
                     trace!(request_attempt_id = %attempt.request_attempt_id, lead = ?lead, "Request attempt was scheduled for later");
+                    // Re-send to the same topic (HP or LP) it came from
+                    let retry_producer = if is_lp {
+                        lp_retry_producer
+                    } else {
+                        hp_retry_producer
+                    };
                     retry_producer
                         .lock()
                         .await
@@ -762,7 +876,7 @@ async fn handle_message(
                         .send_non_blocking()
                         .await?;
                     ack_tx
-                        .send((msg.message_id().clone(), Some(permit), true))
+                        .send((msg.message_id().clone(), Some(permit), true, is_lp))
                         .await?;
 
                     Ok(())
@@ -771,7 +885,7 @@ async fn handle_message(
                     stats.record_not_ready();
                     trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt was already done");
                     ack_tx
-                        .send((msg.message_id().clone(), Some(permit), true))
+                        .send((msg.message_id().clone(), Some(permit), true, is_lp))
                         .await?;
 
                     Ok(())
@@ -780,7 +894,7 @@ async fn handle_message(
                     stats.record_not_ready();
                     trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt was cancelled");
                     ack_tx
-                        .send((msg.message_id().clone(), Some(permit), true))
+                        .send((msg.message_id().clone(), Some(permit), true, is_lp))
                         .await?;
 
                     Ok(())
@@ -790,7 +904,7 @@ async fn handle_message(
 
                     // Message is only ACKed and not republished into the right topic because the rightful worker is supposed to reload everything from the database when it first starts
                     ack_tx
-                        .send((msg.message_id().clone(), Some(permit), true))
+                        .send((msg.message_id().clone(), Some(permit), true, is_lp))
                         .await?;
 
                     Ok(())
@@ -803,13 +917,13 @@ async fn handle_message(
                         trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt not found in database; created recently, will retry later");
 
                         ack_tx
-                            .send((msg.message_id().clone(), Some(permit), false))
+                            .send((msg.message_id().clone(), Some(permit), false, is_lp))
                             .await?;
                     } else {
                         trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt not found in database; not recent, dropping");
 
                         ack_tx
-                            .send((msg.message_id().clone(), Some(permit), true))
+                            .send((msg.message_id().clone(), Some(permit), true, is_lp))
                             .await?;
                     }
 
@@ -820,7 +934,7 @@ async fn handle_message(
         Err(e) => {
             error!("Could not deserialize request attempt: {e}");
             ack_tx
-                .send((msg.message_id().clone(), Some(permit), false))
+                .send((msg.message_id().clone(), Some(permit), false, is_lp))
                 .await?;
 
             Ok(())
@@ -828,17 +942,25 @@ async fn handle_message(
     }
 }
 
-async fn ack_message<T, E>(
-    consumer: &mut Consumer<T, E>,
-    topic: &str,
+/// ACK or NACK a message on the correct consumer (HP or LP) based on is_lp flag
+async fn dispatch_ack<T, E>(
+    hp_consumer: &mut Consumer<T, E>,
+    hp_topic: &str,
+    lp_consumer: &mut Consumer<T, E>,
+    lp_topic: &str,
     heartbeat_tx: &Option<Sender<u16>>,
-    (msg_id, permit, is_ok): AckMessage,
+    (msg_id, permit, is_ok, is_lp): AckMessage,
 ) -> Result<(), SendError<u16>>
 where
     T: DeserializeMessage,
     E: Executor,
 {
-    // ACK or NACK the message in Pulsar
+    let (consumer, topic) = if is_lp {
+        (lp_consumer, lp_topic)
+    } else {
+        (hp_consumer, hp_topic)
+    };
+
     if is_ok {
         let _ = consumer
             .ack_with_id(topic, msg_id)
