@@ -495,6 +495,7 @@
     "statusPendingDesc": "Queued — will be picked up by the next available worker",
     "statusQueued": "Sending in {time}",
     "statusRetrying": "Retrying",
+    "statusWaiting": "Waiting",
     "statusSent": "Sent",
     "statusSkipped": "Skipped",
     "statusSuccessfulDesc": "Delivered — your endpoint responded with a success code",
@@ -515,7 +516,8 @@
     "tooltipWaiting": "Next retry {date}{retry}",
     "deliveryDetail": "Delivery Detail",
     "openFullPage": "Open full page",
-    "backToList": "Back to Delivery Logs"
+    "backToList": "Back to Delivery Logs",
+    "deliveryNotFound": "This delivery was not found. It may have been deleted after the retention period."
   },
   "members": {
     "currentUser": "(current user)",
