@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
+import { isAxiosError } from '@/http';
 
 import { useRouteIds } from '@/composables/useRouteIds';
 import { usePermissions } from '@/composables/usePermissions';
@@ -28,13 +30,21 @@ const {
   error,
   refetch,
 } = useRequestAttemptDetail(requestAttemptId, applicationId);
+
+const is404 = computed(() => {
+  if (!error.value) return false;
+  return isAxiosError(error.value) && error.value.response?.status === 404;
+});
 </script>
 
 <template>
   <Hook0PageLayout :title="t('logs.deliveryDetail')">
     <!-- Error first -->
     <template v-if="error && !isLoading">
-      <Hook0ErrorCard :error="error" @retry="void refetch()" />
+      <Hook0ErrorCard
+        :error="is404 ? t('logs.deliveryNotFound') : error"
+        @retry="void refetch()"
+      />
       <Hook0Button
         variant="secondary"
         :to="{

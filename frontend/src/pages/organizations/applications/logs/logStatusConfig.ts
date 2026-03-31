@@ -35,7 +35,7 @@ export const STATUS_CONFIG: Record<RequestAttemptStatusType, StatusConfig> = {
     tooltipDateField: 'picked_at',
   },
   [RequestAttemptStatusType.Waiting]: {
-    labelKey: 'logs.statusQueued',
+    labelKey: 'logs.statusWaiting',
     variant: 'info',
     tooltipKey: 'logs.tooltipWaiting',
     tooltipDateField: 'delay_until',
