@@ -95,9 +95,7 @@ const isErrorResponse = computed(() => {
 
     <!-- Labels -->
     <div
-      v-if="
-        eventData.labels && Object.keys(eventData.labels as Record<string, string>).length > 0
-      "
+      v-if="eventData.labels && Object.keys(eventData.labels as Record<string, string>).length > 0"
       class="log-detail__section"
     >
       <h3 class="log-detail__section-title">{{ t('events.labels') }}</h3>
@@ -142,67 +140,55 @@ const isErrorResponse = computed(() => {
 
     <!-- Response: loaded -->
     <template v-else-if="responseData">
-      <!-- Response Summary -->
       <div class="log-detail__section">
-        <h3 class="log-detail__section-title">{{ t('responses.summary') }}</h3>
-        <div class="log-detail__meta">
-          <div class="log-detail__meta-row">
-            <span class="log-detail__meta-label">{{ t('responses.id') }}</span>
-            <code class="log-detail__meta-value log-detail__meta-value--mono">{{
-              responseData.response_id
-            }}</code>
-          </div>
-          <div class="log-detail__meta-row">
-            <span class="log-detail__meta-label">{{ t('responses.httpStatusCode') }}</span>
-            <span
-              v-if="responseData.http_code != null"
-              class="log-detail__status-badge"
-              :class="statusCodeClass(responseData.http_code)"
-            >
-              {{ responseData.http_code }}
-            </span>
-            <span v-else class="log-detail__meta-value">—</span>
-          </div>
-          <div v-if="responseData.elapsed_time_ms != null" class="log-detail__meta-row">
-            <span class="log-detail__meta-label">{{ t('responses.elapsedTime') }}</span>
-            <span class="log-detail__meta-value">{{
-              t('responses.elapsedTimeMs', { ms: responseData.elapsed_time_ms })
-            }}</span>
-          </div>
-          <div v-if="responseData.response_error_name" class="log-detail__meta-row">
-            <span class="log-detail__meta-label">{{ t('responses.error') }}</span>
-            <code class="log-detail__meta-value log-detail__meta-value--mono log-detail__meta-value--error">{{
-              responseData.response_error_name
-            }}</code>
-          </div>
+        <h3 class="log-detail__section-title">{{ t('responses.detail') }}</h3>
+
+        <div class="log-detail__grid">
+          <!-- Summary -->
+          <h4 class="log-detail__subsection-title log-detail__grid-full">{{ t('responses.summary') }}</h4>
+          <span class="log-detail__grid-label">{{ t('responses.id') }}</span>
+          <code class="log-detail__grid-value log-detail__grid-value--mono">{{ responseData.response_id }}</code>
+
+          <span class="log-detail__grid-label">{{ t('responses.httpStatusCode') }}</span>
+          <span
+            v-if="responseData.http_code != null"
+            class="log-detail__status-badge"
+            :class="statusCodeClass(responseData.http_code)"
+          >
+            {{ responseData.http_code }}
+          </span>
+          <span v-else class="log-detail__grid-value">—</span>
+
+          <template v-if="responseData.elapsed_time_ms != null">
+            <span class="log-detail__grid-label">{{ t('responses.elapsedTime') }}</span>
+            <span class="log-detail__grid-value">{{ t('responses.elapsedTimeMs', { ms: responseData.elapsed_time_ms }) }}</span>
+          </template>
+
+          <template v-if="responseData.response_error_name">
+            <span class="log-detail__grid-label">{{ t('responses.error') }}</span>
+            <code class="log-detail__grid-value log-detail__grid-value--mono log-detail__grid-value--error">{{ responseData.response_error_name }}</code>
+          </template>
+
+          <!-- Headers -->
+          <h4 class="log-detail__subsection-title log-detail__grid-full">{{ t('responses.headers') }}</h4>
+          <template v-if="filteredHeaders">
+            <template v-for="(val, key) in filteredHeaders" :key="String(key)">
+              <code class="log-detail__grid-label log-detail__grid-label--mono">{{ key }}</code>
+              <code class="log-detail__grid-value log-detail__grid-value--mono">{{ val }}</code>
+            </template>
+          </template>
+          <p v-else class="log-detail__grid-full log-detail__no-response">{{ t('responses.noHeaders') }}</p>
         </div>
-      </div>
+        <p v-if="filteredHeaders && hasHiddenHeaders" class="log-detail__sensitive-note">
+          {{ t('responses.sensitiveHidden') }}
+        </p>
 
-      <!-- Response Headers -->
-      <div class="log-detail__section">
-        <h3 class="log-detail__section-title">{{ t('responses.headers') }}</h3>
-        <template v-if="filteredHeaders">
-          <div class="log-detail__headers">
-            <div
-              v-for="(val, key) in filteredHeaders"
-              :key="String(key)"
-              class="log-detail__header-row"
-            >
-              <code class="log-detail__header-key">{{ key }}</code>
-              <code class="log-detail__header-value">{{ val }}</code>
-            </div>
-          </div>
-          <p v-if="hasHiddenHeaders" class="log-detail__sensitive-note">
-            {{ t('responses.sensitiveHidden') }}
-          </p>
-        </template>
-        <p v-else class="log-detail__no-response">{{ t('responses.noHeaders') }}</p>
-      </div>
-
-      <!-- Response Body -->
-      <div class="log-detail__section">
-        <h3 class="log-detail__section-title">{{ t('responses.body') }}</h3>
-        <div v-if="responseData.body_formatted" :class="{ 'log-detail__body--error': isErrorResponse }">
+        <!-- Body -->
+        <h4 class="log-detail__subsection-title">{{ t('responses.body') }}</h4>
+        <div
+          v-if="responseData.body_formatted"
+          :class="{ 'log-detail__body--error': isErrorResponse }"
+        >
           <Hook0Code :code="responseData.body_formatted" language="json" :editable="false" />
         </div>
         <p v-else class="log-detail__no-response">{{ t('responses.noBody') }}</p>
@@ -227,6 +213,17 @@ const isErrorResponse = computed(() => {
   letter-spacing: 0.05em;
   color: var(--color-text-tertiary);
   margin: 0 0 0.75rem;
+}
+
+.log-detail__subsection-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: 1rem 0 0.5rem;
+}
+
+.log-detail__subsection-title:first-child {
+  margin-top: 0;
 }
 
 .log-detail__meta {
@@ -280,6 +277,44 @@ const isErrorResponse = computed(() => {
   border-radius: var(--radius-full);
 }
 
+.log-detail__grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.375rem 0.75rem;
+  align-items: baseline;
+}
+
+.log-detail__grid-full {
+  grid-column: 1 / -1;
+}
+
+.log-detail__grid-label {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.log-detail__grid-label--mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.log-detail__grid-value {
+  font-size: 0.8125rem;
+  color: var(--color-text-primary);
+  word-break: break-all;
+}
+
+.log-detail__grid-value--mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.log-detail__grid-value--error {
+  color: var(--color-error);
+}
+
 .log-detail__status-badge {
   display: inline-flex;
   align-items: center;
@@ -308,34 +343,6 @@ const isErrorResponse = computed(() => {
 .response-status--unknown {
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-tertiary);
-}
-
-.log-detail__headers {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.log-detail__header-row {
-  display: flex;
-  gap: 0.75rem;
-  align-items: baseline;
-}
-
-.log-detail__header-key {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  min-width: 8rem;
-  flex-shrink: 0;
-}
-
-.log-detail__header-value {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-text-primary);
-  word-break: break-all;
 }
 
 .log-detail__sensitive-note {
