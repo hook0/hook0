@@ -49,6 +49,7 @@ export const routes = {
 
   WebhooksList: 'WebhooksList',
   LogsList: 'LogsList',
+  LogDetail: 'LogDetail',
   ResponseDetail: 'ResponseDetail',
   APIDocumentation: 'APIDocumentation',
   APIDocumentationForApplication: 'APIDocumentationForApplication',

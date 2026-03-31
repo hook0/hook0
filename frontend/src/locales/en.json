@@ -510,7 +510,9 @@
     "tooltipPending": "Queued since {date}{retry}",
     "tooltipRetry": " · Retry #{count}",
     "tooltipSuccessful": "Delivered {date}{retry}",
-    "tooltipWaiting": "Next retry {date}{retry}"
+    "tooltipWaiting": "Next retry {date}{retry}",
+    "deliveryDetail": "Delivery Detail",
+    "openFullPage": "Open full page"
   },
   "members": {
     "currentUser": "(current user)",
