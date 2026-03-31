@@ -41,7 +41,7 @@ function formatRelativeTime(dateStr: string): string {
 
 function statusLabel(row: RequestAttemptExtended, t: ReturnType<typeof useI18n>['t']): string {
   const httpCode = row.http_response_status;
-  if (httpCode) return `${httpCode}`;
+  if (httpCode != null) return `${httpCode}`;
   // Failed without response = timeout/network error
   if (row.status.type === RequestAttemptStatusType.Failed && !row.response_id) {
     return t('logs.statusTimeout');

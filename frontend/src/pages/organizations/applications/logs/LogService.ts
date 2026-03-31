@@ -49,9 +49,9 @@ export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixe
 export function getById(
   requestAttemptId: UUID,
   applicationId: UUID
-): Promise<RequestAttemptTypeFixed> {
+): Promise<RequestAttemptExtended> {
   return http
-    .get<RequestAttemptTypeFixed>(`/request_attempts/${requestAttemptId}`, {
+    .get<RequestAttemptExtended>(`/request_attempts/${requestAttemptId}`, {
       params: { application_id: applicationId },
     })
     .then((res) => res.data);
