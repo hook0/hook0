@@ -8,5 +8,6 @@ export function useResponseDetail(responseId: Ref<string>, applicationId: Ref<st
     queryKey: computed(() => responseKeys.detail(responseId.value, applicationId.value)),
     queryFn: () => ResponseService.get(responseId.value, applicationId.value),
     enabled: computed(() => !!responseId.value && !!applicationId.value),
+    staleTime: Infinity,
   });
 }

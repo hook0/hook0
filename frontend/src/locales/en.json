@@ -678,6 +678,8 @@
     "id": "Response ID",
     "noBody": "No body content",
     "noHeaders": "No headers",
+    "noResponse": "No response received.",
+    "sensitiveHidden": "Some sensitive headers (Authorization, Cookie...) are hidden for security.",
     "summary": "Response Summary"
   },
   "serviceTokens": {
