@@ -5,17 +5,15 @@ import { ExternalLink } from 'lucide-vue-next';
 
 import { routes } from '@/routes';
 import LogDetailContent from './LogDetailContent.vue';
+import type { RequestAttemptExtended } from './LogService';
 
 import Hook0SidePanel from '@/components/Hook0SidePanel.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 
 type Props = {
   open: boolean;
-  eventId: string;
+  attempt: RequestAttemptExtended;
   applicationId: string;
-  responseId: string | null;
-  requestAttemptId: string;
-  httpResponseStatus: number | null;
 };
 
 const props = defineProps<Props>();
@@ -35,14 +33,19 @@ function openFullPage() {
     params: {
       organization_id: route.params.organization_id,
       application_id: route.params.application_id,
-      request_attempt_id: props.requestAttemptId,
+      request_attempt_id: props.attempt.request_attempt_id,
     },
   });
 }
 </script>
 
 <template>
-  <Hook0SidePanel :open="open" :title="t('logs.deliveryDetail')" width="42rem" @close="emit('close')">
+  <Hook0SidePanel
+    :open="open"
+    :title="t('logs.deliveryDetail')"
+    width="42rem"
+    @close="emit('close')"
+  >
     <template #header>
       <h2 class="log-panel__title">{{ t('logs.deliveryDetail') }}</h2>
       <Hook0Button
@@ -58,10 +61,8 @@ function openFullPage() {
     </template>
 
     <LogDetailContent
-      :event-id="eventId"
+      :attempt="attempt"
       :application-id="applicationId"
-      :response-id="responseId"
-      :http-response-status="httpResponseStatus"
     />
   </Hook0SidePanel>
 </template>

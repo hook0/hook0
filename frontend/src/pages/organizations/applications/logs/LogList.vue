@@ -122,12 +122,10 @@ function closeSidePanel() {
 
     <!-- Log side panel -->
     <LogSidePanel
+      v-if="selectedRow"
       :open="sidePanelOpen"
-      :event-id="selectedRow?.event_id ?? ''"
+      :attempt="selectedRow"
       :application-id="applicationId"
-      :response-id="selectedRow?.response_id ?? null"
-      :request-attempt-id="selectedRow?.request_attempt_id ?? ''"
-      :http-response-status="selectedRow?.http_response_status ?? null"
       @close="closeSidePanel"
     />
   </Hook0PageLayout>

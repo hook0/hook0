@@ -11,10 +11,7 @@ export function useLogList(applicationId: Ref<string>) {
   });
 }
 
-export function useRequestAttemptDetail(
-  requestAttemptId: Ref<string>,
-  applicationId: Ref<string>
-) {
+export function useRequestAttemptDetail(requestAttemptId: Ref<string>, applicationId: Ref<string>) {
   return useQuery({
     queryKey: computed(() =>
       requestAttemptKeys.detail(requestAttemptId.value, applicationId.value)
