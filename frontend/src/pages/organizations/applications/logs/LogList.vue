@@ -50,13 +50,14 @@ function handleRowClick(row: RequestAttemptExtended) {
 
 function closeSidePanel() {
   sidePanelOpen.value = false;
+  selectedRow.value = null;
 }
 </script>
 
 <template>
   <Hook0PageLayout :title="t('logs.title')">
     <!-- Error state (check FIRST - errors take priority) -->
-    <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="refetch()" />
+    <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="void refetch()" />
 
     <!-- Loading skeleton (also shown when query is disabled and data is undefined) -->
     <Hook0Card v-else-if="isLoading || !requestAttempts" data-test="logs-card">
@@ -177,7 +178,7 @@ function closeSidePanel() {
 
 :deep(.log-status--muted) {
   background-color: var(--color-bg-tertiary);
-  color: var(--color-text-muted);
+  color: var(--color-text-tertiary);
 }
 
 :deep(.log-event-cell) {

@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 
 import { useRouteIds } from '@/composables/useRouteIds';
+import { usePermissions } from '@/composables/usePermissions';
 import { useRequestAttemptDetail } from './useLogQueries';
 import LogDetailContent from './LogDetailContent.vue';
+import { routes } from '@/routes';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -14,7 +18,9 @@ import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0Stack from '@/components/Hook0Stack.vue';
 
 const { t } = useI18n();
+const route = useRoute();
 const { requestAttemptId, applicationId } = useRouteIds();
+usePermissions();
 
 const {
   data: attempt,
@@ -26,8 +32,25 @@ const {
 
 <template>
   <Hook0PageLayout :title="t('logs.deliveryDetail')">
+    <!-- Error first -->
+    <template v-if="error && !isLoading">
+      <Hook0ErrorCard :error="error" @retry="void refetch()" />
+      <Hook0Button
+        variant="secondary"
+        :to="{
+          name: routes.LogsList,
+          params: {
+            organization_id: route.params.organization_id,
+            application_id: route.params.application_id,
+          },
+        }"
+      >
+        {{ t('logs.backToList') }}
+      </Hook0Button>
+    </template>
+
     <!-- Loading (also handles disabled query state) -->
-    <Hook0Card v-if="isLoading || !attempt">
+    <Hook0Card v-else-if="isLoading || !attempt">
       <Hook0CardHeader>
         <template #header>{{ t('logs.deliveryDetail') }}</template>
       </Hook0CardHeader>
@@ -35,9 +58,6 @@ const {
         <Hook0SkeletonGroup :count="4" />
       </Hook0CardContent>
     </Hook0Card>
-
-    <!-- Error -->
-    <Hook0ErrorCard v-else-if="error" :error="error" @retry="void refetch()" />
 
     <!-- Data loaded -->
     <template v-else>

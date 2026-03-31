@@ -3,6 +3,7 @@ import { computed, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Hook0Code from '@/components/Hook0Code.vue';
+import Hook0DateTime from '@/components/Hook0DateTime.vue';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 
@@ -30,7 +31,12 @@ const eventIdRef = computed(() => props.attempt.event_id);
 const applicationIdRef = toRef(props, 'applicationId');
 const responseIdRef = computed(() => props.attempt.response_id ?? '');
 
-const { data: eventData, isLoading: eventLoading } = useEventDetail(eventIdRef, applicationIdRef);
+const {
+  data: eventData,
+  isLoading: eventLoading,
+  error: eventError,
+  refetch: eventRefetch,
+} = useEventDetail(eventIdRef, applicationIdRef);
 const {
   data: responseData,
   isLoading: responseLoading,
@@ -69,6 +75,11 @@ const isErrorResponse = computed(() => {
     </div>
   </template>
 
+  <!-- Event error -->
+  <div v-else-if="eventError" class="log-detail__section">
+    <Hook0ErrorCard :error="eventError" @retry="void eventRefetch()" />
+  </div>
+
   <!-- Event loaded -->
   <template v-else>
     <!-- Metadata -->
@@ -89,11 +100,11 @@ const isErrorResponse = computed(() => {
         </div>
         <div class="log-detail__meta-row">
           <span class="log-detail__meta-label">{{ t('events.receivedAt') }}</span>
-          <span class="log-detail__meta-value">{{ eventData.received_at }}</span>
+          <Hook0DateTime :value="eventData.received_at" />
         </div>
         <div class="log-detail__meta-row">
           <span class="log-detail__meta-label">{{ t('events.occurredAt') }}</span>
-          <span class="log-detail__meta-value">{{ eventData.occurred_at }}</span>
+          <Hook0DateTime :value="eventData.occurred_at" />
         </div>
       </div>
     </div>
@@ -121,8 +132,11 @@ const isErrorResponse = computed(() => {
       <Hook0Code :code="eventData.payload_decoded" language="json" :editable="false" />
     </div>
 
-    <!-- Response: not sent yet — hide entirely -->
-    <template v-if="!isSent" />
+    <!-- Response: not sent yet -->
+    <div v-if="!isSent" class="log-detail__section">
+      <h3 class="log-detail__section-title log-detail__section-title--response">{{ t('responses.detail') }}</h3>
+      <p class="log-detail__no-response">{{ t('responses.notSentYet') }}</p>
+    </div>
 
     <!-- Response: sent but no response (timeout) -->
     <div v-else-if="!attempt.response_id" class="log-detail__section">
@@ -162,6 +176,8 @@ const isErrorResponse = computed(() => {
             v-if="responseData.http_code != null"
             class="log-detail__status-badge"
             :class="statusCodeClass(responseData.http_code)"
+            role="status"
+            :aria-label="`HTTP ${responseData.http_code}`"
           >
             {{ responseData.http_code }}
           </span>
@@ -340,22 +356,22 @@ const isErrorResponse = computed(() => {
   width: fit-content;
 }
 
-.response-status--success {
+.log-detail__status-badge--success {
   background-color: var(--color-success-light);
   color: var(--color-success);
 }
 
-.response-status--warning {
+.log-detail__status-badge--warning {
   background-color: var(--color-warning-light);
   color: var(--color-warning);
 }
 
-.response-status--error {
+.log-detail__status-badge--error {
   background-color: var(--color-error-light);
   color: var(--color-error);
 }
 
-.response-status--unknown {
+.log-detail__status-badge--unknown {
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-tertiary);
 }

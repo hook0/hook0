@@ -514,7 +514,8 @@
     "tooltipSuccessful": "Delivered {date}{retry}",
     "tooltipWaiting": "Next retry {date}{retry}",
     "deliveryDetail": "Delivery Detail",
-    "openFullPage": "Open full page"
+    "openFullPage": "Open full page",
+    "backToList": "Back to Delivery Logs"
   },
   "members": {
     "currentUser": "(current user)",
