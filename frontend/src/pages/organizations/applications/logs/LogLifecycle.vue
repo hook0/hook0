@@ -239,7 +239,7 @@ const steps = computed<LifecycleStep[]>(() => {
 }
 
 .log-lifecycle__line--next {
-  background-color: var(--color-warning);
+  background-color: color-mix(in srgb, var(--color-warning) 50%, transparent);
   animation: pulse-line 2s ease-in-out infinite;
 }
 
@@ -271,6 +271,7 @@ const steps = computed<LifecycleStep[]>(() => {
   align-items: baseline;
   gap: 0.5rem;
   justify-content: space-between;
+  margin-top: -0.125rem;
 }
 
 .log-lifecycle__label {
@@ -293,12 +294,24 @@ const steps = computed<LifecycleStep[]>(() => {
   color: var(--color-text-tertiary);
 }
 
-.log-lifecycle__step--pending .log-lifecycle__label,
-.log-lifecycle__step--pending .log-lifecycle__description {
-  color: var(--color-text-tertiary);
+.log-lifecycle__step--done .log-lifecycle__label {
+  color: var(--color-primary);
 }
 
 .log-lifecycle__step--next .log-lifecycle__label {
   color: var(--color-warning);
+}
+
+.log-lifecycle__step--error .log-lifecycle__label {
+  color: var(--color-error);
+}
+
+.log-lifecycle__step--active .log-lifecycle__label {
+  color: var(--color-info);
+}
+
+.log-lifecycle__step--pending .log-lifecycle__label,
+.log-lifecycle__step--pending .log-lifecycle__description {
+  color: var(--color-text-tertiary);
 }
 </style>
