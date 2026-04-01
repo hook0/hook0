@@ -106,36 +106,11 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
               name: routes.EventsDetail,
               params: { ...route.params, event_id: row.event_id },
             },
-            // Prevent link click from also triggering row-click (side panel)
             onClick: (e: MouseEvent) => e.stopPropagation(),
             class: 'log-cell-link',
+            'data-test': 'log-event-link',
           },
           () => getEventTypeName(row)
-        );
-      },
-    },
-    {
-      id: 'subscription',
-      header: t('logs.subscription'),
-      enableSorting: true,
-      cell: (info) => {
-        const row = info.row.original;
-        return h(
-          Hook0Button,
-          {
-            variant: 'link',
-            to: {
-              name: routes.SubscriptionsDetail,
-              params: {
-                organization_id: route.params.organization_id,
-                application_id: route.params.application_id,
-                subscription_id: row.subscription.subscription_id,
-              },
-            },
-            onClick: (e: MouseEvent) => e.stopPropagation(),
-            class: 'log-cell-link',
-          },
-          () => String(row.subscription.description ?? row.subscription.subscription_id)
         );
       },
     },
@@ -143,7 +118,6 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
       accessorKey: 'created_at',
       header: t('common.createdAt'),
       enableSorting: true,
-      meta: { align: 'right' },
       cell: (info) => h(Hook0DateFormatted, { value: info.getValue() as string | null }),
     },
   ];

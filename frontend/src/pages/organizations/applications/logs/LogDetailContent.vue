@@ -78,12 +78,29 @@ const isErrorResponse = computed(() => {
   </div>
 
   <template v-else-if="eventLoading || !eventData">
+    <!-- Metadata skeleton -->
     <div class="log-detail__section">
-      <Hook0Skeleton size="text-truncated" />
-      <Hook0Skeleton size="text" />
-      <Hook0Skeleton size="text-truncated" />
+      <div class="log-detail__meta">
+        <div v-for="i in 2" :key="i" class="log-detail__meta-row">
+          <Hook0Skeleton size="text" style="width: 5rem" />
+          <Hook0Skeleton size="text-truncated" style="width: 10rem" />
+        </div>
+      </div>
     </div>
+    <!-- Lifecycle skeleton -->
     <div class="log-detail__section">
+      <Hook0Skeleton size="text" style="width: 5rem; margin-bottom: 0.75rem" />
+      <div v-for="i in 5" :key="i" style="display: flex; gap: 0.625rem; margin-bottom: 0.75rem">
+        <Hook0Skeleton size="text" style="width: 1rem; height: 1rem; border-radius: 50%" />
+        <div style="flex: 1">
+          <Hook0Skeleton size="text" style="width: 6rem" />
+          <Hook0Skeleton size="text" style="width: 12rem; margin-top: 0.25rem" />
+        </div>
+      </div>
+    </div>
+    <!-- Request/Response skeleton -->
+    <div class="log-detail__section">
+      <Hook0Skeleton size="text" style="width: 4rem; margin-bottom: 0.75rem" />
       <Hook0Skeleton size="block" />
     </div>
   </template>

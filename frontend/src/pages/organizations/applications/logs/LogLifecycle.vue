@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CheckCircle2, XCircle, Clock, Circle } from 'lucide-vue-next';
+import { CheckCircle2, XCircle, Clock, Circle, CircleDashed } from 'lucide-vue-next';
 import Hook0DateFormatted from '@/components/Hook0DateFormatted.vue';
 
 import type { Event } from '@/pages/organizations/applications/events/EventsService';
@@ -20,7 +20,7 @@ type LifecycleStep = {
   label: string;
   description: string;
   date: string | null | undefined;
-  status: 'done' | 'active' | 'pending' | 'error';
+  status: 'done' | 'active' | 'pending' | 'error' | 'next';
   icon: typeof CheckCircle2;
 };
 
@@ -103,6 +103,13 @@ const steps = computed<LifecycleStep[]>(() => {
     });
   }
 
+  // Mark the first pending step as "next" (the step currently waiting to happen)
+  const firstPending = result.find((s) => s.status === 'pending');
+  if (firstPending) {
+    firstPending.status = 'next';
+    firstPending.icon = CircleDashed;
+  }
+
   return result;
 });
 </script>
@@ -128,9 +135,11 @@ const steps = computed<LifecycleStep[]>(() => {
           class="log-lifecycle__line"
           :class="{
             'log-lifecycle__line--done':
-              step.status === 'done' && steps[index + 1]?.status !== 'error',
+              step.status === 'done' && steps[index + 1]?.status === 'done',
+            'log-lifecycle__line--next':
+              step.status === 'done' && steps[index + 1]?.status === 'next',
             'log-lifecycle__line--error':
-              step.status === 'error' || steps[index + 1]?.status === 'error',
+              steps[index + 1]?.status === 'error',
           }"
         />
       </div>
@@ -187,6 +196,20 @@ const steps = computed<LifecycleStep[]>(() => {
   color: var(--color-info);
 }
 
+.log-lifecycle__icon--next {
+  color: var(--color-warning);
+  animation: spin-slow 4s linear infinite;
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .log-lifecycle__icon--pending {
   color: var(--color-text-tertiary);
 }
@@ -213,6 +236,21 @@ const steps = computed<LifecycleStep[]>(() => {
 
 .log-lifecycle__line--done {
   background-color: var(--color-primary);
+}
+
+.log-lifecycle__line--next {
+  background-color: var(--color-warning);
+  animation: pulse-line 2s ease-in-out infinite;
+}
+
+@keyframes pulse-line {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .log-lifecycle__line--error {
@@ -258,5 +296,9 @@ const steps = computed<LifecycleStep[]>(() => {
 .log-lifecycle__step--pending .log-lifecycle__label,
 .log-lifecycle__step--pending .log-lifecycle__description {
   color: var(--color-text-tertiary);
+}
+
+.log-lifecycle__step--next .log-lifecycle__label {
+  color: var(--color-warning);
 }
 </style>
