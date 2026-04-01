@@ -119,7 +119,7 @@ const isErrorResponse = computed(() => {
               name: routes.EventsDetail,
               params: { ...route.params, event_id: eventData.event_id },
             }"
-            class="log-detail__meta-link"
+            class="log-detail__meta-link log-detail__meta-link--mono"
           >
             {{ eventData.event_type_name }}
           </Hook0Button>
@@ -355,6 +355,12 @@ const isErrorResponse = computed(() => {
 .log-detail__meta-link,
 .log-detail__meta-row :deep(.hook0-button.link) {
   font-size: 0.8125rem;
+}
+
+.log-detail__meta-link--mono,
+.log-detail__meta-row :deep(.log-detail__meta-link--mono.hook0-button.link) {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
 }
 
 .log-detail__labels {

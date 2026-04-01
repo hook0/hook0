@@ -357,12 +357,9 @@ function goBackToList() {
   color: var(--color-text-tertiary);
 }
 
-:deep(.log-cell-link) {
-  font-size: 0.8125rem;
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+:deep(.log-cell-link.hook0-button.link) {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
 }
 
 :deep(.log-event-name) {
