@@ -37,10 +37,12 @@ PostgreSQL handles everything: event storage, queue, and delivery state. Workers
 flowchart LR
     CA[Client Apps]:::external --> API[API Server]:::hook0
     API --> PG[PostgreSQL]:::hook0
+    API --> S3[S3-compatible Object Storage]:::hook0
     API --> PL[Apache Pulsar]:::processing
     PL --> WK[Worker Process]:::processing
-    WK --> S3[S3-compatible Object Storage]:::hook0
     WK --> WT[Webhook Targets]:::customer
+    WK --> S3
+    WK --> PG
 
     classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
     classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
@@ -52,7 +54,7 @@ flowchart LR
     click WK "/explanation/event-processing" "Event Processing"
 ```
 
-For high-throughput deployments, Hook0 can use Apache Pulsar for queuing and S3-compatible object storage for event payloads and response bodies. PostgreSQL remains the source of truth for metadata, subscriptions, and event types. The switch between backends is a configuration change (`QUEUE_TYPE`), not a code change.
+For high-throughput deployments, Hook0 can use Apache Pulsar for queuing and S3-compatible object storage for large payloads. The API server stores event payloads in S3 and publishes delivery tasks to Pulsar. Workers consume from Pulsar, retrieve event payloads from S3, deliver webhooks, and store response bodies back to S3. Workers also read metadata from PostgreSQL and record delivery results there. PostgreSQL remains the source of truth for metadata, subscriptions, and event types. The switch between backends is a configuration change (`QUEUE_TYPE`), not a code change.
 
 ## Component responsibilities
 
