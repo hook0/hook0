@@ -161,24 +161,19 @@ test.describe("Logs", () => {
       timeout: 15000,
     });
 
-    // Verify the event ID is displayed in the log row (Hook0Uuid renders a <span>, not a link)
-    const eventIdCell = page.locator('[data-test="logs-table"] [data-test="log-event-link"]').first();
-    await expect(eventIdCell).toBeVisible();
+    // Verify the event name link is displayed in the log row
+    const eventLink = page.locator('[data-test="log-event-link"]').first();
+    await expect(eventLink).toBeVisible();
+    await expect(eventLink).toContainText("link.test.created");
 
-    // Hover to reveal tooltip with full UUID, then extract it
-    await eventIdCell.hover();
-    const tooltip = page.locator('.hook0-tooltip-copy__tooltip-text');
-    await expect(tooltip).toBeVisible({ timeout: 5000 });
-    const fullEventId = await tooltip.textContent();
-    expect(fullEventId).toBeTruthy();
-
-    // Navigate to the event detail page using the full event ID
-    const currentUrl = page.url();
-    const appPath = currentUrl.match(/(\/organizations\/[^/]+\/applications\/[^/]+)/)?.[1];
-    expect(appPath).toBeTruthy();
-    await page.goto(`${appPath}/events/${fullEventId!.trim()}`);
+    // Get the href and navigate directly (the link is inside a clickable row,
+    // so programmatic navigation is more reliable than clicking)
+    const href = await eventLink.getAttribute("href");
+    expect(href).toBeTruthy();
+    await page.goto(href!);
 
     // Verify event detail page renders
+    await expect(page).toHaveURL(/\/events\//, { timeout: 10000 });
     await expect(page.locator('[data-test="event-detail-card"]')).toBeVisible({ timeout: 10000 });
   });
 
