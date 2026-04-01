@@ -141,6 +141,7 @@ type Props = {
   skeletonRows?: number;
   globalFilter?: string;
   clickableRows?: boolean;
+  activeRowId?: string;
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -154,6 +155,7 @@ const props = withDefaults(defineProps<Props>(), {
   skeletonRows: 5,
   globalFilter: '',
   clickableRows: false,
+  activeRowId: undefined,
 });
 
 const emit = defineEmits<{
@@ -318,7 +320,10 @@ const rows = computed(() => table.getRowModel().rows);
             :key="row.id"
             :row-id="row.id"
             class="hook0-table-tr stagger-item"
-            :class="{ 'hook0-table-tr--clickable': clickableRows }"
+            :class="{
+              'hook0-table-tr--clickable': clickableRows,
+              'hook0-table-tr--active': activeRowId != null && row.id === activeRowId,
+            }"
             :tabindex="clickableRows ? 0 : undefined"
             :role="clickableRows ? 'row' : undefined"
             @click="handleRowClick(row.original)"
@@ -418,6 +423,10 @@ const rows = computed(() => table.getRowModel().rows);
 
 .hook0-table-tr--clickable {
   cursor: pointer;
+}
+
+.hook0-table-tr--active {
+  background-color: var(--color-bg-secondary);
 }
 
 .hook0-table-td {
