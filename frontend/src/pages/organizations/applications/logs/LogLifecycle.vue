@@ -219,12 +219,15 @@ const steps = computed<LifecycleStep[]>(() => {
   flex-direction: column;
   gap: 0.125rem;
   padding-bottom: 0.5rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .log-lifecycle__header {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
+  justify-content: space-between;
 }
 
 .log-lifecycle__label {
