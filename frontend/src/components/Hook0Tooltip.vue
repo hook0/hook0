@@ -4,18 +4,22 @@ import { onBeforeUnmount, ref, useId, nextTick } from 'vue';
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
 type Props = {
-  content: string;
+  content?: string;
   position?: TooltipPosition;
   delay?: number;
+  interactive?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
+  content: undefined,
   position: 'top',
   delay: 200,
+  interactive: false,
 });
 
 defineSlots<{
   default(): unknown;
+  content(): unknown;
 }>();
 
 const tooltipId = `hook0-tooltip-${useId()}`;
@@ -23,44 +27,78 @@ const visible = ref(false);
 const triggerRef = ref<HTMLElement | null>(null);
 const tooltipStyle = ref<Record<string, string>>({});
 let showTimeout: ReturnType<typeof setTimeout> | null = null;
+let hideTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const TOOLTIP_GAP_PX = 8;
+const VIEWPORT_PADDING = 8;
+
+function clampHorizontal(left: number, translateX: string): { left: number; translateX: string } {
+  if (props.position !== 'top' && props.position !== 'bottom') {
+    return { left, translateX };
+  }
+  const tooltipEstimatedWidth = 280;
+  const halfWidth = tooltipEstimatedWidth / 2;
+  const viewportWidth = window.innerWidth;
+
+  if (left + halfWidth > viewportWidth - VIEWPORT_PADDING) {
+    return { left: viewportWidth - VIEWPORT_PADDING, translateX: '-100%' };
+  }
+  if (left - halfWidth < VIEWPORT_PADDING) {
+    return { left: VIEWPORT_PADDING, translateX: '0%' };
+  }
+  return { left, translateX };
+}
 
 function updatePosition() {
   if (!triggerRef.value) return;
   const rect = triggerRef.value.getBoundingClientRect();
   const gap = TOOLTIP_GAP_PX;
 
+  let left: number;
+  let top: string;
+  let translateX: string;
+  let translateY: string;
+
   switch (props.position) {
-    case 'top':
-      tooltipStyle.value = {
-        left: `${rect.left + rect.width / 2}px`,
-        top: `${rect.top - gap}px`,
-        transform: 'translate(-50%, -100%)',
-      };
+    case 'top': {
+      left = rect.left + rect.width / 2;
+      top = `${rect.top - gap}px`;
+      translateX = '-50%';
+      translateY = '-100%';
+      const clamped = clampHorizontal(left, translateX);
+      left = clamped.left;
+      translateX = clamped.translateX;
       break;
-    case 'bottom':
-      tooltipStyle.value = {
-        left: `${rect.left + rect.width / 2}px`,
-        top: `${rect.bottom + gap}px`,
-        transform: 'translate(-50%, 0)',
-      };
+    }
+    case 'bottom': {
+      left = rect.left + rect.width / 2;
+      top = `${rect.bottom + gap}px`;
+      translateX = '-50%';
+      translateY = '0';
+      const clamped = clampHorizontal(left, translateX);
+      left = clamped.left;
+      translateX = clamped.translateX;
       break;
+    }
     case 'left':
-      tooltipStyle.value = {
-        left: `${rect.left - gap}px`,
-        top: `${rect.top + rect.height / 2}px`,
-        transform: 'translate(-100%, -50%)',
-      };
+      left = rect.left - gap;
+      top = `${rect.top + rect.height / 2}px`;
+      translateX = '-100%';
+      translateY = '-50%';
       break;
     case 'right':
-      tooltipStyle.value = {
-        left: `${rect.right + gap}px`,
-        top: `${rect.top + rect.height / 2}px`,
-        transform: 'translate(0, -50%)',
-      };
+      left = rect.right + gap;
+      top = `${rect.top + rect.height / 2}px`;
+      translateX = '0';
+      translateY = '-50%';
       break;
   }
+
+  tooltipStyle.value = {
+    left: `${left}px`,
+    top,
+    transform: `translate(${translateX}, ${translateY})`,
+  };
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -70,9 +108,14 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 function show() {
-  if (showTimeout !== null) return;
+  if (hideTimeout) {
+    clearTimeout(hideTimeout);
+    hideTimeout = null;
+  }
+  if (showTimeout !== null || visible.value) return;
   showTimeout = setTimeout(() => {
     visible.value = true;
+    showTimeout = null;
     document.addEventListener('keydown', onKeydown);
     window.addEventListener('scroll', updatePosition, { capture: true, passive: true });
     window.addEventListener('resize', updatePosition, { passive: true });
@@ -85,6 +128,17 @@ function hide() {
     clearTimeout(showTimeout);
     showTimeout = null;
   }
+  if (props.interactive) {
+    hideTimeout = setTimeout(() => {
+      doHide();
+      hideTimeout = null;
+    }, 150);
+  } else {
+    doHide();
+  }
+}
+
+function doHide() {
   if (visible.value) {
     document.removeEventListener('keydown', onKeydown);
     window.removeEventListener('scroll', updatePosition, { capture: true } as EventListenerOptions);
@@ -97,9 +151,8 @@ onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown);
   window.removeEventListener('scroll', updatePosition, { capture: true } as EventListenerOptions);
   window.removeEventListener('resize', updatePosition);
-  if (showTimeout !== null) {
-    clearTimeout(showTimeout);
-  }
+  if (showTimeout !== null) clearTimeout(showTimeout);
+  if (hideTimeout !== null) clearTimeout(hideTimeout);
 });
 </script>
 
@@ -123,9 +176,12 @@ onBeforeUnmount(() => {
           :id="tooltipId"
           role="tooltip"
           class="hook0-tooltip__content"
+          :class="{ 'hook0-tooltip__content--interactive': interactive }"
           :style="tooltipStyle"
+          @mouseenter="interactive ? show() : undefined"
+          @mouseleave="interactive ? hide() : undefined"
         >
-          {{ content }}
+          <slot name="content">{{ content }}</slot>
           <span
             class="hook0-tooltip__arrow"
             :class="[`hook0-tooltip__arrow--${position}`]"
@@ -158,6 +214,11 @@ onBeforeUnmount(() => {
   pointer-events: none;
   z-index: var(--z-tooltip, 9999);
   box-shadow: var(--shadow-lg);
+}
+
+.hook0-tooltip__content--interactive {
+  pointer-events: auto;
+  white-space: nowrap;
 }
 
 /* Arrow */

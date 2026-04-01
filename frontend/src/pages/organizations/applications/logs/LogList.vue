@@ -160,6 +160,20 @@ function closeSidePanel() {
   align-items: flex-start;
 }
 
+/* Right-align the last column (created_at) — header + cells */
+:deep(.hook0-table-th:last-child) {
+  text-align: right;
+}
+
+:deep(.hook0-table-th:last-child .hook0-table-sort-button) {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+:deep(.hook0-table-td:last-child) {
+  text-align: right;
+}
+
 /* Column cell styles rendered via h() in useLogColumns.ts — :deep() required
    because VNodes are created outside this SFC's scope. */
 

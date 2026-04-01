@@ -137,12 +137,7 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
     },
     {
       accessorKey: 'created_at',
-      header: () =>
-        h(
-          'span',
-          { style: 'display:flex;justify-content:flex-end;width:100%' },
-          t('common.createdAt')
-        ),
+      header: t('common.createdAt'),
       enableSorting: true,
       meta: { align: 'right' },
       cell: (info) =>
