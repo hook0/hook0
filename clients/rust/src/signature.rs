@@ -1,4 +1,4 @@
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use http::HeaderName;
 use sha2::Sha256;
 use std::collections::HashMap;
