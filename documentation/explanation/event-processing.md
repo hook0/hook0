@@ -53,7 +53,6 @@ curl -X POST "$HOOK0_API/event" \
   -H "Content-Type: application/json" \
   -d '{
     "application_id": "'"$APP_ID"'",
-    "event_id": "'"$(uuidgen)"'",
     "event_type": "order.order.completed",
     "payload": "{\"order_id\": \"ord_123\", \"customer_id\": \"cust_456\", \"amount\": 99.99, \"currency\": \"USD\"}",
     "payload_content_type": "application/json",

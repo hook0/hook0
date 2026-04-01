@@ -86,13 +86,11 @@ When events occur in your platform, send them to Hook0 with tenant-specific labe
 
 ```bash
 # Example: User pushes code to a project
-# Note: event_id must be a valid UUID
 curl -X POST "$HOOK0_API/event" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "application_id": "'"$APP_ID"'",
-    "event_id": "'"$(uuidgen)"'",
     "event_type": "gitlab.push.created",
     "payload": "{\"ref\":\"refs/heads/main\",\"commits\":3,\"author\":\"john@example.com\",\"message\":\"Fix bug in authentication\"}",
     "payload_content_type": "application/json",
@@ -115,7 +113,6 @@ curl -X POST "$HOOK0_API/event" \
   -H "Content-Type: application/json" \
   -d '{
     "application_id": "'"$APP_ID"'",
-    "event_id": "'"$(uuidgen)"'",
     "event_type": "gitlab.pipeline.completed",
     "payload": "{\"pipeline_id\":\"9876\",\"status\":\"success\",\"duration\":240,\"stages\":[\"test\",\"build\",\"deploy\"]}",
     "payload_content_type": "application/json",

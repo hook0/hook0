@@ -100,7 +100,7 @@ export default function (setupData: SetupData): void {
     [setupData.labelKey]: lv,
     otherLabel1: 'otherValue1',
     otherLabel2: 'otherValue2',
-  });
+  }, null);
   expect(e).not.toBeNull();
 }
 
