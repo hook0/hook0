@@ -50,11 +50,19 @@ const selectedRow = ref<RequestAttemptExtended | null>(null);
 watch(
   [requestAttempts, () => route.query.delivery],
   ([attempts, deliveryId]) => {
-    if (!attempts || !deliveryId) return;
+    if (!deliveryId) {
+      sidePanelOpen.value = false;
+      selectedRow.value = null;
+      return;
+    }
+    if (!attempts) return;
     const found = attempts.find((a) => a.request_attempt_id === deliveryId);
     if (found) {
       selectedRow.value = found;
       sidePanelOpen.value = true;
+    } else {
+      sidePanelOpen.value = false;
+      selectedRow.value = null;
     }
   },
   { immediate: true }

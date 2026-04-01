@@ -72,8 +72,13 @@ const isErrorResponse = computed(() => {
 </script>
 
 <template>
+  <!-- Event error -->
+  <div v-if="eventError && !eventLoading" class="log-detail__section">
+    <Hook0ErrorCard :error="eventError" @retry="void eventRefetch()" />
+  </div>
+
   <!-- Loading -->
-  <template v-if="eventLoading || !eventData">
+  <template v-else-if="eventLoading || !eventData">
     <div class="log-detail__section">
       <Hook0Skeleton size="text-truncated" />
       <Hook0Skeleton size="text" />
@@ -83,11 +88,6 @@ const isErrorResponse = computed(() => {
       <Hook0Skeleton size="block" />
     </div>
   </template>
-
-  <!-- Event error -->
-  <div v-else-if="eventError" class="log-detail__section">
-    <Hook0ErrorCard :error="eventError" @retry="void eventRefetch()" />
-  </div>
 
   <!-- Event loaded -->
   <template v-else>
