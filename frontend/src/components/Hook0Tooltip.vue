@@ -170,7 +170,7 @@ onBeforeUnmount(() => {
     @focusin="show"
     @focusout="hide"
   >
-    <div class="hook0-tooltip__trigger" :aria-describedby="tooltipId">
+    <div class="hook0-tooltip__trigger" :aria-describedby="tooltipId" tabindex="0">
       <slot />
     </div>
 

@@ -60,7 +60,7 @@ watch(
     if (deliveryId) {
       const found = attempts.find((a) => a.request_attempt_id === deliveryId);
       selectedRow.value = found ?? null;
-    } else if (isDesktop.value) {
+    } else if (isDesktop.value && !selectedRow.value) {
       selectedRow.value = attempts[0];
       void router.replace({
         query: { ...route.query, delivery: attempts[0].request_attempt_id },
@@ -197,7 +197,6 @@ function goBackToList() {
 </template>
 
 <style scoped>
-
 /* Align doc buttons to top when subtitle wraps */
 :deep(.hook0-card-header__container) {
   align-items: flex-start;
