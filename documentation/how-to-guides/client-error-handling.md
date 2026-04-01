@@ -5,7 +5,7 @@ description: Implement robust error handling for Hook0 API responses in your app
 
 # Client-side Error Handling Best Practices
 
-This guide shows you how to implement robust error handling when integrating with Hook0's API.
+This guide shows you how to implement robust error handling when integrating with Hook0's API, whether you are sending [events](/concepts/events) or managing [subscriptions](/concepts/subscriptions).
 
 ## Prerequisites
 

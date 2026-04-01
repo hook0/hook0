@@ -126,7 +126,7 @@ Replaying an event resets its `dispatched_at` field. The dispatch trigger then c
 
 ## Idempotency
 
-Every event in Hook0 has a unique `event_id`. Consumers should use this as an idempotency key to handle duplicate deliveries.
+Every [event](/concepts/events) in Hook0 has a unique `event_id`. Consumers should use this as an idempotency key to handle duplicate deliveries.
 
 Duplicates happen when:
 - The consumer processed the event but returned a non-2xx response (e.g., crashed after processing but before responding)

@@ -10,7 +10,7 @@ Monitoring webhook delivery performance is crucial for ensuring reliability and 
 
 ## Overview
 
-Hook0 tracks every webhook delivery attempt through the `request_attempts` system. Each attempt records:
+Hook0 tracks every webhook delivery attempt through the [request attempts](/concepts/request-attempts) system. Each attempt records:
 - HTTP request details (method, URL, headers)
 - Response data (status code, headers, body)
 - Timing information (created_at, picked_at, succeeded_at/failed_at)

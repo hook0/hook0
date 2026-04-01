@@ -6,7 +6,7 @@ keywords: [webhook, event types, subscriptions, event schema, routing, Hook0]
 
 # Setting up event types and subscriptions
 
-This tutorial covers how to design event schemas, organize event type hierarchies, and configure subscription patterns for your application.
+This tutorial covers how to design event schemas, organize [event type](/concepts/event-types) hierarchies, and configure [subscription](/concepts/subscriptions) patterns for your application.
 
 ## Prerequisites
 
@@ -428,7 +428,7 @@ curl -X POST "$HOOK0_API/subscriptions" \
 Add metadata to organize subscriptions in the dashboard:
 
 :::info Metadata Purpose
-The `metadata` field is for your internal organization only. It is stored with the subscription and returned in API responses, but is **not** sent in webhook payloads. Use it to tag subscriptions by team, service, priority, etc.
+The [`metadata`](/concepts/metadata) field is for your internal organization only. It is stored with the subscription and returned in API responses, but is **not** sent in webhook payloads. Use it to tag subscriptions by team, service, priority, etc.
 :::
 
 ```bash

@@ -1,6 +1,6 @@
 # Debugging failed webhook deliveries
 
-This guide walks through identifying, diagnosing, and fixing webhook delivery failures in Hook0.
+This guide walks through identifying, diagnosing, and fixing webhook delivery failures in Hook0. Each failed delivery is tracked as a [request attempt](/concepts/request-attempts).
 
 :::tip General Troubleshooting
 For API errors, connection issues, and authentication problems, see [Troubleshooting Guide](./troubleshooting.md). This guide focuses specifically on webhook delivery failures.

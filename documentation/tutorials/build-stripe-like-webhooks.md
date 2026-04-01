@@ -13,9 +13,9 @@ This tutorial walks through building a production-grade webhook system similar t
 ## What you'll build
 
 A webhook system with:
-- Payment event types (`payment.charge.succeeded`, `payment.charge.failed`)
+- Payment [event types](/concepts/event-types) (`payment.charge.succeeded`, `payment.charge.failed`)
 - Secure webhook receiver with signature verification
-- Multi-tenant event routing using labels
+- Multi-tenant event routing using [labels](/concepts/labels)
 - Webhook testing and debugging tools
 - Dashboard monitoring
 

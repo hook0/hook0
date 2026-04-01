@@ -82,7 +82,7 @@ After validation passes, events are stored with:
 
 ### 2. Subscription matching
 
-When an event is stored, Hook0 finds matching subscriptions. Subscriptions can match:
+When an event is stored, Hook0 finds matching [subscriptions](/concepts/subscriptions). Subscriptions can match:
 - **Exact types**: `user.account.created`
 - **Multiple types**: `["user.account.created", "user.account.updated"]`
 
@@ -115,7 +115,7 @@ Hook0 categorizes HTTP responses to decide what happens next:
 - Eventually move to dead letter queue after max retries exhausted
 
 
-### 6. Request attempt tracking
+### 6. [Request attempt](/concepts/request-attempts) tracking
 
 Every delivery attempt is recorded.
 

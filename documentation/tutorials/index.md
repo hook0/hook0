@@ -36,8 +36,8 @@ Build an e-commerce webhook integration from scratch.
 Event management in Hook0: types, schemas, subscriptions.
 
 **What you'll learn:**
-- Creating and managing event types
-- Setting up subscriptions with filters
+- Creating and managing [event types](/concepts/event-types)
+- Setting up [subscriptions](/concepts/subscriptions) with filters
 - Using event schemas for validation
 - Managing subscription lifecycles
 
