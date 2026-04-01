@@ -25,6 +25,7 @@ defineSlots<{
 const tooltipId = `hook0-tooltip-${useId()}`;
 const visible = ref(false);
 const triggerRef = ref<HTMLElement | null>(null);
+const tooltipRef = ref<HTMLElement | null>(null);
 const tooltipStyle = ref<Record<string, string>>({});
 let showTimeout: ReturnType<typeof setTimeout> | null = null;
 let hideTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -36,8 +37,8 @@ function clampHorizontal(left: number, translateX: string): { left: number; tran
   if (props.position !== 'top' && props.position !== 'bottom') {
     return { left, translateX };
   }
-  const tooltipEstimatedWidth = 280;
-  const halfWidth = tooltipEstimatedWidth / 2;
+  const tooltipWidth = tooltipRef.value?.offsetWidth ?? 200;
+  const halfWidth = tooltipWidth / 2;
   const viewportWidth = window.innerWidth;
 
   if (left + halfWidth > viewportWidth - VIEWPORT_PADDING) {
@@ -174,6 +175,7 @@ onBeforeUnmount(() => {
         <div
           v-if="visible"
           :id="tooltipId"
+          ref="tooltipRef"
           role="tooltip"
           class="hook0-tooltip__content"
           :class="{ 'hook0-tooltip__content--interactive': interactive }"
