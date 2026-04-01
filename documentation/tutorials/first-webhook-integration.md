@@ -136,7 +136,6 @@ curl -X POST "$HOOK0_API/event" \
   -H "Content-Type: application/json" \
   -d '{
     "application_id": "'"$APP_ID"'",
-    "event_id": "'$(uuidgen)'",
     "event_type": "user.account.created",
     "payload": "{\"user_id\": \"usr_789\", \"email\": \"john@example.com\", \"plan\": \"premium\"}",
     "payload_content_type": "application/json",
@@ -185,7 +184,6 @@ curl -X POST "$HOOK0_API/event" \
   -H "Content-Type: application/json" \
   -d '{
     "application_id": "'"$APP_ID"'",
-    "event_id": "'$(uuidgen)'",
     "event_type": "order.purchase.completed",
     "payload": "{\"order_id\": \"ord_456\", \"amount\": 299.99, \"items\": 3}",
     "payload_content_type": "application/json",
@@ -405,7 +403,6 @@ curl -X POST "$HOOK0_API/event" \
   -H "Content-Type: application/json" \
   -d '{
     "application_id": "'"$APP_ID"'",
-    "event_id": "'$(uuidgen)'",
     "event_type": "user.account.created",
     "payload": "{\"user_id\": \"usr_789\", \"email\": \"john@example.com\", \"plan\": \"premium\"}",
     "labels": {
@@ -421,7 +418,6 @@ curl -X POST "$HOOK0_API/event" \
   -H "Content-Type: application/json" \
   -d '{
     "application_id": "'"$APP_ID"'",
-    "event_id": "'$(uuidgen)'",
     "event_type": "user.account.created",
     "payload": "{\"user_id\": \"usr_7892\", \"email\": \"john2@example.com\", \"plan\": \"premium\"}",
     "labels": {
@@ -443,7 +439,6 @@ curl -X POST "$HOOK0_API/event" \
   -H "Content-Type: application/json" \
   -d '{
     "application_id": "'"$APP_ID"'",
-    "event_id": "'$(uuidgen)'",
     "event_type": "user.account.created",
     "payload": "{\"user_id\": \"usr_123\"}",
     "payload_content_type": "application/json",
@@ -597,7 +592,6 @@ curl -X POST "$HOOK0_API/event" \
   -H "Content-Type: application/json" \
   -d '{
     "application_id": "'"$APP_ID"'",
-    "event_id": "'$(uuidgen)'",
     "event_type": "billing.invoice.paid",
     "payload": "{\"invoice_id\": \"inv_456\", \"amount\": 1500.00}",
     "payload_content_type": "application/json",
@@ -640,7 +634,6 @@ from datetime import datetime, timezone
 # Send event
 event = {
     "application_id": "{APP_ID}",
-    "event_id": str(uuid.uuid4()),
     "event_type": "user.account.created",
     "payload": json.dumps({"user_id": "usr_123"}),
     "payload_content_type": "application/json",
@@ -669,7 +662,6 @@ import (
 // Send event
 event := map[string]interface{}{
     "application_id":       "{APP_ID}",
-    "event_id":             uuid.New().String(),
     "event_type":           "user.account.created",
     "payload":              `{"user_id": "usr_123"}`,
     "payload_content_type": "application/json",

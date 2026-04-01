@@ -103,7 +103,7 @@ function scenario_1() {
       throw new Error('Failed to create event 2');
     }
 
-    let event_3 = send_event(s, h, application_id, event_type_1, { test: 'test' });
+    let event_3 = send_event(s, h, application_id, event_type_1, { test: 'test' }, null);
     if (!isNotNull(event_3)) {
       throw new Error('Failed to create event 3');
     }
