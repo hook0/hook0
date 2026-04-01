@@ -105,6 +105,11 @@ function copy() {
   background-color: color-mix(in srgb, var(--color-on-dark) 30%, transparent);
 }
 
+.hook0-tooltip-copy__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .hook0-tooltip-copy__icon--success {
   color: var(--color-on-dark);
 }

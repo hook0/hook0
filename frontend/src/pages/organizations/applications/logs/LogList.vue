@@ -217,4 +217,8 @@ function closeSidePanel() {
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-tertiary);
 }
+
+:deep(.log-cell-link) {
+  font-size: 0.8125rem;
+}
 </style>

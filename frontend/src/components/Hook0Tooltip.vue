@@ -178,8 +178,8 @@ onBeforeUnmount(() => {
           class="hook0-tooltip__content"
           :class="{ 'hook0-tooltip__content--interactive': interactive }"
           :style="tooltipStyle"
-          @mouseenter="interactive ? show() : undefined"
-          @mouseleave="interactive ? hide() : undefined"
+          @mouseenter="interactive && show()"
+          @mouseleave="interactive && hide()"
         >
           <slot name="content">{{ content }}</slot>
           <span
@@ -201,6 +201,12 @@ onBeforeUnmount(() => {
 
 .hook0-tooltip__trigger {
   display: inline-flex;
+}
+
+.hook0-tooltip__trigger:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .hook0-tooltip__content {
