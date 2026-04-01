@@ -344,7 +344,8 @@ const isErrorResponse = computed(() => {
   flex-shrink: 0;
 }
 
-.log-detail__meta-link {
+.log-detail__meta-link,
+.log-detail__meta-row :deep(.hook0-button.link) {
   font-size: 0.8125rem;
 }
 

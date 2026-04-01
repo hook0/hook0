@@ -104,7 +104,7 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
               params: { ...route.params, event_id: row.event_id },
             },
             onClick: (e: MouseEvent) => e.stopPropagation(),
-            style: 'font-size: 0.875rem',
+            style: 'font-size: 0.8125rem',
           },
           () => getEventTypeName(row)
         );
@@ -129,7 +129,7 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
               },
             },
             onClick: (e: MouseEvent) => e.stopPropagation(),
-            style: 'font-size: 0.875rem',
+            style: 'font-size: 0.8125rem',
           },
           () => String(row.subscription.description ?? row.subscription.subscription_id)
         );
