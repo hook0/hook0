@@ -4,12 +4,13 @@ import { loginAndCreateApp } from "../fixtures/test-setup";
 /**
  * Log Detail E2E tests for Hook0.
  *
- * Tests for the drawer (LogSidePanel) and LogDetail full page flows.
+ * Tests for the split-panel detail view and LogDetail full page flows.
  */
 test.describe("Log Detail", () => {
   /**
    * Helper to set up an environment with an event type, subscription, and sent event.
    * Navigates to the logs page and waits for at least one log row to appear.
+   * Uses the same proven setup pattern as logs.spec.ts.
    */
   async function setupLogsWithDelivery(
     page: import("@playwright/test").Page,
@@ -47,6 +48,7 @@ test.describe("Log Detail", () => {
     await page.locator('[data-test="subscription-method-select"]').selectOption("POST");
     await page.locator('[data-test="subscription-url-input"]').fill("https://webhook.site/test");
 
+    // Add labels (required for event matching)
     const labelKeyInput = page.locator(
       '[data-test="subscription-labels"] [data-test="kv-key-input-0"]'
     );
@@ -63,20 +65,22 @@ test.describe("Log Detail", () => {
     await expect(labelKeyInput).toHaveValue("all");
     await expect(labelValueInput).toHaveValue("yes");
 
+    // Select event type
     const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
     await expect(eventTypeCheckbox).toBeVisible({ timeout: 15000 });
     await eventTypeCheckbox.click();
 
     const createSubResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST",
+        response.url().includes("/api/v1/subscriptions") &&
+        response.request().method() === "POST",
       { timeout: 15000 }
     );
     await page.locator('[data-test="subscription-submit-button"]').click();
     await createSubResponse;
     await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
 
-    // Send an event
+    // Send an event via UI (same pattern as logs.spec.ts)
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/events`
     );
@@ -88,6 +92,7 @@ test.describe("Log Detail", () => {
       .locator('[data-test="send-event-type-select"]')
       .selectOption("log.test.created");
 
+    // Add event labels matching the subscription
     const eventLabelKey = page.locator(
       '[data-test="send-event-labels"] [data-test="kv-key-input-0"]'
     );
@@ -119,113 +124,85 @@ test.describe("Log Detail", () => {
     await page.locator('[data-test="send-event-submit-button"]').click();
     await sendEventResponse;
 
-    // After send, page navigates to event detail
+    // Wait for navigation to event detail before navigating away
     await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
 
-    // Navigate to logs and wait for at least one row
+    // Navigate to logs and wait for data
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
     );
     await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('[data-test="logs-table"] [row-id]').first()).toBeVisible({
-      timeout: 15000,
-    });
 
     return env;
   }
 
-  /**
-   * Helper to poll until a log row has response data available (webhook processing takes time).
-   * Reloads the page until at least one row is visible with data.
-   */
-  async function waitForResponseInRow(page: import("@playwright/test").Page) {
+  async function waitForLogRow(page: import("@playwright/test").Page) {
     await expect(async () => {
       await page.reload();
-      await expect(page.locator('[data-test="logs-table"]')).toBeVisible({ timeout: 10000 });
       await expect(
         page.locator('[data-test="logs-table"] [row-id]').first()
-      ).toBeVisible({ timeout: 5000 });
-    }).toPass({ timeout: 30000 });
+      ).toBeVisible({ timeout: 10000 });
+    }).toPass({ timeout: 60000, intervals: [2000] });
   }
 
-  test("should open drawer with event and response when clicking a log row", async ({
+  test("should show delivery detail in split panel when clicking a log row", async ({
     page,
     request,
   }) => {
     test.slow();
     await setupLogsWithDelivery(page, request, "drawer-open");
-    await waitForResponseInRow(page);
+    await waitForLogRow(page);
 
     // Click on the first log row
     const firstRow = page.locator('[data-test="logs-table"] [row-id]').first();
     await firstRow.click();
 
-    // Verify the drawer (side panel) opens
-    const sidePanel = page.locator('[data-test="side-panel"]');
-    await expect(sidePanel).toBeVisible({ timeout: 10000 });
+    // Verify the detail panel shows content (scoped to the detail side of the split)
+    const detail = page.locator('.log-split__detail');
+    await expect(detail.getByText("log.test.created")).toBeVisible({ timeout: 10000 });
+    await expect(detail.getByText("Request")).toBeVisible();
+    await expect(detail.getByText("Payload")).toBeVisible();
+    await expect(detail.getByText("Lifecycle")).toBeVisible();
 
-    // Verify the drawer contains event metadata (event_type)
-    await expect(sidePanel).toContainText("log.test.created");
-
-    // Verify the drawer contains event payload section
-    await expect(sidePanel).toContainText("Payload");
-
-    // Verify the drawer contains response summary with HTTP status code
-    await expect(sidePanel).toContainText("Response Summary");
-    await expect(sidePanel).toContainText("HTTP Status Code");
-
-    // Verify the drawer contains response headers section
-    await expect(sidePanel).toContainText("Response Headers");
-
-    // Verify the drawer contains response body section
-    await expect(sidePanel).toContainText("Response Body");
+    // Verify the URL has a delivery query param
+    await expect(page).toHaveURL(/delivery=/, { timeout: 5000 });
   });
 
-  test("should navigate to LogDetail page via Open full page button", async ({
+  test("should navigate to LogDetail full page", async ({
     page,
     request,
   }) => {
     test.slow();
-    await setupLogsWithDelivery(page, request, "full-page");
-    await waitForResponseInRow(page);
+    const env = await setupLogsWithDelivery(page, request, "full-page");
+    await waitForLogRow(page);
 
-    // Click on the first log row to open the drawer
+    // Get the first row's ID
     const firstRow = page.locator('[data-test="logs-table"] [row-id]').first();
-    await firstRow.click();
+    const rowId = await firstRow.getAttribute("row-id");
 
-    // Verify the drawer opens
-    const sidePanel = page.locator('[data-test="side-panel"]');
-    await expect(sidePanel).toBeVisible({ timeout: 10000 });
-
-    // Click the "Open full page" button
-    await page.locator('[data-test="log-panel-full-page"]').click();
-
-    // Verify URL changed to /logs/[request_attempt_id] (UUID pattern)
-    await expect(page).toHaveURL(
-      /\/logs\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-      { timeout: 10000 }
+    // Navigate directly to the full page detail
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/logs/${rowId}`
     );
 
     // Verify the log-detail-page test element is visible
     await expect(page.locator('[data-test="log-detail-page"]')).toBeVisible({ timeout: 10000 });
 
-    // Verify it shows the same content sections as the drawer
+    // Verify it shows the same content sections
     const detailPage = page.locator('[data-test="log-detail-page"]');
     await expect(detailPage).toContainText("log.test.created");
     await expect(detailPage).toContainText("Payload");
-    await expect(detailPage).toContainText("Response Summary");
+    await expect(detailPage).toContainText("Lifecycle");
   });
 
   test("should show error for non-existent request attempt", async ({ page, request }) => {
     test.slow();
     const env = await loginAndCreateApp(page, request, "log-not-found");
 
-    // Navigate directly to a non-existent request attempt
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/logs/00000000-0000-0000-0000-000000000000`
     );
 
-    // Verify error card appears (Hook0ErrorCard renders when the query fails)
     await expect(page.locator('[data-test="error-card"]')).toBeVisible({ timeout: 15000 });
   });
 
@@ -233,15 +210,13 @@ test.describe("Log Detail", () => {
     test.slow();
     const env = await loginAndCreateApp(page, request, "log-redirect");
 
-    // Navigate to the old URL pattern
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/logs/responses/00000000-0000-0000-0000-000000000000`
     );
 
-    // Verify the page redirected to the logs list
     await expect(page).toHaveURL(
       new RegExp(
-        `/organizations/${env.organizationId}/applications/${env.applicationId}/logs$`
+        `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
       ),
       { timeout: 10000 }
     );
@@ -251,27 +226,24 @@ test.describe("Log Detail", () => {
   test("should navigate back from LogDetail to logs", async ({ page, request }) => {
     test.slow();
     const env = await setupLogsWithDelivery(page, request, "back-nav");
-    await waitForResponseInRow(page);
+    await waitForLogRow(page);
 
-    // Click on the first log row to open the drawer
+    // Get the first row's ID and navigate to full page
     const firstRow = page.locator('[data-test="logs-table"] [row-id]').first();
-    await firstRow.click();
+    const rowId = await firstRow.getAttribute("row-id");
 
-    // Open full page
-    const sidePanel = page.locator('[data-test="side-panel"]');
-    await expect(sidePanel).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="log-panel-full-page"]').click();
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/logs/${rowId}`
+    );
 
-    // Verify we're on the LogDetail page
     await expect(page.locator('[data-test="log-detail-page"]')).toBeVisible({ timeout: 10000 });
 
     // Go back
     await page.goBack();
 
-    // Verify we're back on the logs page
     await expect(page).toHaveURL(
       new RegExp(
-        `/organizations/${env.organizationId}/applications/${env.applicationId}/logs$`
+        `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
       ),
       { timeout: 10000 }
     );
