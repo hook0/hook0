@@ -116,7 +116,7 @@ const steps = computed<LifecycleStep[]>(() => {
   <div class="log-lifecycle">
     <div
       v-for="(step, index) in steps"
-      :key="step.label + index"
+      :key="step.label"
       class="log-lifecycle__step"
       :class="`log-lifecycle__step--${step.status}`"
     >
@@ -132,8 +132,10 @@ const steps = computed<LifecycleStep[]>(() => {
           v-if="index < steps.length - 1"
           class="log-lifecycle__line"
           :class="{
-            'log-lifecycle__line--done': step.status === 'done',
-            'log-lifecycle__line--error': step.status === 'error',
+            'log-lifecycle__line--done':
+              step.status === 'done' && steps[index + 1]?.status !== 'error',
+            'log-lifecycle__line--error':
+              step.status === 'error' || steps[index + 1]?.status === 'error',
           }"
         />
       </div>
@@ -153,7 +155,6 @@ const steps = computed<LifecycleStep[]>(() => {
 .log-lifecycle {
   display: flex;
   flex-direction: column;
-  gap: 0;
 }
 
 .log-lifecycle__step {
@@ -184,7 +185,7 @@ const steps = computed<LifecycleStep[]>(() => {
 }
 
 .log-lifecycle__icon--done :deep(path) {
-  stroke: white;
+  stroke: var(--color-on-dark);
 }
 
 .log-lifecycle__icon--active {
@@ -197,6 +198,15 @@ const steps = computed<LifecycleStep[]>(() => {
 
 .log-lifecycle__icon--error {
   color: var(--color-error);
+}
+
+.log-lifecycle__icon--error :deep(circle) {
+  fill: var(--color-error);
+  stroke: var(--color-error);
+}
+
+.log-lifecycle__icon--error :deep(path) {
+  stroke: var(--color-on-dark);
 }
 
 .log-lifecycle__line {
