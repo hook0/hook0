@@ -7,6 +7,7 @@ type Props = {
   content?: string;
   position?: TooltipPosition;
   delay?: number;
+  /** Keeps tooltip open on hover so users can interact with its content (e.g. copy button) */
   interactive?: boolean;
 };
 
@@ -37,6 +38,7 @@ function clampHorizontal(left: number, translateX: string): { left: number; tran
   if (props.position !== 'top' && props.position !== 'bottom') {
     return { left, translateX };
   }
+  // Fallback 200px: tooltip may not be rendered yet on first positioning pass
   const tooltipWidth = tooltipRef.value?.offsetWidth ?? 200;
   const halfWidth = tooltipWidth / 2;
   const viewportWidth = window.innerWidth;
@@ -109,6 +111,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 function show() {
+  // Cancel pending hide so re-entering during grace period keeps tooltip open
   if (hideTimeout) {
     clearTimeout(hideTimeout);
     hideTimeout = null;
@@ -118,6 +121,7 @@ function show() {
     visible.value = true;
     showTimeout = null;
     document.addEventListener('keydown', onKeydown);
+    // Capture phase needed to reposition on scroll of ANY ancestor, not just window
     window.addEventListener('scroll', updatePosition, { capture: true, passive: true });
     window.addEventListener('resize', updatePosition, { passive: true });
     void nextTick(updatePosition);

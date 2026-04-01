@@ -4,25 +4,15 @@ import { useI18n } from 'vue-i18n';
 import { CheckCircle2, XCircle, Clock, Circle } from 'lucide-vue-next';
 import Hook0DateFormatted from '@/components/Hook0DateFormatted.vue';
 
+import type { Event } from '@/pages/organizations/applications/events/EventsService';
+import type { RequestAttemptExtended } from './LogService';
+
 type Props = {
-  occurredAt?: string | null;
-  receivedAt?: string | null;
-  createdAt?: string | null;
-  pickedAt?: string | null;
-  succeededAt?: string | null;
-  failedAt?: string | null;
-  delayUntil?: string | null;
+  event: Event;
+  attempt: RequestAttemptExtended;
 };
 
-const props = withDefaults(defineProps<Props>(), {
-  occurredAt: undefined,
-  receivedAt: undefined,
-  createdAt: undefined,
-  pickedAt: undefined,
-  succeededAt: undefined,
-  failedAt: undefined,
-  delayUntil: undefined,
-});
+const props = defineProps<Props>();
 
 const { t } = useI18n();
 
@@ -35,23 +25,26 @@ type LifecycleStep = {
 };
 
 const steps = computed<LifecycleStep[]>(() => {
+  const { event, attempt } = props;
   const result: LifecycleStep[] = [];
 
-  if (props.occurredAt) {
+  // occurred_at and received_at only present for externally-ingested events;
+  // created_at and picked_at always exist in the lifecycle
+  if (event.occurred_at) {
     result.push({
       label: t('logs.lifecycle.occurred'),
       description: t('logs.lifecycle.occurredDesc'),
-      date: props.occurredAt,
+      date: event.occurred_at,
       status: 'done',
       icon: CheckCircle2,
     });
   }
 
-  if (props.receivedAt) {
+  if (event.received_at) {
     result.push({
       label: t('logs.lifecycle.received'),
       description: t('logs.lifecycle.receivedDesc'),
-      date: props.receivedAt,
+      date: event.received_at,
       status: 'done',
       icon: CheckCircle2,
     });
@@ -60,41 +53,43 @@ const steps = computed<LifecycleStep[]>(() => {
   result.push({
     label: t('logs.lifecycle.created'),
     description: t('logs.lifecycle.createdDesc'),
-    date: props.createdAt,
-    status: props.createdAt ? 'done' : 'pending',
-    icon: props.createdAt ? CheckCircle2 : Circle,
+    date: attempt.created_at,
+    status: attempt.created_at ? 'done' : 'pending',
+    icon: attempt.created_at ? CheckCircle2 : Circle,
   });
 
   result.push({
     label: t('logs.lifecycle.picked'),
     description: t('logs.lifecycle.pickedDesc'),
-    date: props.pickedAt,
-    status: props.pickedAt ? 'done' : 'pending',
-    icon: props.pickedAt ? CheckCircle2 : Circle,
+    date: attempt.picked_at,
+    status: attempt.picked_at ? 'done' : 'pending',
+    icon: attempt.picked_at ? CheckCircle2 : Circle,
   });
 
-  if (props.failedAt) {
+  // Terminal state: failed may have scheduled retry (delay_until),
+  // succeeded is final, absence of both means still in progress
+  if (attempt.failed_at) {
     result.push({
       label: t('logs.lifecycle.failed'),
       description: t('logs.lifecycle.failedDesc'),
-      date: props.failedAt,
+      date: attempt.failed_at,
       status: 'error',
       icon: XCircle,
     });
-    if (props.delayUntil) {
+    if (attempt.delay_until) {
       result.push({
         label: t('logs.lifecycle.retryAt'),
         description: t('logs.lifecycle.retryAtDesc'),
-        date: props.delayUntil,
+        date: attempt.delay_until,
         status: 'active',
         icon: Clock,
       });
     }
-  } else if (props.succeededAt) {
+  } else if (attempt.succeeded_at) {
     result.push({
       label: t('logs.lifecycle.delivered'),
       description: t('logs.lifecycle.deliveredDesc'),
-      date: props.succeededAt,
+      date: attempt.succeeded_at,
       status: 'done',
       icon: CheckCircle2,
     });

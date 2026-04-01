@@ -50,6 +50,7 @@ export const STATUS_CONFIG: Record<RequestAttemptStatusType, StatusConfig> = {
   },
 };
 
+// Fallback for status types the frontend doesn't recognize yet (API/frontend version skew)
 export const DEFAULT_STATUS_CONFIG: StatusConfig = {
   labelKey: 'logs.statusSkipped',
   variant: 'muted',
