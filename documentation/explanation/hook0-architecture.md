@@ -59,22 +59,22 @@ For high-throughput deployments, Hook0 can use Apache Pulsar for queuing and S3-
 ## Component responsibilities
 
 ### API server
-- Receives events via REST API
-- Validates Biscuit tokens (user sessions) and service tokens (programmatic access)
-- Validates event payloads against schemas
+- Receives [events](/concepts/events) via REST API
+- Validates [Biscuit tokens](/concepts/service-tokens) (user sessions) and [service tokens](/how-to-guides/manage-service-tokens) (programmatic access)
+- Validates event payloads against [event type](/concepts/event-types) schemas
 - Enforces rate limits and usage quotas
-- CRUD for organizations, applications, subscriptions
+- CRUD for [organizations](/concepts/organizations), [applications](/concepts/applications), [subscriptions](/concepts/subscriptions)
 
 ### Worker process
 - Retrieves pending delivery tasks from the queue (PostgreSQL or Pulsar)
-- Sends HTTP requests to subscription endpoints
-- Retries failed deliveries using a fixed schedule (3s, 10s, 3min, 30min, 1h, 3h, 5h, 10h)
-- Records delivery attempts and response data in PostgreSQL
+- Sends HTTP requests to [subscription](/concepts/subscriptions) endpoints
+- Retries failed deliveries using a [fixed schedule](/explanation/webhook-retry-logic) (3s, 10s, 3min, 30min, 1h, 3h, 5h, 10h)
+- Records [delivery attempts](/concepts/request-attempts) and response data in PostgreSQL
 
 ### Web dashboard
 - Vue.js-based management UI
 - Live updates on event processing
-- Configuration for subscriptions and event types
+- Configuration for [subscriptions](/concepts/subscriptions) and [event types](/concepts/event-types)
 - Delivery metrics and health dashboards
 
 ## Event flow
@@ -110,18 +110,18 @@ graph TD
 ### Event storage
 Events are stored with:
 - Unique ID
-- Event type reference
+- [Event type](/concepts/event-types) reference
 - JSON payload
-- Metadata (labels, source IP, etc.)
+- [Metadata](/concepts/metadata) ([labels](/concepts/labels), source IP, etc.)
 - Timestamp
 
 ### Subscription matching
 Subscriptions define:
-- Event types to listen to (exact match list)
+- [Event types](/concepts/event-types) to listen to (exact match list)
 - Target HTTP endpoint (URL, method, headers)
-- Labels for multi-tenant routing
-- Metadata (key-value pairs for custom context)
-- An auto-generated secret for HMAC signature verification
+- [Labels](/concepts/labels) for [multi-tenant routing](/how-to-guides/multi-tenant-architecture)
+- [Metadata](/concepts/metadata) (key-value pairs for custom context)
+- An auto-generated [secret](/concepts/application-secrets) for [HMAC signature verification](/tutorials/webhook-authentication)
 
 ## Design decisions
 
