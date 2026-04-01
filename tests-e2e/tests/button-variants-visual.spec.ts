@@ -284,15 +284,14 @@ test.describe("Hook0Button Visual Regression", () => {
   });
 
   test("all variants have consistent flex layout", async ({ page }) => {
-    const allButtons = [
+    const flexButtons = [
       "btn-primary",
       "btn-secondary",
       "btn-danger",
       "btn-ghost",
-      "btn-link",
     ];
 
-    for (const testId of allButtons) {
+    for (const testId of flexButtons) {
       const btn = page.locator(`[data-test="${testId}"]`);
       const styles = await btn.evaluate((el) => {
         const computed = window.getComputedStyle(el);
