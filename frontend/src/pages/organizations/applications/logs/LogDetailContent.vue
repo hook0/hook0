@@ -1,18 +1,23 @@
 <script setup lang="ts">
 import { computed, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 
 import Hook0Code from '@/components/Hook0Code.vue';
-import Hook0DateTime from '@/components/Hook0DateTime.vue';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
+import LogLifecycle from './LogLifecycle.vue';
 
 import { useEventDetail } from '@/pages/organizations/applications/events/useEventQueries';
+import { useSubscriptionDetail } from '@/pages/organizations/applications/subscriptions/useSubscriptionQueries';
 import { useResponseDetail } from './useResponseQueries';
 import { filterSensitiveHeaders } from './responseHeaders';
 import { statusCodeClass } from './responseStatus';
+import { routes } from '@/routes';
 
 import type { RequestAttemptExtended } from './LogService';
+import { RequestAttemptStatusType } from './LogService';
 
 type Props = {
   attempt: RequestAttemptExtended;
@@ -21,10 +26,11 @@ type Props = {
 
 const props = defineProps<Props>();
 const { t } = useI18n();
+const route = useRoute();
 
 const isSent = computed(() => {
   const type = props.attempt.status.type;
-  return type !== 'waiting' && type !== 'pending';
+  return type !== RequestAttemptStatusType.Waiting && type !== RequestAttemptStatusType.Pending;
 });
 
 const eventIdRef = computed(() => props.attempt.event_id);
@@ -37,6 +43,9 @@ const {
   error: eventError,
   refetch: eventRefetch,
 } = useEventDetail(eventIdRef, applicationIdRef);
+const subscriptionIdRef = computed(() => props.attempt.subscription.subscription_id);
+const { data: subscriptionData } = useSubscriptionDetail(subscriptionIdRef);
+
 const {
   data: responseData,
   isLoading: responseLoading,
@@ -82,31 +91,56 @@ const isErrorResponse = computed(() => {
 
   <!-- Event loaded -->
   <template v-else>
-    <!-- Metadata -->
+    <!-- Metadata (no title) -->
     <div class="log-detail__section">
-      <h3 class="log-detail__section-title">{{ t('events.metadata') }}</h3>
       <div class="log-detail__meta">
         <div class="log-detail__meta-row">
-          <span class="log-detail__meta-label">{{ t('events.id') }}</span>
-          <code class="log-detail__meta-value log-detail__meta-value--mono">{{
-            eventData.event_id
-          }}</code>
+          <span class="log-detail__meta-label">{{ t('logs.event') }}</span>
+          <Hook0Button
+            variant="link"
+            size="sm"
+            :to="{
+              name: routes.EventsDetail,
+              params: { ...route.params, event_id: eventData.event_id },
+            }"
+            class="log-detail__meta-link"
+          >
+            {{ eventData.event_type_name }}
+          </Hook0Button>
         </div>
         <div class="log-detail__meta-row">
-          <span class="log-detail__meta-label">{{ t('events.type') }}</span>
-          <code class="log-detail__meta-value log-detail__meta-value--mono">{{
-            eventData.event_type_name
-          }}</code>
-        </div>
-        <div class="log-detail__meta-row">
-          <span class="log-detail__meta-label">{{ t('events.receivedAt') }}</span>
-          <Hook0DateTime :value="eventData.received_at" />
-        </div>
-        <div class="log-detail__meta-row">
-          <span class="log-detail__meta-label">{{ t('events.occurredAt') }}</span>
-          <Hook0DateTime :value="eventData.occurred_at" />
+          <span class="log-detail__meta-label">{{ t('logs.subscription') }}</span>
+          <Hook0Button
+            variant="link"
+            size="sm"
+            :to="{
+              name: routes.SubscriptionsDetail,
+              params: {
+                organization_id: route.params.organization_id,
+                application_id: route.params.application_id,
+                subscription_id: attempt.subscription.subscription_id,
+              },
+            }"
+            class="log-detail__meta-link"
+          >
+            {{ attempt.subscription.description ?? attempt.subscription.subscription_id }}
+          </Hook0Button>
         </div>
       </div>
+    </div>
+
+    <!-- Lifecycle -->
+    <div class="log-detail__section">
+      <h3 class="log-detail__section-title">{{ t('logs.lifecycle.title') }}</h3>
+      <LogLifecycle
+        :occurred-at="eventData.occurred_at"
+        :received-at="eventData.received_at"
+        :created-at="attempt.created_at"
+        :picked-at="attempt.picked_at"
+        :succeeded-at="attempt.succeeded_at"
+        :failed-at="attempt.failed_at"
+        :delay-until="attempt.delay_until"
+      />
     </div>
 
     <!-- Labels -->
@@ -126,21 +160,44 @@ const isErrorResponse = computed(() => {
       </div>
     </div>
 
-    <!-- Payload -->
+    <!-- Request -->
     <div class="log-detail__section">
-      <h3 class="log-detail__section-title">{{ t('events.payload') }}</h3>
+      <h3 class="log-detail__section-title log-detail__section-title--response">
+        {{ t('logs.request') }}
+      </h3>
+
+      <div class="log-detail__grid">
+        <template v-if="subscriptionData?.target">
+          <span class="log-detail__grid-label">{{ t('logs.httpMethod') }}</span>
+          <code class="log-detail__grid-value log-detail__grid-value--mono">{{
+            subscriptionData.target.method.toUpperCase()
+          }}</code>
+
+          <span class="log-detail__grid-label">{{ t('logs.targetUrl') }}</span>
+          <code class="log-detail__grid-value log-detail__grid-value--mono">{{
+            subscriptionData.target.url
+          }}</code>
+        </template>
+      </div>
+
+      <!-- Payload -->
+      <h4 class="log-detail__subsection-title">{{ t('events.payload') }}</h4>
       <Hook0Code :code="eventData.payload_decoded" language="json" :editable="false" />
     </div>
 
     <!-- Response: not sent yet -->
     <div v-if="!isSent" class="log-detail__section">
-      <h3 class="log-detail__section-title log-detail__section-title--response">{{ t('responses.detail') }}</h3>
+      <h3 class="log-detail__section-title log-detail__section-title--response">
+        {{ t('logs.response') }}
+      </h3>
       <p class="log-detail__no-response">{{ t('responses.notSentYet') }}</p>
     </div>
 
     <!-- Response: sent but no response (timeout) -->
     <div v-else-if="!attempt.response_id" class="log-detail__section">
-      <h3 class="log-detail__section-title log-detail__section-title--response">{{ t('responses.detail') }}</h3>
+      <h3 class="log-detail__section-title log-detail__section-title--response">
+        {{ t('logs.response') }}
+      </h3>
       <p class="log-detail__no-response">{{ t('responses.noResponse') }}</p>
     </div>
 
@@ -163,14 +220,12 @@ const isErrorResponse = computed(() => {
     <!-- Response: loaded -->
     <template v-else-if="responseData">
       <div class="log-detail__section">
-        <h3 class="log-detail__section-title log-detail__section-title--response">{{ t('responses.detail') }}</h3>
+        <h3 class="log-detail__section-title log-detail__section-title--response">
+          {{ t('logs.response') }}
+        </h3>
 
         <div class="log-detail__grid">
           <!-- Summary -->
-          <h4 class="log-detail__subsection-title log-detail__grid-full">{{ t('responses.summary') }}</h4>
-          <span class="log-detail__grid-label">{{ t('responses.id') }}</span>
-          <code class="log-detail__grid-value log-detail__grid-value--mono">{{ responseData.response_id }}</code>
-
           <span class="log-detail__grid-label">{{ t('responses.httpStatusCode') }}</span>
           <span
             v-if="responseData.http_code != null"
@@ -183,25 +238,39 @@ const isErrorResponse = computed(() => {
           </span>
           <span v-else class="log-detail__grid-value">—</span>
 
+          <span class="log-detail__grid-label">{{ t('responses.id') }}</span>
+          <code class="log-detail__grid-value log-detail__grid-value--mono">{{
+            responseData.response_id
+          }}</code>
+
           <template v-if="responseData.elapsed_time_ms != null">
             <span class="log-detail__grid-label">{{ t('responses.elapsedTime') }}</span>
-            <span class="log-detail__grid-value">{{ t('responses.elapsedTimeMs', { ms: responseData.elapsed_time_ms }) }}</span>
+            <span class="log-detail__grid-value">{{
+              t('responses.elapsedTimeMs', { ms: responseData.elapsed_time_ms })
+            }}</span>
           </template>
 
           <template v-if="responseData.response_error_name">
             <span class="log-detail__grid-label">{{ t('responses.error') }}</span>
-            <code class="log-detail__grid-value log-detail__grid-value--mono log-detail__grid-value--error">{{ responseData.response_error_name }}</code>
+            <code
+              class="log-detail__grid-value log-detail__grid-value--mono log-detail__grid-value--error"
+              >{{ responseData.response_error_name }}</code
+            >
           </template>
 
           <!-- Headers -->
-          <h4 class="log-detail__subsection-title log-detail__grid-full">{{ t('responses.headers') }}</h4>
+          <h4 class="log-detail__subsection-title log-detail__grid-full">
+            {{ t('responses.headers') }}
+          </h4>
           <template v-if="filteredHeaders">
             <template v-for="(val, key) in filteredHeaders" :key="String(key)">
               <code class="log-detail__grid-label log-detail__grid-label--mono">{{ key }}</code>
               <code class="log-detail__grid-value log-detail__grid-value--mono">{{ val }}</code>
             </template>
           </template>
-          <p v-else class="log-detail__grid-full log-detail__no-response">{{ t('responses.noHeaders') }}</p>
+          <p v-else class="log-detail__grid-full log-detail__no-response">
+            {{ t('responses.noHeaders') }}
+          </p>
         </div>
         <p v-if="filteredHeaders && hasHiddenHeaders" class="log-detail__sensitive-note">
           {{ t('responses.sensitiveHidden') }}
@@ -275,19 +344,8 @@ const isErrorResponse = computed(() => {
   flex-shrink: 0;
 }
 
-.log-detail__meta-value {
+.log-detail__meta-link {
   font-size: 0.8125rem;
-  color: var(--color-text-primary);
-  word-break: break-all;
-}
-
-.log-detail__meta-value--mono {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-}
-
-.log-detail__meta-value--error {
-  color: var(--color-error);
 }
 
 .log-detail__labels {

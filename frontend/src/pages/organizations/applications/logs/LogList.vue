@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 
@@ -29,28 +29,50 @@ import Hook0HelpText from '@/components/Hook0HelpText.vue';
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 const { organizationId, applicationId } = useRouteIds();
 const { data: requestAttempts, isLoading, error, refetch } = useLogList(applicationId);
 const { data: organization } = useOrganizationDetail(organizationId);
 
-const retentionDays = computed(
-  () => organization.value?.quotas.days_of_events_retention_limit ?? 7
-);
+const MAX_INT32 = 2147483647;
+const retentionDays = computed(() => {
+  const days = organization.value?.quotas.days_of_events_retention_limit ?? 7;
+  return days >= MAX_INT32 ? null : days;
+});
 
 const columns = useLogColumns();
 
-// Side panel state
+// Side panel state — driven by route query param
 const sidePanelOpen = ref(false);
 const selectedRow = ref<RequestAttemptExtended | null>(null);
+
+// Sync panel state from route query on data load
+watch(
+  [requestAttempts, () => route.query.delivery],
+  ([attempts, deliveryId]) => {
+    if (!attempts || !deliveryId) return;
+    const found = attempts.find((a) => a.request_attempt_id === deliveryId);
+    if (found) {
+      selectedRow.value = found;
+      sidePanelOpen.value = true;
+    }
+  },
+  { immediate: true }
+);
 
 function handleRowClick(row: RequestAttemptExtended) {
   selectedRow.value = row;
   sidePanelOpen.value = true;
+  void router.replace({
+    query: { ...route.query, delivery: row.request_attempt_id },
+  });
 }
 
 function closeSidePanel() {
   sidePanelOpen.value = false;
   selectedRow.value = null;
+  const { delivery: _, ...rest } = route.query;
+  void router.replace({ query: rest });
 }
 </script>
 
@@ -76,7 +98,7 @@ function closeSidePanel() {
           <template #header>{{ t('logs.title') }}</template>
           <template #subtitle>
             {{ t('logs.subtitle') }}
-            <Hook0HelpText tone="emphasis">{{
+            <Hook0HelpText v-if="retentionDays" tone="emphasis">{{
               t('logs.subtitleRetention', { days: retentionDays })
             }}</Hook0HelpText>
           </template>
@@ -133,6 +155,11 @@ function closeSidePanel() {
 </template>
 
 <style scoped>
+/* Align doc buttons to top when subtitle wraps */
+:deep(.hook0-card-header__container) {
+  align-items: flex-start;
+}
+
 /* Column cell styles rendered via h() in useLogColumns.ts — :deep() required
    because VNodes are created outside this SFC's scope. */
 
@@ -148,11 +175,7 @@ function closeSidePanel() {
   cursor: default;
 }
 
-:deep(.log-status__dot) {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: currentColor;
+:deep(.log-status__icon) {
   flex-shrink: 0;
 }
 
@@ -179,36 +202,5 @@ function closeSidePanel() {
 :deep(.log-status--muted) {
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-tertiary);
-}
-
-:deep(.log-event-cell) {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-:deep(.log-event-link) {
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  text-decoration: none;
-}
-
-:deep(.log-event-link:hover) {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-:deep(.log-event-type) {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-}
-
-:deep(.log-duration) {
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-  cursor: default;
 }
 </style>
