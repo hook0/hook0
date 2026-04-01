@@ -41,10 +41,7 @@ const is404 = computed(() => {
   <Hook0PageLayout :title="t('logs.deliveryDetail')">
     <!-- Error first -->
     <template v-if="error && !isLoading">
-      <Hook0ErrorCard
-        :error="is404 ? t('logs.deliveryNotFound') : error"
-        @retry="void refetch()"
-      />
+      <Hook0ErrorCard :error="is404 ? t('logs.deliveryNotFound') : error" @retry="void refetch()" />
       <Hook0Button
         variant="secondary"
         :to="{
@@ -74,10 +71,7 @@ const is404 = computed(() => {
       <Hook0Stack data-test="log-detail-page" direction="column" gap="md">
         <Hook0Card>
           <Hook0CardContent>
-            <LogDetailContent
-              :attempt="attempt"
-              :application-id="applicationId"
-            />
+            <LogDetailContent :attempt="attempt" :application-id="applicationId" />
           </Hook0CardContent>
         </Hook0Card>
       </Hook0Stack>

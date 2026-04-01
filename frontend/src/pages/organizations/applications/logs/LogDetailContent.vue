@@ -28,6 +28,7 @@ const props = defineProps<Props>();
 const { t } = useI18n();
 const route = useRoute();
 
+// "Sent" = HTTP request dispatched; Waiting (retry queue) and Pending (not yet picked) have not made a network call
 const isSent = computed(() => {
   const type = props.attempt.status.type;
   return type !== RequestAttemptStatusType.Waiting && type !== RequestAttemptStatusType.Pending;
@@ -72,12 +73,10 @@ const isErrorResponse = computed(() => {
 </script>
 
 <template>
-  <!-- Event error -->
   <div v-if="eventError && !eventLoading" class="log-detail__section">
     <Hook0ErrorCard :error="eventError" @retry="void eventRefetch()" />
   </div>
 
-  <!-- Loading -->
   <template v-else-if="eventLoading || !eventData">
     <div class="log-detail__section">
       <Hook0Skeleton size="text-truncated" />
@@ -132,15 +131,7 @@ const isErrorResponse = computed(() => {
     <!-- Lifecycle -->
     <div class="log-detail__section">
       <h3 class="log-detail__section-title">{{ t('logs.lifecycle.title') }}</h3>
-      <LogLifecycle
-        :occurred-at="eventData.occurred_at"
-        :received-at="eventData.received_at"
-        :created-at="attempt.created_at"
-        :picked-at="attempt.picked_at"
-        :succeeded-at="attempt.succeeded_at"
-        :failed-at="attempt.failed_at"
-        :delay-until="attempt.delay_until"
-      />
+      <LogLifecycle :event="eventData" :attempt="attempt" />
     </div>
 
     <!-- Labels -->

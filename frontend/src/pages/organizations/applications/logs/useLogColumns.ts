@@ -40,6 +40,7 @@ function formatRelativeTime(dateStr: string): string {
 function statusLabel(row: RequestAttemptExtended, t: ReturnType<typeof useI18n>['t']): string {
   const httpCode = row.http_response_status;
   if (httpCode != null) return `${httpCode}`;
+  // Failed with no response = timeout/DNS failure, distinct from a failed attempt with an error HTTP code
   if (row.status.type === RequestAttemptStatusType.Failed && !row.response_id) {
     return t('logs.statusTimeout');
   }
@@ -75,6 +76,8 @@ function renderStatusPill(row: RequestAttemptExtended, t: ReturnType<typeof useI
   );
 }
 
+// event_type_name is denormalized at attempt level for list views;
+// fall through nested event then UUID for older API responses
 function getEventTypeName(row: RequestAttemptExtended): string {
   return row.event_type_name ?? row.event?.event_type_name ?? row.event_id;
 }
@@ -103,6 +106,7 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
               name: routes.EventsDetail,
               params: { ...route.params, event_id: row.event_id },
             },
+            // Prevent link click from also triggering row-click (side panel)
             onClick: (e: MouseEvent) => e.stopPropagation(),
             class: 'log-cell-link',
           },

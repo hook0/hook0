@@ -34,10 +34,11 @@ const { organizationId, applicationId } = useRouteIds();
 const { data: requestAttempts, isLoading, error, refetch } = useLogList(applicationId);
 const { data: organization } = useOrganizationDetail(organizationId);
 
-const MAX_INT32 = 2147483647;
 const retentionDays = computed(() => {
-  const days = organization.value?.quotas.days_of_events_retention_limit ?? 7;
-  return days >= MAX_INT32 ? null : days;
+  const days = organization.value?.quotas.days_of_events_retention_limit;
+  // API uses INT32_MAX (2147483647) as sentinel for "unlimited retention"
+  if (!days || days >= 2_147_483_647) return null;
+  return days;
 });
 
 const columns = useLogColumns();

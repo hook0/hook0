@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { parseISO } from 'date-fns';
 import Hook0TooltipFullCopy from './Hook0TooltipFullCopy.vue';
 
 type Props = {
@@ -22,20 +21,16 @@ const dateFmt = new Intl.DateTimeFormat(undefined, {
 
 const formatted = computed(() => {
   if (!props.value) return null;
-  try {
-    return dateFmt.format(parseISO(props.value));
-  } catch {
-    return props.value;
-  }
+  const date = new Date(props.value);
+  if (Number.isNaN(date.getTime())) return props.value;
+  return dateFmt.format(date);
 });
 
 const isoValue = computed(() => {
   if (!props.value) return '';
-  try {
-    return parseISO(props.value).toISOString();
-  } catch {
-    return props.value;
-  }
+  const date = new Date(props.value);
+  if (Number.isNaN(date.getTime())) return props.value;
+  return date.toISOString();
 });
 </script>
 
