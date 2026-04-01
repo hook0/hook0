@@ -138,8 +138,7 @@ const steps = computed<LifecycleStep[]>(() => {
               step.status === 'done' && steps[index + 1]?.status === 'done',
             'log-lifecycle__line--next':
               step.status === 'done' && steps[index + 1]?.status === 'next',
-            'log-lifecycle__line--error':
-              steps[index + 1]?.status === 'error',
+            'log-lifecycle__line--error': steps[index + 1]?.status === 'error',
           }"
         />
       </div>
