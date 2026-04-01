@@ -21,7 +21,7 @@ actix-web = "4.13.0"
 anyhow = "1.0.102"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
-aws-sdk-s3 = { version = "1.127.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.128.0", features = ["behavior-version-latest"] }
 base64 = "0.22.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.44", features = ["serde"] }
@@ -37,7 +37,7 @@ http-serde = "2.1.1"
 humantime = "2.3.0"
 ipnetwork = "0.21.1"
 lazy_static = "1.5.0"
-lettre = { version = "0.11.19", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls", "aws-lc-rs", "rustls-platform-verifier"] }
+lettre = { version = "0.11.20", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls", "aws-lc-rs", "rustls-platform-verifier"] }
 tracing = "0.1.44"
 tracing-actix-web = "0.7.21"
 mrml = "5.1.0"
@@ -45,7 +45,7 @@ opentelemetry = { version = "0.31.0", default-features = false, features = ["tra
 opentelemetry-otlp = { version = "0.31.1", default-features = false, features = ["trace", "metrics", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls-webpki-roots"] }
 opentelemetry_sdk = { version = "0.31.0", default-features = false, features = ["trace", "metrics", "rt-tokio"] }
 paperclip = { version = "0.9.5", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
-pulsar = { version = "6.7.1", default-features = false, features = ["tokio-rustls-runtime"] }
+pulsar = { version = "6.7.2", default-features = false, features = ["tokio-rustls-runtime"] }
 regex = "1.12.3"
 reqwest = { version = "0.13.2", features = ["hickory-dns", "form"] }
 rustls = { version = "0.23.37", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
