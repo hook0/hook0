@@ -166,11 +166,8 @@ test.describe("Logs", () => {
     await expect(eventLink).toBeVisible();
     await expect(eventLink).toContainText("link.test.created");
 
-    // Get the href and navigate directly (the link is inside a clickable row,
-    // so programmatic navigation is more reliable than clicking)
-    const href = await eventLink.getAttribute("href");
-    expect(href).toBeTruthy();
-    await page.goto(href!);
+    // Click the event link to navigate to event detail
+    await eventLink.click();
 
     // Verify event detail page renders
     await expect(page).toHaveURL(/\/events\//, { timeout: 10000 });

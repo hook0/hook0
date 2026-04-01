@@ -153,9 +153,9 @@ test.describe("Log Detail", () => {
     await setupLogsWithDelivery(page, request, "drawer-open");
     await waitForLogRow(page);
 
-    // Click on the first log row
+    // Click on the status column of the first row (not the event link which navigates away)
     const firstRow = page.locator('[data-test="logs-table"] [row-id]').first();
-    await firstRow.click();
+    await firstRow.locator('.log-status').click();
 
     // Verify the detail panel shows content (scoped to the detail side of the split)
     const detail = page.locator('.log-split__detail');

@@ -98,19 +98,24 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
       header: t('logs.event'),
       cell: (info) => {
         const row = info.row.original;
+        // Wrapper stops propagation so clicking the link navigates to event detail
+        // instead of triggering the row-click handler (which selects the delivery)
         return h(
-          Hook0Button,
-          {
-            variant: 'link',
-            to: {
-              name: routes.EventsDetail,
-              params: { ...route.params, event_id: row.event_id },
+          'div',
+          { onClick: (e: MouseEvent) => e.stopPropagation() },
+          h(
+            Hook0Button,
+            {
+              variant: 'link',
+              to: {
+                name: routes.EventsDetail,
+                params: { ...route.params, event_id: row.event_id },
+              },
+              class: 'log-cell-link',
+              'data-test': 'log-event-link',
             },
-            onClick: (e: MouseEvent) => e.stopPropagation(),
-            class: 'log-cell-link',
-            'data-test': 'log-event-link',
-          },
-          () => getEventTypeName(row)
+            () => getEventTypeName(row)
+          )
         );
       },
     },
