@@ -54,7 +54,7 @@ flowchart LR
     click WK "/explanation/event-processing" "Event Processing"
 ```
 
-For high-throughput deployments, Hook0 can use Apache Pulsar for queuing and S3-compatible object storage for large payloads. The API server stores event payloads in S3 and publishes delivery tasks to Pulsar. Workers consume from Pulsar, retrieve event payloads from S3, deliver webhooks, and store response bodies back to S3. Workers also read metadata from PostgreSQL and record delivery results there. PostgreSQL remains the source of truth for metadata, subscriptions, and event types. The switch between backends is a configuration change (`QUEUE_TYPE`), not a code change.
+For high-throughput deployments, Hook0 can use Apache Pulsar for queuing and S3-compatible object storage for large payloads. The API server stores event payloads in S3 and publishes delivery tasks to Pulsar. Workers consume from Pulsar, retrieve event payloads from S3, deliver webhooks, and store response bodies back to S3. Workers also read metadata from PostgreSQL and record delivery results there. PostgreSQL remains the source of truth for metadata, subscriptions, and event types. The switch between backends is a per-worker database setting (`queue_type` column in `infrastructure.worker`), not a code change.
 
 ## Component responsibilities
 
@@ -66,11 +66,10 @@ For high-throughput deployments, Hook0 can use Apache Pulsar for queuing and S3-
 - CRUD for organizations, applications, subscriptions
 
 ### Worker process
-- Retrieves pending events from the database
-- Sends HTTP requests to configured endpoints
-- Retries failed deliveries with increasing backoff
-- Manages permanently failed events (dead letter)
-- Records delivery attempts and response data
+- Retrieves pending delivery tasks from the queue (PostgreSQL or Pulsar)
+- Sends HTTP requests to subscription endpoints
+- Retries failed deliveries using a fixed schedule (3s, 10s, 3min, 30min, 1h, 3h, 5h, 10h)
+- Records delivery attempts and response data in PostgreSQL
 
 ### Web dashboard
 - Vue.js-based management UI
@@ -118,11 +117,11 @@ Events are stored with:
 
 ### Subscription matching
 Subscriptions define:
-- Event type filters (exact match or patterns)
-- Target HTTP endpoint
-- Authentication headers
-- Custom metadata
-- Retry configuration
+- Event types to listen to (exact match list)
+- Target HTTP endpoint (URL, method, headers)
+- Labels for multi-tenant routing
+- Metadata (key-value pairs for custom context)
+- An auto-generated secret for HMAC signature verification
 
 ## Design decisions
 
