@@ -1,6 +1,6 @@
 # Securing webhook endpoints
 
-Security practices for webhook endpoints, from signature verification to attack detection. Covers protecting your webhook receivers against common attacks.
+Security practices for webhook endpoints, from signature verification to attack detection. Covers protecting your webhook receivers against common attacks using [application secrets](/concepts/application-secrets) and [subscription](/concepts/subscriptions) configuration.
 
 ## Quick Start (5 minutes)
 

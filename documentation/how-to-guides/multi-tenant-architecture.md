@@ -1,6 +1,6 @@
 # Multi-tenant webhook architecture
 
-This guide shows how to implement a multi-tenant webhook system using Hook0's label-based routing. It works for platforms with millions of users and projects, with full isolation and delivery visibility.
+This guide shows how to implement a multi-tenant webhook system using Hook0's [label](/concepts/labels)-based routing. It works for platforms with millions of users and projects, with full isolation and delivery visibility.
 
 We use GitLab.com as an example, but the same architecture applies to any multi-tenant SaaS.
 
@@ -43,7 +43,7 @@ Hook0 gives multi-tenant platforms:
 
 ## Step 1: Create event types
 
-First, define event types for your platform activities. In this GitLab example:
+First, define [event types](/concepts/event-types) for your platform activities. In this GitLab example:
 
 ```bash
 # Create push event type
@@ -132,7 +132,7 @@ curl -X POST "$HOOK0_API/event" \
 
 ## Step 3: User webhook management
 
-Users create webhooks that are registered as Hook0 subscriptions with label-based filtering:
+Users create webhooks that are registered as Hook0 [subscriptions](/concepts/subscriptions) with label-based filtering:
 
 ```bash
 # User creates a project webhook via GitLab UI

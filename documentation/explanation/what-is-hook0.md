@@ -85,33 +85,33 @@ What changes:
 
 ## Core concepts
 
-### Organizations
+### [Organizations](/concepts/organizations)
 The top-level entity. Organizations group users and applications together, providing isolation and access control.
 
-### Applications
+### [Applications](/concepts/applications)
 Applications represent your services or products within an organization. Each application can define event types and have multiple subscriptions.
 
-### Event types
+### [Event types](/concepts/event-types)
 Event types define what events your application can emit. Examples:
 - `user.account.created`
 - `payment.transaction.completed`
 - `order.shipment.shipped`
 
-### Events
+### [Events](/concepts/events)
 An event is a specific occurrence of an event type, containing:
 - Event type identifier
 - Payload data
 - Metadata
 - Timestamp
 
-### Subscriptions
+### [Subscriptions](/concepts/subscriptions)
 A subscription defines where and how webhook notifications get delivered:
 - Target webhook URL
 - Which event types to receive
 - Authentication headers
 - Retry configuration
 
-### Request attempts
+### [Request attempts](/concepts/request-attempts)
 Hook0 tracks every delivery attempt:
 - Response status codes
 - Response bodies

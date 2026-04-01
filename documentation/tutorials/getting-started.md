@@ -76,7 +76,7 @@ At this point you have two choices:
 
 ## Step 2: Create Your First Application
 
-Applications represent individual services or projects within your organization.
+[Applications](/concepts/applications) represent individual services or projects within your [organization](/concepts/organizations).
 
 1. **Select your organization** in the left sidebar.
 2. At the end, **Click "Create new application"**
@@ -96,7 +96,7 @@ To send events to Hook0, you need an API token.
    
 ## Step 4: Create an Event Type
 
-Event types define the structure of events your application can send.
+[Event types](/concepts/event-types) define the structure of events your application can send.
 
 ### - Using the Dashboard:
 
@@ -132,7 +132,7 @@ This creates an event type named `user.account.created` (composed from `service.
 
 ## Step 5: Create a Webhook Subscription
 
-Subscriptions define where Hook0 should send webhook notifications.
+[Subscriptions](/concepts/subscriptions) define where Hook0 should send webhook notifications.
 
 For this tutorial, use [webhook.site](https://webhook.site) to create a test endpoint:
 

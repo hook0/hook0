@@ -14,7 +14,7 @@ For production environments, see [Token Attenuation](#token-attenuation) below.
 
 ## What is a service token?
 
-A service token authenticates API requests to Hook0 on behalf of your organization. Unlike user credentials, service tokens:
+A [service token](/concepts/service-tokens) authenticates API requests to Hook0 on behalf of your [organization](/concepts/organizations). Unlike user credentials, service tokens:
 
 - Don't require interactive login
 - Can be used in automated systems (CI/CD, scripts, AI assistants)

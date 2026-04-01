@@ -114,13 +114,13 @@ VACUUM FULL events;
 
 ### Secret management
 
-#### Subscription secrets
+#### [Subscription](/concepts/subscriptions) secrets
 - Cryptographically random UUIDs
 - Never logged or exposed in responses
 - Rotatable through API
 - Scoped to individual subscriptions
 
-#### Service tokens
+#### [Service tokens](/concepts/service-tokens)
 - Long-lived tokens for API access
 - Restricted permissions
 - Audit logging for usage

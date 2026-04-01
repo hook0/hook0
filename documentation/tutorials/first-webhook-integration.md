@@ -65,7 +65,7 @@ The integration has four steps:
 
 ## Step 1: Define your event types
 
-Hook0 uses a three-part structure for event types: `service.resource_type.verb`. This gives clear semantics and makes filtering straightforward.
+Hook0 uses a three-part structure for [event types](/concepts/event-types): `service.resource_type.verb`. This gives clear semantics and makes filtering straightforward.
 
 ### Why define event types first?
 Event types act as a contract between your SaaS and customer webhooks. They must be created before you can send events or create subscriptions.
@@ -208,7 +208,7 @@ curl -X POST "$HOOK0_API/event" \
 
 ## Step 3: Create customer subscriptions
 
-Subscriptions define where and how webhooks get delivered. Each subscription filters events by labels, so customers only receive their own events.
+[Subscriptions](/concepts/subscriptions) define where and how webhooks get delivered. Each subscription filters events by [labels](/concepts/labels), so customers only receive their own events.
 
 ### Why labels matter for multi-tenancy
 The `labels` object creates a filter. Only events with matching labels are delivered to that subscription. This is how Hook0 supports multi-tenant SaaS platforms.
@@ -348,7 +348,7 @@ curl -X GET "$HOOK0_API/events/?application_id=$APP_ID" \
 
 ### Check delivery attempts
 
-Look at webhook delivery attempts and their status:
+Look at webhook delivery attempts ([request attempts](/concepts/request-attempts)) and their status:
 
 ```bash
 curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID" \
