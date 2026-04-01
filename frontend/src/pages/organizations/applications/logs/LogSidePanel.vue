@@ -60,10 +60,7 @@ function openFullPage() {
       </Hook0Button>
     </template>
 
-    <LogDetailContent
-      :attempt="attempt"
-      :application-id="applicationId"
-    />
+    <LogDetailContent :attempt="attempt" :application-id="applicationId" />
   </Hook0SidePanel>
 </template>
 

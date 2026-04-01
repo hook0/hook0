@@ -1,6 +1,5 @@
 import { h } from 'vue';
 import { useRoute } from 'vue-router';
-import Hook0Uuid from '@/components/Hook0Uuid.vue';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
 
@@ -9,9 +8,8 @@ import { RequestAttemptStatusType } from './LogService';
 import { getStatusConfig } from './logStatusConfig';
 import { routes } from '@/routes';
 
-import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
 import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
+import Hook0DateFormatted from '@/components/Hook0DateFormatted.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 
 const dateFmt = new Intl.DateTimeFormat(undefined, {
@@ -42,11 +40,9 @@ function formatRelativeTime(dateStr: string): string {
 function statusLabel(row: RequestAttemptExtended, t: ReturnType<typeof useI18n>['t']): string {
   const httpCode = row.http_response_status;
   if (httpCode != null) return `${httpCode}`;
-  // Failed without response = timeout/network error
   if (row.status.type === RequestAttemptStatusType.Failed && !row.response_id) {
     return t('logs.statusTimeout');
   }
-  // Waiting = retrying in X
   if (row.status.type === RequestAttemptStatusType.Waiting && row.delay_until) {
     return t('logs.statusQueued', { time: formatRelativeTime(row.delay_until) });
   }
@@ -74,28 +70,13 @@ function renderStatusPill(row: RequestAttemptExtended, t: ReturnType<typeof useI
         role: 'status',
         'aria-label': label,
       },
-      [h('span', { class: 'log-status__dot', 'aria-hidden': 'true' }), label]
+      [h(config.icon, { size: 14, 'aria-hidden': 'true', class: 'log-status__icon' }), label]
     )
   );
 }
 
-function computeDuration(row: RequestAttemptExtended): string {
-  const created = row.created_at;
-  const completed = row.succeeded_at ?? row.failed_at ?? row.completed_at;
-  if (!created || !completed) return '\u2014';
-  const ms = new Date(completed).getTime() - new Date(created).getTime();
-  if (ms < 1000) return `${ms}ms`;
-  return `${(ms / 1000).toFixed(1)}s`;
-}
-
-function computeDurationTooltip(
-  row: RequestAttemptExtended,
-  t: ReturnType<typeof useI18n>['t']
-): string {
-  const created = fmtDate(row.created_at);
-  const picked = fmtDate(row.picked_at);
-  const completed = fmtDate(row.succeeded_at ?? row.failed_at ?? row.completed_at);
-  return t('logs.tooltipDuration', { created, picked, completed });
+function getEventTypeName(row: RequestAttemptExtended): string {
+  return row.event_type_name ?? row.event?.event_type_name ?? row.event_id;
 }
 
 export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
@@ -111,11 +92,10 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
     },
     {
       accessorKey: 'event_id',
-      header: t('logs.eventId'),
+      header: t('logs.event'),
       cell: (info) => {
         const row = info.row.original;
-        const eventType = row.event_type_name;
-        const link = h(
+        return h(
           Hook0Button,
           {
             variant: 'link',
@@ -124,55 +104,51 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
               params: { ...route.params, event_id: row.event_id },
             },
             onClick: (e: MouseEvent) => e.stopPropagation(),
-            'data-test': 'log-event-link',
-            style: 'color: var(--color-link)',
+            style: 'font-size: 0.875rem',
           },
-          () =>
-            h(Hook0Uuid, {
-              value: String(info.getValue()),
-              truncated: true,
-              style: 'color: inherit',
-            })
+          () => getEventTypeName(row)
         );
-        if (eventType) {
-          return h('div', { class: 'log-event-cell' }, [
-            link,
-            h('span', { class: 'log-event-type' }, eventType),
-          ]);
-        }
-        return link;
       },
     },
     {
       id: 'subscription',
       header: t('logs.subscription'),
       enableSorting: true,
-      cell: (info) =>
-        h(Hook0TableCellLink, {
-          value: String(info.row.original.subscription.description ?? ''),
-          to: {
-            name: routes.SubscriptionsDetail,
-            params: {
-              application_id: route.params.application_id,
-              organization_id: route.params.organization_id,
-              subscription_id: info.row.original.subscription.subscription_id,
+      cell: (info) => {
+        const row = info.row.original;
+        return h(
+          Hook0Button,
+          {
+            variant: 'link',
+            to: {
+              name: routes.SubscriptionsDetail,
+              params: {
+                organization_id: route.params.organization_id,
+                application_id: route.params.application_id,
+                subscription_id: row.subscription.subscription_id,
+              },
             },
+            onClick: (e: MouseEvent) => e.stopPropagation(),
+            style: 'font-size: 0.875rem',
           },
-        }),
+          () => String(row.subscription.description ?? row.subscription.subscription_id)
+        );
+      },
     },
     {
       accessorKey: 'created_at',
-      header: t('common.createdAt'),
-      enableSorting: true,
-      cell: (info) => h(Hook0TableCellDate, { value: info.getValue() as string | null }),
-    },
-    {
-      id: 'duration',
-      header: t('logs.duration'),
-      cell: (info) =>
-        h(Hook0Tooltip, { content: computeDurationTooltip(info.row.original, t) }, () =>
-          h('span', { class: 'log-duration' }, computeDuration(info.row.original))
+      header: () =>
+        h(
+          'span',
+          { style: 'display:flex;justify-content:flex-end;width:100%' },
+          t('common.createdAt')
         ),
+      enableSorting: true,
+      meta: { align: 'right' },
+      cell: (info) =>
+        h('div', { style: 'text-align:right' }, [
+          h(Hook0DateFormatted, { value: info.getValue() as string | null }),
+        ]),
     },
   ];
 }
