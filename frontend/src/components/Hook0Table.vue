@@ -324,6 +324,7 @@ const rows = computed(() => table.getRowModel().rows);
               'hook0-table-tr--clickable': clickableRows,
               'hook0-table-tr--active': activeRowId != null && row.id === activeRowId,
             }"
+            :aria-selected="activeRowId != null && row.id === activeRowId ? 'true' : undefined"
             :tabindex="clickableRows ? 0 : undefined"
             :role="clickableRows ? 'row' : undefined"
             @click="handleRowClick(row.original)"
