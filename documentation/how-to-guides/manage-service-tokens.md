@@ -138,7 +138,7 @@ A read-only token can only list and retrieve resources -- it cannot create, edit
 7. In **Custom Datalog claims**, paste:
 
 ```
-check if action($a), ["organization:list", "organization:get", "application:list", "application:get", "event_type:list", "event_type:get", "subscription:list", "subscription:get", "event:list", "event:get", "request_attempt:list", "response:get", "events_per_day:application", "events_per_day:organization"].contains($a)
+check if action($a), ["organization:list", "organization:get", "application:list", "application:get", "event_type:list", "event_type:get", "subscription:list", "subscription:get", "event:list", "event:get", "request_attempt:list", "request_attempt:get", "response:get", "events_per_day:application", "events_per_day:organization"].contains($a)
 ```
 
 8. Click **Generate Attenuated Token**
@@ -171,7 +171,7 @@ These are the action names recognized by the Hook0 API, as defined in [`api/src/
 | Event Type | `event_type:list`, `event_type:get`, `event_type:create`, `event_type:delete` |
 | Subscription | `subscription:list`, `subscription:get`, `subscription:create`, `subscription:edit`, `subscription:delete` |
 | Event | `event:list`, `event:get`, `event:ingest`, `event:replay` |
-| Request Attempt | `request_attempt:list` |
+| Request Attempt | `request_attempt:list`, `request_attempt:get` |
 | Response | `response:get` |
 | Analytics | `events_per_day:application`, `events_per_day:organization` |
 
