@@ -961,8 +961,17 @@ pub async fn edit(
                 .map_err(Hook0Problem::from)?;
             }
 
-            // No health event on manual re-enable — user already knows. Matches Stripe/Svix behavior.
+            // On re-enable: insert a 'resolved' health event, reset failure_percent
             if body.is_enabled && previous_is_enabled == Some(false) {
+                query(
+                    "INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id) VALUES ($1, 'resolved', 'user', $2)"
+                )
+                .bind(s.subscription__id)
+                .bind(None::<Uuid>)
+                .execute(&mut *tx)
+                .await
+                .map_err(Hook0Problem::from)?;
+
                 query(
                     "UPDATE webhook.subscription SET failure_percent = NULL WHERE subscription__id = $1"
                 )
