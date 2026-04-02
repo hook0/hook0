@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            DELETE FROM webhook.retry_schedule\n            WHERE retry_schedule__id = $1\n                AND organization__id = $2\n            RETURNING name, strategy, max_retries, custom_intervals, linear_delay\n        ",
+  "query": "\n            DELETE FROM webhook.retry_schedule\n            WHERE retry_schedule__id = $1\n                AND organization__id = $2\n            RETURNING name, strategy, max_retries, custom_intervals, linear_delay, increasing_base_delay, increasing_wait_factor\n        ",
   "describe": {
     "columns": [
       {
@@ -27,6 +27,16 @@
         "ordinal": 4,
         "name": "linear_delay",
         "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "increasing_base_delay",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "increasing_wait_factor",
+        "type_info": "Float8"
       }
     ],
     "parameters": {
@@ -40,8 +50,10 @@
       false,
       false,
       true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "cb2cedcf6498d6e363d1b6082d077f2cdb9655d30721fe92da89d2cabf144904"
+  "hash": "acb8a2739e51f0dbc706eb2989efd1242df169a364a99aa1b33221285b02c969"
 }
