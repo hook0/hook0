@@ -890,11 +890,19 @@ async fn compute_next_retry(
 
 /// Computes the retry delay based on the subscription's assigned retry schedule.
 /// Falls back to the default hardcoded backoff when no schedule is assigned.
+/// Maximum delay cap for any single retry (7 days).
+/// Prevents overflow from increasing strategy with high base_delay × wait_factor^n.
+const MAX_RETRY_DELAY: Duration = Duration::from_secs(604_800);
+
 fn compute_scheduled_retry_delay(
     info: &SubscriptionRetryInfo,
     retry_count: i16,
     global_max_retries: u8,
 ) -> Option<Duration> {
+    if retry_count < 0 {
+        return None;
+    }
+
     match info.strategy.as_deref() {
         Some("increasing") => {
             let max = info.max_retries.unwrap_or(0);
@@ -903,7 +911,9 @@ fn compute_scheduled_retry_delay(
             }
             let base = info.increasing_base_delay.unwrap_or(3) as f64;
             let factor = info.increasing_wait_factor.unwrap_or(3.0);
-            Some(Duration::from_secs_f64(base * factor.powi(retry_count as i32)))
+            let secs = base * factor.powi(retry_count as i32);
+            let delay = Duration::try_from_secs_f64(secs).unwrap_or(MAX_RETRY_DELAY);
+            Some(delay.min(MAX_RETRY_DELAY))
         }
         Some("linear") => {
             let max = info.max_retries.unwrap_or(0);
@@ -916,7 +926,7 @@ fn compute_scheduled_retry_delay(
         Some("custom") => {
             let intervals = info.custom_intervals.as_deref().unwrap_or(&[]);
             intervals
-                .get(retry_count as usize)
+                .get(usize::try_from(retry_count).ok()?)
                 .map(|&d| Duration::from_secs(d as u64))
         }
         _ => {
@@ -1068,5 +1078,36 @@ mod tests {
         assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), Some(Duration::from_secs(3)));
         assert_eq!(compute_scheduled_retry_delay(&info, 1, 25), Some(Duration::from_secs(10)));
         assert_eq!(compute_scheduled_retry_delay(&info, 25, 25), None);
+    }
+
+    #[test]
+    fn increasing_worst_case_caps_at_max_delay() {
+        // Worst-case DB-allowed params: base=3600, factor=10, max_retries=25
+        // retry 24 = 3600 * 10^24 which overflows Duration — must cap, not panic
+        let info = SubscriptionRetryInfo {
+            is_active: true,
+            strategy: Some("increasing".to_string()),
+            max_retries: Some(25),
+            custom_intervals: None,
+            linear_delay: None,
+            increasing_base_delay: Some(3600),
+            increasing_wait_factor: Some(10.0),
+        };
+        let result = compute_scheduled_retry_delay(&info, 24, 25);
+        assert_eq!(result, Some(MAX_RETRY_DELAY));
+    }
+
+    #[test]
+    fn negative_retry_count_returns_none() {
+        let info = SubscriptionRetryInfo {
+            is_active: true,
+            strategy: Some("custom".to_string()),
+            max_retries: Some(3),
+            custom_intervals: Some(vec![10, 60, 300]),
+            linear_delay: None,
+            increasing_base_delay: None,
+            increasing_wait_factor: None,
+        };
+        assert_eq!(compute_scheduled_retry_delay(&info, -1, 25), None);
     }
 }
