@@ -62,8 +62,13 @@ watch(
     }
     if (deliveryId) {
       const found = attempts.find((a) => a.request_attempt_id === deliveryId);
-      selectedRow.value = found ?? null;
-    } else if (isDesktop.value && !selectedRow.value) {
+      if (found) {
+        selectedRow.value = found;
+        return;
+      }
+    }
+    // Auto-select first row on desktop when no valid selection exists
+    if (isDesktop.value) {
       selectedRow.value = attempts[0];
       void router.replace({
         query: { ...route.query, delivery: attempts[0].request_attempt_id },
