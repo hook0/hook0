@@ -47,7 +47,7 @@ function openFullPage() {
     @close="emit('close')"
   >
     <template #header>
-      <h2 class="log-panel__title">{{ t('logs.deliveryDetail') }}</h2>
+      <h2 style="flex: 1; margin: 0">{{ t('logs.deliveryDetail') }}</h2>
       <Hook0Button
         variant="ghost"
         size="sm"
@@ -63,13 +63,3 @@ function openFullPage() {
     <LogDetailContent :attempt="attempt" :application-id="applicationId" />
   </Hook0SidePanel>
 </template>
-
-<style scoped>
-.log-panel__title {
-  flex: 1;
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-</style>
