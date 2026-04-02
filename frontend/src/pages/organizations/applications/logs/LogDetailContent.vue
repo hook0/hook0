@@ -7,6 +7,8 @@ import Hook0Code from '@/components/Hook0Code.vue';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0Section from '@/components/Hook0Section.vue';
+import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import LogLifecycle from './LogLifecycle.vue';
 
 import { useEventDetail } from '@/pages/organizations/applications/events/useEventQueries';
@@ -73,22 +75,22 @@ const isErrorResponse = computed(() => {
 </script>
 
 <template>
-  <div v-if="eventError && !eventLoading" class="log-detail__section">
+  <Hook0Section v-if="eventError && !eventLoading">
     <Hook0ErrorCard :error="eventError" @retry="void eventRefetch()" />
-  </div>
+  </Hook0Section>
 
   <template v-else-if="eventLoading || !eventData">
     <!-- Metadata skeleton -->
-    <div class="log-detail__section">
-      <div class="log-detail__meta">
-        <div v-for="i in 2" :key="i" class="log-detail__meta-row">
+    <Hook0Section>
+      <div class="log-detail__skeleton-meta">
+        <div v-for="i in 2" :key="i" class="log-detail__skeleton-meta-row">
           <Hook0Skeleton size="text" style="width: 5rem" />
           <Hook0Skeleton size="text-truncated" style="width: 10rem" />
         </div>
       </div>
-    </div>
+    </Hook0Section>
     <!-- Lifecycle skeleton -->
-    <div class="log-detail__section">
+    <Hook0Section>
       <Hook0Skeleton size="text" style="width: 5rem; margin-bottom: 0.75rem" />
       <div v-for="i in 5" :key="i" style="display: flex; gap: 0.625rem; margin-bottom: 0.75rem">
         <Hook0Skeleton size="text" style="width: 1rem; height: 1rem; border-radius: 50%" />
@@ -97,21 +99,21 @@ const isErrorResponse = computed(() => {
           <Hook0Skeleton size="text" style="width: 12rem; margin-top: 0.25rem" />
         </div>
       </div>
-    </div>
+    </Hook0Section>
     <!-- Request/Response skeleton -->
-    <div class="log-detail__section">
+    <Hook0Section>
       <Hook0Skeleton size="text" style="width: 4rem; margin-bottom: 0.75rem" />
       <Hook0Skeleton size="block" />
-    </div>
+    </Hook0Section>
   </template>
 
   <!-- Event loaded -->
   <template v-else>
     <!-- Metadata (no title) -->
-    <div class="log-detail__section">
-      <div class="log-detail__meta">
-        <div class="log-detail__meta-row">
-          <span class="log-detail__meta-label">{{ t('logs.event') }}</span>
+    <Hook0Section>
+      <Hook0CardContentLine type="split">
+        <template #label>{{ t('logs.event') }}</template>
+        <template #content>
           <Hook0Button
             variant="link"
             size="sm"
@@ -123,9 +125,11 @@ const isErrorResponse = computed(() => {
           >
             {{ eventData.event_type_name }}
           </Hook0Button>
-        </div>
-        <div class="log-detail__meta-row">
-          <span class="log-detail__meta-label">{{ t('logs.subscription') }}</span>
+        </template>
+      </Hook0CardContentLine>
+      <Hook0CardContentLine type="split">
+        <template #label>{{ t('logs.subscription') }}</template>
+        <template #content>
           <Hook0Button
             variant="link"
             size="sm"
@@ -141,22 +145,20 @@ const isErrorResponse = computed(() => {
           >
             {{ attempt.subscription.description ?? attempt.subscription.subscription_id }}
           </Hook0Button>
-        </div>
-      </div>
-    </div>
+        </template>
+      </Hook0CardContentLine>
+    </Hook0Section>
 
     <!-- Lifecycle -->
-    <div class="log-detail__section">
-      <h3 class="log-detail__section-title">{{ t('logs.lifecycle.title') }}</h3>
+    <Hook0Section :title="t('logs.lifecycle.title')">
       <LogLifecycle :event="eventData" :attempt="attempt" />
-    </div>
+    </Hook0Section>
 
     <!-- Labels -->
-    <div
+    <Hook0Section
       v-if="eventData.labels && Object.keys(eventData.labels as Record<string, string>).length > 0"
-      class="log-detail__section"
+      :title="t('events.labels')"
     >
-      <h3 class="log-detail__section-title">{{ t('events.labels') }}</h3>
       <div class="log-detail__labels">
         <span
           v-for="(val, key) in eventData.labels as Record<string, string>"
@@ -166,14 +168,10 @@ const isErrorResponse = computed(() => {
           {{ key }}={{ val }}
         </span>
       </div>
-    </div>
+    </Hook0Section>
 
     <!-- Request -->
-    <div class="log-detail__section">
-      <h3 class="log-detail__section-title log-detail__section-title--response">
-        {{ t('logs.request') }}
-      </h3>
-
+    <Hook0Section :title="t('logs.request')" :separator="true">
       <div class="log-detail__grid">
         <template v-if="subscriptionData?.target">
           <span class="log-detail__grid-label">{{ t('logs.httpMethod') }}</span>
@@ -191,47 +189,37 @@ const isErrorResponse = computed(() => {
       <!-- Payload -->
       <h4 class="log-detail__subsection-title">{{ t('events.payload') }}</h4>
       <Hook0Code :code="eventData.payload_decoded" language="json" :editable="false" />
-    </div>
+    </Hook0Section>
 
     <!-- Response: not sent yet -->
-    <div v-if="!isSent" class="log-detail__section">
-      <h3 class="log-detail__section-title log-detail__section-title--response">
-        {{ t('logs.response') }}
-      </h3>
+    <Hook0Section v-if="!isSent" :title="t('logs.response')" :separator="true">
       <p class="log-detail__no-response">{{ t('responses.notSentYet') }}</p>
-    </div>
+    </Hook0Section>
 
     <!-- Response: sent but no response (timeout) -->
-    <div v-else-if="!attempt.response_id" class="log-detail__section">
-      <h3 class="log-detail__section-title log-detail__section-title--response">
-        {{ t('logs.response') }}
-      </h3>
+    <Hook0Section v-else-if="!attempt.response_id" :title="t('logs.response')" :separator="true">
       <p class="log-detail__no-response">{{ t('responses.noResponse') }}</p>
-    </div>
+    </Hook0Section>
 
     <!-- Response: loading -->
     <template v-else-if="responseLoading || (!responseData && !responseError)">
-      <div class="log-detail__section">
+      <Hook0Section>
         <Hook0Skeleton size="text" />
         <Hook0Skeleton size="text-truncated" />
-      </div>
-      <div class="log-detail__section">
+      </Hook0Section>
+      <Hook0Section>
         <Hook0Skeleton size="block" />
-      </div>
+      </Hook0Section>
     </template>
 
     <!-- Response: error -->
-    <div v-else-if="responseError" class="log-detail__section">
+    <Hook0Section v-else-if="responseError">
       <Hook0ErrorCard :error="responseError" @retry="void responseRefetch()" />
-    </div>
+    </Hook0Section>
 
     <!-- Response: loaded -->
     <template v-else-if="responseData">
-      <div class="log-detail__section">
-        <h3 class="log-detail__section-title log-detail__section-title--response">
-          {{ t('logs.response') }}
-        </h3>
-
+      <Hook0Section :title="t('logs.response')" :separator="true">
         <div class="log-detail__grid">
           <!-- Summary -->
           <span class="log-detail__grid-label">{{ t('responses.httpStatusCode') }}</span>
@@ -293,33 +281,26 @@ const isErrorResponse = computed(() => {
           <Hook0Code :code="responseData.body_formatted" language="json" :editable="false" />
         </div>
         <p v-else class="log-detail__no-response">{{ t('responses.noBody') }}</p>
-      </div>
+      </Hook0Section>
     </template>
   </template>
 </template>
 
 <style scoped>
-.log-detail__section {
-  margin-bottom: 1.25rem;
+:deep(.hook0-card-content-line) {
+  padding: 0.25rem 0;
 }
 
-.log-detail__section:last-child {
-  margin-bottom: 0;
+.log-detail__skeleton-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.log-detail__section-title {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-tertiary);
-  margin: 0 0 0.75rem;
-}
-
-.log-detail__section-title--response {
-  margin-top: 1.5rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--color-border);
+.log-detail__skeleton-meta-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
 }
 
 .log-detail__subsection-title {
@@ -333,32 +314,11 @@ const isErrorResponse = computed(() => {
   margin-top: 0;
 }
 
-.log-detail__meta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.log-detail__meta-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-}
-
-.log-detail__meta-label {
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-  min-width: 6rem;
-  flex-shrink: 0;
-}
-
-.log-detail__meta-link,
-.log-detail__meta-row :deep(.hook0-button.link) {
+.log-detail__meta-link {
   font-size: 0.8125rem;
 }
 
-.log-detail__meta-link--mono,
-.log-detail__meta-row :deep(.log-detail__meta-link--mono.hook0-button.link) {
+.log-detail__meta-link--mono {
   font-family: var(--font-mono);
   font-size: 0.75rem;
 }
