@@ -28,7 +28,7 @@ use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
-    compute_next_retry,
+    compute_next_retry, record_delivery_health,
 };
 use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -554,6 +554,9 @@ async fn handle_message(
                         .execute(&mut *tx)
                         .await?;
 
+                        if let Err(e) = record_delivery_health(&mut tx, attempt.subscription_id, false).await {
+                            warn!(request_attempt_id = %attempt.request_attempt_id, "Failed to record delivery health: {e}");
+                        }
                         debug!(request_attempt_id = %attempt.request_attempt_id, "Request attempt completed successfully");
                     } else {
                         // Mark attempt as failed
@@ -576,6 +579,10 @@ async fn handle_message(
                         )
                         .execute(&mut *tx)
                         .await?;
+
+                        if let Err(e) = record_delivery_health(&mut tx, attempt.subscription_id, true).await {
+                            warn!(request_attempt_id = %attempt.request_attempt_id, "Failed to record delivery health: {e}");
+                        }
 
                         // Creating a retry request or giving up
                         if let Some(retry_in) =

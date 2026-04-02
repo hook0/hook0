@@ -1003,4 +1003,70 @@ mod tests {
         assert_eq!(retries, 2);
         assert!(cumulative < window);
     }
+
+    #[test]
+    fn scheduled_increasing_delays() {
+        let info = SubscriptionRetryInfo {
+            is_active: true,
+            strategy: Some("increasing".to_string()),
+            max_retries: Some(5),
+            custom_intervals: None,
+            linear_delay: None,
+            increasing_base_delay: Some(3),
+            increasing_wait_factor: Some(3.0),
+        };
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), Some(Duration::from_secs(3)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 1, 25), Some(Duration::from_secs(9)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 2, 25), Some(Duration::from_secs(27)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 5, 25), None);
+    }
+
+    #[test]
+    fn scheduled_linear_delays() {
+        let info = SubscriptionRetryInfo {
+            is_active: true,
+            strategy: Some("linear".to_string()),
+            max_retries: Some(3),
+            custom_intervals: None,
+            linear_delay: Some(120),
+            increasing_base_delay: None,
+            increasing_wait_factor: None,
+        };
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), Some(Duration::from_secs(120)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 2, 25), Some(Duration::from_secs(120)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 3, 25), None);
+    }
+
+    #[test]
+    fn scheduled_custom_delays() {
+        let info = SubscriptionRetryInfo {
+            is_active: true,
+            strategy: Some("custom".to_string()),
+            max_retries: Some(3),
+            custom_intervals: Some(vec![10, 60, 300]),
+            linear_delay: None,
+            increasing_base_delay: None,
+            increasing_wait_factor: None,
+        };
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), Some(Duration::from_secs(10)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 1, 25), Some(Duration::from_secs(60)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 2, 25), Some(Duration::from_secs(300)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 3, 25), None);
+    }
+
+    #[test]
+    fn no_schedule_falls_back_to_default() {
+        let info = SubscriptionRetryInfo {
+            is_active: true,
+            strategy: None,
+            max_retries: None,
+            custom_intervals: None,
+            linear_delay: None,
+            increasing_base_delay: None,
+            increasing_wait_factor: None,
+        };
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), Some(Duration::from_secs(3)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 1, 25), Some(Duration::from_secs(10)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 25, 25), None);
+    }
 }

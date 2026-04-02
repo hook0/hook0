@@ -15,6 +15,7 @@ use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, Worker, compute_next_retry,
+    record_delivery_health,
 };
 use hook0_protobuf::{ObjectStorageResponse, RequestAttempt};
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -277,6 +278,9 @@ pub async fn look_for_work(
                     .execute(&mut *tx)
                     .await?;
 
+                    if let Err(e) = record_delivery_health(&mut tx, attempt_with_payload.subscription_id, false).await {
+                        warn!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Failed to record delivery health: {e}");
+                    }
                     debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Request attempt completed successfully");
                 } else {
                     // Mark attempt as failed
@@ -287,6 +291,10 @@ pub async fn look_for_work(
                     )
                     .execute(&mut *tx)
                     .await?;
+
+                    if let Err(e) = record_delivery_health(&mut tx, attempt_with_payload.subscription_id, true).await {
+                        warn!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Failed to record delivery health: {e}");
+                    }
 
                     // Creating a retry request or giving up
                     if let Some(retry_in) = compute_next_retry(
