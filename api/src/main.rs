@@ -1094,11 +1094,11 @@ async fn main() -> anyhow::Result<()> {
 
         // Spawn health monitor background task
         if config.enable_health_monitor {
-            let hm_db = housekeeping_pool.clone();
-            let hm_semaphore = housekeeping_semaphore.clone();
-            let hm_mailer = mailer.clone();
-            let hm_hook0_client = hook0_client.clone();
-            let hm_config = health_monitor::HealthMonitorConfig {
+            let health_monitor_db = housekeeping_pool.clone();
+            let health_monitor_semaphore = housekeeping_semaphore.clone();
+            let health_monitor_mailer = mailer.clone();
+            let health_monitor_hook0_client = hook0_client.clone();
+            let health_monitor_config = health_monitor::HealthMonitorConfig {
                 interval: config.health_monitor_interval,
                 warning_failure_percent: config.health_monitor_warning_failure_percent,
                 disable_failure_percent: config.health_monitor_disable_failure_percent,
@@ -1109,11 +1109,11 @@ async fn main() -> anyhow::Result<()> {
             };
             actix_web::rt::spawn(async move {
                 health_monitor::run_health_monitor(
-                    &hm_semaphore,
-                    &hm_db,
-                    &hm_mailer,
-                    &hm_hook0_client,
-                    &hm_config,
+                    &health_monitor_semaphore,
+                    &health_monitor_db,
+                    &health_monitor_mailer,
+                    &health_monitor_hook0_client,
+                    &health_monitor_config,
                 )
                 .await;
             });

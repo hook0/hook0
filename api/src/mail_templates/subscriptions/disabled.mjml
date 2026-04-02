@@ -49,19 +49,23 @@
             <mj-column>
                 <mj-image src="{ $logo_url }" alt="Hook0" width="120px" />
                 <mj-text align="center">
-                    <h1>Subscription Disabled</h1>
-                    <p>Your subscription <strong>{ $subscription_description }</strong> in application <strong>{ $application_name }</strong> has been automatically disabled due to persistent delivery failures.</p>
+                    <h1>Subscription Automatically Disabled</h1>
+                    <p>Your subscription <strong>{{ $subscription_description }}</strong> in application <strong>{{ $application_name }}</strong> has been <strong>automatically disabled</strong> due to persistent delivery failures.</p>
+                    <p>No webhook events will be delivered to this subscription until it is re-enabled.</p>
                 </mj-text>
                 <mj-text align="center">
-                    <h2>Details:</h2>
-                    <p>Subscription ID: <strong>{ $subscription_id }</strong></p>
-                    <p>Target URL: <strong>{ $target_url }</strong></p>
-                    <p>Failure rate: <strong>{ $failure_percent }%</strong> over the last <strong>{ $evaluation_window }</strong></p>
-                    <p>Disabled at: <strong>{ $disabled_at }</strong></p>
+                    <h2>Details</h2>
+                    <p>Target URL: <strong>{{ $target_url }}</strong></p>
+                    <p>Failure rate: <strong>{{ $failure_percent }}%</strong> over the last <strong>{{ $evaluation_window }}</strong></p>
+                    <p>Disabled at: <strong>{{ $disabled_at }}</strong></p>
                 </mj-text>
                 <mj-text align="center">
-                    <p>To re-activate this subscription, ensure your target endpoint is reachable and responding correctly, then re-enable it via the API with a PUT request setting <strong>is_enabled: true</strong>.</p>
+                    <h2>How to Re-enable</h2>
+                    <p>1. Fix the underlying issue with your endpoint at <strong>{{ $target_url }}</strong>.</p>
+                    <p>2. Verify that the endpoint is reachable and returns 2xx responses.</p>
+                    <p>3. Re-enable the subscription from the Hook0 dashboard or via the API.</p>
                 </mj-text>
+                <mj-button background-color="#f45e43" color="white" class="button" href="{ $subscription_url }">View Subscription</mj-button>
                 <mj-text align="center">
                     <p class="small">Questions? Reach out to our support team at <a href="mailto:{ $support_email_address }">{ $support_email_address }</a>.</p>
                 </mj-text>

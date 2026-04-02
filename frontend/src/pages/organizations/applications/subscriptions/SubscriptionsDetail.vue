@@ -95,7 +95,7 @@ const recentDeliveries = computed(() =>
           <Hook0CardContentLine type="split">
             <template #label>{{ t('health.failureRate') }}</template>
             <template #value>
-              <Hook0HealthBadge :failure-percent="subscription.failure_percent" />
+              <Hook0HealthBadge :failure-percent="subscription.failure_percent ?? null" />
             </template>
           </Hook0CardContentLine>
         </Hook0CardContent>

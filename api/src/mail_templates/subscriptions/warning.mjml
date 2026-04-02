@@ -49,18 +49,22 @@
             <mj-column>
                 <mj-image src="{ $logo_url }" alt="Hook0" width="120px" />
                 <mj-text align="center">
-                    <h1>Subscription Failing</h1>
-                    <p>Your subscription <strong>{ $subscription_description }</strong> in application <strong>{ $application_name }</strong> has been experiencing delivery failures.</p>
+                    <h1>Webhook Deliveries Are Failing</h1>
+                    <p>Your subscription <strong>{{ $subscription_description }}</strong> in application <strong>{{ $application_name }}</strong> is experiencing a high failure rate.</p>
+                    <p>If this continues, the subscription will be <strong>automatically disabled</strong> to protect your system.</p>
                 </mj-text>
                 <mj-text align="center">
-                    <h2>Details:</h2>
-                    <p>Subscription ID: <strong>{ $subscription_id }</strong></p>
-                    <p>Target URL: <strong>{ $target_url }</strong></p>
-                    <p>Failure rate: <strong>{ $failure_percent }%</strong> over the last <strong>{ $evaluation_window }</strong></p>
+                    <h2>Details</h2>
+                    <p>Target URL: <strong>{{ $target_url }}</strong></p>
+                    <p>Failure rate: <strong>{{ $failure_percent }}%</strong> over the last <strong>{{ $evaluation_window }}</strong></p>
                 </mj-text>
                 <mj-text align="center">
-                    <p>Please check that your target endpoint is reachable and responding correctly. If failures continue, the subscription may be automatically disabled.</p>
+                    <h2>Recommended Actions</h2>
+                    <p>1. Verify that your endpoint at <strong>{{ $target_url }}</strong> is reachable.</p>
+                    <p>2. Ensure it returns successful HTTP responses (2xx status codes).</p>
+                    <p>3. Check your server logs for errors or timeouts.</p>
                 </mj-text>
+                <mj-button background-color="#f45e43" color="white" class="button" href="{ $subscription_url }">View Subscription</mj-button>
                 <mj-text align="center">
                     <p class="small">Questions? Reach out to our support team at <a href="mailto:{ $support_email_address }">{ $support_email_address }</a>.</p>
                 </mj-text>

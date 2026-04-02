@@ -49,17 +49,17 @@
             <mj-column>
                 <mj-image src="{ $logo_url }" alt="Hook0" width="120px" />
                 <mj-text align="center">
-                    <h1>Subscription Recovered</h1>
-                    <p>Your subscription <strong>{ $subscription_description }</strong> in application <strong>{ $application_name }</strong> has recovered and delivery is back to normal.</p>
+                    <h1>Subscription Is Healthy Again</h1>
+                    <p>Good news! Your subscription <strong>{{ $subscription_description }}</strong> in application <strong>{{ $application_name }}</strong> has recovered and webhook deliveries are succeeding normally.</p>
                 </mj-text>
                 <mj-text align="center">
-                    <h2>Details:</h2>
-                    <p>Subscription ID: <strong>{ $subscription_id }</strong></p>
-                    <p>Target URL: <strong>{ $target_url }</strong></p>
+                    <h2>Details</h2>
+                    <p>Target URL: <strong>{{ $target_url }}</strong></p>
                 </mj-text>
                 <mj-text align="center">
                     <p>No further action is required. Your webhook events are being delivered successfully.</p>
                 </mj-text>
+                <mj-button background-color="#28a745" color="white" class="button" href="{ $subscription_url }">View Subscription</mj-button>
                 <mj-text align="center">
                     <p class="small">Questions? Reach out to our support team at <a href="mailto:{ $support_email_address }">{ $support_email_address }</a>.</p>
                 </mj-text>

@@ -200,7 +200,7 @@ const columns: ColumnDef<Subscription, unknown>[] = [
     header: t('health.healthColumn'),
     cell: ({ row }) =>
       h(Hook0HealthBadge, {
-        failurePercent: row.original.failure_percent,
+        failurePercent: row.original.failure_percent ?? null,
       }),
   },
   {

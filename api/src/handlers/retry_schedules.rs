@@ -19,6 +19,11 @@ use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
 pub const MAX_INTERVAL_SECS: i32 = 604_800; // 7 days
+const MIN_BASE_DELAY: i32 = 1;
+const MAX_BASE_DELAY: i32 = 3600;
+const MIN_WAIT_FACTOR: f64 = 1.5;
+const MAX_WAIT_FACTOR: f64 = 10.0;
+const MIN_DELAY: i32 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, EnumString, Apiv2Schema, sqlx::Type)]
 #[serde(rename_all = "lowercase")]
@@ -134,10 +139,10 @@ pub fn validate_strategy_fields(
             require_none("custom_intervals", &custom_intervals, "increasing")?;
             require_none("linear_delay", &linear_delay, "increasing")?;
             let base = require_some("increasing_base_delay", &increasing_base_delay, "increasing")?;
-            require_range("increasing_base_delay", *base, 1, 3600)?;
+            require_range("increasing_base_delay", *base, MIN_BASE_DELAY, MAX_BASE_DELAY)?;
             let factor = require_some("increasing_wait_factor", &increasing_wait_factor, "increasing")?;
-            if !(*factor >= 1.5 && *factor <= 10.0) {
-                return Err(strategy_error("increasing_wait_factor must be between 1.5 and 10.0"));
+            if !(*factor >= MIN_WAIT_FACTOR && *factor <= MAX_WAIT_FACTOR) {
+                return Err(strategy_error(&format!("increasing_wait_factor must be between {MIN_WAIT_FACTOR} and {MAX_WAIT_FACTOR}")));
             }
         }
         RetryStrategy::Linear => {
@@ -145,7 +150,7 @@ pub fn validate_strategy_fields(
             require_none("increasing_base_delay", &increasing_base_delay, "linear")?;
             require_none("increasing_wait_factor", &increasing_wait_factor, "linear")?;
             let delay = require_some("linear_delay", &linear_delay, "linear")?;
-            require_range("linear_delay", *delay, 1, MAX_INTERVAL_SECS)?;
+            require_range("linear_delay", *delay, MIN_DELAY, MAX_INTERVAL_SECS)?;
         }
         RetryStrategy::Custom => {
             require_none("linear_delay", &linear_delay, "custom")?;
@@ -156,8 +161,8 @@ pub fn validate_strategy_fields(
                 return Err(strategy_error("custom_intervals length must equal max_retries"));
             }
             for (i, &val) in intervals.iter().enumerate() {
-                if !(1..=MAX_INTERVAL_SECS).contains(&val) {
-                    return Err(strategy_error(&format!("custom_intervals[{i}] must be between 1 and {MAX_INTERVAL_SECS}")));
+                if !(MIN_DELAY..=MAX_INTERVAL_SECS).contains(&val) {
+                    return Err(strategy_error(&format!("custom_intervals[{i}] must be between {MIN_DELAY} and {MAX_INTERVAL_SECS}")));
                 }
             }
         }
@@ -278,33 +283,32 @@ pub async fn create(
     .await
     .map_err(Hook0Problem::from)?;
 
-    match schedule {
-        Some(s) => {
-            if let Some(hook0_client) = state.hook0_client.as_ref() {
-                let hook0_client_event: Hook0ClientEvent = EventRetryScheduleCreated {
-                    organization_id,
-                    retry_schedule_id: s.retry_schedule_id,
-                    name: s.name.to_owned(),
-                    strategy: s.strategy.to_string(),
-                    max_retries: s.max_retries,
-                    custom_intervals: s.custom_intervals.to_owned(),
-                    linear_delay: s.linear_delay,
-                    increasing_base_delay: s.increasing_base_delay,
-                    increasing_wait_factor: s.increasing_wait_factor,
-                }
-                .into();
-                if let Err(e) = hook0_client
-                    .send_event(&hook0_client_event.mk_hook0_event())
-                    .await
-                {
-                    error!("Hook0ClientError: {e}");
-                };
-            }
+    let Some(s) = schedule else {
+        return Err(Hook0Problem::TooManyRetrySchedulesPerOrganization(state.max_retry_schedules_per_org));
+    };
 
-            Ok(CreatedJson(s))
+    if let Some(hook0_client) = state.hook0_client.as_ref() {
+        let hook0_client_event: Hook0ClientEvent = EventRetryScheduleCreated {
+            organization_id,
+            retry_schedule_id: s.retry_schedule_id,
+            name: s.name.to_owned(),
+            strategy: s.strategy.to_string(),
+            max_retries: s.max_retries,
+            custom_intervals: s.custom_intervals.to_owned(),
+            linear_delay: s.linear_delay,
+            increasing_base_delay: s.increasing_base_delay,
+            increasing_wait_factor: s.increasing_wait_factor,
         }
-        None => Err(Hook0Problem::TooManyRetrySchedulesPerOrganization(state.max_retry_schedules_per_org)),
+        .into();
+        if let Err(e) = hook0_client
+            .send_event(&hook0_client_event.mk_hook0_event())
+            .await
+        {
+            error!("Hook0ClientError: {e}");
+        };
     }
+
+    Ok(CreatedJson(s))
 }
 
 #[api_v2_operation(
@@ -511,33 +515,32 @@ pub async fn delete(
     .await
     .map_err(Hook0Problem::from)?;
 
-    match deleted {
-        Some(d) => {
-            if let Some(hook0_client) = state.hook0_client.as_ref() {
-                let hook0_client_event: Hook0ClientEvent = EventRetryScheduleRemoved {
-                    organization_id,
-                    retry_schedule_id: schedule_id,
-                    name: d.name,
-                    strategy: d.strategy,
-                    max_retries: d.max_retries,
-                    custom_intervals: d.custom_intervals,
-                    linear_delay: d.linear_delay,
-                    increasing_base_delay: d.increasing_base_delay,
-                    increasing_wait_factor: d.increasing_wait_factor,
-                }
-                .into();
-                if let Err(e) = hook0_client
-                    .send_event(&hook0_client_event.mk_hook0_event())
-                    .await
-                {
-                    error!("Hook0ClientError: {e}");
-                };
-            }
+    let Some(d) = deleted else {
+        return Err(Hook0Problem::NotFound);
+    };
 
-            Ok(Json(()))
+    if let Some(hook0_client) = state.hook0_client.as_ref() {
+        let hook0_client_event: Hook0ClientEvent = EventRetryScheduleRemoved {
+            organization_id,
+            retry_schedule_id: schedule_id,
+            name: d.name,
+            strategy: d.strategy,
+            max_retries: d.max_retries,
+            custom_intervals: d.custom_intervals,
+            linear_delay: d.linear_delay,
+            increasing_base_delay: d.increasing_base_delay,
+            increasing_wait_factor: d.increasing_wait_factor,
         }
-        None => Err(Hook0Problem::NotFound),
+        .into();
+        if let Err(e) = hook0_client
+            .send_event(&hook0_client_event.mk_hook0_event())
+            .await
+        {
+            error!("Hook0ClientError: {e}");
+        };
     }
+
+    Ok(Json(()))
 }
 
 /// Unit tests for strategy-dependent field validation logic.

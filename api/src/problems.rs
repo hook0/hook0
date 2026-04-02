@@ -62,13 +62,15 @@ pub enum Hook0Problem {
     AuthFailedRefresh,
     AuthEmailExpired,
 
+    RetryScheduleNameAlreadyExists,
+    RetryScheduleNotFound,
+
     // Quota errors
     TooManyMembersPerOrganization(QuotaValue),
     TooManyApplicationsPerOrganization(QuotaValue),
     TooManyEventsToday(QuotaValue),
     TooManySubscriptionsPerApplication(QuotaValue),
     TooManyEventTypesPerApplication(QuotaValue),
-    RetryScheduleNameAlreadyExists,
     TooManyRetrySchedulesPerOrganization(QuotaValue),
 
     // Generic errors
@@ -433,6 +435,22 @@ impl From<Hook0Problem> for Problem {
                 }
             },
 
+            // Retry schedule errors
+            Hook0Problem::RetryScheduleNameAlreadyExists => Problem {
+                id: Hook0Problem::RetryScheduleNameAlreadyExists,
+                title: "Retry schedule name already exists",
+                detail: "A retry schedule with this name already exists in this organization.".into(),
+                validation: None,
+                status: StatusCode::CONFLICT,
+            },
+            Hook0Problem::RetryScheduleNotFound => Problem {
+                id: Hook0Problem::RetryScheduleNotFound,
+                title: "Retry schedule not found",
+                detail: "The specified retry schedule does not exist or does not belong to this organization.".into(),
+                validation: None,
+                status: StatusCode::NOT_FOUND,
+            },
+
             // Quota errors
             Hook0Problem::TooManyMembersPerOrganization(limit) => {
                 let detail = format!("This organization cannot have more than {limit} users. You might want to upgrade to a better plan.");
@@ -483,13 +501,6 @@ impl From<Hook0Problem> for Problem {
                     validation: None,
                     status: StatusCode::TOO_MANY_REQUESTS,
                 }
-            },
-            Hook0Problem::RetryScheduleNameAlreadyExists => Problem {
-                id: Hook0Problem::RetryScheduleNameAlreadyExists,
-                title: "Retry schedule name already exists",
-                detail: "A retry schedule with this name already exists in this organization.".into(),
-                validation: None,
-                status: StatusCode::CONFLICT,
             },
             Hook0Problem::TooManyRetrySchedulesPerOrganization(limit) => {
                 let detail = format!("This organization cannot have more than {limit} retry schedules.");

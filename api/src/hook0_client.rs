@@ -37,10 +37,10 @@ pub const EVENT_TYPES: &[&str] = &[
     "api.subscription.created",
     "api.subscription.updated",
     "api.subscription.removed",
+    "api.subscription.disabled",
     "api.retry_schedule.created",
     "api.retry_schedule.updated",
     "api.retry_schedule.removed",
-    "api.subscription.disabled",
 ];
 
 pub fn initialize(
@@ -135,10 +135,10 @@ pub enum Hook0ClientEvent {
     SubscriptionCreated(EventSubscriptionCreated),
     SubscriptionUpdated(EventSubscriptionUpdated),
     SubscriptionRemoved(EventSubscriptionRemoved),
+    SubscriptionDisabled(EventSubscriptionDisabled),
     RetryScheduleCreated(EventRetryScheduleCreated),
     RetryScheduleUpdated(EventRetryScheduleUpdated),
     RetryScheduleRemoved(EventRetryScheduleRemoved),
-    SubscriptionDisabled(EventSubscriptionDisabled),
 }
 
 impl Hook0ClientEvent {
@@ -189,12 +189,13 @@ impl Hook0ClientEvent {
             }
             Self::SubscriptionUpdated(e) => to_event(e, None),
             Self::SubscriptionRemoved(e) => to_event(e, None),
+            Self::SubscriptionDisabled(e) => {
+                let disabled_at = e.subscription.disabled_at;
+                to_event(e, Some(disabled_at))
+            }
             Self::RetryScheduleCreated(e) => to_event(e, None),
             Self::RetryScheduleUpdated(e) => to_event(e, None),
             Self::RetryScheduleRemoved(e) => to_event(e, None),
-            Self::SubscriptionDisabled(ref e) => {
-                to_event(e.clone(), Some(e.subscription.disabled_at))
-            }
         }
     }
 }

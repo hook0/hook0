@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import Hook0Badge from './Hook0Badge.vue';
 
 const props = defineProps<{
-  failurePercent: number | null | undefined;
+  failurePercent: number | null;
 }>();
 
 const { t } = useI18n();
@@ -12,12 +12,13 @@ const { t } = useI18n();
 // Thresholds aligned with health monitor defaults:
 // --health-monitor-warning-failure-percent=80 and --health-monitor-disable-failure-percent=95
 // COUPLING: If backend thresholds are changed via CLI args, these must be updated to match.
+// Server-side config: api/src/main.rs --health-monitor-warning-failure-percent and --health-monitor-disable-failure-percent
 // TODO: Expose active thresholds via instance config API to eliminate this coupling.
 const WARNING_THRESHOLD = 80;
 const DISABLE_THRESHOLD = 95;
 
 const status = computed(() => {
-  if (props.failurePercent === null || props.failurePercent === undefined) {
+  if (props.failurePercent === null) {
     return 'noData';
   }
   if (props.failurePercent >= DISABLE_THRESHOLD) {
@@ -42,21 +43,10 @@ const variant = computed(() => {
   }
 });
 
-const label = computed(() => {
-  switch (status.value) {
-    case 'healthy':
-      return t('health.healthy');
-    case 'warning':
-      return t('health.warning');
-    case 'disabled':
-      return t('health.disabled');
-    default:
-      return t('health.noData');
-  }
-});
+const label = computed(() => t(`health.${status.value}`));
 
 const percentLabel = computed(() => {
-  if (props.failurePercent === null || props.failurePercent === undefined) {
+  if (props.failurePercent === null) {
     return '';
   }
   return `${Math.round(props.failurePercent)}%`;

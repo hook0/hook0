@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use lettre::{Address, message::Mailbox};
 use sqlx::PgPool;
 use tokio::sync::Semaphore;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 use hook0_client::Hook0Client;
@@ -16,6 +16,7 @@ use crate::hook0_client::{
 };
 use crate::mailer::{Mail, Mailer};
 
+/// Arbitrary unique ID for pg_try_advisory_xact_lock — must not conflict with other advisory locks in the application.
 const ADVISORY_LOCK_ID: i64 = 42_000_001;
 
 #[derive(Clone)]
@@ -48,43 +49,48 @@ pub async fn run_health_monitor(
         config.interval, config.warning_failure_percent, config.disable_failure_percent
     );
 
-    // Force cleanup on first iteration by backdating the timestamp.
-    let mut last_cleanup = Instant::now() - Duration::from_secs(86400);
+    const CLEANUP_INTERVAL: Duration = Duration::from_secs(86_400);
+
+    let mut last_cleanup: Option<Instant> = None;
 
     while let Ok(permit) = housekeeping_semaphore.acquire().await {
         if let Err(e) = run_health_check(db, mailer, hook0_client, config).await {
             error!("Health monitor error: {e}");
         }
 
-        if last_cleanup.elapsed() > Duration::from_secs(86400) {
-            match cleanup_old_health_events(db).await {
+        if last_cleanup.is_none() || last_cleanup.unwrap().elapsed() > CLEANUP_INTERVAL {
+            match cleanup_resolved_health_events(db).await {
                 Ok(n) => {
                     if n > 0 {
-                        info!("Health monitor: cleaned up {n} old health events");
+                        info!("Health monitor: cleaned up {n} resolved health events");
+                    } else {
+                        debug!("Health monitor: cleanup tick, no events to remove");
                     }
                 }
                 Err(e) => warn!("Health monitor: cleanup error: {e}"),
             }
-            last_cleanup = Instant::now();
+            last_cleanup = Some(Instant::now());
         }
 
         drop(permit);
+        // Sleep between ticks. Total cycle time = check duration + interval.
         actix_web::rt::time::sleep(config.interval).await;
     }
 
     warn!("Health monitor stopped (semaphore closed)");
 }
 
-/// Removes resolved health events older than 90 days,
-/// keeping the latest event per subscription regardless of age.
+/// Removes resolved health events older than RETENTION_PERIOD, keeping at least the latest event per subscription.
 ///
 /// Example: a subscription with events at -100d (resolved), -80d (resolved), -10d (warning)
 /// deletes only the -100d row; the -80d row is kept because -10d is newer.
-async fn cleanup_old_health_events(db: &PgPool) -> Result<u64, sqlx::Error> {
+async fn cleanup_resolved_health_events(db: &PgPool) -> Result<u64, sqlx::Error> {
+    const RETENTION_PERIOD_DAYS: i32 = 90;
+
     let result = sqlx::query(
         r#"
         DELETE FROM webhook.subscription_health_event d
-        WHERE d.created_at < now() - interval '90 days'
+        WHERE d.created_at < now() - make_interval(days => $1)
           AND d.status = 'resolved'
           AND EXISTS (
             SELECT 1 FROM webhook.subscription_health_event newer
@@ -93,6 +99,7 @@ async fn cleanup_old_health_events(db: &PgPool) -> Result<u64, sqlx::Error> {
           )
         "#,
     )
+    .bind(RETENTION_PERIOD_DAYS)
     .execute(db)
     .await?;
 
@@ -125,7 +132,8 @@ struct SubscriptionHealth {
     retry_increasing_wait_factor: Option<f64>,
 }
 
-async fn evaluate_subscriptions(
+/// Fetches all enabled subscriptions with their failure rates and latest health event status.
+async fn fetch_subscription_health_stats(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     config: &HealthMonitorConfig,
 ) -> Result<Vec<SubscriptionHealth>, sqlx::Error> {
@@ -135,6 +143,7 @@ async fn evaluate_subscriptions(
 
     sqlx::query_as::<_, SubscriptionHealth>(
         r#"
+        -- Step 1: Count total and failed attempts per subscription within the time window
         with attempt_stats as (
             select
                 ra.subscription__id,
@@ -149,6 +158,7 @@ async fn evaluate_subscriptions(
             group by ra.subscription__id
             having count(*) >= $2
         ),
+        -- Step 2: Compute failure percentage using sliding window (last N messages) or full window
         windowed_stats as (
             select
                 a.subscription__id,
@@ -171,6 +181,7 @@ async fn evaluate_subscriptions(
                 a.total
             from attempt_stats a
         )
+        -- Step 3: Join with subscription details, latest health event, retry schedule, and target URL
         select
             w.subscription__id as subscription_id,
             s.application__id as application_id,
@@ -280,7 +291,7 @@ async fn run_health_check(
             return Ok(());
         }
 
-        let subscriptions = evaluate_subscriptions(&mut tx, config).await?;
+        let subscriptions = fetch_subscription_health_stats(&mut tx, config).await?;
         info!(
             "Health monitor: evaluated {} subscriptions",
             subscriptions.len()
@@ -489,6 +500,8 @@ async fn send_email_best_effort(
 
     let mail = match kind {
         EmailKind::Warning => Mail::SubscriptionWarning {
+            organization_id: info.organization_id,
+            application_id: info.application_id,
             application_name: app_name,
             subscription_description: description,
             subscription_id: info.subscription_id,
@@ -497,6 +510,8 @@ async fn send_email_best_effort(
             evaluation_window,
         },
         EmailKind::Disabled => Mail::SubscriptionDisabled {
+            organization_id: info.organization_id,
+            application_id: info.application_id,
             application_name: app_name,
             subscription_description: description,
             subscription_id: info.subscription_id,
@@ -509,6 +524,8 @@ async fn send_email_best_effort(
                 .to_rfc3339(),
         },
         EmailKind::Recovered => Mail::SubscriptionRecovered {
+            organization_id: info.organization_id,
+            application_id: info.application_id,
             application_name: app_name,
             subscription_description: description,
             subscription_id: info.subscription_id,

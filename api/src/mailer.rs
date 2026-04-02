@@ -50,6 +50,8 @@ pub enum Mail {
         extra_variables: Vec<(String, String)>,
     },
     SubscriptionWarning {
+        organization_id: Uuid,
+        application_id: Uuid,
         application_name: String,
         subscription_description: String,
         subscription_id: Uuid,
@@ -58,6 +60,8 @@ pub enum Mail {
         evaluation_window: String,
     },
     SubscriptionDisabled {
+        organization_id: Uuid,
+        application_id: Uuid,
         application_name: String,
         subscription_description: String,
         subscription_id: Uuid,
@@ -67,6 +71,8 @@ pub enum Mail {
         disabled_at: String,
     },
     SubscriptionRecovered {
+        organization_id: Uuid,
+        application_id: Uuid,
         application_name: String,
         subscription_description: String,
         subscription_id: Uuid,
@@ -177,6 +183,8 @@ impl Mail {
                 vars
             }
             Mail::SubscriptionWarning {
+                organization_id,
+                application_id,
                 application_name,
                 subscription_description,
                 subscription_id,
@@ -185,6 +193,14 @@ impl Mail {
                 evaluation_window,
             } => {
                 vec![
+                    (
+                        "organization_id".to_owned(),
+                        organization_id.to_string(),
+                    ),
+                    (
+                        "application_id".to_owned(),
+                        application_id.to_string(),
+                    ),
                     ("application_name".to_owned(), application_name.to_owned()),
                     (
                         "subscription_description".to_owned(),
@@ -206,6 +222,8 @@ impl Mail {
                 ]
             }
             Mail::SubscriptionDisabled {
+                organization_id,
+                application_id,
                 application_name,
                 subscription_description,
                 subscription_id,
@@ -215,6 +233,14 @@ impl Mail {
                 disabled_at,
             } => {
                 vec![
+                    (
+                        "organization_id".to_owned(),
+                        organization_id.to_string(),
+                    ),
+                    (
+                        "application_id".to_owned(),
+                        application_id.to_string(),
+                    ),
                     ("application_name".to_owned(), application_name.to_owned()),
                     (
                         "subscription_description".to_owned(),
@@ -237,12 +263,22 @@ impl Mail {
                 ]
             }
             Mail::SubscriptionRecovered {
+                organization_id,
+                application_id,
                 application_name,
                 subscription_description,
                 subscription_id,
                 target_url,
             } => {
                 vec![
+                    (
+                        "organization_id".to_owned(),
+                        organization_id.to_string(),
+                    ),
+                    (
+                        "application_id".to_owned(),
+                        application_id.to_string(),
+                    ),
                     ("application_name".to_owned(), application_name.to_owned()),
                     (
                         "subscription_description".to_owned(),
@@ -274,6 +310,36 @@ impl Mail {
         }
     }
 
+    pub fn subscription_url(&self, app_url: &Url) -> Option<String> {
+        match self {
+            Mail::SubscriptionWarning {
+                organization_id,
+                application_id,
+                subscription_id,
+                ..
+            }
+            | Mail::SubscriptionDisabled {
+                organization_id,
+                application_id,
+                subscription_id,
+                ..
+            }
+            | Mail::SubscriptionRecovered {
+                organization_id,
+                application_id,
+                subscription_id,
+                ..
+            } => Some(format!(
+                "{}/organizations/{}/applications/{}/subscriptions/{}",
+                app_url.as_str().trim_end_matches('/'),
+                organization_id,
+                application_id,
+                subscription_id,
+            )),
+            _ => None,
+        }
+    }
+
     pub fn render(
         &self,
         logo_url: &Url,
@@ -285,6 +351,10 @@ impl Mail {
         let mut mjml = template.to_owned();
         for (key, value) in self.variables() {
             mjml = mjml.replace(&format!("{{ ${key} }}"), &value);
+        }
+
+        if let Some(subscription_url) = self.subscription_url(app_url) {
+            mjml = mjml.replace("{ $subscription_url }", &subscription_url);
         }
 
         mjml = mjml.replace("{ $logo_url }", logo_url.as_str());
@@ -384,6 +454,8 @@ mod tests {
                 extra_variables: vec![("test".to_owned(), "test".to_owned())],
             },
             Mail::SubscriptionWarning {
+                organization_id: Uuid::nil(),
+                application_id: Uuid::nil(),
                 application_name: "test-app".to_owned(),
                 subscription_description: "test-sub".to_owned(),
                 subscription_id: Uuid::nil(),
@@ -392,6 +464,8 @@ mod tests {
                 evaluation_window: "24 hours".to_owned(),
             },
             Mail::SubscriptionDisabled {
+                organization_id: Uuid::nil(),
+                application_id: Uuid::nil(),
                 application_name: "test-app".to_owned(),
                 subscription_description: "test-sub".to_owned(),
                 subscription_id: Uuid::nil(),
@@ -401,6 +475,8 @@ mod tests {
                 disabled_at: "2026-03-26T12:00:00Z".to_owned(),
             },
             Mail::SubscriptionRecovered {
+                organization_id: Uuid::nil(),
+                application_id: Uuid::nil(),
                 application_name: "test-app".to_owned(),
                 subscription_description: "test-sub".to_owned(),
                 subscription_id: Uuid::nil(),

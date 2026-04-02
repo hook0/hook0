@@ -591,7 +591,7 @@ pub async fn create(
             .map_err(Hook0Problem::from)?;
 
     if body.retry_schedule_id.is_some() && subscription.retry_schedule__id.is_none() {
-        return Err(Hook0Problem::NotFound);
+        return Err(Hook0Problem::RetryScheduleNotFound);
     }
 
     match &body.target {
@@ -769,12 +769,6 @@ pub async fn edit(
     .await
     .map_err(|_| Hook0Problem::Forbidden)?;
 
-    // Extract user_id from Biscuit token when available (service tokens have no user)
-    let auth_user_id = match &auth_token {
-        crate::iam::AuthorizedToken::User(u) => Some(u.user_id),
-        _ => None,
-    };
-
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
     }
@@ -843,7 +837,7 @@ pub async fn edit(
     match subscription {
         Some(s) => {
             if body.retry_schedule_id.is_some() && s.retry_schedule__id.is_none() {
-                return Err(Hook0Problem::NotFound);
+                return Err(Hook0Problem::RetryScheduleNotFound);
             }
 
             match &body.target {
@@ -967,17 +961,8 @@ pub async fn edit(
                 .map_err(Hook0Problem::from)?;
             }
 
-            // Insert a 'resolved' health event and reset failure_percent when re-enabling a subscription
+            // No health event on manual re-enable — user already knows. Matches Stripe/Svix behavior.
             if body.is_enabled && previous_is_enabled == Some(false) {
-                query(
-                    "INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id) VALUES ($1, 'resolved', 'user', $2)"
-                )
-                .bind(s.subscription__id)
-                .bind(auth_user_id)
-                .execute(&mut *tx)
-                .await
-                .map_err(Hook0Problem::from)?;
-
                 query(
                     "UPDATE webhook.subscription SET failure_percent = NULL WHERE subscription__id = $1"
                 )
