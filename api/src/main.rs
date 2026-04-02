@@ -500,6 +500,18 @@ struct Config {
     #[clap(long, env, default_value_t = 90)]
     health_monitor_retention_period_days: u32,
 
+    /// [Housekeeping] Duration of a health bucket before closing
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5m")]
+    health_monitor_bucket_duration: Duration,
+
+    /// [Housekeeping] Maximum message count per health bucket before closing
+    #[clap(long, env, default_value_t = 100)]
+    health_monitor_bucket_max_messages: u32,
+
+    /// [Housekeeping] Health bucket retention in days
+    #[clap(long, env, default_value_t = 8)]
+    health_monitor_bucket_retention_days: u32,
+
     /// [Web Server] If true, the secured HTTP headers will be enabled
     #[clap(long, env, default_value = "true")]
     enable_security_headers: bool,
@@ -1114,6 +1126,9 @@ async fn main() -> anyhow::Result<()> {
                 min_sample_size: config.health_monitor_min_sample_size,
                 warning_cooldown: config.health_monitor_warning_cooldown,
                 retention_period_days: config.health_monitor_retention_period_days,
+                bucket_duration: config.health_monitor_bucket_duration,
+                bucket_max_messages: config.health_monitor_bucket_max_messages,
+                bucket_retention_days: config.health_monitor_bucket_retention_days,
             };
             actix_web::rt::spawn(async move {
                 health_monitor::run_health_monitor(

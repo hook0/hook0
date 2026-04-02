@@ -21,10 +21,14 @@ pub struct HealthMonitorConfig {
     pub warning_failure_percent: u8,
     pub disable_failure_percent: u8,
     pub time_window: Duration,
+    #[allow(dead_code)] // kept for CLI backward compatibility
     pub message_window: u32,
     pub min_sample_size: u32,
     pub warning_cooldown: Duration,
     pub retention_period_days: u32,
+    pub bucket_duration: Duration,
+    pub bucket_max_messages: u32,
+    pub bucket_retention_days: u32,
 }
 
 /// Runs the health monitor loop.
@@ -66,6 +70,11 @@ pub async fn run_health_monitor(
                 }
                 Err(e) => warn!("Health monitor: cleanup error: {e}"),
             }
+            match evaluation::cleanup_old_buckets(db, config).await {
+                Ok(n) if n > 0 => info!("Health monitor: cleaned up {n} old health buckets"),
+                Ok(_) => debug!("Health monitor: bucket cleanup tick, none to remove"),
+                Err(e) => warn!("Health monitor: bucket cleanup error: {e}"),
+            }
             last_cleanup = Some(Instant::now());
         }
 
@@ -98,7 +107,7 @@ async fn run_health_check(
             return Ok(());
         }
 
-        let subscriptions =
+        let (subscriptions, max_completed_at) =
             evaluation::fetch_subscription_health_stats(&mut transaction, config).await?;
         info!(
             "Health monitor: evaluated {} subscriptions",
@@ -117,6 +126,24 @@ async fn run_health_check(
                     );
                 }
             }
+        }
+
+        // Reset failure_percent for non-suspect subscriptions
+        let suspect_ids: Vec<uuid::Uuid> = subscriptions
+            .iter()
+            .map(|s| s.subscription_id)
+            .collect();
+        if let Err(e) =
+            evaluation::reset_healthy_failure_percent(&mut transaction, &suspect_ids).await
+        {
+            warn!("Health monitor: failed to reset healthy failure_percent: {e}");
+        }
+
+        // Advance watermark if we processed any deltas
+        if let Some(wm) = max_completed_at
+            && let Err(e) = evaluation::advance_watermark(&mut transaction, wm).await
+        {
+            warn!("Health monitor: failed to advance watermark: {e}");
         }
 
         transaction.commit().await?;

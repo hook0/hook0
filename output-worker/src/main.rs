@@ -762,66 +762,8 @@ async fn get_worker(name: String, conn: &PgPool) -> anyhow::Result<Worker> {
     }
 }
 
-/// Updates the aggregated delivery health counters for a subscription.
-///
-/// Called by both pg and pulsar workers after each attempt completes (success or failure).
-/// Uses an atomic UPSERT: INSERT on first delivery, UPDATE thereafter.
-/// The failure_percent is recomputed from the running counters.
-///
-/// Wrapped in a SAVEPOINT so that a failure here does not abort the parent
-/// delivery transaction (which would lose the attempt result).
-pub async fn record_delivery_health(
-    conn: &mut PgConnection,
-    subscription_id: Uuid,
-    is_failure: bool,
-) -> Result<(), sqlx::Error> {
-    let failed_increment: i32 = if is_failure { 1 } else { 0 };
-
-    // SAVEPOINT isolates this from the parent transaction — if the UPSERT fails
-    // (constraint violation, serialization error), we ROLLBACK TO SAVEPOINT and
-    // the parent transaction remains usable.
-    sqlx::query("SAVEPOINT health_upsert")
-        .execute(&mut *conn)
-        .await?;
-
-    let result = sqlx::query(
-        r#"
-        INSERT INTO webhook.subscription_health (subscription__id, total_count, failed_count, failure_percent, updated_at)
-        VALUES ($1, 1, $2, $2::float8 * 100.0, statement_timestamp())
-        ON CONFLICT (subscription__id) DO UPDATE SET
-            total_count = webhook.subscription_health.total_count + 1,
-            failed_count = webhook.subscription_health.failed_count + $2,
-            failure_percent = (webhook.subscription_health.failed_count + $2)::float8
-                            / (webhook.subscription_health.total_count + 1)::float8 * 100.0,
-            updated_at = statement_timestamp()
-        "#,
-    )
-    .bind(subscription_id)
-    .bind(failed_increment)
-    .execute(&mut *conn)
-    .await;
-
-    match result {
-        Ok(_) => {
-            sqlx::query("RELEASE SAVEPOINT health_upsert")
-                .execute(&mut *conn)
-                .await?;
-            Ok(())
-        }
-        Err(e) => {
-            // Roll back to savepoint so the parent transaction is not poisoned
-            let _ = sqlx::query("ROLLBACK TO SAVEPOINT health_upsert")
-                .execute(&mut *conn)
-                .await;
-            Err(e)
-        }
-    }
-}
-
 #[derive(Debug, sqlx::FromRow)]
 struct SubscriptionRetryInfo {
-    #[allow(dead_code)]
-    is_active: bool,
     strategy: Option<String>,
     max_retries: Option<i32>,
     custom_intervals: Option<Vec<i32>>,
@@ -860,7 +802,6 @@ async fn compute_next_retry(
             let sub = sqlx::query_as::<_, SubscriptionRetryInfo>(
                 r#"
                     SELECT
-                        true AS is_active,
                         rs.strategy,
                         rs.max_retries,
                         rs.custom_intervals,
@@ -1017,7 +958,6 @@ mod tests {
     #[test]
     fn scheduled_increasing_delays() {
         let info = SubscriptionRetryInfo {
-            is_active: true,
             strategy: Some("increasing".to_string()),
             max_retries: Some(5),
             custom_intervals: None,
@@ -1034,7 +974,6 @@ mod tests {
     #[test]
     fn scheduled_linear_delays() {
         let info = SubscriptionRetryInfo {
-            is_active: true,
             strategy: Some("linear".to_string()),
             max_retries: Some(3),
             custom_intervals: None,
@@ -1050,7 +989,6 @@ mod tests {
     #[test]
     fn scheduled_custom_delays() {
         let info = SubscriptionRetryInfo {
-            is_active: true,
             strategy: Some("custom".to_string()),
             max_retries: Some(3),
             custom_intervals: Some(vec![10, 60, 300]),
@@ -1067,7 +1005,6 @@ mod tests {
     #[test]
     fn no_schedule_falls_back_to_default() {
         let info = SubscriptionRetryInfo {
-            is_active: true,
             strategy: None,
             max_retries: None,
             custom_intervals: None,
@@ -1085,7 +1022,6 @@ mod tests {
         // Worst-case DB-allowed params: base=3600, factor=10, max_retries=25
         // retry 24 = 3600 * 10^24 which overflows Duration — must cap, not panic
         let info = SubscriptionRetryInfo {
-            is_active: true,
             strategy: Some("increasing".to_string()),
             max_retries: Some(25),
             custom_intervals: None,
@@ -1100,7 +1036,6 @@ mod tests {
     #[test]
     fn negative_retry_count_returns_none() {
         let info = SubscriptionRetryInfo {
-            is_active: true,
             strategy: Some("custom".to_string()),
             max_retries: Some(3),
             custom_intervals: Some(vec![10, 60, 300]),

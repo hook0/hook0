@@ -807,7 +807,7 @@ pub async fn edit(
     let previous_is_enabled: Option<bool> = query_scalar(
         "SELECT is_enabled FROM webhook.subscription WHERE subscription__id = $1 AND deleted_at IS NULL",
     )
-    .bind(&subscription_id)
+    .bind(subscription_id)
     .fetch_optional(&mut *tx)
     .await
     .map_err(Hook0Problem::from)?;
