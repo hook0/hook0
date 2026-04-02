@@ -90,8 +90,8 @@ pub async fn fetch_subscription_health_stats(
     if !deltas.is_empty() {
         // Build parallel arrays for the unnest-based bulk upsert
         let sub_ids: Vec<Uuid> = deltas.iter().map(|d| d.subscription_id).collect();
-        let totals: Vec<i32> = deltas.iter().map(|d| d.total as i32).collect();
-        let faileds: Vec<i32> = deltas.iter().map(|d| d.failed as i32).collect();
+        let totals: Vec<i32> = deltas.iter().map(|d| d.total.min(i32::MAX as i64) as i32).collect();
+        let faileds: Vec<i32> = deltas.iter().map(|d| d.failed.min(i32::MAX as i64) as i32).collect();
 
         sqlx::query(
             r#"
@@ -174,7 +174,7 @@ pub async fn fetch_subscription_health_stats(
         r#"
         WITH bucket_stats AS (
             SELECT subscription__id,
-                   SUM(failed_count)::float8 / SUM(total_count) * 100.0 AS failure_percent,
+                   SUM(failed_count)::float8 / NULLIF(SUM(total_count), 0) * 100.0 AS failure_percent,
                    SUM(total_count) AS sample_size
             FROM webhook.subscription_health_bucket
             WHERE subscription__id = ANY($1)
@@ -244,11 +244,9 @@ pub async fn advance_watermark(
     .execute(&mut **tx)
     .await?;
 
-    assert_eq!(
-        result.rows_affected(),
-        1,
-        "health_monitor_watermark singleton row missing or watermark did not advance"
-    );
+    if result.rows_affected() == 0 {
+        tracing::debug!("Watermark not advanced (already at or past target)");
+    }
 
     Ok(())
 }

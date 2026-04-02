@@ -133,17 +133,11 @@ async fn run_health_check(
             .iter()
             .map(|s| s.subscription_id)
             .collect();
-        if let Err(e) =
-            evaluation::reset_healthy_failure_percent(&mut transaction, &suspect_ids).await
-        {
-            warn!("Health monitor: failed to reset healthy failure_percent: {e}");
-        }
+        evaluation::reset_healthy_failure_percent(&mut transaction, &suspect_ids).await?;
 
         // Advance watermark if we processed any deltas
-        if let Some(wm) = max_completed_at
-            && let Err(e) = evaluation::advance_watermark(&mut transaction, wm).await
-        {
-            warn!("Health monitor: failed to advance watermark: {e}");
+        if let Some(wm) = max_completed_at {
+            evaluation::advance_watermark(&mut transaction, wm).await?;
         }
 
         transaction.commit().await?;
