@@ -156,43 +156,35 @@ async fn fetch_subscription_health_stats(
 
     sqlx::query_as::<_, SubscriptionHealth>(
         r#"
-        -- Step 1: Count total and failed attempts per subscription within the time window
-        with attempt_stats as (
+        -- Step 1: Rank attempts per subscription (most recent first) within the time window
+        with ranked_attempts as (
             select
                 ra.subscription__id,
-                count(*) as total,
-                count(*) filter (where ra.failed_at is not null) as failed
+                ra.failed_at,
+                row_number() over (partition by ra.subscription__id order by ra.created_at desc) as rn
             from webhook.request_attempt ra
             inner join webhook.subscription s on s.subscription__id = ra.subscription__id
             where s.is_enabled = true
               and s.deleted_at is null
               and ra.created_at > now() - make_interval(secs => $1)
               and (ra.succeeded_at is not null or ra.failed_at is not null)
-            group by ra.subscription__id
-            having count(*) >= $2
         ),
-        -- Step 2: Compute failure percentage using sliding window (last N messages) or full window
+        -- Step 2: Aggregate per subscription, compute failure % over the sliding window (last N) or full window
         windowed_stats as (
             select
-                a.subscription__id,
+                subscription__id,
+                count(*) as total,
                 case
-                    when a.total >= $3 then (
-                        select count(*) filter (where sub.failed_at is not null)::float8
-                             / $3::float8 * 100.0
-                        from (
-                            select ra2.failed_at
-                            from webhook.request_attempt ra2
-                            where ra2.subscription__id = a.subscription__id
-                              and (ra2.succeeded_at is not null or ra2.failed_at is not null)
-                              and ra2.created_at > now() - make_interval(secs => $1)
-                            order by ra2.created_at desc
-                            limit $3
-                        ) sub
-                    )
-                    else (a.failed::float8 / a.total::float8 * 100.0)
-                end as failure_percent,
-                a.total
-            from attempt_stats a
+                    when count(*) >= $3 then
+                        count(*) filter (where failed_at is not null and rn <= $3)::float8
+                        / $3::float8 * 100.0
+                    else
+                        count(*) filter (where failed_at is not null)::float8
+                        / count(*)::float8 * 100.0
+                end as failure_percent
+            from ranked_attempts
+            group by subscription__id
+            having count(*) >= $2
         )
         -- Step 3: Join with subscription details, latest health event, retry schedule, and target URL
         select
