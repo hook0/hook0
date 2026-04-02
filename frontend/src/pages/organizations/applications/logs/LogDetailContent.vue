@@ -10,6 +10,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Section from '@/components/Hook0Section.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
+import Hook0Uuid from '@/components/Hook0Uuid.vue';
 import LogLifecycle from './LogLifecycle.vue';
 
 import { useEventDetail } from '@/pages/organizations/applications/events/useEventQueries';
@@ -144,7 +145,10 @@ const isErrorResponse = computed(() => {
             }"
             class="log-detail__meta-link"
           >
-            {{ attempt.subscription.description ?? attempt.subscription.subscription_id }}
+            <template v-if="attempt.subscription.description">{{
+              attempt.subscription.description
+            }}</template>
+            <Hook0Uuid v-else :value="attempt.subscription.subscription_id" />
           </Hook0Button>
         </template>
       </Hook0CardContentLine>
