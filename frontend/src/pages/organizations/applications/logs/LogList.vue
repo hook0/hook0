@@ -18,6 +18,7 @@ import { usePermissions } from '@/composables/usePermissions';
 import LogDetailContent from './LogDetailContent.vue';
 import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
 
+import Hook0SplitLayout from '@/components/Hook0SplitLayout.vue';
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
@@ -117,58 +118,37 @@ function goBackToList() {
         </Hook0CardHeader>
       </Hook0Card>
 
-      <div v-if="requestAttempts.length > 0" class="log-split">
-        <!-- Mobile: detail full-width with back button -->
-        <template v-if="!isDesktop && selectedRow">
-          <div class="log-split__detail log-split__detail--mobile">
-            <Hook0Button variant="ghost" size="sm" class="log-split__back" @click="goBackToList">
-              <ArrowLeft :size="16" aria-hidden="true" />
-              {{ t('logs.backToList') }}
-            </Hook0Button>
-            <div class="log-split__detail-content">
-              <LogDetailContent :attempt="selectedRow" :application-id="applicationId" />
-            </div>
-          </div>
+      <Hook0SplitLayout
+        v-if="requestAttempts.length > 0"
+        :show-detail="!!selectedRow"
+        :detail-key="selectedRow?.request_attempt_id"
+      >
+        <template #back>
+          <Hook0Button variant="ghost" size="sm" @click="goBackToList">
+            <ArrowLeft :size="16" aria-hidden="true" />
+            {{ t('logs.backToList') }}
+          </Hook0Button>
         </template>
-
-        <!-- Mobile: list (no detail selected) -->
-        <template v-else-if="!isDesktop">
-          <div class="log-split__list">
-            <Hook0Table
-              data-test="logs-table"
-              :columns="columns"
-              :data="requestAttempts"
-              row-id-field="request_attempt_id"
-              clickable-rows
-              @row-click="handleRowClick"
-            />
-          </div>
+        <template #list>
+          <Hook0Table
+            data-test="logs-table"
+            :columns="columns"
+            :data="requestAttempts"
+            row-id-field="request_attempt_id"
+            clickable-rows
+            :active-row-id="selectedRow?.request_attempt_id"
+            @row-click="handleRowClick"
+          />
         </template>
-
-        <!-- Desktop: split layout -->
-        <template v-else>
-          <div class="log-split__list">
-            <Hook0Table
-              data-test="logs-table"
-              :columns="columns"
-              :data="requestAttempts"
-              row-id-field="request_attempt_id"
-              clickable-rows
-              :active-row-id="selectedRow?.request_attempt_id"
-              @row-click="handleRowClick"
-            />
-          </div>
-
-          <div class="log-split__detail">
-            <Transition name="log-detail-fade" mode="out-in">
-              <div v-if="selectedRow" :key="selectedRow.request_attempt_id">
-                <LogDetailContent :attempt="selectedRow" :application-id="applicationId" />
-              </div>
-              <Hook0Skeleton v-else size="block" />
-            </Transition>
-          </div>
+        <template #detail>
+          <LogDetailContent
+            v-if="selectedRow"
+            :attempt="selectedRow"
+            :application-id="applicationId"
+          />
+          <Hook0Skeleton v-else size="block" />
         </template>
-      </div>
+      </Hook0SplitLayout>
 
       <Hook0Card v-else>
         <Hook0CardContent>
@@ -204,51 +184,26 @@ function goBackToList() {
   align-items: flex-start;
 }
 
-/* Split layout — table left, detail right on desktop */
-.log-split {
-  margin-top: 1rem;
-}
-
-@media (min-width: 768px) {
-  .log-split {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-  }
-
-  .log-split__list,
-  .log-split__detail {
-    height: calc(100vh - 23rem);
-  }
-}
-
-.log-split__list {
-  overflow: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background-color: var(--color-bg-primary);
-  min-width: 0;
-}
-
-.log-split__list :deep(table) {
+/* Table layout overrides for Hook0SplitLayout's list panel */
+:deep(.hook0-split-layout__list table) {
   table-layout: fixed;
 }
 
 /* Status column: fixed width, never truncate */
-.log-split__list :deep(.hook0-table-th:first-child),
-.log-split__list :deep(.hook0-table-td:first-child) {
+:deep(.hook0-split-layout__list .hook0-table-th:first-child),
+:deep(.hook0-split-layout__list .hook0-table-td:first-child) {
   width: 12rem;
   white-space: nowrap;
   overflow: visible;
 }
 
 @media (max-width: 767px) {
-  .log-split__list :deep(.hook0-table-th:first-child),
-  .log-split__list :deep(.hook0-table-td:first-child) {
+  :deep(.hook0-split-layout__list .hook0-table-th:first-child),
+  :deep(.hook0-split-layout__list .hook0-table-td:first-child) {
     width: 7rem;
   }
 
-  .log-split__list :deep(.log-status) {
+  :deep(.hook0-split-layout__list .log-status) {
     max-width: 6rem;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -256,49 +211,11 @@ function goBackToList() {
 }
 
 /* Event + date columns truncate with ellipsis */
-.log-split__list :deep(.hook0-table-td:not(:first-child)),
-.log-split__list :deep(.hook0-table-th:not(:first-child)) {
+:deep(.hook0-split-layout__list .hook0-table-td:not(:first-child)),
+:deep(.hook0-split-layout__list .hook0-table-th:not(:first-child)) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.log-split__detail {
-  overflow: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background-color: var(--color-bg-primary);
-  padding: 1.25rem;
-  isolation: isolate;
-}
-
-.log-split__detail--mobile {
-  position: static;
-  padding: 0;
-}
-
-.log-split__back {
-  padding: 0.75rem 1.25rem;
-  margin-top: 0.5rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.log-split__detail-content {
-  padding: 1.25rem;
-}
-
-/* Detail panel fade out → fade in on delivery switch */
-.log-detail-fade-enter-active {
-  transition: opacity 200ms ease;
-}
-
-.log-detail-fade-leave-active {
-  transition: opacity 100ms ease;
-}
-
-.log-detail-fade-enter-from,
-.log-detail-fade-leave-to {
-  opacity: 0;
 }
 
 /* Right-align the last column (created_at) — header + cells */
