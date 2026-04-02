@@ -1,7 +1,7 @@
 ---
-title: Verify webhook signatures with HMAC
-description: "How to verify webhook payloads using HMAC signatures. Includes code examples."
-keywords: [webhook, authentication, HMAC, signature, verification, security]
+title: "Verify webhook HMAC signatures (Python, Node.js, Rust examples)"
+description: "Check every incoming webhook payload against its HMAC-SHA256 signature. Covers signature verification, timestamp validation for replay protection, and IP allowlisting."
+keywords: [webhook authentication, HMAC signature verification, webhook security, secure webhooks, replay attack prevention]
 ---
 
 # Implementing Webhook Authentication

@@ -105,7 +105,25 @@
 /status                                 https://status.hook0.com                302
 /health                                 https://status.hook0.com                302
 
-# Trailing slash handling:
-# - Docusaurus generates .html files (trailingSlash: false)
-# - Netlify "Pretty URLs" rewrites /path → /path.html (must be enabled)
-# - No manual trailing slash redirects needed (they conflict with Pretty URLs)
+# =============================================================================
+# TRAILING SLASH → CANONICAL (no trailing slash)
+# Docusaurus is configured with trailingSlash: false.
+# These 301s tell Google the canonical URL has no trailing slash.
+# Placed at end so they don't interfere with other rules.
+# =============================================================================
+
+/tutorials/webhook-authentication/       /tutorials/webhook-authentication       301
+/tutorials/getting-started/              /tutorials/getting-started              301
+/explanation/what-is-hook0/              /explanation/what-is-hook0              301
+/explanation/hook0-architecture/         /explanation/hook0-architecture         301
+/tutorials/event-types-subscriptions/    /tutorials/event-types-subscriptions    301
+/explanation/event-processing/           /explanation/event-processing           301
+/how-to-guides/monitor-webhook-performance/ /how-to-guides/monitor-webhook-performance 301
+/explanation/security-model/             /explanation/security-model             301
+/reference/sdk/                          /reference/sdk                          301
+/comparisons/                            /comparisons                            301
+/concepts/                               /concepts                               301
+/how-to-guides/                          /how-to-guides                          301
+/tutorials/                              /tutorials                              301
+/hook0-cloud/                            /hook0-cloud                            301
+/self-hosting/                           /self-hosting                           301

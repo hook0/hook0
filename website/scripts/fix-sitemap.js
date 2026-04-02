@@ -7,6 +7,10 @@ var EXCLUDE_PAGES = [
     '404.html',
     'subscription-success.html',
     'subscription-error.html',
+    'privacy-policy.html',
+    'terms.html',
+    'gdpr-subprocessors.html',
+    'data-processing-addendum.html',
 ];
 
 if (!fs.existsSync(SITEMAP_PATH)) {

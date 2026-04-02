@@ -1,7 +1,7 @@
 ---
-title: Getting started with Hook0
-description: "Create an application, register event types, add a subscription, and send your first webhook event."
-keywords: [webhook, getting started, Hook0, tutorial, quickstart]
+title: "Send your first webhook in 5 minutes"
+description: "Create a Hook0 application, define an event type, add a subscription, and fire your first webhook. The free tier covers everything in this tutorial."
+keywords: [webhook quickstart, getting started webhooks, send first webhook, Hook0 tutorial, webhook setup guide, free webhook service]
 ---
 
 # Getting Started with Hook0
