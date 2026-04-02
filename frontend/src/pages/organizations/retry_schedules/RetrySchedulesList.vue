@@ -56,7 +56,10 @@ const {
 function formatDelaySummary(schedule: RetrySchedule): string {
   switch (schedule.strategy) {
     case 'increasing':
-      return t('retrySchedules.delayIncreasing');
+      return t('retrySchedules.delayIncreasing', {
+        baseDelay: formatDuration(schedule.increasing_base_delay!),
+        factor: schedule.increasing_wait_factor,
+      });
     case 'linear':
       return t('retrySchedules.delayLinear', {
         delay: formatDuration(schedule.linear_delay!),

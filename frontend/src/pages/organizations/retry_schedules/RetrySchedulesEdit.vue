@@ -9,7 +9,7 @@ import { toast } from 'vue-sonner';
 import { createRetryScheduleSchema, type RetryScheduleFormValues } from './retrySchedule.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { handleMutationError } from '@/utils/handleMutationError';
-import { formatDuration, INCREASING_DELAYS } from '@/utils/formatDuration';
+import { formatDuration } from '@/utils/formatDuration';
 import {
   useRetryScheduleDetail,
   useCreateRetrySchedule,
@@ -29,6 +29,7 @@ import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0Slider from '@/components/Hook0Slider.vue';
 import SelectableCard from '@/components/SelectableCard.vue';
 
 const { t } = useI18n();
@@ -55,6 +56,8 @@ const { errors, defineField, handleSubmit, resetForm } = useForm({
     max_retries: 10,
     linear_delay: null,
     custom_intervals: [],
+    increasing_base_delay: 3,
+    increasing_wait_factor: 3,
   },
 });
 
@@ -63,12 +66,16 @@ const [strategy] = defineField('strategy');
 const [maxRetries, maxRetriesAttrs] = defineField('max_retries');
 const [linearDelay, linearDelayAttrs] = defineField('linear_delay');
 const [customIntervals] = defineField('custom_intervals');
+const [increasingBaseDelay, increasingBaseDelayAttrs] = defineField('increasing_base_delay');
+const [increasingWaitFactor, increasingWaitFactorAttrs] = defineField('increasing_wait_factor');
 
 // Typed accessors for template usage
 const strategyValue = computed(() => (strategy.value as string) ?? 'increasing');
 const maxRetriesValue = computed(() => (maxRetries.value as number) ?? 0);
 const linearDelayValue = computed(() => (linearDelay.value as number) ?? 0);
 const customIntervalsValue = computed(() => (customIntervals.value as number[] | null) ?? []);
+const increasingBaseDelayValue = computed(() => (increasingBaseDelay.value as number) ?? 3);
+const increasingWaitFactorValue = computed(() => (increasingWaitFactor.value as number) ?? 3);
 
 // Sync max_retries from custom_intervals length
 watch(
@@ -92,6 +99,8 @@ watch(
           max_retries: data.max_retries,
           linear_delay: data.linear_delay,
           custom_intervals: data.custom_intervals ?? [],
+          increasing_base_delay: data.increasing_base_delay ?? 3,
+          increasing_wait_factor: data.increasing_wait_factor ?? 3,
         },
       });
     }
@@ -108,14 +117,28 @@ function cleanPayload(values: RetryScheduleFormValues, orgId: string) {
   };
   switch (values.strategy) {
     case 'increasing':
-      return { ...base, linear_delay: null, custom_intervals: null };
+      return {
+        ...base,
+        linear_delay: null,
+        custom_intervals: null,
+        increasing_base_delay: values.increasing_base_delay,
+        increasing_wait_factor: values.increasing_wait_factor,
+      };
     case 'linear':
-      return { ...base, linear_delay: values.linear_delay, custom_intervals: null };
+      return {
+        ...base,
+        linear_delay: values.linear_delay,
+        custom_intervals: null,
+        increasing_base_delay: null,
+        increasing_wait_factor: null,
+      };
     case 'custom':
       return {
         ...base,
         linear_delay: null,
         custom_intervals: values.custom_intervals,
+        increasing_base_delay: null,
+        increasing_wait_factor: null,
         max_retries: values.custom_intervals!.length,
       };
   }
@@ -176,27 +199,34 @@ function updateInterval(index: number, value: string) {
 }
 
 // Preview computation
+function buildPreviewRows(delaySecs: number[]) {
+  let cumulative = 0;
+  return delaySecs.map((s, i) => {
+    cumulative += s;
+    return {
+      retry: i + 1,
+      delay: formatDuration(s),
+      cumulative: formatDuration(cumulative),
+    };
+  });
+}
+
 const previewRows = computed(() => {
   const strat = strategyValue.value;
   const max = maxRetriesValue.value;
   if (strat === 'increasing') {
-    return Array.from({ length: max }, (_, i) => ({
-      retry: i + 1,
-      delay: formatDuration(INCREASING_DELAYS[Math.min(i, INCREASING_DELAYS.length - 1)]),
-    }));
+    const bd = increasingBaseDelayValue.value;
+    const wf = increasingWaitFactorValue.value;
+    const delays = Array.from({ length: max }, (_, i) => Math.round(bd * Math.pow(wf, i)));
+    return buildPreviewRows(delays);
   }
   if (strat === 'linear') {
     const d = linearDelayValue.value;
-    return Array.from({ length: max }, (_, i) => ({
-      retry: i + 1,
-      delay: formatDuration(d),
-    }));
+    const delays = Array.from({ length: max }, () => d);
+    return buildPreviewRows(delays);
   }
   if (strat === 'custom') {
-    return customIntervalsValue.value.map((s: number, i: number) => ({
-      retry: i + 1,
-      delay: formatDuration(s),
-    }));
+    return buildPreviewRows(customIntervalsValue.value);
   }
   return [];
 });
@@ -221,6 +251,7 @@ const pageTitle = computed(() =>
         <Hook0Card>
           <Hook0CardHeader>
             <template #header>{{ pageTitle }}</template>
+            <template #subtitle>{{ t('retrySchedules.aboutDescription') }}</template>
           </Hook0CardHeader>
 
           <Hook0CardContent>
@@ -241,6 +272,7 @@ const pageTitle = computed(() =>
                   <SelectableCard
                     :model-value="strategyValue === 'increasing'"
                     :label="t('retrySchedules.strategyIncreasing')"
+                    :description="t('retrySchedules.fields.strategyIncreasingDesc')"
                     :icon="Zap"
                     name="strategy"
                     @update:model-value="strategy = 'increasing'"
@@ -248,6 +280,7 @@ const pageTitle = computed(() =>
                   <SelectableCard
                     :model-value="strategyValue === 'linear'"
                     :label="t('retrySchedules.strategyLinear')"
+                    :description="t('retrySchedules.fields.strategyLinearDesc')"
                     :icon="Timer"
                     name="strategy"
                     @update:model-value="strategy = 'linear'"
@@ -255,46 +288,77 @@ const pageTitle = computed(() =>
                   <SelectableCard
                     :model-value="strategyValue === 'custom'"
                     :label="t('retrySchedules.strategyCustom')"
+                    :description="t('retrySchedules.fields.strategyCustomDesc')"
                     :icon="ListOrdered"
                     name="strategy"
                     @update:model-value="strategy = 'custom'"
                   />
                 </div>
-                <p class="form-fields__hint">
-                  <template v-if="strategyValue === 'increasing'">
-                    {{ t('retrySchedules.fields.strategyIncreasingDesc') }}
-                  </template>
-                  <template v-else-if="strategyValue === 'linear'">
-                    {{ t('retrySchedules.fields.strategyLinearDesc') }}
-                  </template>
-                  <template v-else-if="strategyValue === 'custom'">
-                    {{ t('retrySchedules.fields.strategyCustomDesc') }}
-                  </template>
-                </p>
               </div>
 
-              <!-- Max retries -->
-              <Hook0Input
-                v-if="strategyValue !== 'custom'"
-                :model-value="String(maxRetriesValue)"
-                v-bind="maxRetriesAttrs"
+              <!-- Increasing fields -->
+              <div v-if="strategyValue === 'increasing'" class="slider-row">
+                <Hook0Slider
+                  :model-value="increasingBaseDelayValue"
+                  :min="1"
+                  :max="300"
+                  :label="t('retrySchedules.fields.increasingBaseDelay')"
+                  :format-value="formatDuration"
+                  :error="errors.increasing_base_delay"
+                  @update:model-value="increasingBaseDelay = $event"
+                />
+                <Hook0Slider
+                  :model-value="increasingWaitFactorValue"
+                  :min="1.5"
+                  :max="10"
+                  :step="0.5"
+                  :label="t('retrySchedules.fields.increasingWaitFactor')"
+                  :format-value="(v: number) => '×' + v"
+                  :error="errors.increasing_wait_factor"
+                  @update:model-value="increasingWaitFactor = $event"
+                />
+                <Hook0Slider
+                  :model-value="maxRetriesValue"
+                  :min="1"
+                  :max="25"
+                  :label="t('retrySchedules.fields.maxRetries')"
+                  :error="errors.max_retries"
+                  @update:model-value="maxRetries = $event"
+                />
+              </div>
+
+              <!-- Max retries (linear) -->
+              <Hook0Slider
+                v-if="strategyValue === 'linear'"
+                :model-value="maxRetriesValue"
+                :min="1"
+                :max="25"
                 :label="t('retrySchedules.fields.maxRetries')"
-                type="number"
-                min="1"
-                max="15"
                 :error="errors.max_retries"
                 @update:model-value="maxRetries = $event"
               />
 
+              <!-- Preview chips -->
+              <div v-if="previewRows.length > 0" class="preview-chips">
+                <span
+                  v-for="row in previewRows"
+                  :key="row.retry"
+                  class="preview-chips__chip"
+                  :title="t('retrySchedules.preview.cumulativeTooltip', { total: row.cumulative })"
+                >
+                  {{ row.delay }}
+                </span>
+              </div>
+
               <!-- Linear delay -->
-              <Hook0Input
+              <Hook0Slider
                 v-if="strategyValue === 'linear'"
-                :model-value="String(linearDelayValue)"
-                v-bind="linearDelayAttrs"
+                :model-value="linearDelayValue"
+                :min="1"
+                :max="86400"
+                :step="1"
                 :label="t('retrySchedules.fields.linearDelay')"
-                type="number"
-                min="1"
-                max="604800"
+                :format-value="formatDuration"
                 :error="errors.linear_delay"
                 @update:model-value="linearDelay = $event"
               />
@@ -356,28 +420,6 @@ const pageTitle = computed(() =>
           </Hook0CardFooter>
         </Hook0Card>
 
-        <!-- Preview panel -->
-        <Hook0Card v-if="previewRows.length > 0" class="preview-card">
-          <Hook0CardHeader>
-            <template #header>{{ t('retrySchedules.preview.title') }}</template>
-          </Hook0CardHeader>
-          <Hook0CardContent>
-            <table class="preview-table">
-              <thead>
-                <tr>
-                  <th>{{ t('retrySchedules.preview.retryColumn') }}</th>
-                  <th>{{ t('retrySchedules.preview.delayColumn') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in previewRows" :key="row.retry">
-                  <td>#{{ row.retry }}</td>
-                  <td>{{ row.delay }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </Hook0CardContent>
-        </Hook0Card>
       </Hook0Form>
     </template>
   </Hook0PageLayout>
@@ -417,6 +459,10 @@ const pageTitle = computed(() =>
   gap: 0.75rem;
 }
 
+.strategy-cards > * {
+  flex: 1;
+}
+
 @media (max-width: 640px) {
   .strategy-cards {
     flex-direction: column;
@@ -442,31 +488,41 @@ const pageTitle = computed(() =>
   flex-shrink: 0;
 }
 
-.preview-card {
-  margin-top: 1.5rem;
-}
-
-.preview-table {
-  width: 100%;
-  border-collapse: collapse;
+.about-description {
   font-size: 0.875rem;
-}
-
-.preview-table th {
-  text-align: left;
-  padding: 0.5rem 0.75rem;
-  font-weight: 600;
   color: var(--color-text-secondary);
-  border-bottom: 1px solid var(--color-border);
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
 }
 
-.preview-table td {
-  padding: 0.5rem 0.75rem;
-  color: var(--color-text-primary);
-  border-bottom: 1px solid var(--color-border);
+.slider-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
 }
 
-.preview-table tr:last-child td {
-  border-bottom: none;
+@media (max-width: 640px) {
+  .slider-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.preview-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.preview-chips__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  font-variant-numeric: tabular-nums;
 }
 </style>

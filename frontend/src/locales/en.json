@@ -845,7 +845,7 @@
     "webhookSiteHint": "Need a test URL? Use {link} to get one instantly.",
     "webhookSiteName": "Webhook.site",
     "retryScheduleLabel": "Retry Schedule",
-    "retryScheduleHint": "Choose a retry schedule or leave empty to use the default policy.",
+    "retryScheduleHint": "Choose a {link} or leave empty to use the recommended policy.",
     "editAction": "Edit",
     "detailAction": "View"
   },
@@ -1028,19 +1028,25 @@
     "strategyIncreasing": "Increasing",
     "strategyLinear": "Linear",
     "strategyCustom": "Custom",
-    "delayIncreasing": "3s → 10h escalating",
+    "delayIncreasing": "{baseDelay} × {factor} escalating",
     "delayLinear": "{delay} fixed",
     "delayCustom": "{count} custom intervals",
-    "defaultSchedule": "Default",
-    "defaultScheduleDesc": "Built-in increasing schedule: 3s, 10s, 3min, 30min, 1h, 3h, 5h, then 10h for subsequent retries.",
+    "defaultSchedule": "Recommended",
+    "defaultScheduleDesc": "Built-in increasing schedule: 3s, 10s, 3min, 30min, 1h, 3h, 5h, then 10h for subsequent retries (up to 25 retries over 8 days).",
+    "aboutTitle": "About Retry Schedules",
+    "aboutDescription": "Customize how failed webhooks are retried. Default policy: 3s, 10s, 3min, 30min, 1h, 3h, 5h, then 10h (up to 25 retries over 8 days).",
     "fields": {
       "name": "Name",
       "namePlaceholder": "e.g. Aggressive then patient",
       "strategy": "Strategy",
-      "strategyIncreasingDesc": "Uses the built-in escalating schedule (3s, 10s, 3min, 30min, 1h, 3h, 5h, 10h…)",
+      "strategyIncreasingDesc": "Each retry waits longer than the previous one (base delay × factor^n)",
       "strategyLinearDesc": "Fixed delay between each retry",
       "strategyCustomDesc": "Define a custom delay for each retry attempt",
       "maxRetries": "Max Retries",
+      "increasingBaseDelay": "Base Delay (seconds)",
+      "increasingBaseDelayHint": "Delay for the first retry attempt",
+      "increasingWaitFactor": "Wait Factor",
+      "increasingWaitFactorHint": "Multiplier between each retry (e.g. 3 means each retry waits 3× longer)",
       "linearDelay": "Delay (seconds)",
       "customIntervals": "Custom Intervals",
       "addInterval": "Add interval",
@@ -1050,7 +1056,8 @@
     "preview": {
       "title": "Retry Preview",
       "retryColumn": "Retry",
-      "delayColumn": "Delay"
+      "delayColumn": "Delay",
+      "cumulativeTooltip": "Total elapsed: {total}"
     },
     "empty": {
       "title": "No retry schedules",

@@ -48,7 +48,7 @@ onMounted(() => {
           </template>
         </Hook0Alert>
 
-        <Hook0ButtonGroup direction="column" gap="sm" full-width>
+        <Hook0ButtonGroup direction="column" gap="sm" full-width class="check-email__actions">
           <Hook0Button variant="primary" size="lg" :to="{ name: routes.Login }" full-width>
             <template #left>
               <ArrowLeft :size="20" aria-hidden="true" />
@@ -69,5 +69,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* No custom styles - Hook0 components handle layout */
+.check-email__actions {
+  margin-top: 0.75rem;
+}
 </style>

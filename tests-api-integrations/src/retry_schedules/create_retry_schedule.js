@@ -40,13 +40,15 @@ export default function (baseUrl, service_token, organization_id) {
       organization_id,
       name: 'k6_exp_with_intervals_' + uuidv4(),
       strategy: 'increasing',
+      increasing_base_delay: 3,
+      increasing_wait_factor: 3.0,
       max_retries: 3,
       custom_intervals: [10, 20, 30],
     }),
     params
   );
   check(res, {
-    'Exponential with custom_intervals returns 400': (r) => r.status === 400 || r.status === 422,
+    'Increasing with custom_intervals returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
   // --- Invalid: linear without linear_delay ---
@@ -103,6 +105,8 @@ export default function (baseUrl, service_token, organization_id) {
       organization_id,
       name: 'k6_zero_retries_' + uuidv4(),
       strategy: 'increasing',
+      increasing_base_delay: 3,
+      increasing_wait_factor: 3.0,
       max_retries: 0,
     }),
     params
@@ -118,6 +122,8 @@ export default function (baseUrl, service_token, organization_id) {
       organization_id,
       name: 'k6_101_retries_' + uuidv4(),
       strategy: 'increasing',
+      increasing_base_delay: 3,
+      increasing_wait_factor: 3.0,
       max_retries: 101,
     }),
     params
@@ -133,6 +139,8 @@ export default function (baseUrl, service_token, organization_id) {
       organization_id,
       name: '',
       strategy: 'increasing',
+      increasing_base_delay: 3,
+      increasing_wait_factor: 3.0,
       max_retries: 3,
     }),
     params
@@ -148,6 +156,8 @@ export default function (baseUrl, service_token, organization_id) {
       organization_id,
       name: 'x',
       strategy: 'increasing',
+      increasing_base_delay: 3,
+      increasing_wait_factor: 3.0,
       max_retries: 3,
     }),
     params
@@ -164,6 +174,8 @@ export default function (baseUrl, service_token, organization_id) {
       organization_id,
       name: schedule_name,
       strategy: 'increasing',
+      increasing_base_delay: 3,
+      increasing_wait_factor: 3.0,
       max_retries: 5,
     }),
     params
@@ -243,6 +255,8 @@ export default function (baseUrl, service_token, organization_id) {
       organization_id,
       name: schedule_name,
       strategy: 'increasing',
+      increasing_base_delay: 3,
+      increasing_wait_factor: 3.0,
       max_retries: 3,
     }),
     params

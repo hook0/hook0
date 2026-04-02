@@ -5,6 +5,7 @@ import { Check } from 'lucide-vue-next';
 type Props = {
   modelValue: boolean;
   label: string;
+  description?: string;
   icon: Component;
   name: string;
   dataTest?: string;
@@ -12,6 +13,7 @@ type Props = {
 };
 
 const props = withDefaults(defineProps<Props>(), {
+  description: undefined,
   dataTest: undefined,
   disabled: false,
 });
@@ -41,8 +43,9 @@ defineEmits<{
     <span class="selectable-card__icon" :class="{ 'selectable-card__icon--selected': modelValue }">
       <component :is="icon" :size="18" aria-hidden="true" />
     </span>
-    <span class="selectable-card__label">
-      {{ label }}
+    <span class="selectable-card__text">
+      <span class="selectable-card__label">{{ label }}</span>
+      <span v-if="description" class="selectable-card__description">{{ description }}</span>
     </span>
     <span class="selectable-card__indicator">
       <Check v-if="modelValue" :size="16" aria-hidden="true" />
@@ -125,11 +128,24 @@ defineEmits<{
   color: var(--color-bg-primary);
 }
 
-.selectable-card__label {
+.selectable-card__text {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.selectable-card__label {
   font-size: 0.875rem;
+  font-weight: 500;
   color: var(--color-text-primary);
+}
+
+.selectable-card__description {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
 }
 
 .selectable-card__indicator {

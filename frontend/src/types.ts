@@ -1145,6 +1145,8 @@ export interface components {
       max_retries: number;
       custom_intervals?: number[] | null;
       linear_delay?: number | null;
+      increasing_base_delay?: number | null;
+      increasing_wait_factor?: number | null;
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -1158,6 +1160,8 @@ export interface components {
       max_retries: number;
       custom_intervals?: number[] | null;
       linear_delay?: number | null;
+      increasing_base_delay?: number | null;
+      increasing_wait_factor?: number | null;
     };
     RetrySchedulePut: {
       name: string;
@@ -1165,6 +1169,8 @@ export interface components {
       max_retries: number;
       custom_intervals?: number[] | null;
       linear_delay?: number | null;
+      increasing_base_delay?: number | null;
+      increasing_wait_factor?: number | null;
     };
     Subscription: {
       /** Format: uuid */

@@ -6,9 +6,11 @@ create table webhook.retry_schedule (
         on update cascade on delete cascade,
     name text not null check (length(name) > 1),
     strategy text not null check (strategy in ('increasing', 'linear', 'custom')),
-    max_retries integer not null check (max_retries > 0 and max_retries <= 15),
+    max_retries integer not null check (max_retries > 0 and max_retries <= 25),
     custom_intervals integer[],
     linear_delay integer,
+    increasing_base_delay integer,
+    increasing_wait_factor double precision,
     created_at timestamptz not null default statement_timestamp(),
     updated_at timestamptz not null default statement_timestamp(),
     constraint retry_schedule_pkey primary key (retry_schedule__id),
@@ -17,12 +19,18 @@ create table webhook.retry_schedule (
         case strategy
             when 'increasing' then
                 custom_intervals is null and linear_delay is null
+                and increasing_base_delay is not null
+                and increasing_base_delay >= 1 and increasing_base_delay <= 3600
+                and increasing_wait_factor is not null
+                and increasing_wait_factor >= 1.5 and increasing_wait_factor <= 10.0
             when 'linear' then
                 custom_intervals is null
+                and increasing_base_delay is null and increasing_wait_factor is null
                 and linear_delay is not null
                 and linear_delay >= 1 and linear_delay <= 604800
             when 'custom' then
                 linear_delay is null
+                and increasing_base_delay is null and increasing_wait_factor is null
                 and custom_intervals is not null
                 and array_length(custom_intervals, 1) = max_retries
                 and 1 <= all(custom_intervals)

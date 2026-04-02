@@ -105,6 +105,8 @@ export default function (baseUrl, service_token, organization_id, schedule_id) {
       organization_id,
       name: dup_name,
       strategy: 'increasing',
+      increasing_base_delay: 3,
+      increasing_wait_factor: 3.0,
       max_retries: 3,
     }),
     params

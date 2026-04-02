@@ -20,6 +20,8 @@ export default function (baseUrl, service_token, organization_id, application_id
     organization_id,
     name: 'k6-test-increasing-' + Date.now(),
     strategy: 'increasing',
+      increasing_base_delay: 3,
+      increasing_wait_factor: 3.0,
     max_retries: 10,
   };
 
