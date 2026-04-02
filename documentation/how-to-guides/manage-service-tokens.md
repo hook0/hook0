@@ -131,6 +131,38 @@ If you revoke the **root token**, all tokens derived from it are automatically i
 
 ---
 
+## Create a Read-Only Service Token
+
+A read-only service token is useful for monitoring dashboards, debugging tools, or AI assistants that only need to observe your webhook activity without modifying anything.
+
+### Read-Only Permissions
+
+| Permission | Description |
+|---|---|
+| `organization:get` | View organization details |
+| `application:list` | List applications |
+| `application:get` | View application details |
+| `event_type:list` | List event types |
+| `event:list` | List events |
+| `event:get` | View event details |
+| `subscription:list` | List subscriptions |
+| `subscription:get` | View subscription details |
+| `request_attempt:list` | List delivery attempts |
+| `request_attempt:get` | View delivery attempt details |
+| `response:get` | View delivery response details |
+
+### How to Create One
+
+1. Create a standard service token (see [Creating a Service Token](#creating-a-service-token))
+2. Attenuate it to a specific application (see [Token Attenuation](#token-attenuation))
+3. The attenuated token will only have access to the resources within that application's scope
+
+:::tip
+For production monitoring, combine read-only app access with an expiration date for defense in depth.
+:::
+
+---
+
 ## Best Practices
 
 ### 1. Use Separate Tokens per Environment

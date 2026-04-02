@@ -13,6 +13,7 @@ import { useLogColumns } from './useLogColumns';
 import type { RequestAttemptExtended } from './LogService';
 import { routes } from '@/routes';
 import { useOrganizationDetail } from '@/pages/organizations/useOrganizationQueries';
+import { usePermissions } from '@/composables/usePermissions';
 
 import LogDetailContent from './LogDetailContent.vue';
 import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
@@ -35,6 +36,7 @@ const router = useRouter();
 const { organizationId, applicationId } = useRouteIds();
 const { data: requestAttempts, isLoading, error, refetch } = useLogList(applicationId);
 const { data: organization } = useOrganizationDetail(organizationId);
+const { canCreate } = usePermissions();
 
 const isDesktop = useMediaQuery('(min-width: 768px)');
 
@@ -175,7 +177,7 @@ function goBackToList() {
             :description="t('logs.empty.description')"
             :icon="Send"
           >
-            <template #action>
+            <template v-if="canCreate('subscription')" #action>
               <Hook0Button
                 variant="primary"
                 :to="{
