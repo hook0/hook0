@@ -36,6 +36,8 @@ export default function (baseUrl, service_token, organization_id, schedule_id) {
       max_retries: current.max_retries,
       custom_intervals: current.custom_intervals,
       linear_delay: current.linear_delay,
+      increasing_base_delay: current.increasing_base_delay,
+      increasing_wait_factor: current.increasing_wait_factor,
     }),
     params
   );
