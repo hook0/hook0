@@ -9,6 +9,7 @@ import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Section from '@/components/Hook0Section.vue';
 import Hook0CardContentLine from '@/components/Hook0CardContentLine.vue';
+import Hook0Badge from '@/components/Hook0Badge.vue';
 import LogLifecycle from './LogLifecycle.vue';
 
 import { useEventDetail } from '@/pages/organizations/applications/events/useEventQueries';
@@ -159,32 +160,34 @@ const isErrorResponse = computed(() => {
       v-if="eventData.labels && Object.keys(eventData.labels as Record<string, string>).length > 0"
       :title="t('events.labels')"
     >
-      <div class="log-detail__labels">
-        <span
+      <div class="log-detail__badge-list">
+        <Hook0Badge
           v-for="(val, key) in eventData.labels as Record<string, string>"
           :key="String(key)"
-          class="log-detail__label-badge"
+          variant="primary"
+          size="sm"
         >
           {{ key }}={{ val }}
-        </span>
+        </Hook0Badge>
       </div>
     </Hook0Section>
 
     <!-- Request -->
     <Hook0Section :title="t('logs.request')" :separator="true">
-      <div class="log-detail__grid">
-        <template v-if="subscriptionData?.target">
-          <span class="log-detail__grid-label">{{ t('logs.httpMethod') }}</span>
-          <code class="log-detail__grid-value log-detail__grid-value--mono">{{
-            subscriptionData.target.method.toUpperCase()
-          }}</code>
-
-          <span class="log-detail__grid-label">{{ t('logs.targetUrl') }}</span>
-          <code class="log-detail__grid-value log-detail__grid-value--mono">{{
-            subscriptionData.target.url
-          }}</code>
-        </template>
-      </div>
+      <template v-if="subscriptionData?.target">
+        <Hook0CardContentLine type="split">
+          <template #label>{{ t('logs.httpMethod') }}</template>
+          <template #content>
+            <code class="mono">{{ subscriptionData.target.method.toUpperCase() }}</code>
+          </template>
+        </Hook0CardContentLine>
+        <Hook0CardContentLine type="split">
+          <template #label>{{ t('logs.targetUrl') }}</template>
+          <template #content>
+            <code class="mono">{{ subscriptionData.target.url }}</code>
+          </template>
+        </Hook0CardContentLine>
+      </template>
 
       <!-- Payload -->
       <h4 class="log-detail__subsection-title">{{ t('events.payload') }}</h4>
@@ -220,54 +223,58 @@ const isErrorResponse = computed(() => {
     <!-- Response: loaded -->
     <template v-else-if="responseData">
       <Hook0Section :title="t('logs.response')" :separator="true">
-        <div class="log-detail__grid">
-          <!-- Summary -->
-          <span class="log-detail__grid-label">{{ t('responses.httpStatusCode') }}</span>
-          <span
-            v-if="responseData.http_code != null"
-            class="log-detail__status-badge"
-            :class="statusCodeClass(responseData.http_code)"
-            role="status"
-            :aria-label="`HTTP ${responseData.http_code}`"
-          >
-            {{ responseData.http_code }}
-          </span>
-          <span v-else class="log-detail__grid-value">—</span>
-
-          <span class="log-detail__grid-label">{{ t('responses.id') }}</span>
-          <code class="log-detail__grid-value log-detail__grid-value--mono">{{
-            responseData.response_id
-          }}</code>
-
-          <template v-if="responseData.elapsed_time_ms != null">
-            <span class="log-detail__grid-label">{{ t('responses.elapsedTime') }}</span>
-            <span class="log-detail__grid-value">{{
-              t('responses.elapsedTimeMs', { ms: responseData.elapsed_time_ms })
-            }}</span>
-          </template>
-
-          <template v-if="responseData.response_error_name">
-            <span class="log-detail__grid-label">{{ t('responses.error') }}</span>
-            <code
-              class="log-detail__grid-value log-detail__grid-value--mono log-detail__grid-value--error"
-              >{{ responseData.response_error_name }}</code
+        <!-- Summary -->
+        <Hook0CardContentLine type="split">
+          <template #label>{{ t('responses.httpStatusCode') }}</template>
+          <template #content>
+            <span
+              v-if="responseData.http_code != null"
+              class="log-detail__status-badge"
+              :class="statusCodeClass(responseData.http_code)"
+              role="status"
+              :aria-label="`HTTP ${responseData.http_code}`"
             >
+              {{ responseData.http_code }}
+            </span>
+            <span v-else>—</span>
           </template>
+        </Hook0CardContentLine>
+        <Hook0CardContentLine type="split">
+          <template #label>{{ t('responses.id') }}</template>
+          <template #content>
+            <code class="mono">{{ responseData.response_id }}</code>
+          </template>
+        </Hook0CardContentLine>
+        <Hook0CardContentLine v-if="responseData.elapsed_time_ms != null" type="split">
+          <template #label>{{ t('responses.elapsedTime') }}</template>
+          <template #content>{{
+            t('responses.elapsedTimeMs', { ms: responseData.elapsed_time_ms })
+          }}</template>
+        </Hook0CardContentLine>
+        <Hook0CardContentLine v-if="responseData.response_error_name" type="split">
+          <template #label>{{ t('responses.error') }}</template>
+          <template #content>
+            <code class="mono mono--error">{{ responseData.response_error_name }}</code>
+          </template>
+        </Hook0CardContentLine>
 
-          <!-- Headers -->
-          <h4 class="log-detail__subsection-title log-detail__grid-full">
-            {{ t('responses.headers') }}
-          </h4>
-          <template v-if="filteredHeaders">
-            <template v-for="(val, key) in filteredHeaders" :key="String(key)">
-              <code class="log-detail__grid-label log-detail__grid-label--mono">{{ key }}</code>
-              <code class="log-detail__grid-value log-detail__grid-value--mono">{{ val }}</code>
+        <!-- Headers -->
+        <h4 class="log-detail__subsection-title">{{ t('responses.headers') }}</h4>
+        <template v-if="filteredHeaders">
+          <Hook0CardContentLine
+            v-for="(val, key) in filteredHeaders"
+            :key="String(key)"
+            type="split"
+          >
+            <template #label>
+              <code class="mono mono--bold">{{ key }}</code>
             </template>
-          </template>
-          <p v-else class="log-detail__grid-full log-detail__no-response">
-            {{ t('responses.noHeaders') }}
-          </p>
-        </div>
+            <template #content>
+              <code class="mono">{{ val }}</code>
+            </template>
+          </Hook0CardContentLine>
+        </template>
+        <p v-else class="log-detail__no-response">{{ t('responses.noHeaders') }}</p>
         <p v-if="filteredHeaders && hasHiddenHeaders" class="log-detail__sensitive-note">
           {{ t('responses.sensitiveHidden') }}
         </p>
@@ -323,58 +330,23 @@ const isErrorResponse = computed(() => {
   font-size: 0.75rem;
 }
 
-.log-detail__labels {
+.log-detail__badge-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.375rem;
 }
 
-.log-detail__label-badge {
-  display: inline-flex;
-  padding: 0.125rem 0.5rem;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: var(--color-primary);
-  background-color: var(--color-primary-light);
-  border-radius: var(--radius-full);
-}
-
-.log-detail__grid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.375rem 0.75rem;
-  align-items: baseline;
-}
-
-.log-detail__grid-full {
-  grid-column: 1 / -1;
-}
-
-.log-detail__grid-label {
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-}
-
-.log-detail__grid-label--mono {
+.mono {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.log-detail__grid-value {
-  font-size: 0.8125rem;
-  color: var(--color-text-primary);
   word-break: break-all;
 }
 
-.log-detail__grid-value--mono {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
+.mono--bold {
+  font-weight: 600;
 }
 
-.log-detail__grid-value--error {
+.mono--error {
   color: var(--color-error);
 }
 
