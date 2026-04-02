@@ -158,7 +158,7 @@ test.describe("Log Detail", () => {
     await firstRow.locator('.log-status').click();
 
     // Verify the detail panel shows content (scoped to the detail side of the split)
-    const detail = page.locator('.log-split__detail');
+    const detail = page.locator('.hook0-split-layout__detail');
     await expect(detail.getByText("log.test.created")).toBeVisible({ timeout: 10000 });
     await expect(detail.getByText("Request")).toBeVisible();
     await expect(detail.getByText("Payload")).toBeVisible();
