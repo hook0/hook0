@@ -687,7 +687,7 @@ environment:
 ```
 
 :::info Webhook Rate Limiting
-For rate limiting issues at webhook endpoints, see [Debugging Failed Webhooks](./debug-failed-webhooks.md#scenario-4-rate-limiting-issues).
+For rate limiting issues at webhook endpoints, see [Debugging Failed Webhooks](./debug-failed-webhooks.md#scenario-4-rate-limiting).
 :::
 
 ## Still Stuck?

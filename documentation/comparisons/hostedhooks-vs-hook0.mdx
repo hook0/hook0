@@ -1,0 +1,99 @@
+---
+title: "Hostedhooks vs Hook0: Proprietary vs Open-Source Webhooks"
+description: "Compare Hostedhooks and Hook0 webhook platforms. Feature comparison covering self-hosting, open-source licensing, retry logic, multi-tenant support, and SDKs."
+keywords: [Hostedhooks vs Hook0, webhook comparison, Hostedhooks alternative, open source webhooks, webhook platform]
+---
+
+import Head from '@docusaurus/Head';
+
+<Head>
+  <script type="application/ld+json">
+    {JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "Hostedhooks vs Hook0: Proprietary vs Open-Source Webhooks",
+      "description": "Compare Hostedhooks and Hook0 -- proprietary vs open-source webhook platforms",
+      "url": "https://documentation.hook0.com/comparisons/hostedhooks-vs-hook0",
+      "publisher": {"@type": "Organization", "name": "Hook0", "url": "https://www.hook0.com"}
+    })}
+  </script>
+</Head>
+
+# Hostedhooks vs Hook0
+
+[Hostedhooks](https://www.hostedhooks.com/) is a proprietary webhook platform. It has fewer features but is quick to set up. Hook0 is open-source and does more on multi-tenancy, event routing, and self-hosting.
+
+**Legend:** ✅ = Full support | ⚠️ = Partial support | ❌ = Not available
+
+## Feature comparison
+
+| Feature | Hostedhooks | Hook0 |
+|---------|-------------|-------|
+| **SaaS** | ✅ | ✅ |
+| **Self-hosting** | ❌ | ✅ Full feature parity |
+| **Open-Source** | ❌ Proprietary | ✅ SSPL-1.0 |
+| **HMAC signatures** | ✅ | ✅ |
+| **Automatic retries** | ✅ | ✅ Fixed schedule + jitter |
+| **Dead letter queue** | ❌ | ✅ |
+| **Event type hierarchy** | ⚠️ Flat event types | ✅ Dot-notation hierarchy |
+| **Multi-tenant filtering** | ❌ | ✅ Label-based filtering |
+| **Custom retry schedules** | ❌ | ✅ |
+| **Delivery logs** | ✅ | ✅ |
+| **Manual replay** | ❌ | ✅ |
+| **REST API** | ✅ | ✅ |
+| **SDK languages** | JavaScript | JavaScript, Rust |
+| **Authentication model** | API keys | Biscuit tokens + Service tokens |
+| **Dashboard UI** | ✅ | ✅ |
+
+## Open-source vs proprietary
+
+This is the main difference. With Hostedhooks:
+
+- You can't inspect the source code
+- You can't self-host it
+- You can't customize the behavior
+- If Hostedhooks shuts down, you need to rebuild or migrate
+- You have no visibility into how your data is processed
+
+With Hook0:
+
+- Full source code under SSPL-1.0
+- Self-host on your own infrastructure with zero feature restrictions
+- Fork and customize if needed
+- The only restriction: if you offer Hook0 as a managed service to others, you must open-source your entire stack
+- Your infrastructure runs independently of Hook0 the company
+- Audit every line of code that touches your data
+
+In regulated industries (finance, healthcare, government), self-hosting and code auditing are requirements.
+
+## Where Hook0 goes further
+
+Hostedhooks covers the basics: send a webhook, check delivery, retry on failure. For simple use cases, that works.
+
+Hook0 adds:
+
+- **Event type hierarchies**: events organized as `order.created`, `order.updated`, `order.cancelled` instead of flat strings
+- **Label-based filtering**: route events to subscriptions based on arbitrary key-value labels (useful for multi-tenant SaaS)
+- **Dead letter queue**: failed events are kept for inspection and replay, not silently dropped
+- **Biscuit token authentication**: capability-based access control with Service tokens for programmatic access, instead of all-or-nothing API keys
+
+## Pick Hostedhooks if
+
+- You need a quick webhook setup with minimal configuration
+- Your use case is simple: a few event types, a few endpoints
+- You don't need self-hosting or source code access
+- You want the smallest possible tool for the job
+
+## Pick Hook0 if
+
+- You need self-hosting (compliance, data sovereignty, air-gapped environments)
+- You're building a multi-tenant SaaS platform
+- You need event routing and filtering beyond flat event types
+- You want open-source with no vendor lock-in
+- You need dead letter queues and manual replay
+
+## Further reading
+
+- [All webhook service comparisons](/comparisons) -- full feature matrix across providers
+- [Getting started with Hook0](/tutorials/getting-started) -- send your first webhook in 10 minutes
+- [Webhook retry logic](/explanation/webhook-retry-logic) -- how Hook0 handles backoff, jitter, and dead letter queues

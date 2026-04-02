@@ -4,7 +4,7 @@ This reference provides standardized schemas and examples for common event types
 
 ## Event Type Naming Convention
 
-Hook0 uses a **three-part naming convention** for event types:
+Hook0 uses a **three-part naming convention** for [event types](/concepts/event-types):
 
 ```
 service.resource.verb
@@ -31,7 +31,7 @@ Hook0 events follow this structure:
 
 ```json
 {
-  "event_id": "string (UUID)",
+  "event_id": "string (UUID, optional — server generates UUIDv7 if omitted)",
   "event_type": "string",
   "payload": "object",
   "labels": "object (optional)",

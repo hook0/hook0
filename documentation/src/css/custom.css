@@ -1309,14 +1309,147 @@ html[data-theme="dark"] .scalar-card.dark-mode {
 }
 
 /* ============================================
-   MERMAID DIAGRAMS
+   MERMAID DIAGRAMS - Hook0 Design System
+   ============================================
+
+   Semantic node classes used in mermaid blocks:
+     :::external  - External systems, inputs, API clients (blue)
+     :::hook0     - Hook0 components, infrastructure (green)
+     :::customer  - User/customer endpoints, outputs (orange)
+     :::processing - Internal processing, middleware (purple)
+     :::danger    - Error/failure states (red)
+
+   Light mode: pale backgrounds with saturated borders, dark text
+   Dark mode:  deep/muted backgrounds with lighter borders, light text
    ============================================ */
+
+/* --- Light mode mermaid variables --- */
+:root {
+  --mermaid-external-fill: #dbeafe;
+  --mermaid-external-stroke: #60a5fa;
+  --mermaid-external-color: #1e3a5f;
+
+  --mermaid-hook0-fill: #dcfce7;
+  --mermaid-hook0-stroke: #4ade80;
+  --mermaid-hook0-color: #14532d;
+
+  --mermaid-customer-fill: #ffedd5;
+  --mermaid-customer-stroke: #fb923c;
+  --mermaid-customer-color: #7c2d12;
+
+  --mermaid-processing-fill: #ede9fe;
+  --mermaid-processing-stroke: #a78bfa;
+  --mermaid-processing-color: #3b0764;
+
+  --mermaid-danger-fill: #fee2e2;
+  --mermaid-danger-stroke: #f87171;
+  --mermaid-danger-color: #7f1d1d;
+}
+
+/* --- Dark mode mermaid variables --- */
+[data-theme='dark'] {
+  --mermaid-external-fill: #1d4ed8;
+  --mermaid-external-stroke: #93c5fd;
+  --mermaid-external-color: #ffffff;
+
+  --mermaid-hook0-fill: #15803d;
+  --mermaid-hook0-stroke: #86efac;
+  --mermaid-hook0-color: #ffffff;
+
+  --mermaid-customer-fill: #c2410c;
+  --mermaid-customer-stroke: #fdba74;
+  --mermaid-customer-color: #ffffff;
+
+  --mermaid-processing-fill: #7c3aed;
+  --mermaid-processing-stroke: #c4b5fd;
+  --mermaid-processing-color: #ffffff;
+
+  --mermaid-danger-fill: #dc2626;
+  --mermaid-danger-stroke: #fca5a5;
+  --mermaid-danger-color: #ffffff;
+}
+
 .mermaid {
   background: var(--h0-bg-secondary);
   border: 1px solid var(--h0-border);
   border-radius: var(--ifm-global-radius);
   padding: 1.5rem;
   margin: 1.25rem 0;
+}
+
+/* Mermaid node colors: classDef in .md files sets light-mode colors inline.
+   Dark mode is handled by the JS client module (src/mermaid/theme-switcher.js)
+   which applies DARK_COLORS by mutating inline styles on theme change.
+   CSS !important cannot reliably override Mermaid's inline style attributes. */
+
+/* Subgraph titles and borders adapt to theme */
+[data-theme='dark'] .mermaid .cluster rect {
+  fill: rgba(255, 255, 255, 0.03) !important;
+  stroke: var(--h0-border-accent) !important;
+}
+[data-theme='dark'] .mermaid .cluster span.nodeLabel,
+[data-theme='dark'] .mermaid .cluster-label .nodeLabel {
+  color: var(--h0-text-secondary) !important;
+}
+
+/* Edge labels readable in both modes */
+[data-theme='dark'] .mermaid .edgeLabel {
+  background-color: var(--h0-bg-secondary) !important;
+  color: var(--h0-text-secondary) !important;
+}
+
+/* State diagram overrides for dark mode */
+[data-theme='dark'] .mermaid .statediagram-state rect {
+  fill: var(--h0-bg-elevated) !important;
+  stroke: var(--h0-border-accent) !important;
+}
+[data-theme='dark'] .mermaid .statediagram-state .nodeLabel {
+  color: var(--h0-text-primary) !important;
+}
+
+/* Sequence diagram overrides for dark mode */
+[data-theme='dark'] .mermaid .actor {
+  fill: var(--mermaid-hook0-fill) !important;
+  stroke: var(--mermaid-hook0-stroke) !important;
+}
+[data-theme='dark'] .mermaid .actor text,
+[data-theme='dark'] .mermaid text.actor {
+  fill: var(--mermaid-hook0-color) !important;
+}
+[data-theme='dark'] .mermaid .loopLine {
+  stroke: var(--h0-border-accent) !important;
+}
+[data-theme='dark'] .mermaid .loopText,
+[data-theme='dark'] .mermaid .loopText > tspan {
+  fill: var(--h0-text-secondary) !important;
+}
+[data-theme='dark'] .mermaid .labelBox {
+  fill: var(--h0-bg-secondary) !important;
+  stroke: var(--h0-border) !important;
+}
+[data-theme='dark'] .mermaid .labelText,
+[data-theme='dark'] .mermaid .labelText > tspan {
+  fill: var(--h0-text-primary) !important;
+}
+[data-theme='dark'] .mermaid .activation0,
+[data-theme='dark'] .mermaid .activation1,
+[data-theme='dark'] .mermaid .activation2 {
+  fill: var(--h0-bg-elevated) !important;
+  stroke: var(--h0-border-accent) !important;
+}
+[data-theme='dark'] .mermaid line.messageLine0,
+[data-theme='dark'] .mermaid line.messageLine1 {
+  stroke: var(--h0-text-muted) !important;
+}
+[data-theme='dark'] .mermaid .messageText {
+  fill: var(--h0-text-primary) !important;
+}
+[data-theme='dark'] .mermaid .note {
+  fill: var(--mermaid-processing-fill) !important;
+  stroke: var(--mermaid-processing-stroke) !important;
+}
+[data-theme='dark'] .mermaid .noteText {
+  fill: var(--mermaid-processing-color) !important;
 }
 
 /* ============================================

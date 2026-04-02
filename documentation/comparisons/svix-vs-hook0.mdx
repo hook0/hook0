@@ -1,0 +1,86 @@
+---
+title: "Svix vs Hook0: Open-Core vs Fully Open-Source Webhooks"
+description: "Detailed comparison of Svix and Hook0 webhook platforms. Feature-by-feature breakdown covering self-hosting, filtering, authentication, SDKs, and pricing."
+keywords: [Svix vs Hook0, webhook comparison, Svix alternative, open source webhooks, webhook platform]
+---
+
+import Head from '@docusaurus/Head';
+
+<Head>
+  <script type="application/ld+json">
+    {JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "Svix vs Hook0: Open-Core vs Fully Open-Source Webhooks",
+      "description": "Detailed comparison of Svix and Hook0 webhook platforms",
+      "url": "https://documentation.hook0.com/comparisons/svix-vs-hook0",
+      "publisher": {"@type": "Organization", "name": "Hook0", "url": "https://www.hook0.com"}
+    })}
+  </script>
+</Head>
+
+# Svix vs Hook0
+
+[Svix](https://www.svix.com/) is a webhook service backed by $13M in VC funding. Svix and Hook0 both focus on outbound webhook delivery. The difference: Svix is open-core (the self-hosted version has fewer features), Hook0 has the same features in cloud and self-hosted.
+
+**Legend:** ✅ = Full support | ⚠️ = Partial support | ❌ = Not available
+
+## Feature comparison
+
+| Feature | Svix | Hook0 |
+|---------|------|-------|
+| **SaaS** | ✅ | ✅ |
+| **Self-hosting** | ⚠️ Open-core (limited features) | ✅ Full feature parity |
+| **Open-Source** | ⚠️ Open-core | ✅ SSPL-1.0 |
+| **Multi-tenant filtering** | ⚠️ Basic filtering | ✅ Label-based filtering |
+| **HMAC signatures** | ✅ | ✅ |
+| **Automatic retries** | ✅ | ✅ Fixed schedule + jitter |
+| **Dead letter queue** | ✅ | ✅ |
+| **Event type hierarchy** | ✅ | ✅ Dot-notation |
+| **Custom retry schedules** | ✅ | ✅ |
+| **Delivery logs** | ✅ | ✅ |
+| **Manual replay** | ✅ | ✅ |
+| **REST API** | ✅ | ✅ |
+| **SDK languages** | JS, Python, Go, Ruby, Java, Kotlin, C# | JS, Rust |
+| **Authentication model** | API keys | API keys and Biscuit tokens with attenuation |
+| **Self-funded** | ❌ $13M raised | ✅ Fully self-funded |
+
+*Funding data last verified: January 2025*
+
+## Pick Hook0 if...
+
+- You need full self-hosting. Hook0's self-hosted version has every feature the cloud version has. Svix's open-source version strips out features to push you toward their paid tier.
+- You want actual open-source. SSPL-1.0 means you can audit every line, fork it, and self-host. The only restriction is offering Hook0 as a managed service to third parties. No feature gates, no "contact sales for enterprise features."
+- Multi-tenant filtering matters. Hook0's label-based filtering works for SaaS platforms where different tenants need different webhook routing rules.
+- You're self-funded or cost-conscious. Self-host Hook0 with zero per-message costs. You own the infrastructure.
+
+## Pick Svix if...
+
+- You need SDKs in many languages. Svix has official SDKs for Python, Go, Ruby, Java, Kotlin, and C#. Hook0 currently supports JavaScript and Rust.
+- You want a larger ecosystem. Svix has been around longer and has more third-party integrations and community content.
+- The open-core trade-off works for you. If you'll use the cloud version anyway and don't plan to self-host, Svix's feature limitations in the open-source version won't affect you.
+
+## Architecture differences
+
+Svix and Hook0 use the same high-level architecture: API server, queue, workers, delivery. The implementation differs:
+
+- **Svix** uses Redis for queuing and PostgreSQL for storage. The open-source version supports Redis and PostgreSQL.
+- **Hook0** supports two queue backends. The default setup uses PostgreSQL for both queuing and storage -- one database, nothing else to manage. Workers poll for pending deliveries using `FOR UPDATE SKIP LOCKED` for concurrent processing. For high-throughput setups, you can switch to Apache Pulsar for queuing with S3-compatible object storage for payloads and responses. It's a config change, not a code change.
+
+## Migration path
+
+Moving from Svix to Hook0:
+
+1. Map Svix "endpoints" to Hook0 "subscriptions"
+2. Map Svix "event types" to Hook0 event types (both use dot-notation)
+3. Update SDK calls (API patterns are similar)
+4. Migrate endpoint URLs and secrets
+
+Most teams finish the API integration in under a day, then spend a few days on testing and validation.
+
+## Further reading
+
+- [All webhook service comparisons](/comparisons) -- full feature matrix across providers
+- [Build vs Buy](/comparisons/build-vs-buy) -- what it costs to build webhook infrastructure from scratch
+- [Getting started with Hook0](/tutorials/getting-started) -- send your first webhook in 10 minutes
+- [What is Hook0?](/explanation/what-is-hook0) -- architecture and core concepts

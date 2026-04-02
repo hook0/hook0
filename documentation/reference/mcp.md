@@ -182,6 +182,10 @@ This is recommended for:
 - Monitoring and debugging without risk
 - Demo or training scenarios
 
+:::tip Token-level read-only enforcement
+`HOOK0_READ_ONLY` restricts the MCP server's tool list, but the token itself still has full permissions. For defense in depth, combine it with a **read-only service token** that enforces restrictions at the API level. See [Create a read-only service token](../how-to-guides/manage-service-tokens.md#create-a-read-only-service-token) for the step-by-step guide and the Datalog claim to paste.
+:::
+
 ---
 
 ## Available Tools

@@ -1,11 +1,11 @@
-# Security Model
+# Security model
 
-Hook0 implements defense-in-depth security with multiple layers of protection. This document explains the security architecture, threat model, and security best practices.
+Hook0 uses defense-in-depth with multiple layers of protection. This document covers the security architecture, threat model, and best practices.
 
-## Security Architecture
+## Security architecture
 
 <!-- ### Authentication & Authorization
-Hook0 uses Biscuit tokens for authentication, providing cryptographically secure, fine-grained access control.
+Hook0 uses Biscuit tokens for authentication (user sessions and Service tokens for programmatic access), providing cryptographically secure, fine-grained access control.
 
 #### Biscuit Token Structure
 ```
@@ -28,27 +28,27 @@ event:send
 subscription:manage
 ``` -->
 
-### Multi-Tenant Isolation
+### Multi-tenant isolation
 
-#### Organization Boundaries
+#### Organization boundaries
 - Complete data isolation between organizations
 - Users can only access their organization's resources
 - Database queries filtered by organization_id
 - No cross-organization data leakage
 
-#### Application Scoping
+#### Application scoping
 - Events scoped to specific applications
 - Subscriptions tied to applications
 - Service tokens can be application-specific
 
-### API Security
+### API security
 
-#### Transport Security
+#### Transport security
 - TLS 1.2+ required for all API communication
 - HSTS headers enforce secure connections
 - Certificate pinning recommended for clients
 
-#### Request Validation
+#### Request validation
 ```rust
 // Input validation and sanitization
 #[derive(Validate, Deserialize)]
@@ -61,15 +61,15 @@ struct EventPayload {
 }
 ```
 
-#### Rate Limiting
+#### Rate limiting
 - Per-organization quotas
 - Per-IP rate limits
 - Adaptive rate limiting based on behavior
 - Protection against DoS attacks
 
-### Webhook Security
+### Webhook security
 
-#### Signature Verification
+#### Signature verification
 All webhook deliveries include HMAC-SHA256 signatures in the `X-Hook0-Signature` header. Hook0 uses **v1 signatures by default**, which include selected headers for additional security:
 
 ```
@@ -84,25 +84,25 @@ Signature computation: `HMAC-SHA256(secret, timestamp + "." + header_names + "."
 
 For implementation details and code examples in JavaScript, Python, and Go, see [Implementing Webhook Authentication](../tutorials/webhook-authentication.md).
 
-#### Target URL Validation
+#### Target URL validation
 - HTTPS required for production webhooks
 - Private IP ranges blocked by default
 - URL validation and sanitization
 - DNS rebinding protection
 
-### Data Protection
+### Data protection
 
-#### Encryption at Rest
+#### Encryption at rest
 - Database encryption using PostgreSQL TDE
 - Secrets encrypted with application keys
 - Backup encryption with separate keys
 
-#### Encryption in Transit
+#### Encryption in transit
 - TLS for all external communication
 - Internal service communication encrypted
 - Database connections encrypted
 
-#### Data Retention
+#### Data retention
 ```sql
 -- Automatic cleanup of old events
 DELETE FROM events 
@@ -112,21 +112,21 @@ WHERE created_at < NOW() - INTERVAL '90 days';
 VACUUM FULL events;
 ```
 
-### Secret Management
+### Secret management
 
-#### Subscription Secrets
+#### [Subscription](/concepts/subscriptions) secrets
 - Cryptographically random UUIDs
 - Never logged or exposed in responses
 - Rotatable through API
 - Scoped to individual subscriptions
 
-#### Service Tokens
+#### [Service tokens](/concepts/service-tokens)
 - Long-lived tokens for API access
 - Restricted permissions
 - Audit logging for usage
 - Revocable at any time
 
-#### Key Rotation
+#### Key rotation
 ```rust
 // Regular secret rotation
 impl SubscriptionSecret {
@@ -139,49 +139,49 @@ impl SubscriptionSecret {
 }
 ```
 
-## Threat Model
+## Threat model
 
-### Identified Threats
+### Identified threats
 
-#### T1: Unauthorized Access
+#### T1: Unauthorized access
 - **Threat**: Attackers gaining access to organization data
 - **Mitigation**: Strong authentication, authorization, audit logging
 
-#### T2: Event Injection  
+#### T2: Event injection
 - **Threat**: Malicious events sent to trigger unwanted webhooks
 - **Mitigation**: Authentication, input validation, rate limiting
 
-#### T3: Webhook Tampering
+#### T3: Webhook tampering
 - **Threat**: Attackers modifying webhook payloads in transit
 - **Mitigation**: HMAC signatures, TLS encryption
 
-#### T4: Denial of Service
+#### T4: Denial of service
 - **Threat**: Service disruption through resource exhaustion
 - **Mitigation**: Rate limiting, quotas, circuit breakers
 
-#### T5: Data Exfiltration
+#### T5: Data exfiltration
 - **Threat**: Sensitive data extracted from system
 - **Mitigation**: Access controls, audit logging, encryption
 
-### Attack Vectors
+### Attack vectors
 
-#### API Endpoints
+#### API endpoints
 - Authentication bypass attempts
 - Authorization escalation
 - Input validation bypasses
 - Rate limit circumvention
 
-#### Webhook Targets
+#### Webhook targets
 - Webhook replay attacks
 - Signature bypass attempts
 - Target URL manipulation
 - Response time analysis
 
-## Security Best Practices
+## Security best practices
 
-### For Hook0 Operators
+### For Hook0 operators
 
-#### Infrastructure Security
+#### Infrastructure security
 ```yaml
 # Kubernetes security context
 securityContext:
@@ -191,21 +191,21 @@ securityContext:
   allowPrivilegeEscalation: false
 ```
 
-#### Network Security
+#### Network security
 - VPC isolation
 - Security groups/firewalls
 - Private subnets for databases
 - Network monitoring
 
-#### Monitoring & Alerting
+#### Monitoring and alerting
 - Failed authentication attempts
 - Unusual API usage patterns
 - High error rates
 - Resource exhaustion
 
-### For Application Developers
+### For application developers
 
-#### Token Management
+#### Token management
 ```rust
 // Use environment variables for tokens
 let token = env::var("HOOK0_TOKEN")
@@ -215,11 +215,11 @@ let token = env::var("HOOK0_TOKEN")
 log::info!("Making API request with token: [REDACTED]");
 ```
 
-#### Webhook Verification
+#### Webhook verification
 
 See [Implementing Webhook Authentication](../tutorials/webhook-authentication.md) for signature verification code examples.
 
-#### Error Handling
+#### Error handling
 ```python
 # Do not expose internal errors
 try:
@@ -229,9 +229,9 @@ except Exception as e:
     return {"error": "Internal server error"}, 500
 ```
 
-### For Webhook Recipients
+### For webhook recipients
 
-#### Endpoint Security
+#### Endpoint security
 - Use HTTPS with valid certificates
 - Implement signature verification
 - Validate payload structure
@@ -251,7 +251,7 @@ def handle_webhook(event_id, payload):
     return result
 ```
 
-## Compliance & Standards
+## Compliance and standards
 
 ### Standards compliance
 - **SOC 2 Type II**: Security controls and monitoring
@@ -259,7 +259,7 @@ def handle_webhook(event_id, payload):
 - **General Data Protection Regulation (GDPR)**: Data protection and privacy rights
 - **CCPA**: California consumer privacy requirements
 
-### Security Headers
+### Security headers
 ```http
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 X-Content-Type-Options: nosniff
@@ -268,7 +268,7 @@ X-XSS-Protection: 1; mode=block
 Content-Security-Policy: default-src 'self'
 ```
 
-### Audit Logging
+### Audit logging
 ```json
 {
   "timestamp": "2024-01-15T10:30:00Z",
@@ -281,28 +281,28 @@ Content-Security-Policy: default-src 'self'
 }
 ```
 
-## Security Testing
+## Security testing
 
-### Automated Testing
+### Automated testing
 - Static code analysis (Clippy, security lints)
 - Dependency vulnerability scanning
 - Container image scanning
 - Infrastructure as code scanning
 
-### Penetration Testing
+### Penetration testing
 - Regular third-party security assessments
 - API security testing
 - Webhook delivery security testing
 - Infrastructure penetration testing
 
-### Bug Bounty Program
+### Bug bounty program
 - Responsible disclosure process
 - Security researcher rewards
 - Public security advisory process
 
-## Incident Response
+## Incident response
 
-### Security Incident Handling
+### Security incident handling
 1. **Detection**: Automated alerts, monitoring
 2. **Assessment**: Impact and scope analysis
 3. **Containment**: Isolate affected systems
@@ -310,13 +310,13 @@ Content-Security-Policy: default-src 'self'
 5. **Recovery**: Restore normal operations
 6. **Lessons Learned**: Process improvements
 
-### Communication Plan
+### Communication plan
 - Internal stakeholder notification
 - Customer communication
 - Public disclosure timeline
 - Regulatory reporting requirements
 
-## Next Steps
+## Next steps
 
 - [Securing Webhook Endpoints](../how-to-guides/secure-webhook-endpoints.md)
 - [API Reference](../openapi/intro)

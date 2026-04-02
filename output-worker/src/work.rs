@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use clap::{crate_name, crate_version};
 use hex::ToHex;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, InvalidHeaderValue};
 use reqwest::{Client, Method, Url};
 use serde_json::Value;

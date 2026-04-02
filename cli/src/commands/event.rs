@@ -115,13 +115,9 @@ async fn send(cli: &Cli, args: &SendArgs) -> Result<()> {
     };
 
     // Override event ID if provided
-    let event = if let Some(id) = args.event_id {
-        EventPost {
-            event_id: id,
-            ..event
-        }
-    } else {
-        event
+    let event = EventPost {
+        event_id: args.event_id,
+        ..event
     };
 
     let result = client.send_event(&event).await?;

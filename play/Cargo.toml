@@ -74,5 +74,5 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-feature
 tokio-tungstenite = { version = "0.26", features = ["rustls-tls-webpki-roots"] }
 # Testing utilities
 tower = { version = "0.5", features = ["util"] }
-hyper = { version = "1.8", features = ["full"] }
+hyper = { version = "1.9", features = ["full"] }
 portpicker = "0.1"

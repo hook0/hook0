@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
-export default function (service_token, base_url, application_id, event_type, labels) {
+export default function (service_token, base_url, application_id, event_type, labels, event_id) {
   let url = base_url + 'api/v1/event/';
   let headers = {
     Authorization: `Bearer ${service_token}`,
@@ -11,7 +11,6 @@ export default function (service_token, base_url, application_id, event_type, la
   let payload = {
     labels: labels,
     application_id: application_id,
-    event_id: uuidv4(),
     event_type: event_type,
     occurred_at: '2022-11-04T16:12:58Z',
     payload_content_type: 'application/json',
@@ -20,6 +19,14 @@ export default function (service_token, base_url, application_id, event_type, la
       test_k6: 'true',
     },
   };
+
+  // When event_id is explicitly null, omit it to let the server generate one.
+  // When undefined (not passed), generate a client-side UUID for backwards compatibility.
+  if (event_id === null) {
+    // Do not set payload.event_id — server will generate a UUIDv7
+  } else {
+    payload.event_id = event_id || uuidv4();
+  }
 
   let res = http.post(url, JSON.stringify(payload), { headers: headers });
 
