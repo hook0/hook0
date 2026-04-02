@@ -1424,6 +1424,10 @@ async fn main() -> anyhow::Result<()> {
                                 .service(
                                     web::resource("")
                                         .route(web::get().to(handlers::request_attempts::list)),
+                                )
+                                .service(
+                                    web::resource("/{request_attempt_id}")
+                                        .route(web::get().to(handlers::request_attempts::get)),
                                 ),
                         )
                         .service(
