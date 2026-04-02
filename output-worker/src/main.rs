@@ -820,6 +820,7 @@ pub async fn record_delivery_health(
 
 #[derive(Debug, sqlx::FromRow)]
 struct SubscriptionRetryInfo {
+    #[allow(dead_code)]
     is_active: bool,
     strategy: Option<String>,
     max_retries: Option<i32>,
@@ -883,6 +884,44 @@ async fn compute_next_retry(
                 Some(info) => Ok(compute_scheduled_retry_delay(&info, attempt.retry_count, max_retries)),
                 None => Ok(None),
             }
+        }
+    }
+}
+
+/// Computes the retry delay based on the subscription's assigned retry schedule.
+/// Falls back to the default hardcoded backoff when no schedule is assigned.
+fn compute_scheduled_retry_delay(
+    info: &SubscriptionRetryInfo,
+    retry_count: i16,
+    global_max_retries: u8,
+) -> Option<Duration> {
+    match info.strategy.as_deref() {
+        Some("increasing") => {
+            let max = info.max_retries.unwrap_or(0);
+            if retry_count >= max as i16 {
+                return None;
+            }
+            let base = info.increasing_base_delay.unwrap_or(3) as f64;
+            let factor = info.increasing_wait_factor.unwrap_or(3.0);
+            Some(Duration::from_secs_f64(base * factor.powi(retry_count as i32)))
+        }
+        Some("linear") => {
+            let max = info.max_retries.unwrap_or(0);
+            if retry_count >= max as i16 {
+                return None;
+            }
+            let delay = info.linear_delay.unwrap_or(60) as u64;
+            Some(Duration::from_secs(delay))
+        }
+        Some("custom") => {
+            let intervals = info.custom_intervals.as_deref().unwrap_or(&[]);
+            intervals
+                .get(retry_count as usize)
+                .map(|&d| Duration::from_secs(d as u64))
+        }
+        _ => {
+            // No schedule assigned — use hardcoded default backoff
+            compute_default_retry_delay(global_max_retries, retry_count)
         }
     }
 }
