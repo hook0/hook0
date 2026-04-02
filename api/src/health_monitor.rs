@@ -100,26 +100,29 @@ async fn cleanup_old_health_events(db: &PgPool) -> Result<u64, sqlx::Error> {
 }
 
 #[derive(Debug, sqlx::FromRow)]
-#[allow(non_snake_case, dead_code)]
 struct SubscriptionHealth {
-    subscription__id: Uuid,
-    application__id: Uuid,
-    organization__id: Uuid,
+    subscription_id: Uuid,
+    application_id: Uuid,
+    organization_id: Uuid,
     application_name: Option<String>,
     description: Option<String>,
     target_url: String,
     failure_percent: f64,
+    #[allow(dead_code)]
     total: i64,
     last_health_status: Option<String>,
     last_health_at: Option<DateTime<Utc>>,
     last_health_source: Option<String>,
+    #[allow(dead_code)]
     last_health_user_id: Option<Uuid>,
-    retry_schedule__id: Option<Uuid>,
+    retry_schedule_id: Option<Uuid>,
     retry_schedule_name: Option<String>,
     retry_strategy: Option<String>,
     retry_max_retries: Option<i32>,
     retry_custom_intervals: Option<Vec<i32>>,
     retry_linear_delay: Option<i32>,
+    retry_increasing_base_delay: Option<i32>,
+    retry_increasing_wait_factor: Option<f64>,
 }
 
 async fn evaluate_subscriptions(
@@ -169,9 +172,9 @@ async fn evaluate_subscriptions(
             from attempt_stats a
         )
         select
-            w.subscription__id,
-            s.application__id,
-            app.organization__id,
+            w.subscription__id as subscription_id,
+            s.application__id as application_id,
+            app.organization__id as organization_id,
             app.name as application_name,
             s.description,
             coalesce(th.url, '') as target_url,
@@ -181,12 +184,14 @@ async fn evaluate_subscriptions(
             lh.created_at as last_health_at,
             lh.source as last_health_source,
             lh.user__id as last_health_user_id,
-            s.retry_schedule__id,
+            s.retry_schedule__id as retry_schedule_id,
             rs.name as retry_schedule_name,
             rs.strategy as retry_strategy,
             rs.max_retries as retry_max_retries,
             rs.custom_intervals as retry_custom_intervals,
-            rs.linear_delay as retry_linear_delay
+            rs.linear_delay as retry_linear_delay,
+            rs.increasing_base_delay as retry_increasing_base_delay,
+            rs.increasing_wait_factor as retry_increasing_wait_factor
         from windowed_stats w
         inner join webhook.subscription s using (subscription__id)
         inner join event.application app on app.application__id = s.application__id
@@ -232,21 +237,23 @@ struct HealthActionInfo {
 impl HealthActionInfo {
     fn from_sub(sub: &SubscriptionHealth, disabled_at: Option<DateTime<Utc>>) -> Self {
         Self {
-            subscription_id: sub.subscription__id,
-            organization_id: sub.organization__id,
-            application_id: sub.application__id,
+            subscription_id: sub.subscription_id,
+            organization_id: sub.organization_id,
+            application_id: sub.application_id,
             application_name: sub.application_name.clone(),
             description: sub.description.clone(),
             target_url: sub.target_url.clone(),
             failure_percent: sub.failure_percent,
             disabled_at,
-            retry_schedule: sub.retry_schedule__id.map(|id| RetrySchedulePayload {
+            retry_schedule: sub.retry_schedule_id.map(|id| RetrySchedulePayload {
                 retry_schedule_id: id,
                 name: sub.retry_schedule_name.clone().unwrap_or_default(),
                 strategy: sub.retry_strategy.clone().unwrap_or_default(),
                 max_retries: sub.retry_max_retries.unwrap_or(0),
                 custom_intervals: sub.retry_custom_intervals.clone(),
                 linear_delay: sub.retry_linear_delay,
+                increasing_base_delay: sub.retry_increasing_base_delay,
+                increasing_wait_factor: sub.retry_increasing_wait_factor,
             }),
         }
     }
@@ -286,7 +293,7 @@ async fn run_health_check(
                 Err(e) => {
                     warn!(
                         "Health monitor: error processing subscription {}: {e}",
-                        sub.subscription__id
+                        sub.subscription_id
                     );
                 }
             }
@@ -306,24 +313,24 @@ async fn run_health_check(
 
         send_email_best_effort(mailer, db, info, kind, config).await;
 
-        if let HealthAction::Disabled(info) = action {
-            if let Some(client) = hook0_client {
-                let disabled_at = info.disabled_at.unwrap_or_else(Utc::now);
-                let event = EventSubscriptionDisabled {
-                    subscription: SubscriptionDisabledPayload {
-                        subscription_id: info.subscription_id,
-                        organization_id: info.organization_id,
-                        application_id: info.application_id,
-                        description: info.description.clone(),
-                        target: info.target_url.clone(),
-                        disabled_at,
-                    },
-                    retry_schedule: info.retry_schedule.clone(),
-                };
-                let hook0_event: Hook0ClientEvent = event.into();
-                if let Err(e) = client.send_event(&hook0_event.mk_hook0_event()).await {
-                    warn!("Health monitor: failed to send subscription.disabled Hook0 event: {e}");
-                }
+        if let HealthAction::Disabled(info) = action
+            && let Some(client) = hook0_client
+        {
+            let disabled_at = info.disabled_at.unwrap_or_else(Utc::now);
+            let event = EventSubscriptionDisabled {
+                subscription: SubscriptionDisabledPayload {
+                    subscription_id: info.subscription_id,
+                    organization_id: info.organization_id,
+                    application_id: info.application_id,
+                    description: info.description.clone(),
+                    target: info.target_url.clone(),
+                    disabled_at,
+                },
+                retry_schedule: info.retry_schedule.clone(),
+            };
+            let hook0_event: Hook0ClientEvent = event.into();
+            if let Err(e) = client.send_event(&hook0_event.mk_hook0_event()).await {
+                warn!("Health monitor: failed to send subscription.disabled Hook0 event: {e}");
             }
         }
     }
@@ -355,7 +362,7 @@ async fn process_subscription(
         "UPDATE webhook.subscription SET failure_percent = $1 WHERE subscription__id = $2",
     )
     .bind(ratio)
-    .bind(sub.subscription__id)
+    .bind(sub.subscription_id)
     .execute(&mut **tx)
     .await?;
 
@@ -363,7 +370,7 @@ async fn process_subscription(
         Some("disabled") => {}
 
         Some("resolved")
-            if last_at.map_or(false, |at| {
+            if last_at.is_some_and(|at| {
                 (Utc::now() - at)
                     < chrono::Duration::from_std(config.warning_cooldown).unwrap_or_default()
             }) => {}
@@ -373,7 +380,7 @@ async fn process_subscription(
         Some("warning") if ratio < warning_pct => {
             // Skip recovery email if the last event was a manual user action (re-enable via API) —
             // the user already knows about it. Only send recovery email for system-originated events.
-            insert_health_event(tx, sub.subscription__id, "resolved", "system", None).await?;
+            insert_health_event(tx, sub.subscription_id, "resolved", "system", None).await?;
             if sub.last_health_source.as_deref() != Some("user") {
                 actions.push(HealthAction::Recovered(HealthActionInfo::from_sub(sub, None)));
             }
@@ -387,7 +394,7 @@ async fn process_subscription(
         }
 
         _ if ratio >= disable_pct => {
-            insert_health_event(tx, sub.subscription__id, "warning", "system", None).await?;
+            insert_health_event(tx, sub.subscription_id, "warning", "system", None).await?;
             actions.push(HealthAction::Warning(HealthActionInfo::from_sub(sub, None)));
             let disabled_at = disable_subscription(tx, sub).await?;
             if let Some(at) = disabled_at {
@@ -396,7 +403,7 @@ async fn process_subscription(
         }
 
         _ if ratio >= warning_pct => {
-            insert_health_event(tx, sub.subscription__id, "warning", "system", None).await?;
+            insert_health_event(tx, sub.subscription_id, "warning", "system", None).await?;
             actions.push(HealthAction::Warning(HealthActionInfo::from_sub(sub, None)));
         }
 
@@ -449,14 +456,14 @@ async fn disable_subscription(
         SELECT created_at FROM inserted
         "#,
     )
-    .bind(sub.subscription__id)
+    .bind(sub.subscription_id)
     .fetch_optional(&mut **tx)
     .await?;
 
     if disabled_at.is_some() {
         info!(
             "Health monitor: disabled subscription {}",
-            sub.subscription__id
+            sub.subscription_id
         );
     }
 

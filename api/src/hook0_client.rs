@@ -828,6 +828,8 @@ pub struct EventRetryScheduleCreated {
     pub max_retries: i32,
     pub custom_intervals: Option<Vec<i32>>,
     pub linear_delay: Option<i32>,
+    pub increasing_base_delay: Option<i32>,
+    pub increasing_wait_factor: Option<f64>,
 }
 
 impl Event for EventRetryScheduleCreated {
@@ -861,6 +863,8 @@ pub struct EventRetryScheduleUpdated {
     pub max_retries: i32,
     pub custom_intervals: Option<Vec<i32>>,
     pub linear_delay: Option<i32>,
+    pub increasing_base_delay: Option<i32>,
+    pub increasing_wait_factor: Option<f64>,
 }
 
 impl Event for EventRetryScheduleUpdated {
@@ -894,6 +898,8 @@ pub struct EventRetryScheduleRemoved {
     pub max_retries: i32,
     pub custom_intervals: Option<Vec<i32>>,
     pub linear_delay: Option<i32>,
+    pub increasing_base_delay: Option<i32>,
+    pub increasing_wait_factor: Option<f64>,
 }
 
 impl Event for EventRetryScheduleRemoved {
@@ -936,6 +942,8 @@ pub struct RetrySchedulePayload {
     pub max_retries: i32,
     pub custom_intervals: Option<Vec<i32>>,
     pub linear_delay: Option<i32>,
+    pub increasing_base_delay: Option<i32>,
+    pub increasing_wait_factor: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize)]

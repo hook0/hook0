@@ -68,11 +68,9 @@ pub async fn list(
         Hook0Problem::InternalServerError
     })?;
 
-    if application_id.is_none() {
+    let Some(application_id) = application_id else {
         return Err(Hook0Problem::NotFound);
-    }
-
-    let application_id = application_id.expect("Could not unwrap application_id");
+    };
 
     if authorize_for_application(
         &state.db,
@@ -108,9 +106,9 @@ pub async fn list(
             LIMIT $3
         ",
     )
-    .bind(&subscription_id)
-    .bind(&organization_id)
-    .bind(&limit)
+    .bind(subscription_id)
+    .bind(organization_id)
+    .bind(limit)
     .fetch_all(&state.db)
     .await
     .map_err(Hook0Problem::from)?;

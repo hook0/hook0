@@ -57,16 +57,16 @@ function formatDelaySummary(schedule: RetrySchedule): string {
   switch (schedule.strategy) {
     case 'increasing':
       return t('retrySchedules.delayIncreasing', {
-        baseDelay: formatDuration(schedule.increasing_base_delay!),
-        factor: schedule.increasing_wait_factor,
+        baseDelay: formatDuration(schedule.increasing_base_delay ?? 0),
+        factor: schedule.increasing_wait_factor ?? 0,
       });
     case 'linear':
       return t('retrySchedules.delayLinear', {
-        delay: formatDuration(schedule.linear_delay!),
+        delay: formatDuration(schedule.linear_delay ?? 0),
       });
     case 'custom':
       return t('retrySchedules.delayCustom', {
-        count: schedule.custom_intervals!.length,
+        count: (schedule.custom_intervals ?? []).length,
       });
     default:
       return '';

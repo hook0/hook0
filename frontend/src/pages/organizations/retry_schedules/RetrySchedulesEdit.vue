@@ -63,11 +63,11 @@ const { errors, defineField, handleSubmit, resetForm } = useForm({
 
 const [name, nameAttrs] = defineField('name');
 const [strategy] = defineField('strategy');
-const [maxRetries, maxRetriesAttrs] = defineField('max_retries');
-const [linearDelay, linearDelayAttrs] = defineField('linear_delay');
+const [maxRetries, _maxRetriesAttrs] = defineField('max_retries');
+const [linearDelay, _linearDelayAttrs] = defineField('linear_delay');
 const [customIntervals] = defineField('custom_intervals');
-const [increasingBaseDelay, increasingBaseDelayAttrs] = defineField('increasing_base_delay');
-const [increasingWaitFactor, increasingWaitFactorAttrs] = defineField('increasing_wait_factor');
+const [increasingBaseDelay, _increasingBaseDelayAttrs] = defineField('increasing_base_delay');
+const [increasingWaitFactor, _increasingWaitFactorAttrs] = defineField('increasing_wait_factor');
 
 // Typed accessors for template usage
 const strategyValue = computed(() => (strategy.value as string) ?? 'increasing');
@@ -371,7 +371,7 @@ const pageTitle = computed(() =>
                 <div class="custom-intervals">
                   <div
                     v-for="(interval, index) in customIntervalsValue"
-                    :key="index"
+                    :key="`interval-${index}-${interval}`"
                     class="custom-intervals__row"
                   >
                     <span class="custom-intervals__label">
@@ -419,7 +419,6 @@ const pageTitle = computed(() =>
             </Hook0Button>
           </Hook0CardFooter>
         </Hook0Card>
-
       </Hook0Form>
     </template>
   </Hook0PageLayout>

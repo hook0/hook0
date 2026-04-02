@@ -198,13 +198,14 @@ pub async fn list(
                 retry_schedule__id AS retry_schedule_id,
                 organization__id AS organization_id,
                 name, strategy, max_retries, custom_intervals, linear_delay,
+                increasing_base_delay, increasing_wait_factor,
                 created_at, updated_at
             FROM webhook.retry_schedule
             WHERE organization__id = $1
             ORDER BY created_at ASC
         ",
     )
-    .bind(&organization_id)
+    .bind(organization_id)
     .fetch_all(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
@@ -249,27 +250,30 @@ pub async fn create(
     let strategy_str = body.strategy.to_string();
     let schedule = sqlx::query_as::<_, RetrySchedule>(
         "
-            INSERT INTO webhook.retry_schedule (organization__id, name, strategy, max_retries, custom_intervals, linear_delay)
-            SELECT $1, $2, $3, $4, $5, $6
+            INSERT INTO webhook.retry_schedule (organization__id, name, strategy, max_retries, custom_intervals, linear_delay, increasing_base_delay, increasing_wait_factor)
+            SELECT $1, $2, $3, $4, $5, $6, $7, $8
             WHERE (
                 SELECT COUNT(*)
                 FROM webhook.retry_schedule
                 WHERE organization__id = $1
-            ) < $7
+            ) < $9
             RETURNING
                 retry_schedule__id AS retry_schedule_id,
                 organization__id AS organization_id,
                 name, strategy, max_retries, custom_intervals, linear_delay,
+                increasing_base_delay, increasing_wait_factor,
                 created_at, updated_at
         ",
     )
-    .bind(&organization_id)
+    .bind(organization_id)
     .bind(&body.name)
     .bind(&strategy_str)
-    .bind(&body.max_retries)
+    .bind(body.max_retries)
     .bind(body.custom_intervals.as_deref())
     .bind(body.linear_delay)
-    .bind(&max_per_org)
+    .bind(body.increasing_base_delay)
+    .bind(body.increasing_wait_factor)
+    .bind(max_per_org)
     .fetch_optional(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
@@ -285,6 +289,8 @@ pub async fn create(
                     max_retries: s.max_retries,
                     custom_intervals: s.custom_intervals.to_owned(),
                     linear_delay: s.linear_delay,
+                    increasing_base_delay: s.increasing_base_delay,
+                    increasing_wait_factor: s.increasing_wait_factor,
                 }
                 .into();
                 if let Err(e) = hook0_client
@@ -336,14 +342,15 @@ pub async fn get(
                 retry_schedule__id AS retry_schedule_id,
                 organization__id AS organization_id,
                 name, strategy, max_retries, custom_intervals, linear_delay,
+                increasing_base_delay, increasing_wait_factor,
                 created_at, updated_at
             FROM webhook.retry_schedule
             WHERE retry_schedule__id = $1
                 AND organization__id = $2
         ",
     )
-    .bind(&schedule_id)
-    .bind(&organization_id)
+    .bind(schedule_id)
+    .bind(organization_id)
     .fetch_optional(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
@@ -394,6 +401,7 @@ pub async fn edit(
             UPDATE webhook.retry_schedule
             SET name = $3, strategy = $4, max_retries = $5,
                 custom_intervals = $6, linear_delay = $7,
+                increasing_base_delay = $8, increasing_wait_factor = $9,
                 updated_at = statement_timestamp()
             WHERE retry_schedule__id = $1
                 AND organization__id = $2
@@ -401,16 +409,19 @@ pub async fn edit(
                 retry_schedule__id AS retry_schedule_id,
                 organization__id AS organization_id,
                 name, strategy, max_retries, custom_intervals, linear_delay,
+                increasing_base_delay, increasing_wait_factor,
                 created_at, updated_at
         ",
     )
-    .bind(&schedule_id)
-    .bind(&organization_id)
+    .bind(schedule_id)
+    .bind(organization_id)
     .bind(&body.name)
     .bind(&strategy_str)
-    .bind(&body.max_retries)
+    .bind(body.max_retries)
     .bind(body.custom_intervals.as_deref())
     .bind(body.linear_delay)
+    .bind(body.increasing_base_delay)
+    .bind(body.increasing_wait_factor)
     .fetch_optional(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
@@ -426,6 +437,8 @@ pub async fn edit(
                     max_retries: s.max_retries,
                     custom_intervals: s.custom_intervals.to_owned(),
                     linear_delay: s.linear_delay,
+                    increasing_base_delay: s.increasing_base_delay,
+                    increasing_wait_factor: s.increasing_wait_factor,
                 }
                 .into();
                 if let Err(e) = hook0_client
@@ -479,6 +492,8 @@ pub async fn delete(
         max_retries: i32,
         custom_intervals: Option<Vec<i32>>,
         linear_delay: Option<i32>,
+        increasing_base_delay: Option<i32>,
+        increasing_wait_factor: Option<f64>,
     }
 
     let deleted = query_as!(
@@ -487,7 +502,7 @@ pub async fn delete(
             DELETE FROM webhook.retry_schedule
             WHERE retry_schedule__id = $1
                 AND organization__id = $2
-            RETURNING name, strategy, max_retries, custom_intervals, linear_delay
+            RETURNING name, strategy, max_retries, custom_intervals, linear_delay, increasing_base_delay, increasing_wait_factor
         ",
         &schedule_id,
         &organization_id,
@@ -507,6 +522,8 @@ pub async fn delete(
                     max_retries: d.max_retries,
                     custom_intervals: d.custom_intervals,
                     linear_delay: d.linear_delay,
+                    increasing_base_delay: d.increasing_base_delay,
+                    increasing_wait_factor: d.increasing_wait_factor,
                 }
                 .into();
                 if let Err(e) = hook0_client

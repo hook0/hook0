@@ -1,4 +1,4 @@
-import http, { UUID } from '@/http';
+import http, { type UUID } from '@/http';
 import type { components } from '@/types';
 import { unwrapResponse } from '@/utils/unwrapResponse';
 
@@ -52,9 +52,9 @@ export function toggleEnable(
   });
 }
 
-export function list(application_id: UUID): Promise<Array<Subscription>> {
+export function list(application_id: UUID): Promise<Subscription[]> {
   return unwrapResponse(
-    http.get<Array<Subscription>>('/subscriptions', {
+    http.get<Subscription[]>('/subscriptions', {
       params: {
         application_id: application_id,
       },

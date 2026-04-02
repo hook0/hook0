@@ -23,12 +23,10 @@ const emit = defineEmits<{
 }>();
 
 const displayValue = computed(() =>
-  props.formatValue ? props.formatValue(props.modelValue) : String(props.modelValue),
+  props.formatValue ? props.formatValue(props.modelValue) : String(props.modelValue)
 );
 
-const progress = computed(
-  () => ((props.modelValue - props.min) / (props.max - props.min)) * 100,
-);
+const progress = computed(() => ((props.modelValue - props.min) / (props.max - props.min)) * 100);
 
 function onInput(event: Event) {
   const target = event.target as HTMLInputElement;

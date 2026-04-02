@@ -75,7 +75,9 @@ const {
 });
 
 const disableDialogName = computed(() => {
-  if (!subscriptionToDisable.value) return '';
+  if (!subscriptionToDisable.value) {
+    return '';
+  }
   return subscriptionToDisable.value.description || t('subscriptions.title');
 });
 
@@ -107,7 +109,9 @@ function confirmDisable() {
   const row = subscriptionToDisable.value;
   showDisableDialog.value = false;
   subscriptionToDisable.value = null;
-  if (!row) return;
+  if (!row) {
+    return;
+  }
 
   const name = row.description || t('subscriptions.title');
   toggleMutation.mutate(
@@ -151,7 +155,9 @@ const columns: ColumnDef<Subscription, unknown>[] = [
     enableSorting: true,
     cell: (info) => {
       const val = info.getValue() as string[] | undefined;
-      if (!val || val.length === 0) return '';
+      if (!val || val.length === 0) {
+        return '';
+      }
       return h(Hook0TableCellEventTypes, {
         value: val,
         to: {
@@ -170,7 +176,9 @@ const columns: ColumnDef<Subscription, unknown>[] = [
     enableSorting: true,
     cell: (info) => {
       const labels = (info.row.original.labels ?? {}) as Record<string, string>;
-      if (Object.keys(labels).length === 0) return '';
+      if (Object.keys(labels).length === 0) {
+        return '';
+      }
       return h(Hook0TableCellLabels, { value: labels });
     },
   },

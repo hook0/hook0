@@ -1,4 +1,4 @@
-import http, { UUID } from '@/http';
+import http, { type UUID } from '@/http';
 import type { components } from '@/types';
 import { unwrapResponse } from '@/utils/unwrapResponse';
 
@@ -7,9 +7,9 @@ export type RetrySchedule = definitions['RetrySchedule'];
 export type RetrySchedulePost = definitions['RetrySchedulePost'];
 export type RetrySchedulePut = definitions['RetrySchedulePut'];
 
-export function list(organization_id: UUID): Promise<Array<RetrySchedule>> {
+export function list(organization_id: UUID): Promise<RetrySchedule[]> {
   return unwrapResponse(
-    http.get<Array<RetrySchedule>>('/retry_schedules', { params: { organization_id } })
+    http.get<RetrySchedule[]>('/retry_schedules', { params: { organization_id } })
   );
 }
 

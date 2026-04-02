@@ -11,10 +11,21 @@ const { t } = useI18n();
 
 // Thresholds aligned with health monitor defaults:
 // --health-monitor-warning-failure-percent=80 and --health-monitor-disable-failure-percent=95
+// COUPLING: If backend thresholds are changed via CLI args, these must be updated to match.
+// TODO: Expose active thresholds via instance config API to eliminate this coupling.
+const WARNING_THRESHOLD = 80;
+const DISABLE_THRESHOLD = 95;
+
 const status = computed(() => {
-  if (props.failurePercent == null) return 'noData';
-  if (props.failurePercent >= 95) return 'disabled';
-  if (props.failurePercent >= 80) return 'warning';
+  if (props.failurePercent === null || props.failurePercent === undefined) {
+    return 'noData';
+  }
+  if (props.failurePercent >= DISABLE_THRESHOLD) {
+    return 'disabled';
+  }
+  if (props.failurePercent >= WARNING_THRESHOLD) {
+    return 'warning';
+  }
   return 'healthy';
 });
 
@@ -45,7 +56,9 @@ const label = computed(() => {
 });
 
 const percentLabel = computed(() => {
-  if (props.failurePercent == null) return '';
+  if (props.failurePercent === null || props.failurePercent === undefined) {
+    return '';
+  }
   return `${Math.round(props.failurePercent)}%`;
 });
 </script>

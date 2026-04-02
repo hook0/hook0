@@ -150,15 +150,15 @@ const selectedRetryScheduleId = ref<string | null>(null);
 // Retry schedule list for selector
 const { data: retrySchedules } = useRetryScheduleList(organizationId);
 const retryScheduleOptions = computed(() => {
-  const options: Hook0SelectSingleOption[] = [
-    { value: '', label: t('retrySchedules.defaultSchedule') },
-  ];
-  if (retrySchedules.value) {
-    retrySchedules.value.forEach((s) => {
-      options.push({ value: s.retry_schedule_id, label: s.name });
-    });
-  }
-  return options;
+  const defaultOption: Hook0SelectSingleOption = {
+    value: '',
+    label: t('retrySchedules.defaultSchedule'),
+  };
+  const scheduleOptions = (retrySchedules.value ?? []).map((s) => ({
+    value: s.retry_schedule_id,
+    label: s.name,
+  }));
+  return [defaultOption, ...scheduleOptions];
 });
 
 const httpMethods = 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption);
@@ -195,7 +195,9 @@ watch(
 watch(
   [rawEventTypes, subscriptionData],
   ([et]) => {
-    if (!et) return;
+    if (!et) {
+      return;
+    }
 
     function mapper(eventType: EventType): SelectableEventType {
       return { ...eventType, selected: false };
@@ -353,11 +355,21 @@ const hasSelectedEventTypes = computed(() => eventTypes.value.some((et) => et.se
 
 const missingFieldsTooltip = computed(() => {
   const missing: string[] = [];
-  if (!targetUrl.value) missing.push(t('subscriptions.fields.endpoint'));
-  if (!description.value) missing.push(t('subscriptions.fields.name'));
-  if (!hasSelectedEventTypes.value) missing.push(t('subscriptions.fields.eventTypes'));
-  if (!hasRequiredLabels.value) missing.push(t('subscriptions.fields.labels'));
-  if (missing.length === 0) return undefined;
+  if (!targetUrl.value) {
+    missing.push(t('subscriptions.fields.endpoint'));
+  }
+  if (!description.value) {
+    missing.push(t('subscriptions.fields.name'));
+  }
+  if (!hasSelectedEventTypes.value) {
+    missing.push(t('subscriptions.fields.eventTypes'));
+  }
+  if (!hasRequiredLabels.value) {
+    missing.push(t('subscriptions.fields.labels'));
+  }
+  if (missing.length === 0) {
+    return undefined;
+  }
   return t('forms.missingFields', { fields: missing.join(', ') });
 });
 </script>

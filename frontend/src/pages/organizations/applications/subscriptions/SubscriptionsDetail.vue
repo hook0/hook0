@@ -182,7 +182,7 @@ const recentDeliveries = computed(() =>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(delivery, i) in recentDeliveries" :key="i">
+              <tr v-for="delivery in recentDeliveries" :key="delivery.request_attempt_id">
                 <td>
                   <Hook0Badge
                     :variant="delivery.status.type === 'successful' ? 'success' : 'danger'"

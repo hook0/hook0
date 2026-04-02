@@ -25,7 +25,7 @@ const { t } = useI18n();
 
 type ApplicationsPerOrganization = {
   organization: Organization;
-  applications: Array<Application>;
+  applications: Application[];
 };
 
 const router = useRouter();
