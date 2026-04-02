@@ -470,6 +470,9 @@ struct Config {
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30m")]
     health_monitor_interval: Duration,
 
+    // COUPLING: These thresholds are duplicated in frontend/src/components/Hook0HealthBadge.vue.
+    // If you change these defaults, update the frontend constants too.
+
     /// [Housekeeping] Failure % threshold for warning email
     #[clap(long, env, default_value_t = 80)]
     health_monitor_warning_failure_percent: u8,
@@ -493,6 +496,10 @@ struct Config {
     /// [Housekeeping] Cooldown after resolved before new warning email
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1h")]
     health_monitor_warning_cooldown: Duration,
+
+    /// [Housekeeping] Number of days to retain resolved health events before cleanup
+    #[clap(long, env, default_value_t = 90)]
+    health_monitor_retention_period_days: u32,
 
     /// [Web Server] If true, the secured HTTP headers will be enabled
     #[clap(long, env, default_value = "true")]
@@ -1106,6 +1113,7 @@ async fn main() -> anyhow::Result<()> {
                 message_window: config.health_monitor_message_window,
                 min_sample_size: config.health_monitor_min_sample_size,
                 warning_cooldown: config.health_monitor_warning_cooldown,
+                retention_period_days: config.health_monitor_retention_period_days,
             };
             actix_web::rt::spawn(async move {
                 health_monitor::run_health_monitor(

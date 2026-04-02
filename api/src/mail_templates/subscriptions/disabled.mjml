@@ -27,7 +27,7 @@
                 color: #555555;
             }
             .button {
-                background-color: #f45e43;
+                background-color: #22c55e;
                 border: none;
                 padding: 15px 30px;
                 border-radius: 5px;
@@ -65,7 +65,7 @@
                     <p>2. Verify that the endpoint is reachable and returns 2xx responses.</p>
                     <p>3. Re-enable the subscription from the Hook0 dashboard or via the API.</p>
                 </mj-text>
-                <mj-button background-color="#f45e43" color="white" class="button" href="{ $subscription_url }">View Subscription</mj-button>
+                <mj-button background-color="#22c55e" color="white" class="button" href="{ $subscription_url }">View Subscription</mj-button>
                 <mj-text align="center">
                     <p class="small">Questions? Reach out to our support team at <a href="mailto:{ $support_email_address }">{ $support_email_address }</a>.</p>
                 </mj-text>

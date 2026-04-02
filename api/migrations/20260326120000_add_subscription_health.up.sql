@@ -29,5 +29,10 @@ create index if not exists idx_request_attempt_sub_health
     on webhook.request_attempt (subscription__id, created_at desc)
     include (succeeded_at, failed_at);
 
+-- Partial index for daily cleanup of old resolved events (avoids full table scan)
+create index if not exists idx_subscription_health_event_cleanup
+    on webhook.subscription_health_event(created_at)
+    where status = 'resolved';
+
 -- Drop redundant single-column index (the new composite index is a strict superset)
 drop index if exists webhook.request_attempt_subscription__id_idx;

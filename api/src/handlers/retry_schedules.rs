@@ -18,11 +18,17 @@ use crate::iam::{authorize, Action};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
-pub const MAX_INTERVAL_SECS: i32 = 604_800; // 7 days
+/// Maximum interval between retries across all strategies, in seconds (7 days).
+pub const MAX_INTERVAL_SECS: i32 = 604_800;
+/// Minimum base delay for the increasing retry strategy, in seconds.
 const MIN_BASE_DELAY: i32 = 1;
+/// Maximum base delay for the increasing retry strategy, in seconds (1 hour).
 const MAX_BASE_DELAY: i32 = 3600;
+/// Minimum wait factor (multiplier) for the increasing retry strategy.
 const MIN_WAIT_FACTOR: f64 = 1.5;
+/// Maximum wait factor (multiplier) for the increasing retry strategy.
 const MAX_WAIT_FACTOR: f64 = 10.0;
+/// Minimum delay for linear and custom retry strategies, in seconds.
 const MIN_DELAY: i32 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, EnumString, Apiv2Schema, sqlx::Type)]

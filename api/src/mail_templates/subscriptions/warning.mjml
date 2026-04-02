@@ -27,7 +27,7 @@
                 color: #555555;
             }
             .button {
-                background-color: #f45e43;
+                background-color: #22c55e;
                 border: none;
                 padding: 15px 30px;
                 border-radius: 5px;
@@ -64,7 +64,7 @@
                     <p>2. Ensure it returns successful HTTP responses (2xx status codes).</p>
                     <p>3. Check your server logs for errors or timeouts.</p>
                 </mj-text>
-                <mj-button background-color="#f45e43" color="white" class="button" href="{ $subscription_url }">View Subscription</mj-button>
+                <mj-button background-color="#22c55e" color="white" class="button" href="{ $subscription_url }">View Subscription</mj-button>
                 <mj-text align="center">
                     <p class="small">Questions? Reach out to our support team at <a href="mailto:{ $support_email_address }">{ $support_email_address }</a>.</p>
                 </mj-text>

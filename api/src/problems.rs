@@ -63,7 +63,6 @@ pub enum Hook0Problem {
     AuthEmailExpired,
 
     RetryScheduleNameAlreadyExists,
-    RetryScheduleNotFound,
 
     // Quota errors
     TooManyMembersPerOrganization(QuotaValue),
@@ -443,14 +442,6 @@ impl From<Hook0Problem> for Problem {
                 validation: None,
                 status: StatusCode::CONFLICT,
             },
-            Hook0Problem::RetryScheduleNotFound => Problem {
-                id: Hook0Problem::RetryScheduleNotFound,
-                title: "Retry schedule not found",
-                detail: "The specified retry schedule does not exist or does not belong to this organization.".into(),
-                validation: None,
-                status: StatusCode::NOT_FOUND,
-            },
-
             // Quota errors
             Hook0Problem::TooManyMembersPerOrganization(limit) => {
                 let detail = format!("This organization cannot have more than {limit} users. You might want to upgrade to a better plan.");

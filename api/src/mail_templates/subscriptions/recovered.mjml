@@ -59,7 +59,7 @@
                 <mj-text align="center">
                     <p>No further action is required. Your webhook events are being delivered successfully.</p>
                 </mj-text>
-                <mj-button background-color="#28a745" color="white" class="button" href="{ $subscription_url }">View Subscription</mj-button>
+                <mj-button background-color="#22c55e" color="white" class="button" href="{ $subscription_url }">View Subscription</mj-button>
                 <mj-text align="center">
                     <p class="small">Questions? Reach out to our support team at <a href="mailto:{ $support_email_address }">{ $support_email_address }</a>.</p>
                 </mj-text>

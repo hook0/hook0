@@ -9,11 +9,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-// Thresholds aligned with health monitor defaults:
-// --health-monitor-warning-failure-percent=80 and --health-monitor-disable-failure-percent=95
-// COUPLING: If backend thresholds are changed via CLI args, these must be updated to match.
-// Server-side config: api/src/main.rs --health-monitor-warning-failure-percent and --health-monitor-disable-failure-percent
-// TODO: Expose active thresholds via instance config API to eliminate this coupling.
+// Thresholds must match server defaults (see api/src/main.rs).
 const WARNING_THRESHOLD = 80;
 const DISABLE_THRESHOLD = 95;
 

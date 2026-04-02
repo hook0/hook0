@@ -19,6 +19,8 @@ use crate::mailer::{Mail, Mailer};
 /// Arbitrary unique ID for pg_try_advisory_xact_lock — must not conflict with other advisory locks in the application.
 const ADVISORY_LOCK_ID: i64 = 42_000_001;
 
+// --- Configuration Types ---
+
 #[derive(Clone)]
 pub struct HealthMonitorConfig {
     pub interval: Duration,
@@ -28,7 +30,10 @@ pub struct HealthMonitorConfig {
     pub message_window: u32,
     pub min_sample_size: u32,
     pub warning_cooldown: Duration,
+    pub retention_period_days: u32,
 }
+
+// --- Main Loop ---
 
 /// Runs the health monitor loop.
 ///
@@ -49,7 +54,7 @@ pub async fn run_health_monitor(
         config.interval, config.warning_failure_percent, config.disable_failure_percent
     );
 
-    const CLEANUP_INTERVAL: Duration = Duration::from_secs(86_400);
+    const CLEANUP_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60); // 1 day
 
     let mut last_cleanup: Option<Instant> = None;
 
@@ -59,7 +64,7 @@ pub async fn run_health_monitor(
         }
 
         if last_cleanup.is_none() || last_cleanup.unwrap().elapsed() > CLEANUP_INTERVAL {
-            match cleanup_resolved_health_events(db).await {
+            match cleanup_resolved_health_events(db, config).await {
                 Ok(n) => {
                     if n > 0 {
                         info!("Health monitor: cleaned up {n} resolved health events");
@@ -80,12 +85,18 @@ pub async fn run_health_monitor(
     warn!("Health monitor stopped (semaphore closed)");
 }
 
-/// Removes resolved health events older than RETENTION_PERIOD, keeping at least the latest event per subscription.
+// --- Cleanup ---
+
+/// Removes resolved health events older than the configured retention period,
+/// keeping at least the latest event per subscription.
 ///
 /// Example: a subscription with events at -100d (resolved), -80d (resolved), -10d (warning)
 /// deletes only the -100d row; the -80d row is kept because -10d is newer.
-async fn cleanup_resolved_health_events(db: &PgPool) -> Result<u64, sqlx::Error> {
-    const RETENTION_PERIOD_DAYS: i32 = 90;
+async fn cleanup_resolved_health_events(
+    db: &PgPool,
+    config: &HealthMonitorConfig,
+) -> Result<u64, sqlx::Error> {
+    let retention_period_days = config.retention_period_days as i32;
 
     let result = sqlx::query(
         r#"
@@ -99,12 +110,14 @@ async fn cleanup_resolved_health_events(db: &PgPool) -> Result<u64, sqlx::Error>
           )
         "#,
     )
-    .bind(RETENTION_PERIOD_DAYS)
+    .bind(retention_period_days)
     .execute(db)
     .await?;
 
     Ok(result.rows_affected())
 }
+
+// --- Health Evaluation ---
 
 #[derive(Debug, sqlx::FromRow)]
 struct SubscriptionHealth {
@@ -224,6 +237,8 @@ async fn fetch_subscription_health_stats(
     .await
 }
 
+// --- Side Effects (emails, events) ---
+
 /// Describes a side-effect (email / Hook0 event) to perform after the
 /// transaction has been committed.
 enum HealthAction {
@@ -246,37 +261,47 @@ struct HealthActionInfo {
 }
 
 impl HealthActionInfo {
-    fn from_sub(sub: &SubscriptionHealth, disabled_at: Option<DateTime<Utc>>) -> Self {
+    /// Builds a `HealthActionInfo` from a `SubscriptionHealth` row and an optional disabled timestamp.
+    fn from_subscription(
+        subscription: &SubscriptionHealth,
+        disabled_at: Option<DateTime<Utc>>,
+    ) -> Self {
         Self {
-            subscription_id: sub.subscription_id,
-            organization_id: sub.organization_id,
-            application_id: sub.application_id,
-            application_name: sub.application_name.clone(),
-            description: sub.description.clone(),
-            target_url: sub.target_url.clone(),
-            failure_percent: sub.failure_percent,
+            subscription_id: subscription.subscription_id,
+            organization_id: subscription.organization_id,
+            application_id: subscription.application_id,
+            application_name: subscription.application_name.clone(),
+            description: subscription.description.clone(),
+            target_url: subscription.target_url.clone(),
+            failure_percent: subscription.failure_percent,
             disabled_at,
-            retry_schedule: sub.retry_schedule_id.map(|id| RetrySchedulePayload {
-                retry_schedule_id: id,
-                name: sub.retry_schedule_name.clone().unwrap_or_default(),
-                strategy: sub.retry_strategy.clone().unwrap_or_default(),
-                max_retries: sub.retry_max_retries.unwrap_or(0),
-                custom_intervals: sub.retry_custom_intervals.clone(),
-                linear_delay: sub.retry_linear_delay,
-                increasing_base_delay: sub.retry_increasing_base_delay,
-                increasing_wait_factor: sub.retry_increasing_wait_factor,
-            }),
+            retry_schedule: subscription
+                .retry_schedule_id
+                .map(|id| RetrySchedulePayload {
+                    retry_schedule_id: id,
+                    name: subscription
+                        .retry_schedule_name
+                        .clone()
+                        .unwrap_or_default(),
+                    strategy: subscription.retry_strategy.clone().unwrap_or_default(),
+                    max_retries: subscription.retry_max_retries.unwrap_or(0),
+                    custom_intervals: subscription.retry_custom_intervals.clone(),
+                    linear_delay: subscription.retry_linear_delay,
+                    increasing_base_delay: subscription.retry_increasing_base_delay,
+                    increasing_wait_factor: subscription.retry_increasing_wait_factor,
+                }),
         }
     }
 }
 
+/// Acquires the advisory lock, evaluates all subscriptions, then fires side-effects (emails, Hook0 events).
 async fn run_health_check(
     db: &PgPool,
     mailer: &Mailer,
     hook0_client: &Option<Hook0Client>,
     config: &HealthMonitorConfig,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Phase 1: transaction — evaluate health, insert events, disable subs.
+    // Phase 1: transaction — evaluate health, insert events, disable subscriptions.
     let actions = {
         let mut tx = db.begin().await?;
 
@@ -298,13 +323,13 @@ async fn run_health_check(
         );
 
         let mut actions = Vec::new();
-        for sub in &subscriptions {
-            match process_subscription(&mut tx, config, sub).await {
-                Ok(mut sub_actions) => actions.append(&mut sub_actions),
+        for subscription in &subscriptions {
+            match process_subscription(&mut tx, config, subscription).await {
+                Ok(mut subscription_actions) => actions.append(&mut subscription_actions),
                 Err(e) => {
                     warn!(
                         "Health monitor: error processing subscription {}: {e}",
-                        sub.subscription_id
+                        subscription.subscription_id
                     );
                 }
             }
@@ -349,22 +374,33 @@ async fn run_health_check(
     Ok(())
 }
 
+/// Email notification type for health status changes.
 enum EmailKind {
     Warning,
     Disabled,
     Recovered,
 }
 
+// --- State Machine (process_subscription) ---
+
+/// Evaluates a single subscription's health and determines state transitions.
+///
+/// State machine:
+///   - `None` / `resolved` + high failure → insert `warning` event
+///   - `warning` + even higher failure → disable subscription
+///   - `warning` + low failure → insert `resolved` event
+///   - `disabled` → no-op (manual re-enable required)
+///   - `resolved` within cooldown → no-op (prevent email spam)
 async fn process_subscription(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     config: &HealthMonitorConfig,
-    sub: &SubscriptionHealth,
+    subscription: &SubscriptionHealth,
 ) -> Result<Vec<HealthAction>, Box<dyn std::error::Error>> {
-    let ratio = sub.failure_percent;
-    let warning_pct = config.warning_failure_percent as f64;
-    let disable_pct = config.disable_failure_percent as f64;
-    let last_status = sub.last_health_status.as_deref();
-    let last_at = sub.last_health_at;
+    let failure_percent = subscription.failure_percent;
+    let warning_percent = config.warning_failure_percent as f64;
+    let disable_percent = config.disable_failure_percent as f64;
+    let last_status = subscription.last_health_status.as_deref();
+    let last_at = subscription.last_health_at;
 
     let mut actions = Vec::new();
 
@@ -372,8 +408,8 @@ async fn process_subscription(
     sqlx::query(
         "UPDATE webhook.subscription SET failure_percent = $1 WHERE subscription__id = $2",
     )
-    .bind(ratio)
-    .bind(sub.subscription_id)
+    .bind(failure_percent)
+    .bind(subscription.subscription_id)
     .execute(&mut **tx)
     .await?;
 
@@ -386,36 +422,49 @@ async fn process_subscription(
                     < chrono::Duration::from_std(config.warning_cooldown).unwrap_or_default()
             }) => {}
 
-        Some("warning") if ratio >= warning_pct && ratio < disable_pct => {}
+        Some("warning") if failure_percent >= warning_percent && failure_percent < disable_percent => {}
 
-        Some("warning") if ratio < warning_pct => {
+        Some("warning") if failure_percent < warning_percent => {
             // Skip recovery email if the last event was a manual user action (re-enable via API) —
             // the user already knows about it. Only send recovery email for system-originated events.
-            insert_health_event(tx, sub.subscription_id, "resolved", "system", None).await?;
-            if sub.last_health_source.as_deref() != Some("user") {
-                actions.push(HealthAction::Recovered(HealthActionInfo::from_sub(sub, None)));
+            insert_health_event(tx, subscription.subscription_id, "resolved", "system", None)
+                .await?;
+            if subscription.last_health_source.as_deref() != Some("user") {
+                actions.push(HealthAction::Recovered(
+                    HealthActionInfo::from_subscription(subscription, None),
+                ));
             }
         }
 
         Some("warning") => {
-            let disabled_at = disable_subscription(tx, sub).await?;
+            let disabled_at = disable_subscription(tx, subscription).await?;
             if let Some(at) = disabled_at {
-                actions.push(HealthAction::Disabled(HealthActionInfo::from_sub(sub, Some(at))));
+                actions.push(HealthAction::Disabled(
+                    HealthActionInfo::from_subscription(subscription, Some(at)),
+                ));
             }
         }
 
-        _ if ratio >= disable_pct => {
-            insert_health_event(tx, sub.subscription_id, "warning", "system", None).await?;
-            actions.push(HealthAction::Warning(HealthActionInfo::from_sub(sub, None)));
-            let disabled_at = disable_subscription(tx, sub).await?;
+        _ if failure_percent >= disable_percent => {
+            insert_health_event(tx, subscription.subscription_id, "warning", "system", None)
+                .await?;
+            actions.push(HealthAction::Warning(
+                HealthActionInfo::from_subscription(subscription, None),
+            ));
+            let disabled_at = disable_subscription(tx, subscription).await?;
             if let Some(at) = disabled_at {
-                actions.push(HealthAction::Disabled(HealthActionInfo::from_sub(sub, Some(at))));
+                actions.push(HealthAction::Disabled(
+                    HealthActionInfo::from_subscription(subscription, Some(at)),
+                ));
             }
         }
 
-        _ if ratio >= warning_pct => {
-            insert_health_event(tx, sub.subscription_id, "warning", "system", None).await?;
-            actions.push(HealthAction::Warning(HealthActionInfo::from_sub(sub, None)));
+        _ if failure_percent >= warning_percent => {
+            insert_health_event(tx, subscription.subscription_id, "warning", "system", None)
+                .await?;
+            actions.push(HealthAction::Warning(
+                HealthActionInfo::from_subscription(subscription, None),
+            ));
         }
 
         _ => {}
@@ -424,6 +473,8 @@ async fn process_subscription(
     Ok(actions)
 }
 
+/// Inserts a health event row for a subscription.
+///
 /// source: "system" = automatic (health monitor), "user" = manual (API PUT).
 /// When source is "user" and user_id is None, the action was via a service token.
 async fn insert_health_event(
@@ -449,7 +500,7 @@ async fn insert_health_event(
 /// Returns `Some(disabled_at)` if it actually disabled, `None` if already disabled.
 async fn disable_subscription(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    sub: &SubscriptionHealth,
+    subscription: &SubscriptionHealth,
 ) -> Result<Option<DateTime<Utc>>, Box<dyn std::error::Error>> {
     let disabled_at: Option<DateTime<Utc>> = sqlx::query_scalar(
         r#"
@@ -467,20 +518,24 @@ async fn disable_subscription(
         SELECT created_at FROM inserted
         "#,
     )
-    .bind(sub.subscription_id)
+    .bind(subscription.subscription_id)
     .fetch_optional(&mut **tx)
     .await?;
 
     if disabled_at.is_some() {
         info!(
             "Health monitor: disabled subscription {}",
-            sub.subscription_id
+            subscription.subscription_id
         );
     }
 
     Ok(disabled_at)
 }
 
+// --- Side Effects (emails) ---
+
+/// Sends a health notification email to all users of the subscription's organization.
+/// Failures are logged but never propagated — email delivery is best-effort.
 async fn send_email_best_effort(
     mailer: &Mailer,
     db: &PgPool,

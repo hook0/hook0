@@ -591,7 +591,7 @@ pub async fn create(
             .map_err(Hook0Problem::from)?;
 
     if body.retry_schedule_id.is_some() && subscription.retry_schedule__id.is_none() {
-        return Err(Hook0Problem::RetryScheduleNotFound);
+        return Err(Hook0Problem::NotFound);
     }
 
     match &body.target {
@@ -837,7 +837,7 @@ pub async fn edit(
     match subscription {
         Some(s) => {
             if body.retry_schedule_id.is_some() && s.retry_schedule__id.is_none() {
-                return Err(Hook0Problem::RetryScheduleNotFound);
+                return Err(Hook0Problem::NotFound);
             }
 
             match &body.target {
