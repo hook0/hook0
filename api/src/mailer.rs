@@ -193,32 +193,20 @@ impl Mail {
                 evaluation_window,
             } => {
                 vec![
-                    (
-                        "organization_id".to_owned(),
-                        organization_id.to_string(),
-                    ),
-                    (
-                        "application_id".to_owned(),
-                        application_id.to_string(),
-                    ),
+                    ("organization_id".to_owned(), organization_id.to_string()),
+                    ("application_id".to_owned(), application_id.to_string()),
                     ("application_name".to_owned(), application_name.to_owned()),
                     (
                         "subscription_description".to_owned(),
                         subscription_description.to_owned(),
                     ),
-                    (
-                        "subscription_id".to_owned(),
-                        subscription_id.to_string(),
-                    ),
+                    ("subscription_id".to_owned(), subscription_id.to_string()),
                     ("target_url".to_owned(), target_url.to_owned()),
                     (
                         "failure_percent".to_owned(),
                         format!("{:.0}", failure_percent),
                     ),
-                    (
-                        "evaluation_window".to_owned(),
-                        evaluation_window.to_owned(),
-                    ),
+                    ("evaluation_window".to_owned(), evaluation_window.to_owned()),
                 ]
             }
             Mail::SubscriptionDisabled {
@@ -233,32 +221,20 @@ impl Mail {
                 disabled_at,
             } => {
                 vec![
-                    (
-                        "organization_id".to_owned(),
-                        organization_id.to_string(),
-                    ),
-                    (
-                        "application_id".to_owned(),
-                        application_id.to_string(),
-                    ),
+                    ("organization_id".to_owned(), organization_id.to_string()),
+                    ("application_id".to_owned(), application_id.to_string()),
                     ("application_name".to_owned(), application_name.to_owned()),
                     (
                         "subscription_description".to_owned(),
                         subscription_description.to_owned(),
                     ),
-                    (
-                        "subscription_id".to_owned(),
-                        subscription_id.to_string(),
-                    ),
+                    ("subscription_id".to_owned(), subscription_id.to_string()),
                     ("target_url".to_owned(), target_url.to_owned()),
                     (
                         "failure_percent".to_owned(),
                         format!("{:.0}", failure_percent),
                     ),
-                    (
-                        "evaluation_window".to_owned(),
-                        evaluation_window.to_owned(),
-                    ),
+                    ("evaluation_window".to_owned(), evaluation_window.to_owned()),
                     ("disabled_at".to_owned(), disabled_at.to_owned()),
                 ]
             }
@@ -271,23 +247,14 @@ impl Mail {
                 target_url,
             } => {
                 vec![
-                    (
-                        "organization_id".to_owned(),
-                        organization_id.to_string(),
-                    ),
-                    (
-                        "application_id".to_owned(),
-                        application_id.to_string(),
-                    ),
+                    ("organization_id".to_owned(), organization_id.to_string()),
+                    ("application_id".to_owned(), application_id.to_string()),
                     ("application_name".to_owned(), application_name.to_owned()),
                     (
                         "subscription_description".to_owned(),
                         subscription_description.to_owned(),
                     ),
-                    (
-                        "subscription_id".to_owned(),
-                        subscription_id.to_string(),
-                    ),
+                    ("subscription_id".to_owned(), subscription_id.to_string()),
                     ("target_url".to_owned(), target_url.to_owned()),
                 ]
             }

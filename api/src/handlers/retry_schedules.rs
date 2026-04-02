@@ -2,7 +2,7 @@ use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use paperclip::actix::web::{Data, Json, Path, Query};
-use paperclip::actix::{api_v2_operation, Apiv2Schema, CreatedJson};
+use paperclip::actix::{Apiv2Schema, CreatedJson, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::query_as;
 use strum::{Display, EnumString};
@@ -14,24 +14,41 @@ use crate::hook0_client::{
     EventRetryScheduleCreated, EventRetryScheduleRemoved, EventRetryScheduleUpdated,
     Hook0ClientEvent,
 };
-use crate::iam::{authorize, Action};
+use crate::iam::{Action, authorize};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
 /// Maximum interval between retries across all strategies, in seconds (7 days).
 pub const MAX_INTERVAL_SECS: i32 = 604_800;
+
 /// Minimum base delay for the increasing retry strategy, in seconds.
 const MIN_BASE_DELAY: i32 = 1;
+
 /// Maximum base delay for the increasing retry strategy, in seconds (1 hour).
 const MAX_BASE_DELAY: i32 = 3600;
+
 /// Minimum wait factor (multiplier) for the increasing retry strategy.
 const MIN_WAIT_FACTOR: f64 = 1.5;
+
 /// Maximum wait factor (multiplier) for the increasing retry strategy.
 const MAX_WAIT_FACTOR: f64 = 10.0;
+
 /// Minimum delay for linear and custom retry strategies, in seconds.
 const MIN_DELAY: i32 = 1;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, EnumString, Apiv2Schema, sqlx::Type)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    Display,
+    EnumString,
+    Apiv2Schema,
+    sqlx::Type,
+)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 #[sqlx(type_name = "text", rename_all = "lowercase")]
@@ -73,7 +90,14 @@ pub struct RetrySchedulePost {
 
 impl RetrySchedulePost {
     fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
-        validate_strategy_fields(self.strategy, self.max_retries, self.linear_delay, self.custom_intervals.as_deref(), self.increasing_base_delay, self.increasing_wait_factor)
+        validate_strategy_fields(
+            self.strategy,
+            self.max_retries,
+            self.linear_delay,
+            self.custom_intervals.as_deref(),
+            self.increasing_base_delay,
+            self.increasing_wait_factor,
+        )
     }
 }
 
@@ -93,7 +117,14 @@ pub struct RetrySchedulePut {
 
 impl RetrySchedulePut {
     fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
-        validate_strategy_fields(self.strategy, self.max_retries, self.linear_delay, self.custom_intervals.as_deref(), self.increasing_base_delay, self.increasing_wait_factor)
+        validate_strategy_fields(
+            self.strategy,
+            self.max_retries,
+            self.linear_delay,
+            self.custom_intervals.as_deref(),
+            self.increasing_base_delay,
+            self.increasing_wait_factor,
+        )
     }
 }
 
@@ -110,21 +141,40 @@ fn strategy_error(message: &str) -> validator::ValidationError {
     err
 }
 
-fn require_none<T>(field: &str, value: &Option<T>, strategy: &str) -> Result<(), validator::ValidationError> {
+fn require_none<T>(
+    field: &str,
+    value: &Option<T>,
+    strategy: &str,
+) -> Result<(), validator::ValidationError> {
     if value.is_some() {
-        Err(strategy_error(&format!("{field} must be None for {strategy} strategy")))
+        Err(strategy_error(&format!(
+            "{field} must be None for {strategy} strategy"
+        )))
     } else {
         Ok(())
     }
 }
 
-fn require_some<'a, T>(field: &str, value: &'a Option<T>, strategy: &str) -> Result<&'a T, validator::ValidationError> {
-    value.as_ref().ok_or_else(|| strategy_error(&format!("{field} is required for {strategy} strategy")))
+fn require_some<'a, T>(
+    field: &str,
+    value: &'a Option<T>,
+    strategy: &str,
+) -> Result<&'a T, validator::ValidationError> {
+    value
+        .as_ref()
+        .ok_or_else(|| strategy_error(&format!("{field} is required for {strategy} strategy")))
 }
 
-fn require_range(field: &str, value: i32, min: i32, max: i32) -> Result<(), validator::ValidationError> {
+fn require_range(
+    field: &str,
+    value: i32,
+    min: i32,
+    max: i32,
+) -> Result<(), validator::ValidationError> {
     if !(min..=max).contains(&value) {
-        Err(strategy_error(&format!("{field} must be between {min} and {max}")))
+        Err(strategy_error(&format!(
+            "{field} must be between {min} and {max}"
+        )))
     } else {
         Ok(())
     }
@@ -144,11 +194,26 @@ pub fn validate_strategy_fields(
         RetryStrategy::Increasing => {
             require_none("custom_intervals", &custom_intervals, "increasing")?;
             require_none("linear_delay", &linear_delay, "increasing")?;
-            let base = require_some("increasing_base_delay", &increasing_base_delay, "increasing")?;
-            require_range("increasing_base_delay", *base, MIN_BASE_DELAY, MAX_BASE_DELAY)?;
-            let factor = require_some("increasing_wait_factor", &increasing_wait_factor, "increasing")?;
+            let base = require_some(
+                "increasing_base_delay",
+                &increasing_base_delay,
+                "increasing",
+            )?;
+            require_range(
+                "increasing_base_delay",
+                *base,
+                MIN_BASE_DELAY,
+                MAX_BASE_DELAY,
+            )?;
+            let factor = require_some(
+                "increasing_wait_factor",
+                &increasing_wait_factor,
+                "increasing",
+            )?;
             if !(*factor >= MIN_WAIT_FACTOR && *factor <= MAX_WAIT_FACTOR) {
-                return Err(strategy_error(&format!("increasing_wait_factor must be between {MIN_WAIT_FACTOR} and {MAX_WAIT_FACTOR}")));
+                return Err(strategy_error(&format!(
+                    "increasing_wait_factor must be between {MIN_WAIT_FACTOR} and {MAX_WAIT_FACTOR}"
+                )));
             }
         }
         RetryStrategy::Linear => {
@@ -164,11 +229,15 @@ pub fn validate_strategy_fields(
             require_none("increasing_wait_factor", &increasing_wait_factor, "custom")?;
             let intervals = require_some("custom_intervals", &custom_intervals, "custom")?;
             if intervals.len() != max_retries as usize {
-                return Err(strategy_error("custom_intervals length must equal max_retries"));
+                return Err(strategy_error(
+                    "custom_intervals length must equal max_retries",
+                ));
             }
             for (i, &val) in intervals.iter().enumerate() {
                 if !(MIN_DELAY..=MAX_INTERVAL_SECS).contains(&val) {
-                    return Err(strategy_error(&format!("custom_intervals[{i}] must be between {MIN_DELAY} and {MAX_INTERVAL_SECS}")));
+                    return Err(strategy_error(&format!(
+                        "custom_intervals[{i}] must be between {MIN_DELAY} and {MAX_INTERVAL_SECS}"
+                    )));
                 }
             }
         }
@@ -290,7 +359,9 @@ pub async fn create(
     .map_err(Hook0Problem::from)?;
 
     let Some(s) = schedule else {
-        return Err(Hook0Problem::TooManyRetrySchedulesPerOrganization(state.max_retry_schedules_per_org));
+        return Err(Hook0Problem::TooManyRetrySchedulesPerOrganization(
+            state.max_retry_schedules_per_org,
+        ));
     };
 
     if let Some(hook0_client) = state.hook0_client.as_ref() {
@@ -555,7 +626,14 @@ mod tests {
     use super::*;
 
     // Helper to reduce boilerplate — all 6 params explicit
-    fn v(strategy: RetryStrategy, max: i32, ld: Option<i32>, ci: Option<&[i32]>, ibd: Option<i32>, isf: Option<f64>) -> Result<(), validator::ValidationError> {
+    fn v(
+        strategy: RetryStrategy,
+        max: i32,
+        ld: Option<i32>,
+        ci: Option<&[i32]>,
+        ibd: Option<i32>,
+        isf: Option<f64>,
+    ) -> Result<(), validator::ValidationError> {
         validate_strategy_fields(strategy, max, ld, ci, ibd, isf)
     }
 
@@ -576,12 +654,32 @@ mod tests {
 
     #[test]
     fn increasing_rejects_custom_intervals() {
-        assert!(v(RetryStrategy::Increasing, 3, None, Some(&[10, 20, 30]), Some(3), Some(3.0)).is_err());
+        assert!(
+            v(
+                RetryStrategy::Increasing,
+                3,
+                None,
+                Some(&[10, 20, 30]),
+                Some(3),
+                Some(3.0)
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn increasing_rejects_linear_delay() {
-        assert!(v(RetryStrategy::Increasing, 3, Some(60), None, Some(3), Some(3.0)).is_err());
+        assert!(
+            v(
+                RetryStrategy::Increasing,
+                3,
+                Some(60),
+                None,
+                Some(3),
+                Some(3.0)
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -591,13 +689,33 @@ mod tests {
 
     #[test]
     fn increasing_rejects_factor_too_high() {
-        assert!(v(RetryStrategy::Increasing, 5, None, None, Some(3), Some(11.0)).is_err());
+        assert!(
+            v(
+                RetryStrategy::Increasing,
+                5,
+                None,
+                None,
+                Some(3),
+                Some(11.0)
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn increasing_accepts_boundary_factor() {
         assert!(v(RetryStrategy::Increasing, 5, None, None, Some(3), Some(1.5)).is_ok());
-        assert!(v(RetryStrategy::Increasing, 5, None, None, Some(3), Some(10.0)).is_ok());
+        assert!(
+            v(
+                RetryStrategy::Increasing,
+                5,
+                None,
+                None,
+                Some(3),
+                Some(10.0)
+            )
+            .is_ok()
+        );
     }
 
     #[test]
@@ -612,7 +730,17 @@ mod tests {
 
     #[test]
     fn linear_rejects_custom_intervals() {
-        assert!(v(RetryStrategy::Linear, 3, Some(60), Some(&[10, 20, 30]), None, None).is_err());
+        assert!(
+            v(
+                RetryStrategy::Linear,
+                3,
+                Some(60),
+                Some(&[10, 20, 30]),
+                None,
+                None
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -628,18 +756,48 @@ mod tests {
 
     #[test]
     fn linear_rejects_delay_too_high() {
-        assert!(v(RetryStrategy::Linear, 3, Some(MAX_INTERVAL_SECS + 1), None, None, None).is_err());
+        assert!(
+            v(
+                RetryStrategy::Linear,
+                3,
+                Some(MAX_INTERVAL_SECS + 1),
+                None,
+                None,
+                None
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn linear_accepts_boundary_delay() {
         assert!(v(RetryStrategy::Linear, 3, Some(1), None, None, None).is_ok());
-        assert!(v(RetryStrategy::Linear, 3, Some(MAX_INTERVAL_SECS), None, None, None).is_ok());
+        assert!(
+            v(
+                RetryStrategy::Linear,
+                3,
+                Some(MAX_INTERVAL_SECS),
+                None,
+                None,
+                None
+            )
+            .is_ok()
+        );
     }
 
     #[test]
     fn custom_valid() {
-        assert!(v(RetryStrategy::Custom, 3, None, Some(&[10, 60, 300]), None, None).is_ok());
+        assert!(
+            v(
+                RetryStrategy::Custom,
+                3,
+                None,
+                Some(&[10, 60, 300]),
+                None,
+                None
+            )
+            .is_ok()
+        );
     }
 
     #[test]
@@ -649,12 +807,32 @@ mod tests {
 
     #[test]
     fn custom_rejects_linear_delay() {
-        assert!(v(RetryStrategy::Custom, 3, Some(60), Some(&[10, 20, 30]), None, None).is_err());
+        assert!(
+            v(
+                RetryStrategy::Custom,
+                3,
+                Some(60),
+                Some(&[10, 20, 30]),
+                None,
+                None
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn custom_rejects_increasing_fields() {
-        assert!(v(RetryStrategy::Custom, 3, None, Some(&[10, 20, 30]), Some(3), None).is_err());
+        assert!(
+            v(
+                RetryStrategy::Custom,
+                3,
+                None,
+                Some(&[10, 20, 30]),
+                Some(3),
+                None
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -664,7 +842,17 @@ mod tests {
 
     #[test]
     fn custom_rejects_interval_too_low() {
-        assert!(v(RetryStrategy::Custom, 3, None, Some(&[0, 60, 300]), None, None).is_err());
+        assert!(
+            v(
+                RetryStrategy::Custom,
+                3,
+                None,
+                Some(&[0, 60, 300]),
+                None,
+                None
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -675,7 +863,17 @@ mod tests {
 
     #[test]
     fn custom_accepts_max_interval() {
-        assert!(v(RetryStrategy::Custom, 1, None, Some(&[MAX_INTERVAL_SECS]), None, None).is_ok());
+        assert!(
+            v(
+                RetryStrategy::Custom,
+                1,
+                None,
+                Some(&[MAX_INTERVAL_SECS]),
+                None,
+                None
+            )
+            .is_ok()
+        );
     }
 
     #[test]

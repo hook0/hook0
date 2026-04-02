@@ -30,8 +30,8 @@ use uuid::Uuid;
 mod cloudflare_turnstile;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
-mod health_monitor;
 mod handlers;
+mod health_monitor;
 mod hook0_client;
 mod iam;
 mod mailer;
@@ -472,7 +472,6 @@ struct Config {
 
     // COUPLING: These thresholds are duplicated in frontend/src/components/Hook0HealthBadge.vue.
     // If you change these defaults, update the frontend constants too.
-
     /// [Housekeeping] Failure % threshold for warning email
     #[clap(long, env, default_value_t = 80)]
     health_monitor_warning_failure_percent: u8,
@@ -665,7 +664,8 @@ async fn main() -> anyhow::Result<()> {
 
     if config.enable_health_monitor {
         assert!(
-            config.health_monitor_warning_failure_percent < config.health_monitor_disable_failure_percent,
+            config.health_monitor_warning_failure_percent
+                < config.health_monitor_disable_failure_percent,
             "health_monitor_warning_failure_percent ({}) must be < health_monitor_disable_failure_percent ({})",
             config.health_monitor_warning_failure_percent,
             config.health_monitor_disable_failure_percent,
@@ -1504,22 +1504,25 @@ async fn main() -> anyhow::Result<()> {
                                         .route(web::put().to(handlers::subscriptions::edit))
                                         .route(web::delete().to(handlers::subscriptions::delete)),
                                 )
-                                .service(
-                                    web::resource("/{subscription_id}/health_events")
-                                        .route(web::get().to(handlers::subscription_health_events::list)),
-                                ),
+                                .service(web::resource("/{subscription_id}/health_events").route(
+                                    web::get().to(handlers::subscription_health_events::list),
+                                )),
                         )
                         .service(
                             web::scope("/retry_schedules")
                                 .wrap(Compat::new(rate_limiters.token()))
                                 .wrap(biscuit_auth.clone())
-                                .service(web::resource("")
-                                    .route(web::get().to(handlers::retry_schedules::list))
-                                    .route(web::post().to(handlers::retry_schedules::create)))
-                                .service(web::resource("/{retry_schedule_id}")
-                                    .route(web::get().to(handlers::retry_schedules::get))
-                                    .route(web::put().to(handlers::retry_schedules::edit))
-                                    .route(web::delete().to(handlers::retry_schedules::delete))),
+                                .service(
+                                    web::resource("")
+                                        .route(web::get().to(handlers::retry_schedules::list))
+                                        .route(web::post().to(handlers::retry_schedules::create)),
+                                )
+                                .service(
+                                    web::resource("/{retry_schedule_id}")
+                                        .route(web::get().to(handlers::retry_schedules::get))
+                                        .route(web::put().to(handlers::retry_schedules::edit))
+                                        .route(web::delete().to(handlers::retry_schedules::delete)),
+                                ),
                         )
                         .service(
                             web::scope("/request_attempts")

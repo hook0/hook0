@@ -264,7 +264,7 @@ pub async fn list(
             INNER JOIN targets ON subs.target__id = targets.target__id
         "#,
     )
-    .bind(&qs.application_id)
+    .bind(qs.application_id)
     .fetch_all(&state.db)
     .await
     .map_err(|e| {
@@ -409,8 +409,8 @@ pub async fn get(
             LIMIT 1
         "#,
     )
-    .bind(&application_id)
-    .bind(&subscription_id)
+    .bind(application_id)
+    .bind(subscription_id)
     .fetch_optional(&state.db)
     .await
     .map_err(|e| {
@@ -756,7 +756,7 @@ pub async fn edit(
         _ => Err(Hook0Problem::LabelsAmbiguity),
     }?;
 
-    let auth_token = authorize_for_application(
+    let _auth_token = authorize_for_application(
         &state.db,
         &biscuit,
         Action::SubscriptionEdit {
