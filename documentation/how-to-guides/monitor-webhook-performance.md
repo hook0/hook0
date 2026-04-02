@@ -1,7 +1,7 @@
 ---
-title: Track webhook delivery performance with Hook0's API
-description: "How to track delivery latency, check attempt logs, and set up alerts."
-keywords: [webhook, performance, monitoring, latency, alerts, Hook0]
+title: "Monitor webhook delivery — latency, failures, and alerts"
+description: "Hook0 logs every delivery attempt with status codes, latency, and retry count. Use the API to track p95 response times, spot failing endpoints, and trigger alerts before your users notice."
+keywords: [webhook monitoring, webhook delivery tracking, webhook latency, webhook alerts, webhook performance dashboard, delivery failure monitoring]
 ---
 
 # Monitor Webhook Performance

@@ -1,8 +1,45 @@
 ---
-title: "What is Hook0?"
-description: "Hook0 is an open-source webhook server you can self-host or use as a cloud service for reliable event delivery between distributed systems."
-keywords: [webhook, Hook0, open-source, webhooks as a service, event delivery]
+title: "What is Hook0? Open-source webhooks as a service"
+description: "Hook0 is an open-source webhook server you can self-host or run as a managed service. It handles retries, HMAC signatures, and delivery monitoring so you don't build that yourself."
+keywords: [what is Hook0, open source webhook server, webhooks as a service, free webhook platform, webhook infrastructure, self-hosted webhooks]
 ---
+
+import Head from '@docusaurus/Head';
+
+<Head>
+  <script type="application/ld+json">{`
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Hook0?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hook0 is an open-source webhook server. It receives events from your applications via a REST API and delivers them to configured HTTP endpoints, handling retries, HMAC signatures, and delivery monitoring."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Hook0 free to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 offers a free cloud tier (5,000 events/month) and is fully open-source, so you can self-host it at no cost using Docker Compose or Kubernetes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I self-host Hook0?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 supports deployment via Docker Compose or Kubernetes. The self-hosted version has the same features as the managed cloud service."
+          }
+        }
+      ]
+    }
+  `}</script>
+</Head>
 
 # What is Hook0?
 

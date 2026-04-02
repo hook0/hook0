@@ -1,6 +1,7 @@
 ---
-title: SDKs & client libraries
-description: Official Hook0 client libraries for multiple programming languages
+title: "Hook0 SDKs — JavaScript, Python, Rust"
+description: "Client libraries that wrap the Hook0 REST API. Each SDK handles auth and sends webhook events in under 10 lines of code. Available for JS/TS, Python, and Rust."
+keywords: [Hook0 SDK, webhook SDK, JavaScript webhook library, Python webhook client, Rust webhook SDK, webhook API client]
 ---
 
 # SDKs & client libraries

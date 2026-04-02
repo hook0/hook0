@@ -9,8 +9,8 @@
     "postinstall": "node scripts/optimize-images.js || true",
     "update:oss-friends": "curl https://formbricks.com/api/oss-friends > ./oss-friends.json",
     "serve": "npx nodemon -w ./data -w . -i dist/ -i src/ --ext .js,.json,.ejs --exec 'npm run build:dev && npx serve dist'",
-    "build:dev": "parcel build src/*.ejs --no-cache",
-    "build": "parcel build src/*.ejs --public-url=https://www.hook0.com && node scripts/fix-sitemap.js"
+    "build:dev": "parcel build 'src/*.ejs' --no-cache",
+    "build": "parcel build 'src/*.ejs' --public-url=https://www.hook0.com && node scripts/fix-sitemap.js"
   },
   "contributors": [
     "Francois-Guillaume Ribreau <npm@fgribreau.com> (http://fgribreau.com/)",
