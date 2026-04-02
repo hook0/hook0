@@ -762,6 +762,73 @@ async fn get_worker(name: String, conn: &PgPool) -> anyhow::Result<Worker> {
     }
 }
 
+/// Updates the aggregated delivery health counters for a subscription.
+///
+/// Called by both pg and pulsar workers after each attempt completes (success or failure).
+/// Uses an atomic UPSERT: INSERT on first delivery, UPDATE thereafter.
+/// The failure_percent is recomputed from the running counters.
+///
+/// Wrapped in a SAVEPOINT so that a failure here does not abort the parent
+/// delivery transaction (which would lose the attempt result).
+pub async fn record_delivery_health(
+    conn: &mut PgConnection,
+    subscription_id: Uuid,
+    is_failure: bool,
+) -> Result<(), sqlx::Error> {
+    let failed_increment: i32 = if is_failure { 1 } else { 0 };
+
+    // SAVEPOINT isolates this from the parent transaction — if the UPSERT fails
+    // (constraint violation, serialization error), we ROLLBACK TO SAVEPOINT and
+    // the parent transaction remains usable.
+    sqlx::query("SAVEPOINT health_upsert")
+        .execute(&mut *conn)
+        .await?;
+
+    let result = sqlx::query(
+        r#"
+        INSERT INTO webhook.subscription_health (subscription__id, total_count, failed_count, failure_percent, updated_at)
+        VALUES ($1, 1, $2, $2::float8 * 100.0, statement_timestamp())
+        ON CONFLICT (subscription__id) DO UPDATE SET
+            total_count = webhook.subscription_health.total_count + 1,
+            failed_count = webhook.subscription_health.failed_count + $2,
+            failure_percent = (webhook.subscription_health.failed_count + $2)::float8
+                            / (webhook.subscription_health.total_count + 1)::float8 * 100.0,
+            updated_at = statement_timestamp()
+        "#,
+    )
+    .bind(subscription_id)
+    .bind(failed_increment)
+    .execute(&mut *conn)
+    .await;
+
+    match result {
+        Ok(_) => {
+            sqlx::query("RELEASE SAVEPOINT health_upsert")
+                .execute(&mut *conn)
+                .await?;
+            Ok(())
+        }
+        Err(e) => {
+            // Roll back to savepoint so the parent transaction is not poisoned
+            let _ = sqlx::query("ROLLBACK TO SAVEPOINT health_upsert")
+                .execute(&mut *conn)
+                .await;
+            Err(e)
+        }
+    }
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct SubscriptionRetryInfo {
+    is_active: bool,
+    strategy: Option<String>,
+    max_retries: Option<i32>,
+    custom_intervals: Option<Vec<i32>>,
+    linear_delay: Option<i32>,
+    increasing_base_delay: Option<i32>,
+    increasing_wait_factor: Option<f64>,
+}
+
 async fn compute_next_retry(
     conn: &mut PgConnection,
     attempt: &RequestAttempt,
@@ -789,35 +856,38 @@ async fn compute_next_retry(
                 warn!(request_attempt_id = %attempt.request_attempt_id, "Invalid target ({msg}); continuing as normal");
             }
 
-            let sub = query!(
-                "
-                    SELECT true AS whatever
+            let sub = sqlx::query_as::<_, SubscriptionRetryInfo>(
+                r#"
+                    SELECT
+                        true AS is_active,
+                        rs.strategy,
+                        rs.max_retries,
+                        rs.custom_intervals,
+                        rs.linear_delay,
+                        rs.increasing_base_delay,
+                        rs.increasing_wait_factor
                     FROM webhook.subscription AS s
                     INNER JOIN event.application AS a ON a.application__id = s.application__id
+                    LEFT JOIN webhook.retry_schedule AS rs ON rs.retry_schedule__id = s.retry_schedule__id
                     WHERE s.subscription__id = $1
                         AND s.deleted_at IS NULL
                         AND s.is_enabled
                         AND a.deleted_at IS NULL
-                ",
-                attempt.subscription_id
+                "#,
             )
+            .bind(attempt.subscription_id)
             .fetch_optional(conn)
             .await?;
 
-            if sub.is_some() {
-                Ok(compute_next_retry_duration(
-                    max_retries,
-                    attempt.retry_count,
-                ))
-            } else {
-                // If the subscription was disabled or soft-deleted (or its application was deleted), we do not schedule a next attempt
-                Ok(None)
+            match sub {
+                Some(info) => Ok(compute_scheduled_retry_delay(&info, attempt.retry_count, max_retries)),
+                None => Ok(None),
             }
         }
     }
 }
 
-fn compute_next_retry_duration(max_retries: u8, retry_count: i16) -> Option<Duration> {
+fn compute_default_retry_delay(max_retries: u8, retry_count: i16) -> Option<Duration> {
     if retry_count < max_retries.into() {
         match retry_count {
             0 => Some(Duration::from_secs(3)),
@@ -839,7 +909,7 @@ fn evaluate_retry_policy(max_retries: u8, max_retry_window: Duration) -> (u8, Du
     let mut effective_retries = 0;
 
     for i in 0..max_retries {
-        match compute_next_retry_duration(max_retries, i.into()) {
+        match compute_default_retry_delay(max_retries, i.into()) {
             Some(d) => {
                 if cumulative + d > max_retry_window {
                     break;
@@ -873,10 +943,10 @@ mod tests {
     }
 
     #[test]
-    fn test_compute_next_retry_duration_exceeds_max() {
-        assert_eq!(compute_next_retry_duration(5, 5), None);
-        assert_eq!(compute_next_retry_duration(5, 6), None);
-        assert_eq!(compute_next_retry_duration(0, 0), None);
+    fn test_compute_default_retry_delay_exceeds_max() {
+        assert_eq!(compute_default_retry_delay(5, 5), None);
+        assert_eq!(compute_default_retry_delay(5, 6), None);
+        assert_eq!(compute_default_retry_delay(0, 0), None);
     }
 
     #[test]
