@@ -11,31 +11,7 @@ import { routes } from '@/routes';
 import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
 import Hook0DateFormatted from '@/components/Hook0DateFormatted.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-
-const dateFmt = new Intl.DateTimeFormat(undefined, {
-  month: 'short',
-  day: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-});
-
-function fmtDate(val: unknown): string {
-  if (!val || typeof val !== 'string') return '\u2014';
-  try {
-    return dateFmt.format(new Date(val));
-  } catch {
-    return String(val);
-  }
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const diff = new Date(dateStr).getTime() - Date.now();
-  if (diff <= 0) return '<1m';
-  const mins = Math.ceil(diff / 60000);
-  if (mins < 60) return `${mins}m`;
-  return `${Math.floor(mins / 60)}h${mins % 60}m`;
-}
+import { formatDate, formatRelativeTime } from '@/utils/formatDate';
 
 function statusLabel(row: RequestAttemptExtended, t: ReturnType<typeof useI18n>['t']): string {
   const httpCode = row.http_response_status;
@@ -55,7 +31,7 @@ function statusTooltip(row: RequestAttemptExtended, t: ReturnType<typeof useI18n
   const config = getStatusConfig(row.status.type);
   const retry = Number(row.retry_count ?? 0);
   const retryStr = retry > 0 ? t('logs.tooltipRetry', { count: retry }) : '';
-  const date = fmtDate(row[config.tooltipDateField]);
+  const date = formatDate(row[config.tooltipDateField]);
   return t(config.tooltipKey, { date, retry: retryStr });
 }
 

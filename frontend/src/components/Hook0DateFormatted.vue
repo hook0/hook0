@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import Hook0TooltipFullCopy from './Hook0TooltipFullCopy.vue';
+import { formatDate } from '@/utils/formatDate';
 
 type Props = {
   value: string | null;
@@ -11,19 +12,11 @@ const props = withDefaults(defineProps<Props>(), {
   defaultText: '—',
 });
 
-const dateFmt = new Intl.DateTimeFormat(undefined, {
-  day: 'numeric',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-});
-
 const formatted = computed(() => {
   if (!props.value) return null;
-  const date = new Date(props.value);
-  if (Number.isNaN(date.getTime())) return props.value;
-  return dateFmt.format(date);
+  const result = formatDate(props.value);
+  // formatDate returns "—" for invalid dates; treat that as unformatted
+  return result === '\u2014' ? props.value : result;
 });
 
 const isoValue = computed(() => {
