@@ -846,7 +846,10 @@ fn compute_scheduled_retry_delay(
 
     match info.strategy.as_deref() {
         Some("increasing") => {
-            let max = info.max_retries.unwrap_or(0);
+            let Some(max) = info.max_retries else {
+                tracing::warn!("Retry schedule has strategy 'increasing' but max_retries is NULL — skipping retry");
+                return None;
+            };
             if retry_count >= max as i16 {
                 return None;
             }
@@ -857,7 +860,10 @@ fn compute_scheduled_retry_delay(
             Some(delay.min(MAX_RETRY_DELAY))
         }
         Some("linear") => {
-            let max = info.max_retries.unwrap_or(0);
+            let Some(max) = info.max_retries else {
+                tracing::warn!("Retry schedule has strategy 'linear' but max_retries is NULL — skipping retry");
+                return None;
+            };
             if retry_count >= max as i16 {
                 return None;
             }
