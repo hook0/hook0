@@ -7,7 +7,7 @@
         <!-- Section Header -->
         <div class="section__header animate-on-scroll">
             <span class="section__eyebrow">Developer Experience</span>
-            <h2 class="section__title">API & Developer Resources</h2>
+            <h2 class="section__title">API & Docs</h2>
             <p class="section__description">
                 Built by open-source developers around the world for everyone to use
             </p>
@@ -17,11 +17,19 @@
             <!-- Left Column - Features -->
             <div class="animate-on-scroll animate-on-scroll--left">
                 <h3 class="text-heading-xl font-bold text-white">
-                    Built By Developers For Developers
+                    One API, Full Control
                 </h3>
                 <p class="mt-4 text-body-lg text-gray-400">
                     Hook0 is built by open-source developers around the world for everyone to use.
                 </p>
+
+                <!-- Developer Quick Links -->
+                <div class="mt-6 flex flex-wrap gap-2">
+                    <a href="<%= locals.meta.doc_api_reference %>" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all">API Reference</a>
+                    <a href="<%= locals.meta.doc_guides %>" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all">Guides</a>
+                    <a href="https://documentation.hook0.com/reference/mcp" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all">MCP Server</a>
+                    <a href="<%= locals.social.github.href %>" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all">SDKs</a>
+                </div>
 
                 <div class="mt-10 space-y-8">
                     <!-- Feature 1 -->
@@ -118,7 +126,6 @@
   -H <span class="text-yellow-300">"Content-Type: application/json"</span> \
   -d <span class="text-yellow-300">'{
     "application_id": "$APPLICATION_ID",
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
     "event_type": "order.completed",
     "payload": "{\"order_id\":\"12345\",\"amount\":99.99}",
     "payload_content_type": "application/json",

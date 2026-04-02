@@ -30,7 +30,7 @@ function goBack() {
       <Hook0Error404Background />
     </template>
 
-    <Hook0Card variant="glow">
+    <Hook0Card variant="glow" data-test="error-404-content">
       <Hook0CardContent>
         <Hook0EmptyState
           :title="t('error404.title')"
@@ -46,7 +46,7 @@ function goBack() {
               <Hook0Button
                 variant="primary"
                 size="lg"
-                data-test="error-404-dashboard-button"
+                data-test="error-404-home-button"
                 @click="goHome"
               >
                 <template #left>

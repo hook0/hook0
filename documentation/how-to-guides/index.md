@@ -24,7 +24,7 @@ Track webhook delivery metrics, set up alerts, and optimize performance.
 ## Integration & Migration
 
 ### [Multi-Tenant Architecture](multi-tenant-architecture.md)
-Implement multi-tenant webhook systems using Hook0's labels and subscriptions.
+Implement multi-tenant webhook systems using Hook0's [labels](/concepts/labels) and [subscriptions](/concepts/subscriptions).
 
 **When to use:** When building SaaS platforms that need tenant-isolated webhook delivery
 **Covers:** Label-based filtering, subscription management, tenant isolation patterns
@@ -34,7 +34,7 @@ Implement multi-tenant webhook systems using Hook0's labels and subscriptions.
 ## Security & Reliability
 
 ### [Managing Service Tokens](manage-service-tokens.md)
-Create, attenuate, and manage service tokens for API access.
+Create, attenuate, and manage [service tokens](/concepts/service-tokens) for API access.
 
 **When to use:** When setting up API access for automation, CI/CD, or AI assistants
 **Covers:** Token creation, token attenuation, least privilege, rotation, revocation

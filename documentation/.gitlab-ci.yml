@@ -16,7 +16,7 @@ documentation.build:
     - npm config set cache .npm --global
     - npm ci --prefer-offline --no-audit
   script:
-    - npm run build
+    - DOCUMENTATION_URL=https://documentation.hook0.com npm run build
   artifacts:
     paths:
       - documentation/build/

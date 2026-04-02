@@ -76,8 +76,8 @@ test.describe("Error 404 Page", () => {
     });
 
     // Click dashboard button
-    await expect(page.locator('[data-test="error-404-dashboard-button"]')).toBeVisible();
-    await page.locator('[data-test="error-404-dashboard-button"]').click();
+    await expect(page.locator('[data-test="error-404-home-button"]')).toBeVisible();
+    await page.locator('[data-test="error-404-home-button"]').click();
 
     // Verify redirect to home/dashboard
     await expect(page).toHaveURL(/\/$|\/dashboard|\/organizations|\/tutorial/, {

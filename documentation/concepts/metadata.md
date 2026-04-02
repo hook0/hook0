@@ -5,52 +5,60 @@ description: Attach arbitrary key-value data to Hook0 objects
 
 # Metadata
 
-Metadata is a mechanism to attach arbitrary key-value data to Hook0 objects like [events](events.md) and [subscriptions](subscriptions.md). It allows you to store custom information alongside your webhook data without affecting Hook0's core functionality.
+Metadata lets you attach arbitrary key-value data to [events](events.md) and [subscriptions](subscriptions.md). Hook0 stores it but does not act on it -- it's for your own use.
 
-## Key Points
+## Key points
 
 - Metadata can be attached to [events](events.md) and [subscriptions](subscriptions.md)
-- Hook0 stores but does not process metadata
-- Metadata is searchable via the Search API
-- Not visible to webhook consumers unless explicitly exposed
+- Hook0 stores it but does not process it
+- Searchable via the Search API
+- Not visible to webhook consumers unless you explicitly include it
 
-## Metadata vs Labels
+## Metadata vs labels
 
-A common question is when to use metadata versus [labels](labels.md). They serve different purposes:
+A common question: when should you use metadata instead of [labels](labels.md)?
 
+```mermaid
+flowchart LR
+    subgraph Labels
+        L1["Used for routing<br/>events to subs"]
+        L2["Affects delivery"]
+        L3["Required (min 1)"]
+    end
+
+    subgraph Metadata
+        M1["Not used for<br/>routing"]
+        M2["No effect on<br/>delivery"]
+        M3["Optional"]
+    end
+
+    classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    class Labels hook0
+    class Metadata external
+
+    click L1 "/concepts/labels" "Labels"
 ```
-+-------------------+     +-------------------+
-|     Labels        |     |    Metadata       |
-+-------------------+     +-------------------+
-| Used for routing  |     | Not used for      |
-| events to subs    |     | routing           |
-+-------------------+     +-------------------+
-| Affects delivery  |     | No effect on      |
-|                   |     | delivery          |
-+-------------------+     +-------------------+
-| Required (min 1)  |     | Optional          |
-+-------------------+     +-------------------+
-```
 
-Use **[labels](labels.md)** when you need to route [events](events.md) to specific [subscriptions](subscriptions.md).
-Use **metadata** when you need to store additional context for your own systems.
+Use [labels](labels.md) when you need to route [events](events.md) to specific [subscriptions](subscriptions.md).
+Use metadata when you need to store extra context for your own systems.
 
-## Common Use Cases
+## Common use cases
 
-- **Correlation IDs** - Link [events](events.md) to external systems
-- **User context** - Store the user ID who triggered the [event](events.md)
-- **Debug info** - Include request IDs or trace identifiers
-- **Business context** - Store domain-specific identifiers
+- Correlation IDs to link [events](events.md) to external systems
+- User context (the user ID who triggered the [event](events.md))
+- Debug info like request IDs or trace identifiers
+- Domain-specific identifiers
 
-## Description Field
+## Description field
 
-In addition to metadata, a separate `description` field exists for human-readable annotations. For example: "Customer onboarding webhook for Acme Corp".
+A separate `description` field exists for human-readable annotations. For example: "Customer onboarding webhook for Acme Corp".
 
 :::warning Security
 Don't store sensitive information (bank accounts, card details, passwords) in metadata or the description field.
 :::
 
-## What's Next?
+## What's next?
 
 - [Events](events.md) - Attach metadata to events
 - [Subscriptions](subscriptions.md) - Attach metadata to subscriptions

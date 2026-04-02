@@ -2,34 +2,44 @@
 sidebar_position: 6
 ---
 
-# Building a Stripe-Like Webhook System
+# Building a Stripe-like webhook system
 
-This comprehensive tutorial guides you through building a production-ready webhook system similar to Stripe's, using Hook0. You'll learn how to implement event types, webhook receivers with signature verification, multi-tenancy, and monitoring.
+This tutorial walks through building a production-grade webhook system similar to Stripe's, using Hook0. You will set up event types, a webhook receiver with signature verification, multi-tenancy, and monitoring.
 
 **Time**: 45 minutes
 **Level**: Intermediate
 **Prerequisites**: Docker, Node.js 18+, curl, basic webhook knowledge
 
-## What You'll Build
+## What you'll build
 
-A complete webhook infrastructure featuring:
-- Payment event types (`payment.charge.succeeded`, `payment.charge.failed`)
+A webhook system with:
+- Payment [event types](/concepts/event-types) (`payment.charge.succeeded`, `payment.charge.failed`)
 - Secure webhook receiver with signature verification
-- Multi-tenant event routing using labels
+- Multi-tenant event routing using [labels](/concepts/labels)
 - Webhook testing and debugging tools
 - Dashboard monitoring
 
 **Final architecture**:
-```
-Payment Service → Hook0 → Customer Webhook Endpoints
-                    ↓
-              (retries, signatures, monitoring)
+
+```mermaid
+flowchart LR
+    PS[Payment Service]:::external --> H0[Hook0]:::hook0
+    H0 --> C1[Customer Endpoint A]:::customer
+    H0 --> C2[Customer Endpoint B]:::customer
+    H0 -.- R[Retries, signatures, monitoring]:::processing
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
+    classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
+    classDef processing fill:#ede9fe,stroke:#a78bfa,color:#3b0764
+
+    click H0 "/explanation/what-is-hook0" "What is Hook0?"
+    click R "/explanation/webhook-retry-logic" "Retries and signatures"
 ```
 
-## Part 1: Environment Setup
+## Part 1: Environment setup
 
 ### Step 1.1: Start Hook0 with Docker Compose
-
 
 Clone and start Hook0:
 
@@ -48,9 +58,9 @@ curl http://localhost:8081/api/v1/swagger.json | head -1
 # Expected: {"openapi":"3.0.3"...
 ```
 
-### Step 1.2: Create Application and Get Token
+### Step 1.2: Create application and get token
 
-### Create Organization and Application via Dashboard
+### Create organization and application via dashboard
 
 1. **Access the Hook0 Dashboard** at http://localhost:8001 (self-hosted) or https://app.hook0.com (cloud)
 
@@ -70,7 +80,7 @@ curl http://localhost:8081/api/v1/swagger.json | head -1
 For self-hosted instances, check Mailpit at http://localhost:8025 to access verification emails after registration.
 :::
 
-### Set Up Environment Variables
+### Set up environment variables
 
 ```bash
 # Set your service token (from dashboard)
@@ -91,9 +101,9 @@ APP_ID=$APP_ID
 EOF
 ```
 
-## Part 2: Define Payment Event Types
+## Part 2: Define payment event types
 
-### Step 2.1: Create Event Types
+### Step 2.1: Create event types
 
 Create event types for payment lifecycle:
 
@@ -146,7 +156,7 @@ curl -X POST "$HOOK0_API/event_types" \
   }"
 ```
 
-### Step 2.2: Verify Event Types
+### Step 2.2: Verify event types
 
 ```bash
 # List all event types
@@ -183,9 +193,9 @@ Expected output:
 }
 ```
 
-## Part 3: Build Webhook Receiver
+## Part 3: Build webhook receiver
 
-### Step 3.1: Create Express.js Webhook Server
+### Step 3.1: Create Express.js webhook server
 
 Create `webhook-receiver/package.json`:
 
@@ -211,7 +221,7 @@ cd webhook-receiver
 npm install
 ```
 
-### Step 3.2: Implement Webhook Handler with Signature Verification
+### Step 3.2: Implement webhook handler with signature verification
 
 Create `webhook-receiver/server.js`:
 
@@ -277,11 +287,11 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.listen(3000, () => console.log('Webhook receiver on http://localhost:3000'));
 ```
 
-:::tip Signature Verification
-For detailed explanation of signature verification including timestamp validation and secret rotation, see [Implementing Webhook Authentication](./webhook-authentication.md).
+:::tip Signature verification
+For details on timestamp validation and secret rotation, see [Implementing Webhook Authentication](./webhook-authentication.md).
 :::
 
-### Step 3.3: Start Webhook Receiver
+### Step 3.3: Start the receiver
 
 ```bash
 # In webhook-receiver directory
@@ -301,9 +311,9 @@ Test health endpoint:
 curl http://localhost:3000/health
 ```
 
-## Part 4: Create Subscriptions
+## Part 4: Create subscriptions
 
-### Step 4.1: Create Subscription for ACME Corp
+### Step 4.1: Create subscription for ACME Corp
 
 ```bash
 # Load environment
@@ -347,7 +357,7 @@ echo "ACME Secret: $SUB_ACME_SECRET"
 `host.docker.internal` allows Docker containers to access host machine. For production, use public URLs.
 :::
 
-### Step 4.2: Update Webhook Receiver with Real Secret
+### Step 4.2: Update the receiver with the real secret
 
 Update `server.js` to use the real subscription secret:
 
@@ -365,7 +375,7 @@ cd webhook-receiver
 node server.js
 ```
 
-### Step 4.3: Create Subscription for Globex Inc
+### Step 4.3: Create subscription for Globex Inc
 
 ```bash
 source .env
@@ -401,9 +411,9 @@ echo "Globex Subscription ID: $SUB_GLOBEX_ID"
 echo "Globex Secret: $SUB_GLOBEX_SECRET"
 ```
 
-## Part 5: Send Test Events
+## Part 5: Send test events
 
-### Step 5.1: Send Payment Success Event (ACME Corp)
+### Step 5.1: Send payment success event (ACME Corp)
 
 ```bash
 source .env
@@ -439,7 +449,7 @@ curl -X POST "$HOOK0_API/event" \
 [req_xxx] Event processed successfully in 15ms
 ```
 
-### Step 5.2: Send Payment Failed Event (ACME Corp)
+### Step 5.2: Send payment failed event (ACME Corp)
 
 ```bash
 curl -X POST "$HOOK0_API/event" \
@@ -460,7 +470,7 @@ curl -X POST "$HOOK0_API/event" \
   }"
 ```
 
-### Step 5.3: Send Customer Created Event (Globex Inc)
+### Step 5.3: Send customer created event (Globex Inc)
 
 ```bash
 curl -X POST "$HOOK0_API/event" \
@@ -480,7 +490,7 @@ curl -X POST "$HOOK0_API/event" \
   }"
 ```
 
-### Step 5.4: Test Label Filtering
+### Step 5.4: Test label filtering
 
 Send event with wrong tenant label (should not trigger ACME subscription):
 
@@ -503,9 +513,9 @@ curl -X POST "$HOOK0_API/event" \
 
 No webhook should be triggered (no subscription matches label).
 
-## Part 6: Verify in Dashboard
+## Part 6: Verify in dashboard
 
-### Step 6.1: Check Event Delivery
+### Step 6.1: Check event delivery
 
 Query events via API:
 
@@ -516,7 +526,7 @@ curl "$HOOK0_API/events?application_id=$APP_ID&limit=10" \
   | jq '.[] | {event_id, event_type, labels, created_at}'
 ```
 
-### Step 6.2: Check Delivery Attempts
+### Step 6.2: Check delivery attempts
 
 ```bash
 # Get request attempts for subscription
@@ -542,7 +552,7 @@ Expected output:
 }
 ```
 
-### Step 6.3: Test Signature Verification Failure
+### Step 6.3: Test signature verification failure
 
 Temporarily break signature verification to see failure:
 
@@ -555,9 +565,9 @@ Temporarily break signature verification to see failure:
 
 Send event and observe 401 response in request attempts.
 
-## Part 7: Add Multi-Tenant Support
+## Part 7: Add multi-tenant support
 
-### Step 7.1: Create Test Script with Multiple Tenants
+### Step 7.1: Create test script with multiple tenants
 
 Create `test-events.js`:
 
@@ -648,7 +658,7 @@ npm install node-fetch
 node test-events.js
 ```
 
-### Step 7.2: Create Webhook Router (Advanced)
+### Step 7.2: Create webhook router (advanced)
 
 For production with many tenants, create a router:
 
@@ -714,9 +724,9 @@ app.listen(PORT, () => {
 
 ## Part 8: Troubleshooting
 
-### Common Issues
+### Common issues
 
-#### Events Not Delivered
+#### Events not delivered
 
 **Check subscription is enabled**:
 ```bash
@@ -738,11 +748,11 @@ curl "$HOOK0_API/subscriptions/$SUB_ACME_ID" \
   | jq '.labels'
 ```
 
-#### Signature Verification Failing
+#### Signature verification failing
 
 See [Debugging Failed Webhooks](../how-to-guides/debug-failed-webhooks.md#scenario-3-webhook-signature-verification-failures) for debugging signature issues.
 
-#### Webhook Endpoint Timeout
+#### Webhook endpoint timeout
 
 **Respond quickly**:
 ```javascript
@@ -771,22 +781,22 @@ curl "$HOOK0_API/subscriptions/$SUB_ACME_ID/request_attempts?limit=100" \
   | jq '.[] | select(.duration_ms > 1000) | {event_type, duration_ms}'
 ```
 
-## What You've Learned
+## What you've learned
 
-✅ Set up Hook0 with Docker Compose
-✅ Created payment event types (Stripe-like)
-✅ Built secure webhook receiver with signature verification
-✅ Implemented multi-tenant routing with labels
-✅ Created and tested subscriptions
-✅ Verified webhook deliveries
-✅ Debugged common issues
+- Set up Hook0 with Docker Compose
+- Created payment event types (Stripe-like)
+- Built a webhook receiver with signature verification
+- Routed events by tenant with labels
+- Created and tested subscriptions
+- Verified webhook deliveries
+- Debugged common issues
 
-## Next Steps
+## Next steps
 
-- **Advanced authentication**: [Security Model](../explanation/security-model.md)
-- **Monitoring**: [Monitor Webhook Performance](../how-to-guides/monitor-webhook-performance.md)
+- [Security Model](../explanation/security-model.md)
+- [Monitor Webhook Performance](../how-to-guides/monitor-webhook-performance.md)
 
-## Production Checklist
+## Production checklist
 
 Before going to production:
 

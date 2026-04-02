@@ -82,7 +82,7 @@ test.describe("Dashboards", () => {
     await page.goto(`/organizations/${env.organizationId}/applications/${applicationId}/dashboard`);
 
     // Verify application dashboard page renders
-    await expect(page.locator('[data-test="app-dashboard-page"]')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-test="application-dashboard"]')).toBeVisible({ timeout: 15000 });
 
     // Verify tutorial widget section is visible
     const tutorialWidget = page

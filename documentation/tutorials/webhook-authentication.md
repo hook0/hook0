@@ -1,6 +1,12 @@
+---
+title: Verify webhook signatures with HMAC
+description: "How to verify webhook payloads using HMAC signatures. Includes code examples."
+keywords: [webhook, authentication, HMAC, signature, verification, security]
+---
+
 # Implementing Webhook Authentication
 
-This tutorial covers various webhook authentication methods, from basic signature verification to advanced security patterns. You'll learn how to secure your webhook endpoints and verify webhook authenticity.
+This tutorial covers various webhook authentication methods, from basic signature verification to advanced security patterns. You'll learn how to secure your webhook endpoints and verify webhook authenticity using [application secrets](/concepts/application-secrets).
 
 ## Prerequisites
 
@@ -262,7 +268,7 @@ function verifyHook0Signature(payload, signature, headers, secret, toleranceSec 
 
 ## Step 4: Custom Header Authentication
 
-Add additional authentication headers to your subscriptions:
+Add additional authentication headers to your [subscriptions](/concepts/subscriptions):
 
 ### Create Subscription with Custom Headers
 
@@ -602,6 +608,7 @@ node test-auth.js
 
 - [Securing Webhook Endpoints](../how-to-guides/secure-webhook-endpoints.md)
 - [Debugging Failed Webhook Deliveries](../how-to-guides/debug-failed-webhooks.md)
+- [Webhook best practices](../how-to-guides/webhook-best-practices.md) - Payload design, idempotency, versioning, and more security patterns
 
 ## Troubleshooting
 

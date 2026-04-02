@@ -1,179 +1,142 @@
+---
+title: "What is Hook0?"
+description: "Hook0 is an open-source webhook server you can self-host or use as a cloud service for reliable event delivery between distributed systems."
+keywords: [webhook, Hook0, open-source, webhooks as a service, event delivery]
+---
+
 # What is Hook0?
 
-Hook0 is an open-source webhook server (Webhooks as a Service - WaaS) that solves the fundamental challenge of reliable event delivery between distributed systems. 
-It acts as a reliable intermediary that receives events from your applications and delivers them to configured webhook endpoints.
+Hook0 is an open-source webhook server (Webhooks as a Service). It receives events from your applications and delivers them to configured webhook endpoints, handling retries, signatures, and monitoring for you.
 
-## The Problem Hook0 Solves
+## The problem
 
-Modern applications need to communicate with external systems when events occur. Traditional approaches face several challenges:
+When your application needs to send webhooks, you end up building:
 
-- **Reliability**: What happens when the receiving system is down?
-- **Scalability**: How do you handle thousands of webhook deliveries?
-- **Observability**: How do you track and debug failed deliveries?
-- **Security**: How do you ensure webhook authenticity?
+- Retry logic for when the receiving system is down
+- Queue management for thousands of deliveries
+- Monitoring to track and debug failures
+- Signature generation for authenticity
 
-## Before vs After Hook0
+Hook0 handles all of that so you don't have to.
+
+## Before and after Hook0
 
 ### Without Hook0
+
+```mermaid
+flowchart TD
+    subgraph YourApp["Your Application"]
+        BL["Core Business Logic"]:::customer
+        WL["Webhook Logic<br/>(you maintain)<br/>- Retry logic &amp; backoff<br/>- Failure handling<br/>- Queue management<br/>- Monitoring &amp; logging<br/>- Security signatures<br/>- Dead letter queues"]:::customer
+        BL --> WL
+    end
+    WL --> CW["Customer Webhook<br/>Is it down?"]:::danger
+
+    classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
+    classDef danger fill:#fee2e2,stroke:#f87171,color:#7f1d1d
 ```
-+-------------------------------------------------------------+
-| Your Application                                            |
-|                                                             |
-| +--------------+    +-------------------------------------+ |
-| | Core Business|--->| Webhook Logic (you maintain)        | |
-| | Logic        |    |                                     | |
-| +--------------+    | - Retry logic & backoff             | |
-|                     | - Failure handling                  | |
-|                     | - Queue management                  | |
-|                     | - Monitoring & logging              | |
-|                     | - Security (signatures)             | |
-|                     | - Dead letter queues                | |
-|                     +------------------+------------------+ |
-|                                        |                    |
-+----------------------------------------|--------------------+
-                                         |
-                                         v
-                              +------------------+
-                              | Customer Webhook |
-                              | ❌ Is it down?   |
-                              +------------------+
 
 Problems:
-  ❌ Webhook code scattered across your application
-  ❌ No centralized visibility on delivery status
-  ❌ Complex retry/failure logic to maintain
-  ❌ Difficult to debug failed deliveries
-```
+- Webhook code scattered across your application
+- No centralized visibility on delivery status
+- Retry and failure logic you have to maintain yourself
+- Hard to debug failed deliveries
 
 ### With Hook0
-```
-+------------------+           +----------------------------------+
-| Your Application |           | Hook0                            |
-|                  |           |                                  |
-| +------------+   |  Simple   | +----------------------------+   |
-| | Business   |   |  HTTP     | | Event Processing           |   |
-| | Logic      |---|--POST---->| | - Validation               |   |
-| |            |   |           | | - Storage                  |   |
-| +------------+   |           | +-------------+--------------+   |
-|                  |           |               |                  |
-+------------------+           |               v                  |
-                               | +----------------------------+   |
-                               | | Webhook Delivery Engine    |   |
-                               | | - Automatic retries        |   |
-                               | | - Exponential backoff      |   |
-                               | | - Signature generation     |   |
-                               | | - Rate limiting            |   |
-                               | | - Dead letter queues       |   |
-                               | +-------------+--------------+   |
-                               |               |                  |
-                               |               v                  |
-                               | +----------------------------+   |
-                               | | Observability Dashboard    |   |
-                               | | - All delivery attempts    |   |
-                               | | - Failure analytics        |   |
-                               | | - Debug tools              |   |
-                               | +-------------+--------------+   |
-                               +---------------|------------------+
-                                               |
-                                               v
-                                    +------------------+
-                                    | Customer Webhook |
-                                    | ✅ Reliable      |
-                                    +------------------+
 
-Benefits:
-  ✅ Single API call to send events
-  ✅ Centralized dashboard for all deliveries
-  ✅ Production-ready retry logic out of the box
-  ✅ Complete visibility and debugging tools
+```mermaid
+flowchart TD
+    subgraph YourApp["Your Application"]
+        BL["Business Logic"]:::customer
+    end
+
+    subgraph H0["Hook0"]
+        EP["Event Processing<br/>- Validation<br/>- Storage"]:::hook0
+        WDE["Webhook Delivery Engine<br/>- Automatic retries<br/>- Fixed retry schedule<br/>- Signature generation<br/>- Rate limiting<br/>- Dead letter queues"]:::hook0
+        OD["Observability Dashboard<br/>- All delivery attempts<br/>- Failure analytics<br/>- Debug tools"]:::hook0
+        EP --> WDE --> OD
+    end
+
+    BL -- "Simple HTTP POST" --> EP
+    OD --> CW["Customer Webhook<br/>Reliable"]:::external
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
+    classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
+
+    click EP "/explanation/event-processing" "Event Processing"
+    click WDE "/explanation/webhook-retry-logic" "Retry Logic"
+    click CW "/concepts/subscriptions" "Subscriptions"
 ```
 
-## How Hook0 Works
+What changes:
+- One API call to send events
+- One dashboard for all deliveries
+- Retry logic works out of the box
+- Full visibility and debugging tools
 
-Hook0 implements a producer-consumer pattern:
+## How Hook0 works
 
-1. **Event Ingestion**: Your application sends events to Hook0 via REST API
-2. **Event Processing**: Hook0 validates and stores events
-3. **Webhook Delivery**: Hook0 delivers events to configured webhook endpoints
-4. **Retry Logic**: Failed deliveries are automatically retried with exponential backoff
-5. **Monitoring**: All attempts are logged and can be monitored
+1. Your application sends events to Hook0 via REST API
+2. Hook0 validates and stores events
+3. Hook0 delivers events to configured webhook endpoints
+4. Failed deliveries are retried on a fixed schedule (3s, 10s, 3min, 30min, 1h, 3h, 5h, 10h)
+5. All attempts are logged and viewable in the dashboard
 
-## Core Concepts
+## Core concepts
 
-### Organizations
-Organizations are the top-level entity that groups users and applications together. They provide isolation and access control.
+### [Organizations](/concepts/organizations)
+The top-level entity. Organizations group users and applications together, providing isolation and access control.
 
-### Applications
+### [Applications](/concepts/applications)
 Applications represent your services or products within an organization. Each application can define event types and have multiple subscriptions.
 
-### Event Types
-Event types define the structure and metadata of events your application can emit. Examples:
+### [Event types](/concepts/event-types)
+Event types define what events your application can emit. Examples:
 - `user.account.created`
 - `payment.transaction.completed`
 - `order.shipment.shipped`
 
-### Events
-Events are specific occurrences of an event type, containing:
+### [Events](/concepts/events)
+An event is a specific occurrence of an event type, containing:
 - Event type identifier
 - Payload data
 - Metadata
 - Timestamp
 
-### Subscriptions
-Subscriptions define where and how webhook notifications should be delivered:
+### [Subscriptions](/concepts/subscriptions)
+A subscription defines where and how webhook notifications get delivered:
 - Target webhook URL
 - Which event types to receive
 - Authentication headers
 - Retry configuration
 
-### Request Attempts
-Hook0 tracks every delivery attempt, including:
+### [Request attempts](/concepts/request-attempts)
+Hook0 tracks every delivery attempt:
 - Response status codes
 - Response bodies
 - Timestamps
 - Retry attempts
 
-## Why Choose Hook0?
+## Why Hook0?
 
-### Open Source, Self-Hostable or Cloud version
-- Full control over your infrastructure
-- No vendor lock-in
-- Server Side Public License (SSPL) v1
-- Cloud version available at [hook0.com](https://www.hook0.com/)
+- Open source (SSPL v1), self-hostable, or use the [cloud version](https://www.hook0.com/)
+- Written in Rust, scales horizontally
+- RESTful API with SDKs (Rust, TypeScript)
+- Automatic retries, dead letter queues, rate limiting
+- Full delivery visibility in the dashboard
 
-### Built for Scale
-- Rust-based architecture for performance
-- Horizontal scaling support
-- Efficient retry mechanisms
+## Use cases
 
-### Developer-Friendly
-- RESTful API
-- Comprehensive SDKs (Rust, TypeScript)
-- Rich observability features
+- SaaS integration: let customers receive webhook notifications from your platform
+- Microservices: decouple services with async webhook delivery
+- Audit and compliance: track all events and their delivery status
+- Third-party integrations: connect to Slack, Discord, or any HTTP endpoint
 
-### Production-Ready
-- Automatic retries with exponential backoff
-- Dead letter queues
-- Rate limiting
-- Security best practices
-
-## Use Cases
-
-### SaaS Integration
-Enable customers to receive real-time notifications about events in your platform.
-
-### Microservices Communication
-Decouple services by using webhooks for async communication.
-
-### Audit & Compliance
-Track all events and their delivery status for compliance requirements.
-
-### Third-Party Integrations
-Connect your application to external services like Slack, Discord, or custom systems.
-
-
-## Next Steps
+## Next steps
 
 - [Getting Started Tutorial](../tutorials/getting-started.md)
 - [System Architecture](./hook0-architecture.md) - Detailed technical architecture
 - [API Reference](../openapi/intro)
+- [Webhook best practices](../how-to-guides/webhook-best-practices.md) - Production patterns for sending and receiving webhooks
+- [How Hook0 compares](../comparisons/) - Side-by-side comparison with Svix, Hookdeck, and other providers

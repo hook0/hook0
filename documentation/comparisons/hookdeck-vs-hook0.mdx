@@ -1,0 +1,134 @@
+---
+title: "Hookdeck vs Hook0: Inbound Proxy vs Outbound Webhook Server"
+description: "Hookdeck is an inbound webhook proxy. Hook0 is an outbound webhook server. Compare features, architecture, pricing, and when to use each."
+keywords: [Hookdeck vs Hook0, webhook proxy, inbound webhooks, outbound webhooks, webhook comparison]
+---
+
+import Head from '@docusaurus/Head';
+
+<Head>
+  <script type="application/ld+json">
+    {JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "Hookdeck vs Hook0: Inbound Proxy vs Outbound Webhook Server",
+      "description": "Compare Hookdeck and Hook0 -- inbound webhook proxy vs outbound webhook server",
+      "url": "https://documentation.hook0.com/comparisons/hookdeck-vs-hook0",
+      "publisher": {"@type": "Organization", "name": "Hook0", "url": "https://www.hook0.com"}
+    })}
+  </script>
+</Head>
+
+# Hookdeck vs Hook0
+
+This is not an apples-to-apples comparison. [Hookdeck](https://hookdeck.com/) and Hook0 solve different problems.
+
+Hookdeck is an inbound webhook proxy. It sits between third-party services (Stripe, GitHub, Shopify) and your application. It retries, deduplicates, and routes incoming webhooks.
+
+Hook0 is an outbound webhook server. It sends webhooks from your application to your customers' endpoints, with retry logic, signatures, and delivery tracking.
+
+Many teams use both: Hook0 for sending, Hookdeck for receiving.
+
+## Inbound vs outbound
+
+```mermaid
+flowchart LR
+    subgraph Inbound["INBOUND (Hookdeck's focus)"]
+        direction LR
+        S[Stripe]:::external --> HD1[Hookdeck]:::processing
+        GH[GitHub]:::external --> HD1
+        HD1 --> APP1[Your App]:::hook0
+    end
+
+    subgraph Outbound["OUTBOUND (Hook0's focus)"]
+        direction LR
+        APP2[Your App]:::hook0 --> H0[Hook0]:::hook0
+        H0 --> CEA[Customer Endpoint A]:::customer
+        H0 --> CEB[Customer Endpoint B]:::customer
+    end
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
+    classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
+    classDef processing fill:#ede9fe,stroke:#a78bfa,color:#3b0764
+
+    click H0 "/explanation/what-is-hook0" "What is Hook0?"
+    click CEA "/concepts/subscriptions" "Subscriptions"
+    click CEB "/concepts/subscriptions" "Subscriptions"
+```
+
+**Legend:** ✅ = Full support | ⚠️ = Partial support | ❌ = Not available
+
+## Feature comparison
+
+| Feature | Hookdeck | Hook0 |
+|---------|----------|-------|
+| **SaaS** | ✅ | ✅ |
+| **Self-hosting** | ❌ | ✅ Full feature parity |
+| **Open-Source** | ❌ Proprietary | ✅ SSPL-1.0 |
+| **Inbound webhook proxy** | ✅ Core focus | ❌ |
+| **Outbound webhook delivery** | ⚠️ Secondary | ✅ Core focus |
+| **HMAC signature verification** | ✅ Verify incoming | ✅ Sign outgoing |
+| **Automatic retries** | ✅ | ✅ Fixed schedule + jitter |
+| **Dead letter queue** | ✅ | ✅ |
+| **Request transformation** | ✅ | ❌ |
+| **Webhook deduplication** | ✅ | ✅ Via event IDs |
+| **Event type hierarchy** | ❌ | ✅ Dot-notation |
+| **Multi-tenant filtering** | ❌ | ✅ Label-based |
+| **Custom retry schedules** | ✅ | ✅ |
+| **Delivery logs & replay** | ✅ | ✅ |
+| **REST API** | ✅ | ✅ |
+| **Local development tunnel** | ✅ CLI tool | ❌ |
+| **Self-funded** | ❌ $5.5M raised | ✅ Fully self-funded |
+
+*Funding data last verified: January 2025*
+
+## Pick Hookdeck if
+
+- You're receiving webhooks from third-party services (Stripe, GitHub, Twilio, etc.)
+- You need to transform incoming webhook payloads before they hit your application
+- You want a local development tunnel for testing webhooks locally
+- You need to fan out a single incoming webhook to multiple internal services
+
+## Pick Hook0 if
+
+- You're sending webhooks to your customers (you're the SaaS platform)
+- You need multi-tenant webhook routing (different customers get different events)
+- You want to self-host your webhook infrastructure
+- You need event type hierarchies and label-based filtering
+- You want open-source with no vendor lock-in
+
+## Use both
+
+If you're a SaaS platform that both receives webhooks from providers (payment events from Stripe, code events from GitHub) and sends webhooks to your own customers, use Hookdeck for inbound and Hook0 for outbound:
+
+```mermaid
+flowchart LR
+    S[Stripe]:::external --> HD[Hookdeck]:::processing
+    GH[GitHub]:::external --> HD
+    HD --> APP[Your App]:::hook0
+    APP --> H0[Hook0]:::hook0
+    H0 --> CA[Customer A]:::customer
+    H0 --> CB[Customer B]:::customer
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
+    classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
+    classDef processing fill:#ede9fe,stroke:#a78bfa,color:#3b0764
+
+    click H0 "/explanation/what-is-hook0" "What is Hook0?"
+    click CA "/concepts/subscriptions" "Subscriptions"
+    click CB "/concepts/subscriptions" "Subscriptions"
+```
+
+## Pricing
+
+Hookdeck charges per request. At high volume, costs scale linearly with webhook traffic.
+
+Hook0 offers both cloud pricing (per event) and self-hosting (free, you pay for infrastructure). If you process millions of events monthly, self-hosting Hook0 eliminates per-message costs entirely.
+
+## Further reading
+
+- [All webhook service comparisons](/comparisons) -- full feature matrix across providers
+- [Getting started with Hook0](/tutorials/getting-started) -- send your first webhook in 10 minutes
+- [Webhook best practices](/how-to-guides/webhook-best-practices) -- patterns for sending and receiving webhooks

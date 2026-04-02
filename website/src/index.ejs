@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Hook0 - Open-Source Webhooks-as-a-Service (WaaS)</title>
+    <title>Hook0 — Open-Source Webhook Platform | Webhooks as a Service</title>
     <%
-    locals.pageTitle = 'Hook0 - Open-Source Webhooks-as-a-Service (WaaS)';
-    locals.pageDescription = 'Hook0 is an open-source Webhooks-as-a-Service platform. Send webhooks with one API call. We handle deliverability, retries, security, and monitoring. Free plan available.';
+    locals.pageTitle = 'Hook0 — Open-Source Webhook Platform | Webhooks as a Service';
+    locals.pageDescription = 'Free, open-source webhook platform. Send webhooks with one API call — we handle retries, signatures, and monitoring. No credit card required.';
     locals.pageCanonical = '/';
     %>
     <%- include('./includes/_head.ejs') %>
@@ -61,8 +61,8 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                         </svg>
                     </a>
-                    <a href="<%= locals.meta.doc_getstarted %>" class="btn btn--secondary btn--lg whitespace-nowrap" onclick="trackEvent('CTA', 'Click', 'hero-documentation')">
-                        Documentation
+                    <a href="https://documentation.hook0.com/tutorials/getting-started" class="btn btn--secondary btn--lg whitespace-nowrap" onclick="trackEvent('CTA', 'Click', 'hero-quick-start')">
+                        Quick Start Guide
                     </a>
                 </div>
 
@@ -140,6 +140,7 @@
 
 <a name="how-it-works"></a>
 
+<%- include('./includes/_how-it-works') %>
 
 <%- include('./includes/_features.ejs') %>
 

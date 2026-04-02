@@ -1,6 +1,6 @@
-# Managing Service Tokens
+# Managing service tokens
 
-This guide covers creating and managing Hook0 service tokens for API access, including how to use token attenuation to follow the principle of least privilege.
+This guide covers creating and managing Hook0 service tokens for API access, including token attenuation for least-privilege access.
 
 ## Quick Start (2 minutes)
 
@@ -12,34 +12,34 @@ This guide covers creating and managing Hook0 service tokens for API access, inc
 
 For production environments, see [Token Attenuation](#token-attenuation) below.
 
-## What is a Service Token?
+## What is a service token?
 
-A service token is a credential that authenticates API requests to Hook0 on behalf of your organization. Unlike user credentials, service tokens:
+A [service token](/concepts/service-tokens) authenticates API requests to Hook0 on behalf of your [organization](/concepts/organizations). Unlike user credentials, service tokens:
 
 - Don't require interactive login
 - Can be used in automated systems (CI/CD, scripts, AI assistants)
 - Have organization-wide scope by default
 - Can be restricted through attenuation
 
-## Creating a Service Token
+## Creating a service token
 
-### Step 1: Access the Service Tokens Page
+### Step 1: Access the service tokens page
 
 1. Log in to the Hook0 dashboard
 2. Select your organization from the dropdown
 3. Navigate to **Service Tokens** in the left sidebar
 
-### Step 2: Create the Token
+### Step 2: Create the token
 
 1. Click **Create Service Token**
 2. Enter a descriptive name (e.g., "Production API", "Claude MCP", "CI Pipeline")
 3. Click **Create**
 
-:::warning Save Your Token
-The full token is only shown **once**. Copy it immediately and store it securely. If you lose it, you'll need to create a new one.
+:::warning Save your token
+The full token is only shown once. Copy it immediately and store it securely. If you lose it, you'll need to create a new one.
 :::
 
-### Step 3: Configure Your Environment
+### Step 3: Configure your environment
 
 Set the token as an environment variable:
 
@@ -51,45 +51,37 @@ Or use it in your application configuration.
 
 ---
 
-## Token Attenuation
+## Token attenuation
 
-### What is Token Attenuation?
+### What is token attenuation?
 
-Token attenuation is a security feature that lets you create **restricted versions** of your service token. Think of it like giving someone a copy of your house key that only opens the front door, not the entire house.
+Token attenuation lets you create restricted versions of your service token. Like giving someone a house key that only opens the front door.
 
-```
-+-------------------------------------------------------------------+
-|                      Root Service Token                            |
-|                    (Full organization access)                      |
-+-------------------------------------------------------------------+
-                              |
-            +-----------------+-----------------+
-            |                 |                 |
-            v                 v                 v
-+-------------------+ +-------------------+ +-------------------+
-|  Attenuated #1    | |  Attenuated #2    | |  Attenuated #3    |
-|  App: Order Svc   | |  App: User Events | |  All apps         |
-|  Expires: 30 days | |  Expires: never   | |  Expires: 1 hour  |
-+-------------------+ +-------------------+ +-------------------+
+```mermaid
+flowchart TD
+    Root["Root Service Token<br/>(Full organization access)"]:::processing
+    Root --> A1["Attenuated #1<br/>App: Order Svc<br/>Expires: 30 days"]:::external
+    Root --> A2["Attenuated #2<br/>App: User Events<br/>Expires: never"]:::external
+    Root --> A3["Attenuated #3<br/>All apps<br/>Expires: 1 hour"]:::external
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef processing fill:#ede9fe,stroke:#a78bfa,color:#3b0764
+
+    click Root "/concepts/service-tokens" "Service Tokens"
 ```
 
-### Why Does This Matter?
+### Why this matters
 
-Without attenuation, a service token gives **full access** to your entire organization:
+Without attenuation, a service token gives full access to your entire organization: all applications, all subscriptions, all events, forever.
 
-- All applications
-- All subscriptions
-- All events
-- Forever (no expiration)
+The risks:
 
-This is risky because:
+- If the token leaks, attackers have full access to your webhook infrastructure
+- AI assistants see more data than they need
+- No way to limit access per use case or team member
+- Forgotten tokens stay valid indefinitely
 
-- **If the token leaks**, attackers have complete access to your webhook infrastructure
-- **AI assistants see more data than necessary** for their specific task
-- **No way to limit access** for specific use cases or team members
-- **No automatic expiration** means forgotten tokens remain valid indefinitely
-
-### How It Works
+### How it works
 
 Hook0 uses [Biscuit tokens](https://www.biscuitsec.org/), a cryptographic token format that supports **offline attenuation**. This means:
 
@@ -105,7 +97,7 @@ When you attenuate a token, you're essentially adding rules like:
 
 These rules are embedded in the token itself and verified by Hook0's API on every request.
 
-### How to Attenuate Your Token
+### How to attenuate your token
 
 1. Go to **Service Tokens** in the Hook0 dashboard
 2. Click **Show** on your token
@@ -119,9 +111,9 @@ These rules are embedded in the token itself and verified by Hook0's API on ever
 If you revoke the **root token**, all tokens derived from it are automatically invalidated. This gives you a single kill switch for all related tokens.
 :::
 
-### Attenuation Use Cases
+### Attenuation use cases
 
-| Use Case | Recommended Attenuation |
+| Use case | Recommended attenuation |
 |----------|------------------------|
 | AI Assistant (Claude, Cursor) | Single app + 30-day expiration |
 | CI/CD Pipeline | Single app + no expiration |
@@ -131,9 +123,63 @@ If you revoke the **root token**, all tokens derived from it are automatically i
 
 ---
 
-## Best Practices
+## Create a read-only service token
 
-### 1. Use Separate Tokens per Environment
+A read-only token can only list and retrieve resources -- it cannot create, edit, delete, or ingest anything. This is useful for monitoring dashboards, AI assistants in observation mode (see [MCP read-only mode](../reference/mcp.md#read-only-mode)), or giving third parties visibility into your webhook infrastructure without any write risk.
+
+### Step-by-step
+
+1. Go to **Organization** → **Service Tokens**
+2. Create a new root service token (or use an existing one)
+3. Click **Show** on the token, then scroll to **Attenuate your token**
+4. Switch to **Advanced** configuration mode
+5. *(Optional)* Restrict to a specific application
+6. *(Optional)* Set an expiration date
+7. In **Custom Datalog claims**, paste:
+
+```
+check if action($a), ["organization:list", "organization:get", "application:list", "application:get", "event_type:list", "event_type:get", "subscription:list", "subscription:get", "event:list", "event:get", "request_attempt:list", "response:get", "events_per_day:application", "events_per_day:organization"].contains($a)
+```
+
+8. Click **Generate Attenuated Token**
+9. Copy the raw (base64-encoded) token for API calls
+
+### How it works
+
+The Datalog `check if` claim acts as an allowlist: it tells Hook0 "only authorize this token if the requested action is one of these". Any action not in the list -- like `event:ingest`, `subscription:create`, or `service_token:delete` -- is rejected with a 403.
+
+This works because Hook0 service tokens are [Biscuit tokens](https://www.biscuitsec.org/), and Biscuit supports offline attenuation: you add restrictions to a token without needing Hook0's server. Restrictions can only be added, never removed.
+
+### Things to know
+
+- **Attenuated tokens are not stored by Hook0.** Only root tokens are persisted. If you lose the attenuated token, generate a new one from the root.
+- **Revoking the root token revokes all attenuated tokens** derived from it. There is no way to revoke a single attenuated token independently.
+- **Create one root token per use case.** This way you can revoke the "monitoring" root without affecting the "CI pipeline" root.
+- **The claim deliberately excludes `service_token:*` and `application_secret:*` actions** to prevent a read-only token from managing authentication credentials.
+- **You can customize the actions list.** Remove actions you don't need, or add write actions if you want a "read + ingest only" token, for example.
+
+### Full list of action names
+
+These are the action names recognized by the Hook0 API, as defined in [`api/src/iam.rs`](https://github.com/hook0/hook0/blob/master/api/src/iam.rs):
+
+| Resource | Actions |
+|----------|---------|
+| Organization | `organization:list`, `organization:get`, `organization:create`, `organization:edit`, `organization:delete`, `organization:invite`, `organization:revoke`, `organization:edit_role` |
+| Service Token | `service_token:list`, `service_token:get`, `service_token:create`, `service_token:edit`, `service_token:delete` |
+| Application | `application:list`, `application:get`, `application:create`, `application:edit`, `application:delete` |
+| Application Secret | `application_secret:list`, `application_secret:create`, `application_secret:edit`, `application_secret:delete` |
+| Event Type | `event_type:list`, `event_type:get`, `event_type:create`, `event_type:delete` |
+| Subscription | `subscription:list`, `subscription:get`, `subscription:create`, `subscription:edit`, `subscription:delete` |
+| Event | `event:list`, `event:get`, `event:ingest`, `event:replay` |
+| Request Attempt | `request_attempt:list` |
+| Response | `response:get` |
+| Analytics | `events_per_day:application`, `events_per_day:organization` |
+
+---
+
+## Best practices
+
+### 1. Use separate tokens per environment
 
 Create different tokens for development, staging, and production:
 
@@ -148,7 +194,7 @@ export HOOK0_API_TOKEN="staging-token-attenuated-to-staging-app"
 export HOOK0_API_TOKEN="prod-token-attenuated-to-prod-app"
 ```
 
-### 2. Always Attenuate for Third-Party Tools
+### 2. Always attenuate for third-party tools
 
 When using tokens with AI assistants or external services:
 
@@ -156,14 +202,14 @@ When using tokens with AI assistants or external services:
 2. Set an expiration date
 3. Store the token securely in the tool's configuration
 
-### 3. Use Descriptive Names
+### 3. Use descriptive names
 
 Name tokens clearly to identify their purpose:
 
 - Good: "Claude MCP - Order Service - Expires 2024-06"
 - Bad: "Token 1"
 
-### 4. Rotate Tokens Regularly
+### 4. Rotate tokens regularly
 
 For sensitive environments:
 
@@ -174,7 +220,7 @@ For sensitive environments:
 
 ---
 
-## Revoking Tokens
+## Revoking tokens
 
 To revoke a service token:
 
@@ -183,8 +229,8 @@ To revoke a service token:
 3. Click the **Delete** button
 4. Confirm the deletion
 
-:::danger Revocation is Immediate
-Once revoked, the token and all its attenuated derivatives immediately stop working. Ensure your applications are updated before revoking.
+:::danger Revocation is immediate
+Once revoked, the token and all its attenuated derivatives stop working immediately. Update your applications before revoking.
 :::
 
 ---
@@ -219,7 +265,7 @@ Once revoked, the token and all its attenuated derivatives immediately stop work
 1. Check which application the token is attenuated to
 2. Create a new attenuated token with correct scope
 
-### Token Not Appearing in Dashboard
+### Token not appearing in dashboard
 
 Service tokens belong to organizations, not users. Ensure you:
 
@@ -228,8 +274,8 @@ Service tokens belong to organizations, not users. Ensure you:
 
 ---
 
-## Related Resources
+## Related resources
 
-- **[API Reference](../openapi/intro)** - Complete API documentation
-- **[MCP Server for AI Assistants](../reference/mcp.md)** - Using tokens with AI assistants
-- **[Configuration Reference](../reference/configuration.md)** - Environment variable setup
+- [API Reference](../openapi/intro) - API documentation
+- [MCP Server for AI Assistants](../reference/mcp.md) - Using tokens with AI assistants
+- [Configuration Reference](../reference/configuration.md) - Environment variable setup

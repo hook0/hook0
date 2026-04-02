@@ -8,7 +8,7 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-hook0-client = "0.2"
+hook0-client = "1"
 ```
 
 ## Quick Start
@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         metadata: None,
         occurred_at: None,
         labels: vec![
-            ("environment".to_string(), serde_json::json!("production")),
+            ("environment".to_string(), "production".to_string()),
         ],
     };
 
@@ -63,7 +63,7 @@ fn verify_incoming_webhook(
     signature_header: &str,
     body: &[u8],
     headers: &[(&str, &str)],
-    secret: &str,
+    subscription_secret: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // 5 minutes tolerance for timestamp validation
     let tolerance = Duration::from_secs(300);
@@ -72,7 +72,7 @@ fn verify_incoming_webhook(
         signature_header,
         body,
         headers,
-        secret,
+        subscription_secret,
         tolerance,
     )?;
 
@@ -87,7 +87,7 @@ The SDK supports optional features that can be enabled in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-hook0-client = { version = "0.2", features = ["producer", "consumer"] }
+hook0-client = { version = "1", features = ["producer", "consumer"] }
 ```
 
 ### Available Features
@@ -99,14 +99,14 @@ hook0-client = { version = "0.2", features = ["producer", "consumer"] }
 
 ```toml
 [dependencies]
-hook0-client = { version = "0.2", default-features = false, features = ["producer"] }
+hook0-client = { version = "1", default-features = false, features = ["producer"] }
 ```
 
 ### Minimal Consumer-Only Installation
 
 ```toml
 [dependencies]
-hook0-client = { version = "0.2", default-features = false, features = ["consumer"] }
+hook0-client = { version = "1", default-features = false, features = ["consumer"] }
 ```
 
 ## Configuration
@@ -149,74 +149,60 @@ The SDK provides built-in webhook signature verification:
 ### Example: Actix-web Integration
 
 ```rust
-use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Error};
-use hook0_client::verify_webhook_signature;
+use actix_web::{web, App, HttpRequest, HttpServer, Responder};
+use hook0_client::{verify_webhook_signature, Hook0ClientError};
 use std::time::Duration;
 
-// Configuration loaded at startup
-struct Config {
-    webhook_secret: String,
-}
-
-impl Config {
-    fn from_env() -> Result<Self, String> {
-        let webhook_secret = std::env::var("WEBHOOK_SECRET")
-            .map_err(|_| "WEBHOOK_SECRET environment variable not set")?;
-        Ok(Self { webhook_secret })
-    }
-}
-
-async fn webhook_handler(
+async fn handle_webhook(
+    subscription_secret: web::Data<String>,
     req: HttpRequest,
     body: web::Bytes,
-    config: web::Data<Config>,
-) -> Result<HttpResponse, Error> {
-    let signature = req
-        .headers()
-        .get("X-Hook0-Signature")
-        .and_then(|h| h.to_str().ok())
-        .ok_or_else(|| actix_web::error::ErrorUnauthorized("Missing signature"))?;
+) -> impl Responder {
+    let signature = req.headers().get("X-Hook0-Signature");
 
-    // Extract headers as tuples
-    let headers: Vec<(&str, &str)> = req
-        .headers()
-        .iter()
-        .filter_map(|(k, v)| {
-            Some((k.as_str(), v.to_str().ok()?))
-        })
-        .collect();
+    if let Some(signature) = signature {
+        let signature: &str = signature.to_str().unwrap();
+        let tolerance = Duration::from_secs(300);
 
-    // Verify signature with 5 minute tolerance
-    verify_webhook_signature(
-        signature,
-        &body,
-        &headers,
-        &config.webhook_secret,
-        Duration::from_secs(300),
-    )
-    .map_err(|_| actix_web::error::ErrorUnauthorized("Invalid signature"))?;
+        // Collect headers as a Vec of tuples for the verification function
+        match verify_webhook_signature(
+            signature,
+            &body,
+            &req.headers().iter().collect::<Vec<_>>(),
+            subscription_secret.into_inner().as_str(),
+            tolerance,
+        ) {
+            Ok(_) => println!("Signature verification successful!"),
+            Err(Hook0ClientError::InvalidSignature) => {
+                println!("Signature verification failed: Invalid signature.")
+            }
+            Err(Hook0ClientError::ExpiredWebhook {
+                signed_at,
+                tolerance,
+                current_time,
+            }) => {
+                println!(
+                    "Signature verification failed: expired (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})"
+                )
+            }
+            Err(e) => {
+                println!("Signature verification failed: {e}")
+            }
+        }
+    }
 
-    let payload: serde_json::Value = serde_json::from_slice(&body)?;
-    println!("Webhook received: {:?}", payload);
-
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "status": "processed"
-    })))
+    "Ok"
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // Load and validate config at startup - exits gracefully if missing
-    let config = Config::from_env().unwrap_or_else(|e| {
-        eprintln!("Configuration error: {}", e);
-        std::process::exit(1);
-    });
-    let config = web::Data::new(config);
+    let subscription_secret = std::env::var("SUBSCRIPTION_SECRET")
+        .expect("You must define a SUBSCRIPTION_SECRET environment variable");
 
     HttpServer::new(move || {
         App::new()
-            .app_data(config.clone())
-            .route("/webhook", web::post().to(webhook_handler))
+            .route("/webhook", web::post().to(handle_webhook))
+            .app_data(web::Data::new(subscription_secret.to_owned()))
     })
     .bind("127.0.0.1:8080")?
     .run()
@@ -224,7 +210,7 @@ async fn main() -> std::io::Result<()> {
 }
 ```
 
-See the `examples/actix-web.rs` file in the [repository](https://github.com/hook0/hook0/tree/master/clients/rust) for a complete example.
+See the `examples/actix-web.rs` file in the [repository](https://github.com/hook0/hook0/tree/master/clients/rust) for a complete example with logging.
 
 ## Error Handling
 
@@ -264,19 +250,19 @@ fn handle_webhook_verification(
     signature: &str,
     payload: &[u8],
     headers: &[(&str, &str)],
-    secret: &str,
+    subscription_secret: &str,
 ) {
-    match verify_webhook_signature(signature, payload, headers, secret, Duration::from_secs(300)) {
+    match verify_webhook_signature(signature, payload, headers, subscription_secret, Duration::from_secs(300)) {
         Ok(()) => println!("Valid webhook"),
         Err(Hook0ClientError::InvalidSignature) => {
             eprintln!("Invalid signature - webhook may be forged");
         }
         Err(Hook0ClientError::ExpiredWebhook { signed_at, tolerance, current_time }) => {
-            eprintln!("Webhook expired: signed at {}, current time {}, tolerance {:?}",
+            eprintln!("Webhook expired: signed at {}, current time {}, tolerance {}",
                 signed_at, current_time, tolerance);
         }
-        Err(Hook0ClientError::MissingHeader(header)) => {
-            eprintln!("Missing required header: {}", header);
+        Err(Hook0ClientError::MissingHeader(header_name)) => {
+            eprintln!("Missing required header: {}", header_name);
         }
         Err(e) => {
             eprintln!("Verification error: {}", e);
@@ -333,8 +319,8 @@ async fn create_and_send_user_event(
         metadata: None,
         occurred_at: None,
         labels: vec![
-            ("source".to_string(), serde_json::json!("api")),
-            ("version".to_string(), serde_json::json!("1.0")),
+            ("source".to_string(), "api".to_string()),
+            ("version".to_string(), "1.0".to_string()),
         ],
     };
 
@@ -356,21 +342,21 @@ mod tests {
     #[test]
     fn test_valid_signature_v1() {
         // v1 signature includes headers in the HMAC computation
-        let signature = "t=1636936200,h=x-event-id x-event-type,v1=bc521546ba5de381b12f135782d2008b028c3065c191760b12b76850a8fc8f51";
+        let signature = "t=1636936200,h=x-test x-test2,v1=493c35f05443fdb74cb99fd4f00e0e7653c2ab6b24fbc97f4a7bd4d56b31758a";
         let payload = "hello !".as_bytes();
-        let secret = "secret";
-        let tolerance = Duration::from_secs(i64::MAX as u64);
+        let subscription_secret = "secret";
+        let tolerance = Duration::from_secs((i64::MAX / 1000) as u64);
 
         let headers = vec![
-            ("x-event-id", "1a01cb48-5142-4d9b-8f90-d20cca61f0ee"),
-            ("x-event-type", "service.resource.verb"),
+            ("x-test", "val1"),
+            ("x-test2", "val2"),
         ];
 
         assert!(verify_webhook_signature(
             signature,
             payload,
             &headers,
-            secret,
+            subscription_secret,
             tolerance,
         ).is_ok());
     }
@@ -407,7 +393,7 @@ mod integration_tests {
             payload_content_type: "application/json",
             metadata: None,
             occurred_at: None,
-            labels: vec![("test".to_string(), serde_json::json!("integration"))],
+            labels: vec![("test".to_string(), "integration".to_string())],
         };
 
         let event_id = client.send_event(&event).await.unwrap();
@@ -522,11 +508,14 @@ let application_id = std::env::var("HOOK0_APP_ID")
 
 ```rust
 use uuid::Uuid;
+use std::borrow::Cow;
+use hook0_client::Event;
 
 let custom_event_id = Uuid::new_v4();
+let event_id_opt = Some(&custom_event_id);
 
 let event = Event {
-    event_id: &Some(&custom_event_id),
+    event_id: &event_id_opt,
     event_type: "payment.processed",
     payload: Cow::Borrowed(r#"{"amount": 100.00}"#),
     payload_content_type: "application/json",

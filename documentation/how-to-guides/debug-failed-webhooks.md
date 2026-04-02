@@ -1,12 +1,12 @@
-# Debugging Failed Webhook Deliveries
+# Debugging failed webhook deliveries
 
-This guide helps you identify, diagnose, and resolve webhook delivery failures in Hook0. Learn systematic approaches to troubleshoot common issues and prevent future failures.
+This guide walks through identifying, diagnosing, and fixing webhook delivery failures in Hook0. Each failed delivery is tracked as a [request attempt](/concepts/request-attempts).
 
 :::tip General Troubleshooting
 For API errors, connection issues, and authentication problems, see [Troubleshooting Guide](./troubleshooting.md). This guide focuses specifically on webhook delivery failures.
 :::
 
-## Quick Diagnosis Checklist
+## Quick diagnosis checklist
 
 Before diving deep, run through this quick checklist:
 
@@ -17,11 +17,11 @@ Before diving deep, run through this quick checklist:
 - [ ] Is your subscription properly configured?
 - [ ] Is your subscription enabled? (see [Troubleshooting Guide - Events Not Being Delivered](./troubleshooting.md#events-not-being-delivered))
 
-## Understanding Webhook Failures
+## Understanding webhook failures
 
-Hook0 categorizes delivery failures to help you understand the root cause:
+Hook0 categorizes delivery failures by root cause:
 
-### HTTP Status Code Categories
+### HTTP status code categories
 
 :::tip 2xx - Success
 Request processed successfully. No retry needed.
@@ -36,13 +36,13 @@ Request processed successfully. No retry needed.
 All 5xx codes: Temporary failures, will retry. Suggests issues with your webhook endpoint.
 :::
 
-:::info Network Errors
+:::info Network errors
 - Connection timeouts
 - DNS resolution failures
 - Connection refused
 :::
 
-### Set Up Environment Variables
+### Set up environment variables
 
 ```bash
 # Set your service token (from dashboard)
@@ -63,9 +63,9 @@ APP_ID=$APP_ID
 EOF
 ```
 
-## Step 1: Access Hook0 Dashboard Diagnostics
+## Step 1: Access Hook0 dashboard diagnostics
 
-### Navigate to Request Attempts
+### Navigate to request attempts
 
 1. **Go to your Hook0 Dashboard**
 2. **Select your Application**
@@ -73,7 +73,7 @@ EOF
 4. **Find the failed event and click "View Details"**
 5. **Review "Request Attempts" section**
 
-### Analyze Delivery Attempts
+### Analyze delivery attempts
 
 Look for these key details:
 
@@ -89,9 +89,9 @@ Look for these key details:
 }
 ```
 
-## Step 2: Using the API for Detailed Analysis
+## Step 2: Using the API for analysis
 
-### Get Request Attempts via API
+### Get request attempts via API
 
 ```bash
 # Get all request attempts for an application
@@ -107,7 +107,7 @@ curl "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={SUBSC
   -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
-### Get Response Details
+### Get response details
 
 ```bash
 # Get the response body and headers for a failed attempt
@@ -115,9 +115,9 @@ curl "$HOOK0_API/responses/{RESPONSE_ID}?application_id=$APP_ID" \
   -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
-## Step 3: Common Failure Scenarios and Solutions
+## Step 3: Common failure scenarios
 
-### Scenario 1: Connection Timeouts
+### Scenario 1: Connection timeouts
 
 **Symptoms:**
 - Error message: "Connection timeout"
@@ -142,7 +142,7 @@ curl -v https://your-webhook-endpoint.com/webhook
 - Check network connectivity
 - Verify DNS configuration
 
-### Scenario 2: SSL/TLS Certificate Issues
+### Scenario 2: SSL/TLS certificate issues
 
 **Symptoms:**
 - Error message: "SSL certificate verification failed"
@@ -169,7 +169,7 @@ certbot renew
 # https://www.ssllabs.com/ssltest/
 ```
 
-### Scenario 3: Webhook Signature Verification Failures
+### Scenario 3: Webhook signature verification failures
 
 **Symptoms:**
 - 401 Unauthorized responses
@@ -206,7 +206,7 @@ app.post('/webhook', express.json({
 });
 ```
 
-**Common Mistakes:**
+**Common mistakes:**
 
 ```javascript
 // ❌ Wrong - Using parsed body instead of raw
@@ -230,7 +230,7 @@ const computed = crypto.createHmac('sha256', secret)
 
 See [Implementing Webhook Authentication](../tutorials/webhook-authentication.md) for complete implementation guide.
 
-### Scenario 4: Rate Limiting Issues
+### Scenario 4: Rate limiting
 
 **Symptoms:**
 - 429 Too Many Requests responses
@@ -260,7 +260,7 @@ const webhookLimiter = rateLimit({
 app.use('/webhooks', webhookLimiter);
 ```
 
-### Scenario 5: Internal Server Errors (5xx)
+### Scenario 5: Internal server errors (5xx)
 
 **Symptoms:**
 - 500, 502, 503, 504 responses
@@ -305,9 +305,9 @@ app.post('/webhook', (req, res) => {
 - Implement health checks
 - Use application monitoring tools (APM)
 
-## Step 4: Setting Up Webhook Debugging
+## Step 4: Setting up webhook debugging
 
-### Create a Debug Webhook Endpoint
+### Create a debug webhook endpoint
 
 ```javascript
 // debug-webhook.js
@@ -376,7 +376,7 @@ app.listen(3000, () => {
 });
 ```
 
-### Use ngrok for Local Testing
+### Use ngrok for local testing
 
 ```bash
 # Install ngrok
@@ -392,9 +392,9 @@ ngrok http 3000
 # https://abc123.ngrok.io/webhook
 ```
 
-## Step 5: Automated Failure Detection
+## Step 5: Automated failure detection
 
-### Monitor Failure Rates with Script
+### Monitor failure rates with a script
 
 ```javascript
 // monitor-failures.js
@@ -454,7 +454,7 @@ monitorSubscriptions();
 setInterval(monitorSubscriptions, 5 * 60 * 1000); // Every 5 minutes
 ```
 
-### Set Up Alerts
+### Set up alerts
 
 ```javascript
 // alert-system.js
@@ -496,9 +496,9 @@ ${JSON.stringify(failedAttempts, null, 2)}
 }
 ```
 
-## Step 6: Recovery Strategies
+## Step 6: Recovery strategies
 
-### Manual Retry Failed Events
+### Manual retry of failed events
 
 ```bash
 # Get events for your application
@@ -514,7 +514,7 @@ curl -X POST "$HOOK0_API/events/{EVENT_ID}/replay" \
   }'
 ```
 
-### Bulk Retry Script
+### Bulk retry script
 
 ```javascript
 // retry-failed.js
@@ -572,9 +572,9 @@ async function retryFailedEvents(maxAge = 24) {
 retryFailedEvents();
 ```
 
-## Step 7: Prevention Strategies
+## Step 7: Prevention strategies
 
-### Implement Circuit Breaker Pattern
+### Circuit breaker pattern
 
 ```javascript
 // circuit-breaker.js
@@ -637,7 +637,7 @@ app.post('/webhook', async (req, res) => {
 });
 ```
 
-### Implement Graceful Degradation
+### Graceful degradation
 
 ```javascript
 // graceful-degradation.js
@@ -664,7 +664,7 @@ app.post('/webhook', async (req, res) => {
 });
 ```
 
-## Best Practices for Webhook Reliability
+## Best practices
 
 ### Endpoint design
 - ✅ Return appropriate HTTP status codes
@@ -673,9 +673,9 @@ app.post('/webhook', async (req, res) => {
 - ✅ Use structured error responses
 - ✅ Add comprehensive logging
 
-### Error Handling
+### Error handling
 - ✅ Distinguish between temporary and permanent failures
-- ✅ Implement exponential backoff
+- ✅ Rely on Hook0's automatic retries with predefined delays
 - ✅ Use circuit breakers for external dependencies
 - ✅ Monitor and alert on high failure rates
 - ✅ Provide detailed error messages
@@ -687,7 +687,7 @@ app.post('/webhook', async (req, res) => {
 - ✅ Test with various payload sizes
 - ✅ Monitor performance under load
 
-## Troubleshooting Checklist
+## Troubleshooting checklist
 
 When webhook deliveries fail, work through this systematic checklist:
 
@@ -712,11 +712,9 @@ When webhook deliveries fail, work through this systematic checklist:
 - [ ] Custom headers are properly configured
 - [ ] Retry configuration is appropriate
 
-## Related Resources
+## Related resources
 
 - [Troubleshooting Guide](./troubleshooting.md) - API errors, authentication, and configuration issues
-- [Implementing Webhook Authentication](../tutorials/webhook-authentication.md) - Complete signature verification guide
-- [Monitor Webhook Performance](./monitor-webhook-performance.md) - Performance monitoring strategies
-- [Error Codes Reference](../reference/error-codes.md) - Complete error code list
-
-Ready to implement these debugging strategies? Start with the Hook0 dashboard analysis and work your way through the systematic approaches outlined above.
+- [Implementing Webhook Authentication](../tutorials/webhook-authentication.md) - Signature verification guide
+- [Monitor Webhook Performance](./monitor-webhook-performance.md) - Performance monitoring
+- [Error Codes Reference](../reference/error-codes.md) - Error code list

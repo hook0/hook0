@@ -1,3 +1,9 @@
+---
+title: Getting started with Hook0
+description: "Create an application, register event types, add a subscription, and send your first webhook event."
+keywords: [webhook, getting started, Hook0, tutorial, quickstart]
+---
+
 # Getting Started with Hook0
 
 This tutorial will guide you through creating an application and sending your first webhook event. By the end, you will have a working webhook integration.
@@ -70,7 +76,7 @@ At this point you have two choices:
 
 ## Step 2: Create Your First Application
 
-Applications represent individual services or projects within your organization.
+[Applications](/concepts/applications) represent individual services or projects within your [organization](/concepts/organizations).
 
 1. **Select your organization** in the left sidebar.
 2. At the end, **Click "Create new application"**
@@ -90,7 +96,7 @@ To send events to Hook0, you need an API token.
    
 ## Step 4: Create an Event Type
 
-Event types define the structure of events your application can send.
+[Event types](/concepts/event-types) define the structure of events your application can send.
 
 ### - Using the Dashboard:
 
@@ -126,7 +132,7 @@ This creates an event type named `user.account.created` (composed from `service.
 
 ## Step 5: Create a Webhook Subscription
 
-Subscriptions define where Hook0 should send webhook notifications.
+[Subscriptions](/concepts/subscriptions) define where Hook0 should send webhook notifications.
 
 For this tutorial, use [webhook.site](https://webhook.site) to create a test endpoint:
 
@@ -186,7 +192,6 @@ curl -X POST "$HOOK0_API/event" \
   -H "Content-Type: application/json" \
   -d '{
     "application_id": "'"$APP_ID"'",
-    "event_id": "'$(uuidgen)'",
     "event_type": "user.account.created",
     "payload": "{\"user_id\": 123, \"email\": \"john.doe@example.com\"}",
     "payload_content_type": "application/json",
@@ -196,10 +201,6 @@ curl -X POST "$HOOK0_API/event" \
     "occurred_at": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"
   }'
 ```
-
-:::tip Event ID Format
-The `event_id` **must be a valid UUID** (e.g., `550e8400-e29b-41d4-a716-446655440000`). Using `$(uuidgen)` generates this automatically. Non-UUID values will be rejected by the API.
-:::
 
 :::warning Payload Format
 The `payload` field must be a **JSON-encoded string**, not a raw object. See [Understanding Payload Format](#understanding-payload-format) below for details.
@@ -292,6 +293,8 @@ Now that you have the basics, try these advanced tutorials:
 - [Building Your First Webhook Integration](./first-webhook-integration.md)
 - [Setting up Event Types and Subscriptions](./event-types-subscriptions.md)
 - [Implementing Webhook Authentication](./webhook-authentication.md)
+- [Webhook best practices](../how-to-guides/webhook-best-practices.md) - Production patterns for payload design, retries, and security
+- [Webhook retry logic](../explanation/webhook-retry-logic.md) - How Hook0 handles failed deliveries
 
 ## Common Issues
 

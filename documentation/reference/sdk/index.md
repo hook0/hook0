@@ -1,13 +1,13 @@
 ---
-title: SDKs & Client Libraries
+title: SDKs & client libraries
 description: Official Hook0 client libraries for multiple programming languages
 ---
 
-# SDKs & Client Libraries
+# SDKs & client libraries
 
-Hook0 provides official SDKs to make integration seamless across different programming languages and platforms. All SDKs follow consistent design patterns while remaining idiomatic to their respective languages.
+Hook0 has official SDKs for several programming languages. They share the same design patterns but stay idiomatic to each language.
 
-## Set Up Environment Variables
+## Set up environment variables
 
 ```bash
 # Set your service token (from dashboard)
@@ -30,8 +30,8 @@ EOF
 
 ## Official SDKs
 
-### 🟨 [JavaScript/TypeScript SDK](javascript.md)
-TypeScript SDK for Node.js applications with basic event sending capabilities.
+### [JavaScript/TypeScript SDK](javascript.md)
+TypeScript SDK for Node.js with event sending.
 
 **Features:**
 - Event sending with type definitions
@@ -44,7 +44,7 @@ TypeScript SDK for Node.js applications with basic event sending capabilities.
 npm install hook0-client
 ```
 
-**Quick Start:**
+**Quick start:**
 ```typescript
 import { Hook0Client, Event } from 'hook0-client';
 
@@ -64,52 +64,67 @@ const event = new Event(
 await hook0.sendEvent(event);
 ```
 
-[📖 View Full Documentation →](javascript.md)
+[View full documentation](javascript.md)
 
 ---
 
-### 🦀 [Rust SDK](rust.md)
-Rust SDK currently in development. Use the REST API directly with reqwest.
+### [Rust SDK](rust.md)
+Native Rust SDK for sending events and verifying webhook signatures.
 
-**Current Status:**
-- 🚧 SDK interface designed but not yet implemented
-- ✅ REST API fully accessible via HTTP clients
-- 📝 Complete documentation for API usage
+**Features:**
+- Event sending with typed payloads
+- Event type management (upsert)
+- Webhook signature verification (v0 and v1)
+- Optional feature flags (`producer`, `consumer`)
 
-**Temporary Solution:**
+**Installation:**
+```toml
+[dependencies]
+hook0-client = "1"
+```
+
+**Quick start:**
 ```rust
-use reqwest::Client;
-use serde_json::json;
+use hook0_client::{Hook0Client, Event};
+use reqwest::Url;
+use uuid::Uuid;
+use std::borrow::Cow;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new();
-    let response = client
-        .post("https://app.hook0.com/api/v1/event")
-        .header("Authorization", "Bearer {YOUR_TOKEN}")
-        .json(&json!({
-            "event_type": "user.account.created",
-            "payload": { "user_id": 123 }
-        }))
-        .send()
-        .await?;
+    let api_url = Url::parse("http://localhost:8081/api/v1")?;
+    let application_id = Uuid::parse_str("your-app-id-here")?;
+    let client = Hook0Client::new(api_url, application_id, "{YOUR_TOKEN}")?;
+
+    let event = Event {
+        event_id: &None,
+        event_type: "user.account.created",
+        payload: Cow::Borrowed(r#"{"user_id": "123"}"#),
+        payload_content_type: "application/json",
+        metadata: None,
+        occurred_at: None,
+        labels: vec![("environment".to_string(), "production".to_string())],
+    };
+
+    let event_id = client.send_event(&event).await?;
+    println!("Event sent: {}", event_id);
     Ok(())
 }
 ```
 
-[📖 View Full Documentation →](rust.md)
+[View full documentation](rust.md)
 
 ---
 
-## Additional Language Support
+## Additional language support
 
-:::info SDKs Coming Soon
-Official SDKs for Python, Go, PHP, Ruby, Java, and .NET are planned for future releases. In the meantime, you can use the REST API directly with your language's HTTP client.
+:::info SDKs coming soon
+Official SDKs for Python, Go, PHP, Ruby, Java, and .NET are planned. In the meantime, use the REST API directly with your language's HTTP client.
 :::
 
 ### Using the REST API
 
-All Hook0 functionality is available through the REST API. Here's how to send events in various languages:
+Everything Hook0 does is available through the REST API. Here is how to send events in a few languages:
 
 **Python Example:**
 ```python
@@ -147,33 +162,32 @@ client := &http.Client{}
 resp, _ := client.Do(req)
 ```
 
-## Core SDK Features
+## Core SDK features
 
 All official Hook0 SDKs provide:
 
-### 🔐 Authentication & Security
-- Biscuit token authentication
+### Authentication and security
+- Authentication via Biscuit tokens (user sessions) and Service tokens (programmatic access)
 - Webhook signature verification
 - TLS/SSL support
 - Secure credential management
 
-### 📡 API Operations
+### API operations
 - Event sending (single events)
 - Application management (via REST API)
 - Subscription CRUD operations (via REST API)
 - Event type management
 - Delivery status tracking (via REST API)
 
-### 🛠️ Developer Experience
+### Developer experience
 - Type safety and auto-completion
-- Comprehensive error handling
+- Error handling with typed errors
 - Structured logging
-- Mock clients for testing
-- Extensive documentation
+- Documentation with examples
 
-## Common Usage Patterns
+## Common usage patterns
 
-### Sending Events
+### Sending events
 
 ```typescript
 // JavaScript/TypeScript
@@ -211,7 +225,7 @@ curl -X POST $HOOK0_API/event \
   }'
 ```
 
-### Managing Subscriptions
+### Managing subscriptions
 
 ```bash
 # Using the REST API
@@ -229,7 +243,7 @@ curl -X POST $HOOK0_API/subscriptions \
   }'
 ```
 
-### Webhook Verification
+### Webhook verification
 
 ```typescript
 // JavaScript/TypeScript
@@ -267,9 +281,9 @@ app.post('/webhook', express.json({
 });
 ```
 
-## Error Handling
+## Error handling
 
-SDKs provide error handling capabilities:
+SDKs return typed errors you can match on:
 
 ```typescript
 // JavaScript/TypeScript
@@ -313,7 +327,7 @@ fetch('http://localhost:8081', {
 
 ## Configuration
 
-### TypeScript SDK Configuration
+### TypeScript SDK configuration
 ```typescript
 const hook0 = new Hook0Client(
   'http://localhost:8081',     // API URL
@@ -323,7 +337,7 @@ const hook0 = new Hook0Client(
 );
 ```
 
-### REST API Configuration
+### REST API configuration
 When using the REST API directly, configure your HTTP client:
 
 ```javascript
@@ -341,6 +355,7 @@ const apiClient = axios.create({
 ## Testing
 
 ### Testing with TypeScript SDK
+
 
 ```typescript
 // Mock fetch for testing
@@ -377,52 +392,47 @@ test('should send event', async () => {
 });
 ```
 
-## SDK Development Guidelines
+## SDK development guidelines
 
-Want to contribute an SDK? Follow these guidelines:
+Want to contribute an SDK? Here is what we expect:
 
-### Requirements Checklist
+### Requirements checklist
 
-- [ ] **Core API Coverage** - All essential endpoints implemented
-- [ ] **Authentication** - Biscuit token support
-- [ ] **Error Handling** - Proper error types and messages
-- [ ] **Retry Logic** - Exponential backoff implementation
-- [ ] **Testing** - >80% test coverage
-- [ ] **Documentation** - Complete API docs with examples
-- [ ] **Examples** - Working example applications
-- [ ] **CI/CD** - Automated testing and publishing
+- [ ] All essential endpoints implemented
+- [ ] Biscuit token and Service token support
+- [ ] Typed error messages
+- [ ] >80% test coverage
+- [ ] API docs with examples
+- [ ] Working example applications
+- [ ] Automated testing and publishing
 
-### Best Practices
+### Best practices
 
-1. **Follow Language Idioms** - Write idiomatic code for your language
-2. **Type Safety** - Provide type definitions where possible
-3. **Async Support** - Implement async/await or promises
-4. **Resource Management** - Proper connection pooling and cleanup
-5. **Versioning** - Follow semantic versioning
-6. **Changelog** - Maintain detailed changelog
+1. Write idiomatic code for your language
+2. Provide type definitions where possible
+3. Implement async/await or promises
+4. Handle connection pooling and cleanup
+5. Follow semantic versioning
+6. Maintain a changelog
 
-## Getting Help
+## Getting help
 
 ### Documentation
-- [API Reference](../../openapi/intro) - Complete REST API documentation
+- [API Reference](../../openapi/intro) - REST API documentation
 - [Tutorials](../../tutorials/) - Step-by-step guides
 - [How-to Guides](../../how-to-guides/) - Problem-solving guides
 
-### Support Channels
-- **GitHub Issues** - SDK-specific issue tracking
-- **Discord** - [Community support](https://www.hook0.com/community)
-- **Stack Overflow** - [#hook0 tag](https://stackoverflow.com/questions/tagged/hook0)
-- **Email** - support@hook0.com for critical issues
+### Support channels
+- GitHub Issues - SDK-specific issue tracking
+- [Discord](https://www.hook0.com/community) - Community support
+- [Stack Overflow](https://stackoverflow.com/questions/tagged/hook0) - #hook0 tag
+- support@hook0.com - For critical issues
 
 ### Contributing
 
-We welcome SDK contributions! To get started:
+To contribute to our SDK:
 
-1. Read our SDK Development Guide
-2. Open an issue to discuss your SDK proposal
-3. Follow the requirements checklist above
-4. Submit your SDK for review
-
----
-
-*Choose your preferred language and start integrating Hook0 today!*
+1. Open an issue to discuss your proposal
+2. Follow the requirements checklist above
+3. Submit for review
+4. Enjoy :)

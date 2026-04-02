@@ -71,7 +71,7 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
 </script>
 
 <template>
-  <Hook0PageLayout :title="t('applications.dashboard')" data-test="app-dashboard-page">
+  <Hook0PageLayout :title="t('applications.dashboard')" data-test="application-dashboard">
     <!-- Loading -->
     <Hook0CardSkeleton v-if="appLoading || (!application && !appError)" :lines="3" />
 
@@ -89,7 +89,9 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
               </Hook0IconBadge>
               <div class="app-dashboard__title-group">
                 <span class="app-dashboard__label">{{ t('applications.titleSingular') }}</span>
-                <span class="app-dashboard__name">{{ application.name }}</span>
+                <span class="app-dashboard__name" data-test="application-dashboard-name">
+                  {{ application.name }}
+                </span>
               </div>
             </Hook0Stack>
           </template>
@@ -102,6 +104,7 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
                   application_id: applicationId,
                 },
               }"
+              data-test="application-dashboard-settings-link"
             >
               {{ t('common.settings') }}
             </Hook0Button>

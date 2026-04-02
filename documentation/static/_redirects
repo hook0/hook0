@@ -104,3 +104,8 @@
 # Anciennes pages de statut/santé
 /status                                 https://status.hook0.com                302
 /health                                 https://status.hook0.com                302
+
+# Trailing slash handling:
+# - Docusaurus generates .html files (trailingSlash: false)
+# - Netlify "Pretty URLs" rewrites /path → /path.html (must be enabled)
+# - No manual trailing slash redirects needed (they conflict with Pretty URLs)
