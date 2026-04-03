@@ -15,7 +15,7 @@ use std::time::Duration;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Sender, channel};
 use tokio::sync::{Mutex, OwnedSemaphorePermit, Semaphore};
-use tokio::time::{Instant, interval_at, sleep};
+use tokio::time::{Instant, interval_at, sleep, timeout};
 use tokio::{select, spawn};
 use tokio_util::task::TaskTracker;
 use tracing::{debug, error, info, trace, warn};
@@ -34,6 +34,12 @@ use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;
 
 const DELAY_TOLERANCE: Duration = Duration::from_secs(1);
+
+/// Number of consecutive errors from the Pulsar consumer before giving up and restarting
+const MAX_CONSECUTIVE_CONSUMER_ERRORS: u32 = 10;
+
+/// Extra time added to the HTTP timeout when draining in-flight tasks after consumer crash
+const DRAIN_TIMEOUT_MARGIN: Duration = Duration::from_secs(5);
 
 type AckMessage = (MessageIdData, Option<OwnedSemaphorePermit>, bool);
 
@@ -266,11 +272,14 @@ pub async fn look_for_work(
         ))
     };
 
+    // Tracks consecutive errors from the Pulsar consumer to detect a dead connection
+    let mut consecutive_errors: u32 = 0;
+
     loop {
         // We prepare a future to acquire a permit from the semaphore and then get a message from the Pulsar consumer
         // This future is not awaited yet!
         let next_msg = async {
-            let permit = semaphore.clone().try_acquire_owned()?;
+            let permit = semaphore.clone().acquire_owned().await?;
             let msg_opt = consumer.try_next().await?;
             Ok::<_, anyhow::Error>((permit, msg_opt))
         };
@@ -309,43 +318,63 @@ pub async fn look_for_work(
                     }
                 }
             },
-            Ok((permit, msg_opt)) = next_msg, if !task_tracker.is_closed() => {
-                if let Some(msg) = msg_opt {
-                    let ack_tx_for_error = ack_tx.clone();
-                    let msg_id = msg.message_id().to_owned();
+            result = next_msg, if !task_tracker.is_closed() => {
+                match result {
+                    Ok((permit, Some(msg))) => {
+                        consecutive_errors = 0;
 
-                    let ack_tx = ack_tx.clone();
-                    let c = config.clone();
-                    let po = pool.clone();
-                    let os = object_storage.clone();
-                    let wi = worker_id.clone();
-                    let wn = worker_name.clone();
-                    let wv = worker_version.clone();
-                    let rp = retry_producer.clone();
-                    let st = stats.clone();
+                        let ack_tx_for_error = ack_tx.clone();
+                        let msg_id = msg.message_id().to_owned();
 
-                    // We handle the request attempt in a new Tokio task
-                    task_tracker.spawn(async move {
-                        if let Err(e) = handle_message(
-                            &c,
-                            &po,
-                            &os,
-                            &wi,
-                            &wn,
-                            &wv,
-                            &rp,
-                            msg,
-                            permit,
-                            ack_tx,
-                            &st,
-                        )
-                        .await
-                        {
-                            // If the request attempt handling failed, we NACK the message
-                            error!("Error while handling message: {e}");
-                            ack_tx_for_error.send((msg_id, None, false)).await.unwrap();
+                        let ack_tx = ack_tx.clone();
+                        let c = config.clone();
+                        let po = pool.clone();
+                        let os = object_storage.clone();
+                        let wi = worker_id.clone();
+                        let wn = worker_name.clone();
+                        let wv = worker_version.clone();
+                        let rp = retry_producer.clone();
+                        let st = stats.clone();
+
+                        // We handle the request attempt in a new Tokio task
+                        task_tracker.spawn(async move {
+                            if let Err(e) = handle_message(
+                                &c,
+                                &po,
+                                &os,
+                                &wi,
+                                &wn,
+                                &wv,
+                                &rp,
+                                msg,
+                                permit,
+                                ack_tx,
+                                &st,
+                            )
+                            .await
+                            {
+                                // If the request attempt handling failed, we NACK the message
+                                error!("Error while handling message: {e}");
+                                if let Err(e) = ack_tx_for_error.send((msg_id, None, false)).await {
+                                    error!("Could not send NACK for message (consumer likely restarting): {e}");
+                                }
+                            }
+                        });
+                    }
+                    Ok((_permit, None)) => {
+                        error!("Pulsar consumer stream ended");
+                        break;
+                    }
+                    Err(e) => {
+                        consecutive_errors += 1;
+                        error!(consecutive_errors, "Pulsar consumer error: {e}");
+                        if consecutive_errors >= MAX_CONSECUTIVE_CONSUMER_ERRORS {
+                            error!(consecutive_errors, "Too many consecutive Pulsar consumer errors, restarting");
+                            break;
                         }
-                    });
+                        // Brief backoff to avoid tight-loop spinning when the broker is down
+                        sleep(Duration::from_millis(500)).await;
+                    }
                 }
             },
             else => break,
@@ -355,6 +384,23 @@ pub async fn look_for_work(
     if task_tracker.is_closed() {
         Ok(())
     } else {
+        // Drain in-flight tasks before returning, so their ACK/NACKs are attempted.
+        // The timeout is bounded by the HTTP timeout + 5s to allow the slowest request to finish.
+        // If no tasks are in-flight, this returns immediately.
+        drop(ack_tx);
+        match timeout(config.timeout + DRAIN_TIMEOUT_MARGIN, async {
+            while let Some(msg_ack) = ack_rx.recv().await {
+                if let Err(e) = ack_message(&mut consumer, &topic, &heartbeat_tx, msg_ack).await {
+                    error!("Failed to ACK/NACK message during drain: {e}");
+                }
+            }
+        })
+        .await
+        {
+            Ok(()) => debug!("All in-flight tasks drained"),
+            Err(_) => error!("Timed out draining in-flight tasks"),
+        }
+
         bail!("Pulsar consumer crashed");
     }
 }

@@ -5,7 +5,7 @@ mod pulsar;
 mod throughput_log;
 mod work;
 
-use ::pulsar::{Authentication, Pulsar, TokioExecutor};
+use ::pulsar::{Authentication, ConnectionRetryOptions, Pulsar, TokioExecutor};
 use anyhow::bail;
 use aws_sdk_s3::Client;
 use aws_sdk_s3::config::retry::RetryConfig;
@@ -382,6 +382,7 @@ async fn main() -> anyhow::Result<()> {
                         name: "token".to_owned(),
                         data: pulsar_token.to_owned().into_bytes(),
                     })
+                    .with_connection_retry_options(ConnectionRetryOptions::default())
                     .build()
                     .await?,
                 tenant: pulsar_tenant.to_owned(),
