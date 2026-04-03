@@ -374,6 +374,7 @@ release.gitlab:
   stage: trigger-release
   image: rust:$RUST_VERSION
   allow_failure: false
+  dependencies: []
   variables:
     GIT_DEPTH: "0"
     GIT_LFS_SKIP_SMUDGE: "1"
