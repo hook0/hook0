@@ -9,16 +9,9 @@
                 background-color: #f9f9f9;
                 font-family: Arial, sans-serif;
             }
-            h1, h2 {
-                color: #333333;
-            }
             h1 {
+                color: #333333;
                 font-size: 26px;
-                margin-bottom: 10px;
-            }
-            h2 {
-                font-size: 20px;
-                margin-top: 20px;
                 margin-bottom: 10px;
             }
             p {
@@ -26,40 +19,32 @@
                 line-height: 1.5;
                 color: #555555;
             }
-            .button {
-                background-color: #f45e43;
-                border: none;
-                padding: 15px 30px;
-                border-radius: 5px;
-                font-size: 16px;
-                cursor: pointer;
+            a {
+                color: #22c55e;
                 text-decoration: none;
-                display: inline-block;
-                margin-top: 20px;
-                color: white;
+            }
+            a:hover {
+                text-decoration: underline;
             }
             .small {
                 font-size: 12px;
                 color: #888888;
             }
+            .small a {
+                color: #888888;
+            }
         </mj-style>
     </mj-head>
     <mj-body>
-        <mj-section background-color="#ffffff" padding="20px" border-radius="8px" box-shadow="0 0 10px rgba(0, 0, 0, 0.1)">
+        <mj-section background-color="#ffffff" padding="20px" border-radius="8px">
             <mj-column>
                 <mj-image src="{ $logo_url }" alt="Hook0" width="120px" />
                 <mj-text align="center">
                     <h1>Subscription Is Healthy Again</h1>
-                    <p>Good news! Your subscription <strong>{{ $subscription_description }}</strong> in application <strong>{{ $application_name }}</strong> has recovered and webhook deliveries are succeeding normally.</p>
+                    <p>Good news! Your subscription <a href="{ $subscription_url }"><strong>{{ $subscription_description }}</strong></a> in application <a href="{ $application_url }"><strong>{{ $application_name }}</strong></a> has recovered and webhook deliveries are succeeding normally to <strong>{{ $target_url }}</strong>.</p>
+                    <p>No further action is required.</p>
                 </mj-text>
-                <mj-text align="center">
-                    <h2>Details</h2>
-                    <p>Target URL: <strong>{{ $target_url }}</strong></p>
-                </mj-text>
-                <mj-text align="center">
-                    <p>No further action is required. Your webhook events are being delivered successfully.</p>
-                </mj-text>
-                <mj-button background-color="#22c55e" color="white" class="button" href="{ $subscription_url }">View Subscription</mj-button>
+                <mj-button background-color="#22c55e" color="white" href="{ $subscription_url }">View Subscription</mj-button>
                 <mj-text align="center">
                     <p class="small">Questions? Reach out to our support team at <a href="mailto:{ $support_email_address }">{ $support_email_address }</a>.</p>
                 </mj-text>
