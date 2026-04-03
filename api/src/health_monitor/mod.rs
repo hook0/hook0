@@ -1,5 +1,7 @@
+mod cleanup;
 mod evaluation;
 mod notifications;
+mod queries;
 mod state_machine;
 
 use std::time::{Duration, Instant};
@@ -60,7 +62,7 @@ pub async fn run_health_monitor(
         }
 
         if last_cleanup.is_none() || last_cleanup.unwrap().elapsed() > CLEANUP_INTERVAL {
-            match evaluation::cleanup_resolved_health_events(db, config).await {
+            match cleanup::cleanup_resolved_health_events(db, config).await {
                 Ok(n) => {
                     if n > 0 {
                         info!("Health monitor: cleaned up {n} resolved health events");
@@ -70,7 +72,7 @@ pub async fn run_health_monitor(
                 }
                 Err(e) => warn!("Health monitor: cleanup error: {e}"),
             }
-            match evaluation::cleanup_old_buckets(db, config).await {
+            match cleanup::cleanup_old_buckets(db, config).await {
                 Ok(n) if n > 0 => info!("Health monitor: cleaned up {n} old health buckets"),
                 Ok(_) => debug!("Health monitor: bucket cleanup tick, none to remove"),
                 Err(e) => warn!("Health monitor: bucket cleanup error: {e}"),
