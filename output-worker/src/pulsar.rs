@@ -567,10 +567,12 @@ async fn handle_message(
                             })?;
                     }
 
-                    if response.is_success() {
+                    // Between the status check and this UPDATE, another process (e.g. subscription disable or Pulsar message redelivery) may have already finalized this attempt.
+                    // The UPDATE guards against this by requiring succeeded_at/failed_at to still be NULL.
+                    let race_detected = if response.is_success() {
                         // Mark attempt as completed
                         trace!(request_attempt_id = %attempt.request_attempt_id, "Completing request attempt");
-                        query!(
+                        let update_result = query!(
                             "
                                 UPDATE webhook.request_attempt
                                 SET worker_name = $1,
@@ -579,6 +581,8 @@ async fn handle_message(
                                     response__id = $4,
                                     succeeded_at = statement_timestamp()
                                 WHERE request_attempt__id = $5
+                                    AND succeeded_at IS NULL
+                                    AND failed_at IS NULL
                             ",
                             worker_name,
                             worker_version,
@@ -589,11 +593,17 @@ async fn handle_message(
                         .execute(&mut *tx)
                         .await?;
 
-                        debug!(request_attempt_id = %attempt.request_attempt_id, "Request attempt completed successfully");
+                        if update_result.rows_affected() == 0 {
+                            warn!(request_attempt_id = %attempt.request_attempt_id, "Race detected: request attempt was already finalized by another process; skipping");
+                            true
+                        } else {
+                            debug!(request_attempt_id = %attempt.request_attempt_id, "Request attempt completed successfully");
+                            false
+                        }
                     } else {
                         // Mark attempt as failed
                         trace!(request_attempt_id = %attempt.request_attempt_id, "Failing request attempt");
-                        query!(
+                        let update_result = query!(
                             "
                                 UPDATE webhook.request_attempt
                                 SET worker_name = $1,
@@ -602,6 +612,8 @@ async fn handle_message(
                                     response__id = $4,
                                     failed_at = statement_timestamp()
                                 WHERE request_attempt__id = $5
+                                    AND succeeded_at IS NULL
+                                    AND failed_at IS NULL
                             ",
                             worker_name,
                             worker_version,
@@ -612,63 +624,73 @@ async fn handle_message(
                         .execute(&mut *tx)
                         .await?;
 
-                        // Creating a retry request or giving up
-                        if let Some(retry_in) =
-                            compute_next_retry(&mut tx, &attempt, &response, config.max_retries)
-                                .await?
-                        {
-                            let next_retry_count = attempt.retry_count + 1;
-                            let delay_until = Utc::now() + retry_in;
-
-                            #[allow(non_snake_case)]
-                            struct Retry {
-                                request_attempt__id: Uuid,
-                                created_at: DateTime<Utc>,
-                            }
-                            let retry = query_as!(
-                                Retry,
-                                "
-                                    INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count)
-                                    VALUES ($1, $2, $3, $4, $5)
-                                    RETURNING request_attempt__id, created_at
-                                ",
-                                attempt.application_id,
-                                attempt.event_id,
-                                attempt.subscription_id,
-                                delay_until,
-                                next_retry_count,
-                            )
-                            .fetch_one(&mut *tx)
-                            .await?;
-
-                            debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = next_retry_count, retry_id = %retry.request_attempt__id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
-
-                            retry_producer
-                                .lock()
-                                .await
-                                .create_message()
-                                .event_time(retry.created_at.timestamp_micros() as u64)
-                                .deliver_at(delay_until.into())?
-                                .with_content(RequestAttempt {
-                                    request_attempt_id: retry.request_attempt__id,
-                                    created_at: retry.created_at,
-                                    retry_count: next_retry_count,
-                                    ..attempt
-                                })
-                                .send_non_blocking()
-                                .await?;
+                        if update_result.rows_affected() == 0 {
+                            warn!(request_attempt_id = %attempt.request_attempt_id, "Race detected: request attempt was already finalized by another process; skipping retry");
+                            true
                         } else {
-                            debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
+                            // Creating a retry request or giving up
+                            if let Some(retry_in) =
+                                compute_next_retry(&mut tx, &attempt, &response, config.max_retries)
+                                    .await?
+                            {
+                                let next_retry_count = attempt.retry_count + 1;
+                                let delay_until = Utc::now() + retry_in;
+
+                                #[allow(non_snake_case)]
+                                struct Retry {
+                                    request_attempt__id: Uuid,
+                                    created_at: DateTime<Utc>,
+                                }
+                                let retry = query_as!(
+                                    Retry,
+                                    "
+                                        INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count)
+                                        VALUES ($1, $2, $3, $4, $5)
+                                        RETURNING request_attempt__id, created_at
+                                    ",
+                                    attempt.application_id,
+                                    attempt.event_id,
+                                    attempt.subscription_id,
+                                    delay_until,
+                                    next_retry_count,
+                                )
+                                .fetch_one(&mut *tx)
+                                .await?;
+
+                                debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = next_retry_count, retry_id = %retry.request_attempt__id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
+
+                                retry_producer
+                                    .lock()
+                                    .await
+                                    .create_message()
+                                    .event_time(retry.created_at.timestamp_micros() as u64)
+                                    .deliver_at(delay_until.into())?
+                                    .with_content(RequestAttempt {
+                                        request_attempt_id: retry.request_attempt__id,
+                                        created_at: retry.created_at,
+                                        retry_count: next_retry_count,
+                                        ..attempt
+                                    })
+                                    .send_non_blocking()
+                                    .await?;
+                            } else {
+                                debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
+                            }
+                            false
                         }
+                    };
+
+                    if race_detected {
+                        tx.rollback().await?;
+                    } else {
+                        tx.commit().await?;
+
+                        stats.record_attempt(
+                            response.is_success(),
+                            attempt.retry_count,
+                            response.elapsed_time,
+                        );
                     }
-
-                    tx.commit().await?;
-
-                    stats.record_attempt(
-                        response.is_success(),
-                        attempt.retry_count,
-                        response.elapsed_time,
-                    );
 
                     // End OpenTelemetry span
                     end_request_attempt_span(span, &response);
