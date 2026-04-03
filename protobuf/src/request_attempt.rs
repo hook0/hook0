@@ -22,6 +22,7 @@ pub struct RequestAttempt {
     pub payload: Vec<u8>,
     pub payload_content_type: String,
     pub secret: Uuid,
+    pub attempt_trigger: String,
 }
 
 impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttempt {
@@ -97,6 +98,7 @@ impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttem
             payload: value.payload,
             payload_content_type: value.payload_content_type,
             secret,
+            attempt_trigger: value.attempt_trigger,
         })
     }
 }
@@ -130,6 +132,7 @@ impl TryFrom<RequestAttempt> for crate::raw_proto::request_attempt::RequestAttem
             payload: value.payload,
             payload_content_type: value.payload_content_type,
             secret: value.secret.to_string(),
+            attempt_trigger: value.attempt_trigger,
         })
     }
 }
@@ -196,6 +199,7 @@ mod tests {
             payload: b"this is a test payload".to_vec(),
             payload_content_type: "text/plain".to_owned(),
             secret: uuid!("00000000-0000-0000-0000-000000000004"),
+            attempt_trigger: "dispatch".to_owned(),
         };
         let proto_request_attempt: crate::raw_proto::request_attempt::RequestAttempt =
             request_attempt.clone().try_into().unwrap();

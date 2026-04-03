@@ -155,6 +155,7 @@ pub async fn load_waiting_request_attempts_from_db(
                 payload: p,
                 payload_content_type: ra.payload_content_type,
                 secret: ra.secret,
+                attempt_trigger: "dispatch".to_owned(),
             };
 
             let mut msg_builder = producer
@@ -618,6 +619,7 @@ async fn handle_message(
                                     request_attempt_id: retry.request_attempt__id,
                                     created_at: retry.created_at,
                                     retry_count: next_retry_count,
+                                    attempt_trigger: "auto_retry".to_owned(),
                                     ..attempt
                                 })
                                 .send_non_blocking()

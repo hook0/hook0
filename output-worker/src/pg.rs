@@ -177,6 +177,7 @@ pub async fn look_for_work(
                     payload: p,
                     payload_content_type: attempt.payload_content_type,
                     secret: attempt.secret,
+                    attempt_trigger: "dispatch".to_owned(),
                 };
 
                 // Start OpenTelemetry span
