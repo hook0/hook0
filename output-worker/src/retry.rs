@@ -8,6 +8,7 @@
 
 use std::time::Duration;
 
+use rand::Rng;
 use sqlx::PgConnection;
 use tracing::{error, warn};
 
@@ -18,6 +19,20 @@ use crate::work::{Response, ResponseError};
 /// Maximum delay cap for any single retry (7 days).
 /// Prevents overflow from increasing strategy with high base_delay * wait_factor^n.
 const MAX_RETRY_DELAY_SECS: Duration = Duration::from_secs(7 * 24 * 3600);
+
+/// Adds random positive jitter to a delay — spreads out retries that would
+/// otherwise fire at the exact same instant (thundering-herd after recovery).
+/// A `jitter_factor` of 0.2 means the delay is multiplied by a random value
+/// in [1.0, 1.2), so a 10s delay becomes 10–12s.
+fn apply_jitter(delay: Duration, jitter_factor: f64) -> Duration {
+    if jitter_factor <= 0.0 {
+        return delay;
+    }
+    let mut rng = rand::thread_rng();
+    let random: f64 = rng.r#gen();
+    let factor = 1.0 + random * jitter_factor;
+    delay.mul_f64(factor)
+}
 
 /// Row from a LEFT JOIN between subscription and retry_schedule.
 /// All fields are `Option` because the join produces NULLs when no schedule is assigned.
@@ -39,6 +54,7 @@ pub(crate) async fn compute_next_retry(
     attempt: &RequestAttempt,
     response: &Response,
     max_retries: u8,
+    jitter_factor: f64,
 ) -> Result<Option<Duration>, sqlx::Error> {
     match response.response_error {
         // Signing secret is broken — retrying won't help, so bail immediately
@@ -86,7 +102,7 @@ pub(crate) async fn compute_next_retry(
             .await?;
 
             match sub {
-                Some(info) => Ok(compute_scheduled_retry_delay(&info, attempt.retry_count, max_retries)),
+                Some(info) => Ok(compute_scheduled_retry_delay(&info, attempt.retry_count, max_retries, jitter_factor)),
                 None => Ok(None),
             }
         }
@@ -99,6 +115,7 @@ fn compute_scheduled_retry_delay(
     info: &SubscriptionRetrySchedule,
     retry_count: i16,
     global_max_retries: u8,
+    jitter_factor: f64,
 ) -> Option<Duration> {
     // Negative retry_count means a corrupt attempt record — bail out rather than panic on cast
     if retry_count < 0 {
@@ -124,7 +141,7 @@ fn compute_scheduled_retry_delay(
             };
             let secs = (base as f64) * factor.powi(i32::from(retry_count));
             let delay = Duration::try_from_secs_f64(secs).unwrap_or(MAX_RETRY_DELAY_SECS);
-            Some(delay.min(MAX_RETRY_DELAY_SECS))
+            Some(apply_jitter(delay, jitter_factor).min(MAX_RETRY_DELAY_SECS))
         }
         Some("linear") => {
             let Some(max) = info.max_retries else {
@@ -138,17 +155,19 @@ fn compute_scheduled_retry_delay(
                 tracing::warn!("Retry schedule has strategy 'linear' but linear_delay is NULL — skipping retry");
                 return None;
             };
-            Some(Duration::from_secs(delay_secs as u64))
+            Some(apply_jitter(Duration::from_secs(delay_secs as u64), jitter_factor).min(MAX_RETRY_DELAY_SECS))
         }
         Some("custom") => {
             let intervals = info.custom_intervals.as_deref().unwrap_or(&[]);
             intervals
                 .get(usize::try_from(retry_count).ok()?)
-                .map(|&d| Duration::from_secs(d as u64))
+                .map(|&d| apply_jitter(Duration::from_secs(d as u64), jitter_factor).min(MAX_RETRY_DELAY_SECS))
         }
         _ => {
             // Legacy path: subscriptions created before retry schedules have no schedule.
             // Fall back to the original hardcoded backoff so existing behavior is preserved.
+            // No jitter applied — these are well-known fixed delays, changing them would
+            // break expectations for existing deployments without retry schedules.
             compute_default_retry_delay(global_max_retries, retry_count)
         }
     }
@@ -248,10 +267,10 @@ mod tests {
             increasing_base_delay: Some(3),
             increasing_wait_factor: Some(3.0),
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), Some(Duration::from_secs(3)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 1, 25), Some(Duration::from_secs(9)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 2, 25), Some(Duration::from_secs(27)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 5, 25), None);
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25, 0.0), Some(Duration::from_secs(3)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 1, 25, 0.0), Some(Duration::from_secs(9)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 2, 25, 0.0), Some(Duration::from_secs(27)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 5, 25, 0.0), None);
     }
 
     #[test]
@@ -264,9 +283,9 @@ mod tests {
             increasing_base_delay: None,
             increasing_wait_factor: None,
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), Some(Duration::from_secs(120)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 2, 25), Some(Duration::from_secs(120)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 3, 25), None);
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25, 0.0), Some(Duration::from_secs(120)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 2, 25, 0.0), Some(Duration::from_secs(120)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 3, 25, 0.0), None);
     }
 
     #[test]
@@ -279,10 +298,10 @@ mod tests {
             increasing_base_delay: None,
             increasing_wait_factor: None,
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), Some(Duration::from_secs(10)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 1, 25), Some(Duration::from_secs(60)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 2, 25), Some(Duration::from_secs(300)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 3, 25), None);
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25, 0.0), Some(Duration::from_secs(10)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 1, 25, 0.0), Some(Duration::from_secs(60)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 2, 25, 0.0), Some(Duration::from_secs(300)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 3, 25, 0.0), None);
     }
 
     #[test]
@@ -295,9 +314,9 @@ mod tests {
             increasing_base_delay: None,
             increasing_wait_factor: None,
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), Some(Duration::from_secs(3)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 1, 25), Some(Duration::from_secs(10)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 25, 25), None);
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25, 0.0), Some(Duration::from_secs(3)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 1, 25, 0.0), Some(Duration::from_secs(10)));
+        assert_eq!(compute_scheduled_retry_delay(&info, 25, 25, 0.0), None);
     }
 
     #[test]
@@ -312,7 +331,7 @@ mod tests {
             increasing_base_delay: Some(3600),
             increasing_wait_factor: Some(10.0),
         };
-        let result = compute_scheduled_retry_delay(&info, 24, 25);
+        let result = compute_scheduled_retry_delay(&info, 24, 25, 0.0);
         assert_eq!(result, Some(MAX_RETRY_DELAY_SECS));
     }
 
@@ -326,7 +345,7 @@ mod tests {
             increasing_base_delay: Some(3),
             increasing_wait_factor: Some(3.0),
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), None);
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25, 0.0), None);
     }
 
     #[test]
@@ -339,7 +358,7 @@ mod tests {
             increasing_base_delay: None,
             increasing_wait_factor: None,
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), None);
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25, 0.0), None);
     }
 
     #[test]
@@ -352,7 +371,7 @@ mod tests {
             increasing_base_delay: None,
             increasing_wait_factor: None,
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, -1, 25), None);
+        assert_eq!(compute_scheduled_retry_delay(&info, -1, 25, 0.0), None);
     }
 
     #[test]
@@ -365,7 +384,7 @@ mod tests {
             increasing_base_delay: None,
             increasing_wait_factor: Some(3.0),
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), None);
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25, 0.0), None);
     }
 
     #[test]
@@ -378,7 +397,7 @@ mod tests {
             increasing_base_delay: Some(3),
             increasing_wait_factor: None,
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), None);
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25, 0.0), None);
     }
 
     #[test]
@@ -391,7 +410,24 @@ mod tests {
             increasing_base_delay: None,
             increasing_wait_factor: None,
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), None);
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25, 0.0), None);
+    }
+
+    #[test]
+    fn test_jitter_stays_within_bounds() {
+        let info = SubscriptionRetrySchedule {
+            strategy: Some("increasing".to_string()),
+            max_retries: Some(5),
+            custom_intervals: None,
+            linear_delay: None,
+            increasing_base_delay: Some(3),
+            increasing_wait_factor: Some(1.0),
+        };
+        for _ in 0..100 {
+            let delay = compute_scheduled_retry_delay(&info, 0, 5, 0.2).unwrap();
+            assert!(delay >= Duration::from_secs(3));
+            assert!(delay <= Duration::from_millis(3600));
+        }
     }
 
     // -- Integration tests (require DATABASE_URL) -----------------------------
@@ -510,7 +546,7 @@ mod tests {
 
         // Call compute_next_retry with a real DB connection
         let mut conn = pool.acquire().await.unwrap();
-        let result = compute_next_retry(&mut conn, &attempt, &response, 25)
+        let result = compute_next_retry(&mut conn, &attempt, &response, 25, 0.0)
             .await
             .unwrap();
 
@@ -526,7 +562,7 @@ mod tests {
             retry_count: 4,
             ..attempt.clone()
         };
-        let result_last = compute_next_retry(&mut conn, &attempt_last, &response, 25)
+        let result_last = compute_next_retry(&mut conn, &attempt_last, &response, 25, 0.0)
             .await
             .unwrap();
         assert_eq!(
@@ -540,7 +576,7 @@ mod tests {
             retry_count: 5,
             ..attempt.clone()
         };
-        let result_over = compute_next_retry(&mut conn, &attempt_over, &response, 25)
+        let result_over = compute_next_retry(&mut conn, &attempt_over, &response, 25, 0.0)
             .await
             .unwrap();
         assert_eq!(

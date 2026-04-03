@@ -168,6 +168,11 @@ struct Config {
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "8d")]
     max_retry_window: Duration,
 
+    /// Jitter factor applied to retry delays (0.0 = no jitter, 0.2 = up to +20%).
+    /// Prevents thundering-herd when many subscriptions recover simultaneously.
+    #[clap(long, env, default_value = "0.2")]
+    retry_jitter_factor: f64,
+
     /// Heartbeat URL that should be called regularly
     #[clap(long, env)]
     monitoring_heartbeat_url: Option<Url>,

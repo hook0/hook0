@@ -579,7 +579,7 @@ async fn handle_message(
 
                         // Creating a retry request or giving up
                         if let Some(retry_in) =
-                            compute_next_retry(&mut tx, &attempt, &response, config.max_retries)
+                            compute_next_retry(&mut tx, &attempt, &response, config.max_retries, config.retry_jitter_factor)
                                 .await?
                         {
                             let next_retry_count = attempt.retry_count + 1;

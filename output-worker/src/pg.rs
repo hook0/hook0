@@ -294,6 +294,7 @@ pub async fn look_for_work(
                         &attempt_with_payload,
                         &response,
                         config.max_retries,
+                        config.retry_jitter_factor,
                     )
                     .await?
                     {
