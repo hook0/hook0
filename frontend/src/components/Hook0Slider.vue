@@ -1,7 +1,10 @@
 <script setup lang="ts">
 // Generic range slider with label, formatted display value, and error state. Uses a CSS custom property (--progress) to paint the filled track portion.
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { parseDuration } from '@/utils/parseDuration';
+
+const { t } = useI18n();
 
 type Props = {
   modelValue: number;
@@ -62,12 +65,12 @@ function confirmEdit() {
   const parsed = parseDuration(editText.value);
   if (parsed === null) {
     editError.value = true;
-    editErrorMessage.value = `Expected: 1s, 5min, 1h30min, 2d`;
+    editErrorMessage.value = t('slider.formatHint');
     return;
   }
   if (parsed < props.min || parsed > props.max) {
     editError.value = true;
-    editErrorMessage.value = `Range: ${props.min}s – ${props.max}s`;
+    editErrorMessage.value = t('slider.rangeError', { min: props.min, max: props.max });
     return;
   }
   emit('update:modelValue', parsed);

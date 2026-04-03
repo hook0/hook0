@@ -45,7 +45,7 @@ export function formatDelaySummary(schedule: RetrySchedule, t: TranslateFn): str
  * strategyLabel('increasing', t)
  * // => "Increasing"
  */
-export function strategyLabel(strategy: string, t: TranslateFn): string {
+export function strategyLabel(strategy: RetrySchedule['strategy'], t: TranslateFn): string {
   switch (strategy) {
     case 'increasing':
       return t('retrySchedules.strategyIncreasing');

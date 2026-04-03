@@ -32,8 +32,7 @@ import Hook0CardSkeleton from '@/components/Hook0CardSkeleton.vue';
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const { organizationId, applicationId } = useRouteIds();
-const subscriptionId = computed(() => route.params.subscription_id as string);
+const { organizationId, applicationId, subscriptionId } = useRouteIds();
 
 // --- Data queries ---
 const {
@@ -50,16 +49,14 @@ const {
   refetch: deliveriesRefetch,
 } = useLogListBySubscription(applicationId, subscriptionId);
 
-const {
-  data: healthEvents,
-  isLoading: healthLoading,
-} = useSubscriptionHealthEvents(subscriptionId, organizationId);
+const { data: healthEvents, isLoading: healthLoading } = useSubscriptionHealthEvents(
+  subscriptionId,
+  organizationId
+);
 
 // Remove the "subscription" column — redundant on a page scoped to a single subscription
 const allLogColumns = useLogColumns();
-const logColumns = computed(() =>
-  allLogColumns.filter((col) => col.id !== 'subscription')
-);
+const logColumns = computed(() => allLogColumns.filter((col) => col.id !== 'subscription'));
 
 // Side panel for delivery detail
 const sidePanelOpen = ref(false);
@@ -78,21 +75,21 @@ const showMergedEmptyState = computed(() => {
   return noDeliveries && noHealth;
 });
 
+function targetIsHttp(target: object): target is { type: string; method: string; url: string } {
+  return 'type' in target && target.type === 'http';
+}
+
 const httpTarget = computed(() => {
   const target = subscription.value?.target;
-  if (!target || !('type' in target) || target.type !== 'http') return null;
-  return target as unknown as { type: string; method: string; url: string };
+  if (!target || !targetIsHttp(target)) return null;
+  return target;
 });
 </script>
 
 <template>
   <Hook0PageLayout :title="t('subscriptionDetail.title')">
     <!-- Error state -->
-    <Hook0ErrorCard
-      v-if="subError && !subLoading"
-      :error="subError"
-      @retry="subRefetch()"
-    />
+    <Hook0ErrorCard v-if="subError && !subLoading" :error="subError" @retry="subRefetch()" />
 
     <!-- Loading skeleton -->
     <template v-else-if="subLoading || !subscription">
@@ -109,9 +106,7 @@ const httpTarget = computed(() => {
             {{ subscription.description || t('subscriptions.noDescription') }}
           </template>
           <template #actions>
-            <Hook0HealthBadge
-              :failure-percent="(subscription as Record<string, unknown>).failure_percent as number | null ?? null"
-            />
+            <Hook0HealthBadge :failure-percent="subscription.failure_percent ?? null" />
             <Hook0Button
               variant="secondary"
               type="button"

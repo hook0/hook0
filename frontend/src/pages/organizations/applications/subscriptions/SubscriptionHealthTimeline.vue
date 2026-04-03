@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
+import i18n from '@/plugins/i18n';
 import type { HealthEvent } from './SubscriptionHealthService';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 
@@ -17,10 +18,13 @@ const statusVariantMap: Record<string, BadgeVariant> = {
   disabled: 'danger',
 };
 
-const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+function getRelativeTimeFormat(): Intl.RelativeTimeFormat {
+  return new Intl.RelativeTimeFormat(i18n.global.locale.value, { numeric: 'auto' });
+}
 
 /** Format a date as a human-readable relative string (e.g. "3 hours ago") */
 function relativeDate(iso: string): string {
+  const rtf = getRelativeTimeFormat();
   const diffMs = new Date(iso).getTime() - Date.now();
   const diffMin = Math.round(diffMs / 60_000);
   if (Math.abs(diffMin) < 60) return rtf.format(diffMin, 'minute');
@@ -48,7 +52,7 @@ function relativeDate(iso: string): string {
           {{ t(`subscriptionDetail.healthStatus.${event.status}`) }}
         </Hook0Badge>
         <Hook0Badge variant="default" size="sm">
-          {{ event.source }}
+          {{ t('subscriptionDetail.healthSource.' + event.source) }}
         </Hook0Badge>
         <span class="health-timeline__date">
           {{ relativeDate(event.created_at) }}
@@ -99,12 +103,6 @@ function relativeDate(iso: string): string {
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
-}
-
-.health-timeline__status {
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: var(--color-text-primary);
 }
 
 .health-timeline__date {

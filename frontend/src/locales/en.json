@@ -761,6 +761,10 @@
   "sidebar": {
     "logout": "Sign out"
   },
+  "slider": {
+    "formatHint": "Expected: 1s, 5min, 1h30min, 2d",
+    "rangeError": "Must be between {min} and {max}"
+  },
   "subscriptions": {
     "authenticateWebhooks": "verify webhook signatures",
     "fields": {
@@ -1062,7 +1066,8 @@
     }
   },
   "subscriptionDetail": {
-    "title": "Subscription Details",
+    "title": "Subscription",
+    "edit": "Edit",
     "editAction": "Edit",
     "sectionHealth": "Delivery Health",
     "sectionConfig": "Configuration",
@@ -1078,11 +1083,7 @@
     "statusFailed": "Failed",
     "statusColumn": "Status",
     "dateColumn": "Date",
-    "retryCountColumn": "Retry"
-  },
-  "subscriptionDetail": {
-    "title": "Subscription",
-    "edit": "Edit",
+    "retryCountColumn": "Retry",
     "deliveries": "Recent Deliveries",
     "deliveriesEmpty": "No deliveries in the last 7 days",
     "healthTimeline": "Health Timeline",
@@ -1096,6 +1097,10 @@
       "warning": "Warning",
       "disabled": "Disabled",
       "resolved": "Resolved"
+    },
+    "healthSource": {
+      "system": "System",
+      "user": "User"
     }
   },
   "health": {

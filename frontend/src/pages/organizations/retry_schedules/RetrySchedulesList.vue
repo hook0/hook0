@@ -85,7 +85,7 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
     header: t('retrySchedules.strategyColumn'),
     cell: (info) =>
       h(Hook0Badge, { variant: 'info', size: 'sm' }, () =>
-        strategyLabel(info.getValue<string>(), t)
+        strategyLabel(info.getValue<RetrySchedule['strategy']>(), t)
       ),
   },
   {
