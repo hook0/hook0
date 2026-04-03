@@ -7,17 +7,9 @@ use hook0_protobuf::RequestAttempt;
 
 use crate::work::{Response, ResponseError};
 
-/// Defensive fallback for increasing base_delay when DB value is unexpectedly NULL.
-/// Should never be reached — DB CHECK constraint enforces increasing_base_delay IS NOT NULL for increasing strategy.
-const FALLBACK_INCREASING_BASE_DELAY_SECS: i32 = 3;
-
-/// Defensive fallback for increasing wait_factor when DB value is unexpectedly NULL.
-/// Should never be reached — DB CHECK constraint enforces increasing_wait_factor IS NOT NULL for increasing strategy.
-const FALLBACK_INCREASING_WAIT_FACTOR: f64 = 3.0;
-
-/// Defensive fallback for linear delay when DB value is unexpectedly NULL.
-/// Should never be reached — DB CHECK constraint enforces linear_delay IS NOT NULL for linear strategy.
-const FALLBACK_LINEAR_DELAY_SECS: i32 = 60;
+/// Maximum delay cap for any single retry (7 days).
+/// Prevents overflow from increasing strategy with high base_delay * wait_factor^n.
+const MAX_RETRY_DELAY: Duration = Duration::from_secs(7 * 24 * 3600);
 
 #[derive(Debug, sqlx::FromRow)]
 pub(crate) struct SubscriptionRetrySchedule {
@@ -88,10 +80,6 @@ pub(crate) async fn compute_next_retry(
 
 /// Computes the retry delay based on the subscription's assigned retry schedule.
 /// Falls back to the default hardcoded backoff when no schedule is assigned.
-/// Maximum delay cap for any single retry (7 days).
-/// Prevents overflow from increasing strategy with high base_delay × wait_factor^n.
-const MAX_RETRY_DELAY: Duration = Duration::from_secs(604_800);
-
 fn compute_scheduled_retry_delay(
     info: &SubscriptionRetrySchedule,
     retry_count: i16,
@@ -110,9 +98,15 @@ fn compute_scheduled_retry_delay(
             if retry_count >= max as i16 {
                 return None;
             }
-            let base = info.increasing_base_delay.unwrap_or(FALLBACK_INCREASING_BASE_DELAY_SECS) as f64;
-            let factor = info.increasing_wait_factor.unwrap_or(FALLBACK_INCREASING_WAIT_FACTOR);
-            let secs = base * factor.powi(i32::from(retry_count));
+            let Some(base) = info.increasing_base_delay else {
+                tracing::warn!("Retry schedule has strategy 'increasing' but increasing_base_delay is NULL — skipping retry");
+                return None;
+            };
+            let Some(factor) = info.increasing_wait_factor else {
+                tracing::warn!("Retry schedule has strategy 'increasing' but increasing_wait_factor is NULL — skipping retry");
+                return None;
+            };
+            let secs = (base as f64) * factor.powi(i32::from(retry_count));
             let delay = Duration::try_from_secs_f64(secs).unwrap_or(MAX_RETRY_DELAY);
             Some(delay.min(MAX_RETRY_DELAY))
         }
@@ -124,8 +118,11 @@ fn compute_scheduled_retry_delay(
             if retry_count >= max as i16 {
                 return None;
             }
-            let delay = info.linear_delay.unwrap_or(FALLBACK_LINEAR_DELAY_SECS) as u64;
-            Some(Duration::from_secs(delay))
+            let Some(delay_secs) = info.linear_delay else {
+                tracing::warn!("Retry schedule has strategy 'linear' but linear_delay is NULL — skipping retry");
+                return None;
+            };
+            Some(Duration::from_secs(delay_secs as u64))
         }
         Some("custom") => {
             let intervals = info.custom_intervals.as_deref().unwrap_or(&[]);
@@ -335,7 +332,46 @@ mod tests {
         assert_eq!(compute_scheduled_retry_delay(&info, -1, 25), None);
     }
 
-    // ── Integration tests (require DATABASE_URL) ────────────────────────
+    #[test]
+    fn null_increasing_base_delay_returns_none() {
+        let info = SubscriptionRetrySchedule {
+            strategy: Some("increasing".to_string()),
+            max_retries: Some(5),
+            custom_intervals: None,
+            linear_delay: None,
+            increasing_base_delay: None,
+            increasing_wait_factor: Some(3.0),
+        };
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), None);
+    }
+
+    #[test]
+    fn null_increasing_wait_factor_returns_none() {
+        let info = SubscriptionRetrySchedule {
+            strategy: Some("increasing".to_string()),
+            max_retries: Some(5),
+            custom_intervals: None,
+            linear_delay: None,
+            increasing_base_delay: Some(3),
+            increasing_wait_factor: None,
+        };
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), None);
+    }
+
+    #[test]
+    fn null_linear_delay_returns_none() {
+        let info = SubscriptionRetrySchedule {
+            strategy: Some("linear".to_string()),
+            max_retries: Some(3),
+            custom_intervals: None,
+            linear_delay: None,
+            increasing_base_delay: None,
+            increasing_wait_factor: None,
+        };
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), None);
+    }
+
+    // -- Integration tests (require DATABASE_URL) -----------------------------
 
     async fn setup_test_pool() -> Option<sqlx::PgPool> {
         let url = std::env::var("DATABASE_URL").ok()?;

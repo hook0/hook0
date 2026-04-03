@@ -47,17 +47,19 @@ create index idx_subscription_health_bucket_open
     on webhook.subscription_health_bucket(subscription__id)
     where bucket_end is null;
 
--- Watermark singleton for delta processing
-create table webhook.health_monitor_watermark (
-    watermark__id integer primary key default 1 check (watermark__id = 1),
+-- Cursor singleton: a bookmark that tracks the last delivery timestamp we've processed.
+-- On each tick the health monitor only reads deliveries newer than this cursor, avoiding
+-- a full table scan of request_attempt every time.
+create table webhook.health_monitor_cursor (
+    cursor__id integer primary key default 1 check (cursor__id = 1),
     last_processed_at timestamptz not null default '-infinity'
 );
-insert into webhook.health_monitor_watermark default values
+insert into webhook.health_monitor_cursor default values
     on conflict do nothing;
 
--- Expression index for watermark-based delta scan.
+-- Expression index for cursor-based delta scan.
 -- Uses COALESCE(succeeded_at, failed_at) because rows complete asynchronously — a row created
--- before the watermark may complete after it. This prevents losing in-flight deliveries.
+-- before the cursor may complete after it. This prevents losing in-flight deliveries.
 create index if not exists idx_request_attempt_completed_at
     on webhook.request_attempt (coalesce(succeeded_at, failed_at))
     where succeeded_at is not null or failed_at is not null;

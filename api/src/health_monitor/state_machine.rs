@@ -1,3 +1,18 @@
+//! Subscription health state machine.
+//!
+//! Evaluates a subscription's current failure rate against its previous health
+//! status and decides what action to take. The health monitor calls this once
+//! per suspect subscription on each tick.
+//!
+//! State transitions:
+//!   No previous state + high failure       -> emit Warning
+//!   No previous state + very high failure   -> emit Warning then Disable
+//!   Warning + still failing (same level)    -> do nothing (already warned)
+//!   Warning + even higher failure           -> Disable
+//!   Warning + recovered (failure dropped)   -> Resolved
+//!   Disabled                                -> do nothing (user must re-enable manually)
+//!   Resolved + within cooldown              -> do nothing (avoid email spam)
+
 use chrono::{DateTime, Utc};
 use tracing::info;
 use uuid::Uuid;
@@ -8,14 +23,20 @@ use super::evaluation::SubscriptionHealth;
 use super::notifications::{HealthAction, HealthActionInfo};
 use super::types::{HealthEventSource, HealthStatus};
 
-/// Evaluates a single subscription's health and determines state transitions.
+/// Evaluates a single subscription's health and determines what actions to take.
 ///
-/// State machine:
-///   - `None` / `resolved` + high failure → insert `warning` event
-///   - `warning` + even higher failure → disable subscription
-///   - `warning` + low failure → insert `resolved` event
-///   - `disabled` → no-op (manual re-enable required)
-///   - `resolved` within cooldown → no-op (prevent email spam)
+/// This is the core decision function. It looks at:
+/// - The subscription's current failure_percent (from bucket aggregation)
+/// - Its last health event (warning / disabled / resolved / none)
+/// - The configured thresholds (warning_failure_percent, disable_failure_percent)
+///
+/// Side-effects (within the transaction):
+/// - Persists failure_percent to the subscription table (for frontend display)
+/// - Inserts health events (warning, disabled, resolved)
+/// - Disables the subscription if failure is extreme
+///
+/// Returns a list of HealthActions that the caller dispatches as side-effects
+/// (emails, Hook0 events) after the transaction commits.
 pub async fn evaluate_health_transition(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     config: &HealthMonitorConfig,
@@ -29,7 +50,7 @@ pub async fn evaluate_health_transition(
 
     let mut actions = Vec::new();
 
-    // Persist current failure_percent to subscription table for frontend display
+    // Always persist the current failure rate so the frontend can show it
     sqlx::query("UPDATE webhook.subscription SET failure_percent = $1 WHERE subscription__id = $2")
         .bind(failure_percent)
         .bind(subscription.subscription_id)
@@ -37,17 +58,25 @@ pub async fn evaluate_health_transition(
         .await?;
 
     match last_status {
+        // Already disabled by the health monitor — user must re-enable manually.
+        // We don't touch it again to avoid overriding a deliberate user action.
         Some(HealthStatus::Disabled) => {}
 
+        // Recently resolved (within cooldown period) — skip to avoid spamming
+        // the user with warning -> resolved -> warning -> resolved emails.
         Some(HealthStatus::Resolved)
             if last_at.is_some_and(|at| {
                 (Utc::now() - at)
                     < chrono::Duration::from_std(config.warning_cooldown).unwrap_or_default()
             }) => {}
 
+        // Already warned and failure rate is in the same range (still bad but
+        // not bad enough to disable) — nothing new to tell the user.
         Some(HealthStatus::Warning)
             if failure_percent >= warning_percent && failure_percent < disable_percent => {}
 
+        // Was warned but failure rate dropped below the warning threshold — the
+        // endpoint recovered. Insert a "resolved" event and notify the user.
         Some(HealthStatus::Warning) if failure_percent < warning_percent => {
             // Skip recovery email if the last event was a manual user action (re-enable via API) —
             // the user already knows about it. Only send recovery email for system-originated events.
@@ -66,6 +95,7 @@ pub async fn evaluate_health_transition(
             }
         }
 
+        // Was warned and failure rate climbed above the disable threshold — shut it down.
         Some(HealthStatus::Warning) => {
             let disabled_at = disable_subscription(transaction, subscription).await?;
             if let Some(at) = disabled_at {
@@ -76,6 +106,8 @@ pub async fn evaluate_health_transition(
             }
         }
 
+        // No previous health state (or resolved outside cooldown) and failure rate
+        // is extremely high — warn AND disable in a single tick.
         _ if failure_percent >= disable_percent => {
             insert_health_event(
                 transaction,
@@ -98,6 +130,8 @@ pub async fn evaluate_health_transition(
             }
         }
 
+        // No previous health state and failure rate crossed the warning threshold —
+        // send a warning email so the user can investigate before we disable.
         _ if failure_percent >= warning_percent => {
             insert_health_event(
                 transaction,
@@ -113,6 +147,7 @@ pub async fn evaluate_health_transition(
             )));
         }
 
+        // Failure rate is below the warning threshold and no prior state — healthy, nothing to do.
         _ => {}
     }
 
@@ -143,7 +178,10 @@ pub async fn insert_health_event(
 }
 
 /// Disables a subscription and inserts a 'disabled' health event atomically.
-/// Returns `Some(disabled_at)` if it actually disabled, `None` if already disabled.
+///
+/// Uses a single CTE so that if the subscription was already disabled (e.g. by
+/// the user between ticks), we don't insert a duplicate event. Returns
+/// `Some(disabled_at)` only if we actually flipped is_enabled from true to false.
 async fn disable_subscription(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     subscription: &SubscriptionHealth,

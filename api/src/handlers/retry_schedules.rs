@@ -182,8 +182,8 @@ fn require_range(
     }
 }
 
-/// Cross-field validation for retry schedule strategy. Shared logic called by
-/// `RetrySchedulePost::validate_strategy` and `RetrySchedulePut::validate_strategy`.
+/// Cross-field validation for retry schedule strategy. Called by the validator
+/// crate via `#[validate(schema(function = "..."))]` on Post and Put structs.
 /// This is a free function (not a trait) because the `validator` crate's
 /// `#[validate(schema(function = "Self::validate_strategy"))]` resolves to an
 /// inherent method — it does not support trait method paths.

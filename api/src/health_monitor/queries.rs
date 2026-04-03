@@ -4,17 +4,21 @@ use uuid::Uuid;
 use super::HealthMonitorConfig;
 use super::types::{HealthEventSource, HealthStatus};
 
-/// Delta row returned by the watermark-based scan of request_attempt.
+/// One row per subscription from the delta scan: how many deliveries completed
+/// since the cursor, split into total vs failed.
 #[derive(Debug, sqlx::FromRow)]
 pub struct DeltaRow {
     pub subscription_id: Uuid,
     pub total: i64,
     pub failed: i64,
+    /// The latest completion timestamp in this batch — used to advance the cursor
+    /// after the transaction commits so the next tick skips these rows.
     pub max_completed_at: Option<DateTime<Utc>>,
 }
 
-/// Subscription health data fetched from the database, including failure rate,
-/// latest health event status, and retry schedule configuration.
+/// All the data the state machine needs to decide whether to warn, disable,
+/// or resolve a subscription: its failure rate, its latest health event,
+/// and its retry schedule (included so notification emails can reference it).
 #[derive(Debug, sqlx::FromRow)]
 pub struct SubscriptionHealth {
     pub subscription_id: Uuid,
@@ -39,21 +43,32 @@ pub struct SubscriptionHealth {
     pub retry_increasing_wait_factor: Option<f64>,
 }
 
-/// Reads the current watermark timestamp from the singleton table.
-pub async fn read_watermark(
+/// Reads the cursor — the timestamp of the last delivery we've already processed.
+/// Everything newer than this value is "new work" for the current tick.
+///
+/// The cursor lives in a singleton table (exactly one row, enforced by a CHECK
+/// constraint on the primary key). It starts at '-infinity' so the first tick
+/// picks up all historical deliveries.
+pub async fn read_cursor(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
 ) -> Result<DateTime<Utc>, sqlx::Error> {
     sqlx::query_scalar(
-        "SELECT last_processed_at FROM webhook.health_monitor_watermark WHERE watermark__id = 1",
+        "SELECT last_processed_at FROM webhook.health_monitor_cursor WHERE cursor__id = 1",
     )
     .fetch_one(&mut **tx)
     .await
 }
 
-/// Ingests deltas from request_attempt since the given watermark (capped at 50 000 rows).
+/// Scans request_attempt for deliveries completed after the cursor.
+///
+/// Groups results by subscription so we get one row per subscription with
+/// (total_count, failed_count, max_completed_at). The LIMIT caps the batch
+/// size to avoid long-running queries on high-traffic instances — any
+/// remaining rows will be picked up on the next tick.
 pub async fn ingest_deltas(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    watermark: DateTime<Utc>,
+    cursor: DateTime<Utc>,
+    max_rows: u32,
 ) -> Result<Vec<DeltaRow>, sqlx::Error> {
     sqlx::query_as::<_, DeltaRow>(
         r#"
@@ -63,7 +78,7 @@ pub async fn ingest_deltas(
             WHERE COALESCE(succeeded_at, failed_at) > $1
               AND (succeeded_at IS NOT NULL OR failed_at IS NOT NULL)
             ORDER BY COALESCE(succeeded_at, failed_at)
-            LIMIT 50000
+            LIMIT $2
         )
         SELECT subscription__id AS subscription_id,
                COUNT(*) AS total,
@@ -73,62 +88,86 @@ pub async fn ingest_deltas(
         GROUP BY subscription__id
         "#,
     )
-    .bind(watermark)
+    .bind(cursor)
+    .bind(max_rows as i64)
     .fetch_all(&mut **tx)
     .await
 }
 
-/// Upserts delta counts into open health buckets (bulk via unnest).
+/// Adds new delivery results to each subscription's current open bucket.
+///
+/// Two-step approach:
+/// 1. Fetch each subscription's currently open bucket (if any) in one query
+/// 2. Bulk upsert all delivery counts using QueryBuilder::push_values
+///
+/// For subscriptions without an open bucket, a new one is created starting now.
+/// The ON CONFLICT clause adds counts to existing buckets rather than replacing.
 pub async fn upsert_buckets(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     deltas: &[DeltaRow],
 ) -> Result<(), sqlx::Error> {
-    let sub_ids: Vec<Uuid> = deltas.iter().map(|d| d.subscription_id).collect();
-    let totals: Vec<i32> = deltas
-        .iter()
-        .map(|d| d.total.min(i32::MAX as i64) as i32)
-        .collect();
-    let faileds: Vec<i32> = deltas
-        .iter()
-        .map(|d| d.failed.min(i32::MAX as i64) as i32)
-        .collect();
+    if deltas.is_empty() {
+        return Ok(());
+    }
 
-    sqlx::query(
+    let sub_ids: Vec<Uuid> = deltas.iter().map(|d| d.subscription_id).collect();
+    let now = Utc::now();
+
+    // Step 1: Find open buckets for all subscriptions in one query
+    let open_rows: Vec<(Uuid, DateTime<Utc>)> = sqlx::query_as(
         r#"
-        WITH open_buckets AS (
-            SELECT subscription__id, bucket_start
-            FROM webhook.subscription_health_bucket
-            WHERE subscription__id = ANY($1)
-              AND bucket_end IS NULL
-        ),
-        deltas AS (
-            SELECT * FROM unnest($1::uuid[], $2::int[], $3::int[])
-                AS t(subscription__id, total, failed)
-        )
-        INSERT INTO webhook.subscription_health_bucket
-            (subscription__id, bucket_start, total_count, failed_count)
-        SELECT d.subscription__id,
-               COALESCE(ob.bucket_start, now()),
-               d.total,
-               d.failed
-        FROM deltas d
-        LEFT JOIN open_buckets ob USING (subscription__id)
-        ON CONFLICT (subscription__id, bucket_start)
-        DO UPDATE SET
-            total_count = subscription_health_bucket.total_count + EXCLUDED.total_count,
-            failed_count = subscription_health_bucket.failed_count + EXCLUDED.failed_count
+        SELECT subscription__id, bucket_start
+        FROM webhook.subscription_health_bucket
+        WHERE subscription__id = ANY($1)
+          AND bucket_end IS NULL
         "#,
     )
     .bind(&sub_ids)
-    .bind(&totals)
-    .bind(&faileds)
-    .execute(&mut **tx)
+    .fetch_all(&mut **tx)
     .await?;
+
+    let open_buckets: std::collections::HashMap<Uuid, DateTime<Utc>> =
+        open_rows.into_iter().collect();
+
+    // Step 2: Bulk upsert — one INSERT with multiple VALUES rows
+    let mut qb: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new(
+        "INSERT INTO webhook.subscription_health_bucket (subscription__id, bucket_start, total_count, failed_count) ",
+    );
+
+    qb.push_values(deltas, |mut b, d| {
+        let bucket_start = open_buckets
+            .get(&d.subscription_id)
+            .copied()
+            .unwrap_or(now);
+        b.push_bind(d.subscription_id)
+            .push_bind(bucket_start)
+            .push_bind(d.total.min(i32::MAX as i64) as i32)
+            .push_bind(d.failed.min(i32::MAX as i64) as i32);
+    });
+
+    qb.push(
+        " ON CONFLICT (subscription__id, bucket_start) DO UPDATE SET \
+         total_count = subscription_health_bucket.total_count + EXCLUDED.total_count, \
+         failed_count = subscription_health_bucket.failed_count + EXCLUDED.failed_count",
+    );
+
+    qb.build().execute(&mut **tx).await?;
 
     Ok(())
 }
 
-/// Closes buckets that have exceeded their duration or message cap.
+/// Closes buckets that are "full" — either they've been open too long (exceeded
+/// the configured duration) or they contain too many deliveries (exceeded the
+/// configured max message count).
+///
+/// A closed bucket (bucket_end IS NOT NULL) is frozen: no more delivery results
+/// will be added to it. New deliveries for that subscription will go into a
+/// fresh bucket on the next tick.
+///
+/// Why close buckets? Without closing, a single bucket would grow indefinitely.
+/// Closing creates discrete time windows that let us compute failure rates
+/// over a sliding window (e.g., "failure rate in the last hour" = sum of
+/// the last 12 five-minute buckets).
 pub async fn close_full_buckets(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     config: &HealthMonitorConfig,
@@ -153,8 +192,13 @@ pub async fn close_full_buckets(
     Ok(result.rows_affected())
 }
 
-/// Finds suspect subscription IDs: those with high failure counts in recent
-/// buckets UNION those currently in warning status.
+/// Find subscriptions that might need a health warning or to be disabled:
+/// those with high failure counts in recent buckets UNION those currently
+/// in warning status (so we can check if they've recovered).
+///
+/// The UNION with warned subscriptions is critical: without it, a subscription
+/// that was warned but then stopped failing would never get a "resolved" event
+/// because it wouldn't appear in the bucket-based query anymore.
 pub async fn find_suspects(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     config: &HealthMonitorConfig,
@@ -186,8 +230,14 @@ pub async fn find_suspects(
     .await
 }
 
-/// Computes failure rates for suspect subscriptions, joining subscription
-/// details, latest health event, and retry schedule configuration.
+/// Computes each suspect subscription's failure rate over the sliding window,
+/// and joins in all the context needed for the state machine and notifications:
+/// subscription details, latest health event, target URL, and retry schedule.
+///
+/// The failure rate formula: SUM(failed_count) / SUM(total_count) * 100.
+/// Only buckets within the configured time_window are included.
+/// Subscriptions with fewer total deliveries than min_sample_size are excluded
+/// to avoid false positives on low-traffic endpoints.
 pub async fn compute_failure_rates(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     suspect_ids: &[Uuid],

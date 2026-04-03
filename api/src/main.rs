@@ -511,6 +511,11 @@ struct Config {
     #[clap(long, env, default_value_t = 7)]
     health_monitor_bucket_retention_days: u32,
 
+    /// [Housekeeping] Maximum number of request_attempt rows to scan per health monitor tick.
+    /// Limits query duration on high-traffic instances; remaining rows are picked up on the next tick.
+    #[clap(long, env, default_value_t = 50_000)]
+    health_monitor_max_delta_rows_per_tick: u32,
+
     /// [Web Server] If true, the secured HTTP headers will be enabled
     #[clap(long, env, default_value = "true")]
     enable_security_headers: bool,
@@ -1127,6 +1132,7 @@ async fn main() -> anyhow::Result<()> {
                 bucket_duration: config.health_monitor_bucket_duration,
                 bucket_max_messages: config.health_monitor_bucket_max_messages,
                 bucket_retention_days: config.health_monitor_bucket_retention_days,
+                max_delta_rows_per_tick: config.health_monitor_max_delta_rows_per_tick,
             };
             actix_web::rt::spawn(async move {
                 health_monitor::run_health_monitor(

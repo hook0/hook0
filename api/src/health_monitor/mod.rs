@@ -31,6 +31,7 @@ pub struct HealthMonitorConfig {
     pub bucket_duration: Duration,
     pub bucket_max_messages: u32,
     pub bucket_retention_days: u32,
+    pub max_delta_rows_per_tick: u32,
 }
 
 /// Runs the health monitor loop.
@@ -130,16 +131,17 @@ async fn run_health_check(
             }
         }
 
-        // Reset failure_percent for non-suspect subscriptions
+        // Reset failure_percent for non-suspect subscriptions so the frontend
+        // doesn't show stale failure data on now-healthy endpoints.
         let suspect_ids: Vec<uuid::Uuid> = subscriptions
             .iter()
             .map(|s| s.subscription_id)
             .collect();
         evaluation::reset_healthy_failure_percent(&mut transaction, &suspect_ids).await?;
 
-        // Advance watermark if we processed any deltas
-        if let Some(wm) = max_completed_at {
-            evaluation::advance_watermark(&mut transaction, wm).await?;
+        // Advance the cursor so the next tick only looks at newer deliveries
+        if let Some(ts) = max_completed_at {
+            evaluation::advance_cursor(&mut transaction, ts).await?;
         }
 
         transaction.commit().await?;
