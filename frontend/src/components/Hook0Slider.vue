@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Generic range slider with label, formatted display value, and error state. Uses a CSS custom property (--progress) to paint the filled track portion.
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { parseDuration } from '@/utils/parseDuration';
 
 type Props = {
   modelValue: number;
@@ -10,6 +11,7 @@ type Props = {
   label?: string;
   error?: string;
   formatValue?: (value: number) => string;
+  editable?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -17,6 +19,7 @@ const props = withDefaults(defineProps<Props>(), {
   label: undefined,
   error: undefined,
   formatValue: undefined,
+  editable: false,
 });
 
 const emit = defineEmits<{
@@ -38,13 +41,69 @@ function onInput(event: Event) {
   const target = event.target as HTMLInputElement;
   emit('update:modelValue', Number(target.value));
 }
+
+// Inline text editing — lets users type exact values like "1h30min" instead of dragging the slider
+const isEditing = ref(false);
+const editText = ref('');
+const editError = ref(false);
+const editErrorMessage = ref('');
+
+function startEditing() {
+  if (!props.editable) {
+    return;
+  }
+  editText.value = displayValue.value;
+  editError.value = false;
+  editErrorMessage.value = '';
+  isEditing.value = true;
+}
+
+function confirmEdit() {
+  const parsed = parseDuration(editText.value);
+  if (parsed === null) {
+    editError.value = true;
+    editErrorMessage.value = `Expected: 1s, 5min, 1h30min, 2d`;
+    return;
+  }
+  if (parsed < props.min || parsed > props.max) {
+    editError.value = true;
+    editErrorMessage.value = `Range: ${props.min}s – ${props.max}s`;
+    return;
+  }
+  emit('update:modelValue', parsed);
+  isEditing.value = false;
+  editError.value = false;
+}
+
+function cancelEdit() {
+  isEditing.value = false;
+  editError.value = false;
+}
 </script>
 
 <template>
   <div class="hook0-slider">
     <div v-if="label" class="hook0-slider__header">
       <label class="hook0-slider__label">{{ label }}</label>
-      <span class="hook0-slider__value">{{ displayValue }}</span>
+      <div v-if="isEditing" class="hook0-slider__edit-wrapper">
+        <input
+          v-model="editText"
+          class="hook0-slider__edit-input"
+          :class="{ 'hook0-slider__edit-input--error': editError }"
+          autofocus
+          @keydown.enter="confirmEdit"
+          @keydown.escape="cancelEdit"
+        />
+        <p v-if="editError" class="hook0-slider__edit-error">{{ editErrorMessage }}</p>
+      </div>
+      <span
+        v-else
+        class="hook0-slider__value"
+        :class="{ 'hook0-slider__value--editable': editable }"
+        @click="startEditing"
+      >
+        {{ displayValue }}
+      </span>
     </div>
     <input
       type="range"
@@ -140,5 +199,47 @@ function onInput(event: Event) {
 .hook0-slider__error {
   font-size: 0.8125rem;
   color: var(--color-error);
+}
+
+.hook0-slider__value--editable {
+  cursor: text;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.hook0-slider__value--editable:hover {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.hook0-slider__edit-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.125rem;
+}
+
+.hook0-slider__edit-input {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+  background: none;
+  border: none;
+  border-bottom: 2px solid var(--color-primary);
+  outline: none;
+  width: 6rem;
+  text-align: right;
+  padding: 0;
+}
+
+.hook0-slider__edit-input--error {
+  border-bottom-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.hook0-slider__edit-error {
+  font-size: 0.6875rem;
+  color: var(--color-error);
+  margin: 0;
 }
 </style>

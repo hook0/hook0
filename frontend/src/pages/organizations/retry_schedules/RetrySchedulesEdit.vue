@@ -349,6 +349,7 @@ const pageTitle = computed(() =>
                   :max="SLIDER_MAX_BASE_DELAY"
                   :label="t('retrySchedules.fields.increasingBaseDelay')"
                   :format-value="formatDuration"
+                  :editable="true"
                   :error="errors.increasing_base_delay"
                   @update:model-value="increasingBaseDelay = $event"
                 />
@@ -381,6 +382,7 @@ const pageTitle = computed(() =>
                   :step="1"
                   :label="t('retrySchedules.fields.linearDelay')"
                   :format-value="formatDuration"
+                  :editable="true"
                   :error="errors.linear_delay"
                   @update:model-value="linearDelay = $event"
                 />
