@@ -7,8 +7,20 @@ use hook0_protobuf::RequestAttempt;
 
 use crate::work::{Response, ResponseError};
 
+/// Defensive fallback for increasing base_delay when DB value is unexpectedly NULL.
+/// Should never be reached — DB CHECK constraint enforces increasing_base_delay IS NOT NULL for increasing strategy.
+const FALLBACK_INCREASING_BASE_DELAY_SECS: i32 = 3;
+
+/// Defensive fallback for increasing wait_factor when DB value is unexpectedly NULL.
+/// Should never be reached — DB CHECK constraint enforces increasing_wait_factor IS NOT NULL for increasing strategy.
+const FALLBACK_INCREASING_WAIT_FACTOR: f64 = 3.0;
+
+/// Defensive fallback for linear delay when DB value is unexpectedly NULL.
+/// Should never be reached — DB CHECK constraint enforces linear_delay IS NOT NULL for linear strategy.
+const FALLBACK_LINEAR_DELAY_SECS: i32 = 60;
+
 #[derive(Debug, sqlx::FromRow)]
-pub(crate) struct SubscriptionRetryInfo {
+pub(crate) struct SubscriptionRetrySchedule {
     strategy: Option<String>,
     max_retries: Option<i32>,
     custom_intervals: Option<Vec<i32>>,
@@ -44,7 +56,7 @@ pub(crate) async fn compute_next_retry(
                 warn!(request_attempt_id = %attempt.request_attempt_id, "Invalid target ({msg}); continuing as normal");
             }
 
-            let sub = sqlx::query_as::<_, SubscriptionRetryInfo>(
+            let sub = sqlx::query_as::<_, SubscriptionRetrySchedule>(
                 r#"
                     SELECT
                         rs.strategy,
@@ -81,7 +93,7 @@ pub(crate) async fn compute_next_retry(
 const MAX_RETRY_DELAY: Duration = Duration::from_secs(604_800);
 
 fn compute_scheduled_retry_delay(
-    info: &SubscriptionRetryInfo,
+    info: &SubscriptionRetrySchedule,
     retry_count: i16,
     global_max_retries: u8,
 ) -> Option<Duration> {
@@ -98,9 +110,9 @@ fn compute_scheduled_retry_delay(
             if retry_count >= max as i16 {
                 return None;
             }
-            let base = info.increasing_base_delay.unwrap_or(3) as f64;
-            let factor = info.increasing_wait_factor.unwrap_or(3.0);
-            let secs = base * factor.powi(retry_count as i32);
+            let base = info.increasing_base_delay.unwrap_or(FALLBACK_INCREASING_BASE_DELAY_SECS) as f64;
+            let factor = info.increasing_wait_factor.unwrap_or(FALLBACK_INCREASING_WAIT_FACTOR);
+            let secs = base * factor.powi(i32::from(retry_count));
             let delay = Duration::try_from_secs_f64(secs).unwrap_or(MAX_RETRY_DELAY);
             Some(delay.min(MAX_RETRY_DELAY))
         }
@@ -112,7 +124,7 @@ fn compute_scheduled_retry_delay(
             if retry_count >= max as i16 {
                 return None;
             }
-            let delay = info.linear_delay.unwrap_or(60) as u64;
+            let delay = info.linear_delay.unwrap_or(FALLBACK_LINEAR_DELAY_SECS) as u64;
             Some(Duration::from_secs(delay))
         }
         Some("custom") => {
@@ -208,7 +220,7 @@ mod tests {
 
     #[test]
     fn scheduled_increasing_delays() {
-        let info = SubscriptionRetryInfo {
+        let info = SubscriptionRetrySchedule {
             strategy: Some("increasing".to_string()),
             max_retries: Some(5),
             custom_intervals: None,
@@ -224,7 +236,7 @@ mod tests {
 
     #[test]
     fn scheduled_linear_delays() {
-        let info = SubscriptionRetryInfo {
+        let info = SubscriptionRetrySchedule {
             strategy: Some("linear".to_string()),
             max_retries: Some(3),
             custom_intervals: None,
@@ -239,7 +251,7 @@ mod tests {
 
     #[test]
     fn scheduled_custom_delays() {
-        let info = SubscriptionRetryInfo {
+        let info = SubscriptionRetrySchedule {
             strategy: Some("custom".to_string()),
             max_retries: Some(3),
             custom_intervals: Some(vec![10, 60, 300]),
@@ -255,7 +267,7 @@ mod tests {
 
     #[test]
     fn no_schedule_falls_back_to_default() {
-        let info = SubscriptionRetryInfo {
+        let info = SubscriptionRetrySchedule {
             strategy: None,
             max_retries: None,
             custom_intervals: None,
@@ -272,7 +284,7 @@ mod tests {
     fn increasing_worst_case_caps_at_max_delay() {
         // Worst-case DB-allowed params: base=3600, factor=10, max_retries=25
         // retry 24 = 3600 * 10^24 which overflows Duration — must cap, not panic
-        let info = SubscriptionRetryInfo {
+        let info = SubscriptionRetrySchedule {
             strategy: Some("increasing".to_string()),
             max_retries: Some(25),
             custom_intervals: None,
@@ -286,7 +298,7 @@ mod tests {
 
     #[test]
     fn null_max_retries_increasing_returns_none() {
-        let info = SubscriptionRetryInfo {
+        let info = SubscriptionRetrySchedule {
             strategy: Some("increasing".to_string()),
             max_retries: None,
             custom_intervals: None,
@@ -299,7 +311,7 @@ mod tests {
 
     #[test]
     fn null_max_retries_linear_returns_none() {
-        let info = SubscriptionRetryInfo {
+        let info = SubscriptionRetrySchedule {
             strategy: Some("linear".to_string()),
             max_retries: None,
             custom_intervals: None,
@@ -312,7 +324,7 @@ mod tests {
 
     #[test]
     fn negative_retry_count_returns_none() {
-        let info = SubscriptionRetryInfo {
+        let info = SubscriptionRetrySchedule {
             strategy: Some("custom".to_string()),
             max_retries: Some(3),
             custom_intervals: Some(vec![10, 60, 300]),

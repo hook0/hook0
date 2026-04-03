@@ -11,9 +11,9 @@ import { get_health_events } from './helpers.js';
 /**
  * @description Polls a condition function until it returns true or timeout is reached.
  * Returns true if condition was met, false on timeout.
- * @example
- *   const ok = wait_for_condition(() => get_sub().is_enabled === false, 30000, 2000)
- *   // ok => true (condition met) or false (timed out)
+ *
+ * The health monitor runs asynchronously on a timer. We must poll for the expected
+ * state because there is no synchronous API to trigger a health evaluation.
  */
 function wait_for_condition(check_fn, timeout_ms = 30000, interval_ms = 2000) {
   const start = Date.now();
@@ -26,11 +26,9 @@ function wait_for_condition(check_fn, timeout_ms = 30000, interval_ms = 2000) {
 
 /**
  * @description Checks value is non-null/undefined. Used for guard assertions.
- * @example
- *   isNotNull('abc') // => true
- *   isNotNull(null)  // => false
+ * @returns {boolean}
  */
-function isNotNull(value) {
+function isNotNil(value) {
   return value !== null && value !== undefined;
 }
 
@@ -44,11 +42,11 @@ function isNotNull(value) {
 function send_n_events(service_token, base_url, application_id, event_type, labels, count) {
   const event_ids = [];
   for (let i = 0; i < count; i++) {
-    const eid = send_event(service_token, base_url, application_id, event_type, labels);
-    if (!isNotNull(eid)) {
+    const event_id = send_event(service_token, base_url, application_id, event_type, labels);
+    if (!isNotNil(event_id)) {
       throw new Error(`Failed to send event ${i + 1}/${count}`);
     }
-    event_ids.push(eid);
+    event_ids.push(event_id);
   }
   return event_ids;
 }
@@ -66,17 +64,17 @@ function create_test_context(config, target_url, labels) {
   const o = config.organizationId;
 
   const application_id = create_application(h, o, s);
-  if (!isNotNull(application_id)) {
+  if (!isNotNil(application_id)) {
     throw new Error('Failed to create application');
   }
 
   const event_type = create_event_type(h, s, application_id);
-  if (!isNotNull(event_type)) {
+  if (!isNotNil(event_type)) {
     throw new Error('Failed to create event type');
   }
 
   const subscription = create_subscription(h, s, application_id, [event_type], target_url, labels);
-  if (!isNotNull(subscription)) {
+  if (!isNotNil(subscription)) {
     throw new Error('Failed to create subscription');
   }
 
@@ -85,8 +83,6 @@ function create_test_context(config, target_url, labels) {
 
 /**
  * @description Cleans up test application if keepTestApplication is false.
- * @example
- *   cleanup(config, 'app-uuid')
  */
 function cleanup(config, application_id) {
   if (application_id && !config.keepTestApplication) {
@@ -101,8 +97,6 @@ function cleanup(config, application_id) {
 /**
  * @description Tests that a subscription receiving only failures gets auto-disabled
  * by the health monitor cron, and that warning + disabled health events are created.
- * @example
- *   test_b1_failure_disables_subscription(config)
  */
 export function test_b1_failure_disables_subscription(config) {
   const h = config.apiOrigin;
@@ -133,7 +127,7 @@ export function test_b1_failure_disables_subscription(config) {
 
     // Verify health events contain warning and disabled entries from system
     const events = get_health_events(h, s, sub_id, o);
-    if (!isNotNull(events)) {
+    if (!isNotNil(events)) {
       throw new Error('B1: Failed to fetch health events');
     }
 
@@ -169,8 +163,6 @@ export function test_b1_failure_disables_subscription(config) {
 /**
  * @description Tests that a subscription receiving only successes stays enabled
  * and produces no health events.
- * @example
- *   test_b2_success_stays_enabled(config)
  */
 export function test_b2_success_stays_enabled(config) {
   const h = config.apiOrigin;
@@ -188,7 +180,7 @@ export function test_b2_success_stays_enabled(config) {
     sleep(15);
 
     const sub = get_subscription(h, s, ctx.subscription.subscription_id, ctx.application_id);
-    if (!isNotNull(sub)) {
+    if (!isNotNil(sub)) {
       throw new Error('B2: Failed to fetch subscription');
     }
     if (sub.is_enabled !== true) {
@@ -196,7 +188,7 @@ export function test_b2_success_stays_enabled(config) {
     }
 
     const events = get_health_events(h, s, ctx.subscription.subscription_id, o);
-    if (!isNotNull(events)) {
+    if (!isNotNil(events)) {
       throw new Error('B2: Failed to fetch health events');
     }
     if (events.length !== 0) {
@@ -216,8 +208,6 @@ export function test_b2_success_stays_enabled(config) {
 /**
  * @description Tests that a user can re-enable an auto-disabled subscription
  * and that a resolved health event with source=user is created.
- * @example
- *   test_b3_reenable_after_autodisable(config)
  */
 export function test_b3_reenable_after_autodisable(config) {
   const h = config.apiOrigin;
@@ -254,18 +244,18 @@ export function test_b3_reenable_after_autodisable(config) {
     };
 
     const updated = update_subscription(h, s, sub_id, ctx.application_id, update_payload);
-    if (!isNotNull(updated)) {
+    if (!isNotNil(updated)) {
       throw new Error('B3: Failed to re-enable subscription');
     }
 
     const sub_after = get_subscription(h, s, sub_id, ctx.application_id);
-    if (!isNotNull(sub_after) || sub_after.is_enabled !== true) {
+    if (!isNotNil(sub_after) || sub_after.is_enabled !== true) {
       throw new Error(`B3: subscription should be re-enabled, got is_enabled=${sub_after ? sub_after.is_enabled : 'null'}`);
     }
 
     // Verify last health event is resolved from user
     const events = get_health_events(h, s, sub_id, o);
-    if (!isNotNull(events) || events.length === 0) {
+    if (!isNotNil(events) || events.length === 0) {
       throw new Error('B3: Expected health events after re-enable');
     }
 
@@ -294,8 +284,6 @@ export function test_b3_reenable_after_autodisable(config) {
 /**
  * @description Tests the full lifecycle: subscription auto-disabled, re-enabled by user,
  * target changed to healthy, events sent, subscription stays enabled.
- * @example
- *   test_b4_full_lifecycle(config)
  */
 export function test_b4_full_lifecycle(config) {
   const h = config.apiOrigin;
@@ -337,7 +325,7 @@ export function test_b4_full_lifecycle(config) {
     };
 
     const updated = update_subscription(h, s, sub_id, ctx.application_id, update_payload);
-    if (!isNotNull(updated)) {
+    if (!isNotNil(updated)) {
       throw new Error('B4: Failed to re-enable subscription with healthy target');
     }
 
@@ -349,7 +337,7 @@ export function test_b4_full_lifecycle(config) {
 
     // Phase 4: verify subscription is still enabled
     const sub_final = get_subscription(h, s, sub_id, ctx.application_id);
-    if (!isNotNull(sub_final)) {
+    if (!isNotNil(sub_final)) {
       throw new Error('B4: Failed to fetch subscription after healthy events');
     }
     if (sub_final.is_enabled !== true) {
@@ -372,8 +360,6 @@ export function test_b4_full_lifecycle(config) {
  * the window. A subscription disabled by failures, then re-enabled with a healthy
  * target and 12 new successes, must NOT be re-disabled — proving the monitor uses
  * the last-10 window (0% failure) instead of the full window (~50% failure).
- * @example
- *   test_b5_adaptive_windowing(config)
  */
 export function test_b5_adaptive_windowing(config) {
   const h = config.apiOrigin;
@@ -416,7 +402,7 @@ export function test_b5_adaptive_windowing(config) {
     };
 
     const updated = update_subscription(h, s, sub_id, ctx.application_id, update_payload);
-    if (!isNotNull(updated)) {
+    if (!isNotNil(updated)) {
       throw new Error('B5: Failed to re-enable subscription with healthy target');
     }
 
@@ -430,7 +416,7 @@ export function test_b5_adaptive_windowing(config) {
 
     // Phase 4: subscription must still be enabled — proves last-10 window is used
     const sub_final = get_subscription(h, s, sub_id, ctx.application_id);
-    if (!isNotNull(sub_final)) {
+    if (!isNotNil(sub_final)) {
       throw new Error('B5: Failed to fetch subscription after healthy events');
     }
     if (sub_final.is_enabled !== true) {
@@ -452,8 +438,6 @@ export function test_b5_adaptive_windowing(config) {
 /**
  * @description Tests that a subscription manually disabled by the user is not
  * evaluated by the health monitor cron (no system disabled event).
- * @example
- *   test_c1_user_disabled_not_evaluated(config)
  */
 export function test_c1_user_disabled_not_evaluated(config) {
   const h = config.apiOrigin;
@@ -478,7 +462,7 @@ export function test_c1_user_disabled_not_evaluated(config) {
     };
 
     const updated = update_subscription(h, s, sub_id, ctx.application_id, update_payload);
-    if (!isNotNull(updated) || updated.is_enabled !== false) {
+    if (!isNotNil(updated) || updated.is_enabled !== false) {
       throw new Error('C1: Failed to disable subscription before sending events');
     }
 
@@ -490,7 +474,7 @@ export function test_c1_user_disabled_not_evaluated(config) {
 
     // Verify no system disabled event was created
     const events = get_health_events(h, s, sub_id, o);
-    if (!isNotNull(events)) {
+    if (!isNotNil(events)) {
       throw new Error('C1: Failed to fetch health events');
     }
 
@@ -512,8 +496,6 @@ export function test_c1_user_disabled_not_evaluated(config) {
 /**
  * @description Tests that a subscription with fewer events than min_sample_size (5)
  * is not evaluated by the health monitor.
- * @example
- *   test_c2_below_min_sample_size(config)
  */
 export function test_c2_below_min_sample_size(config) {
   const h = config.apiOrigin;
@@ -534,7 +516,7 @@ export function test_c2_below_min_sample_size(config) {
     sleep(15);
 
     const sub = get_subscription(h, s, sub_id, ctx.application_id);
-    if (!isNotNull(sub)) {
+    if (!isNotNil(sub)) {
       throw new Error('C2: Failed to fetch subscription');
     }
     if (sub.is_enabled !== true) {
@@ -542,7 +524,7 @@ export function test_c2_below_min_sample_size(config) {
     }
 
     const events = get_health_events(h, s, sub_id, o);
-    if (!isNotNull(events)) {
+    if (!isNotNil(events)) {
       throw new Error('C2: Failed to fetch health events');
     }
     if (events.length !== 0) {
@@ -562,8 +544,6 @@ export function test_c2_below_min_sample_size(config) {
 /**
  * @description Tests that two subscriptions with different event types are
  * evaluated independently: a failing sub gets disabled while a healthy sub stays enabled.
- * @example
- *   test_c3_independent_evaluation(config)
  */
 export function test_c3_independent_evaluation(config) {
   const h = config.apiOrigin;
@@ -573,19 +553,19 @@ export function test_c3_independent_evaluation(config) {
 
   try {
     const application_id_val = create_application(h, o, s);
-    if (!isNotNull(application_id_val)) {
+    if (!isNotNil(application_id_val)) {
       throw new Error('C3: Failed to create application');
     }
     application_id = application_id_val;
 
     // Create two distinct event types
     const event_type_1 = create_event_type(h, s, application_id);
-    if (!isNotNull(event_type_1)) {
+    if (!isNotNil(event_type_1)) {
       throw new Error('C3: Failed to create event type 1');
     }
 
     const event_type_2 = create_event_type(h, s, application_id);
-    if (!isNotNull(event_type_2)) {
+    if (!isNotNil(event_type_2)) {
       throw new Error('C3: Failed to create event type 2');
     }
 
@@ -593,7 +573,7 @@ export function test_c3_independent_evaluation(config) {
     const sub_a = create_subscription(h, s, application_id, [event_type_1], config.targetUrlFailing, {
       hm_test: 'c3_a',
     });
-    if (!isNotNull(sub_a)) {
+    if (!isNotNil(sub_a)) {
       throw new Error('C3: Failed to create subscription A (failing)');
     }
 
@@ -601,7 +581,7 @@ export function test_c3_independent_evaluation(config) {
     const sub_b = create_subscription(h, s, application_id, [event_type_2], config.targetUrl, {
       hm_test: 'c3_b',
     });
-    if (!isNotNull(sub_b)) {
+    if (!isNotNil(sub_b)) {
       throw new Error('C3: Failed to create subscription B (healthy)');
     }
 
@@ -621,7 +601,7 @@ export function test_c3_independent_evaluation(config) {
 
     // Sub B should still be enabled
     const sub_b_after = get_subscription(h, s, sub_b.subscription_id, application_id);
-    if (!isNotNull(sub_b_after)) {
+    if (!isNotNil(sub_b_after)) {
       throw new Error('C3: Failed to fetch subscription B');
     }
     if (sub_b_after.is_enabled !== true) {
@@ -630,7 +610,7 @@ export function test_c3_independent_evaluation(config) {
 
     // Verify health events for Sub A contain disabled event
     const events_a = get_health_events(h, s, sub_a.subscription_id, o);
-    if (!isNotNull(events_a)) {
+    if (!isNotNil(events_a)) {
       throw new Error('C3: Failed to fetch health events for Sub A');
     }
     const has_disabled_a = events_a.some((e) => e.status === 'disabled' && e.source === 'system');
@@ -640,7 +620,7 @@ export function test_c3_independent_evaluation(config) {
 
     // Verify health events for Sub B are empty
     const events_b = get_health_events(h, s, sub_b.subscription_id, o);
-    if (!isNotNull(events_b)) {
+    if (!isNotNil(events_b)) {
       throw new Error('C3: Failed to fetch health events for Sub B');
     }
     if (events_b.length !== 0) {

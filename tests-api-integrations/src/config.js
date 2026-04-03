@@ -25,6 +25,8 @@ export function getEnvironmentVariables() {
     );
   }
 
+  // URL that always fails (connection refused). Used by health monitor tests to simulate
+  // a broken webhook endpoint. Defaults to a port where nothing listens.
   const targetUrlFailing = __ENV.TARGET_URL_FAILING || 'http://localhost:19999';
 
   return {

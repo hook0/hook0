@@ -52,7 +52,7 @@ pub async fn advance_watermark(
         r#"
         UPDATE webhook.health_monitor_watermark
         SET last_processed_at = $1
-        WHERE id = 1
+        WHERE watermark__id = 1
           AND $1 > last_processed_at
         "#,
     )
@@ -108,7 +108,6 @@ mod integration_tests {
             warning_failure_percent: 50,
             disable_failure_percent: 90,
             time_window: Duration::from_secs(3600),
-            message_window: 100,
             min_sample_size: 1,
             warning_cooldown: Duration::from_secs(3600),
             retention_period_days: 30,
@@ -120,7 +119,7 @@ mod integration_tests {
 
     /// Sets the watermark inside the given transaction.
     async fn set_watermark(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, ts: DateTime<Utc>) {
-        sqlx::query("UPDATE webhook.health_monitor_watermark SET last_processed_at = $1 WHERE id = 1")
+        sqlx::query("UPDATE webhook.health_monitor_watermark SET last_processed_at = $1 WHERE watermark__id = 1")
             .bind(ts)
             .execute(&mut **tx)
             .await
@@ -362,7 +361,7 @@ mod integration_tests {
 
         // Read watermark before
         let wm_before: DateTime<Utc> =
-            sqlx::query_scalar("SELECT last_processed_at FROM webhook.health_monitor_watermark WHERE id = 1")
+            sqlx::query_scalar("SELECT last_processed_at FROM webhook.health_monitor_watermark WHERE watermark__id = 1")
                 .fetch_one(&mut *tx)
                 .await
                 .unwrap();
@@ -377,7 +376,7 @@ mod integration_tests {
 
         // Read watermark after
         let wm_after: DateTime<Utc> =
-            sqlx::query_scalar("SELECT last_processed_at FROM webhook.health_monitor_watermark WHERE id = 1")
+            sqlx::query_scalar("SELECT last_processed_at FROM webhook.health_monitor_watermark WHERE watermark__id = 1")
                 .fetch_one(&mut *tx)
                 .await
                 .unwrap();

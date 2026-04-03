@@ -19,22 +19,24 @@ use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
 /// Maximum interval between retries across all strategies, in seconds (7 days).
-pub const MAX_INTERVAL_SECS: i32 = 604_800;
+pub const MAX_INTERVAL_SECS: i32 = 3600 * 24 * 7;
 
 /// Minimum base delay for the increasing retry strategy, in seconds.
-const MIN_BASE_DELAY: i32 = 1;
+const MIN_BASE_DELAY_SECS: i32 = 1;
 
 /// Maximum base delay for the increasing retry strategy, in seconds (1 hour).
-const MAX_BASE_DELAY: i32 = 3600;
+const MAX_BASE_DELAY_SECS: i32 = 3600;
 
 /// Minimum wait factor (multiplier) for the increasing retry strategy.
+/// Example: with base_delay=3s and wait_factor=1.5, delays are: 3s, 4.5s, 6.75s, 10.1s, 15.2s...
 const MIN_WAIT_FACTOR: f64 = 1.5;
 
 /// Maximum wait factor (multiplier) for the increasing retry strategy.
+/// Example: with base_delay=3s and wait_factor=10, delays are: 3s, 30s, 5min, 50min, 8.3h...
 const MAX_WAIT_FACTOR: f64 = 10.0;
 
 /// Minimum delay for linear and custom retry strategies, in seconds.
-const MIN_DELAY: i32 = 1;
+const MIN_DELAY_SECS: i32 = 1;
 
 #[derive(
     Debug,
@@ -180,8 +182,11 @@ fn require_range(
     }
 }
 
-/// Cross-field validation for retry schedule strategy. Called by the validator
-/// crate via `#[validate(schema(function = "..."))]` on Post and Put structs.
+/// Cross-field validation for retry schedule strategy. Shared logic called by
+/// `RetrySchedulePost::validate_strategy` and `RetrySchedulePut::validate_strategy`.
+/// This is a free function (not a trait) because the `validator` crate's
+/// `#[validate(schema(function = "Self::validate_strategy"))]` resolves to an
+/// inherent method — it does not support trait method paths.
 pub fn validate_strategy_fields(
     strategy: RetryStrategy,
     max_retries: i32,
@@ -202,8 +207,8 @@ pub fn validate_strategy_fields(
             require_range(
                 "increasing_base_delay",
                 *base,
-                MIN_BASE_DELAY,
-                MAX_BASE_DELAY,
+                MIN_BASE_DELAY_SECS,
+                MAX_BASE_DELAY_SECS,
             )?;
             let factor = require_some(
                 "increasing_wait_factor",
@@ -221,7 +226,7 @@ pub fn validate_strategy_fields(
             require_none("increasing_base_delay", &increasing_base_delay, "linear")?;
             require_none("increasing_wait_factor", &increasing_wait_factor, "linear")?;
             let delay = require_some("linear_delay", &linear_delay, "linear")?;
-            require_range("linear_delay", *delay, MIN_DELAY, MAX_INTERVAL_SECS)?;
+            require_range("linear_delay", *delay, MIN_DELAY_SECS, MAX_INTERVAL_SECS)?;
         }
         RetryStrategy::Custom => {
             require_none("linear_delay", &linear_delay, "custom")?;
@@ -234,9 +239,9 @@ pub fn validate_strategy_fields(
                 ));
             }
             for (i, &val) in intervals.iter().enumerate() {
-                if !(MIN_DELAY..=MAX_INTERVAL_SECS).contains(&val) {
+                if !(MIN_DELAY_SECS..=MAX_INTERVAL_SECS).contains(&val) {
                     return Err(strategy_error(&format!(
-                        "custom_intervals[{i}] must be between {MIN_DELAY} and {MAX_INTERVAL_SECS}"
+                        "custom_intervals[{i}] must be between {MIN_DELAY_SECS} and {MAX_INTERVAL_SECS}"
                     )));
                 }
             }
@@ -327,7 +332,6 @@ pub async fn create(
     // Atomic INSERT with quota check: the WHERE subquery counts existing rows for this org
     // and only proceeds if under the limit, preventing TOCTOU race conditions.
     let max_per_org = i64::from(state.max_retry_schedules_per_org);
-    let strategy_str = body.strategy.to_string();
     let schedule = sqlx::query_as::<_, RetrySchedule>(
         "
             INSERT INTO webhook.retry_schedule (organization__id, name, strategy, max_retries, custom_intervals, linear_delay, increasing_base_delay, increasing_wait_factor)
@@ -347,7 +351,7 @@ pub async fn create(
     )
     .bind(organization_id)
     .bind(&body.name)
-    .bind(&strategy_str)
+    .bind(body.strategy.to_string())
     .bind(body.max_retries)
     .bind(body.custom_intervals.as_deref())
     .bind(body.linear_delay)
@@ -399,11 +403,11 @@ pub async fn get(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
-    schedule_id: Path<Uuid>,
+    retry_schedule_id: Path<Uuid>,
     qs: Query<RetryScheduleQs>,
 ) -> Result<Json<RetrySchedule>, Hook0Problem> {
     let organization_id = qs.organization_id;
-    let schedule_id = schedule_id.into_inner();
+    let retry_schedule_id = retry_schedule_id.into_inner();
 
     if authorize(
         &biscuit,
@@ -430,7 +434,7 @@ pub async fn get(
                 AND organization__id = $2
         ",
     )
-    .bind(schedule_id)
+    .bind(retry_schedule_id)
     .bind(organization_id)
     .fetch_optional(&state.db)
     .await
@@ -453,12 +457,12 @@ pub async fn edit(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
-    schedule_id: Path<Uuid>,
+    retry_schedule_id: Path<Uuid>,
     qs: Query<RetryScheduleQs>,
     body: Json<RetrySchedulePut>,
 ) -> Result<Json<RetrySchedule>, Hook0Problem> {
     let organization_id = qs.organization_id;
-    let schedule_id = schedule_id.into_inner();
+    let retry_schedule_id = retry_schedule_id.into_inner();
 
     if authorize(
         &biscuit,
@@ -476,7 +480,6 @@ pub async fn edit(
         return Err(Hook0Problem::Validation(e));
     }
 
-    let strategy_str = body.strategy.to_string();
     let schedule = sqlx::query_as::<_, RetrySchedule>(
         "
             UPDATE webhook.retry_schedule
@@ -494,10 +497,10 @@ pub async fn edit(
                 created_at, updated_at
         ",
     )
-    .bind(schedule_id)
+    .bind(retry_schedule_id)
     .bind(organization_id)
     .bind(&body.name)
-    .bind(&strategy_str)
+    .bind(body.strategy.to_string())
     .bind(body.max_retries)
     .bind(body.custom_intervals.as_deref())
     .bind(body.linear_delay)
@@ -547,11 +550,11 @@ pub async fn delete(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
-    schedule_id: Path<Uuid>,
+    retry_schedule_id: Path<Uuid>,
     qs: Query<RetryScheduleQs>,
 ) -> Result<Json<()>, Hook0Problem> {
     let organization_id = qs.organization_id;
-    let schedule_id = schedule_id.into_inner();
+    let retry_schedule_id = retry_schedule_id.into_inner();
 
     if authorize(
         &biscuit,
@@ -585,7 +588,7 @@ pub async fn delete(
                 AND organization__id = $2
             RETURNING name, strategy, max_retries, custom_intervals, linear_delay, increasing_base_delay, increasing_wait_factor
         ",
-        &schedule_id,
+        &retry_schedule_id,
         &organization_id,
     )
     .fetch_optional(&state.db)
@@ -599,7 +602,7 @@ pub async fn delete(
     if let Some(hook0_client) = state.hook0_client.as_ref() {
         let hook0_client_event: Hook0ClientEvent = EventRetryScheduleRemoved {
             organization_id,
-            retry_schedule_id: schedule_id,
+            retry_schedule_id,
             name: d.name,
             strategy: d.strategy,
             max_retries: d.max_retries,

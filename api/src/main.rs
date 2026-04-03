@@ -480,15 +480,14 @@ struct Config {
     #[clap(long, env, default_value_t = 95)]
     health_monitor_disable_failure_percent: u8,
 
-    /// [Housekeeping] Time window for low-volume health evaluation
+    /// [Housekeeping] Sliding window for health evaluation — only delivery attempts within this window are considered
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "24h")]
     health_monitor_time_window: Duration,
 
-    /// [Housekeeping] Message count window for high-volume health evaluation
-    #[clap(long, env, default_value_t = 100)]
-    health_monitor_message_window: u32,
-
-    /// [Housekeeping] Minimum completed attempts in window before health evaluation applies
+    /// [Housekeeping] Minimum completed delivery attempts (in the evaluation window) before the
+    /// health monitor evaluates a subscription. Subscriptions with fewer attempts are skipped —
+    /// this prevents false positives on low-traffic endpoints. Example: with min_sample_size=5,
+    /// a subscription that has received only 3 deliveries won't trigger a warning even if all 3 failed.
     #[clap(long, env, default_value_t = 5)]
     health_monitor_min_sample_size: u32,
 
@@ -500,16 +499,16 @@ struct Config {
     #[clap(long, env, default_value_t = 90)]
     health_monitor_retention_period_days: u32,
 
-    /// [Housekeeping] Duration of a health bucket before closing
+    /// [Housekeeping] Maximum duration of a single health bucket. Buckets are closed when this duration OR bucket_max_messages is reached, whichever comes first
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5m")]
     health_monitor_bucket_duration: Duration,
 
-    /// [Housekeeping] Maximum message count per health bucket before closing
-    #[clap(long, env, default_value_t = 100)]
+    /// [Housekeeping] Maximum delivery count per bucket. When reached, the bucket is closed and a new one is opened
+    #[clap(long, env, default_value_t = 1000)]
     health_monitor_bucket_max_messages: u32,
 
     /// [Housekeeping] Health bucket retention in days
-    #[clap(long, env, default_value_t = 8)]
+    #[clap(long, env, default_value_t = 7)]
     health_monitor_bucket_retention_days: u32,
 
     /// [Web Server] If true, the secured HTTP headers will be enabled
@@ -1122,7 +1121,6 @@ async fn main() -> anyhow::Result<()> {
                 warning_failure_percent: config.health_monitor_warning_failure_percent,
                 disable_failure_percent: config.health_monitor_disable_failure_percent,
                 time_window: config.health_monitor_time_window,
-                message_window: config.health_monitor_message_window,
                 min_sample_size: config.health_monitor_min_sample_size,
                 warning_cooldown: config.health_monitor_warning_cooldown,
                 retention_period_days: config.health_monitor_retention_period_days,

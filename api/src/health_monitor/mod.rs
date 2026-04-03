@@ -25,8 +25,6 @@ pub struct HealthMonitorConfig {
     pub warning_failure_percent: u8,
     pub disable_failure_percent: u8,
     pub time_window: Duration,
-    #[allow(dead_code)] // kept for CLI backward compatibility
-    pub message_window: u32,
     pub min_sample_size: u32,
     pub warning_cooldown: Duration,
     pub retention_period_days: u32,

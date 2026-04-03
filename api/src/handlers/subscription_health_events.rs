@@ -9,32 +9,26 @@ use tracing::error;
 use url::Url;
 use uuid::Uuid;
 
+use crate::health_monitor::types::{HealthEventSource, HealthStatus};
 use crate::iam::{Action, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::pagination::{Cursor, EncodedDescCursor, NextPageParts, Paginated};
 use crate::problems::Hook0Problem;
 
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, sqlx::Type)]
-#[serde(rename_all = "lowercase")]
-#[sqlx(type_name = "text", rename_all = "lowercase")]
-pub enum HealthStatus {
-    Warning,
-    Disabled,
-    Resolved,
-}
+const DEFAULT_PAGE_SIZE: i64 = 50;
 
 #[derive(Debug, Serialize, Apiv2Schema, sqlx::FromRow)]
-pub struct SubscriptionHealthEvent {
+pub struct SubscriptionHealthEventStatus {
     pub health_event_id: Uuid,
     pub subscription_id: Uuid,
     pub status: HealthStatus,
-    pub source: String,
+    pub source: HealthEventSource,
     pub user_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize, Apiv2Schema)]
-pub struct HealthEventsQs {
+pub struct SubscriptionHealthEventListQs {
     pub organization_id: Uuid,
     pub pagination_cursor: Option<EncodedDescCursor>,
 }
@@ -53,8 +47,8 @@ pub async fn list(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     subscription_id: Path<Uuid>,
-    qs: Query<HealthEventsQs>,
-) -> Result<Paginated<Json<Vec<SubscriptionHealthEvent>>>, Hook0Problem> {
+    qs: Query<SubscriptionHealthEventListQs>,
+) -> Result<Paginated<Json<Vec<SubscriptionHealthEventStatus>>>, Hook0Problem> {
     let subscription_id = subscription_id.into_inner();
     let organization_id = qs.organization_id;
 
@@ -92,7 +86,7 @@ pub async fn list(
 
     let pagination = qs.pagination_cursor.unwrap_or_default().0;
 
-    let events = sqlx::query_as::<_, SubscriptionHealthEvent>(
+    let events = sqlx::query_as::<_, SubscriptionHealthEventStatus>(
         "
             SELECT
                 she.health_event__id AS health_event_id,
@@ -108,13 +102,14 @@ pub async fn list(
               AND a.organization__id = $2
               AND (she.created_at, she.health_event__id) < ($3, $4)
             ORDER BY she.created_at DESC, she.health_event__id ASC
-            LIMIT 50
+            LIMIT $5
         ",
     )
     .bind(subscription_id)
     .bind(organization_id)
     .bind(pagination.date)
     .bind(pagination.id)
+    .bind(DEFAULT_PAGE_SIZE)
     .fetch_all(&state.db)
     .await
     .map_err(Hook0Problem::from)?;

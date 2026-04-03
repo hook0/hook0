@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use super::HealthMonitorConfig;
+use super::types::{HealthEventSource, HealthStatus};
 
 /// Delta row returned by the watermark-based scan of request_attempt.
 #[derive(Debug, sqlx::FromRow)]
@@ -23,9 +24,9 @@ pub struct SubscriptionHealth {
     pub description: Option<String>,
     pub target_url: String,
     pub failure_percent: f64,
-    pub last_health_status: Option<String>,
+    pub last_health_status: Option<HealthStatus>,
     pub last_health_at: Option<DateTime<Utc>>,
-    pub last_health_source: Option<String>,
+    pub last_health_source: Option<HealthEventSource>,
     #[allow(dead_code)]
     pub last_health_user_id: Option<Uuid>,
     pub retry_schedule_id: Option<Uuid>,
@@ -43,7 +44,7 @@ pub async fn read_watermark(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
 ) -> Result<DateTime<Utc>, sqlx::Error> {
     sqlx::query_scalar(
-        "SELECT last_processed_at FROM webhook.health_monitor_watermark WHERE id = 1",
+        "SELECT last_processed_at FROM webhook.health_monitor_watermark WHERE watermark__id = 1",
     )
     .fetch_one(&mut **tx)
     .await
