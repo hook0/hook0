@@ -643,4 +643,389 @@ mod integration_tests {
         cleanup(&pool, org_id2).await;
         reset_watermark(&pool).await;
     }
+
+    /// Sequential test covering bucket closing, warned-subscription UNION, recovery,
+    /// and cooldown scenarios. Merged into one test because all share the watermark
+    /// singleton row and Rust runs `#[tokio::test]` functions in parallel.
+    #[tokio::test]
+    #[ignore]
+    async fn test_health_state_machine_scenarios() {
+        let pool = match setup_test_pool().await {
+            Some(p) => p,
+            None => return,
+        };
+
+        let config = test_config();
+
+        // ── Scenario A: Bucket closing ─────────────────────────────────────
+        {
+            let now = Utc::now();
+            let watermark_past = now - chrono::Duration::hours(1);
+
+            sqlx::query("UPDATE webhook.health_monitor_watermark SET last_processed_at = $1 WHERE id = 1")
+                .bind(watermark_past)
+                .execute(&pool)
+                .await
+                .unwrap();
+
+            let mut tx = pool.begin().await.unwrap();
+            let (org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 3, 2, now).await;
+            tx.commit().await.unwrap();
+
+            // First pass: creates an open bucket
+            let mut tx = pool.begin().await.unwrap();
+            let (_, max_completed) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+            if let Some(wm) = max_completed {
+                advance_watermark(&mut tx, wm).await.unwrap();
+            }
+            tx.commit().await.unwrap();
+
+            // Verify bucket is open
+            let open: Option<bool> = sqlx::query_scalar(
+                "SELECT bucket_end IS NULL FROM webhook.subscription_health_bucket WHERE subscription__id = $1 LIMIT 1",
+            )
+            .bind(sub_id)
+            .fetch_optional(&pool)
+            .await
+            .unwrap();
+            assert_eq!(open, Some(true), "bucket should be open initially");
+
+            // Age the bucket beyond bucket_duration (300s)
+            sqlx::query(
+                "UPDATE webhook.subscription_health_bucket SET bucket_start = now() - interval '1 hour' WHERE subscription__id = $1",
+            )
+            .bind(sub_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+            // Second pass: Step 3 should close the aged bucket
+            let mut tx = pool.begin().await.unwrap();
+            let _ = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+            tx.commit().await.unwrap();
+
+            // Verify bucket is now closed
+            let closed: bool = sqlx::query_scalar(
+                "SELECT bucket_end IS NOT NULL FROM webhook.subscription_health_bucket WHERE subscription__id = $1 AND bucket_start < now() - interval '30 minutes' LIMIT 1",
+            )
+            .bind(sub_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+            assert!(closed, "aged bucket should be closed after second health tick");
+
+            cleanup(&pool, org_id).await;
+            reset_watermark(&pool).await;
+        }
+
+        // ── Scenario B: Warned subscription still appears in suspects ──────
+        {
+            let now = Utc::now();
+            let watermark_past = now - chrono::Duration::hours(1);
+
+            sqlx::query("UPDATE webhook.health_monitor_watermark SET last_processed_at = $1 WHERE id = 1")
+                .bind(watermark_past)
+                .execute(&pool)
+                .await
+                .unwrap();
+
+            let mut tx = pool.begin().await.unwrap();
+            let (org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 0, 5, now).await;
+            tx.commit().await.unwrap();
+
+            // First pass: ingest deltas and advance watermark
+            let mut tx = pool.begin().await.unwrap();
+            let (subs, max_completed) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+            if let Some(wm) = max_completed {
+                advance_watermark(&mut tx, wm).await.unwrap();
+            }
+            tx.commit().await.unwrap();
+            assert!(
+                subs.iter().any(|s| s.subscription_id == sub_id),
+                "subscription should be a suspect on first pass"
+            );
+
+            // Insert a warning health event (simulating state machine)
+            sqlx::query(
+                "INSERT INTO webhook.subscription_health_event (subscription__id, status, source) VALUES ($1, 'warning', 'system')",
+            )
+            .bind(sub_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+            // Replace buckets with healthy data (0 failures)
+            sqlx::query("DELETE FROM webhook.subscription_health_bucket WHERE subscription__id = $1")
+                .bind(sub_id)
+                .execute(&pool)
+                .await
+                .unwrap();
+            sqlx::query(
+                "INSERT INTO webhook.subscription_health_bucket (subscription__id, bucket_start, total_count, failed_count) VALUES ($1, now(), 10, 0)",
+            )
+            .bind(sub_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+            // Second pass: watermark advanced, no re-ingestion. UNION picks up warned sub.
+            let mut tx = pool.begin().await.unwrap();
+            let (subs2, _) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+            tx.commit().await.unwrap();
+
+            let found = subs2.iter().find(|s| s.subscription_id == sub_id);
+            assert!(found.is_some(), "warned subscription should still appear in suspects via UNION");
+            assert!(
+                found.unwrap().failure_percent < 50.0,
+                "failure_percent should be low (subscription recovered)"
+            );
+
+            cleanup(&pool, org_id).await;
+            reset_watermark(&pool).await;
+        }
+
+        // ── Scenario C: Recovery triggers resolved event ───────────────────
+        {
+            let now = Utc::now();
+            let watermark_past = now - chrono::Duration::hours(2);
+
+            sqlx::query("UPDATE webhook.health_monitor_watermark SET last_processed_at = $1 WHERE id = 1")
+                .bind(watermark_past)
+                .execute(&pool)
+                .await
+                .unwrap();
+
+            // Use 2 succeeded + 5 failed = 71% failure (>50% warning, <90% disable)
+            let mut tx = pool.begin().await.unwrap();
+            let (org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 2, 5, now).await;
+            tx.commit().await.unwrap();
+
+            // Phase 1: fetch + process -> warning (not disable, since 71% < 90%)
+            let mut tx = pool.begin().await.unwrap();
+            let (subs, max_completed) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+            let sub = subs.iter().find(|s| s.subscription_id == sub_id).expect("subscription should be suspect");
+            let actions = crate::health_monitor::state_machine::process_subscription(&mut tx, &config, sub).await.unwrap();
+            if let Some(wm) = max_completed {
+                advance_watermark(&mut tx, wm).await.unwrap();
+            }
+            tx.commit().await.unwrap();
+            assert!(
+                actions.iter().any(|a| matches!(a, crate::health_monitor::notifications::HealthAction::Warning(_))),
+                "first pass should produce a Warning action"
+            );
+            assert!(
+                !actions.iter().any(|a| matches!(a, crate::health_monitor::notifications::HealthAction::Disabled(_))),
+                "first pass should NOT disable (71% < 90%)"
+            );
+
+            let warning_count: i64 = sqlx::query_scalar(
+                "SELECT COUNT(*) FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'warning'",
+            )
+            .bind(sub_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+            assert_eq!(warning_count, 1, "should have exactly one warning event");
+
+            // Phase 2: replace buckets with low failure rate
+            sqlx::query("DELETE FROM webhook.subscription_health_bucket WHERE subscription__id = $1")
+                .bind(sub_id)
+                .execute(&pool)
+                .await
+                .unwrap();
+            sqlx::query(
+                "INSERT INTO webhook.subscription_health_bucket (subscription__id, bucket_start, total_count, failed_count) VALUES ($1, now(), 20, 1)",
+            )
+            .bind(sub_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+            let mut tx = pool.begin().await.unwrap();
+            let (subs2, _) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+            let sub2 = subs2.iter().find(|s| s.subscription_id == sub_id).expect("warned sub should still be suspect");
+            assert!(sub2.failure_percent < 50.0, "failure rate should be low now");
+            let actions2 = crate::health_monitor::state_machine::process_subscription(&mut tx, &config, sub2).await.unwrap();
+            tx.commit().await.unwrap();
+
+            let resolved_count: i64 = sqlx::query_scalar(
+                "SELECT COUNT(*) FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'resolved' AND source = 'system'",
+            )
+            .bind(sub_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+            assert_eq!(resolved_count, 1, "should have a resolved event with source=system");
+            assert!(
+                actions2.iter().any(|a| matches!(a, crate::health_monitor::notifications::HealthAction::Recovered(_))),
+                "second pass should produce a Recovered action"
+            );
+
+            cleanup(&pool, org_id).await;
+            reset_watermark(&pool).await;
+        }
+
+        // ── Scenario D: Cooldown prevents re-warning ───────────────────────
+        {
+            let now = Utc::now();
+            let watermark_past = now - chrono::Duration::hours(2);
+
+            sqlx::query("UPDATE webhook.health_monitor_watermark SET last_processed_at = $1 WHERE id = 1")
+                .bind(watermark_past)
+                .execute(&pool)
+                .await
+                .unwrap();
+
+            // 2 succeeded + 5 failed = 71% (warning range, not disable)
+            let mut tx = pool.begin().await.unwrap();
+            let (org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 2, 5, now).await;
+            tx.commit().await.unwrap();
+
+            // Phase 1: trigger warning
+            let mut tx = pool.begin().await.unwrap();
+            let (subs, max_completed) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+            let sub = subs.iter().find(|s| s.subscription_id == sub_id).unwrap();
+            let _ = crate::health_monitor::state_machine::process_subscription(&mut tx, &config, sub).await.unwrap();
+            if let Some(wm) = max_completed {
+                advance_watermark(&mut tx, wm).await.unwrap();
+            }
+            tx.commit().await.unwrap();
+
+            // Insert a resolved event with created_at = now() (within cooldown)
+            sqlx::query(
+                "INSERT INTO webhook.subscription_health_event (subscription__id, status, source) VALUES ($1, 'resolved', 'system')",
+            )
+            .bind(sub_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+            // Phase 2: buckets still have high failure rate, but cooldown blocks re-warning
+            let mut tx = pool.begin().await.unwrap();
+            let (subs2, _) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+            let sub2 = subs2.iter().find(|s| s.subscription_id == sub_id)
+                .expect("subscription should still be suspect via bucket failure count");
+            let actions = crate::health_monitor::state_machine::process_subscription(&mut tx, &config, sub2).await.unwrap();
+            tx.commit().await.unwrap();
+
+            assert!(
+                !actions.iter().any(|a| matches!(a, crate::health_monitor::notifications::HealthAction::Warning(_))),
+                "cooldown should prevent re-warning"
+            );
+
+            let warning_count: i64 = sqlx::query_scalar(
+                "SELECT COUNT(*) FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'warning'",
+            )
+            .bind(sub_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+            assert_eq!(warning_count, 1, "no new warning event should have been inserted during cooldown");
+
+            cleanup(&pool, org_id).await;
+            reset_watermark(&pool).await;
+        }
+    }
+
+    /// Test: reset_healthy_failure_percent clears failure_percent for non-suspects.
+    #[tokio::test]
+    #[ignore]
+    async fn test_reset_failure_percent_for_non_suspects() {
+        let pool = match setup_test_pool().await {
+            Some(p) => p,
+            None => return,
+        };
+
+        let now = Utc::now();
+
+        let mut tx = pool.begin().await.unwrap();
+        let (org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 5, 0, now).await;
+        tx.commit().await.unwrap();
+
+        // Manually set failure_percent on the subscription
+        sqlx::query("UPDATE webhook.subscription SET failure_percent = 50.0 WHERE subscription__id = $1")
+            .bind(sub_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let fp_before: Option<f64> = sqlx::query_scalar(
+            "SELECT failure_percent FROM webhook.subscription WHERE subscription__id = $1",
+        )
+        .bind(sub_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(fp_before, Some(50.0));
+
+        // Call reset with empty suspect list
+        let mut tx = pool.begin().await.unwrap();
+        let rows = reset_healthy_failure_percent(&mut tx, &[]).await.unwrap();
+        tx.commit().await.unwrap();
+
+        assert!(rows >= 1, "should have reset at least 1 subscription");
+
+        let fp_after: Option<f64> = sqlx::query_scalar(
+            "SELECT failure_percent FROM webhook.subscription WHERE subscription__id = $1",
+        )
+        .bind(sub_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(fp_after, None, "failure_percent should be NULL after reset");
+
+        cleanup(&pool, org_id).await;
+    }
+
+    /// Test: cleanup_old_buckets removes buckets older than retention period.
+    #[tokio::test]
+    #[ignore]
+    async fn test_cleanup_old_buckets() {
+        let pool = match setup_test_pool().await {
+            Some(p) => p,
+            None => return,
+        };
+
+        let config = test_config(); // bucket_retention_days = 30
+        let now = Utc::now();
+
+        let mut tx = pool.begin().await.unwrap();
+        let (org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 3, 2, now).await;
+        tx.commit().await.unwrap();
+
+        // Insert a bucket older than retention (31 days ago)
+        let old_start = now - chrono::Duration::days(31);
+        sqlx::query(
+            "INSERT INTO webhook.subscription_health_bucket (subscription__id, bucket_start, bucket_end, total_count, failed_count) VALUES ($1, $2, $3, 10, 5)",
+        )
+        .bind(sub_id)
+        .bind(old_start)
+        .bind(old_start + chrono::Duration::seconds(300))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let count_before: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM webhook.subscription_health_bucket WHERE subscription__id = $1 AND bucket_start < now() - interval '30 days'",
+        )
+        .bind(sub_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert!(count_before >= 1, "old bucket should exist before cleanup");
+
+        let deleted = cleanup_old_buckets(&pool, &config).await.unwrap();
+        assert!(deleted >= 1, "should have deleted at least 1 old bucket");
+
+        let count_after: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM webhook.subscription_health_bucket WHERE subscription__id = $1 AND bucket_start < now() - interval '30 days'",
+        )
+        .bind(sub_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(count_after, 0, "old bucket should be deleted after cleanup");
+
+        cleanup(&pool, org_id).await;
+    }
 }

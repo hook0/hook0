@@ -1040,6 +1040,32 @@ mod tests {
     }
 
     #[test]
+    fn null_max_retries_increasing_returns_none() {
+        let info = SubscriptionRetryInfo {
+            strategy: Some("increasing".to_string()),
+            max_retries: None,
+            custom_intervals: None,
+            linear_delay: None,
+            increasing_base_delay: Some(3),
+            increasing_wait_factor: Some(3.0),
+        };
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), None);
+    }
+
+    #[test]
+    fn null_max_retries_linear_returns_none() {
+        let info = SubscriptionRetryInfo {
+            strategy: Some("linear".to_string()),
+            max_retries: None,
+            custom_intervals: None,
+            linear_delay: Some(60),
+            increasing_base_delay: None,
+            increasing_wait_factor: None,
+        };
+        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25), None);
+    }
+
+    #[test]
     fn negative_retry_count_returns_none() {
         let info = SubscriptionRetryInfo {
             strategy: Some("custom".to_string()),

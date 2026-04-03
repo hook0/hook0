@@ -886,4 +886,20 @@ mod tests {
         // max_retries=1 but empty intervals -> len mismatch
         assert!(v(RetryStrategy::Custom, 1, None, Some(&[]), None, None).is_err());
     }
+
+    #[test]
+    fn increasing_rejects_base_delay_zero() {
+        assert!(v(RetryStrategy::Increasing, 5, None, None, Some(0), Some(3.0)).is_err());
+    }
+
+    #[test]
+    fn increasing_rejects_base_delay_too_high() {
+        assert!(v(RetryStrategy::Increasing, 5, None, None, Some(3601), Some(3.0)).is_err());
+    }
+
+    #[test]
+    fn increasing_accepts_base_delay_boundaries() {
+        assert!(v(RetryStrategy::Increasing, 5, None, None, Some(1), Some(3.0)).is_ok());
+        assert!(v(RetryStrategy::Increasing, 5, None, None, Some(3600), Some(3.0)).is_ok());
+    }
 }
