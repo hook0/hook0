@@ -6,7 +6,7 @@
 //!
 //! State transitions:
 //!   No previous state + high failure       -> emit Warning
-//!   No previous state + very high failure   -> emit Warning then Disable
+//!   No previous state + very high failure   -> Disable (skip Warning, endpoint is already broken)
 //!   Warning + still failing (same level)    -> do nothing (already warned)
 //!   Warning + even higher failure           -> Disable
 //!   Warning + recovered (failure dropped)   -> Resolved
@@ -31,7 +31,7 @@ use super::types::{HealthEventSource, HealthStatus};
 /// - The configured thresholds (warning_failure_percent, disable_failure_percent)
 ///
 /// Side-effects (within the transaction):
-/// - Persists failure_percent to the subscription table (for frontend display)
+/// - Caches failure_percent on the subscription table (avoids recomputing from buckets on every API read)
 /// - Inserts health events (warning, disabled, resolved)
 /// - Disables the subscription if failure is extreme
 ///
@@ -107,20 +107,9 @@ pub async fn evaluate_health_transition(
         }
 
         // No previous health state (or resolved outside cooldown) and failure rate
-        // is extremely high — warn AND disable in a single tick.
+        // is extremely high — disable immediately (no warning step, the endpoint is
+        // already too broken to wait).
         _ if failure_percent >= disable_percent => {
-            insert_health_event(
-                transaction,
-                subscription.subscription_id,
-                HealthStatus::Warning,
-                HealthEventSource::System,
-                None,
-            )
-            .await?;
-            actions.push(HealthAction::Warning(HealthActionInfo::from_subscription(
-                subscription,
-                None,
-            )));
             let disabled_at = disable_subscription(transaction, subscription).await?;
             if let Some(at) = disabled_at {
                 actions.push(HealthAction::Disabled(HealthActionInfo::from_subscription(

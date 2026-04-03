@@ -9,7 +9,7 @@ use crate::work::{Response, ResponseError};
 
 /// Maximum delay cap for any single retry (7 days).
 /// Prevents overflow from increasing strategy with high base_delay * wait_factor^n.
-const MAX_RETRY_DELAY: Duration = Duration::from_secs(7 * 24 * 3600);
+const MAX_RETRY_DELAY_SECS: Duration = Duration::from_secs(7 * 24 * 3600);
 
 #[derive(Debug, sqlx::FromRow)]
 pub(crate) struct SubscriptionRetrySchedule {
@@ -107,8 +107,8 @@ fn compute_scheduled_retry_delay(
                 return None;
             };
             let secs = (base as f64) * factor.powi(i32::from(retry_count));
-            let delay = Duration::try_from_secs_f64(secs).unwrap_or(MAX_RETRY_DELAY);
-            Some(delay.min(MAX_RETRY_DELAY))
+            let delay = Duration::try_from_secs_f64(secs).unwrap_or(MAX_RETRY_DELAY_SECS);
+            Some(delay.min(MAX_RETRY_DELAY_SECS))
         }
         Some("linear") => {
             let Some(max) = info.max_retries else {
@@ -290,7 +290,7 @@ mod tests {
             increasing_wait_factor: Some(10.0),
         };
         let result = compute_scheduled_retry_delay(&info, 24, 25);
-        assert_eq!(result, Some(MAX_RETRY_DELAY));
+        assert_eq!(result, Some(MAX_RETRY_DELAY_SECS));
     }
 
     #[test]

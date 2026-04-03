@@ -8,11 +8,13 @@
 //!      deliveries up to this timestamp."
 //!   2. Scan `request_attempt` for deliveries newer than the cursor.
 //!   3. Group those deliveries into time buckets per subscription
-//!      (a bucket = a time window like "10:00–10:05, 50 successes, 3 failures").
+//!      (a bucket = a group of deliveries bounded by a max duration OR a max
+//!      message count, whichever comes first — e.g. "10:00–10:05, 50 ok, 3 failed").
 //!   4. Close buckets that are full (exceeded duration or message count).
 //!   5. Identify "suspects" — subscriptions with enough recent failures to
 //!      potentially need a warning or to be disabled.
-//!   6. Compute each suspect's failure rate over the sliding window.
+//!   6. Compute each suspect's failure rate over a sliding window (the last N
+//!      minutes of buckets, configured by `time_window`).
 //!
 //! The caller (mod.rs) then feeds each suspect into the state machine, which
 //! decides whether to warn, disable, or resolve, and finally advances the
