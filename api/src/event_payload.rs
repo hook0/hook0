@@ -1,32 +1,46 @@
-//! Fetch event payload from DB or object storage — shared by replay and manual retry handlers.
+//! Retrieves event payloads from the database or object storage (S3).
+//!
+//! Events may have their payload stored inline in the DB (`event.payload`) or offloaded
+//! to object storage. This module provides a single entry point that checks both locations,
+//! falling back to S3 when the DB column is NULL.
 
 use aws_sdk_s3::error::DisplayErrorContext;
 use chrono::{DateTime, Utc};
-use hook0_sentry_integration::log_object_storage_error_with_context;
 use uuid::Uuid;
 
-/// Fetch event payload from the DB column or fall back to object storage.
-/// Returns None if the payload is unavailable (expired from DB and storage fetch failed or not configured).
-pub(crate) async fn fetch_event_payload(
+use crate::ObjectStorageConfig;
+use hook0_sentry_integration::log_object_storage_error_with_context;
+
+/// Fetch an event's payload bytes — first from the DB inline column, then from object storage.
+/// Returns `None` if the payload is unavailable in both locations (e.g., expired/purged).
+pub async fn fetch_event_payload(
     db_payload: Option<Vec<u8>>,
-    object_storage: Option<&crate::ObjectStorageConfig>,
-    application_id: Uuid,
-    event_id: Uuid,
-    received_at: DateTime<Utc>,
+    object_storage: Option<&ObjectStorageConfig>,
+    application_id: &Uuid,
+    received_at: &DateTime<Utc>,
+    event_id: &Uuid,
 ) -> Option<Vec<u8>> {
-    // If the payload is still in the DB column, use it directly
+    // Fast path: payload stored inline in the event row
     if let Some(p) = db_payload {
         return Some(p);
     }
 
-    // Otherwise, try fetching from S3 — the payload may have been offloaded after ingestion
+    // Slow path: attempt to retrieve from object storage (S3)
     let os = object_storage?;
     let key = format!(
-        "{application_id}/event/{}/{event_id}",
+        "{}/event/{}/{event_id}",
+        application_id,
         received_at.naive_utc().date(),
     );
 
-    match os.client.get_object().bucket(&os.bucket).key(&key).send().await {
+    match os
+        .client
+        .get_object()
+        .bucket(&os.bucket)
+        .key(&key)
+        .send()
+        .await
+    {
         Ok(obj) => match obj.body.collect().await {
             Ok(ab) => Some(ab.to_vec()),
             Err(e) => {

@@ -452,6 +452,12 @@ pub enum Action<'a> {
         application_id: &'a Uuid,
         event_type_names: &'a [String],
     },
+    RequestAttemptGet {
+        application_id: &'a Uuid,
+    },
+    RequestAttemptRetry {
+        application_id: &'a Uuid,
+    },
     //
     ResponseGet {
         application_id: &'a Uuid,
@@ -461,12 +467,6 @@ pub enum Action<'a> {
         application_id: &'a Uuid,
     },
     EventsPerDayOrganization,
-    /// Retry schedule CRUD — org-scoped (no application_id). Viewers can list/get; Editors+ can create/edit/delete.
-    RetryScheduleList,
-    RetryScheduleCreate,
-    RetryScheduleGet,
-    RetryScheduleEdit,
-    RetryScheduleDelete,
 }
 
 impl Action<'_> {
@@ -529,17 +529,13 @@ impl Action<'_> {
             Self::EventReplay { .. } => "event:replay",
             //
             Self::RequestAttemptList { .. } => "request_attempt:list",
+            Self::RequestAttemptGet { .. } => "request_attempt:get",
+            Self::RequestAttemptRetry { .. } => "request_attempt:retry",
             //
             Self::ResponseGet { .. } => "response:get",
             //
             Self::EventsPerDayApplication { .. } => "events_per_day:application",
             Self::EventsPerDayOrganization => "events_per_day:organization",
-            //
-            Self::RetryScheduleList => "retry_schedule:list",
-            Self::RetryScheduleCreate => "retry_schedule:create",
-            Self::RetryScheduleGet => "retry_schedule:get",
-            Self::RetryScheduleEdit => "retry_schedule:edit",
-            Self::RetryScheduleDelete => "retry_schedule:delete",
         }
     }
 
@@ -604,17 +600,13 @@ impl Action<'_> {
             Self::EventReplay { .. } => vec![],
             //
             Self::RequestAttemptList { .. } => vec![Role::Viewer],
+            Self::RequestAttemptGet { .. } => vec![Role::Viewer],
+            Self::RequestAttemptRetry { .. } => vec![],
             //
             Self::ResponseGet { .. } => vec![Role::Viewer],
             //
             Self::EventsPerDayApplication { .. } => vec![Role::Viewer],
             Self::EventsPerDayOrganization => vec![Role::Viewer],
-            Self::RetryScheduleList => vec![Role::Viewer],
-            // Empty vec means no extra roles beyond the default (Editor). Viewer added explicitly only for read-only actions.
-            Self::RetryScheduleCreate => vec![],
-            Self::RetryScheduleGet => vec![Role::Viewer],
-            Self::RetryScheduleEdit => vec![],
-            Self::RetryScheduleDelete => vec![],
         };
 
         roles.append(&mut per_action_roles);
@@ -695,17 +687,13 @@ impl Action<'_> {
             Self::EventReplay { application_id, .. } => Some(**application_id),
             //
             Self::RequestAttemptList { application_id, .. } => Some(**application_id),
+            Self::RequestAttemptGet { application_id, .. } => Some(**application_id),
+            Self::RequestAttemptRetry { application_id, .. } => Some(**application_id),
             //
             Self::ResponseGet { application_id, .. } => Some(**application_id),
             //
             Self::EventsPerDayApplication { application_id, .. } => Some(**application_id),
             Self::EventsPerDayOrganization => None,
-            //
-            Self::RetryScheduleList => None,
-            Self::RetryScheduleCreate => None,
-            Self::RetryScheduleGet => None,
-            Self::RetryScheduleEdit => None,
-            Self::RetryScheduleDelete => None,
         }
     }
 
@@ -799,18 +787,13 @@ impl Action<'_> {
                 "event_type_names",
                 event_type_names,
             )],
-
+            Self::RequestAttemptGet { .. } => vec![],
+            Self::RequestAttemptRetry { .. } => vec![],
             //
             Self::ResponseGet { .. } => vec![],
             //
             Self::EventsPerDayApplication { .. } => vec![],
             Self::EventsPerDayOrganization => vec![],
-            //
-            Self::RetryScheduleList => vec![],
-            Self::RetryScheduleCreate => vec![],
-            Self::RetryScheduleGet => vec![],
-            Self::RetryScheduleEdit => vec![],
-            Self::RetryScheduleDelete => vec![],
         };
 
         facts.push(fact!("action({action})", action = self.action_name()));

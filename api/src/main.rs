@@ -32,7 +32,6 @@ mod event_payload;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
 mod handlers;
-mod health_monitor;
 mod hook0_client;
 mod iam;
 mod mailer;
@@ -387,10 +386,6 @@ struct Config {
     #[clap(long, env, default_value = "10")]
     quota_global_event_types_per_application_limit: quotas::QuotaValue,
 
-    /// Hard cap on retry schedules per org — prevents unbounded DB rows. API returns 429 when hit.
-    #[clap(long, env, default_value_t = 50)]
-    max_retry_schedules_per_org: i32,
-
     /// [Quotas] Default threshold (in %) of events per day at which to send a warning notification
     #[clap(long, env, default_value = "80")]
     quota_notification_events_per_day_threshold: u8,
@@ -462,60 +457,6 @@ struct Config {
     /// [Housekeeping] Duration to wait before removing a soft-deleted application
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30d")]
     soft_deleted_applications_cleanup_grace_period: Duration,
-
-    /// [Housekeeping] Enable the subscription health monitor background task
-    #[clap(long, env, default_value_t = false)]
-    enable_health_monitor: bool,
-
-    /// [Housekeeping] How often the health monitor runs
-    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30m")]
-    health_monitor_interval: Duration,
-
-    // COUPLING: These thresholds are duplicated in frontend/src/components/Hook0HealthBadge.vue.
-    // If you change these defaults, update the frontend constants too.
-    /// [Housekeeping] Failure % threshold for warning email
-    #[clap(long, env, default_value_t = 80)]
-    health_monitor_warning_failure_percent: u8,
-
-    /// [Housekeeping] Failure % threshold for deactivation
-    #[clap(long, env, default_value_t = 95)]
-    health_monitor_disable_failure_percent: u8,
-
-    /// [Housekeeping] Sliding window for health evaluation — only delivery attempts within this window are considered
-    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "24h")]
-    health_monitor_time_window: Duration,
-
-    /// [Housekeeping] Minimum completed delivery attempts (in the evaluation window) before the
-    /// health monitor evaluates a subscription. Subscriptions with fewer attempts are skipped —
-    /// this prevents false positives on low-traffic endpoints. Example: with min_sample_size=5,
-    /// a subscription that has received only 3 deliveries won't trigger a warning even if all 3 failed.
-    #[clap(long, env, default_value_t = 5)]
-    health_monitor_min_sample_size: u32,
-
-    /// [Housekeeping] Cooldown after resolved before new warning email
-    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1h")]
-    health_monitor_warning_cooldown: Duration,
-
-    /// [Housekeeping] Number of days to retain resolved health events before cleanup
-    #[clap(long, env, default_value_t = 90)]
-    health_monitor_retention_period_days: u32,
-
-    /// [Housekeeping] Maximum duration of a single health bucket. Buckets are closed when this duration OR bucket_max_messages is reached, whichever comes first
-    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5m")]
-    health_monitor_bucket_duration: Duration,
-
-    /// [Housekeeping] Maximum delivery count per bucket. When reached, the bucket is closed and a new one is opened
-    #[clap(long, env, default_value_t = 1000)]
-    health_monitor_bucket_max_messages: u32,
-
-    /// [Housekeeping] Health bucket retention in days
-    #[clap(long, env, default_value_t = 7)]
-    health_monitor_bucket_retention_days: u32,
-
-    /// [Housekeeping] Maximum number of request_attempt rows to scan per health monitor tick.
-    /// Limits query duration on high-traffic instances; remaining rows are picked up on the next tick.
-    #[clap(long, env, default_value_t = 50_000)]
-    health_monitor_max_delta_rows_per_tick: u32,
 
     /// [Web Server] If true, the secured HTTP headers will be enabled
     #[clap(long, env, default_value = "true")]
@@ -632,7 +573,6 @@ pub struct State {
     quota_notification_events_per_day_threshold: u8,
     enable_quota_based_email_notifications: bool,
     support_email_address: Address,
-    max_retry_schedules_per_org: i32,
     cloudflare_turnstile_site_key: Option<String>,
     cloudflare_turnstile_secret_key: Option<String>,
 }
@@ -678,23 +618,6 @@ impl std::fmt::Debug for PulsarConfig {
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
-
-    // Fail-fast: these invariants are load-bearing for the state machine. A warning >= disable
-    // threshold would skip the warning state. Better to crash on boot than silently misbehave.
-    if config.enable_health_monitor {
-        assert!(
-            config.health_monitor_warning_failure_percent
-                < config.health_monitor_disable_failure_percent,
-            "health_monitor_warning_failure_percent ({}) must be < health_monitor_disable_failure_percent ({})",
-            config.health_monitor_warning_failure_percent,
-            config.health_monitor_disable_failure_percent,
-        );
-        assert!(
-            (1..=100).contains(&config.health_monitor_warning_failure_percent)
-                && (1..=100).contains(&config.health_monitor_disable_failure_percent),
-            "health_monitor failure percents must be in [1, 100]"
-        );
-    }
 
     if let Some(biscuit_private_key) = config.biscuit_private_key {
         // Initialize app logger as well as Sentry integration
@@ -1118,39 +1041,6 @@ async fn main() -> anyhow::Result<()> {
         .await
         .expect("Could not initialize mailer; check SMTP configuration");
 
-        // The health monitor runs in its own task because it's a periodic loop that outlives
-        // HTTP requests. Shares the housekeeping semaphore to avoid competing for DB connections.
-        if config.enable_health_monitor {
-            let health_monitor_db = housekeeping_pool.clone();
-            let health_monitor_semaphore = housekeeping_semaphore.clone();
-            let health_monitor_mailer = mailer.clone();
-            let health_monitor_hook0_client = hook0_client.clone();
-            // Pack all health-monitor CLI flags into the config struct that run_health_monitor consumes
-            let health_monitor_config = health_monitor::HealthMonitorConfig {
-                interval: config.health_monitor_interval,
-                warning_failure_percent: config.health_monitor_warning_failure_percent,
-                disable_failure_percent: config.health_monitor_disable_failure_percent,
-                time_window: config.health_monitor_time_window,
-                min_sample_size: config.health_monitor_min_sample_size,
-                warning_cooldown: config.health_monitor_warning_cooldown,
-                retention_period_days: config.health_monitor_retention_period_days,
-                bucket_duration: config.health_monitor_bucket_duration,
-                bucket_max_messages: config.health_monitor_bucket_max_messages,
-                bucket_retention_days: config.health_monitor_bucket_retention_days,
-                max_delta_rows_per_tick: config.health_monitor_max_delta_rows_per_tick,
-            };
-            actix_web::rt::spawn(async move {
-                health_monitor::run_health_monitor(
-                    &health_monitor_semaphore,
-                    &health_monitor_db,
-                    &health_monitor_mailer,
-                    &health_monitor_hook0_client,
-                    &health_monitor_config,
-                )
-                .await;
-            });
-        }
-
         // Initialize state
         let initial_state = State {
             db: pool,
@@ -1197,7 +1087,6 @@ async fn main() -> anyhow::Result<()> {
                 .quota_notification_events_per_day_threshold,
             enable_quota_based_email_notifications: config.enable_quota_based_email_notifications,
             support_email_address: config.support_email_address,
-            max_retry_schedules_per_org: config.max_retry_schedules_per_org,
             cloudflare_turnstile_site_key: config.cloudflare_turnstile_site_key,
             cloudflare_turnstile_secret_key: config.cloudflare_turnstile_secret_key,
         };
@@ -1527,25 +1416,6 @@ async fn main() -> anyhow::Result<()> {
                                         .route(web::get().to(handlers::subscriptions::get))
                                         .route(web::put().to(handlers::subscriptions::edit))
                                         .route(web::delete().to(handlers::subscriptions::delete)),
-                                )
-                                .service(web::resource("/{subscription_id}/health_events").route(
-                                    web::get().to(handlers::subscription_health_events::list),
-                                )),
-                        )
-                        .service(
-                            web::scope("/retry_schedules")
-                                .wrap(Compat::new(rate_limiters.token()))
-                                .wrap(biscuit_auth.clone())
-                                .service(
-                                    web::resource("")
-                                        .route(web::get().to(handlers::retry_schedules::list))
-                                        .route(web::post().to(handlers::retry_schedules::create)),
-                                )
-                                .service(
-                                    web::resource("/{retry_schedule_id}")
-                                        .route(web::get().to(handlers::retry_schedules::get))
-                                        .route(web::put().to(handlers::retry_schedules::edit))
-                                        .route(web::delete().to(handlers::retry_schedules::delete)),
                                 ),
                         )
                         .service(
@@ -1555,6 +1425,14 @@ async fn main() -> anyhow::Result<()> {
                                 .service(
                                     web::resource("")
                                         .route(web::get().to(handlers::request_attempts::list)),
+                                )
+                                .service(
+                                    web::resource("/{request_attempt_id}")
+                                        .route(web::get().to(handlers::request_attempts::get)),
+                                )
+                                .service(
+                                    web::resource("/{request_attempt_id}/retry")
+                                        .route(web::post().to(handlers::request_attempts::retry)),
                                 ),
                         )
                         .service(

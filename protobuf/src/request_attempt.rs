@@ -22,6 +22,7 @@ pub struct RequestAttempt {
     pub payload: Vec<u8>,
     pub payload_content_type: String,
     pub secret: Uuid,
+    /// What caused this attempt: "dispatch" (initial delivery), "auto_retry" (automatic retry after failure), or "manual_retry" (user-triggered one-shot retry)
     pub attempt_trigger: String,
 }
 
@@ -98,7 +99,12 @@ impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttem
             payload: value.payload,
             payload_content_type: value.payload_content_type,
             secret,
-            attempt_trigger: value.attempt_trigger,
+            // Default to "dispatch" for backward compatibility with messages that predate this field
+            attempt_trigger: if value.attempt_trigger.is_empty() {
+                "dispatch".to_owned()
+            } else {
+                value.attempt_trigger
+            },
         })
     }
 }

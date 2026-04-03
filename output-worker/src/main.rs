@@ -2,14 +2,10 @@ mod monitoring;
 mod opentelemetry;
 mod pg;
 mod pulsar;
-/// Retry delay computation — strategy-aware (custom, linear, increasing) with default fallback
-mod retry;
 mod throughput_log;
 mod work;
 
-pub(crate) use retry::{compute_next_retry, evaluate_retry_policy};
-
-use ::pulsar::{Authentication, Pulsar, TokioExecutor};
+use ::pulsar::{Authentication, ConnectionRetryOptions, Pulsar, TokioExecutor};
 use anyhow::bail;
 use aws_sdk_s3::Client;
 use aws_sdk_s3::config::retry::RetryConfig;
@@ -21,7 +17,7 @@ use humantime::format_duration;
 use reqwest::Url;
 use reqwest::header::HeaderName;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use sqlx::{PgPool, query, query_as};
+use sqlx::{PgConnection, PgPool, query, query_as};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -168,11 +164,6 @@ struct Config {
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "8d")]
     max_retry_window: Duration,
 
-    /// Jitter factor applied to retry delays (0.0 = no jitter, 0.2 = up to +20%).
-    /// Prevents thundering-herd when many subscriptions recover simultaneously.
-    #[clap(long, env, default_value = "0.2")]
-    retry_jitter_factor: f64,
-
     /// Heartbeat URL that should be called regularly
     #[clap(long, env)]
     monitoring_heartbeat_url: Option<Url>,
@@ -298,6 +289,8 @@ pub struct RequestAttemptWithOptionalPayload {
     pub payload: Option<Vec<u8>>,
     pub payload_content_type: String,
     pub secret: Uuid,
+    /// What caused this attempt: "dispatch", "auto_retry", or "manual_retry" — controls whether a failed attempt gets a successor
+    pub attempt_trigger: String,
 }
 
 #[tokio::main]
@@ -391,6 +384,7 @@ async fn main() -> anyhow::Result<()> {
                         name: "token".to_owned(),
                         data: pulsar_token.to_owned().into_bytes(),
                     })
+                    .with_connection_retry_options(ConnectionRetryOptions::default())
                     .build()
                     .await?,
                 tenant: pulsar_tenant.to_owned(),
@@ -771,3 +765,136 @@ async fn get_worker(name: String, conn: &PgPool) -> anyhow::Result<Worker> {
     }
 }
 
+async fn compute_next_retry(
+    conn: &mut PgConnection,
+    attempt: &RequestAttempt,
+    response: &Response,
+    max_retries: u8,
+) -> Result<Option<Duration>, sqlx::Error> {
+    match response.response_error {
+        Some(ResponseError::InvalidHeader) => {
+            let msg = response
+                .body
+                .as_ref()
+                .and_then(|bytes| str::from_utf8(bytes).ok())
+                .unwrap_or("???");
+            error!(request_attempt_id = %attempt.request_attempt_id, "Could not construct signature ({msg}); giving up");
+            Ok(None)
+        }
+        _ => {
+            // Temporary warning message; this will be replaced by actual actions at some point
+            if let Some(ResponseError::InvalidTarget) = response.response_error {
+                let msg = response
+                    .body
+                    .as_ref()
+                    .and_then(|bytes| str::from_utf8(bytes).ok())
+                    .unwrap_or("???");
+                warn!(request_attempt_id = %attempt.request_attempt_id, "Invalid target ({msg}); continuing as normal");
+            }
+
+            let sub = query!(
+                "
+                    SELECT true AS whatever
+                    FROM webhook.subscription AS s
+                    INNER JOIN event.application AS a ON a.application__id = s.application__id
+                    WHERE s.subscription__id = $1
+                        AND s.deleted_at IS NULL
+                        AND s.is_enabled
+                        AND a.deleted_at IS NULL
+                ",
+                attempt.subscription_id
+            )
+            .fetch_optional(conn)
+            .await?;
+
+            if sub.is_some() {
+                Ok(compute_next_retry_duration(
+                    max_retries,
+                    attempt.retry_count,
+                ))
+            } else {
+                // If the subscription was disabled or soft-deleted (or its application was deleted), we do not schedule a next attempt
+                Ok(None)
+            }
+        }
+    }
+}
+
+fn compute_next_retry_duration(max_retries: u8, retry_count: i16) -> Option<Duration> {
+    if retry_count < max_retries.into() {
+        match retry_count {
+            0 => Some(Duration::from_secs(3)),
+            1 => Some(Duration::from_secs(10)),
+            2 => Some(Duration::from_secs(3 * 60)),
+            3 => Some(Duration::from_secs(30 * 60)),
+            4 => Some(Duration::from_hours(1)),
+            5 => Some(Duration::from_hours(3)),
+            6 => Some(Duration::from_hours(5)),
+            _ => Some(Duration::from_hours(10)),
+        }
+    } else {
+        None
+    }
+}
+
+fn evaluate_retry_policy(max_retries: u8, max_retry_window: Duration) -> (u8, Duration) {
+    let mut cumulative = Duration::ZERO;
+    let mut effective_retries = 0;
+
+    for i in 0..max_retries {
+        match compute_next_retry_duration(max_retries, i.into()) {
+            Some(d) => {
+                if cumulative + d > max_retry_window {
+                    break;
+                }
+                cumulative += d;
+                effective_retries = i + 1;
+            }
+            None => break,
+        }
+    }
+
+    (effective_retries, cumulative)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_evaluate_retry_policy_zero_retries() {
+        let (retries, cumulative) = evaluate_retry_policy(0, Duration::from_hours(1));
+        assert_eq!(retries, 0);
+        assert_eq!(cumulative, Duration::ZERO);
+    }
+
+    #[test]
+    fn test_evaluate_retry_policy_zero_window() {
+        let (retries, cumulative) = evaluate_retry_policy(30, Duration::ZERO);
+        assert_eq!(retries, 0);
+        assert_eq!(cumulative, Duration::ZERO);
+    }
+
+    #[test]
+    fn test_compute_next_retry_duration_exceeds_max() {
+        assert_eq!(compute_next_retry_duration(5, 5), None);
+        assert_eq!(compute_next_retry_duration(5, 6), None);
+        assert_eq!(compute_next_retry_duration(0, 0), None);
+    }
+
+    #[test]
+    fn test_evaluate_retry_policy_unlimited_window() {
+        let window = Duration::from_hours(365 * 24);
+        let (retries, cumulative) = evaluate_retry_policy(30, window);
+        assert_eq!(retries, 30);
+        assert!(cumulative < window / 10); // Duration is not just the window but the actual cumulative duration
+    }
+
+    #[test]
+    fn test_evaluate_retry_policy_tight_window() {
+        let window = Duration::from_secs(15);
+        let (retries, cumulative) = evaluate_retry_policy(30, window);
+        assert_eq!(retries, 2);
+        assert!(cumulative < window);
+    }
+}

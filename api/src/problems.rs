@@ -50,6 +50,8 @@ pub enum Hook0Problem {
 
     InvalidDateRange,
 
+    PayloadExpired,
+
     // Auth errors
     AuthNoAuthorizationHeader,
     AuthInvalidAuthorizationHeader,
@@ -62,17 +64,12 @@ pub enum Hook0Problem {
     AuthFailedRefresh,
     AuthEmailExpired,
 
-    /// Org already has a schedule with this name — enforced by the `retry_schedule_org_name_unique` DB constraint.
-    RetryScheduleNameAlreadyExists,
-
     // Quota errors
     TooManyMembersPerOrganization(QuotaValue),
     TooManyApplicationsPerOrganization(QuotaValue),
     TooManyEventsToday(QuotaValue),
     TooManySubscriptionsPerApplication(QuotaValue),
     TooManyEventTypesPerApplication(QuotaValue),
-    /// Org reached its retry schedule quota — the atomic INSERT's WHERE subquery rejected the row.
-    TooManyRetrySchedulesPerOrganization(QuotaValue),
 
     // Generic errors
     JsonPayload(JsonPayloadProblem),
@@ -101,9 +98,6 @@ impl From<sqlx::Error> for Hook0Problem {
                     ) => Hook0Problem::EventTypeDoesNotExist,
                     Some("user__organization_pkey") => {
                         Hook0Problem::InvitedUserAlreadyInOrganization
-                    }
-                    Some("retry_schedule_org_name_unique") => {
-                        Hook0Problem::RetryScheduleNameAlreadyExists
                     }
                     constraint => {
                         error!(
@@ -362,6 +356,14 @@ impl From<Hook0Problem> for Problem {
                 status: StatusCode::BAD_REQUEST,
             },
 
+            Hook0Problem::PayloadExpired => Problem {
+                id: Hook0Problem::PayloadExpired,
+                title: "Event payload is no longer available",
+                detail: "The event payload has expired or been purged from storage. Manual retry requires the original payload to be available.".into(),
+                validation: None,
+                status: StatusCode::GONE,
+            },
+
             // Auth error
             Hook0Problem::AuthNoAuthorizationHeader => Problem {
                 id: Hook0Problem::AuthNoAuthorizationHeader,
@@ -436,14 +438,6 @@ impl From<Hook0Problem> for Problem {
                 }
             },
 
-            // Retry schedule errors
-            Hook0Problem::RetryScheduleNameAlreadyExists => Problem {
-                id: Hook0Problem::RetryScheduleNameAlreadyExists,
-                title: "Retry schedule name already exists",
-                detail: "A retry schedule with this name already exists in this organization.".into(),
-                validation: None,
-                status: StatusCode::CONFLICT,
-            },
             // Quota errors
             Hook0Problem::TooManyMembersPerOrganization(limit) => {
                 let detail = format!("This organization cannot have more than {limit} users. You might want to upgrade to a better plan.");
@@ -490,16 +484,6 @@ impl From<Hook0Problem> for Problem {
                 Problem {
                     id: Hook0Problem::TooManyEventTypesPerApplication(limit),
                     title: "Exceeded number of event types that can be created in this application",
-                    detail: detail.into(),
-                    validation: None,
-                    status: StatusCode::TOO_MANY_REQUESTS,
-                }
-            },
-            Hook0Problem::TooManyRetrySchedulesPerOrganization(limit) => {
-                let detail = format!("This organization cannot have more than {limit} retry schedules.");
-                Problem {
-                    id: Hook0Problem::TooManyRetrySchedulesPerOrganization(limit),
-                    title: "Exceeded number of retry schedules per organization",
                     detail: detail.into(),
                     validation: None,
                     status: StatusCode::TOO_MANY_REQUESTS,
