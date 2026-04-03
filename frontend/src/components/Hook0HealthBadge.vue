@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// Subscription health status badge — maps a failure_percent (0-100, null if no data) to colored badges: healthy, warning, disabled, noData.
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Hook0Badge from './Hook0Badge.vue';
@@ -9,10 +10,11 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-// Thresholds must match server defaults (see api/src/main.rs).
+// These thresholds must match health_monitor_warning_failure_percent (default 80) and health_monitor_disable_failure_percent (default 95) in api/src/main.rs — if the server values change, this badge shows incorrect status labels.
 const WARNING_THRESHOLD = 80;
 const DISABLE_THRESHOLD = 95;
 
+// Evaluated top-down from worst to best: null → disabled → warning → healthy. Order matters — reversing would misclassify.
 const status = computed(() => {
   if (props.failurePercent === null) {
     return 'noData';

@@ -49,6 +49,8 @@ pub enum Mail {
         events_per_days_limit: i32,
         extra_variables: Vec<(String, String)>,
     },
+    /// Health monitor detected the subscription's failure rate crossed the warning threshold.
+    /// Sent once per cooldown period to avoid spamming the org's admins.
     SubscriptionWarning {
         organization_id: Uuid,
         application_id: Uuid,
@@ -59,6 +61,8 @@ pub enum Mail {
         failure_percent: f64,
         evaluation_window: String,
     },
+    /// Health monitor auto-disabled the subscription because its failure rate exceeded
+    /// the disable threshold. The subscription stops receiving events until manually re-enabled.
     SubscriptionDisabled {
         organization_id: Uuid,
         application_id: Uuid,
@@ -70,6 +74,8 @@ pub enum Mail {
         evaluation_window: String,
         disabled_at: String,
     },
+    /// Failure rate dropped back below the warning threshold after a previous warning.
+    /// Good news mail — lets the org know the subscription is healthy again.
     SubscriptionRecovered {
         organization_id: Uuid,
         application_id: Uuid,
@@ -85,7 +91,6 @@ impl Mail {
         match self {
             Mail::VerifyUserEmail { .. } => include_str!("mail_templates/verify_user_email.mjml"),
             Mail::ResetPassword { .. } => include_str!("mail_templates/reset_password.mjml"),
-            // Mail::Welcome { .. } => include_str!("mail_templates/welcome.mjml"),
             Mail::QuotaEventsPerDayWarning { .. } => {
                 include_str!("mail_templates/quotas/events_per_day_warning.mjml")
             }
@@ -108,7 +113,6 @@ impl Mail {
         match self {
             Mail::VerifyUserEmail { .. } => "[Hook0] Verify your email address".to_owned(),
             Mail::ResetPassword { .. } => "[Hook0] Reset your password".to_owned(),
-            // Mail::Welcome { .. } => "Welcome to our platform".to_owned(),
             Mail::QuotaEventsPerDayWarning { .. } => "[Hook0] Quota Warning".to_owned(),
             Mail::QuotaEventsPerDayReached { .. } => "[Hook0] Quota Reached".to_owned(),
             Mail::SubscriptionWarning {
@@ -136,7 +140,6 @@ impl Mail {
         match self {
             Mail::VerifyUserEmail { url } => vec![("url".to_owned(), url.to_string())],
             Mail::ResetPassword { url } => vec![("url".to_owned(), url.to_string())],
-            // Mail::Welcome { name } => vec![("name".to_owned(), name.to_owned())],
             Mail::QuotaEventsPerDayWarning {
                 pricing_url_hash,
                 actual_consumption_percent,
@@ -277,6 +280,8 @@ impl Mail {
         }
     }
 
+    /// Build a deep-link into the dashboard for the affected subscription.
+    /// Returns `None` for non-subscription mails (verify email, quota, etc.).
     pub fn subscription_url(&self, app_url: &Url) -> Option<String> {
         match self {
             Mail::SubscriptionWarning {

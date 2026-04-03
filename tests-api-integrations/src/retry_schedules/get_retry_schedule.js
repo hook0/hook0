@@ -1,3 +1,5 @@
+// Retry schedule GET tests — fetches a known schedule by ID and verifies a random UUID 404s.
+
 import http from 'k6/http';
 import { check } from 'k6';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
@@ -17,7 +19,7 @@ export default function (baseUrl, service_token, organization_id, schedule_id) {
     },
   };
 
-  // --- Get existing schedule ---
+  // Verify the schedule created upstream is retrievable and has all expected fields
   const url = `${baseUrl}api/v1/retry_schedules/${schedule_id}?organization_id=${organization_id}`;
   let res = http.get(url, params);
   if (
@@ -42,7 +44,7 @@ export default function (baseUrl, service_token, organization_id, schedule_id) {
     return null;
   }
 
-  // --- Get nonexistent UUID ---
+  // Random UUIDs must 404, not return empty body or 200
   const fake_id = uuidv4();
   const not_found_url = `${baseUrl}api/v1/retry_schedules/${fake_id}?organization_id=${organization_id}`;
   res = http.get(not_found_url, params);

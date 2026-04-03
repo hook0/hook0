@@ -336,8 +336,7 @@ export default [
     component: () => import('@/pages/api/documentation/ApiDocumentation.vue'),
     meta: { title: 'API Documentation' },
   },
-  // Route for component visual testing (used by Playwright E2E tests)
-  // Always available — path is unlisted and prefixed with __dev
+  // Dev-only visual testing route for Playwright — no auth, hidden behind __dev prefix
   {
     name: 'ComponentShowcase',
     path: '/__dev/components',

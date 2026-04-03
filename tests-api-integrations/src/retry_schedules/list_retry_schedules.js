@@ -1,3 +1,5 @@
+// Lists all retry schedules for an org — used by the orchestrator to verify schedule count after creates/deletes.
+
 import http from 'k6/http';
 import { check } from 'k6';
 

@@ -1,3 +1,11 @@
+// Retry schedule creation tests — validates all rejection cases before creating a valid schedule.
+//
+// How it works:
+// 1. Fires invalid payloads (bad strategy, cross-field conflicts, boundary values) expecting 400/422
+// 2. Creates one valid "increasing" schedule that downstream tests depend on
+// 3. Proves "linear" and "custom" variants work end-to-end, then deletes them
+// 4. Verifies the unique name constraint rejects duplicates
+
 import http from 'k6/http';
 import { check } from 'k6';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
@@ -18,7 +26,7 @@ export default function (baseUrl, service_token, organization_id) {
     },
   };
 
-  // --- Invalid: unknown strategy ---
+  // The API must reject strategies it doesn't recognize, not silently default
   let res = http.post(
     url,
     JSON.stringify({
@@ -33,7 +41,7 @@ export default function (baseUrl, service_token, organization_id) {
     'Invalid strategy returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
-  // --- Invalid: increasing with custom_intervals ---
+  // custom_intervals only valid for "custom" strategy — mixing is a user error the API must catch
   res = http.post(
     url,
     JSON.stringify({
@@ -51,7 +59,7 @@ export default function (baseUrl, service_token, organization_id) {
     'Increasing with custom_intervals returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
-  // --- Invalid: linear without linear_delay ---
+  // linear strategy requires linear_delay — omitting must not fall back to a default
   res = http.post(
     url,
     JSON.stringify({
@@ -66,7 +74,7 @@ export default function (baseUrl, service_token, organization_id) {
     'Linear without linear_delay returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
-  // --- Invalid: custom with length mismatch ---
+  // custom_intervals length must equal max_retries — a mismatch means the user miscounted
   res = http.post(
     url,
     JSON.stringify({
@@ -82,7 +90,7 @@ export default function (baseUrl, service_token, organization_id) {
     'Custom with length mismatch returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
-  // --- Invalid: custom with interval=0 ---
+  // Zero-second intervals would hammer the target immediately — API must enforce minimum
   res = http.post(
     url,
     JSON.stringify({
@@ -98,7 +106,7 @@ export default function (baseUrl, service_token, organization_id) {
     'Custom with interval=0 returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
-  // --- Invalid: max_retries=0 ---
+  // Zero retries means "never retry" — defeats the purpose of a retry schedule
   res = http.post(
     url,
     JSON.stringify({
@@ -115,7 +123,7 @@ export default function (baseUrl, service_token, organization_id) {
     'max_retries=0 returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
-  // --- Invalid: max_retries=101 ---
+  // Server caps retries to prevent runaway delivery loops
   res = http.post(
     url,
     JSON.stringify({
@@ -132,7 +140,7 @@ export default function (baseUrl, service_token, organization_id) {
     'max_retries=101 returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
-  // --- Invalid: empty name ---
+  // Names appear in the UI — empty string would be confusing
   res = http.post(
     url,
     JSON.stringify({
@@ -149,7 +157,7 @@ export default function (baseUrl, service_token, organization_id) {
     'Empty name returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
-  // --- Invalid: name too short (1 char) ---
+  // Minimum 2 chars — single-char names are likely typos
   res = http.post(
     url,
     JSON.stringify({
@@ -166,7 +174,7 @@ export default function (baseUrl, service_token, organization_id) {
     'Name too short returns 400': (r) => r.status === 400 || r.status === 422,
   });
 
-  // --- Valid: create increasing schedule ---
+  // This schedule is returned to the caller — all downstream tests depend on it
   const schedule_name = 'k6_increasing_' + uuidv4();
   res = http.post(
     url,
@@ -200,7 +208,7 @@ export default function (baseUrl, service_token, organization_id) {
 
   const schedule = JSON.parse(res.body);
 
-  // --- Valid: linear schedule (verify variant works, then delete) ---
+  // Prove linear variant works end-to-end, then delete so it doesn't pollute the org
   res = http.post(
     url,
     JSON.stringify({
@@ -224,7 +232,7 @@ export default function (baseUrl, service_token, organization_id) {
     );
   }
 
-  // --- Valid: custom schedule (verify variant works, then delete) ---
+  // Prove custom variant works end-to-end, then delete to avoid pollution
   res = http.post(
     url,
     JSON.stringify({
@@ -248,7 +256,7 @@ export default function (baseUrl, service_token, organization_id) {
     );
   }
 
-  // --- Invalid: duplicate name same org ---
+  // Names are unique per org — reusing the name from step 1 must conflict
   res = http.post(
     url,
     JSON.stringify({

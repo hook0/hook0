@@ -26,7 +26,6 @@ use uuid::Uuid;
 use super::HealthMonitorConfig;
 use super::queries;
 
-// Re-export types that external modules depend on.
 pub use queries::SubscriptionHealth;
 
 /// Runs the full evaluation pipeline for one tick: read cursor, ingest new
@@ -47,6 +46,7 @@ pub async fn fetch_subscription_health_stats(
     let max_completed_at = deltas.iter().filter_map(|d| d.max_completed_at).max();
 
     // 3. Pour those delivery counts into open buckets (one bucket per subscription)
+    // Skip if empty — upsert_buckets would produce an empty VALUES clause
     if !deltas.is_empty() {
         queries::upsert_buckets(tx, &deltas).await?;
     }

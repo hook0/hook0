@@ -1,3 +1,6 @@
+// Fetches a single subscription by ID. Used by health monitor tests to poll subscription
+// state during async cron evaluation.
+
 import http from 'k6/http';
 import { check } from 'k6';
 

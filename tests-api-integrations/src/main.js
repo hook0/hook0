@@ -582,14 +582,13 @@ export function scenario_retry_schedules() {
 
     console.log('✓ Retry schedules test passed');
   } finally {
-    // Clean up all tracked schedules — silent DELETE without check() assertions
-    // (some may already be deleted by the test itself)
+    // Some schedules were already deleted during the test; ignore 404s from redundant deletes
     for (const sid of created_schedule_ids) {
       try {
         http.del(`${h}api/v1/retry_schedules/${sid}?organization_id=${o}`, null, {
           headers: { Authorization: `Bearer ${s}` },
         });
-      } catch (_) {}
+      } catch (_) {} // Silently ignore — schedule may already be deleted by the test
     }
     if (application_id && !config.keepTestApplication) {
       delete_application(h, application_id, s);

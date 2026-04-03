@@ -48,10 +48,11 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 
+// Create/edit form for subscriptions — handles both new and edit modes, with tutorial mode for the onboarding wizard.
+
 const { t } = useI18n();
 const { trackEvent } = useTracking();
 
-// Permissions
 const { canCreate, canEdit, canDelete } = usePermissions();
 
 type Props = {
@@ -103,7 +104,6 @@ const router = useRouter();
 const { organizationId, applicationId, subscriptionId } = useRouteIds();
 const isNew = computed(() => !subscriptionId.value);
 
-// Queries
 const {
   data: subscriptionData,
   isLoading: subLoading,
@@ -145,9 +145,10 @@ const headersMap = ref<Record<string, string>>({});
 const labelsMap = ref<Record<string, string>>({ user_id: '1' });
 const metadataMap = ref<Record<string, string>>({});
 
+// null means "use the organization's default retry schedule" — maps to retry_schedule_id on the API
 const selectedRetryScheduleId = ref<string | null>(null);
 
-// Retry schedule list for selector
+// The first option has value '' mapping to null (API default). This convention must match SubscriptionSectionAdvanced.
 const { data: retrySchedules } = useRetryScheduleList(organizationId);
 const retryScheduleOptions = computed(() => {
   const defaultOption: Hook0SelectSingleOption = {
@@ -293,7 +294,7 @@ const onSubmit = handleSubmit((values) => {
         labels: toApiRecord(labelsMap.value),
         is_enabled: isEnabled.value,
         event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
-        retry_schedule_id: selectedRetryScheduleId.value || null,
+        retry_schedule_id: selectedRetryScheduleId.value || null, // Empty string from select maps back to null
       },
       {
         onSuccess: () => {
@@ -329,7 +330,7 @@ const onSubmit = handleSubmit((values) => {
         event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
         dedicated_workers: dedicatedWorkers.value.length > 0 ? dedicatedWorkers.value : undefined,
         application_id: applicationId.value,
-        retry_schedule_id: selectedRetryScheduleId.value || null,
+        retry_schedule_id: selectedRetryScheduleId.value || null, // Empty string from select maps back to null
       },
     },
     {

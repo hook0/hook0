@@ -7,7 +7,7 @@ import { Plus, Repeat, Trash2 } from 'lucide-vue-next';
 import { useRetryScheduleList, useRemoveRetrySchedule } from './useRetryScheduleQueries';
 import type { RetrySchedule } from './RetryScheduleService';
 import { routes } from '@/routes';
-import { formatDuration } from '@/utils/formatDuration';
+import { formatDelaySummary, strategyLabel } from './retryScheduleFormatters';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
@@ -28,6 +28,13 @@ import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
 
+// Retry schedule list page — shows all schedules for an organization with create/delete actions.
+//
+// How it works:
+// 1. Fetches schedules via TanStack Query, renders table with name/strategy/delay/date columns
+// 2. Delete uses useEntityDelete composable for confirm-then-mutate-then-toast pattern
+// 3. Permissions gate create/delete visibility
+
 const { t } = useI18n();
 const { trackEvent } = useTracking();
 const { canCreate, canDelete } = usePermissions();
@@ -37,10 +44,11 @@ const { data: schedules, isLoading, error, refetch } = useRetryScheduleList(orga
 
 const removeMutation = useRemoveRetrySchedule();
 
+// useEntityDelete encapsulates the confirm-then-mutate-then-toast pattern — handles dialog state, async deletion, and feedback
 const {
   showDeleteDialog,
   entityToDelete: scheduleToDelete,
-  requestDelete: handleDelete,
+  requestDelete,
   confirmDelete,
 } = useEntityDelete<RetrySchedule>({
   deleteFn: (row) =>
@@ -52,39 +60,6 @@ const {
   successMessage: t('retrySchedules.deleted'),
   onSuccess: () => trackEvent('retry-schedule', 'delete', 'success'),
 });
-
-function formatDelaySummary(schedule: RetrySchedule): string {
-  switch (schedule.strategy) {
-    case 'increasing':
-      return t('retrySchedules.delayIncreasing', {
-        baseDelay: formatDuration(schedule.increasing_base_delay ?? 0),
-        factor: schedule.increasing_wait_factor ?? 0,
-      });
-    case 'linear':
-      return t('retrySchedules.delayLinear', {
-        delay: formatDuration(schedule.linear_delay ?? 0),
-      });
-    case 'custom':
-      return t('retrySchedules.delayCustom', {
-        count: (schedule.custom_intervals ?? []).length,
-      });
-    default:
-      return '';
-  }
-}
-
-function strategyLabel(strategy: string): string {
-  switch (strategy) {
-    case 'increasing':
-      return t('retrySchedules.strategyIncreasing');
-    case 'linear':
-      return t('retrySchedules.strategyLinear');
-    case 'custom':
-      return t('retrySchedules.strategyCustom');
-    default:
-      return strategy;
-  }
-}
 
 const columns: ColumnDef<RetrySchedule, unknown>[] = [
   {
@@ -109,7 +84,7 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
     accessorKey: 'strategy',
     header: t('retrySchedules.strategyColumn'),
     cell: (info) =>
-      h(Hook0Badge, { variant: 'info', size: 'sm' }, () => strategyLabel(info.getValue<string>())),
+      h(Hook0Badge, { variant: 'info', size: 'sm' }, () => strategyLabel(info.getValue<string>(), t)),
   },
   {
     accessorKey: 'max_retries',
@@ -118,7 +93,7 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
   {
     id: 'delay',
     header: t('retrySchedules.delayColumn'),
-    cell: (info) => formatDelaySummary(info.row.original),
+    cell: (info) => formatDelaySummary(info.row.original, t),
   },
   {
     accessorKey: 'created_at',
@@ -126,6 +101,7 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
     enableSorting: true,
     cell: (info) => h(Hook0DateTime, { value: info.getValue<string>() }),
   },
+  // Conditionally append the delete column — the spread-of-ternary keeps TanStack Table's column identity stable
   ...(canDelete('retry_schedule')
     ? [
         {
@@ -136,11 +112,12 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
               value: t('common.delete'),
               icon: markRaw(Trash2),
               variant: 'danger',
-              onClick: () => handleDelete(info.row.original),
+              onClick: () => requestDelete(info.row.original),
             }),
-        } as ColumnDef<RetrySchedule, unknown>,
+        } satisfies ColumnDef<RetrySchedule, unknown>,
       ]
-    : []),
+    : [] // No actions column when user lacks delete permission — column simply doesn't exist
+  ),
 ];
 </script>
 

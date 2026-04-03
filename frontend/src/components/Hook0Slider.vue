@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// Generic range slider with label, formatted display value, and error state. Uses a CSS custom property (--progress) to paint the filled track portion.
 import { computed } from 'vue';
 
 type Props = {
@@ -26,7 +27,12 @@ const displayValue = computed(() =>
   props.formatValue ? props.formatValue(props.modelValue) : String(props.modelValue)
 );
 
-const progress = computed(() => ((props.modelValue - props.min) / (props.max - props.min)) * 100);
+const range = computed(() => props.max - props.min);
+// Feeds the --progress CSS custom property — the linear-gradient uses it to paint filled vs unfilled track
+const progress = computed(() =>
+  // Guard: if min === max the track is degenerate — default to 0% to avoid NaN
+  range.value === 0 ? 0 : ((props.modelValue - props.min) / range.value) * 100
+);
 
 function onInput(event: Event) {
   const target = event.target as HTMLInputElement;

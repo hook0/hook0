@@ -1,3 +1,10 @@
+//! Self-referential Hook0 client for lifecycle events.
+//!
+//! Hook0 dogfoods itself: the API emits webhook events for every CRUD operation
+//! (org created, subscription disabled, etc.) so operators can observe their instance
+//! through Hook0 subscriptions. This module builds the client, registers event types
+//! on startup, and defines the payload structs that get serialized into wire-format events.
+
 use actix_web::rt::time::sleep;
 use anyhow::anyhow;
 use async_recursion::async_recursion;
@@ -15,8 +22,14 @@ use uuid::Uuid;
 
 use crate::handlers::subscriptions::Target;
 
+/// How long to wait between retries when upserting event types fails on startup.
+/// Short enough to recover quickly from a transient network blip, long enough to
+/// avoid hammering a struggling server.
 const PERIOD_BETWEEN_EVENT_TYPES_UPSERTS_TRIES: Duration = Duration::from_secs(2);
 
+/// Canonical list of event types this instance can emit.
+/// Adding a new lifecycle handler? Add its event type string here too, otherwise
+/// the Hook0 client won't register it and subscriptions won't match.
 pub const EVENT_TYPES: &[&str] = &[
     "api.organization.created",
     "api.organization.updated",
@@ -43,6 +56,9 @@ pub const EVENT_TYPES: &[&str] = &[
     "api.retry_schedule.removed",
 ];
 
+/// Build an optional Hook0 client from environment variables.
+/// Returns `None` when any of the three config values is missing — this is the
+/// normal path for instances that don't dogfood themselves.
 pub fn initialize(
     api_url: Option<Url>,
     application_id: Option<Uuid>,
@@ -72,6 +88,9 @@ pub fn initialize(
     }
 }
 
+/// Register all known event types with the target Hook0 instance, retrying on
+/// transient errors (connect/timeout/5xx). Gives up after `retries` attempts —
+/// the instance still works, but lifecycle events won't be delivered.
 #[async_recursion]
 pub async fn upsert_event_types(
     hook0_client: &Hook0Client,
@@ -114,6 +133,9 @@ pub async fn upsert_event_types(
     }
 }
 
+/// Union of every lifecycle event the API can emit.
+/// Each variant wraps a typed payload struct. Call `mk_hook0_event` on a value
+/// to consume it into the wire-format `hook0_client::Event`.
 #[derive(Debug, Clone)]
 pub enum Hook0ClientEvent {
     OrganizationCreated(EventOrganizationCreated),
@@ -142,6 +164,9 @@ pub enum Hook0ClientEvent {
 }
 
 impl Hook0ClientEvent {
+    /// Consume this event into a wire-format `hook0_client::Event` ready to send.
+    /// Attaches the hook0 version as metadata and maps each variant to its
+    /// dotted event-type string (e.g. `api.organization.created`).
     pub fn mk_hook0_event<'a>(self) -> hook0_client::Event<'a> {
         fn to_event<'a, E: 'a + Event>(
             event: E,
@@ -200,6 +225,8 @@ impl Hook0ClientEvent {
     }
 }
 
+/// Contract that every payload struct must satisfy: provide a dotted event-type
+/// name (e.g. `api.subscription.disabled`) and a label set for routing.
 trait Event: std::fmt::Debug + Clone + Serialize {
     fn event_type(&self) -> &'static str;
     fn labels(&self) -> Vec<(String, String)>;
@@ -209,6 +236,8 @@ const INSTANCE_LABEL: &str = "instance";
 const INSTANCE_VALUE: &str = "1";
 const ORGANIZATION_LABEL: &str = "organization";
 const APPLICATION_LABEL: &str = "application";
+
+// --- Organization lifecycle events ---
 
 #[derive(Debug, Clone, Serialize)]
 pub struct EventOrganizationCreated {
@@ -347,6 +376,8 @@ impl From<EventOrganizationRemoved> for Hook0ClientEvent {
     }
 }
 
+// --- Application lifecycle events ---
+
 #[derive(Debug, Clone, Serialize)]
 pub struct EventApplicationCreated {
     pub organization_id: Uuid,
@@ -445,6 +476,8 @@ impl From<EventApplicationRemoved> for Hook0ClientEvent {
         Self::ApplicationRemoved(e)
     }
 }
+
+// --- Application secret lifecycle events ---
 
 #[derive(Debug, Clone, Serialize)]
 pub struct EventApplicationSecretCreated {
@@ -547,6 +580,8 @@ impl From<EventApplicationSecretRemoved> for Hook0ClientEvent {
     }
 }
 
+// --- Service token lifecycle events ---
+
 #[derive(Debug, Clone, Serialize)]
 pub struct EventServiceTokenCreated {
     pub token_id: Uuid,
@@ -635,6 +670,8 @@ impl From<EventServiceTokenRemoved> for Hook0ClientEvent {
     }
 }
 
+// --- Event type lifecycle events ---
+
 #[derive(Debug, Clone, Serialize)]
 pub struct EventEventTypeCreated {
     pub organization_id: Uuid,
@@ -704,6 +741,8 @@ impl From<EventEventTypeRemoved> for Hook0ClientEvent {
         Self::EventTypeRemoved(e)
     }
 }
+
+// --- Subscription lifecycle events ---
 
 #[derive(Debug, Clone, Serialize)]
 pub struct EventSubscriptionCreated {
@@ -820,6 +859,8 @@ impl From<EventSubscriptionRemoved> for Hook0ClientEvent {
     }
 }
 
+// --- Retry schedule lifecycle events ---
+
 #[derive(Debug, Clone, Serialize)]
 pub struct EventRetryScheduleCreated {
     pub organization_id: Uuid,
@@ -925,6 +966,8 @@ impl From<EventRetryScheduleRemoved> for Hook0ClientEvent {
     }
 }
 
+/// Snapshot of the subscription at the moment it was auto-disabled by the health monitor.
+/// Includes the target URL and timestamps so the receiving webhook can correlate with logs.
 #[derive(Debug, Clone, Serialize)]
 pub struct SubscriptionDisabledPayload {
     pub subscription_id: Uuid,
@@ -935,6 +978,8 @@ pub struct SubscriptionDisabledPayload {
     pub disabled_at: DateTime<Utc>,
 }
 
+/// Full retry schedule configuration attached to a disabled subscription event,
+/// so the receiver knows which retry policy was in effect when the sub was killed.
 #[derive(Debug, Clone, Serialize)]
 pub struct RetrySchedulePayload {
     pub retry_schedule_id: Uuid,
@@ -947,6 +992,9 @@ pub struct RetrySchedulePayload {
     pub increasing_wait_factor: Option<f64>,
 }
 
+/// Emitted when the health monitor auto-disables a subscription.
+/// Bundles both the subscription snapshot and its retry schedule (if any)
+/// so downstream consumers have the full picture.
 #[derive(Debug, Clone, Serialize)]
 pub struct EventSubscriptionDisabled {
     pub subscription: SubscriptionDisabledPayload,

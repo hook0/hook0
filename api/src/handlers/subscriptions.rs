@@ -43,9 +43,11 @@ pub struct Subscription {
     pub label_value: String,
     pub labels: HashMap<String, String>,
     pub target: Target,
+    /// Which retry schedule governs this subscription's failed-delivery backoff, if any.
     pub retry_schedule_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Rolling failure rate (0.0–100.0) computed by the health monitor — `None` until the first health check runs.
     pub failure_percent: Option<f64>,
     pub dedicated_workers: Vec<String>,
 }
@@ -590,6 +592,7 @@ pub async fn create(
             .await
             .map_err(Hook0Problem::from)?;
 
+    // The INSERT's subselect validates retry_schedule ownership — if the caller sent a retry_schedule_id but the DB returned NULL, the schedule doesn't exist in this org
     if body.retry_schedule_id.is_some() && subscription.retry_schedule__id.is_none() {
         return Err(Hook0Problem::NotFound);
     }
@@ -813,7 +816,7 @@ pub async fn edit(
     .map_err(Hook0Problem::from)?;
 
     let retry_schedule_id_param = body.retry_schedule_id;
-    // Update all fields including is_enabled, description, metadata, labels, retry_schedule__id
+    // The retry_schedule__id subselect validates that the schedule belongs to the same org — if not, it silently NULLs the FK, which we detect below
     let subscription = query_as!(
         RawSubscription,
         "
@@ -836,6 +839,7 @@ pub async fn edit(
 
     match subscription {
         Some(s) => {
+            // Same ownership check — the UPDATE's subselect NULLs retry_schedule__id if the schedule doesn't belong to this org
             if body.retry_schedule_id.is_some() && s.retry_schedule__id.is_none() {
                 return Err(Hook0Problem::NotFound);
             }

@@ -62,6 +62,7 @@ pub enum Hook0Problem {
     AuthFailedRefresh,
     AuthEmailExpired,
 
+    /// Org already has a schedule with this name — enforced by the `retry_schedule_org_name_unique` DB constraint.
     RetryScheduleNameAlreadyExists,
 
     // Quota errors
@@ -70,6 +71,7 @@ pub enum Hook0Problem {
     TooManyEventsToday(QuotaValue),
     TooManySubscriptionsPerApplication(QuotaValue),
     TooManyEventTypesPerApplication(QuotaValue),
+    /// Org reached its retry schedule quota — the atomic INSERT's WHERE subquery rejected the row.
     TooManyRetrySchedulesPerOrganization(QuotaValue),
 
     // Generic errors

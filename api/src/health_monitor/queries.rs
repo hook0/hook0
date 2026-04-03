@@ -1,3 +1,6 @@
+//! SQL layer for the health monitor — cursor management, delta ingestion,
+//! bucket upserts, suspect identification, and failure rate computation.
+
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
@@ -31,6 +34,7 @@ pub struct SubscriptionHealth {
     pub last_health_status: Option<HealthStatus>,
     pub last_health_at: Option<DateTime<Utc>>,
     pub last_health_source: Option<HealthEventSource>,
+    // Selected for potential use in notification personalization — suppress warning until wired up
     #[allow(dead_code)]
     pub last_health_user_id: Option<Uuid>,
     pub retry_schedule_id: Option<Uuid>,
@@ -106,6 +110,7 @@ pub async fn upsert_buckets(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     deltas: &[DeltaRow],
 ) -> Result<(), sqlx::Error> {
+    // Nothing to insert — skip to avoid an empty VALUES clause
     if deltas.is_empty() {
         return Ok(());
     }

@@ -546,14 +546,12 @@
     "apps": "Apps",
     "createApplication": "Create application",
     "createOrganization": "Create organization",
-    "apiReference": "API Reference",
     "darkMode": "Dark mode",
     "dashboard": "Dashboard",
     "deliveries": "Deliveries",
     "documentation": "Documentation",
     "eventTypes": "Event Types",
     "events": "Events",
-    "documentation": "Documentation",
     "goToAppDashboard": "Go to application dashboard",
     "goToOrgDashboard": "Go to organization dashboard",
     "help": "Help",
@@ -846,8 +844,7 @@
     "webhookSiteName": "Webhook.site",
     "retryScheduleLabel": "Retry Schedule",
     "retryScheduleHint": "Choose a {link} or leave empty to use the recommended policy.",
-    "editAction": "Edit",
-    "detailAction": "View"
+    "editAction": "Edit"
   },
   "tutorial": {
     "applicationCreated": "Application created",
@@ -1030,10 +1027,9 @@
     "strategyCustom": "Custom",
     "delayIncreasing": "{baseDelay} × {factor} escalating",
     "delayLinear": "{delay} fixed",
-    "delayCustom": "{count} custom intervals",
+    "delayCustom": "{count} custom interval | {count} custom intervals",
     "defaultSchedule": "Recommended",
     "defaultScheduleDesc": "Built-in increasing schedule: 3s, 10s, 3min, 30min, 1h, 3h, 5h, then 10h for subsequent retries (up to 25 retries over 8 days).",
-    "aboutTitle": "About Retry Schedules",
     "aboutDescription": "Customize how failed webhooks are retried. Default policy: 3s, 10s, 3min, 30min, 1h, 3h, 5h, then 10h (up to 25 retries over 8 days).",
     "fields": {
       "name": "Name",
@@ -1044,9 +1040,7 @@
       "strategyCustomDesc": "Define a custom delay for each retry attempt",
       "maxRetries": "Max Retries",
       "increasingBaseDelay": "Base Delay (seconds)",
-      "increasingBaseDelayHint": "Delay for the first retry attempt",
       "increasingWaitFactor": "Wait Factor",
-      "increasingWaitFactorHint": "Multiplier between each retry (e.g. 3 means each retry waits 3× longer)",
       "linearDelay": "Delay (seconds)",
       "customIntervals": "Custom Intervals",
       "addInterval": "Add interval",
@@ -1054,9 +1048,6 @@
       "intervalSeconds": "Delay (seconds)"
     },
     "preview": {
-      "title": "Retry Preview",
-      "retryColumn": "Retry",
-      "delayColumn": "Delay",
       "cumulativeTooltip": "Total elapsed: {total}"
     },
     "empty": {
@@ -1076,15 +1067,12 @@
     "httpMethod": "HTTP Method",
     "eventTypes": "Event Types",
     "labels": "Labels",
-    "headers": "Headers",
-    "metadata": "Metadata",
     "retrySchedule": "Retry Schedule",
     "noDeliveries": "No recent deliveries",
     "statusOk": "OK",
     "statusFailed": "Failed",
     "statusColumn": "Status",
     "dateColumn": "Date",
-    "responseCodeColumn": "Response Code",
     "retryCountColumn": "Retry"
   },
   "health": {

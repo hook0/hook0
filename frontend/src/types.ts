@@ -1141,7 +1141,7 @@ export interface components {
       /** Format: uuid */
       organization_id: string;
       name: string;
-      strategy: string;
+      strategy: 'increasing' | 'linear' | 'custom';
       max_retries: number;
       custom_intervals?: number[] | null;
       linear_delay?: number | null;
@@ -1156,7 +1156,7 @@ export interface components {
       /** Format: uuid */
       organization_id: string;
       name: string;
-      strategy: string;
+      strategy: 'increasing' | 'linear' | 'custom';
       max_retries: number;
       custom_intervals?: number[] | null;
       linear_delay?: number | null;
@@ -1165,7 +1165,7 @@ export interface components {
     };
     RetrySchedulePut: {
       name: string;
-      strategy: string;
+      strategy: 'increasing' | 'linear' | 'custom';
       max_retries: number;
       custom_intervals?: number[] | null;
       linear_delay?: number | null;

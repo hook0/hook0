@@ -1,3 +1,9 @@
+//! Health monitor side-effects: emails and Hook0 events.
+//!
+//! Dispatched after the database transaction commits so a rollback never
+//! leaves phantom notifications. All side-effects are best-effort — failures
+//! are logged but never propagated.
+
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
@@ -19,12 +25,18 @@ use super::evaluation::SubscriptionHealth;
 /// Describes a side-effect (email / Hook0 event) to perform after the
 /// transaction has been committed.
 pub enum HealthAction {
+    /// Emitted when a subscription's failure rate crosses warning_failure_percent
+    /// for the first time (or again after cooldown expires).
     Warning(HealthActionInfo),
+    /// Emitted when a subscription's failure rate crosses disable_failure_percent —
+    /// the subscription has been disabled in the same transaction.
     Disabled(HealthActionInfo),
+    /// Emitted when a previously warned subscription's failure rate drops back
+    /// below warning_failure_percent — the endpoint recovered on its own.
     Recovered(HealthActionInfo),
 }
 
-/// Email notification type for health status changes.
+/// Maps 1:1 to `HealthAction` but without payload — selects the email template.
 pub enum EmailKind {
     Warning,
     Disabled,
@@ -40,7 +52,9 @@ pub struct HealthActionInfo {
     pub description: Option<String>,
     pub target_url: String,
     pub failure_percent: f64,
+    /// `Some` only for Disabled — the timestamp when is_enabled was flipped to false.
     pub disabled_at: Option<DateTime<Utc>>,
+    /// Included so emails can show retry config (schedule name, strategy, delays).
     pub retry_schedule: Option<RetrySchedulePayload>,
 }
 
@@ -94,6 +108,8 @@ pub async fn dispatch_health_actions(
 
         send_email_to_organization(mailer, db, action_info, kind, config).await;
 
+        // Only disabled subscriptions emit a Hook0 event — warnings and recoveries
+        // are email-only to avoid noise on transient fluctuations.
         if let HealthAction::Disabled(action_info) = action
             && let Some(client) = hook0_client
         {
@@ -109,6 +125,8 @@ pub async fn dispatch_health_actions(
                 },
                 retry_schedule: action_info.retry_schedule.clone(),
             };
+            // Hook0ClientEvent is our internal envelope type that wraps domain events
+            // into the format expected by the Hook0 ingestion API (event type + payload).
             let hook0_event: Hook0ClientEvent = event.into();
             if let Err(e) = client.send_event(&hook0_event.mk_hook0_event()).await {
                 warn!("Health monitor: failed to send subscription.disabled Hook0 event: {e}");

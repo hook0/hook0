@@ -1,3 +1,11 @@
+// Retry schedule update tests — rename, strategy switch, cross-field validation, and
+// unique name enforcement on PUT.
+//
+// How it works:
+// 1. Fetches the current schedule state (PUT requires all fields)
+// 2. Renames, switches strategy from increasing to linear, tests invalid combos
+// 3. Creates a second schedule to test the duplicate name constraint on update
+
 import http from 'k6/http';
 import { check } from 'k6';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
@@ -18,7 +26,7 @@ export default function (baseUrl, service_token, organization_id, schedule_id) {
     },
   };
 
-  // --- Fetch current state ---
+  // Need current field values to build a valid PUT payload (all fields required)
   const current_res = http.get(url, params);
   if (current_res.status !== 200) {
     console.warn('Failed to fetch schedule before update:', current_res.status, current_res.body);
@@ -26,7 +34,7 @@ export default function (baseUrl, service_token, organization_id, schedule_id) {
   }
   const current = JSON.parse(current_res.body);
 
-  // --- Update name ---
+  // Rename must succeed and bump updated_at
   const new_name = 'k6_updated_' + uuidv4();
   let res = http.put(
     url,
@@ -58,7 +66,7 @@ export default function (baseUrl, service_token, organization_id, schedule_id) {
     return null;
   }
 
-  // --- Change strategy increasing -> linear ---
+  // Strategy changes must clear old fields and accept new ones
   res = http.put(
     url,
     JSON.stringify({
@@ -82,7 +90,7 @@ export default function (baseUrl, service_token, organization_id, schedule_id) {
     return null;
   }
 
-  // --- Invalid cross-fields: linear with custom_intervals ---
+  // custom_intervals conflicts with linear — server must reject
   res = http.put(
     url,
     JSON.stringify({
@@ -98,7 +106,7 @@ export default function (baseUrl, service_token, organization_id, schedule_id) {
     'Invalid cross-fields returns 400 or 422': (r) => r.status === 400 || r.status === 422,
   });
 
-  // --- Update to duplicate name (create a temporary schedule first) ---
+  // Unique name constraint must apply on update too, not just create
   const dup_name = 'k6_dup_target_' + uuidv4();
   const create_url = `${baseUrl}api/v1/retry_schedules/`;
   const dup_res = http.post(
@@ -128,7 +136,7 @@ export default function (baseUrl, service_token, organization_id, schedule_id) {
       'Update to duplicate name returns 409 or 422': (r) => r.status === 409 || r.status === 422,
     });
 
-    // Clean up temporary schedule
+    // Remove the blocker so it doesn't leak into other tests
     const dup_schedule_id = JSON.parse(dup_res.body).retry_schedule_id;
     http.del(
       `${baseUrl}api/v1/retry_schedules/${dup_schedule_id}?organization_id=${organization_id}`,

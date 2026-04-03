@@ -1,3 +1,15 @@
+// Health monitor integration tests — verifies the async cron-based subscription health evaluator.
+//
+// How it works:
+// 1. Each test creates an isolated application + subscription pointed at a healthy or failing target
+// 2. Events are sent so the worker produces delivery attempts (successes or failures)
+// 3. The health monitor cron evaluates attempt ratios and transitions subscription state
+// 4. Tests poll for the expected state and verify health_events audit trail
+//
+// Test groups:
+//   B-series: core health monitor behavior (auto-disable, re-enable, lifecycle, windowing)
+//   C-series: edge cases (user-disabled skip, min sample size, independent evaluation)
+
 import { check, sleep } from 'k6';
 import create_application from '../applications/create_application.js';
 import delete_application from '../applications/delete_application.js';
@@ -90,10 +102,6 @@ function cleanup(config, application_id) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// B1: 100% failure -> subscription auto-disabled
-// ---------------------------------------------------------------------------
-
 /**
  * @description Tests that a subscription receiving only failures gets auto-disabled
  * by the health monitor cron, and that warning + disabled health events are created.
@@ -111,7 +119,7 @@ export function test_b1_failure_disables_subscription(config) {
     // Send >= min_sample_size events (5) to the failing subscription
     send_n_events(s, h, ctx.application_id, ctx.event_type, { hm_test: 'b1' }, 6);
 
-    // Poll until subscription is disabled (timeout 60s to allow cron cycles + delivery attempts)
+    // Poll 30s — enough for the worker to exhaust retries and the cron to tick twice
     const sub_id = ctx.subscription.subscription_id;
     const disabled = wait_for_condition(() => {
       const sub = get_subscription(h, s, sub_id, ctx.application_id);
@@ -156,10 +164,6 @@ export function test_b1_failure_disables_subscription(config) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// B2: 100% success -> subscription stays enabled
-// ---------------------------------------------------------------------------
-
 /**
  * @description Tests that a subscription receiving only successes stays enabled
  * and produces no health events.
@@ -200,10 +204,6 @@ export function test_b2_success_stays_enabled(config) {
     cleanup(config, application_id);
   }
 }
-
-// ---------------------------------------------------------------------------
-// B3: Re-enable after auto-disable
-// ---------------------------------------------------------------------------
 
 /**
  * @description Tests that a user can re-enable an auto-disabled subscription
@@ -277,10 +277,6 @@ export function test_b3_reenable_after_autodisable(config) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// B4: Full lifecycle: healthy -> disabled -> re-enable -> healthy
-// ---------------------------------------------------------------------------
-
 /**
  * @description Tests the full lifecycle: subscription auto-disabled, re-enabled by user,
  * target changed to healthy, events sent, subscription stays enabled.
@@ -350,12 +346,9 @@ export function test_b4_full_lifecycle(config) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// B5: High-volume windowing — recent successes override old failures
-// ---------------------------------------------------------------------------
-
 /**
- * @description Tests adaptive windowing: with HEALTH_MONITOR_MESSAGE_WINDOW=10,
+ * @description Tests adaptive windowing: with HEALTH_MONITOR_MESSAGE_WINDOW=10
+ * (the max number of recent delivery attempts the cron considers per subscription),
  * the health monitor evaluates only the last 10 attempts when total attempts exceed
  * the window. A subscription disabled by failures, then re-enabled with a healthy
  * target and 12 new successes, must NOT be re-disabled — proving the monitor uses
@@ -431,10 +424,6 @@ export function test_b5_adaptive_windowing(config) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// C1: User-disabled subscription not evaluated by cron
-// ---------------------------------------------------------------------------
-
 /**
  * @description Tests that a subscription manually disabled by the user is not
  * evaluated by the health monitor cron (no system disabled event).
@@ -489,12 +478,9 @@ export function test_c1_user_disabled_not_evaluated(config) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// C2: Fewer than min_sample_size -> no evaluation
-// ---------------------------------------------------------------------------
-
 /**
- * @description Tests that a subscription with fewer events than min_sample_size (5)
+ * @description Tests that a subscription with fewer delivery attempts than min_sample_size
+ * (the minimum number of attempts the cron requires before evaluating health — currently 5)
  * is not evaluated by the health monitor.
  */
 export function test_c2_below_min_sample_size(config) {
@@ -536,10 +522,6 @@ export function test_c2_below_min_sample_size(config) {
     cleanup(config, application_id);
   }
 }
-
-// ---------------------------------------------------------------------------
-// C3: Subscriptions evaluated independently
-// ---------------------------------------------------------------------------
 
 /**
  * @description Tests that two subscriptions with different event types are

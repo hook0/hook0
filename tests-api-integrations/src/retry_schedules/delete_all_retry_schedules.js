@@ -1,3 +1,6 @@
+// Bulk-deletes all retry schedules for an org. Safety net before test runs to prevent
+// leftover schedules from causing duplicate-name conflicts.
+
 import http from 'k6/http';
 
 /**
@@ -17,6 +20,7 @@ export default function (baseUrl, service_token, organization_id) {
   const list_url = `${baseUrl}api/v1/retry_schedules/?organization_id=${organization_id}`;
   const res = http.get(list_url, params);
   if (res.status !== 200) {
+    // Best-effort cleanup — don't fail the test suite if listing fails
     console.warn('delete_all_retry_schedules: failed to list schedules:', res.status, res.body);
     return;
   }

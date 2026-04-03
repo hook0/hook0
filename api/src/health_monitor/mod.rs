@@ -1,3 +1,16 @@
+//! Background loop that evaluates subscription health on a recurring tick.
+//!
+//! **What it does**: detects unhealthy webhook subscriptions (high failure rate)
+//! and automatically warns or disables them.
+//!
+//! **How it works**:
+//!   1. Acquire an advisory lock so only one API instance runs the check.
+//!   2. Phase 1 (transaction): evaluate every subscription's failure rate,
+//!      insert health events, disable broken subscriptions.
+//!   3. Phase 2 (best-effort, no transaction): send notification emails and
+//!      Hook0 events for any state changes that occurred.
+//!   4. Periodically run a cleanup cycle to remove stale health data (once/day).
+
 mod cleanup;
 pub mod errors;
 mod evaluation;
@@ -19,6 +32,7 @@ use crate::mailer::Mailer;
 /// Arbitrary unique ID for pg_try_advisory_xact_lock — must not conflict with other advisory locks in the application.
 const ADVISORY_LOCK_ID: i64 = 42_000_001;
 
+/// Tuning knobs for the health monitor — thresholds, bucketing, retention.
 #[derive(Clone)]
 pub struct HealthMonitorConfig {
     pub interval: Duration,
@@ -53,7 +67,8 @@ pub async fn run_health_monitor(
         config.interval, config.warning_failure_percent, config.disable_failure_percent
     );
 
-    const CLEANUP_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60); // 1 day
+    // Cleanup runs once per day (not every tick) to keep the tables lean without adding per-tick overhead
+    const CLEANUP_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 
     let mut last_cleanup: Option<Instant> = None;
 
@@ -82,7 +97,7 @@ pub async fn run_health_monitor(
         }
 
         drop(permit);
-        // Sleep between ticks. Total cycle time = check duration + interval.
+        // Note: total cycle time = check duration + sleep, not exactly config.interval
         actix_web::rt::time::sleep(config.interval).await;
     }
 

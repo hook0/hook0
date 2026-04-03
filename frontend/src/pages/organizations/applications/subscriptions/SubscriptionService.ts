@@ -1,3 +1,4 @@
+// HTTP service layer for subscription CRUD. Wraps Axios calls consumed by TanStack Query composables.
 import http, { type UUID } from '@/http';
 import type { components } from '@/types';
 import { unwrapResponse } from '@/utils/unwrapResponse';
@@ -32,6 +33,13 @@ export function update(
   return unwrapResponse(http.put<Subscription>(`/subscriptions/${subscription_id}`, subscription));
 }
 
+/**
+ * Flip a subscription's is_enabled flag.
+ * The PUT endpoint expects the full resource body — we clone all fields and only flip is_enabled.
+ *
+ * @example
+ * toggleEnable('sub-123', subscription) // => Promise<Subscription> with is_enabled toggled
+ */
 export function toggleEnable(
   subscription_id: UUID,
   subscription: Subscription

@@ -1,3 +1,11 @@
+// Reactivation (Group A) tests — verifies health event creation when subscriptions are
+// disabled/re-enabled by the user, and that subscription data survives the round-trip.
+//
+// How it works:
+// 1. A1: disable then re-enable a subscription, expect a "resolved/user" health event
+// 2. A2: re-enable an already-enabled subscription, expect no health event (idempotent)
+// 3. A3: disable/re-enable and verify all subscription fields are preserved
+
 import http from 'k6/http';
 import { check } from 'k6';
 import create_application from '../applications/create_application.js';
@@ -57,7 +65,7 @@ function test_a1_reenable_disabled(baseUrl, service_token, organization_id, appl
     'A1: subscription disabled (200, is_enabled=false)': (s) => s.is_enabled === false,
   });
 
-  // 3. Health events should be empty — user-initiated disable does not go through health monitor
+  // User-initiated disable bypasses the health monitor — no health events recorded
   const events_after_disable = get_health_events(baseUrl, service_token, subscription.subscription_id, organization_id);
   if (events_after_disable === null) {
     console.warn('A1: Failed to get health events after disable');
@@ -104,7 +112,7 @@ function test_a1_reenable_disabled(baseUrl, service_token, organization_id, appl
  *   test_a2_reenable_already_enabled(baseUrl, serviceToken, orgId, appId, eventType, targetUrl)
  */
 function test_a2_reenable_already_enabled(baseUrl, service_token, organization_id, application_id, event_type, target_url) {
-  // 1. Create subscription (enabled by default)
+  // Subscriptions start enabled — updating with is_enabled: true should be a no-op
   const subscription = create_subscription(baseUrl, service_token, application_id, [event_type], target_url, {
     a2_test: 'idempotent',
   });
@@ -117,7 +125,7 @@ function test_a2_reenable_already_enabled(baseUrl, service_token, organization_i
     'A2: subscription created enabled': (s) => s.is_enabled === true,
   });
 
-  // 2. PUT with is_enabled: true (no-op transition)
+  // No state change means no health event should be created
   const enable_payload = build_update_payload(subscription, { is_enabled: true });
   const updated = update_subscription(baseUrl, service_token, subscription.subscription_id, application_id, enable_payload);
   if (!updated) {
@@ -129,7 +137,7 @@ function test_a2_reenable_already_enabled(baseUrl, service_token, organization_i
     'A2: subscription still enabled after idempotent update': (s) => s.is_enabled === true,
   });
 
-  // 3. Health events should be empty — no transition happened
+  // The health monitor only records actual state transitions, not idempotent updates
   const events = get_health_events(baseUrl, service_token, subscription.subscription_id, organization_id);
   if (events === null) {
     console.warn('A2: Failed to get health events');
@@ -226,13 +234,13 @@ function test_a3_preserves_data(baseUrl, service_token, organization_id, applica
  * @description Runs all Group A reactivation tests within a single application context.
  * Creates application + event type, runs A1/A2/A3, cleans up in finally.
  * @example
- *   reactivation_tests(baseUrl, serviceToken, organizationId)
+ *   reactivation_tests(baseUrl, serviceToken, organizationId, targetUrl)
  */
 export default function (baseUrl, service_token, organization_id, target_url) {
   let application_id = null;
 
   try {
-    // Setup shared application and event type
+    // All A-group tests share one application to reduce setup cost
     application_id = create_application(baseUrl, organization_id, service_token);
     if (!application_id) {
       throw new Error('Health monitor reactivation: failed to create application');
@@ -243,7 +251,6 @@ export default function (baseUrl, service_token, organization_id, target_url) {
       throw new Error('Health monitor reactivation: failed to create event type');
     }
 
-    // Run all Group A tests
     test_a1_reenable_disabled(baseUrl, service_token, organization_id, application_id, event_type, target_url);
     test_a2_reenable_already_enabled(baseUrl, service_token, organization_id, application_id, event_type, target_url);
     test_a3_preserves_data(baseUrl, service_token, organization_id, application_id, event_type, target_url);

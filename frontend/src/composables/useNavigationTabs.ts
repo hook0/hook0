@@ -38,7 +38,7 @@ export function useNavigationTabs() {
     const appId = contextStore.applicationId;
     const appSecretCompat = instanceConfig.value?.application_secret_compatibility ?? true;
 
-    // App-level navigation
+    // Both IDs present — inside an application, show app-scoped tabs
     if (orgId && appId) {
       const params = { organization_id: orgId, application_id: appId };
       return [
@@ -102,7 +102,7 @@ export function useNavigationTabs() {
       ];
     }
 
-    // Org-level navigation
+    // Only org ID — at org level, show org-scoped tabs (applications, tokens, retry schedules, team)
     if (orgId) {
       const params = { organization_id: orgId };
       return [

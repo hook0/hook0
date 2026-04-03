@@ -6,7 +6,14 @@ import { useForm } from 'vee-validate';
 import { Zap, Timer, ListOrdered, Plus, Trash2 } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 
-import { createRetryScheduleSchema, type RetryScheduleFormValues } from './retrySchedule.schema';
+import {
+  createRetryScheduleSchema,
+  type RetryScheduleFormValues,
+  MAX_RETRIES,
+  MAX_INTERVAL_SECONDS,
+  SLIDER_MAX_BASE_DELAY,
+  SLIDER_MAX_LINEAR_DELAY,
+} from './retrySchedule.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { handleMutationError } from '@/utils/handleMutationError';
 import { formatDuration } from '@/utils/formatDuration';
@@ -31,6 +38,14 @@ import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0Slider from '@/components/Hook0Slider.vue';
 import SelectableCard from '@/components/SelectableCard.vue';
+
+// Retry schedule create/edit form.
+//
+// How it works:
+// 1. Detects create vs edit from route params (retryScheduleId presence)
+// 2. Three strategy branches (increasing/linear/custom) show different slider/input fields
+// 3. cleanPayload() nulls out fields irrelevant to the chosen strategy before submission — the API rejects mixed fields
+// 4. Preview chips compute the actual delay sequence so users see what they're configuring
 
 const { t } = useI18n();
 const { trackEvent } = useTracking();
@@ -63,21 +78,21 @@ const { errors, defineField, handleSubmit, resetForm } = useForm({
 
 const [name, nameAttrs] = defineField('name');
 const [strategy] = defineField('strategy');
-const [maxRetries, _maxRetriesAttrs] = defineField('max_retries');
-const [linearDelay, _linearDelayAttrs] = defineField('linear_delay');
+const [maxRetries] = defineField('max_retries');
+const [linearDelay] = defineField('linear_delay');
 const [customIntervals] = defineField('custom_intervals');
-const [increasingBaseDelay, _increasingBaseDelayAttrs] = defineField('increasing_base_delay');
-const [increasingWaitFactor, _increasingWaitFactorAttrs] = defineField('increasing_wait_factor');
+const [increasingBaseDelay] = defineField('increasing_base_delay');
+const [increasingWaitFactor] = defineField('increasing_wait_factor');
 
-// Typed accessors for template usage
-const strategyValue = computed(() => (strategy.value as string) ?? 'increasing');
-const maxRetriesValue = computed(() => (maxRetries.value as number) ?? 0);
-const linearDelayValue = computed(() => (linearDelay.value as number) ?? 0);
-const customIntervalsValue = computed(() => (customIntervals.value as number[] | null) ?? []);
-const increasingBaseDelayValue = computed(() => (increasingBaseDelay.value as number) ?? 3);
-const increasingWaitFactorValue = computed(() => (increasingWaitFactor.value as number) ?? 3);
+// VeeValidate fields can be undefined between resets — these computed refs prevent template crashes by providing type-safe fallbacks
+const strategyValue = computed(() => strategy.value ?? 'increasing');
+const maxRetriesValue = computed(() => Number(maxRetries.value) || 0);
+const linearDelayValue = computed(() => Number(linearDelay.value) || 0);
+const customIntervalsValue = computed((): number[] => (Array.isArray(customIntervals.value) ? (customIntervals.value as number[]) : []));
+const increasingBaseDelayValue = computed(() => Number(increasingBaseDelay.value) || 3);
+const increasingWaitFactorValue = computed(() => Number(increasingWaitFactor.value) || 3);
 
-// Sync max_retries from custom_intervals length
+// Custom strategy derives max_retries from the intervals array — the API rejects payloads where they disagree, so we keep them in lockstep
 watch(
   () => customIntervalsValue.value.length,
   (len) => {
@@ -87,7 +102,7 @@ watch(
   }
 );
 
-// Populate form in edit mode
+// When the query resolves (edit mode), hydrate the form — without this, the user sees blank fields even though data loaded
 watch(
   scheduleData,
   (data) => {
@@ -95,7 +110,7 @@ watch(
       resetForm({
         values: {
           name: data.name,
-          strategy: data.strategy as 'increasing' | 'linear' | 'custom',
+          strategy: data.strategy,
           max_retries: data.max_retries,
           linear_delay: data.linear_delay,
           custom_intervals: data.custom_intervals ?? [],
@@ -108,6 +123,15 @@ watch(
   { immediate: true }
 );
 
+/**
+ * Strips fields that don't belong to the selected strategy.
+ * The API validates that only the active strategy's fields are non-null —
+ * sending stale values from a previously selected strategy causes a 422.
+ *
+ * @example
+ * cleanPayload({ strategy: 'linear', linear_delay: 60, ... }, 'org-1')
+ * // => { ...base, linear_delay: 60, custom_intervals: null, increasing_base_delay: null, ... }
+ */
 function cleanPayload(values: RetryScheduleFormValues, orgId: string) {
   const base = {
     organization_id: orgId,
@@ -139,7 +163,7 @@ function cleanPayload(values: RetryScheduleFormValues, orgId: string) {
         custom_intervals: values.custom_intervals,
         increasing_base_delay: null,
         increasing_wait_factor: null,
-        max_retries: values.custom_intervals!.length,
+        max_retries: (values.custom_intervals ?? []).length,
       };
   }
 }
@@ -189,7 +213,7 @@ function addInterval() {
 
 function removeInterval(index: number) {
   const current = customIntervalsValue.value;
-  customIntervals.value = current.filter((_: number, i: number) => i !== index);
+  customIntervals.value = current.filter((_, i) => i !== index);
 }
 
 function updateInterval(index: number, value: string) {
@@ -198,7 +222,13 @@ function updateInterval(index: number, value: string) {
   customIntervals.value = current;
 }
 
-// Preview computation
+/**
+ * Converts raw delay-seconds into display rows with cumulative totals.
+ *
+ * @example
+ * buildPreviewRows([3, 9, 27])
+ * // => [{ retry: 1, delay: '3s', cumulative: '3s' }, { retry: 2, delay: '9s', cumulative: '12s' }, ...]
+ */
 function buildPreviewRows(delaySecs: number[]) {
   let cumulative = 0;
   return delaySecs.map((s, i) => {
@@ -228,6 +258,7 @@ const previewRows = computed(() => {
   if (strat === 'custom') {
     return buildPreviewRows(customIntervalsValue.value);
   }
+  // Unreachable unless a new strategy is added without updating this switch
   return [];
 });
 
@@ -265,7 +296,6 @@ const pageTitle = computed(() =>
                 data-test="retry-schedule-name-input"
               />
 
-              <!-- Strategy selector -->
               <div class="form-fields__group">
                 <label class="form-fields__label">{{ t('retrySchedules.fields.strategy') }}</label>
                 <div class="strategy-cards">
@@ -296,12 +326,11 @@ const pageTitle = computed(() =>
                 </div>
               </div>
 
-              <!-- Increasing fields -->
               <div v-if="strategyValue === 'increasing'" class="slider-row">
                 <Hook0Slider
                   :model-value="increasingBaseDelayValue"
                   :min="1"
-                  :max="300"
+                  :max="SLIDER_MAX_BASE_DELAY"
                   :label="t('retrySchedules.fields.increasingBaseDelay')"
                   :format-value="formatDuration"
                   :error="errors.increasing_base_delay"
@@ -320,25 +349,23 @@ const pageTitle = computed(() =>
                 <Hook0Slider
                   :model-value="maxRetriesValue"
                   :min="1"
-                  :max="25"
+                  :max="MAX_RETRIES"
                   :label="t('retrySchedules.fields.maxRetries')"
                   :error="errors.max_retries"
                   @update:model-value="maxRetries = $event"
                 />
               </div>
 
-              <!-- Max retries (linear) -->
               <Hook0Slider
                 v-if="strategyValue === 'linear'"
                 :model-value="maxRetriesValue"
                 :min="1"
-                :max="25"
+                :max="MAX_RETRIES"
                 :label="t('retrySchedules.fields.maxRetries')"
                 :error="errors.max_retries"
                 @update:model-value="maxRetries = $event"
               />
 
-              <!-- Preview chips -->
               <div v-if="previewRows.length > 0" class="preview-chips">
                 <span
                   v-for="row in previewRows"
@@ -350,12 +377,11 @@ const pageTitle = computed(() =>
                 </span>
               </div>
 
-              <!-- Linear delay -->
               <Hook0Slider
                 v-if="strategyValue === 'linear'"
                 :model-value="linearDelayValue"
                 :min="1"
-                :max="86400"
+                :max="SLIDER_MAX_LINEAR_DELAY"
                 :step="1"
                 :label="t('retrySchedules.fields.linearDelay')"
                 :format-value="formatDuration"
@@ -363,7 +389,7 @@ const pageTitle = computed(() =>
                 @update:model-value="linearDelay = $event"
               />
 
-              <!-- Custom intervals editor -->
+              <!-- Custom intervals editor — each row maps 1:1 to a retry attempt; adding/removing rows changes max_retries via the watcher above -->
               <div v-if="strategyValue === 'custom'" class="form-fields__group">
                 <label class="form-fields__label">
                   {{ t('retrySchedules.fields.customIntervals') }}
@@ -378,11 +404,11 @@ const pageTitle = computed(() =>
                       {{ t('retrySchedules.fields.retryNumber', { number: index + 1 }) }}
                     </span>
                     <Hook0Input
-                      :model-value="String(interval as number)"
+                      :model-value="String(interval)"
                       :label="t('retrySchedules.fields.intervalSeconds')"
                       type="number"
                       min="1"
-                      max="604800"
+                      :max="MAX_INTERVAL_SECONDS"
                       @update:model-value="updateInterval(index, String($event))"
                     />
                     <Hook0Button variant="ghost" type="button" @click="removeInterval(index)">

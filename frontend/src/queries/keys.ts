@@ -83,6 +83,7 @@ export const retryScheduleKeys = {
   lists: () => [...retryScheduleKeys.all, 'list'] as const,
   list: (organizationId: string) => [...retryScheduleKeys.lists(), organizationId] as const,
   details: () => [...retryScheduleKeys.all, 'detail'] as const,
+  // detail needs organizationId because retry schedules are org-scoped (unlike subscriptions which are app-scoped)
   detail: (id: string, organizationId: string) =>
     [...retryScheduleKeys.details(), id, organizationId] as const,
 };

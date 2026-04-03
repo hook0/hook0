@@ -2,6 +2,7 @@ mod monitoring;
 mod opentelemetry;
 mod pg;
 mod pulsar;
+/// Retry delay computation — strategy-aware (custom, linear, increasing) with default fallback
 mod retry;
 mod throughput_log;
 mod work;

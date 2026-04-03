@@ -1,8 +1,19 @@
+//! Periodic cleanup of stale health data — old buckets and resolved events.
+//!
+//! Called from `mod.rs` once per day (not every tick) to keep tables lean.
+//! Both queries use dedicated indexes (`idx_subscription_health_bucket_start`
+//! and `idx_subscription_health_event_cleanup`) so they're index scans, not
+//! full table scans.
+
 use sqlx::PgPool;
 
 use super::HealthMonitorConfig;
 
-/// Removes old closed buckets beyond the configured retention period.
+/// Removes all buckets (open or closed) older than the configured retention period.
+///
+/// This includes both closed buckets (`bucket_end IS NOT NULL`) and open ones
+/// that have gone stale. The `idx_subscription_health_bucket_start` index
+/// on `bucket_start` makes this an index scan, not a full table scan.
 pub async fn cleanup_old_buckets(
     db: &PgPool,
     config: &HealthMonitorConfig,

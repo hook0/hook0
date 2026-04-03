@@ -386,7 +386,7 @@ struct Config {
     #[clap(long, env, default_value = "10")]
     quota_global_event_types_per_application_limit: quotas::QuotaValue,
 
-    /// Maximum number of retry schedules per organization
+    /// Hard cap on retry schedules per org — prevents unbounded DB rows. API returns 429 when hit.
     #[clap(long, env, default_value_t = 50)]
     max_retry_schedules_per_org: i32,
 
@@ -678,6 +678,8 @@ impl std::fmt::Debug for PulsarConfig {
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
 
+    // Fail-fast: these invariants are load-bearing for the state machine. A warning >= disable
+    // threshold would skip the warning state. Better to crash on boot than silently misbehave.
     if config.enable_health_monitor {
         assert!(
             config.health_monitor_warning_failure_percent
@@ -1115,12 +1117,14 @@ async fn main() -> anyhow::Result<()> {
         .await
         .expect("Could not initialize mailer; check SMTP configuration");
 
-        // Spawn health monitor background task
+        // The health monitor runs in its own task because it's a periodic loop that outlives
+        // HTTP requests. Shares the housekeeping semaphore to avoid competing for DB connections.
         if config.enable_health_monitor {
             let health_monitor_db = housekeeping_pool.clone();
             let health_monitor_semaphore = housekeeping_semaphore.clone();
             let health_monitor_mailer = mailer.clone();
             let health_monitor_hook0_client = hook0_client.clone();
+            // Pack all health-monitor CLI flags into the config struct that run_health_monitor consumes
             let health_monitor_config = health_monitor::HealthMonitorConfig {
                 interval: config.health_monitor_interval,
                 warning_failure_percent: config.health_monitor_warning_failure_percent,

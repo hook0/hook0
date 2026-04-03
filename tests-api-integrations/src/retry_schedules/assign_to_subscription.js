@@ -1,3 +1,11 @@
+// Tests retry schedule assignment to subscriptions — creation-time binding, update-time
+// attach/detach, FK cascade on delete, and rejection of nonexistent schedule UUIDs.
+//
+// How it works:
+// 1. Creates a schedule, then two subscriptions (one with and one without the schedule)
+// 2. Tests attach via PUT, detach via null, and ON DELETE SET NULL cascade
+// 3. Verifies nonexistent UUID is rejected
+
 import http from 'k6/http';
 import { check } from 'k6';
 
@@ -15,7 +23,7 @@ export default function (baseUrl, service_token, organization_id, application_id
     },
   };
 
-  // --- Step 1: Create a retry schedule (increasing, max_retries: 10) ---
+  // Need a schedule to assign — strategy details don't matter, just need a valid ID
   const schedule_payload = {
     organization_id,
     name: 'k6-test-increasing-' + Date.now(),
@@ -41,7 +49,7 @@ export default function (baseUrl, service_token, organization_id, application_id
   const schedule = JSON.parse(schedule_res.body);
   const schedule_id = schedule.retry_schedule_id;
 
-  // --- Step 2: Create subscription WITH retry_schedule_id ---
+  // Prove schedule can be set at creation time, not just via update
   const sub_with_schedule_payload = {
     application_id,
     is_enabled: true,
@@ -76,7 +84,7 @@ export default function (baseUrl, service_token, organization_id, application_id
     'Subscription has retry_schedule_id set': (s) => s.retry_schedule_id === schedule_id,
   });
 
-  // --- Step 3: Create subscription WITHOUT retry_schedule_id ---
+  // Baseline: starts with null schedule so we can test assigning one
   const sub_without_payload = {
     application_id,
     is_enabled: true,
@@ -110,7 +118,7 @@ export default function (baseUrl, service_token, organization_id, application_id
     'Subscription has retry_schedule_id null': (s) => s.retry_schedule_id === null,
   });
 
-  // --- Step 4: Update subscription to assign the schedule ---
+  // Prove schedule can be attached to an existing subscription via PUT
   const update_assign_payload = {
     application_id,
     is_enabled: true,
@@ -140,7 +148,7 @@ export default function (baseUrl, service_token, organization_id, application_id
     'Updated subscription has retry_schedule_id set': (s) => s.retry_schedule_id === schedule_id,
   });
 
-  // --- Step 5: Update subscription to remove schedule (retry_schedule_id: null) ---
+  // Explicitly nulling the FK must detach the schedule without deleting it
   const update_remove_payload = {
     application_id,
     is_enabled: true,
@@ -170,8 +178,7 @@ export default function (baseUrl, service_token, organization_id, application_id
     'Updated subscription has retry_schedule_id null': (s) => s.retry_schedule_id === null,
   });
 
-  // --- Step 6: Assign schedule, then delete schedule -> GET shows retry_schedule_id is null (SET NULL cascade) ---
-  // Re-assign the schedule first
+  // FK has ON DELETE SET NULL — deleting the schedule must not orphan the subscription
   const reassign_payload = {
     application_id,
     is_enabled: true,
@@ -202,7 +209,7 @@ export default function (baseUrl, service_token, organization_id, application_id
       s.retry_schedule_id === schedule_id,
   });
 
-  // Delete the retry schedule
+  // Triggers the SET NULL cascade we're about to verify
   const delete_schedule_res = http.del(
     `${baseUrl}api/v1/retry_schedules/${schedule_id}?organization_id=${organization_id}`,
     null,
@@ -212,7 +219,6 @@ export default function (baseUrl, service_token, organization_id, application_id
     'Retry schedule deleted (200)': (r) => r.status === 200,
   });
 
-  // GET subscription -> retry_schedule_id should be null (FK SET NULL cascade)
   const get_sub_res = http.get(
     `${baseUrl}api/v1/subscriptions/${sub_without.subscription_id}?application_id=${application_id}`,
     auth_headers
@@ -231,7 +237,7 @@ export default function (baseUrl, service_token, organization_id, application_id
       s.retry_schedule_id === null,
   });
 
-  // --- Step 7: Assign nonexistent schedule UUID -> retry_schedule_id should be null (subquery returns NULL) ---
+  // The API must reject references to schedules that don't exist, not silently null them
   const nonexistent_uuid = '00000000-0000-0000-0000-000000000000';
   const update_nonexistent_payload = {
     application_id,

@@ -1,3 +1,10 @@
+//! Paginated listing of subscription health events — the audit trail of warning/disabled/resolved transitions.
+//!
+//! How it works:
+//! 1. The caller provides a subscription_id in the path and an organization_id in the query string.
+//! 2. We look up the subscription's application_id, then authorize via IAM (health events are subscription-scoped, but IAM checks are application-scoped).
+//! 3. Results come back newest-first with cursor-based pagination.
+
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
@@ -17,6 +24,7 @@ use crate::problems::Hook0Problem;
 
 const DEFAULT_PAGE_SIZE: i64 = 50;
 
+/// A single health state transition — what happened, why, who triggered it, when.
 #[derive(Debug, Serialize, Apiv2Schema, sqlx::FromRow)]
 pub struct SubscriptionHealthEventStatus {
     pub health_event_id: Uuid,
@@ -27,13 +35,15 @@ pub struct SubscriptionHealthEventStatus {
     pub created_at: DateTime<Utc>,
 }
 
+/// Query string for listing health events — scopes to an org and optionally provides a pagination cursor.
 #[derive(Debug, Deserialize, Apiv2Schema)]
 pub struct SubscriptionHealthEventListQs {
     pub organization_id: Uuid,
     pub pagination_cursor: Option<EncodedDescCursor>,
 }
 
-/// List the most recent health events for a subscription.
+/// List the most recent health events for a subscription, newest first, with cursor-based pagination.
+/// Returns an empty list (not 404) when the subscription exists but has no events yet.
 #[api_v2_operation(
     summary = "List subscription health events",
     description = "Returns the most recent health events (warning, disabled, resolved) for a subscription, ordered newest first.",
@@ -52,7 +62,7 @@ pub async fn list(
     let subscription_id = subscription_id.into_inner();
     let organization_id = qs.organization_id;
 
-    // Look up application_id from subscription (same pattern as subscriptions::get)
+    // We need the application_id to authorize — health events are subscription-scoped, but IAM checks are application-scoped
     let application_id = query_scalar!(
         "SELECT application__id FROM webhook.subscription WHERE subscription__id = $1 AND deleted_at IS NULL LIMIT 1",
         &subscription_id
@@ -64,6 +74,7 @@ pub async fn list(
         Hook0Problem::InternalServerError
     })?;
 
+    // Subscription doesn't exist or was deleted — no point checking auth
     let Some(application_id) = application_id else {
         return Err(Hook0Problem::NotFound);
     };
@@ -114,6 +125,7 @@ pub async fn list(
     .await
     .map_err(Hook0Problem::from)?;
 
+    // Build the "next page" link — we reconstruct the full URL from app_url because the pagination contract requires an absolute URI
     let next_page_parts = events.last().and_then(|e| {
         if state.app_url.as_str().ends_with('/') {
             Ok(state.app_url.clone())

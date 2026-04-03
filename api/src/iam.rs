@@ -461,7 +461,7 @@ pub enum Action<'a> {
         application_id: &'a Uuid,
     },
     EventsPerDayOrganization,
-    //
+    /// Retry schedule CRUD — org-scoped (no application_id). Viewers can list/get; Editors+ can create/edit/delete.
     RetryScheduleList,
     RetryScheduleCreate,
     RetryScheduleGet,
@@ -609,8 +609,8 @@ impl Action<'_> {
             //
             Self::EventsPerDayApplication { .. } => vec![Role::Viewer],
             Self::EventsPerDayOrganization => vec![Role::Viewer],
-            //
             Self::RetryScheduleList => vec![Role::Viewer],
+            // Empty vec means no extra roles beyond the default (Editor). Viewer added explicitly only for read-only actions.
             Self::RetryScheduleCreate => vec![],
             Self::RetryScheduleGet => vec![Role::Viewer],
             Self::RetryScheduleEdit => vec![],

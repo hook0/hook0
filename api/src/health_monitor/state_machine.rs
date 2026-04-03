@@ -136,7 +136,7 @@ pub async fn evaluate_health_transition(
             )));
         }
 
-        // Failure rate is below the warning threshold and no prior state — healthy, nothing to do.
+        // Failure rate below warning threshold (either no prior state or resolved outside cooldown) — healthy, nothing to do
         _ => {}
     }
 

@@ -1,3 +1,12 @@
+//! CRUD handlers for retry schedules — the per-org timing configs that control how failed webhook
+//! deliveries are retried.
+//!
+//! How it works:
+//! 1. Each schedule picks a strategy (increasing, linear, custom) that determines wait times.
+//! 2. Strategy-specific fields are cross-validated at the request level (`validate_strategy_fields`).
+//! 3. The CREATE path uses an atomic INSERT…WHERE subquery to enforce the per-org quota without TOCTOU races.
+//! 4. All mutations emit Hook0 client events for internal observability.
+
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
@@ -38,6 +47,9 @@ const MAX_WAIT_FACTOR: f64 = 10.0;
 /// Minimum delay for linear and custom retry strategies, in seconds.
 const MIN_DELAY_SECS: i32 = 1;
 
+/// The algorithm that determines wait times between retry attempts.
+///
+/// "Increasing" = exponential backoff, "Linear" = fixed interval, "Custom" = caller-supplied array.
 #[derive(
     Debug,
     Clone,
@@ -60,6 +72,7 @@ pub enum RetryStrategy {
     Custom,
 }
 
+/// API response for a retry schedule — the timing config a subscription needs to retry failed deliveries.
 #[derive(Debug, Serialize, Apiv2Schema, sqlx::FromRow)]
 pub struct RetrySchedule {
     pub retry_schedule_id: Uuid,
@@ -75,6 +88,7 @@ pub struct RetrySchedule {
     pub updated_at: DateTime<Utc>,
 }
 
+/// Create request. Strategy-specific fields are cross-validated by `validate_strategy_fields`.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 #[validate(schema(function = "RetrySchedulePost::validate_strategy"))]
 pub struct RetrySchedulePost {
@@ -103,6 +117,7 @@ impl RetrySchedulePost {
     }
 }
 
+/// Update request. Same cross-field rules as `RetrySchedulePost`, minus `organization_id`.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 #[validate(schema(function = "RetrySchedulePut::validate_strategy"))]
 pub struct RetrySchedulePut {
@@ -130,12 +145,11 @@ impl RetrySchedulePut {
     }
 }
 
+/// Query string that scopes every operation to one organization.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct RetryScheduleQs {
     pub organization_id: Uuid,
 }
-
-// --- Validation helpers ---
 
 fn strategy_error(message: &str) -> validator::ValidationError {
     let mut err = validator::ValidationError::new("strategy_fields");
@@ -257,6 +271,7 @@ pub fn validate_strategy_fields(
     produces = "application/json",
     tags("Retry Schedules")
 )]
+/// Return all retry schedules belonging to the given organization, newest first.
 pub async fn list(
     state: Data<crate::State>,
     _: OaBiscuit,
@@ -287,7 +302,7 @@ pub async fn list(
                 created_at, updated_at
             FROM webhook.retry_schedule
             WHERE organization__id = $1
-            ORDER BY created_at ASC
+            ORDER BY created_at DESC
         ",
     )
     .bind(organization_id)
@@ -305,6 +320,7 @@ pub async fn list(
     produces = "application/json",
     tags("Retry Schedules")
 )]
+/// Validate, insert a new retry schedule (with atomic quota check), and emit a creation event.
 pub async fn create(
     state: Data<crate::State>,
     _: OaBiscuit,
@@ -362,6 +378,7 @@ pub async fn create(
     .await
     .map_err(Hook0Problem::from)?;
 
+    // The INSERT's WHERE clause checks the quota — if no row returned, the org hit its limit
     let Some(s) = schedule else {
         return Err(Hook0Problem::TooManyRetrySchedulesPerOrganization(
             state.max_retry_schedules_per_org,
@@ -399,6 +416,7 @@ pub async fn create(
     produces = "application/json",
     tags("Retry Schedules")
 )]
+/// Fetch a single retry schedule by ID, scoped to the caller's organization.
 pub async fn get(
     state: Data<crate::State>,
     _: OaBiscuit,
@@ -453,6 +471,7 @@ pub async fn get(
     produces = "application/json",
     tags("Retry Schedules")
 )]
+/// Replace all fields of a retry schedule (full PUT). Emits an update event on success.
 pub async fn edit(
     state: Data<crate::State>,
     _: OaBiscuit,
@@ -546,6 +565,7 @@ pub async fn edit(
     produces = "application/json",
     tags("Retry Schedules")
 )]
+/// Delete a retry schedule and emit a removal event. Subscriptions referencing it get their FK NULLed by the DB cascade.
 pub async fn delete(
     state: Data<crate::State>,
     _: OaBiscuit,
@@ -595,6 +615,7 @@ pub async fn delete(
     .await
     .map_err(Hook0Problem::from)?;
 
+    // No row returned — schedule didn't exist or wrong org
     let Some(d) = deleted else {
         return Err(Hook0Problem::NotFound);
     };
@@ -628,7 +649,7 @@ pub async fn delete(
 mod tests {
     use super::*;
 
-    // Helper to reduce boilerplate — all 6 params explicit
+    /// Call sites pass all 6 strategy params positionally so each test reads as a one-liner
     fn v(
         strategy: RetryStrategy,
         max: i32,

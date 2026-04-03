@@ -21,17 +21,21 @@ import Hook0DateTime from '@/components/Hook0DateTime.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 
+// Read-only detail view for a single subscription — health, configuration, retry schedule, and recent delivery attempts.
+
 const { t } = useI18n();
 const { organizationId, applicationId, subscriptionId } = useRouteIds();
 
 const { data: subscription, isLoading, error, refetch } = useSubscriptionDetail(subscriptionId);
 
+// Empty string disables the TanStack query (enabled: !!id) — won't fetch until subscription loads
 const retryScheduleId = computed(() => subscription.value?.retry_schedule_id ?? '');
 const { data: retrySchedule } = useRetryScheduleDetail(retryScheduleId, organizationId);
 
 const { data: logs } = useLogList(applicationId);
 
-// TODO: add subscription_id filter to request_attempts.list backend to avoid fetching all app logs
+// Workaround: the backend doesn't support per-subscription filtering yet — we fetch all app logs and filter client-side. Performance degrades with many subscriptions.
+// Client-side filter until the backend supports subscription_id on request_attempts.list
 const recentDeliveries = computed(() =>
   (logs.value ?? [])
     .filter((l) => l.subscription.subscription_id === subscriptionId.value)
@@ -50,7 +54,6 @@ const recentDeliveries = computed(() =>
     </template>
 
     <template v-else-if="subscription">
-      <!-- Header -->
       <Hook0Card data-test="subscription-detail-card">
         <Hook0CardHeader>
           <template #header>
@@ -86,7 +89,6 @@ const recentDeliveries = computed(() =>
         </Hook0CardHeader>
       </Hook0Card>
 
-      <!-- Health -->
       <Hook0Card>
         <Hook0CardHeader>
           <template #header>{{ t('subscriptionDetail.sectionHealth') }}</template>
@@ -101,7 +103,6 @@ const recentDeliveries = computed(() =>
         </Hook0CardContent>
       </Hook0Card>
 
-      <!-- Configuration -->
       <Hook0Card>
         <Hook0CardHeader>
           <template #header>{{ t('subscriptionDetail.sectionConfig') }}</template>
@@ -152,7 +153,6 @@ const recentDeliveries = computed(() =>
         </Hook0CardContent>
       </Hook0Card>
 
-      <!-- Retry Schedule -->
       <Hook0Card>
         <Hook0CardHeader>
           <template #header>{{ t('subscriptionDetail.sectionRetrySchedule') }}</template>
@@ -167,7 +167,6 @@ const recentDeliveries = computed(() =>
         </Hook0CardContent>
       </Hook0Card>
 
-      <!-- Recent Deliveries -->
       <Hook0Card>
         <Hook0CardHeader>
           <template #header>{{ t('subscriptionDetail.sectionRecentDeliveries') }}</template>

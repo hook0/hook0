@@ -1,3 +1,5 @@
+// Shared helpers for health monitor integration tests — used by both reactivation and health monitor test suites.
+
 import http from 'k6/http';
 import { check } from 'k6';
 

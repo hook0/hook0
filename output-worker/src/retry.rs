@@ -1,3 +1,11 @@
+//! Retry delay computation: strategy-aware with default fallback.
+//!
+//! When a webhook delivery fails, this module decides how long to wait before
+//! the next attempt — or whether to give up entirely. It loads the subscription's
+//! retry schedule from the DB (custom, linear, or increasing strategy) and falls
+//! back to a hardcoded escalating table for legacy subscriptions that predate
+//! the retry-schedule feature.
+
 use std::time::Duration;
 
 use sqlx::PgConnection;
@@ -11,6 +19,8 @@ use crate::work::{Response, ResponseError};
 /// Prevents overflow from increasing strategy with high base_delay * wait_factor^n.
 const MAX_RETRY_DELAY_SECS: Duration = Duration::from_secs(7 * 24 * 3600);
 
+/// Row from a LEFT JOIN between subscription and retry_schedule.
+/// All fields are `Option` because the join produces NULLs when no schedule is assigned.
 #[derive(Debug, sqlx::FromRow)]
 pub(crate) struct SubscriptionRetrySchedule {
     strategy: Option<String>,
@@ -21,6 +31,9 @@ pub(crate) struct SubscriptionRetrySchedule {
     increasing_wait_factor: Option<f64>,
 }
 
+/// Decide the retry delay for a failed attempt, or give up (return `None`).
+/// Loads the subscription's retry schedule from the DB, then delegates to
+/// `compute_scheduled_retry_delay`. Returns `Err` only on DB failures.
 pub(crate) async fn compute_next_retry(
     conn: &mut PgConnection,
     attempt: &RequestAttempt,
@@ -28,6 +41,7 @@ pub(crate) async fn compute_next_retry(
     max_retries: u8,
 ) -> Result<Option<Duration>, sqlx::Error> {
     match response.response_error {
+        // Signing secret is broken — retrying won't help, so bail immediately
         Some(ResponseError::InvalidHeader) => {
             let msg = response
                 .body
@@ -38,7 +52,8 @@ pub(crate) async fn compute_next_retry(
             Ok(None)
         }
         _ => {
-            // Temporary warning message; this will be replaced by actual actions at some point
+            // InvalidTarget means the target URL, method, or custom headers are malformed —
+            // we log a warning but still proceed with the normal retry path (the issue may be transient or fixable by the user)
             if let Some(ResponseError::InvalidTarget) = response.response_error {
                 let msg = response
                     .body
@@ -85,6 +100,7 @@ fn compute_scheduled_retry_delay(
     retry_count: i16,
     global_max_retries: u8,
 ) -> Option<Duration> {
+    // Negative retry_count means a corrupt attempt record — bail out rather than panic on cast
     if retry_count < 0 {
         return None;
     }
@@ -131,12 +147,16 @@ fn compute_scheduled_retry_delay(
                 .map(|&d| Duration::from_secs(d as u64))
         }
         _ => {
-            // No schedule assigned — use hardcoded default backoff
+            // Legacy path: subscriptions created before retry schedules have no schedule.
+            // Fall back to the original hardcoded backoff so existing behavior is preserved.
             compute_default_retry_delay(global_max_retries, retry_count)
         }
     }
 }
 
+/// Hardcoded escalating backoff table: 3s, 10s, 3m, 30m, 1h, 3h, 5h, then 10h for every
+/// subsequent retry. These values were chosen to give transient failures a quick second
+/// chance while spacing out retries for persistent outages.
 fn compute_default_retry_delay(max_retries: u8, retry_count: i16) -> Option<Duration> {
     if retry_count < max_retries.into() {
         match retry_count {
@@ -154,6 +174,9 @@ fn compute_default_retry_delay(max_retries: u8, retry_count: i16) -> Option<Dura
     }
 }
 
+/// Walk the default backoff table, counting how many retries fit within `max_retry_window`.
+/// Returns `(effective_retries, cumulative_duration)` — used at startup to log the actual
+/// retry budget after clamping to the configured time window.
 pub(crate) fn evaluate_retry_policy(max_retries: u8, max_retry_window: Duration) -> (u8, Duration) {
     let mut cumulative = Duration::ZERO;
     let mut effective_retries = 0;

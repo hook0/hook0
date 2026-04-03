@@ -39,11 +39,12 @@ import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
 
+// Subscription list page — shows all subscriptions for an application with inline enable/disable toggles and delete actions.
+
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 
-// Permissions
 const { canCreate, canDelete } = usePermissions();
 
 const { applicationId } = useRouteIds();
@@ -52,6 +53,7 @@ const { data: subscriptions, isLoading, error, refetch } = useSubscriptionList(a
 const toggleMutation = useToggleSubscription();
 const removeMutation = useRemoveSubscription();
 
+// Type guard: the API returns target as a polymorphic union — only HTTP targets have method+url
 function targetIsHttp(target: object): target is { type: string; method: string; url: string } {
   return 'type' in target && target.type === 'http';
 }
@@ -62,7 +64,7 @@ const subscriptionToDisable = ref<Subscription | null>(null);
 const {
   showDeleteDialog,
   entityToDelete: subscriptionToDelete,
-  requestDelete: handleDelete,
+  requestDelete,
   confirmDelete,
 } = useEntityDelete<Subscription>({
   deleteFn: (row) =>
@@ -81,7 +83,8 @@ const disableDialogName = computed(() => {
   return subscriptionToDisable.value.description || t('subscriptions.title');
 });
 
-function handleToggle(row: Subscription) {
+// Disabling is destructive (stops all deliveries), so we require confirmation via dialog. Enabling is safe and fires immediately.
+function toggleSubscription(row: Subscription) {
   if (row.is_enabled) {
     subscriptionToDisable.value = row;
     showDisableDialog.value = true;
@@ -109,6 +112,7 @@ function confirmDisable() {
   const row = subscriptionToDisable.value;
   showDisableDialog.value = false;
   subscriptionToDisable.value = null;
+  // Dialog was closed or row was cleared before confirm — nothing to toggle
   if (!row) {
     return;
   }
@@ -210,7 +214,7 @@ const columns: ColumnDef<Subscription, unknown>[] = [
     cell: (info) =>
       h(Hook0Switch, {
         modelValue: info.row.original.is_enabled,
-        'onUpdate:modelValue': () => handleToggle(info.row.original),
+        'onUpdate:modelValue': () => toggleSubscription(info.row.original),
       }),
   },
   {
@@ -239,7 +243,7 @@ const columns: ColumnDef<Subscription, unknown>[] = [
             value: t('common.delete'),
             icon: markRaw(Trash2),
             variant: 'danger',
-            onClick: () => handleDelete(row),
+            onClick: () => requestDelete(row),
           })
         );
       }
@@ -251,10 +255,9 @@ const columns: ColumnDef<Subscription, unknown>[] = [
 
 <template>
   <Hook0PageLayout :title="t('subscriptions.title')">
-    <!-- Error state (check FIRST - errors take priority) -->
     <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="refetch()" />
 
-    <!-- Loading skeleton (also shown when query is disabled and data is undefined) -->
+    <!-- Covers both active loading AND TanStack's "disabled query" edge case where isLoading=false but data is still undefined -->
     <Hook0Card v-else-if="isLoading || !subscriptions" data-test="subscriptions-card">
       <Hook0CardHeader>
         <template #header>{{ t('subscriptions.title') }}</template>
@@ -264,7 +267,6 @@ const columns: ColumnDef<Subscription, unknown>[] = [
       </Hook0CardContent>
     </Hook0Card>
 
-    <!-- Data loaded (subscriptions is guaranteed to be defined here) -->
     <template v-else>
       <Hook0Card data-test="subscriptions-card">
         <Hook0CardHeader>

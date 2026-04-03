@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// Advanced settings sub-form — custom HTTP headers, metadata key-value pairs, and retry schedule selection.
 import { useI18n } from 'vue-i18n';
 import { routes } from '@/routes';
 import { useRouteIds } from '@/composables/useRouteIds';
@@ -35,7 +36,6 @@ const emit = defineEmits<{
 
 <template>
   <div class="sub-section">
-    <!-- Headers -->
     <div class="sub-row">
       <div class="sub-row__label">
         <span class="sub-row__title sub-row__title--muted">{{
@@ -53,7 +53,6 @@ const emit = defineEmits<{
       </div>
     </div>
 
-    <!-- Metadata -->
     <div class="sub-row">
       <div class="sub-row__label">
         <span class="sub-row__title sub-row__title--muted">{{
@@ -71,7 +70,6 @@ const emit = defineEmits<{
       </div>
     </div>
 
-    <!-- Retry Schedule -->
     <div v-if="retryScheduleOptions.length > 0" class="sub-row">
       <div class="sub-row__label">
         <span class="sub-row__title sub-row__title--muted">{{
@@ -93,6 +91,7 @@ const emit = defineEmits<{
         </span>
       </div>
       <div class="sub-row__content">
+        <!-- Empty string from Hook0Select means "default schedule" — convert to null for the API -->
         <Hook0Select
           :model-value="retryScheduleId ?? ''"
           :options="retryScheduleOptions"
