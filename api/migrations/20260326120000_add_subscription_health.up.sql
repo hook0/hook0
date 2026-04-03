@@ -1,3 +1,5 @@
+SET lock_timeout = '5s';
+
 create table webhook.subscription_health_event (
     health_event__id uuid not null default public.gen_random_uuid(),
     subscription__id uuid not null
@@ -60,11 +62,16 @@ insert into webhook.health_monitor_cursor default values
 -- Expression index for cursor-based delta scan.
 -- Uses COALESCE(succeeded_at, failed_at) because rows complete asynchronously — a row created
 -- before the cursor may complete after it. This prevents losing in-flight deliveries.
-create index if not exists idx_request_attempt_completed_at
-    on webhook.request_attempt (coalesce(succeeded_at, failed_at))
-    where succeeded_at is not null or failed_at is not null;
+-- On large existing datasets, create this index manually first:
+--   CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_request_attempt_completed_at ON webhook.request_attempt (COALESCE(succeeded_at, failed_at));
+-- The CREATE INDEX below will be a no-op if the index already exists.
+CREATE INDEX IF NOT EXISTS idx_request_attempt_completed_at
+    ON webhook.request_attempt (COALESCE(succeeded_at, failed_at))
+    WHERE succeeded_at IS NOT NULL OR failed_at IS NOT NULL;
 
 -- Partial index for daily cleanup of old resolved events
 create index if not exists idx_subscription_health_event_cleanup
     on webhook.subscription_health_event(created_at)
     where status = 'resolved';
+
+RESET lock_timeout;

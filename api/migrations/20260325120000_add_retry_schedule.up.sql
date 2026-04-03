@@ -1,3 +1,5 @@
+SET lock_timeout = '5s';
+
 create table webhook.retry_schedule (
     retry_schedule__id uuid not null default public.gen_random_uuid(),
     organization__id uuid not null
@@ -58,3 +60,5 @@ alter table webhook.subscription
 -- Index on FK column to prevent full table scan on cascade delete
 create index subscription_retry_schedule__id_idx
     on webhook.subscription (retry_schedule__id);
+
+RESET lock_timeout;

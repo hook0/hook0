@@ -77,7 +77,7 @@ pub async fn run_health_monitor(
             error!("Health monitor error: {e}");
         }
 
-        if last_cleanup.is_none() || last_cleanup.unwrap().elapsed() > CLEANUP_INTERVAL {
+        if last_cleanup.is_none_or(|t| t.elapsed() > CLEANUP_INTERVAL) {
             match cleanup::cleanup_resolved_health_events(db, config).await {
                 Ok(n) => {
                     if n > 0 {
