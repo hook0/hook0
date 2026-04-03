@@ -24,7 +24,7 @@ const triggerRef = ref<HTMLElement | null>(null);
 const tooltipStyle = ref<Record<string, string>>({});
 let showTimeout: ReturnType<typeof setTimeout> | null = null;
 
-const TOOLTIP_GAP_PX = 8;
+const TOOLTIP_GAP_PX = 4;
 
 function updatePosition() {
   if (!triggerRef.value) return;
@@ -169,7 +169,7 @@ onBeforeUnmount(() => {
 }
 
 .hook0-tooltip__arrow--top {
-  bottom: -8px;
+  bottom: -4px;
   left: 50%;
   transform: translateX(-50%);
   border-top-color: var(--color-text-primary);
@@ -177,7 +177,7 @@ onBeforeUnmount(() => {
 }
 
 .hook0-tooltip__arrow--bottom {
-  top: -8px;
+  top: -4px;
   left: 50%;
   transform: translateX(-50%);
   border-bottom-color: var(--color-text-primary);
@@ -185,7 +185,7 @@ onBeforeUnmount(() => {
 }
 
 .hook0-tooltip__arrow--left {
-  right: -8px;
+  right: -4px;
   top: 50%;
   transform: translateY(-50%);
   border-left-color: var(--color-text-primary);
@@ -193,7 +193,7 @@ onBeforeUnmount(() => {
 }
 
 .hook0-tooltip__arrow--right {
-  left: -8px;
+  left: -4px;
   top: 50%;
   transform: translateY(-50%);
   border-right-color: var(--color-text-primary);

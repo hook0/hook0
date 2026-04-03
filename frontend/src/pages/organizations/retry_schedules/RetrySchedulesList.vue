@@ -84,7 +84,9 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
     accessorKey: 'strategy',
     header: t('retrySchedules.strategyColumn'),
     cell: (info) =>
-      h(Hook0Badge, { variant: 'info', size: 'sm' }, () => strategyLabel(info.getValue<string>(), t)),
+      h(Hook0Badge, { variant: 'info', size: 'sm' }, () =>
+        strategyLabel(info.getValue<string>(), t)
+      ),
   },
   {
     accessorKey: 'max_retries',
@@ -116,8 +118,7 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
             }),
         } satisfies ColumnDef<RetrySchedule, unknown>,
       ]
-    : [] // No actions column when user lacks delete permission — column simply doesn't exist
-  ),
+    : []), // No actions column when user lacks delete permission — column simply doesn't exist
 ];
 </script>
 

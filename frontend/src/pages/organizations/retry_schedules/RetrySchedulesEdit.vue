@@ -37,6 +37,7 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0Slider from '@/components/Hook0Slider.vue';
+import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
 import SelectableCard from '@/components/SelectableCard.vue';
 
 // Retry schedule create/edit form.
@@ -69,7 +70,7 @@ const { errors, defineField, handleSubmit, resetForm } = useForm({
     name: '',
     strategy: 'increasing' as const,
     max_retries: 10,
-    linear_delay: null,
+    linear_delay: 300,
     custom_intervals: [],
     increasing_base_delay: 3,
     increasing_wait_factor: 3,
@@ -88,7 +89,9 @@ const [increasingWaitFactor] = defineField('increasing_wait_factor');
 const strategyValue = computed(() => strategy.value ?? 'increasing');
 const maxRetriesValue = computed(() => Number(maxRetries.value) || 0);
 const linearDelayValue = computed(() => Number(linearDelay.value) || 0);
-const customIntervalsValue = computed((): number[] => (Array.isArray(customIntervals.value) ? (customIntervals.value as number[]) : []));
+const customIntervalsValue = computed((): number[] =>
+  Array.isArray(customIntervals.value) ? (customIntervals.value as number[]) : []
+);
 const increasingBaseDelayValue = computed(() => Number(increasingBaseDelay.value) || 3);
 const increasingWaitFactorValue = computed(() => Number(increasingWaitFactor.value) || 3);
 
@@ -222,21 +225,26 @@ function updateInterval(index: number, value: string) {
   customIntervals.value = current;
 }
 
-/**
- * Converts raw delay-seconds into display rows with cumulative totals.
- *
- * @example
- * buildPreviewRows([3, 9, 27])
- * // => [{ retry: 1, delay: '3s', cumulative: '3s' }, { retry: 2, delay: '9s', cumulative: '12s' }, ...]
- */
-function buildPreviewRows(delaySecs: number[]) {
+type PreviewRow = {
+  retry: number;
+  delaySecs: number;
+  delay: string;
+  cumulative: string;
+  exceeds: boolean;
+  wayTooMuch: boolean;
+};
+
+function buildPreviewRows(delaySecs: number[]): PreviewRow[] {
   let cumulative = 0;
   return delaySecs.map((s, i) => {
     cumulative += s;
     return {
       retry: i + 1,
+      delaySecs: s,
       delay: formatDuration(s),
       cumulative: formatDuration(cumulative),
+      exceeds: s > MAX_INTERVAL_SECONDS,
+      wayTooMuch: s > 365 * 86400,
     };
   });
 }
@@ -261,6 +269,8 @@ const previewRows = computed(() => {
   // Unreachable unless a new strategy is added without updating this switch
   return [];
 });
+
+const hasExceedingRetries = computed(() => previewRows.value.some((r) => r.exceeds));
 
 const pageTitle = computed(() =>
   isNew.value ? t('retrySchedules.create') : t('retrySchedules.edit')
@@ -366,15 +376,29 @@ const pageTitle = computed(() =>
                 @update:model-value="maxRetries = $event"
               />
 
-              <div v-if="previewRows.length > 0" class="preview-chips">
-                <span
-                  v-for="row in previewRows"
-                  :key="row.retry"
-                  class="preview-chips__chip"
-                  :title="t('retrySchedules.preview.cumulativeTooltip', { total: row.cumulative })"
-                >
-                  {{ row.delay }}
-                </span>
+              <div v-if="previewRows.length > 0" class="preview-section">
+                <div class="preview-chips">
+                  <Hook0Tooltip
+                    v-for="row in previewRows"
+                    :key="row.retry"
+                    :content="
+                      row.exceeds
+                        ? t('retrySchedules.preview.exceedsMaxDelayTooltip')
+                        : t('retrySchedules.preview.cumulativeTooltip', { total: row.cumulative })
+                    "
+                    position="top"
+                  >
+                    <span
+                      class="preview-chips__chip"
+                      :class="{ 'preview-chips__chip--exceeds': row.exceeds }"
+                    >
+                      {{ row.wayTooMuch ? '> 1y' : row.delay }}
+                    </span>
+                  </Hook0Tooltip>
+                </div>
+                <p v-if="hasExceedingRetries" class="form-fields__error">
+                  {{ t('retrySchedules.preview.exceedsMaxDelay') }}
+                </p>
               </div>
 
               <Hook0Slider
@@ -395,20 +419,27 @@ const pageTitle = computed(() =>
                   {{ t('retrySchedules.fields.customIntervals') }}
                 </label>
                 <div class="custom-intervals">
+                  <div class="custom-intervals__header">
+                    <span class="custom-intervals__header-label">{{
+                      t('retrySchedules.fields.retryNumberHeader')
+                    }}</span>
+                    <span class="custom-intervals__header-label">{{
+                      t('retrySchedules.fields.intervalSeconds')
+                    }}</span>
+                    <span class="custom-intervals__header-spacer" />
+                  </div>
                   <div
                     v-for="(interval, index) in customIntervalsValue"
                     :key="`interval-${index}-${interval}`"
                     class="custom-intervals__row"
                   >
-                    <span class="custom-intervals__label">
-                      {{ t('retrySchedules.fields.retryNumber', { number: index + 1 }) }}
-                    </span>
+                    <span class="custom-intervals__label"> #{{ index + 1 }} </span>
                     <Hook0Input
                       :model-value="String(interval)"
-                      :label="t('retrySchedules.fields.intervalSeconds')"
                       type="number"
                       min="1"
                       :max="MAX_INTERVAL_SECONDS"
+                      :aria-label="t('retrySchedules.fields.retryNumber', { number: index + 1 })"
                       @update:model-value="updateInterval(index, String($event))"
                     />
                     <Hook0Button variant="ghost" type="button" @click="removeInterval(index)">
@@ -440,7 +471,7 @@ const pageTitle = computed(() =>
             >
               {{ t('common.cancel') }}
             </Hook0Button>
-            <Hook0Button variant="primary" type="submit">
+            <Hook0Button variant="primary" type="submit" :disabled="hasExceedingRetries">
               {{ isNew ? t('common.create') : t('common.save') }}
             </Hook0Button>
           </Hook0CardFooter>
@@ -497,7 +528,35 @@ const pageTitle = computed(() =>
 .custom-intervals {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.375rem;
+}
+
+.custom-intervals__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.custom-intervals__header-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.custom-intervals__header-label:first-child {
+  min-width: 3rem;
+  flex-shrink: 0;
+}
+
+.custom-intervals__header-label:nth-child(2) {
+  flex: 1;
+}
+
+.custom-intervals__header-spacer {
+  width: 2.25rem;
+  flex-shrink: 0;
 }
 
 .custom-intervals__row {
@@ -508,8 +567,9 @@ const pageTitle = computed(() =>
 
 .custom-intervals__label {
   font-size: 0.8125rem;
+  font-weight: 600;
   color: var(--color-text-secondary);
-  min-width: 5rem;
+  min-width: 3rem;
   flex-shrink: 0;
 }
 
@@ -532,6 +592,12 @@ const pageTitle = computed(() =>
   }
 }
 
+.preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .preview-chips {
   display: flex;
   flex-wrap: wrap;
@@ -549,5 +615,12 @@ const pageTitle = computed(() =>
   background-color: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+
+.preview-chips__chip--exceeds {
+  color: var(--color-error);
+  background-color: var(--color-error-light);
+  border-color: var(--color-error);
 }
 </style>

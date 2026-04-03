@@ -1045,10 +1045,13 @@
       "customIntervals": "Custom Intervals",
       "addInterval": "Add interval",
       "retryNumber": "Retry #{number}",
+      "retryNumberHeader": "Retry",
       "intervalSeconds": "Delay (seconds)"
     },
     "preview": {
-      "cumulativeTooltip": "Total elapsed: {total}"
+      "cumulativeTooltip": "Total elapsed: {total}",
+      "exceedsMaxDelay": "Some retries exceed the 7-day maximum",
+      "exceedsMaxDelayTooltip": "Exceeds the 7-day maximum"
     },
     "empty": {
       "title": "No retry schedules",
