@@ -65,7 +65,8 @@ export const subscriptionKeys = {
 export const logKeys = {
   all: ['logs'] as const,
   lists: () => [...logKeys.all, 'list'] as const,
-  list: (applicationId: string) => [...logKeys.lists(), applicationId] as const,
+  list: (applicationId: string, subscriptionId?: string) =>
+    [...logKeys.lists(), applicationId, subscriptionId ?? 'all'] as const,
 };
 
 export const secretKeys = {

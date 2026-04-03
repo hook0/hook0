@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { computed, h, markRaw, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Trash2, Link, Pencil } from 'lucide-vue-next';
+import { Trash2, Link } from 'lucide-vue-next';
 import Hook0HealthBadge from '@/components/Hook0HealthBadge.vue';
 import { DOCS_SUBSCRIPTIONS_URL, API_DOCS_SUBSCRIPTIONS_URL } from '@/constants/externalLinks';
-import Hook0TableCellEventTypes from '@/components/Hook0TableCellEventTypes.vue';
-import Hook0TableCellLabels from '@/components/Hook0TableCellLabels.vue';
 import Hook0TableCellTarget from '@/components/Hook0TableCellTarget.vue';
 
 import {
@@ -136,14 +134,47 @@ function confirmDisable() {
 
 const columns: ColumnDef<Subscription, unknown>[] = [
   {
+    id: 'health',
+    accessorKey: 'failure_percent',
+    header: t('health.healthColumn'),
+    size: 40,
+    cell: ({ row }) => {
+      const badge = h(Hook0HealthBadge, {
+        failurePercent: row.original.failure_percent ?? null,
+      });
+      if (row.original.failure_percent == null) {
+        return badge;
+      }
+      return h(
+        RouterLink,
+        {
+          to: {
+            name: routes.LogsList,
+            params: {
+              organization_id: route.params.organization_id,
+              application_id: route.params.application_id,
+            },
+            query: {
+              subscription_id: row.original.subscription_id,
+              subscription_name: row.original.description || undefined,
+            },
+          },
+          class: 'subscription__health-link',
+        },
+        () => badge
+      );
+    },
+  },
+  {
     accessorKey: 'description',
     header: t('common.name'),
     enableSorting: true,
+    size: 200,
     cell: (info) =>
       h(Hook0TableCellLink, {
         value: String(info.getValue() ?? t('subscriptions.noDescription')),
         to: {
-          name: routes.SubscriptionsDetail,
+          name: routes.SubscriptionsEdit,
           params: {
             application_id: route.params.application_id,
             organization_id: route.params.organization_id,
@@ -152,39 +183,6 @@ const columns: ColumnDef<Subscription, unknown>[] = [
         },
         'data-test': 'subscription-description-link',
       }),
-  },
-  {
-    accessorKey: 'event_types',
-    header: t('subscriptions.eventTypesColumn'),
-    enableSorting: true,
-    cell: (info) => {
-      const val = info.getValue() as string[] | undefined;
-      if (!val || val.length === 0) {
-        return '';
-      }
-      return h(Hook0TableCellEventTypes, {
-        value: val,
-        to: {
-          name: routes.EventTypesList,
-          params: {
-            organization_id: route.params.organization_id,
-            application_id: route.params.application_id,
-          },
-        },
-      });
-    },
-  },
-  {
-    accessorKey: 'labels',
-    header: t('subscriptions.labelsColumn'),
-    enableSorting: true,
-    cell: (info) => {
-      const labels = (info.row.original.labels ?? {}) as Record<string, string>;
-      if (Object.keys(labels).length === 0) {
-        return '';
-      }
-      return h(Hook0TableCellLabels, { value: labels });
-    },
   },
   {
     accessorKey: 'target',
@@ -199,15 +197,6 @@ const columns: ColumnDef<Subscription, unknown>[] = [
     },
   },
   {
-    id: 'health',
-    accessorKey: 'failure_percent',
-    header: t('health.healthColumn'),
-    cell: ({ row }) =>
-      h(Hook0HealthBadge, {
-        failurePercent: row.original.failure_percent ?? null,
-      }),
-  },
-  {
     accessorKey: 'is_enabled',
     header: t('subscriptions.enabledColumn'),
     enableSorting: true,
@@ -217,39 +206,21 @@ const columns: ColumnDef<Subscription, unknown>[] = [
         'onUpdate:modelValue': () => toggleSubscription(info.row.original),
       }),
   },
-  {
-    id: 'options',
-    header: t('common.actions'),
-    cell: (info: { row: { original: Subscription } }) => {
-      const row = info.row.original;
-      const actions: ReturnType<typeof h>[] = [];
-      actions.push(
-        h(Hook0TableCellLink, {
-          value: t('subscriptions.editAction'),
-          icon: markRaw(Pencil),
-          to: {
-            name: routes.SubscriptionsEdit,
-            params: {
-              application_id: route.params.application_id,
-              organization_id: route.params.organization_id,
-              subscription_id: row.subscription_id,
-            },
-          },
-        })
-      );
-      if (canDelete('subscription')) {
-        actions.push(
-          h(Hook0TableCellLink, {
-            value: t('common.delete'),
-            icon: markRaw(Trash2),
-            variant: 'danger',
-            onClick: () => requestDelete(row),
-          })
-        );
-      }
-      return h('div', { class: 'subscription__actions' }, actions);
-    },
-  },
+  ...(canDelete('subscription')
+    ? [
+        {
+          id: 'options',
+          header: t('common.actions'),
+          cell: (info: { row: { original: Subscription } }) =>
+            h(Hook0TableCellLink, {
+              value: t('common.delete'),
+              icon: markRaw(Trash2),
+              variant: 'danger',
+              onClick: () => requestDelete(info.row.original),
+            }),
+        } satisfies ColumnDef<Subscription, unknown>,
+      ]
+    : []),
 ];
 </script>
 
@@ -374,6 +345,21 @@ const columns: ColumnDef<Subscription, unknown>[] = [
 </template>
 
 <style scoped>
+.subscription__health-link {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.subscription__health-link:hover {
+  opacity: 0.8;
+}
+
+.subscription__health-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-full);
+}
+
 .subscription__actions {
   display: flex;
   align-items: center;

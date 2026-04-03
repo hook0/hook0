@@ -211,7 +211,9 @@ const onSubmit = handleSubmit((values) => {
 
 function addInterval() {
   const current = customIntervalsValue.value;
-  customIntervals.value = [...current, 60];
+  const last = current.length > 0 ? current[current.length - 1] : 60;
+  const next = Math.min(last * 2, MAX_INTERVAL_SECONDS);
+  customIntervals.value = [...current, next];
 }
 
 function removeInterval(index: number) {
@@ -271,6 +273,10 @@ const previewRows = computed(() => {
 });
 
 const hasExceedingRetries = computed(() => previewRows.value.some((r) => r.exceeds));
+const firstExceedingRetry = computed(() => {
+  const row = previewRows.value.find((r) => r.exceeds);
+  return row ? row.retry : 0;
+});
 
 const pageTitle = computed(() =>
   isNew.value ? t('retrySchedules.create') : t('retrySchedules.edit')
@@ -366,17 +372,31 @@ const pageTitle = computed(() =>
                 />
               </div>
 
-              <Hook0Slider
-                v-if="strategyValue === 'linear'"
-                :model-value="maxRetriesValue"
-                :min="1"
-                :max="MAX_RETRIES"
-                :label="t('retrySchedules.fields.maxRetries')"
-                :error="errors.max_retries"
-                @update:model-value="maxRetries = $event"
-              />
+              <!-- Linear: both sliders grouped before preview -->
+              <div v-if="strategyValue === 'linear'" class="slider-row slider-row--two">
+                <Hook0Slider
+                  :model-value="linearDelayValue"
+                  :min="1"
+                  :max="SLIDER_MAX_LINEAR_DELAY"
+                  :step="1"
+                  :label="t('retrySchedules.fields.linearDelay')"
+                  :format-value="formatDuration"
+                  :error="errors.linear_delay"
+                  @update:model-value="linearDelay = $event"
+                />
+                <Hook0Slider
+                  :model-value="maxRetriesValue"
+                  :min="1"
+                  :max="MAX_RETRIES"
+                  :label="t('retrySchedules.fields.maxRetries')"
+                  :error="errors.max_retries"
+                  @update:model-value="maxRetries = $event"
+                />
+              </div>
 
+              <!-- Preview: retry delay sequence visualization -->
               <div v-if="previewRows.length > 0" class="preview-section">
+                <label class="form-fields__label">{{ t('retrySchedules.preview.label') }}</label>
                 <div class="preview-chips">
                   <Hook0Tooltip
                     v-for="row in previewRows"
@@ -392,26 +412,14 @@ const pageTitle = computed(() =>
                       class="preview-chips__chip"
                       :class="{ 'preview-chips__chip--exceeds': row.exceeds }"
                     >
-                      {{ row.wayTooMuch ? '> 1y' : row.delay }}
+                      {{ row.wayTooMuch ? 'over 1 year' : row.delay }}
                     </span>
                   </Hook0Tooltip>
                 </div>
                 <p v-if="hasExceedingRetries" class="form-fields__error">
-                  {{ t('retrySchedules.preview.exceedsMaxDelay') }}
+                  {{ t('retrySchedules.preview.exceedsMaxDelay', { n: firstExceedingRetry }) }}
                 </p>
               </div>
-
-              <Hook0Slider
-                v-if="strategyValue === 'linear'"
-                :model-value="linearDelayValue"
-                :min="1"
-                :max="SLIDER_MAX_LINEAR_DELAY"
-                :step="1"
-                :label="t('retrySchedules.fields.linearDelay')"
-                :format-value="formatDuration"
-                :error="errors.linear_delay"
-                @update:model-value="linearDelay = $event"
-              />
 
               <!-- Custom intervals editor — each row maps 1:1 to a retry attempt; adding/removing rows changes max_retries via the watcher above -->
               <div v-if="strategyValue === 'custom'" class="form-fields__group">
@@ -586,8 +594,13 @@ const pageTitle = computed(() =>
   gap: 1.5rem;
 }
 
+.slider-row--two {
+  grid-template-columns: 1fr 1fr;
+}
+
 @media (max-width: 640px) {
-  .slider-row {
+  .slider-row,
+  .slider-row--two {
     grid-template-columns: 1fr;
   }
 }

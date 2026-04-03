@@ -469,6 +469,7 @@
     },
     "eventId": "Event ID",
     "eventType": "Event Type",
+    "filteredBySubscription": "Subscription",
     "filters": {
       "search": "Search payloads",
       "statusCode": "Status code",
@@ -1035,13 +1036,13 @@
       "name": "Name",
       "namePlaceholder": "e.g. Aggressive then patient",
       "strategy": "Strategy",
-      "strategyIncreasingDesc": "Each retry waits longer than the previous one (base delay × factor^n)",
+      "strategyIncreasingDesc": "Each retry waits longer — delays grow exponentially",
       "strategyLinearDesc": "Fixed delay between each retry",
       "strategyCustomDesc": "Define a custom delay for each retry attempt",
       "maxRetries": "Max Retries",
-      "increasingBaseDelay": "Base Delay (seconds)",
+      "increasingBaseDelay": "Base Delay",
       "increasingWaitFactor": "Wait Factor",
-      "linearDelay": "Delay (seconds)",
+      "linearDelay": "Delay between retries",
       "customIntervals": "Custom Intervals",
       "addInterval": "Add interval",
       "retryNumber": "Retry #{number}",
@@ -1049,8 +1050,9 @@
       "intervalSeconds": "Delay (seconds)"
     },
     "preview": {
+      "label": "Preview",
       "cumulativeTooltip": "Total elapsed: {total}",
-      "exceedsMaxDelay": "Some retries exceed the 7-day maximum",
+      "exceedsMaxDelay": "Retry #{n} onward exceeds the 7-day limit — reduce retries, base delay, or wait factor",
       "exceedsMaxDelayTooltip": "Exceeds the 7-day maximum"
     },
     "empty": {
@@ -1081,9 +1083,10 @@
   "health": {
     "healthy": "Healthy",
     "warning": "Warning",
-    "disabled": "Disabled",
+    "critical": "Critical",
     "noData": "N/A",
-    "failureRate": "Failure rate",
+    "awaitingData": "Awaiting delivery data",
+    "failureRate": "failures",
     "healthColumn": "Health"
   }
 }
