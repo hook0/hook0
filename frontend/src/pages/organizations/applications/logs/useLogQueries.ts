@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/vue-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, type Ref } from 'vue';
 import * as LogService from './LogService';
 import { logKeys } from '@/queries/keys';
@@ -23,5 +23,15 @@ export function useLogListBySubscription(
     queryFn: () =>
       LogService.listBySubscription(applicationId.value, subscriptionId.value),
     enabled: computed(() => !!applicationId.value && !!subscriptionId.value),
+  });
+}
+
+export function useRetryDelivery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (requestAttemptId: string) => LogService.retry(requestAttemptId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: logKeys.all });
+    },
   });
 }

@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, h, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
-import { Pencil, Send } from 'lucide-vue-next';
+import { Pencil, Send, RotateCcw } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
+import { handleMutationError } from '@/utils/handleMutationError';
 
 import { useSubscriptionDetail } from './useSubscriptionQueries';
-import { useLogListBySubscription } from '../logs/useLogQueries';
+import { useLogListBySubscription, useRetryDelivery } from '../logs/useLogQueries';
 import { useLogColumns } from '../logs/useLogColumns';
 import { useSubscriptionHealthEvents } from './useSubscriptionHealthQueries';
 import type { RequestAttemptExtended } from '../logs/LogService';
@@ -54,9 +56,37 @@ const { data: healthEvents, isLoading: healthLoading } = useSubscriptionHealthEv
   organizationId
 );
 
-// Remove the "subscription" column — redundant on a page scoped to a single subscription
+const retryMutation = useRetryDelivery();
+
+// Remove the "subscription" column (redundant), add retry button column
 const allLogColumns = useLogColumns();
-const logColumns = computed(() => allLogColumns.filter((col) => col.id !== 'subscription'));
+const logColumns = computed(() => [
+  ...allLogColumns.filter((col) => col.id !== 'subscription'),
+  {
+    id: 'retry',
+    header: '',
+    size: 40,
+    cell: ({ row }: { row: { original: RequestAttemptExtended } }) =>
+      h(
+        Hook0Button,
+        {
+          variant: 'ghost',
+          type: 'button',
+          disabled: retryMutation.isPending.value,
+          'aria-label': t('subscriptionDetail.retryDelivery'),
+          onClick: (e: Event) => {
+            e.stopPropagation();
+            retryMutation.mutate(row.original.request_attempt_id, {
+              onSuccess: () =>
+                toast.success(t('subscriptionDetail.retryQueued')),
+              onError: (err: Error) => handleMutationError(err),
+            });
+          },
+        },
+        () => h(RotateCcw, { size: 16, 'aria-hidden': 'true' })
+      ),
+  },
+]);
 
 // Side panel for delivery detail
 const sidePanelOpen = ref(false);

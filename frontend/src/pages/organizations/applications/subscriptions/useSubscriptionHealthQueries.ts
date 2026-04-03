@@ -11,10 +11,7 @@ export function useSubscriptionHealthEvents(
   return useQuery({
     queryKey: computed(() => healthEventKeys.list(subscriptionId.value)),
     queryFn: () =>
-      SubscriptionHealthService.listHealthEvents(
-        subscriptionId.value,
-        organizationId.value
-      ),
+      SubscriptionHealthService.listHealthEvents(subscriptionId.value, organizationId.value),
     enabled: computed(() => !!subscriptionId.value && !!organizationId.value),
   });
 }

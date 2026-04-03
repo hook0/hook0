@@ -34,6 +34,7 @@ export type RequestAttemptExtended = RequestAttemptTypeFixed & {
   completed_at?: string | null;
   created_at?: string | null;
   event_type_name?: string | null;
+  attempt_trigger?: 'dispatch' | 'auto_retry' | 'manual_retry';
 };
 
 export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixed>> {
@@ -44,6 +45,12 @@ export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixe
         min_created_at: subDays(new Date(), 7).toISOString(),
       },
     })
+  );
+}
+
+export function retry(requestAttemptId: UUID): Promise<{ request_attempt_id: string }> {
+  return unwrapResponse(
+    http.post<{ request_attempt_id: string }>(`/request_attempts/${requestAttemptId}/retry`)
   );
 }
 

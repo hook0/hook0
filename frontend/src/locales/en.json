@@ -1101,7 +1101,11 @@
     "healthSource": {
       "system": "System",
       "user": "User"
-    }
+    },
+    "retryDelivery": "Retry this delivery",
+    "retryQueued": "Retry queued",
+    "payloadExpired": "Cannot retry — event payload has expired",
+    "manualRetryBadge": "Retry"
   },
   "health": {
     "healthy": "Healthy",
