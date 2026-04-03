@@ -69,7 +69,6 @@ sdk-release.cargo:
   stage: trigger-release
   image: rust:$RUST_VERSION
   allow_failure: false
-  dependencies: []
   variables:
     GIT_LFS_SKIP_SMUDGE: "1"
   rules:
