@@ -90,7 +90,7 @@ const strategyValue = computed(() => strategy.value ?? 'increasing');
 const maxRetriesValue = computed(() => Number(maxRetries.value) || 0);
 const linearDelayValue = computed(() => Number(linearDelay.value) || 0);
 const customIntervalsValue = computed((): number[] =>
-  Array.isArray(customIntervals.value) ? (customIntervals.value as number[]) : []
+  Array.isArray(customIntervals.value) ? customIntervals.value.map(Number) : []
 );
 const increasingBaseDelayValue = computed(() => Number(increasingBaseDelay.value) || 3);
 const increasingWaitFactorValue = computed(() => Number(increasingWaitFactor.value) || 3);
@@ -412,7 +412,7 @@ const pageTitle = computed(() =>
                       class="preview-chips__chip"
                       :class="{ 'preview-chips__chip--exceeds': row.exceeds }"
                     >
-                      {{ row.wayTooMuch ? 'over 1 year' : row.delay }}
+                      {{ row.wayTooMuch ? t('retrySchedules.preview.overOneYear') : row.delay }}
                     </span>
                   </Hook0Tooltip>
                 </div>

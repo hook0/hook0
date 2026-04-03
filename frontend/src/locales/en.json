@@ -1053,6 +1053,7 @@
       "label": "Preview",
       "cumulativeTooltip": "Total elapsed: {total}",
       "exceedsMaxDelay": "Retry #{n} onward exceeds the 7-day limit — reduce retries, base delay, or wait factor",
+      "overOneYear": "> 1y",
       "exceedsMaxDelayTooltip": "Exceeds the 7-day maximum"
     },
     "empty": {

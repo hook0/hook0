@@ -64,7 +64,6 @@ export function useNavigationTabs() {
           active:
             route.name === routes.SubscriptionsList ||
             route.name === routes.SubscriptionsNew ||
-            route.name === routes.SubscriptionsDetail ||
             route.name === routes.SubscriptionsEdit,
         },
         {

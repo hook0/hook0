@@ -359,10 +359,4 @@ const columns: ColumnDef<Subscription, unknown>[] = [
   outline-offset: 2px;
   border-radius: var(--radius-full);
 }
-
-.subscription__actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
 </style>

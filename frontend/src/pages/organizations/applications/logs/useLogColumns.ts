@@ -134,7 +134,7 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
         h(Hook0TableCellLink, {
           value: String(info.row.original.subscription.description ?? ''),
           to: {
-            name: routes.SubscriptionsDetail,
+            name: routes.SubscriptionsEdit,
             params: {
               application_id: route.params.application_id,
               organization_id: route.params.organization_id,

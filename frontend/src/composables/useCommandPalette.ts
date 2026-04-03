@@ -48,7 +48,6 @@ const APP_LEVEL_FEATURES: Record<string, string> = {
   [routes.EventTypesNew]: routes.EventTypesList,
   [routes.SubscriptionsList]: routes.SubscriptionsList,
   [routes.SubscriptionsNew]: routes.SubscriptionsList,
-  [routes.SubscriptionsDetail]: routes.SubscriptionsList,
   [routes.LogsList]: routes.LogsList,
   [routes.ApplicationSecretsList]: routes.ApplicationSecretsList,
   [routes.ApplicationSecretsDetail]: routes.ApplicationSecretsList,
