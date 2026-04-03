@@ -78,10 +78,11 @@ const showMergedEmptyState = computed(() => {
   return noDeliveries && noHealth;
 });
 
-// Type guard for HTTP targets
-function targetIsHttp(target: object): target is { type: string; method: string; url: string } {
-  return 'type' in target && target.type === 'http';
-}
+const httpTarget = computed(() => {
+  const target = subscription.value?.target;
+  if (!target || !('type' in target) || target.type !== 'http') return null;
+  return target as unknown as { type: string; method: string; url: string };
+});
 </script>
 
 <template>
@@ -135,9 +136,9 @@ function targetIsHttp(target: object): target is { type: string; method: string;
           <div class="detail-header__row">
             <div class="detail-header__target">
               <Hook0TableCellTarget
-                v-if="targetIsHttp(subscription.target as object)"
-                :method="(subscription.target as Record<string, string>).method"
-                :url="(subscription.target as Record<string, string>).url"
+                v-if="httpTarget"
+                :method="httpTarget.method"
+                :url="httpTarget.url"
               />
               <code v-else class="detail-header__target-raw">
                 {{ JSON.stringify(subscription.target) }}

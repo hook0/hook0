@@ -9,11 +9,13 @@ defineProps<{
 
 const { t } = useI18n();
 
-const statusVariantMap = {
+type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
+
+const statusVariantMap: Record<string, BadgeVariant> = {
   resolved: 'success',
   warning: 'warning',
   disabled: 'danger',
-} as const;
+};
 
 const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
 
@@ -42,9 +44,9 @@ function relativeDate(iso: string): string {
         aria-hidden="true"
       />
       <div class="health-timeline__content">
-        <span class="health-timeline__status">
+        <Hook0Badge :variant="statusVariantMap[event.status] ?? 'default'" size="sm">
           {{ t(`subscriptionDetail.healthStatus.${event.status}`) }}
-        </span>
+        </Hook0Badge>
         <Hook0Badge variant="default" size="sm">
           {{ event.source }}
         </Hook0Badge>
