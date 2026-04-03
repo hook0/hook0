@@ -532,7 +532,7 @@ mod integration_tests {
         // Phase 1: fetch + process -> warning (not disable, since 71% < 90%)
         let (subs, max_completed) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
         let sub = subs.iter().find(|s| s.subscription_id == sub_id).expect("subscription should be suspect");
-        let actions = crate::health_monitor::state_machine::process_subscription(&mut tx, &config, sub).await.unwrap();
+        let actions = crate::health_monitor::state_machine::evaluate_health_transition(&mut tx, &config, sub).await.unwrap();
         if let Some(wm) = max_completed {
             advance_watermark(&mut tx, wm).await.unwrap();
         }
@@ -571,7 +571,7 @@ mod integration_tests {
         let (subs2, _) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
         let sub2 = subs2.iter().find(|s| s.subscription_id == sub_id).expect("warned sub should still be suspect");
         assert!(sub2.failure_percent < 50.0, "failure rate should be low now");
-        let actions2 = crate::health_monitor::state_machine::process_subscription(&mut tx, &config, sub2).await.unwrap();
+        let actions2 = crate::health_monitor::state_machine::evaluate_health_transition(&mut tx, &config, sub2).await.unwrap();
 
         let resolved_count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'resolved' AND source = 'system'",
@@ -610,7 +610,7 @@ mod integration_tests {
         // Phase 1: trigger warning
         let (subs, max_completed) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
         let sub = subs.iter().find(|s| s.subscription_id == sub_id).unwrap();
-        let _ = crate::health_monitor::state_machine::process_subscription(&mut tx, &config, sub).await.unwrap();
+        let _ = crate::health_monitor::state_machine::evaluate_health_transition(&mut tx, &config, sub).await.unwrap();
         if let Some(wm) = max_completed {
             advance_watermark(&mut tx, wm).await.unwrap();
         }
@@ -628,7 +628,7 @@ mod integration_tests {
         let (subs2, _) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
         let sub2 = subs2.iter().find(|s| s.subscription_id == sub_id)
             .expect("subscription should still be suspect via bucket failure count");
-        let actions = crate::health_monitor::state_machine::process_subscription(&mut tx, &config, sub2).await.unwrap();
+        let actions = crate::health_monitor::state_machine::evaluate_health_transition(&mut tx, &config, sub2).await.unwrap();
 
         assert!(
             !actions.iter().any(|a| matches!(a, crate::health_monitor::notifications::HealthAction::Warning(_))),

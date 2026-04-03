@@ -1,8 +1,10 @@
 mod cleanup;
+pub mod errors;
 mod evaluation;
 mod notifications;
 mod queries;
 mod state_machine;
+pub mod types;
 
 use std::time::{Duration, Instant};
 
@@ -94,7 +96,7 @@ async fn run_health_check(
     mailer: &Mailer,
     hook0_client: &Option<Hook0Client>,
     config: &HealthMonitorConfig,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), errors::HealthMonitorError> {
     // Phase 1: transaction — evaluate health, insert events, disable subscriptions.
     let actions = {
         let mut transaction = db.begin().await?;
@@ -118,7 +120,7 @@ async fn run_health_check(
 
         let mut actions = Vec::new();
         for subscription in &subscriptions {
-            match state_machine::process_subscription(&mut transaction, config, subscription).await
+            match state_machine::evaluate_health_transition(&mut transaction, config, subscription).await
             {
                 Ok(mut subscription_actions) => actions.append(&mut subscription_actions),
                 Err(e) => {

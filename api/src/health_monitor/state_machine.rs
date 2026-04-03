@@ -3,8 +3,10 @@ use tracing::info;
 use uuid::Uuid;
 
 use super::HealthMonitorConfig;
+use super::errors::HealthMonitorError;
 use super::evaluation::SubscriptionHealth;
 use super::notifications::{HealthAction, HealthActionInfo};
+use super::types::{HealthEventSource, HealthStatus};
 
 /// Evaluates a single subscription's health and determines state transitions.
 ///
@@ -14,15 +16,15 @@ use super::notifications::{HealthAction, HealthActionInfo};
 ///   - `warning` + low failure → insert `resolved` event
 ///   - `disabled` → no-op (manual re-enable required)
 ///   - `resolved` within cooldown → no-op (prevent email spam)
-pub async fn process_subscription(
+pub async fn evaluate_health_transition(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     config: &HealthMonitorConfig,
     subscription: &SubscriptionHealth,
-) -> Result<Vec<HealthAction>, Box<dyn std::error::Error>> {
+) -> Result<Vec<HealthAction>, HealthMonitorError> {
     let failure_percent = subscription.failure_percent;
     let warning_percent = config.warning_failure_percent as f64;
     let disable_percent = config.disable_failure_percent as f64;
-    let last_status = subscription.last_health_status.as_deref();
+    let last_status = subscription.last_health_status;
     let last_at = subscription.last_health_at;
 
     let mut actions = Vec::new();
@@ -35,36 +37,36 @@ pub async fn process_subscription(
         .await?;
 
     match last_status {
-        Some("disabled") => {}
+        Some(HealthStatus::Disabled) => {}
 
-        Some("resolved")
+        Some(HealthStatus::Resolved)
             if last_at.is_some_and(|at| {
                 (Utc::now() - at)
                     < chrono::Duration::from_std(config.warning_cooldown).unwrap_or_default()
             }) => {}
 
-        Some("warning")
+        Some(HealthStatus::Warning)
             if failure_percent >= warning_percent && failure_percent < disable_percent => {}
 
-        Some("warning") if failure_percent < warning_percent => {
+        Some(HealthStatus::Warning) if failure_percent < warning_percent => {
             // Skip recovery email if the last event was a manual user action (re-enable via API) —
             // the user already knows about it. Only send recovery email for system-originated events.
             insert_health_event(
                 transaction,
                 subscription.subscription_id,
-                "resolved",
-                "system",
+                HealthStatus::Resolved,
+                HealthEventSource::System,
                 None,
             )
             .await?;
-            if subscription.last_health_source.as_deref() != Some("user") {
+            if subscription.last_health_source != Some(HealthEventSource::User) {
                 actions.push(HealthAction::Recovered(
                     HealthActionInfo::from_subscription(subscription, None),
                 ));
             }
         }
 
-        Some("warning") => {
+        Some(HealthStatus::Warning) => {
             let disabled_at = disable_subscription(transaction, subscription).await?;
             if let Some(at) = disabled_at {
                 actions.push(HealthAction::Disabled(HealthActionInfo::from_subscription(
@@ -78,8 +80,8 @@ pub async fn process_subscription(
             insert_health_event(
                 transaction,
                 subscription.subscription_id,
-                "warning",
-                "system",
+                HealthStatus::Warning,
+                HealthEventSource::System,
                 None,
             )
             .await?;
@@ -100,8 +102,8 @@ pub async fn process_subscription(
             insert_health_event(
                 transaction,
                 subscription.subscription_id,
-                "warning",
-                "system",
+                HealthStatus::Warning,
+                HealthEventSource::System,
                 None,
             )
             .await?;
@@ -119,13 +121,13 @@ pub async fn process_subscription(
 
 /// Inserts a health event row for a subscription.
 ///
-/// source: "system" = automatic (health monitor), "user" = manual (API PUT).
-/// When source is "user" and user_id is None, the action was via a service token.
+/// `source`: `System` = automatic (health monitor), `User` = manual (API PUT).
+/// When source is `User` and user_id is `None`, the action was via a service token.
 pub async fn insert_health_event(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     subscription_id: Uuid,
-    status: &str,
-    source: &str,
+    status: HealthStatus,
+    source: HealthEventSource,
     user_id: Option<Uuid>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
@@ -145,7 +147,7 @@ pub async fn insert_health_event(
 async fn disable_subscription(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     subscription: &SubscriptionHealth,
-) -> Result<Option<DateTime<Utc>>, Box<dyn std::error::Error>> {
+) -> Result<Option<DateTime<Utc>>, HealthMonitorError> {
     let disabled_at: Option<DateTime<Utc>> = sqlx::query_scalar(
         r#"
         WITH updated AS (
