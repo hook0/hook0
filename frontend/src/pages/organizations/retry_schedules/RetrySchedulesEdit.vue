@@ -578,13 +578,6 @@ const pageTitle = computed(() =>
   flex-shrink: 0;
 }
 
-.about-description {
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin-bottom: 0.5rem;
-}
-
 .slider-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
