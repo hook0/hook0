@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { CheckCircle, AlertTriangle, XCircle, Minus } from 'lucide-vue-next';
 import Hook0Badge from './Hook0Badge.vue';
 import Hook0Tooltip from './Hook0Tooltip.vue';
 
@@ -28,6 +29,20 @@ const status = computed(() => {
   return 'healthy';
 });
 
+// Each status maps to a distinct icon so users can distinguish states without relying on color alone (accessibility)
+const statusIcon = computed(() => {
+  switch (status.value) {
+    case 'healthy':
+      return CheckCircle;
+    case 'warning':
+      return AlertTriangle;
+    case 'critical':
+      return XCircle;
+    default:
+      return Minus;
+  }
+});
+
 const label = computed(() => t(`health.${status.value}`));
 
 const tooltipContent = computed(() => {
@@ -39,6 +54,7 @@ const tooltipContent = computed(() => {
 <template>
   <Hook0Tooltip :content="tooltipContent" position="top">
     <Hook0Badge :variant="variant" size="sm">
+      <component :is="statusIcon" :size="12" aria-hidden="true" />
       {{ label }}
     </Hook0Badge>
   </Hook0Tooltip>

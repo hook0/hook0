@@ -4,7 +4,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Trash2, Link } from 'lucide-vue-next';
+import { Trash2, Link, Pencil } from 'lucide-vue-next';
 import Hook0HealthBadge from '@/components/Hook0HealthBadge.vue';
 import { DOCS_SUBSCRIPTIONS_URL, API_DOCS_SUBSCRIPTIONS_URL } from '@/constants/externalLinks';
 import Hook0TableCellTarget from '@/components/Hook0TableCellTarget.vue';
@@ -149,14 +149,11 @@ const columns: ColumnDef<Subscription, unknown>[] = [
         RouterLink,
         {
           to: {
-            name: routes.LogsList,
+            name: routes.SubscriptionsEdit,
             params: {
               organization_id: route.params.organization_id,
               application_id: route.params.application_id,
-            },
-            query: {
               subscription_id: row.original.subscription_id,
-              subscription_name: row.original.description || undefined,
             },
           },
           class: 'subscription__health-link',
@@ -206,21 +203,41 @@ const columns: ColumnDef<Subscription, unknown>[] = [
         'onUpdate:modelValue': () => toggleSubscription(info.row.original),
       }),
   },
-  ...(canDelete('subscription')
-    ? [
-        {
-          id: 'options',
-          header: t('common.actions'),
-          cell: (info: { row: { original: Subscription } }) =>
-            h(Hook0TableCellLink, {
-              value: t('common.delete'),
-              icon: markRaw(Trash2),
-              variant: 'danger',
-              onClick: () => requestDelete(info.row.original),
-            }),
-        } satisfies ColumnDef<Subscription, unknown>,
-      ]
-    : []),
+  {
+    id: 'options',
+    header: t('common.actions'),
+    cell: (info: { row: { original: Subscription } }) =>
+      h('div', { class: 'subscription__actions' }, [
+        h(
+          Hook0Button,
+          {
+            variant: 'ghost',
+            type: 'button',
+            onClick: () =>
+              void router.push({
+                name: routes.SubscriptionsEdit,
+                params: {
+                  organization_id: route.params.organization_id as string,
+                  application_id: route.params.application_id as string,
+                  subscription_id: info.row.original.subscription_id,
+                },
+              }),
+            'aria-label': t('subscriptions.editAction'),
+          },
+          () => h(Pencil, { size: 16, 'aria-hidden': 'true' })
+        ),
+        ...(canDelete('subscription')
+          ? [
+              h(Hook0TableCellLink, {
+                value: t('common.delete'),
+                icon: markRaw(Trash2),
+                variant: 'danger',
+                onClick: () => requestDelete(info.row.original),
+              }),
+            ]
+          : []),
+      ]),
+  },
 ];
 </script>
 
@@ -348,15 +365,31 @@ const columns: ColumnDef<Subscription, unknown>[] = [
 .subscription__health-link {
   text-decoration: none;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .subscription__health-link:hover {
-  opacity: 0.8;
+  opacity: 0.85;
+  transform: scale(1.05);
 }
 
 .subscription__health-link:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: var(--radius-full);
+}
+
+.subscription__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Hide target column on small screens — method+url is verbose and least critical */
+@media (max-width: 768px) {
+  :deep(td:nth-child(3)),
+  :deep(th:nth-child(3)) {
+    display: none;
+  }
 }
 </style>
