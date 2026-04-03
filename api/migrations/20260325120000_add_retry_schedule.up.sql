@@ -4,7 +4,7 @@ create table webhook.retry_schedule (
         constraint retry_schedule_organization__id_fkey
         references iam.organization(organization__id)
         on update cascade on delete cascade,
-    name text not null check (length(name) > 1),
+    name text not null check (length(name) > 1 and length(name) <= 200),
     strategy text not null check (strategy in ('increasing', 'linear', 'custom')),
     max_retries integer not null check (max_retries > 0 and max_retries <= 25),
     custom_intervals integer[],

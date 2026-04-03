@@ -219,14 +219,13 @@ pub async fn find_suspects(
         GROUP BY subscription__id
         HAVING SUM(failed_count) > $2
         UNION
-        SELECT DISTINCT she.subscription__id
-        FROM webhook.subscription_health_event she
-        WHERE she.status = 'warning'
-          AND NOT EXISTS (
-            SELECT 1 FROM webhook.subscription_health_event newer
-            WHERE newer.subscription__id = she.subscription__id
-              AND newer.created_at > she.created_at
-          )
+        SELECT subscription__id
+        FROM (
+            SELECT DISTINCT ON (subscription__id) subscription__id, status
+            FROM webhook.subscription_health_event
+            ORDER BY subscription__id, created_at DESC
+        ) latest
+        WHERE latest.status = 'warning'
         "#,
     )
     .bind(time_window_secs)
