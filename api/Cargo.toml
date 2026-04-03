@@ -67,7 +67,9 @@ tikv-jemallocator = { version = "0.6.1", optional = true }
 
 [dev-dependencies]
 insta = { version = "1.46", features = ["json"] }
+sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono"] }
 test-log = { version = "0.2.19", default-features = false, features = ["trace", "color", "unstable"] }
+tokio = { version = "1.50.0", features = ["macros", "rt-multi-thread"] }
 
 [features]
 default = ["application-secret-compatibility", "jemalloc"]

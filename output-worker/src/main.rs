@@ -1051,4 +1051,166 @@ mod tests {
         };
         assert_eq!(compute_scheduled_retry_delay(&info, -1, 25), None);
     }
+
+    // ── Integration tests (require DATABASE_URL) ────────────────────────
+
+    async fn setup_test_pool() -> Option<sqlx::PgPool> {
+        let url = std::env::var("DATABASE_URL").ok()?;
+        sqlx::PgPool::connect(&url).await.ok()
+    }
+
+    /// Inserts minimum FK-chain: org -> app -> subscription (with retry_schedule) + target_http.
+    /// Returns (org_id, sub_id).
+    async fn insert_retry_fixtures(
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> (uuid::Uuid, uuid::Uuid) {
+        let org_id = uuid::Uuid::now_v7();
+        let app_id = uuid::Uuid::now_v7();
+        let sub_id = uuid::Uuid::now_v7();
+        let rs_id = uuid::Uuid::now_v7();
+        let target_id = sub_id;
+
+        // Organization
+        sqlx::query("INSERT INTO iam.organization (organization__id, name, created_by) VALUES ($1, $2, $3)")
+            .bind(org_id)
+            .bind("test-org-retry")
+            .bind(uuid::Uuid::nil())
+            .execute(&mut **tx)
+            .await
+            .unwrap();
+
+        // Application
+        sqlx::query("INSERT INTO event.application (application__id, organization__id, name) VALUES ($1, $2, $3)")
+            .bind(app_id)
+            .bind(org_id)
+            .bind("test-app-retry")
+            .execute(&mut **tx)
+            .await
+            .unwrap();
+
+        // Retry schedule (linear, 120s, max 5)
+        sqlx::query(
+            r#"INSERT INTO webhook.retry_schedule
+               (retry_schedule__id, organization__id, name, strategy, max_retries, linear_delay)
+               VALUES ($1, $2, $3, 'linear', 5, 120)"#,
+        )
+        .bind(rs_id)
+        .bind(org_id)
+        .bind("test-linear-schedule")
+        .execute(&mut **tx)
+        .await
+        .unwrap();
+
+        // Subscription with retry schedule
+        sqlx::query(
+            r#"INSERT INTO webhook.subscription
+               (subscription__id, application__id, target__id, is_enabled, labels, retry_schedule__id)
+               VALUES ($1, $2, $3, true, '{"env":"test"}'::jsonb, $4)"#,
+        )
+        .bind(sub_id)
+        .bind(app_id)
+        .bind(target_id)
+        .bind(rs_id)
+        .execute(&mut **tx)
+        .await
+        .unwrap();
+
+        // Target HTTP
+        sqlx::query("INSERT INTO webhook.target_http (target__id, method, url) VALUES ($1, $2, $3)")
+            .bind(target_id)
+            .bind("POST")
+            .bind("https://example.com/webhook")
+            .execute(&mut **tx)
+            .await
+            .unwrap();
+
+        (org_id, sub_id)
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_custom_retry_schedule_applied() {
+        let pool = match setup_test_pool().await {
+            Some(p) => p,
+            None => return,
+        };
+
+        let mut tx = pool.begin().await.unwrap();
+        let (org_id, sub_id) = insert_retry_fixtures(&mut tx).await;
+        tx.commit().await.unwrap();
+
+        // Build a fake attempt for this subscription
+        let attempt = hook0_protobuf::RequestAttempt {
+            application_id: uuid::Uuid::nil(),
+            request_attempt_id: uuid::Uuid::now_v7(),
+            event_id: uuid::Uuid::now_v7(),
+            event_received_at: chrono::Utc::now(),
+            subscription_id: sub_id,
+            created_at: chrono::Utc::now(),
+            retry_count: 0,
+            http_method: "POST".to_string(),
+            http_url: "https://example.com/webhook".to_string(),
+            http_headers: serde_json::json!({}),
+            event_type_name: "svc.res.created".to_string(),
+            payload: vec![],
+            payload_content_type: "application/json".to_string(),
+            secret: uuid::Uuid::now_v7(),
+        };
+
+        // Simulate an HTTP error response (triggers retry)
+        let response = Response {
+            response_error: Some(ResponseError::Http),
+            http_code: Some(500),
+            headers: None,
+            body: None,
+            elapsed_time: Duration::from_millis(100),
+        };
+
+        // Call compute_next_retry with a real DB connection
+        let mut conn = pool.acquire().await.unwrap();
+        let result = compute_next_retry(&mut conn, &attempt, &response, 25)
+            .await
+            .unwrap();
+
+        // Should return linear delay of 120s (from our retry schedule)
+        assert_eq!(
+            result,
+            Some(Duration::from_secs(120)),
+            "should apply linear retry schedule (120s)"
+        );
+
+        // Test retry_count = 4 (last retry before max_retries=5)
+        let attempt_last = hook0_protobuf::RequestAttempt {
+            retry_count: 4,
+            ..attempt.clone()
+        };
+        let result_last = compute_next_retry(&mut conn, &attempt_last, &response, 25)
+            .await
+            .unwrap();
+        assert_eq!(
+            result_last,
+            Some(Duration::from_secs(120)),
+            "retry 4 should still return 120s"
+        );
+
+        // Test retry_count = 5 (at max_retries, should give up)
+        let attempt_over = hook0_protobuf::RequestAttempt {
+            retry_count: 5,
+            ..attempt.clone()
+        };
+        let result_over = compute_next_retry(&mut conn, &attempt_over, &response, 25)
+            .await
+            .unwrap();
+        assert_eq!(
+            result_over, None,
+            "retry 5 should return None (max_retries=5 exhausted)"
+        );
+
+        // Cleanup
+        sqlx::query("DELETE FROM iam.organization WHERE organization__id = $1")
+            .bind(org_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
 }

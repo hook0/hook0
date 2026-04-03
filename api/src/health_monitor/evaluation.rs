@@ -321,3 +321,326 @@ pub async fn cleanup_resolved_health_events(
 
     Ok(result.rows_affected())
 }
+
+#[cfg(test)]
+mod integration_tests {
+    use super::*;
+    use std::time::Duration;
+
+    async fn setup_test_pool() -> Option<PgPool> {
+        let url = std::env::var("DATABASE_URL").ok()?;
+        PgPool::connect(&url).await.ok()
+    }
+
+    fn test_config() -> HealthMonitorConfig {
+        HealthMonitorConfig {
+            interval: Duration::from_secs(60),
+            warning_failure_percent: 50,
+            disable_failure_percent: 90,
+            time_window: Duration::from_secs(3600),
+            message_window: 100,
+            min_sample_size: 1,
+            warning_cooldown: Duration::from_secs(3600),
+            retention_period_days: 30,
+            bucket_duration: Duration::from_secs(300),
+            bucket_max_messages: 100,
+            bucket_retention_days: 30,
+        }
+    }
+
+    /// Inserts the minimum FK-chain for a subscription + request_attempts:
+    ///   iam.organization -> event.application -> event.service -> event.resource_type
+    ///   -> event.verb -> event.event_type -> event.application_secret -> event.event
+    ///   -> webhook.subscription (with target) -> webhook.request_attempt
+    ///
+    /// Returns (org_id, app_id, sub_id).
+    /// Cleanup: DELETE FROM iam.organization WHERE organization__id = org_id cascades everything.
+    async fn insert_test_fixtures(
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        num_succeeded: i32,
+        num_failed: i32,
+        attempts_timestamp: DateTime<Utc>,
+    ) -> (Uuid, Uuid, Uuid) {
+        let org_id = Uuid::now_v7();
+        let app_id = Uuid::now_v7();
+        let sub_id = Uuid::now_v7();
+        let target_id = sub_id; // target__id = subscription target__id (UNIQUE)
+        let secret_token = Uuid::now_v7();
+
+        // 1. Organization
+        sqlx::query(
+            "INSERT INTO iam.organization (organization__id, name, created_by) VALUES ($1, $2, $3)",
+        )
+        .bind(org_id)
+        .bind("test-org-health")
+        .bind(Uuid::nil())
+        .execute(&mut **tx)
+        .await
+        .unwrap();
+
+        // 2. Application
+        sqlx::query(
+            "INSERT INTO event.application (application__id, organization__id, name) VALUES ($1, $2, $3)",
+        )
+        .bind(app_id)
+        .bind(org_id)
+        .bind("test-app")
+        .execute(&mut **tx)
+        .await
+        .unwrap();
+
+        // 3. Service, resource_type, verb (for event_type FK chain)
+        sqlx::query("INSERT INTO event.service (service__name, application__id) VALUES ($1, $2)")
+            .bind("svc")
+            .bind(app_id)
+            .execute(&mut **tx)
+            .await
+            .unwrap();
+
+        sqlx::query("INSERT INTO event.resource_type (resource_type__name, application__id, service__name) VALUES ($1, $2, $3)")
+            .bind("res")
+            .bind(app_id)
+            .bind("svc")
+            .execute(&mut **tx)
+            .await
+            .unwrap();
+
+        sqlx::query("INSERT INTO event.verb (verb__name, application__id) VALUES ($1, $2)")
+            .bind("created")
+            .bind(app_id)
+            .execute(&mut **tx)
+            .await
+            .unwrap();
+
+        // 4. Event type (generated column: svc.res.created)
+        sqlx::query("INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name) VALUES ($1, $2, $3, $4)")
+            .bind(app_id)
+            .bind("svc")
+            .bind("res")
+            .bind("created")
+            .execute(&mut **tx)
+            .await
+            .unwrap();
+
+        // 5. Application secret
+        sqlx::query("INSERT INTO event.application_secret (token, application__id) VALUES ($1, $2)")
+            .bind(secret_token)
+            .bind(app_id)
+            .execute(&mut **tx)
+            .await
+            .unwrap();
+
+        // 6. Subscription (labels required, target__id must be unique)
+        sqlx::query(
+            r#"INSERT INTO webhook.subscription
+               (subscription__id, application__id, target__id, is_enabled, labels)
+               VALUES ($1, $2, $3, true, '{"env":"test"}'::jsonb)"#,
+        )
+        .bind(sub_id)
+        .bind(app_id)
+        .bind(target_id)
+        .execute(&mut **tx)
+        .await
+        .unwrap();
+
+        // 7. Target HTTP (inherits webhook.target; FK to subscription.target__id)
+        sqlx::query(
+            "INSERT INTO webhook.target_http (target__id, method, url) VALUES ($1, $2, $3)",
+        )
+        .bind(target_id)
+        .bind("POST")
+        .bind("https://example.com/webhook")
+        .execute(&mut **tx)
+        .await
+        .unwrap();
+
+        // 8. Insert events + request_attempts
+        // Disable the dispatch trigger once to avoid side-effects
+        sqlx::query("ALTER TABLE event.event DISABLE TRIGGER event_dispatch")
+            .execute(&mut **tx)
+            .await
+            .unwrap();
+
+        for i in 0..(num_succeeded + num_failed) {
+            let event_id = Uuid::now_v7();
+            let attempt_id = Uuid::now_v7();
+            let is_failed = i >= num_succeeded;
+
+            sqlx::query(
+                r#"INSERT INTO event.event
+                   (event__id, application__id, event_type__name, payload_content_type, ip, occurred_at, application_secret__token, labels)
+                   VALUES ($1, $2, 'svc.res.created', 'application/json', '127.0.0.1', $3, $4, '{"env":"test"}'::jsonb)"#,
+            )
+            .bind(event_id)
+            .bind(app_id)
+            .bind(attempts_timestamp)
+            .bind(secret_token)
+            .execute(&mut **tx)
+            .await
+            .unwrap();
+
+            if is_failed {
+                sqlx::query(
+                    r#"INSERT INTO webhook.request_attempt
+                       (request_attempt__id, event__id, subscription__id, application__id, failed_at)
+                       VALUES ($1, $2, $3, $4, $5)"#,
+                )
+                .bind(attempt_id)
+                .bind(event_id)
+                .bind(sub_id)
+                .bind(app_id)
+                .bind(attempts_timestamp)
+                .execute(&mut **tx)
+                .await
+                .unwrap();
+            } else {
+                sqlx::query(
+                    r#"INSERT INTO webhook.request_attempt
+                       (request_attempt__id, event__id, subscription__id, application__id, succeeded_at)
+                       VALUES ($1, $2, $3, $4, $5)"#,
+                )
+                .bind(attempt_id)
+                .bind(event_id)
+                .bind(sub_id)
+                .bind(app_id)
+                .bind(attempts_timestamp)
+                .execute(&mut **tx)
+                .await
+                .unwrap();
+            }
+        }
+
+        sqlx::query("ALTER TABLE event.event ENABLE TRIGGER event_dispatch")
+            .execute(&mut **tx)
+            .await
+            .unwrap();
+
+        (org_id, app_id, sub_id)
+    }
+
+    async fn cleanup(pool: &PgPool, org_id: Uuid) {
+        // Cascade delete removes application, subscription, request_attempt, buckets, etc.
+        sqlx::query("DELETE FROM iam.organization WHERE organization__id = $1")
+            .bind(org_id)
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+
+    async fn reset_watermark(pool: &PgPool) {
+        // Use epoch instead of '-infinity' to avoid chrono overflow when reading back
+        sqlx::query("UPDATE webhook.health_monitor_watermark SET last_processed_at = '1970-01-01T00:00:00Z' WHERE id = 1")
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+
+    /// Single test function covering both bucket population and watermark advancement.
+    /// Merged into one test because both share the watermark singleton row and Rust
+    /// runs `#[tokio::test]` functions in parallel within the same binary.
+    #[tokio::test]
+    #[ignore]
+    async fn test_health_buckets_and_watermark() {
+        let pool = match setup_test_pool().await {
+            Some(p) => p,
+            None => return, // DATABASE_URL not set, skip
+        };
+
+        let config = test_config();
+        let now = Utc::now();
+        let watermark_past = now - chrono::Duration::hours(1);
+
+        // ── Phase 1: buckets populated after health tick ────────────────
+
+        // Set watermark before inserting attempts
+        sqlx::query("UPDATE webhook.health_monitor_watermark SET last_processed_at = $1 WHERE id = 1")
+            .bind(watermark_past)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let mut tx = pool.begin().await.unwrap();
+        let (org_id, _app_id, sub_id) =
+            insert_test_fixtures(&mut tx, 3, 2, now).await;
+        tx.commit().await.unwrap();
+
+        // Run the health evaluation
+        let mut tx = pool.begin().await.unwrap();
+        let (subs, max_completed) =
+            fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+        tx.commit().await.unwrap();
+
+        // Verify buckets were created for our subscription
+        let bucket: Option<(i32, i32)> = sqlx::query_as(
+            r#"SELECT total_count, failed_count
+               FROM webhook.subscription_health_bucket
+               WHERE subscription__id = $1"#,
+        )
+        .bind(sub_id)
+        .fetch_optional(&pool)
+        .await
+        .unwrap();
+
+        assert!(bucket.is_some(), "bucket should exist after health tick");
+        let (total, failed) = bucket.unwrap();
+        assert_eq!(total, 5, "total_count should be 5 (3 succeeded + 2 failed)");
+        assert_eq!(failed, 2, "failed_count should be 2");
+        assert!(max_completed.is_some(), "max_completed_at should be Some");
+
+        // The subscription should appear in suspects (2 failed > min_sample_size=1)
+        let suspect_ids: Vec<Uuid> = subs.iter().map(|s| s.subscription_id).collect();
+        assert!(
+            suspect_ids.contains(&sub_id),
+            "test subscription should be in suspects"
+        );
+
+        cleanup(&pool, org_id).await;
+
+        // ── Phase 2: watermark advances after tick ──────────────────────
+
+        // Reset watermark to the past for a fresh run
+        sqlx::query("UPDATE webhook.health_monitor_watermark SET last_processed_at = $1 WHERE id = 1")
+            .bind(watermark_past)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let now2 = Utc::now();
+        let mut tx = pool.begin().await.unwrap();
+        let (org_id2, _app_id2, _sub_id2) =
+            insert_test_fixtures(&mut tx, 2, 1, now2).await;
+        tx.commit().await.unwrap();
+
+        // Read watermark before
+        let wm_before: DateTime<Utc> =
+            sqlx::query_scalar("SELECT last_processed_at FROM webhook.health_monitor_watermark WHERE id = 1")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(wm_before, watermark_past);
+
+        // Run health eval + advance watermark
+        let mut tx = pool.begin().await.unwrap();
+        let (_subs, max_completed) =
+            fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+        if let Some(wm) = max_completed {
+            advance_watermark(&mut tx, wm).await.unwrap();
+        }
+        tx.commit().await.unwrap();
+
+        // Read watermark after
+        let wm_after: DateTime<Utc> =
+            sqlx::query_scalar("SELECT last_processed_at FROM webhook.health_monitor_watermark WHERE id = 1")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+
+        assert!(
+            wm_after > wm_before,
+            "watermark should have advanced: before={wm_before}, after={wm_after}"
+        );
+
+        cleanup(&pool, org_id2).await;
+        reset_watermark(&pool).await;
+    }
+}
