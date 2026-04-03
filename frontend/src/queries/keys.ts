@@ -70,6 +70,12 @@ export const logKeys = {
     [...logKeys.lists(), applicationId, 'subscription', subscriptionId] as const,
 };
 
+export const healthEventKeys = {
+  all: ['healthEvents'] as const,
+  lists: () => [...healthEventKeys.all, 'list'] as const,
+  list: (subscriptionId: string) => [...healthEventKeys.lists(), subscriptionId] as const,
+};
+
 export const secretKeys = {
   all: ['secrets'] as const,
   lists: () => [...secretKeys.all, 'list'] as const,

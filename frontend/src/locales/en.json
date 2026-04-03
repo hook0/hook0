@@ -1080,6 +1080,24 @@
     "dateColumn": "Date",
     "retryCountColumn": "Retry"
   },
+  "subscriptionDetail": {
+    "title": "Subscription",
+    "edit": "Edit",
+    "deliveries": "Recent Deliveries",
+    "deliveriesEmpty": "No deliveries in the last 7 days",
+    "healthTimeline": "Health Timeline",
+    "healthEmpty": "No health events recorded",
+    "noActivityTitle": "No activity yet",
+    "noActivityDescription": "Deliveries and health events will appear here once events are sent to this subscription.",
+    "healthEventDate": "Date",
+    "healthEventStatus": "Status",
+    "healthEventSource": "Source",
+    "healthStatus": {
+      "warning": "Warning",
+      "disabled": "Disabled",
+      "resolved": "Resolved"
+    }
+  },
   "health": {
     "healthy": "Healthy",
     "warning": "Warning",

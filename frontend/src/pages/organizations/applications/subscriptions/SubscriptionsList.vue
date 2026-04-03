@@ -149,7 +149,7 @@ const columns: ColumnDef<Subscription, unknown>[] = [
         RouterLink,
         {
           to: {
-            name: routes.SubscriptionsEdit,
+            name: routes.SubscriptionsDetail,
             params: {
               organization_id: route.params.organization_id,
               application_id: route.params.application_id,
@@ -171,7 +171,7 @@ const columns: ColumnDef<Subscription, unknown>[] = [
       h(Hook0TableCellLink, {
         value: String(info.getValue() ?? t('subscriptions.noDescription')),
         to: {
-          name: routes.SubscriptionsEdit,
+          name: routes.SubscriptionsDetail,
           params: {
             application_id: route.params.application_id,
             organization_id: route.params.organization_id,

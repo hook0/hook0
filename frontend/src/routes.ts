@@ -43,6 +43,7 @@ export const routes = {
 
   SubscriptionsList: 'SubscriptionsList',
   SubscriptionsNew: 'SubscriptionsNew',
+  SubscriptionsDetail: 'SubscriptionsDetail',
   SubscriptionsEdit: 'SubscriptionsEdit',
 
   RetrySchedulesList: 'RetrySchedulesList',
@@ -301,6 +302,13 @@ export default [
     component: () =>
       import('@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue'),
     meta: { title: 'New Subscription' },
+  },
+  {
+    name: routes.SubscriptionsDetail,
+    path: '/organizations/:organization_id/applications/:application_id/subscriptions/:subscription_id',
+    component: () =>
+      import('@/pages/organizations/applications/subscriptions/SubscriptionsDetail.vue'),
+    meta: { title: 'Subscription' },
   },
   {
     name: routes.SubscriptionsEdit,
