@@ -663,45 +663,14 @@ pub async fn replay(
     match replayed {
         Some(event) => {
             if let Some(pulsar) = &state.pulsar {
-                let payload = if let Some(p) = event.payload {
-                    Some(p)
-                } else if let Some(os) = &state.object_storage {
-                    let key = format!(
-                        "{}/event/{}/{event_id}",
-                        body.application_id,
-                        event.received_at.naive_utc().date(),
-                    );
-                    match os
-                        .client
-                        .get_object()
-                        .bucket(&os.bucket)
-                        .key(&key)
-                        .send()
-                        .await
-                    {
-                        Ok(obj) => match obj.body.collect().await {
-                            Ok(ab) => Some(ab.to_vec()),
-                            Err(e) => {
-                                log_object_storage_error_with_context!(
-                                    "S3 GET OBJECT body collect failed",
-                                    error_chain = format!("{e}"),
-                                    object_key = &key,
-                                );
-                                None
-                            }
-                        },
-                        Err(e) => {
-                            log_object_storage_error_with_context!(
-                                "S3 GET OBJECT failed",
-                                error_chain = DisplayErrorContext(&e).to_string(),
-                                object_key = &key,
-                            );
-                            None
-                        }
-                    }
-                } else {
-                    None
-                };
+                let payload = crate::event_payload::fetch_event_payload(
+                    event.payload,
+                    state.object_storage.as_ref(),
+                    body.application_id,
+                    event_id,
+                    event.received_at,
+                )
+                .await;
 
                 if let Some(p) = payload {
                     send_request_attempts_to_pulsar(
@@ -806,6 +775,7 @@ async fn send_request_attempts_to_pulsar<'a>(
                 payload: payload.to_owned(),
                 payload_content_type: payload_content_type.to_owned(),
                 secret: ra.secret,
+                attempt_trigger: "dispatch".to_owned(),
             };
 
             let mut producer = timeout(
