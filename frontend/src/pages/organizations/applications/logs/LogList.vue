@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { X, Filter } from 'lucide-vue-next';
-import { RouterLink } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 
@@ -27,21 +25,17 @@ import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
-import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0HelpText from '@/components/Hook0HelpText.vue';
 
 const { t } = useI18n();
 const route = useRoute();
-const router = useRouter();
 const { organizationId, applicationId } = useRouteIds();
-const subscriptionIdFilter = computed(() => (route.query.subscription_id as string) || undefined);
-const subscriptionNameFilter = computed(() => route.query.subscription_name as string);
 const {
   data: requestAttempts,
   isLoading,
   error,
   refetch,
-} = useLogList(applicationId, subscriptionIdFilter);
+} = useLogList(applicationId);
 const { data: organization } = useOrganizationDetail(organizationId);
 
 const retentionDays = computed(
@@ -61,11 +55,6 @@ function handleRowClick(row: RequestAttemptExtended) {
 
 function closeSidePanel() {
   sidePanelOpen.value = false;
-}
-
-function clearSubscriptionFilter() {
-  const { subscription_id: _, ...rest } = route.query;
-  void router.replace({ query: rest });
 }
 </script>
 
@@ -99,32 +88,6 @@ function clearSubscriptionFilter() {
             <Hook0DocButtons :doc-url="DOCS_LOGS_URL" :api-url="API_DOCS_LOGS_URL" />
           </template>
         </Hook0CardHeader>
-
-        <Hook0CardContent v-if="subscriptionIdFilter" class="logs-filter-bar">
-          <Filter :size="14" class="logs-filter-bar__icon" aria-hidden="true" />
-          <Hook0Badge variant="info" size="sm">
-            <RouterLink
-              :to="{
-                name: routes.SubscriptionsEdit,
-                params: {
-                  organization_id: route.params.organization_id,
-                  application_id: route.params.application_id,
-                  subscription_id: subscriptionIdFilter,
-                },
-              }"
-              class="logs-filter-badge__link"
-            >
-              {{ subscriptionNameFilter }}
-            </RouterLink>
-            <button
-              class="logs-filter-badge__remove"
-              :aria-label="t('common.remove')"
-              @click="clearSubscriptionFilter"
-            >
-              <X :size="14" aria-hidden="true" />
-            </button>
-          </Hook0Badge>
-        </Hook0CardContent>
 
         <Hook0CardContent v-if="requestAttempts.length > 0">
           <Hook0Table
@@ -250,53 +213,5 @@ function clearSubscriptionFilter() {
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
   cursor: default;
-}
-
-.logs-filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-bottom: 1px solid var(--color-border);
-  background-color: var(--color-info-light);
-}
-
-.logs-filter-bar__icon {
-  color: var(--color-info);
-  flex-shrink: 0;
-}
-
-.logs-filter-badge__link {
-  color: inherit;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.logs-filter-badge__link:hover {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.logs-filter-badge__remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 0.25rem;
-  padding: 0;
-  border: none;
-  background: none;
-  color: inherit;
-  cursor: pointer;
-  border-radius: 50%;
-  opacity: 0.7;
-  transition: opacity 0.15s ease;
-}
-
-.logs-filter-badge__remove:hover {
-  opacity: 1;
-}
-
-.logs-filter-badge__remove:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
 }
 </style>

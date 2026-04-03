@@ -36,17 +36,27 @@ export type RequestAttemptExtended = RequestAttemptTypeFixed & {
   event_type_name?: string | null;
 };
 
-type ListParams = {
-  application_id: UUID;
-  subscription_id?: UUID;
-};
-
-export function list(params: ListParams): Promise<Array<RequestAttemptTypeFixed>> {
+export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixed>> {
   return unwrapResponse(
     http.get<Array<RequestAttemptTypeFixed>>('/request_attempts', {
       params: {
-        application_id: params.application_id,
-        subscription_id: params.subscription_id,
+        application_id,
+        min_created_at: subDays(new Date(), 7).toISOString(),
+      },
+    })
+  );
+}
+
+/** Fetch deliveries scoped to a single subscription — used by the subscription detail page */
+export function listBySubscription(
+  application_id: UUID,
+  subscription_id: UUID
+): Promise<Array<RequestAttemptTypeFixed>> {
+  return unwrapResponse(
+    http.get<Array<RequestAttemptTypeFixed>>('/request_attempts', {
+      params: {
+        application_id,
+        subscription_id,
         min_created_at: subDays(new Date(), 7).toISOString(),
       },
     })

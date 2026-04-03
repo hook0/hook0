@@ -469,7 +469,6 @@
     },
     "eventId": "Event ID",
     "eventType": "Event Type",
-    "filteredBySubscription": "Subscription",
     "filters": {
       "search": "Search payloads",
       "statusCode": "Status code",
