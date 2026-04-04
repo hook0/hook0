@@ -770,6 +770,7 @@ async fn send_single_attempt_to_pulsar<'a>(
                 payload: payload.to_owned(),
                 payload_content_type: payload_content_type.to_owned(),
                 secret: ra.secret,
+                attempt_trigger: "manual_retry".to_owned(),
             };
 
             let mut producer = timeout(
