@@ -64,7 +64,9 @@ function renderStatusPill(row: RequestAttemptExtended, t: ReturnType<typeof useI
   if (row.attempt_trigger === 'manual_retry') {
     return h('div', { class: 'log-status-cell' }, [
       pill,
-      h(Hook0Badge, { variant: 'info', size: 'sm' }, () => t('subscriptionDetail.manualRetryBadge')),
+      h(Hook0Badge, { variant: 'info', size: 'sm' }, () =>
+        t('subscriptionDetail.manualRetryBadge')
+      ),
     ]);
   }
   return pill;

@@ -172,7 +172,10 @@ pub async fn load_waiting_request_attempts_from_db(
                 payload: p,
                 payload_content_type: ra.payload_content_type,
                 secret: ra.secret,
-                attempt_trigger: ra.attempt_trigger.parse().unwrap_or(hook0_protobuf::AttemptTrigger::Dispatch),
+                attempt_trigger: ra
+                    .attempt_trigger
+                    .parse()
+                    .unwrap_or(hook0_protobuf::AttemptTrigger::Dispatch),
             };
 
             let mut msg_builder = producer
@@ -687,14 +690,21 @@ async fn handle_message(
                             true
                         } else {
                             // Manual retries are one-shot — they never spawn a successor attempt
-                            if attempt.attempt_trigger == hook0_protobuf::AttemptTrigger::ManualRetry {
+                            if attempt.attempt_trigger
+                                == hook0_protobuf::AttemptTrigger::ManualRetry
+                            {
                                 info!(
                                     request_attempt_id = %attempt.request_attempt_id,
                                     "Manual retry failed; not re-queuing (one-shot)"
                                 );
-                            } else if let Some(retry_in) =
-                                compute_next_retry(&mut tx, &attempt, &response, config.max_retries, config.retry_jitter_factor)
-                                    .await?
+                            } else if let Some(retry_in) = compute_next_retry(
+                                &mut tx,
+                                &attempt,
+                                &response,
+                                config.max_retries,
+                                config.retry_jitter_factor,
+                            )
+                            .await?
                             {
                                 let next_retry_count = attempt.retry_count + 1;
                                 let delay_until = Utc::now() + retry_in;

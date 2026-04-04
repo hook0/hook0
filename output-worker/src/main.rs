@@ -773,4 +773,3 @@ async fn get_worker(name: String, conn: &PgPool) -> anyhow::Result<Worker> {
         })
     }
 }
-

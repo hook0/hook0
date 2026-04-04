@@ -918,12 +918,32 @@ mod tests {
 
     #[test]
     fn increasing_rejects_base_delay_too_high() {
-        assert!(v(RetryStrategy::Increasing, 5, None, None, Some(3601), Some(3.0)).is_err());
+        assert!(
+            v(
+                RetryStrategy::Increasing,
+                5,
+                None,
+                None,
+                Some(3601),
+                Some(3.0)
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn increasing_accepts_base_delay_boundaries() {
         assert!(v(RetryStrategy::Increasing, 5, None, None, Some(1), Some(3.0)).is_ok());
-        assert!(v(RetryStrategy::Increasing, 5, None, None, Some(3600), Some(3.0)).is_ok());
+        assert!(
+            v(
+                RetryStrategy::Increasing,
+                5,
+                None,
+                None,
+                Some(3600),
+                Some(3.0)
+            )
+            .is_ok()
+        );
     }
 }

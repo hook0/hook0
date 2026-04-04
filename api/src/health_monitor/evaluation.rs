@@ -150,11 +150,13 @@ mod integration_tests {
 
     /// Sets the cursor inside the given transaction.
     async fn set_cursor(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, ts: DateTime<Utc>) {
-        sqlx::query("UPDATE webhook.health_monitor_cursor SET last_processed_at = $1 WHERE cursor__id = 1")
-            .bind(ts)
-            .execute(&mut **tx)
-            .await
-            .unwrap();
+        sqlx::query(
+            "UPDATE webhook.health_monitor_cursor SET last_processed_at = $1 WHERE cursor__id = 1",
+        )
+        .bind(ts)
+        .execute(&mut **tx)
+        .await
+        .unwrap();
     }
 
     /// Inserts the minimum FK-chain for a subscription + request_attempts:
@@ -231,12 +233,14 @@ mod integration_tests {
             .unwrap();
 
         // 5. Application secret
-        sqlx::query("INSERT INTO event.application_secret (token, application__id) VALUES ($1, $2)")
-            .bind(secret_token)
-            .bind(app_id)
-            .execute(&mut **tx)
-            .await
-            .unwrap();
+        sqlx::query(
+            "INSERT INTO event.application_secret (token, application__id) VALUES ($1, $2)",
+        )
+        .bind(secret_token)
+        .bind(app_id)
+        .execute(&mut **tx)
+        .await
+        .unwrap();
 
         // 6. Subscription (labels required, target__id must be unique)
         sqlx::query(
@@ -345,8 +349,9 @@ mod integration_tests {
         set_cursor(&mut tx, cursor_past).await;
         let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 3, 2, now).await;
 
-        let (subs, max_completed) =
-            fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+        let (subs, max_completed) = fetch_subscription_health_stats(&mut tx, &config)
+            .await
+            .unwrap();
 
         // Verify buckets were created for our subscription
         let bucket: Option<(i32, i32)> = sqlx::query_as(
@@ -391,26 +396,29 @@ mod integration_tests {
         let (_org_id, _app_id, _sub_id) = insert_test_fixtures(&mut tx, 2, 1, now).await;
 
         // Read cursor before
-        let cursor_before: DateTime<Utc> =
-            sqlx::query_scalar("SELECT last_processed_at FROM webhook.health_monitor_cursor WHERE cursor__id = 1")
-                .fetch_one(&mut *tx)
-                .await
-                .unwrap();
+        let cursor_before: DateTime<Utc> = sqlx::query_scalar(
+            "SELECT last_processed_at FROM webhook.health_monitor_cursor WHERE cursor__id = 1",
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap();
         assert_eq!(cursor_before, cursor_past);
 
         // Run health eval + advance cursor
-        let (_subs, max_completed) =
-            fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+        let (_subs, max_completed) = fetch_subscription_health_stats(&mut tx, &config)
+            .await
+            .unwrap();
         if let Some(ts) = max_completed {
             advance_cursor(&mut tx, ts).await.unwrap();
         }
 
         // Read cursor after
-        let cursor_after: DateTime<Utc> =
-            sqlx::query_scalar("SELECT last_processed_at FROM webhook.health_monitor_cursor WHERE cursor__id = 1")
-                .fetch_one(&mut *tx)
-                .await
-                .unwrap();
+        let cursor_after: DateTime<Utc> = sqlx::query_scalar(
+            "SELECT last_processed_at FROM webhook.health_monitor_cursor WHERE cursor__id = 1",
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap();
 
         assert!(
             cursor_after > cursor_before,
@@ -439,7 +447,9 @@ mod integration_tests {
         let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 3, 2, now).await;
 
         // First pass: creates an open bucket
-        let (_, max_completed) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+        let (_, max_completed) = fetch_subscription_health_stats(&mut tx, &config)
+            .await
+            .unwrap();
         if let Some(ts) = max_completed {
             advance_cursor(&mut tx, ts).await.unwrap();
         }
@@ -464,7 +474,9 @@ mod integration_tests {
         .unwrap();
 
         // Second pass: should close the aged bucket
-        let _ = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+        let _ = fetch_subscription_health_stats(&mut tx, &config)
+            .await
+            .unwrap();
 
         // Verify bucket is now closed
         let closed: bool = sqlx::query_scalar(
@@ -474,7 +486,10 @@ mod integration_tests {
         .fetch_one(&mut *tx)
         .await
         .unwrap();
-        assert!(closed, "aged bucket should be closed after second health tick");
+        assert!(
+            closed,
+            "aged bucket should be closed after second health tick"
+        );
         // tx dropped -- automatic rollback
     }
 
@@ -496,7 +511,9 @@ mod integration_tests {
         let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 0, 5, now).await;
 
         // First pass: ingest deltas and advance cursor
-        let (subs, max_completed) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+        let (subs, max_completed) = fetch_subscription_health_stats(&mut tx, &config)
+            .await
+            .unwrap();
         if let Some(ts) = max_completed {
             advance_cursor(&mut tx, ts).await.unwrap();
         }
@@ -529,10 +546,15 @@ mod integration_tests {
         .unwrap();
 
         // Second pass: cursor advanced, no re-ingestion. UNION picks up warned sub.
-        let (subs2, _) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+        let (subs2, _) = fetch_subscription_health_stats(&mut tx, &config)
+            .await
+            .unwrap();
 
         let found = subs2.iter().find(|s| s.subscription_id == sub_id);
-        assert!(found.is_some(), "warned subscription should still appear in suspects via UNION");
+        assert!(
+            found.is_some(),
+            "warned subscription should still appear in suspects via UNION"
+        );
         assert!(
             found.unwrap().failure_percent < 50.0,
             "failure_percent should be low (subscription recovered)"
@@ -560,18 +582,32 @@ mod integration_tests {
         let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 2, 5, now).await;
 
         // Phase 1: fetch + process -> warning (not disable, since 71% < 90%)
-        let (subs, max_completed) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
-        let sub = subs.iter().find(|s| s.subscription_id == sub_id).expect("subscription should be suspect");
-        let actions = crate::health_monitor::state_machine::evaluate_health_transition(&mut tx, &config, sub).await.unwrap();
+        let (subs, max_completed) = fetch_subscription_health_stats(&mut tx, &config)
+            .await
+            .unwrap();
+        let sub = subs
+            .iter()
+            .find(|s| s.subscription_id == sub_id)
+            .expect("subscription should be suspect");
+        let actions =
+            crate::health_monitor::state_machine::evaluate_health_transition(&mut tx, &config, sub)
+                .await
+                .unwrap();
         if let Some(ts) = max_completed {
             advance_cursor(&mut tx, ts).await.unwrap();
         }
         assert!(
-            actions.iter().any(|a| matches!(a, crate::health_monitor::notifications::HealthAction::Warning(_))),
+            actions.iter().any(|a| matches!(
+                a,
+                crate::health_monitor::notifications::HealthAction::Warning(_)
+            )),
             "first pass should produce a Warning action"
         );
         assert!(
-            !actions.iter().any(|a| matches!(a, crate::health_monitor::notifications::HealthAction::Disabled(_))),
+            !actions.iter().any(|a| matches!(
+                a,
+                crate::health_monitor::notifications::HealthAction::Disabled(_)
+            )),
             "first pass should NOT disable (71% < 90%)"
         );
 
@@ -598,10 +634,22 @@ mod integration_tests {
         .await
         .unwrap();
 
-        let (subs2, _) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
-        let sub2 = subs2.iter().find(|s| s.subscription_id == sub_id).expect("warned sub should still be suspect");
-        assert!(sub2.failure_percent < 50.0, "failure rate should be low now");
-        let actions2 = crate::health_monitor::state_machine::evaluate_health_transition(&mut tx, &config, sub2).await.unwrap();
+        let (subs2, _) = fetch_subscription_health_stats(&mut tx, &config)
+            .await
+            .unwrap();
+        let sub2 = subs2
+            .iter()
+            .find(|s| s.subscription_id == sub_id)
+            .expect("warned sub should still be suspect");
+        assert!(
+            sub2.failure_percent < 50.0,
+            "failure rate should be low now"
+        );
+        let actions2 = crate::health_monitor::state_machine::evaluate_health_transition(
+            &mut tx, &config, sub2,
+        )
+        .await
+        .unwrap();
 
         let resolved_count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'resolved' AND source = 'system'",
@@ -610,9 +658,15 @@ mod integration_tests {
         .fetch_one(&mut *tx)
         .await
         .unwrap();
-        assert_eq!(resolved_count, 1, "should have a resolved event with source=system");
+        assert_eq!(
+            resolved_count, 1,
+            "should have a resolved event with source=system"
+        );
         assert!(
-            actions2.iter().any(|a| matches!(a, crate::health_monitor::notifications::HealthAction::Recovered(_))),
+            actions2.iter().any(|a| matches!(
+                a,
+                crate::health_monitor::notifications::HealthAction::Recovered(_)
+            )),
             "second pass should produce a Recovered action"
         );
         // tx dropped -- automatic rollback
@@ -638,9 +692,14 @@ mod integration_tests {
         let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 2, 5, now).await;
 
         // Phase 1: trigger warning
-        let (subs, max_completed) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
+        let (subs, max_completed) = fetch_subscription_health_stats(&mut tx, &config)
+            .await
+            .unwrap();
         let sub = subs.iter().find(|s| s.subscription_id == sub_id).unwrap();
-        let _ = crate::health_monitor::state_machine::evaluate_health_transition(&mut tx, &config, sub).await.unwrap();
+        let _ =
+            crate::health_monitor::state_machine::evaluate_health_transition(&mut tx, &config, sub)
+                .await
+                .unwrap();
         if let Some(ts) = max_completed {
             advance_cursor(&mut tx, ts).await.unwrap();
         }
@@ -655,13 +714,24 @@ mod integration_tests {
         .unwrap();
 
         // Phase 2: buckets still have high failure rate, but cooldown blocks re-warning
-        let (subs2, _) = fetch_subscription_health_stats(&mut tx, &config).await.unwrap();
-        let sub2 = subs2.iter().find(|s| s.subscription_id == sub_id)
+        let (subs2, _) = fetch_subscription_health_stats(&mut tx, &config)
+            .await
+            .unwrap();
+        let sub2 = subs2
+            .iter()
+            .find(|s| s.subscription_id == sub_id)
             .expect("subscription should still be suspect via bucket failure count");
-        let actions = crate::health_monitor::state_machine::evaluate_health_transition(&mut tx, &config, sub2).await.unwrap();
+        let actions = crate::health_monitor::state_machine::evaluate_health_transition(
+            &mut tx, &config, sub2,
+        )
+        .await
+        .unwrap();
 
         assert!(
-            !actions.iter().any(|a| matches!(a, crate::health_monitor::notifications::HealthAction::Warning(_))),
+            !actions.iter().any(|a| matches!(
+                a,
+                crate::health_monitor::notifications::HealthAction::Warning(_)
+            )),
             "cooldown should prevent re-warning"
         );
 
@@ -672,7 +742,10 @@ mod integration_tests {
         .fetch_one(&mut *tx)
         .await
         .unwrap();
-        assert_eq!(warning_count, 1, "no new warning event should have been inserted during cooldown");
+        assert_eq!(
+            warning_count, 1,
+            "no new warning event should have been inserted during cooldown"
+        );
         // tx dropped -- automatic rollback
     }
 
@@ -693,11 +766,13 @@ mod integration_tests {
         let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 5, 0, now).await;
 
         // Manually set failure_percent on the subscription
-        sqlx::query("UPDATE webhook.subscription SET failure_percent = 50.0 WHERE subscription__id = $1")
-            .bind(sub_id)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
+        sqlx::query(
+            "UPDATE webhook.subscription SET failure_percent = 50.0 WHERE subscription__id = $1",
+        )
+        .bind(sub_id)
+        .execute(&mut *tx)
+        .await
+        .unwrap();
 
         let fp_before: Option<f64> = sqlx::query_scalar(
             "SELECT failure_percent FROM webhook.subscription WHERE subscription__id = $1",

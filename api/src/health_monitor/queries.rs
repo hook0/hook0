@@ -140,10 +140,7 @@ pub async fn upsert_buckets(
     );
 
     qb.push_values(deltas, |mut b, d| {
-        let bucket_start = open_buckets
-            .get(&d.subscription_id)
-            .copied()
-            .unwrap_or(now);
+        let bucket_start = open_buckets.get(&d.subscription_id).copied().unwrap_or(now);
         b.push_bind(d.subscription_id)
             .push_bind(bucket_start)
             .push_bind(d.total.min(i32::MAX as i64) as i32)

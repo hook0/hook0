@@ -178,7 +178,10 @@ pub async fn look_for_work(
                     payload: p,
                     payload_content_type: attempt.payload_content_type,
                     secret: attempt.secret,
-                    attempt_trigger: attempt.attempt_trigger.parse().unwrap_or(hook0_protobuf::AttemptTrigger::Dispatch),
+                    attempt_trigger: attempt
+                        .attempt_trigger
+                        .parse()
+                        .unwrap_or(hook0_protobuf::AttemptTrigger::Dispatch),
                 };
 
                 // Start OpenTelemetry span
@@ -291,7 +294,9 @@ pub async fn look_for_work(
                     .await?;
 
                     // Manual retries are one-shot — they never spawn a successor attempt
-                    if attempt_with_payload.attempt_trigger.as_str() == hook0_protobuf::AttemptTrigger::ManualRetry.as_str() {
+                    if attempt_with_payload.attempt_trigger.as_str()
+                        == hook0_protobuf::AttemptTrigger::ManualRetry.as_str()
+                    {
                         info!(
                             unit_id,
                             request_attempt_id = %attempt.request_attempt_id,

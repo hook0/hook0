@@ -1,6 +1,6 @@
+use actix_web::HttpResponse;
 use actix_web::rt::time::timeout;
 use actix_web::web::ReqData;
-use actix_web::HttpResponse;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use futures_util::TryStreamExt;
@@ -19,7 +19,9 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::PulsarConfig;
-use crate::iam::{Action, AuthorizedToken, authorize, authorize_for_application, get_owner_organization};
+use crate::iam::{
+    Action, AuthorizedToken, authorize, authorize_for_application, get_owner_organization,
+};
 use crate::openapi::OaBiscuit;
 use crate::opentelemetry::report_request_attempts_sent_to_pulsar;
 use crate::pagination::{Cursor, EncodedDescCursor, NextPageParts, Paginated};
@@ -639,13 +641,12 @@ pub async fn retry(
     }
 
     // Step 2: fetch payload AFTER auth — avoids loading ~100KB bytea for rejected requests
-    let db_payload: Option<Vec<u8>> = sqlx::query_scalar(
-        "SELECT payload FROM event.event WHERE event__id = $1",
-    )
-    .bind(&source.event_id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(Hook0Problem::from)?;
+    let db_payload: Option<Vec<u8>> =
+        sqlx::query_scalar("SELECT payload FROM event.event WHERE event__id = $1")
+            .bind(&source.event_id)
+            .fetch_optional(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?;
 
     let payload = crate::event_payload::fetch_event_payload(
         db_payload,
@@ -716,7 +717,9 @@ struct PulsarRequestAttempt<'a> {
 /// Called OUTSIDE the INSERT transaction — if Pulsar is slow or down, the attempt row is already
 /// committed and the PG worker will pick it up via polling. Without this separation, a Pulsar
 /// timeout would hold the DB connection and block the pool.
-async fn dispatch_request_attempt_to_pulsar(ctx: &PulsarRequestAttempt<'_>) -> Result<(), Hook0Problem> {
+async fn dispatch_request_attempt_to_pulsar(
+    ctx: &PulsarRequestAttempt<'_>,
+) -> Result<(), Hook0Problem> {
     #[derive(Debug, Clone)]
     #[allow(non_snake_case)]
     struct RawAttempt {

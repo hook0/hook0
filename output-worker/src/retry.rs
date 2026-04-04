@@ -102,7 +102,12 @@ pub(crate) async fn compute_next_retry(
             .await?;
 
             match schedule_row {
-                Some(schedule) => Ok(compute_scheduled_retry_delay(&schedule, attempt.retry_count, max_retries, jitter_factor)),
+                Some(schedule) => Ok(compute_scheduled_retry_delay(
+                    &schedule,
+                    attempt.retry_count,
+                    max_retries,
+                    jitter_factor,
+                )),
                 None => Ok(None),
             }
         }
@@ -125,18 +130,24 @@ fn compute_scheduled_retry_delay(
     match schedule.strategy.as_deref() {
         Some("increasing") => {
             let Some(max_retries) = schedule.max_retries else {
-                tracing::warn!("Retry schedule has strategy 'increasing' but max_retries is NULL — skipping retry");
+                tracing::warn!(
+                    "Retry schedule has strategy 'increasing' but max_retries is NULL — skipping retry"
+                );
                 return None;
             };
             if retry_count >= max_retries as i16 {
                 return None;
             }
             let Some(base_delay) = schedule.increasing_base_delay else {
-                tracing::warn!("Retry schedule has strategy 'increasing' but increasing_base_delay is NULL — skipping retry");
+                tracing::warn!(
+                    "Retry schedule has strategy 'increasing' but increasing_base_delay is NULL — skipping retry"
+                );
                 return None;
             };
             let Some(wait_factor) = schedule.increasing_wait_factor else {
-                tracing::warn!("Retry schedule has strategy 'increasing' but increasing_wait_factor is NULL — skipping retry");
+                tracing::warn!(
+                    "Retry schedule has strategy 'increasing' but increasing_wait_factor is NULL — skipping retry"
+                );
                 return None;
             };
             let secs = (base_delay as f64) * wait_factor.powi(i32::from(retry_count));
@@ -145,23 +156,30 @@ fn compute_scheduled_retry_delay(
         }
         Some("linear") => {
             let Some(max_retries) = schedule.max_retries else {
-                tracing::warn!("Retry schedule has strategy 'linear' but max_retries is NULL — skipping retry");
+                tracing::warn!(
+                    "Retry schedule has strategy 'linear' but max_retries is NULL — skipping retry"
+                );
                 return None;
             };
             if retry_count >= max_retries as i16 {
                 return None;
             }
             let Some(delay_secs) = schedule.linear_delay else {
-                tracing::warn!("Retry schedule has strategy 'linear' but linear_delay is NULL — skipping retry");
+                tracing::warn!(
+                    "Retry schedule has strategy 'linear' but linear_delay is NULL — skipping retry"
+                );
                 return None;
             };
-            Some(apply_jitter(Duration::from_secs(delay_secs as u64), jitter_factor).min(MAX_RETRY_DELAY_SECS))
+            Some(
+                apply_jitter(Duration::from_secs(delay_secs as u64), jitter_factor)
+                    .min(MAX_RETRY_DELAY_SECS),
+            )
         }
         Some("custom") => {
             let intervals = schedule.custom_intervals.as_deref().unwrap_or(&[]);
-            intervals
-                .get(usize::try_from(retry_count).ok()?)
-                .map(|&d| apply_jitter(Duration::from_secs(d as u64), jitter_factor).min(MAX_RETRY_DELAY_SECS))
+            intervals.get(usize::try_from(retry_count).ok()?).map(|&d| {
+                apply_jitter(Duration::from_secs(d as u64), jitter_factor).min(MAX_RETRY_DELAY_SECS)
+            })
         }
         _ => {
             // Legacy path: subscriptions created before retry schedules have no schedule.
@@ -267,9 +285,18 @@ mod tests {
             increasing_base_delay: Some(3),
             increasing_wait_factor: Some(3.0),
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25, 0.0), Some(Duration::from_secs(3)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 1, 25, 0.0), Some(Duration::from_secs(9)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 2, 25, 0.0), Some(Duration::from_secs(27)));
+        assert_eq!(
+            compute_scheduled_retry_delay(&info, 0, 25, 0.0),
+            Some(Duration::from_secs(3))
+        );
+        assert_eq!(
+            compute_scheduled_retry_delay(&info, 1, 25, 0.0),
+            Some(Duration::from_secs(9))
+        );
+        assert_eq!(
+            compute_scheduled_retry_delay(&info, 2, 25, 0.0),
+            Some(Duration::from_secs(27))
+        );
         assert_eq!(compute_scheduled_retry_delay(&info, 5, 25, 0.0), None);
     }
 
@@ -283,8 +310,14 @@ mod tests {
             increasing_base_delay: None,
             increasing_wait_factor: None,
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25, 0.0), Some(Duration::from_secs(120)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 2, 25, 0.0), Some(Duration::from_secs(120)));
+        assert_eq!(
+            compute_scheduled_retry_delay(&info, 0, 25, 0.0),
+            Some(Duration::from_secs(120))
+        );
+        assert_eq!(
+            compute_scheduled_retry_delay(&info, 2, 25, 0.0),
+            Some(Duration::from_secs(120))
+        );
         assert_eq!(compute_scheduled_retry_delay(&info, 3, 25, 0.0), None);
     }
 
@@ -298,9 +331,18 @@ mod tests {
             increasing_base_delay: None,
             increasing_wait_factor: None,
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25, 0.0), Some(Duration::from_secs(10)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 1, 25, 0.0), Some(Duration::from_secs(60)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 2, 25, 0.0), Some(Duration::from_secs(300)));
+        assert_eq!(
+            compute_scheduled_retry_delay(&info, 0, 25, 0.0),
+            Some(Duration::from_secs(10))
+        );
+        assert_eq!(
+            compute_scheduled_retry_delay(&info, 1, 25, 0.0),
+            Some(Duration::from_secs(60))
+        );
+        assert_eq!(
+            compute_scheduled_retry_delay(&info, 2, 25, 0.0),
+            Some(Duration::from_secs(300))
+        );
         assert_eq!(compute_scheduled_retry_delay(&info, 3, 25, 0.0), None);
     }
 
@@ -314,8 +356,14 @@ mod tests {
             increasing_base_delay: None,
             increasing_wait_factor: None,
         };
-        assert_eq!(compute_scheduled_retry_delay(&info, 0, 25, 0.0), Some(Duration::from_secs(3)));
-        assert_eq!(compute_scheduled_retry_delay(&info, 1, 25, 0.0), Some(Duration::from_secs(10)));
+        assert_eq!(
+            compute_scheduled_retry_delay(&info, 0, 25, 0.0),
+            Some(Duration::from_secs(3))
+        );
+        assert_eq!(
+            compute_scheduled_retry_delay(&info, 1, 25, 0.0),
+            Some(Duration::from_secs(10))
+        );
         assert_eq!(compute_scheduled_retry_delay(&info, 25, 25, 0.0), None);
     }
 
@@ -449,13 +497,15 @@ mod tests {
         let target_id = sub_id;
 
         // Organization
-        sqlx::query("INSERT INTO iam.organization (organization__id, name, created_by) VALUES ($1, $2, $3)")
-            .bind(org_id)
-            .bind("test-org-retry")
-            .bind(uuid::Uuid::nil())
-            .execute(&mut **tx)
-            .await
-            .unwrap();
+        sqlx::query(
+            "INSERT INTO iam.organization (organization__id, name, created_by) VALUES ($1, $2, $3)",
+        )
+        .bind(org_id)
+        .bind("test-org-retry")
+        .bind(uuid::Uuid::nil())
+        .execute(&mut **tx)
+        .await
+        .unwrap();
 
         // Application
         sqlx::query("INSERT INTO event.application (application__id, organization__id, name) VALUES ($1, $2, $3)")
@@ -494,13 +544,15 @@ mod tests {
         .unwrap();
 
         // Target HTTP
-        sqlx::query("INSERT INTO webhook.target_http (target__id, method, url) VALUES ($1, $2, $3)")
-            .bind(target_id)
-            .bind("POST")
-            .bind("https://example.com/webhook")
-            .execute(&mut **tx)
-            .await
-            .unwrap();
+        sqlx::query(
+            "INSERT INTO webhook.target_http (target__id, method, url) VALUES ($1, $2, $3)",
+        )
+        .bind(target_id)
+        .bind("POST")
+        .bind("https://example.com/webhook")
+        .execute(&mut **tx)
+        .await
+        .unwrap();
 
         (org_id, sub_id)
     }

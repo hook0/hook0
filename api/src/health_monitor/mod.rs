@@ -134,7 +134,8 @@ async fn run_health_check(
 
         let mut actions = Vec::new();
         for subscription in &subscriptions {
-            match state_machine::evaluate_health_transition(&mut transaction, config, subscription).await
+            match state_machine::evaluate_health_transition(&mut transaction, config, subscription)
+                .await
             {
                 Ok(mut subscription_actions) => actions.append(&mut subscription_actions),
                 Err(e) => {
@@ -148,10 +149,8 @@ async fn run_health_check(
 
         // Reset failure_percent for non-suspect subscriptions so the frontend
         // doesn't show stale failure data on now-healthy endpoints.
-        let suspect_ids: Vec<uuid::Uuid> = subscriptions
-            .iter()
-            .map(|s| s.subscription_id)
-            .collect();
+        let suspect_ids: Vec<uuid::Uuid> =
+            subscriptions.iter().map(|s| s.subscription_id).collect();
         evaluation::reset_healthy_failure_percent(&mut transaction, &suspect_ids).await?;
 
         // Advance the cursor so the next tick only looks at newer deliveries
