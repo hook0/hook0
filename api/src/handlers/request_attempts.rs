@@ -9,7 +9,7 @@ use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use paperclip::v2::models::{DataType, DataTypeFormat, DefaultSchemaRaw};
 use paperclip::v2::schema::Apiv2Schema as Apiv2SchemaTrait;
 use serde::{Deserialize, Serialize};
-use sqlx::{PgTransaction, query_as, query_scalar};
+use sqlx::{PgPool, query_as, query_scalar};
 use std::cmp::max;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -250,8 +250,9 @@ pub async fn get(
     if authorize_for_application(
         &state.db,
         &biscuit,
-        Action::RequestAttemptGet {
+        Action::RequestAttemptList {
             application_id: &qs.application_id,
+            event_type_names: &[],
         },
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
@@ -562,27 +563,26 @@ pub async fn retry(
     let source_attempt_id = path.into_inner();
 
     // Fetch the source attempt with all data needed for authorization, validation, and re-delivery
+    #[derive(sqlx::FromRow)]
     #[allow(non_snake_case)]
     struct SourceAttempt {
         event__id: Uuid,
         subscription__id: Uuid,
         application__id: Uuid,
         subscription_deleted_at: Option<DateTime<Utc>>,
-        payload: Option<Vec<u8>>,
         received_at: DateTime<Utc>,
         event_type: String,
         payload_content_type: String,
     }
 
-    let source = query_as!(
-        SourceAttempt,
+    // Step 1: fetch metadata WITHOUT payload — avoids loading ~100KB for unauthorized requests
+    let source = sqlx::query_as::<_, SourceAttempt>(
         "
             SELECT
                 ra.event__id,
                 ra.subscription__id,
                 ra.application__id,
                 s.deleted_at AS subscription_deleted_at,
-                e.payload,
                 e.received_at,
                 e.event_type__name AS event_type,
                 e.payload_content_type
@@ -591,8 +591,8 @@ pub async fn retry(
             INNER JOIN event.event AS e ON e.event__id = ra.event__id
             WHERE ra.request_attempt__id = $1
         ",
-        &source_attempt_id,
     )
+    .bind(&source_attempt_id)
     .fetch_optional(&state.db)
     .await
     .map_err(Hook0Problem::from)?
@@ -639,9 +639,17 @@ pub async fn retry(
         return Err(Hook0Problem::NotFound);
     }
 
-    // Resolve the full event payload from DB inline column or object storage (S3)
+    // Step 2: fetch payload AFTER auth — avoids loading ~100KB bytea for rejected requests
+    let db_payload: Option<Vec<u8>> = sqlx::query_scalar(
+        "SELECT payload FROM event.event WHERE event__id = $1",
+    )
+    .bind(&source.event__id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
     let payload = crate::event_payload::fetch_event_payload(
-        source.payload,
+        db_payload,
         state.object_storage.as_ref(),
         &source.application__id,
         &source.received_at,
@@ -650,11 +658,9 @@ pub async fn retry(
     .await
     .ok_or(Hook0Problem::PayloadExpired)?;
 
-    let mut tx = state.db.begin().await?;
-
-    // Insert the new attempt — retry_count=0 because this is a fresh delivery, not a retry
-    // of the worker's own retry loop. attempt_trigger='manual_retry' distinguishes it from
-    // system-scheduled attempts.
+    // Narrow transaction: INSERT only, then commit immediately.
+    // Pulsar send happens OUTSIDE the TX to avoid holding DB connections
+    // during network I/O (Pulsar timeout would block the connection pool).
     let new_attempt_id = query_scalar!(
         "
             INSERT INTO webhook.request_attempt
@@ -667,14 +673,15 @@ pub async fn retry(
         &source.application__id,
         user_id.as_ref(),
     )
-    .fetch_one(&mut *tx)
+    .fetch_one(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
 
-    // Send to Pulsar so the output worker picks it up for delivery
+    // Send to Pulsar OUTSIDE the transaction — the row is already committed and visible.
+    // If Pulsar fails, the PG worker will pick up the attempt via polling (look_for_work).
     if let Some(pulsar) = &state.pulsar {
         send_single_attempt_to_pulsar(
-            &mut tx,
+            &state.db,
             pulsar,
             &new_attempt_id,
             source.application__id,
@@ -687,8 +694,6 @@ pub async fn retry(
         .await?;
     }
 
-    tx.commit().await?;
-
     Ok(HttpResponse::Accepted().json(serde_json::json!({
         "request_attempt_id": new_attempt_id,
     })))
@@ -697,8 +702,8 @@ pub async fn retry(
 /// Send a single request attempt to its assigned Pulsar topic for delivery.
 /// Resolves the worker/topic by JOINing through subscription -> target_http -> worker.
 #[allow(clippy::too_many_arguments)]
-async fn send_single_attempt_to_pulsar<'a>(
-    tx: &mut PgTransaction<'a>,
+async fn send_single_attempt_to_pulsar(
+    db: &PgPool,
     pulsar: &Arc<PulsarConfig>,
     request_attempt_id: &Uuid,
     application_id: Uuid,
@@ -749,7 +754,7 @@ async fn send_single_attempt_to_pulsar<'a>(
         ",
         request_attempt_id,
     )
-    .fetch(&mut **tx);
+    .fetch(db);
 
     while let Some(ra) = stream.try_next().await? {
         if let Some(worker_id) = ra.worker_id

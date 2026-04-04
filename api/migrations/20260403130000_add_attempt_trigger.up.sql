@@ -14,7 +14,15 @@ ALTER TABLE webhook.request_attempt
 VALIDATE CONSTRAINT request_attempt_trigger_check;
 
 -- Step 4: nullable FK for user attribution (NULL for system/service-token callers)
+-- ON DELETE SET NULL preserves the attempt row when a user is deleted (audit trail)
 ALTER TABLE webhook.request_attempt
-  ADD COLUMN triggered_by UUID REFERENCES iam.user;
+  ADD COLUMN triggered_by UUID REFERENCES iam.user ON DELETE SET NULL;
+
+-- Step 5: partial index on triggered_by — without this, every DELETE on iam.user
+-- would seq-scan the entire request_attempt table to check FK references.
+-- Partial because only manual retries populate this column (<0.01% of rows).
+CREATE INDEX IF NOT EXISTS idx_request_attempt_triggered_by
+  ON webhook.request_attempt (triggered_by)
+  WHERE triggered_by IS NOT NULL;
 
 RESET lock_timeout;

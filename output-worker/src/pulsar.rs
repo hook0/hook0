@@ -683,7 +683,7 @@ async fn handle_message(
                                     "Manual retry failed; not re-queuing (one-shot)"
                                 );
                             } else if let Some(retry_in) =
-                                compute_next_retry(&mut tx, &attempt, &response, config.max_retries)
+                                compute_next_retry(&mut tx, &attempt, &response, config.max_retries, config.retry_jitter_factor)
                                     .await?
                             {
                                 let next_retry_count = attempt.retry_count + 1;

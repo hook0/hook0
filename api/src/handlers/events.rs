@@ -666,9 +666,9 @@ pub async fn replay(
                 let payload = crate::event_payload::fetch_event_payload(
                     event.payload,
                     state.object_storage.as_ref(),
-                    body.application_id,
-                    event_id,
-                    event.received_at,
+                    &body.application_id,
+                    &event.received_at,
+                    &event_id,
                 )
                 .await;
 
