@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y protobuf-compiler
 RUN --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
     --mount=type=bind,source=api,target=api \
+    --mount=type=bind,source=cli,target=cli \
+    --mount=type=bind,source=play,target=play \
     --mount=type=bind,source=clients/rust,target=clients/rust \
     --mount=type=bind,source=clients/mcp,target=clients/mcp \
     --mount=type=bind,source=output-worker,target=output-worker \
