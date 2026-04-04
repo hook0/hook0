@@ -11,7 +11,7 @@ ALTER TABLE webhook.request_attempt
     NOT VALID;
 
 -- Step 3: validate separately — SHARE UPDATE EXCLUSIVE lock, concurrent DML OK
-VALIDATE CONSTRAINT request_attempt_trigger_check;
+ALTER TABLE webhook.request_attempt VALIDATE CONSTRAINT request_attempt_trigger_check;
 
 -- Step 4: nullable FK for user attribution (NULL for system/service-token callers)
 -- ON DELETE SET NULL preserves the attempt row when a user is deleted (audit trail)
