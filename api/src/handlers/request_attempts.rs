@@ -629,7 +629,7 @@ pub async fn retry(
     .map_err(|_| Hook0Problem::NotFound)?;
 
     let user_id = match authorized_token {
-        AuthorizedToken::User(aut) => Some(aut.user_id),
+        AuthorizedToken::User(authorized_user) => Some(authorized_user.user_id),
         _ => None,
     };
 
@@ -679,7 +679,7 @@ pub async fn retry(
     // Send to Pulsar OUTSIDE the transaction — the row is already committed and visible.
     // If Pulsar fails, the PG worker will pick up the attempt via polling (look_for_work).
     if let Some(pulsar) = &state.pulsar {
-        dispatch_attempt_to_pulsar(&PulsarDispatchContext {
+        dispatch_request_attempt_to_pulsar(&PulsarRequestAttempt {
             db: &state.db,
             pulsar,
             request_attempt_id: &new_attempt_id,
@@ -699,7 +699,7 @@ pub async fn retry(
 }
 
 /// Everything needed to dispatch a single attempt to Pulsar — avoids passing 8 loose arguments.
-struct PulsarDispatchContext<'a> {
+struct PulsarRequestAttempt<'a> {
     db: &'a PgPool,
     pulsar: &'a Arc<PulsarConfig>,
     request_attempt_id: &'a Uuid,
@@ -716,7 +716,7 @@ struct PulsarDispatchContext<'a> {
 /// Called OUTSIDE the INSERT transaction — if Pulsar is slow or down, the attempt row is already
 /// committed and the PG worker will pick it up via polling. Without this separation, a Pulsar
 /// timeout would hold the DB connection and block the pool.
-async fn dispatch_attempt_to_pulsar(ctx: &PulsarDispatchContext<'_>) -> Result<(), Hook0Problem> {
+async fn dispatch_request_attempt_to_pulsar(ctx: &PulsarRequestAttempt<'_>) -> Result<(), Hook0Problem> {
     #[derive(Debug, Clone)]
     #[allow(non_snake_case)]
     struct RawAttempt {

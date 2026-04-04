@@ -21,28 +21,28 @@ pub async fn fetch_event_payload(
     event_id: &Uuid,
 ) -> Option<Vec<u8>> {
     // Fast path: payload stored inline in the event row
-    if let Some(p) = db_payload {
-        return Some(p);
+    if let Some(payload) = db_payload {
+        return Some(payload);
     }
 
     // Slow path: attempt to retrieve from object storage (S3)
-    let os = object_storage?;
+    let storage = object_storage?;
     let key = format!(
         "{}/event/{}/{event_id}",
         application_id,
         received_at.naive_utc().date(),
     );
 
-    match os
+    match storage
         .client
         .get_object()
-        .bucket(&os.bucket)
+        .bucket(&storage.bucket)
         .key(&key)
         .send()
         .await
     {
-        Ok(obj) => match obj.body.collect().await {
-            Ok(ab) => Some(ab.to_vec()),
+        Ok(response) => match response.body.collect().await {
+            Ok(aggregated_bytes) => Some(aggregated_bytes.to_vec()),
             Err(e) => {
                 log_object_storage_error_with_context!(
                     "S3 GET OBJECT body collect failed",

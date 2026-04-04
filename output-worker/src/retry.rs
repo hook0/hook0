@@ -79,7 +79,7 @@ pub(crate) async fn compute_next_retry(
                 warn!(request_attempt_id = %attempt.request_attempt_id, "Invalid target ({msg}); continuing as normal");
             }
 
-            let sub = sqlx::query_as::<_, SubscriptionRetrySchedule>(
+            let schedule_row = sqlx::query_as::<_, SubscriptionRetrySchedule>(
                 r#"
                     SELECT
                         rs.strategy,
@@ -101,8 +101,8 @@ pub(crate) async fn compute_next_retry(
             .fetch_optional(conn)
             .await?;
 
-            match sub {
-                Some(info) => Ok(compute_scheduled_retry_delay(&info, attempt.retry_count, max_retries, jitter_factor)),
+            match schedule_row {
+                Some(schedule) => Ok(compute_scheduled_retry_delay(&schedule, attempt.retry_count, max_retries, jitter_factor)),
                 None => Ok(None),
             }
         }
@@ -112,7 +112,7 @@ pub(crate) async fn compute_next_retry(
 /// Computes the retry delay based on the subscription's assigned retry schedule.
 /// Falls back to the default hardcoded backoff when no schedule is assigned.
 fn compute_scheduled_retry_delay(
-    info: &SubscriptionRetrySchedule,
+    schedule: &SubscriptionRetrySchedule,
     retry_count: i16,
     global_max_retries: u8,
     jitter_factor: f64,
@@ -122,43 +122,43 @@ fn compute_scheduled_retry_delay(
         return None;
     }
 
-    match info.strategy.as_deref() {
+    match schedule.strategy.as_deref() {
         Some("increasing") => {
-            let Some(max) = info.max_retries else {
+            let Some(max_retries) = schedule.max_retries else {
                 tracing::warn!("Retry schedule has strategy 'increasing' but max_retries is NULL — skipping retry");
                 return None;
             };
-            if retry_count >= max as i16 {
+            if retry_count >= max_retries as i16 {
                 return None;
             }
-            let Some(base) = info.increasing_base_delay else {
+            let Some(base_delay) = schedule.increasing_base_delay else {
                 tracing::warn!("Retry schedule has strategy 'increasing' but increasing_base_delay is NULL — skipping retry");
                 return None;
             };
-            let Some(factor) = info.increasing_wait_factor else {
+            let Some(wait_factor) = schedule.increasing_wait_factor else {
                 tracing::warn!("Retry schedule has strategy 'increasing' but increasing_wait_factor is NULL — skipping retry");
                 return None;
             };
-            let secs = (base as f64) * factor.powi(i32::from(retry_count));
+            let secs = (base_delay as f64) * wait_factor.powi(i32::from(retry_count));
             let delay = Duration::try_from_secs_f64(secs).unwrap_or(MAX_RETRY_DELAY_SECS);
             Some(apply_jitter(delay, jitter_factor).min(MAX_RETRY_DELAY_SECS))
         }
         Some("linear") => {
-            let Some(max) = info.max_retries else {
+            let Some(max_retries) = schedule.max_retries else {
                 tracing::warn!("Retry schedule has strategy 'linear' but max_retries is NULL — skipping retry");
                 return None;
             };
-            if retry_count >= max as i16 {
+            if retry_count >= max_retries as i16 {
                 return None;
             }
-            let Some(delay_secs) = info.linear_delay else {
+            let Some(delay_secs) = schedule.linear_delay else {
                 tracing::warn!("Retry schedule has strategy 'linear' but linear_delay is NULL — skipping retry");
                 return None;
             };
             Some(apply_jitter(Duration::from_secs(delay_secs as u64), jitter_factor).min(MAX_RETRY_DELAY_SECS))
         }
         Some("custom") => {
-            let intervals = info.custom_intervals.as_deref().unwrap_or(&[]);
+            let intervals = schedule.custom_intervals.as_deref().unwrap_or(&[]);
             intervals
                 .get(usize::try_from(retry_count).ok()?)
                 .map(|&d| apply_jitter(Duration::from_secs(d as u64), jitter_factor).min(MAX_RETRY_DELAY_SECS))
@@ -533,6 +533,7 @@ mod tests {
             payload: vec![],
             payload_content_type: "application/json".to_string(),
             secret: uuid::Uuid::now_v7(),
+            attempt_trigger: hook0_protobuf::AttemptTrigger::Dispatch,
         };
 
         // Simulate an HTTP error response (triggers retry)
