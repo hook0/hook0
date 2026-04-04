@@ -30,12 +30,7 @@ import Hook0HelpText from '@/components/Hook0HelpText.vue';
 const { t } = useI18n();
 const route = useRoute();
 const { organizationId, applicationId } = useRouteIds();
-const {
-  data: requestAttempts,
-  isLoading,
-  error,
-  refetch,
-} = useLogList(applicationId);
+const { data: requestAttempts, isLoading, error, refetch } = useLogList(applicationId);
 const { data: organization } = useOrganizationDetail(organizationId);
 
 const retentionDays = computed(

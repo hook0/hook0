@@ -77,8 +77,7 @@ const logColumns = computed(() => [
           onClick: (e: Event) => {
             e.stopPropagation();
             retryMutation.mutate(row.original.request_attempt_id, {
-              onSuccess: () =>
-                toast.success(t('subscriptionDetail.retryQueued')),
+              onSuccess: () => toast.success(t('subscriptionDetail.retryQueued')),
               onError: (err: Error) => handleMutationError(err),
             });
           },

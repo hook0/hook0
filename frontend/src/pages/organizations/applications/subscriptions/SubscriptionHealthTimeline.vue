@@ -37,11 +37,7 @@ function relativeDate(iso: string): string {
 
 <template>
   <div class="health-timeline">
-    <div
-      v-for="event in events"
-      :key="event.health_event_id"
-      class="health-timeline__item"
-    >
+    <div v-for="event in events" :key="event.health_event_id" class="health-timeline__item">
       <span
         class="health-timeline__dot"
         :class="`health-timeline__dot--${event.status}`"

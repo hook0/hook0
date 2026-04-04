@@ -12,16 +12,10 @@ export function useLogList(applicationId: Ref<string>) {
 }
 
 /** Fetch deliveries scoped to a single subscription — powers the subscription detail page's delivery table */
-export function useLogListBySubscription(
-  applicationId: Ref<string>,
-  subscriptionId: Ref<string>
-) {
+export function useLogListBySubscription(applicationId: Ref<string>, subscriptionId: Ref<string>) {
   return useQuery({
-    queryKey: computed(() =>
-      logKeys.bySubscription(applicationId.value, subscriptionId.value)
-    ),
-    queryFn: () =>
-      LogService.listBySubscription(applicationId.value, subscriptionId.value),
+    queryKey: computed(() => logKeys.bySubscription(applicationId.value, subscriptionId.value)),
+    queryFn: () => LogService.listBySubscription(applicationId.value, subscriptionId.value),
     enabled: computed(() => !!applicationId.value && !!subscriptionId.value),
   });
 }
