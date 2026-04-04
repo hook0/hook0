@@ -11,6 +11,7 @@ import { routes } from '@/routes';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0TableCellDate from '@/components/Hook0TableCellDate.vue';
 import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
+import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 
 const dateFmt = new Intl.DateTimeFormat(undefined, {
@@ -49,7 +50,7 @@ function renderStatusPill(row: RequestAttemptExtended, t: ReturnType<typeof useI
   const config = getStatusConfig(row.status.type);
   const label = statusLabel(row, t);
   const tooltip = statusTooltip(row, t);
-  return h(Hook0Tooltip, { content: tooltip }, () =>
+  const pill = h(Hook0Tooltip, { content: tooltip }, () =>
     h(
       'span',
       {
@@ -60,6 +61,13 @@ function renderStatusPill(row: RequestAttemptExtended, t: ReturnType<typeof useI
       [h('span', { class: 'log-status__dot', 'aria-hidden': 'true' }), label]
     )
   );
+  if (row.attempt_trigger === 'manual_retry') {
+    return h('div', { class: 'log-status-cell' }, [
+      pill,
+      h(Hook0Badge, { variant: 'info', size: 'sm' }, () => t('subscriptionDetail.manualRetryBadge')),
+    ]);
+  }
+  return pill;
 }
 
 function computeDuration(row: RequestAttemptExtended): string {
