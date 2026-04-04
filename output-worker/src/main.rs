@@ -2,8 +2,12 @@ mod monitoring;
 mod opentelemetry;
 mod pg;
 mod pulsar;
+/// Retry delay computation — strategy-aware (custom, linear, increasing) with default fallback
+mod retry;
 mod throughput_log;
 mod work;
+
+pub(crate) use retry::{compute_next_retry, evaluate_retry_policy};
 
 use ::pulsar::{Authentication, ConnectionRetryOptions, Pulsar, TokioExecutor};
 use anyhow::bail;
@@ -163,6 +167,11 @@ struct Config {
     /// Maximum time window for delivery retries before giving up (the effective number of retries is limited by `MAX_RETRIES`, `MAX_RETRY_WINDOW` and the retry policy)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "8d")]
     max_retry_window: Duration,
+
+    /// Jitter factor applied to retry delays (0.0 = no jitter, 0.2 = up to +20%).
+    /// Prevents thundering-herd when many subscriptions recover simultaneously.
+    #[clap(long, env, default_value = "0.2")]
+    retry_jitter_factor: f64,
 
     /// Heartbeat URL that should be called regularly
     #[clap(long, env)]
@@ -818,43 +827,6 @@ async fn compute_next_retry(
             }
         }
     }
-}
-
-fn compute_next_retry_duration(max_retries: u8, retry_count: i16) -> Option<Duration> {
-    if retry_count < max_retries.into() {
-        match retry_count {
-            0 => Some(Duration::from_secs(3)),
-            1 => Some(Duration::from_secs(10)),
-            2 => Some(Duration::from_secs(3 * 60)),
-            3 => Some(Duration::from_secs(30 * 60)),
-            4 => Some(Duration::from_hours(1)),
-            5 => Some(Duration::from_hours(3)),
-            6 => Some(Duration::from_hours(5)),
-            _ => Some(Duration::from_hours(10)),
-        }
-    } else {
-        None
-    }
-}
-
-fn evaluate_retry_policy(max_retries: u8, max_retry_window: Duration) -> (u8, Duration) {
-    let mut cumulative = Duration::ZERO;
-    let mut effective_retries = 0;
-
-    for i in 0..max_retries {
-        match compute_next_retry_duration(max_retries, i.into()) {
-            Some(d) => {
-                if cumulative + d > max_retry_window {
-                    break;
-                }
-                cumulative += d;
-                effective_retries = i + 1;
-            }
-            None => break,
-        }
-    }
-
-    (effective_retries, cumulative)
 }
 
 #[cfg(test)]
