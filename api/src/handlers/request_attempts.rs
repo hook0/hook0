@@ -564,11 +564,10 @@ pub async fn retry(
 
     // Fetch the source attempt with all data needed for authorization, validation, and re-delivery
     #[derive(sqlx::FromRow)]
-    #[allow(non_snake_case)]
     struct SourceAttempt {
-        event__id: Uuid,
-        subscription__id: Uuid,
-        application__id: Uuid,
+        event_id: Uuid,
+        subscription_id: Uuid,
+        application_id: Uuid,
         subscription_deleted_at: Option<DateTime<Utc>>,
         received_at: DateTime<Utc>,
         event_type: String,
@@ -579,9 +578,9 @@ pub async fn retry(
     let source = sqlx::query_as::<_, SourceAttempt>(
         "
             SELECT
-                ra.event__id,
-                ra.subscription__id,
-                ra.application__id,
+                ra.event__id AS event_id,
+                ra.subscription__id AS subscription_id,
+                ra.application__id AS application_id,
                 s.deleted_at AS subscription_deleted_at,
                 e.received_at,
                 e.event_type__name AS event_type,
@@ -603,7 +602,7 @@ pub async fn retry(
         &state.db,
         &biscuit,
         Action::RequestAttemptRetry {
-            application_id: &source.application__id,
+            application_id: &source.application_id,
         },
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
@@ -615,14 +614,14 @@ pub async fn retry(
     }
 
     // Extract user_id from the biscuit token (None for service tokens)
-    let organization_id = get_owner_organization(&state.db, &source.application__id)
+    let organization_id = get_owner_organization(&state.db, &source.application_id)
         .await
         .ok_or(Hook0Problem::NotFound)?;
     let authorized_token = authorize(
         &biscuit,
         Some(organization_id),
         Action::RequestAttemptRetry {
-            application_id: &source.application__id,
+            application_id: &source.application_id,
         },
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
@@ -643,7 +642,7 @@ pub async fn retry(
     let db_payload: Option<Vec<u8>> = sqlx::query_scalar(
         "SELECT payload FROM event.event WHERE event__id = $1",
     )
-    .bind(&source.event__id)
+    .bind(&source.event_id)
     .fetch_optional(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
@@ -651,12 +650,12 @@ pub async fn retry(
     let payload = crate::event_payload::fetch_event_payload(
         db_payload,
         state.object_storage.as_ref(),
-        &source.application__id,
+        &source.application_id,
         &source.received_at,
-        &source.event__id,
+        &source.event_id,
     )
     .await
-    .ok_or(Hook0Problem::PayloadExpired)?;
+    .ok_or(Hook0Problem::EventPayloadUnavailable)?;
 
     // Narrow transaction: INSERT only, then commit immediately.
     // Pulsar send happens OUTSIDE the TX to avoid holding DB connections
@@ -668,9 +667,9 @@ pub async fn retry(
             VALUES ($1, $2, $3, 0, 'manual_retry', $4, NULL)
             RETURNING request_attempt__id
         ",
-        &source.event__id,
-        &source.subscription__id,
-        &source.application__id,
+        &source.event_id,
+        &source.subscription_id,
+        &source.application_id,
         user_id.as_ref(),
     )
     .fetch_one(&state.db)
@@ -680,17 +679,17 @@ pub async fn retry(
     // Send to Pulsar OUTSIDE the transaction — the row is already committed and visible.
     // If Pulsar fails, the PG worker will pick up the attempt via polling (look_for_work).
     if let Some(pulsar) = &state.pulsar {
-        send_single_attempt_to_pulsar(
-            &state.db,
+        dispatch_attempt_to_pulsar(&PulsarDispatchContext {
+            db: &state.db,
             pulsar,
-            &new_attempt_id,
-            source.application__id,
-            source.event__id,
-            source.received_at,
-            &source.event_type,
-            &payload,
-            &source.payload_content_type,
-        )
+            request_attempt_id: &new_attempt_id,
+            application_id: source.application_id,
+            event_id: source.event_id,
+            event_received_at: source.received_at,
+            event_type: &source.event_type,
+            payload: &payload,
+            payload_content_type: &source.payload_content_type,
+        })
         .await?;
     }
 
@@ -699,20 +698,25 @@ pub async fn retry(
     })))
 }
 
-/// Send a single request attempt to its assigned Pulsar topic for delivery.
-/// Resolves the worker/topic by JOINing through subscription -> target_http -> worker.
-#[allow(clippy::too_many_arguments)]
-async fn send_single_attempt_to_pulsar(
-    db: &PgPool,
-    pulsar: &Arc<PulsarConfig>,
-    request_attempt_id: &Uuid,
+/// Everything needed to dispatch a single attempt to Pulsar — avoids passing 8 loose arguments.
+struct PulsarDispatchContext<'a> {
+    db: &'a PgPool,
+    pulsar: &'a Arc<PulsarConfig>,
+    request_attempt_id: &'a Uuid,
     application_id: Uuid,
     event_id: Uuid,
     event_received_at: DateTime<Utc>,
-    event_type: &str,
-    payload: &[u8],
-    payload_content_type: &str,
-) -> Result<(), Hook0Problem> {
+    event_type: &'a str,
+    payload: &'a [u8],
+    payload_content_type: &'a str,
+}
+
+/// Send a single request attempt to its assigned Pulsar topic for delivery.
+/// Resolves the worker/topic by JOINing through subscription → target_http → worker chain.
+/// Called OUTSIDE the INSERT transaction — if Pulsar is slow or down, the attempt row is already
+/// committed and the PG worker will pick it up via polling. Without this separation, a Pulsar
+/// timeout would hold the DB connection and block the pool.
+async fn dispatch_attempt_to_pulsar(ctx: &PulsarDispatchContext<'_>) -> Result<(), Hook0Problem> {
     #[derive(Debug, Clone)]
     #[allow(non_snake_case)]
     struct RawAttempt {
@@ -727,7 +731,7 @@ async fn send_single_attempt_to_pulsar(
         worker_queue_type: Option<String>,
     }
 
-    let mut stream = query_as!(
+    let ra = query_as!(
         RawAttempt,
         "
             SELECT
@@ -752,35 +756,37 @@ async fn send_single_attempt_to_pulsar(
                 AND ra.succeeded_at IS NULL AND ra.failed_at IS NULL
                 AND a.deleted_at IS NULL
         ",
-        request_attempt_id,
+        ctx.request_attempt_id,
     )
-    .fetch(db);
+    .fetch_optional(ctx.db)
+    .await
+    .map_err(Hook0Problem::from)?;
 
-    while let Some(ra) = stream.try_next().await? {
+    if let Some(ra) = ra {
         if let Some(worker_id) = ra.worker_id
             && ra.worker_queue_type.as_deref() == Some("pulsar")
         {
             let request_attempt = RequestAttemptProto {
-                application_id,
+                application_id: ctx.application_id,
                 request_attempt_id: ra.request_attempt__id,
-                event_id,
-                event_received_at,
+                event_id: ctx.event_id,
+                event_received_at: ctx.event_received_at,
                 subscription_id: ra.subscription__id,
                 created_at: ra.created_at,
                 retry_count: 0,
                 http_method: ra.http_method,
                 http_url: ra.http_url,
                 http_headers: ra.http_headers,
-                event_type_name: event_type.to_owned(),
-                payload: payload.to_owned(),
-                payload_content_type: payload_content_type.to_owned(),
+                event_type_name: ctx.event_type.to_owned(),
+                payload: ctx.payload.to_owned(),
+                payload_content_type: ctx.payload_content_type.to_owned(),
                 secret: ra.secret,
-                attempt_trigger: "manual_retry".to_owned(),
+                attempt_trigger: hook0_protobuf::AttemptTrigger::ManualRetry,
             };
 
             let mut producer = timeout(
                 Duration::from_secs(3),
-                pulsar.request_attempts_producer.lock(),
+                ctx.pulsar.request_attempts_producer.lock(),
             )
             .await
             .map_err(|_| {
@@ -791,7 +797,7 @@ async fn send_single_attempt_to_pulsar(
                 .send_non_blocking(
                     format!(
                         "persistent://{}/{}/{}.request_attempt",
-                        &pulsar.tenant, &pulsar.namespace, worker_id,
+                        &ctx.pulsar.tenant, &ctx.pulsar.namespace, worker_id,
                     ),
                     request_attempt,
                 )

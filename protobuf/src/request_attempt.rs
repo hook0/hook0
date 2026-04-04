@@ -6,6 +6,44 @@ use uuid::Uuid;
 
 use crate::error::Hook0ProtobufError;
 
+/// What caused this delivery attempt — determines whether the worker creates a successor on failure.
+/// "dispatch" = initial delivery from the event trigger, "auto_retry" = automatic retry after failure,
+/// "manual_retry" = user clicked retry in the UI (one-shot, no successor on failure).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AttemptTrigger {
+    Dispatch,
+    AutoRetry,
+    ManualRetry,
+}
+
+impl AttemptTrigger {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Dispatch => "dispatch",
+            Self::AutoRetry => "auto_retry",
+            Self::ManualRetry => "manual_retry",
+        }
+    }
+}
+
+impl std::fmt::Display for AttemptTrigger {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl std::str::FromStr for AttemptTrigger {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "dispatch" => Ok(Self::Dispatch),
+            "auto_retry" => Ok(Self::AutoRetry),
+            "manual_retry" => Ok(Self::ManualRetry),
+            other => Err(format!("unknown attempt_trigger: {other}")),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RequestAttempt {
     pub application_id: Uuid,
@@ -22,8 +60,7 @@ pub struct RequestAttempt {
     pub payload: Vec<u8>,
     pub payload_content_type: String,
     pub secret: Uuid,
-    /// What caused this attempt: "dispatch" (initial delivery), "auto_retry" (automatic retry after failure), or "manual_retry" (user-triggered one-shot retry)
-    pub attempt_trigger: String,
+    pub attempt_trigger: AttemptTrigger,
 }
 
 impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttempt {
@@ -99,11 +136,11 @@ impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttem
             payload: value.payload,
             payload_content_type: value.payload_content_type,
             secret,
-            // Default to "dispatch" for backward compatibility with messages that predate this field
+            // Default to Dispatch for backward compatibility with messages that predate this field
             attempt_trigger: if value.attempt_trigger.is_empty() {
-                "dispatch".to_owned()
+                AttemptTrigger::Dispatch
             } else {
-                value.attempt_trigger
+                value.attempt_trigger.parse().unwrap_or(AttemptTrigger::Dispatch)
             },
         })
     }
@@ -138,7 +175,7 @@ impl TryFrom<RequestAttempt> for crate::raw_proto::request_attempt::RequestAttem
             payload: value.payload,
             payload_content_type: value.payload_content_type,
             secret: value.secret.to_string(),
-            attempt_trigger: value.attempt_trigger,
+            attempt_trigger: value.attempt_trigger.to_string(),
         })
     }
 }
@@ -205,7 +242,7 @@ mod tests {
             payload: b"this is a test payload".to_vec(),
             payload_content_type: "text/plain".to_owned(),
             secret: uuid!("00000000-0000-0000-0000-000000000004"),
-            attempt_trigger: "dispatch".to_owned(),
+            attempt_trigger: AttemptTrigger::Dispatch,
         };
         let proto_request_attempt: crate::raw_proto::request_attempt::RequestAttempt =
             request_attempt.clone().try_into().unwrap();

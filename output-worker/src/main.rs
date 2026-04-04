@@ -774,6 +774,3 @@ async fn get_worker(name: String, conn: &PgPool) -> anyhow::Result<Worker> {
     }
 }
 
-// Legacy compute_next_retry, evaluate_retry_policy, and compute_next_retry_duration
-// moved to retry.rs with retry-schedule awareness and jitter support.
-// Tests for those functions are in retry.rs.

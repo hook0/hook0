@@ -75,7 +75,7 @@ pub enum Hook0Problem {
     TooManyRetrySchedulesPerOrganization(QuotaValue),
 
     /// Event payload no longer available (expired or purged) — manual retry cannot proceed.
-    PayloadExpired,
+    EventPayloadUnavailable,
 
     // Generic errors
     JsonPayload(JsonPayloadProblem),
@@ -508,8 +508,8 @@ impl From<Hook0Problem> for Problem {
                     status: StatusCode::TOO_MANY_REQUESTS,
                 }
             },
-            Hook0Problem::PayloadExpired => Problem {
-                id: Hook0Problem::PayloadExpired,
+            Hook0Problem::EventPayloadUnavailable => Problem {
+                id: Hook0Problem::EventPayloadUnavailable,
                 title: "Event payload is no longer available",
                 detail: "The event payload has expired or been purged from storage. Manual retry requires the original payload to be available.".into(),
                 validation: None,

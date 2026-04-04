@@ -1,3 +1,13 @@
+//! Pulsar-based output worker — consumes delivery attempts from Pulsar topics and delivers webhooks.
+//!
+//! How it works:
+//! 1. Connects to Pulsar and subscribes to request_attempt topics (one per worker)
+//! 2. For each message: deserializes the protobuf, delivers the HTTP request, records the result
+//! 3. On failure: checks `attempt_trigger` to decide next steps:
+//!    - `manual_retry` → one-shot, no successor created (the user can click retry again)
+//!    - `dispatch` / `auto_retry` → creates a successor attempt with the next delay from the retry schedule
+//! 4. Successor attempts are sent back to Pulsar with `deliver_at` set for delayed redelivery
+
 use anyhow::bail;
 use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
@@ -162,7 +172,7 @@ pub async fn load_waiting_request_attempts_from_db(
                 payload: p,
                 payload_content_type: ra.payload_content_type,
                 secret: ra.secret,
-                attempt_trigger: ra.attempt_trigger,
+                attempt_trigger: ra.attempt_trigger.parse().unwrap_or(hook0_protobuf::AttemptTrigger::Dispatch),
             };
 
             let mut msg_builder = producer
@@ -677,7 +687,7 @@ async fn handle_message(
                             true
                         } else {
                             // Manual retries are one-shot — they never spawn a successor attempt
-                            if attempt.attempt_trigger == "manual_retry" {
+                            if attempt.attempt_trigger == hook0_protobuf::AttemptTrigger::ManualRetry {
                                 info!(
                                     request_attempt_id = %attempt.request_attempt_id,
                                     "Manual retry failed; not re-queuing (one-shot)"
@@ -722,7 +732,7 @@ async fn handle_message(
                                         request_attempt_id: retry.request_attempt__id,
                                         created_at: retry.created_at,
                                         retry_count: next_retry_count,
-                                        attempt_trigger: "auto_retry".to_owned(),
+                                        attempt_trigger: hook0_protobuf::AttemptTrigger::AutoRetry,
                                         ..attempt
                                     })
                                     .send_non_blocking()
