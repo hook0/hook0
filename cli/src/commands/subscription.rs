@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use clap::{Args, Subcommand};
 use uuid::Uuid;
 
+use crate::Cli;
 use crate::api::models::{SubscriptionPost, SubscriptionPut, Target};
 use crate::commands::require_auth;
-use crate::output::{output_many, output_one, output_success, OutputFormat, TableOutput};
-use crate::Cli;
+use crate::output::{OutputFormat, TableOutput, output_many, output_one, output_success};
 
 #[derive(Subcommand, Debug)]
 pub enum SubscriptionCommands {

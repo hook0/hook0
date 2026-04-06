@@ -527,8 +527,8 @@ impl EventFilters {
 
 /// Base64 encode a string
 pub fn base64_encode(input: &str) -> String {
-    use base64::engine::general_purpose::STANDARD;
     use base64::Engine;
+    use base64::engine::general_purpose::STANDARD;
     STANDARD.encode(input.as_bytes())
 }
 
@@ -543,8 +543,8 @@ pub enum Base64DecodeError {
 
 /// Base64 decode a string
 pub fn base64_decode(input: &str) -> Result<String, Base64DecodeError> {
-    use base64::engine::general_purpose::STANDARD;
     use base64::Engine;
+    use base64::engine::general_purpose::STANDARD;
     let bytes = STANDARD.decode(input)?;
     Ok(String::from_utf8(bytes)?)
 }

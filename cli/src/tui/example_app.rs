@@ -202,16 +202,16 @@ impl ExampleApp {
             }
 
             // Pre-fill the payload from the request body
-            if let Some(ref body) = evt.request_body {
-                if let Ok(text) = std::str::from_utf8(body) {
-                    // Try to pretty-print the JSON
-                    let pretty = serde_json::from_str::<serde_json::Value>(text)
-                        .ok()
-                        .and_then(|v| serde_json::to_string_pretty(&v).ok())
-                        .unwrap_or_else(|| text.to_string());
-                    self.payloads
-                        .insert(event_type.clone(), JsonEditorState::from_text(&pretty));
-                }
+            if let Some(ref body) = evt.request_body
+                && let Ok(text) = std::str::from_utf8(body)
+            {
+                // Try to pretty-print the JSON
+                let pretty = serde_json::from_str::<serde_json::Value>(text)
+                    .ok()
+                    .and_then(|v| serde_json::to_string_pretty(&v).ok())
+                    .unwrap_or_else(|| text.to_string());
+                self.payloads
+                    .insert(event_type.clone(), JsonEditorState::from_text(&pretty));
             }
         }
         self.view_mode = ViewMode::Compose;

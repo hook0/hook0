@@ -1,13 +1,13 @@
 //! Rendering for the example TUI — compose panel + inspect panel.
 
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
-use ratatui::Frame;
 
 use super::app::ConnectionStatus;
-use super::example_app::{ComposeField, ExampleApp, ViewMode, EVENT_TYPES};
+use super::example_app::{ComposeField, EVENT_TYPES, ExampleApp, ViewMode};
 use super::json_editor::highlight_json_line;
 use super::shared;
 

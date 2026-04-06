@@ -4,7 +4,7 @@
 //! The terminal stays alive during reconnection attempts so the user always sees
 //! a status (Connected / Reconnecting) instead of raw log lines.
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use crossterm::event::{Event, EventStream, KeyCode, KeyEvent, KeyModifiers};
 use futures_util::{SinkExt, StreamExt};
 use std::collections::VecDeque;
@@ -13,7 +13,7 @@ use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::protocol::Message;
 use tracing::{debug, warn};
 
-use crate::tunnel::{forward_request, generate_token, ClientMessage, ServerMessage, READ_TIMEOUT};
+use crate::tunnel::{ClientMessage, READ_TIMEOUT, ServerMessage, forward_request, generate_token};
 
 use super::ui;
 
@@ -297,10 +297,10 @@ async fn run_tui_reconnect_loop(
         };
 
         // Reset backoff if last connection was long-lived (>10s)
-        if let Some(last_t) = last_connected_at {
-            if last_t.elapsed() > Duration::from_secs(10) {
-                backoff_index = 0;
-            }
+        if let Some(last_t) = last_connected_at
+            && last_t.elapsed() > Duration::from_secs(10)
+        {
+            backoff_index = 0;
         }
         last_connected_at = Some(Instant::now());
 
