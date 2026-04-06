@@ -417,6 +417,22 @@ struct Config {
     #[clap(long, env, default_value_t = false)]
     object_storage_cleanup_report_and_delete: bool,
 
+    /// [Housekeeping] Maximum number of applications to process concurrently during object storage cleanup prefix collection
+    #[clap(long, env, value_parser = clap::value_parser!(u8).range(1..), default_value_t = 1)]
+    object_storage_cleanup_collect_concurrency: u8,
+
+    /// [Housekeeping] Maximum number of prefixes to delete concurrently during object storage cleanup
+    #[clap(long, env, value_parser = clap::value_parser!(u8).range(1..), default_value_t = 1)]
+    object_storage_cleanup_delete_concurrency: u8,
+
+    /// [Housekeeping] Operation attempt timeout for object storage cleanup operations
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "2m")]
+    object_storage_cleanup_operation_attempt_timeout: Duration,
+
+    /// [Housekeeping] Operation timeout for object storage cleanup operations
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "7m")]
+    object_storage_cleanup_operation_timeout: Duration,
+
     /// [Housekeeping] Duration to wait between expired tokens cleanups
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1h")]
     expired_tokens_cleanup_period: Duration,
@@ -1018,6 +1034,10 @@ async fn main() -> anyhow::Result<()> {
                     &cleanup_object_storage,
                     config.object_storage_cleanup_period,
                     config.object_storage_cleanup_report_and_delete,
+                    config.object_storage_cleanup_collect_concurrency,
+                    config.object_storage_cleanup_delete_concurrency,
+                    config.object_storage_cleanup_operation_attempt_timeout,
+                    config.object_storage_cleanup_operation_timeout,
                 )
                 .await;
             });
