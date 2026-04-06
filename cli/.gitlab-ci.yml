@@ -28,7 +28,7 @@ test:
     - cd cli
     - cargo fmt --check
     - cargo clippy -- -D warnings
-    - cargo test --all-features
+    - cargo test --all-features -- --include-ignored
   rules:
     - changes:
         - cli/**/*

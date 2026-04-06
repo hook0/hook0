@@ -80,6 +80,7 @@ fn cleanup(cfg: &Path, profile: &str) {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_config_dir_isolation() {
     let dir_a = tempfile::tempdir().unwrap();
     let dir_b = tempfile::tempdir().unwrap();
@@ -118,6 +119,7 @@ fn test_config_dir_isolation() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_logout_removes_credentials() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -147,6 +149,7 @@ fn test_logout_removes_credentials() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_event_type_create_list_delete() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -253,6 +256,7 @@ fn test_event_type_create_list_delete() {
 }
 
 #[test]
+#[ignore]
 fn test_event_type_validation() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -278,6 +282,7 @@ fn test_event_type_validation() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_event_send_and_list() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -397,6 +402,7 @@ fn test_event_send_and_list() {
 }
 
 #[test]
+#[ignore]
 fn test_event_send_payload_file() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -453,6 +459,7 @@ fn test_event_send_payload_file() {
 }
 
 #[test]
+#[ignore]
 fn test_event_send_requires_label() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -468,6 +475,7 @@ fn test_event_send_requires_label() {
 }
 
 #[test]
+#[ignore]
 fn test_event_get_with_details() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -545,6 +553,7 @@ fn test_event_get_with_details() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_subscription_full_lifecycle() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -754,6 +763,7 @@ fn test_subscription_full_lifecycle() {
 }
 
 #[test]
+#[ignore]
 fn test_subscription_create_validation() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -812,6 +822,7 @@ fn test_subscription_create_validation() {
 }
 
 #[test]
+#[ignore]
 fn test_subscription_create_with_options() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -894,6 +905,7 @@ fn test_subscription_create_with_options() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_application_get_and_current() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -963,6 +975,7 @@ fn test_application_get_and_current() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_replay_dry_run() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1038,6 +1051,7 @@ fn test_replay_dry_run() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_multi_profile_workflow() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1085,6 +1099,7 @@ fn test_multi_profile_workflow() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_whoami_output_formats() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1119,6 +1134,7 @@ fn test_whoami_output_formats() {
 }
 
 #[test]
+#[ignore]
 fn test_config_list_json_structure() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1150,6 +1166,7 @@ fn test_config_list_json_structure() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_application_switch() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1189,6 +1206,7 @@ fn test_application_switch() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_logout_all() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1225,6 +1243,7 @@ fn test_logout_all() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_event_send_text_plain() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1266,6 +1285,7 @@ fn test_event_send_text_plain() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_error_bad_api_url() {
     let cfg = tempfile::tempdir().unwrap();
 
@@ -1288,6 +1308,7 @@ fn test_error_bad_api_url() {
 }
 
 #[test]
+#[ignore]
 fn test_error_wrong_secret() {
     let cfg = tempfile::tempdir().unwrap();
     let (_, app_id, api_url) = credentials();
@@ -1318,6 +1339,7 @@ fn test_error_wrong_secret() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_override_mode_works() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1376,6 +1398,7 @@ fn test_override_mode_works() {
 }
 
 #[test]
+#[ignore]
 fn test_override_mode_requires_application_id() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, _, api_url) = credentials();
@@ -1408,6 +1431,7 @@ fn test_override_mode_requires_application_id() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_subscription_list_label_filter() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1495,6 +1519,7 @@ fn test_subscription_list_label_filter() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_config_show_json_structure() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1518,6 +1543,7 @@ fn test_config_show_json_structure() {
 // =============================================================================
 
 #[test]
+#[ignore]
 fn test_verbose_produces_debug_output() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1545,6 +1571,7 @@ fn test_verbose_produces_debug_output() {
 
 /// Bug 9: replay real (not dry-run) must work end-to-end
 #[test]
+#[ignore]
 fn test_replay_real() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1596,6 +1623,7 @@ fn test_replay_real() {
 
 /// Bug 13: whoami must work in override mode without config file
 #[test]
+#[ignore]
 fn test_whoami_override_mode() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1657,6 +1685,7 @@ fn test_whoami_override_mode() {
 
 /// Bug 14: login -o json must produce clean JSON (no progress text)
 #[test]
+#[ignore]
 fn test_login_json_output_clean() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1691,6 +1720,7 @@ fn test_login_json_output_clean() {
 
 /// Bug 15: replay -o json must not mix progress text
 #[test]
+#[ignore]
 fn test_replay_json_output_clean() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1725,6 +1755,7 @@ fn test_replay_json_output_clean() {
 
 /// Bug 16: logout respects global -p/--profile flag
 #[test]
+#[ignore]
 fn test_logout_respects_global_profile() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1754,6 +1785,7 @@ fn test_logout_respects_global_profile() {
 
 /// Bug 17: --enable and --disable are mutually exclusive
 #[test]
+#[ignore]
 fn test_subscription_update_enable_disable_conflict() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1778,6 +1810,7 @@ fn test_subscription_update_enable_disable_conflict() {
 
 /// Bug 19: delete commands with -o json produce JSON
 #[test]
+#[ignore]
 fn test_delete_json_output() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
@@ -1858,6 +1891,7 @@ fn test_delete_json_output() {
 
 /// Bug 22: invalid JSON payload gives clear error message
 #[test]
+#[ignore]
 fn test_invalid_json_error_message() {
     let cfg = tempfile::tempdir().unwrap();
     let (secret, app_id, api_url) = credentials();
