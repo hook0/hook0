@@ -2,10 +2,10 @@ use anyhow::Result;
 use clap::{Args, Subcommand};
 use uuid::Uuid;
 
+use crate::Cli;
 use crate::commands::require_auth;
 use crate::config::Config;
-use crate::output::{output_many, output_one, output_success, OutputFormat, TableOutput};
-use crate::Cli;
+use crate::output::{OutputFormat, TableOutput, output_many, output_one, output_success};
 
 #[derive(Subcommand, Debug)]
 pub enum ApplicationCommands {

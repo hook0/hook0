@@ -1,6 +1,6 @@
 use clap::{CommandFactory, Parser};
 use std::process::ExitCode;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 use hook0_cli::commands::{
     application, auth, completion, config, event, event_type, example, listen, replay, subscription,

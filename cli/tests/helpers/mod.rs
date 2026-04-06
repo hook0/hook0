@@ -3,12 +3,12 @@
 #![allow(dead_code)]
 
 use axum::{
+    Router,
     body::Bytes,
     extract::State,
     http::{HeaderMap, Method, StatusCode},
     response::IntoResponse,
     routing::any,
-    Router,
 };
 use serde_json::Value;
 use std::net::SocketAddr;
@@ -19,7 +19,7 @@ use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
 use tokio::sync::broadcast;
 
-use hook0_play::{create_app, AppState};
+use hook0_play::{AppState, create_app};
 
 /// Start the hooks server on a random available port.
 /// Returns (address, shared state for polling).

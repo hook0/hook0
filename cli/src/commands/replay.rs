@@ -1,12 +1,12 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use chrono::{Duration, Utc};
 use clap::Args;
 use uuid::Uuid;
 
+use crate::Cli;
 use crate::api::models::{EventFilters, PaginationParams};
 use crate::commands::require_auth;
-use crate::output::{output_many, output_success, output_warning, OutputFormat};
-use crate::Cli;
+use crate::output::{OutputFormat, output_many, output_success, output_warning};
 
 #[derive(Args, Debug)]
 pub struct ReplayArgs {

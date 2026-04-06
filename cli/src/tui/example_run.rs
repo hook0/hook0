@@ -3,7 +3,7 @@
 //! Manages terminal lifecycle, echo server, WebSocket reconnection,
 //! keyboard input, webhook sending, and UI rendering.
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use crossterm::event::{Event, EventStream, KeyCode, KeyEvent, KeyModifiers};
 use futures_util::{SinkExt, StreamExt};
 use std::time::{Duration, Instant};
@@ -11,11 +11,11 @@ use tokio::sync::{mpsc, watch};
 use tokio_tungstenite::tungstenite::protocol::Message;
 use tracing::{debug, warn};
 
-use crate::tunnel::{forward_request, generate_token, ClientMessage, ServerMessage, READ_TIMEOUT};
+use crate::tunnel::{ClientMessage, READ_TIMEOUT, ServerMessage, forward_request, generate_token};
 
 use super::app::{ConnectionStatus, WebhookEvent};
 use super::echo_server::start_echo_server;
-use super::example_app::{cap_body, sorted_headers, ComposeField, ExampleApp, ViewMode};
+use super::example_app::{ComposeField, ExampleApp, ViewMode, cap_body, sorted_headers};
 use super::example_ui;
 
 /// Estimated viewport height for the JSON editor (conservative minimum).
@@ -158,10 +158,10 @@ async fn run_example_reconnect_loop(
         };
 
         // Reset backoff if last connection was long-lived
-        if let Some(last_t) = last_connected_at {
-            if last_t.elapsed() > Duration::from_secs(10) {
-                backoff_index = 0;
-            }
+        if let Some(last_t) = last_connected_at
+            && last_t.elapsed() > Duration::from_secs(10)
+        {
+            backoff_index = 0;
         }
         last_connected_at = Some(Instant::now());
 
@@ -463,7 +463,7 @@ async fn run_example_session(
                             KeyAction::None => {}
                         }
                         // Sync echo server status code with compose form
-                        if let Some(ref tx) = echo_status_tx {
+                        if let Some(tx) = echo_status_tx {
                             tx.send_replace(app.current_status_code());
                         }
                     }

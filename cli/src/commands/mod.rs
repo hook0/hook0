@@ -11,7 +11,7 @@ pub mod subscription;
 
 use crate::api::ApiClient;
 use crate::config::{Config, Profile};
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
 /// Sentinel profile name used when credentials are provided via CLI flags/env vars.
 pub const OVERRIDE_PROFILE: &str = "override";

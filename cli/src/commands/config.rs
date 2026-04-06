@@ -1,15 +1,15 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use clap::{Args, Subcommand};
 use console::style;
 use dialoguer::{Confirm, Input, Password, Select};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::time::Duration;
 
-use crate::api::models::EventTypePost;
-use crate::api::ApiClient;
-use crate::config::{config_file_path, Config, Profile};
-use crate::output::{output_success, output_warning, OutputFormat, TableOutput};
 use crate::Cli;
+use crate::api::ApiClient;
+use crate::api::models::EventTypePost;
+use crate::config::{Config, Profile, config_file_path};
+use crate::output::{OutputFormat, TableOutput, output_success, output_warning};
 
 #[derive(Subcommand, Debug)]
 pub enum ConfigCommands {

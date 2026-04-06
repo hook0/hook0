@@ -1500,12 +1500,10 @@ fn test_subscription_list_label_filter() {
             .and_then(|v| v.as_str())
             .map(|t| t == "alpha" || t == "beta")
             .unwrap_or(false);
-        if is_ours {
-            if let Some(sid) = sub.get("subscription_id").and_then(|v| v.as_str()) {
-                let _ = cli(cfg.path())
-                    .args(["--profile", &prof, "subscription", "delete", sid, "--yes"])
-                    .output();
-            }
+        if is_ours && let Some(sid) = sub.get("subscription_id").and_then(|v| v.as_str()) {
+            let _ = cli(cfg.path())
+                .args(["--profile", &prof, "subscription", "delete", sid, "--yes"])
+                .output();
         }
     }
     let _ = cli(cfg.path())

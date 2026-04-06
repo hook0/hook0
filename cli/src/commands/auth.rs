@@ -1,12 +1,12 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use clap::Args;
 use dialoguer::{Confirm, Input, Password};
 use uuid::Uuid;
 
+use crate::Cli;
 use crate::api::ApiClient;
 use crate::config::{Config, Profile};
-use crate::output::{output_info, output_success, OutputFormat};
-use crate::Cli;
+use crate::output::{OutputFormat, output_info, output_success};
 
 #[derive(Args, Debug)]
 pub struct LoginArgs {
