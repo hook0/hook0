@@ -37,7 +37,7 @@ http-serde = "2.1.1"
 humantime = "2.3.0"
 ipnetwork = "0.21.1"
 lazy_static = "1.5.0"
-lettre = { version = "0.11.20", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls", "aws-lc-rs", "rustls-platform-verifier"] }
+lettre = { version = "0.11.21", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls", "aws-lc-rs", "rustls-platform-verifier"] }
 tracing = "0.1.44"
 tracing-actix-web = "0.7.21"
 mrml = "5.1.0"
@@ -55,7 +55,7 @@ serde_json = "1.0.149"
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
 strum = { version = "0.28.0", features = ["derive"] }
 thiserror = "2.0.18"
-tokio = { version = "1.50.0" }
+tokio = { version = "1.51.0" }
 url = "2.5.8"
 uuid = { version = "1.23.0", features = ["serde", "v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }

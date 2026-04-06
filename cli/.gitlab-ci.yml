@@ -6,7 +6,7 @@ stages:
 
 variables:
   CARGO_HOME: $CI_PROJECT_DIR/.cargo
-  RUST_VERSION: "1.83"
+  RUST_VERSION: "1.94-trixie"
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0-cli"
 
 .rust-cache:
