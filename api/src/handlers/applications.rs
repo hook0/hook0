@@ -447,6 +447,28 @@ pub async fn delete(
                 report_cancelled_request_attempts(cancelled_request_attempts);
             }
 
+            // Post-commit re-check: catch request attempts created by concurrent
+            // event dispatches that committed after our in-transaction cleanup
+            let extra = query!(
+                "
+                    UPDATE webhook.request_attempt AS ra
+                    SET failed_at = statement_timestamp()
+                    FROM webhook.subscription AS s
+                    WHERE ra.subscription__id = s.subscription__id
+                      AND s.application__id = $1
+                      AND ra.succeeded_at IS NULL
+                      AND ra.failed_at IS NULL
+                ",
+                &a.application_id
+            )
+            .execute(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?;
+
+            if extra.rows_affected() > 0 {
+                report_cancelled_request_attempts(extra.rows_affected());
+            }
+
             if let Some(hook0_client) = state.hook0_client.as_ref() {
                 let hook0_client_event: Hook0ClientEvent = EventApplicationRemoved {
                     organization_id: get_owner_organization(&state.db, &a.application_id)

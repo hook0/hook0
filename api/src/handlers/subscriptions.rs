@@ -955,6 +955,28 @@ pub async fn edit(
                 report_cancelled_request_attempts(cancelled_request_attempts);
             }
 
+            // Post-commit re-check: catch request attempts created by concurrent
+            // event dispatches that committed after our in-transaction cleanup
+            if !body.is_enabled {
+                let extra = query!(
+                    "
+                        UPDATE webhook.request_attempt
+                        SET failed_at = statement_timestamp()
+                        WHERE subscription__id = $1
+                          AND succeeded_at IS NULL
+                          AND failed_at IS NULL
+                    ",
+                    &s.subscription__id
+                )
+                .execute(&state.db)
+                .await
+                .map_err(Hook0Problem::from)?;
+
+                if extra.rows_affected() > 0 {
+                    report_cancelled_request_attempts(extra.rows_affected());
+                }
+            }
+
             let labels: HashMap<String, String> =
                 serde_json::from_value(s.labels).unwrap_or_else(|_| HashMap::new());
             let first_label = labels
@@ -1097,6 +1119,26 @@ pub async fn delete(
 
             if cancelled_request_attempts > 0 {
                 report_cancelled_request_attempts(cancelled_request_attempts);
+            }
+
+            // Post-commit re-check: catch request attempts created by concurrent
+            // event dispatches that committed after our in-transaction cleanup
+            let extra = query!(
+                "
+                    UPDATE webhook.request_attempt
+                    SET failed_at = statement_timestamp()
+                    WHERE subscription__id = $1
+                      AND succeeded_at IS NULL
+                      AND failed_at IS NULL
+                ",
+                &s.subscription__id
+            )
+            .execute(&state.db)
+            .await
+            .map_err(Hook0Problem::from)?;
+
+            if extra.rows_affected() > 0 {
+                report_cancelled_request_attempts(extra.rows_affected());
             }
 
             if let Some(hook0_client) = state.hook0_client.as_ref() {
