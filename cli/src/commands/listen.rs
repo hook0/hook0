@@ -122,7 +122,7 @@ pub async fn execute(_cli: &Cli, args: &ListenArgs) -> Result<()> {
     // Create HTTP client for forwarding
     let http_client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
-        .danger_accept_invalid_certs(args.insecure)
+        .tls_danger_accept_invalid_certs(args.insecure)
         .build()?;
 
     let ping_interval = Duration::from_secs(args.ping_interval);
