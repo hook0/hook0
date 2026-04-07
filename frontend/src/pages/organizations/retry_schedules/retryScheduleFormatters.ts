@@ -4,10 +4,12 @@
 // 1. formatDelaySummary renders a one-line delay description per strategy
 // 2. strategyLabel maps strategy enum values to i18n display names
 
+import type { useI18n } from 'vue-i18n';
+
 import { formatDuration } from '@/utils/formatDuration';
 import type { RetrySchedule } from './RetryScheduleService';
 
-type TranslateFn = (key: string, params?: Record<string, unknown>) => string;
+type TranslateFn = ReturnType<typeof useI18n>['t'];
 
 /**
  * Renders a one-line delay description for the schedule list table.

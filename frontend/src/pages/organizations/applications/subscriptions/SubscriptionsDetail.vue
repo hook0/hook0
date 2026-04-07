@@ -164,7 +164,7 @@ const httpTarget = computed(() => {
                 :url="httpTarget.url"
               />
               <code v-else class="detail-header__target-raw">
-                {{ JSON.stringify(subscription.target) }}
+                {{ JSON.stringify(subscription.target, null, 2) }}
               </code>
             </div>
             <Hook0Switch
