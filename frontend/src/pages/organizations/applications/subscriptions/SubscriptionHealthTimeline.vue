@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import i18n from '@/plugins/i18n';
 import type { HealthEvent } from './SubscriptionHealthService';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 
@@ -8,7 +8,7 @@ defineProps<{
   events: HealthEvent[];
 }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -18,26 +18,24 @@ const statusVariantMap: Record<string, BadgeVariant> = {
   disabled: 'danger',
 };
 
-function getRelativeTimeFormat(): Intl.RelativeTimeFormat {
-  return new Intl.RelativeTimeFormat(i18n.global.locale.value, { numeric: 'auto' });
-}
+// Cached per locale change — avoids recreating Intl.RelativeTimeFormat on every timeline event
+const rtf = computed(() => new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' }));
 
 /** Format a date as a human-readable relative string (e.g. "3 hours ago") */
 function relativeDate(iso: string): string {
-  const rtf = getRelativeTimeFormat();
   const diffMs = new Date(iso).getTime() - Date.now();
   const diffMin = Math.round(diffMs / 60_000);
-  if (Math.abs(diffMin) < 60) return rtf.format(diffMin, 'minute');
+  if (Math.abs(diffMin) < 60) return rtf.value.format(diffMin, 'minute');
   const diffHr = Math.round(diffMin / 60);
-  if (Math.abs(diffHr) < 24) return rtf.format(diffHr, 'hour');
+  if (Math.abs(diffHr) < 24) return rtf.value.format(diffHr, 'hour');
   const diffDay = Math.round(diffHr / 24);
-  return rtf.format(diffDay, 'day');
+  return rtf.value.format(diffDay, 'day');
 }
 </script>
 
 <template>
-  <div class="health-timeline">
-    <div v-for="event in events" :key="event.health_event_id" class="health-timeline__item">
+  <ol class="health-timeline">
+    <li v-for="event in events" :key="event.health_event_id" class="health-timeline__item">
       <span
         class="health-timeline__dot"
         :class="`health-timeline__dot--${event.status}`"
@@ -48,14 +46,14 @@ function relativeDate(iso: string): string {
           {{ t(`subscriptionDetail.healthStatus.${event.status}`) }}
         </Hook0Badge>
         <Hook0Badge variant="default" size="sm">
-          {{ t('subscriptionDetail.healthSource.' + event.source) }}
+          {{ t(`subscriptionDetail.healthSource.${event.source}`) }}
         </Hook0Badge>
         <span class="health-timeline__date">
           {{ relativeDate(event.created_at) }}
         </span>
       </div>
-    </div>
-  </div>
+    </li>
+  </ol>
 </template>
 
 <style scoped>
@@ -63,6 +61,8 @@ function relativeDate(iso: string): string {
   position: relative;
   padding-left: 1.25rem;
   border-left: 2px solid var(--color-border);
+  list-style: none;
+  margin: 0;
 }
 
 .health-timeline__item {
