@@ -135,7 +135,7 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
       </Hook0CardContent>
     </Hook0Card>
 
-    <Hook0Card v-else-if="schedules" data-test="retry-schedules-card">
+    <Hook0Card v-else data-test="retry-schedules-card">
       <Hook0CardHeader>
         <template #header>{{ t('retrySchedules.title') }}</template>
       </Hook0CardHeader>
