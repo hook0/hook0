@@ -16,15 +16,31 @@ An application is a logical container within Hook0 that groups related [event ty
 
 ## Relationship to Other Concepts
 
-```
-Organization
-    |
-    +-- Application
-            |
-            +-- Event Types (categories of events)
-            +-- Subscriptions (webhook endpoints)
-            +-- Application Secrets (signing keys)
-            +-- Events (notifications sent)
+```mermaid
+flowchart TD
+    ORG["Organization"]:::external
+    APP["Application"]:::hook0
+    ET["Event Types<br/>(categories of events)"]:::customer
+    SUB["Subscriptions<br/>(webhook endpoints)"]:::customer
+    SEC["Application Secrets<br/>(signing keys)"]:::processing
+    EVT["Events<br/>(notifications sent)"]:::customer
+
+    ORG --> APP
+    APP --> ET
+    APP --> SUB
+    APP --> SEC
+    APP --> EVT
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
+    classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
+    classDef processing fill:#ede9fe,stroke:#a78bfa,color:#3b0764
+
+    click ORG "/concepts/organizations" "Organizations"
+    click ET "/concepts/event-types" "Event Types"
+    click SUB "/concepts/subscriptions" "Subscriptions"
+    click SEC "/concepts/application-secrets" "Application Secrets"
+    click EVT "/concepts/events" "Events"
 ```
 
 Applications act as the boundary between your services. A typical setup might have:

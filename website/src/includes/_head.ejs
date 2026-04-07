@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-title" content="Hook0">
 <meta name="format-detection" content="telephone=no">
 
+<!-- Noindex -->
+<% if (locals.pageNoindex) { %><meta name="robots" content="noindex, follow"><% } %>
+
 <!-- SEO Meta Tags -->
 <% if (locals.pageDescription) { %>
 <meta name="description" content="<%= locals.pageDescription %>">
@@ -74,14 +77,15 @@
 <link rel="dns-prefetch" href="https://api.producthunt.com">
 <link rel="dns-prefetch" href="https://ghbtns.com">
 
+<% var bp = locals.basePath || '.'; %>
 <!-- Stylesheet -->
-<link rel='stylesheet' href='./style.scss'/>
+<link rel='stylesheet' href='<%= bp %>/style.scss'/>
 
 <!-- Favicon and PWA -->
-<link rel="icon" type="image/png" href="./mediakit/logo/110x110-white.png">
-<link rel="icon" type="image/png" sizes="32x32" href="./mediakit/logo/32x32-white.png">
-<link rel="icon" type="image/png" sizes="16x16" href="./mediakit/logo/16x16-white.png">
-<link rel="apple-touch-icon" sizes="180x180" href="./mediakit/logo/256x256-white.png">
+<link rel="icon" type="image/png" href="<%= bp %>/mediakit/logo/110x110-white.png">
+<link rel="icon" type="image/png" sizes="32x32" href="<%= bp %>/mediakit/logo/32x32-white.png">
+<link rel="icon" type="image/png" sizes="16x16" href="<%= bp %>/mediakit/logo/16x16-white.png">
+<link rel="apple-touch-icon" sizes="180x180" href="<%= bp %>/mediakit/logo/256x256-white.png">
 <%# PWA Manifest - added via JS to avoid Parcel resolution %>
 
 <% if (process.env.CRISP_WEBSITE_ID) { %>
@@ -109,7 +113,7 @@
 </style>
 <div id="cookie-consent-banner" class="cookie-banner" role="dialog" aria-label="Cookie consent">
     <div class="cookie-banner__inner">
-        <div class="cookie-banner__text">We use cookies to analyze site usage and improve your experience. <a href="./privacy-policy">Privacy Policy</a></div>
+        <div class="cookie-banner__text">We use cookies to analyze site usage and improve your experience. <a href="/privacy-policy">Privacy Policy</a></div>
         <div class="cookie-banner__buttons">
             <button type="button" class="cookie-banner__btn--decline" onclick="window.hook0Consent.deny()">Decline</button>
             <button type="button" class="cookie-banner__btn--accept" onclick="window.hook0Consent.accept()">Accept</button>
@@ -126,6 +130,14 @@
     _paq.push(['requireConsent']);
     var consent=getConsent();
     if(consent==='granted')_paq.push(['setConsentGiven']);
+    // Strip spam/bot query parameters before tracking
+    (function(){
+        var url=new URL(window.location.href);
+        var dominated=false;
+        var KEEP=['pricing.destination','ref','mtm_source','mtm_medium','mtm_campaign','utm_source','utm_medium','utm_campaign'];
+        url.searchParams.forEach(function(v,k){if(KEEP.indexOf(k)===-1)dominated=true;});
+        if(dominated){var clean=new URL(url.pathname,url.origin);KEEP.forEach(function(k){var v=url.searchParams.get(k);if(v)clean.searchParams.set(k,v);});_paq.push(['setCustomUrl',clean.toString()]);}
+    })();
     _paq.push(['trackPageView']);
     _paq.push(['enableLinkTracking']);
     (function(){var u="<%= process.env.MATOMO_URL %>";_paq.push(['setTrackerUrl',u+'piwik.php']);_paq.push(['setSiteId','<%= process.env.MATOMO_SITE_ID %>']);var d=document,g=d.createElement('script'),s=d.getElementsByTagName('script')[0];g.async=true;g.src=u+'piwik.js';s.parentNode.insertBefore(g,s)})();
@@ -211,6 +223,13 @@
 </script>
 <% } %>
 
+<!-- FAQ Schema -->
+<% if (locals.pageFAQSchema) { %>
+<script type="application/ld+json">
+<%- JSON.stringify(locals.pageFAQSchema, null, 2) %>
+</script>
+<% } %>
+
 <!-- PWA: Service Worker & Manifest (added via JS to avoid Parcel resolution) -->
 <script>
 (function() {
@@ -284,4 +303,34 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
+
+<!-- UTM/MTM Persistence -->
+<script>
+(function() {
+    var STORAGE_KEY = 'hook0_tracking_params';
+    var PARAM_NAMES = ['mtm_source','mtm_medium','mtm_campaign','utm_source','utm_medium','utm_campaign'];
+    var params = new URLSearchParams(window.location.search);
+    var tracked = {};
+    var hasAny = false;
+    PARAM_NAMES.forEach(function(name) {
+        var val = params.get(name);
+        if (val) { tracked[name] = val; hasAny = true; }
+    });
+    if (hasAny) {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(tracked));
+    }
+    document.addEventListener('click', function(e) {
+        var link = e.target.closest('a[href*="app.hook0.com"]');
+        if (!link) return;
+        var stored = sessionStorage.getItem(STORAGE_KEY);
+        if (!stored) return;
+        var data = JSON.parse(stored);
+        var url = new URL(link.href);
+        Object.keys(data).forEach(function(key) {
+            if (!url.searchParams.has(key)) url.searchParams.set(key, data[key]);
+        });
+        link.href = url.toString();
+    }, true);
+})();
 </script>

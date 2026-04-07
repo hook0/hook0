@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, markRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Rocket, FileText } from 'lucide-vue-next';
+import { Rocket, FileText, Database } from 'lucide-vue-next';
 
 import { useApplicationDetail } from './useApplicationQueries';
 import { useEventsPerDay } from './useEventsPerDayQuery';
@@ -57,12 +57,21 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
       consumption: application.value.consumption.events_per_day || 0,
       quota: application.value.quotas.events_per_day_limit,
     },
+    {
+      icon: markRaw(Database),
+      name: t('applications.consumptionRetention'),
+      description: t('applications.consumptionRetentionDesc'),
+      consumption: application.value.quotas.days_of_events_retention_limit,
+      quota: application.value.quotas.days_of_events_retention_limit,
+      displayValue: String(application.value.quotas.days_of_events_retention_limit),
+      displayUnit: t('common.days', application.value.quotas.days_of_events_retention_limit ?? 0),
+    },
   ];
 });
 </script>
 
 <template>
-  <Hook0PageLayout :title="t('applications.dashboard')" data-test="app-dashboard-page">
+  <Hook0PageLayout :title="t('applications.dashboard')" data-test="application-dashboard">
     <!-- Loading -->
     <Hook0CardSkeleton v-if="appLoading || (!application && !appError)" :lines="3" />
 
@@ -80,7 +89,9 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
               </Hook0IconBadge>
               <div class="app-dashboard__title-group">
                 <span class="app-dashboard__label">{{ t('applications.titleSingular') }}</span>
-                <span class="app-dashboard__name">{{ application.name }}</span>
+                <span class="app-dashboard__name" data-test="application-dashboard-name">
+                  {{ application.name }}
+                </span>
               </div>
             </Hook0Stack>
           </template>
@@ -93,6 +104,7 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
                   application_id: applicationId,
                 },
               }"
+              data-test="application-dashboard-settings-link"
             >
               {{ t('common.settings') }}
             </Hook0Button>

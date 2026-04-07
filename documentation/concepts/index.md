@@ -9,22 +9,37 @@ Understand the fundamental building blocks of Hook0.
 
 ## Architecture Overview
 
-```
-Organization
-    |
-    +-- Application
-            |
-            +-- Event Type (defines structure)
-            |
-            +-- Event (sent by your app)
-            |       |
-            |       +-- Labels (routing metadata)
-            |
-            +-- Subscription (delivery target)
-                    |
-                    +-- Request Attempt (delivery tracking)
-                            |
-                            +-- Webhook Endpoint
+```mermaid
+flowchart TD
+    ORG["Organization"]:::external
+    APP["Application"]:::hook0
+    ET["Event Type<br/>(defines structure)"]:::customer
+    EVT["Event<br/>(sent by your app)"]:::customer
+    LBL["Labels<br/>(routing metadata)"]:::processing
+    SUB["Subscription<br/>(delivery target)"]:::hook0
+    RA["Request Attempt<br/>(delivery tracking)"]:::processing
+    WH["Webhook Endpoint"]:::customer
+
+    ORG --> APP
+    APP --> ET
+    APP --> EVT
+    APP --> SUB
+    EVT --> LBL
+    SUB --> RA
+    RA --> WH
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
+    classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
+    classDef processing fill:#ede9fe,stroke:#a78bfa,color:#3b0764
+
+    click ORG "/concepts/organizations" "Organizations"
+    click APP "/concepts/applications" "Applications"
+    click ET "/concepts/event-types" "Event Types"
+    click EVT "/concepts/events" "Events"
+    click LBL "/concepts/labels" "Labels"
+    click SUB "/concepts/subscriptions" "Subscriptions"
+    click RA "/concepts/request-attempts" "Request Attempts"
 ```
 
 Hook0 connects your applications to external systems through a hierarchical structure:

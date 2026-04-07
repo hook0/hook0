@@ -15,12 +15,12 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.102"
-aws-sdk-s3 = { version = "1.127.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.128.0", features = ["behavior-version-latest"] }
 chrono = { version = "0.4.44", features = ["serde"] }
 clap = { version = "4.6.0", features = ["derive", "env", "cargo", "wrap_help"] }
 futures = "0.3.32"
 hex = "0.4.3"
-hmac = "0.12.1"
+hmac = "0.13.0"
 hook0-protobuf = { path = "../protobuf" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 humantime = "2.3.0"
@@ -35,9 +35,9 @@ reqwest = { version = "0.13.2", features = ["hickory-dns", "json"] }
 rustls = { version = "0.23.37", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
-sha2 = "0.10.9"
+sha2 = "0.11.0"
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json"] }
 strum = { version = "0.28.0", features = ["derive"] }
 tokio = { version = "1.50.0", features = ["rt-multi-thread", "macros", "time", "signal"] }
 tokio-util = { version = "0.7.18", features = ["rt"] }
-uuid = { version = "1.22.0", features = ["v4", "v7"] }
+uuid = { version = "1.23.0", features = ["v4", "v7"] }

@@ -25,7 +25,6 @@ export type RequestAttemptTypeFixed = Modify<RequestAttempt, { status: RequestAt
 
 // TODO: These fields should be in the OpenAPI-generated RequestAttemptTypeFixed type. Remove this extension when the spec is updated.
 export type RequestAttemptExtended = RequestAttemptTypeFixed & {
-  http_response_status?: number | null;
   retry_count?: number;
   succeeded_at?: string | null;
   failed_at?: string | null;
@@ -68,4 +67,15 @@ export function listBySubscription(
       },
     })
   );
+}
+
+export function getById(
+  requestAttemptId: UUID,
+  applicationId: UUID
+): Promise<RequestAttemptExtended> {
+  return http
+    .get<RequestAttemptExtended>(`/request_attempts/${requestAttemptId}`, {
+      params: { application_id: applicationId },
+    })
+    .then((res) => res.data);
 }

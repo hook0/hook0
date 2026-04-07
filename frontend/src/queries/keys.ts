@@ -77,6 +77,13 @@ export const healthEventKeys = {
     [...healthEventKeys.lists(), subscriptionId, organizationId] as const,
 };
 
+export const requestAttemptKeys = {
+  all: ['requestAttempts'] as const,
+  details: () => [...requestAttemptKeys.all, 'detail'] as const,
+  detail: (id: string, applicationId: string) =>
+    [...requestAttemptKeys.details(), id, applicationId] as const,
+};
+
 export const secretKeys = {
   all: ['secrets'] as const,
   lists: () => [...secretKeys.all, 'list'] as const,
@@ -95,6 +102,13 @@ export const retryScheduleKeys = {
   // detail needs organizationId because retry schedules are org-scoped (unlike subscriptions which are app-scoped)
   detail: (id: string, organizationId: string) =>
     [...retryScheduleKeys.details(), id, organizationId] as const,
+};
+
+export const responseKeys = {
+  all: ['responses'] as const,
+  details: () => [...responseKeys.all, 'detail'] as const,
+  detail: (id: string, applicationId: string) =>
+    [...responseKeys.details(), id, applicationId] as const,
 };
 
 export const serviceTokenKeys = {

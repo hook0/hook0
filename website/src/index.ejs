@@ -1,11 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Hook0 - Open-Source Webhooks-as-a-Service (WaaS)</title>
+    <title>Hook0 — Free Open-Source Webhook Platform | Webhooks as a Service</title>
     <%
-    locals.pageTitle = 'Hook0 - Open-Source Webhooks-as-a-Service (WaaS)';
-    locals.pageDescription = 'Hook0 is an open-source Webhooks-as-a-Service platform. Send webhooks with one API call. We handle deliverability, retries, security, and monitoring. Free plan available.';
+    locals.pageTitle = 'Hook0 — Free Open-Source Webhook Platform | Webhooks as a Service';
+    locals.pageDescription = 'Free webhook service, open-source. Send webhooks with one API call — Hook0 handles retries, HMAC signatures, and delivery monitoring. No credit card, self-host or cloud.';
     locals.pageCanonical = '/';
+    locals.pageFAQSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Hook0 free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 has a free tier that includes 5,000 webhook events per month, HMAC signatures, and delivery monitoring. No credit card required. Hook0 is also fully open-source — you can self-host it at no cost."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is webhooks as a service?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Webhooks as a service means you send events to Hook0 via a REST API, and Hook0 delivers them to your users' endpoints. It handles retries, cryptographic signatures, delivery logging, and subscriber management so you don't have to build that infrastructure yourself."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Hook0 open-source?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The source code is available on GitHub and GitLab under the SSPL-1.0 license (client SDKs are MIT). You can self-host it with Docker Compose or Kubernetes, or use the managed cloud service hosted in Europe."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I self-host Hook0?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 supports self-hosting via Docker Compose or Kubernetes. The self-hosted version has the same features as the cloud version. Documentation is at documentation.hook0.com/self-hosting."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does Hook0 compare to Svix, Hookdeck, or HostedHooks?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hook0 is the only fully open-source option with self-hosting support. Unlike Svix (open-core), Hook0 has no proprietary enterprise tier. Compared to Hookdeck (webhook gateway) and HostedHooks (closed-source SaaS), Hook0 is bootstrapped with no VC funding and offers both cloud and on-premise deployment."
+          }
+        }
+      ]
+    };
     %>
     <%- include('./includes/_head.ejs') %>
 </head>
@@ -61,8 +107,8 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                         </svg>
                     </a>
-                    <a href="<%= locals.meta.doc_getstarted %>" class="btn btn--secondary btn--lg whitespace-nowrap" onclick="trackEvent('CTA', 'Click', 'hero-documentation')">
-                        Documentation
+                    <a href="https://documentation.hook0.com/tutorials/getting-started" class="btn btn--secondary btn--lg whitespace-nowrap" onclick="trackEvent('CTA', 'Click', 'hero-quick-start')">
+                        Quick Start Guide
                     </a>
                 </div>
 
@@ -140,6 +186,7 @@
 
 <a name="how-it-works"></a>
 
+<%- include('./includes/_how-it-works') %>
 
 <%- include('./includes/_features.ejs') %>
 
@@ -157,6 +204,33 @@
 <%- include('./includes/_pricing.ejs') %>
 
 <%- include('./includes/_faq.ejs') %>
+
+<!-- Explore More - Internal Navigation for Exit-Intent -->
+<section class="relative py-16 overflow-hidden">
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+            <h2 class="text-xl font-semibold text-white">Go deeper</h2>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <a href="./built-to-last" class="group p-5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-center" onclick="trackEvent('Navigation', 'Click', 'Explore Built to Last')">
+                <svg class="w-6 h-6 mx-auto text-green-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">Built to Last</span>
+            </a>
+            <a href="./security" class="group p-5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-center" onclick="trackEvent('Navigation', 'Click', 'Explore Security')">
+                <svg class="w-6 h-6 mx-auto text-indigo-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">Security</span>
+            </a>
+            <a href="https://documentation.hook0.com/tutorials/getting-started" class="group p-5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-center" onclick="trackEvent('Navigation', 'Click', 'Explore Docs')">
+                <svg class="w-6 h-6 mx-auto text-yellow-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">Quick Start</span>
+            </a>
+            <a href="https://documentation.hook0.com/comparisons" class="group p-5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-center" onclick="trackEvent('Navigation', 'Click', 'Explore Comparisons')">
+                <svg class="w-6 h-6 mx-auto text-purple-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">Compare Alternatives</span>
+            </a>
+        </div>
+    </div>
+</section>
 
 <%- include('./includes/_footer.ejs') %>
 

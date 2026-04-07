@@ -69,6 +69,7 @@ function submit() {
               :placeholder="t('auth.forgotPassword.emailPlaceholder')"
               autocomplete="email"
               :disabled="isLoading"
+              autofocus
               data-test="reset-password-email-input"
             />
 

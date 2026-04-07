@@ -13,7 +13,7 @@ This guide provides complete instructions for deploying Hook0 on bare metal serv
 
 ## Requirements
 
-- A PostgreSQL 15+ database (it might work with an earlier version)
+- A PostgreSQL 18+ database
 - Node.js LTS
 - Rust stable toolchain
 

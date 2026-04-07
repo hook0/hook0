@@ -48,8 +48,8 @@ locals.meta = {
 locals.seo = {
   siteUrl: 'https://www.hook0.com',
   siteName: 'Hook0',
-  defaultTitle: 'Hook0 - Open-Source Webhooks-as-a-Service (WaaS)',
-  defaultDescription: 'Hook0 is an open-source Webhooks-as-a-Service platform. Send webhooks with one API call. We handle deliverability, retries, security, and monitoring. Free plan available.',
+  defaultTitle: 'Hook0 — Free Open-Source Webhook Platform | Webhooks as a Service',
+  defaultDescription: 'Free webhook service, open-source. Send webhooks with one API call — Hook0 handles retries, HMAC signatures, and delivery monitoring. No credit card, self-host or cloud.',
   defaultImage: '/mediakit/logo/1920x1920-banner.png',
   twitterHandle: '@hook0_',
   locale: 'en_US',
@@ -112,7 +112,7 @@ locals.features = [
   },
   {
     primary: true,
-    title: 'Enterprise Level Security',
+    title: 'Signed & Encrypted',
     description: 'All webhooks are TLS secured and contain a cryptographic signature to prevent forgery, replay, man-in-the-middle attacks.',
   },
   {
@@ -187,7 +187,7 @@ locals.features = [
   },
   {
     title: 'GDPR Compliant',
-    description: 'Hook0 is fully GDPR compliant and can easily execute a data processor agreement with your company if needed.',
+    description: 'Hook0 is GDPR compliant and can easily execute a data processor agreement with your company if needed.',
     wip: false,
   },
   {
@@ -196,8 +196,8 @@ locals.features = [
     wip: false,
   },
   {
-    title: 'Designed for Enteprise Scale',
-    description: 'Hook0 robust architecture automatically scales to handle thousands of requests per minute.',
+    title: 'Designed for Enterprise Scale',
+    description: 'Hook0 automatically scales to handle thousands of requests per minute.',
     wip: false,
   },
 ];

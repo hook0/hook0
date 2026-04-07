@@ -173,7 +173,7 @@ impl Hook0ClientEvent {
             occurred_at: Option<DateTime<Utc>>,
         ) -> hook0_client::Event<'a> {
             hook0_client::Event {
-                event_id: &None,
+                event_id: None,
                 event_type: event.event_type(),
                 payload: Cow::from(to_string(&event).unwrap()),
                 payload_content_type: "application/json",

@@ -1,18 +1,18 @@
-# Multi-Tenant Webhook Architecture
+# Multi-tenant webhook architecture
 
-This guide demonstrates how to implement a multi-tenant webhook system using Hook0's label-based routing mechanism. Organizations can manage webhooks for millions of users and projects with complete isolation and visibility into delivery attempts.
+This guide shows how to implement a multi-tenant webhook system using Hook0's [label](/concepts/labels)-based routing. It works for platforms with millions of users and projects, with full isolation and delivery visibility.
 
-We use GitLab.com as a practical example to illustrate the concepts, but this architecture applies to any multi-tenant SaaS platform.
+We use GitLab.com as an example, but the same architecture applies to any multi-tenant SaaS.
 
-## Multi-Tenant Architecture Challenge
+## The problem
 
-A multi-tenant platform hosting millions of projects across thousands of organizations needs:
-- Reliable webhook delivery with automatic retries
-- Visibility into webhook logs and delivery attempts
-- Multi-tenant isolation ensuring data privacy
-- Scalable infrastructure handling billions of events
+A multi-tenant platform needs:
+- Webhook delivery with automatic retries
+- Visibility into logs and delivery attempts
+- Tenant isolation (data privacy)
+- Infrastructure that scales to billions of events
 
-### Set Up Environment Variables
+### Set up environment variables
 
 ```bash
 # Set your service token (from dashboard)
@@ -33,17 +33,17 @@ APP_ID=$APP_ID
 EOF
 ```
 
-## Architecture Overview
+## Architecture overview
 
-Hook0 provides multi-tenant platforms with:
-1. **Multi-tenant event routing** using labels
-2. **Request attempt tracking** for user visibility
-3. **Automatic retry logic** with exponential backoff
-4. **Secure isolation** between tenants
+Hook0 gives multi-tenant platforms:
+1. Event routing per tenant using labels
+2. Request attempt tracking for user visibility
+3. Automatic retries with a fixed retry schedule
+4. Isolation between tenants
 
-## Step 1: Create Event Types
+## Step 1: Create event types
 
-First, define event types for your platform activities. In this GitLab example:
+First, define [event types](/concepts/event-types) for your platform activities. In this GitLab example:
 
 ```bash
 # Create push event type
@@ -80,19 +80,17 @@ curl -X POST "$HOOK0_API/event_types" \
   }'
 ```
 
-## Step 2: Multi-Tenant Event Ingestion
+## Step 2: Multi-tenant event ingestion
 
 When events occur in your platform, send them to Hook0 with tenant-specific labels:
 
 ```bash
 # Example: User pushes code to a project
-# Note: event_id must be a valid UUID
 curl -X POST "$HOOK0_API/event" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "application_id": "'"$APP_ID"'",
-    "event_id": "'"$(uuidgen)"'",
     "event_type": "gitlab.push.created",
     "payload": "{\"ref\":\"refs/heads/main\",\"commits\":3,\"author\":\"john@example.com\",\"message\":\"Fix bug in authentication\"}",
     "payload_content_type": "application/json",
@@ -115,7 +113,6 @@ curl -X POST "$HOOK0_API/event" \
   -H "Content-Type: application/json" \
   -d '{
     "application_id": "'"$APP_ID"'",
-    "event_id": "'"$(uuidgen)"'",
     "event_type": "gitlab.pipeline.completed",
     "payload": "{\"pipeline_id\":\"9876\",\"status\":\"success\",\"duration\":240,\"stages\":[\"test\",\"build\",\"deploy\"]}",
     "payload_content_type": "application/json",
@@ -130,9 +127,9 @@ curl -X POST "$HOOK0_API/event" \
   }'
 ```
 
-## Step 3: User Webhook Management
+## Step 3: User webhook management
 
-Users create webhooks that are registered as Hook0 subscriptions with label-based filtering:
+Users create webhooks that are registered as Hook0 [subscriptions](/concepts/subscriptions) with label-based filtering:
 
 ```bash
 # User creates a project webhook via GitLab UI
@@ -188,7 +185,7 @@ curl -X POST "$HOOK0_API/subscriptions" \
   }'
 ```
 
-## Step 4: Exposing Logs and Request Attempts to Users
+## Step 4: Exposing logs and request attempts to users
 
 Expose webhook delivery information through your UI by querying Hook0's API:
 
@@ -211,7 +208,7 @@ curl -X GET "$HOOK0_API/responses/{RESPONSE_ID}?application_id=$APP_ID" \
   -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
-## Step 5: User-Facing Webhook Management
+## Step 5: User-facing webhook management
 
 Users can manage their webhooks through your UI, which internally calls Hook0:
 
@@ -269,7 +266,7 @@ curl -X DELETE "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}?application_id=$APP_I
   -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
-## Step 6: Retry Failed Webhook Deliveries
+## Step 6: Retry failed webhook deliveries
 
 Users can manually retry failed webhook deliveries through your UI:
 
@@ -283,7 +280,7 @@ curl -X POST "$HOOK0_API/events/{EVENT_ID}/replay" \
   }'
 ```
 
-## Step 7: System Hooks for Platform Administrators
+## Step 7: System hooks for platform administrators
 
 Platform administrators can set up system-wide hooks:
 
@@ -311,7 +308,7 @@ curl -X POST "$HOOK0_API/subscriptions" \
   }'
 ```
 
-## Step 8: Analytics and Monitoring
+## Step 8: Analytics and monitoring
 
 Monitor webhook health across your platform:
 
@@ -329,29 +326,29 @@ curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID&event_id={EVENT
   -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
-## Benefits for End Users
+## Benefits for end users
 
-1. **Visibility**: Users see all webhook delivery attempts, response codes, and error messages directly in your UI
-2. **Reliability**: Automatic retries with exponential backoff ensure events are delivered
-3. **Debugging**: Access to request/response bodies helps users debug integration issues
-4. **Multi-tenancy**: Complete isolation between different organizations and projects
-5. **Scalability**: Hook0 handles the infrastructure complexity of managing millions of webhooks
+1. Users see delivery attempts, response codes, and error messages in your UI
+2. Automatic retries with predefined delays handle transient failures
+3. Request/response bodies are available for debugging
+4. Full isolation between organizations and projects
+5. Hook0 handles the infrastructure for millions of webhooks
 
-## Security Considerations
+## Security considerations
 
 - Each tenant (namespace/project/organization) has isolated webhook data
-- Biscuit tokens include facts limiting access to specific tenants
+- Biscuit tokens (used by both user sessions and Service tokens) include facts limiting access to specific tenants
 - Request logs are retained according to user's plan (e.g., 7 days for free, 30 days for premium)
 - Sensitive headers are redacted in logs
 - Webhook signatures prevent tampering and replay attacks
 
 ## Summary
 
-By using Hook0, multi-tenant platforms can:
-- Offload webhook delivery infrastructure to a specialized service
-- Provide users with detailed delivery logs and retry capabilities
-- Maintain strict multi-tenant isolation
-- Scale to handle billions of events across millions of projects
-- Focus on core business functionality rather than webhook infrastructure
+With Hook0, multi-tenant platforms can:
+- Offload webhook delivery to a specialized service
+- Give users delivery logs and retry controls
+- Keep strict tenant isolation
+- Scale to billions of events across millions of projects
+- Stop building webhook infrastructure and focus on the product
 
-The label-based routing system (`labels`) enables flexible filtering without requiring complex query languages, making it perfect for hierarchical multi-tenant structures (users, groups, organizations, projects, etc.).
+The label-based routing (`labels`) handles flexible filtering without a query language. It fits hierarchical multi-tenant structures (users, groups, organizations, projects) well.

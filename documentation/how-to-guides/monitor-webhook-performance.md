@@ -1,10 +1,16 @@
+---
+title: "Monitor webhook delivery — latency, failures, and alerts"
+description: "Hook0 logs every delivery attempt with status codes, latency, and retry count. Use the API to track p95 response times, spot failing endpoints, and trigger alerts before your users notice."
+keywords: [webhook monitoring, webhook delivery tracking, webhook latency, webhook alerts, webhook performance dashboard, delivery failure monitoring]
+---
+
 # Monitor Webhook Performance
 
 Monitoring webhook delivery performance is crucial for ensuring reliability and diagnosing issues in your webhook infrastructure. Hook0 provides multiple mechanisms for tracking webhook performance, delivery status, and error patterns.
 
 ## Overview
 
-Hook0 tracks every webhook delivery attempt through the `request_attempts` system. Each attempt records:
+Hook0 tracks every webhook delivery attempt through the [request attempts](/concepts/request-attempts) system. Each attempt records:
 - HTTP request details (method, URL, headers)
 - Response data (status code, headers, body)
 - Timing information (created_at, picked_at, succeeded_at/failed_at)
@@ -498,3 +504,7 @@ Regular monitoring helps maintain high webhook delivery reliability and quickly 
 ---
 
 *For debugging specific webhook failures, see [Debug Failed Webhooks](debug-failed-webhooks.md).*
+
+*For production patterns on payload design, signatures, and idempotency, see [Webhook best practices](webhook-best-practices.md).*
+
+*For details on retry behavior, circuit breakers, and dead letter queues, see [Webhook retry logic](../explanation/webhook-retry-logic.md).*

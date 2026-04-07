@@ -1,6 +1,12 @@
-# Setting up Event Types and Subscriptions
+---
+title: "Event types and subscriptions in Hook0"
+description: "Structure your webhook events into a type hierarchy, then let subscribers pick which ones they receive. Covers schema design, wildcard filters, and multi-tenant routing."
+keywords: [webhook event types, webhook subscriptions, event schema design, webhook routing, webhook filtering, multi-tenant webhooks]
+---
 
-This tutorial teaches you how to design effective event schemas, create organized event type hierarchies, and configure sophisticated subscription patterns for complex applications.
+# Setting up event types and subscriptions
+
+This tutorial covers how to design event schemas, organize [event type](/concepts/event-types) hierarchies, and configure [subscription](/concepts/subscriptions) patterns for your application.
 
 ## Prerequisites
 
@@ -9,7 +15,7 @@ This tutorial teaches you how to design effective event schemas, create organize
 - Familiarity with webhook concepts
 - **Node.js 18+** (for the testing script)
 
-### Set Up Environment Variables
+### Set up environment variables
 
 ```bash
 # Set your service token (from dashboard)
@@ -30,9 +36,9 @@ APP_ID=$APP_ID
 EOF
 ```
 
-## Event Type Design Principles
+## Event type design principles
 
-### Naming Conventions
+### Naming conventions
 
 Use the `service.resource_type.verb` format:
 ```
@@ -45,7 +51,7 @@ order.payment.completed
 order.shipment.shipped
 ```
 
-### Hierarchical Organization
+### Hierarchical organization
 ```
 user.*            → All user events
 user.account.*    → User account events
@@ -54,7 +60,7 @@ order.*           → All order events
 order.payment.*   → Payment-related events
 ```
 
-## Step 1: Design Your Event Schema
+## Step 1: Design your event schema
 
 Before creating event types, plan your event structure.
 
@@ -62,7 +68,7 @@ Before creating event types, plan your event structure.
 These schemas are for your internal documentation. Hook0 does not validate payload structure - it forwards the payload as-is to webhook endpoints. It's your responsibility to ensure payload consistency.
 :::
 
-### User Events Schema
+### User events schema
 ```json
 {
   "user.account.created": {
@@ -80,7 +86,7 @@ These schemas are for your internal documentation. Hook0 does not validate paylo
 }
 ```
 
-### Order Events Schema
+### Order events schema
 ```json
 {
   "order.purchase.created": {
@@ -102,9 +108,9 @@ These schemas are for your internal documentation. Hook0 does not validate paylo
 }
 ```
 
-## Step 2: Create Event Types with Validation
+## Step 2: Create event types
 
-### Basic Event Type Creation
+### Basic event type creation
 
 ```bash
 curl -X POST "$HOOK0_API/event_types" \
@@ -129,11 +135,11 @@ curl -X POST "$HOOK0_API/event_types" \
 ```
 
 
-## Step 3: Create a Complete Event Type Hierarchy
+## Step 3: Create a full event type hierarchy
 
-Let's create a comprehensive set of event types for a SaaS application:
+Here is a set of event types for a typical SaaS application:
 
-### User Lifecycle Events
+### User lifecycle events
 
 ```bash
 # User registration
@@ -181,7 +187,7 @@ curl -X POST "$HOOK0_API/event_types" \
   }'
 ```
 
-### Subscription Events
+### Subscription events
 
 ```bash
 # Subscription created
@@ -229,9 +235,9 @@ curl -X POST "$HOOK0_API/event_types" \
   }'
 ```
 
-## Step 4: Advanced Subscription Patterns
+## Step 4: Subscription patterns
 
-### Single Event Type Subscription
+### Single event type subscription
 
 Simple subscription for one specific event:
 
@@ -285,7 +291,7 @@ curl -X POST "$HOOK0_API/subscriptions" \
 }
 ```
 
-### Multiple Event Type Subscription
+### Multiple event type subscription
 
 Subscribe to multiple related events:
 
@@ -317,7 +323,7 @@ curl -X POST "$HOOK0_API/subscriptions" \
   }'
 ```
 
-### Pattern-Based Subscription (All User Events)
+### Pattern-based subscription (all user events)
 
 Subscribe to all events matching a pattern:
 
@@ -350,7 +356,7 @@ curl -X POST "$HOOK0_API/subscriptions" \
   }'
 ```
 
-### Critical Events Subscription
+### Critical events subscription
 
 High-priority events with special handling:
 
@@ -382,9 +388,9 @@ curl -X POST "$HOOK0_API/subscriptions" \
   }'
 ```
 
-## Step 5: Advanced Subscription Configuration
+## Step 5: Subscription configuration details
 
-### Custom Headers and Authentication
+### Custom headers and authentication
 
 ```bash
 curl -X POST "$HOOK0_API/subscriptions" \
@@ -417,12 +423,12 @@ curl -X POST "$HOOK0_API/subscriptions" \
   }'
 ```
 
-### Subscription with Metadata
+### Subscription with metadata
 
 Add metadata to organize subscriptions in the dashboard:
 
 :::info Metadata Purpose
-The `metadata` field is for your internal organization only. It is stored with the subscription and returned in API responses, but is **not** sent in webhook payloads. Use it to tag subscriptions by team, service, priority, etc.
+The [`metadata`](/concepts/metadata) field is for your internal organization only. It is stored with the subscription and returned in API responses, but is **not** sent in webhook payloads. Use it to tag subscriptions by team, service, priority, etc.
 :::
 
 ```bash
@@ -452,7 +458,7 @@ curl -X POST "$HOOK0_API/subscriptions" \
   }'
 ```
 
-## Step 6: Test Your Event Types
+## Step 6: Test your event types
 
 Create a testing script to validate your event types:
 
@@ -561,9 +567,9 @@ Run the tests:
 node test-events.js
 ```
 
-## Step 7: Monitor Event Types and Subscriptions
+## Step 7: Monitor event types and subscriptions
 
-### List All Event Types
+### List all event types
 ```bash
 curl "$HOOK0_API/event_types/?application_id=$APP_ID" \
   -H "Authorization: Bearer $HOOK0_TOKEN"
@@ -593,7 +599,7 @@ curl "$HOOK0_API/event_types/?application_id=$APP_ID" \
 ]
 ```
 
-### List All Subscriptions
+### List all subscriptions
 ```bash
 curl "$HOOK0_API/subscriptions/?application_id=$APP_ID" \
   -H "Authorization: Bearer $HOOK0_TOKEN"
@@ -632,7 +638,7 @@ curl "$HOOK0_API/subscriptions/?application_id=$APP_ID" \
 ]
 ```
 
-### Get Subscription Details
+### Get subscription details
 ```bash
 curl "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}?application_id=$APP_ID" \
   -H "Authorization: Bearer $HOOK0_TOKEN"
@@ -666,9 +672,9 @@ curl "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}?application_id=$APP_ID" \
 }
 ```
 
-## Step 8: Update and Manage Subscriptions
+## Step 8: Update and manage subscriptions
 
-### Update Subscription Configuration
+### Update subscription configuration
 
 :::warning Required Fields
 The PUT endpoint requires all subscription fields, not just the ones you want to change. You must include `application_id`, `is_enabled`, `event_types`, `labels`, and `target`.
@@ -698,9 +704,9 @@ curl -X PUT "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}" \
   }'
 ```
 
-## Step 9: Delete Event Types and Subscriptions
+## Step 9: Delete event types and subscriptions
 
-### Delete Event Type
+### Delete event type
 
 To permanently delete an event type:
 
@@ -713,7 +719,7 @@ curl -X DELETE "$HOOK0_API/event_types/{EVENT_TYPE_NAME}?application_id=$APP_ID"
 This permanently deletes the event type. Existing events are preserved, but you won't be able to send new events of this type. This action cannot be undone - you'll need to recreate the event type if needed.
 :::
 
-### Disable Subscription
+### Disable subscription
 
 To disable a subscription, set `is_enabled` to `false`:
 
@@ -739,61 +745,61 @@ curl -X PUT "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}" \
   }'
 ```
 
-## Production Best Practices
+## Production best practices
 
-Designing for webhooks requires a different mindset than standard REST APIs. Follow these rules for a robust integration:
+Designing for webhooks requires a different mindset than REST APIs. These rules matter:
 
-### 1. Consumer Idempotency is Mandatory
+### 1. Consumer idempotency is mandatory
 
 Webhooks implement "At-Least-Once" delivery. In case of network errors, Hook0 may retry sending the same event.
 
 - **Rule:** Consumers must verify the `event_id`.
 - **Implementation:** Store processed `event_id`s in a database. If an ID is seen again, return `200 OK` immediately without re-processing logic.
 
-### 2. Async Processing (The 200 OK Rule)
+### 2. Async processing (the 200 OK rule)
 
 Your webhook endpoint must be fast. If you perform long operations (sending emails, generating PDFs) synchronously, you risk timeouts.
 
 - **Rule:** Acknowledge receipt first, process later.
 - **Implementation:** Receive the webhook → Push to an internal queue (e.g., SQS, RabbitMQ, Redis) → Return `200 OK`. Workers will process the actual job.
 
-### 3. Thin Payloads vs. Fat Payloads
+### 3. Thin payloads vs. fat payloads
 
 Sending massive objects in webhooks increases latency and failure rates.
 
 - **Recommendation:** Prefer "Thin Payloads" (IDs + changed fields) over "Fat Payloads" (full database record).
 - **Why:** Large payloads may be rejected by intermediate proxies. It also ensures the consumer fetches the *freshest* data via your API using the ID provided in the webhook.
 
-### 4. Security Verification
+### 4. Security verification
 
 Never trust the payload blindly. Any public endpoint can be flooded with fake data.
 
 - **Rule:** Verify the HMAC signature.
 - **Implementation:** Use the signing secret provided by Hook0 to hash the incoming body and compare it with the `X-Hook0-Signature` header. Reject any request where the signature does not match. See [Webhook Authentication](./webhook-authentication.md) for implementation examples.
 
-## What You've Learned
+## What you've learned
 
-✅ Designed hierarchical event type schemas  
-✅ Created comprehensive event type sets  
-✅ Built sophisticated subscription patterns  
-✅ Configured advanced subscription options  
-✅ Implemented testing strategies  
-✅ Managed event types and subscriptions lifecycle  
+- Designed hierarchical event type schemas
+- Created a full event type set for a SaaS app
+- Built subscription patterns (single, multi, pattern-based, critical)
+- Configured subscriptions with headers, auth, and metadata
+- Tested event types with a script
+- Managed the event type and subscription lifecycle
 
-## Next Steps
+## Next steps
 
 - [Implementing Webhook Authentication](./webhook-authentication.md)
 - [Debugging Failed Webhook Deliveries](../how-to-guides/debug-failed-webhooks.md)
 
 ## Troubleshooting
 
-### Event Not Triggering Webhooks
+### Event not triggering webhooks
 1. Check event type exists in application
 2. Verify subscription is enabled
 3. Confirm event type matches subscription
 4. Check webhook endpoint accessibility
 
-### Subscription Not Receiving Events
+### Subscription not receiving events
 1. Verify subscription configuration
 2. Check event type matching logic
 3. Review webhook endpoint logs

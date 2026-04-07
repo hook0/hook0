@@ -1,11 +1,11 @@
 ---
-title: CLI Reference
-description: Complete reference for the Hook0 CLI
+title: CLI reference
+description: Reference for the Hook0 CLI
 ---
 
-# CLI Reference
+# CLI reference
 
-The Hook0 CLI is a command-line client for your [Hook0](https://hook0.com) account. It lets you send events, manage subscriptions, receive webhooks locally for development, and automate your workflow — everything you can do in the Hook0 dashboard, from your terminal.
+The Hook0 CLI is a command-line client for your [Hook0](https://hook0.com) account. Send events, manage subscriptions, receive webhooks locally, and automate your workflow. Everything you can do in the dashboard, from your terminal.
 
 ### Key concepts
 
@@ -46,17 +46,17 @@ Verify:
 hook0 --version
 ```
 
-## Try It Now
+## Try it now
 
-No Hook0 account needed for this demo — it uses the public relay server and a built-in echo server, bypassing the Hook0 API entirely. Run this single command:
+No Hook0 account needed. This uses the public relay server and a built-in echo server, bypassing the Hook0 API entirely:
 
 ```bash
 hook0 example
 ```
 
-This opens a TUI where you pick an event type, edit the JSON payload, and send it. A built-in echo server receives the webhook and displays the full request (headers, body, status) — all in one terminal, no configuration needed.
+This opens a TUI where you pick an event type, edit the JSON payload, and send it. The built-in echo server receives the webhook and shows the full request (headers, body, status) in one terminal, no configuration needed.
 
-## Quick Start
+## Quick start
 
 Before starting, create an account on [app.hook0.com](https://app.hook0.com) and go to your application dashboard to get your **Application ID** and **Secret**.
 
@@ -81,30 +81,25 @@ hook0 event send user.account.created \
 
 Here is the full flow:
 
-```
-+--------------------+         +------------------------+
-| hook0 listen 3000  |         | hook0 event send ...   |
-+--------+-----------+         +----------+-------------+
-         |                                |
-         | 1. connects via                | 4. sends event
-         |    WebSocket                   |    via HTTP
-         |                                |
-         v                                v
-+--------+-----------+         +-----------+------------+
-| Relay Server       |         | Hook0 API              |
-| play.hook0.com     |<--------+ app.hook0.com/api/v1   |
-+--------+-----------+         +------------------------+
-         |                       5. API delivers to
-         |                          subscription URL
-         |                          (= relay URL from step 2)
-         |
-         | 6. relay forwards
-         |    via WebSocket
-         v
-+--------+-----------+
-| localhost:3000     |
-| (your server)      |
-+--------------------+
+```mermaid
+flowchart TD
+    A["hook0 listen 3000"]:::external
+    B["hook0 event send ..."]:::external
+    C["Relay Server<br/>play.hook0.com"]:::hook0
+    D["Hook0 API<br/>app.hook0.com/api/v1"]:::hook0
+    E["localhost:3000<br/>(your server)"]:::customer
+
+    A -- "1. connects via<br/>WebSocket" --> C
+    B -- "4. sends event<br/>via HTTP" --> D
+    D -- "5. API delivers to<br/>subscription URL<br/>(= relay URL from step 2)" --> C
+    C -- "6. relay forwards<br/>via WebSocket" --> E
+
+    classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
+    classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
+    classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
+
+    click D "/openapi/intro" "Hook0 API"
+    click C "/explanation/event-processing" "Event Processing"
 ```
 
 **Step by step:**
@@ -116,11 +111,11 @@ Here is the full flow:
 
 ---
 
-## Usage Examples
+## Usage examples
 
-### Local Development
+### Local development
 
-`hook0 listen` creates a secure WebSocket tunnel through the Hook0 relay server (`play.hook0.com` by default) — similar to tools like ngrok or localtunnel, but built into the CLI. It lets you receive webhooks on your local machine behind a firewall without exposing any ports.
+`hook0 listen` creates a WebSocket tunnel through the Hook0 relay server (`play.hook0.com` by default), similar to ngrok or localtunnel but built into the CLI. It lets you receive webhooks on your local machine behind a firewall without exposing ports.
 
 ```bash
 # Forward webhooks to port 3000 (auto-detects if a server is running)
@@ -148,7 +143,7 @@ hook0 listen 3000 --relay-url wss://relay.internal.example.com/ws --insecure
 hook0 listen https://staging.example.com/webhooks --allow-external
 ```
 
-### Interactive Testing
+### Interactive testing
 
 `hook0 example` is a standalone demo that runs entirely in your terminal. It starts a built-in echo server, connects to the relay, and opens a TUI where you compose events, send them, and see the full delivery round-trip (request headers, payload, response status).
 
@@ -160,7 +155,7 @@ hook0 example
 hook0 example --target http://localhost:3000/webhooks
 ```
 
-### Sending Events
+### Sending events
 
 ```bash
 # Send an event with inline JSON payload
@@ -186,7 +181,7 @@ hook0 event send user.account.updated \
   --content-type text/plain
 ```
 
-### Listing and Inspecting Events
+### Listing and inspecting events
 
 ```bash
 # List the 100 most recent events
@@ -202,7 +197,7 @@ hook0 event get 550e8400-e29b-41d4-a716-446655440000 --attempts
 hook0 event list --output json | jq '.[].event_id'
 ```
 
-### Managing Event Types
+### Managing event types
 
 ```bash
 # Create an event type using the dotted convention
@@ -221,7 +216,7 @@ hook0 event-type list --service user
 hook0 event-type delete user.account.deleted --yes
 ```
 
-### Managing Subscriptions
+### Managing subscriptions
 
 ```bash
 # Create a basic subscription
@@ -262,7 +257,7 @@ hook0 subscription disable <SUBSCRIPTION_ID>
 hook0 subscription delete <SUBSCRIPTION_ID> --yes
 ```
 
-### Replaying Failed Events
+### Replaying failed events
 
 ```bash
 # Replay a single event by ID
@@ -286,7 +281,7 @@ hook0 replay --all \
 hook0 replay --all --since 48h --until 24h --confirm
 ```
 
-### Managing Applications
+### Managing applications
 
 ```bash
 # List all applications in your organization (requires a service token, not an application secret)
@@ -305,7 +300,7 @@ hook0 application get <APPLICATION_ID>
 hook0 application switch <APPLICATION_ID>
 ```
 
-### Multi-Profile Configuration
+### Multi-profile configuration
 
 ```bash
 # Interactive setup wizard
@@ -342,7 +337,7 @@ hook0 logout
 hook0 logout --all
 ```
 
-### Scripting and Automation
+### Scripting and automation
 
 ```bash
 # Use environment variables instead of profiles (CI/CD friendly)
@@ -370,7 +365,7 @@ hook0 event send user.test --label tenant=debug --payload '{}' -vv
 
 ---
 
-## Shell Completion
+## Shell completion
 
 Generate shell completion scripts.
 
@@ -395,7 +390,7 @@ eval (hook0 completion elvish | slurp)
 
 ---
 
-## Environment Variables
+## Environment variables
 
 | Variable | Description | Used by |
 |----------|-------------|---------|
@@ -407,7 +402,7 @@ eval (hook0 completion elvish | slurp)
 
 ---
 
-## Global Options
+## Global options
 
 These options apply to all commands.
 
@@ -422,7 +417,7 @@ These options apply to all commands.
 
 ---
 
-## Command Reference
+## Command reference
 
 {/* Auto-generated from CLI source. Run `npm run generate:cli` to regenerate. */}
 

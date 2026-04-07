@@ -23,6 +23,8 @@ export const routes = {
   OrganizationsNew: 'OrganizationsNew',
 
   ServicesTokenList: 'ServicesTokenList',
+  ServiceTokenNew: 'ServiceTokenNew',
+  ServiceTokenEdit: 'ServiceTokenEdit',
   ServiceTokenView: 'ServiceTokenView',
 
   ApplicationsDashboard: 'ApplicationsDashboard',
@@ -52,6 +54,7 @@ export const routes = {
 
   WebhooksList: 'WebhooksList',
   LogsList: 'LogsList',
+  LogDetail: 'LogDetail',
   APIDocumentation: 'APIDocumentation',
   APIDocumentationForApplication: 'APIDocumentationForApplication',
   Error404: '404',
@@ -168,15 +171,36 @@ export default [
   },
   {
     name: routes.ServicesTokenList,
-    path: '/organizations/:organization_id/services_tokens',
+    path: '/organizations/:organization_id/service_tokens',
     component: () => import('@/pages/organizations/services_token/ServicesTokenList.vue'),
     meta: { title: 'Service Tokens' },
   },
   {
+    name: routes.ServiceTokenNew,
+    path: '/organizations/:organization_id/service_tokens/new',
+    component: () => import('@/pages/organizations/services_token/ServicesTokenList.vue'),
+    meta: { title: 'New Service Token' },
+  },
+  {
+    name: routes.ServiceTokenEdit,
+    path: '/organizations/:organization_id/service_tokens/:service_token_id/edit',
+    component: () => import('@/pages/organizations/services_token/ServicesTokenList.vue'),
+    meta: { title: 'Edit Service Token' },
+  },
+  {
     name: routes.ServiceTokenView,
-    path: '/organizations/:organization_id/services_tokens/:service_token_id',
+    path: '/organizations/:organization_id/service_tokens/:service_token_id',
     component: () => import('@/pages/organizations/services_token/ServiceTokenView.vue'),
     meta: { title: 'Service Token' },
+  },
+  // Redirects from old URLs (services_tokens → service_tokens)
+  {
+    path: '/organizations/:organization_id/services_tokens',
+    redirect: (to: { path: string }) => to.path.replace('services_tokens', 'service_tokens'),
+  },
+  {
+    path: '/organizations/:organization_id/services_tokens/:service_token_id',
+    redirect: (to: { path: string }) => to.path.replace('services_tokens', 'service_tokens'),
   },
   {
     name: routes.RetrySchedulesList,
@@ -323,7 +347,24 @@ export default [
     component: () => import('@/pages/organizations/applications/logs/LogList.vue'),
     meta: { title: 'Delivery Logs' },
   },
-
+  // Redirect old ResponseDetail URLs to logs list
+  {
+    path: '/organizations/:organization_id/applications/:application_id/logs/responses/:response_id',
+    redirect: (to: { params: Record<string, string | string[]> }) => ({
+      name: 'LogsList',
+      params: {
+        organization_id: to.params.organization_id,
+        application_id: to.params.application_id,
+      },
+    }),
+  },
+  // New LogDetail route
+  {
+    name: routes.LogDetail,
+    path: '/organizations/:organization_id/applications/:application_id/logs/:request_attempt_id',
+    component: () => import('@/pages/organizations/applications/logs/LogDetail.vue'),
+    meta: { title: 'Delivery Detail' },
+  },
   {
     name: routes.APIDocumentationForApplication,
     path: '/organizations/:organization_id/applications/:application_id/documentation',

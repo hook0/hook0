@@ -53,8 +53,8 @@ This documentation follows the [Diataxis methodology](https://diataxis.fr/):
 
 | Feature | Description |
 |---------|-------------|
-| **Reliable Delivery** | Automatic retries with exponential backoff |
-| **Security** | HMAC-SHA-256 signatures, TLS encryption |
+| **Reliable Delivery** | Automatic retries with a fixed retry schedule ([request attempts](/concepts/request-attempts)) |
+| **Security** | HMAC-SHA-256 signatures via [application secrets](/concepts/application-secrets), TLS encryption |
 | **Observable** | Built-in metrics, logs, and delivery tracking |
 | **High Performance** | Rust-based, handles thousands of events/second |
 | **Flexible** | Event filtering, label-based routing |
