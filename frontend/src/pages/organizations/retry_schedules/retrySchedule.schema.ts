@@ -122,7 +122,13 @@ export function createRetryScheduleSchema() {
               min: MIN_NAME_LENGTH,
             })
           )
-          .max(MAX_NAME_LENGTH),
+          .max(
+            MAX_NAME_LENGTH,
+            t('validation.maxLength', {
+              field: t('retrySchedules.fields.name'),
+              max: MAX_NAME_LENGTH,
+            })
+          ),
       })
       // superRefine runs after per-field validation — it's Zod's hook for cross-field rules that depend on the strategy discriminator
       .superRefine((data, ctx) => {
