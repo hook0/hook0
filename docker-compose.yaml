@@ -49,7 +49,7 @@ services:
     environment:
       - IP=0.0.0.0
       - PORT=8081
-      - CORS_ALLOWED_ORIGINS=http://localhost:8001
+      - CORS_ALLOWED_ORIGINS=http://localhost:8001,http://localhost:3000
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/hook0
       - SMTP_CONNECTION_URL=smtp://mailpit:1025
       - EMAIL_SENDER_ADDRESS=sender@hook0.local

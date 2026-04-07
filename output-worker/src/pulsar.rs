@@ -732,10 +732,10 @@ async fn handle_message(
 
                                 debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = next_retry_count, retry_id = %retry.request_attempt__id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
 
-                                // Build message under the lock, then drop it before the async send.
-                                // Without this, the MutexGuard lives across the .await, serializing
-                                // all retry sends and risking deadlock under task cancellation.
-                                let send_future = retry_producer
+                                // NOTE: The MutexGuard is held across .await here because Pulsar's
+                                // send_non_blocking() returns a future that borrows the producer.
+                                // This serializes retry sends but is unavoidable with this API.
+                                retry_producer
                                     .lock()
                                     .await
                                     .create_message()
@@ -748,9 +748,8 @@ async fn handle_message(
                                         attempt_trigger: hook0_protobuf::AttemptTrigger::AutoRetry,
                                         ..attempt
                                     })
-                                    .send_non_blocking();
-                                // MutexGuard dropped — lock released before network I/O
-                                send_future.await?;
+                                    .send_non_blocking()
+                                    .await?;
                             } else {
                                 debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
                             }

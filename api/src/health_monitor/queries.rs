@@ -217,7 +217,7 @@ pub async fn find_suspects(
         WHERE shb.bucket_start > now() - make_interval(secs => $1)
           AND s.is_enabled AND s.deleted_at IS NULL
         GROUP BY shb.subscription__id
-        HAVING SUM(shb.total_count) > $2
+        HAVING SUM(shb.total_count) > $2 AND SUM(shb.failed_count) > 0
         UNION
         -- Subscriptions currently in 'warning' state — re-evaluated to detect recovery or escalation
         SELECT subscription__id
