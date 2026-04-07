@@ -763,7 +763,8 @@
   },
   "slider": {
     "formatHint": "Expected: 1s, 5min, 1h30min, 2d",
-    "rangeError": "Must be between {min} and {max}"
+    "rangeError": "Must be between {min} and {max}",
+    "editValueLabel": "Edit {label} value"
   },
   "subscriptions": {
     "authenticateWebhooks": "verify webhook signatures",

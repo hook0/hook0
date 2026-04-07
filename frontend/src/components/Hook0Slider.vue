@@ -70,7 +70,10 @@ function confirmEdit() {
   }
   if (parsed < props.min || parsed > props.max) {
     editError.value = true;
-    editErrorMessage.value = t('slider.rangeError', { min: props.min, max: props.max });
+    editErrorMessage.value = t('slider.rangeError', {
+      min: props.formatValue?.(props.min) ?? props.min,
+      max: props.formatValue?.(props.max) ?? props.max,
+    });
     return;
   }
   emit('update:modelValue', parsed);
@@ -93,9 +96,11 @@ function cancelEdit() {
           v-model="editText"
           class="hook0-slider__edit-input"
           :class="{ 'hook0-slider__edit-input--error': editError }"
+          :aria-label="label"
           autofocus
           @keydown.enter="confirmEdit"
           @keydown.escape="cancelEdit"
+          @blur="confirmEdit"
         />
         <p v-if="editError" class="hook0-slider__edit-error">{{ editErrorMessage }}</p>
       </div>
@@ -103,7 +108,11 @@ function cancelEdit() {
         v-else
         class="hook0-slider__value"
         :class="{ 'hook0-slider__value--editable': editable }"
+        :tabindex="editable ? 0 : undefined"
+        :role="editable ? 'button' : undefined"
+        :aria-label="editable ? t('slider.editValueLabel', { label }) : undefined"
         @click="startEditing"
+        @keydown.enter="startEditing"
       >
         {{ displayValue }}
       </span>
@@ -130,7 +139,7 @@ function cancelEdit() {
 .hook0-slider {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 0.25rem;
 }
 
 .hook0-slider__header {
@@ -238,6 +247,11 @@ function cancelEdit() {
 .hook0-slider__edit-input--error {
   border-bottom-color: var(--color-error);
   color: var(--color-error);
+}
+
+.hook0-slider__edit-input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .hook0-slider__edit-error {
