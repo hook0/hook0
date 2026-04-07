@@ -172,6 +172,7 @@ function cleanPayload(values: RetryScheduleFormValues, orgId: string) {
 }
 
 const onSubmit = handleSubmit((values) => {
+  if (hasExceedingRetries.value) return;
   const payload = cleanPayload(values, organizationId.value);
   if (isNew.value) {
     createMutation.mutate(payload, {
@@ -189,11 +190,12 @@ const onSubmit = handleSubmit((values) => {
       onError: (err) => handleMutationError(err),
     });
   } else {
+    const { organization_id: _, ...schedule } = payload;
     updateMutation.mutate(
       {
         retryScheduleId: retryScheduleId.value,
         organizationId: organizationId.value,
-        schedule: payload,
+        schedule,
       },
       {
         onSuccess: () => {
@@ -201,6 +203,10 @@ const onSubmit = handleSubmit((values) => {
           toast.success(t('common.success'), {
             description: t('retrySchedules.updated'),
             duration: 3000,
+          });
+          void router.push({
+            name: routes.RetrySchedulesList,
+            params: { organization_id: organizationId.value },
           });
         },
         onError: (err) => handleMutationError(err),
@@ -223,7 +229,7 @@ function removeInterval(index: number) {
 
 function updateInterval(index: number, value: string) {
   const current = [...customIntervalsValue.value];
-  current[index] = Number(value) || 1;
+  current[index] = Math.min(Math.max(Number(value) || 1, 1), MAX_INTERVAL_SECONDS);
   customIntervals.value = current;
 }
 
@@ -312,8 +318,10 @@ const pageTitle = computed(() =>
                 data-test="retry-schedule-name-input"
               />
 
-              <div class="form-fields__group">
-                <label class="form-fields__label">{{ t('retrySchedules.fields.strategy') }}</label>
+              <fieldset class="form-fields__group form-fields__group--no-border">
+                <legend class="form-fields__label">
+                  {{ t('retrySchedules.fields.strategy') }}
+                </legend>
                 <div class="strategy-cards">
                   <SelectableCard
                     :model-value="strategyValue === 'increasing'"
@@ -340,7 +348,7 @@ const pageTitle = computed(() =>
                     @update:model-value="strategy = 'custom'"
                   />
                 </div>
-              </div>
+              </fieldset>
 
               <div v-if="strategyValue === 'increasing'" class="slider-row">
                 <Hook0Slider
@@ -452,7 +460,12 @@ const pageTitle = computed(() =>
                       :aria-label="t('retrySchedules.fields.retryNumber', { number: index + 1 })"
                       @update:model-value="updateInterval(index, String($event))"
                     />
-                    <Hook0Button variant="ghost" type="button" @click="removeInterval(index)">
+                    <Hook0Button
+                      variant="ghost"
+                      type="button"
+                      :aria-label="t('retrySchedules.fields.removeInterval', { number: index + 1 })"
+                      @click="removeInterval(index)"
+                    >
                       <Trash2 :size="16" aria-hidden="true" />
                     </Hook0Button>
                   </div>
@@ -481,7 +494,16 @@ const pageTitle = computed(() =>
             >
               {{ t('common.cancel') }}
             </Hook0Button>
-            <Hook0Button variant="primary" type="submit" :disabled="hasExceedingRetries">
+            <Hook0Button
+              variant="primary"
+              type="submit"
+              :disabled="
+                hasExceedingRetries ||
+                createMutation.isPending.value ||
+                updateMutation.isPending.value
+              "
+              :loading="createMutation.isPending.value || updateMutation.isPending.value"
+            >
               {{ isNew ? t('common.create') : t('common.save') }}
             </Hook0Button>
           </Hook0CardFooter>
@@ -502,6 +524,12 @@ const pageTitle = computed(() =>
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.form-fields__group--no-border {
+  border: none;
+  padding: 0;
+  margin: 0;
 }
 
 .form-fields__label {

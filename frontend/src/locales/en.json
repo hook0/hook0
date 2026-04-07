@@ -1051,7 +1051,8 @@
       "addInterval": "Add interval",
       "retryNumber": "Retry #{number}",
       "retryNumberHeader": "Retry",
-      "intervalSeconds": "Delay (seconds)"
+      "intervalSeconds": "Delay (seconds)",
+      "removeInterval": "Remove retry #{number}"
     },
     "preview": {
       "label": "Preview",
