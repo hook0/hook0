@@ -293,10 +293,13 @@ pub async fn look_for_work(
                     .execute(&mut *tx)
                     .await?;
 
-                    // Manual retries are one-shot — they never spawn a successor attempt
-                    if attempt_with_payload.attempt_trigger.as_str()
-                        == hook0_protobuf::AttemptTrigger::ManualRetry.as_str()
-                    {
+                    // Manual retries are one-shot — they never spawn a successor attempt.
+                    // Parse the DB string to the enum so both PG and Pulsar paths use the same comparison.
+                    let trigger = attempt_with_payload
+                        .attempt_trigger
+                        .parse::<hook0_protobuf::AttemptTrigger>()
+                        .unwrap_or(hook0_protobuf::AttemptTrigger::Dispatch);
+                    if trigger == hook0_protobuf::AttemptTrigger::ManualRetry {
                         info!(
                             unit_id,
                             request_attempt_id = %attempt.request_attempt_id,

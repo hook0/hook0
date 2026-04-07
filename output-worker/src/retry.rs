@@ -29,7 +29,7 @@ fn apply_jitter(delay: Duration, jitter_factor: f64) -> Duration {
         return delay;
     }
     let mut rng = rand::thread_rng();
-    let random: f64 = rng.r#gen();
+    let random: f64 = rng.gen_range(0.0..1.0);
     let factor = 1.0 + random * jitter_factor;
     delay.mul_f64(factor)
 }
@@ -135,7 +135,7 @@ fn compute_scheduled_retry_delay(
                 );
                 return None;
             };
-            if retry_count >= max_retries as i16 {
+            if i32::from(retry_count) >= max_retries {
                 return None;
             }
             let Some(base_delay) = schedule.increasing_base_delay else {
@@ -161,7 +161,7 @@ fn compute_scheduled_retry_delay(
                 );
                 return None;
             };
-            if retry_count >= max_retries as i16 {
+            if i32::from(retry_count) >= max_retries {
                 return None;
             }
             let Some(delay_secs) = schedule.linear_delay else {
@@ -171,14 +171,15 @@ fn compute_scheduled_retry_delay(
                 return None;
             };
             Some(
-                apply_jitter(Duration::from_secs(delay_secs as u64), jitter_factor)
+                apply_jitter(Duration::from_secs(delay_secs.max(0) as u64), jitter_factor)
                     .min(MAX_RETRY_DELAY_SECS),
             )
         }
         Some("custom") => {
             let intervals = schedule.custom_intervals.as_deref().unwrap_or(&[]);
             intervals.get(usize::try_from(retry_count).ok()?).map(|&d| {
-                apply_jitter(Duration::from_secs(d as u64), jitter_factor).min(MAX_RETRY_DELAY_SECS)
+                apply_jitter(Duration::from_secs(d.max(0) as u64), jitter_factor)
+                    .min(MAX_RETRY_DELAY_SECS)
             })
         }
         _ => {
@@ -469,8 +470,9 @@ mod tests {
             custom_intervals: None,
             linear_delay: None,
             increasing_base_delay: Some(3),
-            increasing_wait_factor: Some(1.0),
+            increasing_wait_factor: Some(1.5),
         };
+        // base_delay=3 * 1.5^0 = 3s, with 20% jitter → [3.0, 3.6]
         for _ in 0..100 {
             let delay = compute_scheduled_retry_delay(&info, 0, 5, 0.2).unwrap();
             assert!(delay >= Duration::from_secs(3));

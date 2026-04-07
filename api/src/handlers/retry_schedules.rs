@@ -229,7 +229,7 @@ pub fn validate_strategy_fields(
                 &increasing_wait_factor,
                 "increasing",
             )?;
-            if !(*factor >= MIN_WAIT_FACTOR && *factor <= MAX_WAIT_FACTOR) {
+            if *factor < MIN_WAIT_FACTOR || *factor > MAX_WAIT_FACTOR || factor.is_nan() {
                 return Err(strategy_error(&format!(
                     "increasing_wait_factor must be between {MIN_WAIT_FACTOR} and {MAX_WAIT_FACTOR}"
                 )));

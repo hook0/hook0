@@ -210,12 +210,16 @@ pub async fn find_suspects(
 
     sqlx::query_scalar(
         r#"
-        SELECT subscription__id
-        FROM webhook.subscription_health_bucket
-        WHERE bucket_start > now() - make_interval(secs => $1)
-        GROUP BY subscription__id
-        HAVING SUM(failed_count) > $2
+        -- Subscriptions with enough delivery data to evaluate — only active, non-deleted ones
+        SELECT shb.subscription__id
+        FROM webhook.subscription_health_bucket shb
+        INNER JOIN webhook.subscription s ON s.subscription__id = shb.subscription__id
+        WHERE shb.bucket_start > now() - make_interval(secs => $1)
+          AND s.is_enabled AND s.deleted_at IS NULL
+        GROUP BY shb.subscription__id
+        HAVING SUM(shb.total_count) > $2
         UNION
+        -- Subscriptions currently in 'warning' state — re-evaluated to detect recovery or escalation
         SELECT subscription__id
         FROM (
             SELECT DISTINCT ON (subscription__id) subscription__id, status

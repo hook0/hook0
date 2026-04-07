@@ -143,6 +143,9 @@ impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttem
                 value
                     .attempt_trigger
                     .parse()
+                    // Unknown trigger values (e.g., from a newer API version) default to Dispatch
+                    // rather than failing deserialization — forward-compatible at the cost of silently
+                    // creating auto-retry successors for unknown triggers.
                     .unwrap_or(AttemptTrigger::Dispatch)
             },
         })

@@ -306,6 +306,13 @@ pub struct RequestAttemptWithOptionalPayload {
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
 
+    if config.retry_jitter_factor < 0.0 || config.retry_jitter_factor >= 1.0 {
+        bail!(
+            "RETRY_JITTER_FACTOR must be in [0.0, 1.0), got {}",
+            config.retry_jitter_factor
+        );
+    }
+
     let worker_name = config.worker_name.to_owned();
     let worker_version = config
         .worker_version

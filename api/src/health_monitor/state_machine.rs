@@ -67,7 +67,11 @@ pub async fn evaluate_health_transition(
         Some(HealthStatus::Resolved)
             if last_at.is_some_and(|at| {
                 (Utc::now() - at)
-                    < chrono::Duration::from_std(config.warning_cooldown).unwrap_or_default()
+                    < chrono::Duration::from_std(config.warning_cooldown).unwrap_or_else(|_| {
+                        // Overflow means the cooldown is absurdly large — treat as zero (disabled)
+                        // rather than panicking. This only happens if cooldown exceeds ~292 billion years.
+                        chrono::Duration::zero()
+                    })
             }) => {}
 
         // Already warned and failure rate is in the same range (still bad but
