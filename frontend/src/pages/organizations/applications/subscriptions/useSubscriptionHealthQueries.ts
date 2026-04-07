@@ -9,7 +9,7 @@ export function useSubscriptionHealthEvents(
   organizationId: Ref<string>
 ) {
   return useQuery({
-    queryKey: computed(() => healthEventKeys.list(subscriptionId.value)),
+    queryKey: computed(() => healthEventKeys.list(subscriptionId.value, organizationId.value)),
     queryFn: () =>
       SubscriptionHealthService.listHealthEvents(subscriptionId.value, organizationId.value),
     enabled: computed(() => !!subscriptionId.value && !!organizationId.value),
