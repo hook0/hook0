@@ -47,7 +47,7 @@ const label = computed(() => t(`health.${status.value}`));
 
 const tooltipContent = computed(() => {
   if (props.failurePercent === null) return t('health.awaitingData');
-  return Math.round(props.failurePercent) + '% ' + t('health.failureRate');
+  return t('health.failureRateTooltip', { percent: Math.round(props.failurePercent) });
 });
 </script>
 

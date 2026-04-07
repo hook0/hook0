@@ -1010,6 +1010,7 @@
     "validEmail": "Enter a valid email address",
     "validRole": "Select a valid role",
     "validUrl": "Enter a valid URL",
+    "maxLength": "{field} must be at most {max} characters",
     "minLength": "{field} must be at least {min} characters",
     "arrayLength": "{field} must have exactly {length} items"
   },
@@ -1116,6 +1117,7 @@
     "noData": "N/A",
     "awaitingData": "Awaiting delivery data",
     "failureRate": "failures",
+    "failureRateTooltip": "{percent}% failures",
     "healthColumn": "Health"
   }
 }
