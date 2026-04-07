@@ -11,7 +11,6 @@ export function useLogList(applicationId: Ref<string>) {
   });
 }
 
-
 /** Fetch deliveries scoped to a single subscription — powers the subscription detail page's delivery table */
 export function useLogListBySubscription(applicationId: Ref<string>, subscriptionId: Ref<string>) {
   return useQuery({
