@@ -8,6 +8,7 @@ import { toast } from 'vue-sonner';
 import { handleMutationError } from '@/utils/handleMutationError';
 
 import { useSubscriptionDetail } from './useSubscriptionQueries';
+import { targetIsHttp } from './SubscriptionService';
 import { useLogListBySubscription, useRetryDelivery } from '../logs/useLogQueries';
 import { useLogColumns } from '../logs/useLogColumns';
 import { useSubscriptionHealthEvents } from './useSubscriptionHealthQueries';
@@ -51,10 +52,12 @@ const {
   refetch: deliveriesRefetch,
 } = useLogListBySubscription(applicationId, subscriptionId);
 
-const { data: healthEvents, isLoading: healthLoading } = useSubscriptionHealthEvents(
-  subscriptionId,
-  organizationId
-);
+const {
+  data: healthEvents,
+  isLoading: healthLoading,
+  error: healthError,
+  refetch: healthRefetch,
+} = useSubscriptionHealthEvents(subscriptionId, organizationId);
 
 const retryMutation = useRetryDelivery();
 
@@ -103,10 +106,6 @@ const showMergedEmptyState = computed(() => {
   const noHealth = !healthEvents.value || healthEvents.value.length === 0;
   return noDeliveries && noHealth;
 });
-
-function targetIsHttp(target: object): target is { type: string; method: string; url: string } {
-  return 'type' in target && target.type === 'http';
-}
 
 const httpTarget = computed(() => {
   const target = subscription.value?.target;
@@ -229,6 +228,11 @@ const httpTarget = computed(() => {
             <SubscriptionHealthTimeline :events="healthEvents" />
           </Hook0CardContent>
         </Hook0Card>
+        <Hook0ErrorCard
+          v-else-if="healthError && !healthLoading"
+          :error="healthError"
+          @retry="healthRefetch()"
+        />
       </template>
     </template>
 

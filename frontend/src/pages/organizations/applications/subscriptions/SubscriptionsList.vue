@@ -15,6 +15,7 @@ import {
   useRemoveSubscription,
 } from './useSubscriptionQueries';
 import type { Subscription } from './SubscriptionService';
+import { targetIsHttp } from './SubscriptionService';
 import { routes } from '@/routes';
 import { handleMutationError } from '@/utils/handleMutationError';
 import { toast } from 'vue-sonner';
@@ -50,11 +51,6 @@ const { data: subscriptions, isLoading, error, refetch } = useSubscriptionList(a
 
 const toggleMutation = useToggleSubscription();
 const removeMutation = useRemoveSubscription();
-
-// Type guard: the API returns target as a polymorphic union — only HTTP targets have method+url
-function targetIsHttp(target: object): target is { type: string; method: string; url: string } {
-  return 'type' in target && target.type === 'http';
-}
 
 const showDisableDialog = ref(false);
 const subscriptionToDisable = ref<Subscription | null>(null);
