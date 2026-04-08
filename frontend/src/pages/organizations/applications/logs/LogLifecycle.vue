@@ -154,6 +154,8 @@ const steps = computed<LifecycleStep[]>(() => {
               step.status === 'done' &&
               (steps[index + 1]?.status === 'next' || steps[index + 1]?.status === 'scheduled'),
             'log-lifecycle__line--error': steps[index + 1]?.status === 'error',
+            'log-lifecycle__line--recovery':
+              step.status === 'error' && steps[index + 1]?.status === 'done',
           }"
         />
       </div>
@@ -273,6 +275,10 @@ const steps = computed<LifecycleStep[]>(() => {
 
 .log-lifecycle__line--error {
   background-color: var(--color-error);
+}
+
+.log-lifecycle__line--recovery {
+  background-color: var(--color-primary);
 }
 
 .log-lifecycle__content {
