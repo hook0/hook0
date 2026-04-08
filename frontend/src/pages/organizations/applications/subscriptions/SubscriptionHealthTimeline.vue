@@ -5,6 +5,7 @@ import type { HealthEvent } from './SubscriptionHealthService';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
 import { formatDate } from '@/utils/formatDate';
+import { WARNING_THRESHOLD, CRITICAL_THRESHOLD } from '@/constants/healthThresholds';
 
 defineProps<{
   events: HealthEvent[];
@@ -44,7 +45,7 @@ function relativeDate(iso: string): string {
         aria-hidden="true"
       />
       <div class="health-timeline__content">
-        <Hook0Tooltip :content="t(`subscriptionDetail.healthStatus.${event.status}Tooltip`)" position="top">
+        <Hook0Tooltip :content="t(`subscriptionDetail.healthStatus.${event.status}Tooltip`, { threshold: event.status === 'disabled' ? CRITICAL_THRESHOLD : WARNING_THRESHOLD })" position="top">
           <Hook0Badge :variant="statusVariantMap[event.status] ?? 'default'" size="sm">
             {{ t(`subscriptionDetail.healthStatus.${event.status}`) }}
           </Hook0Badge>

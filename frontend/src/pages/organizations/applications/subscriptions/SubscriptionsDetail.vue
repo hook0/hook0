@@ -75,20 +75,35 @@ const httpTarget = computed(() => {
 const toggleMutation = useToggleSubscription();
 const showDisableDialog = ref(false);
 
+// Only warn when disabling if there are pending/waiting deliveries that would be affected
+const hasPendingDeliveries = computed(() => {
+  if (!deliveries.value) return false;
+  return deliveries.value.some(
+    (d) => d.status.type === 'waiting' || d.status.type === 'pending' || d.status.type === 'inprogress'
+  );
+});
+
 function toggleSubscription() {
   const sub = subscription.value;
   if (!sub) return;
-  if (sub.is_enabled) {
+  if (sub.is_enabled && hasPendingDeliveries.value) {
     showDisableDialog.value = true;
     return;
   }
+  doToggle();
+}
+
+function doToggle() {
+  const sub = subscription.value;
+  if (!sub) return;
   const name = sub.description || t('subscriptions.title');
+  const msgKey = sub.is_enabled ? 'subscriptions.disabled' : 'subscriptions.enabled';
   toggleMutation.mutate(
     { subscriptionId: sub.subscription_id, subscription: sub },
     {
       onSuccess: () => {
         toast.success(t('common.success'), {
-          description: t('subscriptions.enabled', { name }),
+          description: t(msgKey, { name }),
         });
       },
       onError: (err) => handleMutationError(err),
@@ -97,21 +112,8 @@ function toggleSubscription() {
 }
 
 function confirmDisable() {
-  const sub = subscription.value;
   showDisableDialog.value = false;
-  if (!sub) return;
-  const name = sub.description || t('subscriptions.title');
-  toggleMutation.mutate(
-    { subscriptionId: sub.subscription_id, subscription: sub },
-    {
-      onSuccess: () => {
-        toast.success(t('common.success'), {
-          description: t('subscriptions.disabled', { name }),
-        });
-      },
-      onError: (err) => handleMutationError(err),
-    }
-  );
+  doToggle();
 }
 </script>
 

@@ -4,16 +4,13 @@ import { useI18n } from 'vue-i18n';
 import { CheckCircle, AlertTriangle, XCircle, Minus } from 'lucide-vue-next';
 import Hook0Badge from './Hook0Badge.vue';
 import Hook0Tooltip from './Hook0Tooltip.vue';
+import { WARNING_THRESHOLD, CRITICAL_THRESHOLD } from '@/constants/healthThresholds';
 
 const props = defineProps<{
   failurePercent: number | null;
 }>();
 
 const { t } = useI18n();
-
-// Thresholds must match health_monitor defaults in api/src/main.rs
-const WARNING_THRESHOLD = 80;
-const CRITICAL_THRESHOLD = 95;
 
 const variant = computed(() => {
   if (props.failurePercent === null) return 'default';
