@@ -72,6 +72,7 @@ defineSlots<{
 .hook0-badge {
   display: inline-flex;
   align-items: center;
+  gap: 0.25rem;
   font-weight: 500;
   border-radius: 9999px;
   white-space: nowrap;

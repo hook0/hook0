@@ -65,8 +65,7 @@ const showMergedEmptyState = computed(() => {
 const httpTarget = computed(() => {
   const target = subscription.value?.target;
   if (!target || !targetIsHttp(target)) return null;
-  const url = target.url.startsWith('http') ? target.url : `https://${target.url}`;
-  return { ...target, url };
+  return target;
 });
 </script>
 
@@ -120,11 +119,17 @@ const httpTarget = computed(() => {
                     {{ subscription.retry_schedule_id }}
                   </span>
                 </div>
+                <div v-if="subscription.failure_percent != null" class="detail-header__meta-item">
+                  <span class="detail-header__meta-label">{{ t('subscriptionDetail.failureRate') }}</span>
+                  <span class="detail-header__meta-value">
+                    {{ Math.round(subscription.failure_percent) }}%
+                  </span>
+                </div>
               </div>
             </div>
             <div class="detail-header__actions">
               <Hook0Button
-                variant="ghost"
+                variant="secondary"
                 type="button"
                 @click="
                   void router.push({

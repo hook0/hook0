@@ -184,8 +184,7 @@ const columns: ColumnDef<Subscription, unknown>[] = [
     cell: (info) => {
       const target = (info.row.original.target ?? {}) as object;
       if (targetIsHttp(target)) {
-        const url = target.url.startsWith('http') ? target.url : `https://${target.url}`;
-        return h(Hook0TableCellTarget, { method: target.method, url });
+        return h(Hook0TableCellTarget, { method: target.method, url: target.url });
       }
       return h(Hook0TableCellCode, { value: JSON.stringify(info.row.original.target) });
     },

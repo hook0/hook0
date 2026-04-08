@@ -22,7 +22,7 @@ const parsed = computed(() => {
   try {
     const u = new URL(props.url);
     const segments = u.pathname.split('/').filter(Boolean);
-    const domain = u.host;
+    const domain = u.origin.replace(/\/$/, '');
     if (segments.length <= 1) {
       return { domain, midPath: '', lastChunk: u.pathname };
     }

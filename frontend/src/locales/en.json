@@ -1136,6 +1136,7 @@
     "sectionRetrySchedule": "Retry Schedule",
     "sectionRecentDeliveries": "Recent Deliveries",
     "targetUrl": "Target URL",
+    "failureRate": "Failure Rate",
     "httpMethod": "HTTP Method",
     "eventTypes": "Event Types",
     "labels": "Labels",
