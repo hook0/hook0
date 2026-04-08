@@ -965,24 +965,29 @@ pub async fn edit(
                 .map_err(Hook0Problem::from)?;
             }
 
-            // On re-enable: insert a 'resolved' health event, reset failure_percent
-            if body.is_enabled && previous_is_enabled == Some(false) {
+            // Record a health event when the user toggles enabled — 'disabled' on manual disable, 'resolved' on re-enable
+            if body.is_enabled != previous_is_enabled.unwrap_or(body.is_enabled) {
+                let status = if body.is_enabled { "resolved" } else { "disabled" };
                 query(
-                    "INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id) VALUES ($1, 'resolved', 'user', $2)"
+                    "INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id) VALUES ($1, $2, 'user', $3)"
                 )
                 .bind(s.subscription__id)
+                .bind(status)
                 .bind(None::<Uuid>)
                 .execute(&mut *tx)
                 .await
                 .map_err(Hook0Problem::from)?;
 
-                query(
-                    "UPDATE webhook.subscription SET failure_percent = NULL WHERE subscription__id = $1"
-                )
-                .bind(s.subscription__id)
-                .execute(&mut *tx)
-                .await
-                .map_err(Hook0Problem::from)?;
+                // On re-enable: also reset failure_percent so the health badge starts fresh
+                if body.is_enabled {
+                    query(
+                        "UPDATE webhook.subscription SET failure_percent = NULL WHERE subscription__id = $1"
+                    )
+                    .bind(s.subscription__id)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(Hook0Problem::from)?;
+                }
             }
 
             // Mark pending request attempts as failed if subscription is disabled
