@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE webhook.subscription\n            SET is_enabled = $1, description = $2, metadata = $3, labels = $4, retry_schedule__id = (SELECT retry_schedule__id FROM webhook.retry_schedule WHERE retry_schedule__id = $7 AND organization__id = (SELECT organization__id FROM event.application WHERE application__id = $6 AND deleted_at IS NULL)), updated_at = statement_timestamp()\n            WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL\n            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, retry_schedule__id, failure_percent, target__id, created_at, updated_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscription__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "is_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "secret",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "labels",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "retry_schedule__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "failure_percent",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 8,
+        "name": "target__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Text",
+        "Jsonb",
+        "Jsonb",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1ee75758f7e0e1d6039c1a2638d2f8f30cbf1f2e6ed1c0c83eba32ac66b3a703"
+}

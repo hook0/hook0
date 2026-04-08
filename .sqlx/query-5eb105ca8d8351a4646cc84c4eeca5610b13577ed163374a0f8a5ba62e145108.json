@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO pricing.quota_notifications\n                        (organization__id, type, name)\n                    VALUES\n                        ($1, $2, $3)\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5eb105ca8d8351a4646cc84c4eeca5610b13577ed163374a0f8a5ba62e145108"
+}

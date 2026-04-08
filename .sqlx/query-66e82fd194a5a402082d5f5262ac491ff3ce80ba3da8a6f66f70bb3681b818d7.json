@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM webhook.subscription__worker WHERE subscription__id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "66e82fd194a5a402082d5f5262ac491ff3ce80ba3da8a6f66f70bb3681b818d7"
+}
