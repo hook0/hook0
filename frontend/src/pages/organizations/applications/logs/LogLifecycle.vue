@@ -147,16 +147,7 @@ const steps = computed<LifecycleStep[]>(() => {
         <div
           v-if="index < steps.length - 1"
           class="log-lifecycle__line"
-          :class="{
-            'log-lifecycle__line--done':
-              step.status === 'done' && steps[index + 1]?.status === 'done',
-            'log-lifecycle__line--next':
-              step.status === 'done' &&
-              (steps[index + 1]?.status === 'next' || steps[index + 1]?.status === 'scheduled'),
-            'log-lifecycle__line--error': steps[index + 1]?.status === 'error',
-            'log-lifecycle__line--recovery':
-              step.status === 'error' && steps[index + 1]?.status === 'done',
-          }"
+          :class="`log-lifecycle__line--${steps[index + 1]?.status}`"
         />
       </div>
       <div class="log-lifecycle__content">
@@ -258,9 +249,17 @@ const steps = computed<LifecycleStep[]>(() => {
   background-color: var(--color-primary);
 }
 
+.log-lifecycle__line--active {
+  background-color: var(--color-info);
+}
+
 .log-lifecycle__line--next {
   background-color: color-mix(in srgb, var(--color-warning) 50%, transparent);
   animation: pulse-line 2s ease-in-out infinite;
+}
+
+.log-lifecycle__line--scheduled {
+  background-color: var(--color-warning);
 }
 
 @keyframes pulse-line {
@@ -275,10 +274,6 @@ const steps = computed<LifecycleStep[]>(() => {
 
 .log-lifecycle__line--error {
   background-color: var(--color-error);
-}
-
-.log-lifecycle__line--recovery {
-  background-color: var(--color-primary);
 }
 
 .log-lifecycle__content {
