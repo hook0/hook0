@@ -4,20 +4,72 @@
 
 cli.check:
   stage: test
-  dependencies: []
   image: rust:$RUST_VERSION
   extends: .rust-cache-pull-only
+  needs:
+    - job: api-integration-tests.build
+      artifacts: true
   rules:
     - changes:
         - cli/**/*
+        - api/**/*
         - Cargo.*
+  services:
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/postgres:$PG_VERSION
+      alias: postgres
+  variables:
+    ## PostgreSQL
+    POSTGRES_DB: hook0
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    ## API configuration
+    DATABASE_URL: "postgres://postgres:postgres@postgres:5432/hook0"
+    SMTP_CONNECTION_URL: "smtp://localhost:1025"
+    EMAIL_SENDER_ADDRESS: "noreply@hook0.local"
+    APP_URL: "http://localhost:8080/"
+    BISCUIT_PRIVATE_KEY: "bee97db5398b2694cc2362918a2d9eed117b70f036e224407085ccb6800028fc"
+    MASTER_API_KEY: "00000000-0000-0000-0000-000000000000"
+    DISABLE_TARGET_IP_CHECK: "true"
+    DISABLE_SERVING_WEBAPP: "true"
+    HEALTH_CHECK_KEY: ""
+    DISABLE_API_RATE_LIMITING: "true"
   before_script:
     - rustc --version && cargo --version
     - rustup component add clippy rustfmt
+    # Install Node.js for the provisioning script
+    - curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+    - apt-get install -y nodejs
   script:
-    - cd cli
+    # Static checks (no API needed)
+    - pushd cli
     - cargo fmt --check
     - cargo clippy -- -D warnings
+    - popd
+    # Start the API binary in background
+    - chmod +x target/release/hook0-api
+    - target/release/hook0-api &
+    # Wait for API readiness
+    - |
+      echo "Waiting for API to be ready..."
+      for i in $(seq 1 30); do
+        if curl -sf http://localhost:8080/api/v1/health -o /dev/null 2>&1; then
+          echo "API is ready!"
+          break
+        fi
+        echo "Waiting for API... ($i/30)"
+        sleep 2
+        if [ $i -eq 30 ]; then
+          echo "ERROR: API failed to start within timeout"
+          exit 1
+        fi
+      done
+    # Provision test data
+    - pushd cli/tests
+    - npm install --no-package-lock pg
+    - eval "$(node ci-setup.mjs)"
+    - popd
+    # Run all tests including E2E
+    - pushd cli
     - cargo test --all-features -- --include-ignored
 
 # =============================================================================
