@@ -209,7 +209,7 @@ const httpTarget = computed(() => {
           </Hook0CardContent>
         </Hook0Card>
 
-        <template v-else-if="deliveries.length > 0">
+        <div v-else-if="deliveries.length > 0" class="deliveries-section">
           <Hook0Card>
             <Hook0CardHeader>
               <template #header>{{ t('subscriptionDetail.deliveries') }}</template>
@@ -218,7 +218,7 @@ const httpTarget = computed(() => {
           </Hook0Card>
 
           <DeliverySplitView :deliveries="deliveries" :application-id="applicationId" />
-        </template>
+        </div>
       </template>
     </template>
   </Hook0PageLayout>
@@ -294,8 +294,13 @@ const httpTarget = computed(() => {
   flex-shrink: 0;
 }
 
-/* Reduce gap between Delivery Logs card and the split layout table */
-:deep(.hook0-split-layout) {
-  margin-top: 0.25rem;
+.deliveries-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.deliveries-section :deep(.hook0-split-layout) {
+  margin-top: 0;
 }
 </style>
