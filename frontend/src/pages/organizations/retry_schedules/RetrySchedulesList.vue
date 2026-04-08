@@ -7,7 +7,8 @@ import { Plus, Repeat, Trash2 } from 'lucide-vue-next';
 import { useRetryScheduleList, useRemoveRetrySchedule } from './useRetryScheduleQueries';
 import type { RetrySchedule } from './RetryScheduleService';
 import { routes } from '@/routes';
-import { formatDelaySummary, strategyLabel } from './retryScheduleFormatters';
+import { strategyLabel } from './retryScheduleFormatters';
+import { formatDuration } from '@/utils/formatDuration';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
@@ -20,7 +21,6 @@ import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
 import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
-import Hook0DateTime from '@/components/Hook0DateTime.vue';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
@@ -61,6 +61,23 @@ const {
   onSuccess: () => trackEvent('retry-schedule', 'delete', 'success'),
 });
 
+function computeDelays(schedule: RetrySchedule): number[] {
+  const max = schedule.max_retries;
+  switch (schedule.strategy) {
+    case 'increasing': {
+      const bd = schedule.increasing_base_delay ?? 3;
+      const wf = schedule.increasing_wait_factor ?? 3;
+      return Array.from({ length: max }, (_, i) => Math.round(bd * Math.pow(wf, i)));
+    }
+    case 'linear':
+      return Array.from({ length: max }, () => schedule.linear_delay ?? 60);
+    case 'custom':
+      return schedule.custom_intervals ?? [];
+    default:
+      return [];
+  }
+}
+
 const columns: ColumnDef<RetrySchedule, unknown>[] = [
   {
     accessorKey: 'name',
@@ -81,29 +98,17 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
     },
   },
   {
-    accessorKey: 'strategy',
-    header: t('retrySchedules.strategyColumn'),
-    cell: (info) =>
-      h(Hook0Badge, { variant: 'info', size: 'sm' }, () =>
-        strategyLabel(info.getValue<RetrySchedule['strategy']>(), t)
-      ),
+    id: 'preview',
+    header: t('retrySchedules.previewColumn'),
+    cell: (info) => {
+      const row = info.row.original;
+      const delays = computeDelays(row);
+      return h('div', { class: 'preview-chips' }, [
+        h(Hook0Badge, { variant: 'info', size: 'sm' }, () => strategyLabel(row.strategy, t)),
+        ...delays.map((s) => h('span', { class: 'preview-chips__chip' }, formatDuration(s))),
+      ]);
+    },
   },
-  {
-    accessorKey: 'max_retries',
-    header: t('retrySchedules.maxRetriesColumn'),
-  },
-  {
-    id: 'delay',
-    header: t('retrySchedules.delayColumn'),
-    cell: (info) => formatDelaySummary(info.row.original, t),
-  },
-  {
-    accessorKey: 'created_at',
-    header: t('retrySchedules.createdAtColumn'),
-    enableSorting: true,
-    cell: (info) => h(Hook0DateTime, { value: info.getValue<string>() }),
-  },
-  // Conditionally append the delete column — the spread-of-ternary keeps TanStack Table's column identity stable
   ...(canDelete('retry_schedule')
     ? [
         {
@@ -118,7 +123,7 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
             }),
         } satisfies ColumnDef<RetrySchedule, unknown>,
       ]
-    : []), // No actions column when user lacks delete permission — column simply doesn't exist
+    : []),
 ];
 </script>
 
@@ -129,6 +134,7 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
     <Hook0Card v-else-if="isLoading || !schedules" data-test="retry-schedules-card">
       <Hook0CardHeader>
         <template #header>{{ t('retrySchedules.title') }}</template>
+        <template #subtitle>{{ t('retrySchedules.subtitle') }}</template>
       </Hook0CardHeader>
       <Hook0CardContent>
         <Hook0SkeletonGroup :count="5" />
@@ -138,6 +144,7 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
     <Hook0Card v-else data-test="retry-schedules-card">
       <Hook0CardHeader>
         <template #header>{{ t('retrySchedules.title') }}</template>
+        <template #subtitle>{{ t('retrySchedules.subtitle') }}</template>
       </Hook0CardHeader>
 
       <Hook0CardContent v-if="schedules.length > 0">
@@ -202,3 +209,25 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
     </Hook0Dialog>
   </Hook0PageLayout>
 </template>
+
+<style scoped>
+.preview-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.preview-chips__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  font-variant-numeric: tabular-nums;
+}
+</style>

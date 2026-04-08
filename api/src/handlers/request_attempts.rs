@@ -440,7 +440,7 @@ pub async fn list(
                 s.description AS subscription__description,
                 e.event_type__name,
                 r.http_code AS http_response_status,
-                ra.attempt_trigger::text AS "attempt_trigger!"
+                ra.attempt_trigger::text AS \"attempt_trigger!\"
             FROM webhook.request_attempt AS ra
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
             INNER JOIN event.event AS e ON e.event__id = ra.event__id

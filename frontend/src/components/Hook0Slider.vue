@@ -12,6 +12,7 @@ type Props = {
   max: number;
   step?: number;
   label?: string;
+  hideLabel?: boolean;
   error?: string;
   formatValue?: (value: number) => string;
   editable?: boolean;
@@ -20,6 +21,7 @@ type Props = {
 const props = withDefaults(defineProps<Props>(), {
   step: 1,
   label: undefined,
+  hideLabel: false,
   error: undefined,
   formatValue: undefined,
   editable: false,
@@ -89,7 +91,7 @@ function cancelEdit() {
 
 <template>
   <div class="hook0-slider">
-    <div v-if="label" class="hook0-slider__header">
+    <div v-if="label && !hideLabel" class="hook0-slider__header">
       <label class="hook0-slider__label">{{ label }}</label>
       <div v-if="isEditing" class="hook0-slider__edit-wrapper">
         <input

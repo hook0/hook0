@@ -110,7 +110,8 @@ const showMergedEmptyState = computed(() => {
 const httpTarget = computed(() => {
   const target = subscription.value?.target;
   if (!target || !targetIsHttp(target)) return null;
-  return target;
+  const url = target.url.startsWith('http') ? target.url : `https://${target.url}`;
+  return { ...target, url };
 });
 </script>
 
@@ -183,7 +184,22 @@ const httpTarget = computed(() => {
             :title="t('subscriptionDetail.noActivityTitle')"
             :description="t('subscriptionDetail.noActivityDescription')"
             :icon="Send"
-          />
+          >
+            <template #action>
+              <Hook0Button
+                variant="primary"
+                :to="{
+                  name: routes.EventsSend,
+                  params: {
+                    organization_id: route.params.organization_id,
+                    application_id: route.params.application_id,
+                  },
+                }"
+              >
+                {{ t('subscriptionDetail.sendFirstEvent') }}
+              </Hook0Button>
+            </template>
+          </Hook0EmptyState>
         </Hook0CardContent>
       </Hook0Card>
 
@@ -212,7 +228,7 @@ const httpTarget = computed(() => {
             <Hook0Table
               :columns="logColumns"
               :data="deliveries"
-              row-id-field="event_id"
+              row-id-field="request_attempt_id"
               clickable-rows
               @row-click="handleRowClick"
             />

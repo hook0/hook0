@@ -437,27 +437,21 @@ const pageTitle = computed(() =>
                   {{ t('retrySchedules.fields.customIntervals') }}
                 </label>
                 <div class="custom-intervals">
-                  <div class="custom-intervals__header">
-                    <span class="custom-intervals__header-label">{{
-                      t('retrySchedules.fields.retryNumberHeader')
-                    }}</span>
-                    <span class="custom-intervals__header-label">{{
-                      t('retrySchedules.fields.intervalSeconds')
-                    }}</span>
-                    <span class="custom-intervals__header-spacer" />
-                  </div>
                   <div
                     v-for="(interval, index) in customIntervalsValue"
-                    :key="`interval-${index}-${interval}`"
+                    :key="`interval-${index}`"
                     class="custom-intervals__row"
                   >
-                    <span class="custom-intervals__label"> #{{ index + 1 }} </span>
-                    <Hook0Input
-                      :model-value="String(interval)"
-                      type="number"
-                      min="1"
+                    <span class="custom-intervals__label">#{{ index + 1 }}</span>
+                    <Hook0Slider
+                      :model-value="interval"
+                      :min="1"
                       :max="MAX_INTERVAL_SECONDS"
-                      :aria-label="t('retrySchedules.fields.retryNumber', { number: index + 1 })"
+                      :label="t('retrySchedules.fields.retryNumber', { number: index + 1 })"
+                      :format-value="formatDuration"
+                      :editable="true"
+                      hide-label
+                      class="custom-intervals__slider"
                       @update:model-value="updateInterval(index, String($event))"
                     />
                     <Hook0Button
@@ -564,34 +558,6 @@ const pageTitle = computed(() =>
   gap: 0.375rem;
 }
 
-.custom-intervals__header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.custom-intervals__header-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.custom-intervals__header-label:first-child {
-  min-width: 3rem;
-  flex-shrink: 0;
-}
-
-.custom-intervals__header-label:nth-child(2) {
-  flex: 1;
-}
-
-.custom-intervals__header-spacer {
-  width: 2.25rem;
-  flex-shrink: 0;
-}
-
 .custom-intervals__row {
   display: flex;
   align-items: center;
@@ -604,6 +570,11 @@ const pageTitle = computed(() =>
   color: var(--color-text-secondary);
   min-width: 3rem;
   flex-shrink: 0;
+}
+
+.custom-intervals__slider {
+  flex: 1;
+  min-width: 0;
 }
 
 .slider-row {

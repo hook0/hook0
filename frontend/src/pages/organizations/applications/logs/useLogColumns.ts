@@ -22,7 +22,7 @@ function statusLabel(row: RequestAttemptExtended, t: ReturnType<typeof useI18n>[
     return t('logs.statusTimeout');
   }
   if (row.status.type === RequestAttemptStatusType.Waiting && row.delay_until) {
-    return t('logs.statusQueued', { time: formatRelativeTime(row.delay_until) });
+    return t('logs.statusScheduled', { time: formatRelativeTime(row.delay_until) });
   }
   const config = getStatusConfig(row.status.type);
   return t(config.labelKey);

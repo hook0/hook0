@@ -54,7 +54,7 @@ const tooltipContent = computed(() => {
 <template>
   <Hook0Tooltip :content="tooltipContent" position="top">
     <Hook0Badge :variant="variant" size="sm">
-      <component :is="statusIcon" :size="12" aria-hidden="true" />
+      <component v-if="status !== 'noData'" :is="statusIcon" :size="12" aria-hidden="true" />
       {{ label }}
     </Hook0Badge>
   </Hook0Tooltip>

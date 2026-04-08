@@ -44,7 +44,7 @@ const isDesktop = useMediaQuery('(min-width: 768px)');
 const retentionDays = computed(() => {
   const days = organization.value?.quotas.days_of_events_retention_limit;
   // API uses INT32_MAX (2147483647) as sentinel for "unlimited retention"
-  if (!days || days >= 2_147_483_647) return null;
+  if (!days || days >= 3650) return null;
   return days;
 });
 
