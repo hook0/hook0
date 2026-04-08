@@ -15,7 +15,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.102"
-aws-sdk-s3 = { version = "1.128.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.129.0", features = ["behavior-version-latest"] }
 chrono = { version = "0.4.44", features = ["serde"] }
 clap = { version = "4.6.0", features = ["derive", "env", "cargo", "wrap_help"] }
 futures = "0.3.32"
