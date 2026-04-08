@@ -1,6 +1,6 @@
 //! Local webhook listener command - forwards webhooks to localhost via WebSocket tunnel
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use clap::Args;
 use console::style;
 use futures_util::StreamExt;
@@ -9,11 +9,11 @@ use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::protocol::Message;
 use tracing::{debug, warn};
 
-use crate::tunnel::{
-    forward_request, generate_token, reconnect_loop, ClientMessage, ConnectionInfo, ServerMessage,
-    SessionEnd, READ_TIMEOUT,
-};
 use crate::Cli;
+use crate::tunnel::{
+    ClientMessage, ConnectionInfo, READ_TIMEOUT, ServerMessage, SessionEnd, forward_request,
+    generate_token, reconnect_loop,
+};
 
 /// Default hooks relay server URL
 const DEFAULT_RELAY_URL: &str = "wss://play.hook0.com/ws";
@@ -122,7 +122,7 @@ pub async fn execute(_cli: &Cli, args: &ListenArgs) -> Result<()> {
     // Create HTTP client for forwarding
     let http_client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
-        .danger_accept_invalid_certs(args.insecure)
+        .tls_danger_accept_invalid_certs(args.insecure)
         .build()?;
 
     let ping_interval = Duration::from_secs(args.ping_interval);

@@ -3,7 +3,7 @@
 //! Provides auto-reconnection with exponential backoff, read timeout (watchdog),
 //! token collision handling, and mpsc channel decoupling for reader/writer.
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use futures_util::{SinkExt, StreamExt};
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
@@ -195,10 +195,10 @@ where
         };
 
         // Reset backoff if last connection was long-lived (>10s)
-        if let Some(last_t) = last_connected_at {
-            if last_t.elapsed() > Duration::from_secs(10) {
-                backoff_index = 0;
-            }
+        if let Some(last_t) = last_connected_at
+            && last_t.elapsed() > Duration::from_secs(10)
+        {
+            backoff_index = 0;
         }
         last_connected_at = Some(Instant::now());
 

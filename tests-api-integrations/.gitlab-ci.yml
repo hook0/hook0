@@ -10,6 +10,7 @@ api-integration-tests.build:
         - api/**/*
         - frontend/**/*
         - output-worker/**/*
+        - cli/**/*
         - Cargo.*
   before_script:
     - rustc --version && cargo --version

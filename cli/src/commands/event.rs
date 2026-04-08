@@ -2,14 +2,14 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use clap::{Args, Subcommand};
 use uuid::Uuid;
 
-use crate::api::models::{base64_decode, EventFilters, EventPost, PaginationParams};
-use crate::commands::require_auth;
-use crate::output::{output_many, output_one, output_success, OutputFormat, TableOutput};
 use crate::Cli;
+use crate::api::models::{EventFilters, EventPost, PaginationParams, base64_decode};
+use crate::commands::require_auth;
+use crate::output::{OutputFormat, TableOutput, output_many, output_one, output_success};
 
 #[derive(Subcommand, Debug)]
 pub enum EventCommands {

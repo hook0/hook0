@@ -4,8 +4,8 @@ use anyhow::Result;
 use clap::Args;
 use std::time::Duration;
 
-use crate::tunnel::generate_token;
 use crate::Cli;
+use crate::tunnel::generate_token;
 
 #[derive(Args, Debug)]
 pub struct ExampleArgs {

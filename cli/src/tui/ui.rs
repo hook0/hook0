@@ -24,11 +24,11 @@
 //! │  ↑↓ Navigate  Tab Switch  J/K Scroll body  q Quit               1/3    │
 //! └──────────────────────────────────────────────────────────────────────────┘
 
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
-use ratatui::Frame;
 
 use super::app::{ConnectionStatus, TuiApp};
 use super::shared;

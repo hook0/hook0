@@ -4,12 +4,12 @@
 //! an enriched JSON body containing the received payload metadata.
 //! The response status code is configurable via a `watch` channel.
 
+use axum::Router;
 use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::{HeaderMap, Method, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::any;
-use axum::Router;
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
 
