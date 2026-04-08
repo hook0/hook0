@@ -13,6 +13,8 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ops::Deref;
 use tracing::error;
 use uuid::Uuid;
+
+use crate::health_monitor::types::{HealthEventSource, HealthStatus};
 use validator::{Validate, ValidationErrors};
 
 use crate::hook0_client::{
@@ -967,12 +969,13 @@ pub async fn edit(
 
             // Record a health event when the user toggles enabled — 'disabled' on manual disable, 'resolved' on re-enable
             if body.is_enabled != previous_is_enabled.unwrap_or(body.is_enabled) {
-                let status = if body.is_enabled { "resolved" } else { "disabled" };
+                let status = if body.is_enabled { HealthStatus::Resolved } else { HealthStatus::Disabled };
                 query(
-                    "INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id) VALUES ($1, $2, 'user', $3)"
+                    "INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id) VALUES ($1, $2, $3, $4)"
                 )
                 .bind(s.subscription__id)
-                .bind(status)
+                .bind(status.to_string())
+                .bind(HealthEventSource::User.to_string())
                 .bind(None::<Uuid>)
                 .execute(&mut *tx)
                 .await
