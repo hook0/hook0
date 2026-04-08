@@ -83,12 +83,18 @@ const steps = computed<LifecycleStep[]>(() => {
       icon: XCircle,
     });
     if (attempt.delay_until) {
+      const retryTime = new Date(attempt.delay_until).getTime();
+      const retryInFuture = retryTime > Date.now();
       result.push({
         label: t('logs.lifecycle.retryAt'),
-        description: t('logs.lifecycle.retryAtDesc'),
+        description: retryInFuture
+          ? t('logs.lifecycle.retryAtScheduledDesc', {
+              time: formatRelativeTime(attempt.delay_until),
+            })
+          : t('logs.lifecycle.retryAtDoneDesc'),
         date: attempt.delay_until,
-        status: 'active',
-        icon: Clock,
+        status: retryInFuture ? 'active' : 'done',
+        icon: retryInFuture ? Clock : CheckCircle2,
       });
     }
   } else if (attempt.succeeded_at) {

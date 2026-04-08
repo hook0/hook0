@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, h } from 'vue';
+import { computed, h, markRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
-import { Pencil, Send, RotateCcw } from 'lucide-vue-next';
+import { Pencil, Send, RefreshCw } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 import { handleMutationError } from '@/utils/handleMutationError';
 
@@ -22,6 +22,7 @@ import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0Switch from '@/components/Hook0Switch.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
@@ -66,23 +67,16 @@ const retryColumn = computed(() => [
     header: '',
     size: 40,
     cell: ({ row }: { row: { original: RequestAttemptExtended } }) =>
-      h(
-        Hook0Button,
-        {
-          variant: 'ghost',
-          type: 'button',
-          disabled: retryMutation.isPending.value,
-          'aria-label': t('subscriptionDetail.retryDelivery'),
-          onClick: (e: Event) => {
-            e.stopPropagation();
-            retryMutation.mutate(row.original.request_attempt_id, {
-              onSuccess: () => toast.success(t('subscriptionDetail.retryQueued')),
-              onError: (err: Error) => handleMutationError(err),
-            });
-          },
+      h(Hook0TableCellLink, {
+        value: t('subscriptionDetail.retryAction'),
+        icon: markRaw(RefreshCw),
+        onClick: () => {
+          retryMutation.mutate(row.original.request_attempt_id, {
+            onSuccess: () => toast.success(t('subscriptionDetail.retryQueued')),
+            onError: (err: Error) => handleMutationError(err),
+          });
         },
-        () => h(RotateCcw, { size: 16, 'aria-hidden': 'true' })
-      ),
+      }),
   },
 ]);
 
@@ -201,6 +195,7 @@ const httpTarget = computed(() => {
         <Hook0Card v-else-if="deliveriesLoading || !deliveries">
           <Hook0CardHeader>
             <template #header>{{ t('subscriptionDetail.deliveries') }}</template>
+            <template #subtitle>{{ t('subscriptionDetail.deliveriesSubtitle') }}</template>
           </Hook0CardHeader>
           <Hook0CardContent>
             <Hook0SkeletonGroup :count="3" />
@@ -211,6 +206,7 @@ const httpTarget = computed(() => {
           <Hook0Card>
             <Hook0CardHeader>
               <template #header>{{ t('subscriptionDetail.deliveries') }}</template>
+              <template #subtitle>{{ t('subscriptionDetail.deliveriesSubtitle') }}</template>
             </Hook0CardHeader>
           </Hook0Card>
 

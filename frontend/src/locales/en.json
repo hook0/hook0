@@ -503,7 +503,9 @@
       "failed": "Failed",
       "failedDesc": "Endpoint error or unreachable",
       "retryAt": "Retry at",
-      "retryAtDesc": "Scheduled for automatic retry"
+      "retryAtDesc": "Scheduled for automatic retry",
+      "retryAtScheduledDesc": "Automatic retry in {time}",
+      "retryAtDoneDesc": "Retried automatically"
     },
     "pendingPlaceholder": "pending…",
     "pickedAt": "Picked At",
@@ -1144,8 +1146,10 @@
     "statusColumn": "Status",
     "dateColumn": "Date",
     "retryCountColumn": "Retry",
-    "deliveries": "Recent Deliveries",
+    "deliveries": "Delivery Logs",
+    "deliveriesSubtitle": "Showing the last 7 days for this subscription.",
     "deliveriesEmpty": "No deliveries in the last 7 days",
+    "retryAction": "Retry",
     "healthTimeline": "Health Timeline",
     "healthEmpty": "No health events recorded",
     "noActivityTitle": "No activity yet",

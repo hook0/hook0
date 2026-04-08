@@ -7,6 +7,7 @@
  * and all the CSS for log status pills and split layout table overrides.
  */
 import { ref, watch, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useMediaQuery } from '@vueuse/core';
 import type { ColumnDef } from '@tanstack/vue-table';
@@ -31,6 +32,8 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
 const isDesktop = useMediaQuery('(min-width: 768px)');
 
 const baseColumns = useLogColumns();
@@ -38,26 +41,29 @@ const columns = computed(() => [...baseColumns, ...(props.extraColumns ?? [])]);
 
 const selectedRow = ref<RequestAttemptExtended | null>(null);
 
-// Auto-select first row on desktop so the detail panel is never empty
+// Sync selection with ?delivery= query param — survives page refresh.
+// Auto-select first row on desktop when no valid selection exists.
 watch(
-  [() => props.deliveries, isDesktop],
-  ([attempts]) => {
+  [() => props.deliveries, () => route.query.delivery, isDesktop],
+  ([attempts, deliveryId]) => {
     if (!attempts?.length) {
       selectedRow.value = null;
       return;
     }
-    // Keep current selection if it still exists in the data
-    if (selectedRow.value) {
-      const still = attempts.find(
-        (a) => a.request_attempt_id === selectedRow.value?.request_attempt_id
-      );
-      if (still) {
-        selectedRow.value = still;
+    if (deliveryId) {
+      const found = attempts.find((a) => a.request_attempt_id === deliveryId);
+      if (found) {
+        selectedRow.value = found;
         return;
       }
     }
     if (isDesktop.value) {
       selectedRow.value = attempts[0];
+      void router.replace({
+        query: { ...route.query, delivery: attempts[0].request_attempt_id },
+      });
+    } else {
+      selectedRow.value = null;
     }
   },
   { immediate: true }
@@ -65,10 +71,15 @@ watch(
 
 function handleRowClick(row: RequestAttemptExtended) {
   selectedRow.value = row;
+  void router.replace({
+    query: { ...route.query, delivery: row.request_attempt_id },
+  });
 }
 
 function goBackToList() {
   selectedRow.value = null;
+  const { delivery: _, ...rest } = route.query;
+  void router.replace({ query: rest });
 }
 </script>
 
