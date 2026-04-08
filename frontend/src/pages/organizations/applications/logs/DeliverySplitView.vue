@@ -129,64 +129,30 @@ function goBackToList() {
 </template>
 
 <style scoped>
-/* Table layout overrides for Hook0SplitLayout's list panel */
+/* Let the browser size columns to their content — avoids overflow on narrow panels */
 :deep(.hook0-split-layout__list table) {
-  table-layout: fixed;
-}
-
-/* Status column: fixed width, never truncate */
-:deep(.hook0-split-layout__list .hook0-table-th:first-child),
-:deep(.hook0-split-layout__list .hook0-table-td:first-child) {
-  width: 9.4rem;
-  white-space: nowrap;
-  overflow: visible;
-}
-
-/* Retry column: compact */
-:deep(.hook0-split-layout__list .hook0-table-th:nth-last-child(2)),
-:deep(.hook0-split-layout__list .hook0-table-td:nth-last-child(2)) {
-  width: 6rem;
-}
-
-/* Created at column: compact */
-:deep(.hook0-split-layout__list .hook0-table-th:last-child),
-:deep(.hook0-split-layout__list .hook0-table-td:last-child) {
-  width: 5rem;
-}
-
-@media (max-width: 767px) {
-  :deep(.hook0-split-layout__list .hook0-table-th:first-child),
-  :deep(.hook0-split-layout__list .hook0-table-td:first-child) {
-    width: 7rem;
-  }
-
-  :deep(.hook0-split-layout__list .log-status) {
-    max-width: 6rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-/* Event + date columns truncate with ellipsis */
-:deep(.hook0-split-layout__list .hook0-table-td:not(:first-child)),
-:deep(.hook0-split-layout__list .hook0-table-th:not(:first-child)) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Right-align the last visible date column — header + cells */
-:deep(.hook0-table-th:last-child) {
-  text-align: right;
-}
-
-:deep(.hook0-table-th:last-child .hook0-table-sort-button) {
-  justify-content: flex-end;
+  table-layout: auto;
   width: 100%;
 }
 
-:deep(.hook0-table-td:last-child) {
-  text-align: right;
+/* Status + created_at + retry: shrink to content, never wrap */
+:deep(.hook0-split-layout__list .hook0-table-th:first-child),
+:deep(.hook0-split-layout__list .hook0-table-td:first-child),
+:deep(.hook0-split-layout__list .hook0-table-th:last-child),
+:deep(.hook0-split-layout__list .hook0-table-td:last-child),
+:deep(.hook0-split-layout__list .hook0-table-th:nth-last-child(2)),
+:deep(.hook0-split-layout__list .hook0-table-td:nth-last-child(2)) {
+  white-space: nowrap;
+  width: 1%;
+}
+
+/* Event column: takes remaining space, truncates with ellipsis */
+:deep(.hook0-split-layout__list .hook0-table-th:nth-child(2)),
+:deep(.hook0-split-layout__list .hook0-table-td:nth-child(2)) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
 }
 
 /* Log cell styles — rendered via h() in useLogColumns.ts, needs :deep() to pierce scoped boundary */
