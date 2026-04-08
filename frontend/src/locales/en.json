@@ -1161,8 +1161,11 @@
     "healthEventSource": "Source",
     "healthStatus": {
       "warning": "Warning",
+      "warningTooltip": "Failure rate exceeded the warning threshold",
       "disabled": "Disabled",
-      "resolved": "Resolved"
+      "disabledTooltip": "Failure rate exceeded the critical threshold — subscription auto-disabled",
+      "resolved": "Resolved",
+      "resolvedTooltip": "Failure rate dropped back below the warning threshold"
     },
     "healthSource": {
       "system": "System",

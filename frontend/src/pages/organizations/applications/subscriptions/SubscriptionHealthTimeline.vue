@@ -3,6 +3,8 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { HealthEvent } from './SubscriptionHealthService';
 import Hook0Badge from '@/components/Hook0Badge.vue';
+import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
+import { formatDate } from '@/utils/formatDate';
 
 defineProps<{
   events: HealthEvent[];
@@ -42,15 +44,19 @@ function relativeDate(iso: string): string {
         aria-hidden="true"
       />
       <div class="health-timeline__content">
-        <Hook0Badge :variant="statusVariantMap[event.status] ?? 'default'" size="sm">
-          {{ t(`subscriptionDetail.healthStatus.${event.status}`) }}
-        </Hook0Badge>
+        <Hook0Tooltip :content="t(`subscriptionDetail.healthStatus.${event.status}Tooltip`)" position="top">
+          <Hook0Badge :variant="statusVariantMap[event.status] ?? 'default'" size="sm">
+            {{ t(`subscriptionDetail.healthStatus.${event.status}`) }}
+          </Hook0Badge>
+        </Hook0Tooltip>
         <Hook0Badge variant="default" size="sm">
           {{ t(`subscriptionDetail.healthSource.${event.source}`) }}
         </Hook0Badge>
-        <span class="health-timeline__date">
-          {{ relativeDate(event.created_at) }}
-        </span>
+        <Hook0Tooltip :content="formatDate(event.created_at)" position="top">
+          <span class="health-timeline__date">
+            {{ relativeDate(event.created_at) }}
+          </span>
+        </Hook0Tooltip>
       </div>
     </li>
   </ol>

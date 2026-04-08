@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import { Pencil, Send } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
+import { handleMutationError } from '@/utils/handleMutationError';
 
-import { useSubscriptionDetail } from './useSubscriptionQueries';
+import { useSubscriptionDetail, useToggleSubscription } from './useSubscriptionQueries';
 import { targetIsHttp } from './SubscriptionService';
 import { useLogListBySubscription } from '../logs/useLogQueries';
 import { useSubscriptionHealthEvents } from './useSubscriptionHealthQueries';
@@ -20,6 +22,7 @@ import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Switch from '@/components/Hook0Switch.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
@@ -67,6 +70,49 @@ const httpTarget = computed(() => {
   if (!target || !targetIsHttp(target)) return null;
   return target;
 });
+
+// --- Enable/disable toggle with confirmation for disable ---
+const toggleMutation = useToggleSubscription();
+const showDisableDialog = ref(false);
+
+function toggleSubscription() {
+  const sub = subscription.value;
+  if (!sub) return;
+  if (sub.is_enabled) {
+    showDisableDialog.value = true;
+    return;
+  }
+  const name = sub.description || t('subscriptions.title');
+  toggleMutation.mutate(
+    { subscriptionId: sub.subscription_id, subscription: sub },
+    {
+      onSuccess: () => {
+        toast.success(t('common.success'), {
+          description: t('subscriptions.enabled', { name }),
+        });
+      },
+      onError: (err) => handleMutationError(err),
+    }
+  );
+}
+
+function confirmDisable() {
+  const sub = subscription.value;
+  showDisableDialog.value = false;
+  if (!sub) return;
+  const name = sub.description || t('subscriptions.title');
+  toggleMutation.mutate(
+    { subscriptionId: sub.subscription_id, subscription: sub },
+    {
+      onSuccess: () => {
+        toast.success(t('common.success'), {
+          description: t('subscriptions.disabled', { name }),
+        });
+      },
+      onError: (err) => handleMutationError(err),
+    }
+  );
+}
 </script>
 
 <template>
@@ -98,8 +144,8 @@ const httpTarget = computed(() => {
                   <span class="detail-header__meta-label">{{ t('subscriptions.enabledColumn') }}</span>
                   <Hook0Switch
                     :model-value="subscription.is_enabled"
-                    disabled
                     :aria-label="t('subscriptions.enabledColumn')"
+                    @update:model-value="toggleSubscription()"
                   />
                 </div>
                 <div class="detail-header__meta-item">
@@ -221,6 +267,21 @@ const httpTarget = computed(() => {
         </div>
       </template>
     </template>
+    <Hook0Dialog
+      :open="showDisableDialog"
+      variant="danger"
+      :title="t('subscriptions.disableTitle')"
+      :confirm-text="t('subscriptions.disable')"
+      @close="showDisableDialog = false"
+      @confirm="confirmDisable()"
+    >
+      <i18n-t keypath="subscriptions.disableConfirm" tag="p">
+        <template #name>
+          &ldquo;<strong>{{ subscription?.description || t('subscriptions.title') }}</strong
+          >&rdquo;
+        </template>
+      </i18n-t>
+    </Hook0Dialog>
   </Hook0PageLayout>
 </template>
 
