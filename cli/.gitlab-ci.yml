@@ -84,7 +84,8 @@ cli.check:
     - rustup target add $TARGET || true
     - cargo build --release --target $TARGET
     - mkdir -p ../dist
-    - cp target/$TARGET/release/hook0$SUFFIX ../dist/hook0-$ARTIFACT_NAME
+    - ls target/
+    - cp target/release/hook0$SUFFIX ../dist/hook0-$ARTIFACT_NAME
   artifacts:
     paths:
       - dist/
