@@ -8,7 +8,7 @@ use paperclip::v2::schema::Apiv2Schema;
 use reqwest::Url;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value, json};
-use sqlx::{query, query_as, query_scalar};
+use sqlx::{PgConnection, query, query_as, query_scalar};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ops::Deref;
 use tracing::error;
@@ -755,11 +755,7 @@ pub async fn edit(
     subscription_id: Path<Uuid>,
     body: Json<SubscriptionPost>,
 ) -> Result<Json<Subscription>, Hook0Problem> {
-    let labels = match (&body.labels, &body.label_key, &body.label_value) {
-        (Some(l), _, _) => Ok(l.to_owned()),
-        (None, Some(k), Some(v)) => Ok(HashMap::from_iter([(k.to_owned(), v.to_owned())])),
-        _ => Err(Hook0Problem::LabelsAmbiguity),
-    }?;
+    let labels = parse_labels(&body)?;
 
     let _auth_token = authorize_for_application(
         &state.db,
@@ -782,296 +778,46 @@ pub async fn edit(
         .await
         .unwrap_or(Uuid::nil());
 
-    let labels = serde_json::to_value(&labels).unwrap_or_else(|_| Value::Object(Map::new()));
-
-    let metadata = match body.metadata.as_ref() {
-        Some(m) => serde_json::to_value(m.clone())
-            .expect("could not serialize subscription metadata into JSON"),
-        None => json!({}),
-    };
+    let labels_json = serde_json::to_value(&labels).unwrap_or_else(|_| Value::Object(Map::new()));
+    let metadata_json = serialize_metadata(&body.metadata);
 
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
-
     let subscription_id = subscription_id.into_inner();
 
-    #[allow(non_snake_case)]
-    struct RawSubscription {
-        subscription__id: Uuid,
-        is_enabled: bool,
-        description: Option<String>,
-        secret: Uuid,
-        metadata: Value,
-        labels: Value,
-        retry_schedule__id: Option<Uuid>,
-        failure_percent: Option<f64>,
-        target__id: Uuid,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-    }
+    let previous_is_enabled = fetch_previous_enabled(&mut *tx, &subscription_id).await?;
 
-    let previous_is_enabled: Option<bool> = query_scalar(
-        "SELECT is_enabled FROM webhook.subscription WHERE subscription__id = $1 AND deleted_at IS NULL",
-    )
-    .bind(subscription_id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(Hook0Problem::from)?;
-
-    let retry_schedule_id_param = body.retry_schedule_id;
-    // The retry_schedule__id subselect validates that the schedule belongs to the same org — if not, it silently NULLs the FK, which we detect below
-    let subscription = query_as!(
-        RawSubscription,
-        "
-            UPDATE webhook.subscription
-            SET is_enabled = $1, description = $2, metadata = $3, labels = $4, retry_schedule__id = (SELECT retry_schedule__id FROM webhook.retry_schedule WHERE retry_schedule__id = $7 AND organization__id = (SELECT organization__id FROM event.application WHERE application__id = $6 AND deleted_at IS NULL)), updated_at = statement_timestamp()
-            WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL
-            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, retry_schedule__id, failure_percent, target__id, created_at, updated_at
-        ",
-        &body.is_enabled,
-        body.description,
-        metadata,
-        labels,
+    let raw = update_subscription_row(
+        &mut *tx,
         &subscription_id,
-        &body.application_id,
-        retry_schedule_id_param as Option<Uuid>,
+        &body,
+        &labels_json,
+        &metadata_json,
     )
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(Hook0Problem::from)?;
+    .await?
+    .ok_or(Hook0Problem::NotFound)?;
 
-    match subscription {
-        Some(s) => {
-            // Same ownership check — the UPDATE's subselect NULLs retry_schedule__id if the schedule doesn't belong to this org
-            if body.retry_schedule_id.is_some() && s.retry_schedule__id.is_none() {
-                return Err(Hook0Problem::NotFound);
-            }
-
-            match &body.target {
-                Target::Http {
-                    method,
-                    url,
-                    headers,
-                } => query!(
-                    "
-                        UPDATE webhook.target_http
-                        SET method = $1, url = $2, headers = $3
-                        WHERE target__id = $4
-                    ",
-                    method.to_uppercase(),
-                    url.as_str(),
-                    serde_json::to_value(headers)
-                        .expect("could not serialize target headers into JSON"),
-                    &s.target__id
-                )
-                .execute(&mut *tx)
-                .await
-                .map_err(Hook0Problem::from)?,
-            };
-
-            query!(
-                "
-                    DELETE FROM webhook.subscription__event_type
-                    WHERE subscription__id = $1
-                ",
-                &s.subscription__id,
-            )
-            .execute(&mut *tx)
-            .await
-            .map_err(Hook0Problem::from)?;
-
-            for event_type in &body.event_types {
-                query!(
-                    "
-                        INSERT INTO webhook.subscription__event_type (application__id, subscription__id, event_type__name)
-                        VALUES ($1, $2, $3)
-                    ",
-                    &body.application_id,
-                    &s.subscription__id,
-                    &event_type,
-                )
-                .execute(&mut *tx).await
-                .map_err(Hook0Problem::from)?;
-            }
-
-            query!(
-                "
-                    DELETE FROM webhook.subscription__worker
-                    WHERE subscription__id = $1
-                ",
-                &s.subscription__id,
-            )
-            .execute(&mut *tx)
-            .await
-            .map_err(Hook0Problem::from)?;
-
-            #[allow(non_snake_case)]
-            struct RawWorkerName {
-                name: String,
-            }
-            let allowed_dedicated_workers = query_as!(
-                RawWorkerName,
-                r#"
-                    SELECT w.name AS "name!"
-                    FROM infrastructure.worker AS w
-                    LEFT JOIN iam.organization__worker AS aw ON aw.worker__id = w.worker__id
-                    WHERE aw.organization__id = $1 OR w.public
-                "#,
-                &organization_id,
-            )
-            .fetch_all(&mut *tx)
-            .await
-            .map_err(Hook0Problem::from)?
-            .iter()
-            .map(|rw| rw.name.to_owned())
-            .collect::<HashSet<_>>();
-
-            let workers: HashSet<String> = HashSet::from_iter(
-                body.dedicated_workers
-                    .as_deref()
-                    .unwrap_or(&[])
-                    .iter()
-                    .cloned(),
-            );
-            if !workers.is_subset(&allowed_dedicated_workers) {
-                let unauthorized_workers = workers
-                    .difference(&allowed_dedicated_workers)
-                    .cloned()
-                    .collect::<Vec<_>>();
-                return Err(Hook0Problem::UnauthorizedWorkers(unauthorized_workers));
-            }
-
-            query!(
-                "
-                    DELETE FROM webhook.subscription__worker
-                    WHERE subscription__id = $1
-                ",
-                &s.subscription__id,
-            )
-            .execute(&mut *tx)
-            .await
-            .map_err(Hook0Problem::from)?;
-
-            for worker in workers {
-                query!(
-                    "
-                        INSERT INTO webhook.subscription__worker (subscription__id, worker__id)
-                        SELECT $1, infrastructure.worker.worker__id
-                        FROM infrastructure.worker
-                        WHERE infrastructure.worker.name = $2
-                    ",
-                    &s.subscription__id,
-                    &worker,
-                )
-                .execute(&mut *tx)
-                .await
-                .map_err(Hook0Problem::from)?;
-            }
-
-            // Record a health event when the user toggles enabled — 'disabled' on manual disable, 'resolved' on re-enable
-            if body.is_enabled != previous_is_enabled.unwrap_or(body.is_enabled) {
-                let status = if body.is_enabled { HealthStatus::Resolved } else { HealthStatus::Disabled };
-                query(
-                    "INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id) VALUES ($1, $2, $3, $4)"
-                )
-                .bind(s.subscription__id)
-                .bind(status.to_string())
-                .bind(HealthEventSource::User.to_string())
-                .bind(None::<Uuid>)
-                .execute(&mut *tx)
-                .await
-                .map_err(Hook0Problem::from)?;
-
-                // Reset failure_percent so the health badge starts fresh after any toggle
-                query(
-                    "UPDATE webhook.subscription SET failure_percent = NULL WHERE subscription__id = $1"
-                )
-                .bind(s.subscription__id)
-                .execute(&mut *tx)
-                .await
-                .map_err(Hook0Problem::from)?;
-            }
-
-            // Mark pending request attempts as failed if subscription is disabled
-            // This is idempotent: if already marked as failed, nothing happens
-            let cancelled_request_attempts = if !body.is_enabled {
-                let update = query!(
-                    "
-                        UPDATE webhook.request_attempt
-                        SET failed_at = statement_timestamp()
-                        WHERE subscription__id = $1
-                          AND failed_at IS NULL
-                          AND succeeded_at IS NULL
-                    ",
-                    &s.subscription__id
-                )
-                .execute(&mut *tx)
-                .await
-                .map_err(Hook0Problem::from)?;
-                update.rows_affected()
-            } else {
-                0
-            };
-
-            tx.commit().await.map_err(Hook0Problem::from)?;
-
-            if cancelled_request_attempts > 0 {
-                report_cancelled_request_attempts(cancelled_request_attempts);
-            }
-
-            let labels: HashMap<String, String> =
-                serde_json::from_value(s.labels).unwrap_or_else(|_| HashMap::new());
-            let first_label = labels
-                .iter()
-                .next()
-                .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                .unwrap_or_else(|| (String::new(), String::new()));
-            let subscription = Subscription {
-                application_id: body.application_id,
-                subscription_id: s.subscription__id,
-                is_enabled: s.is_enabled,
-                event_types: body.event_types.clone(),
-                description: s.description,
-                secret: s.secret,
-                metadata: serde_json::from_value(s.metadata.clone())
-                    .unwrap_or_else(|_| HashMap::new()),
-                label_key: first_label.0,
-                label_value: first_label.1,
-                labels,
-                target: body.target.clone(),
-                retry_schedule_id: s.retry_schedule__id,
-                failure_percent: s.failure_percent,
-                created_at: s.created_at,
-                updated_at: s.updated_at,
-                dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
-            };
-
-            if let Some(hook0_client) = state.hook0_client.as_ref() {
-                let hook0_client_event: Hook0ClientEvent = EventSubscriptionUpdated {
-                    organization_id,
-                    application_id: subscription.application_id,
-                    subscription_id: subscription.subscription_id,
-                    is_enabled: subscription.is_enabled,
-                    event_types: subscription.event_types.to_owned(),
-                    description: subscription.description.to_owned(),
-                    metadata: subscription.metadata.to_owned(),
-                    labels: subscription.labels.to_owned(),
-                    target: subscription.target.to_owned(),
-                    created_at: subscription.created_at,
-                    updated_at: subscription.updated_at,
-                }
-                .into();
-                if let Err(e) = hook0_client
-                    .send_event(&hook0_client_event.mk_hook0_event())
-                    .await
-                {
-                    error!("Hook0ClientError: {e}");
-                };
-            }
-
-            Ok(Json(subscription))
-        }
-        None => Err(Hook0Problem::NotFound),
+    // The UPDATE's subselect NULLs retry_schedule__id when the schedule doesn't belong to this org
+    if body.retry_schedule_id.is_some() && raw.retry_schedule__id.is_none() {
+        return Err(Hook0Problem::NotFound);
     }
+
+    update_target_http(&mut *tx, &body.target, &raw.target__id).await?;
+    replace_event_types(&mut *tx, &body.application_id, &raw.subscription__id, &body.event_types).await?;
+    replace_dedicated_workers(&mut *tx, &organization_id, &raw.subscription__id, body.dedicated_workers.as_deref()).await?;
+    record_health_toggle(&mut *tx, &raw.subscription__id, body.is_enabled, previous_is_enabled).await?;
+    let cancelled = cancel_pending_attempts_on_disable(&mut *tx, &raw.subscription__id, body.is_enabled).await?;
+
+    tx.commit().await.map_err(Hook0Problem::from)?;
+
+    if cancelled > 0 {
+        report_cancelled_request_attempts(cancelled);
+    }
+
+    let subscription = build_subscription_dto(raw, &body);
+
+    emit_subscription_updated(&state, &subscription, organization_id).await;
+
+    Ok(Json(subscription))
 }
 
 #[api_v2_operation(
@@ -1185,6 +931,334 @@ pub async fn delete(
         }
         None => Err(Hook0Problem::NotFound),
     }
+}
+
+// ---------------------------------------------------------------------------
+// Private helpers for the `edit` handler — broken out for readability.
+// Each one owns a single concern and stays under 30 lines.
+// ---------------------------------------------------------------------------
+
+fn parse_labels(body: &SubscriptionPost) -> Result<HashMap<String, String>, Hook0Problem> {
+    match (&body.labels, &body.label_key, &body.label_value) {
+        (Some(l), _, _) => Ok(l.to_owned()),
+        (None, Some(k), Some(v)) => Ok(HashMap::from_iter([(k.to_owned(), v.to_owned())])),
+        _ => Err(Hook0Problem::LabelsAmbiguity),
+    }
+}
+
+fn serialize_metadata(metadata: &Option<HashMap<String, String>>) -> Value {
+    match metadata.as_ref() {
+        Some(m) => serde_json::to_value(m.clone())
+            .expect("could not serialize subscription metadata into JSON"),
+        None => json!({}),
+    }
+}
+
+async fn fetch_previous_enabled(
+    conn: &mut PgConnection,
+    subscription_id: &Uuid,
+) -> Result<Option<bool>, Hook0Problem> {
+    query_scalar(
+        "SELECT is_enabled FROM webhook.subscription WHERE subscription__id = $1 AND deleted_at IS NULL",
+    )
+    .bind(subscription_id)
+    .fetch_optional(conn)
+    .await
+    .map_err(Hook0Problem::from)
+}
+
+/// The inline struct mirrors the RETURNING clause — kept local because nothing else needs it.
+#[allow(non_snake_case)]
+struct RawSubscription {
+    subscription__id: Uuid,
+    is_enabled: bool,
+    description: Option<String>,
+    secret: Uuid,
+    metadata: Value,
+    labels: Value,
+    retry_schedule__id: Option<Uuid>,
+    failure_percent: Option<f64>,
+    target__id: Uuid,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+async fn update_subscription_row(
+    conn: &mut PgConnection,
+    subscription_id: &Uuid,
+    body: &SubscriptionPost,
+    labels_json: &Value,
+    metadata_json: &Value,
+) -> Result<Option<RawSubscription>, Hook0Problem> {
+    let retry_schedule_id_param = body.retry_schedule_id;
+    // The subselect validates schedule ownership — NULLs the FK if the schedule doesn't belong to this org
+    query_as!(
+        RawSubscription,
+        "
+            UPDATE webhook.subscription
+            SET is_enabled = $1, description = $2, metadata = $3, labels = $4, retry_schedule__id = (SELECT retry_schedule__id FROM webhook.retry_schedule WHERE retry_schedule__id = $7 AND organization__id = (SELECT organization__id FROM event.application WHERE application__id = $6 AND deleted_at IS NULL)), updated_at = statement_timestamp()
+            WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL
+            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, retry_schedule__id, failure_percent, target__id, created_at, updated_at
+        ",
+        &body.is_enabled,
+        body.description,
+        metadata_json,
+        labels_json,
+        subscription_id,
+        &body.application_id,
+        retry_schedule_id_param as Option<Uuid>,
+    )
+    .fetch_optional(conn)
+    .await
+    .map_err(Hook0Problem::from)
+}
+
+async fn update_target_http(
+    conn: &mut PgConnection,
+    target: &Target,
+    target_id: &Uuid,
+) -> Result<(), Hook0Problem> {
+    match target {
+        Target::Http {
+            method,
+            url,
+            headers,
+        } => {
+            query!(
+                "
+                    UPDATE webhook.target_http
+                    SET method = $1, url = $2, headers = $3
+                    WHERE target__id = $4
+                ",
+                method.to_uppercase(),
+                url.as_str(),
+                serde_json::to_value(headers)
+                    .expect("could not serialize target headers into JSON"),
+                target_id
+            )
+            .execute(conn)
+            .await
+            .map_err(Hook0Problem::from)?;
+        }
+    };
+    Ok(())
+}
+
+async fn replace_event_types(
+    conn: &mut PgConnection,
+    application_id: &Uuid,
+    subscription_id: &Uuid,
+    event_types: &[String],
+) -> Result<(), Hook0Problem> {
+    query!(
+        "DELETE FROM webhook.subscription__event_type WHERE subscription__id = $1",
+        subscription_id,
+    )
+    .execute(&mut *conn)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    for event_type in event_types {
+        query!(
+            "
+                INSERT INTO webhook.subscription__event_type (application__id, subscription__id, event_type__name)
+                VALUES ($1, $2, $3)
+            ",
+            application_id,
+            subscription_id,
+            event_type,
+        )
+        .execute(&mut *conn)
+        .await
+        .map_err(Hook0Problem::from)?;
+    }
+    Ok(())
+}
+
+async fn replace_dedicated_workers(
+    conn: &mut PgConnection,
+    organization_id: &Uuid,
+    subscription_id: &Uuid,
+    workers: Option<&[String]>,
+) -> Result<(), Hook0Problem> {
+    let requested: HashSet<String> =
+        HashSet::from_iter(workers.unwrap_or(&[]).iter().cloned());
+
+    let allowed = fetch_allowed_workers(&mut *conn, organization_id).await?;
+    if !requested.is_subset(&allowed) {
+        let unauthorized = requested.difference(&allowed).cloned().collect::<Vec<_>>();
+        return Err(Hook0Problem::UnauthorizedWorkers(unauthorized));
+    }
+
+    // Single delete before the insert loop — no duplicate needed
+    query!(
+        "DELETE FROM webhook.subscription__worker WHERE subscription__id = $1",
+        subscription_id,
+    )
+    .execute(&mut *conn)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    insert_workers(&mut *conn, subscription_id, &requested).await
+}
+
+async fn insert_workers(
+    conn: &mut PgConnection,
+    subscription_id: &Uuid,
+    workers: &HashSet<String>,
+) -> Result<(), Hook0Problem> {
+    for worker in workers {
+        query!(
+            "
+                INSERT INTO webhook.subscription__worker (subscription__id, worker__id)
+                SELECT $1, infrastructure.worker.worker__id
+                FROM infrastructure.worker
+                WHERE infrastructure.worker.name = $2
+            ",
+            subscription_id,
+            worker,
+        )
+        .execute(&mut *conn)
+        .await
+        .map_err(Hook0Problem::from)?;
+    }
+    Ok(())
+}
+
+async fn fetch_allowed_workers(
+    conn: &mut PgConnection,
+    organization_id: &Uuid,
+) -> Result<HashSet<String>, Hook0Problem> {
+    #[allow(non_snake_case)]
+    struct RawWorkerName {
+        name: String,
+    }
+    let rows = query_as!(
+        RawWorkerName,
+        r#"
+            SELECT w.name AS "name!"
+            FROM infrastructure.worker AS w
+            LEFT JOIN iam.organization__worker AS aw ON aw.worker__id = w.worker__id
+            WHERE aw.organization__id = $1 OR w.public
+        "#,
+        organization_id,
+    )
+    .fetch_all(conn)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    Ok(rows.iter().map(|rw| rw.name.to_owned()).collect())
+}
+
+async fn record_health_toggle(
+    conn: &mut PgConnection,
+    subscription_id: &Uuid,
+    is_enabled: bool,
+    previous_is_enabled: Option<bool>,
+) -> Result<(), Hook0Problem> {
+    if is_enabled == previous_is_enabled.unwrap_or(is_enabled) {
+        return Ok(());
+    }
+    let status = if is_enabled { HealthStatus::Resolved } else { HealthStatus::Disabled };
+
+    query("INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id) VALUES ($1, $2, $3, $4)")
+        .bind(subscription_id).bind(status.to_string())
+        .bind(HealthEventSource::User.to_string()).bind(None::<Uuid>)
+        .execute(&mut *conn).await.map_err(Hook0Problem::from)?;
+
+    // Reset failure_percent so the health badge starts fresh after any toggle
+    query("UPDATE webhook.subscription SET failure_percent = NULL WHERE subscription__id = $1")
+        .bind(subscription_id).execute(&mut *conn).await.map_err(Hook0Problem::from)?;
+
+    Ok(())
+}
+
+async fn cancel_pending_attempts_on_disable(
+    conn: &mut PgConnection,
+    subscription_id: &Uuid,
+    is_enabled: bool,
+) -> Result<u64, Hook0Problem> {
+    if is_enabled {
+        return Ok(0);
+    }
+
+    let result = query!(
+        "
+            UPDATE webhook.request_attempt
+            SET failed_at = statement_timestamp()
+            WHERE subscription__id = $1
+              AND failed_at IS NULL
+              AND succeeded_at IS NULL
+        ",
+        subscription_id
+    )
+    .execute(conn)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    Ok(result.rows_affected())
+}
+
+fn build_subscription_dto(raw: RawSubscription, body: &SubscriptionPost) -> Subscription {
+    let labels: HashMap<String, String> =
+        serde_json::from_value(raw.labels).unwrap_or_else(|_| HashMap::new());
+    let first_label = labels
+        .iter()
+        .next()
+        .map(|(k, v)| (k.to_owned(), v.to_owned()))
+        .unwrap_or_else(|| (String::new(), String::new()));
+
+    Subscription {
+        application_id: body.application_id,
+        subscription_id: raw.subscription__id,
+        is_enabled: raw.is_enabled,
+        event_types: body.event_types.clone(),
+        description: raw.description,
+        secret: raw.secret,
+        metadata: serde_json::from_value(raw.metadata.clone())
+            .unwrap_or_else(|_| HashMap::new()),
+        label_key: first_label.0,
+        label_value: first_label.1,
+        labels,
+        target: body.target.clone(),
+        retry_schedule_id: raw.retry_schedule__id,
+        failure_percent: raw.failure_percent,
+        created_at: raw.created_at,
+        updated_at: raw.updated_at,
+        dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
+    }
+}
+
+async fn emit_subscription_updated(
+    state: &crate::State,
+    subscription: &Subscription,
+    organization_id: Uuid,
+) {
+    let Some(hook0_client) = state.hook0_client.as_ref() else {
+        return;
+    };
+
+    let hook0_client_event: Hook0ClientEvent = EventSubscriptionUpdated {
+        organization_id,
+        application_id: subscription.application_id,
+        subscription_id: subscription.subscription_id,
+        is_enabled: subscription.is_enabled,
+        event_types: subscription.event_types.to_owned(),
+        description: subscription.description.to_owned(),
+        metadata: subscription.metadata.to_owned(),
+        labels: subscription.labels.to_owned(),
+        target: subscription.target.to_owned(),
+        created_at: subscription.created_at,
+        updated_at: subscription.updated_at,
+    }
+    .into();
+
+    if let Err(e) = hook0_client
+        .send_event(&hook0_client_event.mk_hook0_event())
+        .await
+    {
+        error!("Hook0ClientError: {e}");
+    };
 }
 
 #[cfg(test)]
