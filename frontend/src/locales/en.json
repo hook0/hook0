@@ -515,7 +515,7 @@
     "statusInProgressDesc": "Hook0 is sending this webhook right now",
     "statusPending": "Waiting to be picked",
     "statusPendingDesc": "Queued — will be picked up by the next available worker",
-    "statusScheduled": "Scheduled in {time}",
+    "statusScheduled": "In {time}",
     "statusRetrying": "Retrying",
     "statusWaiting": "Waiting",
     "statusSent": "Sent",

@@ -43,7 +43,7 @@ export const STATUS_CONFIG: Record<RequestAttemptStatusType, StatusConfig> = {
   },
   [RequestAttemptStatusType.Waiting]: {
     labelKey: 'logs.statusWaiting',
-    variant: 'info',
+    variant: 'warning',
     tooltipKey: 'logs.tooltipWaiting',
     tooltipDateField: 'delay_until',
     icon: Clock,
