@@ -280,4 +280,9 @@ const httpTarget = computed(() => {
   gap: 0.75rem;
   flex-shrink: 0;
 }
+
+/* Reduce gap between Delivery Logs card and the split layout table */
+:deep(.hook0-split-layout) {
+  margin-top: 0.25rem;
+}
 </style>
