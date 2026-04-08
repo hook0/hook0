@@ -3,7 +3,7 @@ import { computed, h, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
-import { Pencil, Send, RotateCcw } from 'lucide-vue-next';
+import { Pencil, Send, RotateCcw, ArrowLeft } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 import { handleMutationError } from '@/utils/handleMutationError';
 
@@ -15,8 +15,11 @@ import { useSubscriptionHealthEvents } from './useSubscriptionHealthQueries';
 import type { RequestAttemptExtended } from '../logs/LogService';
 import { routes } from '@/routes';
 
-import EventSidePanel from '../events/EventSidePanel.vue';
+import LogDetailContent from '../logs/LogDetailContent.vue';
 import SubscriptionHealthTimeline from './SubscriptionHealthTimeline.vue';
+
+import Hook0SplitLayout from '@/components/Hook0SplitLayout.vue';
+import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -90,13 +93,14 @@ const logColumns = computed(() => [
   },
 ]);
 
-// Side panel for delivery detail
-const sidePanelOpen = ref(false);
-const selectedEventId = ref('');
+const selectedRow = ref<RequestAttemptExtended | null>(null);
 
 function handleRowClick(row: RequestAttemptExtended) {
-  selectedEventId.value = row.event_id;
-  sidePanelOpen.value = true;
+  selectedRow.value = row;
+}
+
+function clearSelection() {
+  selectedRow.value = null;
 }
 
 // True when both deliveries AND health events are loaded but both empty — show a single merged empty state
@@ -137,7 +141,7 @@ const httpTarget = computed(() => {
           <template #actions>
             <Hook0HealthBadge :failure-percent="subscription.failure_percent ?? null" />
             <Hook0Button
-              variant="secondary"
+              variant="ghost"
               type="button"
               @click="
                 void router.push({
@@ -225,13 +229,35 @@ const httpTarget = computed(() => {
             <template #header>{{ t('subscriptionDetail.deliveries') }}</template>
           </Hook0CardHeader>
           <Hook0CardContent>
-            <Hook0Table
-              :columns="logColumns"
-              :data="deliveries"
-              row-id-field="request_attempt_id"
-              clickable-rows
-              @row-click="handleRowClick"
-            />
+            <Hook0SplitLayout
+              :show-detail="!!selectedRow"
+              :detail-key="selectedRow?.request_attempt_id"
+            >
+              <template #back>
+                <Hook0Button variant="ghost" size="sm" @click="clearSelection">
+                  <ArrowLeft :size="16" aria-hidden="true" />
+                  {{ t('logs.backToList') }}
+                </Hook0Button>
+              </template>
+              <template #list>
+                <Hook0Table
+                  :columns="logColumns"
+                  :data="deliveries"
+                  row-id-field="request_attempt_id"
+                  clickable-rows
+                  :active-row-id="selectedRow?.request_attempt_id"
+                  @row-click="handleRowClick"
+                />
+              </template>
+              <template #detail>
+                <LogDetailContent
+                  v-if="selectedRow"
+                  :attempt="selectedRow"
+                  :application-id="applicationId"
+                />
+                <Hook0Skeleton v-else size="block" />
+              </template>
+            </Hook0SplitLayout>
           </Hook0CardContent>
         </Hook0Card>
 
@@ -251,14 +277,6 @@ const httpTarget = computed(() => {
         />
       </template>
     </template>
-
-    <!-- Side panel for delivery event detail -->
-    <EventSidePanel
-      :open="sidePanelOpen"
-      :event-id="selectedEventId"
-      :application-id="applicationId"
-      @close="sidePanelOpen = false"
-    />
   </Hook0PageLayout>
 </template>
 
@@ -283,4 +301,23 @@ const httpTarget = computed(() => {
 }
 
 @import '../logs/log-cells.css';
+
+/* Split layout overrides for delivery list */
+:deep(.hook0-split-layout__list table) {
+  table-layout: fixed;
+}
+
+:deep(.hook0-split-layout__list .hook0-table-th:first-child),
+:deep(.hook0-split-layout__list .hook0-table-td:first-child) {
+  width: 12rem;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+:deep(.hook0-split-layout__list .hook0-table-td:not(:first-child)),
+:deep(.hook0-split-layout__list .hook0-table-th:not(:first-child)) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 </style>

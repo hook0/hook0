@@ -3,7 +3,7 @@ import { computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useForm } from 'vee-validate';
-import { Zap, Timer, ListOrdered, Plus, Trash2 } from 'lucide-vue-next';
+import { Zap, Timer, ListOrdered } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 
 import {
@@ -17,6 +17,7 @@ import {
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { handleMutationError } from '@/utils/handleMutationError';
 import { formatDuration } from '@/utils/formatDuration';
+import { parseDuration } from '@/utils/parseDuration';
 import {
   useRetryScheduleDetail,
   useCreateRetrySchedule,
@@ -69,10 +70,10 @@ const { errors, defineField, handleSubmit, resetForm } = useForm({
   initialValues: {
     name: '',
     strategy: 'increasing' as const,
-    max_retries: 10,
+    max_retries: 8,
     linear_delay: 300,
     custom_intervals: [],
-    increasing_base_delay: 3,
+    increasing_base_delay: 10,
     increasing_wait_factor: 3,
   },
 });
@@ -92,7 +93,7 @@ const linearDelayValue = computed(() => Number(linearDelay.value) || 0);
 const customIntervalsValue = computed((): number[] =>
   Array.isArray(customIntervals.value) ? customIntervals.value.map(Number) : []
 );
-const increasingBaseDelayValue = computed(() => Number(increasingBaseDelay.value) || 3);
+const increasingBaseDelayValue = computed(() => Number(increasingBaseDelay.value) || 10);
 const increasingWaitFactorValue = computed(() => Number(increasingWaitFactor.value) || 3);
 
 // Custom strategy derives max_retries from the intervals array — the API rejects payloads where they disagree, so we keep them in lockstep
@@ -365,9 +366,9 @@ const pageTitle = computed(() =>
                   :model-value="increasingWaitFactorValue"
                   :min="1.5"
                   :max="10"
-                  :step="0.5"
+                  :step="0.01"
                   :label="t('retrySchedules.fields.increasingWaitFactor')"
-                  :format-value="(v: number) => '×' + v"
+                  :format-value="(v: number) => '×' + v.toFixed(2)"
                   :error="errors.increasing_wait_factor"
                   @update:model-value="increasingWaitFactor = $event"
                 />
@@ -431,45 +432,46 @@ const pageTitle = computed(() =>
                 </p>
               </div>
 
-              <!-- Custom intervals editor — each row maps 1:1 to a retry attempt; adding/removing rows changes max_retries via the watcher above -->
               <div v-if="strategyValue === 'custom'" class="form-fields__group">
                 <label class="form-fields__label">
                   {{ t('retrySchedules.fields.customIntervals') }}
                 </label>
-                <div class="custom-intervals">
+                <div class="custom-chips">
                   <div
                     v-for="(interval, index) in customIntervalsValue"
-                    :key="`interval-${index}`"
-                    class="custom-intervals__row"
+                    :key="`chip-${index}`"
+                    class="custom-chips__chip"
                   >
-                    <span class="custom-intervals__label">#{{ index + 1 }}</span>
-                    <Hook0Slider
-                      :model-value="interval"
-                      :min="1"
-                      :max="MAX_INTERVAL_SECONDS"
-                      :label="t('retrySchedules.fields.retryNumber', { number: index + 1 })"
-                      :format-value="formatDuration"
-                      :editable="true"
-                      hide-label
-                      class="custom-intervals__slider"
-                      @update:model-value="updateInterval(index, String($event))"
+                    <input
+                      type="text"
+                      class="custom-chips__input"
+                      :value="formatDuration(interval)"
+                      :aria-label="t('retrySchedules.fields.retryNumber', { number: index + 1 })"
+                      @focus="($event.target as HTMLInputElement).value = String(interval)"
+                      @blur="
+                        (e) => {
+                          const parsed = parseDuration((e.target as HTMLInputElement).value);
+                          if (parsed !== null && parsed >= 1) {
+                            updateInterval(index, String(Math.min(parsed, MAX_INTERVAL_SECONDS)));
+                          }
+                          (e.target as HTMLInputElement).value = formatDuration(
+                            customIntervalsValue[index]
+                          );
+                        }
+                      "
+                      @keydown.enter="($event.target as HTMLInputElement).blur()"
                     />
-                    <Hook0Button
-                      variant="ghost"
+                    <button
                       type="button"
+                      class="custom-chips__remove"
                       :aria-label="t('retrySchedules.fields.removeInterval', { number: index + 1 })"
                       @click="removeInterval(index)"
                     >
-                      <Trash2 :size="16" aria-hidden="true" />
-                    </Hook0Button>
+                      ×
+                    </button>
                   </div>
+                  <button type="button" class="custom-chips__add" @click="addInterval()">+</button>
                 </div>
-                <Hook0Button variant="secondary" type="button" @click="addInterval()">
-                  <template #left>
-                    <Plus :size="16" aria-hidden="true" />
-                  </template>
-                  {{ t('retrySchedules.fields.addInterval') }}
-                </Hook0Button>
                 <p v-if="errors.custom_intervals" class="form-fields__error">
                   {{ errors.custom_intervals }}
                 </p>
@@ -552,29 +554,87 @@ const pageTitle = computed(() =>
   }
 }
 
-.custom-intervals {
+.custom-chips {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 0.375rem;
-}
-
-.custom-intervals__row {
-  display: flex;
   align-items: center;
-  gap: 0.75rem;
 }
 
-.custom-intervals__label {
-  font-size: 0.8125rem;
-  font-weight: 600;
+.custom-chips__chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.custom-chips__chip:focus-within {
+  border-color: var(--color-primary);
+}
+
+.custom-chips__input {
+  border: none;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-secondary);
-  min-width: 3rem;
-  flex-shrink: 0;
+  padding: 0.25rem 0.5rem;
+  width: 5rem;
+  text-align: center;
+  outline: none;
 }
 
-.custom-intervals__slider {
-  flex: 1;
-  min-width: 0;
+.custom-chips__input:focus {
+  color: var(--color-text-primary);
+  width: 4rem;
+  text-align: center;
+}
+
+.custom-chips__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--color-border);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 0.25rem 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.custom-chips__remove:hover {
+  background-color: var(--color-error-light);
+  color: var(--color-error);
+}
+
+.custom-chips__add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-full);
+  border: 1px dashed var(--color-border);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.custom-chips__add:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
 }
 
 .slider-row {
