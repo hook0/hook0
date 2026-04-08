@@ -5,8 +5,8 @@ pub mod output;
 pub mod tui;
 pub mod tunnel;
 
-pub use api::client::ApiClient;
 pub use api::ApiError;
+pub use api::client::ApiClient;
 pub use config::{Config, Profile};
 pub use output::OutputFormat;
 

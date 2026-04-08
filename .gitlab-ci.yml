@@ -45,6 +45,7 @@ include:
   - local: "tests-e2e/.gitlab-ci.yml"
   - local: "frontend/.gitlab-ci.yml"
   - local: "play/.gitlab-ci.yml"
+  - local: "cli/.gitlab-ci.yml"
   - local: "output-worker/.gitlab-ci.yml"
   - local: "sentry-integration/.gitlab-ci.yml"
   - local: "website/.gitlab-ci.yml"

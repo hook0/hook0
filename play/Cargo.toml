@@ -8,71 +8,25 @@ authors = ["François-Guillaume Ribreau <fg@hook0.com>"]
 repository = "https://gitlab.com/hook0/hook0"
 
 [dependencies]
-# Web Framework
+aes-gcm = "0.10"
 axum = { version = "0.8", features = ["ws", "macros"] }
-axum-extra = { version = "0.10", features = ["typed-header"] }
-tower = { version = "0.5", features = ["util", "timeout"] }
-tower-http = { version = "0.6", features = ["cors", "trace", "request-id", "util"] }
-
-# Async Runtime
-tokio = { version = "1.50", features = ["full"] }
+base64 = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4.6", features = ["derive", "env"] }
+dashmap = "6.1"
 futures-util = { version = "0.3", features = ["sink"] }
-
-# Serialization
+rand = "0.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-
-# HTTP types
-http = "1.4"
-http-body-util = "0.1"
-bytes = "1.11"
-
-# Base64 encoding for payloads
-base64 = "0.22"
-
-# UUID for tokens and IDs
-uuid = { version = "1.23", features = ["v4", "serde"] }
-
-# Random token generation
-rand = "0.8"
-
-# Time handling
-chrono = { version = "0.4", features = ["serde"] }
-
-# Configuration
-clap = { version = "4.6", features = ["derive", "env"] }
-toml = "0.8"
-
-# Logging
+thiserror = "2.0"
+tokio = { version = "1.51", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors", "trace", "request-id", "util"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-
-# Error handling
-thiserror = "2.0"
-anyhow = "1.0"
-
-# URL parsing
-url = "2.5"
-
-# Concurrent data structures
-dashmap = "6.1"
-
-# Reqwest for forwarding (when not using WebSocket)
-reqwest = { version = "0.12", features = ["json"], default-features = false }
-
-# Encryption (AES-256-GCM for optional webhook storage encryption)
-aes-gcm = "0.10"
-
-# Secure memory zeroing
+uuid = { version = "1.23", features = ["v4", "serde"] }
 zeroize = { version = "1.8", features = ["derive"] }
 
 [dev-dependencies]
-tokio-test = "0.4"
-# HTTP client for testing
-reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
-# WebSocket client for testing
-tokio-tungstenite = { version = "0.26", features = ["rustls-tls-webpki-roots"] }
-# Testing utilities
-tower = { version = "0.5", features = ["util"] }
-hyper = { version = "1.9", features = ["full"] }
 portpicker = "0.1"
+reqwest = { version = "0.13", features = ["json", "hickory-dns"], default-features = false }
+tokio-tungstenite = { version = "0.29", features = ["rustls-tls-webpki-roots"] }

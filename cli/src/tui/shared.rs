@@ -3,11 +3,11 @@
 
 use std::collections::VecDeque;
 
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
-use ratatui::Frame;
 
 use super::app::{DetailTab, HeaderMap, WebhookEvent};
 
@@ -357,18 +357,18 @@ pub fn tunnel_segment(tick: u64, connected: bool) -> Vec<Span<'static>> {
 pub fn format_body(data: &[u8]) -> Vec<Line<'static>> {
     // Try JSON pretty-print
     if let Ok(text) = std::str::from_utf8(data) {
-        if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(text) {
-            if let Ok(pretty) = serde_json::to_string_pretty(&json_value) {
-                return pretty
-                    .lines()
-                    .map(|line| {
-                        Line::from(vec![Span::styled(
-                            format!(" {line}"),
-                            Style::default().fg(Color::White),
-                        )])
-                    })
-                    .collect();
-            }
+        if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(text)
+            && let Ok(pretty) = serde_json::to_string_pretty(&json_value)
+        {
+            return pretty
+                .lines()
+                .map(|line| {
+                    Line::from(vec![Span::styled(
+                        format!(" {line}"),
+                        Style::default().fg(Color::White),
+                    )])
+                })
+                .collect();
         }
 
         // Plain UTF-8 text

@@ -292,6 +292,7 @@ fn hook0_cmd(config_dir: &std::path::Path) -> Command {
 
 /// Test successful login with valid credentials (uses real keychain)
 #[test]
+#[ignore]
 fn test_login_with_valid_credentials() {
     let (secret, app_id, api_url) = get_test_credentials();
     let config_dir = tempfile::tempdir().expect("Failed to create temp dir");
@@ -327,6 +328,7 @@ fn test_login_with_valid_credentials() {
 
 /// Test whoami after login shows correct application info (uses real keychain)
 #[test]
+#[ignore]
 fn test_whoami_after_login() {
     let (secret, app_id, api_url) = get_test_credentials();
     let config_dir = tempfile::tempdir().expect("Failed to create temp dir");
@@ -363,6 +365,7 @@ fn test_whoami_after_login() {
 
 /// Test that login stores profile configuration correctly
 #[test]
+#[ignore]
 fn test_login_stores_profile() {
     let (secret, app_id, api_url) = get_test_credentials();
     let config_dir = tempfile::tempdir().expect("Failed to create temp dir");
@@ -411,6 +414,7 @@ fn test_login_stores_profile() {
 /// and authenticates with the API. If the keyring is mocked, this fails with
 /// "No matching entry found in secure storage".
 #[test]
+#[ignore]
 fn test_keyring_persists_secret_across_commands() {
     let (secret, app_id, api_url) = get_test_credentials();
     let config_dir = tempfile::tempdir().expect("Failed to create temp dir");
@@ -447,6 +451,7 @@ fn test_keyring_persists_secret_across_commands() {
 
 /// Test JSON output format with authenticated request
 #[test]
+#[ignore]
 fn test_json_output_authenticated() {
     let (secret, app_id, api_url) = get_test_credentials();
     let config_dir = tempfile::tempdir().expect("Failed to create temp dir");

@@ -133,14 +133,14 @@ fn main() {
 
 fn load_openapi_spec() -> OpenApiSpec {
     // First try local file (for offline builds and CI)
-    if let Ok(content) = fs::read_to_string(OPENAPI_FALLBACK_PATH) {
-        if let Ok(spec) = serde_json::from_str(&content) {
-            println!(
-                "cargo:warning=Using local OpenAPI spec from {}",
-                OPENAPI_FALLBACK_PATH
-            );
-            return spec;
-        }
+    if let Ok(content) = fs::read_to_string(OPENAPI_FALLBACK_PATH)
+        && let Ok(spec) = serde_json::from_str(&content)
+    {
+        println!(
+            "cargo:warning=Using local OpenAPI spec from {}",
+            OPENAPI_FALLBACK_PATH
+        );
+        return spec;
     }
 
     // Try to download from URL (it saves the file internally)
@@ -257,25 +257,25 @@ fn extract_api_methods(spec: &OpenApiSpec) -> Vec<ApiMethod> {
     let mut methods = Vec::new();
 
     for (path, item) in &spec.paths {
-        if let Some(op) = &item.get {
-            if let Some(method) = parse_operation("GET", path, op) {
-                methods.push(method);
-            }
+        if let Some(op) = &item.get
+            && let Some(method) = parse_operation("GET", path, op)
+        {
+            methods.push(method);
         }
-        if let Some(op) = &item.post {
-            if let Some(method) = parse_operation("POST", path, op) {
-                methods.push(method);
-            }
+        if let Some(op) = &item.post
+            && let Some(method) = parse_operation("POST", path, op)
+        {
+            methods.push(method);
         }
-        if let Some(op) = &item.put {
-            if let Some(method) = parse_operation("PUT", path, op) {
-                methods.push(method);
-            }
+        if let Some(op) = &item.put
+            && let Some(method) = parse_operation("PUT", path, op)
+        {
+            methods.push(method);
         }
-        if let Some(op) = &item.delete {
-            if let Some(method) = parse_operation("DELETE", path, op) {
-                methods.push(method);
-            }
+        if let Some(op) = &item.delete
+            && let Some(method) = parse_operation("DELETE", path, op)
+        {
+            methods.push(method);
         }
     }
 
@@ -363,29 +363,22 @@ fn schema_to_rust_type(schema: Option<&Schema>) -> String {
 fn determine_response_type(responses: &HashMap<String, serde_json::Value>) -> String {
     // Check 200 or 201 response for type
     for status in ["200", "201"] {
-        if let Some(response) = responses.get(status) {
-            if let Some(content) = response.get("content") {
-                if let Some(json) = content.get("application/json") {
-                    if let Some(schema) = json.get("schema") {
-                        if let Some(ref_path) = schema.get("$ref") {
-                            if let Some(ref_str) = ref_path.as_str() {
-                                return ref_str.replace("#/components/schemas/", "");
-                            }
-                        }
-                        if let Some("array") = schema.get("type").and_then(|t| t.as_str()) {
-                            if let Some(items) = schema.get("items") {
-                                if let Some(ref_path) = items.get("$ref") {
-                                    if let Some(ref_str) = ref_path.as_str() {
-                                        return format!(
-                                            "Vec<{}>",
-                                            ref_str.replace("#/components/schemas/", "")
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+        if let Some(response) = responses.get(status)
+            && let Some(content) = response.get("content")
+            && let Some(json) = content.get("application/json")
+            && let Some(schema) = json.get("schema")
+        {
+            if let Some(ref_path) = schema.get("$ref")
+                && let Some(ref_str) = ref_path.as_str()
+            {
+                return ref_str.replace("#/components/schemas/", "");
+            }
+            if let Some("array") = schema.get("type").and_then(|t| t.as_str())
+                && let Some(items) = schema.get("items")
+                && let Some(ref_path) = items.get("$ref")
+                && let Some(ref_str) = ref_path.as_str()
+            {
+                return format!("Vec<{}>", ref_str.replace("#/components/schemas/", ""));
             }
         }
     }

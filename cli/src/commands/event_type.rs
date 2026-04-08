@@ -1,10 +1,10 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use clap::{Args, Subcommand};
 
+use crate::Cli;
 use crate::api::models::{EventType, EventTypePost};
 use crate::commands::require_auth;
 use crate::output::{output_many, output_one, output_success};
-use crate::Cli;
 
 #[derive(Subcommand, Debug)]
 pub enum EventTypeCommands {
@@ -68,12 +68,11 @@ async fn create(cli: &Cli, args: &CreateArgs) -> Result<()> {
     let (service, resource, verb) = match (&args.name, &args.service, &args.resource, &args.verb) {
         // Full name provided
         (Some(name), None, None, None) => {
-            let parsed = EventType::parse(name).ok_or_else(|| {
+            EventType::parse(name).ok_or_else(|| {
                 anyhow!(
                     "Invalid event type format. Expected 'service.resource.verb' (e.g., user.account.created)"
                 )
-            })?;
-            parsed
+            })?
         }
         // Individual components provided
         (None, Some(s), Some(r), Some(v)) => (s.clone(), r.clone(), v.clone()),
