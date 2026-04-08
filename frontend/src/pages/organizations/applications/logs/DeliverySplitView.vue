@@ -135,25 +135,18 @@ function goBackToList() {
   width: 100%;
 }
 
-/* Status + created_at + retry: shrink to content, never wrap */
-:deep(.hook0-split-layout__list .hook0-table-th:first-child),
-:deep(.hook0-split-layout__list .hook0-table-td:first-child),
-:deep(.hook0-split-layout__list .hook0-table-th:last-child),
-:deep(.hook0-split-layout__list .hook0-table-td:last-child),
-:deep(.hook0-split-layout__list .hook0-table-th:nth-last-child(2)),
-:deep(.hook0-split-layout__list .hook0-table-td:nth-last-child(2)) {
-  white-space: nowrap;
-  width: 1%;
-}
-
-/* Event column: takes remaining space, truncates with ellipsis */
-:deep(.hook0-split-layout__list .hook0-table-th:nth-child(2)),
-:deep(.hook0-split-layout__list .hook0-table-td:nth-child(2)) {
+/* Event column: takes remaining space, entire chain must constrain for ellipsis */
+:deep(.log-col-event) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  width: 100%;
-  max-width: 1px;
+}
+
+:deep(.log-col-event .log-cell-link) {
+  display: inline;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Log cell styles — rendered via h() in useLogColumns.ts, needs :deep() to pierce scoped boundary */

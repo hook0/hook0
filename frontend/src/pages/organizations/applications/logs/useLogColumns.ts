@@ -85,10 +85,11 @@ export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
       cell: (info) => {
         const row = info.row.original;
         // Wrapper stops propagation so clicking the link navigates to event detail
-        // instead of triggering the row-click handler (which selects the delivery)
+        // instead of triggering the row-click handler (which selects the delivery).
+        // The log-col-event class enables ellipsis truncation from the parent table CSS.
         return h(
           'div',
-          { onClick: (e: MouseEvent) => e.stopPropagation() },
+          { class: 'log-col-event', onClick: (e: MouseEvent) => e.stopPropagation() },
           h(
             Hook0Button,
             {
