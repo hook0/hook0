@@ -85,49 +85,59 @@ const httpTarget = computed(() => {
     <template v-else>
       <!-- Section 1: Header card — name, target, enabled, health, edit link -->
       <Hook0Card>
-        <Hook0CardHeader>
-          <template #header>
-            {{ subscription.description || t('subscriptions.noDescription') }}
-          </template>
-          <template #actions>
-            <Hook0HealthBadge :failure-percent="subscription.failure_percent ?? null" />
-            <Hook0Button
-              variant="ghost"
-              type="button"
-              @click="
-                void router.push({
-                  name: routes.SubscriptionsEdit,
-                  params: {
-                    organization_id: route.params.organization_id,
-                    application_id: route.params.application_id,
-                    subscription_id: route.params.subscription_id,
-                  },
-                })
-              "
-            >
-              <Pencil :size="14" aria-hidden="true" />
-              {{ t('subscriptionDetail.edit') }}
-            </Hook0Button>
-          </template>
-        </Hook0CardHeader>
-
         <Hook0CardContent>
-          <div class="detail-header__row">
-            <div class="detail-header__target">
-              <Hook0TableCellTarget
-                v-if="httpTarget"
-                :method="httpTarget.method"
-                :url="httpTarget.url"
-              />
-              <code v-else class="detail-header__target-raw">
-                {{ JSON.stringify(subscription.target, null, 2) }}
-              </code>
+          <div class="detail-header">
+            <div class="detail-header__info">
+              <div class="detail-header__name-row">
+                <span class="detail-header__name">
+                  {{ subscription.description || t('subscriptions.noDescription') }}
+                </span>
+                <Hook0HealthBadge :failure-percent="subscription.failure_percent ?? null" />
+              </div>
+              <div class="detail-header__meta">
+                <div class="detail-header__meta-item">
+                  <span class="detail-header__meta-label">{{ t('subscriptionDetail.targetUrl') }}</span>
+                  <span class="detail-header__meta-value">
+                    <Hook0TableCellTarget
+                      v-if="httpTarget"
+                      :method="httpTarget.method"
+                      :url="httpTarget.url"
+                    />
+                    <code v-else>{{ JSON.stringify(subscription.target) }}</code>
+                  </span>
+                </div>
+                <div v-if="subscription.retry_schedule_id" class="detail-header__meta-item">
+                  <span class="detail-header__meta-label">{{ t('subscriptions.retryScheduleLabel') }}</span>
+                  <span class="detail-header__meta-value detail-header__meta-value--mono">
+                    {{ subscription.retry_schedule_id }}
+                  </span>
+                </div>
+              </div>
             </div>
-            <Hook0Switch
-              :model-value="subscription.is_enabled"
-              disabled
-              :aria-label="t('subscriptions.enabledColumn')"
-            />
+            <div class="detail-header__actions">
+              <Hook0Button
+                variant="ghost"
+                type="button"
+                @click="
+                  void router.push({
+                    name: routes.SubscriptionsEdit,
+                    params: {
+                      organization_id: route.params.organization_id,
+                      application_id: route.params.application_id,
+                      subscription_id: route.params.subscription_id,
+                    },
+                  })
+                "
+              >
+                <Pencil :size="14" aria-hidden="true" />
+                {{ t('subscriptionDetail.edit') }}
+              </Hook0Button>
+              <Hook0Switch
+                :model-value="subscription.is_enabled"
+                disabled
+                :aria-label="t('subscriptions.enabledColumn')"
+              />
+            </div>
           </div>
         </Hook0CardContent>
       </Hook0Card>
@@ -207,22 +217,67 @@ const httpTarget = computed(() => {
 </template>
 
 <style scoped>
-.detail-header__row {
+.detail-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
-.detail-header__target {
+.detail-header__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   flex: 1;
   min-width: 0;
 }
 
-.detail-header__target-raw {
-  font-family: var(--font-mono);
+.detail-header__name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.detail-header__name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.detail-header__meta {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.detail-header__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.detail-header__meta-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-tertiary);
+}
+
+.detail-header__meta-value {
   font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-  word-break: break-all;
+  color: var(--color-text-primary);
+}
+
+.detail-header__meta-value--mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.detail-header__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-shrink: 0;
 }
 </style>
