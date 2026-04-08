@@ -297,7 +297,7 @@ const httpTarget = computed(() => {
 .deliveries-section {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0;
 }
 
 .deliveries-section :deep(.hook0-split-layout) {
