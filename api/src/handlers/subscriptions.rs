@@ -981,16 +981,14 @@ pub async fn edit(
                 .await
                 .map_err(Hook0Problem::from)?;
 
-                // On re-enable: also reset failure_percent so the health badge starts fresh
-                if body.is_enabled {
-                    query(
-                        "UPDATE webhook.subscription SET failure_percent = NULL WHERE subscription__id = $1"
-                    )
-                    .bind(s.subscription__id)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(Hook0Problem::from)?;
-                }
+                // Reset failure_percent so the health badge starts fresh after any toggle
+                query(
+                    "UPDATE webhook.subscription SET failure_percent = NULL WHERE subscription__id = $1"
+                )
+                .bind(s.subscription__id)
+                .execute(&mut *tx)
+                .await
+                .map_err(Hook0Problem::from)?;
             }
 
             // Mark pending request attempts as failed if subscription is disabled
