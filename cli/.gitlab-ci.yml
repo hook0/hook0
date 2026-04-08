@@ -80,12 +80,12 @@ cli.check:
   stage: build
   extends: .rust-cache-pull-only
   script:
-    - cd cli
+    - pushd cli
     - rustup target add $TARGET || true
     - cargo build --release --target $TARGET
-    - mkdir -p ../dist
-    - ls target/
-    - cp target/release/hook0$SUFFIX ../dist/hook0-$ARTIFACT_NAME
+    - popd
+    - mkdir -p dist/
+    - cp target/$TARGET/release/hook0$SUFFIX dist/hook0-$ARTIFACT_NAME
   artifacts:
     paths:
       - dist/
