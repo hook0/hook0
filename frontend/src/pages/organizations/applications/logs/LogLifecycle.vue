@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CheckCircle2, XCircle, Clock, Circle, CircleDashed } from 'lucide-vue-next';
+import { formatRelativeTime } from '@/utils/formatDate';
 import Hook0DateFormatted from '@/components/Hook0DateFormatted.vue';
 
 import type { Event } from '@/pages/organizations/applications/events/EventsService';
@@ -20,7 +21,7 @@ type LifecycleStep = {
   label: string;
   description: string;
   date: string | null | undefined;
-  status: 'done' | 'active' | 'pending' | 'error' | 'next';
+  status: 'done' | 'active' | 'pending' | 'error' | 'next' | 'scheduled';
   icon: typeof CheckCircle2;
 };
 
@@ -50,9 +51,14 @@ const steps = computed<LifecycleStep[]>(() => {
     });
   }
 
+  const isScheduledForLater =
+    attempt.delay_until && new Date(attempt.delay_until).getTime() > Date.now();
+
   result.push({
     label: t('logs.lifecycle.created'),
-    description: t('logs.lifecycle.createdDesc'),
+    description: isScheduledForLater
+      ? t('logs.lifecycle.createdScheduledDesc', { time: formatRelativeTime(attempt.delay_until!) })
+      : t('logs.lifecycle.createdDesc'),
     date: attempt.created_at,
     status: attempt.created_at ? 'done' : 'pending',
     icon: attempt.created_at ? CheckCircle2 : Circle,
@@ -103,11 +109,13 @@ const steps = computed<LifecycleStep[]>(() => {
     });
   }
 
-  // Mark the first pending step as "next" (the step currently waiting to happen)
+  // Mark the first pending step as "next" (the step currently waiting to happen).
+  // If a retry is scheduled for later (delay_until in the future), don't spin —
+  // the worker won't pick it up until Pulsar re-delivers at the scheduled time.
   const firstPending = result.find((s) => s.status === 'pending');
   if (firstPending) {
-    firstPending.status = 'next';
-    firstPending.icon = CircleDashed;
+    firstPending.status = isScheduledForLater ? 'scheduled' : 'next';
+    firstPending.icon = isScheduledForLater ? Clock : CircleDashed;
   }
 
   return result;
@@ -137,7 +145,8 @@ const steps = computed<LifecycleStep[]>(() => {
             'log-lifecycle__line--done':
               step.status === 'done' && steps[index + 1]?.status === 'done',
             'log-lifecycle__line--next':
-              step.status === 'done' && steps[index + 1]?.status === 'next',
+              step.status === 'done' &&
+              (steps[index + 1]?.status === 'next' || steps[index + 1]?.status === 'scheduled'),
             'log-lifecycle__line--error': steps[index + 1]?.status === 'error',
           }"
         />
@@ -207,6 +216,10 @@ const steps = computed<LifecycleStep[]>(() => {
   to {
     transform: rotate(360deg);
   }
+}
+
+.log-lifecycle__icon--scheduled {
+  color: var(--color-warning);
 }
 
 .log-lifecycle__icon--pending {

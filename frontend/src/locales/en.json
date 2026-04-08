@@ -495,6 +495,7 @@
       "receivedDesc": "Hook0 ingested the event",
       "created": "Created",
       "createdDesc": "Delivery attempt queued for this subscription",
+      "createdScheduledDesc": "Next attempt scheduled in {time}",
       "picked": "Picked",
       "pickedDesc": "Worker picks up the delivery",
       "delivered": "Delivered",
