@@ -176,8 +176,23 @@ const httpTarget = computed(() => {
         </Hook0CardContent>
       </Hook0Card>
 
-      <!-- Section 2: Deliveries -->
       <template v-if="!showMergedEmptyState">
+        <!-- Health timeline -->
+        <Hook0Card v-if="healthEvents && healthEvents.length > 0">
+          <Hook0CardHeader>
+            <template #header>{{ t('subscriptionDetail.healthTimeline') }}</template>
+          </Hook0CardHeader>
+          <Hook0CardContent>
+            <SubscriptionHealthTimeline :events="healthEvents" />
+          </Hook0CardContent>
+        </Hook0Card>
+        <Hook0ErrorCard
+          v-else-if="healthError && !healthLoading"
+          :error="healthError"
+          @retry="healthRefetch()"
+        />
+
+        <!-- Deliveries -->
         <Hook0ErrorCard
           v-if="deliveriesError && !deliveriesLoading"
           :error="deliveriesError"
@@ -204,21 +219,6 @@ const httpTarget = computed(() => {
 
           <DeliverySplitView :deliveries="deliveries" :application-id="applicationId" />
         </template>
-
-        <!-- Section 3: Health timeline card -->
-        <Hook0Card v-if="healthEvents && healthEvents.length > 0">
-          <Hook0CardHeader>
-            <template #header>{{ t('subscriptionDetail.healthTimeline') }}</template>
-          </Hook0CardHeader>
-          <Hook0CardContent>
-            <SubscriptionHealthTimeline :events="healthEvents" />
-          </Hook0CardContent>
-        </Hook0Card>
-        <Hook0ErrorCard
-          v-else-if="healthError && !healthLoading"
-          :error="healthError"
-          @retry="healthRefetch()"
-        />
       </template>
     </template>
   </Hook0PageLayout>
