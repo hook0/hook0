@@ -96,6 +96,14 @@ const httpTarget = computed(() => {
               </div>
               <div class="detail-header__meta">
                 <div class="detail-header__meta-item">
+                  <span class="detail-header__meta-label">{{ t('subscriptions.enabledColumn') }}</span>
+                  <Hook0Switch
+                    :model-value="subscription.is_enabled"
+                    disabled
+                    :aria-label="t('subscriptions.enabledColumn')"
+                  />
+                </div>
+                <div class="detail-header__meta-item">
                   <span class="detail-header__meta-label">{{ t('subscriptionDetail.targetUrl') }}</span>
                   <span class="detail-header__meta-value">
                     <Hook0TableCellTarget
@@ -132,11 +140,6 @@ const httpTarget = computed(() => {
                 <Pencil :size="14" aria-hidden="true" />
                 {{ t('subscriptionDetail.edit') }}
               </Hook0Button>
-              <Hook0Switch
-                :model-value="subscription.is_enabled"
-                disabled
-                :aria-label="t('subscriptions.enabledColumn')"
-              />
             </div>
           </div>
         </Hook0CardContent>
@@ -235,7 +238,12 @@ const httpTarget = computed(() => {
 .detail-header__name-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
+}
+
+/* Health badge: bolder text, use the primary green from the design system */
+:deep(.detail-header__name-row .hook0-badge) {
+  font-weight: 700;
 }
 
 .detail-header__name {
