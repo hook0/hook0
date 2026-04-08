@@ -137,9 +137,21 @@ function goBackToList() {
 /* Status column: fixed width, never truncate */
 :deep(.hook0-split-layout__list .hook0-table-th:first-child),
 :deep(.hook0-split-layout__list .hook0-table-td:first-child) {
-  width: 12rem;
+  width: 9.4rem;
   white-space: nowrap;
   overflow: visible;
+}
+
+/* Retry column: compact */
+:deep(.hook0-split-layout__list .hook0-table-th:nth-last-child(2)),
+:deep(.hook0-split-layout__list .hook0-table-td:nth-last-child(2)) {
+  width: 6rem;
+}
+
+/* Created at column: compact */
+:deep(.hook0-split-layout__list .hook0-table-th:last-child),
+:deep(.hook0-split-layout__list .hook0-table-td:last-child) {
+  width: 5rem;
 }
 
 @media (max-width: 767px) {
