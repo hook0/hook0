@@ -152,7 +152,8 @@ function goBackToList() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 0;
+  width: 100%;
+  max-width: 1px;
 }
 
 /* Log cell styles — rendered via h() in useLogColumns.ts, needs :deep() to pierce scoped boundary */
