@@ -211,14 +211,15 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
 </template>
 
 <style scoped>
-.preview-chips {
+/* :deep() required because these elements are rendered via h() inside Hook0Table's cell slots */
+:deep(.preview-chips) {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
   align-items: center;
 }
 
-.preview-chips__chip {
+:deep(.preview-chips__chip) {
   display: inline-flex;
   align-items: center;
   padding: 0.125rem 0.5rem;
