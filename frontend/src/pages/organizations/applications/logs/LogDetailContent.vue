@@ -16,6 +16,9 @@ import LogLifecycle from './LogLifecycle.vue';
 import { useEventDetail } from '@/pages/organizations/applications/events/useEventQueries';
 import { useSubscriptionDetail } from '@/pages/organizations/applications/subscriptions/useSubscriptionQueries';
 import { useResponseDetail } from './useResponseQueries';
+import { useRetryDelivery } from './useLogQueries';
+import { RefreshCw } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
 import { filterSensitiveHeaders } from './responseHeaders';
 import { statusCodeClass } from './responseStatus';
 import { routes } from '@/routes';
@@ -57,6 +60,32 @@ const {
   error: responseError,
   refetch: responseRefetch,
 } = useResponseDetail(responseIdRef, applicationIdRef);
+
+const retryMutation = useRetryDelivery(applicationIdRef);
+
+function handleRetry() {
+  retryMutation.mutate(props.attempt.request_attempt_id, {
+    onSuccess: () => {
+      toast.success(t('logs.retryQueued'));
+    },
+    onError: (err) => {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const status = (err as { response?: { status?: number } }).response?.status;
+        if (status === 410) {
+          toast.error(t('logs.payloadExpired'));
+          return;
+        }
+        if (status === 429) {
+          toast.error(t('logs.retryCooldown'));
+          return;
+        }
+      }
+      toast.error(t('common.unknownError'));
+    },
+  });
+}
+
+const isManualRetry = computed(() => props.attempt.attempt_trigger === 'manual_retry');
 
 const filteredHeaders = computed(() => {
   if (!responseData.value) return null;
@@ -152,6 +181,26 @@ const isErrorResponse = computed(() => {
           </Hook0Button>
         </template>
       </Hook0CardContentLine>
+      <Hook0CardContentLine v-if="isManualRetry" type="split">
+        <template #label>{{ t('logs.trigger') }}</template>
+        <template #content>
+          <Hook0Badge variant="info" size="sm">{{ t('logs.manualRetryBadge') }}</Hook0Badge>
+        </template>
+      </Hook0CardContentLine>
+    </Hook0Section>
+
+    <!-- Retry action -->
+    <Hook0Section>
+      <Hook0Button
+        variant="secondary"
+        size="sm"
+        :disabled="retryMutation.isPending.value"
+        :aria-label="t('logs.retryDelivery')"
+        @click="handleRetry"
+      >
+        <RefreshCw :size="14" aria-hidden="true" />
+        {{ t('logs.retryDelivery') }}
+      </Hook0Button>
     </Hook0Section>
 
     <!-- Lifecycle -->

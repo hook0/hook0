@@ -540,7 +540,13 @@
     "deliveryDetail": "Delivery Detail",
     "openFullPage": "Open full page",
     "backToList": "Back to Delivery Logs",
-    "deliveryNotFound": "This delivery was not found. It may have been deleted after the retention period."
+    "deliveryNotFound": "This delivery was not found. It may have been deleted after the retention period.",
+    "retryDelivery": "Retry this delivery",
+    "retryQueued": "Retry queued",
+    "payloadExpired": "Cannot retry — event payload has expired",
+    "retryCooldown": "Please wait before retrying this event again",
+    "manualRetryBadge": "Retry",
+    "trigger": "Trigger"
   },
   "members": {
     "currentUser": "(current user)",
