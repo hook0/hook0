@@ -7,6 +7,12 @@ import update_subscription from './subscriptions/update_subscription.js';
 import delete_subscription from './subscriptions/delete_subscription.js';
 import send_event from './events/send_event.js';
 import list_request_attempt from './events/list_request_attempt.js';
+import {
+  retryHappyPath,
+  retryCooldown,
+  retryWrongApp,
+  retryNonExistent,
+} from './events/retry_request_attempt.js';
 import query_request_attempts from './database/query_request_attempts.js';
 import delete_application from './applications/delete_application.js';
 import get_quota from './unauthentified/quotas.js';
@@ -143,6 +149,25 @@ function scenario_1() {
         'Expected to find 3 request attempts for event 4 | Found: ' + request_attempts_4.length
       );
     }
+
+    // --- Manual Retry Tests ---
+    // Use the first attempt from event_1 for retry tests
+    let retry_attempt_id = request_attempts_1[0].request_attempt_id;
+
+    // Test 1: Happy path — retry → 202
+    let retried_id = retryHappyPath(h, s, application_id, retry_attempt_id);
+    if (!isNotNull(retried_id)) {
+      throw new Error('Manual retry happy path failed');
+    }
+
+    // Test 2: Cooldown — retry same event again immediately → 429
+    retryCooldown(h, s, application_id, retry_attempt_id);
+
+    // Test 3: Wrong application → 404
+    retryWrongApp(h, s, retry_attempt_id);
+
+    // Test 4: Non-existent attempt → 404
+    retryNonExistent(h, s, application_id);
 
     let validation_quota = get_quota(h);
     if (!validation_quota) {
