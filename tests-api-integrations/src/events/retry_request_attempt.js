@@ -54,6 +54,10 @@ export function retryCooldown(base_url, service_token, application_id, request_a
     null,
     { headers: headers(service_token) }
   );
+  check(res1, {
+    'Retry cooldown: first call accepted or already cooling down': (r) =>
+      r.status === 202 || r.status === 429,
+  });
 
   // Second retry immediately — must hit the cooldown window.
   const res2 = http.post(

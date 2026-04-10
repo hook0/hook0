@@ -629,35 +629,9 @@ pub async fn retry(
     .map_err(Hook0Problem::from)?
     .ok_or(Hook0Problem::NotFound)?;
 
-    // Rate-limit manual retries per event to prevent abuse / accidental
-    // click-storms.  Without this, a user could create thousands of
-    // attempts for the same event in seconds.
-    if state.manual_retry_cooldown_seconds > 0 {
-        let cooldown_active: bool = query_scalar!(
-            "
-                SELECT EXISTS(
-                    SELECT 1 FROM webhook.request_attempt
-                    WHERE event__id = $1
-                        AND attempt_trigger = 'manual_retry'
-                        AND created_at > now() - make_interval(secs => $2::float8)
-                ) AS \"cooldown_active!\"
-            ",
-            &source.event_id,
-            state.manual_retry_cooldown_seconds as f64,
-        )
-        .fetch_one(&state.db)
-        .await
-        .map_err(Hook0Problem::from)?;
-
-        if cooldown_active {
-            return Err(Hook0Problem::EventManualRetryCooldownActive {
-                seconds: state.manual_retry_cooldown_seconds,
-            });
-        }
-    }
-
     // Fetch the event payload (DB inline column, then S3 fallback).
-    // 410 Gone if neither source has the data.
+    // 410 Gone if neither source has the data.  Done before the transaction
+    // to avoid holding a lock during a potentially slow S3 call.
     let payload = crate::event_payload::fetch_event_payload(
         &state.db,
         state.object_storage.as_ref(),
@@ -675,6 +649,46 @@ pub async fn retry(
         _ => None,
     };
 
+    // Serialize cooldown check + INSERT under a transaction to prevent two
+    // concurrent retries from both passing the cooldown window.
+    let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
+    // Lock the event row to serialize concurrent retry requests.
+    sqlx::query!(
+        "SELECT 1 AS lock FROM event.event WHERE event__id = $1 FOR UPDATE",
+        &source.event_id,
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    // Rate-limit manual retries per event to prevent abuse / accidental
+    // click-storms.  Without this, a user could create thousands of
+    // attempts for the same event in seconds.
+    if state.manual_retry_cooldown_seconds > 0 {
+        let cooldown_active: bool = query_scalar!(
+            "
+                SELECT EXISTS(
+                    SELECT 1 FROM webhook.request_attempt
+                    WHERE event__id = $1
+                        AND attempt_trigger = 'manual_retry'
+                        AND created_at > now() - make_interval(secs => $2::float8)
+                ) AS \"cooldown_active!\"
+            ",
+            &source.event_id,
+            state.manual_retry_cooldown_seconds as f64,
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(Hook0Problem::from)?;
+
+        if cooldown_active {
+            return Err(Hook0Problem::EventManualRetryCooldownActive {
+                seconds: state.manual_retry_cooldown_seconds,
+            });
+        }
+    }
+
     let new_request_attempt_id: Uuid = query_scalar!(
         "
             INSERT INTO webhook.request_attempt
@@ -687,9 +701,11 @@ pub async fn retry(
         &source.subscription_id,
         user_id.as_ref(),
     )
-    .fetch_one(&state.db)
+    .fetch_one(&mut *tx)
     .await
     .map_err(Hook0Problem::from)?;
+
+    tx.commit().await.map_err(Hook0Problem::from)?;
 
     info!(
         request_attempt_id = %new_request_attempt_id,
@@ -703,7 +719,7 @@ pub async fn retry(
     // Pulsar, the attempt is already persisted in DB — the PG poller will
     // find and deliver it.
     if let Some(pulsar) = &state.pulsar {
-        crate::pulsar_dispatch::send_single_attempt_to_pulsar(
+        if let Err(err) = crate::pulsar_dispatch::send_single_attempt_to_pulsar(
             &state.db,
             pulsar,
             hook0_protobuf::RequestAttempt {
@@ -726,7 +742,14 @@ pub async fn retry(
                 attempt_trigger: hook0_protobuf::AttemptTrigger::ManualRetry,
             },
         )
-        .await?;
+        .await
+        {
+            error!(
+                request_attempt_id = %new_request_attempt_id,
+                error = ?err,
+                "Manual retry persisted but Pulsar dispatch failed; PG poller will deliver it"
+            );
+        }
     }
 
     // 202 signals "accepted for async processing" — the new attempt will
