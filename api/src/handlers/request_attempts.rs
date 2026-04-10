@@ -584,16 +584,15 @@ pub async fn retry(
 
     // Fetch the source attempt's routing metadata + HTTP target info in
     // one query.  Deleted subscriptions are filtered in the WHERE clause.
-    // No payload here — fetched separately to avoid loading ~100KB before
-    // validating the cooldown.
-    #[allow(non_snake_case)]
+    // No payload here — fetched separately to avoid loading up to 512KiB
+    // before validating the cooldown.
     struct RetrySourceContext {
-        event__id: Uuid,
-        subscription__id: Uuid,
-        application__id: Uuid,
+        event_id: Uuid,
+        subscription_id: Uuid,
+        application_id: Uuid,
         received_at: DateTime<Utc>,
         payload_content_type: String,
-        event_type__name: String,
+        event_type_name: String,
         http_method: String,
         http_url: String,
         http_headers: serde_json::Value,
@@ -604,12 +603,12 @@ pub async fn retry(
         RetrySourceContext,
         "
             SELECT
-                ra.event__id,
-                ra.subscription__id,
-                ra.application__id,
+                ra.event__id AS event_id,
+                ra.subscription__id AS subscription_id,
+                ra.application__id AS application_id,
                 e.received_at,
                 e.payload_content_type,
-                e.event_type__name,
+                e.event_type__name AS event_type_name,
                 t_http.method AS http_method,
                 t_http.url AS http_url,
                 t_http.headers AS http_headers,
@@ -643,7 +642,7 @@ pub async fn retry(
                         AND created_at > now() - make_interval(secs => $2::float8)
                 ) AS \"cooldown_active!\"
             ",
-            &source.event__id,
+            &source.event_id,
             state.manual_retry_cooldown_seconds as f64,
         )
         .fetch_one(&state.db)
@@ -662,11 +661,11 @@ pub async fn retry(
     let payload = crate::event_payload::fetch_event_payload(
         &state.db,
         state.object_storage.as_ref(),
-        source.application__id,
-        source.event__id,
+        source.application_id,
+        source.event_id,
         source.received_at,
     )
-    .await
+    .await?
     .ok_or(Hook0Problem::EventPayloadUnavailable)?;
 
     // Attribute the retry to the calling user for the audit trail.
@@ -683,9 +682,9 @@ pub async fn retry(
             VALUES ($1, $2, $3, 0, 'manual_retry', $4)
             RETURNING request_attempt__id
         ",
-        &source.application__id,
-        &source.event__id,
-        &source.subscription__id,
+        &source.application_id,
+        &source.event_id,
+        &source.subscription_id,
         user_id.as_ref(),
     )
     .fetch_one(&state.db)
@@ -695,7 +694,7 @@ pub async fn retry(
     info!(
         request_attempt_id = %new_request_attempt_id,
         source_attempt_id = %request_attempt_id,
-        event_id = %source.event__id,
+        event_id = %source.event_id,
         "Manual retry attempt created"
     );
 
@@ -708,21 +707,19 @@ pub async fn retry(
             &state.db,
             pulsar,
             hook0_protobuf::RequestAttempt {
-                application_id: source.application__id,
+                application_id: source.application_id,
                 request_attempt_id: new_request_attempt_id,
-                event_id: source.event__id,
+                event_id: source.event_id,
                 event_received_at: source.received_at,
-                subscription_id: source.subscription__id,
+                subscription_id: source.subscription_id,
                 created_at: Utc::now(),
-                // retry_count starts at 0 because this is a fresh, independent
-                // attempt — not a successor of the failed one.  The worker's
-                // one-shot check on attempt_trigger prevents automatic retries,
-                // so this counter will stay at 0 for the lifetime of this attempt.
+                // Fresh attempt, not a successor — starts at 0.  The worker
+                // won't auto-retry it (one-shot), so this stays at 0.
                 retry_count: 0,
                 http_method: source.http_method,
                 http_url: source.http_url,
                 http_headers: source.http_headers,
-                event_type_name: source.event_type__name,
+                event_type_name: source.event_type_name,
                 payload,
                 payload_content_type: source.payload_content_type,
                 secret: source.secret,

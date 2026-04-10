@@ -4,17 +4,17 @@
 //! old payloads are offloaded to S3-compatible object storage.  This module
 //! provides two entry points:
 //! - `fetch_event_payload`: tries DB first, falls back to S3 — the standard path.
-//! - `fetch_s3_event_payload`: S3-only, for callers that already checked the DB.
+//! - `fetch_s3_event_payload`: S3-only, for callers that already have the DB result.
 
 use aws_sdk_s3::error::DisplayErrorContext;
 use chrono::{DateTime, Utc};
 use hook0_sentry_integration::log_object_storage_error_with_context;
 use sqlx::PgPool;
 use std::time::Duration;
-use tracing::warn;
 use uuid::Uuid;
 
 use crate::ObjectStorageConfig;
+use crate::problems::Hook0Problem;
 
 /// Upper bound for the entire S3 round-trip (connect + response + body read).
 /// 10s is well above typical S3 latency (<500ms) but short enough that the
@@ -24,39 +24,40 @@ const S3_TIMEOUT: Duration = Duration::from_secs(10);
 /// Resolves the event payload by checking the DB inline column first, then
 /// falling back to S3 if the column is NULL (payload offloaded by retention).
 ///
-/// Returns `None` when neither source has the data (payload expired / purged).
-/// Callers should surface `Hook0Problem::EventPayloadUnavailable`.
+/// Returns `Ok(None)` when the payload is genuinely unavailable (S3 miss,
+/// expired).  Returns `Err` on technical failures (DB down, missing event).
 pub async fn fetch_event_payload(
     db: &PgPool,
     object_storage: Option<&ObjectStorageConfig>,
     application_id: Uuid,
     event_id: Uuid,
     received_at: DateTime<Utc>,
-) -> Option<Vec<u8>> {
+) -> Result<Option<Vec<u8>>, Hook0Problem> {
     // Try the DB inline column first — cheap, no network call.
-    #[allow(non_snake_case)]
-    struct PayloadRow {
-        payload: Option<Vec<u8>>,
-    }
-    match sqlx::query_as!(
-        PayloadRow,
+    let db_payload: Option<Option<Vec<u8>>> = sqlx::query_scalar!(
         "SELECT payload FROM event.event WHERE event__id = $1",
         &event_id,
     )
     .fetch_optional(db)
     .await
-    {
-        Ok(Some(PayloadRow { payload: Some(payload) })) => return Some(payload),
-        Ok(Some(PayloadRow { payload: None })) => {}  // Column is NULL — payload offloaded to S3.
-        Ok(None) => return None,  // Event row not found — nothing to fetch.
-        Err(error) => {
-            warn!(event_id = %event_id, "Failed to fetch event payload from DB: {error}");
-        }
+    .map_err(Hook0Problem::from)?;
+
+    match db_payload {
+        // Payload is inline in the DB — return it directly.
+        Some(Some(payload)) => return Ok(Some(payload)),
+        // Column is NULL — payload was offloaded to S3 by the retention policy.
+        Some(None) => {}
+        // Event row not found — should not happen (we just resolved it via
+        // request_attempt), indicates a data integrity issue.
+        None => return Err(Hook0Problem::NotFound),
     }
 
-    // DB column is NULL — fall back to S3 if object storage is configured.
-    let object_storage = object_storage?;
-    fetch_s3_event_payload(object_storage, application_id, event_id, received_at).await
+    // No S3 configured but the DB column is NULL — the payload is lost.
+    let Some(object_storage) = object_storage else {
+        return Ok(None);
+    };
+
+    Ok(fetch_s3_event_payload(object_storage, application_id, event_id, received_at).await)
 }
 
 /// Fetches the event payload directly from S3-compatible object storage.

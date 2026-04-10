@@ -663,21 +663,17 @@ pub async fn replay(
     match replayed {
         Some(event) => {
             if let Some(pulsar) = &state.pulsar {
-                // Replay uses the same DB+S3 fallback path as manual retry.
-                // The event.payload is already in memory from the UPDATE
-                // RETURNING, but if it was offloaded to S3 we need to fetch it.
+                // The UPDATE RETURNING already gave us the payload if it was
+                // inline in the DB.  If NULL, the retention policy offloaded it
+                // to S3 — fetch it from there.
                 let payload = match event.payload {
                     Some(payload) => Some(payload),
-                    None => {
-                        crate::event_payload::fetch_event_payload(
-                            &state.db,
-                            state.object_storage.as_ref(),
-                            body.application_id,
-                            event_id,
-                            event.received_at,
-                        )
-                        .await
-                    }
+                    None => match &state.object_storage {
+                        Some(object_storage) => crate::event_payload::fetch_s3_event_payload(
+                            object_storage, body.application_id, event_id, event.received_at,
+                        ).await,
+                        None => None,
+                    },
                 };
 
                 if let Some(p) = payload {

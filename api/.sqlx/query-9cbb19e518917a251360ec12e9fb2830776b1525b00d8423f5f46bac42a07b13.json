@@ -1,21 +1,21 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                ra.event__id,\n                ra.subscription__id,\n                ra.application__id,\n                e.received_at,\n                e.payload_content_type,\n                e.event_type__name,\n                t_http.method AS http_method,\n                t_http.url AS http_url,\n                t_http.headers AS http_headers,\n                s.secret\n            FROM webhook.request_attempt AS ra\n            INNER JOIN event.event AS e ON e.event__id = ra.event__id\n            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id\n            WHERE ra.request_attempt__id = $1\n                AND ra.application__id = $2\n                AND s.deleted_at IS NULL\n        ",
+  "query": "\n            SELECT\n                ra.event__id AS event_id,\n                ra.subscription__id AS subscription_id,\n                ra.application__id AS application_id,\n                e.received_at,\n                e.payload_content_type,\n                e.event_type__name AS event_type_name,\n                t_http.method AS http_method,\n                t_http.url AS http_url,\n                t_http.headers AS http_headers,\n                s.secret\n            FROM webhook.request_attempt AS ra\n            INNER JOIN event.event AS e ON e.event__id = ra.event__id\n            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id\n            WHERE ra.request_attempt__id = $1\n                AND ra.application__id = $2\n                AND s.deleted_at IS NULL\n        ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "event__id",
+        "name": "event_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 1,
-        "name": "subscription__id",
+        "name": "subscription_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 2,
-        "name": "application__id",
+        "name": "application_id",
         "type_info": "Uuid"
       },
       {
@@ -30,7 +30,7 @@
       },
       {
         "ordinal": 5,
-        "name": "event_type__name",
+        "name": "event_type_name",
         "type_info": "Text"
       },
       {
@@ -73,5 +73,5 @@
       false
     ]
   },
-  "hash": "ba0edd5e26f32147a0945cf86ee86a9ac4a42b29f4c2c6cf034af7b41b489706"
+  "hash": "9cbb19e518917a251360ec12e9fb2830776b1525b00d8423f5f46bac42a07b13"
 }
