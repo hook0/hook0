@@ -101,6 +101,13 @@ function handleRetry() {
 // the user can distinguish user-triggered retries from automatic ones.
 const isManualRetry = computed(() => props.attempt.attempt_trigger === 'manual_retry');
 
+// Retry only makes sense for terminal states — retrying an attempt that
+// hasn't been processed yet would just create a useless duplicate.
+const canRetry = computed(() => {
+  const status = props.attempt.status.type;
+  return status === RequestAttemptStatusType.Failed || status === RequestAttemptStatusType.Successful;
+});
+
 const filteredHeaders = computed(() => {
   if (!responseData.value) return null;
   return filterSensitiveHeaders(responseData.value.headers);
@@ -203,8 +210,8 @@ const isErrorResponse = computed(() => {
       </Hook0CardContentLine>
     </Hook0Section>
 
-    <!-- Retry action -->
-    <Hook0Section>
+    <!-- Retry action — only for terminal states (Failed / Successful) -->
+    <Hook0Section v-if="canRetry">
       <Hook0Button
         variant="secondary"
         size="sm"
