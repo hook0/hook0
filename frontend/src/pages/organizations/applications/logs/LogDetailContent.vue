@@ -71,7 +71,7 @@ const {
   refetch: responseRefetch,
 } = useResponseDetail(responseIdRef, applicationIdRef);
 
-const retryMutation = useRetryDelivery();
+const retryMutation = useRetryDelivery(applicationIdRef);
 
 function handleRetry() {
   retryMutation.mutate(props.attempt.request_attempt_id, {

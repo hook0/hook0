@@ -663,8 +663,8 @@ pub async fn replay(
     match replayed {
         Some(event) => {
             if let Some(pulsar) = &state.pulsar {
-                let payload = if let Some(p) = event.payload {
-                    Some(p)
+                let payload = if let Some(payload) = event.payload {
+                    Some(payload)
                 } else if let Some(object_storage) = &state.object_storage {
                     crate::event_payload::fetch_s3_event_payload(
                         object_storage,

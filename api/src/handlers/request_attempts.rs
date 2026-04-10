@@ -537,11 +537,15 @@ pub async fn list(
 }
 
 /// JSON body returned by POST /request_attempts/{id}/retry.
-/// Gives the caller the ID of the newly created attempt so they can
-/// poll its status or display it in the UI.
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct RetryResponse {
     pub request_attempt_id: Uuid,
+}
+
+#[derive(Debug, Deserialize, Apiv2Schema)]
+#[serde(deny_unknown_fields)]
+pub struct RetryQs {
+    application_id: Uuid,
 }
 
 #[api_v2_operation(
@@ -555,14 +559,33 @@ pub async fn retry(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
+    qs: Query<RetryQs>,
     request_attempt_id: Path<Uuid>,
 ) -> Result<HttpResponse, Hook0Problem> {
     let request_attempt_id = request_attempt_id.into_inner();
 
-    // Fetch the source attempt's routing metadata — without the payload
-    // (which can be ~100KB) to avoid wasting memory on unauthorized callers.
-    // Deleted subscriptions are filtered out in the WHERE clause so we don't
-    // need a separate check afterwards.
+    // Auth first — no DB work for unauthorized callers.
+    // Return 404 for both not-found and forbidden so an attacker cannot
+    // distinguish "exists but forbidden" from "does not exist".
+    let authorized = match authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::RequestAttemptRetry {
+            application_id: &qs.application_id,
+        },
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .await
+    {
+        Ok(token) => token,
+        Err(_) => return Err(Hook0Problem::NotFound),
+    };
+
+    // Fetch the source attempt's routing metadata + HTTP target info in
+    // one query.  Deleted subscriptions are filtered in the WHERE clause.
+    // No payload here — fetched separately to avoid loading ~100KB before
+    // validating the cooldown.
     #[allow(non_snake_case)]
     struct RetrySourceContext {
         event__id: Uuid,
@@ -571,6 +594,10 @@ pub async fn retry(
         received_at: DateTime<Utc>,
         payload_content_type: String,
         event_type__name: String,
+        http_method: String,
+        http_url: String,
+        http_headers: serde_json::Value,
+        secret: Uuid,
     }
 
     let source = query_as!(
@@ -582,37 +609,26 @@ pub async fn retry(
                 ra.application__id,
                 e.received_at,
                 e.payload_content_type,
-                e.event_type__name
+                e.event_type__name,
+                t_http.method AS http_method,
+                t_http.url AS http_url,
+                t_http.headers AS http_headers,
+                s.secret
             FROM webhook.request_attempt AS ra
             INNER JOIN event.event AS e ON e.event__id = ra.event__id
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
             WHERE ra.request_attempt__id = $1
+                AND ra.application__id = $2
                 AND s.deleted_at IS NULL
         ",
         &request_attempt_id,
+        &qs.application_id,
     )
     .fetch_optional(&state.db)
     .await
     .map_err(Hook0Problem::from)?
     .ok_or(Hook0Problem::NotFound)?;
-
-    // Authorize using the application that owns the source attempt.
-    // Return 404 for both not-found and forbidden so an attacker cannot
-    // distinguish "exists but forbidden" from "does not exist".
-    let authorized = match authorize_for_application(
-        &state.db,
-        &biscuit,
-        Action::RequestAttemptRetry {
-            application_id: &source.application__id,
-        },
-        state.max_authorization_time_in_ms,
-        state.debug_authorizer,
-    )
-    .await
-    {
-        Ok(token) => token,
-        Err(_) => return Err(Hook0Problem::NotFound),
-    };
 
     // Rate-limit manual retries per event to prevent abuse / accidental
     // click-storms.  Without this, a user could create thousands of
@@ -640,42 +656,23 @@ pub async fn retry(
         .map_err(Hook0Problem::from)?;
 
         if cooldown.exists.unwrap_or(false) {
-            return Err(Hook0Problem::ManualRetryCooldownActive {
+            return Err(Hook0Problem::EventManualRetryCooldownActive {
                 seconds: state.manual_retry_cooldown_seconds,
             });
         }
     }
 
-    // Fetch the event payload — first try the DB inline column, then
-    // fall back to S3 if the payload was offloaded by the retention policy.
+    // Fetch the event payload (DB inline column, then S3 fallback).
     // 410 Gone if neither source has the data.
-    #[allow(non_snake_case)]
-    struct EventPayload {
-        payload: Option<Vec<u8>>,
-    }
-    let event_row = query_as!(
-        EventPayload,
-        "SELECT payload FROM event.event WHERE event__id = $1",
-        &source.event__id,
+    let payload = crate::event_payload::fetch_event_payload(
+        &state.db,
+        state.object_storage.as_ref(),
+        source.application__id,
+        source.event__id,
+        source.received_at,
     )
-    .fetch_one(&state.db)
     .await
-    .map_err(Hook0Problem::from)?;
-
-    let payload = if let Some(payload) = event_row.payload {
-        payload
-    } else if let Some(object_storage) = &state.object_storage {
-        crate::event_payload::fetch_s3_event_payload(
-            object_storage,
-            source.application__id,
-            source.event__id,
-            source.received_at,
-        )
-        .await
-        .ok_or(Hook0Problem::EventPayloadUnavailable)?
-    } else {
-        return Err(Hook0Problem::EventPayloadUnavailable);
-    };
+    .ok_or(Hook0Problem::EventPayloadUnavailable)?;
 
     // Attribute the retry to the calling user for the audit trail.
     // Service tokens and master tokens have no user, so triggered_by stays NULL.
@@ -684,7 +681,7 @@ pub async fn retry(
         _ => None,
     };
 
-    let new_id: Uuid = query_scalar!(
+    let new_request_attempt_id: Uuid = query_scalar!(
         "
             INSERT INTO webhook.request_attempt
                 (application__id, event__id, subscription__id, retry_count, attempt_trigger, triggered_by)
@@ -701,71 +698,43 @@ pub async fn retry(
     .map_err(Hook0Problem::from)?;
 
     info!(
-        request_attempt_id = %new_id,
+        request_attempt_id = %new_request_attempt_id,
         source_attempt_id = %request_attempt_id,
         event_id = %source.event__id,
         "Manual retry attempt created"
     );
 
     // Fast-path: push to Pulsar so the worker picks it up immediately
-    // instead of waiting for the next PG poll cycle (~10s).  If Pulsar
-    // is unavailable, the PG poller finds the un-finalized row.
+    // instead of waiting for the next PG poll cycle (~10s).
     if let Some(pulsar) = &state.pulsar {
-        #[allow(non_snake_case)]
-        struct HttpTarget {
-            http_method: String,
-            http_url: String,
-            http_headers: serde_json::Value,
-            secret: Uuid,
-        }
-        let target = query_as!(
-            HttpTarget,
-            "
-                SELECT
-                    t_http.method AS http_method,
-                    t_http.url AS http_url,
-                    t_http.headers AS http_headers,
-                    s.secret
-                FROM webhook.subscription AS s
-                INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
-                WHERE s.subscription__id = $1
-            ",
-            &source.subscription__id,
-        )
-        .fetch_optional(&state.db)
-        .await
-        .map_err(Hook0Problem::from)?;
-
-        if let Some(target) = target {
-            let attempt = hook0_protobuf::RequestAttempt {
+        crate::pulsar_dispatch::send_single_attempt_to_pulsar(
+            &state.db,
+            pulsar,
+            hook0_protobuf::RequestAttempt {
                 application_id: source.application__id,
-                request_attempt_id: new_id,
+                request_attempt_id: new_request_attempt_id,
                 event_id: source.event__id,
                 event_received_at: source.received_at,
                 subscription_id: source.subscription__id,
                 created_at: Utc::now(),
                 retry_count: 0,
-                http_method: target.http_method,
-                http_url: target.http_url,
-                http_headers: target.http_headers,
+                http_method: source.http_method,
+                http_url: source.http_url,
+                http_headers: source.http_headers,
                 event_type_name: source.event_type__name,
                 payload,
                 payload_content_type: source.payload_content_type,
-                secret: target.secret,
+                secret: source.secret,
                 attempt_trigger: hook0_protobuf::AttemptTrigger::ManualRetry,
-            };
-
-            crate::pulsar_dispatch::send_single_attempt_to_pulsar(
-                &state.db, pulsar, attempt,
-            )
-            .await?;
-        }
+            },
+        )
+        .await?;
     }
 
     // 202 signals "accepted for async processing" — the new attempt will
     // be picked up by a worker, but we can't guarantee delivery yet.
     Ok(HttpResponse::Accepted().json(RetryResponse {
-        request_attempt_id: new_id,
+        request_attempt_id: new_request_attempt_id,
     }))
 }
 

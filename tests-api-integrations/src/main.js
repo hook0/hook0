@@ -153,17 +153,17 @@ function scenario_1() {
 
     // Test 1: Happy path — retry event_1's first attempt → 202
     let retry_attempt_id = request_attempts_1[0].request_attempt_id;
-    let retried_id = retryHappyPath(h, s, retry_attempt_id);
+    let retried_id = retryHappyPath(h, s, application_id, retry_attempt_id);
     if (!isNotNull(retried_id)) {
       throw new Error('Manual retry happy path failed');
     }
 
     // Test 2: Cooldown — use event_2's attempt (fresh event, no prior retry)
     let cooldown_attempt_id = request_attempts_2[0].request_attempt_id;
-    retryCooldown(h, s, cooldown_attempt_id);
+    retryCooldown(h, s, application_id, cooldown_attempt_id);
 
     // Test 3: Non-existent attempt → 404
-    retryNonExistent(h, s);
+    retryNonExistent(h, s, application_id);
 
     let validation_quota = get_quota(h);
     if (!validation_quota) {

@@ -46,6 +46,7 @@ pub enum Hook0Problem {
     EventInvalidBase64Payload(String),
     EventInvalidJsonPayload(String),
     EventPayloadUnavailable,
+    EventManualRetryCooldownActive { seconds: u64 },
 
     LabelsAmbiguity,
 
@@ -69,9 +70,6 @@ pub enum Hook0Problem {
     TooManyEventsToday(QuotaValue),
     TooManySubscriptionsPerApplication(QuotaValue),
     TooManyEventTypesPerApplication(QuotaValue),
-
-    // Manual retry
-    ManualRetryCooldownActive { seconds: u64 },
 
     // Generic errors
     JsonPayload(JsonPayloadProblem),
@@ -533,10 +531,10 @@ impl From<Hook0Problem> for Problem {
                 validation: None,
                 status: StatusCode::GONE,
             },
-            Hook0Problem::ManualRetryCooldownActive { seconds } => {
+            Hook0Problem::EventManualRetryCooldownActive { seconds } => {
                 let detail = format!("A manual retry for this event was already triggered less than {seconds}s ago. Please wait and try again after the cooldown period.");
                 Problem {
-                    id: Hook0Problem::ManualRetryCooldownActive { seconds },
+                    id: Hook0Problem::EventManualRetryCooldownActive { seconds },
                     title: "Retry cooldown active",
                     detail: detail.into(),
                     validation: None,
