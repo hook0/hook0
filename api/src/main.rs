@@ -514,6 +514,10 @@ struct Config {
     #[clap(long, env, default_value_t = false)]
     debug_authorizer: bool,
 
+    /// [Retry] Cooldown in seconds between manual retries of the same event (0 = disabled)
+    #[clap(long, env, default_value = "60")]
+    manual_retry_cooldown_seconds: u64,
+
     /// [Frontend] Matomo URL
     #[clap(long, env)]
     matomo_url: Option<Url>,
@@ -581,6 +585,7 @@ pub struct State {
     health_check_timeout: Duration,
     max_authorization_time_in_ms: u64,
     debug_authorizer: bool,
+    manual_retry_cooldown_seconds: u64,
     enable_quota_enforcement: bool,
     matomo_url: Option<Url>,
     matomo_site_id: Option<u16>,
@@ -1098,6 +1103,7 @@ async fn main() -> anyhow::Result<()> {
             health_check_timeout: config.health_check_timeout,
             max_authorization_time_in_ms: config.max_authorization_time_in_ms,
             debug_authorizer: config.debug_authorizer,
+            manual_retry_cooldown_seconds: config.manual_retry_cooldown_seconds,
             enable_quota_enforcement: config.enable_quota_enforcement,
             matomo_url: config.matomo_url,
             matomo_site_id: config.matomo_site_id,
