@@ -86,7 +86,8 @@ pub async fn load_waiting_request_attempts_from_db(
                 e.event_type__name AS event_type_name,
                 e.payload,
                 e.payload_content_type,
-                s.secret
+                s.secret,
+                ra.attempt_trigger
             FROM webhook.request_attempt AS ra
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
             INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
@@ -161,6 +162,7 @@ pub async fn load_waiting_request_attempts_from_db(
                 payload: p,
                 payload_content_type: ra.payload_content_type,
                 secret: ra.secret,
+                attempt_trigger: ra.attempt_trigger.parse().unwrap_or(hook0_protobuf::AttemptTrigger::Dispatch),
             };
 
             let mut msg_builder = producer
@@ -675,7 +677,9 @@ async fn handle_message(
                             true
                         } else {
                             // Creating a retry request or giving up
-                            if let Some(retry_in) =
+                            if attempt.attempt_trigger == hook0_protobuf::AttemptTrigger::ManualRetry {
+                                info!(request_attempt_id = %attempt.request_attempt_id, "Manual retry failed; not re-queuing (one-shot)");
+                            } else if let Some(retry_in) =
                                 compute_next_retry(&mut tx, &attempt, &response, config.max_retries)
                                     .await?
                             {
@@ -690,8 +694,8 @@ async fn handle_message(
                                 let retry = query_as!(
                                     Retry,
                                     "
-                                        INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count)
-                                        VALUES ($1, $2, $3, $4, $5)
+                                        INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count, attempt_trigger)
+                                        VALUES ($1, $2, $3, $4, $5, 'auto_retry')
                                         RETURNING request_attempt__id, created_at
                                     ",
                                     attempt.application_id,
@@ -715,6 +719,7 @@ async fn handle_message(
                                         request_attempt_id: retry.request_attempt__id,
                                         created_at: retry.created_at,
                                         retry_count: next_retry_count,
+                                        attempt_trigger: hook0_protobuf::AttemptTrigger::AutoRetry,
                                         ..attempt
                                     })
                                     .send_non_blocking()

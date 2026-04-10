@@ -16,7 +16,7 @@ use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, Worker, compute_next_retry,
 };
-use hook0_protobuf::{ObjectStorageResponse, RequestAttempt};
+use hook0_protobuf::{AttemptTrigger, ObjectStorageResponse, RequestAttempt};
 use hook0_sentry_integration::log_object_storage_error_with_context;
 
 /// Minimum duration to wait when there are no unprocessed items to pick
@@ -61,7 +61,8 @@ pub async fn look_for_work(
                     e.event_type__name AS event_type_name,
                     e.payload AS payload,
                     e.payload_content_type AS payload_content_type,
-                    s.secret
+                    s.secret,
+                    ra.attempt_trigger
                 FROM webhook.request_attempt AS ra
                 INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
                 LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
@@ -177,6 +178,7 @@ pub async fn look_for_work(
                     payload: p,
                     payload_content_type: attempt.payload_content_type,
                     secret: attempt.secret,
+                    attempt_trigger: attempt.attempt_trigger.parse().unwrap_or(AttemptTrigger::Dispatch),
                 };
 
                 // Start OpenTelemetry span
@@ -289,7 +291,9 @@ pub async fn look_for_work(
                     .await?;
 
                     // Creating a retry request or giving up
-                    if let Some(retry_in) = compute_next_retry(
+                    if attempt_with_payload.attempt_trigger == AttemptTrigger::ManualRetry {
+                        info!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Manual retry failed; not re-queuing (one-shot)");
+                    } else if let Some(retry_in) = compute_next_retry(
                         &mut tx,
                         &attempt_with_payload,
                         &response,
@@ -300,8 +304,8 @@ pub async fn look_for_work(
                         let next_retry_count = attempt.retry_count + 1;
                         let retry_id = query!(
                             "
-                                INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count)
-                                VALUES ($1, $2, $3, statement_timestamp() + $4, $5)
+                                INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count, attempt_trigger)
+                                VALUES ($1, $2, $3, statement_timestamp() + $4, $5, 'auto_retry')
                                 RETURNING request_attempt__id
                             ",
                             attempt.application_id,

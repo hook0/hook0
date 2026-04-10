@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT EXISTS(\n                    SELECT 1 FROM webhook.request_attempt\n                    WHERE event__id = $1\n                        AND attempt_trigger = 'manual_retry'\n                        AND created_at > now() - make_interval(secs => $2::float8)\n                ) AS exists\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "43ad8794b083f09f077a8131c4c891b003d8c5e177218939e78f6356834f9df1"
+}
