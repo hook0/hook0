@@ -542,6 +542,7 @@ pub struct RetryResponse {
 }
 
 #[derive(Debug, Deserialize, Apiv2Schema)]
+#[serde(deny_unknown_fields)]
 pub struct RetryQs {
     application_id: Uuid,
 }
