@@ -2,8 +2,7 @@
 import { computed, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
-import { toast } from 'vue-sonner';
-import type { Problem } from '@/http';
+import { handleMutationError } from '@/utils/handleMutationError';
 import { RefreshCw } from 'lucide-vue-next';
 
 import Hook0Code from '@/components/Hook0Code.vue';
@@ -79,18 +78,7 @@ function handleRetry() {
       toast.success(t('logs.retryQueued'));
     },
     onError: (err) => {
-      // unwrapResponse transforms AxiosErrors into Problem objects
-      // ({ id, title, detail, status }) via handleError.
-      const problem = err as unknown as Problem;
-      if (problem?.id === 'EventPayloadUnavailable') {
-        toast.error(t('logs.payloadExpired'));
-        return;
-      }
-      if (problem?.id === 'EventManualRetryCooldownActive') {
-        toast.error(t('logs.retryCooldown'));
-        return;
-      }
-      toast.error(t('common.unknownError'));
+      handleMutationError(err);
     },
   });
 }

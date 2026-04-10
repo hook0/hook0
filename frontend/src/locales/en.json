@@ -543,8 +543,6 @@
     "deliveryNotFound": "This delivery was not found. It may have been deleted after the retention period.",
     "retryDelivery": "Retry this delivery",
     "retryQueued": "Retry queued",
-    "payloadExpired": "Cannot retry — event payload has expired",
-    "retryCooldown": "Please wait before retrying this event again",
     "manualRetryLabel": "Manual retry",
     "trigger": "Trigger"
   },
