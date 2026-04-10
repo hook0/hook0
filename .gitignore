@@ -40,3 +40,5 @@ docs/plans/
 .DS_Store
 api/src/.comply/
 protobuf/target/
+**/src/.comply/
+**/.comply/

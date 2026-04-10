@@ -2,6 +2,7 @@
 import { computed, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
+import { toast } from 'vue-sonner';
 import { handleMutationError } from '@/utils/handleMutationError';
 import { RefreshCw } from 'lucide-vue-next';
 
