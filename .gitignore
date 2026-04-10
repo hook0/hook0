@@ -40,3 +40,4 @@ docs/plans/
 .DS_Store
 api/src/.comply/
 .sqlx/
+protobuf/target/
