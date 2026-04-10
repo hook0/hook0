@@ -87,7 +87,7 @@ pub async fn fetch_s3_event_payload(
             );
             None
         }
-        Err(S3Error::GetObject(error)) => {
+        Err(S3Error::GetObject(ref error)) => {
             log_object_storage_error_with_context!(
                 "S3 GET OBJECT failed",
                 error_chain = DisplayErrorContext(&error).to_string(),
@@ -108,7 +108,7 @@ pub async fn fetch_s3_event_payload(
 
 enum S3Error {
     Timeout,
-    GetObject(aws_sdk_s3::error::SdkError<aws_sdk_s3::operation::get_object::GetObjectError>),
+    GetObject(Box<aws_sdk_s3::error::SdkError<aws_sdk_s3::operation::get_object::GetObjectError>>),
     BodyCollect(aws_sdk_s3::primitives::ByteStreamError),
 }
 
@@ -125,7 +125,7 @@ async fn fetch_from_s3(
             .key(key)
             .send()
             .await
-            .map_err(S3Error::GetObject)?;
+            .map_err(|error| S3Error::GetObject(Box::new(error)))?;
 
         response
             .body

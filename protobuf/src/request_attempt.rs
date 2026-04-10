@@ -297,15 +297,17 @@ mod tests {
     #[test]
     fn empty_attempt_trigger_defaults_to_dispatch() {
         // Simulates a message from an old producer that doesn't set attempt_trigger
-        let mut proto = crate::raw_proto::request_attempt::RequestAttempt::default();
-        proto.request_attempt_id = uuid!("00000000-0000-0000-0000-000000000001").to_string();
-        proto.event_id = uuid!("00000000-0000-0000-0000-000000000002").to_string();
-        proto.subscription_id = uuid!("00000000-0000-0000-0000-000000000003").to_string();
-        proto.secret = uuid!("00000000-0000-0000-0000-000000000004").to_string();
-        proto.created_at = Some(prost_wkt_types::Timestamp {
-            seconds: 1696521642,
-            nanos: 0,
-        });
+        let proto = crate::raw_proto::request_attempt::RequestAttempt {
+            request_attempt_id: uuid!("00000000-0000-0000-0000-000000000001").to_string(),
+            event_id: uuid!("00000000-0000-0000-0000-000000000002").to_string(),
+            subscription_id: uuid!("00000000-0000-0000-0000-000000000003").to_string(),
+            secret: uuid!("00000000-0000-0000-0000-000000000004").to_string(),
+            created_at: Some(prost_wkt_types::Timestamp {
+                seconds: 1696521642,
+                nanos: 0,
+            }),
+            ..Default::default()
+        };
         // attempt_trigger is empty string (default for proto3 string)
         assert!(proto.attempt_trigger.is_empty());
 
