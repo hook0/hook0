@@ -526,17 +526,16 @@ impl From<Hook0Problem> for Problem {
             },
             Hook0Problem::EventPayloadUnavailable => Problem {
                 id: Hook0Problem::EventPayloadUnavailable,
-                title: "Event payload unavailable",
-                detail: "The event payload has expired or been purged from storage. Manual retry requires the original payload. Re-send the event from your application to create a new delivery.".into(),
+                title: "Event payload expired",
+                detail: "The payload for this event is no longer available. It was removed after the retention period.".into(),
                 validation: None,
                 status: StatusCode::GONE,
             },
             Hook0Problem::EventManualRetryCooldownActive { seconds } => {
-                let detail = format!("A manual retry for this event was already triggered less than {seconds}s ago. Please wait and try again after the cooldown period.");
                 Problem {
                     id: Hook0Problem::EventManualRetryCooldownActive { seconds },
-                    title: "Retry cooldown active",
-                    detail: detail.into(),
+                    title: "Retry too soon",
+                    detail: format!("A retry was already triggered for this event. Wait {seconds} seconds before trying again.").into(),
                     validation: None,
                     status: StatusCode::TOO_MANY_REQUESTS,
                 }
