@@ -75,8 +75,9 @@ pub enum Hook0Problem {
     NotFound,
     InternalServerError,
     Forbidden,
+    // Manual retry
     EventPayloadUnavailable,
-    RetryCooldown { seconds: u64 },
+    ManualRetryCooldownActive { seconds: u64 },
 }
 
 impl From<sqlx::Error> for Hook0Problem {
@@ -531,10 +532,10 @@ impl From<Hook0Problem> for Problem {
                 validation: None,
                 status: StatusCode::GONE,
             },
-            Hook0Problem::RetryCooldown { seconds } => {
+            Hook0Problem::ManualRetryCooldownActive { seconds } => {
                 let detail = format!("A manual retry for this event was already triggered less than {seconds}s ago. Please wait and try again after the cooldown period.");
                 Problem {
-                    id: Hook0Problem::RetryCooldown { seconds },
+                    id: Hook0Problem::ManualRetryCooldownActive { seconds },
                     title: "Retry cooldown active",
                     detail: detail.into(),
                     validation: None,

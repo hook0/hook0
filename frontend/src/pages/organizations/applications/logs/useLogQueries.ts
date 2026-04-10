@@ -11,11 +11,10 @@ export function useLogList(applicationId: Ref<string>) {
   });
 }
 
-export function useRetryDelivery(applicationId: Ref<string>) {
+export function useRetryDelivery() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (requestAttemptId: string) =>
-      LogService.retry(requestAttemptId, applicationId.value),
+    mutationFn: (requestAttemptId: string) => LogService.retry(requestAttemptId),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: logKeys.lists(),

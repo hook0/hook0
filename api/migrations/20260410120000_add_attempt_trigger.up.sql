@@ -11,6 +11,9 @@
 --   4. ADD triggered_by FK column
 --   5. Partial index on triggered_by (only manual retries populate it)
 
+-- Fail fast if a long-running transaction is holding a lock on the table.
+-- Without this, our ALTER would queue behind it AND block all subsequent
+-- writes until it completes — potentially cascading into a full outage.
 SET lock_timeout = '5s';
 
 -- ADD COLUMN with a DEFAULT value.  On PG 11+ this is catalog-only (no table

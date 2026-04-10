@@ -47,16 +47,9 @@ export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixe
   );
 }
 
-export function retry(
-  requestAttemptId: UUID,
-  applicationId: UUID
-): Promise<{ request_attempt_id: string }> {
+export function retry(requestAttemptId: UUID): Promise<{ request_attempt_id: string }> {
   return unwrapResponse(
-    http.post<{ request_attempt_id: string }>(
-      `/request_attempts/${requestAttemptId}/retry`,
-      null,
-      { params: { application_id: applicationId } }
-    )
+    http.post<{ request_attempt_id: string }>(`/request_attempts/${requestAttemptId}/retry`)
   );
 }
 

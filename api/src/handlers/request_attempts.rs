@@ -544,15 +544,6 @@ pub struct RetryResponse {
     pub request_attempt_id: Uuid,
 }
 
-/// Query-string parameters for the retry endpoint.
-/// The application_id is required so the backend can verify the caller
-/// has access to the application that owns the attempt (anti-enumeration).
-#[derive(Debug, Deserialize, Apiv2Schema)]
-#[serde(deny_unknown_fields)]
-pub struct RetryQs {
-    application_id: Uuid,
-}
-
 #[api_v2_operation(
     summary = "Retry a delivery attempt",
     description = "Creates a new one-shot delivery attempt for the same event. The new attempt is independent: it will not trigger automatic retries on failure. Subject to a configurable per-event cooldown.",
@@ -564,7 +555,6 @@ pub async fn retry(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
-    qs: Query<RetryQs>,
     request_attempt_id: Path<Uuid>,
 ) -> Result<HttpResponse, Hook0Problem> {
     let request_attempt_id = request_attempt_id.into_inner();
@@ -576,7 +566,7 @@ pub async fn retry(
     /// Metadata from the original attempt + its event, used to populate the
     /// retry.  Includes the payload so we can re-enqueue it without a
     /// second round-trip.
-    struct SourceAttempt {
+    struct RetrySourceContext {
         event__id: Uuid,
         subscription__id: Uuid,
         application__id: Uuid,
@@ -588,7 +578,7 @@ pub async fn retry(
     }
 
     let source = query_as!(
-        SourceAttempt,
+        RetrySourceContext,
         "
             SELECT
                 ra.event__id,
@@ -611,13 +601,14 @@ pub async fn retry(
     .map_err(Hook0Problem::from)?
     .ok_or(Hook0Problem::NotFound)?;
 
-    // Authorize — return 404 for both not-found and forbidden so an
-    // attacker cannot distinguish "exists but forbidden" from "does not exist".
+    // Authorize using the application that owns the source attempt.
+    // Return 404 for both not-found and forbidden so an attacker cannot
+    // distinguish "exists but forbidden" from "does not exist".
     let authorized = authorize_for_application(
         &state.db,
         &biscuit,
         Action::RequestAttemptRetry {
-            application_id: &qs.application_id,
+            application_id: &source.application__id,
         },
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
@@ -628,13 +619,6 @@ pub async fn retry(
         Ok(token) => token,
         Err(_) => return Err(Hook0Problem::NotFound),
     };
-
-    // Cross-check: if the attempt belongs to a different application than the
-    // one in the query string, treat it as not-found.  Without this, an
-    // authenticated user could probe attempt IDs across applications.
-    if source.application__id != qs.application_id {
-        return Err(Hook0Problem::NotFound);
-    }
 
     // A deleted subscription means the customer removed the endpoint.
     // Delivering to it would be unwanted traffic to a URL the customer
@@ -671,7 +655,7 @@ pub async fn retry(
         let cooldown_active = check.exists.unwrap_or(false);
 
         if cooldown_active {
-            return Err(Hook0Problem::RetryCooldown {
+            return Err(Hook0Problem::ManualRetryCooldownActive {
                 seconds: state.manual_retry_cooldown_seconds,
             });
         }
@@ -699,11 +683,11 @@ pub async fn retry(
     };
 
     #[allow(non_snake_case)]
-    struct InsertedAttempt {
+    struct CreatedRetryAttempt {
         request_attempt__id: Uuid,
     }
     let inserted = query_as!(
-        InsertedAttempt,
+        CreatedRetryAttempt,
         "
             INSERT INTO webhook.request_attempt
                 (application__id, event__id, subscription__id, retry_count, attempt_trigger, triggered_by)
@@ -733,38 +717,31 @@ pub async fn retry(
     // will eventually find the row because it queries for attempts with no
     // succeeded_at/failed_at.
     if let Some(pulsar) = &state.pulsar {
-        use actix_web::rt::time::timeout;
-        use std::time::Duration;
-
-        /// Subscription's HTTP target + worker routing info, needed to build
-        /// the Pulsar message for fast-path dispatch.
+        // Build the protobuf message that the output-worker expects.
+        // The HTTP target info (method, url, headers, secret) is resolved
+        // inside send_single_attempt_to_pulsar via the subscription's worker
+        // routing query — same query used by send_request_attempts_to_pulsar.
+        //
+        // We need the subscription's HTTP target info to build the full
+        // protobuf message.  Query it here so the shared function gets a
+        // complete RequestAttempt.
         #[allow(non_snake_case)]
-        struct WorkerInfo {
+        struct HttpTarget {
             http_method: String,
             http_url: String,
             http_headers: serde_json::Value,
             secret: Uuid,
-            worker_id: Option<Uuid>,
-            worker_queue_type: Option<String>,
         }
-
-        let worker = query_as!(
-            WorkerInfo,
+        let target = query_as!(
+            HttpTarget,
             "
                 SELECT
                     t_http.method AS http_method,
                     t_http.url AS http_url,
                     t_http.headers AS http_headers,
-                    s.secret,
-                    COALESCE(sw.worker__id, ow.worker__id) AS worker_id,
-                    COALESCE(w1.queue_type, w2.queue_type) AS worker_queue_type
+                    s.secret
                 FROM webhook.subscription AS s
                 INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
-                LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
-                LEFT JOIN infrastructure.worker AS w1 ON w1.worker__id = sw.worker__id
-                INNER JOIN event.application AS a ON a.application__id = s.application__id
-                LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
-                LEFT JOIN infrastructure.worker AS w2 ON w2.worker__id = ow.worker__id
                 WHERE s.subscription__id = $1
             ",
             &source.subscription__id,
@@ -773,11 +750,8 @@ pub async fn retry(
         .await
         .map_err(Hook0Problem::from)?;
 
-        if let Some(w) = worker
-            && let Some(worker_id) = w.worker_id
-            && w.worker_queue_type.as_deref() == Some("pulsar")
-        {
-            let request_attempt = hook0_protobuf::RequestAttempt {
+        if let Some(t) = target {
+            let attempt = hook0_protobuf::RequestAttempt {
                 application_id: source.application__id,
                 request_attempt_id: new_id,
                 event_id: source.event__id,
@@ -785,40 +759,17 @@ pub async fn retry(
                 subscription_id: source.subscription__id,
                 created_at: Utc::now(),
                 retry_count: 0,
-                http_method: w.http_method,
-                http_url: w.http_url,
-                http_headers: w.http_headers,
+                http_method: t.http_method,
+                http_url: t.http_url,
+                http_headers: t.http_headers,
                 event_type_name: source.event_type__name,
                 payload,
                 payload_content_type: source.payload_content_type,
-                secret: w.secret,
+                secret: t.secret,
                 attempt_trigger: hook0_protobuf::AttemptTrigger::ManualRetry,
             };
 
-            let mut producer = timeout(
-                Duration::from_secs(3),
-                pulsar.request_attempts_producer.lock(),
-            )
-            .await
-            .map_err(|_| {
-                error!("Timed out while waiting access to Pulsar producer");
-                Hook0Problem::InternalServerError
-            })?;
-
-            // Pulsar send is best-effort.  If it fails the user still gets 202
-            // and the PG poller will find the un-finalized row within seconds.
-            if let Err(e) = producer
-                .send_non_blocking(
-                    format!(
-                        "persistent://{}/{}/{}.request_attempt",
-                        &pulsar.tenant, &pulsar.namespace, worker_id,
-                    ),
-                    request_attempt,
-                )
-                .await
-            {
-                error!("Failed to send manual retry to Pulsar: {e}");
-            }
+            super::events::send_single_attempt_to_pulsar(&state.db, pulsar, attempt).await?;
         }
     }
 
