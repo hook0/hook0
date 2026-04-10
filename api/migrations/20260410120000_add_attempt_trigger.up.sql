@@ -40,13 +40,24 @@ ALTER TABLE webhook.request_attempt
 -- iam.user, we keep the attempt row (for audit/billing) but lose the
 -- attribution.  CASCADE would destroy the attempt row, losing delivery history.
 ALTER TABLE webhook.request_attempt
-  ADD COLUMN triggered_by UUID REFERENCES iam.user ON DELETE SET NULL;
+  ADD COLUMN triggered_by UUID REFERENCES iam.user ON DELETE SET NULL ON UPDATE NO ACTION;
 
 -- Partial index: only manual retries populate triggered_by (<0.01% of rows),
 -- so this index stays tiny.  Without it, a DELETE on iam.user would require a
 -- full table scan to find FK references.
+--
+-- Ideally this would use CREATE INDEX CONCURRENTLY to avoid blocking writes,
+-- but sqlx::migrate!() runs each file in a transaction, which is incompatible
+-- with CONCURRENTLY.  Since the partial index covers 0 rows at migration time
+-- (no manual retries exist yet), the build is instantaneous regardless.
 CREATE INDEX idx_request_attempt_triggered_by
   ON webhook.request_attempt (triggered_by)
   WHERE triggered_by IS NOT NULL;
+
+COMMENT ON COLUMN webhook.request_attempt.attempt_trigger
+  IS 'Why this attempt was created: dispatch (initial delivery), auto_retry (worker successor after failure), manual_retry (user-initiated one-shot via API or UI).';
+
+COMMENT ON COLUMN webhook.request_attempt.triggered_by
+  IS 'User who initiated a manual retry. NULL for system-created attempts (dispatch, auto_retry) and service-token callers with no user identity.';
 
 RESET lock_timeout;
