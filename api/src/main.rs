@@ -28,6 +28,7 @@ use url::Url;
 use uuid::Uuid;
 
 mod cloudflare_turnstile;
+mod event_payload;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
 mod handlers;
