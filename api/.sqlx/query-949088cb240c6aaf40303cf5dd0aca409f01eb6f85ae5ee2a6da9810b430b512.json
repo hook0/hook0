@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                COALESCE(sw.worker__id, ow.worker__id) AS worker_id,\n                COALESCE(w1.queue_type, w2.queue_type) AS worker_queue_type\n            FROM webhook.subscription AS s\n            INNER JOIN event.application AS a ON a.application__id = s.application__id\n            LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id\n            LEFT JOIN infrastructure.worker AS w1 ON w1.worker__id = sw.worker__id\n            LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true\n            LEFT JOIN infrastructure.worker AS w2 ON w2.worker__id = ow.worker__id\n            WHERE s.subscription__id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "worker_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "worker_queue_type",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "949088cb240c6aaf40303cf5dd0aca409f01eb6f85ae5ee2a6da9810b430b512"
+}
