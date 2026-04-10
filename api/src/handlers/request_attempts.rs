@@ -634,19 +634,14 @@ pub async fn retry(
     // click-storms.  Without this, a user could create thousands of
     // attempts for the same event in seconds.
     if state.manual_retry_cooldown_seconds > 0 {
-        #[allow(non_snake_case)]
-        struct CooldownCheck {
-            exists: Option<bool>,
-        }
-        let cooldown = query_as!(
-            CooldownCheck,
+        let cooldown_active: bool = query_scalar!(
             "
                 SELECT EXISTS(
                     SELECT 1 FROM webhook.request_attempt
                     WHERE event__id = $1
                         AND attempt_trigger = 'manual_retry'
                         AND created_at > now() - make_interval(secs => $2::float8)
-                ) AS exists
+                ) AS \"cooldown_active!\"
             ",
             &source.event__id,
             state.manual_retry_cooldown_seconds as f64,
@@ -655,7 +650,7 @@ pub async fn retry(
         .await
         .map_err(Hook0Problem::from)?;
 
-        if cooldown.exists.unwrap_or(false) {
+        if cooldown_active {
             return Err(Hook0Problem::EventManualRetryCooldownActive {
                 seconds: state.manual_retry_cooldown_seconds,
             });
@@ -705,7 +700,9 @@ pub async fn retry(
     );
 
     // Fast-path: push to Pulsar so the worker picks it up immediately
-    // instead of waiting for the next PG poll cycle (~10s).
+    // instead of waiting for the next PG poll cycle (~10s).  Even without
+    // Pulsar, the attempt is already persisted in DB — the PG poller will
+    // find and deliver it.
     if let Some(pulsar) = &state.pulsar {
         crate::pulsar_dispatch::send_single_attempt_to_pulsar(
             &state.db,
@@ -717,6 +714,10 @@ pub async fn retry(
                 event_received_at: source.received_at,
                 subscription_id: source.subscription__id,
                 created_at: Utc::now(),
+                // retry_count starts at 0 because this is a fresh, independent
+                // attempt — not a successor of the failed one.  The worker's
+                // one-shot check on attempt_trigger prevents automatic retries,
+                // so this counter will stay at 0 for the lifetime of this attempt.
                 retry_count: 0,
                 http_method: source.http_method,
                 http_url: source.http_url,

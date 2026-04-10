@@ -1,8 +1,11 @@
 //! Dispatches individual request attempts to Pulsar topics.
 //!
 //! Resolves the worker routing (subscription → worker → topic) and publishes
-//! the message.  Returns `Ok(false)` when no Pulsar worker is configured for
-//! the subscription — the caller decides whether to fall back to PG polling.
+//! the message.  When no Pulsar worker is configured for the subscription,
+//! returns `Ok(())` — the PG poller picks up the attempt instead.
+//!
+//! Extracted from `handlers/events.rs::send_request_attempts_to_pulsar` which
+//! does the same for batch dispatch.  This version handles a single attempt.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -18,19 +21,25 @@ use hook0_protobuf::RequestAttempt;
 
 /// Timeout for acquiring the Pulsar producer Mutex lock.  If the lock is held
 /// longer than 3s, the producer is likely stuck and we should fail fast rather
-/// than block the request thread.
+/// than block the request thread.  Same value used by
+/// `send_request_attempts_to_pulsar` in events.rs.
 const PULSAR_PRODUCER_LOCK_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// Sends a single `RequestAttempt` to the appropriate Pulsar topic.
 ///
-/// Returns `Ok(true)` if the message was sent, `Ok(false)` if no Pulsar worker
-/// is configured for this subscription (normal — PG poller handles it).
-/// Returns `Err` if the producer lock times out.
+/// Resolves which Pulsar topic to use by querying the subscription's worker
+/// routing chain (subscription → worker override → organization default).
+/// If no Pulsar worker is configured, returns `Ok(())` silently — the PG
+/// poller will find the un-finalized row within seconds.
 pub async fn send_single_attempt_to_pulsar(
     db: &sqlx::PgPool,
     pulsar: &Arc<PulsarConfig>,
     attempt: RequestAttempt,
-) -> Result<bool, Hook0Problem> {
+) -> Result<(), Hook0Problem> {
+    // Resolve which worker (and therefore which Pulsar topic) should receive
+    // this attempt.  The chain is: subscription-level override → organization
+    // default.  If neither is set, or the worker type isn't "pulsar", the PG
+    // poller handles delivery instead.
     #[allow(non_snake_case)]
     struct WorkerRoute {
         worker_id: Option<Uuid>,
@@ -57,10 +66,13 @@ pub async fn send_single_attempt_to_pulsar(
     .await
     .map_err(Hook0Problem::from)?;
 
-    let Some(route) = route else { return Ok(false) };
-    let Some(worker_id) = route.worker_id else { return Ok(false) };
+    // No Pulsar worker configured — not an error, the PG poller handles it.
+    let Some(route) = route else { return Ok(()) };
+    let Some(worker_id) = route.worker_id else {
+        return Ok(());
+    };
     if route.worker_queue_type.as_deref() != Some("pulsar") {
-        return Ok(false);
+        return Ok(());
     }
 
     let mut producer = timeout(
@@ -73,7 +85,7 @@ pub async fn send_single_attempt_to_pulsar(
         Hook0Problem::InternalServerError
     })?;
 
-    if let Err(error) = producer
+    producer
         .send_non_blocking(
             format!(
                 "persistent://{}/{}/{}.request_attempt",
@@ -82,13 +94,10 @@ pub async fn send_single_attempt_to_pulsar(
             attempt,
         )
         .await
-    {
-        // Log but don't fail the request — the PG poller will find the
-        // un-finalized row and deliver it.  The caller gets Ok(true) because
-        // the attempt was at least dispatched to the producer (the send
-        // error is a Pulsar-side issue, not a caller bug).
-        error!("Failed to send attempt to Pulsar: {error}");
-    }
+        .map_err(|error| {
+            error!("Failed to send attempt to Pulsar: {error}");
+            Hook0Problem::InternalServerError
+        })?;
 
-    Ok(true)
+    Ok(())
 }

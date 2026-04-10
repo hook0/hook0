@@ -11,6 +11,7 @@ use chrono::{DateTime, Utc};
 use hook0_sentry_integration::log_object_storage_error_with_context;
 use sqlx::PgPool;
 use std::time::Duration;
+use tracing::warn;
 use uuid::Uuid;
 
 use crate::ObjectStorageConfig;
@@ -34,31 +35,35 @@ pub async fn fetch_event_payload(
 ) -> Option<Vec<u8>> {
     // Try the DB inline column first — cheap, no network call.
     #[allow(non_snake_case)]
-    struct EventPayloadRow {
+    struct PayloadRow {
         payload: Option<Vec<u8>>,
     }
-    let row = sqlx::query_as!(
-        EventPayloadRow,
+    match sqlx::query_as!(
+        PayloadRow,
         "SELECT payload FROM event.event WHERE event__id = $1",
         &event_id,
     )
     .fetch_optional(db)
     .await
-    .ok()??;
-
-    if let Some(payload) = row.payload {
-        return Some(payload);
+    {
+        Ok(Some(PayloadRow { payload: Some(payload) })) => return Some(payload),
+        Ok(Some(PayloadRow { payload: None })) => {}  // Column is NULL — payload offloaded to S3.
+        Ok(None) => return None,  // Event row not found — nothing to fetch.
+        Err(error) => {
+            warn!(event_id = %event_id, "Failed to fetch event payload from DB: {error}");
+        }
     }
 
-    // DB column is NULL — the payload was offloaded to S3 by the retention policy.
+    // DB column is NULL — fall back to S3 if object storage is configured.
     let object_storage = object_storage?;
     fetch_s3_event_payload(object_storage, application_id, event_id, received_at).await
 }
 
 /// Fetches the event payload directly from S3-compatible object storage.
 ///
-/// Called when the DB `payload` column is NULL.  Returns `None` if S3 is
-/// unreachable, the object is missing, or the timeout expires.
+/// Called when the DB `payload` column is NULL (offloaded by retention).
+/// Returns `None` if S3 is unreachable, the object is missing, or the timeout
+/// expires.
 pub async fn fetch_s3_event_payload(
     object_storage: &ObjectStorageConfig,
     application_id: Uuid,
