@@ -92,7 +92,9 @@ const isManualRetry = computed(() => props.attempt.attempt_trigger === 'manual_r
 // hasn't been processed yet would just create a useless duplicate.
 const canRetry = computed(() => {
   const status = props.attempt.status.type;
-  return status === RequestAttemptStatusType.Failed || status === RequestAttemptStatusType.Successful;
+  return (
+    status === RequestAttemptStatusType.Failed || status === RequestAttemptStatusType.Successful
+  );
 });
 
 const filteredHeaders = computed(() => {
