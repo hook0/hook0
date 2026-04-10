@@ -280,12 +280,6 @@ function goBackToList() {
   color: var(--color-text-tertiary);
 }
 
-:deep(.log-status__with-badge) {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-}
-
 :deep(.log-cell-link.hook0-button.link) {
   font-family: var(--font-mono);
   font-size: 0.75rem;

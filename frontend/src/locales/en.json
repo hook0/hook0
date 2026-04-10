@@ -545,7 +545,7 @@
     "retryQueued": "Retry queued",
     "payloadExpired": "Cannot retry — event payload has expired",
     "retryCooldown": "Please wait before retrying this event again",
-    "manualRetryBadge": "Retry",
+    "manualRetryLabel": "Manual retry",
     "trigger": "Trigger"
   },
   "members": {

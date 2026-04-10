@@ -204,9 +204,7 @@ const isErrorResponse = computed(() => {
       </Hook0CardContentLine>
       <Hook0CardContentLine v-if="isManualRetry" type="split">
         <template #label>{{ t('logs.trigger') }}</template>
-        <template #content>
-          <Hook0Badge variant="info" size="sm">{{ t('logs.manualRetryBadge') }}</Hook0Badge>
-        </template>
+        <template #content>{{ t('logs.manualRetryLabel') }}</template>
       </Hook0CardContentLine>
     </Hook0Section>
 

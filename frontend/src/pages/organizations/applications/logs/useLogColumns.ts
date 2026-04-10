@@ -11,7 +11,6 @@ import { routes } from '@/routes';
 import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
 import Hook0DateFormatted from '@/components/Hook0DateFormatted.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0Badge from '@/components/Hook0Badge.vue';
 import { formatDate, formatRelativeTime } from '@/utils/formatDate';
 
 function statusLabel(row: RequestAttemptExtended, t: ReturnType<typeof useI18n>['t']): string {
@@ -40,7 +39,7 @@ function renderStatusPill(row: RequestAttemptExtended, t: ReturnType<typeof useI
   const config = getStatusConfig(row.status.type);
   const label = statusLabel(row, t);
   const tooltip = statusTooltip(row, t);
-  const pill = h(Hook0Tooltip, { content: tooltip }, () =>
+  return h(Hook0Tooltip, { content: tooltip }, () =>
     h(
       'span',
       {
@@ -51,15 +50,6 @@ function renderStatusPill(row: RequestAttemptExtended, t: ReturnType<typeof useI
       [h(config.icon, { size: 14, 'aria-hidden': 'true', class: 'log-status__icon' }), label]
     )
   );
-
-  if (row.attempt_trigger === 'manual_retry') {
-    return h('div', { class: 'log-status__with-badge' }, [
-      pill,
-      h(Hook0Badge, { variant: 'info', size: 'sm' }, () => t('logs.manualRetryBadge')),
-    ]);
-  }
-
-  return pill;
 }
 
 // event_type_name is denormalized at attempt level for list views;
