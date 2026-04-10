@@ -178,7 +178,10 @@ pub async fn look_for_work(
                     payload: p,
                     payload_content_type: attempt.payload_content_type,
                     secret: attempt.secret,
-                    attempt_trigger: attempt.attempt_trigger.parse().unwrap_or(AttemptTrigger::Dispatch),
+                    attempt_trigger: attempt.attempt_trigger.parse().unwrap_or_else(|_| {
+                        warn!(attempt_trigger = %attempt.attempt_trigger, "Unknown attempt_trigger value, defaulting to Dispatch");
+                        AttemptTrigger::Dispatch
+                    }),
                 };
 
                 // Start OpenTelemetry span

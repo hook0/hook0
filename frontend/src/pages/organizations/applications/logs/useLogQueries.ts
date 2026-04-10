@@ -20,6 +20,9 @@ export function useRetryDelivery(applicationId: Ref<string>) {
       void queryClient.invalidateQueries({
         queryKey: logKeys.lists(),
       });
+      void queryClient.invalidateQueries({
+        queryKey: requestAttemptKeys.all,
+      });
     },
   });
 }

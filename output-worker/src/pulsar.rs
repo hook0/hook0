@@ -162,7 +162,10 @@ pub async fn load_waiting_request_attempts_from_db(
                 payload: p,
                 payload_content_type: ra.payload_content_type,
                 secret: ra.secret,
-                attempt_trigger: ra.attempt_trigger.parse().unwrap_or(hook0_protobuf::AttemptTrigger::Dispatch),
+                attempt_trigger: ra.attempt_trigger.parse().unwrap_or_else(|_| {
+                    warn!(attempt_trigger = %ra.attempt_trigger, "Unknown attempt_trigger value, defaulting to Dispatch");
+                    hook0_protobuf::AttemptTrigger::Dispatch
+                }),
             };
 
             let mut msg_builder = producer

@@ -7,7 +7,7 @@ use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use paperclip::v2::models::{DataType, DataTypeFormat, DefaultSchemaRaw};
 use paperclip::v2::schema::Apiv2Schema as Apiv2SchemaTrait;
 use serde::{Deserialize, Serialize};
-use sqlx::{query_as, query_scalar};
+use sqlx::query_as;
 use std::cmp::max;
 use std::collections::BTreeMap;
 use tracing::{error, info};
@@ -34,6 +34,7 @@ pub struct RequestAttempt {
     pub retry_count: i16,
     pub http_response_status: Option<i16>,
     pub status: RequestAttemptStatus,
+    pub attempt_trigger: String,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -269,6 +270,7 @@ pub async fn get(
         retry_count: i16,
         event_type__name: String,
         http_response_status: Option<i16>,
+        attempt_trigger: String,
     }
 
     let raw = query_as!(
@@ -287,7 +289,8 @@ pub async fn get(
                 ra.retry_count,
                 s.description AS subscription__description,
                 e.event_type__name,
-                r.http_code AS http_response_status
+                r.http_code AS http_response_status,
+                ra.attempt_trigger
             FROM webhook.request_attempt AS ra
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
             INNER JOIN event.event AS e ON e.event__id = ra.event__id
@@ -330,6 +333,7 @@ pub async fn get(
                 &ra.succeeded_at,
                 &ra.delay_until,
             ),
+            attempt_trigger: ra.attempt_trigger,
         })),
         None => Err(Hook0Problem::NotFound),
     }
@@ -408,6 +412,7 @@ pub async fn list(
         retry_count: i16,
         event_type__name: String,
         http_response_status: Option<i16>,
+        attempt_trigger: String,
     }
     let raw_request_attempts = query_as!(
         RawRequestAttempt,
@@ -425,7 +430,8 @@ pub async fn list(
                 ra.retry_count,
                 s.description AS subscription__description,
                 e.event_type__name,
-                r.http_code AS http_response_status
+                r.http_code AS http_response_status,
+                ra.attempt_trigger
             FROM webhook.request_attempt AS ra
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
             INNER JOIN event.event AS e ON e.event__id = ra.event__id
@@ -483,6 +489,7 @@ pub async fn list(
                 &ra.succeeded_at,
                 &ra.delay_until,
             ),
+            attempt_trigger: ra.attempt_trigger.clone(),
         })
         .collect::<Vec<_>>();
 
@@ -543,7 +550,6 @@ pub struct RetryQs {
     summary = "Retry a delivery attempt",
     description = "Creates a new one-shot delivery attempt for the same event. The new attempt is independent: it will not trigger automatic retries on failure. Subject to a configurable per-event cooldown.",
     operation_id = "requestAttempts.retry",
-    consumes = "application/json",
     produces = "application/json",
     tags("Subscriptions Management")
 )]
@@ -556,7 +562,7 @@ pub async fn retry(
 ) -> Result<HttpResponse, Hook0Problem> {
     let request_attempt_id = request_attempt_id.into_inner();
 
-    // 1. Fetch source attempt metadata (without payload — avoid loading ~100KB for unauthorized requests)
+    // 1. Fetch source attempt metadata (includes payload — needed for retry)
     #[allow(non_snake_case)]
     struct SourceAttempt {
         event__id: Uuid,

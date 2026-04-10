@@ -2,6 +2,9 @@
 import { computed, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
+import { isAxiosError } from '@/http';
+import { toast } from 'vue-sonner';
+import { RefreshCw } from 'lucide-vue-next';
 
 import Hook0Code from '@/components/Hook0Code.vue';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
@@ -17,8 +20,6 @@ import { useEventDetail } from '@/pages/organizations/applications/events/useEve
 import { useSubscriptionDetail } from '@/pages/organizations/applications/subscriptions/useSubscriptionQueries';
 import { useResponseDetail } from './useResponseQueries';
 import { useRetryDelivery } from './useLogQueries';
-import { RefreshCw } from 'lucide-vue-next';
-import { toast } from 'vue-sonner';
 import { filterSensitiveHeaders } from './responseHeaders';
 import { statusCodeClass } from './responseStatus';
 import { routes } from '@/routes';
@@ -69,8 +70,8 @@ function handleRetry() {
       toast.success(t('logs.retryQueued'));
     },
     onError: (err) => {
-      if (err && typeof err === 'object' && 'response' in err) {
-        const status = (err as { response?: { status?: number } }).response?.status;
+      if (isAxiosError(err)) {
+        const status = err.response?.status;
         if (status === 410) {
           toast.error(t('logs.payloadExpired'));
           return;
