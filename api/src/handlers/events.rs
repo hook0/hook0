@@ -660,50 +660,42 @@ pub async fn replay(
     .await
     .map_err(Hook0Problem::from)?;
 
-    match replayed {
-        Some(event) => {
-            if let Some(pulsar) = &state.pulsar {
-                // The UPDATE RETURNING already gave us the payload if it was
-                // inline in the DB.  If NULL, the retention policy offloaded it
-                // to S3 — fetch it from there.
-                let payload = match event.payload {
-                    Some(payload) => Some(payload),
-                    None => match &state.object_storage {
-                        Some(object_storage) => crate::event_payload::fetch_s3_event_payload(
-                            object_storage, body.application_id, event_id, event.received_at,
-                        ).await,
-                        None => None,
-                    },
-                };
+    let event = replayed.ok_or(Hook0Problem::NotFound)?;
 
-                if let Some(p) = payload {
-                    send_request_attempts_to_pulsar(
-                        &mut tx,
-                        pulsar,
-                        body.application_id,
-                        event_id,
-                        event.received_at,
-                        &event.event_type,
-                        &p,
-                        &event.payload_content_type,
-                    )
-                    .await?;
+    let Some(pulsar) = &state.pulsar else {
+        tx.commit().await?;
+        report_replayed_events(1);
+        return Ok(NoContent);
+    };
 
-                    tx.commit().await?;
-                    report_replayed_events(1);
-                    Ok(NoContent)
-                } else {
-                    tx.rollback().await?;
-                    Err(Hook0Problem::InternalServerError)
-                }
-            } else {
-                tx.commit().await?;
-                report_replayed_events(1);
-                Ok(NoContent)
-            }
-        }
-        None => Err(Hook0Problem::NotFound),
-    }
+    let payload = match (event.payload, &state.object_storage) {
+        // Payload is inline in the DB — use it directly.
+        (Some(payload), _) => payload,
+        // Payload was offloaded to S3 by the retention policy — fetch it.
+        (None, Some(storage)) => crate::event_payload::fetch_s3_event_payload(
+            storage, body.application_id, event_id, event.received_at,
+        )
+        .await
+        .ok_or(Hook0Problem::InternalServerError)?,
+        // No payload in DB and no S3 configured — the payload is lost.
+        (None, None) => return Err(Hook0Problem::InternalServerError),
+    };
+
+    send_request_attempts_to_pulsar(
+        &mut tx,
+        pulsar,
+        body.application_id,
+        event_id,
+        event.received_at,
+        &event.event_type,
+        &payload,
+        &event.payload_content_type,
+    )
+    .await?;
+
+    tx.commit().await?;
+    report_replayed_events(1);
+    Ok(NoContent)
 }
 
 #[allow(clippy::too_many_arguments)]
