@@ -246,4 +246,64 @@ mod tests {
         let output: RequestAttempt = proto_request_attempt.try_into().unwrap();
         assert_eq!(output, request_attempt)
     }
+
+    #[test]
+    fn protobuf_manual_retry_roundtrip() {
+        let request_attempt = RequestAttempt {
+            application_id: uuid!("00000000-0000-0000-0000-000000000000"),
+            request_attempt_id: uuid!("00000000-0000-0000-0000-000000000001"),
+            event_id: uuid!("00000000-0000-0000-0000-000000000002"),
+            event_received_at: Utc.with_ymd_and_hms(2025, 10, 5, 16, 0, 41).unwrap(),
+            subscription_id: uuid!("00000000-0000-0000-0000-000000000003"),
+            created_at: Utc.with_ymd_and_hms(2025, 10, 5, 16, 0, 42).unwrap(),
+            retry_count: 0,
+            http_method: "POST".to_owned(),
+            http_url: "http://localhost/target".to_owned(),
+            http_headers: json!({}),
+            event_type_name: "test.manual_retry".to_owned(),
+            payload: b"test".to_vec(),
+            payload_content_type: "text/plain".to_owned(),
+            secret: uuid!("00000000-0000-0000-0000-000000000004"),
+            attempt_trigger: AttemptTrigger::ManualRetry,
+        };
+        let proto: crate::raw_proto::request_attempt::RequestAttempt =
+            request_attempt.clone().try_into().unwrap();
+        let output: RequestAttempt = proto.try_into().unwrap();
+        assert_eq!(output.attempt_trigger, AttemptTrigger::ManualRetry);
+        assert_eq!(output, request_attempt);
+    }
+
+    #[test]
+    fn attempt_trigger_parsing() {
+        assert_eq!("dispatch".parse(), Ok(AttemptTrigger::Dispatch));
+        assert_eq!("auto_retry".parse(), Ok(AttemptTrigger::AutoRetry));
+        assert_eq!("manual_retry".parse(), Ok(AttemptTrigger::ManualRetry));
+        assert!("unknown".parse::<AttemptTrigger>().is_err());
+    }
+
+    #[test]
+    fn attempt_trigger_display() {
+        assert_eq!(AttemptTrigger::Dispatch.to_string(), "dispatch");
+        assert_eq!(AttemptTrigger::AutoRetry.to_string(), "auto_retry");
+        assert_eq!(AttemptTrigger::ManualRetry.to_string(), "manual_retry");
+    }
+
+    #[test]
+    fn empty_attempt_trigger_defaults_to_dispatch() {
+        // Simulates a message from an old producer that doesn't set attempt_trigger
+        let mut proto = crate::raw_proto::request_attempt::RequestAttempt::default();
+        proto.request_attempt_id = uuid!("00000000-0000-0000-0000-000000000001").to_string();
+        proto.event_id = uuid!("00000000-0000-0000-0000-000000000002").to_string();
+        proto.subscription_id = uuid!("00000000-0000-0000-0000-000000000003").to_string();
+        proto.secret = uuid!("00000000-0000-0000-0000-000000000004").to_string();
+        proto.created_at = Some(prost_wkt_types::Timestamp {
+            seconds: 1696521642,
+            nanos: 0,
+        });
+        // attempt_trigger is empty string (default for proto3 string)
+        assert!(proto.attempt_trigger.is_empty());
+
+        let result: RequestAttempt = proto.try_into().unwrap();
+        assert_eq!(result.attempt_trigger, AttemptTrigger::Dispatch);
+    }
 }
