@@ -1,4 +1,5 @@
 use actix_web::web::ReqData;
+use actix_web::HttpResponse;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use paperclip::actix::web::{Data, Json, Path, Query};
@@ -6,14 +7,14 @@ use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use paperclip::v2::models::{DataType, DataTypeFormat, DefaultSchemaRaw};
 use paperclip::v2::schema::Apiv2Schema as Apiv2SchemaTrait;
 use serde::{Deserialize, Serialize};
-use sqlx::query_as;
+use sqlx::{query_as, query_scalar};
 use std::cmp::max;
 use std::collections::BTreeMap;
-use tracing::error;
+use tracing::{error, info};
 use url::Url;
 use uuid::Uuid;
 
-use crate::iam::{Action, authorize_for_application};
+use crate::iam::{Action, AuthorizedToken, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::pagination::{Cursor, EncodedDescCursor, NextPageParts, Paginated};
 use crate::problems::Hook0Problem;
@@ -526,6 +527,271 @@ pub async fn list(
         data: Json(request_attempts),
         next_page_parts,
     })
+}
+
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct RetryResponse {
+    pub request_attempt_id: Uuid,
+}
+
+#[derive(Debug, Deserialize, Apiv2Schema)]
+pub struct RetryQs {
+    application_id: Uuid,
+}
+
+#[api_v2_operation(
+    summary = "Retry a delivery attempt",
+    description = "Creates a new one-shot delivery attempt for the same event. The new attempt is independent: it will not trigger automatic retries on failure. Subject to a configurable per-event cooldown.",
+    operation_id = "requestAttempts.retry",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Subscriptions Management")
+)]
+pub async fn retry(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    qs: Query<RetryQs>,
+    request_attempt_id: Path<Uuid>,
+) -> Result<HttpResponse, Hook0Problem> {
+    let request_attempt_id = request_attempt_id.into_inner();
+
+    // 1. Fetch source attempt metadata (without payload — avoid loading ~100KB for unauthorized requests)
+    #[allow(non_snake_case)]
+    struct SourceAttempt {
+        event__id: Uuid,
+        subscription__id: Uuid,
+        application__id: Uuid,
+        received_at: DateTime<Utc>,
+        payload: Option<Vec<u8>>,
+        payload_content_type: String,
+        event_type__name: String,
+        subscription_deleted_at: Option<DateTime<Utc>>,
+    }
+
+    let source = query_as!(
+        SourceAttempt,
+        "
+            SELECT
+                ra.event__id,
+                ra.subscription__id,
+                ra.application__id,
+                e.received_at,
+                e.payload,
+                e.payload_content_type,
+                e.event_type__name,
+                s.deleted_at AS subscription_deleted_at
+            FROM webhook.request_attempt AS ra
+            INNER JOIN event.event AS e ON e.event__id = ra.event__id
+            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+            WHERE ra.request_attempt__id = $1
+        ",
+        &request_attempt_id,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?
+    .ok_or(Hook0Problem::NotFound)?;
+
+    // 2. Authorize — return 404 uniformly for both not-found and forbidden (anti-enumeration)
+    let authorized = authorize_for_application(
+        &state.db,
+        &biscuit,
+        Action::RequestAttemptRetry {
+            application_id: &qs.application_id,
+        },
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .await;
+
+    let authorized = match authorized {
+        Ok(token) => token,
+        Err(_) => return Err(Hook0Problem::NotFound),
+    };
+
+    // Verify the attempt belongs to the requested application
+    if source.application__id != qs.application_id {
+        return Err(Hook0Problem::NotFound);
+    }
+
+    // 3. Check subscription not deleted
+    if source.subscription_deleted_at.is_some() {
+        return Err(Hook0Problem::NotFound);
+    }
+
+    // 4. Check cooldown per event
+    if state.manual_retry_cooldown_seconds > 0 {
+        #[allow(non_snake_case)]
+        struct CooldownCheck {
+            exists: Option<bool>,
+        }
+        let check = query_as!(
+            CooldownCheck,
+            "
+                SELECT EXISTS(
+                    SELECT 1 FROM webhook.request_attempt
+                    WHERE event__id = $1
+                        AND attempt_trigger = 'manual_retry'
+                        AND created_at > now() - make_interval(secs => $2::float8)
+                ) AS exists
+            ",
+            &source.event__id,
+            state.manual_retry_cooldown_seconds as f64,
+        )
+        .fetch_one(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?;
+        let cooldown_active = check.exists.unwrap_or(false);
+
+        if cooldown_active {
+            return Err(Hook0Problem::RetryCooldown {
+                seconds: state.manual_retry_cooldown_seconds,
+            });
+        }
+    }
+
+    // 5. Fetch event payload (DB or S3 fallback)
+    let payload = crate::event_payload::fetch_event_payload(
+        source.payload,
+        state.object_storage.as_ref(),
+        source.application__id,
+        source.event__id,
+        source.received_at,
+    )
+    .await
+    .ok_or(Hook0Problem::EventPayloadUnavailable)?;
+
+    // 6. Extract user_id from token (None for service/master tokens)
+    let user_id = match &authorized {
+        AuthorizedToken::User(aut) => Some(aut.user_id),
+        _ => None,
+    };
+
+    // 7. INSERT new attempt
+    #[allow(non_snake_case)]
+    struct InsertedAttempt {
+        request_attempt__id: Uuid,
+    }
+    let inserted = query_as!(
+        InsertedAttempt,
+        "
+            INSERT INTO webhook.request_attempt
+                (application__id, event__id, subscription__id, retry_count, attempt_trigger, triggered_by)
+            VALUES ($1, $2, $3, 0, 'manual_retry', $4)
+            RETURNING request_attempt__id
+        ",
+        &source.application__id,
+        &source.event__id,
+        &source.subscription__id,
+        user_id.as_ref(),
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+    let new_id = inserted.request_attempt__id;
+
+    info!(
+        request_attempt_id = %new_id,
+        source_attempt_id = %request_attempt_id,
+        event_id = %source.event__id,
+        "Manual retry attempt created"
+    );
+
+    // 8. Dispatch to Pulsar (optional — PG poller is the safety net)
+    if let Some(pulsar) = &state.pulsar {
+        // Reuse the existing send_request_attempts_to_pulsar by replaying the event
+        // The new attempt will be picked up since it has no succeeded_at/failed_at
+        use actix_web::rt::time::timeout;
+        use std::time::Duration;
+
+        #[allow(non_snake_case)]
+        struct WorkerInfo {
+            http_method: String,
+            http_url: String,
+            http_headers: serde_json::Value,
+            secret: Uuid,
+            worker_id: Option<Uuid>,
+            worker_queue_type: Option<String>,
+        }
+
+        let worker = query_as!(
+            WorkerInfo,
+            "
+                SELECT
+                    t_http.method AS http_method,
+                    t_http.url AS http_url,
+                    t_http.headers AS http_headers,
+                    s.secret,
+                    COALESCE(sw.worker__id, ow.worker__id) AS worker_id,
+                    COALESCE(w1.queue_type, w2.queue_type) AS worker_queue_type
+                FROM webhook.subscription AS s
+                INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
+                LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                LEFT JOIN infrastructure.worker AS w1 ON w1.worker__id = sw.worker__id
+                INNER JOIN event.application AS a ON a.application__id = s.application__id
+                LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
+                LEFT JOIN infrastructure.worker AS w2 ON w2.worker__id = ow.worker__id
+                WHERE s.subscription__id = $1
+            ",
+            &source.subscription__id,
+        )
+        .fetch_optional(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?;
+
+        if let Some(w) = worker
+            && let Some(worker_id) = w.worker_id
+            && w.worker_queue_type.as_deref() == Some("pulsar")
+        {
+            let request_attempt = hook0_protobuf::RequestAttempt {
+                application_id: source.application__id,
+                request_attempt_id: new_id,
+                event_id: source.event__id,
+                event_received_at: source.received_at,
+                subscription_id: source.subscription__id,
+                created_at: Utc::now(),
+                retry_count: 0,
+                http_method: w.http_method,
+                http_url: w.http_url,
+                http_headers: w.http_headers,
+                event_type_name: source.event_type__name,
+                payload,
+                payload_content_type: source.payload_content_type,
+                secret: w.secret,
+                attempt_trigger: hook0_protobuf::AttemptTrigger::ManualRetry,
+            };
+
+            let mut producer = timeout(
+                Duration::from_secs(3),
+                pulsar.request_attempts_producer.lock(),
+            )
+            .await
+            .map_err(|_| {
+                error!("Timed out while waiting access to Pulsar producer");
+                Hook0Problem::InternalServerError
+            })?;
+
+            if let Err(e) = producer
+                .send_non_blocking(
+                    format!(
+                        "persistent://{}/{}/{}.request_attempt",
+                        &pulsar.tenant, &pulsar.namespace, worker_id,
+                    ),
+                    request_attempt,
+                )
+                .await
+            {
+                // Log but don't fail — PG poller will pick it up
+                error!("Failed to send manual retry to Pulsar: {e}");
+            }
+        }
+    }
+
+    // 9. Return 202 Accepted
+    Ok(HttpResponse::Accepted().json(RetryResponse {
+        request_attempt_id: new_id,
+    }))
 }
 
 #[cfg(test)]

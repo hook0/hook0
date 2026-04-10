@@ -775,6 +775,7 @@ async fn send_request_attempts_to_pulsar<'a>(
                 payload: payload.to_owned(),
                 payload_content_type: payload_content_type.to_owned(),
                 secret: ra.secret,
+                attempt_trigger: hook0_protobuf::AttemptTrigger::Dispatch,
             };
 
             let mut producer = timeout(
