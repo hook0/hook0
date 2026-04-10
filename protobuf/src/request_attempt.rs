@@ -26,13 +26,11 @@ use crate::error::Hook0ProtobufError;
 ///   These are **one-shot** — if they fail, no further automatic retries
 ///   are scheduled, so a single click can never snowball into a retry chain.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, strum::Display, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum AttemptTrigger {
     #[default]
-    #[strum(serialize = "dispatch")]
     Dispatch,
-    #[strum(serialize = "auto_retry")]
     AutoRetry,
-    #[strum(serialize = "manual_retry")]
     ManualRetry,
 }
 

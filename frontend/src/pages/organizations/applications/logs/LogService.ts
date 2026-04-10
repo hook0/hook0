@@ -52,11 +52,9 @@ export function retry(
   applicationId: UUID
 ): Promise<{ request_attempt_id: string }> {
   return unwrapResponse(
-    http.post<{ request_attempt_id: string }>(
-      `/request_attempts/${requestAttemptId}/retry`,
-      null,
-      { params: { application_id: applicationId } }
-    )
+    http.post<{ request_attempt_id: string }>(`/request_attempts/${requestAttemptId}/retry`, null, {
+      params: { application_id: applicationId },
+    })
   );
 }
 
