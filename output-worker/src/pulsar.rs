@@ -684,7 +684,9 @@ async fn handle_message(
                             // Manual retries are one-shot by design: if the user's explicit
                             // retry also fails, we do NOT schedule automatic follow-up retries.
                             // See pg.rs for the full rationale.
-                            if attempt.attempt_trigger == hook0_protobuf::AttemptTrigger::ManualRetry {
+                            if attempt.attempt_trigger
+                                == hook0_protobuf::AttemptTrigger::ManualRetry
+                            {
                                 info!(request_attempt_id = %attempt.request_attempt_id, "Manual retry failed; not re-queuing (one-shot)");
                             } else if let Some(retry_in) =
                                 compute_next_retry(&mut tx, &attempt, &response, config.max_retries)

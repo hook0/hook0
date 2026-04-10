@@ -39,3 +39,4 @@ human-ui-tests/
 docs/plans/
 .DS_Store
 api/src/.comply/
+protobuf/target/

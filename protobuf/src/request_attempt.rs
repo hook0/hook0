@@ -160,7 +160,10 @@ impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttem
             attempt_trigger: if value.attempt_trigger.is_empty() {
                 AttemptTrigger::Dispatch
             } else {
-                value.attempt_trigger.parse().unwrap_or(AttemptTrigger::Dispatch)
+                value
+                    .attempt_trigger
+                    .parse()
+                    .unwrap_or(AttemptTrigger::Dispatch)
             },
         })
     }

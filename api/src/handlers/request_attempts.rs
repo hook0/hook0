@@ -1,5 +1,5 @@
-use actix_web::web::ReqData;
 use actix_web::HttpResponse;
+use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use paperclip::actix::web::{Data, Json, Path, Query};

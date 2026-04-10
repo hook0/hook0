@@ -673,7 +673,10 @@ pub async fn replay(
         (Some(payload), _) => payload,
         // Payload was offloaded to S3 by the retention policy — fetch it.
         (None, Some(storage)) => crate::event_payload::fetch_s3_event_payload(
-            storage, body.application_id, event_id, event.received_at,
+            storage,
+            body.application_id,
+            event_id,
+            event.received_at,
         )
         .await
         .ok_or(Hook0Problem::InternalServerError)?,
