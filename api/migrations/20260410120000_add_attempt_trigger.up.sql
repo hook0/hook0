@@ -1,25 +1,50 @@
+-- Migration: Add attempt_trigger and triggered_by to webhook.request_attempt
+--
+-- Extends the request_attempt table to record *why* an attempt was created
+-- (initial dispatch, automatic retry, or manual retry) and *who* triggered
+-- manual retries (user audit trail).
+--
+-- Five steps, each designed to avoid long locks on the hot request_attempt table:
+--   1. ADD COLUMN with DEFAULT (catalog-only on PG 11+)
+--   2. ADD CHECK NOT VALID (no scan)
+--   3. VALIDATE separately (weaker lock — DML continues)
+--   4. ADD triggered_by FK column
+--   5. Partial index on triggered_by (only manual retries populate it)
+
 SET lock_timeout = '5s';
 
--- Step 1: add column with default (instant on PG 11+ — catalog-only, no table rewrite)
+-- ADD COLUMN with a DEFAULT value.  On PG 11+ this is catalog-only (no table
+-- rewrite), so it completes instantly even on a table with billions of rows.
+-- If we omitted the DEFAULT, existing rows would need backfilling separately.
 ALTER TABLE webhook.request_attempt
   ADD COLUMN attempt_trigger TEXT NOT NULL DEFAULT 'dispatch';
 
--- Step 2: CHECK as NOT VALID — no table scan, no ACCESS EXCLUSIVE hold
+-- Add the CHECK constraint as NOT VALID.  This skips scanning existing rows,
+-- which would hold an ACCESS EXCLUSIVE lock for the duration of the scan —
+-- potentially minutes on a large table, blocking all reads and writes.
 ALTER TABLE webhook.request_attempt
   ADD CONSTRAINT request_attempt_trigger_check
     CHECK (attempt_trigger IN ('dispatch', 'auto_retry', 'manual_retry'))
     NOT VALID;
 
--- Step 3: validate separately — SHARE UPDATE EXCLUSIVE lock, concurrent DML OK
+-- VALIDATE the constraint in a separate statement.  This takes a weaker
+-- SHARE UPDATE EXCLUSIVE lock that allows concurrent INSERTs, UPDATEs, and
+-- DELETEs to continue.  If steps 2 and 3 were combined, the validation scan
+-- would hold the stronger lock from step 2.
 ALTER TABLE webhook.request_attempt
   VALIDATE CONSTRAINT request_attempt_trigger_check;
 
--- Step 4: nullable FK for user attribution (NULL for system/service-token callers)
--- ON DELETE SET NULL preserves the attempt row when a user is deleted
+-- Nullable FK for user attribution.  NULL when the caller is a service token
+-- or the system itself (no user to attribute).
+-- ON DELETE SET NULL: if the user who triggered a retry is later deleted from
+-- iam.user, we keep the attempt row (for audit/billing) but lose the
+-- attribution.  CASCADE would destroy the attempt row, losing delivery history.
 ALTER TABLE webhook.request_attempt
   ADD COLUMN triggered_by UUID REFERENCES iam.user ON DELETE SET NULL;
 
--- Step 5: partial index — only manual retries populate this column (<0.01% of rows)
+-- Partial index: only manual retries populate triggered_by (<0.01% of rows),
+-- so this index stays tiny.  Without it, a DELETE on iam.user would require a
+-- full table scan to find FK references.
 CREATE INDEX idx_request_attempt_triggered_by
   ON webhook.request_attempt (triggered_by)
   WHERE triggered_by IS NOT NULL;

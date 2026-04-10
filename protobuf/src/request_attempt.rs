@@ -1,3 +1,13 @@
+//! Defines `RequestAttempt` — the in-memory representation of a webhook
+//! delivery attempt — and its conversion to/from the Protobuf wire format
+//! used by Pulsar messages.
+//!
+//! The API serializes a `RequestAttempt` into Protobuf and publishes it to
+//! a Pulsar topic; the output-worker deserializes it back and executes the
+//! HTTP call.  The `AttemptTrigger` enum was added later, so all conversions
+//! default to `Dispatch` when the field is missing — backward compatible
+//! with in-flight messages from older producers.
+
 use chrono::{DateTime, Utc};
 use prost::Message;
 use pulsar::producer::Message as PulsarMessage;
@@ -6,15 +16,20 @@ use uuid::Uuid;
 
 use crate::error::Hook0ProtobufError;
 
-/// Who created this delivery attempt.
+/// Tracks *why* a delivery attempt was created, which controls retry
+/// behavior in the output worker.
+///
+/// - `Dispatch`: the normal path — event ingested, attempt created.
+/// - `AutoRetry`: the worker created a follow-up after a failed attempt;
+///   these still get further automatic retries up to the max.
+/// - `ManualRetry`: a user clicked "Retry" in the UI or called the API.
+///   These are **one-shot** — if they fail, no further automatic retries
+///   are scheduled, so a single click can never snowball into a retry chain.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AttemptTrigger {
-    /// Initial delivery from event ingestion.
     #[default]
     Dispatch,
-    /// Worker-created successor after a failed delivery.
     AutoRetry,
-    /// User-initiated one-shot retry.
     ManualRetry,
 }
 
@@ -41,6 +56,10 @@ impl std::str::FromStr for AttemptTrigger {
     }
 }
 
+/// A single webhook delivery attempt, carrying everything the output
+/// worker needs to make the HTTP call: target URL, headers, payload,
+/// signing secret, and retry metadata.  Serialized to Protobuf for
+/// Pulsar transport; also constructed in-memory by the PG poller.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RequestAttempt {
     pub application_id: Uuid,
@@ -133,7 +152,11 @@ impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttem
             payload: value.payload,
             payload_content_type: value.payload_content_type,
             secret,
-            // Default to Dispatch for backward compatibility with messages that predate this field
+            // Pulsar topics may still contain messages published before this field
+            // existed (proto3 defaults strings to "").  Without this fallback, those
+            // messages would fail to deserialize and loop in NACK/redeliver forever,
+            // blocking the topic.  Defaulting to Dispatch is safe because all
+            // pre-existing attempts *were* dispatches.
             attempt_trigger: if value.attempt_trigger.is_empty() {
                 AttemptTrigger::Dispatch
             } else {

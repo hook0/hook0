@@ -162,6 +162,8 @@ pub async fn load_waiting_request_attempts_from_db(
                 payload: p,
                 payload_content_type: ra.payload_content_type,
                 secret: ra.secret,
+                // Backward compat: see pg.rs for rationale.  Unknown values
+                // default to Dispatch rather than crashing the worker.
                 attempt_trigger: ra.attempt_trigger.parse().unwrap_or_else(|_| {
                     warn!(attempt_trigger = %ra.attempt_trigger, "Unknown attempt_trigger value, defaulting to Dispatch");
                     hook0_protobuf::AttemptTrigger::Dispatch
@@ -679,7 +681,9 @@ async fn handle_message(
                             warn!(request_attempt_id = %attempt.request_attempt_id, "Race detected: request attempt was already finalized by another process; skipping retry");
                             true
                         } else {
-                            // Creating a retry request or giving up
+                            // Manual retries are one-shot by design: if the user's explicit
+                            // retry also fails, we do NOT schedule automatic follow-up retries.
+                            // See pg.rs for the full rationale.
                             if attempt.attempt_trigger == hook0_protobuf::AttemptTrigger::ManualRetry {
                                 info!(request_attempt_id = %attempt.request_attempt_id, "Manual retry failed; not re-queuing (one-shot)");
                             } else if let Some(retry_in) =
@@ -689,6 +693,7 @@ async fn handle_message(
                                 let next_retry_count = attempt.retry_count + 1;
                                 let delay_until = Utc::now() + retry_in;
 
+                                // Tag the successor as 'auto_retry' — see pg.rs for rationale.
                                 #[allow(non_snake_case)]
                                 struct Retry {
                                     request_attempt__id: Uuid,

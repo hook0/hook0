@@ -36,7 +36,16 @@ const props = defineProps<Props>();
 const { t } = useI18n();
 const route = useRoute();
 
-// "Sent" = HTTP request dispatched; Waiting (retry queue) and Pending (not yet picked) have not made a network call
+// Hook0 lifecycle states for an attempt:
+//   Waiting    = scheduled for later (delay_until in the future, e.g. retry backoff)
+//   Pending    = eligible but not yet picked up by a worker
+//   InProgress = worker is executing the HTTP call right now
+//   Successful = HTTP call got a 2xx response
+//   Failed     = HTTP call got a non-2xx or timed out
+//
+// We show request/response details only for states where the HTTP call
+// was actually made.  Without this guard, the UI shows empty response
+// sections for queued attempts.
 const isSent = computed(() => {
   const type = props.attempt.status.type;
   return type !== RequestAttemptStatusType.Waiting && type !== RequestAttemptStatusType.Pending;
@@ -72,10 +81,14 @@ function handleRetry() {
     onError: (err) => {
       if (isAxiosError(err)) {
         const status = err.response?.status;
+        // 410 Gone: the event payload has been purged from storage,
+        // so the backend cannot rebuild the outgoing HTTP request.
         if (status === 410) {
           toast.error(t('logs.payloadExpired'));
           return;
         }
+        // 429 Too Many Requests: a retry for this event was already
+        // triggered within the server-configured cooldown window.
         if (status === 429) {
           toast.error(t('logs.retryCooldown'));
           return;
@@ -86,6 +99,8 @@ function handleRetry() {
   });
 }
 
+// When true, shows a "Manual Retry" badge in the metadata section so
+// the user can distinguish user-triggered retries from automatic ones.
 const isManualRetry = computed(() => props.attempt.attempt_trigger === 'manual_retry');
 
 const filteredHeaders = computed(() => {

@@ -178,6 +178,10 @@ pub async fn look_for_work(
                     payload: p,
                     payload_content_type: attempt.payload_content_type,
                     secret: attempt.secret,
+                    // Backward compat: rows created before the attempt_trigger column
+                    // was added have the DEFAULT 'dispatch', but if a new unknown value
+                    // ever appears (schema drift, future enum extension), we fall back
+                    // to Dispatch rather than crashing the worker.
                     attempt_trigger: attempt.attempt_trigger.parse().unwrap_or_else(|_| {
                         warn!(attempt_trigger = %attempt.attempt_trigger, "Unknown attempt_trigger value, defaulting to Dispatch");
                         AttemptTrigger::Dispatch
@@ -293,7 +297,10 @@ pub async fn look_for_work(
                     .execute(&mut *tx)
                     .await?;
 
-                    // Creating a retry request or giving up
+                    // Manual retries are one-shot by design: if the user's explicit
+                    // retry also fails, we do NOT schedule automatic follow-up
+                    // retries.  This prevents a single "Retry" click from spawning
+                    // an exponential backoff chain the user didn't ask for.
                     if attempt_with_payload.attempt_trigger == AttemptTrigger::ManualRetry {
                         info!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Manual retry failed; not re-queuing (one-shot)");
                     } else if let Some(retry_in) = compute_next_retry(
@@ -305,6 +312,9 @@ pub async fn look_for_work(
                     .await?
                     {
                         let next_retry_count = attempt.retry_count + 1;
+                        // Tag the successor as 'auto_retry' so the one-shot check above,
+                        // analytics, and the UI badge can distinguish system-created retries
+                        // from initial dispatches and manual retries.
                         let retry_id = query!(
                             "
                                 INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count, attempt_trigger)

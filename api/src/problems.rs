@@ -527,12 +527,12 @@ impl From<Hook0Problem> for Problem {
             Hook0Problem::EventPayloadUnavailable => Problem {
                 id: Hook0Problem::EventPayloadUnavailable,
                 title: "Event payload unavailable",
-                detail: "The event payload has expired or been purged from storage. Manual retry requires the original payload to be available.".into(),
+                detail: "The event payload has expired or been purged from storage. Manual retry requires the original payload. Re-send the event from your application to create a new delivery.".into(),
                 validation: None,
                 status: StatusCode::GONE,
             },
             Hook0Problem::RetryCooldown { seconds } => {
-                let detail = format!("A manual retry for this event was already triggered less than {seconds}s ago.");
+                let detail = format!("A manual retry for this event was already triggered less than {seconds}s ago. Please wait and try again after the cooldown period.");
                 Problem {
                     id: Hook0Problem::RetryCooldown { seconds },
                     title: "Retry cooldown active",

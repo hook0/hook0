@@ -536,11 +536,17 @@ pub async fn list(
     })
 }
 
+/// JSON body returned by POST /request_attempts/{id}/retry.
+/// Gives the caller the ID of the newly created attempt so they can
+/// poll its status or display it in the UI.
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct RetryResponse {
     pub request_attempt_id: Uuid,
 }
 
+/// Query-string parameters for the retry endpoint.
+/// The application_id is required so the backend can verify the caller
+/// has access to the application that owns the attempt (anti-enumeration).
 #[derive(Debug, Deserialize, Apiv2Schema)]
 #[serde(deny_unknown_fields)]
 pub struct RetryQs {
@@ -563,8 +569,13 @@ pub async fn retry(
 ) -> Result<HttpResponse, Hook0Problem> {
     let request_attempt_id = request_attempt_id.into_inner();
 
-    // 1. Fetch source attempt metadata (includes payload — needed for retry)
+    // We need the original event's payload + metadata so we can re-enqueue
+    // it as a new attempt.  Without the payload the retry cannot proceed
+    // (the worker needs it to build the outgoing HTTP request).
     #[allow(non_snake_case)]
+    /// Metadata from the original attempt + its event, used to populate the
+    /// retry.  Includes the payload so we can re-enqueue it without a
+    /// second round-trip.
     struct SourceAttempt {
         event__id: Uuid,
         subscription__id: Uuid,
@@ -600,7 +611,8 @@ pub async fn retry(
     .map_err(Hook0Problem::from)?
     .ok_or(Hook0Problem::NotFound)?;
 
-    // 2. Authorize — return 404 uniformly for both not-found and forbidden (anti-enumeration)
+    // Authorize — return 404 for both not-found and forbidden so an
+    // attacker cannot distinguish "exists but forbidden" from "does not exist".
     let authorized = authorize_for_application(
         &state.db,
         &biscuit,
@@ -617,17 +629,24 @@ pub async fn retry(
         Err(_) => return Err(Hook0Problem::NotFound),
     };
 
-    // Verify the attempt belongs to the requested application
+    // Cross-check: if the attempt belongs to a different application than the
+    // one in the query string, treat it as not-found.  Without this, an
+    // authenticated user could probe attempt IDs across applications.
     if source.application__id != qs.application_id {
         return Err(Hook0Problem::NotFound);
     }
 
-    // 3. Check subscription not deleted
+    // A deleted subscription means the customer removed the endpoint.
+    // Delivering to it would be unwanted traffic to a URL the customer
+    // no longer monitors.
     if source.subscription_deleted_at.is_some() {
         return Err(Hook0Problem::NotFound);
     }
 
-    // 4. Check cooldown per event
+    // Rate-limit manual retries per event to prevent abuse / accidental
+    // click-storms.  The cooldown window is server-configured (env var).
+    // Without this, a user could create thousands of attempts for the
+    // same event in seconds.
     if state.manual_retry_cooldown_seconds > 0 {
         #[allow(non_snake_case)]
         struct CooldownCheck {
@@ -658,7 +677,9 @@ pub async fn retry(
         }
     }
 
-    // 5. Fetch event payload (DB or S3 fallback)
+    // The event payload may have been offloaded to S3.  If it's gone
+    // entirely (expired / purged), we can't build the outgoing request
+    // so we return 410 Gone to the caller.
     let payload = crate::event_payload::fetch_event_payload(
         source.payload,
         state.object_storage.as_ref(),
@@ -669,13 +690,14 @@ pub async fn retry(
     .await
     .ok_or(Hook0Problem::EventPayloadUnavailable)?;
 
-    // 6. Extract user_id from token (None for service/master tokens)
+    // Attribute the retry to the calling user so the audit trail shows
+    // who triggered it.  Service tokens and master tokens have no user,
+    // so `triggered_by` stays NULL.
     let user_id = match &authorized {
         AuthorizedToken::User(aut) => Some(aut.user_id),
         _ => None,
     };
 
-    // 7. INSERT new attempt
     #[allow(non_snake_case)]
     struct InsertedAttempt {
         request_attempt__id: Uuid,
@@ -705,13 +727,17 @@ pub async fn retry(
         "Manual retry attempt created"
     );
 
-    // 8. Dispatch to Pulsar (optional — PG poller is the safety net)
+    // Fast-path: push the new attempt directly into Pulsar so the worker
+    // picks it up immediately instead of waiting for the next PG poll cycle
+    // (which can take up to 10s).  If Pulsar is unavailable, the PG poller
+    // will eventually find the row because it queries for attempts with no
+    // succeeded_at/failed_at.
     if let Some(pulsar) = &state.pulsar {
-        // Reuse the existing send_request_attempts_to_pulsar by replaying the event
-        // The new attempt will be picked up since it has no succeeded_at/failed_at
         use actix_web::rt::time::timeout;
         use std::time::Duration;
 
+        /// Subscription's HTTP target + worker routing info, needed to build
+        /// the Pulsar message for fast-path dispatch.
         #[allow(non_snake_case)]
         struct WorkerInfo {
             http_method: String,
@@ -779,6 +805,8 @@ pub async fn retry(
                 Hook0Problem::InternalServerError
             })?;
 
+            // Pulsar send is best-effort.  If it fails the user still gets 202
+            // and the PG poller will find the un-finalized row within seconds.
             if let Err(e) = producer
                 .send_non_blocking(
                     format!(
@@ -789,13 +817,13 @@ pub async fn retry(
                 )
                 .await
             {
-                // Log but don't fail — PG poller will pick it up
                 error!("Failed to send manual retry to Pulsar: {e}");
             }
         }
     }
 
-    // 9. Return 202 Accepted
+    // 202 signals "accepted for async processing" — the new attempt will
+    // be picked up by a worker, but we can't guarantee delivery yet.
     Ok(HttpResponse::Accepted().json(RetryResponse {
         request_attempt_id: new_id,
     }))
