@@ -2,7 +2,6 @@
 import { computed, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
-import { isAxiosError } from '@/http';
 import { toast } from 'vue-sonner';
 import { RefreshCw } from 'lucide-vue-next';
 
@@ -79,18 +78,16 @@ function handleRetry() {
       toast.success(t('logs.retryQueued'));
     },
     onError: (err) => {
-      if (isAxiosError(err)) {
-        // The API returns Hook0Problem JSON with an `id` field matching
-        // the Rust enum variant name (e.g. "EventPayloadUnavailable").
-        const problemId = (err.response?.data as { id?: string })?.id;
-        if (problemId === 'EventPayloadUnavailable') {
-          toast.error(t('logs.payloadExpired'));
-          return;
-        }
-        if (problemId === 'EventManualRetryCooldownActive') {
-          toast.error(t('logs.retryCooldown'));
-          return;
-        }
+      // unwrapResponse transforms AxiosErrors into Problem objects
+      // ({ id, title, detail, status }) via handleError.
+      const problem = err as { id?: string };
+      if (problem.id === 'EventPayloadUnavailable') {
+        toast.error(t('logs.payloadExpired'));
+        return;
+      }
+      if (problem.id === 'EventManualRetryCooldownActive') {
+        toast.error(t('logs.retryCooldown'));
+        return;
       }
       toast.error(t('common.unknownError'));
     },
