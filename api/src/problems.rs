@@ -75,6 +75,8 @@ pub enum Hook0Problem {
     NotFound,
     InternalServerError,
     Forbidden,
+    EventPayloadUnavailable,
+    RetryCooldown { seconds: u64 },
 }
 
 impl From<sqlx::Error> for Hook0Problem {
@@ -521,6 +523,23 @@ impl From<Hook0Problem> for Problem {
                 detail: "You don't have the right to access or edit this resource.".into(),
                 validation: None,
                 status: StatusCode::FORBIDDEN,
+            },
+            Hook0Problem::EventPayloadUnavailable => Problem {
+                id: Hook0Problem::EventPayloadUnavailable,
+                title: "Event payload unavailable",
+                detail: "The event payload has expired or been purged from storage. Manual retry requires the original payload to be available.".into(),
+                validation: None,
+                status: StatusCode::GONE,
+            },
+            Hook0Problem::RetryCooldown { seconds } => {
+                let detail = format!("A manual retry for this event was already triggered less than {seconds}s ago.");
+                Problem {
+                    id: Hook0Problem::RetryCooldown { seconds },
+                    title: "Retry cooldown active",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::TOO_MANY_REQUESTS,
+                }
             },
         }
     }

@@ -455,6 +455,9 @@ pub enum Action<'a> {
     RequestAttemptGet {
         application_id: &'a Uuid,
     },
+    RequestAttemptRetry {
+        application_id: &'a Uuid,
+    },
     //
     ResponseGet {
         application_id: &'a Uuid,
@@ -527,6 +530,7 @@ impl Action<'_> {
             //
             Self::RequestAttemptList { .. } => "request_attempt:list",
             Self::RequestAttemptGet { .. } => "request_attempt:get",
+            Self::RequestAttemptRetry { .. } => "request_attempt:retry",
             //
             Self::ResponseGet { .. } => "response:get",
             //
@@ -597,6 +601,7 @@ impl Action<'_> {
             //
             Self::RequestAttemptList { .. } => vec![Role::Viewer],
             Self::RequestAttemptGet { .. } => vec![Role::Viewer],
+            Self::RequestAttemptRetry { .. } => vec![],
             //
             Self::ResponseGet { .. } => vec![Role::Viewer],
             //
@@ -683,6 +688,7 @@ impl Action<'_> {
             //
             Self::RequestAttemptList { application_id, .. } => Some(**application_id),
             Self::RequestAttemptGet { application_id, .. } => Some(**application_id),
+            Self::RequestAttemptRetry { application_id, .. } => Some(**application_id),
             //
             Self::ResponseGet { application_id, .. } => Some(**application_id),
             //
@@ -782,6 +788,7 @@ impl Action<'_> {
                 event_type_names,
             )],
             Self::RequestAttemptGet { .. } => vec![],
+            Self::RequestAttemptRetry { .. } => vec![],
             //
             Self::ResponseGet { .. } => vec![],
             //
