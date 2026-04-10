@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                ra.event__id,\n                ra.subscription__id,\n                ra.application__id,\n                e.received_at,\n                e.payload_content_type,\n                e.event_type__name\n            FROM webhook.request_attempt AS ra\n            INNER JOIN event.event AS e ON e.event__id = ra.event__id\n            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n            WHERE ra.request_attempt__id = $1\n                AND s.deleted_at IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "event__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "subscription__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "application__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "received_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "payload_content_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "event_type__name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "74d83d9305f0256b9f842d5e3a9331902cfa19708e46a37adde4b43d675318fd"
+}

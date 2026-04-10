@@ -7,7 +7,7 @@ use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use paperclip::v2::models::{DataType, DataTypeFormat, DefaultSchemaRaw};
 use paperclip::v2::schema::Apiv2Schema as Apiv2SchemaTrait;
 use serde::{Deserialize, Serialize};
-use sqlx::query_as;
+use sqlx::{query_as, query_scalar};
 use std::cmp::max;
 use std::collections::BTreeMap;
 use tracing::{error, info};
@@ -559,22 +559,18 @@ pub async fn retry(
 ) -> Result<HttpResponse, Hook0Problem> {
     let request_attempt_id = request_attempt_id.into_inner();
 
-    // We need the original event's payload + metadata so we can re-enqueue
-    // it as a new attempt.  Without the payload the retry cannot proceed
-    // (the worker needs it to build the outgoing HTTP request).
+    // Fetch the source attempt's routing metadata — without the payload
+    // (which can be ~100KB) to avoid wasting memory on unauthorized callers.
+    // Deleted subscriptions are filtered out in the WHERE clause so we don't
+    // need a separate check afterwards.
     #[allow(non_snake_case)]
-    /// Metadata from the original attempt + its event, used to populate the
-    /// retry.  Includes the payload so we can re-enqueue it without a
-    /// second round-trip.
     struct RetrySourceContext {
         event__id: Uuid,
         subscription__id: Uuid,
         application__id: Uuid,
         received_at: DateTime<Utc>,
-        payload: Option<Vec<u8>>,
         payload_content_type: String,
         event_type__name: String,
-        subscription_deleted_at: Option<DateTime<Utc>>,
     }
 
     let source = query_as!(
@@ -585,14 +581,13 @@ pub async fn retry(
                 ra.subscription__id,
                 ra.application__id,
                 e.received_at,
-                e.payload,
                 e.payload_content_type,
-                e.event_type__name,
-                s.deleted_at AS subscription_deleted_at
+                e.event_type__name
             FROM webhook.request_attempt AS ra
             INNER JOIN event.event AS e ON e.event__id = ra.event__id
             INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
             WHERE ra.request_attempt__id = $1
+                AND s.deleted_at IS NULL
         ",
         &request_attempt_id,
     )
@@ -604,7 +599,7 @@ pub async fn retry(
     // Authorize using the application that owns the source attempt.
     // Return 404 for both not-found and forbidden so an attacker cannot
     // distinguish "exists but forbidden" from "does not exist".
-    let authorized = authorize_for_application(
+    let authorized = match authorize_for_application(
         &state.db,
         &biscuit,
         Action::RequestAttemptRetry {
@@ -613,30 +608,21 @@ pub async fn retry(
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
     )
-    .await;
-
-    let authorized = match authorized {
+    .await
+    {
         Ok(token) => token,
         Err(_) => return Err(Hook0Problem::NotFound),
     };
 
-    // A deleted subscription means the customer removed the endpoint.
-    // Delivering to it would be unwanted traffic to a URL the customer
-    // no longer monitors.
-    if source.subscription_deleted_at.is_some() {
-        return Err(Hook0Problem::NotFound);
-    }
-
     // Rate-limit manual retries per event to prevent abuse / accidental
-    // click-storms.  The cooldown window is server-configured (env var).
-    // Without this, a user could create thousands of attempts for the
-    // same event in seconds.
+    // click-storms.  Without this, a user could create thousands of
+    // attempts for the same event in seconds.
     if state.manual_retry_cooldown_seconds > 0 {
         #[allow(non_snake_case)]
         struct CooldownCheck {
             exists: Option<bool>,
         }
-        let check = query_as!(
+        let cooldown = query_as!(
             CooldownCheck,
             "
                 SELECT EXISTS(
@@ -652,42 +638,53 @@ pub async fn retry(
         .fetch_one(&state.db)
         .await
         .map_err(Hook0Problem::from)?;
-        let cooldown_active = check.exists.unwrap_or(false);
 
-        if cooldown_active {
+        if cooldown.exists.unwrap_or(false) {
             return Err(Hook0Problem::ManualRetryCooldownActive {
                 seconds: state.manual_retry_cooldown_seconds,
             });
         }
     }
 
-    // The event payload may have been offloaded to S3.  If it's gone
-    // entirely (expired / purged), we can't build the outgoing request
-    // so we return 410 Gone to the caller.
-    let payload = crate::event_payload::fetch_event_payload(
-        source.payload,
-        state.object_storage.as_ref(),
-        source.application__id,
-        source.event__id,
-        source.received_at,
+    // Fetch the event payload — first try the DB inline column, then
+    // fall back to S3 if the payload was offloaded by the retention policy.
+    // 410 Gone if neither source has the data.
+    #[allow(non_snake_case)]
+    struct EventPayload {
+        payload: Option<Vec<u8>>,
+    }
+    let event_row = query_as!(
+        EventPayload,
+        "SELECT payload FROM event.event WHERE event__id = $1",
+        &source.event__id,
     )
+    .fetch_one(&state.db)
     .await
-    .ok_or(Hook0Problem::EventPayloadUnavailable)?;
+    .map_err(Hook0Problem::from)?;
 
-    // Attribute the retry to the calling user so the audit trail shows
-    // who triggered it.  Service tokens and master tokens have no user,
-    // so `triggered_by` stays NULL.
+    let payload = if let Some(payload) = event_row.payload {
+        payload
+    } else if let Some(object_storage) = &state.object_storage {
+        crate::event_payload::fetch_s3_event_payload(
+            object_storage,
+            source.application__id,
+            source.event__id,
+            source.received_at,
+        )
+        .await
+        .ok_or(Hook0Problem::EventPayloadUnavailable)?
+    } else {
+        return Err(Hook0Problem::EventPayloadUnavailable);
+    };
+
+    // Attribute the retry to the calling user for the audit trail.
+    // Service tokens and master tokens have no user, so triggered_by stays NULL.
     let user_id = match &authorized {
-        AuthorizedToken::User(aut) => Some(aut.user_id),
+        AuthorizedToken::User(user) => Some(user.user_id),
         _ => None,
     };
 
-    #[allow(non_snake_case)]
-    struct CreatedRetryAttempt {
-        request_attempt__id: Uuid,
-    }
-    let inserted = query_as!(
-        CreatedRetryAttempt,
+    let new_id: Uuid = query_scalar!(
         "
             INSERT INTO webhook.request_attempt
                 (application__id, event__id, subscription__id, retry_count, attempt_trigger, triggered_by)
@@ -702,7 +699,6 @@ pub async fn retry(
     .fetch_one(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
-    let new_id = inserted.request_attempt__id;
 
     info!(
         request_attempt_id = %new_id,
@@ -711,20 +707,10 @@ pub async fn retry(
         "Manual retry attempt created"
     );
 
-    // Fast-path: push the new attempt directly into Pulsar so the worker
-    // picks it up immediately instead of waiting for the next PG poll cycle
-    // (which can take up to 10s).  If Pulsar is unavailable, the PG poller
-    // will eventually find the row because it queries for attempts with no
-    // succeeded_at/failed_at.
+    // Fast-path: push to Pulsar so the worker picks it up immediately
+    // instead of waiting for the next PG poll cycle (~10s).  If Pulsar
+    // is unavailable, the PG poller finds the un-finalized row.
     if let Some(pulsar) = &state.pulsar {
-        // Build the protobuf message that the output-worker expects.
-        // The HTTP target info (method, url, headers, secret) is resolved
-        // inside send_single_attempt_to_pulsar via the subscription's worker
-        // routing query — same query used by send_request_attempts_to_pulsar.
-        //
-        // We need the subscription's HTTP target info to build the full
-        // protobuf message.  Query it here so the shared function gets a
-        // complete RequestAttempt.
         #[allow(non_snake_case)]
         struct HttpTarget {
             http_method: String,
@@ -750,7 +736,7 @@ pub async fn retry(
         .await
         .map_err(Hook0Problem::from)?;
 
-        if let Some(t) = target {
+        if let Some(target) = target {
             let attempt = hook0_protobuf::RequestAttempt {
                 application_id: source.application__id,
                 request_attempt_id: new_id,
@@ -759,17 +745,20 @@ pub async fn retry(
                 subscription_id: source.subscription__id,
                 created_at: Utc::now(),
                 retry_count: 0,
-                http_method: t.http_method,
-                http_url: t.http_url,
-                http_headers: t.http_headers,
+                http_method: target.http_method,
+                http_url: target.http_url,
+                http_headers: target.http_headers,
                 event_type_name: source.event_type__name,
                 payload,
                 payload_content_type: source.payload_content_type,
-                secret: t.secret,
+                secret: target.secret,
                 attempt_trigger: hook0_protobuf::AttemptTrigger::ManualRetry,
             };
 
-            super::events::send_single_attempt_to_pulsar(&state.db, pulsar, attempt).await?;
+            crate::pulsar_dispatch::send_single_attempt_to_pulsar(
+                &state.db, pulsar, attempt,
+            )
+            .await?;
         }
     }
 

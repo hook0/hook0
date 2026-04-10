@@ -46,6 +46,7 @@ mod openapi_postprocess;
 mod opentelemetry;
 mod pagination;
 mod problems;
+mod pulsar_dispatch;
 mod quotas;
 mod rate_limiting;
 mod soft_deleted_applications_cleanup;

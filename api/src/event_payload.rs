@@ -2,8 +2,8 @@
 //!
 //! Payloads live in the DB `event.event.payload` column initially, but large or
 //! old payloads are offloaded to S3-compatible object storage.  This module
-//! tries the DB first; if the column is NULL it falls back to object storage.
-//! Returns `None` when neither source has the data (payload expired / purged),
+//! provides `fetch_s3_event_payload` for the S3 fallback path.
+//! Returns `None` when S3 doesn't have the data (payload expired / purged),
 //! which the caller should treat as a user-visible error (410 Gone).
 
 use aws_sdk_s3::error::DisplayErrorContext;
@@ -19,30 +19,24 @@ use crate::ObjectStorageConfig;
 /// user gets a fast error when S3 is unreachable.
 const S3_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// Resolves the original event payload needed to (re-)deliver a webhook.
+/// Fetches the event payload from S3-compatible object storage.
 ///
-/// Checks the DB first (cheap), then falls back to S3 with a timeout.
-/// Returns `None` when the payload is unavailable — callers should surface
-/// `Hook0Problem::EventPayloadUnavailable`.
-pub async fn fetch_event_payload(
-    db_payload: Option<Vec<u8>>,
-    object_storage: Option<&ObjectStorageConfig>,
+/// Called when the DB `payload` column is NULL (the payload was offloaded
+/// to object storage by the retention policy).  Returns `None` if S3 is
+/// unreachable, the object is missing, or the timeout expires.
+pub async fn fetch_s3_event_payload(
+    object_storage: &ObjectStorageConfig,
     application_id: Uuid,
     event_id: Uuid,
     received_at: DateTime<Utc>,
 ) -> Option<Vec<u8>> {
-    if let Some(p) = db_payload {
-        return Some(p);
-    }
-
-    let os = object_storage?;
     let key = format!(
         "{}/event/{}/{event_id}",
         application_id,
         received_at.naive_utc().date(),
     );
 
-    match fetch_from_s3(os, &key).await {
+    match fetch_from_s3(object_storage, &key).await {
         Ok(bytes) => Some(bytes),
         Err(S3Error::Timeout) => {
             log_object_storage_error_with_context!(
@@ -52,18 +46,18 @@ pub async fn fetch_event_payload(
             );
             None
         }
-        Err(S3Error::GetObject(e)) => {
+        Err(S3Error::GetObject(error)) => {
             log_object_storage_error_with_context!(
                 "S3 GET OBJECT failed",
-                error_chain = DisplayErrorContext(&e).to_string(),
+                error_chain = DisplayErrorContext(&error).to_string(),
                 object_key = &key,
             );
             None
         }
-        Err(S3Error::BodyCollect(e)) => {
+        Err(S3Error::BodyCollect(error)) => {
             log_object_storage_error_with_context!(
                 "S3 GET OBJECT body collect failed",
-                error_chain = format!("{e}"),
+                error_chain = format!("{error}"),
                 object_key = &key,
             );
             None
@@ -79,21 +73,25 @@ enum S3Error {
 
 /// Fetches an object from S3 with a single timeout covering the entire
 /// round-trip (request + body download).
-async fn fetch_from_s3(os: &ObjectStorageConfig, key: &str) -> Result<Vec<u8>, S3Error> {
+async fn fetch_from_s3(
+    object_storage: &ObjectStorageConfig,
+    key: &str,
+) -> Result<Vec<u8>, S3Error> {
     let fut = async {
-        let obj = os
+        let response = object_storage
             .client
             .get_object()
-            .bucket(&os.bucket)
+            .bucket(&object_storage.bucket)
             .key(key)
             .send()
             .await
             .map_err(S3Error::GetObject)?;
 
-        obj.body
+        response
+            .body
             .collect()
             .await
-            .map(|ab| ab.to_vec())
+            .map(|aggregated_bytes| aggregated_bytes.to_vec())
             .map_err(S3Error::BodyCollect)
     };
 

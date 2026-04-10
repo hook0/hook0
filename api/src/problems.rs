@@ -45,6 +45,7 @@ pub enum Hook0Problem {
     EventInvalidPayloadContentType,
     EventInvalidBase64Payload(String),
     EventInvalidJsonPayload(String),
+    EventPayloadUnavailable,
 
     LabelsAmbiguity,
 
@@ -69,15 +70,15 @@ pub enum Hook0Problem {
     TooManySubscriptionsPerApplication(QuotaValue),
     TooManyEventTypesPerApplication(QuotaValue),
 
+    // Manual retry
+    ManualRetryCooldownActive { seconds: u64 },
+
     // Generic errors
     JsonPayload(JsonPayloadProblem),
     Validation(validator::ValidationErrors),
     NotFound,
     InternalServerError,
     Forbidden,
-    // Manual retry
-    EventPayloadUnavailable,
-    ManualRetryCooldownActive { seconds: u64 },
 }
 
 impl From<sqlx::Error> for Hook0Problem {
