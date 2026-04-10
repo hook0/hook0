@@ -80,16 +80,14 @@ function handleRetry() {
     },
     onError: (err) => {
       if (isAxiosError(err)) {
-        const status = err.response?.status;
-        // 410 Gone: the event payload has been purged from storage,
-        // so the backend cannot rebuild the outgoing HTTP request.
-        if (status === 410) {
+        // The API returns Hook0Problem JSON with an `id` field matching
+        // the Rust enum variant name (e.g. "EventPayloadUnavailable").
+        const problemId = (err.response?.data as { id?: string })?.id;
+        if (problemId === 'EventPayloadUnavailable') {
           toast.error(t('logs.payloadExpired'));
           return;
         }
-        // 429 Too Many Requests: a retry for this event was already
-        // triggered within the server-configured cooldown window.
-        if (status === 429) {
+        if (problemId === 'EventManualRetryCooldownActive') {
           toast.error(t('logs.retryCooldown'));
           return;
         }

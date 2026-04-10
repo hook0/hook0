@@ -178,14 +178,9 @@ pub async fn look_for_work(
                     payload: p,
                     payload_content_type: attempt.payload_content_type,
                     secret: attempt.secret,
-                    // Backward compat: rows created before the attempt_trigger column
-                    // was added have the DEFAULT 'dispatch', but if a new unknown value
-                    // ever appears (schema drift, future enum extension), we fall back
-                    // to Dispatch rather than crashing the worker.
-                    attempt_trigger: attempt.attempt_trigger.parse().unwrap_or_else(|_| {
-                        warn!(attempt_trigger = %attempt.attempt_trigger, "Unknown attempt_trigger value, defaulting to Dispatch");
-                        AttemptTrigger::Dispatch
-                    }),
+                    // The DB CHECK constraint guarantees valid values, but during
+                    // rolling deploys a future value could appear — default to Dispatch.
+                    attempt_trigger: attempt.attempt_trigger.parse().unwrap_or_default(),
                 };
 
                 // Start OpenTelemetry span
@@ -318,7 +313,7 @@ pub async fn look_for_work(
                         let retry_id = query!(
                             "
                                 INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count, attempt_trigger)
-                                VALUES ($1, $2, $3, statement_timestamp() + $4, $5, 'auto_retry')
+                                VALUES ($1, $2, $3, statement_timestamp() + $4, $5, $6)
                                 RETURNING request_attempt__id
                             ",
                             attempt.application_id,
@@ -326,6 +321,7 @@ pub async fn look_for_work(
                             attempt.subscription_id,
                             PgInterval::try_from(retry_in).unwrap(),
                             next_retry_count,
+                            AttemptTrigger::AutoRetry.to_string(),
                         )
                         .fetch_one(&mut *tx)
                         .await?

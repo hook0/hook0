@@ -162,12 +162,8 @@ pub async fn load_waiting_request_attempts_from_db(
                 payload: p,
                 payload_content_type: ra.payload_content_type,
                 secret: ra.secret,
-                // Backward compat: see pg.rs for rationale.  Unknown values
-                // default to Dispatch rather than crashing the worker.
-                attempt_trigger: ra.attempt_trigger.parse().unwrap_or_else(|_| {
-                    warn!(attempt_trigger = %ra.attempt_trigger, "Unknown attempt_trigger value, defaulting to Dispatch");
-                    hook0_protobuf::AttemptTrigger::Dispatch
-                }),
+                // DB CHECK constraint guarantees valid values — see pg.rs.
+                attempt_trigger: ra.attempt_trigger.parse().unwrap_or_default(),
             };
 
             let mut msg_builder = producer
@@ -705,7 +701,7 @@ async fn handle_message(
                                     Retry,
                                     "
                                         INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count, attempt_trigger)
-                                        VALUES ($1, $2, $3, $4, $5, 'auto_retry')
+                                        VALUES ($1, $2, $3, $4, $5, $6)
                                         RETURNING request_attempt__id, created_at
                                     ",
                                     attempt.application_id,
@@ -713,6 +709,7 @@ async fn handle_message(
                                     attempt.subscription_id,
                                     delay_until,
                                     next_retry_count,
+                                    hook0_protobuf::AttemptTrigger::AutoRetry.to_string(),
                                 )
                                 .fetch_one(&mut *tx)
                                 .await?;

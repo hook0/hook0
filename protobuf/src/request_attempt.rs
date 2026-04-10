@@ -25,35 +25,15 @@ use crate::error::Hook0ProtobufError;
 /// - `ManualRetry`: a user clicked "Retry" in the UI or called the API.
 ///   These are **one-shot** — if they fail, no further automatic retries
 ///   are scheduled, so a single click can never snowball into a retry chain.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, strum::Display, strum::EnumString)]
 pub enum AttemptTrigger {
     #[default]
+    #[strum(serialize = "dispatch")]
     Dispatch,
+    #[strum(serialize = "auto_retry")]
     AutoRetry,
+    #[strum(serialize = "manual_retry")]
     ManualRetry,
-}
-
-impl std::fmt::Display for AttemptTrigger {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Dispatch => write!(f, "dispatch"),
-            Self::AutoRetry => write!(f, "auto_retry"),
-            Self::ManualRetry => write!(f, "manual_retry"),
-        }
-    }
-}
-
-impl std::str::FromStr for AttemptTrigger {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "dispatch" => Ok(Self::Dispatch),
-            "auto_retry" => Ok(Self::AutoRetry),
-            "manual_retry" => Ok(Self::ManualRetry),
-            _ => Err(()),
-        }
-    }
 }
 
 /// A single webhook delivery attempt, carrying everything the output
@@ -153,7 +133,9 @@ impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttem
             payload_content_type: value.payload_content_type,
             secret,
             // Pulsar topics may still contain messages published before this field
-            // existed (proto3 defaults strings to "").  Without this fallback, those
+            // existed.  Proto3 guarantees string fields default to "" when absent
+            // (see https://protobuf.dev/programming-guides/proto3/#default).
+            // Without this fallback, those
             // messages would fail to deserialize and loop in NACK/redeliver forever,
             // blocking the topic.  Defaulting to Dispatch is safe because all
             // pre-existing attempts *were* dispatches.
