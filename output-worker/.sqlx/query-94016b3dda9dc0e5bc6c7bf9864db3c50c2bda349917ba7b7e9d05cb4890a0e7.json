@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                e.application__id AS application_id,\n                ra.request_attempt__id AS request_attempt_id,\n                ra.event__id AS event_id,\n                e.received_at AS event_received_at,\n                ra.subscription__id AS subscription_id,\n                ra.created_at,\n                ra.retry_count,\n                ra.delay_until,\n                t_http.method as http_method,\n                t_http.url as http_url,\n                t_http.headers as http_headers,\n                e.event_type__name AS event_type_name,\n                e.payload,\n                e.payload_content_type,\n                s.secret\n            FROM webhook.request_attempt AS ra\n            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id\n            INNER JOIN event.event AS e ON e.event__id = ra.event__id\n            LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id\n            INNER JOIN event.application AS a ON a.application__id = s.application__id\n            LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true\n            WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL\n                AND a.deleted_at IS NULL\n                AND COALESCE(sw.worker__id, ow.worker__id) = $1\n        ",
+  "query": "\n            SELECT\n                e.application__id AS application_id,\n                ra.request_attempt__id AS request_attempt_id,\n                ra.event__id AS event_id,\n                e.received_at AS event_received_at,\n                ra.subscription__id AS subscription_id,\n                ra.created_at,\n                ra.retry_count,\n                ra.delay_until,\n                t_http.method as http_method,\n                t_http.url as http_url,\n                t_http.headers as http_headers,\n                e.event_type__name AS event_type_name,\n                e.payload,\n                e.payload_content_type,\n                s.secret,\n                ra.attempt_trigger\n            FROM webhook.request_attempt AS ra\n            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id\n            INNER JOIN event.event AS e ON e.event__id = ra.event__id\n            LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id\n            INNER JOIN event.application AS a ON a.application__id = s.application__id\n            LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true\n            WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL\n                AND a.deleted_at IS NULL\n                AND COALESCE(sw.worker__id, ow.worker__id) = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -77,6 +77,11 @@
         "ordinal": 14,
         "name": "secret",
         "type_info": "Uuid"
+      },
+      {
+        "ordinal": 15,
+        "name": "attempt_trigger",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -99,8 +104,9 @@
       false,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "a9ae6ca202de3e6e9421ba6c1f5f88c7219569ff79454d05a37663fed3385511"
+  "hash": "94016b3dda9dc0e5bc6c7bf9864db3c50c2bda349917ba7b7e9d05cb4890a0e7"
 }
