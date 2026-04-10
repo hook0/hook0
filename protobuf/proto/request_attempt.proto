@@ -20,4 +20,5 @@ message RequestAttempt {
   string secret = 12;
   string application_id = 13;
   google.protobuf.Timestamp event_received_at = 14;
+  string attempt_trigger = 15;
 }

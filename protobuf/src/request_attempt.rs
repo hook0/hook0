@@ -6,6 +6,41 @@ use uuid::Uuid;
 
 use crate::error::Hook0ProtobufError;
 
+/// Who created this delivery attempt.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum AttemptTrigger {
+    /// Initial delivery from event ingestion.
+    #[default]
+    Dispatch,
+    /// Worker-created successor after a failed delivery.
+    AutoRetry,
+    /// User-initiated one-shot retry.
+    ManualRetry,
+}
+
+impl std::fmt::Display for AttemptTrigger {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Dispatch => write!(f, "dispatch"),
+            Self::AutoRetry => write!(f, "auto_retry"),
+            Self::ManualRetry => write!(f, "manual_retry"),
+        }
+    }
+}
+
+impl std::str::FromStr for AttemptTrigger {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "dispatch" => Ok(Self::Dispatch),
+            "auto_retry" => Ok(Self::AutoRetry),
+            "manual_retry" => Ok(Self::ManualRetry),
+            _ => Err(()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RequestAttempt {
     pub application_id: Uuid,
@@ -22,6 +57,7 @@ pub struct RequestAttempt {
     pub payload: Vec<u8>,
     pub payload_content_type: String,
     pub secret: Uuid,
+    pub attempt_trigger: AttemptTrigger,
 }
 
 impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttempt {
@@ -97,6 +133,12 @@ impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttem
             payload: value.payload,
             payload_content_type: value.payload_content_type,
             secret,
+            // Default to Dispatch for backward compatibility with messages that predate this field
+            attempt_trigger: if value.attempt_trigger.is_empty() {
+                AttemptTrigger::Dispatch
+            } else {
+                value.attempt_trigger.parse().unwrap_or(AttemptTrigger::Dispatch)
+            },
         })
     }
 }
@@ -130,6 +172,7 @@ impl TryFrom<RequestAttempt> for crate::raw_proto::request_attempt::RequestAttem
             payload: value.payload,
             payload_content_type: value.payload_content_type,
             secret: value.secret.to_string(),
+            attempt_trigger: value.attempt_trigger.to_string(),
         })
     }
 }
@@ -196,6 +239,7 @@ mod tests {
             payload: b"this is a test payload".to_vec(),
             payload_content_type: "text/plain".to_owned(),
             secret: uuid!("00000000-0000-0000-0000-000000000004"),
+            attempt_trigger: AttemptTrigger::Dispatch,
         };
         let proto_request_attempt: crate::raw_proto::request_attempt::RequestAttempt =
             request_attempt.clone().try_into().unwrap();
