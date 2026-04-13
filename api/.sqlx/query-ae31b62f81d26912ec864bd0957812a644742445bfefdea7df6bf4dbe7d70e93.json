@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (bucket_end IS NULL) AS \"is_open!\" FROM webhook.subscription_health_bucket WHERE subscription__id = $1 LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "is_open!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "ae31b62f81d26912ec864bd0957812a644742445bfefdea7df6bf4dbe7d70e93"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE webhook.subscription\n        SET failure_percent = NULL\n        WHERE failure_percent IS NOT NULL\n          AND subscription__id NOT IN (SELECT unnest($1::uuid[]))\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "188a8d817874e3a2b88011b66c4cf016db909361777abb65c4a904dfe7d696c9"
+}

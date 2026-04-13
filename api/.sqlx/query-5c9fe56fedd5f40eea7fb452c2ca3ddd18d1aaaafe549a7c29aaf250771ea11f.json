@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM webhook.subscription_health_bucket WHERE bucket_start < now() - make_interval(days => $1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5c9fe56fedd5f40eea7fb452c2ca3ddd18d1aaaafe549a7c29aaf250771ea11f"
+}

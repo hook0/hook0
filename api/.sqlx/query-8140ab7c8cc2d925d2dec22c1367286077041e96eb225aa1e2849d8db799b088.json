@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (bucket_end IS NOT NULL) AS \"is_closed!\" FROM webhook.subscription_health_bucket WHERE subscription__id = $1 AND bucket_start < now() - interval '30 minutes' LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "is_closed!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "8140ab7c8cc2d925d2dec22c1367286077041e96eb225aa1e2849d8db799b088"
+}

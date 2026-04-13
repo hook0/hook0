@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO webhook.subscription_health_event (subscription__id, status, source) VALUES ($1, 'resolved', 'system')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "515f62fb318fb638771310e76ff7409217dbe49af2d0641289a71ba196fe9b2b"
+}

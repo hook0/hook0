@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE webhook.subscription_health_bucket SET bucket_start = now() - interval '1 hour' WHERE subscription__id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "39f1258f6154b4581bcd25e7cea8891fb80b33a009ed9407f1740b31dc7a759e"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO webhook.subscription_health_bucket (subscription__id, bucket_start, bucket_end, total_count, failed_count) VALUES ($1, $2, $3, 10, 5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ca55930e1ae1d8c1427ec7492f19c2c37afabdbe471947907c529875f090f0c9"
+}

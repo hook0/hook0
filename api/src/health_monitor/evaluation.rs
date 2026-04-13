@@ -75,15 +75,15 @@ pub async fn advance_cursor(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     max_completed_at: DateTime<Utc>,
 ) -> Result<(), sqlx::Error> {
-    let result = sqlx::query(
+    let result = sqlx::query!(
         r#"
         UPDATE webhook.health_monitor_cursor
         SET last_processed_at = $1
         WHERE cursor__id = 1
           AND $1 > last_processed_at
         "#,
+        max_completed_at,
     )
-    .bind(max_completed_at)
     .execute(&mut **tx)
     .await?;
 
@@ -103,15 +103,15 @@ pub async fn reset_healthy_failure_percent(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     suspect_ids: &[Uuid],
 ) -> Result<u64, sqlx::Error> {
-    let result = sqlx::query(
+    let result = sqlx::query!(
         r#"
         UPDATE webhook.subscription
         SET failure_percent = NULL
         WHERE failure_percent IS NOT NULL
           AND subscription__id NOT IN (SELECT unnest($1::uuid[]))
         "#,
+        suspect_ids,
     )
-    .bind(suspect_ids)
     .execute(&mut **tx)
     .await?;
 
@@ -150,10 +150,10 @@ mod integration_tests {
 
     /// Sets the cursor inside the given transaction.
     async fn set_cursor(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, ts: DateTime<Utc>) {
-        sqlx::query(
+        sqlx::query!(
             "UPDATE webhook.health_monitor_cursor SET last_processed_at = $1 WHERE cursor__id = 1",
+            ts,
         )
-        .bind(ts)
         .execute(&mut **tx)
         .await
         .unwrap();
@@ -178,97 +178,105 @@ mod integration_tests {
         let secret_token = Uuid::now_v7();
 
         // 1. Organization
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO iam.organization (organization__id, name, created_by) VALUES ($1, $2, $3)",
+            org_id,
+            "test-org-health",
+            Uuid::nil(),
         )
-        .bind(org_id)
-        .bind("test-org-health")
-        .bind(Uuid::nil())
         .execute(&mut **tx)
         .await
         .unwrap();
 
         // 2. Application
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO event.application (application__id, organization__id, name) VALUES ($1, $2, $3)",
+            app_id,
+            org_id,
+            "test-app",
         )
-        .bind(app_id)
-        .bind(org_id)
-        .bind("test-app")
         .execute(&mut **tx)
         .await
         .unwrap();
 
         // 3. Service, resource_type, verb (for event_type FK chain)
-        sqlx::query("INSERT INTO event.service (service__name, application__id) VALUES ($1, $2)")
-            .bind("svc")
-            .bind(app_id)
-            .execute(&mut **tx)
-            .await
-            .unwrap();
+        sqlx::query!(
+            "INSERT INTO event.service (service__name, application__id) VALUES ($1, $2)",
+            "svc",
+            app_id,
+        )
+        .execute(&mut **tx)
+        .await
+        .unwrap();
 
-        sqlx::query("INSERT INTO event.resource_type (resource_type__name, application__id, service__name) VALUES ($1, $2, $3)")
-            .bind("res")
-            .bind(app_id)
-            .bind("svc")
-            .execute(&mut **tx)
-            .await
-            .unwrap();
+        sqlx::query!(
+            "INSERT INTO event.resource_type (resource_type__name, application__id, service__name) VALUES ($1, $2, $3)",
+            "res",
+            app_id,
+            "svc",
+        )
+        .execute(&mut **tx)
+        .await
+        .unwrap();
 
-        sqlx::query("INSERT INTO event.verb (verb__name, application__id) VALUES ($1, $2)")
-            .bind("created")
-            .bind(app_id)
-            .execute(&mut **tx)
-            .await
-            .unwrap();
+        sqlx::query!(
+            "INSERT INTO event.verb (verb__name, application__id) VALUES ($1, $2)",
+            "created",
+            app_id,
+        )
+        .execute(&mut **tx)
+        .await
+        .unwrap();
 
         // 4. Event type (generated column: svc.res.created)
-        sqlx::query("INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name) VALUES ($1, $2, $3, $4)")
-            .bind(app_id)
-            .bind("svc")
-            .bind("res")
-            .bind("created")
-            .execute(&mut **tx)
-            .await
-            .unwrap();
+        sqlx::query!(
+            "INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name) VALUES ($1, $2, $3, $4)",
+            app_id,
+            "svc",
+            "res",
+            "created",
+        )
+        .execute(&mut **tx)
+        .await
+        .unwrap();
 
         // 5. Application secret
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO event.application_secret (token, application__id) VALUES ($1, $2)",
+            secret_token,
+            app_id,
         )
-        .bind(secret_token)
-        .bind(app_id)
         .execute(&mut **tx)
         .await
         .unwrap();
 
         // 6. Subscription (labels required, target__id must be unique)
-        sqlx::query(
+        sqlx::query!(
             r#"INSERT INTO webhook.subscription
                (subscription__id, application__id, target__id, is_enabled, labels)
                VALUES ($1, $2, $3, true, '{"env":"test"}'::jsonb)"#,
+            sub_id,
+            app_id,
+            target_id,
         )
-        .bind(sub_id)
-        .bind(app_id)
-        .bind(target_id)
         .execute(&mut **tx)
         .await
         .unwrap();
 
         // 7. Target HTTP (inherits webhook.target; FK to subscription.target__id)
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO webhook.target_http (target__id, method, url) VALUES ($1, $2, $3)",
+            target_id,
+            "POST",
+            "https://example.com/webhook",
         )
-        .bind(target_id)
-        .bind("POST")
-        .bind("https://example.com/webhook")
         .execute(&mut **tx)
         .await
         .unwrap();
 
         // 8. Insert events + request_attempts
         // Disable the dispatch trigger once to avoid side-effects
-        sqlx::query("ALTER TABLE event.event DISABLE TRIGGER event_dispatch")
+        sqlx::query!("ALTER TABLE event.event DISABLE TRIGGER event_dispatch")
             .execute(&mut **tx)
             .await
             .unwrap();
@@ -278,51 +286,51 @@ mod integration_tests {
             let attempt_id = Uuid::now_v7();
             let is_failed = i >= num_succeeded;
 
-            sqlx::query(
+            sqlx::query!(
                 r#"INSERT INTO event.event
                    (event__id, application__id, event_type__name, payload_content_type, ip, occurred_at, application_secret__token, labels)
-                   VALUES ($1, $2, 'svc.res.created', 'application/json', '127.0.0.1', $3, $4, '{"env":"test"}'::jsonb)"#,
+                   VALUES ($1, $2, 'svc.res.created', 'application/json', '127.0.0.1'::inet, $3, $4, '{"env":"test"}'::jsonb)"#,
+                event_id,
+                app_id,
+                attempts_timestamp,
+                secret_token,
             )
-            .bind(event_id)
-            .bind(app_id)
-            .bind(attempts_timestamp)
-            .bind(secret_token)
             .execute(&mut **tx)
             .await
             .unwrap();
 
             if is_failed {
-                sqlx::query(
+                sqlx::query!(
                     r#"INSERT INTO webhook.request_attempt
                        (request_attempt__id, event__id, subscription__id, application__id, failed_at)
                        VALUES ($1, $2, $3, $4, $5)"#,
+                    attempt_id,
+                    event_id,
+                    sub_id,
+                    app_id,
+                    attempts_timestamp,
                 )
-                .bind(attempt_id)
-                .bind(event_id)
-                .bind(sub_id)
-                .bind(app_id)
-                .bind(attempts_timestamp)
                 .execute(&mut **tx)
                 .await
                 .unwrap();
             } else {
-                sqlx::query(
+                sqlx::query!(
                     r#"INSERT INTO webhook.request_attempt
                        (request_attempt__id, event__id, subscription__id, application__id, succeeded_at)
                        VALUES ($1, $2, $3, $4, $5)"#,
+                    attempt_id,
+                    event_id,
+                    sub_id,
+                    app_id,
+                    attempts_timestamp,
                 )
-                .bind(attempt_id)
-                .bind(event_id)
-                .bind(sub_id)
-                .bind(app_id)
-                .bind(attempts_timestamp)
                 .execute(&mut **tx)
                 .await
                 .unwrap();
             }
         }
 
-        sqlx::query("ALTER TABLE event.event ENABLE TRIGGER event_dispatch")
+        sqlx::query!("ALTER TABLE event.event ENABLE TRIGGER event_dispatch")
             .execute(&mut **tx)
             .await
             .unwrap();
@@ -354,20 +362,23 @@ mod integration_tests {
             .unwrap();
 
         // Verify buckets were created for our subscription
-        let bucket: Option<(i32, i32)> = sqlx::query_as(
+        let bucket = sqlx::query!(
             r#"SELECT total_count, failed_count
                FROM webhook.subscription_health_bucket
                WHERE subscription__id = $1"#,
+            sub_id,
         )
-        .bind(sub_id)
         .fetch_optional(&mut *tx)
         .await
         .unwrap();
 
         assert!(bucket.is_some(), "bucket should exist after health tick");
-        let (total, failed) = bucket.unwrap();
-        assert_eq!(total, 5, "total_count should be 5 (3 succeeded + 2 failed)");
-        assert_eq!(failed, 2, "failed_count should be 2");
+        let b = bucket.unwrap();
+        assert_eq!(
+            b.total_count, 5,
+            "total_count should be 5 (3 succeeded + 2 failed)"
+        );
+        assert_eq!(b.failed_count, 2, "failed_count should be 2");
         assert!(max_completed.is_some(), "max_completed_at should be Some");
 
         let suspect_ids: Vec<Uuid> = subs.iter().map(|s| s.subscription_id).collect();
@@ -396,7 +407,7 @@ mod integration_tests {
         let (_org_id, _app_id, _sub_id) = insert_test_fixtures(&mut tx, 2, 1, now).await;
 
         // Read cursor before
-        let cursor_before: DateTime<Utc> = sqlx::query_scalar(
+        let cursor_before = sqlx::query_scalar!(
             "SELECT last_processed_at FROM webhook.health_monitor_cursor WHERE cursor__id = 1",
         )
         .fetch_one(&mut *tx)
@@ -413,7 +424,7 @@ mod integration_tests {
         }
 
         // Read cursor after
-        let cursor_after: DateTime<Utc> = sqlx::query_scalar(
+        let cursor_after = sqlx::query_scalar!(
             "SELECT last_processed_at FROM webhook.health_monitor_cursor WHERE cursor__id = 1",
         )
         .fetch_one(&mut *tx)
@@ -455,20 +466,20 @@ mod integration_tests {
         }
 
         // Verify bucket is open
-        let open: Option<bool> = sqlx::query_scalar(
-            "SELECT bucket_end IS NULL FROM webhook.subscription_health_bucket WHERE subscription__id = $1 LIMIT 1",
+        let open = sqlx::query_scalar!(
+            r#"SELECT (bucket_end IS NULL) AS "is_open!" FROM webhook.subscription_health_bucket WHERE subscription__id = $1 LIMIT 1"#,
+            sub_id,
         )
-        .bind(sub_id)
         .fetch_optional(&mut *tx)
         .await
         .unwrap();
         assert_eq!(open, Some(true), "bucket should be open initially");
 
         // Age the bucket beyond bucket_duration (300s)
-        sqlx::query(
+        sqlx::query!(
             "UPDATE webhook.subscription_health_bucket SET bucket_start = now() - interval '1 hour' WHERE subscription__id = $1",
+            sub_id,
         )
-        .bind(sub_id)
         .execute(&mut *tx)
         .await
         .unwrap();
@@ -479,10 +490,10 @@ mod integration_tests {
             .unwrap();
 
         // Verify bucket is now closed
-        let closed: bool = sqlx::query_scalar(
-            "SELECT bucket_end IS NOT NULL FROM webhook.subscription_health_bucket WHERE subscription__id = $1 AND bucket_start < now() - interval '30 minutes' LIMIT 1",
+        let closed = sqlx::query_scalar!(
+            r#"SELECT (bucket_end IS NOT NULL) AS "is_closed!" FROM webhook.subscription_health_bucket WHERE subscription__id = $1 AND bucket_start < now() - interval '30 minutes' LIMIT 1"#,
+            sub_id,
         )
-        .bind(sub_id)
         .fetch_one(&mut *tx)
         .await
         .unwrap();
@@ -523,24 +534,26 @@ mod integration_tests {
         );
 
         // Insert a warning health event (simulating state machine)
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO webhook.subscription_health_event (subscription__id, status, source) VALUES ($1, 'warning', 'system')",
+            sub_id,
         )
-        .bind(sub_id)
         .execute(&mut *tx)
         .await
         .unwrap();
 
         // Replace buckets with healthy data (0 failures)
-        sqlx::query("DELETE FROM webhook.subscription_health_bucket WHERE subscription__id = $1")
-            .bind(sub_id)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
-        sqlx::query(
-            "INSERT INTO webhook.subscription_health_bucket (subscription__id, bucket_start, total_count, failed_count) VALUES ($1, now(), 10, 0)",
+        sqlx::query!(
+            "DELETE FROM webhook.subscription_health_bucket WHERE subscription__id = $1",
+            sub_id,
         )
-        .bind(sub_id)
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+        sqlx::query!(
+            "INSERT INTO webhook.subscription_health_bucket (subscription__id, bucket_start, total_count, failed_count) VALUES ($1, now(), 10, 0)",
+            sub_id,
+        )
         .execute(&mut *tx)
         .await
         .unwrap();
@@ -611,25 +624,27 @@ mod integration_tests {
             "first pass should NOT disable (71% < 90%)"
         );
 
-        let warning_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'warning'",
+        let warning_count = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) AS "count!" FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'warning'"#,
+            sub_id,
         )
-        .bind(sub_id)
         .fetch_one(&mut *tx)
         .await
         .unwrap();
         assert_eq!(warning_count, 1, "should have exactly one warning event");
 
         // Phase 2: replace buckets with low failure rate
-        sqlx::query("DELETE FROM webhook.subscription_health_bucket WHERE subscription__id = $1")
-            .bind(sub_id)
-            .execute(&mut *tx)
-            .await
-            .unwrap();
-        sqlx::query(
-            "INSERT INTO webhook.subscription_health_bucket (subscription__id, bucket_start, total_count, failed_count) VALUES ($1, now(), 20, 1)",
+        sqlx::query!(
+            "DELETE FROM webhook.subscription_health_bucket WHERE subscription__id = $1",
+            sub_id,
         )
-        .bind(sub_id)
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+        sqlx::query!(
+            "INSERT INTO webhook.subscription_health_bucket (subscription__id, bucket_start, total_count, failed_count) VALUES ($1, now(), 20, 1)",
+            sub_id,
+        )
         .execute(&mut *tx)
         .await
         .unwrap();
@@ -651,10 +666,10 @@ mod integration_tests {
         .await
         .unwrap();
 
-        let resolved_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'resolved' AND source = 'system'",
+        let resolved_count = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) AS "count!" FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'resolved' AND source = 'system'"#,
+            sub_id,
         )
-        .bind(sub_id)
         .fetch_one(&mut *tx)
         .await
         .unwrap();
@@ -705,10 +720,10 @@ mod integration_tests {
         }
 
         // Insert a resolved event with created_at = now() (within cooldown)
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO webhook.subscription_health_event (subscription__id, status, source) VALUES ($1, 'resolved', 'system')",
+            sub_id,
         )
-        .bind(sub_id)
         .execute(&mut *tx)
         .await
         .unwrap();
@@ -735,10 +750,10 @@ mod integration_tests {
             "cooldown should prevent re-warning"
         );
 
-        let warning_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'warning'",
+        let warning_count = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) AS "count!" FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'warning'"#,
+            sub_id,
         )
-        .bind(sub_id)
         .fetch_one(&mut *tx)
         .await
         .unwrap();
@@ -766,18 +781,18 @@ mod integration_tests {
         let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 5, 0, now).await;
 
         // Manually set failure_percent on the subscription
-        sqlx::query(
+        sqlx::query!(
             "UPDATE webhook.subscription SET failure_percent = 50.0 WHERE subscription__id = $1",
+            sub_id,
         )
-        .bind(sub_id)
         .execute(&mut *tx)
         .await
         .unwrap();
 
-        let fp_before: Option<f64> = sqlx::query_scalar(
+        let fp_before = sqlx::query_scalar!(
             "SELECT failure_percent FROM webhook.subscription WHERE subscription__id = $1",
+            sub_id,
         )
-        .bind(sub_id)
         .fetch_one(&mut *tx)
         .await
         .unwrap();
@@ -787,10 +802,10 @@ mod integration_tests {
         let rows = reset_healthy_failure_percent(&mut tx, &[]).await.unwrap();
         assert!(rows >= 1, "should have reset at least 1 subscription");
 
-        let fp_after: Option<f64> = sqlx::query_scalar(
+        let fp_after = sqlx::query_scalar!(
             "SELECT failure_percent FROM webhook.subscription WHERE subscription__id = $1",
+            sub_id,
         )
-        .bind(sub_id)
         .fetch_one(&mut *tx)
         .await
         .unwrap();
@@ -815,20 +830,21 @@ mod integration_tests {
 
         // Insert a bucket older than retention (31 days ago)
         let old_start = now - chrono::Duration::days(31);
-        sqlx::query(
+        let old_end = old_start + chrono::Duration::seconds(300);
+        sqlx::query!(
             "INSERT INTO webhook.subscription_health_bucket (subscription__id, bucket_start, bucket_end, total_count, failed_count) VALUES ($1, $2, $3, 10, 5)",
+            sub_id,
+            old_start,
+            old_end,
         )
-        .bind(sub_id)
-        .bind(old_start)
-        .bind(old_start + chrono::Duration::seconds(300))
         .execute(&mut *tx)
         .await
         .unwrap();
 
-        let count_before: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM webhook.subscription_health_bucket WHERE subscription__id = $1 AND bucket_start < now() - interval '30 days'",
+        let count_before = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) AS "count!" FROM webhook.subscription_health_bucket WHERE subscription__id = $1 AND bucket_start < now() - interval '30 days'"#,
+            sub_id,
         )
-        .bind(sub_id)
         .fetch_one(&mut *tx)
         .await
         .unwrap();
@@ -836,20 +852,20 @@ mod integration_tests {
 
         // Inline the cleanup_old_buckets SQL to run within the transaction
         let retention_days = config.bucket_retention_days as i32;
-        let deleted = sqlx::query(
+        let deleted = sqlx::query!(
             "DELETE FROM webhook.subscription_health_bucket WHERE bucket_start < now() - make_interval(days => $1)",
+            retention_days,
         )
-        .bind(retention_days)
         .execute(&mut *tx)
         .await
         .unwrap()
         .rows_affected();
         assert!(deleted >= 1, "should have deleted at least 1 old bucket");
 
-        let count_after: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM webhook.subscription_health_bucket WHERE subscription__id = $1 AND bucket_start < now() - interval '30 days'",
+        let count_after = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) AS "count!" FROM webhook.subscription_health_bucket WHERE subscription__id = $1 AND bucket_start < now() - interval '30 days'"#,
+            sub_id,
         )
-        .bind(sub_id)
         .fetch_one(&mut *tx)
         .await
         .unwrap();
