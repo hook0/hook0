@@ -7,11 +7,7 @@ import update_subscription from './subscriptions/update_subscription.js';
 import delete_subscription from './subscriptions/delete_subscription.js';
 import send_event from './events/send_event.js';
 import list_request_attempt from './events/list_request_attempt.js';
-import {
-  retryHappyPath,
-  retryCooldown,
-  retryNonExistent,
-} from './events/retry_request_attempt.js';
+import { retryHappyPath, retryCooldown, retryNonExistent } from './events/retry_request_attempt.js';
 import query_request_attempts from './database/query_request_attempts.js';
 import delete_application from './applications/delete_application.js';
 import get_quota from './unauthentified/quotas.js';
