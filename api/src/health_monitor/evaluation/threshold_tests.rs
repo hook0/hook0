@@ -1,5 +1,11 @@
-//! Threshold-driven suspect tracking tests — sibling of [`super::threshold`].
-//! See that module for the narrative description of what these tests cover.
+//! Threshold-driven suspect tracking tests.
+//!
+//! Exercises the UNION behavior in
+//! [`crate::health_monitor::queries::find_suspects`] that keeps a
+//! previously-warned subscription in the suspect set even after its bucket
+//! failure rate drops — that is what lets the state machine fire the
+//! Recovered transition. See the parent [`super`] module for the high-level
+//! narrative.
 
 #[cfg(test)]
 mod tests {

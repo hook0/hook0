@@ -1,5 +1,10 @@
-//! Adaptive-window flow tests — sibling of [`super::window`]. See that module
-//! for the narrative description of what these tests cover.
+//! Adaptive-window state machine flow tests: two-pass warning then
+//! recovery / cooldown evaluated across the `time_window`.
+//!
+//! These tests exercise the orchestrator
+//! [`super::fetch_subscription_health_stats`] together with the
+//! [`crate::health_monitor::state_machine`] end-to-end. See the parent
+//! [`super`] module for the high-level narrative.
 
 #[cfg(test)]
 mod tests {

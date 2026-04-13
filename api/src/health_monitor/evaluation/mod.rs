@@ -20,11 +20,27 @@
 //! decides whether to warn, disable, or resolve, and finally advances the
 //! cursor so the next tick only looks at newer deliveries.
 //!
-//! This module is split into sub-files by dominant responsibility:
-//! - [`bucket`]: bucket lifecycle (insert / close) and bucket-focused tests
-//! - [`window`]: adaptive-window state machine flow tests
-//! - [`threshold`]: warning/disable threshold suspect-tracking tests
+//! Production code lives in two sub-modules:
 //! - [`decision`]: cursor advancement and failure-percent reset side effects
+//! - the orchestrator [`fetch_subscription_health_stats`] in this file, which
+//!   stitches together [`crate::health_monitor::queries`] (bucket lifecycle,
+//!   suspect detection, failure-rate computation) and the
+//!   [`crate::health_monitor::state_machine`] (warn / disable / recover /
+//!   cooldown transitions)
+//!
+//! The black-box integration tests are split by behavioral focus rather than
+//! by file structure:
+//! - [`bucket_tests`]: bucket population, closing, and retention cleanup
+//!   (exercising [`crate::health_monitor::queries`] `upsert_buckets` /
+//!   `close_full_buckets`)
+//! - [`window_tests`]: adaptive-window flow — two-pass warning then
+//!   recovery / cooldown evaluated across the `time_window` (exercising the
+//!   [`crate::health_monitor::state_machine`] end-to-end)
+//! - [`threshold_tests`]: threshold-driven suspect tracking — the UNION
+//!   behavior in [`crate::health_monitor::queries::find_suspects`] that keeps
+//!   a previously-warned subscription in the suspect set even after its
+//!   bucket failure rate drops, which is what lets the state machine fire the
+//!   Recovered transition
 
 use chrono::{DateTime, Utc};
 
@@ -33,10 +49,7 @@ use super::queries;
 
 pub use queries::SubscriptionHealth;
 
-mod bucket;
 mod decision;
-mod threshold;
-mod window;
 
 pub use decision::{advance_cursor, reset_healthy_failure_percent};
 

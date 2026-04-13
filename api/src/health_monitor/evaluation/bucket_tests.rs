@@ -1,5 +1,10 @@
-//! Bucket-lifecycle tests — sibling of [`super::bucket`]. See that module for
-//! the narrative description of what these tests cover.
+//! Bucket-lifecycle tests: population, closing, and retention cleanup.
+//!
+//! These tests black-box the bucket aggregation logic in
+//! [`crate::health_monitor::queries`] (`upsert_buckets`, `close_full_buckets`)
+//! by driving it through the orchestrator
+//! [`super::fetch_subscription_health_stats`]. See the parent [`super`]
+//! module for the high-level narrative.
 
 #[cfg(test)]
 mod tests {
