@@ -550,6 +550,18 @@ struct Config {
     /// [Frontend] Cloudflare Turnstile secret key (enables Turnstile for user registration)
     #[clap(long, env, group = "cloudflare_turnstile")]
     cloudflare_turnstile_secret_key: Option<String>,
+
+    /// [Housekeeping] Enable the subscription health monitor background task
+    #[clap(long, env, default_value_t = false)]
+    enable_health_monitor: bool,
+
+    /// [Housekeeping] Failure % threshold for warning email
+    #[clap(long, env, default_value_t = 80)]
+    health_monitor_warning_failure_percent: u8,
+
+    /// [Housekeeping] Failure % threshold for deactivation
+    #[clap(long, env, default_value_t = 95)]
+    health_monitor_disable_failure_percent: u8,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -597,6 +609,9 @@ pub struct State {
     support_email_address: Address,
     cloudflare_turnstile_site_key: Option<String>,
     cloudflare_turnstile_secret_key: Option<String>,
+    enable_health_monitor: bool,
+    health_monitor_warning_failure_percent: u8,
+    health_monitor_disable_failure_percent: u8,
 }
 
 #[derive(Clone)]
@@ -1116,6 +1131,9 @@ async fn main() -> anyhow::Result<()> {
             support_email_address: config.support_email_address,
             cloudflare_turnstile_site_key: config.cloudflare_turnstile_site_key,
             cloudflare_turnstile_secret_key: config.cloudflare_turnstile_secret_key,
+            enable_health_monitor: config.enable_health_monitor,
+            health_monitor_warning_failure_percent: config.health_monitor_warning_failure_percent,
+            health_monitor_disable_failure_percent: config.health_monitor_disable_failure_percent,
         };
 
         // Run web server

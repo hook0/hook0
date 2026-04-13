@@ -31,6 +31,7 @@ pub struct InstanceConfig {
     formbricks: Option<FormbricksConfig>,
     support_email_address: String,
     cloudflare_turnstile_site_key: Option<String>,
+    health_monitor: Option<HealthMonitorConfig>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -43,6 +44,12 @@ pub struct MatomoConfig {
 pub struct FormbricksConfig {
     api_host: String,
     environment_id: String,
+}
+
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct HealthMonitorConfig {
+    warning_failure_percent: u8,
+    disable_failure_percent: u8,
 }
 
 /// Get instance configuration
@@ -74,6 +81,15 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         None
     };
 
+    // Exposed only when the health monitor is enabled, so API consumers
+    // can mirror the actual thresholds without duplicating defaults.
+    let health_monitor = state
+        .enable_health_monitor
+        .then(|| HealthMonitorConfig {
+            warning_failure_percent: state.health_monitor_warning_failure_percent,
+            disable_failure_percent: state.health_monitor_disable_failure_percent,
+        });
+
     Ok(Json(InstanceConfig {
         biscuit_public_key: state.biscuit_private_key.public().to_bytes_hex(),
         registration_disabled: state.registration_disabled,
@@ -85,6 +101,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         formbricks,
         support_email_address: state.support_email_address.to_string(),
         cloudflare_turnstile_site_key: state.cloudflare_turnstile_site_key.to_owned(),
+        health_monitor,
     }))
 }
 

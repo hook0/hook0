@@ -938,6 +938,12 @@ export interface components {
         api_host: string;
         environment_id: string;
       };
+      health_monitor?: {
+        /** Format: int32 */
+        disable_failure_percent: number;
+        /** Format: int32 */
+        warning_failure_percent: number;
+      };
       matomo?: {
         /** Format: int32 */
         site_id: number;
