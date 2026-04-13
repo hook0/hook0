@@ -71,8 +71,8 @@ export const logKeys = {
 export const healthEventKeys = {
   all: ['healthEvents'] as const,
   lists: () => [...healthEventKeys.all, 'list'] as const,
-  list: (subscriptionId: string, organizationId: string) =>
-    [...healthEventKeys.lists(), subscriptionId, organizationId] as const,
+  list: (subscriptionId: string, organizationId: string, cursor: string | null) =>
+    [...healthEventKeys.lists(), subscriptionId, organizationId, cursor] as const,
 };
 
 export const requestAttemptKeys = {

@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { HealthEvent } from './SubscriptionHealthService';
 import Hook0Badge from '@/components/Hook0Badge.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
 import { formatDate } from '@/utils/formatDate';
 import { useHealthThresholds } from '@/composables/useHealthThresholds';
+import { useSubscriptionHealthEvents } from './useSubscriptionHealthQueries';
 
-defineProps<{
-  events: HealthEvent[];
+const props = defineProps<{
+  subscriptionId: string;
+  organizationId: string;
 }>();
 
 const { t, locale } = useI18n();
-
 const { warning, critical } = useHealthThresholds();
 
 type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
@@ -36,43 +37,98 @@ function relativeDate(iso: string): string {
   const diffDay = Math.round(diffHr / 24);
   return rtf.value.format(diffDay, 'day');
 }
+
+// Local cursor stack — the backend only gives us `next_cursor`, so we remember
+// where each page started to implement a "Previous" button. `null` = first page.
+const cursorStack = ref<(string | null)[]>([null]);
+const currentCursor = computed(() => cursorStack.value[cursorStack.value.length - 1] ?? null);
+
+const subscriptionIdRef = toRef(props, 'subscriptionId');
+const organizationIdRef = toRef(props, 'organizationId');
+
+const { data, isLoading } = useSubscriptionHealthEvents(
+  subscriptionIdRef,
+  organizationIdRef,
+  currentCursor
+);
+
+const hasPrevious = computed(() => cursorStack.value.length > 1);
+const hasNext = computed(() => data.value?.next_cursor != null);
+
+function goPrevious(): void {
+  if (hasPrevious.value) {
+    cursorStack.value.pop();
+  }
+}
+
+function goNext(): void {
+  const next = data.value?.next_cursor;
+  if (next != null) {
+    cursorStack.value.push(next);
+  }
+}
 </script>
 
 <template>
-  <ol class="health-timeline">
-    <li v-for="event in events" :key="event.health_event_id" class="health-timeline__item">
-      <span
-        class="health-timeline__dot"
-        :class="`health-timeline__dot--${event.status}`"
-        aria-hidden="true"
-      />
-      <div class="health-timeline__content">
-        <Hook0Tooltip
-          :content="
-            t(`subscriptionDetail.healthStatus.${event.status}Tooltip`, {
-              threshold: event.status === 'disabled' ? critical : warning,
-            })
-          "
-          position="top"
-        >
-          <Hook0Badge :variant="statusVariantMap[event.status] ?? 'default'" size="sm">
-            {{ t(`subscriptionDetail.healthStatus.${event.status}`) }}
+  <div class="health-timeline-wrapper">
+    <ol class="health-timeline">
+      <li
+        v-for="event in data?.items ?? []"
+        :key="event.health_event_id"
+        class="health-timeline__item"
+      >
+        <span
+          class="health-timeline__dot"
+          :class="`health-timeline__dot--${event.status}`"
+          aria-hidden="true"
+        />
+        <div class="health-timeline__content">
+          <Hook0Tooltip
+            :content="
+              t(`subscriptionDetail.healthStatus.${event.status}Tooltip`, {
+                threshold: event.status === 'disabled' ? critical : warning,
+              })
+            "
+            position="top"
+          >
+            <Hook0Badge :variant="statusVariantMap[event.status] ?? 'default'" size="sm">
+              {{ t(`subscriptionDetail.healthStatus.${event.status}`) }}
+            </Hook0Badge>
+          </Hook0Tooltip>
+          <Hook0Badge variant="default" size="sm">
+            {{ t(`subscriptionDetail.healthCause.${event.cause}`) }}
           </Hook0Badge>
-        </Hook0Tooltip>
-        <Hook0Badge variant="default" size="sm">
-          {{ t(`subscriptionDetail.healthCause.${event.cause}`) }}
-        </Hook0Badge>
-        <Hook0Tooltip :content="formatDate(event.created_at)" position="top">
-          <span class="health-timeline__date">
-            {{ relativeDate(event.created_at) }}
-          </span>
-        </Hook0Tooltip>
-      </div>
-    </li>
-  </ol>
+          <Hook0Tooltip :content="formatDate(event.created_at)" position="top">
+            <span class="health-timeline__date">
+              {{ relativeDate(event.created_at) }}
+            </span>
+          </Hook0Tooltip>
+        </div>
+      </li>
+    </ol>
+    <div class="health-timeline__pagination">
+      <Hook0Button
+        variant="secondary"
+        size="sm"
+        :disabled="!hasPrevious || isLoading"
+        @click="goPrevious"
+      >
+        {{ t('common.previous') }}
+      </Hook0Button>
+      <Hook0Button variant="secondary" size="sm" :disabled="!hasNext || isLoading" @click="goNext">
+        {{ t('common.next') }}
+      </Hook0Button>
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.health-timeline-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .health-timeline {
   position: relative;
   padding-left: 1.25rem;
@@ -120,5 +176,12 @@ function relativeDate(iso: string): string {
 .health-timeline__date {
   font-size: 0.75rem;
   color: var(--color-text-tertiary);
+}
+
+.health-timeline__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 </style>
