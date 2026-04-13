@@ -51,11 +51,13 @@ pub async fn evaluate_health_transition(
     let mut actions = Vec::new();
 
     // Always persist the current failure rate so the frontend can show it
-    sqlx::query("UPDATE webhook.subscription SET failure_percent = $1 WHERE subscription__id = $2")
-        .bind(failure_percent)
-        .bind(subscription.subscription_id)
-        .execute(&mut **transaction)
-        .await?;
+    sqlx::query!(
+        "UPDATE webhook.subscription SET failure_percent = $1 WHERE subscription__id = $2",
+        failure_percent,
+        subscription.subscription_id,
+    )
+    .execute(&mut **transaction)
+    .await?;
 
     match last_status {
         // Already disabled by the health monitor — user must re-enable manually.
@@ -158,13 +160,13 @@ pub async fn insert_health_event(
     source: HealthEventSource,
     user_id: Option<Uuid>,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query(
+    sqlx::query!(
         "INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id) VALUES ($1, $2, $3, $4)",
+        subscription_id,
+        status.to_string(),
+        source.to_string(),
+        user_id,
     )
-    .bind(subscription_id)
-    .bind(status)
-    .bind(source)
-    .bind(user_id)
     .execute(&mut **transaction)
     .await?;
     Ok(())
@@ -179,7 +181,7 @@ async fn disable_subscription(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     subscription: &SubscriptionHealth,
 ) -> Result<Option<DateTime<Utc>>, HealthMonitorError> {
-    let disabled_at: Option<DateTime<Utc>> = sqlx::query_scalar(
+    let disabled_at: Option<DateTime<Utc>> = sqlx::query_scalar!(
         r#"
         WITH updated AS (
             UPDATE webhook.subscription
@@ -192,10 +194,10 @@ async fn disable_subscription(
             SELECT subscription__id, 'disabled', 'system', NULL FROM updated
             RETURNING created_at
         )
-        SELECT created_at FROM inserted
+        SELECT created_at AS "created_at!" FROM inserted
         "#,
+        subscription.subscription_id,
     )
-    .bind(subscription.subscription_id)
     .fetch_optional(&mut **transaction)
     .await?;
 

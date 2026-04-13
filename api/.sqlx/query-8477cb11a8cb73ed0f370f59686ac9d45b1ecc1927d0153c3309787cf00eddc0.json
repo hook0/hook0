@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH updated AS (\n            UPDATE webhook.subscription\n            SET is_enabled = false\n            WHERE subscription__id = $1 AND is_enabled = true\n            RETURNING subscription__id\n        ),\n        inserted AS (\n            INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id)\n            SELECT subscription__id, 'disabled', 'system', NULL FROM updated\n            RETURNING created_at\n        )\n        SELECT created_at AS \"created_at!\" FROM inserted\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8477cb11a8cb73ed0f370f59686ac9d45b1ecc1927d0153c3309787cf00eddc0"
+}
