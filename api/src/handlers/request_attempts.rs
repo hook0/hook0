@@ -718,8 +718,8 @@ pub async fn retry(
     // instead of waiting for the next PG poll cycle (~10s).  Even without
     // Pulsar, the attempt is already persisted in DB — the PG poller will
     // find and deliver it.
-    if let Some(pulsar) = &state.pulsar {
-        if let Err(err) = crate::pulsar_dispatch::send_single_attempt_to_pulsar(
+    if let Some(pulsar) = &state.pulsar
+        && let Err(err) = crate::pulsar_dispatch::send_single_attempt_to_pulsar(
             &state.db,
             pulsar,
             hook0_protobuf::RequestAttempt {
@@ -743,13 +743,12 @@ pub async fn retry(
             },
         )
         .await
-        {
-            error!(
-                request_attempt_id = %new_request_attempt_id,
-                error = ?err,
-                "Manual retry persisted but Pulsar dispatch failed; PG poller will deliver it"
-            );
-        }
+    {
+        error!(
+            request_attempt_id = %new_request_attempt_id,
+            error = ?err,
+            "Manual retry persisted but Pulsar dispatch failed; PG poller will deliver it"
+        );
     }
 
     // 202 signals "accepted for async processing" — the new attempt will
