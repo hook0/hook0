@@ -9,7 +9,7 @@ use std::str::FromStr;
 use chrono::{DateTime, Utc};
 use lettre::{Address, message::Mailbox};
 use sqlx::PgPool;
-use tracing::warn;
+use tracing::{debug, warn};
 use uuid::Uuid;
 
 use hook0_client::Hook0Client;
@@ -37,6 +37,7 @@ pub enum HealthAction {
 }
 
 /// Maps 1:1 to `HealthAction` but without payload — selects the email template.
+#[derive(Debug)]
 pub enum EmailKind {
     Warning,
     Disabled,
@@ -137,6 +138,11 @@ pub async fn dispatch_health_actions(
 
 /// Sends a health notification email to all users of the subscription's organization.
 /// Failures are logged but never propagated — email delivery is best-effort.
+///
+/// Gated on `config.email_notifications_enabled` — when false, no email is sent
+/// and a debug log is emitted so operators can see why notifications are silent.
+/// The rest of the rendering code stays live so flipping the flag on requires
+/// no code change.
 async fn send_email_to_organization(
     mailer: &Mailer,
     db: &PgPool,
@@ -144,6 +150,16 @@ async fn send_email_to_organization(
     kind: EmailKind,
     config: &HealthMonitorConfig,
 ) {
+    if !config.email_notifications_enabled {
+        debug!(
+            subscription_id = %action_info.subscription_id,
+            organization_id = %action_info.organization_id,
+            kind = ?kind,
+            "Health monitor: email notifications disabled by feature flag, skipping send"
+        );
+        return;
+    }
+
     let description = action_info
         .description
         .clone()

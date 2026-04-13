@@ -51,6 +51,10 @@ pub struct HealthMonitorConfig {
     pub bucket_max_messages: u32,
     pub bucket_retention_days: u32,
     pub max_delta_rows_per_tick: u32,
+    /// Feature flag: when false, email notifications (warning/disabled/recovered)
+    /// are skipped. Prevents spam during widespread incidents. Defaults to false;
+    /// email templates stay compiled so this can be flipped on without a code change.
+    pub email_notifications_enabled: bool,
 }
 
 /// Runs the health monitor loop.

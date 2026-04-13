@@ -103,6 +103,7 @@ pub(in crate::health_monitor::evaluation) fn test_config() -> HealthMonitorConfi
         bucket_max_messages: 100,
         bucket_retention_days: 30,
         max_delta_rows_per_tick: 50_000,
+        email_notifications_enabled: false,
     }
 }
 

@@ -605,6 +605,18 @@ struct Config {
     /// Limits query duration on high-traffic instances; remaining rows are picked up on the next tick.
     #[clap(long, env, default_value_t = 50_000)]
     health_monitor_max_delta_rows_per_tick: u32,
+
+    /// [Housekeeping] Enable warning/disabled/recovered email notifications for health monitor events.
+    ///
+    /// Disabled by default to prevent spam during widespread incidents (e.g. a
+    /// cloud provider outage disabling 100+ subscriptions at once would send
+    /// 100+ emails to every org admin). The long-term notification strategy
+    /// (batching, per-org opt-in, routing to operational webhooks) is still
+    /// under discussion — until it lands, leave this flag false in production.
+    /// Email templates and rendering code remain compiled so the flag can be
+    /// flipped on without a code change.
+    #[clap(long, env, default_value_t = false)]
+    health_monitor_email_notifications_enabled: bool,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -1162,6 +1174,7 @@ async fn main() -> anyhow::Result<()> {
                 bucket_max_messages: config.health_monitor_bucket_max_messages,
                 bucket_retention_days: config.health_monitor_bucket_retention_days,
                 max_delta_rows_per_tick: config.health_monitor_max_delta_rows_per_tick,
+                email_notifications_enabled: config.health_monitor_email_notifications_enabled,
             };
             actix_web::rt::spawn(async move {
                 health_monitor::run_health_monitor(

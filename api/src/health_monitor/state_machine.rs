@@ -149,6 +149,7 @@ mod tests {
             bucket_max_messages: 1_000,
             bucket_retention_days: 30,
             max_delta_rows_per_tick: 10_000,
+            email_notifications_enabled: false,
         }
     }
 
