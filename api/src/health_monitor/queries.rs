@@ -280,14 +280,15 @@ pub async fn compute_failure_rates(
             lh.created_at AS "last_health_at?",
             lh.source AS "last_health_source?: HealthEventSource",
             lh.user__id AS "last_health_user_id?",
-            s.retry_schedule__id AS "retry_schedule_id?",
-            rs.name AS "retry_schedule_name?",
-            rs.strategy AS "retry_strategy?",
-            rs.max_retries AS "retry_max_retries?",
-            rs.custom_intervals AS "retry_custom_intervals?",
-            rs.linear_delay AS "retry_linear_delay?",
-            rs.increasing_base_delay AS "retry_increasing_base_delay?",
-            rs.increasing_wait_factor AS "retry_increasing_wait_factor?"
+            -- Phase 3 will replace these NULL casts with a JOIN to webhook.retry_schedule (the table is owned by Phase 3).
+            NULL::uuid AS "retry_schedule_id?",
+            NULL::text AS "retry_schedule_name?",
+            NULL::text AS "retry_strategy?",
+            NULL::int4 AS "retry_max_retries?",
+            NULL::int4[] AS "retry_custom_intervals?",
+            NULL::int4 AS "retry_linear_delay?",
+            NULL::int4 AS "retry_increasing_base_delay?",
+            NULL::float8 AS "retry_increasing_wait_factor?"
         FROM bucket_stats bs
         INNER JOIN webhook.subscription s USING (subscription__id)
         INNER JOIN event.application app ON app.application__id = s.application__id
@@ -298,7 +299,6 @@ pub async fn compute_failure_rates(
             ORDER BY she.created_at DESC
             LIMIT 1
         ) lh ON true
-        LEFT JOIN webhook.retry_schedule rs ON rs.retry_schedule__id = s.retry_schedule__id
         LEFT JOIN webhook.target_http th ON th.target__id = s.target__id
         WHERE s.is_enabled = true AND s.deleted_at IS NULL
         "#,

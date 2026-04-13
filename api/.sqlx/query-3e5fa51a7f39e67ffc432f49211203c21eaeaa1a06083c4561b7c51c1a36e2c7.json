@@ -1,0 +1,132 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH bucket_stats AS (\n            SELECT subscription__id,\n                   SUM(failed_count)::float8 / NULLIF(SUM(total_count), 0) * 100.0 AS failure_percent,\n                   SUM(total_count) AS sample_size\n            FROM webhook.subscription_health_bucket\n            WHERE subscription__id = ANY($1)\n              AND bucket_start > now() - make_interval(secs => $2)\n            GROUP BY subscription__id\n            HAVING SUM(total_count) >= $3\n        )\n        SELECT\n            bs.subscription__id AS \"subscription_id!\",\n            s.application__id AS \"application_id!\",\n            app.organization__id AS \"organization_id!\",\n            app.name AS \"application_name?\",\n            s.description,\n            coalesce(th.url, '') AS \"target_url!\",\n            bs.failure_percent AS \"failure_percent!\",\n            lh.status AS \"last_health_status?: HealthStatus\",\n            lh.created_at AS \"last_health_at?\",\n            lh.source AS \"last_health_source?: HealthEventSource\",\n            lh.user__id AS \"last_health_user_id?\",\n            -- Phase 3 will replace these NULL casts with a JOIN to webhook.retry_schedule (the table is owned by Phase 3).\n            NULL::uuid AS \"retry_schedule_id?\",\n            NULL::text AS \"retry_schedule_name?\",\n            NULL::text AS \"retry_strategy?\",\n            NULL::int4 AS \"retry_max_retries?\",\n            NULL::int4[] AS \"retry_custom_intervals?\",\n            NULL::int4 AS \"retry_linear_delay?\",\n            NULL::int4 AS \"retry_increasing_base_delay?\",\n            NULL::float8 AS \"retry_increasing_wait_factor?\"\n        FROM bucket_stats bs\n        INNER JOIN webhook.subscription s USING (subscription__id)\n        INNER JOIN event.application app ON app.application__id = s.application__id\n        LEFT JOIN LATERAL (\n            SELECT she.status, she.created_at, she.source, she.user__id\n            FROM webhook.subscription_health_event she\n            WHERE she.subscription__id = bs.subscription__id\n            ORDER BY she.created_at DESC\n            LIMIT 1\n        ) lh ON true\n        LEFT JOIN webhook.target_http th ON th.target__id = s.target__id\n        WHERE s.is_enabled = true AND s.deleted_at IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscription_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "application_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "organization_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "application_name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "target_url!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "failure_percent!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_health_status?: HealthStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "last_health_at?",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "last_health_source?: HealthEventSource",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "last_health_user_id?",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "retry_schedule_id?",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 12,
+        "name": "retry_schedule_name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "retry_strategy?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "retry_max_retries?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "retry_custom_intervals?",
+        "type_info": "Int4Array"
+      },
+      {
+        "ordinal": 16,
+        "name": "retry_linear_delay?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 17,
+        "name": "retry_increasing_base_delay?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 18,
+        "name": "retry_increasing_wait_factor?",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null,
+      true,
+      true,
+      true,
+      true,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "3e5fa51a7f39e67ffc432f49211203c21eaeaa1a06083c4561b7c51c1a36e2c7"
+}
