@@ -189,22 +189,22 @@ async fn send_email_to_organization(
         },
     };
 
-    #[derive(sqlx::FromRow)]
     struct OrganizationUser {
         first_name: String,
         last_name: String,
         email: String,
     }
 
-    let users = match sqlx::query_as::<_, OrganizationUser>(
+    let users = match sqlx::query_as!(
+        OrganizationUser,
         r#"
         SELECT u.first_name, u.last_name, u.email
         FROM iam.user u
         INNER JOIN iam.user__organization ou ON u.user__id = ou.user__id
         WHERE ou.organization__id = $1
         "#,
+        action_info.organization_id,
     )
-    .bind(action_info.organization_id)
     .fetch_all(db)
     .await
     {
