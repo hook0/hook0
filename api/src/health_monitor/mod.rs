@@ -29,6 +29,11 @@ use hook0_client::Hook0Client;
 
 use crate::mailer::Mailer;
 
+use evaluation::SubscriptionHealth;
+use notifications::{HealthAction, HealthActionInfo};
+use state_machine::PlannedAction;
+use types::{HealthEventCause, HealthStatus};
+
 /// Arbitrary unique ID for pg_try_advisory_xact_lock — must not conflict with other advisory locks in the application.
 const ADVISORY_LOCK_ID: i64 = 42_000_001;
 
@@ -133,17 +138,16 @@ async fn run_health_check(
         );
 
         let mut actions = Vec::new();
+        let now = chrono::Utc::now();
         for subscription in &subscriptions {
-            match state_machine::evaluate_health_transition(&mut transaction, config, subscription)
-                .await
+            let planned = state_machine::plan_for_subscription(config, subscription, now);
+            if let Err(e) =
+                apply_planned_actions(&mut transaction, subscription, &planned, &mut actions).await
             {
-                Ok(mut subscription_actions) => actions.append(&mut subscription_actions),
-                Err(e) => {
-                    warn!(
-                        "Health monitor: error processing subscription {}: {e}",
-                        subscription.subscription_id
-                    );
-                }
+                warn!(
+                    "Health monitor: error processing subscription {}: {e}",
+                    subscription.subscription_id
+                );
             }
         }
 
@@ -165,5 +169,75 @@ async fn run_health_check(
     // Phase 2: best-effort side-effects (no transaction held).
     notifications::dispatch_health_actions(&actions, mailer, db, hook0_client, config).await;
 
+    Ok(())
+}
+
+/// Applies the list of `PlannedAction`s decided by the pure state machine to
+/// the database (within the caller's transaction) and appends any resulting
+/// notification envelopes to `notify_queue` for phase-2 dispatch.
+///
+/// This is where the only side effects live: every branch maps a single
+/// `PlannedAction` to one or more `queries::*` calls. No decision logic here.
+async fn apply_planned_actions(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    subscription: &SubscriptionHealth,
+    planned: &[PlannedAction],
+    notify_queue: &mut Vec<HealthAction>,
+) -> Result<(), errors::HealthMonitorError> {
+    for action in planned {
+        match action {
+            PlannedAction::UpdateFailurePercent => {
+                queries::update_subscription_failure_percent(
+                    tx,
+                    subscription.subscription_id,
+                    subscription.failure_percent,
+                )
+                .await?;
+            }
+            PlannedAction::EmitWarning => {
+                queries::insert_health_event(
+                    tx,
+                    subscription.subscription_id,
+                    HealthStatus::Warning,
+                    HealthEventCause::Auto,
+                    None,
+                )
+                .await?;
+                notify_queue.push(HealthAction::Warning(HealthActionInfo::from_subscription(
+                    subscription,
+                    None,
+                )));
+            }
+            PlannedAction::EmitResolved { notify } => {
+                queries::insert_health_event(
+                    tx,
+                    subscription.subscription_id,
+                    HealthStatus::Resolved,
+                    HealthEventCause::Auto,
+                    None,
+                )
+                .await?;
+                if *notify {
+                    notify_queue.push(HealthAction::Recovered(
+                        HealthActionInfo::from_subscription(subscription, None),
+                    ));
+                }
+            }
+            PlannedAction::EmitDisabled => {
+                // The CTE inside disable_subscription is idempotent: if the
+                // subscription was already disabled (e.g. by the user between
+                // ticks), it returns None and we skip the notification to
+                // avoid a duplicate email.
+                if let Some(disabled_at) =
+                    queries::disable_subscription(tx, subscription.subscription_id).await?
+                {
+                    notify_queue.push(HealthAction::Disabled(HealthActionInfo::from_subscription(
+                        subscription,
+                        Some(disabled_at),
+                    )));
+                }
+            }
+        }
+    }
     Ok(())
 }

@@ -7,7 +7,7 @@ mod tests {
 
     use super::super::fetch_subscription_health_stats;
     use super::super::test_helpers::{
-        insert_test_fixtures, set_cursor, setup_test_pool, test_config,
+        insert_test_fixtures, process_subscription, set_cursor, setup_test_pool, test_config,
     };
 
     /// Recovery triggers a resolved health event.
@@ -37,10 +37,7 @@ mod tests {
             .iter()
             .find(|s| s.subscription_id == sub_id)
             .expect("subscription should be suspect");
-        let actions =
-            crate::health_monitor::state_machine::evaluate_health_transition(&mut tx, &config, sub)
-                .await
-                .unwrap();
+        let actions = process_subscription(&mut tx, &config, sub).await.unwrap();
         if let Some(ts) = max_completed {
             super::super::advance_cursor(&mut tx, ts).await.unwrap();
         }
@@ -95,11 +92,7 @@ mod tests {
             sub2.failure_percent < 50.0,
             "failure rate should be low now"
         );
-        let actions2 = crate::health_monitor::state_machine::evaluate_health_transition(
-            &mut tx, &config, sub2,
-        )
-        .await
-        .unwrap();
+        let actions2 = process_subscription(&mut tx, &config, sub2).await.unwrap();
 
         let resolved_count = sqlx::query_scalar!(
             r#"SELECT COUNT(*) AS "count!" FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'resolved' AND cause = 'auto'"#,
@@ -145,10 +138,7 @@ mod tests {
             .await
             .unwrap();
         let sub = subs.iter().find(|s| s.subscription_id == sub_id).unwrap();
-        let _ =
-            crate::health_monitor::state_machine::evaluate_health_transition(&mut tx, &config, sub)
-                .await
-                .unwrap();
+        let _ = process_subscription(&mut tx, &config, sub).await.unwrap();
         if let Some(ts) = max_completed {
             super::super::advance_cursor(&mut tx, ts).await.unwrap();
         }
@@ -170,11 +160,7 @@ mod tests {
             .iter()
             .find(|s| s.subscription_id == sub_id)
             .expect("subscription should still be suspect via bucket failure count");
-        let actions = crate::health_monitor::state_machine::evaluate_health_transition(
-            &mut tx, &config, sub2,
-        )
-        .await
-        .unwrap();
+        let actions = process_subscription(&mut tx, &config, sub2).await.unwrap();
 
         assert!(
             !actions.iter().any(|a| matches!(

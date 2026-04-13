@@ -9,10 +9,81 @@ use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
 use crate::health_monitor::HealthMonitorConfig;
+use crate::health_monitor::errors::HealthMonitorError;
+use crate::health_monitor::notifications::{HealthAction, HealthActionInfo};
+use crate::health_monitor::queries::SubscriptionHealth;
+use crate::health_monitor::state_machine::{PlannedAction, plan_for_subscription};
+use crate::health_monitor::types::{HealthEventCause, HealthStatus};
+use crate::health_monitor::{notifications, queries};
 
 mod fixtures;
 
 pub(in crate::health_monitor::evaluation) use fixtures::insert_test_fixtures;
+
+/// Test-only convenience wrapper: runs the pure state machine and applies its
+/// `PlannedAction`s to the database inside `tx`, returning any notification
+/// envelopes that would normally be handed off to phase-2 dispatch. Mirrors
+/// `health_monitor::apply_planned_actions` but stays inside `evaluation/` so
+/// existing integration tests don't need to reach outside the module.
+pub(in crate::health_monitor::evaluation) async fn process_subscription(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    config: &HealthMonitorConfig,
+    subscription: &SubscriptionHealth,
+) -> Result<Vec<HealthAction>, HealthMonitorError> {
+    let now = Utc::now();
+    let planned = plan_for_subscription(config, subscription, now);
+    let mut notifications: Vec<HealthAction> = Vec::new();
+    for action in planned {
+        match action {
+            PlannedAction::UpdateFailurePercent => {
+                queries::update_subscription_failure_percent(
+                    tx,
+                    subscription.subscription_id,
+                    subscription.failure_percent,
+                )
+                .await?;
+            }
+            PlannedAction::EmitWarning => {
+                queries::insert_health_event(
+                    tx,
+                    subscription.subscription_id,
+                    HealthStatus::Warning,
+                    HealthEventCause::Auto,
+                    None,
+                )
+                .await?;
+                notifications.push(notifications::HealthAction::Warning(
+                    HealthActionInfo::from_subscription(subscription, None),
+                ));
+            }
+            PlannedAction::EmitResolved { notify } => {
+                queries::insert_health_event(
+                    tx,
+                    subscription.subscription_id,
+                    HealthStatus::Resolved,
+                    HealthEventCause::Auto,
+                    None,
+                )
+                .await?;
+                if notify {
+                    notifications.push(notifications::HealthAction::Recovered(
+                        HealthActionInfo::from_subscription(subscription, None),
+                    ));
+                }
+            }
+            PlannedAction::EmitDisabled => {
+                if let Some(disabled_at) =
+                    queries::disable_subscription(tx, subscription.subscription_id).await?
+                {
+                    notifications.push(notifications::HealthAction::Disabled(
+                        HealthActionInfo::from_subscription(subscription, Some(disabled_at)),
+                    ));
+                }
+            }
+        }
+    }
+    Ok(notifications)
+}
 
 pub(in crate::health_monitor::evaluation) async fn setup_test_pool() -> Option<PgPool> {
     let url = std::env::var("DATABASE_URL").ok()?;
