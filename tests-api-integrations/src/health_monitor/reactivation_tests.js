@@ -2,7 +2,7 @@
 // disabled/re-enabled by the user, and that subscription data survives the round-trip.
 //
 // How it works:
-// 1. A1: disable then re-enable a subscription, expect a "resolved/user" health event
+// 1. A1: disable then re-enable a subscription, expect a "resolved/manual" health event
 // 2. A2: re-enable an already-enabled subscription, expect no health event (idempotent)
 // 3. A3: disable/re-enable and verify all subscription fields are preserved
 
@@ -35,15 +35,29 @@ function build_update_payload(subscription, overrides) {
 }
 
 /**
- * @description Test A1: Re-enable a disabled subscription produces a 'resolved' health event from 'user' source.
+ * @description Test A1: Re-enable a disabled subscription produces a 'resolved' health event with cause='manual'.
  * @example
  *   test_a1_reenable_disabled(baseUrl, serviceToken, orgId, appId, eventType, targetUrl)
  */
-function test_a1_reenable_disabled(baseUrl, service_token, organization_id, application_id, event_type, target_url) {
+function test_a1_reenable_disabled(
+  baseUrl,
+  service_token,
+  organization_id,
+  application_id,
+  event_type,
+  target_url
+) {
   // 1. Create subscription (enabled by default)
-  const subscription = create_subscription(baseUrl, service_token, application_id, [event_type], target_url, {
-    a1_test: 'reenable',
-  });
+  const subscription = create_subscription(
+    baseUrl,
+    service_token,
+    application_id,
+    [event_type],
+    target_url,
+    {
+      a1_test: 'reenable',
+    }
+  );
   if (!subscription) {
     console.warn('A1: Failed to create subscription');
     return false;
@@ -55,7 +69,13 @@ function test_a1_reenable_disabled(baseUrl, service_token, organization_id, appl
 
   // 2. Disable the subscription
   const disable_payload = build_update_payload(subscription, { is_enabled: false });
-  const disabled = update_subscription(baseUrl, service_token, subscription.subscription_id, application_id, disable_payload);
+  const disabled = update_subscription(
+    baseUrl,
+    service_token,
+    subscription.subscription_id,
+    application_id,
+    disable_payload
+  );
   if (!disabled) {
     console.warn('A1: Failed to disable subscription');
     return false;
@@ -66,7 +86,12 @@ function test_a1_reenable_disabled(baseUrl, service_token, organization_id, appl
   });
 
   // User-initiated disable bypasses the health monitor — no health events recorded
-  const events_after_disable = get_health_events(baseUrl, service_token, subscription.subscription_id, organization_id);
+  const events_after_disable = get_health_events(
+    baseUrl,
+    service_token,
+    subscription.subscription_id,
+    organization_id
+  );
   if (events_after_disable === null) {
     console.warn('A1: Failed to get health events after disable');
     return false;
@@ -78,7 +103,13 @@ function test_a1_reenable_disabled(baseUrl, service_token, organization_id, appl
 
   // 4. Re-enable the subscription
   const enable_payload = build_update_payload(disabled, { is_enabled: true });
-  const reenabled = update_subscription(baseUrl, service_token, subscription.subscription_id, application_id, enable_payload);
+  const reenabled = update_subscription(
+    baseUrl,
+    service_token,
+    subscription.subscription_id,
+    application_id,
+    enable_payload
+  );
   if (!reenabled) {
     console.warn('A1: Failed to re-enable subscription');
     return false;
@@ -88,8 +119,13 @@ function test_a1_reenable_disabled(baseUrl, service_token, organization_id, appl
     'A1: subscription re-enabled (200, is_enabled=true)': (s) => s.is_enabled === true,
   });
 
-  // 5. Health events should contain exactly 1 event: status='resolved', source='user'
-  const events_after_enable = get_health_events(baseUrl, service_token, subscription.subscription_id, organization_id);
+  // 5. Health events should contain exactly 1 event: status='resolved', cause='manual'
+  const events_after_enable = get_health_events(
+    baseUrl,
+    service_token,
+    subscription.subscription_id,
+    organization_id
+  );
   if (events_after_enable === null) {
     console.warn('A1: Failed to get health events after re-enable');
     return false;
@@ -98,8 +134,9 @@ function test_a1_reenable_disabled(baseUrl, service_token, organization_id, appl
   check(events_after_enable, {
     'A1: 1 health event after re-enable': (e) => e.length === 1,
     'A1: health event status is resolved': (e) => e.length > 0 && e[0].status === 'resolved',
-    'A1: health event source is user': (e) => e.length > 0 && e[0].source === 'user',
-    'A1: health event user_id is null (service token)': (e) => e.length > 0 && e[0].user_id === null,
+    'A1: health event cause is manual': (e) => e.length > 0 && e[0].cause === 'manual',
+    'A1: health event user_id is null (service token)': (e) =>
+      e.length > 0 && e[0].user_id === null,
   });
 
   console.log('A1: Re-enable disabled subscription test passed');
@@ -111,11 +148,25 @@ function test_a1_reenable_disabled(baseUrl, service_token, organization_id, appl
  * @example
  *   test_a2_reenable_already_enabled(baseUrl, serviceToken, orgId, appId, eventType, targetUrl)
  */
-function test_a2_reenable_already_enabled(baseUrl, service_token, organization_id, application_id, event_type, target_url) {
+function test_a2_reenable_already_enabled(
+  baseUrl,
+  service_token,
+  organization_id,
+  application_id,
+  event_type,
+  target_url
+) {
   // Subscriptions start enabled — updating with is_enabled: true should be a no-op
-  const subscription = create_subscription(baseUrl, service_token, application_id, [event_type], target_url, {
-    a2_test: 'idempotent',
-  });
+  const subscription = create_subscription(
+    baseUrl,
+    service_token,
+    application_id,
+    [event_type],
+    target_url,
+    {
+      a2_test: 'idempotent',
+    }
+  );
   if (!subscription) {
     console.warn('A2: Failed to create subscription');
     return false;
@@ -127,7 +178,13 @@ function test_a2_reenable_already_enabled(baseUrl, service_token, organization_i
 
   // No state change means no health event should be created
   const enable_payload = build_update_payload(subscription, { is_enabled: true });
-  const updated = update_subscription(baseUrl, service_token, subscription.subscription_id, application_id, enable_payload);
+  const updated = update_subscription(
+    baseUrl,
+    service_token,
+    subscription.subscription_id,
+    application_id,
+    enable_payload
+  );
   if (!updated) {
     console.warn('A2: Failed to update subscription');
     return false;
@@ -138,7 +195,12 @@ function test_a2_reenable_already_enabled(baseUrl, service_token, organization_i
   });
 
   // The health monitor only records actual state transitions, not idempotent updates
-  const events = get_health_events(baseUrl, service_token, subscription.subscription_id, organization_id);
+  const events = get_health_events(
+    baseUrl,
+    service_token,
+    subscription.subscription_id,
+    organization_id
+  );
   if (events === null) {
     console.warn('A2: Failed to get health events');
     return false;
@@ -157,12 +219,26 @@ function test_a2_reenable_already_enabled(baseUrl, service_token, organization_i
  * @example
  *   test_a3_preserves_data(baseUrl, serviceToken, orgId, appId, eventType, targetUrl)
  */
-function test_a3_preserves_data(baseUrl, service_token, organization_id, application_id, event_type, target_url) {
+function test_a3_preserves_data(
+  baseUrl,
+  service_token,
+  organization_id,
+  application_id,
+  event_type,
+  target_url
+) {
   // 1. Create subscription with specific data
-  const subscription = create_subscription(baseUrl, service_token, application_id, [event_type], target_url, {
-    a3_test: 'preserve_data',
-    environment: 'k6',
-  });
+  const subscription = create_subscription(
+    baseUrl,
+    service_token,
+    application_id,
+    [event_type],
+    target_url,
+    {
+      a3_test: 'preserve_data',
+      environment: 'k6',
+    }
+  );
   if (!subscription) {
     console.warn('A3: Failed to create subscription');
     return false;
@@ -177,7 +253,13 @@ function test_a3_preserves_data(baseUrl, service_token, organization_id, applica
 
   // 2. Disable the subscription
   const disable_payload = build_update_payload(subscription, { is_enabled: false });
-  const disabled = update_subscription(baseUrl, service_token, subscription.subscription_id, application_id, disable_payload);
+  const disabled = update_subscription(
+    baseUrl,
+    service_token,
+    subscription.subscription_id,
+    application_id,
+    disable_payload
+  );
   if (!disabled) {
     console.warn('A3: Failed to disable subscription');
     return false;
@@ -185,7 +267,13 @@ function test_a3_preserves_data(baseUrl, service_token, organization_id, applica
 
   // 3. Re-enable the subscription
   const enable_payload = build_update_payload(disabled, { is_enabled: true });
-  const reenabled = update_subscription(baseUrl, service_token, subscription.subscription_id, application_id, enable_payload);
+  const reenabled = update_subscription(
+    baseUrl,
+    service_token,
+    subscription.subscription_id,
+    application_id,
+    enable_payload
+  );
   if (!reenabled) {
     console.warn('A3: Failed to re-enable subscription');
     return false;
@@ -217,12 +305,17 @@ function test_a3_preserves_data(baseUrl, service_token, organization_id, applica
     'A3: is_enabled restored to true': (s) => s.is_enabled === true,
     'A3: description unchanged': (s) => s.description === original_description,
     'A3: labels unchanged': (s) => {
-        const keys_a = Object.keys(s.labels || {}).sort();
-        const keys_b = Object.keys(original_labels || {}).sort();
-        return keys_a.length === keys_b.length && keys_a.every((k, i) => k === keys_b[i] && s.labels[k] === original_labels[k]);
-      },
-    'A3: metadata unchanged': (s) => JSON.stringify(s.metadata) === JSON.stringify(original_metadata),
-    'A3: event_types unchanged': (s) => JSON.stringify(s.event_types) === JSON.stringify(original_event_types),
+      const keys_a = Object.keys(s.labels || {}).sort();
+      const keys_b = Object.keys(original_labels || {}).sort();
+      return (
+        keys_a.length === keys_b.length &&
+        keys_a.every((k, i) => k === keys_b[i] && s.labels[k] === original_labels[k])
+      );
+    },
+    'A3: metadata unchanged': (s) =>
+      JSON.stringify(s.metadata) === JSON.stringify(original_metadata),
+    'A3: event_types unchanged': (s) =>
+      JSON.stringify(s.event_types) === JSON.stringify(original_event_types),
     'A3: target unchanged': (s) => JSON.stringify(s.target) === JSON.stringify(original_target),
   });
 
@@ -251,9 +344,30 @@ export default function (baseUrl, service_token, organization_id, target_url) {
       throw new Error('Health monitor reactivation: failed to create event type');
     }
 
-    test_a1_reenable_disabled(baseUrl, service_token, organization_id, application_id, event_type, target_url);
-    test_a2_reenable_already_enabled(baseUrl, service_token, organization_id, application_id, event_type, target_url);
-    test_a3_preserves_data(baseUrl, service_token, organization_id, application_id, event_type, target_url);
+    test_a1_reenable_disabled(
+      baseUrl,
+      service_token,
+      organization_id,
+      application_id,
+      event_type,
+      target_url
+    );
+    test_a2_reenable_already_enabled(
+      baseUrl,
+      service_token,
+      organization_id,
+      application_id,
+      event_type,
+      target_url
+    );
+    test_a3_preserves_data(
+      baseUrl,
+      service_token,
+      organization_id,
+      application_id,
+      event_type,
+      target_url
+    );
 
     console.log('All health monitor reactivation tests (Group A) passed');
   } finally {

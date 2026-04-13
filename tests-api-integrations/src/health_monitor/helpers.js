@@ -8,9 +8,15 @@ import { check } from 'k6';
  * Returns parsed array on success, or null on failure.
  * @example
  *   const events = get_health_events(baseUrl, serviceToken, subId, orgId, 10)
- *   // events => [{ health_event_id, subscription_id, status, source, user_id, created_at }]
+ *   // events => [{ health_event_id, subscription_id, status, cause, user_id, created_at }]
  */
-export function get_health_events(baseUrl, service_token, subscription_id, organization_id, limit = 50) {
+export function get_health_events(
+  baseUrl,
+  service_token,
+  subscription_id,
+  organization_id,
+  limit = 50
+) {
   const url = `${baseUrl}api/v1/subscriptions/${subscription_id}/health_events?organization_id=${organization_id}&limit=${limit}`;
   const params = {
     headers: {

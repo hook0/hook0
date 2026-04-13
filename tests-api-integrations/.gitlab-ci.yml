@@ -60,6 +60,10 @@ api-integration-tests.test:
     APP_URL: 'http://localhost:8080/'
     DISABLE_SERVING_WEBAPP: true
     DISABLE_TARGET_IP_CHECK: true
+    ## Health monitor: override production default (false) so the email
+    ## assertions in the health_monitor scenario still work. The actual
+    ## scenario only runs when TARGET_URL_FAILING is also set.
+    HEALTH_MONITOR_EMAIL_NOTIFICATIONS_ENABLED: 'true'
   before_script:
     - apt-get update && apt-get install gnupg ca-certificates -y
     - curl --silent --fail --location https://dl.k6.io/key.gpg | gpg --dearmor | tee /usr/share/keyrings/k6-archive-keyring.gpg

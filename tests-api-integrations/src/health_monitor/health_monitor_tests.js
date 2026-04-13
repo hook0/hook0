@@ -8,7 +8,7 @@
 //
 // Test groups:
 //   B-series: core health monitor behavior (auto-disable, re-enable, lifecycle, windowing)
-//   C-series: edge cases (user-disabled skip, min sample size, independent evaluation)
+//   C-series: edge cases (manual-disabled skip, min sample size, independent evaluation)
 
 import { check, sleep } from 'k6';
 import create_application from '../applications/create_application.js';
@@ -121,10 +121,14 @@ export function test_b1_failure_disables_subscription(config) {
 
     // Poll 30s — enough for the worker to exhaust retries and the cron to tick twice
     const sub_id = ctx.subscription.subscription_id;
-    const disabled = wait_for_condition(() => {
-      const sub = get_subscription(h, s, sub_id, ctx.application_id);
-      return sub && sub.is_enabled === false;
-    }, 30000, 2000);
+    const disabled = wait_for_condition(
+      () => {
+        const sub = get_subscription(h, s, sub_id, ctx.application_id);
+        return sub && sub.is_enabled === false;
+      },
+      30000,
+      2000
+    );
 
     if (!disabled) {
       const sub = get_subscription(h, s, sub_id, ctx.application_id);
@@ -133,32 +137,34 @@ export function test_b1_failure_disables_subscription(config) {
       );
     }
 
-    // Verify health events contain warning and disabled entries from system
+    // Verify health events contain warning and disabled entries with cause=auto
     const events = get_health_events(h, s, sub_id, o);
     if (!isNotNil(events)) {
       throw new Error('B1: Failed to fetch health events');
     }
 
-    const warning_event = events.find((e) => e.status === 'warning' && e.source === 'system');
-    const disabled_event = events.find((e) => e.status === 'disabled' && e.source === 'system');
+    const warning_event = events.find((e) => e.status === 'warning' && e.cause === 'auto');
+    const disabled_event = events.find((e) => e.status === 'disabled' && e.cause === 'auto');
     const has_warning = warning_event !== undefined;
     const has_disabled = disabled_event !== undefined;
 
     if (!has_warning) {
-      throw new Error('B1: Expected a warning health event from system, found none');
+      throw new Error('B1: Expected a warning health event with cause=auto, found none');
     }
     if (!has_disabled) {
-      throw new Error('B1: Expected a disabled health event from system, found none');
+      throw new Error('B1: Expected a disabled health event with cause=auto, found none');
     }
 
     check(warning_event, {
-      'B1: warning event user_id is null (system)': (e) => e.user_id === null,
+      'B1: warning event user_id is null (auto)': (e) => e.user_id === null,
     });
     check(disabled_event, {
-      'B1: disabled event user_id is null (system)': (e) => e.user_id === null,
+      'B1: disabled event user_id is null (auto)': (e) => e.user_id === null,
     });
 
-    console.log('B1 PASSED: 100% failure -> subscription auto-disabled with warning + disabled events');
+    console.log(
+      'B1 PASSED: 100% failure -> subscription auto-disabled with warning + disabled events'
+    );
   } finally {
     cleanup(config, application_id);
   }
@@ -196,7 +202,9 @@ export function test_b2_success_stays_enabled(config) {
       throw new Error('B2: Failed to fetch health events');
     }
     if (events.length !== 0) {
-      throw new Error(`B2: Expected 0 health events for healthy subscription, got ${events.length}`);
+      throw new Error(
+        `B2: Expected 0 health events for healthy subscription, got ${events.length}`
+      );
     }
 
     console.log('B2 PASSED: 100% success -> subscription stays enabled, no health events');
@@ -207,7 +215,7 @@ export function test_b2_success_stays_enabled(config) {
 
 /**
  * @description Tests that a user can re-enable an auto-disabled subscription
- * and that a resolved health event with source=user is created.
+ * and that a resolved health event with cause=manual is created.
  */
 export function test_b3_reenable_after_autodisable(config) {
   const h = config.apiOrigin;
@@ -223,13 +231,19 @@ export function test_b3_reenable_after_autodisable(config) {
 
     send_n_events(s, h, ctx.application_id, ctx.event_type, { hm_test: 'b3' }, 6);
 
-    const disabled = wait_for_condition(() => {
-      const sub = get_subscription(h, s, sub_id, ctx.application_id);
-      return sub && sub.is_enabled === false;
-    }, 30000, 2000);
+    const disabled = wait_for_condition(
+      () => {
+        const sub = get_subscription(h, s, sub_id, ctx.application_id);
+        return sub && sub.is_enabled === false;
+      },
+      30000,
+      2000
+    );
 
     if (!disabled) {
-      throw new Error('B3: subscription was not auto-disabled within timeout (prerequisite for re-enable test)');
+      throw new Error(
+        'B3: subscription was not auto-disabled within timeout (prerequisite for re-enable test)'
+      );
     }
 
     // Re-enable the subscription
@@ -250,10 +264,12 @@ export function test_b3_reenable_after_autodisable(config) {
 
     const sub_after = get_subscription(h, s, sub_id, ctx.application_id);
     if (!isNotNil(sub_after) || sub_after.is_enabled !== true) {
-      throw new Error(`B3: subscription should be re-enabled, got is_enabled=${sub_after ? sub_after.is_enabled : 'null'}`);
+      throw new Error(
+        `B3: subscription should be re-enabled, got is_enabled=${sub_after ? sub_after.is_enabled : 'null'}`
+      );
     }
 
-    // Verify last health event is resolved from user
+    // Verify last health event is resolved with cause=manual
     const events = get_health_events(h, s, sub_id, o);
     if (!isNotNil(events) || events.length === 0) {
       throw new Error('B3: Expected health events after re-enable');
@@ -261,9 +277,9 @@ export function test_b3_reenable_after_autodisable(config) {
 
     // Events are ordered by created_at DESC; events[0] is the most recent
     const latest_event = events[0];
-    if (latest_event.status !== 'resolved' || latest_event.source !== 'user') {
+    if (latest_event.status !== 'resolved' || latest_event.cause !== 'manual') {
       throw new Error(
-        `B3: Expected latest health event to be status=resolved source=user, got status=${latest_event.status} source=${latest_event.source}`
+        `B3: Expected latest health event to be status=resolved cause=manual, got status=${latest_event.status} cause=${latest_event.cause}`
       );
     }
 
@@ -271,7 +287,7 @@ export function test_b3_reenable_after_autodisable(config) {
       'B3: resolved event user_id is null (service token)': (e) => e.user_id === null,
     });
 
-    console.log('B3 PASSED: re-enable after auto-disable creates resolved/user health event');
+    console.log('B3 PASSED: re-enable after auto-disable creates resolved/manual health event');
   } finally {
     cleanup(config, application_id);
   }
@@ -295,10 +311,14 @@ export function test_b4_full_lifecycle(config) {
 
     send_n_events(s, h, ctx.application_id, ctx.event_type, { hm_test: 'b4' }, 6);
 
-    const disabled = wait_for_condition(() => {
-      const sub = get_subscription(h, s, sub_id, ctx.application_id);
-      return sub && sub.is_enabled === false;
-    }, 30000, 2000);
+    const disabled = wait_for_condition(
+      () => {
+        const sub = get_subscription(h, s, sub_id, ctx.application_id);
+        return sub && sub.is_enabled === false;
+      },
+      30000,
+      2000
+    );
 
     if (!disabled) {
       throw new Error('B4: subscription was not auto-disabled within timeout');
@@ -337,7 +357,9 @@ export function test_b4_full_lifecycle(config) {
       throw new Error('B4: Failed to fetch subscription after healthy events');
     }
     if (sub_final.is_enabled !== true) {
-      throw new Error(`B4: subscription should stay enabled after healthy events, got is_enabled=${sub_final.is_enabled}`);
+      throw new Error(
+        `B4: subscription should stay enabled after healthy events, got is_enabled=${sub_final.is_enabled}`
+      );
     }
 
     console.log('B4 PASSED: full lifecycle healthy -> disabled -> re-enable -> healthy');
@@ -369,10 +391,14 @@ export function test_b5_adaptive_windowing(config) {
     send_n_events(s, h, ctx.application_id, ctx.event_type, { hm_test: 'b5' }, 12);
 
     // Wait for health monitor to auto-disable (100% failure rate)
-    const disabled = wait_for_condition(() => {
-      const sub = get_subscription(h, s, sub_id, ctx.application_id);
-      return sub && sub.is_enabled === false;
-    }, 30000, 2000);
+    const disabled = wait_for_condition(
+      () => {
+        const sub = get_subscription(h, s, sub_id, ctx.application_id);
+        return sub && sub.is_enabled === false;
+      },
+      30000,
+      2000
+    );
 
     if (!disabled) {
       throw new Error('B5: subscription was not auto-disabled within timeout (prerequisite)');
@@ -426,7 +452,7 @@ export function test_b5_adaptive_windowing(config) {
 
 /**
  * @description Tests that a subscription manually disabled by the user is not
- * evaluated by the health monitor cron (no system disabled event).
+ * evaluated by the health monitor cron (no auto disabled event).
  */
 export function test_c1_user_disabled_not_evaluated(config) {
   const h = config.apiOrigin;
@@ -461,18 +487,20 @@ export function test_c1_user_disabled_not_evaluated(config) {
     // Wait for cron ticks
     sleep(15);
 
-    // Verify no system disabled event was created
+    // Verify no auto disabled event was created
     const events = get_health_events(h, s, sub_id, o);
     if (!isNotNil(events)) {
       throw new Error('C1: Failed to fetch health events');
     }
 
-    const system_disabled = events.filter((e) => e.status === 'disabled' && e.source === 'system');
-    if (system_disabled.length > 0) {
-      throw new Error(`C1: Expected no system disabled events for user-disabled subscription, found ${system_disabled.length}`);
+    const auto_disabled = events.filter((e) => e.status === 'disabled' && e.cause === 'auto');
+    if (auto_disabled.length > 0) {
+      throw new Error(
+        `C1: Expected no auto disabled events for manually-disabled subscription, found ${auto_disabled.length}`
+      );
     }
 
-    console.log('C1 PASSED: user-disabled subscription not evaluated by cron');
+    console.log('C1 PASSED: manually-disabled subscription not evaluated by cron');
   } finally {
     cleanup(config, application_id);
   }
@@ -506,7 +534,9 @@ export function test_c2_below_min_sample_size(config) {
       throw new Error('C2: Failed to fetch subscription');
     }
     if (sub.is_enabled !== true) {
-      throw new Error(`C2: subscription should stay enabled with < min_sample_size events, got is_enabled=${sub.is_enabled}`);
+      throw new Error(
+        `C2: subscription should stay enabled with < min_sample_size events, got is_enabled=${sub.is_enabled}`
+      );
     }
 
     const events = get_health_events(h, s, sub_id, o);
@@ -514,7 +544,9 @@ export function test_c2_below_min_sample_size(config) {
       throw new Error('C2: Failed to fetch health events');
     }
     if (events.length !== 0) {
-      throw new Error(`C2: Expected 0 health events for under-sampled subscription, got ${events.length}`);
+      throw new Error(
+        `C2: Expected 0 health events for under-sampled subscription, got ${events.length}`
+      );
     }
 
     console.log('C2 PASSED: below min_sample_size -> no evaluation');
@@ -552,9 +584,16 @@ export function test_c3_independent_evaluation(config) {
     }
 
     // Sub A: failing target, listens to event_type_1
-    const sub_a = create_subscription(h, s, application_id, [event_type_1], config.targetUrlFailing, {
-      hm_test: 'c3_a',
-    });
+    const sub_a = create_subscription(
+      h,
+      s,
+      application_id,
+      [event_type_1],
+      config.targetUrlFailing,
+      {
+        hm_test: 'c3_a',
+      }
+    );
     if (!isNotNil(sub_a)) {
       throw new Error('C3: Failed to create subscription A (failing)');
     }
@@ -572,10 +611,14 @@ export function test_c3_independent_evaluation(config) {
     send_n_events(s, h, application_id, event_type_2, { hm_test: 'c3_b' }, 6);
 
     // Poll until Sub A is disabled
-    const sub_a_disabled = wait_for_condition(() => {
-      const sub = get_subscription(h, s, sub_a.subscription_id, application_id);
-      return sub && sub.is_enabled === false;
-    }, 30000, 2000);
+    const sub_a_disabled = wait_for_condition(
+      () => {
+        const sub = get_subscription(h, s, sub_a.subscription_id, application_id);
+        return sub && sub.is_enabled === false;
+      },
+      30000,
+      2000
+    );
 
     if (!sub_a_disabled) {
       throw new Error('C3: subscription A was not auto-disabled within timeout');
@@ -587,7 +630,9 @@ export function test_c3_independent_evaluation(config) {
       throw new Error('C3: Failed to fetch subscription B');
     }
     if (sub_b_after.is_enabled !== true) {
-      throw new Error(`C3: subscription B should remain enabled, got is_enabled=${sub_b_after.is_enabled}`);
+      throw new Error(
+        `C3: subscription B should remain enabled, got is_enabled=${sub_b_after.is_enabled}`
+      );
     }
 
     // Verify health events for Sub A contain disabled event
@@ -595,7 +640,7 @@ export function test_c3_independent_evaluation(config) {
     if (!isNotNil(events_a)) {
       throw new Error('C3: Failed to fetch health events for Sub A');
     }
-    const has_disabled_a = events_a.some((e) => e.status === 'disabled' && e.source === 'system');
+    const has_disabled_a = events_a.some((e) => e.status === 'disabled' && e.cause === 'auto');
     if (!has_disabled_a) {
       throw new Error('C3: Expected disabled health event for Sub A');
     }

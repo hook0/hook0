@@ -16,6 +16,10 @@ export function getEnvironmentVariables() {
 
   const apiOrigin = __ENV.API_ORIGIN ? __ENV.API_ORIGIN : null;
   const targetUrl = __ENV.TARGET_URL ? __ENV.TARGET_URL : null;
+  // Optional: always-failing target used by the health_monitor scenario
+  // (e.g. http://localhost:3001 pointed at a 500-returning endpoint, or an
+  // unreachable host). When unset, the health_monitor scenario is skipped.
+  const targetUrlFailing = __ENV.TARGET_URL_FAILING ? __ENV.TARGET_URL_FAILING : null;
   const serviceToken = __ENV.SERVICE_TOKEN ? __ENV.SERVICE_TOKEN : null;
   const organizationId = __ENV.ORGANIZATION_ID ? __ENV.ORGANIZATION_ID : null;
 
@@ -31,6 +35,7 @@ export function getEnvironmentVariables() {
     maxDuration,
     apiOrigin: apiOrigin.endsWith('/') ? apiOrigin : `${apiOrigin}/`,
     targetUrl,
+    targetUrlFailing,
     serviceToken,
     organizationId,
     keepTestApplication,

@@ -12,6 +12,17 @@ import query_request_attempts from './database/query_request_attempts.js';
 import delete_application from './applications/delete_application.js';
 import get_quota from './unauthentified/quotas.js';
 import get_environment_variables from './unauthentified/environment_variables.js';
+import reactivation_tests from './health_monitor/reactivation_tests.js';
+import {
+  test_b1_failure_disables_subscription,
+  test_b2_success_stays_enabled,
+  test_b3_reenable_after_autodisable,
+  test_b4_full_lifecycle,
+  test_b5_adaptive_windowing,
+  test_c1_user_disabled_not_evaluated,
+  test_c2_below_min_sample_size,
+  test_c3_independent_evaluation,
+} from './health_monitor/health_monitor_tests.js';
 
 export const config = getEnvironmentVariables();
 
@@ -427,8 +438,48 @@ function scenario_subscription_disable() {
   }
 }
 
+/**
+ * Runs the Phase 2 health monitor integration scenarios:
+ *   - Group A (reactivation): user disable/re-enable health event trail
+ *   - Group B: auto-disable / re-enable / lifecycle / adaptive windowing
+ *   - Group C: edge cases (manual-disabled skip, min sample, independent eval)
+ *
+ * Requires HEALTH_MONITOR_EMAIL_NOTIFICATIONS_ENABLED=true on the API binary
+ * and a `targetUrlFailing` configured in config.js (non-existent host or
+ * always-500 endpoint) so the B/C series can observe auto-disable transitions.
+ * Guarded on config.targetUrlFailing so existing CI jobs (which don't set it)
+ * skip the scenario without failing.
+ */
+function scenario_health_monitor() {
+  if (!config.targetUrlFailing) {
+    console.log('Skipping health_monitor scenario: config.targetUrlFailing not set');
+    return;
+  }
+
+  // Group A — reactivation (user-driven transitions)
+  reactivation_tests(
+    config.apiOrigin,
+    config.serviceToken,
+    config.organizationId,
+    config.targetUrl
+  );
+
+  // Group B — auto-disable lifecycle
+  test_b1_failure_disables_subscription(config);
+  test_b2_success_stays_enabled(config);
+  test_b3_reenable_after_autodisable(config);
+  test_b4_full_lifecycle(config);
+  test_b5_adaptive_windowing(config);
+
+  // Group C — edge cases
+  test_c1_user_disabled_not_evaluated(config);
+  test_c2_below_min_sample_size(config);
+  test_c3_independent_evaluation(config);
+}
+
 export default function () {
   scenario_1();
   scenario_subscription_deletion();
   scenario_subscription_disable();
+  scenario_health_monitor();
 }
