@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE webhook.subscription_health_bucket\n        SET bucket_end = now()\n        WHERE bucket_end IS NULL\n          AND (bucket_start < now() - make_interval(secs => $1)\n               OR total_count >= $2)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f71a7293aaed017c039f9a2301a59aa8f340535112d213e8d4e7fb1cb3cb7e32"
+}

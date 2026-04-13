@@ -9,7 +9,7 @@ use super::types::{HealthEventSource, HealthStatus};
 
 /// One row per subscription from the delta scan: how many deliveries completed
 /// since the cursor, split into total vs failed.
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug)]
 pub struct DeltaRow {
     pub subscription_id: Uuid,
     pub total: i64,
@@ -22,7 +22,7 @@ pub struct DeltaRow {
 /// All the data the state machine needs to decide whether to warn, disable,
 /// or resolve a subscription: its failure rate, its latest health event,
 /// and its retry schedule (included so notification emails can reference it).
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug)]
 pub struct SubscriptionHealth {
     pub subscription_id: Uuid,
     pub application_id: Uuid,
@@ -56,7 +56,7 @@ pub struct SubscriptionHealth {
 pub async fn read_cursor(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
 ) -> Result<DateTime<Utc>, sqlx::Error> {
-    sqlx::query_scalar(
+    sqlx::query_scalar!(
         "SELECT last_processed_at FROM webhook.health_monitor_cursor WHERE cursor__id = 1",
     )
     .fetch_one(&mut **tx)
@@ -74,7 +74,9 @@ pub async fn ingest_deltas(
     cursor: DateTime<Utc>,
     max_rows: u32,
 ) -> Result<Vec<DeltaRow>, sqlx::Error> {
-    sqlx::query_as::<_, DeltaRow>(
+    let max_rows = max_rows as i64;
+    sqlx::query_as!(
+        DeltaRow,
         r#"
         WITH capped AS (
             SELECT subscription__id, failed_at, succeeded_at
@@ -84,16 +86,16 @@ pub async fn ingest_deltas(
             ORDER BY COALESCE(succeeded_at, failed_at)
             LIMIT $2
         )
-        SELECT subscription__id AS subscription_id,
-               COUNT(*) AS total,
-               COUNT(failed_at) AS failed,
-               MAX(COALESCE(succeeded_at, failed_at)) AS max_completed_at
+        SELECT subscription__id AS "subscription_id!",
+               COUNT(*) AS "total!",
+               COUNT(failed_at) AS "failed!",
+               MAX(COALESCE(succeeded_at, failed_at)) AS "max_completed_at"
         FROM capped
         GROUP BY subscription__id
         "#,
+        cursor,
+        max_rows,
     )
-    .bind(cursor)
-    .bind(max_rows as i64)
     .fetch_all(&mut **tx)
     .await
 }
@@ -119,20 +121,22 @@ pub async fn upsert_buckets(
     let now = Utc::now();
 
     // Step 1: Find open buckets for all subscriptions in one query
-    let open_rows: Vec<(Uuid, DateTime<Utc>)> = sqlx::query_as(
+    let open_rows = sqlx::query!(
         r#"
-        SELECT subscription__id, bucket_start
+        SELECT subscription__id AS "subscription_id!", bucket_start AS "bucket_start!"
         FROM webhook.subscription_health_bucket
         WHERE subscription__id = ANY($1)
           AND bucket_end IS NULL
         "#,
+        &sub_ids,
     )
-    .bind(&sub_ids)
     .fetch_all(&mut **tx)
     .await?;
 
-    let open_buckets: std::collections::HashMap<Uuid, DateTime<Utc>> =
-        open_rows.into_iter().collect();
+    let open_buckets: std::collections::HashMap<Uuid, DateTime<Utc>> = open_rows
+        .into_iter()
+        .map(|r| (r.subscription_id, r.bucket_start))
+        .collect();
 
     // Step 2: Bulk upsert — one INSERT with multiple VALUES rows
     let mut qb: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new(
@@ -177,7 +181,7 @@ pub async fn close_full_buckets(
     let bucket_duration_secs = config.bucket_duration.as_secs() as f64;
     let bucket_max_messages = config.bucket_max_messages as i32;
 
-    let result = sqlx::query(
+    let result = sqlx::query!(
         r#"
         UPDATE webhook.subscription_health_bucket
         SET bucket_end = now()
@@ -185,9 +189,9 @@ pub async fn close_full_buckets(
           AND (bucket_start < now() - make_interval(secs => $1)
                OR total_count >= $2)
         "#,
+        bucket_duration_secs,
+        bucket_max_messages,
     )
-    .bind(bucket_duration_secs)
-    .bind(bucket_max_messages)
     .execute(&mut **tx)
     .await?;
 
@@ -208,10 +212,10 @@ pub async fn find_suspects(
     let time_window_secs = config.time_window.as_secs() as f64;
     let min_sample = config.min_sample_size as i64;
 
-    sqlx::query_scalar(
+    sqlx::query_scalar!(
         r#"
         -- Subscriptions with enough delivery data to evaluate — only active, non-deleted ones
-        SELECT shb.subscription__id
+        SELECT shb.subscription__id AS "subscription_id!"
         FROM webhook.subscription_health_bucket shb
         INNER JOIN webhook.subscription s ON s.subscription__id = shb.subscription__id
         WHERE shb.bucket_start > now() - make_interval(secs => $1)
@@ -228,9 +232,9 @@ pub async fn find_suspects(
         ) latest
         WHERE latest.status = 'warning'
         "#,
+        time_window_secs,
+        min_sample,
     )
-    .bind(time_window_secs)
-    .bind(min_sample)
     .fetch_all(&mut **tx)
     .await
 }
@@ -251,7 +255,8 @@ pub async fn compute_failure_rates(
     let time_window_secs = config.time_window.as_secs() as f64;
     let min_sample = config.min_sample_size as i64;
 
-    sqlx::query_as::<_, SubscriptionHealth>(
+    sqlx::query_as!(
+        SubscriptionHealth,
         r#"
         WITH bucket_stats AS (
             SELECT subscription__id,
@@ -264,25 +269,25 @@ pub async fn compute_failure_rates(
             HAVING SUM(total_count) >= $3
         )
         SELECT
-            bs.subscription__id AS subscription_id,
-            s.application__id AS application_id,
-            app.organization__id AS organization_id,
-            app.name AS application_name,
+            bs.subscription__id AS "subscription_id!",
+            s.application__id AS "application_id!",
+            app.organization__id AS "organization_id!",
+            app.name AS "application_name?",
             s.description,
-            coalesce(th.url, '') AS target_url,
-            bs.failure_percent,
-            lh.status AS last_health_status,
-            lh.created_at AS last_health_at,
-            lh.source AS last_health_source,
-            lh.user__id AS last_health_user_id,
-            s.retry_schedule__id AS retry_schedule_id,
-            rs.name AS retry_schedule_name,
-            rs.strategy AS retry_strategy,
-            rs.max_retries AS retry_max_retries,
-            rs.custom_intervals AS retry_custom_intervals,
-            rs.linear_delay AS retry_linear_delay,
-            rs.increasing_base_delay AS retry_increasing_base_delay,
-            rs.increasing_wait_factor AS retry_increasing_wait_factor
+            coalesce(th.url, '') AS "target_url!",
+            bs.failure_percent AS "failure_percent!",
+            lh.status AS "last_health_status?: HealthStatus",
+            lh.created_at AS "last_health_at?",
+            lh.source AS "last_health_source?: HealthEventSource",
+            lh.user__id AS "last_health_user_id?",
+            s.retry_schedule__id AS "retry_schedule_id?",
+            rs.name AS "retry_schedule_name?",
+            rs.strategy AS "retry_strategy?",
+            rs.max_retries AS "retry_max_retries?",
+            rs.custom_intervals AS "retry_custom_intervals?",
+            rs.linear_delay AS "retry_linear_delay?",
+            rs.increasing_base_delay AS "retry_increasing_base_delay?",
+            rs.increasing_wait_factor AS "retry_increasing_wait_factor?"
         FROM bucket_stats bs
         INNER JOIN webhook.subscription s USING (subscription__id)
         INNER JOIN event.application app ON app.application__id = s.application__id
@@ -297,10 +302,10 @@ pub async fn compute_failure_rates(
         LEFT JOIN webhook.target_http th ON th.target__id = s.target__id
         WHERE s.is_enabled = true AND s.deleted_at IS NULL
         "#,
+        suspect_ids,
+        time_window_secs,
+        min_sample,
     )
-    .bind(suspect_ids)
-    .bind(time_window_secs)
-    .bind(min_sample)
     .fetch_all(&mut **tx)
     .await
 }

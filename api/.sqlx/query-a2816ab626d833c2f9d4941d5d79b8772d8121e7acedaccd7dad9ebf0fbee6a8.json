@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH capped AS (\n            SELECT subscription__id, failed_at, succeeded_at\n            FROM webhook.request_attempt\n            WHERE COALESCE(succeeded_at, failed_at) > $1\n              AND (succeeded_at IS NOT NULL OR failed_at IS NOT NULL)\n            ORDER BY COALESCE(succeeded_at, failed_at)\n            LIMIT $2\n        )\n        SELECT subscription__id AS \"subscription_id!\",\n               COUNT(*) AS \"total!\",\n               COUNT(failed_at) AS \"failed!\",\n               MAX(COALESCE(succeeded_at, failed_at)) AS \"max_completed_at\"\n        FROM capped\n        GROUP BY subscription__id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscription_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "total!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "failed!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_completed_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a2816ab626d833c2f9d4941d5d79b8772d8121e7acedaccd7dad9ebf0fbee6a8"
+}
