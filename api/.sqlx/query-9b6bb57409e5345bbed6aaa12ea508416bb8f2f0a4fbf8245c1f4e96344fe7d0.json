@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT COUNT(*) AS \"count!\" FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'resolved' AND source = 'system'",
+  "query": "SELECT COUNT(*) AS \"count!\" FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'resolved' AND cause = 'auto'",
   "describe": {
     "columns": [
       {
@@ -18,5 +18,5 @@
       null
     ]
   },
-  "hash": "1e55a49e77d8fa0050c840c73a4b27ad6dc5bebcd7c4d1855e5e2d2cc94257fe"
+  "hash": "9b6bb57409e5345bbed6aaa12ea508416bb8f2f0a4fbf8245c1f4e96344fe7d0"
 }

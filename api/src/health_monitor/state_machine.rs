@@ -21,7 +21,7 @@ use super::HealthMonitorConfig;
 use super::errors::HealthMonitorError;
 use super::evaluation::SubscriptionHealth;
 use super::notifications::{HealthAction, HealthActionInfo};
-use super::types::{HealthEventSource, HealthStatus};
+use super::types::{HealthEventCause, HealthStatus};
 
 /// Evaluates a single subscription's health and determines what actions to take.
 ///
@@ -84,17 +84,17 @@ pub async fn evaluate_health_transition(
         // Was warned but failure rate dropped below the warning threshold — the
         // endpoint recovered. Insert a "resolved" event and notify the user.
         Some(HealthStatus::Warning) if failure_percent < warning_percent => {
-            // Skip recovery email if the last event was a manual user action (re-enable via API) —
-            // the user already knows about it. Only send recovery email for system-originated events.
+            // Skip recovery email if the last event was a manual API action (re-enable via API) —
+            // the user already knows about it. Only send recovery email for auto-originated events.
             insert_health_event(
                 transaction,
                 subscription.subscription_id,
                 HealthStatus::Resolved,
-                HealthEventSource::System,
+                HealthEventCause::Auto,
                 None,
             )
             .await?;
-            if subscription.last_health_source != Some(HealthEventSource::User) {
+            if subscription.last_health_cause != Some(HealthEventCause::Manual) {
                 actions.push(HealthAction::Recovered(
                     HealthActionInfo::from_subscription(subscription, None),
                 ));
@@ -132,7 +132,7 @@ pub async fn evaluate_health_transition(
                 transaction,
                 subscription.subscription_id,
                 HealthStatus::Warning,
-                HealthEventSource::System,
+                HealthEventCause::Auto,
                 None,
             )
             .await?;
@@ -151,20 +151,20 @@ pub async fn evaluate_health_transition(
 
 /// Inserts a health event row for a subscription.
 ///
-/// `source`: `System` = automatic (health monitor), `User` = manual (API PUT).
-/// When source is `User` and user_id is `None`, the action was via a service token.
+/// `cause`: `Auto` = automatic (health monitor), `Manual` = API action (user, service token, or application secret).
+/// When cause is `Manual` and user_id is `None`, the action was via a service token or application secret.
 pub async fn insert_health_event(
     transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     subscription_id: Uuid,
     status: HealthStatus,
-    source: HealthEventSource,
+    cause: HealthEventCause,
     user_id: Option<Uuid>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        "INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id) VALUES ($1, $2, $3, $4)",
+        "INSERT INTO webhook.subscription_health_event (subscription__id, status, cause, user__id) VALUES ($1, $2, $3, $4)",
         subscription_id,
         status.to_string(),
-        source.to_string(),
+        cause.to_string(),
         user_id,
     )
     .execute(&mut **transaction)
@@ -190,8 +190,8 @@ async fn disable_subscription(
             RETURNING subscription__id
         ),
         inserted AS (
-            INSERT INTO webhook.subscription_health_event (subscription__id, status, source, user__id)
-            SELECT subscription__id, 'disabled', 'system', NULL FROM updated
+            INSERT INTO webhook.subscription_health_event (subscription__id, status, cause, user__id)
+            SELECT subscription__id, 'disabled', 'auto', NULL FROM updated
             RETURNING created_at
         )
         SELECT created_at AS "created_at!" FROM inserted

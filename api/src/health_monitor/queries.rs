@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use super::HealthMonitorConfig;
-use super::types::{HealthEventSource, HealthStatus};
+use super::types::{HealthEventCause, HealthStatus};
 
 /// One row per subscription from the delta scan: how many deliveries completed
 /// since the cursor, split into total vs failed.
@@ -33,7 +33,7 @@ pub struct SubscriptionHealth {
     pub failure_percent: f64,
     pub last_health_status: Option<HealthStatus>,
     pub last_health_at: Option<DateTime<Utc>>,
-    pub last_health_source: Option<HealthEventSource>,
+    pub last_health_cause: Option<HealthEventCause>,
     // Selected for potential use in notification personalization — suppress warning until wired up
     #[allow(dead_code)]
     pub last_health_user_id: Option<Uuid>,
@@ -278,7 +278,7 @@ pub async fn compute_failure_rates(
             bs.failure_percent AS "failure_percent!",
             lh.status AS "last_health_status?: HealthStatus",
             lh.created_at AS "last_health_at?",
-            lh.source AS "last_health_source?: HealthEventSource",
+            lh.cause AS "last_health_cause?: HealthEventCause",
             lh.user__id AS "last_health_user_id?",
             -- Phase 3 will replace these NULL casts with a JOIN to webhook.retry_schedule (the table is owned by Phase 3).
             NULL::uuid AS "retry_schedule_id?",
@@ -293,7 +293,7 @@ pub async fn compute_failure_rates(
         INNER JOIN webhook.subscription s USING (subscription__id)
         INNER JOIN event.application app ON app.application__id = s.application__id
         LEFT JOIN LATERAL (
-            SELECT she.status, she.created_at, she.source, she.user__id
+            SELECT she.status, she.created_at, she.cause, she.user__id
             FROM webhook.subscription_health_event she
             WHERE she.subscription__id = bs.subscription__id
             ORDER BY she.created_at DESC

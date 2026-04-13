@@ -47,7 +47,7 @@ mod tests {
 
         // Insert a warning health event (simulating state machine)
         sqlx::query!(
-            "INSERT INTO webhook.subscription_health_event (subscription__id, status, source) VALUES ($1, 'warning', 'system')",
+            "INSERT INTO webhook.subscription_health_event (subscription__id, status, cause) VALUES ($1, 'warning', 'auto')",
             sub_id,
         )
         .execute(&mut *tx)

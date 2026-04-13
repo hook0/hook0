@@ -23,16 +23,19 @@ pub enum HealthStatus {
     Resolved,
 }
 
-/// Source of a health event: automatic (system/health monitor) or manual (user/API).
+/// Cause of a health event: automatic (health monitor) or manual (API action).
+///
+/// Note: `Manual` covers all API-initiated actions, including those performed via a
+/// service token or application secret where no human user__id is recorded.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Display, Serialize, Deserialize, Apiv2Schema, sqlx::Type,
 )]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 #[sqlx(type_name = "text", rename_all = "lowercase")]
-pub enum HealthEventSource {
+pub enum HealthEventCause {
     /// Emitted by the health monitor background loop during automatic evaluation.
-    System,
-    /// Emitted when a user manually re-enables or disables a subscription via the API.
-    User,
+    Auto,
+    /// Emitted when a subscription is changed via the API (by a user, service token, or application secret).
+    Manual,
 }

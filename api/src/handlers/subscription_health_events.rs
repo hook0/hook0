@@ -16,7 +16,7 @@ use tracing::error;
 use url::Url;
 use uuid::Uuid;
 
-use crate::health_monitor::types::{HealthEventSource, HealthStatus};
+use crate::health_monitor::types::{HealthEventCause, HealthStatus};
 use crate::iam::{Action, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::pagination::{Cursor, EncodedDescCursor, NextPageParts, Paginated};
@@ -30,7 +30,7 @@ pub struct SubscriptionHealthEventStatus {
     pub health_event_id: Uuid,
     pub subscription_id: Uuid,
     pub status: HealthStatus,
-    pub source: HealthEventSource,
+    pub cause: HealthEventCause,
     pub user_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
 }
@@ -103,7 +103,7 @@ pub async fn list(
                 she.health_event__id AS health_event_id,
                 she.subscription__id AS subscription_id,
                 she.status,
-                she.source,
+                she.cause,
                 she.user__id AS user_id,
                 she.created_at
             FROM webhook.subscription_health_event she

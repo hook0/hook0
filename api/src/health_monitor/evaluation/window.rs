@@ -102,7 +102,7 @@ mod tests {
         .unwrap();
 
         let resolved_count = sqlx::query_scalar!(
-            r#"SELECT COUNT(*) AS "count!" FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'resolved' AND source = 'system'"#,
+            r#"SELECT COUNT(*) AS "count!" FROM webhook.subscription_health_event WHERE subscription__id = $1 AND status = 'resolved' AND cause = 'auto'"#,
             sub_id,
         )
         .fetch_one(&mut *tx)
@@ -110,7 +110,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             resolved_count, 1,
-            "should have a resolved event with source=system"
+            "should have a resolved event with cause=auto"
         );
         assert!(
             actions2.iter().any(|a| matches!(
@@ -155,7 +155,7 @@ mod tests {
 
         // Insert a resolved event with created_at = now() (within cooldown)
         sqlx::query!(
-            "INSERT INTO webhook.subscription_health_event (subscription__id, status, source) VALUES ($1, 'resolved', 'system')",
+            "INSERT INTO webhook.subscription_health_event (subscription__id, status, cause) VALUES ($1, 'resolved', 'auto')",
             sub_id,
         )
         .execute(&mut *tx)

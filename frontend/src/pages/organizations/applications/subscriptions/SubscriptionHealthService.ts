@@ -6,7 +6,7 @@ export type HealthEvent = {
   health_event_id: string;
   subscription_id: string;
   status: 'warning' | 'disabled' | 'resolved';
-  source: 'system' | 'user';
+  cause: 'auto' | 'manual';
   user_id: string | null;
   created_at: string;
 };

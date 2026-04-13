@@ -45,13 +45,20 @@ function relativeDate(iso: string): string {
         aria-hidden="true"
       />
       <div class="health-timeline__content">
-        <Hook0Tooltip :content="t(`subscriptionDetail.healthStatus.${event.status}Tooltip`, { threshold: event.status === 'disabled' ? CRITICAL_THRESHOLD : WARNING_THRESHOLD })" position="top">
+        <Hook0Tooltip
+          :content="
+            t(`subscriptionDetail.healthStatus.${event.status}Tooltip`, {
+              threshold: event.status === 'disabled' ? CRITICAL_THRESHOLD : WARNING_THRESHOLD,
+            })
+          "
+          position="top"
+        >
           <Hook0Badge :variant="statusVariantMap[event.status] ?? 'default'" size="sm">
             {{ t(`subscriptionDetail.healthStatus.${event.status}`) }}
           </Hook0Badge>
         </Hook0Tooltip>
         <Hook0Badge variant="default" size="sm">
-          {{ t(`subscriptionDetail.healthSource.${event.source}`) }}
+          {{ t(`subscriptionDetail.healthCause.${event.cause}`) }}
         </Hook0Badge>
         <Hook0Tooltip :content="formatDate(event.created_at)" position="top">
           <span class="health-timeline__date">
