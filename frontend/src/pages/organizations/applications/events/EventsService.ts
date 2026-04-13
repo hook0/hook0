@@ -23,8 +23,17 @@ function decode(payload: string, payload_content_type_name: string): string {
     case PayloadContentType.Text:
       return atob(payload);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    case PayloadContentType.Json:
-      return JSON.stringify(JSON.parse(atob(payload)), null, 4);
+    case PayloadContentType.Json: {
+      // The server only checks `application/json`, not the actual payload bytes,
+      // so we can receive content_type=json with malformed JSON. Fall back to
+      // showing the raw text instead of crashing the whole detail page.
+      const decoded = atob(payload);
+      try {
+        return JSON.stringify(JSON.parse(decoded), null, 4);
+      } catch {
+        return decoded;
+      }
+    }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     case PayloadContentType.Binary:
     default:
