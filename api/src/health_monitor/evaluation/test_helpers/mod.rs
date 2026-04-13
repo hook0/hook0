@@ -6,7 +6,6 @@
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
-use sqlx::PgPool;
 
 use crate::health_monitor::HealthMonitorConfig;
 use crate::health_monitor::errors::HealthMonitorError;
@@ -83,11 +82,6 @@ pub(in crate::health_monitor::evaluation) async fn process_subscription(
         }
     }
     Ok(notifications)
-}
-
-pub(in crate::health_monitor::evaluation) async fn setup_test_pool() -> Option<PgPool> {
-    let url = std::env::var("DATABASE_URL").ok()?;
-    PgPool::connect(&url).await.ok()
 }
 
 pub(in crate::health_monitor::evaluation) fn test_config() -> HealthMonitorConfig {

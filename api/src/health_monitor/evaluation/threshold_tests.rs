@@ -10,21 +10,14 @@
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
+    use sqlx::PgPool;
 
     use super::super::fetch_subscription_health_stats;
-    use super::super::test_helpers::{
-        insert_test_fixtures, set_cursor, setup_test_pool, test_config,
-    };
+    use super::super::test_helpers::{insert_test_fixtures, set_cursor, test_config};
 
     /// Warned subscription still appears in suspects via UNION.
-    #[tokio::test]
-    #[ignore]
-    async fn test_warned_subscription_in_suspects() {
-        let pool = match setup_test_pool().await {
-            Some(p) => p,
-            None => return,
-        };
-
+    #[sqlx::test(migrations = "./migrations")]
+    async fn test_warned_subscription_in_suspects(pool: PgPool) {
         let config = test_config();
         let now = Utc::now();
         let cursor_past = now - chrono::Duration::hours(1);

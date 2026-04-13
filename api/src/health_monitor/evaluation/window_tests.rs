@@ -9,21 +9,16 @@
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
+    use sqlx::PgPool;
 
     use super::super::fetch_subscription_health_stats;
     use super::super::test_helpers::{
-        insert_test_fixtures, process_subscription, set_cursor, setup_test_pool, test_config,
+        insert_test_fixtures, process_subscription, set_cursor, test_config,
     };
 
     /// Recovery triggers a resolved health event.
-    #[tokio::test]
-    #[ignore]
-    async fn test_recovery_triggers_resolved_event() {
-        let pool = match setup_test_pool().await {
-            Some(p) => p,
-            None => return,
-        };
-
+    #[sqlx::test(migrations = "./migrations")]
+    async fn test_recovery_triggers_resolved_event(pool: PgPool) {
         let config = test_config();
         let now = Utc::now();
         let cursor_past = now - chrono::Duration::hours(2);
@@ -120,14 +115,8 @@ mod tests {
     }
 
     /// Cooldown prevents re-warning after a recent resolved event.
-    #[tokio::test]
-    #[ignore]
-    async fn test_cooldown_prevents_rewarning() {
-        let pool = match setup_test_pool().await {
-            Some(p) => p,
-            None => return,
-        };
-
+    #[sqlx::test(migrations = "./migrations")]
+    async fn test_cooldown_prevents_rewarning(pool: PgPool) {
         let config = test_config();
         let now = Utc::now();
         let cursor_past = now - chrono::Duration::hours(2);

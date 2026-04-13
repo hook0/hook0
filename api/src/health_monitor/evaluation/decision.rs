@@ -63,22 +63,15 @@ pub async fn reset_healthy_failure_percent(
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
+    use sqlx::PgPool;
 
     use super::super::fetch_subscription_health_stats;
-    use super::super::test_helpers::{
-        insert_test_fixtures, set_cursor, setup_test_pool, test_config,
-    };
+    use super::super::test_helpers::{insert_test_fixtures, set_cursor, test_config};
     use super::{advance_cursor, reset_healthy_failure_percent};
 
     /// Cursor advances after a health tick.
-    #[tokio::test]
-    #[ignore]
-    async fn test_cursor_advances() {
-        let pool = match setup_test_pool().await {
-            Some(p) => p,
-            None => return,
-        };
-
+    #[sqlx::test(migrations = "./migrations")]
+    async fn test_cursor_advances(pool: PgPool) {
         let config = test_config();
         let now = Utc::now();
         let cursor_past = now - chrono::Duration::hours(1);
@@ -120,14 +113,8 @@ mod tests {
     }
 
     /// reset_healthy_failure_percent clears failure_percent for non-suspects.
-    #[tokio::test]
-    #[ignore]
-    async fn test_reset_failure_percent_for_non_suspects() {
-        let pool = match setup_test_pool().await {
-            Some(p) => p,
-            None => return,
-        };
-
+    #[sqlx::test(migrations = "./migrations")]
+    async fn test_reset_failure_percent_for_non_suspects(pool: PgPool) {
         let now = Utc::now();
 
         let mut tx = pool.begin().await.unwrap();

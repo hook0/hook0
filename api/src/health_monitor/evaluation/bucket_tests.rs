@@ -9,22 +9,15 @@
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
+    use sqlx::PgPool;
     use uuid::Uuid;
 
     use super::super::fetch_subscription_health_stats;
-    use super::super::test_helpers::{
-        insert_test_fixtures, set_cursor, setup_test_pool, test_config,
-    };
+    use super::super::test_helpers::{insert_test_fixtures, set_cursor, test_config};
 
     /// Buckets are populated after a health tick.
-    #[tokio::test]
-    #[ignore]
-    async fn test_health_buckets_populated() {
-        let pool = match setup_test_pool().await {
-            Some(p) => p,
-            None => return,
-        };
-
+    #[sqlx::test(migrations = "./migrations")]
+    async fn test_health_buckets_populated(pool: PgPool) {
         let config = test_config();
         let now = Utc::now();
         let cursor_past = now - chrono::Duration::hours(1);
@@ -66,14 +59,8 @@ mod tests {
     }
 
     /// Aged buckets are closed after a second health tick.
-    #[tokio::test]
-    #[ignore]
-    async fn test_bucket_closing() {
-        let pool = match setup_test_pool().await {
-            Some(p) => p,
-            None => return,
-        };
-
+    #[sqlx::test(migrations = "./migrations")]
+    async fn test_bucket_closing(pool: PgPool) {
         let config = test_config();
         let now = Utc::now();
         let cursor_past = now - chrono::Duration::hours(1);
@@ -130,14 +117,8 @@ mod tests {
     }
 
     /// cleanup_old_buckets removes buckets older than retention period.
-    #[tokio::test]
-    #[ignore]
-    async fn test_cleanup_old_buckets() {
-        let pool = match setup_test_pool().await {
-            Some(p) => p,
-            None => return,
-        };
-
+    #[sqlx::test(migrations = "./migrations")]
+    async fn test_cleanup_old_buckets(pool: PgPool) {
         let config = test_config(); // bucket_retention_days = 30
         let now = Utc::now();
 
