@@ -20,13 +20,13 @@ pub async fn cleanup_old_buckets(
 ) -> Result<u64, sqlx::Error> {
     let retention_days = config.bucket_retention_days as i32;
 
-    let result = sqlx::query(
+    let result = sqlx::query!(
         r#"
         DELETE FROM webhook.subscription_health_bucket
         WHERE bucket_start < now() - make_interval(days => $1)
         "#,
+        retention_days,
     )
-    .bind(retention_days)
     .execute(db)
     .await?;
 
@@ -44,7 +44,7 @@ pub async fn cleanup_resolved_health_events(
 ) -> Result<u64, sqlx::Error> {
     let retention_period_days = config.retention_period_days as i32;
 
-    let result = sqlx::query(
+    let result = sqlx::query!(
         r#"
         DELETE FROM webhook.subscription_health_event d
         WHERE d.created_at < now() - make_interval(days => $1)
@@ -55,8 +55,8 @@ pub async fn cleanup_resolved_health_events(
               AND newer.created_at > d.created_at
           )
         "#,
+        retention_period_days,
     )
-    .bind(retention_period_days)
     .execute(db)
     .await?;
 
