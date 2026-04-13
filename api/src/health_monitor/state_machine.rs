@@ -191,11 +191,10 @@ mod tests {
     }
 
     #[test]
-    fn healthy_crosses_disable_emits_warning_and_disabled() {
+    fn healthy_crosses_disable_jumps_straight_to_disabled() {
         // No prior state + failure crosses disable threshold -> skip warning,
-        // go straight to Disabled. (Name retained from the plan for traceability;
-        // the behavior is disable-only because a broken endpoint doesn't warrant
-        // a separate warning email first.)
+        // go straight to Disabled. A broken endpoint doesn't warrant a
+        // separate warning email first.
         let actions = evaluate(95.0, None, None, None);
         assert_eq!(
             actions,
