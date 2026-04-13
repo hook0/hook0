@@ -41,6 +41,13 @@ mod window;
 pub use decision::{advance_cursor, reset_healthy_failure_percent};
 
 #[cfg(test)]
+mod bucket_tests;
+#[cfg(test)]
+mod threshold_tests;
+#[cfg(test)]
+mod window_tests;
+
+#[cfg(test)]
 pub(super) mod test_helpers;
 
 /// Runs the full evaluation pipeline for one tick: read cursor, ingest new
