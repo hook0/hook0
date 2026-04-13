@@ -7,24 +7,25 @@ create table webhook.subscription_health_event (
         on delete cascade,
     status text not null
         check (status in ('warning', 'disabled', 'resolved')),
-    -- 'system' = automatic (health monitor), 'user' = manual action (API).
-    -- When source = 'user' and user__id IS NULL, the action was performed via a service token or application secret.
-    source text not null
-        check (source in ('system', 'user')),
+    -- 'auto' = automatic (health monitor), 'manual' = manual action (API).
+    -- When cause = 'manual' and user__id IS NULL, the action was performed via a service token or application secret.
+    cause text not null
+        constraint subscription_health_event_cause_check
+        check (cause in ('auto', 'manual')),
     user__id uuid
         references iam.user(user__id)
         on delete set null,
     created_at timestamptz not null default statement_timestamp(),
     constraint subscription_health_event_pkey primary key (health_event__id),
-    -- source = 'system' must have user__id = NULL (automated actions have no user)
-    constraint subscription_health_event_source_user_check check (
-        source != 'system' or user__id is null
+    -- cause = 'auto' must have user__id = NULL (automated actions have no user)
+    constraint subscription_health_event_cause_user_check check (
+        cause != 'auto' or user__id is null
     )
 );
 
 create index if not exists idx_subscription_health_event_sub_id
     on webhook.subscription_health_event(subscription__id, created_at desc)
-    include (status, source);
+    include (status, cause);
 
 -- Health buckets aggregate delivery attempt counts (total vs failed) over bounded windows.
 -- Each bucket covers a time range [bucket_start, bucket_end) for a single subscription.
