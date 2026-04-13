@@ -5,13 +5,15 @@ import type { HealthEvent } from './SubscriptionHealthService';
 import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
 import { formatDate } from '@/utils/formatDate';
-import { WARNING_THRESHOLD, CRITICAL_THRESHOLD } from '@/constants/healthThresholds';
+import { useHealthThresholds } from '@/composables/useHealthThresholds';
 
 defineProps<{
   events: HealthEvent[];
 }>();
 
 const { t, locale } = useI18n();
+
+const { warning, critical } = useHealthThresholds();
 
 type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -48,7 +50,7 @@ function relativeDate(iso: string): string {
         <Hook0Tooltip
           :content="
             t(`subscriptionDetail.healthStatus.${event.status}Tooltip`, {
-              threshold: event.status === 'disabled' ? CRITICAL_THRESHOLD : WARNING_THRESHOLD,
+              threshold: event.status === 'disabled' ? critical : warning,
             })
           "
           position="top"

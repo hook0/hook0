@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { CheckCircle, AlertTriangle, XCircle, Minus } from 'lucide-vue-next';
 import Hook0Badge from './Hook0Badge.vue';
 import Hook0Tooltip from './Hook0Tooltip.vue';
-import { WARNING_THRESHOLD, CRITICAL_THRESHOLD } from '@/constants/healthThresholds';
+import { useHealthThresholds } from '@/composables/useHealthThresholds';
 
 const props = defineProps<{
   failurePercent: number | null;
@@ -12,17 +12,19 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
+const { warning, critical } = useHealthThresholds();
+
 const variant = computed(() => {
   if (props.failurePercent === null) return 'default';
-  if (props.failurePercent >= CRITICAL_THRESHOLD) return 'danger';
-  if (props.failurePercent >= WARNING_THRESHOLD) return 'warning';
+  if (props.failurePercent >= critical.value) return 'danger';
+  if (props.failurePercent >= warning.value) return 'warning';
   return 'success';
 });
 
 const status = computed(() => {
   if (props.failurePercent === null) return 'noData';
-  if (props.failurePercent >= CRITICAL_THRESHOLD) return 'critical';
-  if (props.failurePercent >= WARNING_THRESHOLD) return 'warning';
+  if (props.failurePercent >= critical.value) return 'critical';
+  if (props.failurePercent >= warning.value) return 'warning';
   return 'healthy';
 });
 
@@ -51,7 +53,7 @@ const tooltipContent = computed(() => {
 <template>
   <Hook0Tooltip :content="tooltipContent" position="top">
     <Hook0Badge :variant="variant" size="sm">
-      <component v-if="status !== 'noData'" :is="statusIcon" :size="12" aria-hidden="true" />
+      <component :is="statusIcon" v-if="status !== 'noData'" :size="12" aria-hidden="true" />
       {{ label }}
     </Hook0Badge>
   </Hook0Tooltip>
