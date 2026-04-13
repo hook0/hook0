@@ -178,8 +178,6 @@ pub async fn look_for_work(
                     payload: p,
                     payload_content_type: attempt.payload_content_type,
                     secret: attempt.secret,
-                    // The DB CHECK constraint guarantees valid values, but during
-                    // rolling deploys a future value could appear — default to Dispatch.
                     attempt_trigger: attempt.attempt_trigger.parse().unwrap_or_default(),
                 };
 
@@ -294,8 +292,7 @@ pub async fn look_for_work(
 
                     // Manual retries are one-shot by design: if the user's explicit
                     // retry also fails, we do NOT schedule automatic follow-up
-                    // retries.  This prevents a single "Retry" click from spawning
-                    // an exponential backoff chain the user didn't ask for.
+                    // retries.
                     if attempt_with_payload.attempt_trigger == AttemptTrigger::ManualRetry {
                         info!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Manual retry failed; not re-queuing (one-shot)");
                     } else if let Some(retry_in) = compute_next_retry(

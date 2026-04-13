@@ -1,12 +1,6 @@
 //! Defines `RequestAttempt` — the in-memory representation of a webhook
 //! delivery attempt — and its conversion to/from the Protobuf wire format
 //! used by Pulsar messages.
-//!
-//! The API serializes a `RequestAttempt` into Protobuf and publishes it to
-//! a Pulsar topic; the output-worker deserializes it back and executes the
-//! HTTP call.  The `AttemptTrigger` enum was added later, so all conversions
-//! default to `Dispatch` when the field is missing — backward compatible
-//! with in-flight messages from older producers.
 
 use chrono::{DateTime, Utc};
 use prost::Message;
@@ -130,21 +124,10 @@ impl TryFrom<crate::raw_proto::request_attempt::RequestAttempt> for RequestAttem
             payload: value.payload,
             payload_content_type: value.payload_content_type,
             secret,
-            // Pulsar topics may still contain messages published before this field
-            // existed.  Proto3 guarantees string fields default to "" when absent
-            // (see https://protobuf.dev/programming-guides/proto3/#default).
-            // Without this fallback, those
-            // messages would fail to deserialize and loop in NACK/redeliver forever,
-            // blocking the topic.  Defaulting to Dispatch is safe because all
-            // pre-existing attempts *were* dispatches.
-            attempt_trigger: if value.attempt_trigger.is_empty() {
-                AttemptTrigger::Dispatch
-            } else {
-                value
-                    .attempt_trigger
-                    .parse()
-                    .unwrap_or(AttemptTrigger::Dispatch)
-            },
+            attempt_trigger: value
+                .attempt_trigger
+                .parse()
+                .unwrap_or(AttemptTrigger::Dispatch),
         })
     }
 }

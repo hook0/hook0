@@ -7,9 +7,10 @@ use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use paperclip::v2::models::{DataType, DataTypeFormat, DefaultSchemaRaw};
 use paperclip::v2::schema::Apiv2Schema as Apiv2SchemaTrait;
 use serde::{Deserialize, Serialize};
-use sqlx::{query_as, query_scalar};
+use sqlx::{query, query_as, query_scalar};
 use std::cmp::max;
 use std::collections::BTreeMap;
+use std::time::Duration;
 use tracing::{error, info};
 use url::Url;
 use uuid::Uuid;
@@ -564,9 +565,6 @@ pub async fn retry(
 ) -> Result<HttpResponse, Hook0Problem> {
     let request_attempt_id = request_attempt_id.into_inner();
 
-    // Auth first — no DB work for unauthorized callers.
-    // Return 404 for both not-found and forbidden so an attacker cannot
-    // distinguish "exists but forbidden" from "does not exist".
     let authorized = match authorize_for_application(
         &state.db,
         &biscuit,
@@ -582,10 +580,6 @@ pub async fn retry(
         Err(_) => return Err(Hook0Problem::NotFound),
     };
 
-    // Fetch the source attempt's routing metadata + HTTP target info in
-    // one query.  Deleted subscriptions are filtered in the WHERE clause.
-    // No payload here — fetched separately to avoid loading up to 512KiB
-    // before validating the cooldown.
     struct RetrySourceContext {
         event_id: Uuid,
         subscription_id: Uuid,
@@ -630,7 +624,7 @@ pub async fn retry(
     .ok_or(Hook0Problem::NotFound)?;
 
     // Fetch the event payload (DB inline column, then S3 fallback).
-    // 410 Gone if neither source has the data.  Done before the transaction
+    // 410 Gone if neither source has the data. Done before the transaction
     // to avoid holding a lock during a potentially slow S3 call.
     let payload = crate::event_payload::fetch_event_payload(
         &state.db,
@@ -654,7 +648,7 @@ pub async fn retry(
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
     // Lock the event row to serialize concurrent retry requests.
-    sqlx::query!(
+    query!(
         "SELECT 1 AS lock FROM event.event WHERE event__id = $1 FOR UPDATE",
         &source.event_id,
     )
@@ -665,7 +659,7 @@ pub async fn retry(
     // Rate-limit manual retries per event to prevent abuse / accidental
     // click-storms.  Without this, a user could create thousands of
     // attempts for the same event in seconds.
-    if state.manual_retry_cooldown_seconds > 0 {
+    if state.manual_retry_cooldown > Duration::ZERO {
         let cooldown_active: bool = query_scalar!(
             "
                 SELECT EXISTS(
@@ -676,7 +670,7 @@ pub async fn retry(
                 ) AS \"cooldown_active!\"
             ",
             &source.event_id,
-            state.manual_retry_cooldown_seconds as f64,
+            state.manual_retry_cooldown.as_secs_f64(),
         )
         .fetch_one(&mut *tx)
         .await
@@ -684,7 +678,7 @@ pub async fn retry(
 
         if cooldown_active {
             return Err(Hook0Problem::EventManualRetryCooldownActive {
-                seconds: state.manual_retry_cooldown_seconds,
+                seconds: state.manual_retry_cooldown.as_secs(),
             });
         }
     }
@@ -709,15 +703,14 @@ pub async fn retry(
 
     info!(
         request_attempt_id = %new_request_attempt_id,
-        source_attempt_id = %request_attempt_id,
+        source_request_attempt_id = %request_attempt_id,
         event_id = %source.event_id,
         "Manual retry attempt created"
     );
 
     // Fast-path: push to Pulsar so the worker picks it up immediately
-    // instead of waiting for the next PG poll cycle (~10s).  Even without
-    // Pulsar, the attempt is already persisted in DB — the PG poller will
-    // find and deliver it.
+    // instead of waiting for the next PG poll cycle (~10s). Even without
+    // Pulsar, the attempt is already persisted in DB.
     if let Some(pulsar) = &state.pulsar
         && let Err(err) = crate::pulsar_dispatch::send_single_attempt_to_pulsar(
             &state.db,
@@ -729,7 +722,7 @@ pub async fn retry(
                 event_received_at: source.received_at,
                 subscription_id: source.subscription_id,
                 created_at: Utc::now(),
-                // Fresh attempt, not a successor — starts at 0.  The worker
+                // Fresh attempt, not a successor — starts at 0. The worker
                 // won't auto-retry it (one-shot), so this stays at 0.
                 retry_count: 0,
                 http_method: source.http_method,
@@ -747,12 +740,10 @@ pub async fn retry(
         error!(
             request_attempt_id = %new_request_attempt_id,
             error = ?err,
-            "Manual retry persisted but Pulsar dispatch failed; PG poller will deliver it"
+            "Manual retry persisted but Pulsar dispatch failed"
         );
     }
 
-    // 202 signals "accepted for async processing" — the new attempt will
-    // be picked up by a worker, but we can't guarantee delivery yet.
     Ok(HttpResponse::Accepted().json(RetryResponse {
         request_attempt_id: new_request_attempt_id,
     }))

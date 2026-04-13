@@ -162,7 +162,6 @@ pub async fn load_waiting_request_attempts_from_db(
                 payload: p,
                 payload_content_type: ra.payload_content_type,
                 secret: ra.secret,
-                // DB CHECK constraint guarantees valid values — see pg.rs.
                 attempt_trigger: ra.attempt_trigger.parse().unwrap_or_default(),
             };
 
@@ -679,7 +678,6 @@ async fn handle_message(
                         } else {
                             // Manual retries are one-shot by design: if the user's explicit
                             // retry also fails, we do NOT schedule automatic follow-up retries.
-                            // See pg.rs for the full rationale.
                             if attempt.attempt_trigger
                                 == hook0_protobuf::AttemptTrigger::ManualRetry
                             {
@@ -691,7 +689,9 @@ async fn handle_message(
                                 let next_retry_count = attempt.retry_count + 1;
                                 let delay_until = Utc::now() + retry_in;
 
-                                // Tag the successor as 'auto_retry' — see pg.rs for rationale.
+                                // Tag the successor as 'auto_retry' so the one-shot check above,
+                                // analytics, and the UI badge can distinguish system-created retries
+                                // from initial dispatches and manual retries.
                                 #[allow(non_snake_case)]
                                 struct Retry {
                                     request_attempt__id: Uuid,

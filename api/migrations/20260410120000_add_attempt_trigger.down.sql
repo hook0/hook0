@@ -1,8 +1,4 @@
-SET lock_timeout = '5s';
-
-DROP INDEX IF EXISTS webhook.idx_request_attempt_triggered_by;
-ALTER TABLE webhook.request_attempt DROP COLUMN IF EXISTS triggered_by;
-ALTER TABLE webhook.request_attempt DROP CONSTRAINT IF EXISTS request_attempt_trigger_check;
-ALTER TABLE webhook.request_attempt DROP COLUMN IF EXISTS attempt_trigger;
-
-RESET lock_timeout;
+drop index if exists webhook.triggered_by_idx;
+alter table webhook.request_attempt drop column if exists triggered_by;
+alter table webhook.request_attempt drop constraint if exists trigger_chk;
+alter table webhook.request_attempt drop column if exists attempt_trigger;
