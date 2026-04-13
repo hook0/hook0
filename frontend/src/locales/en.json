@@ -862,6 +862,9 @@
     "headers": "HTTP Headers",
     "headersHelp": "Custom headers sent with each webhook request",
     "headersHint": "Custom HTTP headers sent with each webhook request.",
+    "healthTimeline": {
+      "subtitle": "Showing the last {count} events"
+    },
     "httpEndpoint": "Endpoint",
     "httpEndpointHelp": "Hook0 sends webhooks to this URL when events match.",
     "label": "Label",

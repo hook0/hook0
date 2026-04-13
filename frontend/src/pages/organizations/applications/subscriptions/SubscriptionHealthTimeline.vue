@@ -54,6 +54,7 @@ const { data, isLoading } = useSubscriptionHealthEvents(
 
 const hasPrevious = computed(() => cursorStack.value.length > 1);
 const hasNext = computed(() => data.value?.next_cursor != null);
+const eventCount = computed(() => data.value?.items?.length ?? 0);
 
 function goPrevious(): void {
   if (hasPrevious.value) {
@@ -71,6 +72,9 @@ function goNext(): void {
 
 <template>
   <div class="health-timeline-wrapper">
+    <p v-if="eventCount > 0" class="health-timeline__subtitle">
+      {{ t('subscriptions.healthTimeline.subtitle', { count: eventCount }) }}
+    </p>
     <ol class="health-timeline">
       <li
         v-for="event in data?.items ?? []"
@@ -127,6 +131,12 @@ function goNext(): void {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.health-timeline__subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
 }
 
 .health-timeline {
