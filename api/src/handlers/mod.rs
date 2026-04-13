@@ -11,6 +11,7 @@ pub mod registrations;
 pub mod request_attempts;
 pub mod responses;
 pub mod service_token;
+pub mod subscription_health_events;
 pub mod subscriptions;
 
 #[cfg(feature = "application-secret-compatibility")]

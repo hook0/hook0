@@ -83,12 +83,10 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
 
     // Exposed only when the health monitor is enabled, so API consumers
     // can mirror the actual thresholds without duplicating defaults.
-    let health_monitor = state
-        .enable_health_monitor
-        .then(|| HealthMonitorConfig {
-            warning_failure_percent: state.health_monitor_warning_failure_percent,
-            disable_failure_percent: state.health_monitor_disable_failure_percent,
-        });
+    let health_monitor = state.enable_health_monitor.then(|| HealthMonitorConfig {
+        warning_failure_percent: state.health_monitor_warning_failure_percent,
+        disable_failure_percent: state.health_monitor_disable_failure_percent,
+    });
 
     Ok(Json(InstanceConfig {
         biscuit_public_key: state.biscuit_private_key.public().to_bytes_hex(),

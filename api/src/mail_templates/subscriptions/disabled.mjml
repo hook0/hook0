@@ -1,0 +1,67 @@
+<mjml>
+    <mj-head>
+        <mj-title>Subscription Disabled</mj-title>
+        <mj-style inline="inline">
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+                background-color: #f9f9f9;
+                font-family: Arial, sans-serif;
+            }
+            h1, h2 {
+                color: #333333;
+            }
+            h1 {
+                font-size: 26px;
+                margin-bottom: 10px;
+            }
+            h2 {
+                font-size: 20px;
+                margin-top: 20px;
+                margin-bottom: 10px;
+            }
+            p {
+                font-size: 16px;
+                line-height: 1.5;
+                color: #555555;
+            }
+            a {
+                color: #22c55e;
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+            .small {
+                font-size: 12px;
+                color: #888888;
+            }
+            .small a {
+                color: #888888;
+            }
+        </mj-style>
+    </mj-head>
+    <mj-body>
+        <mj-section background-color="#ffffff" padding="20px" border-radius="8px">
+            <mj-column>
+                <mj-image src="{ $logo_url }" alt="Hook0" width="120px" />
+                <mj-text align="center">
+                    <h1>Subscription Automatically Disabled</h1>
+                    <p>Your subscription <a href="{ $subscription_url }"><strong>{{ $subscription_description }}</strong></a> in application <a href="{ $application_url }"><strong>{{ $application_name }}</strong></a> has been <strong>automatically disabled</strong> due to a <strong>{{ $failure_percent }}%</strong> failure rate for the endpoint <strong>{{ $target_url }}</strong>.</p>
+                    <p>No webhook events will be delivered to this subscription until it is re-enabled.</p>
+                </mj-text>
+                <mj-text align="center">
+                    <h2>How to Re-enable</h2>
+                    <p>1. Fix the underlying issue with your endpoint at <strong>{{ $target_url }}</strong>.</p>
+                    <p>2. Verify that the endpoint is reachable and returns 2xx responses.</p>
+                    <p>3. Re-enable the subscription from the Hook0 dashboard or via the API.</p>
+                </mj-text>
+                <mj-button background-color="#22c55e" color="white" href="{ $subscription_url }">Re-enable Subscription</mj-button>
+                <mj-text align="center">
+                    <p class="small">Questions? Reach out to our support team at <a href="mailto:{ $support_email_address }">{ $support_email_address }</a>.</p>
+                </mj-text>
+            </mj-column>
+        </mj-section>
+    </mj-body>
+</mjml>

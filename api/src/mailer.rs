@@ -5,6 +5,7 @@ use std::string::String;
 use std::time::Duration;
 use tracing::{info, warn};
 use url::Url;
+use uuid::Uuid;
 
 use crate::problems::Hook0Problem;
 
@@ -48,6 +49,41 @@ pub enum Mail {
         events_per_days_limit: i32,
         extra_variables: Vec<(String, String)>,
     },
+    /// Health monitor detected the subscription's failure rate crossed the warning threshold.
+    /// Sent once per cooldown period to avoid spamming the org's admins.
+    SubscriptionWarning {
+        organization_id: Uuid,
+        application_id: Uuid,
+        application_name: String,
+        subscription_description: String,
+        subscription_id: Uuid,
+        target_url: String,
+        failure_percent: f64,
+        evaluation_window: String,
+    },
+    /// Health monitor auto-disabled the subscription because its failure rate exceeded
+    /// the disable threshold. The subscription stops receiving events until manually re-enabled.
+    SubscriptionDisabled {
+        organization_id: Uuid,
+        application_id: Uuid,
+        application_name: String,
+        subscription_description: String,
+        subscription_id: Uuid,
+        target_url: String,
+        failure_percent: f64,
+        evaluation_window: String,
+        disabled_at: String,
+    },
+    /// Failure rate dropped back below the warning threshold after a previous warning.
+    /// Good news mail — lets the org know the subscription is healthy again.
+    SubscriptionRecovered {
+        organization_id: Uuid,
+        application_id: Uuid,
+        application_name: String,
+        subscription_description: String,
+        subscription_id: Uuid,
+        target_url: String,
+    },
 }
 
 impl Mail {
@@ -55,12 +91,20 @@ impl Mail {
         match self {
             Mail::VerifyUserEmail { .. } => include_str!("mail_templates/verify_user_email.mjml"),
             Mail::ResetPassword { .. } => include_str!("mail_templates/reset_password.mjml"),
-            // Mail::Welcome { .. } => include_str!("mail_templates/welcome.mjml"),
             Mail::QuotaEventsPerDayWarning { .. } => {
                 include_str!("mail_templates/quotas/events_per_day_warning.mjml")
             }
             Mail::QuotaEventsPerDayReached { .. } => {
                 include_str!("mail_templates/quotas/events_per_day_reached.mjml")
+            }
+            Mail::SubscriptionWarning { .. } => {
+                include_str!("mail_templates/subscriptions/warning.mjml")
+            }
+            Mail::SubscriptionDisabled { .. } => {
+                include_str!("mail_templates/subscriptions/disabled.mjml")
+            }
+            Mail::SubscriptionRecovered { .. } => {
+                include_str!("mail_templates/subscriptions/recovered.mjml")
             }
         }
     }
@@ -69,9 +113,26 @@ impl Mail {
         match self {
             Mail::VerifyUserEmail { .. } => "[Hook0] Verify your email address".to_owned(),
             Mail::ResetPassword { .. } => "[Hook0] Reset your password".to_owned(),
-            // Mail::Welcome { .. } => "Welcome to our platform".to_owned(),
             Mail::QuotaEventsPerDayWarning { .. } => "[Hook0] Quota Warning".to_owned(),
             Mail::QuotaEventsPerDayReached { .. } => "[Hook0] Quota Reached".to_owned(),
+            Mail::SubscriptionWarning {
+                subscription_description,
+                ..
+            } => {
+                format!("[Hook0] Subscription failing: {subscription_description}")
+            }
+            Mail::SubscriptionDisabled {
+                subscription_description,
+                ..
+            } => {
+                format!("[Hook0] Subscription disabled: {subscription_description}")
+            }
+            Mail::SubscriptionRecovered {
+                subscription_description,
+                ..
+            } => {
+                format!("[Hook0] Subscription recovered: {subscription_description}")
+            }
         }
     }
 
@@ -79,7 +140,6 @@ impl Mail {
         match self {
             Mail::VerifyUserEmail { url } => vec![("url".to_owned(), url.to_string())],
             Mail::ResetPassword { url } => vec![("url".to_owned(), url.to_string())],
-            // Mail::Welcome { name } => vec![("name".to_owned(), name.to_owned())],
             Mail::QuotaEventsPerDayWarning {
                 pricing_url_hash,
                 actual_consumption_percent,
@@ -125,6 +185,82 @@ impl Mail {
                 vars.extend(extra_variables.clone());
                 vars
             }
+            Mail::SubscriptionWarning {
+                organization_id,
+                application_id,
+                application_name,
+                subscription_description,
+                subscription_id,
+                target_url,
+                failure_percent,
+                evaluation_window,
+            } => {
+                vec![
+                    ("organization_id".to_owned(), organization_id.to_string()),
+                    ("application_id".to_owned(), application_id.to_string()),
+                    ("application_name".to_owned(), application_name.to_owned()),
+                    (
+                        "subscription_description".to_owned(),
+                        subscription_description.to_owned(),
+                    ),
+                    ("subscription_id".to_owned(), subscription_id.to_string()),
+                    ("target_url".to_owned(), target_url.to_owned()),
+                    (
+                        "failure_percent".to_owned(),
+                        format!("{:.0}", failure_percent),
+                    ),
+                    ("evaluation_window".to_owned(), evaluation_window.to_owned()),
+                ]
+            }
+            Mail::SubscriptionDisabled {
+                organization_id,
+                application_id,
+                application_name,
+                subscription_description,
+                subscription_id,
+                target_url,
+                failure_percent,
+                evaluation_window,
+                disabled_at,
+            } => {
+                vec![
+                    ("organization_id".to_owned(), organization_id.to_string()),
+                    ("application_id".to_owned(), application_id.to_string()),
+                    ("application_name".to_owned(), application_name.to_owned()),
+                    (
+                        "subscription_description".to_owned(),
+                        subscription_description.to_owned(),
+                    ),
+                    ("subscription_id".to_owned(), subscription_id.to_string()),
+                    ("target_url".to_owned(), target_url.to_owned()),
+                    (
+                        "failure_percent".to_owned(),
+                        format!("{:.0}", failure_percent),
+                    ),
+                    ("evaluation_window".to_owned(), evaluation_window.to_owned()),
+                    ("disabled_at".to_owned(), disabled_at.to_owned()),
+                ]
+            }
+            Mail::SubscriptionRecovered {
+                organization_id,
+                application_id,
+                application_name,
+                subscription_description,
+                subscription_id,
+                target_url,
+            } => {
+                vec![
+                    ("organization_id".to_owned(), organization_id.to_string()),
+                    ("application_id".to_owned(), application_id.to_string()),
+                    ("application_name".to_owned(), application_name.to_owned()),
+                    (
+                        "subscription_description".to_owned(),
+                        subscription_description.to_owned(),
+                    ),
+                    ("subscription_id".to_owned(), subscription_id.to_string()),
+                    ("target_url".to_owned(), target_url.to_owned()),
+                ]
+            }
         }
     }
 
@@ -144,6 +280,38 @@ impl Mail {
         }
     }
 
+    /// Build a deep-link into the dashboard for the affected subscription.
+    /// Returns `None` for non-subscription mails (verify email, quota, etc.).
+    pub fn subscription_url(&self, app_url: &Url) -> Option<String> {
+        match self {
+            Mail::SubscriptionWarning {
+                organization_id,
+                application_id,
+                subscription_id,
+                ..
+            }
+            | Mail::SubscriptionDisabled {
+                organization_id,
+                application_id,
+                subscription_id,
+                ..
+            }
+            | Mail::SubscriptionRecovered {
+                organization_id,
+                application_id,
+                subscription_id,
+                ..
+            } => Some(format!(
+                "{}/organizations/{}/applications/{}/subscriptions/{}",
+                app_url.as_str().trim_end_matches('/'),
+                organization_id,
+                application_id,
+                subscription_id,
+            )),
+            _ => None,
+        }
+    }
+
     pub fn render(
         &self,
         logo_url: &Url,
@@ -155,6 +323,10 @@ impl Mail {
         let mut mjml = template.to_owned();
         for (key, value) in self.variables() {
             mjml = mjml.replace(&format!("{{ ${key} }}"), &value);
+        }
+
+        if let Some(subscription_url) = self.subscription_url(app_url) {
+            mjml = mjml.replace("{ $subscription_url }", &subscription_url);
         }
 
         mjml = mjml.replace("{ $logo_url }", logo_url.as_str());
@@ -252,6 +424,35 @@ mod tests {
                 current_events_per_day: 0,
                 events_per_days_limit: 0,
                 extra_variables: vec![("test".to_owned(), "test".to_owned())],
+            },
+            Mail::SubscriptionWarning {
+                organization_id: Uuid::nil(),
+                application_id: Uuid::nil(),
+                application_name: "test-app".to_owned(),
+                subscription_description: "test-sub".to_owned(),
+                subscription_id: Uuid::nil(),
+                target_url: "https://example.com/webhook".to_owned(),
+                failure_percent: 85.0,
+                evaluation_window: "24 hours".to_owned(),
+            },
+            Mail::SubscriptionDisabled {
+                organization_id: Uuid::nil(),
+                application_id: Uuid::nil(),
+                application_name: "test-app".to_owned(),
+                subscription_description: "test-sub".to_owned(),
+                subscription_id: Uuid::nil(),
+                target_url: "https://example.com/webhook".to_owned(),
+                failure_percent: 95.0,
+                evaluation_window: "24 hours".to_owned(),
+                disabled_at: "2026-03-26T12:00:00Z".to_owned(),
+            },
+            Mail::SubscriptionRecovered {
+                organization_id: Uuid::nil(),
+                application_id: Uuid::nil(),
+                application_name: "test-app".to_owned(),
+                subscription_description: "test-sub".to_owned(),
+                subscription_id: Uuid::nil(),
+                target_url: "https://example.com/webhook".to_owned(),
             },
         ];
 

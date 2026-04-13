@@ -45,6 +45,8 @@ pub struct Subscription {
     pub target: Target,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Rolling failure rate (0.0–100.0) computed by the health monitor — `None` until the first health check runs.
+    pub failure_percent: Option<f64>,
     pub dedicated_workers: Vec<String>,
 }
 
@@ -221,6 +223,7 @@ pub async fn list(
         secret: Uuid,
         metadata: Value,
         labels: Value,
+        failure_percent: Option<f64>,
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
@@ -232,7 +235,7 @@ pub async fn list(
         r#"
             WITH subs AS (
                 SELECT
-                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.updated_at,
+                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.failure_percent, s.target__id, s.created_at, s.updated_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -255,7 +258,7 @@ pub async fn list(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.failure_percent, subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
         "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
@@ -294,6 +297,7 @@ pub async fn list(
                     .expect("Could not parse subscription target"),
                 created_at: s.created_at,
                 updated_at: s.updated_at,
+                failure_percent: s.failure_percent,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
             }
         })
@@ -361,6 +365,7 @@ pub async fn get(
         secret: Uuid,
         metadata: Value,
         labels: Value,
+        failure_percent: Option<f64>,
         target_json: Option<Value>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
@@ -372,7 +377,7 @@ pub async fn get(
         r#"
             WITH subs AS (
                 SELECT
-                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.updated_at,
+                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.failure_percent, s.target__id, s.created_at, s.updated_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -395,7 +400,7 @@ pub async fn get(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.failure_percent, subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
             LIMIT 1
@@ -435,6 +440,7 @@ pub async fn get(
                     .expect("Could not parse subscription target"),
                 created_at: s.created_at,
                 updated_at: s.updated_at,
+                failure_percent: s.failure_percent,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
             }))
         }
@@ -686,6 +692,7 @@ pub async fn create(
         target: body.target.clone(),
         created_at: subscription.created_at,
         updated_at: subscription.updated_at,
+        failure_percent: None,
         dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
     };
 
@@ -780,6 +787,7 @@ pub async fn edit(
         secret: Uuid,
         metadata: Value,
         labels: Value,
+        failure_percent: Option<f64>,
         target__id: Uuid,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
@@ -792,7 +800,7 @@ pub async fn edit(
             UPDATE webhook.subscription
             SET is_enabled = $1, description = $2, metadata = $3, labels = $4, updated_at = statement_timestamp()
             WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL
-            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at, updated_at
+            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, failure_percent, target__id, created_at, updated_at
         ",
         &body.is_enabled,
         body.description,
@@ -977,6 +985,7 @@ pub async fn edit(
                 target: body.target.clone(),
                 created_at: s.created_at,
                 updated_at: s.updated_at,
+                failure_percent: s.failure_percent,
                 dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
             };
 

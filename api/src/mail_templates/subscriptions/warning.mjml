@@ -1,0 +1,67 @@
+<mjml>
+    <mj-head>
+        <mj-title>Subscription Failing</mj-title>
+        <mj-style inline="inline">
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+                background-color: #f9f9f9;
+                font-family: Arial, sans-serif;
+            }
+            h1, h2 {
+                color: #333333;
+            }
+            h1 {
+                font-size: 26px;
+                margin-bottom: 10px;
+            }
+            h2 {
+                font-size: 20px;
+                margin-top: 20px;
+                margin-bottom: 10px;
+            }
+            p {
+                font-size: 16px;
+                line-height: 1.5;
+                color: #555555;
+            }
+            a {
+                color: #22c55e;
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+            .small {
+                font-size: 12px;
+                color: #888888;
+            }
+            .small a {
+                color: #888888;
+            }
+        </mj-style>
+    </mj-head>
+    <mj-body>
+        <mj-section background-color="#ffffff" padding="20px" border-radius="8px">
+            <mj-column>
+                <mj-image src="{ $logo_url }" alt="Hook0" width="120px" />
+                <mj-text align="center">
+                    <h1>Webhook Deliveries Are Failing</h1>
+                    <p>Your subscription <a href="{ $subscription_url }"><strong>{{ $subscription_description }}</strong></a> in application <a href="{ $application_url }"><strong>{{ $application_name }}</strong></a> is experiencing a <strong>{{ $failure_percent }}%</strong> failure rate for the endpoint <strong>{{ $target_url }}</strong> over the last <strong>{{ $evaluation_window }}</strong>.</p>
+                    <p>If this continues, the subscription will be <strong>automatically disabled</strong> to protect your system.</p>
+                </mj-text>
+                <mj-text align="center">
+                    <h2>Recommended Actions</h2>
+                    <p>1. Verify that your endpoint at <strong>{{ $target_url }}</strong> is reachable.</p>
+                    <p>2. Ensure it returns successful HTTP responses (2xx status codes).</p>
+                    <p>3. Check your server logs for errors or timeouts.</p>
+                </mj-text>
+                <mj-button background-color="#22c55e" color="white" href="{ $subscription_url }">View Subscription</mj-button>
+                <mj-text align="center">
+                    <p class="small">Questions? Reach out to our support team at <a href="mailto:{ $support_email_address }">{ $support_email_address }</a>.</p>
+                </mj-text>
+            </mj-column>
+        </mj-section>
+    </mj-body>
+</mjml>
