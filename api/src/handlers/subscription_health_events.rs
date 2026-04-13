@@ -25,7 +25,7 @@ use crate::problems::Hook0Problem;
 const DEFAULT_PAGE_SIZE: i64 = 50;
 
 /// A single health state transition — what happened, why, who triggered it, when.
-#[derive(Debug, Serialize, Apiv2Schema, sqlx::FromRow)]
+#[derive(Debug, Serialize, Apiv2Schema)]
 pub struct SubscriptionHealthEventStatus {
     pub health_event_id: Uuid,
     pub subscription_id: Uuid,
@@ -97,15 +97,16 @@ pub async fn list(
 
     let pagination = qs.pagination_cursor.unwrap_or_default().0;
 
-    let events = sqlx::query_as::<_, SubscriptionHealthEventStatus>(
-        "
+    let events = sqlx::query_as!(
+        SubscriptionHealthEventStatus,
+        r#"
             SELECT
-                she.health_event__id AS health_event_id,
-                she.subscription__id AS subscription_id,
-                she.status,
-                she.cause,
-                she.user__id AS user_id,
-                she.created_at
+                she.health_event__id AS "health_event_id!",
+                she.subscription__id AS "subscription_id!",
+                she.status AS "status!: HealthStatus",
+                she.cause AS "cause!: HealthEventCause",
+                she.user__id AS "user_id?",
+                she.created_at AS "created_at!"
             FROM webhook.subscription_health_event she
             INNER JOIN webhook.subscription s ON s.subscription__id = she.subscription__id
             INNER JOIN event.application a ON a.application__id = s.application__id
@@ -114,13 +115,13 @@ pub async fn list(
               AND (she.created_at, she.health_event__id) < ($3, $4)
             ORDER BY she.created_at DESC, she.health_event__id ASC
             LIMIT $5
-        ",
+        "#,
+        subscription_id,
+        organization_id,
+        pagination.date,
+        pagination.id,
+        DEFAULT_PAGE_SIZE,
     )
-    .bind(subscription_id)
-    .bind(organization_id)
-    .bind(pagination.date)
-    .bind(pagination.id)
-    .bind(DEFAULT_PAGE_SIZE)
     .fetch_all(&state.db)
     .await
     .map_err(Hook0Problem::from)?;

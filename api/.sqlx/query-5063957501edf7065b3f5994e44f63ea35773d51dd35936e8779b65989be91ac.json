@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                she.health_event__id AS \"health_event_id!\",\n                she.subscription__id AS \"subscription_id!\",\n                she.status AS \"status!: HealthStatus\",\n                she.cause AS \"cause!: HealthEventCause\",\n                she.user__id AS \"user_id?\",\n                she.created_at AS \"created_at!\"\n            FROM webhook.subscription_health_event she\n            INNER JOIN webhook.subscription s ON s.subscription__id = she.subscription__id\n            INNER JOIN event.application a ON a.application__id = s.application__id\n            WHERE she.subscription__id = $1\n              AND a.organization__id = $2\n              AND (she.created_at, she.health_event__id) < ($3, $4)\n            ORDER BY she.created_at DESC, she.health_event__id ASC\n            LIMIT $5\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "health_event_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "subscription_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "status!: HealthStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "cause!: HealthEventCause",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "user_id?",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "5063957501edf7065b3f5994e44f63ea35773d51dd35936e8779b65989be91ac"
+}
