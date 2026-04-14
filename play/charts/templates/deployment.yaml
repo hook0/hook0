@@ -34,6 +34,10 @@ spec:
               value: {{ .Values.play.port | quote }}
             - name: HOOKS_BASE_URL
               value: {{ .Values.play.baseUrl | quote }}
+            {{- if .Values.redis.enabled }}
+            - name: REDIS_URL
+              value: "redis://{{ include "hook0-play.fullname" . }}-redis-master:6379"
+            {{- end }}
             {{- if .Values.play.enableEncryption }}
             - name: HOOKS_ENABLE_ENCRYPTION
               value: "true"

@@ -305,6 +305,10 @@ app.post('/webhook', (req, res) => {
 - Implement health checks
 - Use application monitoring tools (APM)
 
+:::tip Quick debugging with Hook0 Play
+[Hook0 Play](https://play.hook0.com) lets you inspect raw request headers, body, and method in real-time. Use it to verify what your endpoint actually receives before diving into code.
+:::
+
 ## Step 4: Setting up webhook debugging
 
 ### Create a debug webhook endpoint

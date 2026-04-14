@@ -165,6 +165,14 @@
         document.querySelectorAll('a[href*="documentation.hook0.com"]').forEach(function(el){
             el.addEventListener('click',function(){trackEvent('Documentation','Click','Search Result Click')});
         });
+        // Pricing CTA clicks
+        document.querySelectorAll('a[href*="app.hook0.com/register"]').forEach(function(el){
+            el.addEventListener('click',function(){trackEvent('CTA','Click','Register')});
+        });
+        // Pricing tab switches
+        document.querySelectorAll('[data-pricing-toggle]').forEach(function(el){
+            el.addEventListener('click',function(){trackEvent('Pricing','Switch',el.getAttribute('data-pricing-toggle'))});
+        });
         // Goal 5: Full Page Read - Event Name exact "100%" (triggers at 90% scroll depth)
         var scrollTracked=false;
         window.addEventListener('scroll',function(){
