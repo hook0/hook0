@@ -20,6 +20,7 @@ Hook0 is a production-ready webhook server that ensures your events reach their 
 1. **[What is Hook0?](explanation/what-is-hook0.md)** - Understand core concepts
 2. **[Quick Start](tutorials/getting-started.md)** - Get running in 5 minutes
 3. **[First Webhook](tutorials/first-webhook-integration.md)** - Build your first integration
+4. **[Hook0 Play](https://play.hook0.com)** -- Test webhooks instantly, no signup
 
 </div>
 <div className="col col--6">

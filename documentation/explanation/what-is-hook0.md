@@ -173,6 +173,7 @@ Hook0 tracks every delivery attempt:
 ## Next steps
 
 - [Getting Started Tutorial](../tutorials/getting-started.md)
+- [Hook0 Play](https://play.hook0.com) -- Try webhooks instantly: generate a URL and watch events arrive in real-time
 - [System Architecture](./hook0-architecture.md) - Detailed technical architecture
 - [API Reference](../openapi/intro)
 - [Webhook best practices](../how-to-guides/webhook-best-practices.md) - Production patterns for sending and receiving webhooks
