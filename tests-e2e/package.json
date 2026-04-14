@@ -9,7 +9,8 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "format": "prettier --write ./**/*.{ts,js,json}",
-    "check": "prettier --check ./**/*.{ts,js,json}"
+    "check": "prettier --check ./**/*.{ts,js,json}",
+    "test:play": "playwright test --config playwright.play.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.49.1",

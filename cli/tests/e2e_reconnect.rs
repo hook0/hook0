@@ -9,6 +9,7 @@
 mod helpers;
 
 use axum::http::StatusCode;
+use hook0_play::storage::WebhookStorageBackend;
 use std::time::Duration;
 use tokio::time::timeout;
 
@@ -93,7 +94,7 @@ async fn test_reconnect_after_server_disconnect() {
         if tokio::time::Instant::now() >= cleanup_deadline {
             // Force cleanup if server hasn't detected it
             state.connections.remove(&token);
-            state.storage.set_disconnected(&token);
+            state.storage.set_disconnected(&token).await;
             break;
         }
         tokio::time::sleep(Duration::from_millis(100)).await;
@@ -172,7 +173,8 @@ async fn test_token_collision_regenerates_token() {
         .insert(colliding_token.to_string(), dummy_tx);
     state
         .storage
-        .set_connected(colliding_token, Some("127.0.0.1".to_string()));
+        .set_connected(colliding_token, Some("127.0.0.1".to_string()))
+        .await;
 
     // 3. Start echo server
     let echo_config = EchoConfig {
@@ -289,7 +291,7 @@ async fn test_reconnect_after_connection_drop() {
     while !state.connections.is_empty() {
         if tokio::time::Instant::now() >= cleanup_deadline {
             state.connections.remove(&token);
-            state.storage.set_disconnected(&token);
+            state.storage.set_disconnected(&token).await;
             break;
         }
         tokio::time::sleep(Duration::from_millis(100)).await;

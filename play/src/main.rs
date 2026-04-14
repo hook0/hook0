@@ -6,6 +6,7 @@ use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+use hook0_play::storage::{InMemoryStorage, RedisStorage, StorageBackend};
 use hook0_play::{create_app, start_background_tasks, AppState};
 
 #[derive(Parser, Debug)]
@@ -27,6 +28,11 @@ struct Args {
     /// Enable encrypted storage for webhook bodies
     #[arg(long, env = "HOOKS_ENABLE_ENCRYPTION")]
     enable_encryption: bool,
+
+    /// Redis URL for persistent storage (e.g., redis://localhost:6379).
+    /// If not set, in-memory storage is used.
+    #[arg(long, env = "REDIS_URL")]
+    redis_url: Option<String>,
 }
 
 #[tokio::main]
@@ -61,8 +67,35 @@ async fn main() {
         info!("Encrypted storage: enabled");
     }
 
+    // Create storage backend based on REDIS_URL
+    let storage = match args.redis_url {
+        Some(ref redis_url) => {
+            info!("Connecting to Redis: {}", redis_url);
+            match RedisStorage::with_limits(redis_url, limits.max_webhooks_per_token).await {
+                Ok(redis_storage) => {
+                    info!("Storage backend: Redis");
+                    StorageBackend::Redis(redis_storage)
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to connect to Redis ({}), falling back to in-memory storage: {}",
+                        redis_url,
+                        e
+                    );
+                    StorageBackend::InMemory(InMemoryStorage::with_limits(
+                        limits.max_webhooks_per_token,
+                    ))
+                }
+            }
+        }
+        None => {
+            info!("Storage backend: in-memory");
+            StorageBackend::InMemory(InMemoryStorage::with_limits(limits.max_webhooks_per_token))
+        }
+    };
+
     // Create application state
-    let state = Arc::new(AppState::with_limits(base_url.clone(), limits));
+    let state = Arc::new(AppState::with_storage(base_url.clone(), limits, storage));
 
     // Start background cleanup tasks (TTL, session timeouts, rate limiter cleanup)
     start_background_tasks(state.clone());

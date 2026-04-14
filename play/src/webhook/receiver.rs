@@ -13,7 +13,7 @@ use std::sync::Arc;
 use crate::audit;
 use crate::relay::{is_valid_token, ServerMessage};
 use crate::sanitize;
-use crate::storage::WebhookStorage;
+use crate::storage::{self, WebhookStorageBackend};
 use crate::AppState;
 
 #[derive(Debug, Deserialize)]
@@ -367,7 +367,7 @@ async fn process_webhook(
     body: Bytes,
 ) -> axum::response::Response {
     // Create webhook record
-    let webhook = WebhookStorage::create_webhook(
+    let webhook = storage::create_webhook(
         token,
         method.as_str(),
         path,
@@ -379,7 +379,7 @@ async fn process_webhook(
     let webhook_id = webhook.id.clone();
 
     // Store the webhook
-    state.storage.store_webhook(webhook.clone());
+    state.storage.store_webhook(webhook.clone()).await;
 
     audit::log_audit(
         audit::AuditEvent::WebhookReceived,
@@ -391,7 +391,7 @@ async fn process_webhook(
     // Check if there's a connected client for this token
     if let Some(sender) = state.connections.get(token) {
         // Mark as forwarded
-        state.storage.mark_forwarded(token, &webhook_id);
+        state.storage.mark_forwarded(token, &webhook_id).await;
 
         // Create the request message
         let request_msg = ServerMessage::request(

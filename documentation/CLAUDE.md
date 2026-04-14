@@ -1,3 +1,7 @@
+---
+robots: noindex
+---
+
 # Hook0 Documentation
 
 ## Diagrams — Mermaid Design System (dark/light mode)
