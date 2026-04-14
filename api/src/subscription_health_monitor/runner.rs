@@ -1,25 +1,17 @@
-//! Background loop + per-tick orchestrator for the subscription health
-//! monitor.
+//! Per-tick orchestrator for the subscription health monitor.
 //!
-//! The loop:
-//!   - Evaluates every subscription's recent delivery outcomes inside a
-//!     single advisory-locked transaction so replicas can't stomp on each
-//!     other.
-//!   - Chains extra ticks immediately (no sleep) whenever the pipeline hits
-//!     the `max_request_attempts_per_tick` cap — this lets us burn through a
-//!     backlog without blocking on `interval` between scans.
-//!   - Every 24 hours, runs a cleanup pass to keep the health tables lean.
-//!   - Sleeps `config.interval` between normal ticks — total cycle time is
-//!     `check duration + sleep`, not exactly `interval`.
+//! [`run_health_check`] is the one function that owns a transaction: it
+//! grabs the advisory lock, runs the evaluation pipeline, feeds each
+//! candidate through the state machine, and dispatches the resulting
+//! `PlannedAction`s. Everything here is scoped to one tick — the background
+//! loop lives in the parent `mod.rs`.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use chrono::Utc;
 use sqlx::PgPool;
-use tokio::sync::Semaphore;
-use tracing::{debug, error, info, warn};
+use tracing::{info, warn};
 
-use super::errors::SubscriptionHealthMonitorError;
 use super::evaluation;
 use super::queries::{self, SubscriptionHealth};
 use super::state_machine::{self, PlannedAction};
@@ -32,7 +24,7 @@ const ADVISORY_LOCK_ID: i64 = 42_000_001;
 /// Cleanup runs once per day (not every tick) to keep the health tables lean
 /// without adding per-tick overhead. The monitor ticks are usually minutes
 /// apart; cleanup scans are expensive so we amortize them over a day.
-const CLEANUP_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
+pub(super) const CLEANUP_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 
 /// Hard cap on the number of chained ticks per wake-up. Without this, a tick
 /// that consistently hits the scan cap would starve every other housekeeping
@@ -40,7 +32,7 @@ const CLEANUP_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 /// monitor enough rope to burn through a modest backlog in one wake-up while
 /// still yielding back to the rest of the housekeeping loop within a few
 /// minutes worst case.
-const MAX_CHAINED_TICKS: usize = 10;
+pub(super) const MAX_CHAINED_TICKS: usize = 10;
 
 /// Upper bound on how long a single evaluation tick may hold the advisory
 /// lock + housekeeping permit before Postgres aborts it. Without this, a
@@ -66,7 +58,7 @@ pub struct SubscriptionHealthMonitorConfig {
     pub max_request_attempts_per_tick: u32,
 }
 
-/// Outcome of a single `run_health_check` invocation. `hit_cap == true`
+/// Outcome of a single [`run_health_check`] invocation. `hit_cap == true`
 /// means the evaluation pipeline's scan reached `max_request_attempts_per_tick`
 /// — a signal that there's still backlog to chew through and the loop should
 /// chain another tick immediately.
@@ -75,81 +67,13 @@ pub(super) struct TickOutcome {
     pub hit_cap: bool,
 }
 
-/// Runs the subscription health monitor loop.
-///
-/// Uses BOTH `housekeeping_semaphore` (intra-process mutual exclusion with
-/// other housekeeping tasks) AND `pg_try_advisory_xact_lock` (inter-process
-/// mutual exclusion across replicas). The semaphore prevents overloading
-/// the 3-connection housekeeping pool; the advisory lock prevents duplicate
-/// health events from concurrent API instances.
-pub async fn run_subscription_health_monitor(
-    housekeeping_semaphore: &Semaphore,
-    db: &PgPool,
-    config: &SubscriptionHealthMonitorConfig,
-) {
-    info!(
-        "Subscription health monitor started (interval: {:?}, warning: {}%, disable: {}%)",
-        config.interval, config.failure_percent_for_warning, config.failure_percent_for_disable
-    );
-
-    let mut last_cleanup: Option<Instant> = None;
-
-    while let Ok(permit) = housekeeping_semaphore.acquire().await {
-        // Chain up to MAX_CHAINED_TICKS ticks in a row when the pipeline is
-        // catching up on a backlog. A tick that hits the scan cap signals
-        // "there's still more to process" — we loop without sleeping so the
-        // cursor can advance. We stop chaining as soon as a tick completes
-        // below the cap (normal steady state) or errors out.
-        for _ in 0..MAX_CHAINED_TICKS {
-            match run_health_check(db, config).await {
-                Ok(outcome) if outcome.hit_cap => continue,
-                Ok(_) => break,
-                Err(e) => {
-                    error!("Subscription health monitor error: {e}");
-                    break;
-                }
-            }
-        }
-
-        if last_cleanup.is_none_or(|t| t.elapsed() > CLEANUP_INTERVAL) {
-            log_cleanup_result(
-                "resolved health events",
-                queries::cleanup_resolved_health_events(db, config).await,
-            );
-            log_cleanup_result(
-                "old health buckets",
-                queries::cleanup_old_buckets(db, config).await,
-            );
-            last_cleanup = Some(Instant::now());
-        }
-
-        // Release the semaphore permit BEFORE sleeping so the other
-        // housekeeping tasks can run during the interval. Without this
-        // explicit drop, the permit is held through `sleep(config.interval)`
-        // and `Semaphore::new(1)` means every other housekeeping task would
-        // sit idle for up to `interval` between ticks.
-        drop(permit);
-        actix_web::rt::time::sleep(config.interval).await;
-    }
-
-    warn!("Subscription health monitor stopped (semaphore closed)");
-}
-
-fn log_cleanup_result(name: &str, result: Result<u64, sqlx::Error>) {
-    match result {
-        Ok(n) if n > 0 => info!("Subscription health monitor: cleaned up {n} {name}"),
-        Ok(_) => debug!("Subscription health monitor: cleanup tick — nothing to remove for {name}"),
-        Err(e) => warn!("Subscription health monitor: cleanup error for {name}: {e}"),
-    }
-}
-
 /// One evaluation tick: grabs the advisory lock, runs the evaluation
 /// pipeline, feeds each candidate through the state machine, and applies
 /// the resulting side-effects — all inside one transaction.
-async fn run_health_check(
+pub(super) async fn run_health_check(
     db: &PgPool,
     config: &SubscriptionHealthMonitorConfig,
-) -> Result<TickOutcome, SubscriptionHealthMonitorError> {
+) -> Result<TickOutcome, sqlx::Error> {
     let mut transaction = db.begin().await?;
 
     // Session-level safety net: no single tick may hold the advisory lock +
@@ -206,7 +130,7 @@ async fn apply_planned_actions(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     subscription: &SubscriptionHealth,
     planned: &[PlannedAction],
-) -> Result<(), SubscriptionHealthMonitorError> {
+) -> Result<(), sqlx::Error> {
     for action in planned {
         match action {
             PlannedAction::UpdateFailurePercent => {

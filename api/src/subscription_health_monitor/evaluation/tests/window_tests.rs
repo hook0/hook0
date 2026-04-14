@@ -8,10 +8,8 @@
 use chrono::Utc;
 use sqlx::PgPool;
 
+use super::helpers::{insert_test_fixtures, process_subscription, set_cursor, test_config};
 use crate::subscription_health_monitor::evaluation::run_subscription_health_monitor_tick;
-use crate::subscription_health_monitor::evaluation::test_helpers::{
-    insert_test_fixtures, process_subscription, set_cursor, test_config,
-};
 use crate::subscription_health_monitor::state_machine::PlannedAction;
 
 /// Recovery triggers a resolved health event.

@@ -1,32 +1,25 @@
-//! Shared test fixtures for the evaluation sub-module tests.
-//!
-//! All items are `pub(in crate::subscription_health_monitor::evaluation)` so the
-//! sibling test modules can reach them but nothing outside of `evaluation/`
-//! can.
+//! Shared helpers for the evaluation sub-module tests.
 
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 
 use crate::subscription_health_monitor::SubscriptionHealthMonitorConfig;
-use crate::subscription_health_monitor::errors::SubscriptionHealthMonitorError;
 use crate::subscription_health_monitor::queries;
 use crate::subscription_health_monitor::queries::SubscriptionHealth;
 use crate::subscription_health_monitor::state_machine::{PlannedAction, plan_health_actions};
 use crate::subscription_health_monitor::types::{HealthEventCause, HealthStatus};
 
-mod fixtures;
-
-pub(in crate::subscription_health_monitor::evaluation) use fixtures::insert_test_fixtures;
+pub(super) use super::fixtures::insert_test_fixtures;
 
 /// Test-only convenience wrapper: runs the pure state machine and applies
 /// its `PlannedAction`s to the database inside `tx`, returning the planned
 /// actions so tests can assert on what the state machine decided.
-pub(in crate::subscription_health_monitor::evaluation) async fn process_subscription(
+pub(super) async fn process_subscription(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     config: &SubscriptionHealthMonitorConfig,
     subscription: &SubscriptionHealth,
-) -> Result<Vec<PlannedAction>, SubscriptionHealthMonitorError> {
+) -> Result<Vec<PlannedAction>, sqlx::Error> {
     let now = Utc::now();
     let planned = plan_health_actions(subscription, config, now);
     for action in &planned {
@@ -67,8 +60,7 @@ pub(in crate::subscription_health_monitor::evaluation) async fn process_subscrip
     Ok(planned)
 }
 
-pub(in crate::subscription_health_monitor::evaluation) fn test_config()
--> SubscriptionHealthMonitorConfig {
+pub(super) fn test_config() -> SubscriptionHealthMonitorConfig {
     SubscriptionHealthMonitorConfig {
         interval: Duration::from_secs(60),
         failure_percent_for_warning: 50,
@@ -85,10 +77,7 @@ pub(in crate::subscription_health_monitor::evaluation) fn test_config()
 }
 
 /// Sets the cursor inside the given transaction.
-pub(in crate::subscription_health_monitor::evaluation) async fn set_cursor(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    ts: DateTime<Utc>,
-) {
+pub(super) async fn set_cursor(tx: &mut sqlx::Transaction<'_, sqlx::Postgres>, ts: DateTime<Utc>) {
     sqlx::query!(
         "update webhook.subscription_health_monitor_cursor set last_processed_at = $1 where cursor__id = 1",
         ts,

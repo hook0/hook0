@@ -8,10 +8,8 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use super::helpers::{insert_test_fixtures, set_cursor, test_config};
 use crate::subscription_health_monitor::evaluation::run_subscription_health_monitor_tick;
-use crate::subscription_health_monitor::evaluation::test_helpers::{
-    insert_test_fixtures, set_cursor, test_config,
-};
 
 /// Buckets are populated after a health tick.
 #[sqlx::test(migrations = "./migrations")]

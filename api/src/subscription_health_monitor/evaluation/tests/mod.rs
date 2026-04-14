@@ -13,6 +13,9 @@
 //! - [`subscription_state_tests`] — failure_percent cache reset for
 //!   recovered subscriptions.
 
+mod fixtures;
+mod helpers;
+
 mod bucket_tests;
 mod cursor_tests;
 mod subscription_state_tests;

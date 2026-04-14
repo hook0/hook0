@@ -43,9 +43,6 @@ use super::queries::{self, SubscriptionHealth};
 use super::runner::SubscriptionHealthMonitorConfig;
 
 #[cfg(test)]
-pub(super) mod test_helpers;
-
-#[cfg(test)]
 mod tests;
 
 /// One full evaluation tick. Returns:
