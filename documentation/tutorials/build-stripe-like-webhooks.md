@@ -413,6 +413,12 @@ echo "Globex Secret: $SUB_GLOBEX_SECRET"
 
 ## Part 5: Send test events
 
+If your local webhook receiver is not running yet, verify event delivery first by pointing a subscription to [play.hook0.com](https://play.hook0.com). Once your receiver is ready, tunnel requests to localhost:
+
+```bash
+hook0 play listen --forward http://localhost:3000/webhook/acme_corp
+```
+
 ### Step 5.1: Send payment success event (ACME Corp)
 
 ```bash
