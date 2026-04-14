@@ -17,6 +17,7 @@ use tokio::net::TcpListener;
 use tokio::time::timeout;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
+use hook0_play::storage::WebhookStorageBackend;
 use hook0_play::{create_app, relay, AppState};
 
 // ============================================================================
@@ -1194,7 +1195,7 @@ async fn test_max_webhooks_per_token_fifo_eviction() {
     }
 
     // Only the last 3 should be stored (FIFO eviction)
-    let webhooks = state.storage.get_webhooks(&token);
+    let webhooks = state.storage.get_webhooks(&token).await;
     assert_eq!(webhooks.len(), 3, "Should only have 3 webhooks (max limit)");
 }
 
@@ -1783,18 +1784,21 @@ async fn test_webhook_ttl_cleanup() {
     assert_eq!(response.status(), 200);
 
     // Verify it exists
-    let webhooks = state.storage.get_webhooks(&token);
+    let webhooks = state.storage.get_webhooks(&token).await;
     assert_eq!(webhooks.len(), 1);
 
     // Wait for TTL to expire
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     // Manually trigger cleanup (background task interval is too long for tests)
-    let removed = state.storage.cleanup_expired(Duration::from_millis(100));
+    let removed = state
+        .storage
+        .cleanup_expired(Duration::from_millis(100))
+        .await;
     assert!(removed > 0, "Should have cleaned up expired webhooks");
 
     // Verify it's gone
-    let webhooks = state.storage.get_webhooks(&token);
+    let webhooks = state.storage.get_webhooks(&token).await;
     assert_eq!(webhooks.len(), 0, "Expired webhooks should be cleaned up");
 }
 
@@ -1847,4 +1851,393 @@ async fn test_invalid_token_tracker_blocking_and_recovery() {
 
     // Should be unblocked
     assert!(tracker.check_allowed("test_ip"));
+}
+
+// ============================================================================
+// Web UI Tests
+// ============================================================================
+
+#[tokio::test]
+async fn test_get_root_returns_html_with_security_headers() {
+    let (addr, _state) = start_test_server().await;
+    let client = Client::new();
+
+    let response = client
+        .get(format!("http://{}/", addr))
+        .send()
+        .await
+        .expect("GET / request failed");
+
+    assert_eq!(response.status(), 200);
+
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .expect("Missing Content-Type header")
+        .to_str()
+        .unwrap();
+    assert!(
+        content_type.contains("text/html"),
+        "Expected text/html, got: {}",
+        content_type
+    );
+
+    let csp = response
+        .headers()
+        .get("content-security-policy")
+        .expect("Missing Content-Security-Policy header")
+        .to_str()
+        .unwrap();
+    assert!(
+        csp.contains("default-src"),
+        "CSP should contain default-src directive, got: {}",
+        csp
+    );
+
+    let xcto = response
+        .headers()
+        .get("x-content-type-options")
+        .expect("Missing X-Content-Type-Options header")
+        .to_str()
+        .unwrap();
+    assert_eq!(xcto, "nosniff");
+
+    let xfo = response
+        .headers()
+        .get("x-frame-options")
+        .expect("Missing X-Frame-Options header")
+        .to_str()
+        .unwrap();
+    assert_eq!(xfo, "DENY");
+
+    let rp = response
+        .headers()
+        .get("referrer-policy")
+        .expect("Missing Referrer-Policy header")
+        .to_str()
+        .unwrap();
+    assert_eq!(rp, "strict-origin-when-cross-origin");
+}
+
+#[tokio::test]
+async fn test_get_root_with_accept_json_returns_json() {
+    let (addr, _state) = start_test_server().await;
+    let client = Client::new();
+
+    let response = client
+        .get(format!("http://{}/", addr))
+        .header("accept", "application/json")
+        .send()
+        .await
+        .expect("GET / with Accept: application/json failed");
+
+    assert_eq!(response.status(), 200);
+
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .expect("Missing Content-Type header")
+        .to_str()
+        .unwrap();
+    assert!(
+        content_type.contains("application/json"),
+        "Expected application/json, got: {}",
+        content_type
+    );
+
+    let body: Value = response.json().await.expect("Failed to parse JSON body");
+    assert_eq!(body["name"], "Hook0 Play");
+    assert!(body["description"].is_string());
+    assert!(body["docs"].is_string());
+    assert!(body["ws"].is_string());
+}
+
+#[tokio::test]
+async fn test_get_root_contains_seo_meta_tags() {
+    let (addr, _state) = start_test_server().await;
+    let client = Client::new();
+
+    let response = client
+        .get(format!("http://{}/", addr))
+        .send()
+        .await
+        .expect("GET / request failed");
+
+    let body = response.text().await.expect("Failed to read body");
+
+    assert!(
+        body.contains("<title>Hook0 Play"),
+        "Page should contain <title>Hook0 Play"
+    );
+    assert!(
+        body.contains("name=\"description\""),
+        "Page should contain meta description tag"
+    );
+    assert!(
+        body.contains("rel=\"canonical\""),
+        "Page should contain canonical link"
+    );
+    assert!(
+        body.contains("og:title"),
+        "Page should contain og:title meta tag"
+    );
+}
+
+#[tokio::test]
+async fn test_get_root_contains_faqpage_jsonld() {
+    let (addr, _state) = start_test_server().await;
+    let client = Client::new();
+
+    let response = client
+        .get(format!("http://{}/", addr))
+        .send()
+        .await
+        .expect("GET / request failed");
+
+    let body = response.text().await.expect("Failed to read body");
+
+    // Check for FAQPage type (with or without space after colon)
+    assert!(
+        body.contains("\"@type\":\"FAQPage\"") || body.contains("\"@type\": \"FAQPage\""),
+        "Page should contain FAQPage JSON-LD schema"
+    );
+
+    // Count Question entries (at least 5 expected)
+    let question_count = body.matches("\"@type\":\"Question\"").count()
+        + body.matches("\"@type\": \"Question\"").count();
+    assert!(
+        question_count >= 5,
+        "Expected at least 5 FAQ questions, found {}",
+        question_count
+    );
+}
+
+#[tokio::test]
+async fn test_e2e_generate_token_post_webhook_verify_via_api() {
+    let (addr, _state) = start_test_server().await;
+    let client = Client::new();
+
+    // Generate a valid token
+    let token = relay::generate_token();
+    assert!(
+        token.starts_with("c_"),
+        "Token should start with c_ prefix, got: {}",
+        token
+    );
+    assert_eq!(
+        token.len(),
+        29,
+        "Token should be 29 chars (c_ + 27 base62), got: {} (len={})",
+        token,
+        token.len()
+    );
+
+    // POST a webhook
+    let payload = json!({
+        "event": "order.created",
+        "data": {
+            "order_id": "ORD-42",
+            "amount": 99.99
+        }
+    });
+
+    let post_response = client
+        .post(format!("http://{}/in/{}/", addr, token))
+        .header("content-type", "application/json")
+        .json(&payload)
+        .send()
+        .await
+        .expect("POST webhook failed");
+
+    assert_eq!(post_response.status(), 200);
+    let post_body: Value = post_response
+        .json()
+        .await
+        .expect("Failed to parse POST response");
+    assert_eq!(post_body["status"], "stored");
+
+    // Verify via API
+    let api_response = client
+        .get(format!("http://{}/api/tokens/{}/webhooks", addr, token))
+        .send()
+        .await
+        .expect("GET webhooks API failed");
+
+    assert_eq!(api_response.status(), 200);
+    let api_body: Value = api_response
+        .json()
+        .await
+        .expect("Failed to parse API response");
+
+    let webhooks = api_body["webhooks"]
+        .as_array()
+        .expect("webhooks should be an array");
+    assert!(
+        !webhooks.is_empty(),
+        "Should have at least 1 webhook stored"
+    );
+
+    // Verify the webhook contains our sent payload
+    let stored = &webhooks[0];
+    assert_eq!(stored["method"], "POST");
+
+    // The body is base64-encoded in the stored webhook; decode and verify
+    let stored_body_b64 = stored["body"].as_str().expect("body should be a string");
+    let decoded_bytes =
+        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, stored_body_b64)
+            .expect("Failed to decode base64 body");
+    let decoded_body: Value =
+        serde_json::from_slice(&decoded_bytes).expect("Failed to parse decoded body as JSON");
+    assert_eq!(decoded_body["event"], "order.created");
+    assert_eq!(decoded_body["data"]["order_id"], "ORD-42");
+}
+
+// ============================================================================
+// Content Negotiation Tests
+// ============================================================================
+
+#[tokio::test]
+async fn test_content_negotiation_html_accept_returns_html() {
+    let (addr, _state) = start_test_server().await;
+    let client = Client::new();
+
+    let response = client
+        .get(format!("http://{}/", addr))
+        .header("accept", "text/html")
+        .send()
+        .await
+        .expect("Request failed");
+
+    assert_eq!(response.status(), 200);
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .expect("Missing content-type header")
+        .to_str()
+        .unwrap();
+    assert!(
+        content_type.contains("text/html"),
+        "Expected text/html content-type, got: {}",
+        content_type
+    );
+    let body = response.text().await.unwrap();
+    assert!(
+        body.contains("<html") || body.contains("<!DOCTYPE") || body.contains("<!doctype"),
+        "Response should contain HTML markup"
+    );
+}
+
+#[tokio::test]
+async fn test_content_negotiation_json_accept_returns_json() {
+    let (addr, _state) = start_test_server().await;
+    let client = Client::new();
+
+    let response = client
+        .get(format!("http://{}/", addr))
+        .header("accept", "application/json")
+        .send()
+        .await
+        .expect("Request failed");
+
+    assert_eq!(response.status(), 200);
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .expect("Missing content-type header")
+        .to_str()
+        .unwrap();
+    assert!(
+        content_type.contains("application/json"),
+        "Expected application/json content-type, got: {}",
+        content_type
+    );
+    let body: Value = response
+        .json()
+        .await
+        .expect("Response should be valid JSON");
+    assert_eq!(body["name"], "Hook0 Play");
+    assert!(body["description"].is_string());
+    assert!(body["docs"].is_string());
+    assert!(body["ws"].is_string());
+}
+
+#[tokio::test]
+async fn test_content_negotiation_wildcard_accept_returns_html() {
+    let (addr, _state) = start_test_server().await;
+    let client = Client::new();
+
+    let response = client
+        .get(format!("http://{}/", addr))
+        .header("accept", "*/*")
+        .send()
+        .await
+        .expect("Request failed");
+
+    assert_eq!(response.status(), 200);
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .expect("Missing content-type header")
+        .to_str()
+        .unwrap();
+    assert!(
+        content_type.contains("text/html"),
+        "Wildcard accept should return HTML by default, got: {}",
+        content_type
+    );
+}
+
+#[tokio::test]
+async fn test_content_negotiation_both_html_and_json_prefers_html() {
+    let (addr, _state) = start_test_server().await;
+    let client = Client::new();
+
+    // When Accept includes both text/html and application/json, HTML wins
+    let response = client
+        .get(format!("http://{}/", addr))
+        .header("accept", "text/html, application/json")
+        .send()
+        .await
+        .expect("Request failed");
+
+    assert_eq!(response.status(), 200);
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .expect("Missing content-type header")
+        .to_str()
+        .unwrap();
+    assert!(
+        content_type.contains("text/html"),
+        "When both text/html and application/json are accepted, HTML should win, got: {}",
+        content_type
+    );
+}
+
+#[tokio::test]
+async fn test_content_negotiation_no_accept_header_returns_html() {
+    let (addr, _state) = start_test_server().await;
+
+    // Use hyper directly to avoid reqwest adding a default Accept header
+    let response = Client::builder()
+        .build()
+        .expect("Failed to build client")
+        .get(format!("http://{}/", addr))
+        .header("accept", "")
+        .send()
+        .await
+        .expect("Request failed");
+
+    assert_eq!(response.status(), 200);
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .expect("Missing content-type header")
+        .to_str()
+        .unwrap();
+    assert!(
+        content_type.contains("text/html"),
+        "No/empty accept header should default to HTML, got: {}",
+        content_type
+    );
 }

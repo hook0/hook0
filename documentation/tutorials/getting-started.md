@@ -139,6 +139,10 @@ For this tutorial, use [webhook.site](https://webhook.site) to create a test end
 1. **Visit [webhook.site](https://webhook.site)**
 2. **Copy your unique URL** (e.g., `https://webhook.site/abc123`)
 
+:::tip Test webhooks instantly
+Use [Hook0 Play](https://play.hook0.com) to generate a webhook URL in one click — no signup required. Paste the URL as your subscription endpoint to see events arrive in real-time.
+:::
+
 ### Create the Subscription
 
 ```bash

@@ -16,7 +16,7 @@ use tracing::{error, info, warn};
 use crate::audit;
 use crate::relay::{is_valid_token, ClientMessage, ServerMessage};
 use crate::sanitize;
-use crate::storage::StoredResponse;
+use crate::storage::{StoredResponse, WebhookStorageBackend};
 use crate::AppState;
 
 /// WebSocket upgrade handler for CLI connections
@@ -205,7 +205,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, client_ip: Strin
                 }
 
                 // Check if token is already in use
-                if state.storage.is_connected(&token) {
+                if state.storage.is_connected(&token).await {
                     let error =
                         ServerMessage::error("token_in_use", "This token is already connected");
                     let _ = tx
@@ -216,7 +216,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, client_ip: Strin
 
                 // Register the connection
                 state.connections.insert(token.clone(), tx.clone());
-                state.storage.set_connected(&token, Some(client_ip.clone()));
+                state
+                    .storage
+                    .set_connected(&token, Some(client_ip.clone()))
+                    .await;
                 connected_token = Some(token.clone());
                 handshake_completed = true;
 
@@ -295,7 +298,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, client_ip: Strin
 
                     state
                         .storage
-                        .update_webhook_response(token, &data.id, response);
+                        .update_webhook_response(token, &data.id, response)
+                        .await;
                 }
             }
 
@@ -312,7 +316,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, client_ip: Strin
     if let Some(token) = connected_token {
         info!("Client disconnected: {}", token);
         state.connections.remove(&token);
-        state.storage.set_disconnected(&token);
+        state.storage.set_disconnected(&token).await;
     }
 
     // Unregister the connection (always, regardless of token)

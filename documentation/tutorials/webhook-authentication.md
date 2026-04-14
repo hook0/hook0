@@ -64,6 +64,10 @@ HMAC-SHA256(secret, timestamp + "." + header_names + "." + header_values + "." +
 
 Where `header_names` is the `h=` value and `header_values` is the values of those headers joined by `.`
 
+:::tip Inspect webhook signatures live
+Open [Hook0 Play](https://play.hook0.com) and send a signed webhook to see the exact headers and HMAC signature your endpoint will receive.
+:::
+
 ## Step 2: Basic Signature Verification
 
 ### Node.js Implementation

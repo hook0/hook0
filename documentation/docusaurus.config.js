@@ -62,7 +62,7 @@ const config = {
           ],
         },
         sitemap: {
-          ignorePatterns: ['/search', '/search/**', '/self-hosting/_dev-only-warning'],
+          ignorePatterns: ['/search', '/search/**', '/self-hosting/_dev-only-warning', '/CLAUDE'],
         },
         blog: false,
         theme: {
@@ -193,6 +193,12 @@ const config = {
             activeBaseRegex: "^/hook0/api(/.*)?$",
           },
           // Right side
+          {
+            href: "https://play.hook0.com",
+            label: "Play",
+            position: "right",
+            className: "navbar__item--no-external-icon",
+          },
           {
             href: "mailto:support@hook0.com",
             label: "Contact",

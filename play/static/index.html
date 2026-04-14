@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hook0 Play - Free Webhook Tester &amp; Inspector Online</title>
+<meta name="description" content="Free webhook tester online. Generate a unique URL instantly, inspect incoming HTTP requests in real-time. No signup required. Headers, body, method -- all visible.">
+<meta name="keywords" content="webhook tester, free webhook, webhook online, webhook inspector, webhook receiver, webhook debug, http request inspector">
+<link rel="canonical" href="https://play.hook0.com/">
+<meta property="og:title" content="Hook0 Play - Free Webhook Tester">
+<meta property="og:description" content="Generate a webhook URL instantly. Inspect headers, body, and method in real-time. No signup.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://play.hook0.com/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Hook0 Play - Free Webhook Tester">
+<meta name="twitter:description" content="Generate a webhook URL instantly. Inspect headers, body, and method in real-time. No signup.">
+<meta name="theme-color" content="#0f0f13">
+<link rel="icon" href="/favicon.ico">
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"FAQPage",
+  "mainEntity":[
+    {"@type":"Question","name":"What is a webhook tester?","acceptedAnswer":{"@type":"Answer","text":"A webhook tester gives you a unique HTTPS URL that captures incoming HTTP requests so you can inspect their headers, body, method, and query parameters in real-time. Use it to verify that Stripe, GitHub, Shopify, or any other service is sending the correct payload format before you write your production webhook handler."}},
+    {"@type":"Question","name":"Is Hook0 Play free?","acceptedAnswer":{"@type":"Answer","text":"Yes. Hook0 Play is completely free with no signup required. Generate a unique URL and start receiving webhooks instantly. The CLI tunnel for local testing is also free."}},
+    {"@type":"Question","name":"How long are webhooks stored?","acceptedAnswer":{"@type":"Answer","text":"Webhooks are stored for up to 24 hours. Each URL keeps up to 1,000 webhooks; the oldest are evicted first when the limit is reached."}},
+    {"@type":"Question","name":"Is my webhook data private?","acceptedAnswer":{"@type":"Answer","text":"Yes. Hook0 Play does not require an account and does not associate your webhook URL with any identity. Webhook data is stored server-side and automatically deleted after 24 hours. No client-side analytics are loaded on the page."}},
+    {"@type":"Question","name":"Can I test webhooks on localhost?","acceptedAnswer":{"@type":"Answer","text":"Yes. Install the Hook0 CLI and run hook0 play listen --forward http://localhost:3000/webhooks. All requests arriving at your Hook0 Play URL will be relayed to your local server in real-time."}},
+    {"@type":"Question","name":"What HTTP methods does Hook0 Play support?","acceptedAnswer":{"@type":"Answer","text":"All HTTP methods: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, and TRACE. Any request sent to your URL is captured regardless of method."}},
+    {"@type":"Question","name":"Can I self-host Hook0 Play?","acceptedAnswer":{"@type":"Answer","text":"Yes. Hook0 is open source (SSPL license). You can run the entire stack including Hook0 Play on your own infrastructure with Docker or Kubernetes."}}
+  ]
+}
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--color-bg-primary:#0f0f13;
+--color-bg-secondary:#18181f;
+--color-bg-tertiary:#1e1e28;
+--color-bg-elevated:#242432;
+--color-text-primary:#f9fafb;
+--color-text-secondary:#9ca3af;
+--color-text-tertiary:#6b7280;
+--color-border:#2e2e3a;
+--color-border-strong:#3e3e4e;
+--color-primary:#4ade80;
+--color-primary-hover:#86efac;
+--color-primary-light:#052e16;
+--color-danger:#f87171;
+--color-danger-hover:#fca5a5;
+--color-warning:#fbbf24;
+--color-info:#60a5fa;
+--color-success:#34d399;
+--color-link:#41c572;
+--method-get:#34d399;
+--method-post:#fbbf24;
+--method-put:#a78bfa;
+--method-patch:#f472b6;
+--method-delete:#f87171;
+--method-head:#9ca3af;
+--method-options:#9ca3af;
+--font-sans:'Inter Variable','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+--font-mono:'JetBrains Mono','Fira Code',ui-monospace,monospace;
+--radius-sm:4px;
+--radius-md:6px;
+--radius-lg:8px;
+--radius-xl:12px;
+--radius-full:9999px;
+--shadow-sm:0 1px 2px 0 rgb(0 0 0/.3);
+--shadow-md:0 4px 6px -1px rgb(0 0 0/.4),0 2px 4px -2px rgb(0 0 0/.3);
+--shadow-lg:0 10px 15px -3px rgb(0 0 0/.4),0 4px 6px -4px rgb(0 0 0/.3);
+}
+@media(prefers-color-scheme:light){
+:root:not([data-theme="dark"]){
+--color-bg-primary:#ffffff;
+--color-bg-secondary:#f9fafb;
+--color-bg-tertiary:#f3f4f6;
+--color-bg-elevated:#ffffff;
+--color-text-primary:#111827;
+--color-text-secondary:#6b7280;
+--color-text-tertiary:#9ca3af;
+--color-border:#e5e7eb;
+--color-border-strong:#d1d5db;
+--color-primary:#22c55e;
+--color-primary-hover:#16a34a;
+--color-danger:#dc2626;
+--color-warning:#d97706;
+--color-info:#2563eb;
+--color-success:#059669;
+--color-link:#22c55e;
+--shadow-sm:0 1px 2px 0 rgb(0 0 0/.05);
+--shadow-md:0 4px 6px -1px rgb(0 0 0/.1),0 2px 4px -2px rgb(0 0 0/.05);
+--shadow-lg:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.05);
+}
+}
+[data-theme="light"]{
+--color-bg-primary:#ffffff;
+--color-bg-secondary:#f9fafb;
+--color-bg-tertiary:#f3f4f6;
+--color-bg-elevated:#ffffff;
+--color-text-primary:#111827;
+--color-text-secondary:#6b7280;
+--color-text-tertiary:#9ca3af;
+--color-border:#e5e7eb;
+--color-border-strong:#d1d5db;
+--color-primary:#22c55e;
+--color-primary-hover:#16a34a;
+--color-danger:#dc2626;
+--color-warning:#d97706;
+--color-info:#2563eb;
+--color-success:#059669;
+--color-link:#22c55e;
+--shadow-sm:0 1px 2px 0 rgb(0 0 0/.05);
+--shadow-md:0 4px 6px -1px rgb(0 0 0/.1),0 2px 4px -2px rgb(0 0 0/.05);
+--shadow-lg:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.05);
+}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-family:var(--font-sans);background:var(--color-bg-primary);color:var(--color-text-primary);line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
+a{color:var(--color-link);text-decoration:none}
+a:hover{text-decoration:underline}
+code,pre,.mono{font-family:var(--font-mono)}
+button{font-family:inherit;cursor:pointer;border:none;background:transparent}
+*:focus-visible{outline:none;box-shadow:0 0 0 2px var(--color-bg-primary),0 0 0 4px var(--color-primary)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 16px;border-radius:var(--radius-lg);font-size:14px;font-weight:600;transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease,transform .15s ease;white-space:nowrap;min-height:36px;gap:6px}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--color-primary);color:#fff}
+.btn-primary:hover{background:var(--color-primary-hover);text-decoration:none}
+.btn-secondary{background:var(--color-bg-primary);border:1px solid var(--color-border);color:var(--color-text-primary)}
+.btn-secondary:hover{border-color:var(--color-border-strong);text-decoration:none}
+.btn-ghost{background:transparent;color:var(--color-text-secondary);padding:6px 10px}
+.btn-ghost:hover{color:var(--color-text-primary);background:var(--color-bg-tertiary);text-decoration:none}
+.btn-danger{background:var(--color-danger);color:#fff;padding:6px 12px;font-size:13px}
+.btn-danger:hover{background:var(--color-danger-hover);text-decoration:none}
+.btn-sm{padding:4px 10px;font-size:13px;min-height:28px}
+
+.site-header{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--color-border);background:var(--color-bg-secondary);flex-shrink:0}
+.site-header .logo{display:flex;align-items:center;gap:8px;color:var(--color-text-primary);text-decoration:none;font-weight:700;font-size:16px}
+.site-header .logo svg{width:28px;height:28px;flex-shrink:0}
+.site-header .logo span{opacity:.5;font-weight:400;margin-left:2px}
+.header-nav{display:flex;align-items:center;gap:4px}
+.header-nav a{color:var(--color-text-secondary);text-decoration:none;padding:6px 10px;border-radius:var(--radius-lg);font-size:14px;font-weight:500;transition:color .15s,background .15s}
+.header-nav a:hover{color:var(--color-text-primary);background:var(--color-bg-tertiary);text-decoration:none}
+.header-sep{width:1px;height:20px;background:var(--color-border);margin:0 4px;flex-shrink:0}
+.header-auth{display:flex;align-items:center;gap:6px}
+.header-auth .btn-ghost{color:var(--color-text-secondary);font-size:14px;font-weight:500}
+.header-auth .btn-cta{background:var(--color-primary);color:#fff;padding:6px 14px;border-radius:var(--radius-lg);font-size:14px;font-weight:600;transition:background .15s;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
+.header-auth .btn-cta:hover{background:var(--color-primary-hover);text-decoration:none}
+.header-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.mobile-menu-btn{display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:var(--radius-lg);background:transparent;color:var(--color-text-secondary);cursor:pointer;border:none;transition:color .15s,background .15s}
+.mobile-menu-btn:hover{color:var(--color-text-primary);background:var(--color-bg-tertiary)}
+.mobile-menu-btn span{display:flex;flex-direction:column;gap:4px;width:18px}
+.mobile-menu-btn span i{display:block;height:2px;background:currentColor;border-radius:1px}
+.mobile-menu{display:none;position:absolute;top:100%;right:0;left:0;background:var(--color-bg-secondary);border-bottom:1px solid var(--color-border);padding:12px 20px;z-index:50;box-shadow:var(--shadow-lg)}
+.mobile-menu.open{display:flex;flex-direction:column;gap:4px}
+.mobile-menu a,.mobile-menu .btn-ghost{display:block;padding:10px 12px;border-radius:var(--radius-lg);color:var(--color-text-secondary);text-decoration:none;font-size:14px;font-weight:500;transition:color .15s,background .15s}
+.mobile-menu a:hover,.mobile-menu .btn-ghost:hover{color:var(--color-text-primary);background:var(--color-bg-tertiary);text-decoration:none}
+.mobile-menu .btn-cta{display:block;text-align:center;background:var(--color-primary);color:#fff;padding:10px 14px;border-radius:var(--radius-lg);font-size:14px;font-weight:600;text-decoration:none;margin-top:4px;transition:background .15s}
+.mobile-menu .btn-cta:hover{background:var(--color-primary-hover);text-decoration:none}
+.mobile-menu .mobile-sep{height:1px;background:var(--color-border);margin:4px 0}
+@media(max-width:767px){
+.header-nav,.header-auth,.header-sep{display:none}
+.mobile-menu-btn{display:flex}
+}
+
+.conn-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-text-secondary);padding:4px 10px;border-radius:var(--radius-full);background:var(--color-bg-tertiary)}
+.conn-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.conn-dot.green{background:var(--color-success)}
+.conn-dot.red{background:var(--color-danger)}
+.conn-dot.yellow{background:var(--color-warning)}
+.conn-refresh{background:none;border:1px solid var(--color-border);color:var(--color-text-secondary);font-size:11px;padding:2px 8px;border-radius:var(--radius-sm);cursor:pointer;margin-left:4px}
+.conn-refresh:hover{color:var(--color-text-primary);border-color:var(--color-primary)}
+
+.url-section{padding:16px 20px;border-bottom:1px solid var(--color-border);background:var(--color-bg-secondary)}
+.url-label{font-size:13px;color:var(--color-text-secondary);margin-bottom:6px;font-weight:500}
+.url-card{display:flex;align-items:center;gap:8px;background:var(--color-bg-primary);border:1px solid var(--color-border);border-radius:var(--radius-xl);padding:10px 14px;box-shadow:var(--shadow-sm)}
+.url-text{flex:1;font-family:var(--font-mono);font-size:14px;color:var(--color-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:all}
+.url-hint{font-size:12px;color:var(--color-text-tertiary);margin-top:6px}
+.copy-feedback{color:var(--color-success);font-size:12px;font-weight:600;opacity:0;transition:opacity .2s}
+.copy-feedback.show{opacity:1}
+
+.counter-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;border-bottom:1px solid var(--color-border);background:var(--color-bg-tertiary);font-size:13px;color:var(--color-text-secondary)}
+
+.panels{display:flex;flex:1;overflow:hidden}
+.feed-panel{width:100%;overflow-y:auto;border-right:1px solid var(--color-border)}
+.detail-panel{display:none;width:0;overflow-y:auto;background:var(--color-bg-secondary)}
+@media(min-width:768px){
+.feed-panel{width:40%;min-width:300px}
+.detail-panel{display:block;width:60%;flex:1}
+}
+
+.feed-list{list-style:none}
+.feed-item{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--color-border);cursor:pointer;transition:background .1s,border-color .1s;border-left:3px solid transparent}
+.feed-item:hover{background:var(--color-bg-tertiary)}
+.feed-item.selected{background:var(--color-bg-tertiary);border-left-color:var(--color-primary)}
+.feed-item.pulse{animation:pulse-border .6s ease-out}
+@keyframes pulse-border{0%{border-left-color:var(--color-primary);background:var(--color-primary-light)}100%{border-left-color:transparent;background:transparent}}
+.method-badge{display:inline-block;padding:2px 6px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;font-family:var(--font-mono);color:#000;min-width:52px;text-align:center}
+.method-GET{background:var(--method-get)}
+.method-POST{background:var(--method-post)}
+.method-PUT{background:var(--method-put)}
+.method-PATCH{background:var(--method-patch)}
+.method-DELETE{background:var(--method-delete);color:#fff}
+.method-HEAD{background:var(--method-head)}
+.method-OPTIONS{background:var(--method-options)}
+.method-TRACE{background:var(--method-head)}
+.feed-path{flex:1;font-family:var(--font-mono);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-primary)}
+.feed-meta{font-size:12px;color:var(--color-text-tertiary);white-space:nowrap;display:flex;gap:8px;align-items:center}
+.feed-size{color:var(--color-text-tertiary)}
+
+.empty-state{padding:40px 20px;text-align:center;color:var(--color-text-secondary)}
+.empty-state h3{font-size:16px;color:var(--color-text-primary);margin-bottom:8px}
+.empty-state p{font-size:14px;margin-bottom:16px;max-width:460px;margin-left:auto;margin-right:auto}
+.empty-state pre{text-align:left;background:var(--color-bg-tertiary);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:12px 16px;font-size:13px;overflow-x:auto;max-width:520px;margin:0 auto;color:var(--color-text-primary);white-space:pre-wrap;word-break:break-all}
+.empty-state .cli-promo{margin-top:24px;padding:16px;background:var(--color-bg-tertiary);border:1px solid var(--color-border);border-radius:var(--radius-lg);max-width:520px;margin-left:auto;margin-right:auto;text-align:left}
+.empty-state .cli-promo h4{font-size:13px;font-weight:600;color:var(--color-text-primary);margin-bottom:6px}
+.empty-state .cli-promo a{font-size:13px}
+
+.detail-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--color-text-tertiary);font-size:14px;padding:20px;text-align:center}
+.detail-content{padding:20px}
+.detail-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px}
+.detail-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.detail-path{font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--color-text-primary);word-break:break-all}
+.detail-time{font-size:12px;color:var(--color-text-tertiary);margin-top:4px}
+.detail-tabs{display:flex;gap:0;border-bottom:1px solid var(--color-border);margin-bottom:16px}
+.detail-tab{padding:8px 16px;font-size:13px;font-weight:500;color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;background:none}
+.detail-tab:hover{color:var(--color-text-primary)}
+.detail-tab.active{color:var(--color-primary);border-bottom-color:var(--color-primary)}
+.detail-section{margin-bottom:20px}
+.detail-section h4{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-tertiary);margin-bottom:8px}
+.headers-table{width:100%;border-collapse:collapse;font-size:13px;font-family:var(--font-mono)}
+.headers-table td{padding:4px 8px;border-bottom:1px solid var(--color-border);vertical-align:top}
+.headers-table td:first-child{color:var(--color-info);white-space:nowrap;width:1%;padding-right:16px}
+.headers-table td:last-child{color:var(--color-text-primary);word-break:break-all}
+.body-display{background:var(--color-bg-tertiary);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:12px;overflow-x:auto;font-size:13px;line-height:1.5}
+.body-display pre{white-space:pre-wrap;word-break:break-all;color:var(--color-text-primary);margin:0}
+.body-note{font-size:12px;color:var(--color-text-tertiary);margin-top:6px}
+.json-key{color:var(--color-info)}
+.json-str{color:var(--color-success)}
+.json-num{color:var(--color-warning)}
+.json-bool{color:var(--color-danger)}
+.json-null{color:var(--color-text-tertiary)}
+
+.upsell{padding:10px 20px;background:var(--color-bg-tertiary);border-top:1px solid var(--color-border);font-size:13px;color:var(--color-text-secondary);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.upsell strong{color:var(--color-text-primary)}
+.upsell a{color:var(--color-link);font-weight:600}
+.upsell .dismiss{margin-left:auto;color:var(--color-text-tertiary);font-size:18px;line-height:1;padding:2px 6px;border-radius:var(--radius-sm)}
+.upsell .dismiss:hover{color:var(--color-text-primary);background:var(--color-bg-elevated)}
+
+.seo-content{max-width:800px;margin:0 auto;padding:48px 20px}
+.seo-content h2{font-size:24px;font-weight:700;color:var(--color-text-primary);margin:40px 0 16px;line-height:1.3}
+.seo-content h2:first-child{margin-top:0}
+.seo-content p{font-size:15px;color:var(--color-text-secondary);margin-bottom:12px;line-height:1.7}
+.seo-content ul,.seo-content ol{margin:0 0 12px 20px;color:var(--color-text-secondary);font-size:15px;line-height:1.7}
+.seo-content li{margin-bottom:4px}
+.seo-content a{color:var(--color-link)}
+.seo-content code{background:var(--color-bg-tertiary);padding:2px 6px;border-radius:var(--radius-sm);font-size:13px}
+.seo-content pre{background:var(--color-bg-tertiary);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:12px 16px;margin:12px 0;overflow-x:auto;font-size:13px;color:var(--color-text-primary)}
+.seo-content table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+.seo-content th,.seo-content td{padding:8px 12px;border:1px solid var(--color-border);text-align:left}
+.seo-content th{background:var(--color-bg-tertiary);font-weight:600;color:var(--color-text-primary)}
+.seo-content td{color:var(--color-text-secondary)}
+.seo-content details{margin:8px 0;background:var(--color-bg-secondary);border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden}
+.seo-content summary{padding:12px 16px;font-weight:600;color:var(--color-text-primary);cursor:pointer;font-size:15px}
+.seo-content details>div{padding:0 16px 12px}
+
+.site-footer{border-top:1px solid var(--color-border);padding:40px 20px 24px;background:var(--color-bg-secondary);font-size:13px;color:var(--color-text-tertiary)}
+.footer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;max-width:800px;margin:0 auto 24px}
+@media(max-width:600px){.footer-grid{grid-template-columns:1fr;gap:24px}}
+.footer-col h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-secondary);margin-bottom:10px}
+.footer-col a{display:block;color:var(--color-text-secondary);text-decoration:none;padding:3px 0;font-size:13px;transition:color .15s}
+.footer-col a:hover{color:var(--color-text-primary);text-decoration:none}
+.footer-bottom{border-top:1px solid var(--color-border);padding-top:16px;text-align:center;color:var(--color-text-tertiary);font-size:13px;max-width:800px;margin:0 auto}
+.footer-bottom a{color:var(--color-text-secondary)}
+.footer-bottom a:hover{color:var(--color-text-primary)}
+
+.kbd{display:inline-block;padding:1px 5px;border:1px solid var(--color-border);border-radius:var(--radius-sm);font-size:11px;font-family:var(--font-mono);background:var(--color-bg-tertiary);color:var(--color-text-tertiary);line-height:1.4}
+
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--color-bg-primary)}
+::-webkit-scrollbar-thumb{background:var(--color-bg-elevated);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--color-border-strong)}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+</style>
+</head>
+<body>
+
+<header class="site-header" style="position:relative">
+  <a href="https://www.hook0.com" class="logo" aria-label="Hook0 home" rel="noopener">
+    <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="512" height="512" rx="96" fill="#22c55e"/>
+      <path d="M256 96c-66.3 0-120 53.7-120 120 0 46.4 26.3 86.6 64.8 106.6L200 416h112l-0.8-93.4C349.7 302.6 376 262.4 376 216c0-66.3-53.7-120-120-120zm0 184c-35.3 0-64-28.7-64-64s28.7-64 64-64 64 28.7 64 64-28.7 64-64 64z" fill="#fff"/>
+    </svg>
+    Hook0 <span>Play</span>
+  </a>
+  <div class="header-sep"></div>
+  <nav class="header-nav" data-test="header-nav">
+    <a href="https://documentation.hook0.com" rel="noopener">Docs</a>
+    <a href="https://www.hook0.com/#pricing" rel="noopener">Pricing</a>
+  </nav>
+  <div class="header-sep"></div>
+  <div class="header-auth" data-test="header-auth">
+    <a href="https://app.hook0.com/" class="btn btn-ghost btn-sm" rel="noopener" data-test="login-link">Login</a>
+    <a href="https://app.hook0.com/register" class="btn-cta" rel="noopener" data-test="register-btn">Get Started &rarr;</a>
+  </div>
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open navigation menu" data-test="mobile-menu-btn">
+    <span><i></i><i></i><i></i></span>
+  </button>
+  <div class="mobile-menu" id="mobileMenu" data-test="mobile-menu">
+    <a href="https://documentation.hook0.com" rel="noopener">Docs</a>
+    <a href="https://www.hook0.com/#pricing" rel="noopener">Pricing</a>
+    <div class="mobile-sep"></div>
+    <a href="https://app.hook0.com/" rel="noopener" data-test="mobile-login-link">Login</a>
+    <a href="https://app.hook0.com/register" class="btn-cta" rel="noopener" data-test="mobile-register-btn">Get Started &rarr;</a>
+  </div>
+  <div class="header-actions">
+    <div class="conn-status" id="connStatus" role="alert" aria-live="polite" data-test="connection-status">
+      <span class="conn-dot" id="connDot"></span>
+      <span id="connLabel">Connecting</span>
+    </div>
+    <button class="btn btn-primary btn-sm" id="btnNew" aria-label="Generate new webhook URL" data-test="new-url-btn">New URL</button>
+    <button class="btn-ghost btn-sm" id="btnTheme" aria-label="Toggle light/dark theme" style="display:inline-flex;align-items:center;padding:6px" data-test="theme-toggle-btn">
+      <svg id="iconMoon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg id="iconSun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="url-section">
+    <div class="url-label">Your webhook URL</div>
+    <div class="url-card">
+      <span class="url-text" id="webhookUrl" data-test="webhook-url"></span>
+      <span class="copy-feedback" id="copyFeedback">Copied!</span>
+      <button class="btn btn-secondary btn-sm" id="btnCopy" aria-label="Copy webhook URL to clipboard" data-test="url-copy-btn">
+        <svg id="iconCopy" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg id="iconCheck" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;color:var(--color-success)"><polyline points="20 6 9 17 4 12"/></svg>
+        Copy
+      </button>
+    </div>
+    <div class="url-hint">Any HTTP request sent to this URL will appear below in real-time. Press <span class="kbd">c</span> to copy.</div>
+  </div>
+
+  <div class="counter-bar">
+    <span id="webhookCounter" data-test="webhook-counter">0 webhooks received</span>
+    <button class="btn btn-ghost btn-sm" id="btnClear" aria-label="Delete all webhooks" data-test="clear-all-btn">Clear all</button>
+  </div>
+
+  <div class="panels" id="panels">
+    <div class="feed-panel" id="feedPanel">
+      <ul class="feed-list" id="feedList" role="listbox" aria-label="Webhook feed" data-test="webhook-feed"></ul>
+      <div class="empty-state" id="emptyState" data-test="empty-state">
+        <h3>Waiting for webhooks</h3>
+        <p>Send any HTTP request to the URL above and it will appear here in real-time.</p>
+        <pre id="curlExample" data-test="curl-example"></pre>
+        <div class="cli-promo">
+          <h4>Test webhooks locally?</h4>
+          <p style="font-size:13px;color:var(--color-text-secondary);margin:4px 0 6px">Use the Hook0 CLI to tunnel webhooks to your machine:</p>
+          <pre id="cliExample" style="margin:0;padding:8px 10px;font-size:12px"></pre>
+          <p style="margin-top:8px"><a href="https://documentation.hook0.com/reference/sdk" rel="noopener">Install Hook0 CLI</a></p>
+        </div>
+      </div>
+    </div>
+    <div class="detail-panel" id="detailPanel" data-test="detail-panel">
+      <div class="detail-empty" id="detailEmpty">Select a webhook to inspect its details</div>
+      <div class="detail-content" id="detailContent" style="display:none"></div>
+    </div>
+  </div>
+</main>
+
+<div class="upsell" id="upsell" style="display:none" data-test="upsell-banner">
+  <strong>Need to SEND webhooks?</strong>
+  <span>Hook0 is an open-source webhook infrastructure for your app.</span>
+  <a href="https://www.hook0.com" rel="noopener">Try Hook0 free</a>
+  <button class="dismiss" id="btnDismissUpsell" aria-label="Dismiss banner" data-test="upsell-dismiss-btn">&times;</button>
+</div>
+
+<section class="seo-content" aria-label="Webhook testing guide" data-test="seo-content">
+
+<h2>What is a Webhook Tester?</h2>
+<p>A webhook tester gives you a temporary public HTTPS URL that captures every incoming HTTP request. When a third-party service fires a webhook, the tester records the method, headers, query parameters, and body so you can examine them in a structured view. It holds every request sent to that URL until you are ready to inspect it.</p>
+<p>Webhooks power most event-driven integrations. Stripe notifies on successful payments, GitHub on new commits, Shopify when an order ships. The catch: these services need a publicly routable URL, and during development your code runs on <code>localhost</code>. A webhook tester bridges that gap. Paste its URL into the provider's settings, trigger an event, and watch the payload land in real time. Check the Content-Type, verify the JSON structure matches what the docs promise, confirm HMAC signatures are present -- all before writing a single line of handler code.</p>
+<p>Hook0 Play is a webhook tester built for speed. No signup, no email confirmation, no paywall. The URL is ready the instant the page loads. Read more about webhook architecture in the <a href="https://documentation.hook0.com/explanation/what-is-hook0" rel="noopener">Hook0 documentation</a>.</p>
+
+<h2>How to Test Webhooks Online in 3 Steps</h2>
+<p>With Hook0 Play, it takes under a minute.</p>
+<ol>
+  <li><strong>Copy your unique URL.</strong> Open this page -- a fresh webhook URL is generated on load. No account, no form. Click the copy button or press <span class="kbd">c</span>.</li>
+  <li><strong>Paste it into your webhook provider.</strong> Go to the settings page of Stripe, GitHub, Shopify, or whatever service you are integrating with. Set your Hook0 Play URL as the webhook endpoint.</li>
+  <li><strong>Trigger an event and watch.</strong> Create a test payment, push a commit, or do whatever fires the webhook. The request shows up in the feed within milliseconds -- method, headers, and body included.</li>
+</ol>
+<p>No DNS setup, no port forwarding, no tunnel configuration. For local development workflows, pair the web tester with the <a href="https://documentation.hook0.com/tutorials/getting-started" rel="noopener">Hook0 CLI</a> to forward requests to your machine.</p>
+
+<h2>Why Hook0 Play? Free Webhook Testing with No Limits</h2>
+<p>Most webhook testing services lock useful features behind a paywall. Hook0 Play is completely free, open source, and self-hostable.</p>
+<table>
+  <thead><tr><th>Feature</th><th>Hook0 Play</th><th>webhook.site</th><th>RequestBin</th></tr></thead>
+  <tbody>
+    <tr><td>Instant URL, no signup</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+    <tr><td>Real-time feed (WebSocket)</td><td>Yes</td><td>Yes</td><td>Polling</td></tr>
+    <tr><td>Max stored webhooks (free)</td><td>1,000</td><td>50</td><td>20</td></tr>
+    <tr><td>Local tunnel (CLI)</td><td>Free</td><td>Paid</td><td>N/A</td></tr>
+    <tr><td>Open source</td><td>Yes (SSPL)</td><td>No</td><td>No</td></tr>
+    <tr><td>Self-hostable</td><td>Yes</td><td>No</td><td>No</td></tr>
+    <tr><td>Client-side tracking</td><td>None</td><td>Yes</td><td>Yes</td></tr>
+    <tr><td>Custom response (free)</td><td>Via CLI</td><td>Paid</td><td>Paid</td></tr>
+  </tbody>
+</table>
+<p>Hook0 Play stores up to 1,000 webhooks per URL for 24 hours. No captchas, no cookie banners, zero JavaScript analytics. Your webhook payloads stay between your browser and the server. The project is <a href="https://github.com/hook0/hook0" rel="noopener">open source</a> -- audit the code, contribute fixes, or run the entire stack on your own infrastructure with a single Docker Compose command.</p>
+<p>If you have been looking for a webhook.site alternative or a RequestBin alternative that does not track you or paywall basic features, this is it. Compare features in detail on the <a href="https://documentation.hook0.com/comparisons" rel="noopener">comparisons page</a>.</p>
+
+<h2>Test Webhooks Locally with the Hook0 CLI</h2>
+<p>The web UI captures webhooks on a public URL, but during development those payloads need to reach the server on your laptop. Tools like ngrok require signup and an auth token. The Hook0 CLI is purpose-built for webhook forwarding and does not require registration.</p>
+<pre>hook0 play listen --forward http://localhost:3000/webhooks</pre>
+<p>This connects to your Hook0 Play session and relays every incoming request to the specified local address. The request arrives at your local server with the original method, headers, and body intact. It shows up in your terminal, in the web UI, and your breakpoints fire in your IDE.</p>
+<p>The CLI also lets you control the status code and body returned to the webhook sender. Handy for testing retry logic: return a 500, watch how Stripe or GitHub retries, then switch to 200 and confirm the happy path.</p>
+<p>Install the CLI from the <a href="https://documentation.hook0.com/reference/sdk" rel="noopener">Hook0 documentation</a>. It runs on macOS, Linux, and Windows.</p>
+
+<h2>Supported Integrations</h2>
+<p>Hook0 Play works with anything that sends HTTP requests to a URL -- payment processors, version control platforms, e-commerce systems, messaging tools, monitoring services.</p>
+<p>Services people commonly test with Hook0 Play: <strong>Stripe</strong>, <strong>GitHub</strong>, <strong>Shopify</strong>, <strong>Slack</strong>, <strong>Twilio</strong>, <strong>Discord</strong>, <strong>Mailchimp</strong>, <strong>PayPal</strong>, <strong>Jira</strong>, <strong>Trello</strong>, <strong>SendGrid</strong>, <strong>PagerDuty</strong>, and <strong>Salesforce</strong>.</p>
+<p>Any HTTP method works -- POST, PUT, PATCH, DELETE, whatever. If you are building your own service and need to test the webhooks you send, the full <a href="https://documentation.hook0.com/tutorials/event-types-subscriptions" rel="noopener">Hook0 platform</a> handles event types, subscriptions, and delivery management.</p>
+
+<h2>Webhook Testing Questions</h2>
+<details data-test="faq-item"><summary>What is a webhook tester?</summary><div><p>A webhook tester gives you a unique HTTPS URL that captures incoming HTTP requests so you can inspect headers, body, method, and query parameters in real-time. It lets you verify that Stripe, GitHub, Shopify, or any other service sends the correct payload format before you write your production handler.</p></div></details>
+<details data-test="faq-item"><summary>Is Hook0 Play free?</summary><div><p>Yes. No signup, no limits. Open the page, get a URL, start receiving webhooks. The CLI tunnel for local forwarding is free too.</p></div></details>
+<details data-test="faq-item"><summary>How long are webhooks stored?</summary><div><p>Webhooks are stored for up to 24 hours. Each URL keeps up to 1,000 webhooks; the oldest are evicted first when the limit is reached.</p></div></details>
+<details data-test="faq-item"><summary>Is my webhook data private?</summary><div><p>Yes. There is no account, so no identity is tied to your webhook URL. Data is stored server-side and automatically deleted after 24 hours. The page loads zero client-side analytics.</p></div></details>
+<details data-test="faq-item"><summary>Can I test webhooks on localhost?</summary><div><p>Yes. Install the Hook0 CLI and run <code>hook0 play listen --forward http://localhost:3000/webhooks</code>. Every request hitting your Hook0 Play URL gets relayed to your local server in real-time. See the <a href="https://documentation.hook0.com/reference/sdk" rel="noopener">CLI documentation</a> to get started.</p></div></details>
+<details data-test="faq-item"><summary>What HTTP methods does Hook0 Play support?</summary><div><p>All HTTP methods: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, and TRACE. Any request sent to your URL is captured regardless of method.</p></div></details>
+<details data-test="faq-item"><summary>Can I self-host Hook0 Play?</summary><div><p>Yes. Hook0 is open source (SSPL license). You can run the entire stack including Hook0 Play on your own infrastructure with Docker or Kubernetes. See the <a href="https://documentation.hook0.com/self-hosting" rel="noopener">self-hosting documentation</a>.</p></div></details>
+
+<h2>Go Further with Hook0</h2>
+<p>Hook0 Play is the <em>receive</em> side of webhooks. When you need to <em>send</em> webhooks from your own application, the full Hook0 platform handles routing, retries, event types, and delivery guarantees -- so you can skip building that infrastructure yourself.</p>
+<ul>
+  <li><a href="https://www.hook0.com" rel="noopener"><strong>Try Hook0 free</strong></a> &mdash; webhook infrastructure for your app</li>
+  <li><a href="https://documentation.hook0.com" rel="noopener"><strong>Read the docs</strong></a> &mdash; guides, API reference, and tutorials</li>
+  <li><a href="https://github.com/hook0/hook0" rel="noopener"><strong>Star on GitHub</strong></a> &mdash; open source, SSPL licensed</li>
+</ul>
+
+</section>
+
+<footer class="site-footer">
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h4>Product</h4>
+      <a href="https://www.hook0.com" rel="noopener">hook0.com</a>
+      <a href="https://www.hook0.com/#pricing" rel="noopener">Pricing</a>
+      <a href="https://documentation.hook0.com" rel="noopener">Documentation</a>
+      <a href="https://documentation.hook0.com/api" rel="noopener">API Reference</a>
+      <a href="https://status.hook0.com" rel="noopener">Status</a>
+    </div>
+    <div class="footer-col">
+      <h4>Community</h4>
+      <a href="https://github.com/hook0/hook0" rel="noopener">GitHub</a>
+      <a href="https://www.hook0.com/community" rel="noopener">Discord</a>
+      <a href="https://twitter.com/hook0_" rel="noopener">Twitter/X</a>
+      <a href="https://www.linkedin.com/company/hook0" rel="noopener">LinkedIn</a>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <a href="https://www.hook0.com/privacy-policy" rel="noopener">Privacy Policy</a>
+      <a href="https://www.hook0.com/terms" rel="noopener">Terms of Service</a>
+      <a href="mailto:support@hook0.com">Contact</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>Hook0 Play &mdash; Free webhook tester by <a href="https://www.hook0.com" rel="noopener">Hook0</a>. Open source, no tracking.</p>
+  </div>
+</footer>
+
+<noscript>
+<style>.url-section,.counter-bar,.panels,.upsell{display:none!important}.seo-content{padding-top:20px}</style>
+<div style="padding:20px;max-width:800px;margin:0 auto">
+<h1>Hook0 Play - Free Webhook Tester &amp; Inspector Online</h1>
+<p>Hook0 Play requires JavaScript to generate webhook URLs and display incoming requests in real-time. Please enable JavaScript in your browser to use the interactive webhook tester.</p>
+<p>In the meantime, read about webhook testing below or visit <a href="https://www.hook0.com">hook0.com</a> to learn more.</p>
+</div>
+</noscript>
+
+<script>
+(function(){
+"use strict";
+
+var BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+var TOKEN_LEN = 27;
+var PING_INTERVAL = 30000;
+var POLL_INTERVAL = 2000;
+var RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 16000, 30000];
+
+var state = {
+  token: "",
+  webhooks: [],
+  webhookMap: {},
+  selectedId: null,
+  selectedIndex: -1,
+  ws: null,
+  wsConnected: false,
+  polling: false,
+  pollTimer: null,
+  pingTimer: null,
+  reconnectAttempt: 0,
+  reconnectTimer: null,
+  copyTimer: null
+};
+
+var dom = {
+  webhookUrl: document.getElementById("webhookUrl"),
+  copyFeedback: document.getElementById("copyFeedback"),
+  btnCopy: document.getElementById("btnCopy"),
+  iconCopy: document.getElementById("iconCopy"),
+  iconCheck: document.getElementById("iconCheck"),
+  btnNew: document.getElementById("btnNew"),
+  btnClear: document.getElementById("btnClear"),
+  btnTheme: document.getElementById("btnTheme"),
+  iconMoon: document.getElementById("iconMoon"),
+  iconSun: document.getElementById("iconSun"),
+  connStatus: document.getElementById("connStatus"),
+  connDot: document.getElementById("connDot"),
+  connLabel: document.getElementById("connLabel"),
+  feedList: document.getElementById("feedList"),
+  emptyState: document.getElementById("emptyState"),
+  curlExample: document.getElementById("curlExample"),
+  cliExample: document.getElementById("cliExample"),
+  webhookCounter: document.getElementById("webhookCounter"),
+  detailPanel: document.getElementById("detailPanel"),
+  detailEmpty: document.getElementById("detailEmpty"),
+  detailContent: document.getElementById("detailContent"),
+  upsell: document.getElementById("upsell"),
+  btnDismissUpsell: document.getElementById("btnDismissUpsell")
+};
+
+function generateToken() {
+  var arr = new Uint8Array(TOKEN_LEN);
+  crypto.getRandomValues(arr);
+  var t = "c_";
+  for (var i = 0; i < TOKEN_LEN; i++) t += BASE62[arr[i] % 62];
+  return t;
+}
+
+function getBaseUrl() {
+  return location.protocol + "//" + location.host;
+}
+
+function getWebhookUrl(token) {
+  return getBaseUrl() + "/in/" + token + "/";
+}
+
+function getWsUrl() {
+  var proto = location.protocol === "https:" ? "wss:" : "ws:";
+  return proto + "//" + location.host + "/ws";
+}
+
+function timeAgo(ts) {
+  if (!ts) return "";
+  var diff = (Date.now() - new Date(ts).getTime()) / 1000;
+  if (diff < 5) return "just now";
+  if (diff < 60) return Math.floor(diff) + "s ago";
+  if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+  if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+  return Math.floor(diff / 86400) + "d ago";
+}
+
+function formatBytes(b) {
+  if (b < 1024) return b + " B";
+  if (b < 1048576) return (b / 1024).toFixed(1) + " KB";
+  return (b / 1048576).toFixed(1) + " MB";
+}
+
+function escapeHtml(str) {
+  var d = document.createElement("div");
+  d.appendChild(document.createTextNode(str));
+  return d.innerHTML;
+}
+
+function highlightJson(str) {
+  return str.replace(/("(?:\\.|[^"\\])*")\s*:/g, function(m, k) { return '<span class="json-key">' + k + '</span>:'; })
+    .replace(/:\s*("(?:\\.|[^"\\])*")/g, function(m, v) { return ': <span class="json-str">' + v + '</span>'; })
+    .replace(/:\s*(-?\d+\.?\d*(?:[eE][+-]?\d+)?)/g, function(m, v) { return ': <span class="json-num">' + v + '</span>'; })
+    .replace(/:\s*(true|false)/g, function(m, v) { return ': <span class="json-bool">' + v + '</span>'; })
+    .replace(/:\s*(null)/g, function(m, v) { return ': <span class="json-null">' + v + '</span>'; });
+}
+
+function decodeBody(b64) {
+  if (!b64) return "";
+  try {
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder("utf-8").decode(bytes);
+  } catch(e) {
+    try { return atob(b64); } catch(e2) { return ""; }
+  }
+}
+
+function bodySize(b64) {
+  if (!b64) return 0;
+  try { return atob(b64).length; } catch(e) { return 0; }
+}
+
+function getContentType(headers) {
+  if (!headers) return "";
+  var keys = Object.keys(headers);
+  for (var i = 0; i < keys.length; i++) {
+    if (keys[i].toLowerCase() === "content-type") return headers[keys[i]];
+  }
+  return "";
+}
+
+/* Theme */
+function applyTheme(theme) {
+  if (theme === "light") {
+    document.documentElement.setAttribute("data-theme", "light");
+    dom.iconMoon.style.display = "none";
+    dom.iconSun.style.display = "";
+  } else {
+    document.documentElement.setAttribute("data-theme", "dark");
+    dom.iconMoon.style.display = "";
+    dom.iconSun.style.display = "none";
+  }
+}
+
+function initTheme() {
+  var saved = localStorage.getItem("hook0play_theme");
+  if (saved) applyTheme(saved);
+}
+
+dom.btnTheme.addEventListener("click", function() {
+  var current = document.documentElement.getAttribute("data-theme");
+  var next = current === "light" ? "dark" : "light";
+  localStorage.setItem("hook0play_theme", next);
+  applyTheme(next);
+});
+
+/* Connection status */
+function setConnStatus(color, label, showRefresh) {
+  dom.connDot.className = "conn-dot " + color;
+  dom.connLabel.textContent = label;
+  var existing = dom.connStatus.querySelector(".conn-refresh");
+  if (existing) existing.remove();
+  if (showRefresh) {
+    var btn = document.createElement("button");
+    btn.className = "conn-refresh";
+    btn.textContent = "Retry now";
+    btn.setAttribute("data-test", "retry-btn");
+    btn.addEventListener("click", function() {
+      clearTimeout(state.reconnectTimer);
+      state.reconnectAttempt = 0;
+      connectWs();
+    });
+    dom.connStatus.appendChild(btn);
+  }
+}
+
+/* URL display */
+function updateUrlDisplay() {
+  var url = getWebhookUrl(state.token);
+  dom.webhookUrl.textContent = url;
+  dom.curlExample.textContent = "curl -X POST " + url + " \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"hello\": \"world\"}'";
+  dom.cliExample.textContent = "hook0 play listen --forward http://localhost:3000/webhooks";
+}
+
+/* Copy */
+function copyUrl() {
+  var url = getWebhookUrl(state.token);
+  navigator.clipboard.writeText(url).then(function() {
+    dom.iconCopy.style.display = "none";
+    dom.iconCheck.style.display = "";
+    dom.copyFeedback.classList.add("show");
+    clearTimeout(state.copyTimer);
+    state.copyTimer = setTimeout(function() {
+      dom.iconCopy.style.display = "";
+      dom.iconCheck.style.display = "none";
+      dom.copyFeedback.classList.remove("show");
+    }, 2000);
+  });
+}
+
+dom.btnCopy.addEventListener("click", copyUrl);
+
+/* Counter */
+function updateCounter() {
+  var n = state.webhooks.length;
+  dom.webhookCounter.textContent = n + " webhook" + (n !== 1 ? "s" : "") + " received";
+}
+
+/* Feed rendering */
+function renderFeed() {
+  dom.feedList.innerHTML = "";
+  dom.emptyState.style.display = state.webhooks.length === 0 ? "" : "none";
+  for (var i = 0; i < state.webhooks.length; i++) {
+    var wh = state.webhooks[i];
+    var li = document.createElement("li");
+    li.className = "feed-item" + (state.selectedId === wh.id ? " selected" : "");
+    li.setAttribute("role", "option");
+    li.setAttribute("aria-selected", state.selectedId === wh.id ? "true" : "false");
+    li.setAttribute("data-id", wh.id);
+    li.setAttribute("tabindex", "0");
+    li.setAttribute("data-test", "webhook-entry");
+
+    var badge = document.createElement("span");
+    badge.className = "method-badge method-" + (wh.method || "GET");
+    badge.textContent = wh.method || "GET";
+
+    var pathEl = document.createElement("span");
+    pathEl.className = "feed-path";
+    pathEl.textContent = (wh.path || "/") + (wh.query ? "?" + wh.query : "");
+
+    var meta = document.createElement("span");
+    meta.className = "feed-meta";
+
+    var size = document.createElement("span");
+    size.className = "feed-size";
+    size.textContent = formatBytes(bodySize(wh.body));
+
+    var time = document.createElement("span");
+    time.textContent = timeAgo(wh.timestamp || wh.created_at);
+
+    meta.appendChild(size);
+    meta.appendChild(time);
+    li.appendChild(badge);
+    li.appendChild(pathEl);
+    li.appendChild(meta);
+
+    li.addEventListener("click", (function(id) {
+      return function() { selectWebhook(id); };
+    })(wh.id));
+
+    dom.feedList.appendChild(li);
+  }
+  updateCounter();
+}
+
+function addWebhookToFeed(wh, pulse) {
+  if (state.webhookMap[wh.id]) return;
+  state.webhookMap[wh.id] = wh;
+  state.webhooks.unshift(wh);
+  renderFeed();
+  if (pulse && dom.feedList.firstChild) {
+    dom.feedList.firstChild.classList.add("pulse");
+  }
+}
+
+/* Detail rendering */
+function selectWebhook(id) {
+  state.selectedId = id;
+  var wh = state.webhookMap[id];
+  if (!wh) return;
+
+  for (var i = 0; i < state.webhooks.length; i++) {
+    if (state.webhooks[i].id === id) { state.selectedIndex = i; break; }
+  }
+
+  var items = dom.feedList.querySelectorAll(".feed-item");
+  for (var j = 0; j < items.length; j++) {
+    var sel = items[j].getAttribute("data-id") === id;
+    items[j].classList.toggle("selected", sel);
+    items[j].setAttribute("aria-selected", sel ? "true" : "false");
+  }
+
+  renderDetail(wh, "request");
+
+  if (window.innerWidth < 768) {
+    dom.detailPanel.style.display = "block";
+    dom.detailPanel.style.width = "100%";
+    dom.detailPanel.style.position = "fixed";
+    dom.detailPanel.style.top = "0";
+    dom.detailPanel.style.left = "0";
+    dom.detailPanel.style.right = "0";
+    dom.detailPanel.style.bottom = "0";
+    dom.detailPanel.style.zIndex = "100";
+    dom.detailPanel.style.background = "var(--color-bg-primary)";
+    dom.detailPanel.style.overflowY = "auto";
+  }
+}
+
+function closeDetail() {
+  state.selectedId = null;
+  state.selectedIndex = -1;
+  dom.detailEmpty.style.display = "";
+  dom.detailContent.style.display = "none";
+  var items = dom.feedList.querySelectorAll(".feed-item");
+  for (var j = 0; j < items.length; j++) {
+    items[j].classList.remove("selected");
+    items[j].setAttribute("aria-selected", "false");
+  }
+  if (window.innerWidth < 768) {
+    dom.detailPanel.style.display = "none";
+    dom.detailPanel.style.position = "";
+    dom.detailPanel.style.zIndex = "";
+    dom.detailPanel.style.width = "0";
+  }
+}
+
+function renderDetail(wh, tab) {
+  dom.detailEmpty.style.display = "none";
+  dom.detailContent.style.display = "";
+  var ct = getContentType(wh.headers);
+  var decoded = decodeBody(wh.body);
+  var size = bodySize(wh.body);
+  var ts = wh.timestamp || wh.created_at || "";
+
+  var html = '<div class="detail-header">';
+  html += '<div><div class="detail-title"><span class="method-badge method-' + escapeHtml(wh.method || "GET") + '">' + escapeHtml(wh.method || "GET") + '</span>';
+  html += '<span class="detail-path">' + escapeHtml((wh.path || "/") + (wh.query ? "?" + wh.query : "")) + '</span></div>';
+  if (ts) html += '<div class="detail-time">' + escapeHtml(ts) + ' &mdash; ' + escapeHtml(timeAgo(ts)) + '</div>';
+  html += '</div>';
+  html += '<div style="display:flex;gap:6px;flex-shrink:0">';
+  if (window.innerWidth < 768) {
+    html += '<button class="btn btn-ghost btn-sm" data-action="close" aria-label="Close detail view" data-test="detail-close-btn">&#x2715; Close</button>';
+  }
+  html += '<button class="btn btn-danger btn-sm" data-action="delete" data-id="' + escapeHtml(wh.id) + '" aria-label="Delete this webhook" data-test="webhook-delete-btn">Delete</button>';
+  html += '</div></div>';
+
+  html += '<div class="detail-tabs">';
+  html += '<button class="detail-tab' + (tab === "request" ? " active" : "") + '" data-tab="request" data-test="tab-request">Request</button>';
+  html += '<button class="detail-tab' + (tab === "raw" ? " active" : "") + '" data-tab="raw" data-test="tab-raw">Raw</button>';
+  html += '</div>';
+
+  if (tab === "request") {
+    if (wh.headers && Object.keys(wh.headers).length > 0) {
+      html += '<div class="detail-section"><h4>Headers</h4><table class="headers-table" data-test="headers-table">';
+      var keys = Object.keys(wh.headers).sort();
+      for (var i = 0; i < keys.length; i++) {
+        html += '<tr><td>' + escapeHtml(keys[i]) + '</td><td>' + escapeHtml(wh.headers[keys[i]]) + '</td></tr>';
+      }
+      html += '</table></div>';
+    }
+
+    if (decoded) {
+      html += '<div class="detail-section"><h4>Body';
+      if (ct) html += ' <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;color:var(--color-text-tertiary)">(' + escapeHtml(ct) + ')</span>';
+      html += '</h4>';
+      html += '<div class="body-display" data-test="body-display"><pre>';
+
+      if (ct.indexOf("json") !== -1) {
+        try {
+          var pretty = JSON.stringify(JSON.parse(decoded), null, 2);
+          html += highlightJson(escapeHtml(pretty));
+        } catch(e) {
+          html += escapeHtml(decoded);
+        }
+      } else if (ct.indexOf("x-www-form-urlencoded") !== -1) {
+        html += '</pre><table class="headers-table">';
+        var params = decoded.split("&");
+        for (var p = 0; p < params.length; p++) {
+          var parts = params[p].split("=");
+          html += '<tr><td>' + escapeHtml(decodeURIComponent(parts[0] || "")) + '</td><td>' + escapeHtml(decodeURIComponent(parts.slice(1).join("=") || "")) + '</td></tr>';
+        }
+        html += '</table><pre style="display:none">';
+      } else if (ct.indexOf("xml") !== -1 || ct.indexOf("html") !== -1) {
+        html += escapeHtml(decoded);
+      } else {
+        var isBinary = false;
+        for (var bi = 0; bi < decoded.length && bi < 512; bi++) {
+          var code = decoded.charCodeAt(bi);
+          if (code < 32 && code !== 9 && code !== 10 && code !== 13) { isBinary = true; break; }
+        }
+        if (isBinary) {
+          html += escapeHtml(wh.body ? wh.body.substring(0, 1365) : "");
+          html += '</pre><div class="body-note">Body is binary, showing base64 (first 1 KB)</div><pre style="display:none">';
+        } else {
+          html += escapeHtml(decoded);
+        }
+      }
+
+      html += '</pre></div>';
+      html += '<div class="body-note">' + formatBytes(size) + '</div>';
+      html += '</div>';
+    } else {
+      html += '<div class="detail-section"><h4>Body</h4><div class="body-note">Empty body</div></div>';
+    }
+  } else {
+    html += '<div class="detail-section"><h4>Raw body (base64)</h4>';
+    html += '<div class="body-display"><pre>' + escapeHtml(wh.body || "(empty)") + '</pre></div>';
+    html += '<button class="btn btn-secondary btn-sm" data-action="copy-raw" style="margin-top:8px" aria-label="Copy raw body to clipboard" data-test="copy-raw-btn">Copy raw body</button>';
+    html += '</div>';
+  }
+
+  dom.detailContent.innerHTML = html;
+
+  var tabs = dom.detailContent.querySelectorAll(".detail-tab");
+  for (var t = 0; t < tabs.length; t++) {
+    tabs[t].addEventListener("click", (function(tabName) {
+      return function() { renderDetail(wh, tabName); };
+    })(tabs[t].getAttribute("data-tab")));
+  }
+
+  var actions = dom.detailContent.querySelectorAll("[data-action]");
+  for (var a = 0; a < actions.length; a++) {
+    var action = actions[a].getAttribute("data-action");
+    if (action === "delete") {
+      actions[a].addEventListener("click", function() { deleteWebhook(wh.id); });
+    } else if (action === "copy-raw") {
+      actions[a].addEventListener("click", function() { navigator.clipboard.writeText(wh.body || ""); });
+    } else if (action === "close") {
+      actions[a].addEventListener("click", function() { closeDetail(); });
+    }
+  }
+}
+
+/* API calls */
+function fetchWebhooks() {
+  fetch("/api/tokens/" + state.token + "/webhooks")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var list = Array.isArray(data) ? data : (data && Array.isArray(data.webhooks) ? data.webhooks : []);
+      for (var i = 0; i < list.length; i++) {
+        if (!state.webhookMap[list[i].id]) {
+          state.webhookMap[list[i].id] = list[i];
+          state.webhooks.push(list[i]);
+        }
+      }
+      state.webhooks.sort(function(a, b) {
+        var ta = a.timestamp || a.created_at || "";
+        var tb = b.timestamp || b.created_at || "";
+        return ta > tb ? -1 : ta < tb ? 1 : 0;
+      });
+      renderFeed();
+    })
+    .catch(function() {});
+}
+
+function deleteWebhook(id) {
+  fetch("/api/tokens/" + state.token + "/webhooks/" + id, { method: "DELETE" })
+    .then(function() {
+      delete state.webhookMap[id];
+      state.webhooks = state.webhooks.filter(function(w) { return w.id !== id; });
+      if (state.selectedId === id) closeDetail();
+      renderFeed();
+    })
+    .catch(function() {});
+}
+
+function clearAll() {
+  fetch("/api/tokens/" + state.token + "/webhooks", { method: "DELETE" })
+    .then(function() {
+      state.webhooks = [];
+      state.webhookMap = {};
+      closeDetail();
+      renderFeed();
+    })
+    .catch(function() {});
+}
+
+dom.btnClear.addEventListener("click", clearAll);
+
+/* WebSocket */
+function connectWs() {
+  if (state.ws) {
+    state.ws.onclose = null;
+    state.ws.onerror = null;
+    state.ws.onmessage = null;
+    state.ws.close();
+    state.ws = null;
+  }
+  clearInterval(state.pingTimer);
+  clearTimeout(state.reconnectTimer);
+
+  setConnStatus("yellow", "Connecting");
+
+  var ws;
+  try { ws = new WebSocket(getWsUrl()); } catch(e) { startPolling(); return; }
+  state.ws = ws;
+
+  ws.onopen = function() {
+    ws.send(JSON.stringify({ type: "start", version: 1, data: { token: state.token } }));
+  };
+
+  ws.onmessage = function(evt) {
+    var msg;
+    try { msg = JSON.parse(evt.data); } catch(e) { return; }
+
+    if (msg.type === "started") {
+      state.wsConnected = true;
+      state.reconnectAttempt = 0;
+      setConnStatus("green", "Connected");
+      state.pingTimer = setInterval(function() {
+        if (ws.readyState === 1) ws.send(JSON.stringify({ type: "ping" }));
+      }, PING_INTERVAL);
+      fetchWebhooks();
+    } else if (msg.type === "request" && msg.data) {
+      addWebhookToFeed(msg.data, true);
+    } else if (msg.type === "error") {
+      var errData = msg.data || {};
+      var errStr = typeof errData === "string" ? errData : (errData.code || errData.message || "");
+      if (errStr.indexOf("token_in_use") !== -1) {
+        ws.close();
+        startPolling();
+        return;
+      }
+    }
+  };
+
+  ws.onclose = function() {
+    state.wsConnected = false;
+    clearInterval(state.pingTimer);
+    if (!state.polling) {
+      setConnStatus("red", "Disconnected — retrying...", true);
+      scheduleReconnect();
+    }
+  };
+
+  ws.onerror = function() {};
+}
+
+function scheduleReconnect() {
+  var delay = RECONNECT_DELAYS[Math.min(state.reconnectAttempt, RECONNECT_DELAYS.length - 1)];
+  state.reconnectAttempt++;
+  setConnStatus("yellow", "Reconnecting (attempt " + state.reconnectAttempt + ")...", true);
+  state.reconnectTimer = setTimeout(function() { connectWs(); }, delay);
+}
+
+/* Polling fallback */
+function startPolling() {
+  state.polling = true;
+  setConnStatus("yellow", "Polling (every 2s)");
+  fetchWebhooks();
+  state.pollTimer = setInterval(fetchWebhooks, POLL_INTERVAL);
+}
+
+function stopPolling() {
+  state.polling = false;
+  clearInterval(state.pollTimer);
+}
+
+/* Token / routing */
+function readTokenFromHash() {
+  var h = location.hash.replace(/^#/, "");
+  if (/^c_[0-9A-Za-z]{27}$/.test(h)) return h;
+  return "";
+}
+
+function initSession() {
+  var token = readTokenFromHash();
+  if (!token) {
+    token = generateToken();
+    location.hash = token;
+  }
+  state.token = token;
+  state.webhooks = [];
+  state.webhookMap = {};
+  state.selectedId = null;
+  state.selectedIndex = -1;
+  dom.detailEmpty.style.display = "";
+  dom.detailContent.style.display = "none";
+  updateUrlDisplay();
+  renderFeed();
+  stopPolling();
+  connectWs();
+}
+
+dom.btnNew.addEventListener("click", function() {
+  if (state.ws) {
+    state.ws.onclose = null;
+    state.ws.close();
+    state.ws = null;
+  }
+  clearInterval(state.pingTimer);
+  clearTimeout(state.reconnectTimer);
+  stopPolling();
+  state.reconnectAttempt = 0;
+  location.hash = generateToken();
+});
+
+window.addEventListener("hashchange", function() { initSession(); });
+
+/* Upsell */
+function initUpsell() {
+  if (localStorage.getItem("hook0play_upsell_dismissed")) return;
+  dom.upsell.style.display = "";
+}
+
+dom.btnDismissUpsell.addEventListener("click", function() {
+  localStorage.setItem("hook0play_upsell_dismissed", "1");
+  dom.upsell.style.display = "none";
+});
+
+/* Keyboard shortcuts */
+document.addEventListener("keydown", function(e) {
+  var tag = e.target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+  if (e.key === "c" && !e.metaKey && !e.ctrlKey) {
+    e.preventDefault();
+    copyUrl();
+  } else if (e.key === "Escape") {
+    closeDetail();
+  } else if (e.key === "j") {
+    e.preventDefault();
+    navigateFeed(1);
+  } else if (e.key === "k") {
+    e.preventDefault();
+    navigateFeed(-1);
+  } else if (e.key === "Enter" && state.selectedIndex >= 0 && state.selectedIndex < state.webhooks.length) {
+    e.preventDefault();
+    selectWebhook(state.webhooks[state.selectedIndex].id);
+  }
+});
+
+function navigateFeed(dir) {
+  if (state.webhooks.length === 0) return;
+  var idx = state.selectedIndex + dir;
+  if (idx < 0) idx = 0;
+  if (idx >= state.webhooks.length) idx = state.webhooks.length - 1;
+  state.selectedIndex = idx;
+  selectWebhook(state.webhooks[idx].id);
+  var items = dom.feedList.querySelectorAll(".feed-item");
+  if (items[idx]) items[idx].scrollIntoView({ block: "nearest" });
+}
+
+/* Update relative times periodically */
+setInterval(function() {
+  var items = dom.feedList.querySelectorAll(".feed-item");
+  for (var i = 0; i < items.length; i++) {
+    var id = items[i].getAttribute("data-id");
+    var wh = state.webhookMap[id];
+    if (wh) {
+      var spans = items[i].querySelectorAll(".feed-meta span");
+      if (spans.length >= 2) spans[1].textContent = timeAgo(wh.timestamp || wh.created_at);
+    }
+  }
+}, 10000);
+
+/* Mobile menu */
+var mobileMenuBtn = document.getElementById("mobileMenuBtn");
+var mobileMenu = document.getElementById("mobileMenu");
+
+mobileMenuBtn.addEventListener("click", function(e) {
+  e.stopPropagation();
+  mobileMenu.classList.toggle("open");
+  mobileMenuBtn.setAttribute("aria-expanded", mobileMenu.classList.contains("open") ? "true" : "false");
+});
+
+document.addEventListener("click", function(e) {
+  if (!mobileMenu.contains(e.target) && e.target !== mobileMenuBtn) {
+    mobileMenu.classList.remove("open");
+    mobileMenuBtn.setAttribute("aria-expanded", "false");
+  }
+});
+
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape" && mobileMenu.classList.contains("open")) {
+    mobileMenu.classList.remove("open");
+    mobileMenuBtn.setAttribute("aria-expanded", "false");
+  }
+});
+
+/* Init */
+initTheme();
+initSession();
+initUpsell();
+
+})();
+</script>
+
+</body>
+</html>
