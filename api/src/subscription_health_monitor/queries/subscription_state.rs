@@ -6,7 +6,7 @@ use sqlx::{query, query_as, query_scalar};
 use tracing::info;
 use uuid::Uuid;
 
-use super::super::runner::SubscriptionHealthConfig;
+use super::super::runner::SubscriptionHealthMonitorConfig;
 use super::super::types::{HealthEventCause, HealthStatus};
 
 /// All the data the state machine needs to decide whether to warn, disable,
@@ -106,15 +106,15 @@ pub async fn disable_subscription(
 /// Computes each candidate subscription's failure rate over the sliding
 /// evaluation window, joined with its latest health event.
 ///
-/// Subscriptions with fewer total deliveries than `min_deliveries_for_evaluation`
+/// Subscriptions with fewer total deliveries than `min_deliveries`
 /// are excluded to avoid false positives on low-traffic endpoints.
 pub async fn compute_failure_rates(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     candidate_ids: &[Uuid],
-    config: &SubscriptionHealthConfig,
+    config: &SubscriptionHealthMonitorConfig,
 ) -> Result<Vec<SubscriptionHealth>, sqlx::Error> {
-    let evaluation_window_secs = config.failure_rate_evaluation_window.as_secs_f64();
-    let min_deliveries = i64::from(config.min_deliveries_for_evaluation);
+    let evaluation_window_secs = config.failure_rate_window.as_secs_f64();
+    let min_deliveries = i64::from(config.min_deliveries);
 
     query_as!(
         SubscriptionHealth,

@@ -4,8 +4,8 @@
 use chrono::Utc;
 use sqlx::PgPool;
 
-use crate::subscription_health::evaluation::test_helpers::insert_test_fixtures;
-use crate::subscription_health::queries::reset_healthy_failure_percent;
+use crate::subscription_health_monitor::evaluation::test_helpers::insert_test_fixtures;
+use crate::subscription_health_monitor::queries::reset_healthy_failure_percent;
 
 /// `reset_healthy_failure_percent` clears failure_percent for subscriptions
 /// that are not in the active set.

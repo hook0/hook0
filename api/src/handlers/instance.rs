@@ -31,7 +31,7 @@ pub struct InstanceConfig {
     formbricks: Option<FormbricksConfig>,
     support_email_address: String,
     cloudflare_turnstile_site_key: Option<String>,
-    subscription_health: Option<SubscriptionHealthConfig>,
+    subscription_health_monitor: Option<SubscriptionHealthMonitorConfig>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -47,9 +47,9 @@ pub struct FormbricksConfig {
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
-pub struct SubscriptionHealthConfig {
-    warning_failure_percent: u8,
-    disable_failure_percent: u8,
+pub struct SubscriptionHealthMonitorConfig {
+    failure_percent_for_warning: u8,
+    failure_percent_for_disable: u8,
 }
 
 /// Get instance configuration
@@ -83,12 +83,14 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
 
     // Exposed only when the subscription health monitor is enabled, so API consumers
     // can mirror the actual thresholds without duplicating defaults.
-    let subscription_health =
+    let subscription_health_monitor =
         state
             .enable_subscription_health_monitor
-            .then(|| SubscriptionHealthConfig {
-                warning_failure_percent: state.subscription_health_warning_failure_percent,
-                disable_failure_percent: state.subscription_health_disable_failure_percent,
+            .then(|| SubscriptionHealthMonitorConfig {
+                failure_percent_for_warning: state
+                    .subscription_health_monitor_failure_percent_for_warning,
+                failure_percent_for_disable: state
+                    .subscription_health_monitor_failure_percent_for_disable,
             });
 
     Ok(Json(InstanceConfig {
@@ -102,7 +104,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         formbricks,
         support_email_address: state.support_email_address.to_string(),
         cloudflare_turnstile_site_key: state.cloudflare_turnstile_site_key.to_owned(),
-        subscription_health,
+        subscription_health_monitor,
     }))
 }
 

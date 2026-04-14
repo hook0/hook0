@@ -25,11 +25,11 @@
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 
 use super::queries::SubscriptionHealth;
-use super::runner::SubscriptionHealthConfig;
+use super::runner::SubscriptionHealthMonitorConfig;
 use super::types::HealthStatus;
 
 /// Persistent side-effect the caller should apply, decided by the pure
-/// `evaluate_health_transition` function. The caller is expected to dispatch
+/// `plan_health_actions` function. The caller is expected to dispatch
 /// each action in order, inside a database transaction.
 #[derive(Debug, Clone, PartialEq)]
 pub enum PlannedAction {
@@ -46,14 +46,14 @@ pub enum PlannedAction {
 
 /// Evaluates a single subscription's health and returns the list of planned
 /// side effects. Pure — no DB, no I/O.
-pub fn evaluate_health_transition(
+pub fn plan_health_actions(
     subscription: &SubscriptionHealth,
-    config: &SubscriptionHealthConfig,
+    config: &SubscriptionHealthMonitorConfig,
     now: DateTime<Utc>,
 ) -> Vec<PlannedAction> {
     let failure_percent = subscription.failure_percent;
-    let warning_percent = f64::from(config.warning_failure_percent);
-    let disable_percent = f64::from(config.disable_failure_percent);
+    let warning_percent = f64::from(config.failure_percent_for_warning);
+    let disable_percent = f64::from(config.failure_percent_for_disable);
 
     // Pre-computed once so the match arms below read as a single condition.
     // from_std fails only when std::Duration exceeds chrono's i64-millisecond
@@ -119,19 +119,19 @@ mod tests {
 
     use super::*;
 
-    fn test_config() -> SubscriptionHealthConfig {
-        SubscriptionHealthConfig {
+    fn test_config() -> SubscriptionHealthMonitorConfig {
+        SubscriptionHealthMonitorConfig {
             interval: Duration::from_secs(60),
-            warning_failure_percent: 50,
-            disable_failure_percent: 90,
-            failure_rate_evaluation_window: Duration::from_secs(3_600),
-            min_deliveries_for_evaluation: 10,
+            failure_percent_for_warning: 50,
+            failure_percent_for_disable: 90,
+            failure_rate_window: Duration::from_secs(3_600),
+            min_deliveries: 10,
             anti_flap_window: Duration::from_secs(3_600),
             resolved_event_retention: Duration::from_secs(30 * 86_400),
             bucket_duration: Duration::from_secs(300),
             bucket_max_messages: 1_000,
-            bucket_retention_days: 30,
-            max_request_attempts_scanned_per_tick: 10_000,
+            bucket_retention: Duration::from_secs(30 * 86_400),
+            max_request_attempts_per_tick: 10_000,
         }
     }
 
@@ -156,7 +156,7 @@ mod tests {
         last_at: Option<DateTime<Utc>>,
     ) -> Vec<PlannedAction> {
         let subscription = make_subscription_health(failure_percent, last_status, last_at);
-        evaluate_health_transition(&subscription, &test_config(), Utc::now())
+        plan_health_actions(&subscription, &test_config(), Utc::now())
     }
 
     #[test]

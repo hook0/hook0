@@ -1,15 +1,15 @@
 //! Bucket-lifecycle tests: population, closing, and retention cleanup.
 //!
 //! Drives the bucket aggregation logic in
-//! [`crate::subscription_health::queries::buckets`] through the orchestrator
-//! [`crate::subscription_health::evaluation::run_evaluation_tick`].
+//! [`crate::subscription_health_monitor::queries::buckets`] through the orchestrator
+//! [`crate::subscription_health_monitor::evaluation::run_subscription_health_monitor_tick`].
 
 use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::subscription_health::evaluation::run_evaluation_tick;
-use crate::subscription_health::evaluation::test_helpers::{
+use crate::subscription_health_monitor::evaluation::run_subscription_health_monitor_tick;
+use crate::subscription_health_monitor::evaluation::test_helpers::{
     insert_test_fixtures, set_cursor, test_config,
 };
 
@@ -24,7 +24,9 @@ async fn test_health_buckets_populated(pool: PgPool) {
     set_cursor(&mut tx, cursor_past).await;
     let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 3, 2, now).await;
 
-    let subs = run_evaluation_tick(&mut tx, &config).await.unwrap();
+    let (subs, _) = run_subscription_health_monitor_tick(&mut tx, &config)
+        .await
+        .unwrap();
 
     let bucket = sqlx::query!(
         r#"
@@ -65,7 +67,9 @@ async fn test_bucket_closing(pool: PgPool) {
     let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 3, 2, now).await;
 
     // First pass: creates an open bucket and advances the cursor.
-    run_evaluation_tick(&mut tx, &config).await.unwrap();
+    run_subscription_health_monitor_tick(&mut tx, &config)
+        .await
+        .unwrap();
 
     let open = sqlx::query_scalar!(
         r#"
@@ -91,7 +95,9 @@ async fn test_bucket_closing(pool: PgPool) {
     .unwrap();
 
     // Second pass: should close the aged bucket.
-    run_evaluation_tick(&mut tx, &config).await.unwrap();
+    run_subscription_health_monitor_tick(&mut tx, &config)
+        .await
+        .unwrap();
 
     let closed = sqlx::query_scalar!(
         r#"
@@ -115,7 +121,7 @@ async fn test_bucket_closing(pool: PgPool) {
 /// cleanup_old_buckets removes buckets older than retention period.
 #[sqlx::test(migrations = "./migrations")]
 async fn test_cleanup_old_buckets(pool: PgPool) {
-    let config = test_config(); // bucket_retention_days = 30
+    let config = test_config(); // bucket_retention = 30d
     let now = Utc::now();
 
     let mut tx = pool.begin().await.unwrap();
@@ -152,13 +158,13 @@ async fn test_cleanup_old_buckets(pool: PgPool) {
     assert!(count_before >= 1, "old bucket should exist before cleanup");
 
     // Inline cleanup_old_buckets logic so it runs within the same transaction.
-    let retention_days = i32::try_from(config.bucket_retention_days).unwrap();
+    let retention_secs = config.bucket_retention.as_secs_f64();
     let deleted = sqlx::query!(
         r#"
             delete from webhook.subscription_health_bucket
-            where bucket_start < now() - make_interval(days => $1)
+            where bucket_start < now() - make_interval(secs => $1)
         "#,
-        retention_days,
+        retention_secs,
     )
     .execute(&mut *tx)
     .await

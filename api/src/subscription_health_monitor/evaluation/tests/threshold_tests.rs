@@ -1,7 +1,7 @@
 //! Threshold-driven candidate tracking tests.
 //!
 //! Exercises the UNION behavior in
-//! [`crate::subscription_health::queries::find_subscriptions_pending_health_evaluation`]
+//! [`crate::subscription_health_monitor::queries::find_subscriptions_pending_health_evaluation`]
 //! that keeps a previously-warned subscription in the candidate set even
 //! after its bucket failure rate drops — that's what lets the state machine
 //! fire the Resolved transition.
@@ -9,8 +9,8 @@
 use chrono::Utc;
 use sqlx::PgPool;
 
-use crate::subscription_health::evaluation::run_evaluation_tick;
-use crate::subscription_health::evaluation::test_helpers::{
+use crate::subscription_health_monitor::evaluation::run_subscription_health_monitor_tick;
+use crate::subscription_health_monitor::evaluation::test_helpers::{
     insert_test_fixtures, set_cursor, test_config,
 };
 
@@ -26,7 +26,9 @@ async fn test_warned_subscription_in_candidates(pool: PgPool) {
     let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 0, 5, now).await;
 
     // First pass: ingests deltas and advances the cursor.
-    let subs = run_evaluation_tick(&mut tx, &config).await.unwrap();
+    let (subs, _) = run_subscription_health_monitor_tick(&mut tx, &config)
+        .await
+        .unwrap();
     assert!(
         subs.iter().any(|s| s.subscription_id == sub_id),
         "subscription should be a candidate on first pass"
@@ -66,7 +68,9 @@ async fn test_warned_subscription_in_candidates(pool: PgPool) {
 
     // Second pass: cursor advanced, no re-ingestion. UNION picks up the
     // warned subscription even though its buckets are now healthy.
-    let subs2 = run_evaluation_tick(&mut tx, &config).await.unwrap();
+    let (subs2, _) = run_subscription_health_monitor_tick(&mut tx, &config)
+        .await
+        .unwrap();
 
     let found = subs2.iter().find(|s| s.subscription_id == sub_id);
     assert!(

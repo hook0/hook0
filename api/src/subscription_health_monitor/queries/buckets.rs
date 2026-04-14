@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{PgPool, query};
 use uuid::Uuid;
 
-use super::super::runner::SubscriptionHealthConfig;
+use super::super::runner::SubscriptionHealthMonitorConfig;
 use super::deltas::RequestAttemptAggregate;
 
 /// Adds new delivery aggregates to each subscription's currently-open bucket.
@@ -102,7 +102,7 @@ pub async fn upsert_buckets(
 /// last 12 five-minute buckets).
 pub async fn close_full_buckets(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    config: &SubscriptionHealthConfig,
+    config: &SubscriptionHealthMonitorConfig,
 ) -> Result<u64, sqlx::Error> {
     let bucket_duration_secs = config.bucket_duration.as_secs_f64();
     let bucket_max_messages = i32::try_from(config.bucket_max_messages).unwrap_or(i32::MAX);
@@ -124,23 +124,23 @@ pub async fn close_full_buckets(
     Ok(result.rows_affected())
 }
 
-/// Drops buckets (open or closed) older than `bucket_retention_days`.
+/// Drops buckets (open or closed) older than `bucket_retention`.
 ///
 /// Runs once per day from the monitor loop. The
 /// `idx_subscription_health_bucket_start` index makes this an index scan,
 /// not a full table scan, even as the table grows.
 pub async fn cleanup_old_buckets(
     db: &PgPool,
-    config: &SubscriptionHealthConfig,
+    config: &SubscriptionHealthMonitorConfig,
 ) -> Result<u64, sqlx::Error> {
-    let retention_days = i32::try_from(config.bucket_retention_days).unwrap_or(i32::MAX);
+    let retention_secs = config.bucket_retention.as_secs_f64();
 
     let result = query!(
         r#"
             delete from webhook.subscription_health_bucket
-            where bucket_start < now() - make_interval(days => $1)
+            where bucket_start < now() - make_interval(secs => $1)
         "#,
-        retention_days,
+        retention_secs,
     )
     .execute(db)
     .await?;

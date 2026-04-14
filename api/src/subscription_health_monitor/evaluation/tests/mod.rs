@@ -3,7 +3,7 @@
 //! Split by behavioral focus rather than by the file the code lives in:
 //! - [`bucket_tests`] — bucket population, closing, retention cleanup.
 //! - [`window_tests`] — adaptive-window flow (two-pass warning then
-//!   recovery/anti-flap evaluated across `failure_rate_evaluation_window`).
+//!   recovery/anti-flap evaluated across `failure_rate_window`).
 //! - [`threshold_tests`] — UNION behavior in
 //!   `find_subscriptions_pending_health_evaluation` that keeps a
 //!   previously-warned subscription in the candidate set even after its

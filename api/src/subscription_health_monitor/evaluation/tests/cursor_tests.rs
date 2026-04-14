@@ -3,8 +3,8 @@
 use chrono::Utc;
 use sqlx::PgPool;
 
-use crate::subscription_health::evaluation::run_evaluation_tick;
-use crate::subscription_health::evaluation::test_helpers::{
+use crate::subscription_health_monitor::evaluation::run_subscription_health_monitor_tick;
+use crate::subscription_health_monitor::evaluation::test_helpers::{
     insert_test_fixtures, set_cursor, test_config,
 };
 
@@ -27,7 +27,9 @@ async fn test_cursor_advances(pool: PgPool) {
     .unwrap();
     assert_eq!(cursor_before, cursor_past);
 
-    run_evaluation_tick(&mut tx, &config).await.unwrap();
+    run_subscription_health_monitor_tick(&mut tx, &config)
+        .await
+        .unwrap();
 
     let cursor_after = sqlx::query_scalar!(
         "select last_processed_at from webhook.subscription_health_monitor_cursor where cursor__id = 1",

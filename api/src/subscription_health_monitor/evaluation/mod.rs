@@ -40,7 +40,7 @@
 //! crash between any two stages rolls the whole tick back.
 
 use super::queries::{self, SubscriptionHealth};
-use super::runner::SubscriptionHealthConfig;
+use super::runner::SubscriptionHealthMonitorConfig;
 
 #[cfg(test)]
 pub(super) mod test_helpers;
@@ -48,22 +48,32 @@ pub(super) mod test_helpers;
 #[cfg(test)]
 mod tests;
 
-/// One full evaluation tick. Returns the subscriptions the state machine
-/// should judge — the caller is responsible for running the state machine
-/// and dispatching the resulting `PlannedAction`s.
-pub async fn run_evaluation_tick(
+/// One full evaluation tick. Returns:
+/// - the subscriptions the state machine should judge (caller dispatches the
+///   resulting `PlannedAction`s);
+/// - a `hit_cap` flag that's true when the `request_attempt` scan reached
+///   `max_request_attempts_per_tick`, signalling the monitor loop to chain
+///   another tick immediately instead of sleeping.
+pub async fn run_subscription_health_monitor_tick(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    config: &SubscriptionHealthConfig,
-) -> Result<Vec<SubscriptionHealth>, sqlx::Error> {
+    config: &SubscriptionHealthMonitorConfig,
+) -> Result<(Vec<SubscriptionHealth>, bool), sqlx::Error> {
     let cursor = queries::read_evaluation_cursor(tx).await?;
 
     let aggregates = queries::aggregate_recent_request_attempts(
         tx,
         cursor,
-        config.max_request_attempts_scanned_per_tick,
+        config.max_request_attempts_per_tick,
     )
     .await?;
     let max_completed_at = aggregates.iter().filter_map(|a| a.max_completed_at).max();
+
+    // Sum of `total` across aggregates = number of request_attempt rows pulled
+    // into the capped CTE. When it equals `max_request_attempts_per_tick`, the
+    // LIMIT clipped us and there's still backlog — the caller will chain
+    // another tick without sleeping.
+    let total_scanned: i64 = aggregates.iter().map(|a| a.total).sum();
+    let hit_cap = total_scanned >= i64::from(config.max_request_attempts_per_tick);
 
     if !aggregates.is_empty() {
         queries::upsert_buckets(tx, &aggregates).await?;
@@ -84,5 +94,5 @@ pub async fn run_evaluation_tick(
         queries::advance_evaluation_cursor(tx, ts).await?;
     }
 
-    Ok(subscriptions)
+    Ok((subscriptions, hit_cap))
 }

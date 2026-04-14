@@ -19,7 +19,7 @@
 //! - [`runner`]: background loop, per-tick orchestrator, and `PlannedAction`
 //!   dispatch to the DB layer. Only place in the subsystem that holds a
 //!   transaction scope.
-//! - [`evaluation`]: pipeline façade (`run_evaluation_tick`) that produces
+//! - [`evaluation`]: pipeline façade (`run_subscription_health_monitor_tick`) that produces
 //!   the list of subscriptions the state machine should judge.
 //! - [`queries`]: SQL layer, split by domain (buckets, cursor, deltas,
 //!   events, subscription_state).
@@ -35,4 +35,4 @@ mod runner;
 mod state_machine;
 pub mod types;
 
-pub use runner::{SubscriptionHealthConfig, run_subscription_health_monitor};
+pub use runner::{SubscriptionHealthMonitorConfig, run_subscription_health_monitor};

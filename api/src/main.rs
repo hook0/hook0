@@ -50,7 +50,7 @@ mod pulsar_dispatch;
 mod quotas;
 mod rate_limiting;
 mod soft_deleted_applications_cleanup;
-mod subscription_health;
+mod subscription_health_monitor;
 mod unverified_users_cleanup;
 mod validators;
 
@@ -558,59 +558,68 @@ struct Config {
 
     /// [Housekeeping] How often the subscription health monitor runs
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30m")]
-    subscription_health_interval: Duration,
+    subscription_health_monitor_interval: Duration,
 
-    /// [Housekeeping] Failure % threshold at which a subscription is flagged as unhealthy
+    /// [Housekeeping] Failure % threshold at which a subscription is flagged 'warning'.
     #[clap(long, env, default_value_t = 80)]
-    subscription_health_warning_failure_percent: u8,
+    subscription_health_monitor_failure_percent_for_warning: u8,
 
-    /// [Housekeeping] Failure % threshold for deactivation
+    /// [Housekeeping] Failure % threshold at which a subscription is auto-disabled.
     #[clap(long, env, default_value_t = 95)]
-    subscription_health_disable_failure_percent: u8,
+    subscription_health_monitor_failure_percent_for_disable: u8,
 
-    /// [Housekeeping] Sliding window over which each subscription's failure rate is computed
-    /// by summing recent buckets. Only buckets that started within this window are included.
-    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "24h")]
-    subscription_health_failure_rate_evaluation_window: Duration,
+    /// [Housekeeping] Sliding window over which each subscription's failure rate is computed.
+    /// At every tick, the monitor sums `failed_count / total_count` across all buckets whose
+    /// `bucket_start` falls within the last [window] and gets the subscription's rolling
+    /// failure percentage. Shorter = reacts faster to new failures, amplifies noise. Longer =
+    /// smoother rates, slower detection.
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1h")]
+    subscription_health_monitor_failure_rate_window: Duration,
 
-    /// [Housekeeping] Minimum completed delivery attempts in the evaluation window before a
+    /// [Housekeeping] Minimum completed delivery attempts in the failure-rate window before a
     /// subscription is judged. Below this, the subscription is skipped to avoid false positives
     /// on low-traffic endpoints — e.g. with the default of 5, a subscription that received only
     /// 3 deliveries won't trigger a warning even if all 3 failed.
     #[clap(long, env, default_value_t = 5)]
-    subscription_health_min_deliveries_for_evaluation: u32,
+    subscription_health_monitor_min_deliveries: u32,
 
-    /// [Housekeeping] Anti-flap window: minimum interval between two state transitions in the
-    /// audit trail. Prevents warning↔resolved oscillations when the failure rate hovers right
-    /// around the threshold.
+    /// [Housekeeping] Anti-flap window. "Flapping" is rapid state oscillation — when a
+    /// subscription's failure rate sits right on the warning threshold, the state machine
+    /// would otherwise produce a rapid warning → resolved → warning → resolved sequence in
+    /// the audit trail. This window enforces a minimum interval between consecutive
+    /// transitions: once a subscription is marked 'resolved', it cannot move back to
+    /// 'warning' for at least [window].
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1h")]
-    subscription_health_anti_flap_window: Duration,
+    subscription_health_monitor_anti_flap_window: Duration,
 
-    /// [Housekeeping] Retention for rows with `status = 'resolved'` in the health event audit
-    /// trail. Older rows are purged on the daily cleanup tick, while keeping at least the
-    /// latest event per subscription.
+    /// [Housekeeping] Retention for superseded `resolved` health events. Resolved rows past
+    /// this age are purged by the daily cleanup — but only if a newer event exists for the
+    /// same subscription. Warning and disabled rows are kept forever (audit trail), and the
+    /// most recent resolved row per subscription is always kept too.
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "90d")]
-    subscription_health_resolved_event_retention: Duration,
+    subscription_health_monitor_resolved_event_retention: Duration,
 
     /// [Housekeeping] Maximum duration of a single health bucket. Buckets are closed when this
     /// duration OR bucket_max_messages is reached, whichever comes first.
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5m")]
-    subscription_health_bucket_duration: Duration,
+    subscription_health_monitor_bucket_duration: Duration,
 
     /// [Housekeeping] Maximum delivery count per bucket. When reached, the bucket is closed
     /// and a new one is opened.
     #[clap(long, env, default_value_t = 1000)]
-    subscription_health_bucket_max_messages: u32,
+    subscription_health_monitor_bucket_max_messages: u32,
 
-    /// [Housekeeping] Health bucket retention in days
-    #[clap(long, env, default_value_t = 7)]
-    subscription_health_bucket_retention_days: u32,
+    /// [Housekeeping] How long health buckets are kept before the daily cleanup drops them.
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "7d")]
+    subscription_health_monitor_bucket_retention: Duration,
 
-    /// [Housekeeping] Upper bound on how many `webhook.request_attempt` rows the evaluation
-    /// pipeline scans per tick. Caps query duration on high-traffic instances; remaining rows
-    /// are picked up on the next tick.
-    #[clap(long, env, default_value_t = 50_000)]
-    subscription_health_max_request_attempts_scanned_per_tick: u32,
+    /// [Housekeeping] Maximum number of `webhook.request_attempt` rows scanned in one tick.
+    /// Acts as a circuit breaker against cold-start / backup-restore scenarios where a huge
+    /// backlog could otherwise lock the housekeeping pool for a long time. When a tick hits
+    /// this cap, the monitor chains another tick immediately (without waiting for `interval`)
+    /// so steady-state throughput is not capped.
+    #[clap(long, env, default_value_t = 200_000)]
+    subscription_health_monitor_max_request_attempts_per_tick: u32,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -659,8 +668,8 @@ pub struct State {
     cloudflare_turnstile_site_key: Option<String>,
     cloudflare_turnstile_secret_key: Option<String>,
     enable_subscription_health_monitor: bool,
-    subscription_health_warning_failure_percent: u8,
-    subscription_health_disable_failure_percent: u8,
+    subscription_health_monitor_failure_percent_for_warning: u8,
+    subscription_health_monitor_failure_percent_for_disable: u8,
 }
 
 #[derive(Clone)]
@@ -709,15 +718,16 @@ async fn main() -> anyhow::Result<()> {
     // threshold would skip the warning state. Better to crash on boot than silently misbehave.
     if config.enable_subscription_health_monitor {
         assert!(
-            config.subscription_health_warning_failure_percent
-                < config.subscription_health_disable_failure_percent,
-            "subscription_health_warning_failure_percent ({}) must be < subscription_health_disable_failure_percent ({})",
-            config.subscription_health_warning_failure_percent,
-            config.subscription_health_disable_failure_percent,
+            config.subscription_health_monitor_failure_percent_for_warning
+                < config.subscription_health_monitor_failure_percent_for_disable,
+            "subscription_health_monitor_failure_percent_for_warning ({}) must be < subscription_health_monitor_failure_percent_for_disable ({})",
+            config.subscription_health_monitor_failure_percent_for_warning,
+            config.subscription_health_monitor_failure_percent_for_disable,
         );
         assert!(
-            (1..=100).contains(&config.subscription_health_warning_failure_percent)
-                && (1..=100).contains(&config.subscription_health_disable_failure_percent),
+            (1..=100).contains(&config.subscription_health_monitor_failure_percent_for_warning)
+                && (1..=100)
+                    .contains(&config.subscription_health_monitor_failure_percent_for_disable),
             "subscription_health failure percents must be in [1, 100]"
         );
     }
@@ -1153,24 +1163,26 @@ async fn main() -> anyhow::Result<()> {
         if config.enable_subscription_health_monitor {
             let subscription_health_db = housekeeping_pool.clone();
             let subscription_health_semaphore = housekeeping_semaphore.clone();
-            let subscription_health_config = subscription_health::SubscriptionHealthConfig {
-                interval: config.subscription_health_interval,
-                warning_failure_percent: config.subscription_health_warning_failure_percent,
-                disable_failure_percent: config.subscription_health_disable_failure_percent,
-                failure_rate_evaluation_window: config
-                    .subscription_health_failure_rate_evaluation_window,
-                min_deliveries_for_evaluation: config
-                    .subscription_health_min_deliveries_for_evaluation,
-                anti_flap_window: config.subscription_health_anti_flap_window,
-                resolved_event_retention: config.subscription_health_resolved_event_retention,
-                bucket_duration: config.subscription_health_bucket_duration,
-                bucket_max_messages: config.subscription_health_bucket_max_messages,
-                bucket_retention_days: config.subscription_health_bucket_retention_days,
-                max_request_attempts_scanned_per_tick: config
-                    .subscription_health_max_request_attempts_scanned_per_tick,
-            };
+            let subscription_health_config =
+                subscription_health_monitor::SubscriptionHealthMonitorConfig {
+                    interval: config.subscription_health_monitor_interval,
+                    failure_percent_for_warning: config
+                        .subscription_health_monitor_failure_percent_for_warning,
+                    failure_percent_for_disable: config
+                        .subscription_health_monitor_failure_percent_for_disable,
+                    failure_rate_window: config.subscription_health_monitor_failure_rate_window,
+                    min_deliveries: config.subscription_health_monitor_min_deliveries,
+                    anti_flap_window: config.subscription_health_monitor_anti_flap_window,
+                    resolved_event_retention: config
+                        .subscription_health_monitor_resolved_event_retention,
+                    bucket_duration: config.subscription_health_monitor_bucket_duration,
+                    bucket_max_messages: config.subscription_health_monitor_bucket_max_messages,
+                    bucket_retention: config.subscription_health_monitor_bucket_retention,
+                    max_request_attempts_per_tick: config
+                        .subscription_health_monitor_max_request_attempts_per_tick,
+                };
             actix_web::rt::spawn(async move {
-                subscription_health::run_subscription_health_monitor(
+                subscription_health_monitor::run_subscription_health_monitor(
                     &subscription_health_semaphore,
                     &subscription_health_db,
                     &subscription_health_config,
@@ -1229,10 +1241,10 @@ async fn main() -> anyhow::Result<()> {
             cloudflare_turnstile_site_key: config.cloudflare_turnstile_site_key,
             cloudflare_turnstile_secret_key: config.cloudflare_turnstile_secret_key,
             enable_subscription_health_monitor: config.enable_subscription_health_monitor,
-            subscription_health_warning_failure_percent: config
-                .subscription_health_warning_failure_percent,
-            subscription_health_disable_failure_percent: config
-                .subscription_health_disable_failure_percent,
+            subscription_health_monitor_failure_percent_for_warning: config
+                .subscription_health_monitor_failure_percent_for_warning,
+            subscription_health_monitor_failure_percent_for_disable: config
+                .subscription_health_monitor_failure_percent_for_disable,
         };
 
         // Run web server

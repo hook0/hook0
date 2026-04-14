@@ -3,7 +3,7 @@
 use sqlx::{PgPool, query, query_scalar};
 use uuid::Uuid;
 
-use super::super::runner::SubscriptionHealthConfig;
+use super::super::runner::SubscriptionHealthMonitorConfig;
 use super::super::types::{HealthEventCause, HealthStatus};
 
 /// Inserts a health event row for a subscription.
@@ -35,7 +35,7 @@ pub async fn insert_health_event(
 }
 
 /// Finds subscriptions that might need a health warning or to be disabled:
-/// those with enough recent failures to cross the `min_deliveries_for_evaluation`
+/// those with enough recent failures to cross the `min_deliveries`
 /// bar UNION those currently in warning status (so we can check if they've
 /// recovered).
 ///
@@ -44,10 +44,10 @@ pub async fn insert_health_event(
 /// because it wouldn't appear in the bucket-based query anymore.
 pub async fn find_subscriptions_pending_health_evaluation(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    config: &SubscriptionHealthConfig,
+    config: &SubscriptionHealthMonitorConfig,
 ) -> Result<Vec<Uuid>, sqlx::Error> {
-    let evaluation_window_secs = config.failure_rate_evaluation_window.as_secs_f64();
-    let min_deliveries = i64::from(config.min_deliveries_for_evaluation);
+    let evaluation_window_secs = config.failure_rate_window.as_secs_f64();
+    let min_deliveries = i64::from(config.min_deliveries);
 
     query_scalar!(
         r#"
@@ -84,7 +84,7 @@ pub async fn find_subscriptions_pending_health_evaluation(
 /// -10d is newer.
 pub async fn cleanup_resolved_health_events(
     db: &PgPool,
-    config: &SubscriptionHealthConfig,
+    config: &SubscriptionHealthMonitorConfig,
 ) -> Result<u64, sqlx::Error> {
     let retention_secs = config.resolved_event_retention.as_secs_f64();
 
