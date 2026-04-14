@@ -1,4 +1,3 @@
-use actix_web::rt::time::timeout;
 use actix_web::web::ReqData;
 use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
@@ -16,7 +15,6 @@ use sqlx::{PgTransaction, query_as, query_scalar};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::time::Duration;
 use strum::{IntoStaticStr, VariantNames};
 use tracing::error;
 use uuid::Uuid;
@@ -35,6 +33,7 @@ use crate::opentelemetry::{
     report_request_attempts_sent_to_pulsar,
 };
 use crate::problems::Hook0Problem;
+use crate::pulsar_dispatch::publish_attempt;
 use crate::quotas::{Quota, QuotaNotificationType};
 use hook0_protobuf::RequestAttempt;
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -777,28 +776,7 @@ async fn send_request_attempts_to_pulsar<'a>(
                 attempt_trigger: hook0_protobuf::AttemptTrigger::Dispatch,
             };
 
-            let mut producer = timeout(
-                Duration::from_secs(3),
-                pulsar.request_attempts_producer.lock(),
-            )
-            .await
-            .map_err(|_| {
-                error!("Timed out while waiting access to Pulsar producer");
-                Hook0Problem::InternalServerError
-            })?;
-            producer
-                .send_non_blocking(
-                    format!(
-                        "persistent://{}/{}/{}.request_attempt",
-                        &pulsar.tenant, &pulsar.namespace, worker_id,
-                    ),
-                    request_attempt,
-                )
-                .await
-                .map_err(|e| {
-                    error!("Error while sending a message to Pulsar: {e}");
-                    Hook0Problem::InternalServerError
-                })?;
+            publish_attempt(pulsar, worker_id, request_attempt).await?;
             report_request_attempts_sent_to_pulsar(1);
         }
     }

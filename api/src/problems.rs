@@ -45,7 +45,6 @@ pub enum Hook0Problem {
     EventInvalidPayloadContentType,
     EventInvalidBase64Payload(String),
     EventInvalidJsonPayload(String),
-    EventPayloadUnavailable,
     EventManualRetryCooldownActive { seconds: u64 },
 
     LabelsAmbiguity,
@@ -523,13 +522,6 @@ impl From<Hook0Problem> for Problem {
                 detail: "You don't have the right to access or edit this resource.".into(),
                 validation: None,
                 status: StatusCode::FORBIDDEN,
-            },
-            Hook0Problem::EventPayloadUnavailable => Problem {
-                id: Hook0Problem::EventPayloadUnavailable,
-                title: "Event payload expired",
-                detail: "The payload for this event is no longer available. It was removed after the retention period.".into(),
-                validation: None,
-                status: StatusCode::GONE,
             },
             Hook0Problem::EventManualRetryCooldownActive { seconds } => {
                 Problem {

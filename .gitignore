@@ -38,4 +38,3 @@ dogfood-output/
 human-ui-tests/
 docs/plans/
 .DS_Store
-/protobuf/target/

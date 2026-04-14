@@ -19,6 +19,7 @@ use crate::iam::{Action, AuthorizedToken, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::pagination::{Cursor, EncodedDescCursor, NextPageParts, Paginated};
 use crate::problems::Hook0Problem;
+use crate::pulsar_dispatch::publish_attempt;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct RequestAttempt {
@@ -623,9 +624,9 @@ pub async fn retry(
     .map_err(Hook0Problem::from)?
     .ok_or(Hook0Problem::NotFound)?;
 
-    // Fetch the event payload (DB inline column, then S3 fallback).
-    // 410 Gone if neither source has the data. Done before the transaction
-    // to avoid holding a lock during a potentially slow S3 call.
+    // Fetch the event payload (DB inline column, then S3 fallback). Done
+    // before the transaction to avoid holding a row lock during a potentially
+    // slow S3 round-trip.
     let payload = crate::event_payload::fetch_event_payload(
         &state.db,
         state.object_storage.as_ref(),
@@ -634,7 +635,20 @@ pub async fn retry(
         source.received_at,
     )
     .await?
-    .ok_or(Hook0Problem::EventPayloadUnavailable)?;
+    .ok_or_else(|| {
+        // A missing payload here is an invariant violation: retention cleans
+        // the DB row first and the S3 object only after, so as long as the
+        // request_attempt row exists, its payload must be reachable from one
+        // of the two stores. If we land in the None branch, it means either
+        // the cleanup ordering was broken or object storage is unreachable —
+        // both are infrastructure bugs, not user errors, so we surface a 500.
+        error!(
+            request_attempt_id = %request_attempt_id,
+            event_id = %source.event_id,
+            "Invariant violated: payload missing from both DB and object storage for an existing request_attempt"
+        );
+        Hook0Problem::InternalServerError
+    })?;
 
     // Attribute the retry to the calling user for the audit trail.
     // Service tokens and master tokens have no user, so triggered_by stays NULL.
@@ -711,11 +725,41 @@ pub async fn retry(
     // Fast-path: push to Pulsar so the worker picks it up immediately
     // instead of waiting for the next PG poll cycle (~10s). Even without
     // Pulsar, the attempt is already persisted in DB.
-    if let Some(pulsar) = &state.pulsar
-        && let Err(err) = crate::pulsar_dispatch::send_single_attempt_to_pulsar(
-            &state.db,
-            pulsar,
-            hook0_protobuf::RequestAttempt {
+    if let Some(pulsar) = &state.pulsar {
+        // Resolve the worker that owns this subscription's Pulsar topic.
+        // Routing chain: subscription-level override → organization default.
+        // If neither resolves to a pulsar-typed worker, the PG poller delivers
+        // the attempt instead — not an error.
+        #[allow(non_snake_case)]
+        struct WorkerRoute {
+            worker_id: Option<Uuid>,
+            worker_queue_type: Option<String>,
+        }
+        let route = query_as!(
+            WorkerRoute,
+            "
+                SELECT
+                    COALESCE(sw.worker__id, ow.worker__id) AS worker_id,
+                    COALESCE(w1.queue_type, w2.queue_type) AS worker_queue_type
+                FROM webhook.subscription AS s
+                INNER JOIN event.application AS a ON a.application__id = s.application__id
+                LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                LEFT JOIN infrastructure.worker AS w1 ON w1.worker__id = sw.worker__id
+                LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
+                LEFT JOIN infrastructure.worker AS w2 ON w2.worker__id = ow.worker__id
+                WHERE s.subscription__id = $1
+            ",
+            &source.subscription_id,
+        )
+        .fetch_optional(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?;
+
+        if let Some(route) = route
+            && let Some(worker_id) = route.worker_id
+            && route.worker_queue_type.as_deref() == Some("pulsar")
+        {
+            let attempt = hook0_protobuf::RequestAttempt {
                 application_id: source.application_id,
                 request_attempt_id: new_request_attempt_id,
                 event_id: source.event_id,
@@ -733,15 +777,16 @@ pub async fn retry(
                 payload_content_type: source.payload_content_type,
                 secret: source.secret,
                 attempt_trigger: hook0_protobuf::AttemptTrigger::ManualRetry,
-            },
-        )
-        .await
-    {
-        error!(
-            request_attempt_id = %new_request_attempt_id,
-            error = ?err,
-            "Manual retry persisted but Pulsar dispatch failed"
-        );
+            };
+
+            if let Err(err) = publish_attempt(pulsar, worker_id, attempt).await {
+                error!(
+                    request_attempt_id = %new_request_attempt_id,
+                    error = ?err,
+                    "Manual retry persisted but Pulsar dispatch failed"
+                );
+            }
+        }
     }
 
     Ok(HttpResponse::Accepted().json(RetryResponse {
