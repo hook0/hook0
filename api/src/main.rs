@@ -1147,7 +1147,6 @@ async fn main() -> anyhow::Result<()> {
         if config.enable_health_monitor {
             let health_monitor_db = housekeeping_pool.clone();
             let health_monitor_semaphore = housekeeping_semaphore.clone();
-            let health_monitor_hook0_client = hook0_client.clone();
             // Pack all health-monitor CLI flags into the config struct that run_health_monitor consumes
             let health_monitor_config = health_monitor::HealthMonitorConfig {
                 interval: config.health_monitor_interval,
@@ -1166,7 +1165,6 @@ async fn main() -> anyhow::Result<()> {
                 health_monitor::run_health_monitor(
                     &health_monitor_semaphore,
                     &health_monitor_db,
-                    &health_monitor_hook0_client,
                     &health_monitor_config,
                 )
                 .await;

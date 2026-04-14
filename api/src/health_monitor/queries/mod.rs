@@ -37,29 +37,15 @@ pub struct DeltaRow {
 }
 
 /// All the data the state machine needs to decide whether to warn, disable,
-/// or resolve a subscription: its failure rate, its latest health event,
-/// and its retry schedule (included so notification emails can reference it).
+/// or resolve a subscription: its failure rate and its latest health event.
 #[derive(Debug)]
 pub struct SubscriptionHealth {
     pub subscription_id: Uuid,
-    pub application_id: Uuid,
-    pub organization_id: Uuid,
-    pub application_name: Option<String>,
-    pub description: Option<String>,
-    pub target_url: String,
     pub failure_percent: f64,
     pub last_health_status: Option<HealthStatus>,
     pub last_health_at: Option<DateTime<Utc>>,
+    #[allow(dead_code)]
     pub last_health_cause: Option<HealthEventCause>,
-    // Selected for potential use in notification personalization — suppress warning until wired up
     #[allow(dead_code)]
     pub last_health_user_id: Option<Uuid>,
-    pub retry_schedule_id: Option<Uuid>,
-    pub retry_schedule_name: Option<String>,
-    pub retry_strategy: Option<String>,
-    pub retry_max_retries: Option<i32>,
-    pub retry_custom_intervals: Option<Vec<i32>>,
-    pub retry_linear_delay: Option<i32>,
-    pub retry_increasing_base_delay: Option<i32>,
-    pub retry_increasing_wait_factor: Option<f64>,
 }

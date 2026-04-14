@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH bucket_stats AS (\n            SELECT subscription__id,\n                   SUM(failed_count)::float8 / NULLIF(SUM(total_count), 0) * 100.0 AS failure_percent,\n                   SUM(total_count) AS sample_size\n            FROM webhook.subscription_health_bucket\n            WHERE subscription__id = ANY($1)\n              AND bucket_start > now() - make_interval(secs => $2)\n            GROUP BY subscription__id\n            HAVING SUM(total_count) >= $3\n        )\n        SELECT\n            bs.subscription__id AS \"subscription_id!\",\n            bs.failure_percent AS \"failure_percent!\",\n            lh.status AS \"last_health_status?: HealthStatus\",\n            lh.created_at AS \"last_health_at?\",\n            lh.cause AS \"last_health_cause?: HealthEventCause\",\n            lh.user__id AS \"last_health_user_id?\"\n        FROM bucket_stats bs\n        INNER JOIN webhook.subscription s USING (subscription__id)\n        LEFT JOIN LATERAL (\n            SELECT she.status, she.created_at, she.cause, she.user__id\n            FROM webhook.subscription_health_event she\n            WHERE she.subscription__id = bs.subscription__id\n            ORDER BY she.created_at DESC\n            LIMIT 1\n        ) lh ON true\n        WHERE s.is_enabled = true AND s.deleted_at IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscription_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "failure_percent!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 2,
+        "name": "last_health_status?: HealthStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "last_health_at?",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "last_health_cause?: HealthEventCause",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "last_health_user_id?",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "8e7355ebb31a3ca7676a59331bf8f756e30f11991b6dc19cb2f719c36d4584ca"
+}

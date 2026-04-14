@@ -10,15 +10,15 @@
 //!   No previous state + very high failure   -> Disable (skip Warning, endpoint already broken)
 //!   Warning + still failing (same band)     -> do nothing (already warned)
 //!   Warning + even higher failure           -> Disable
-//!   Warning + recovered (failure dropped)   -> Resolved (notify unless previous cause was manual)
+//!   Warning + recovered (failure dropped)   -> Resolved
 //!   Disabled                                -> do nothing (user must re-enable manually)
-//!   Resolved + within cooldown              -> do nothing (avoid email spam)
+//!   Resolved + within cooldown              -> do nothing (anti-flap)
 
 use chrono::{DateTime, Utc};
 
 use super::HealthMonitorConfig;
 use super::evaluation::SubscriptionHealth;
-use super::types::{HealthEventCause, HealthStatus};
+use super::types::HealthStatus;
 
 /// Persistent side-effect the caller should apply, decided by the pure
 /// `evaluate_health_transition` function. The caller is expected to dispatch
@@ -26,16 +26,13 @@ use super::types::{HealthEventCause, HealthStatus};
 #[derive(Debug, Clone, PartialEq)]
 pub enum PlannedAction {
     /// Cache the current failure rate on the subscription row. Always emitted
-    /// first so the frontend can display the latest rate.
+    /// first so consumers see the latest rate on every tick.
     UpdateFailurePercent,
-    /// Insert a `warning` health event and queue a warning notification.
+    /// Insert a `warning` health event row.
     EmitWarning,
-    /// Insert a `resolved` health event. When `notify` is true the caller also
-    /// queues a recovery notification; when false (previous cause was manual)
-    /// the event is persisted silently to avoid redundant emails.
-    EmitResolved { notify: bool },
-    /// Disable the subscription (atomic UPDATE + INSERT) and queue a disabled
-    /// notification if the transition actually happened.
+    /// Insert a `resolved` health event row.
+    EmitResolved,
+    /// Disable the subscription (atomic UPDATE + INSERT).
     EmitDisabled,
 }
 
@@ -45,7 +42,6 @@ pub fn evaluate_health_transition(
     failure_percent: f64,
     last_status: Option<HealthStatus>,
     last_at: Option<DateTime<Utc>>,
-    last_cause: Option<HealthEventCause>,
     config: &HealthMonitorConfig,
     now: DateTime<Utc>,
 ) -> Vec<PlannedAction> {
@@ -79,12 +75,10 @@ pub fn evaluate_health_transition(
         Some(HealthStatus::Warning)
             if failure_percent >= warning_percent && failure_percent < disable_percent => {}
 
-        // Was warned but failure rate dropped below the warning threshold — the
-        // endpoint recovered. Skip notification if the last event was a manual
-        // API action (re-enable via API), since the user already knows.
+        // Was warned but failure rate dropped below the warning threshold —
+        // the endpoint recovered.
         Some(HealthStatus::Warning) if failure_percent < warning_percent => {
-            let notify = last_cause != Some(HealthEventCause::Manual);
-            actions.push(PlannedAction::EmitResolved { notify });
+            actions.push(PlannedAction::EmitResolved);
         }
 
         // Was warned and failure rate climbed above the disable threshold —
@@ -124,7 +118,6 @@ pub fn plan_for_subscription(
         subscription.failure_percent,
         subscription.last_health_status,
         subscription.last_health_at,
-        subscription.last_health_cause,
         config,
         now,
     )
@@ -156,13 +149,11 @@ mod tests {
         failure_percent: f64,
         last_status: Option<HealthStatus>,
         last_at: Option<DateTime<Utc>>,
-        last_cause: Option<HealthEventCause>,
     ) -> Vec<PlannedAction> {
         evaluate_health_transition(
             failure_percent,
             last_status,
             last_at,
-            last_cause,
             &test_config(),
             Utc::now(),
         )
@@ -171,15 +162,15 @@ mod tests {
     #[test]
     fn healthy_below_warning_does_nothing() {
         // No prior state + failure below warning -> only the UpdateFailurePercent
-        // cache write, no event, no email.
-        let actions = evaluate(10.0, None, None, None);
+        // cache write, no event.
+        let actions = evaluate(10.0, None, None);
         assert_eq!(actions, vec![PlannedAction::UpdateFailurePercent]);
     }
 
     #[test]
     fn healthy_crosses_warning_emits_warning() {
         // No prior state + failure crosses warning (but not disable) -> emit Warning.
-        let actions = evaluate(60.0, None, None, None);
+        let actions = evaluate(60.0, None, None);
         assert_eq!(
             actions,
             vec![
@@ -193,8 +184,8 @@ mod tests {
     fn healthy_crosses_disable_jumps_straight_to_disabled() {
         // No prior state + failure crosses disable threshold -> skip warning,
         // go straight to Disabled. A broken endpoint doesn't warrant a
-        // separate warning email first.
-        let actions = evaluate(95.0, None, None, None);
+        // separate warning step first.
+        let actions = evaluate(95.0, None, None);
         assert_eq!(
             actions,
             vec![
@@ -211,45 +202,23 @@ mod tests {
             70.0,
             Some(HealthStatus::Warning),
             Some(Utc::now() - chrono::Duration::minutes(30)),
-            Some(HealthEventCause::Auto),
         );
         assert_eq!(actions, vec![PlannedAction::UpdateFailurePercent]);
     }
 
     #[test]
     fn warning_recovers_when_failure_drops() {
-        // Previous Warning (auto) + failure dropped below warning -> EmitResolved
-        // with notify=true so the user gets a recovery email.
+        // Previous Warning + failure dropped below warning -> EmitResolved.
         let actions = evaluate(
             5.0,
             Some(HealthStatus::Warning),
             Some(Utc::now() - chrono::Duration::minutes(30)),
-            Some(HealthEventCause::Auto),
         );
         assert_eq!(
             actions,
             vec![
                 PlannedAction::UpdateFailurePercent,
-                PlannedAction::EmitResolved { notify: true },
-            ]
-        );
-    }
-
-    #[test]
-    fn warning_recovers_no_recovery_email_if_last_cause_manual() {
-        // Previous Warning caused by a manual API action + failure dropped ->
-        // persist Resolved but notify=false (user already knows).
-        let actions = evaluate(
-            5.0,
-            Some(HealthStatus::Warning),
-            Some(Utc::now() - chrono::Duration::minutes(30)),
-            Some(HealthEventCause::Manual),
-        );
-        assert_eq!(
-            actions,
-            vec![
-                PlannedAction::UpdateFailurePercent,
-                PlannedAction::EmitResolved { notify: false },
+                PlannedAction::EmitResolved,
             ]
         );
     }
@@ -261,7 +230,6 @@ mod tests {
             95.0,
             Some(HealthStatus::Warning),
             Some(Utc::now() - chrono::Duration::minutes(30)),
-            Some(HealthEventCause::Auto),
         );
         assert_eq!(
             actions,
@@ -282,7 +250,6 @@ mod tests {
                 failure,
                 Some(HealthStatus::Disabled),
                 Some(Utc::now() - chrono::Duration::minutes(30)),
-                Some(HealthEventCause::Auto),
             );
             assert_eq!(
                 actions,
@@ -295,12 +262,11 @@ mod tests {
     #[test]
     fn resolved_within_cooldown_does_not_re_warning() {
         // Resolved within the cooldown window + new spike -> skip, even though
-        // failure is above warning. Protects users from warning/resolved churn.
+        // failure is above warning. Anti-flap protection.
         let actions = evaluate(
             70.0,
             Some(HealthStatus::Resolved),
             Some(Utc::now() - chrono::Duration::minutes(10)),
-            Some(HealthEventCause::Auto),
         );
         assert_eq!(actions, vec![PlannedAction::UpdateFailurePercent]);
     }
@@ -313,7 +279,6 @@ mod tests {
             70.0,
             Some(HealthStatus::Resolved),
             Some(Utc::now() - chrono::Duration::hours(2)),
-            Some(HealthEventCause::Auto),
         );
         assert_eq!(
             actions,

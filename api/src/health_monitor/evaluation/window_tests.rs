@@ -15,6 +15,7 @@ mod tests {
     use super::super::test_helpers::{
         insert_test_fixtures, process_subscription, set_cursor, test_config,
     };
+    use crate::health_monitor::state_machine::PlannedAction;
 
     /// Recovery triggers a resolved health event.
     #[sqlx::test(migrations = "./migrations")]
@@ -42,17 +43,11 @@ mod tests {
             super::super::advance_cursor(&mut tx, ts).await.unwrap();
         }
         assert!(
-            actions.iter().any(|a| matches!(
-                a,
-                crate::health_monitor::notifications::HealthAction::Warning(_)
-            )),
-            "first pass should produce a Warning action"
+            actions.contains(&PlannedAction::EmitWarning),
+            "first pass should emit Warning"
         );
         assert!(
-            !actions.iter().any(|a| matches!(
-                a,
-                crate::health_monitor::notifications::HealthAction::Disabled(_)
-            )),
+            !actions.contains(&PlannedAction::EmitDisabled),
             "first pass should NOT disable (71% < 90%)"
         );
 
@@ -106,11 +101,8 @@ mod tests {
             "should have a resolved event with cause=auto"
         );
         assert!(
-            actions2.iter().any(|a| matches!(
-                a,
-                crate::health_monitor::notifications::HealthAction::Recovered(_)
-            )),
-            "second pass should produce a Recovered action"
+            actions2.contains(&PlannedAction::EmitResolved),
+            "second pass should emit Resolved"
         );
     }
 
@@ -157,10 +149,7 @@ mod tests {
         let actions = process_subscription(&mut tx, &config, sub2).await.unwrap();
 
         assert!(
-            !actions.iter().any(|a| matches!(
-                a,
-                crate::health_monitor::notifications::HealthAction::Warning(_)
-            )),
+            !actions.contains(&PlannedAction::EmitWarning),
             "cooldown should prevent re-warning"
         );
 

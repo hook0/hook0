@@ -103,8 +103,8 @@ pub async fn find_suspects(
 }
 
 /// Computes each suspect subscription's failure rate over the sliding window,
-/// and joins in all the context needed for the state machine and notifications:
-/// subscription details, latest health event, target URL, and retry schedule.
+/// and joins in the subscription context and latest health event needed by
+/// the state machine.
 ///
 /// The failure rate formula: SUM(failed_count) / SUM(total_count) * 100.
 /// Only buckets within the configured time_window are included.
@@ -133,28 +133,13 @@ pub async fn compute_failure_rates(
         )
         SELECT
             bs.subscription__id AS "subscription_id!",
-            s.application__id AS "application_id!",
-            app.organization__id AS "organization_id!",
-            app.name AS "application_name?",
-            s.description,
-            coalesce(th.url, '') AS "target_url!",
             bs.failure_percent AS "failure_percent!",
             lh.status AS "last_health_status?: HealthStatus",
             lh.created_at AS "last_health_at?",
             lh.cause AS "last_health_cause?: HealthEventCause",
-            lh.user__id AS "last_health_user_id?",
-            -- Phase 3 will replace these NULL casts with a JOIN to webhook.retry_schedule (the table is owned by Phase 3).
-            NULL::uuid AS "retry_schedule_id?",
-            NULL::text AS "retry_schedule_name?",
-            NULL::text AS "retry_strategy?",
-            NULL::int4 AS "retry_max_retries?",
-            NULL::int4[] AS "retry_custom_intervals?",
-            NULL::int4 AS "retry_linear_delay?",
-            NULL::int4 AS "retry_increasing_base_delay?",
-            NULL::float8 AS "retry_increasing_wait_factor?"
+            lh.user__id AS "last_health_user_id?"
         FROM bucket_stats bs
         INNER JOIN webhook.subscription s USING (subscription__id)
-        INNER JOIN event.application app ON app.application__id = s.application__id
         LEFT JOIN LATERAL (
             SELECT she.status, she.created_at, she.cause, she.user__id
             FROM webhook.subscription_health_event she
@@ -162,7 +147,6 @@ pub async fn compute_failure_rates(
             ORDER BY she.created_at DESC
             LIMIT 1
         ) lh ON true
-        LEFT JOIN webhook.target_http th ON th.target__id = s.target__id
         WHERE s.is_enabled = true AND s.deleted_at IS NULL
         "#,
         suspect_ids,

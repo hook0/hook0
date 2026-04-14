@@ -5,16 +5,13 @@
 //!
 //! **How it works**:
 //!   1. Acquire an advisory lock so only one API instance runs the check.
-//!   2. Phase 1 (transaction): evaluate every subscription's failure rate,
-//!      insert health events, disable broken subscriptions.
-//!   3. Phase 2 (best-effort, no transaction): emit Hook0 events for any
-//!      state changes that occurred.
-//!   4. Periodically run a cleanup cycle to remove stale health data (once/day).
+//!   2. In a transaction: evaluate every subscription's failure rate, insert
+//!      health events, disable broken subscriptions.
+//!   3. Periodically run a cleanup cycle to remove stale health data (once/day).
 
 mod cleanup;
 pub mod errors;
 mod evaluation;
-mod notifications;
 mod queries;
 mod state_machine;
 pub mod types;
@@ -25,10 +22,7 @@ use sqlx::PgPool;
 use tokio::sync::Semaphore;
 use tracing::{debug, error, info, warn};
 
-use hook0_client::Hook0Client;
-
 use evaluation::SubscriptionHealth;
-use notifications::{HealthAction, HealthActionInfo};
 use state_machine::PlannedAction;
 use types::{HealthEventCause, HealthStatus};
 
@@ -54,14 +48,13 @@ pub struct HealthMonitorConfig {
 /// Runs the health monitor loop.
 ///
 /// Uses BOTH housekeeping_semaphore (intra-process mutual exclusion with
-/// other housekeeping tasks) AND pg_try_advisory_xact_lock (inter-instance
-/// mutual exclusion across Kubernetes replicas). The semaphore prevents
-/// overloading the 3-connection housekeeping pool; the advisory lock
-/// prevents duplicate Hook0 events from concurrent API instances.
+/// other housekeeping tasks) AND pg_try_advisory_xact_lock (inter-process
+/// mutual exclusion across replicas). The semaphore prevents overloading the
+/// 3-connection housekeeping pool; the advisory lock prevents duplicate
+/// health events from concurrent API instances.
 pub async fn run_health_monitor(
     housekeeping_semaphore: &Semaphore,
     db: &PgPool,
-    hook0_client: &Option<Hook0Client>,
     config: &HealthMonitorConfig,
 ) {
     info!(
@@ -75,19 +68,16 @@ pub async fn run_health_monitor(
     let mut last_cleanup: Option<Instant> = None;
 
     while let Ok(permit) = housekeeping_semaphore.acquire().await {
-        if let Err(e) = run_health_check(db, hook0_client, config).await {
+        if let Err(e) = run_health_check(db, config).await {
             error!("Health monitor error: {e}");
         }
 
         if last_cleanup.is_none_or(|t| t.elapsed() > CLEANUP_INTERVAL) {
             match cleanup::cleanup_resolved_health_events(db, config).await {
-                Ok(n) => {
-                    if n > 0 {
-                        info!("Health monitor: cleaned up {n} resolved health events");
-                    } else {
-                        debug!("Health monitor: cleanup tick, no events to remove");
-                    }
+                Ok(n) if n > 0 => {
+                    info!("Health monitor: cleaned up {n} resolved health events");
                 }
+                Ok(_) => debug!("Health monitor: cleanup tick, no events to remove"),
                 Err(e) => warn!("Health monitor: cleanup error: {e}"),
             }
             match cleanup::cleanup_old_buckets(db, config).await {
@@ -106,71 +96,58 @@ pub async fn run_health_monitor(
     warn!("Health monitor stopped (semaphore closed)");
 }
 
-/// Acquires the advisory lock, evaluates all subscriptions, then fires side-effects (Hook0 events).
+/// Acquires the advisory lock and evaluates all subscriptions inside a single transaction.
 async fn run_health_check(
     db: &PgPool,
-    hook0_client: &Option<Hook0Client>,
     config: &HealthMonitorConfig,
 ) -> Result<(), errors::HealthMonitorError> {
-    // Phase 1: transaction — evaluate health, insert events, disable subscriptions.
-    let actions = {
-        let mut transaction = db.begin().await?;
+    let mut transaction = db.begin().await?;
 
-        let acquired: bool = sqlx::query_scalar("SELECT pg_try_advisory_xact_lock($1)")
-            .bind(ADVISORY_LOCK_ID)
-            .fetch_one(&mut *transaction)
-            .await?;
+    let acquired: bool = sqlx::query_scalar("SELECT pg_try_advisory_xact_lock($1)")
+        .bind(ADVISORY_LOCK_ID)
+        .fetch_one(&mut *transaction)
+        .await?;
 
-        if !acquired {
-            info!("Health monitor: another instance holds the lock, skipping");
-            return Ok(());
+    if !acquired {
+        info!("Health monitor: another instance holds the lock, skipping");
+        return Ok(());
+    }
+
+    let (subscriptions, max_completed_at) =
+        evaluation::fetch_subscription_health_stats(&mut transaction, config).await?;
+    info!(
+        "Health monitor: evaluated {} subscriptions",
+        subscriptions.len()
+    );
+
+    let now = chrono::Utc::now();
+    for subscription in &subscriptions {
+        let planned = state_machine::plan_for_subscription(config, subscription, now);
+        if let Err(e) = apply_planned_actions(&mut transaction, subscription, &planned).await {
+            warn!(
+                "Health monitor: error processing subscription {}: {e}",
+                subscription.subscription_id
+            );
         }
+    }
 
-        let (subscriptions, max_completed_at) =
-            evaluation::fetch_subscription_health_stats(&mut transaction, config).await?;
-        info!(
-            "Health monitor: evaluated {} subscriptions",
-            subscriptions.len()
-        );
+    // Reset failure_percent for non-suspect subscriptions. Without this, a subscription
+    // that spiked briefly and recovered would keep its stale rate cached forever —
+    // consumers of webhook.subscription.failure_percent would read outdated data.
+    let suspect_ids: Vec<uuid::Uuid> = subscriptions.iter().map(|s| s.subscription_id).collect();
+    evaluation::reset_healthy_failure_percent(&mut transaction, &suspect_ids).await?;
 
-        let mut actions = Vec::new();
-        let now = chrono::Utc::now();
-        for subscription in &subscriptions {
-            let planned = state_machine::plan_for_subscription(config, subscription, now);
-            if let Err(e) =
-                apply_planned_actions(&mut transaction, subscription, &planned, &mut actions).await
-            {
-                warn!(
-                    "Health monitor: error processing subscription {}: {e}",
-                    subscription.subscription_id
-                );
-            }
-        }
+    // Advance the cursor so the next tick only looks at newer deliveries
+    if let Some(ts) = max_completed_at {
+        evaluation::advance_cursor(&mut transaction, ts).await?;
+    }
 
-        // Reset failure_percent for non-suspect subscriptions so the frontend
-        // doesn't show stale failure data on now-healthy endpoints.
-        let suspect_ids: Vec<uuid::Uuid> =
-            subscriptions.iter().map(|s| s.subscription_id).collect();
-        evaluation::reset_healthy_failure_percent(&mut transaction, &suspect_ids).await?;
-
-        // Advance the cursor so the next tick only looks at newer deliveries
-        if let Some(ts) = max_completed_at {
-            evaluation::advance_cursor(&mut transaction, ts).await?;
-        }
-
-        transaction.commit().await?;
-        actions
-    };
-
-    // Phase 2: best-effort side-effects (no transaction held).
-    notifications::dispatch_health_actions(&actions, hook0_client).await;
-
+    transaction.commit().await?;
     Ok(())
 }
 
 /// Applies the list of `PlannedAction`s decided by the pure state machine to
-/// the database (within the caller's transaction) and appends any resulting
-/// notification envelopes to `notify_queue` for phase-2 dispatch.
+/// the database (within the caller's transaction).
 ///
 /// This is where the only side effects live: every branch maps a single
 /// `PlannedAction` to one or more `queries::*` calls. No decision logic here.
@@ -178,7 +155,6 @@ async fn apply_planned_actions(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     subscription: &SubscriptionHealth,
     planned: &[PlannedAction],
-    notify_queue: &mut Vec<HealthAction>,
 ) -> Result<(), errors::HealthMonitorError> {
     for action in planned {
         match action {
@@ -199,12 +175,8 @@ async fn apply_planned_actions(
                     None,
                 )
                 .await?;
-                notify_queue.push(HealthAction::Warning(HealthActionInfo::from_subscription(
-                    subscription,
-                    None,
-                )));
             }
-            PlannedAction::EmitResolved { notify } => {
+            PlannedAction::EmitResolved => {
                 queries::insert_health_event(
                     tx,
                     subscription.subscription_id,
@@ -213,25 +185,12 @@ async fn apply_planned_actions(
                     None,
                 )
                 .await?;
-                if *notify {
-                    notify_queue.push(HealthAction::Recovered(
-                        HealthActionInfo::from_subscription(subscription, None),
-                    ));
-                }
             }
             PlannedAction::EmitDisabled => {
                 // The CTE inside disable_subscription is idempotent: if the
                 // subscription was already disabled (e.g. by the user between
-                // ticks), it returns None and we skip the notification to
-                // avoid a duplicate Hook0 event.
-                if let Some(disabled_at) =
-                    queries::disable_subscription(tx, subscription.subscription_id).await?
-                {
-                    notify_queue.push(HealthAction::Disabled(HealthActionInfo::from_subscription(
-                        subscription,
-                        Some(disabled_at),
-                    )));
-                }
+                // ticks), it returns None and we skip — no duplicate event row.
+                let _ = queries::disable_subscription(tx, subscription.subscription_id).await?;
             }
         }
     }
