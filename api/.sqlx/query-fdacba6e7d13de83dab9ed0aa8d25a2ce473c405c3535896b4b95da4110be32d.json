@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT subscription__id AS \"subscription_id!\", bucket_start AS \"bucket_start!\"\n        FROM webhook.subscription_health_bucket\n        WHERE subscription__id = ANY($1)\n          AND bucket_end IS NULL\n        ",
+  "query": "\n            select subscription__id as \"subscription_id!\", bucket_start as \"bucket_start!\"\n            from webhook.subscription_health_bucket\n            where subscription__id = any($1)\n              and bucket_end is null\n        ",
   "describe": {
     "columns": [
       {
@@ -24,5 +24,5 @@
       false
     ]
   },
-  "hash": "350a71aa4747c334a48332efa2e72ead4534e17b6561c35781ba926062065e69"
+  "hash": "fdacba6e7d13de83dab9ed0aa8d25a2ce473c405c3535896b4b95da4110be32d"
 }

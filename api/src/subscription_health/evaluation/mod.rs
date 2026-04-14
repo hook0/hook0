@@ -1,102 +1,88 @@
-//! Health monitor evaluation pipeline.
+//! Per-tick evaluation pipeline for the subscription health monitor.
 //!
-//! **What it does**: monitors webhook delivery success/failure rates to
-//! auto-warn and auto-disable unhealthy subscription endpoints.
+//! Dataflow:
 //!
-//! **How it works at a high level** (one "tick"):
-//!   1. Read the cursor — a bookmark saying "I've already processed all
-//!      deliveries up to this timestamp."
-//!   2. Scan `request_attempt` for deliveries newer than the cursor.
-//!   3. Group those deliveries into time buckets per subscription
-//!      (a bucket = a group of deliveries bounded by a max duration OR a max
-//!      message count, whichever comes first — e.g. "10:00–10:05, 50 ok, 3 failed").
-//!   4. Close buckets that are full (exceeded duration or message count).
-//!   5. Identify "suspects" — subscriptions with enough recent failures to
-//!      potentially need a warning or to be disabled.
-//!   6. Compute each suspect's failure rate over a sliding window (the last N
-//!      minutes of buckets, configured by `time_window`).
+//!   ┌────────────────────────────┐
+//!   │   read_evaluation_cursor   │  "where did I stop last time?"
+//!   └─────────────┬──────────────┘
+//!                 ▼
+//!   ┌──────────────────────────────────────┐
+//!   │  aggregate_recent_request_attempts   │  scan new rows, capped per tick
+//!   └─────────────────┬────────────────────┘
+//!                     ▼
+//!   ┌─────────────────┐
+//!   │  upsert_buckets │  one open bucket per subscription
+//!   └────────┬────────┘
+//!            ▼
+//!   ┌──────────────────────┐
+//!   │  close_full_buckets  │  freeze buckets past duration/count limit
+//!   └──────────┬───────────┘
+//!              ▼
+//!   ┌──────────────────────────────────────────────┐
+//!   │ find_subscriptions_pending_health_evaluation │  failing ∪ currently-warned
+//!   └─────────────────────┬────────────────────────┘
+//!                         ▼
+//!   ┌────────────────────────┐
+//!   │  compute_failure_rates │  Vec<SubscriptionHealth> for the state machine
+//!   └────────────┬───────────┘
+//!                ▼
+//!   ┌───────────────────────────────┐
+//!   │ reset_healthy_failure_percent │  clear the cached rate on recovered subs
+//!   └─────────────┬─────────────────┘
+//!                 ▼
+//!   ┌────────────────────────────┐
+//!   │  advance_evaluation_cursor │  bookmark progress for the next tick
+//!   └────────────────────────────┘
 //!
-//! The caller (mod.rs) then feeds each suspect into the state machine, which
-//! decides whether to warn, disable, or resolve, and finally advances the
-//! cursor so the next tick only looks at newer deliveries.
-//!
-//! Production code lives in two sub-modules:
-//! - [`decision`]: cursor advancement and failure-percent reset side effects
-//! - the orchestrator [`fetch_subscription_health_stats`] in this file, which
-//!   stitches together [`crate::subscription_health::queries`] (bucket lifecycle,
-//!   suspect detection, failure-rate computation) and the
-//!   [`crate::subscription_health::state_machine`] (warn / disable / recover /
-//!   cooldown transitions)
-//!
-//! The black-box integration tests are split by behavioral focus rather than
-//! by file structure:
-//! - [`bucket_tests`]: bucket population, closing, and retention cleanup
-//!   (exercising [`crate::subscription_health::queries`] `upsert_buckets` /
-//!   `close_full_buckets`)
-//! - [`window_tests`]: adaptive-window flow — two-pass warning then
-//!   recovery / cooldown evaluated across the `time_window` (exercising the
-//!   [`crate::subscription_health::state_machine`] end-to-end)
-//! - [`threshold_tests`]: threshold-driven suspect tracking — the UNION
-//!   behavior in [`crate::subscription_health::queries::find_suspects`] that keeps
-//!   a previously-warned subscription in the suspect set even after its
-//!   bucket failure rate drops, which is what lets the state machine fire the
-//!   Recovered transition
+//! The whole pipeline runs inside a single transaction owned by the caller
+//! in [`super::runner`]. The state machine + side-effect dispatch happen
+//! after this function returns, still inside the same transaction, so a
+//! crash between any two stages rolls the whole tick back.
 
-use chrono::{DateTime, Utc};
-
-use super::SubscriptionHealthConfig;
-use super::queries;
-
-pub use queries::SubscriptionHealth;
-
-mod decision;
-
-pub use decision::{advance_cursor, reset_healthy_failure_percent};
-
-#[cfg(test)]
-mod bucket_tests;
-#[cfg(test)]
-mod threshold_tests;
-#[cfg(test)]
-mod window_tests;
+use super::queries::{self, SubscriptionHealth};
+use super::runner::SubscriptionHealthConfig;
 
 #[cfg(test)]
 pub(super) mod test_helpers;
 
-/// Runs the full evaluation pipeline for one tick: read cursor, ingest new
-/// deliveries, bucket them, close full buckets, find suspects, compute failure rates.
-///
-/// Returns `(suspects, max_completed_at)` where `max_completed_at` is the
-/// timestamp the caller should pass to `advance_cursor` after committing the
-/// transaction.
-pub async fn fetch_subscription_health_stats(
+#[cfg(test)]
+mod tests;
+
+/// One full evaluation tick. Returns the subscriptions the state machine
+/// should judge — the caller is responsible for running the state machine
+/// and dispatching the resulting `PlannedAction`s.
+pub async fn run_evaluation_tick(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     config: &SubscriptionHealthConfig,
-) -> Result<(Vec<SubscriptionHealth>, Option<DateTime<Utc>>), sqlx::Error> {
-    // 1. Read the cursor — "where did I stop last time?"
-    let cursor = queries::read_cursor(tx).await?;
+) -> Result<Vec<SubscriptionHealth>, sqlx::Error> {
+    let cursor = queries::read_evaluation_cursor(tx).await?;
 
-    // 2. Scan for new deliveries since the cursor (capped to avoid long queries)
-    let deltas = queries::ingest_deltas(tx, cursor, config.max_delta_rows_per_tick).await?;
-    let max_completed_at = deltas.iter().filter_map(|d| d.max_completed_at).max();
+    let aggregates = queries::aggregate_recent_request_attempts(
+        tx,
+        cursor,
+        config.max_request_attempts_scanned_per_tick,
+    )
+    .await?;
+    let max_completed_at = aggregates.iter().filter_map(|a| a.max_completed_at).max();
 
-    // 3. Pour those delivery counts into open buckets (one bucket per subscription)
-    // Skip if empty — upsert_buckets would produce an empty VALUES clause
-    if !deltas.is_empty() {
-        queries::upsert_buckets(tx, &deltas).await?;
+    if !aggregates.is_empty() {
+        queries::upsert_buckets(tx, &aggregates).await?;
     }
-
-    // 4. Close any bucket that exceeded its time or message limit
     queries::close_full_buckets(tx, config).await?;
 
-    // 5. Find subscriptions that might be unhealthy (or were previously warned)
-    let suspect_ids = queries::find_suspects(tx, config).await?;
+    let candidate_ids = queries::find_subscriptions_pending_health_evaluation(tx, config).await?;
+    let subscriptions = if candidate_ids.is_empty() {
+        Vec::new()
+    } else {
+        queries::compute_failure_rates(tx, &candidate_ids, config).await?
+    };
 
-    // 6. Compute failure rates for each suspect
-    if suspect_ids.is_empty() {
-        return Ok((Vec::new(), max_completed_at));
+    let active_ids: Vec<_> = subscriptions.iter().map(|s| s.subscription_id).collect();
+    queries::reset_healthy_failure_percent(tx, &active_ids).await?;
+
+    if let Some(ts) = max_completed_at {
+        queries::advance_evaluation_cursor(tx, ts).await?;
     }
-    let subscriptions = queries::compute_failure_rates(tx, &suspect_ids, config).await?;
 
-    Ok((subscriptions, max_completed_at))
+    Ok(subscriptions)
 }

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            update webhook.subscription_health_monitor_cursor\n            set last_processed_at = $1\n            where cursor__id = 1\n              and $1 > last_processed_at\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a3d00e612007520a2531ba03a951d9276e7042a19793ab3af41bbafc64a1ac63"
+}

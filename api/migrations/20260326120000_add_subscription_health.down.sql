@@ -1,8 +1,9 @@
-DROP INDEX IF EXISTS webhook.idx_request_attempt_completed_at;
-DROP INDEX IF EXISTS webhook.idx_subscription_health_event_cleanup;
-DROP INDEX IF EXISTS webhook.idx_subscription_health_bucket_start;
-DROP INDEX IF EXISTS webhook.idx_subscription_health_bucket_open;
-DROP INDEX IF EXISTS webhook.idx_subscription_health_event_sub_id;
-DROP TABLE IF EXISTS webhook.subscription_health_monitor_cursor CASCADE;
-DROP TABLE IF EXISTS webhook.subscription_health_bucket;
-DROP TABLE IF EXISTS webhook.subscription_health_event;
+alter table webhook.subscription drop column if exists failure_percent;
+drop index if exists webhook.idx_request_attempt_completed_at;
+drop index if exists webhook.idx_subscription_health_event_cleanup;
+drop index if exists webhook.idx_subscription_health_bucket_start;
+drop index if exists webhook.idx_subscription_health_bucket_open;
+drop index if exists webhook.idx_subscription_health_event_sub_id;
+drop table if exists webhook.subscription_health_monitor_cursor cascade;
+drop table if exists webhook.subscription_health_bucket;
+drop table if exists webhook.subscription_health_event;

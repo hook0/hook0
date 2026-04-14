@@ -568,30 +568,37 @@ struct Config {
     #[clap(long, env, default_value_t = 95)]
     subscription_health_disable_failure_percent: u8,
 
-    /// [Housekeeping] Sliding window for health evaluation — only delivery attempts within this window are considered
+    /// [Housekeeping] Sliding window over which each subscription's failure rate is computed
+    /// by summing recent buckets. Only buckets that started within this window are included.
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "24h")]
-    subscription_health_time_window: Duration,
+    subscription_health_failure_rate_evaluation_window: Duration,
 
-    /// [Housekeeping] Minimum completed delivery attempts (in the evaluation window) before the
-    /// subscription health monitor evaluates a subscription. Subscriptions with fewer attempts are skipped —
-    /// this prevents false positives on low-traffic endpoints. Example: with min_sample_size=5,
-    /// a subscription that has received only 3 deliveries won't trigger a warning even if all 3 failed.
+    /// [Housekeeping] Minimum completed delivery attempts in the evaluation window before a
+    /// subscription is judged. Below this, the subscription is skipped to avoid false positives
+    /// on low-traffic endpoints — e.g. with the default of 5, a subscription that received only
+    /// 3 deliveries won't trigger a warning even if all 3 failed.
     #[clap(long, env, default_value_t = 5)]
-    subscription_health_min_sample_size: u32,
+    subscription_health_min_deliveries_for_evaluation: u32,
 
-    /// [Housekeeping] Cooldown after resolved before new warning email
+    /// [Housekeeping] Anti-flap window: minimum interval between two state transitions in the
+    /// audit trail. Prevents warning↔resolved oscillations when the failure rate hovers right
+    /// around the threshold.
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "1h")]
-    subscription_health_warning_cooldown: Duration,
+    subscription_health_anti_flap_window: Duration,
 
-    /// [Housekeeping] Number of days to retain resolved health events before cleanup
-    #[clap(long, env, default_value_t = 90)]
-    subscription_health_retention_period_days: u32,
+    /// [Housekeeping] Retention for rows with `status = 'resolved'` in the health event audit
+    /// trail. Older rows are purged on the daily cleanup tick, while keeping at least the
+    /// latest event per subscription.
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "90d")]
+    subscription_health_resolved_event_retention: Duration,
 
-    /// [Housekeeping] Maximum duration of a single health bucket. Buckets are closed when this duration OR bucket_max_messages is reached, whichever comes first
+    /// [Housekeeping] Maximum duration of a single health bucket. Buckets are closed when this
+    /// duration OR bucket_max_messages is reached, whichever comes first.
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5m")]
     subscription_health_bucket_duration: Duration,
 
-    /// [Housekeeping] Maximum delivery count per bucket. When reached, the bucket is closed and a new one is opened
+    /// [Housekeeping] Maximum delivery count per bucket. When reached, the bucket is closed
+    /// and a new one is opened.
     #[clap(long, env, default_value_t = 1000)]
     subscription_health_bucket_max_messages: u32,
 
@@ -599,10 +606,11 @@ struct Config {
     #[clap(long, env, default_value_t = 7)]
     subscription_health_bucket_retention_days: u32,
 
-    /// [Housekeeping] Maximum number of request_attempt rows to scan per subscription health monitor tick.
-    /// Limits query duration on high-traffic instances; remaining rows are picked up on the next tick.
+    /// [Housekeeping] Upper bound on how many `webhook.request_attempt` rows the evaluation
+    /// pipeline scans per tick. Caps query duration on high-traffic instances; remaining rows
+    /// are picked up on the next tick.
     #[clap(long, env, default_value_t = 50_000)]
-    subscription_health_max_delta_rows_per_tick: u32,
+    subscription_health_max_request_attempts_scanned_per_tick: u32,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -1149,14 +1157,17 @@ async fn main() -> anyhow::Result<()> {
                 interval: config.subscription_health_interval,
                 warning_failure_percent: config.subscription_health_warning_failure_percent,
                 disable_failure_percent: config.subscription_health_disable_failure_percent,
-                time_window: config.subscription_health_time_window,
-                min_sample_size: config.subscription_health_min_sample_size,
-                warning_cooldown: config.subscription_health_warning_cooldown,
-                retention_period_days: config.subscription_health_retention_period_days,
+                failure_rate_evaluation_window: config
+                    .subscription_health_failure_rate_evaluation_window,
+                min_deliveries_for_evaluation: config
+                    .subscription_health_min_deliveries_for_evaluation,
+                anti_flap_window: config.subscription_health_anti_flap_window,
+                resolved_event_retention: config.subscription_health_resolved_event_retention,
                 bucket_duration: config.subscription_health_bucket_duration,
                 bucket_max_messages: config.subscription_health_bucket_max_messages,
                 bucket_retention_days: config.subscription_health_bucket_retention_days,
-                max_delta_rows_per_tick: config.subscription_health_max_delta_rows_per_tick,
+                max_request_attempts_scanned_per_tick: config
+                    .subscription_health_max_request_attempts_scanned_per_tick,
             };
             actix_web::rt::spawn(async move {
                 subscription_health::run_subscription_health_monitor(

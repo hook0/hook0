@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE webhook.subscription SET failure_percent = $1 WHERE subscription__id = $2",
+  "query": "update webhook.subscription set failure_percent = $1 where subscription__id = $2",
   "describe": {
     "columns": [],
     "parameters": {
@@ -11,5 +11,5 @@
     },
     "nullable": []
   },
-  "hash": "7fae5c9c692d62ac8663deccf68bb10383d9c621180a7b5160ef6eb118539aea"
+  "hash": "d558d431771ed1c711160647832dfb1a82688d4f9dde9907d98f0ffe5cb03e6b"
 }

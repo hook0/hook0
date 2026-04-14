@@ -1,105 +1,148 @@
-//! Bucket lifecycle queries: upsert delivery deltas into open buckets and
-//! close buckets that exceed the configured duration or message count.
+//! Bucket lifecycle: upsert delivery aggregates into open buckets, close
+//! buckets that exceed their duration or message-count limit, and drop
+//! buckets older than the retention window.
+
+use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
+use sqlx::{PgPool, query};
 use uuid::Uuid;
 
-use super::super::SubscriptionHealthConfig;
-use super::DeltaRow;
+use super::super::runner::SubscriptionHealthConfig;
+use super::deltas::RequestAttemptAggregate;
 
-/// Adds new delivery results to each subscription's current open bucket.
+/// Adds new delivery aggregates to each subscription's currently-open bucket.
 ///
-/// Two-step approach:
-/// 1. Fetch each subscription's currently open bucket (if any) in one query
-/// 2. Bulk upsert all delivery counts using QueryBuilder::push_values
+/// Two steps:
+///   1. Pre-fetch each subscription's open bucket start (one query).
+///   2. Run a single compile-time-checked INSERT using UNNEST over four
+///      parallel arrays (subscription_ids, bucket_starts, totals, faileds).
 ///
-/// For subscriptions without an open bucket, a new one is created starting now.
-/// The ON CONFLICT clause adds counts to existing buckets rather than replacing.
+/// Subscriptions without an open bucket get a fresh one starting `now()`.
+/// The ON CONFLICT clause adds counts to existing buckets rather than
+/// replacing — this matters when the same (subscription, bucket_start) pair
+/// appears multiple times across consecutive ticks.
 pub async fn upsert_buckets(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    deltas: &[DeltaRow],
+    aggregates: &[RequestAttemptAggregate],
 ) -> Result<(), sqlx::Error> {
-    // Nothing to insert — skip to avoid an empty VALUES clause
-    if deltas.is_empty() {
+    if aggregates.is_empty() {
         return Ok(());
     }
 
-    let sub_ids: Vec<Uuid> = deltas.iter().map(|d| d.subscription_id).collect();
-    let now = Utc::now();
+    let input_ids: Vec<Uuid> = aggregates.iter().map(|a| a.subscription_id).collect();
 
-    // Step 1: Find open buckets for all subscriptions in one query
-    let open_rows = sqlx::query!(
+    // Step 1: find each subscription's currently-open bucket start.
+    let open_rows = query!(
         r#"
-        SELECT subscription__id AS "subscription_id!", bucket_start AS "bucket_start!"
-        FROM webhook.subscription_health_bucket
-        WHERE subscription__id = ANY($1)
-          AND bucket_end IS NULL
+            select subscription__id as "subscription_id!", bucket_start as "bucket_start!"
+            from webhook.subscription_health_bucket
+            where subscription__id = any($1)
+              and bucket_end is null
         "#,
-        &sub_ids,
+        &input_ids,
     )
     .fetch_all(&mut **tx)
     .await?;
 
-    let open_buckets: std::collections::HashMap<Uuid, DateTime<Utc>> = open_rows
+    let open_buckets: HashMap<Uuid, DateTime<Utc>> = open_rows
         .into_iter()
         .map(|r| (r.subscription_id, r.bucket_start))
         .collect();
+    let now = Utc::now();
 
-    // Step 2: Bulk upsert — one INSERT with multiple VALUES rows
-    let mut qb: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new(
-        "INSERT INTO webhook.subscription_health_bucket (subscription__id, bucket_start, total_count, failed_count) ",
-    );
+    // Step 2: build four parallel vectors for UNNEST.
+    let len = aggregates.len();
+    let mut sub_ids: Vec<Uuid> = Vec::with_capacity(len);
+    let mut bucket_starts: Vec<DateTime<Utc>> = Vec::with_capacity(len);
+    let mut totals: Vec<i32> = Vec::with_capacity(len);
+    let mut faileds: Vec<i32> = Vec::with_capacity(len);
 
-    qb.push_values(deltas, |mut b, d| {
-        let bucket_start = open_buckets.get(&d.subscription_id).copied().unwrap_or(now);
-        b.push_bind(d.subscription_id)
-            .push_bind(bucket_start)
-            .push_bind(d.total.min(i32::MAX as i64) as i32)
-            .push_bind(d.failed.min(i32::MAX as i64) as i32);
-    });
+    for agg in aggregates {
+        let start = open_buckets
+            .get(&agg.subscription_id)
+            .copied()
+            .unwrap_or(now);
+        sub_ids.push(agg.subscription_id);
+        bucket_starts.push(start);
+        totals.push(i32::try_from(agg.total).unwrap_or(i32::MAX));
+        faileds.push(i32::try_from(agg.failed).unwrap_or(i32::MAX));
+    }
 
-    qb.push(
-        " ON CONFLICT (subscription__id, bucket_start) DO UPDATE SET \
-         total_count = subscription_health_bucket.total_count + EXCLUDED.total_count, \
-         failed_count = subscription_health_bucket.failed_count + EXCLUDED.failed_count",
-    );
-
-    qb.build().execute(&mut **tx).await?;
+    query!(
+        r#"
+            insert into webhook.subscription_health_bucket (subscription__id, bucket_start, total_count, failed_count)
+            select * from unnest($1::uuid[], $2::timestamptz[], $3::int4[], $4::int4[])
+            on conflict (subscription__id, bucket_start) do update set
+                total_count = subscription_health_bucket.total_count + excluded.total_count,
+                failed_count = subscription_health_bucket.failed_count + excluded.failed_count
+        "#,
+        &sub_ids,
+        &bucket_starts,
+        &totals,
+        &faileds,
+    )
+    .execute(&mut **tx)
+    .await?;
 
     Ok(())
 }
 
-/// Closes buckets that are "full" — either they've been open too long (exceeded
-/// the configured duration) or they contain too many deliveries (exceeded the
-/// configured max message count).
+/// Closes buckets that are "full" — either they've been open too long
+/// (exceeded `bucket_duration`) or they contain too many deliveries
+/// (exceeded `bucket_max_messages`).
 ///
-/// A closed bucket (bucket_end IS NOT NULL) is frozen: no more delivery results
-/// will be added to it. New deliveries for that subscription will go into a
-/// fresh bucket on the next tick.
+/// A closed bucket (`bucket_end IS NOT NULL`) is frozen: no more delivery
+/// results will be added to it. New deliveries for that subscription will go
+/// into a fresh bucket on the next tick.
 ///
 /// Why close buckets? Without closing, a single bucket would grow indefinitely.
 /// Closing creates discrete time windows that let us compute failure rates
-/// over a sliding window (e.g., "failure rate in the last hour" = sum of
-/// the last 12 five-minute buckets).
+/// over a sliding window (e.g. "failure rate in the last hour" = sum of the
+/// last 12 five-minute buckets).
 pub async fn close_full_buckets(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     config: &SubscriptionHealthConfig,
 ) -> Result<u64, sqlx::Error> {
-    let bucket_duration_secs = config.bucket_duration.as_secs() as f64;
-    let bucket_max_messages = config.bucket_max_messages as i32;
+    let bucket_duration_secs = config.bucket_duration.as_secs_f64();
+    let bucket_max_messages = i32::try_from(config.bucket_max_messages).unwrap_or(i32::MAX);
 
-    let result = sqlx::query!(
+    let result = query!(
         r#"
-        UPDATE webhook.subscription_health_bucket
-        SET bucket_end = now()
-        WHERE bucket_end IS NULL
-          AND (bucket_start < now() - make_interval(secs => $1)
-               OR total_count >= $2)
+            update webhook.subscription_health_bucket
+            set bucket_end = now()
+            where bucket_end is null
+              and (bucket_start < now() - make_interval(secs => $1)
+                   or total_count >= $2)
         "#,
         bucket_duration_secs,
         bucket_max_messages,
     )
     .execute(&mut **tx)
+    .await?;
+
+    Ok(result.rows_affected())
+}
+
+/// Drops buckets (open or closed) older than `bucket_retention_days`.
+///
+/// Runs once per day from the monitor loop. The
+/// `idx_subscription_health_bucket_start` index makes this an index scan,
+/// not a full table scan, even as the table grows.
+pub async fn cleanup_old_buckets(
+    db: &PgPool,
+    config: &SubscriptionHealthConfig,
+) -> Result<u64, sqlx::Error> {
+    let retention_days = i32::try_from(config.bucket_retention_days).unwrap_or(i32::MAX);
+
+    let result = query!(
+        r#"
+            delete from webhook.subscription_health_bucket
+            where bucket_start < now() - make_interval(days => $1)
+        "#,
+        retention_days,
+    )
+    .execute(db)
     .await?;
 
     Ok(result.rows_affected())
