@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use crate::audit;
 use crate::relay::is_valid_token;
-use crate::storage::{StoredWebhook, TokenSession};
+use crate::storage::{StoredWebhook, TokenSession, WebhookStorageBackend};
 use crate::AppState;
 
 #[derive(Serialize)]
@@ -50,8 +50,8 @@ pub async fn get_webhooks(
         "get_webhooks",
     );
 
-    let session = state.storage.get_or_create_session(&token);
-    let webhooks = state.storage.get_webhooks(&token);
+    let session = state.storage.get_or_create_session(&token).await;
+    let webhooks = state.storage.get_webhooks(&token).await;
 
     (
         StatusCode::OK,
@@ -89,7 +89,7 @@ pub async fn get_webhook(
         &format!("get_webhook:{}", webhook_id),
     );
 
-    match state.storage.get_webhook(&token, &webhook_id) {
+    match state.storage.get_webhook(&token, &webhook_id).await {
         Some(webhook) => (StatusCode::OK, Json(webhook)).into_response(),
         None => (
             StatusCode::NOT_FOUND,
@@ -125,7 +125,7 @@ pub async fn get_session(
         "get_session",
     );
 
-    let session = state.storage.get_or_create_session(&token);
+    let session = state.storage.get_or_create_session(&token).await;
 
     (
         StatusCode::OK,
@@ -154,7 +154,7 @@ pub async fn delete_webhook(
             .into_response();
     }
 
-    if state.storage.delete_webhook(&token, &webhook_id) {
+    if state.storage.delete_webhook(&token, &webhook_id).await {
         (
             StatusCode::OK,
             Json(serde_json::json!({
@@ -190,7 +190,7 @@ pub async fn delete_all_webhooks(
         );
     }
 
-    let count = state.storage.delete_all_webhooks(&token);
+    let count = state.storage.delete_all_webhooks(&token).await;
 
     (
         StatusCode::OK,

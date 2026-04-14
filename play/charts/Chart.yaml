@@ -4,3 +4,9 @@ description: Hook0 Play - Webhook relay server with inspection and local tunneli
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
+
+dependencies:
+  - name: redis
+    version: "~19"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
