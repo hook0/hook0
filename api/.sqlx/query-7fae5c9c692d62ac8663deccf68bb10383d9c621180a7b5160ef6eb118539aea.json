@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE webhook.subscription SET failure_percent = $1 WHERE subscription__id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float8",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7fae5c9c692d62ac8663deccf68bb10383d9c621180a7b5160ef6eb118539aea"
+}

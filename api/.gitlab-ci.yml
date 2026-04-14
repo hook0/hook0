@@ -30,6 +30,7 @@ api.check:
         - Cargo.*
   variables:
     SQLX_OFFLINE: "true"
+    DATABASE_URL: "postgres://runner@postgres/hook0-ci"
   services:
     - postgres:$PG_VERSION
   before_script:
