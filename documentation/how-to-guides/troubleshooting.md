@@ -466,6 +466,8 @@ For self-hosted, verify database trigger exists:
 SELECT tgname FROM pg_trigger WHERE tgname = 'event_dispatch_trigger';
 ```
 
+To isolate whether the problem is in routing or in your endpoint, temporarily change the subscription URL to a [Hook0 Play](https://play.hook0.com) address and resend the event. If the request appears in Play, the issue is on your endpoint side.
+
 ### Webhook Delivery Failures
 
 For comprehensive troubleshooting of webhook delivery issues, see [Debugging Failed Webhooks](./debug-failed-webhooks.md), which covers:

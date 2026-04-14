@@ -375,6 +375,8 @@ Check for:
 
 ### Step 5: Test Target Endpoint
 
+Alternatively, use [Hook0 Play](https://play.hook0.com) as a temporary endpoint to capture and inspect the exact request Hook0 sends.
+
 Manually verify the target endpoint:
 
 ```bash

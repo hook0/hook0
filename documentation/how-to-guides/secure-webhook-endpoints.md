@@ -55,6 +55,8 @@ Key security considerations for signature verification:
 - Validate timestamp to prevent replay attacks
 - Use raw request body (not parsed JSON)
 
+While implementing, send a test webhook to a [Hook0 Play](https://play.hook0.com) URL and copy the `X-Hook0-Signature` header value to verify your signature computation.
+
 ## Step 2: Input validation
 
 ### Schema-based validation
