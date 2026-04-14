@@ -4,7 +4,7 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use super::super::HealthMonitorConfig;
+use super::super::SubscriptionHealthConfig;
 use super::super::types::{HealthEventCause, HealthStatus};
 use super::{DeltaRow, SubscriptionHealth};
 
@@ -18,7 +18,7 @@ pub async fn read_cursor(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
 ) -> Result<DateTime<Utc>, sqlx::Error> {
     sqlx::query_scalar!(
-        "SELECT last_processed_at FROM webhook.health_monitor_cursor WHERE cursor__id = 1",
+        "SELECT last_processed_at FROM webhook.subscription_health_monitor_cursor WHERE cursor__id = 1",
     )
     .fetch_one(&mut **tx)
     .await
@@ -70,7 +70,7 @@ pub async fn ingest_deltas(
 /// because it wouldn't appear in the bucket-based query anymore.
 pub async fn find_suspects(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    config: &HealthMonitorConfig,
+    config: &SubscriptionHealthConfig,
 ) -> Result<Vec<Uuid>, sqlx::Error> {
     let time_window_secs = config.time_window.as_secs() as f64;
     let min_sample = config.min_sample_size as i64;
@@ -113,7 +113,7 @@ pub async fn find_suspects(
 pub async fn compute_failure_rates(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     suspect_ids: &[Uuid],
-    config: &HealthMonitorConfig,
+    config: &SubscriptionHealthConfig,
 ) -> Result<Vec<SubscriptionHealth>, sqlx::Error> {
     let time_window_secs = config.time_window.as_secs() as f64;
     let min_sample = config.min_sample_size as i64;

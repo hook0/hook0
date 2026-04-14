@@ -4,7 +4,7 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use super::super::HealthMonitorConfig;
+use super::super::SubscriptionHealthConfig;
 use super::DeltaRow;
 
 /// Adds new delivery results to each subscription's current open bucket.
@@ -83,7 +83,7 @@ pub async fn upsert_buckets(
 /// the last 12 five-minute buckets).
 pub async fn close_full_buckets(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    config: &HealthMonitorConfig,
+    config: &SubscriptionHealthConfig,
 ) -> Result<u64, sqlx::Error> {
     let bucket_duration_secs = config.bucket_duration.as_secs() as f64;
     let bucket_max_messages = config.bucket_max_messages as i32;

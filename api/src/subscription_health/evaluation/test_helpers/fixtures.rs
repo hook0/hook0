@@ -9,7 +9,7 @@ use uuid::Uuid;
 ///   -> webhook.subscription (with target) -> webhook.request_attempt
 ///
 /// Returns (org_id, app_id, sub_id).
-pub(in crate::health_monitor::evaluation) async fn insert_test_fixtures(
+pub(in crate::subscription_health::evaluation) async fn insert_test_fixtures(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     num_succeeded: i32,
     num_failed: i32,

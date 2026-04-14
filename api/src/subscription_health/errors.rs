@@ -4,7 +4,7 @@ use thiserror::Error;
 
 /// Errors from the health monitor evaluation and state machine.
 #[derive(Debug, Error)]
-pub enum HealthMonitorError {
+pub enum SubscriptionHealthError {
     /// Only error type because side-effects (emails, Hook0 events) are best-effort
     /// and swallowed — all load-bearing failures are DB.
     #[error("database error: {0}")]

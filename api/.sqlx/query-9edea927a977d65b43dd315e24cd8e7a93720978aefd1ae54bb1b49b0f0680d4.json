@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT last_processed_at FROM webhook.health_monitor_cursor WHERE cursor__id = 1",
+  "query": "SELECT last_processed_at FROM webhook.subscription_health_monitor_cursor WHERE cursor__id = 1",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "39f8e00fefeaf2544b718651fc82974a900b6436f479ac870cfa27562e0a9920"
+  "hash": "9edea927a977d65b43dd315e24cd8e7a93720978aefd1ae54bb1b49b0f0680d4"
 }

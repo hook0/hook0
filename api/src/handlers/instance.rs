@@ -31,7 +31,7 @@ pub struct InstanceConfig {
     formbricks: Option<FormbricksConfig>,
     support_email_address: String,
     cloudflare_turnstile_site_key: Option<String>,
-    health_monitor: Option<HealthMonitorConfig>,
+    subscription_health: Option<SubscriptionHealthConfig>,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -47,7 +47,7 @@ pub struct FormbricksConfig {
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
-pub struct HealthMonitorConfig {
+pub struct SubscriptionHealthConfig {
     warning_failure_percent: u8,
     disable_failure_percent: u8,
 }
@@ -81,12 +81,15 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         None
     };
 
-    // Exposed only when the health monitor is enabled, so API consumers
+    // Exposed only when the subscription health monitor is enabled, so API consumers
     // can mirror the actual thresholds without duplicating defaults.
-    let health_monitor = state.enable_health_monitor.then(|| HealthMonitorConfig {
-        warning_failure_percent: state.health_monitor_warning_failure_percent,
-        disable_failure_percent: state.health_monitor_disable_failure_percent,
-    });
+    let subscription_health =
+        state
+            .enable_subscription_health_monitor
+            .then(|| SubscriptionHealthConfig {
+                warning_failure_percent: state.subscription_health_warning_failure_percent,
+                disable_failure_percent: state.subscription_health_disable_failure_percent,
+            });
 
     Ok(Json(InstanceConfig {
         biscuit_public_key: state.biscuit_private_key.public().to_bytes_hex(),
@@ -99,7 +102,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         formbricks,
         support_email_address: state.support_email_address.to_string(),
         cloudflare_turnstile_site_key: state.cloudflare_turnstile_site_key.to_owned(),
-        health_monitor,
+        subscription_health,
     }))
 }
 

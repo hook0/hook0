@@ -7,7 +7,7 @@
 
 use sqlx::PgPool;
 
-use super::HealthMonitorConfig;
+use super::SubscriptionHealthConfig;
 
 /// Removes all buckets (open or closed) older than the configured retention period.
 ///
@@ -16,7 +16,7 @@ use super::HealthMonitorConfig;
 /// on `bucket_start` makes this an index scan, not a full table scan.
 pub async fn cleanup_old_buckets(
     db: &PgPool,
-    config: &HealthMonitorConfig,
+    config: &SubscriptionHealthConfig,
 ) -> Result<u64, sqlx::Error> {
     let retention_days = config.bucket_retention_days as i32;
 
@@ -40,7 +40,7 @@ pub async fn cleanup_old_buckets(
 /// deletes only the -100d row; the -80d row is kept because -10d is newer.
 pub async fn cleanup_resolved_health_events(
     db: &PgPool,
-    config: &HealthMonitorConfig,
+    config: &SubscriptionHealthConfig,
 ) -> Result<u64, sqlx::Error> {
     let retention_period_days = config.retention_period_days as i32;
 

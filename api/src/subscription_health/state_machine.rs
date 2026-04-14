@@ -16,7 +16,7 @@
 
 use chrono::{DateTime, Utc};
 
-use super::HealthMonitorConfig;
+use super::SubscriptionHealthConfig;
 use super::evaluation::SubscriptionHealth;
 use super::types::HealthStatus;
 
@@ -42,7 +42,7 @@ pub fn evaluate_health_transition(
     failure_percent: f64,
     last_status: Option<HealthStatus>,
     last_at: Option<DateTime<Utc>>,
-    config: &HealthMonitorConfig,
+    config: &SubscriptionHealthConfig,
     now: DateTime<Utc>,
 ) -> Vec<PlannedAction> {
     let warning_percent = config.warning_failure_percent as f64;
@@ -110,7 +110,7 @@ pub fn evaluate_health_transition(
 /// Convenience wrapper: pulls the inputs out of a `SubscriptionHealth` row and
 /// calls the pure function above. Keeps the caller in `mod.rs` terse.
 pub fn plan_for_subscription(
-    config: &HealthMonitorConfig,
+    config: &SubscriptionHealthConfig,
     subscription: &SubscriptionHealth,
     now: DateTime<Utc>,
 ) -> Vec<PlannedAction> {
@@ -129,8 +129,8 @@ mod tests {
 
     use super::*;
 
-    fn test_config() -> HealthMonitorConfig {
-        HealthMonitorConfig {
+    fn test_config() -> SubscriptionHealthConfig {
+        SubscriptionHealthConfig {
             interval: Duration::from_secs(60),
             warning_failure_percent: 50,
             disable_failure_percent: 90,

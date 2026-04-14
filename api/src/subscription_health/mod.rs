@@ -31,7 +31,7 @@ const ADVISORY_LOCK_ID: i64 = 42_000_001;
 
 /// Tuning knobs for the health monitor — thresholds, bucketing, retention.
 #[derive(Clone)]
-pub struct HealthMonitorConfig {
+pub struct SubscriptionHealthConfig {
     pub interval: Duration,
     pub warning_failure_percent: u8,
     pub disable_failure_percent: u8,
@@ -52,10 +52,10 @@ pub struct HealthMonitorConfig {
 /// mutual exclusion across replicas). The semaphore prevents overloading the
 /// 3-connection housekeeping pool; the advisory lock prevents duplicate
 /// health events from concurrent API instances.
-pub async fn run_health_monitor(
+pub async fn run_subscription_health_monitor(
     housekeeping_semaphore: &Semaphore,
     db: &PgPool,
-    config: &HealthMonitorConfig,
+    config: &SubscriptionHealthConfig,
 ) {
     info!(
         "Health monitor started (interval: {:?}, warning: {}%, disable: {}%)",
@@ -99,8 +99,8 @@ pub async fn run_health_monitor(
 /// Acquires the advisory lock and evaluates all subscriptions inside a single transaction.
 async fn run_health_check(
     db: &PgPool,
-    config: &HealthMonitorConfig,
-) -> Result<(), errors::HealthMonitorError> {
+    config: &SubscriptionHealthConfig,
+) -> Result<(), errors::SubscriptionHealthError> {
     let mut transaction = db.begin().await?;
 
     let acquired: bool = sqlx::query_scalar("SELECT pg_try_advisory_xact_lock($1)")
@@ -155,7 +155,7 @@ async fn apply_planned_actions(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     subscription: &SubscriptionHealth,
     planned: &[PlannedAction],
-) -> Result<(), errors::HealthMonitorError> {
+) -> Result<(), errors::SubscriptionHealthError> {
     for action in planned {
         match action {
             PlannedAction::UpdateFailurePercent => {

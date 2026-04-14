@@ -51,13 +51,13 @@ create index idx_subscription_health_bucket_open
     where bucket_end is null;
 
 -- Cursor singleton: a bookmark that tracks the last delivery timestamp we've processed.
--- On each tick the health monitor only reads deliveries newer than this cursor, avoiding
+-- On each tick the subscription health monitor only reads deliveries newer than this cursor, avoiding
 -- a full table scan of request_attempt every time.
-create table webhook.health_monitor_cursor (
+create table webhook.subscription_health_monitor_cursor (
     cursor__id integer primary key default 1 check (cursor__id = 1),
     last_processed_at timestamptz not null default '-infinity'
 );
-insert into webhook.health_monitor_cursor default values
+insert into webhook.subscription_health_monitor_cursor default values
     on conflict do nothing;
 
 -- Expression index for cursor-based delta scan.

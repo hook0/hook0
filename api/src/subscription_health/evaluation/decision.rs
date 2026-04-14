@@ -19,7 +19,7 @@ pub async fn advance_cursor(
 ) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         r#"
-        UPDATE webhook.health_monitor_cursor
+        UPDATE webhook.subscription_health_monitor_cursor
         SET last_processed_at = $1
         WHERE cursor__id = 1
           AND $1 > last_processed_at
@@ -82,7 +82,7 @@ mod tests {
 
         // Read cursor before
         let cursor_before = sqlx::query_scalar!(
-            "SELECT last_processed_at FROM webhook.health_monitor_cursor WHERE cursor__id = 1",
+            "SELECT last_processed_at FROM webhook.subscription_health_monitor_cursor WHERE cursor__id = 1",
         )
         .fetch_one(&mut *tx)
         .await
@@ -99,7 +99,7 @@ mod tests {
 
         // Read cursor after
         let cursor_after = sqlx::query_scalar!(
-            "SELECT last_processed_at FROM webhook.health_monitor_cursor WHERE cursor__id = 1",
+            "SELECT last_processed_at FROM webhook.subscription_health_monitor_cursor WHERE cursor__id = 1",
         )
         .fetch_one(&mut *tx)
         .await

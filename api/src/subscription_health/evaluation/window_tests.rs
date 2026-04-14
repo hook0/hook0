@@ -3,7 +3,7 @@
 //!
 //! These tests exercise the orchestrator
 //! [`super::fetch_subscription_health_stats`] together with the
-//! [`crate::health_monitor::state_machine`] end-to-end. See the parent
+//! [`crate::subscription_health::state_machine`] end-to-end. See the parent
 //! [`super`] module for the high-level narrative.
 
 #[cfg(test)]
@@ -15,7 +15,7 @@ mod tests {
     use super::super::test_helpers::{
         insert_test_fixtures, process_subscription, set_cursor, test_config,
     };
-    use crate::health_monitor::state_machine::PlannedAction;
+    use crate::subscription_health::state_machine::PlannedAction;
 
     /// Recovery triggers a resolved health event.
     #[sqlx::test(migrations = "./migrations")]

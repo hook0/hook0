@@ -23,28 +23,28 @@
 //! Production code lives in two sub-modules:
 //! - [`decision`]: cursor advancement and failure-percent reset side effects
 //! - the orchestrator [`fetch_subscription_health_stats`] in this file, which
-//!   stitches together [`crate::health_monitor::queries`] (bucket lifecycle,
+//!   stitches together [`crate::subscription_health::queries`] (bucket lifecycle,
 //!   suspect detection, failure-rate computation) and the
-//!   [`crate::health_monitor::state_machine`] (warn / disable / recover /
+//!   [`crate::subscription_health::state_machine`] (warn / disable / recover /
 //!   cooldown transitions)
 //!
 //! The black-box integration tests are split by behavioral focus rather than
 //! by file structure:
 //! - [`bucket_tests`]: bucket population, closing, and retention cleanup
-//!   (exercising [`crate::health_monitor::queries`] `upsert_buckets` /
+//!   (exercising [`crate::subscription_health::queries`] `upsert_buckets` /
 //!   `close_full_buckets`)
 //! - [`window_tests`]: adaptive-window flow — two-pass warning then
 //!   recovery / cooldown evaluated across the `time_window` (exercising the
-//!   [`crate::health_monitor::state_machine`] end-to-end)
+//!   [`crate::subscription_health::state_machine`] end-to-end)
 //! - [`threshold_tests`]: threshold-driven suspect tracking — the UNION
-//!   behavior in [`crate::health_monitor::queries::find_suspects`] that keeps
+//!   behavior in [`crate::subscription_health::queries::find_suspects`] that keeps
 //!   a previously-warned subscription in the suspect set even after its
 //!   bucket failure rate drops, which is what lets the state machine fire the
 //!   Recovered transition
 
 use chrono::{DateTime, Utc};
 
-use super::HealthMonitorConfig;
+use super::SubscriptionHealthConfig;
 use super::queries;
 
 pub use queries::SubscriptionHealth;
@@ -71,7 +71,7 @@ pub(super) mod test_helpers;
 /// transaction.
 pub async fn fetch_subscription_health_stats(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    config: &HealthMonitorConfig,
+    config: &SubscriptionHealthConfig,
 ) -> Result<(Vec<SubscriptionHealth>, Option<DateTime<Utc>>), sqlx::Error> {
     // 1. Read the cursor — "where did I stop last time?"
     let cursor = queries::read_cursor(tx).await?;
