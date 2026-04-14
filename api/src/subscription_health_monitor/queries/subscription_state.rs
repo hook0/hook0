@@ -103,14 +103,24 @@ pub async fn disable_subscription(
     Ok(disabled_at)
 }
 
-/// Computes each candidate subscription's failure rate over the sliding
-/// evaluation window, joined with its latest health event.
+/// Returns the current failure rate for every subscription the state machine
+/// should judge this tick, joined with the subscription's latest health event.
 ///
-/// Subscriptions with fewer total deliveries than `min_deliveries`
-/// are excluded to avoid false positives on low-traffic endpoints.
-pub async fn compute_failure_rates(
+/// A subscription is a candidate when EITHER:
+///   - its recent buckets cross both the `min_deliveries` sample gate AND
+///     show more than `min_deliveries` failures (enough signal to warn); OR
+///   - it is currently in `warning` state — we need to re-evaluate it to
+///     detect recovery or escalation, even if its recent bucket stats are
+///     below the threshold.
+///
+/// Subscriptions whose recent buckets don't reach `min_deliveries` total
+/// deliveries are excluded from the result entirely: we'd rather keep them
+/// in their current state than flip based on a tiny sample.
+///
+/// This single query replaces the former find_suspects + compute_failure_rates
+/// pair — one round trip, same semantics.
+pub async fn compute_candidate_healths(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    candidate_ids: &[Uuid],
     config: &SubscriptionHealthMonitorConfig,
 ) -> Result<Vec<SubscriptionHealth>, sqlx::Error> {
     let evaluation_window_secs = config.failure_rate_window.as_secs_f64();
@@ -121,13 +131,26 @@ pub async fn compute_failure_rates(
         r#"
             with bucket_stats as (
                 select subscription__id,
-                       sum(failed_count)::float8 / nullif(sum(total_count), 0) * 100.0 as failure_percent,
-                       sum(total_count) as sample_size
+                       sum(total_count) as total_count,
+                       sum(failed_count) as failed_count,
+                       sum(failed_count)::float8 / nullif(sum(total_count), 0) * 100.0 as failure_percent
                 from webhook.subscription_health_bucket
-                where subscription__id = any($1)
-                  and bucket_start > now() - make_interval(secs => $2)
+                where bucket_start > now() - make_interval(secs => $1)
                 group by subscription__id
-                having sum(total_count) >= $3
+                having sum(total_count) >= $2
+            ),
+            candidates as (
+                -- Subs with enough recent failures to warrant a new warning
+                select subscription__id from bucket_stats where failed_count > $2
+                union
+                -- Subs currently warned — we re-evaluate them to detect recovery
+                select subscription__id
+                from (
+                    select distinct on (subscription__id) subscription__id, status
+                    from webhook.subscription_health_event
+                    order by subscription__id, created_at desc
+                ) latest
+                where latest.status = 'warning'
             )
             select
                 bs.subscription__id as "subscription_id!",
@@ -136,18 +159,18 @@ pub async fn compute_failure_rates(
                 lh.created_at as "last_health_at?",
                 lh.cause as "last_health_cause?: HealthEventCause",
                 lh.user__id as "last_health_user_id?"
-            from bucket_stats bs
-            inner join webhook.subscription s using (subscription__id)
+            from candidates c
+            inner join bucket_stats bs on bs.subscription__id = c.subscription__id
+            inner join webhook.subscription s on s.subscription__id = c.subscription__id
             left join lateral (
                 select she.status, she.created_at, she.cause, she.user__id
                 from webhook.subscription_health_event she
-                where she.subscription__id = bs.subscription__id
+                where she.subscription__id = c.subscription__id
                 order by she.created_at desc
                 limit 1
             ) lh on true
             where s.is_enabled = true and s.deleted_at is null
         "#,
-        candidate_ids,
         evaluation_window_secs,
         min_deliveries,
     )

@@ -1,6 +1,6 @@
-//! Health event writes, suspect detection, and resolved-event cleanup.
+//! Health event writes and resolved-event cleanup.
 
-use sqlx::{PgPool, query, query_scalar};
+use sqlx::{PgPool, query};
 use uuid::Uuid;
 
 use super::super::runner::SubscriptionHealthMonitorConfig;
@@ -32,48 +32,6 @@ pub async fn insert_health_event(
     .execute(&mut **tx)
     .await?;
     Ok(())
-}
-
-/// Finds subscriptions that might need a health warning or to be disabled:
-/// those with enough recent failures to cross the `min_deliveries`
-/// bar UNION those currently in warning status (so we can check if they've
-/// recovered).
-///
-/// The UNION with warned subscriptions is critical: without it, a subscription
-/// that was warned but then stopped failing would never get a "resolved" event
-/// because it wouldn't appear in the bucket-based query anymore.
-pub async fn find_subscriptions_pending_health_evaluation(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    config: &SubscriptionHealthMonitorConfig,
-) -> Result<Vec<Uuid>, sqlx::Error> {
-    let evaluation_window_secs = config.failure_rate_window.as_secs_f64();
-    let min_deliveries = i64::from(config.min_deliveries);
-
-    query_scalar!(
-        r#"
-            -- Subscriptions with enough delivery data to evaluate — only active, non-deleted ones.
-            select shb.subscription__id as "subscription_id!"
-            from webhook.subscription_health_bucket shb
-            inner join webhook.subscription s on s.subscription__id = shb.subscription__id
-            where shb.bucket_start > now() - make_interval(secs => $1)
-              and s.is_enabled and s.deleted_at is null
-            group by shb.subscription__id
-            having sum(shb.failed_count) > $2
-            union
-            -- Subscriptions currently in 'warning' state — re-evaluated to detect recovery or escalation.
-            select subscription__id
-            from (
-                select distinct on (subscription__id) subscription__id, status
-                from webhook.subscription_health_event
-                order by subscription__id, created_at desc
-            ) latest
-            where latest.status = 'warning'
-        "#,
-        evaluation_window_secs,
-        min_deliveries,
-    )
-    .fetch_all(&mut **tx)
-    .await
 }
 
 /// Removes resolved health events older than the configured retention, while

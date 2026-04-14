@@ -2,14 +2,14 @@
 //!
 //! Drives the bucket aggregation logic in
 //! [`crate::subscription_health_monitor::queries::buckets`] through the orchestrator
-//! [`crate::subscription_health_monitor::evaluation::run_subscription_health_monitor_tick`].
+//! [`crate::subscription_health_monitor::evaluation::snapshot_subscription_healths`].
 
 use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use super::helpers::{insert_test_fixtures, set_cursor, test_config};
-use crate::subscription_health_monitor::evaluation::run_subscription_health_monitor_tick;
+use crate::subscription_health_monitor::evaluation::snapshot_subscription_healths;
 
 /// Buckets are populated after a health tick.
 #[sqlx::test(migrations = "./migrations")]
@@ -22,7 +22,7 @@ async fn test_health_buckets_populated(pool: PgPool) {
     set_cursor(&mut tx, cursor_past).await;
     let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 3, 2, now).await;
 
-    let (subs, _) = run_subscription_health_monitor_tick(&mut tx, &config)
+    let (subs, _) = snapshot_subscription_healths(&mut tx, &config)
         .await
         .unwrap();
 
@@ -65,7 +65,7 @@ async fn test_bucket_closing(pool: PgPool) {
     let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 3, 2, now).await;
 
     // First pass: creates an open bucket and advances the cursor.
-    run_subscription_health_monitor_tick(&mut tx, &config)
+    snapshot_subscription_healths(&mut tx, &config)
         .await
         .unwrap();
 
@@ -93,7 +93,7 @@ async fn test_bucket_closing(pool: PgPool) {
     .unwrap();
 
     // Second pass: should close the aged bucket.
-    run_subscription_health_monitor_tick(&mut tx, &config)
+    snapshot_subscription_healths(&mut tx, &config)
         .await
         .unwrap();
 

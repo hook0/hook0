@@ -23,7 +23,7 @@
 //!   because it's the one thing `main.rs` imports from this subsystem.
 //! - [`runner`]: per-tick orchestrator + `PlannedAction` dispatch to the DB
 //!   layer. Holds the transaction scope for one evaluation tick.
-//! - [`evaluation`]: pipeline façade (`run_subscription_health_monitor_tick`)
+//! - [`evaluation`]: pipeline façade (`snapshot_subscription_healths`)
 //!   that produces the list of subscriptions the state machine should judge.
 //! - [`queries`]: SQL layer, split by domain (buckets, cursor, deltas,
 //!   events, subscription_state).

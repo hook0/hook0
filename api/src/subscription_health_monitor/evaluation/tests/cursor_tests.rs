@@ -4,7 +4,7 @@ use chrono::Utc;
 use sqlx::PgPool;
 
 use super::helpers::{insert_test_fixtures, set_cursor, test_config};
-use crate::subscription_health_monitor::evaluation::run_subscription_health_monitor_tick;
+use crate::subscription_health_monitor::evaluation::snapshot_subscription_healths;
 
 /// Cursor advances after a health tick.
 #[sqlx::test(migrations = "./migrations")]
@@ -25,7 +25,7 @@ async fn test_cursor_advances(pool: PgPool) {
     .unwrap();
     assert_eq!(cursor_before, cursor_past);
 
-    run_subscription_health_monitor_tick(&mut tx, &config)
+    snapshot_subscription_healths(&mut tx, &config)
         .await
         .unwrap();
 

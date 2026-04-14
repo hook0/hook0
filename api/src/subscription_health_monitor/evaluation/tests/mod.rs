@@ -5,7 +5,7 @@
 //! - [`window_tests`] — adaptive-window flow (two-pass warning then
 //!   recovery/anti-flap evaluated across `failure_rate_window`).
 //! - [`threshold_tests`] — UNION behavior in
-//!   `find_subscriptions_pending_health_evaluation` that keeps a
+//!   `compute_candidate_healths` that keeps a
 //!   previously-warned subscription in the candidate set even after its
 //!   bucket failure rate drops, which is what lets the state machine fire
 //!   the Resolved transition.

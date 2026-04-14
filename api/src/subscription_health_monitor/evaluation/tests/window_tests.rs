@@ -2,14 +2,14 @@
 //! recovery / anti-flap evaluated across `failure_rate_window`.
 //!
 //! Exercises
-//! [`crate::subscription_health_monitor::evaluation::run_subscription_health_monitor_tick`] together
+//! [`crate::subscription_health_monitor::evaluation::snapshot_subscription_healths`] together
 //! with [`crate::subscription_health_monitor::state_machine`] end-to-end.
 
 use chrono::Utc;
 use sqlx::PgPool;
 
 use super::helpers::{insert_test_fixtures, process_subscription, set_cursor, test_config};
-use crate::subscription_health_monitor::evaluation::run_subscription_health_monitor_tick;
+use crate::subscription_health_monitor::evaluation::snapshot_subscription_healths;
 use crate::subscription_health_monitor::state_machine::PlannedAction;
 
 /// Recovery triggers a resolved health event.
@@ -26,7 +26,7 @@ async fn test_recovery_triggers_resolved_event(pool: PgPool) {
     let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 2, 5, now).await;
 
     // Phase 1: evaluate + process -> warning (not disable, since 71% < 90%).
-    let (subs, _) = run_subscription_health_monitor_tick(&mut tx, &config)
+    let (subs, _) = snapshot_subscription_healths(&mut tx, &config)
         .await
         .unwrap();
     let sub = subs
@@ -76,7 +76,7 @@ async fn test_recovery_triggers_resolved_event(pool: PgPool) {
     .await
     .unwrap();
 
-    let (subs2, _) = run_subscription_health_monitor_tick(&mut tx, &config)
+    let (subs2, _) = snapshot_subscription_healths(&mut tx, &config)
         .await
         .unwrap();
     let sub2 = subs2
@@ -124,7 +124,7 @@ async fn test_anti_flap_prevents_rewarning(pool: PgPool) {
     let (_org_id, _app_id, sub_id) = insert_test_fixtures(&mut tx, 2, 5, now).await;
 
     // Phase 1: trigger warning.
-    let (subs, _) = run_subscription_health_monitor_tick(&mut tx, &config)
+    let (subs, _) = snapshot_subscription_healths(&mut tx, &config)
         .await
         .unwrap();
     let sub = subs.iter().find(|s| s.subscription_id == sub_id).unwrap();
@@ -143,7 +143,7 @@ async fn test_anti_flap_prevents_rewarning(pool: PgPool) {
     .unwrap();
 
     // Phase 2: buckets still have high failure rate, but anti-flap blocks re-warning.
-    let (subs2, _) = run_subscription_health_monitor_tick(&mut tx, &config)
+    let (subs2, _) = snapshot_subscription_healths(&mut tx, &config)
         .await
         .unwrap();
     let sub2 = subs2

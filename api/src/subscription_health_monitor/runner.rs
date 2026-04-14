@@ -96,7 +96,7 @@ pub(super) async fn run_health_check(
     }
 
     let (subscriptions, hit_cap) =
-        evaluation::run_subscription_health_monitor_tick(&mut transaction, config).await?;
+        evaluation::snapshot_subscription_healths(&mut transaction, config).await?;
     info!(
         "Subscription health monitor: evaluated {} subscriptions{}",
         subscriptions.len(),
