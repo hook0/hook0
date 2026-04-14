@@ -200,3 +200,4 @@ See [Monitor webhook performance](/how-to-guides/monitor-webhook-performance) fo
 - [Secure webhook endpoints](/how-to-guides/secure-webhook-endpoints) -- endpoint security in depth
 - [Event types & subscriptions](/tutorials/event-types-subscriptions) -- setting up routing and filtering
 - [Getting started with Hook0](/tutorials/getting-started) -- send your first webhook
+- [Hook0 Play](https://play.hook0.com) -- test webhook deliveries and inspect payloads in real-time, no signup needed

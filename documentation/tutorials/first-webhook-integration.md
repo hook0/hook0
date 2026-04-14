@@ -213,6 +213,8 @@ The `labels` object creates a filter. Only events with matching labels are deliv
 
 ### Create a subscription for a customer
 
+To follow along, you need a working endpoint URL. Go to [play.hook0.com](https://play.hook0.com) to generate one instantly, then replace the `url` field in the subscription below with your Play URL.
+
 ```bash
 curl -X POST "$HOOK0_API/subscriptions" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
