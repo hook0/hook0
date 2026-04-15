@@ -41,3 +41,6 @@ docs/plans/
 
 # QA manual annotated screenshots
 .qa-manual/
+
+# Recap screenshots
+.screenshots/

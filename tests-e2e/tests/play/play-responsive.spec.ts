@@ -90,9 +90,9 @@ test.describe("Play Responsive Layout", () => {
 
     const feedItem = page.locator(".feed-item").first();
     await expect(feedItem).toBeVisible({ timeout: 10000 });
-    await feedItem.click();
 
-    // Detail panel should now be visible as a full-screen overlay
+    // On mobile, the first webhook may be auto-selected, opening the detail panel overlay.
+    // The detail panel already covers the feed, so just verify it's open.
     const detailPanel = page.locator("#detailPanel");
     await expect(detailPanel).toBeVisible();
 

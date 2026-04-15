@@ -358,7 +358,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:transparent}
           <h4>Test webhooks locally?</h4>
           <p style="font-size:13px;color:var(--color-text-secondary);margin:4px 0 6px">Use the Hook0 CLI to tunnel webhooks to your machine:</p>
           <pre id="cliExample" style="margin:0;padding:8px 10px;font-size:12px"></pre>
-          <p style="margin-top:8px"><a href="https://documentation.hook0.com/reference/sdk" rel="noopener">Install Hook0 CLI</a></p>
+          <p style="margin-top:8px"><a href="https://documentation.hook0.com/reference/cli" rel="noopener">Install Hook0 CLI</a></p>
         </div>
       </div>
     </div>
@@ -415,7 +415,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:transparent}
 <pre>hook0 play listen --forward http://localhost:3000/webhooks</pre>
 <p>This connects to your Hook0 Play session and relays every incoming request to the specified local address. The request arrives at your local server with the original method, headers, and body intact. It shows up in your terminal, in the web UI, and your breakpoints fire in your IDE.</p>
 <p>The CLI also lets you control the status code and body returned to the webhook sender. Handy for testing retry logic: return a 500, watch how Stripe or GitHub retries, then switch to 200 and confirm the happy path.</p>
-<p>Install the CLI from the <a href="https://documentation.hook0.com/reference/sdk" rel="noopener">Hook0 documentation</a>. It runs on macOS, Linux, and Windows.</p>
+<p>Install the CLI from the <a href="https://documentation.hook0.com/reference/cli" rel="noopener">Hook0 documentation</a>. It runs on macOS, Linux, and Windows.</p>
 
 <h2>Supported Integrations</h2>
 <p>Hook0 Play works with anything that sends HTTP requests to a URL -- payment processors, version control platforms, e-commerce systems, messaging tools, monitoring services.</p>
@@ -427,7 +427,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:transparent}
 <details data-test="faq-item"><summary>Is Hook0 Play free?</summary><div><p>Yes. No signup, no limits. Open the page, get a URL, start receiving webhooks. The CLI tunnel for local forwarding is free too.</p></div></details>
 <details data-test="faq-item"><summary>How long are webhooks stored?</summary><div><p>Webhooks are stored for up to 24 hours. Each URL keeps up to 1,000 webhooks; the oldest are evicted first when the limit is reached.</p></div></details>
 <details data-test="faq-item"><summary>Is my webhook data private?</summary><div><p>Yes. There is no account, so no identity is tied to your webhook URL. Data is stored server-side and automatically deleted after 24 hours. The page loads zero client-side analytics.</p></div></details>
-<details data-test="faq-item"><summary>Can I test webhooks on localhost?</summary><div><p>Yes. Install the Hook0 CLI and run <code>hook0 play listen --forward http://localhost:3000/webhooks</code>. Every request hitting your Hook0 Play URL gets relayed to your local server in real-time. See the <a href="https://documentation.hook0.com/reference/sdk" rel="noopener">CLI documentation</a> to get started.</p></div></details>
+<details data-test="faq-item"><summary>Can I test webhooks on localhost?</summary><div><p>Yes. Install the Hook0 CLI and run <code>hook0 play listen --forward http://localhost:3000/webhooks</code>. Every request hitting your Hook0 Play URL gets relayed to your local server in real-time. See the <a href="https://documentation.hook0.com/reference/cli" rel="noopener">CLI documentation</a> to get started.</p></div></details>
 <details data-test="faq-item"><summary>What HTTP methods does Hook0 Play support?</summary><div><p>All HTTP methods: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, and TRACE. Any request sent to your URL is captured regardless of method.</p></div></details>
 <details data-test="faq-item"><summary>Can I self-host Hook0 Play?</summary><div><p>Yes. Hook0 is open source (SSPL license). You can run the entire stack including Hook0 Play on your own infrastructure with Docker or Kubernetes. See the <a href="https://documentation.hook0.com/self-hosting" rel="noopener">self-hosting documentation</a>.</p></div></details>
 
@@ -736,9 +736,13 @@ function addWebhookToFeed(wh, pulse) {
   if (state.webhookMap[wh.id]) return;
   state.webhookMap[wh.id] = wh;
   state.webhooks.unshift(wh);
+  var isFirst = state.webhooks.length === 1;
   renderFeed();
   if (pulse && dom.feedList.firstChild) {
     dom.feedList.firstChild.classList.add("pulse");
+  }
+  if (isFirst) {
+    selectWebhook(wh.id);
   }
 }
 
