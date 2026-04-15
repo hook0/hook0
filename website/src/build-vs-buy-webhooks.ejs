@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Build vs Buy Webhooks — Stop Building From Scratch | Hook0</title>
+    <%
+    locals.pageTitle = 'Build vs Buy Webhooks — Stop Building From Scratch | Hook0';
+    locals.pageDescription = 'Building webhooks from scratch costs 3+ sprints and ongoing maintenance. Retry logic, dead letter queues, HMAC signatures, monitoring — or use Hook0 and ship in 30 minutes.';
+    locals.pageCanonical = '/build-vs-buy-webhooks';
+    locals.pageFAQSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How long does it take to build webhooks from scratch?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A production-grade webhook system typically takes 3 or more engineering sprints to build. This includes retry logic with exponential backoff, dead letter queues, HMAC signature generation, delivery monitoring, subscriber management, and endpoint health checking. Ongoing maintenance adds more cost over time."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the hidden cost of building your own webhook system?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Beyond initial development time, you need to maintain retry queues, handle edge cases (timeouts, redirects, certificate errors), build monitoring dashboards, implement rate limiting, manage database storage for delivery logs, and handle subscriber onboarding. Each of these is an ongoing engineering burden."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How quickly can I integrate Hook0?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "You can send your first webhook with Hook0 in under 30 minutes. One API call to trigger an event, and Hook0 handles retries, signatures, delivery logging, and subscriber management. SDKs are available for Python, Node.js, and more."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I migrate from a homegrown webhook system to Hook0?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 provides a REST API and SDKs that make migration straightforward. You can run both systems in parallel during the transition. Hook0 also supports event type mapping and subscriber import."
+          }
+        }
+      ]
+    };
+    %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Build vs Buy</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            Stop Building Webhooks
+            <span class="block text-gradient-green">From Scratch</span>
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            You have a backlog full of features your users actually want. Retries, signatures, monitoring, dead letter queues: that is 3+ sprints of plumbing. With Hook0, it is 30 minutes.
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'build-vs-buy-hero-register')">
+                Start Free
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'build-vs-buy-hero-playground')">
+                Try the Playground
+            </a>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto animate-on-scroll stagger-children">
+            <div class="glass rounded-2xl p-6">
+                <div class="text-3xl font-extrabold text-gradient-green mb-2 pb-1 leading-relaxed">3+</div>
+                <div class="text-sm text-gray-400">Sprints to build in-house</div>
+            </div>
+            <div class="glass rounded-2xl p-6">
+                <div class="text-3xl font-extrabold text-gradient-indigo mb-2 pb-1 leading-relaxed">30 min</div>
+                <div class="text-sm text-gray-400">To integrate Hook0</div>
+            </div>
+            <div class="glass rounded-2xl p-6">
+                <div class="text-3xl font-extrabold text-gradient-green mb-2 pb-1 leading-relaxed">$0</div>
+                <div class="text-sm text-gray-400">To start (free tier)</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Hidden Costs of DIY -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--indigo w-64 h-64 top-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">The Real Cost</span>
+            <h2 class="mt-4 text-display font-bold text-white">What You Actually Have to Build</h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto">
+                Sending an HTTP POST is easy. Building a production-grade webhook system is not.
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Retry Logic</h3>
+                <p class="text-sm text-gray-400">Exponential backoff, jitter, max attempts, circuit breakers. You will ship bugs here. Everyone does.</p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Dead Letter Queues</h3>
+                <p class="text-sm text-gray-400">What happens when retries are exhausted? You need DLQ storage, alerting, and manual replay tooling.</p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">HMAC Signatures</h3>
+                <p class="text-sm text-gray-400">Cryptographic signing, key rotation, timestamp validation, replay attack prevention. Get any of this wrong and your customers' data leaks.</p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Delivery Monitoring</h3>
+                <p class="text-sm text-gray-400">Dashboards, delivery logs, success/failure rates, latency tracking. Your first customer will ask "did my webhook go through?" on day one.</p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Subscriber Management</h3>
+                <p class="text-sm text-gray-400">Endpoint registration, event type filtering, URL validation, multi-subscription support. This alone is a month of work if you do it right.</p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Ongoing Maintenance</h3>
+                <p class="text-sm text-gray-400">Database migrations, scaling, on-call rotations, security patches. Six months after launch, someone still gets paged for it at 3am.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Build vs Buy Comparison -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Comparison</span>
+            <h2 class="mt-4 text-display font-bold text-white">Build In-House vs Use Hook0</h2>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Aspect</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-red-400 uppercase tracking-wider">Build In-House</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider">Hook0</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Time to production</td>
+                        <td class="py-4 px-6 text-red-400">3+ sprints (6-12 weeks)</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">30 minutes</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Engineering cost</td>
+                        <td class="py-4 px-6 text-red-400">2-3 FTE for months</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">One developer, one afternoon</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Ongoing maintenance</td>
+                        <td class="py-4 px-6 text-red-400">Continuous (bugs, scaling, patches)</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Managed by Hook0</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Retry logic</td>
+                        <td class="py-4 px-6 text-red-400">Build from scratch</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Built-in exponential backoff</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Security (HMAC)</td>
+                        <td class="py-4 px-6 text-red-400">Implement and maintain</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Automatic on every event</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Monitoring & logs</td>
+                        <td class="py-4 px-6 text-red-400">Build dashboards</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Included out of the box</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Subscriber portal</td>
+                        <td class="py-4 px-6 text-red-400">Build a whole UI</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Embeddable portal included</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Vendor lock-in</td>
+                        <td class="py-4 px-6 text-gray-400">None (but locked to your code)</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">None (open-source, self-hostable)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Integration Speed -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 bottom-1/4 left-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Integration</span>
+            <h2 class="mt-4 text-display font-bold text-white">Ship Webhooks in 30 Minutes</h2>
+            <p class="mt-4 text-body-lg text-gray-400">One API call. One. Hook0 does the rest.</p>
+        </div>
+
+        <div class="animate-on-scroll card card--glow p-8">
+            <pre class="text-sm text-gray-300 overflow-x-auto"><code>curl -X POST https://app.hook0.com/api/v1/event \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_type": "invoice.paid",
+    "payload": {
+      "invoice_id": "inv_123",
+      "amount": 9900,
+      "currency": "eur"
+    }
+  }'</code></pre>
+            <p class="mt-4 text-sm text-gray-500">Retries, HMAC signatures, delivery logging, subscriber notification: handled.</p>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">FAQ</span>
+            <h2 class="mt-4 text-display font-bold text-white">Common Questions</h2>
+        </div>
+
+        <div class="space-y-6 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">How long does it take to build webhooks from scratch?</h3>
+                <p class="text-gray-400">Plan for 3+ engineering sprints minimum. Retry logic, dead letter queues, HMAC signatures, delivery monitoring, subscriber management, endpoint health checking. And that is before your first customer finds a bug.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What is the hidden cost of building your own?</h3>
+                <p class="text-gray-400">Retry queue maintenance, edge case handling (timeouts, redirects, certificate errors), monitoring dashboards, rate limiting, log storage, subscriber onboarding. None of this stops after v1 ships. It compounds.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">How quickly can I integrate Hook0?</h3>
+                <p class="text-gray-400">Under 30 minutes. One API call to trigger an event. SDKs for Python, Node.js, and others if you prefer.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Can I migrate from a homegrown system?</h3>
+                <p class="text-gray-400">Yes. REST API and SDKs, so you can run both systems in parallel during migration. No big bang cutover required.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<%- include('./includes/_cta-inline.ejs') %>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>

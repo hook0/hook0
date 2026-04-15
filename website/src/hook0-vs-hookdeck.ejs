@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Hook0 vs Hookdeck — Webhook Platform vs Gateway Comparison</title>
+    <%
+    locals.pageTitle = 'Hook0 vs Hookdeck — Webhook Platform vs Gateway Comparison';
+    locals.pageDescription = 'Compare Hook0 and Hookdeck: full webhook platform vs webhook gateway/proxy, open-source vs closed-source, self-hostable vs cloud-only. Free tier included.';
+    locals.pageCanonical = '/hook0-vs-hookdeck';
+    locals.pageFAQSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is the difference between Hook0 and Hookdeck?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hook0 is a webhook platform: you send events via API, Hook0 delivers them to subscribers with retries, signatures, and monitoring. Hookdeck is a webhook gateway that sits between existing webhook senders and receivers to add reliability. It does not generate or manage webhooks itself."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Hook0 open-source?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 is fully open-source under the SSPL-1.0 license. You can inspect, modify, and self-host the entire codebase. Hookdeck is closed-source and only available as a managed SaaS."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I self-host Hook0?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 supports self-hosting via Docker Compose or Kubernetes at no cost. Hookdeck does not offer self-hosting — it is a cloud-only service."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which should I choose: Hook0 or Hookdeck?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "If you need to add webhooks to your product (send events to your users' endpoints), use Hook0. If you already receive webhooks from third parties and just need a reliability proxy, Hookdeck may fit. They are different tools for different problems."
+          }
+        }
+      ]
+    };
+    %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Comparison</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            Hook0 vs Hookdeck
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            A webhook platform vs a webhook gateway. They don't do the same thing. Here's what each one actually covers.
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'vs-hookdeck-hero-register')">
+                Start Free
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'vs-hookdeck-hero-playground')">
+                Try the Playground
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Platform vs Gateway -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Core Difference</span>
+            <h2 class="mt-4 text-display font-bold text-white">Platform vs Gateway</h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto">
+                Hook0 and Hookdeck solve different problems. One sends webhooks, the other proxies them.
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 animate-on-scroll">
+            <!-- Hook0 -->
+            <div class="card card--glow p-8 border-green-500/20">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-green-400">Hook0 — Webhook Platform</h3>
+                </div>
+                <ul class="space-y-3 text-gray-300">
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-green-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Send webhooks to your users' endpoints
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-green-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Manage subscriptions, event types, retries
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-green-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        HMAC signatures, delivery logs, subscriber portal
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-green-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        One API call to trigger an event
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-green-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Open-source, self-hostable
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Hookdeck -->
+            <div class="card p-8 border-white/10">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-300">Hookdeck — Webhook Gateway</h3>
+                </div>
+                <ul class="space-y-3 text-gray-400">
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-gray-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                        Proxy layer between senders and receivers
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-gray-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                        Adds retries and queuing to existing webhooks
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-gray-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                        Does not generate or send webhooks
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-red-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        Closed-source, cloud-only
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-red-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        No self-hosting option
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Comparison Table -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Feature Comparison</span>
+            <h2 class="mt-4 text-display font-bold text-white">Side by Side</h2>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Feature</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider">Hook0</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Hookdeck</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Type</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Full webhook platform</td>
+                        <td class="py-4 px-6 text-gray-400">Webhook gateway / proxy</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Open-Source</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Yes (SSPL-1.0)</td>
+                        <td class="py-4 px-6 text-gray-400">No (closed-source)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Self-Hosting</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Yes (Docker / K8s)</td>
+                        <td class="py-4 px-6 text-gray-400">No</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Send Webhooks</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Yes (core feature)</td>
+                        <td class="py-4 px-6 text-gray-400">No (proxy only)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Subscriber Management</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Built-in portal</td>
+                        <td class="py-4 px-6 text-gray-400">Not applicable</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">HMAC Signatures</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Generated automatically</td>
+                        <td class="py-4 px-6 text-gray-400">Verification only</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Event Type Management</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Full event type registry</td>
+                        <td class="py-4 px-6 text-gray-400">No</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Data Hosting</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Europe (GDPR) or self-host</td>
+                        <td class="py-4 px-6 text-gray-400">US-based</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">FAQ</span>
+            <h2 class="mt-4 text-display font-bold text-white">Common Questions</h2>
+        </div>
+
+        <div class="space-y-6 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What is the difference between Hook0 and Hookdeck?</h3>
+                <p class="text-gray-400">Hook0 is a webhook platform: you send events via API, Hook0 delivers them to subscribers with retries, signatures, and monitoring. Hookdeck is a gateway that sits between existing webhook senders and receivers to add reliability. It doesn't send webhooks itself.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 open-source?</h3>
+                <p class="text-gray-400">Yes. Hook0 is fully open-source under the SSPL-1.0 license. You can inspect, modify, and self-host the entire codebase. Hookdeck is closed-source and only available as a managed SaaS.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Which should I choose?</h3>
+                <p class="text-gray-400">If you need to add webhooks to your product (send events to your users' endpoints), use Hook0. If you already receive webhooks from third parties and just need a reliability proxy, Hookdeck may fit. They're different tools for different problems.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Deep Dive Link -->
+<section class="py-12 relative">
+    <div class="container mx-auto px-6 text-center">
+        <p class="text-gray-400">Want more detail? <a href="https://documentation.hook0.com/comparisons/hookdeck-vs-hook0" class="text-indigo-400 hover:text-indigo-300 underline">Read the full comparison with architecture diagrams in our docs</a>.</p>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<%- include('./includes/_cta-inline.ejs') %>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>

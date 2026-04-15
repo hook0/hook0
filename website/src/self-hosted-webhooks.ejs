@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Self-Hosted Webhook Platform — Deploy on Your Infrastructure | Hook0</title>
+    <%
+    locals.pageTitle = 'Self-Hosted Webhook Platform — Deploy on Your Infrastructure | Hook0';
+    locals.pageDescription = 'Deploy Hook0 on your own infrastructure with Docker or Kubernetes. Fully open-source (SSPL v1), same code as the cloud version. No data leaves your network.';
+    locals.pageCanonical = '/self-hosted-webhooks';
+    locals.pageFAQSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Can I self-host Hook0?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 is fully open-source under the SSPL-1.0 license and supports self-hosting via Docker Compose or Kubernetes. The self-hosted version runs the exact same code as the managed cloud service."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the self-hosted version the same as the cloud version?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. There is no 'community edition' or feature-gated version. The self-hosted Hook0 runs the exact same codebase as the managed cloud. All features are included."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What infrastructure do I need to self-host Hook0?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hook0 can be deployed with Docker Compose for simple setups or Kubernetes (Helm chart) for production environments. It requires PostgreSQL for storage. Minimum requirements are modest — a single node can handle thousands of events per minute."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does my data leave my network with self-hosted Hook0?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. With self-hosted Hook0, all data stays on your infrastructure. There is no telemetry, no phone-home, no external dependencies beyond your own network. This makes it ideal for regulated industries and data sovereignty requirements."
+          }
+        }
+      ]
+    };
+    %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Self-Hosted</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            Self-Hosted
+            <span class="block text-gradient-green">Webhook Platform</span>
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            Same codebase as the cloud version, running on your servers. Your webhook payloads never leave your network. Docker, Kubernetes, or bare metal.
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://documentation.hook0.com/self-hosting/docker-compose" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'self-hosted-hero-docs')">
+                Installation Guide
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="<%= locals.meta.contact %>" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'self-hosted-hero-contact')">
+                Contact Sales
+            </a>
+        </div>
+
+        <!-- Trust Indicators -->
+        <div class="mt-10 flex flex-wrap gap-6 justify-center text-sm text-gray-400 animate-on-scroll">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Same code as cloud</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>SSPL-1.0 License</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>No telemetry</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Why Self-Host -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Why Self-Host</span>
+            <h2 class="mt-4 text-display font-bold text-white">Your Data, Your Infrastructure</h2>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Data Sovereignty</h3>
+                <p class="text-gray-400">
+                    Webhook payloads stay inside your perimeter. Period. No third-party ever sees your data. Required for healthcare, finance, government, and GDPR compliance.
+                </p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Fully Open-Source</h3>
+                <p class="text-gray-400">
+                    SSPL-1.0 licensed. No open-core tricks and no feature gates. Every line of code is on GitHub and GitLab. You can audit it, fork it, or send a PR.
+                </p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Docker & Kubernetes</h3>
+                <p class="text-gray-400">
+                    Docker Compose for dev and small deployments. Helm chart for production Kubernetes clusters. Both work out of the box.
+                </p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Same Code, Same Features</h3>
+                <p class="text-gray-400">
+                    One codebase. The binary you deploy is built from the same repo as our cloud. Retries, signatures, monitoring, subscriber portal: nothing is stripped out.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Deployment Options -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Deployment</span>
+            <h2 class="mt-4 text-display font-bold text-white">Two Ways to Deploy</h2>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <!-- Docker Compose -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Docker Compose</h3>
+                </div>
+                <p class="text-gray-400 mb-6">Good for dev, testing, and small-scale production. Three commands, everything starts.</p>
+                <div class="bg-surface-tertiary rounded-lg p-4">
+                    <code class="text-sm text-green-400">git clone https://github.com/hook0/hook0.git<br>cd hook0<br>docker compose up -d</code>
+                </div>
+                <a href="https://documentation.hook0.com/self-hosting/docker-compose" class="mt-6 inline-flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors" onclick="trackEvent('CTA', 'Click', 'self-hosted-docker-docs')">
+                    Docker Compose guide
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                </a>
+            </div>
+
+            <!-- Kubernetes -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Kubernetes</h3>
+                </div>
+                <p class="text-gray-400 mb-6">For production. Horizontal scaling, health checks, rolling updates via Helm.</p>
+                <div class="bg-surface-tertiary rounded-lg p-4">
+                    <code class="text-sm text-green-400">helm repo add hook0 https://charts.hook0.com<br>helm install hook0 hook0/hook0</code>
+                </div>
+                <a href="https://documentation.hook0.com/self-hosting/kubernetes" class="mt-6 inline-flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors" onclick="trackEvent('CTA', 'Click', 'self-hosted-k8s-docs')">
+                    Kubernetes guide
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Who Self-Hosts -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--indigo w-64 h-64 bottom-1/4 left-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Use Cases</span>
+            <h2 class="mt-4 text-display font-bold text-white">Who Self-Hosts Hook0?</h2>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6 text-center">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Regulated Industries</h3>
+                <p class="text-sm text-gray-400">Healthcare, finance, government. When your compliance team says "no external SaaS for this data," you still need webhooks.</p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-6 text-center">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.893 13.393l-1.135-1.135a2.252 2.252 0 01-.421-.585l-1.08-2.16a.414.414 0 00-.663-.107.827.827 0 01-.812.21l-1.273-.363a.89.89 0 00-.738 1.595l.587.39c.59.395.674 1.23.172 1.732l-.2.2c-.212.212-.33.498-.33.796v.41c0 .409-.11.809-.32 1.158l-1.315 2.191a2.11 2.11 0 01-1.81 1.025 1.055 1.055 0 01-1.055-1.055v-1.172c0-.92-.56-1.747-1.414-2.089l-.655-.261a2.25 2.25 0 01-1.383-2.46l.007-.042a2.25 2.25 0 01.29-.787l.09-.15a2.25 2.25 0 012.37-1.048l1.178.236a1.125 1.125 0 001.302-.795l.208-.73a1.125 1.125 0 00-.578-1.315l-.665-.332-.091.091a2.25 2.25 0 01-1.591.659h-.18c-.249 0-.487.1-.662.274a.931.931 0 01-1.458-1.137l1.411-2.353a2.25 2.25 0 00.286-.76m11.928 9.869A9 9 0 008.965 3.525m11.928 9.868A9 9 0 118.965 3.525"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Data Sovereignty</h3>
+                <p class="text-sm text-gray-400">European companies under GDPR, or anyone who needs to prove exactly where data is processed and stored.</p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-6 text-center">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Air-Gapped Networks</h3>
+                <p class="text-sm text-gray-400">No internet? No problem. Hook0 has zero phone-home, zero telemetry, zero external dependencies.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">FAQ</span>
+            <h2 class="mt-4 text-display font-bold text-white">Common Questions</h2>
+        </div>
+
+        <div class="space-y-6 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is the self-hosted version the same as the cloud version?</h3>
+                <p class="text-gray-400">Yes. One codebase, no "community edition." What runs on our cloud is what you deploy on yours.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What infrastructure do I need?</h3>
+                <p class="text-gray-400">Docker Compose for simple setups, Kubernetes (Helm) for production. PostgreSQL for storage. A single node handles thousands of events per minute.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Does my data leave my network?</h3>
+                <p class="text-gray-400">No. Everything stays on your infrastructure. No telemetry, no phone-home, no external calls.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Can I get support for self-hosted deployments?</h3>
+                <p class="text-gray-400">Yes. Commercial support covers installation help, configuration review, and priority bug fixes.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="relative py-20 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-r from-indigo-900/20 via-surface-primary to-green-900/20"></div>
+    <div class="blur-circle blur-circle--indigo w-80 h-80 -top-40 -left-40 opacity-30"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 -bottom-40 -right-40 opacity-30"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="animate-on-scroll">
+            <h2 class="text-display font-bold text-white">
+                Ready to self-host?
+            </h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto">
+                Deploy on your infrastructure now, or talk to us about commercial support for production.
+            </p>
+
+            <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="https://documentation.hook0.com/self-hosting/docker-compose" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'self-hosted-cta-docs')">
+                    Installation Guide
+                    <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                    </svg>
+                </a>
+                <a href="<%= locals.meta.contact %>" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'self-hosted-cta-contact')">
+                    Contact Sales
+                </a>
+            </div>
+
+            <div class="mt-8 flex flex-wrap gap-6 justify-center text-sm text-gray-500">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>Free to self-host</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>All features included</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>Commercial support available</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>

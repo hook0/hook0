@@ -17,6 +17,7 @@ import router from './router';
 import { setupQueryPlugin } from './plugins/query';
 import { setupI18n } from './plugins/i18n';
 import { setupMatomo } from './plugins/matomo';
+import { setupGtag } from './plugins/gtag';
 
 // Stores
 import { useAuthStore } from './stores/auth';
@@ -53,6 +54,9 @@ setupI18n(app);
 const authStore = useAuthStore();
 authStore.initialize();
 authStore.setupRouterGuard();
+
+// Google Ads conversion tracking (sync init, script loads lazily with consent)
+setupGtag();
 
 // Matomo (must resolve before mount to avoid Vue plugin warning)
 void setupMatomo(app, router).then(() => {
