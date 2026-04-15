@@ -41,29 +41,31 @@ test.describe("Play Keyboard Shortcuts", () => {
     );
     const webhookUrl = `${baseURL}/in/${token}/`;
 
-    // Send 3 webhooks to have items to navigate
+    // Send first webhook and wait for auto-select
     await page.request.get(webhookUrl);
     await expect(page.locator(".feed-item")).toHaveCount(1, { timeout: 10000 });
+    await expect(page.locator(".feed-item.selected")).toHaveCount(1, {
+      timeout: 5000,
+    });
 
+    // Send 2 more webhooks
     await page.request.post(webhookUrl, { data: "second" });
     await expect(page.locator(".feed-item")).toHaveCount(2, { timeout: 10000 });
 
     await page.request.put(webhookUrl, { data: "third" });
     await expect(page.locator(".feed-item")).toHaveCount(3, { timeout: 10000 });
 
-    // Press 'j' to move down to the first item (index 0)
-    await page.keyboard.press("j");
-
-    // The first feed item should be selected
-    await expect(page.locator(".feed-item").first()).toHaveClass(/selected/);
-
-    // Press 'j' again to move to the second item
+    // Press 'j' to move down to the second item (index 1)
     await page.keyboard.press("j");
     await expect(page.locator(".feed-item").nth(1)).toHaveClass(/selected/);
 
-    // Press 'k' to move back to the first item
+    // Press 'j' again to move to the third item (index 2)
+    await page.keyboard.press("j");
+    await expect(page.locator(".feed-item").nth(2)).toHaveClass(/selected/);
+
+    // Press 'k' to move back to the second item (index 1)
     await page.keyboard.press("k");
-    await expect(page.locator(".feed-item").first()).toHaveClass(/selected/);
+    await expect(page.locator(".feed-item").nth(1)).toHaveClass(/selected/);
   });
 
   test("pressing Enter expands the selected webhook detail", async ({

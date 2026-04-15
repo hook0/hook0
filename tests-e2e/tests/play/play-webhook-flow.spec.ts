@@ -176,4 +176,79 @@ test.describe("Play Webhook Flow", () => {
     // Empty state should reappear
     await expect(page.locator("#emptyState")).toBeVisible();
   });
+
+  test("first webhook received is auto-selected and detail panel shows its content", async ({
+    page,
+    baseURL,
+  }) => {
+    await page.goto("/");
+    await waitForConnection(page);
+
+    const token = await getToken(page);
+    const webhookUrl = `${baseURL}/in/${token}/`;
+
+    // Verify detail panel shows empty state before any webhook
+    await expect(page.locator('[data-test="detail-panel"]')).toBeVisible();
+    await expect(page.locator("#detailEmpty")).toBeVisible();
+
+    // Send the first webhook
+    await page.request.post(webhookUrl, {
+      headers: { "Content-Type": "application/json" },
+      data: JSON.stringify({ event: "auto.selected", value: 42 }),
+    });
+
+    // Wait for feed item to appear
+    const firstItem = page.locator(".feed-item").first();
+    await expect(firstItem).toBeVisible({ timeout: 10000 });
+
+    // The first item should be auto-selected (has .selected class)
+    await expect(firstItem).toHaveClass(/selected/, { timeout: 5000 });
+
+    // Detail panel should show the webhook content (not the empty state)
+    await expect(page.locator("#detailEmpty")).not.toBeVisible();
+    await expect(page.locator('[data-test="body-display"]')).toBeVisible();
+    await expect(page.locator('[data-test="body-display"]')).toContainText(
+      "auto.selected",
+    );
+
+    // Headers table should be visible
+    await expect(page.locator('[data-test="headers-table"]')).toBeVisible();
+  });
+
+  test("second webhook received is NOT auto-selected (first stays selected)", async ({
+    page,
+    baseURL,
+  }) => {
+    await page.goto("/");
+    await waitForConnection(page);
+
+    const token = await getToken(page);
+    const webhookUrl = `${baseURL}/in/${token}/`;
+
+    // Send first webhook (gets auto-selected)
+    await page.request.post(webhookUrl, {
+      headers: { "Content-Type": "application/json" },
+      data: JSON.stringify({ order: "first" }),
+    });
+    await expect(page.locator(".feed-item")).toHaveCount(1, { timeout: 10000 });
+    await expect(page.locator(".feed-item.selected")).toHaveCount(1);
+    await expect(page.locator('[data-test="body-display"]')).toContainText(
+      "first",
+    );
+
+    // Send second webhook
+    await page.request.post(webhookUrl, {
+      headers: { "Content-Type": "application/json" },
+      data: JSON.stringify({ order: "second" }),
+    });
+    await expect(page.locator(".feed-item")).toHaveCount(2, { timeout: 10000 });
+
+    // Only one item should be selected (the first one stays selected)
+    await expect(page.locator(".feed-item.selected")).toHaveCount(1);
+
+    // Detail panel should still show the first webhook's content
+    await expect(page.locator('[data-test="body-display"]')).toContainText(
+      "first",
+    );
+  });
 });

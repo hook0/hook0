@@ -31,6 +31,63 @@ play.e2e:
     - cargo build -p hook0-cli
     - cargo test -p hook0-cli --test e2e_hooks -- --nocapture
 
+play.e2e-playwright:
+  stage: test
+  dependencies: []
+  image: mcr.microsoft.com/playwright:v1.49.1-noble
+  extends: .rust-cache-pull-only
+  rules:
+    - changes:
+        - play/**/*
+        - tests-e2e/tests/play/**/*
+        - tests-e2e/playwright.play.config.ts
+        - Cargo.*
+  variables:
+    CARGO_HOME: /builds/hook0/hook0/.cargo
+    RUSTUP_HOME: /builds/hook0/hook0/.rustup
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq build-essential pkg-config libssl-dev >/dev/null 2>&1
+    - RUST_TOOLCHAIN=$(echo "$RUST_VERSION" | sed 's/-.*//')
+    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain "$RUST_TOOLCHAIN"
+    - export PATH="$CARGO_HOME/bin:$PATH"
+    - rustc --version && cargo --version
+    - cd tests-e2e && npm ci && cd ..
+  script:
+    - export PATH="$CARGO_HOME/bin:$PATH"
+    # Build and start play server in background
+    - cargo build -p hook0-play --release
+    - HOOKS_BASE_URL=http://localhost:3030 ./target/release/hook0-play &
+    # Wait for play server to be ready
+    - |
+      echo "Waiting for play server..."
+      for i in $(seq 1 30); do
+        if curl -sf http://localhost:3030/health -o /dev/null 2>&1; then
+          echo "Play server is ready!"
+          break
+        fi
+        echo "Waiting... ($i/30)"
+        sleep 2
+        if [ $i -eq 30 ]; then
+          echo "ERROR: Play server failed to start"
+          exit 1
+        fi
+      done
+    # Run Playwright E2E tests for play
+    - cd tests-e2e
+    - PLAY_BASE_URL=http://localhost:3030 CI=true npx playwright test --config playwright.play.config.ts --project=chromium
+  artifacts:
+    when: always
+    paths:
+      - tests-e2e/playwright-report-play/
+      - tests-e2e/test-results/
+    reports:
+      junit: tests-e2e/test-results/play-junit.xml
+    expire_in: 30 days
+  cache:
+    key: playwright-play-${CI_COMMIT_REF_SLUG}
+    paths:
+      - tests-e2e/node_modules/
+
 play.docker:
   stage: build
   dependencies: []
@@ -58,3 +115,77 @@ play.docker:
       --destination "${CI_REGISTRY_IMAGE}/play:latest"
       --cache=true
       --cache-repo="${CI_REGISTRY_IMAGE}/play/cache"
+
+play.deploy:
+  stage: release
+  dependencies: []
+  image:
+    name: bitnami/kubectl:1.32
+    entrypoint: [""]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - play/**/*
+        - Cargo.*
+      when: manual
+  environment:
+    name: production
+    url: https://play.hook0.com
+  script:
+    # Restart the deployment to pull the new :latest image (pullPolicy: Always)
+    - kubectl rollout restart deployment/hook0-play -n hosted-hook0-play-server-prod
+    - kubectl rollout status deployment/hook0-play -n hosted-hook0-play-server-prod --timeout=120s
+
+play.smoke-test:
+  stage: release
+  dependencies: []
+  needs:
+    - job: play.deploy
+  image: alpine:$ALPINE_VERSION
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - play/**/*
+        - Cargo.*
+  before_script:
+    - apk add --no-cache curl
+  script:
+    # Wait for deployment to stabilize
+    - sleep 30
+    # Smoke test: GET / must return 200 with HTML
+    - |
+      HTTP_CODE=$(curl -s -o /tmp/play-body.html -w '%{http_code}' https://play.hook0.com/)
+      if [ "$HTTP_CODE" != "200" ]; then
+        echo "FAIL: GET / returned HTTP $HTTP_CODE (expected 200)"
+        cat /tmp/play-body.html
+        exit 1
+      fi
+      echo "OK: GET / returned 200"
+    # Verify HTML contains expected title
+    - |
+      if ! grep -q 'Hook0 Play' /tmp/play-body.html; then
+        echo "FAIL: HTML does not contain 'Hook0 Play'"
+        head -20 /tmp/play-body.html
+        exit 1
+      fi
+      echo "OK: HTML contains 'Hook0 Play'"
+    # Verify security headers
+    - |
+      HEADERS=$(curl -sI https://play.hook0.com/)
+      echo "$HEADERS" | grep -qi 'content-security-policy' || { echo "FAIL: Missing CSP header"; exit 1; }
+      echo "$HEADERS" | grep -qi 'x-frame-options' || { echo "FAIL: Missing X-Frame-Options"; exit 1; }
+      echo "OK: Security headers present"
+    # Verify health endpoint
+    - |
+      HEALTH=$(curl -s -w '%{http_code}' https://play.hook0.com/health)
+      echo "$HEALTH" | grep -q '200' || { echo "FAIL: /health not 200"; exit 1; }
+      echo "OK: /health returns 200"
+    # Verify webhook endpoint accepts POST
+    - |
+      WH_CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST https://play.hook0.com/in/c_SmokeTest1234567890abcdefg/ -H "Content-Type: application/json" -d '{"smoke":"test"}')
+      if [ "$WH_CODE" != "200" ]; then
+        echo "FAIL: POST /in/{token}/ returned $WH_CODE (expected 200)"
+        exit 1
+      fi
+      echo "OK: Webhook POST returns 200"
+    - echo "All smoke tests passed"
