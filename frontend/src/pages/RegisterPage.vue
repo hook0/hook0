@@ -8,6 +8,7 @@ import { useForm } from 'vee-validate';
 import { createRegisterSchema } from './register.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
+import { trackSignupConversion } from '@/plugins/gtag';
 import { useI18n } from 'vue-i18n';
 import { ArrowRight, Check } from 'lucide-vue-next';
 
@@ -81,6 +82,7 @@ const onSubmit = handleSubmit((values) => {
     )
     .then(() => {
       trackEvent('signup', 'form-success', 'register');
+      trackSignupConversion();
       return router.push({ name: routes.CheckEmail });
     })
     .catch((err) => {
