@@ -190,6 +190,63 @@
 <!-- End Matomo Code -->
 <% } %>
 
+<% if (process.env.GOOGLE_ADS_CONVERSION_ID) { %>
+<!-- Google Ads Conversion Tracking (loaded only with consent) -->
+<script>
+(function(){
+    var CONSENT_KEY='hook0_cookie_consent';
+    var GADS_ID='<%= process.env.GOOGLE_ADS_CONVERSION_ID %>';
+    var GADS_SIGNUP_LABEL='<%= process.env.GOOGLE_ADS_CONVERSION_LABEL || "" %>';
+    var gtagLoaded=false;
+
+    function getConsent(){try{return localStorage.getItem(CONSENT_KEY)}catch(e){return null}}
+
+    // Minimal gtag() function — queues commands before the script loads
+    window.dataLayer=window.dataLayer||[];
+    function gtag(){window.dataLayer.push(arguments);}
+    window.gtag=gtag;
+
+    function loadGtag(){
+        if(gtagLoaded)return;
+        gtagLoaded=true;
+        gtag('js',new Date());
+        gtag('config',GADS_ID,{send_page_view:false});
+        var s=document.createElement('script');
+        s.async=true;
+        s.src='https://www.googletagmanager.com/gtag/js?id='+GADS_ID;
+        document.head.appendChild(s);
+    }
+
+    // Load gtag only if consent was already granted
+    if(getConsent()==='granted') loadGtag();
+
+    // Patch consent handlers to also load gtag on accept
+    var origAccept=window.hook0Consent&&window.hook0Consent.accept;
+    var origDeny=window.hook0Consent&&window.hook0Consent.deny;
+    if(window.hook0Consent){
+        window.hook0Consent.accept=function(){if(origAccept)origAccept();loadGtag();};
+        window.hook0Consent.deny=function(){if(origDeny)origDeny();};
+    }
+
+    // Track secondary conversions
+    document.addEventListener('DOMContentLoaded',function(){
+        // Conversion: Try Playground click
+        document.querySelectorAll('a[href*="play.hook0.com"]').forEach(function(el){
+            el.addEventListener('click',function(){
+                if(gtagLoaded)gtag('event','conversion',{send_to:GADS_ID+'/playground_click'});
+            });
+        });
+        // Conversion: Documentation visit
+        document.querySelectorAll('a[href*="documentation.hook0.com"]').forEach(function(el){
+            el.addEventListener('click',function(){
+                if(gtagLoaded)gtag('event','conversion',{send_to:GADS_ID+'/documentation_visit'});
+            });
+        });
+    });
+})();
+</script>
+<% } %>
+
 <!-- Structured Data -->
 <% if (locals.pageSchema) { %>
 <script type="application/ld+json">
@@ -313,11 +370,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- UTM/MTM Persistence -->
+<!-- UTM/MTM/Google Ads Click ID Persistence -->
 <script>
 (function() {
     var STORAGE_KEY = 'hook0_tracking_params';
-    var PARAM_NAMES = ['mtm_source','mtm_medium','mtm_campaign','utm_source','utm_medium','utm_campaign'];
+    var PARAM_NAMES = ['mtm_source','mtm_medium','mtm_campaign','utm_source','utm_medium','utm_campaign','gclid','wbraid','gbraid'];
     var params = new URLSearchParams(window.location.search);
     var tracked = {};
     var hasAny = false;
@@ -329,7 +386,7 @@ document.addEventListener('DOMContentLoaded', function() {
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(tracked));
     }
     document.addEventListener('click', function(e) {
-        var link = e.target.closest('a[href*="app.hook0.com"]');
+        var link = e.target.closest('a[href*="app.hook0.com"], a[href*="documentation.hook0.com"]');
         if (!link) return;
         var stored = sessionStorage.getItem(STORAGE_KEY);
         if (!stored) return;
