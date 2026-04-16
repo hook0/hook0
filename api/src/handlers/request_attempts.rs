@@ -17,7 +17,7 @@ use uuid::Uuid;
 
 use crate::iam::{Action, AuthorizedToken, authorize_for_application};
 use crate::openapi::OaBiscuit;
-use crate::pagination::{Cursor, EncodedDescCursor, PageParts, Paginated};
+use crate::pagination::{Cursor, EncodedDescCursor, PARAM_NEXT_CURSOR, PageParts, Paginated};
 use crate::problems::Hook0Problem;
 use crate::pulsar_dispatch::publish_attempt;
 
@@ -517,7 +517,7 @@ pub async fn list(
         })
         .map(|endpoint_url| PageParts {
             endpoint_url,
-            qs: vec![
+            query_params: vec![
                 ("application_id", Some(qs.application_id.to_string())),
                 ("event_id", qs.event_id.map(|v| v.to_string())),
                 ("subscription_id", qs.subscription_id.map(|v| v.to_string())),
@@ -529,7 +529,7 @@ pub async fn list(
                 date: ra.created_at,
                 id: ra.request_attempt_id,
             },
-            query_param_name: "pagination_cursor",
+            query_param_name: PARAM_NEXT_CURSOR,
         })
     });
 
