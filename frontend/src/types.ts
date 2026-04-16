@@ -1150,6 +1150,10 @@ export interface components {
       created_at: string;
       dedicated_workers: string[];
       description?: string;
+      /** Format: double */
+      failure_percent?: number;
+      /** Format: date-time */
+      updated_at?: string;
       event_types: string[];
       is_enabled: boolean;
       /** @description _Kept for backward compatibility, you should use `labels`_ */

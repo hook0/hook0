@@ -100,3 +100,10 @@ export const serviceTokenKeys = {
   detail: (id: string, organizationId: string) =>
     [...serviceTokenKeys.details(), id, organizationId] as const,
 };
+
+export const healthEventKeys = {
+  all: ['healthEvents'] as const,
+  lists: () => [...healthEventKeys.all, 'list'] as const,
+  list: (subscriptionId: string, organizationId: string) =>
+    [...healthEventKeys.lists(), subscriptionId, organizationId] as const,
+};
