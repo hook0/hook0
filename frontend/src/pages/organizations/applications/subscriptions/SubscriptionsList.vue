@@ -9,6 +9,7 @@ import { DOCS_SUBSCRIPTIONS_URL, API_DOCS_SUBSCRIPTIONS_URL } from '@/constants/
 import Hook0TableCellEventTypes from '@/components/Hook0TableCellEventTypes.vue';
 import Hook0TableCellLabels from '@/components/Hook0TableCellLabels.vue';
 import Hook0TableCellTarget from '@/components/Hook0TableCellTarget.vue';
+import Hook0HealthBadge from '@/components/Hook0HealthBadge.vue';
 
 import {
   useSubscriptionList,
@@ -142,6 +143,14 @@ const columns: ColumnDef<Subscription, unknown>[] = [
           },
         },
         'data-test': 'subscription-description-link',
+      }),
+  },
+  {
+    id: 'health',
+    header: t('subscriptions.health'),
+    cell: (info) =>
+      h(Hook0HealthBadge, {
+        failurePercent: info.row.original.failure_percent ?? null,
       }),
   },
   {
