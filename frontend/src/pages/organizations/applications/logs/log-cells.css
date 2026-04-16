@@ -1,7 +1,7 @@
 /* Shared log cell styles — used by any page that renders useLogColumns() output.
- * Standard CSS (no :deep()) — imported globally or by components that use log columns.
+ * These are :deep() because useLogColumns renders cells via h() which bypasses SFC scoped styles.
  */
-.log-status {
+:deep(.log-status) {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
@@ -13,7 +13,7 @@
   cursor: default;
 }
 
-.log-status__dot {
+:deep(.log-status__dot) {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -21,38 +21,38 @@
   flex-shrink: 0;
 }
 
-.log-status--success {
+:deep(.log-status--success) {
   background-color: var(--color-success-light);
   color: var(--color-success);
 }
 
-.log-status--error {
+:deep(.log-status--error) {
   background-color: var(--color-error-light);
   color: var(--color-error);
 }
 
-.log-status--warning {
+:deep(.log-status--warning) {
   background-color: var(--color-warning-light);
   color: var(--color-warning);
 }
 
-.log-status--info {
+:deep(.log-status--info) {
   background-color: var(--color-info-light);
   color: var(--color-info);
 }
 
-.log-status--muted {
+:deep(.log-status--muted) {
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-muted);
 }
 
-.log-event-cell {
+:deep(.log-event-cell) {
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
 }
 
-.log-event-link {
+:deep(.log-event-link) {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   font-weight: 500;
@@ -60,17 +60,17 @@
   text-decoration: none;
 }
 
-.log-event-link:hover {
+:deep(.log-event-link:hover) {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-.log-event-type {
+:deep(.log-event-type) {
   font-size: 0.75rem;
   color: var(--color-text-secondary);
 }
 
-.log-duration {
+:deep(.log-duration) {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   color: var(--color-text-secondary);

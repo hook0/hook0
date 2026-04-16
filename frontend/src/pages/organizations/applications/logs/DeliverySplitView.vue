@@ -108,6 +108,8 @@ function goBackToList() {
 </template>
 
 <style scoped>
+@import './log-cells.css';
+
 :deep(.hook0-split-layout__list table) {
   table-layout: auto;
   width: 100%;
