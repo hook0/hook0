@@ -16,7 +16,7 @@ import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 const props = defineProps<{
   page: HealthEventPage | undefined;
   isLoading: boolean;
-  error: unknown;
+  error: Error | string | null;
   refetch: () => void;
 }>();
 
@@ -36,8 +36,7 @@ const statusVariantMap: Record<string, BadgeVariant> = {
 };
 
 function reasonText(status: string): string {
-  const threshold =
-    status === 'disabled' ? criticalThreshold.value : warningThreshold.value;
+  const threshold = status === 'disabled' ? criticalThreshold.value : warningThreshold.value;
   return t(`subscriptionDetail.healthReason.${status}`, { threshold });
 }
 
@@ -58,10 +57,8 @@ const columns = computed<ColumnDef<HealthEventPage['data'][number], unknown>[]>(
     accessorKey: 'cause',
     header: t('subscriptionDetail.healthEventCause'),
     cell: (info) =>
-      h(
-        Hook0Badge,
-        { variant: 'default', size: 'sm' },
-        () => t(`subscriptionDetail.healthCause.${info.row.original.cause}`)
+      h(Hook0Badge, { variant: 'default', size: 'sm' }, () =>
+        t(`subscriptionDetail.healthCause.${info.row.original.cause}`)
       ),
   },
   {
@@ -76,8 +73,7 @@ const columns = computed<ColumnDef<HealthEventPage['data'][number], unknown>[]>(
   {
     accessorKey: 'created_at',
     header: t('common.createdAt'),
-    cell: (info) =>
-      h(Hook0DateFormatted, { value: info.getValue() as string | null }),
+    cell: (info) => h(Hook0DateFormatted, { value: info.getValue() as string | null }),
   },
 ]);
 
@@ -105,26 +101,12 @@ function goPrev() {
         :description="t('subscriptionDetail.healthTimelineEmptyDescription')"
       />
       <template v-else>
-        <Hook0Table
-          :columns="columns"
-          :data="page.data"
-          row-id-field="health_event_id"
-        />
+        <Hook0Table :columns="columns" :data="page.data" row-id-field="health_event_id" />
         <div class="health-timeline__pagination">
-          <Hook0Button
-            variant="secondary"
-            size="sm"
-            :disabled="!page.prevCursor"
-            @click="goPrev"
-          >
+          <Hook0Button variant="secondary" size="sm" :disabled="!page.prevCursor" @click="goPrev">
             {{ t('common.previousPage') }}
           </Hook0Button>
-          <Hook0Button
-            variant="secondary"
-            size="sm"
-            :disabled="!page.nextCursor"
-            @click="goNext"
-          >
+          <Hook0Button variant="secondary" size="sm" :disabled="!page.nextCursor" @click="goNext">
             {{ t('common.nextPage') }}
           </Hook0Button>
         </div>
