@@ -236,7 +236,7 @@ const columns: ColumnDef<Subscription, unknown>[] = [
         );
       }
 
-      return h('div', { style: 'display: flex; gap: 0.5rem;' }, buttons);
+      return h('div', { class: 'subscription-actions' }, buttons);
     },
   },
 ];
@@ -363,3 +363,10 @@ const columns: ColumnDef<Subscription, unknown>[] = [
     </Hook0Dialog>
   </Hook0PageLayout>
 </template>
+
+<style scoped>
+.subscription-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+</style>

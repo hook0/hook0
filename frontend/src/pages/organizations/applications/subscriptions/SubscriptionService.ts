@@ -75,7 +75,12 @@ export function get(id: UUID): Promise<Subscription> {
 
 /** Type guard: the API returns target as a polymorphic union — only HTTP targets have method+url */
 export function targetIsHttp(
-  target: object
-): target is { type: string; method: string; url: string } {
-  return 'type' in target && target.type === 'http';
+  target: unknown
+): target is { type: 'http'; method: string; url: string } {
+  return (
+    !!target &&
+    typeof target === 'object' &&
+    'type' in target &&
+    (target as Record<string, unknown>).type === 'http'
+  );
 }

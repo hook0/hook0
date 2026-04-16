@@ -74,8 +74,11 @@ function handleRowClick(row: RequestAttemptExtended) {
 
 function goBackToList() {
   selectedRow.value = null;
-  const { delivery: _, ...rest } = route.query;
-  void router.replace({ query: rest });
+
+  const nextQuery = { ...route.query };
+  delete nextQuery.delivery;
+
+  void router.replace({ query: nextQuery });
 }
 </script>
 
@@ -105,13 +108,11 @@ function goBackToList() {
 </template>
 
 <style scoped>
-/* Let the browser size columns to their content — avoids overflow on narrow panels */
 :deep(.hook0-split-layout__list table) {
   table-layout: auto;
   width: 100%;
 }
 
-/* Event column: takes remaining space, entire chain must constrain for ellipsis */
 :deep(.log-col-event) {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -123,64 +124,5 @@ function goBackToList() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* Log cell styles — rendered via h() in useLogColumns.ts, needs :deep() to pierce scoped boundary */
-
-:deep(.log-status) {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.1875rem 0.625rem;
-  border-radius: var(--radius-full);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: default;
-}
-
-:deep(.log-status__icon) {
-  flex-shrink: 0;
-}
-
-:deep(.log-status--success) {
-  background-color: var(--color-success-light);
-  color: var(--color-success);
-}
-
-:deep(.log-status--error) {
-  background-color: var(--color-error-light);
-  color: var(--color-error);
-}
-
-:deep(.log-status--warning) {
-  background-color: var(--color-warning-light);
-  color: var(--color-warning);
-}
-
-:deep(.log-status--info) {
-  background-color: var(--color-info-light);
-  color: var(--color-info);
-}
-
-:deep(.log-status--muted) {
-  background-color: var(--color-bg-tertiary);
-  color: var(--color-text-tertiary);
-}
-
-:deep(.log-status-cell) {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-}
-
-:deep(.log-cell-link.hook0-button.link) {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-}
-
-:deep(.log-event-name) {
-  font-size: 0.8125rem;
-  color: var(--color-text-primary);
 }
 </style>

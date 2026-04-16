@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
-import { Activity, Pencil, Send } from 'lucide-vue-next';
+import { Pencil, Send } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 import { handleMutationError } from '@/utils/handleMutationError';
 
@@ -13,6 +13,7 @@ import { useSubscriptionDetail, useToggleSubscription } from './useSubscriptionQ
 import { targetIsHttp } from './SubscriptionService';
 import { useLogListBySubscription } from '../logs/useLogQueries';
 import { useSubscriptionHealthEvents } from './useSubscriptionHealthQueries';
+import { useHealthThresholds } from '@/composables/useHealthThresholds';
 import { routes } from '@/routes';
 
 import DeliverySplitView from '../logs/DeliverySplitView.vue';
@@ -29,7 +30,6 @@ import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0HealthBadge from '@/components/Hook0HealthBadge.vue';
-import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
 import Hook0TableCellTarget from '@/components/Hook0TableCellTarget.vue';
 import Hook0CardSkeleton from '@/components/Hook0CardSkeleton.vue';
 
@@ -92,6 +92,16 @@ const httpTarget = computed(() => {
   const target = subscription.value?.target;
   if (!target || !targetIsHttp(target)) return null;
   return target;
+});
+
+// Failure rate color based on health thresholds
+const { warning: warningThreshold, critical: criticalThreshold } = useHealthThresholds();
+const failureRateClass = computed(() => {
+  const pct = subscription.value?.failure_percent;
+  if (pct == null) return '';
+  if (pct >= criticalThreshold.value) return 'failure-rate--critical';
+  if (pct >= warningThreshold.value) return 'failure-rate--warning';
+  return 'failure-rate--ok';
 });
 
 // --- Enable/disable toggle with confirmation for disable ---
@@ -157,69 +167,67 @@ function confirmDisable() {
 
     <!-- Content -->
     <template v-else>
-      <!-- Section 1: Header card — name, target, enabled, health, edit link -->
+      <!-- Section 1: Header card — name, health, stats, edit -->
       <Hook0Card>
+        <Hook0CardHeader>
+          <template #header>
+            <span class="sub-card__name">{{
+              subscription.description || t('subscriptions.noDescription')
+            }}</span>
+            <Hook0HealthBadge :failure-percent="subscription.failure_percent ?? null" />
+          </template>
+          <template #actions>
+            <Hook0Button
+              variant="secondary"
+              type="button"
+              @click="
+                void router.push({
+                  name: routes.SubscriptionsEdit,
+                  params: {
+                    organization_id: route.params.organization_id,
+                    application_id: route.params.application_id,
+                    subscription_id: route.params.subscription_id,
+                  },
+                })
+              "
+            >
+              <Pencil :size="14" aria-hidden="true" />
+              {{ t('subscriptionDetail.edit') }}
+            </Hook0Button>
+          </template>
+        </Hook0CardHeader>
         <Hook0CardContent>
-          <div class="detail-header">
-            <div class="detail-header__info">
-              <div class="detail-header__name-row">
-                <span class="detail-header__name">
-                  {{ subscription.description || t('subscriptions.noDescription') }}
-                </span>
-                <Hook0HealthBadge :failure-percent="subscription.failure_percent ?? null" />
-              </div>
-              <div class="detail-header__meta">
-                <div class="detail-header__meta-item">
-                  <span class="detail-header__meta-label">{{
-                    t('subscriptions.enabledColumn')
-                  }}</span>
-                  <Hook0Switch
-                    :model-value="subscription.is_enabled"
-                    :aria-label="t('subscriptions.enabledColumn')"
-                    @update:model-value="toggleSubscription()"
-                  />
-                </div>
-                <div class="detail-header__meta-item">
-                  <span class="detail-header__meta-label">{{
-                    t('subscriptionDetail.targetUrl')
-                  }}</span>
-                  <span class="detail-header__meta-value">
-                    <Hook0TableCellTarget
-                      v-if="httpTarget"
-                      :method="httpTarget.method"
-                      :url="httpTarget.url"
-                    />
-                    <code v-else>{{ JSON.stringify(subscription.target) }}</code>
-                  </span>
-                </div>
-                <div v-if="subscription.failure_percent != null" class="detail-header__meta-item">
-                  <span class="detail-header__meta-label">{{
-                    t('subscriptionDetail.failureRate')
-                  }}</span>
-                  <span class="detail-header__meta-value">
-                    {{ Math.round(subscription.failure_percent) }}%
-                  </span>
-                </div>
-              </div>
+          <div class="sub-stats">
+            <div class="sub-stats__item">
+              <span class="sub-stats__label">{{ t('subscriptions.enabledColumn') }}</span>
+              <Hook0Switch
+                :model-value="subscription.is_enabled"
+                :aria-label="t('subscriptions.enabledColumn')"
+                @update:model-value="toggleSubscription()"
+              />
             </div>
-            <div class="detail-header__actions">
-              <Hook0Button
-                variant="secondary"
-                type="button"
-                @click="
-                  void router.push({
-                    name: routes.SubscriptionsEdit,
-                    params: {
-                      organization_id: route.params.organization_id,
-                      application_id: route.params.application_id,
-                      subscription_id: route.params.subscription_id,
-                    },
-                  })
-                "
-              >
-                <Pencil :size="14" aria-hidden="true" />
-                {{ t('subscriptionDetail.edit') }}
-              </Hook0Button>
+            <div class="sub-stats__item sub-stats__item--bordered">
+              <span class="sub-stats__label">{{ t('subscriptionDetail.targetUrl') }}</span>
+              <span class="sub-stats__value">
+                <Hook0TableCellTarget
+                  v-if="httpTarget"
+                  :method="httpTarget.method"
+                  :url="httpTarget.url"
+                />
+                <pre
+                  v-else
+                  class="detail-header__raw-target"
+                ><code>{{ JSON.stringify(subscription.target, null, 2) }}</code></pre>
+              </span>
+            </div>
+            <div
+              v-if="subscription.failure_percent != null"
+              class="sub-stats__item sub-stats__item--bordered"
+            >
+              <span class="sub-stats__label">{{ t('subscriptionDetail.failureRate') }}</span>
+              <span class="sub-stats__value sub-stats__value--rate" :class="failureRateClass">
+                {{ Math.round(subscription.failure_percent) }}%
+              </span>
             </div>
           </div>
         </Hook0CardContent>
@@ -316,75 +324,67 @@ function confirmDisable() {
 </template>
 
 <style scoped>
-.detail-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
-}
-
-.detail-header__info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  flex: 1;
-  min-width: 0;
-}
-
-.detail-header__name-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-/* Health badge: bolder text, use the primary green from the design system */
-:deep(.detail-header__name-row .hook0-badge) {
-  font-weight: 700;
-}
-
-.detail-header__name {
-  font-size: 1rem;
+/* Header card: subscription name in Hook0CardHeader */
+.sub-card__name {
   font-weight: 600;
   color: var(--color-text-primary);
 }
 
-.detail-header__meta {
+/* Stats row with divider-separated items */
+.sub-stats {
   display: flex;
-  gap: 1.5rem;
+  align-items: flex-start;
+  gap: 0;
 }
 
-.detail-header__meta-item {
+.sub-stats__item {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 0.375rem;
+  padding-right: 1.5rem;
 }
 
-.detail-header__meta-label {
+.sub-stats__item--bordered {
+  padding-left: 1.5rem;
+  border-left: 1px solid var(--color-border);
+}
+
+.sub-stats__label {
   font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 500;
   color: var(--color-text-tertiary);
 }
 
-.detail-header__meta-value {
-  font-size: 0.8125rem;
+.sub-stats__value {
+  font-size: 0.875rem;
   color: var(--color-text-primary);
 }
 
-.detail-header__meta-value--mono {
+.sub-stats__value--rate {
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.sub-stats__value--mono {
   font-family: var(--font-mono);
   font-size: 0.75rem;
 }
 
-.detail-header__actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.75rem;
-  flex-shrink: 0;
+/* Failure rate color classes */
+.failure-rate--ok {
+  color: var(--color-success);
 }
 
+.failure-rate--warning {
+  color: var(--color-warning);
+}
+
+.failure-rate--critical {
+  color: var(--color-error);
+}
+
+/* Deliveries section */
 .deliveries-section {
   display: flex;
   flex-direction: column;
@@ -393,5 +393,12 @@ function confirmDisable() {
 
 .deliveries-section :deep(.hook0-split-layout) {
   margin-top: 0;
+}
+
+.detail-header__raw-target {
+  margin: 0;
+  overflow-x: auto;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
 }
 </style>
