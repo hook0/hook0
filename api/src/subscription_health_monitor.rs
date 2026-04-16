@@ -1,4 +1,6 @@
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
+use paperclip::actix::Apiv2Schema;
+use serde::Serialize;
 use sqlx::{PgPool, query, query_as, query_scalar};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -23,18 +25,20 @@ pub struct SubscriptionHealthMonitorConfig {
 }
 
 /// Subscription health verdict emitted by monitor.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, sqlx::Type, Apiv2Schema)]
 #[sqlx(type_name = "text", rename_all = "lowercase")]
-enum HealthStatus {
+#[serde(rename_all = "lowercase")]
+pub enum HealthStatus {
     Warning,
     Disabled,
     Resolved,
 }
 
 /// Origin of health event: monitor or operator.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, sqlx::Type, Apiv2Schema)]
 #[sqlx(type_name = "text", rename_all = "lowercase")]
-enum HealthEventCause {
+#[serde(rename_all = "lowercase")]
+pub enum HealthEventCause {
     Auto,
     Manual,
 }
