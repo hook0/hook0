@@ -6,22 +6,18 @@
  * Handles: column setup, row selection, desktop auto-select, mobile back button,
  * and all the CSS for log status pills and split layout table overrides.
  */
-import { h, markRaw, ref, watch, computed } from 'vue';
+import { h, ref, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useMediaQuery } from '@vueuse/core';
-import { ArrowLeft, RefreshCw } from 'lucide-vue-next';
-import { toast } from 'vue-sonner';
-import { handleMutationError } from '@/utils/handleMutationError';
+import { ArrowLeft } from 'lucide-vue-next';
 
 import { useLogColumns } from './useLogColumns';
-import { useRetryDelivery } from './useLogQueries';
 import LogDetailContent from './LogDetailContent.vue';
 import type { RequestAttemptExtended } from './LogService';
 
 import Hook0SplitLayout from '@/components/Hook0SplitLayout.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
-import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 
@@ -36,28 +32,8 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const isDesktop = useMediaQuery('(min-width: 768px)');
-const retryMutation = useRetryDelivery();
 
-const baseColumns = useLogColumns();
-const columns = computed(() => [
-  ...baseColumns,
-  {
-    id: 'retry',
-    header: '',
-    size: 40,
-    cell: ({ row }: { row: { original: RequestAttemptExtended } }) =>
-      h(Hook0TableCellLink, {
-        value: t('subscriptionDetail.retryAction'),
-        icon: markRaw(RefreshCw),
-        onClick: () => {
-          retryMutation.mutate(row.original.request_attempt_id, {
-            onSuccess: () => toast.success(t('subscriptionDetail.retryQueued')),
-            onError: (err: Error) => handleMutationError(err),
-          });
-        },
-      }),
-  },
-]);
+const columns = computed(() => useLogColumns());
 
 const selectedRow = ref<RequestAttemptExtended | null>(null);
 
