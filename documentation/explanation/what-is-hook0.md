@@ -25,7 +25,7 @@ import Head from '@docusaurus/Head';
           "name": "Is Hook0 free to use?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Hook0 offers a free cloud tier (5,000 events/month) and is fully open-source, so you can self-host it at no cost using Docker Compose or Kubernetes."
+            "text": "Yes. Hook0 offers a free cloud tier (100 events/day) and is fully open-source, so you can self-host it at no cost using Docker Compose or Kubernetes."
           }
         },
         {

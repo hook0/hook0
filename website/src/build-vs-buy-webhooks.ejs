@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Build vs Buy Webhooks — Stop Building From Scratch | Hook0</title>
+    <title>Build vs Buy Webhooks — Ship in 30 Min | Hook0</title>
     <%
-    locals.pageTitle = 'Build vs Buy Webhooks — Stop Building From Scratch | Hook0';
-    locals.pageDescription = 'Building webhooks from scratch costs 3+ sprints and ongoing maintenance. Retry logic, dead letter queues, HMAC signatures, monitoring — or use Hook0 and ship in 30 minutes.';
+    locals.pageTitle = 'Build vs Buy Webhooks — Ship in 30 Min | Hook0';
+    locals.pageDescription = 'Building webhooks from scratch costs 3+ sprints. Retries, signatures, monitoring, dead letter queues — or use Hook0 and ship in 30 minutes.';
     locals.pageCanonical = '/build-vs-buy-webhooks';
     locals.pageFAQSchema = {
       "@context": "https://schema.org",
@@ -15,7 +15,7 @@
           "name": "How long does it take to build webhooks from scratch?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "A production-grade webhook system typically takes 3 or more engineering sprints to build. This includes retry logic with exponential backoff, dead letter queues, HMAC signature generation, delivery monitoring, subscriber management, and endpoint health checking. Ongoing maintenance adds more cost over time."
+            "text": "A production-grade webhook system typically takes 3 or more engineering sprints to build. This includes retry logic with automatic retries with increasing delays, dead letter queues, HMAC signature generation, delivery monitoring, subscriber management, and endpoint health checking. Ongoing maintenance adds more cost over time."
           }
         },
         {
@@ -63,7 +63,7 @@
             <span class="block text-gradient-green">From Scratch</span>
         </h1>
         <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
-            You have a backlog full of features your users actually want. Retries, signatures, monitoring, dead letter queues: that is 3+ sprints of plumbing. With Hook0, it is 30 minutes.
+            You have a backlog full of features your users actually want. Retries, signatures, monitoring, dead letter queues: that is 3+ sprints of plumbing. Hook0 is an open-source webhook service that handles all of it. 100 events/day free, no credit card required. Ship in 30 minutes.
         </p>
 
         <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
@@ -95,6 +95,8 @@
         </div>
     </div>
 </section>
+
+<%- include('./includes/_social-proof-bar.ejs') %>
 
 <!-- Hidden Costs of DIY -->
 <section class="section relative overflow-hidden">
@@ -211,7 +213,7 @@
                     <tr class="hover:bg-white/5 transition-colors">
                         <td class="py-4 px-6 text-gray-300">Retry logic</td>
                         <td class="py-4 px-6 text-red-400">Build from scratch</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">Built-in exponential backoff</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Built-in with exponential backoff</td>
                     </tr>
                     <tr class="hover:bg-white/5 transition-colors">
                         <td class="py-4 px-6 text-gray-300">Security (HMAC)</td>
@@ -224,7 +226,7 @@
                         <td class="py-4 px-6 text-green-400 font-medium">Included out of the box</td>
                     </tr>
                     <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Subscriber portal</td>
+                        <td class="py-4 px-6 text-gray-300">Subscription management</td>
                         <td class="py-4 px-6 text-red-400">Build a whole UI</td>
                         <td class="py-4 px-6 text-green-400 font-medium">Embeddable portal included</td>
                     </tr>
@@ -248,7 +250,7 @@
         <div class="text-center mb-12 animate-on-scroll">
             <span class="section__eyebrow">Integration</span>
             <h2 class="mt-4 text-display font-bold text-white">Ship Webhooks in 30 Minutes</h2>
-            <p class="mt-4 text-body-lg text-gray-400">One API call. One. Hook0 does the rest.</p>
+            <p class="mt-4 text-body-lg text-gray-400">One API call to publish an outbound event. Hook0 is webhooks as a service for event-driven architectures. It handles the rest.</p>
         </div>
 
         <div class="animate-on-scroll card card--glow p-8">
@@ -294,6 +296,25 @@
                 <h3 class="text-lg font-semibold text-white mb-2">Can I migrate from a homegrown system?</h3>
                 <p class="text-gray-400">Yes. REST API and SDKs, so you can run both systems in parallel during migration. No big bang cutover required.</p>
             </div>
+        </div>
+    </div>
+</section>
+
+<!-- Deep Dive Link -->
+<section class="py-12 relative">
+    <div class="container mx-auto px-6 text-center">
+        <p class="text-gray-400">Want more detail? <a href="https://documentation.hook0.com/tutorials/getting-started" class="text-indigo-400 hover:text-indigo-300 underline">Read the getting started guide in our docs</a>.</p>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center">Related</h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <a href="./hook0-vs-svix" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Svix</a>
+            <a href="./hook0-vs-hookdeck" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Hookdeck</a>
+            <a href="./self-hosted-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Self-Hosted Webhooks</a>
         </div>
     </div>
 </section>
