@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Hook0 vs Hookdeck — Webhook Platform vs Gateway Comparison</title>
+    <title>Hook0 vs Hookdeck — Webhook Platform vs Gateway</title>
     <%
-    locals.pageTitle = 'Hook0 vs Hookdeck — Webhook Platform vs Gateway Comparison';
-    locals.pageDescription = 'Compare Hook0 and Hookdeck: full webhook platform vs webhook gateway/proxy, open-source vs closed-source, self-hostable vs cloud-only. Free tier included.';
+    locals.pageTitle = 'Hook0 vs Hookdeck — Webhook Platform vs Gateway';
+    locals.pageDescription = 'Compare Hook0 and Hookdeck: webhook platform vs gateway, open-source vs closed-source, self-hostable vs cloud-only. See the key differences.';
     locals.pageCanonical = '/hook0-vs-hookdeck';
     locals.pageFAQSchema = {
       "@context": "https://schema.org",
@@ -60,9 +60,10 @@
         <span class="section__eyebrow">Comparison</span>
         <h1 class="mt-4 text-display-xl text-white">
             Hook0 vs Hookdeck
+            <span class="block text-gradient-green">Open-Source Webhook Platform Alternative</span>
         </h1>
         <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
-            A webhook platform vs a webhook gateway. They don't do the same thing. Here's what each one actually covers.
+            Looking for a Hookdeck alternative? Hook0 is a 100% open-source webhook platform you can self-host. Hookdeck is a webhook gateway. They solve different problems. Here is what each one actually covers.
         </p>
 
         <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
@@ -78,6 +79,8 @@
         </div>
     </div>
 </section>
+
+<%- include('./includes/_social-proof-bar.ejs') %>
 
 <!-- Platform vs Gateway -->
 <section class="section relative overflow-hidden">
@@ -113,7 +116,7 @@
                     </li>
                     <li class="flex items-start gap-3">
                         <svg class="w-5 h-5 text-green-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        HMAC signatures, delivery logs, subscriber portal
+                        HMAC signatures, delivery logs, subscription management
                     </li>
                     <li class="flex items-start gap-3">
                         <svg class="w-5 h-5 text-green-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -150,11 +153,11 @@
                         Does not generate or send webhooks
                     </li>
                     <li class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-red-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        <svg class="w-5 h-5 text-gray-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
                         Closed-source, cloud-only
                     </li>
                     <li class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-red-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        <svg class="w-5 h-5 text-gray-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
                         No self-hosting option
                     </li>
                 </ul>
@@ -218,6 +221,11 @@
                         <td class="py-4 px-6 text-gray-400">No</td>
                     </tr>
                     <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Free Tier</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">100 events/day, no credit card</td>
+                        <td class="py-4 px-6 text-gray-400">100,000 events/month</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
                         <td class="py-4 px-6 text-gray-300">Data Hosting</td>
                         <td class="py-4 px-6 text-green-400 font-medium">Europe (GDPR) or self-host</td>
                         <td class="py-4 px-6 text-gray-400">US-based</td>
@@ -247,6 +255,10 @@
                 <p class="text-gray-400">Yes. Hook0 is fully open-source under the SSPL-1.0 license. You can inspect, modify, and self-host the entire codebase. Hookdeck is closed-source and only available as a managed SaaS.</p>
             </div>
             <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Can I self-host Hook0?</h3>
+                <p class="text-gray-400">Yes. Hook0 supports self-hosting via Docker Compose or Kubernetes at no cost. Hookdeck does not offer self-hosting — it is a cloud-only service.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
                 <h3 class="text-lg font-semibold text-white mb-2">Which should I choose?</h3>
                 <p class="text-gray-400">If you need to add webhooks to your product (send events to your users' endpoints), use Hook0. If you already receive webhooks from third parties and just need a reliability proxy, Hookdeck may fit. They're different tools for different problems.</p>
             </div>
@@ -258,6 +270,18 @@
 <section class="py-12 relative">
     <div class="container mx-auto px-6 text-center">
         <p class="text-gray-400">Want more detail? <a href="https://documentation.hook0.com/comparisons/hookdeck-vs-hook0" class="text-indigo-400 hover:text-indigo-300 underline">Read the full comparison with architecture diagrams in our docs</a>.</p>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center">Related</h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <a href="./hook0-vs-svix" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Svix</a>
+            <a href="./build-vs-buy-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Build vs Buy Webhooks</a>
+            <a href="./self-hosted-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Self-Hosted Webhooks</a>
+        </div>
     </div>
 </section>
 

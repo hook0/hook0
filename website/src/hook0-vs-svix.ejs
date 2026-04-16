@@ -4,7 +4,7 @@
     <title>Hook0 vs Svix — Open-Source Webhook Platform Comparison</title>
     <%
     locals.pageTitle = 'Hook0 vs Svix — Open-Source Webhook Platform Comparison';
-    locals.pageDescription = 'Compare Hook0 and Svix: fully open-source (SSPL) vs open-core, bootstrapped vs VC-funded, self-hostable on any infrastructure vs enterprise-only. Free tier included.';
+    locals.pageDescription = 'Compare Hook0 and Svix: fully open-source vs open-core, bootstrapped vs VC-funded, self-hostable vs enterprise-only. See the differences.';
     locals.pageCanonical = '/hook0-vs-svix';
     locals.pageFAQSchema = {
       "@context": "https://schema.org",
@@ -31,7 +31,7 @@
           "name": "How does Hook0 pricing compare to Svix?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Hook0 offers a free tier with 5,000 events per month. Svix also has a free tier but locks self-hosting, advanced features and dedicated support behind enterprise pricing. Hook0 is bootstrapped with no VC pressure to raise prices."
+            "text": "Both have a free tier. The difference is what you get beyond volume: Hook0 includes self-hosting for free on any plan. Svix locks self-hosting, advanced features, and dedicated support behind enterprise pricing. Hook0 is bootstrapped with no VC pressure to raise prices."
           }
         },
         {
@@ -60,9 +60,10 @@
         <span class="section__eyebrow">Comparison</span>
         <h1 class="mt-4 text-display-xl text-white">
             Hook0 vs Svix
+            <span class="block text-gradient-green">Open-Source Webhook Platform Comparison</span>
         </h1>
         <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
-            Both platforms help you send webhooks. They differ on licensing, funding model, self-hosting, and what "open-source" actually means in practice.
+            Looking for a Svix alternative? Both are webhook platforms, but they differ on licensing, funding model, self-hosting, and what "open-source" actually means in practice. Hook0 is 100% open-source, bootstrapped, and self-hostable on any infrastructure.
         </p>
 
         <!-- CTA Buttons -->
@@ -80,75 +81,7 @@
     </div>
 </section>
 
-<!-- Comparison Table -->
-<section class="section relative overflow-hidden">
-    <div class="absolute inset-0 grid-pattern opacity-20"></div>
-    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12 animate-on-scroll">
-            <span class="section__eyebrow">Feature Comparison</span>
-            <h2 class="mt-4 text-display font-bold text-white">Side by Side</h2>
-        </div>
-
-        <div class="animate-on-scroll overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="border-b border-white/10">
-                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Feature</th>
-                        <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider">Hook0</th>
-                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Svix</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-white/5">
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Open-Source License</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">SSPL-1.0 (fully open)</td>
-                        <td class="py-4 px-6 text-gray-400">MIT (open-core, enterprise closed)</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Funding</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">100% Bootstrapped</td>
-                        <td class="py-4 px-6 text-gray-400">$17M VC-funded</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Self-Hosting</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">Free (Docker / K8s)</td>
-                        <td class="py-4 px-6 text-gray-400">Enterprise plan only</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Free Tier</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">5,000 events/month</td>
-                        <td class="py-4 px-6 text-gray-400">5,000 messages/month</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">HMAC Signatures</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">Included (all plans)</td>
-                        <td class="py-4 px-6 text-gray-400">Included</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Retry Logic</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">Exponential backoff</td>
-                        <td class="py-4 px-6 text-gray-400">Exponential backoff</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Data Hosting</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">Europe (GDPR)</td>
-                        <td class="py-4 px-6 text-gray-400">US-based</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Subscriber Portal</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">Included</td>
-                        <td class="py-4 px-6 text-gray-400">App Portal (paid plans)</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Vendor Lock-in Risk</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">None (fully open-source)</td>
-                        <td class="py-4 px-6 text-gray-400">Moderate (enterprise features closed)</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</section>
+<%- include('./includes/_social-proof-bar.ejs') %>
 
 <!-- Key Differentiators -->
 <section class="section relative overflow-hidden">
@@ -217,6 +150,76 @@
     </div>
 </section>
 
+<!-- Comparison Table -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Feature Comparison</span>
+            <h2 class="mt-4 text-display font-bold text-white">Side by Side</h2>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Feature</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider">Hook0</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Svix</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">License</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">SSPL-1.0 (full source available)</td>
+                        <td class="py-4 px-6 text-gray-400">MIT (open-core, enterprise closed)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Funding</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">100% Bootstrapped</td>
+                        <td class="py-4 px-6 text-gray-400">$17M VC-funded</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Self-Hosting</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Free (Docker / K8s)</td>
+                        <td class="py-4 px-6 text-gray-400">Enterprise plan only</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Free Tier</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Yes, no credit card</td>
+                        <td class="py-4 px-6 text-gray-400">Yes</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">HMAC Signatures</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Included (all plans)</td>
+                        <td class="py-4 px-6 text-gray-400">Included</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Retry Logic</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Automatic retries</td>
+                        <td class="py-4 px-6 text-gray-400">Automatic retries</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Data Hosting</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Europe (GDPR)</td>
+                        <td class="py-4 px-6 text-gray-400">US-based</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Subscription Management</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Included</td>
+                        <td class="py-4 px-6 text-gray-400">App Portal (paid plans)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Vendor Lock-in Risk</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">None (full source, self-hostable)</td>
+                        <td class="py-4 px-6 text-gray-400">Moderate (enterprise features closed)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
 <!-- FAQ Section -->
 <section class="section relative overflow-hidden">
     <div class="absolute inset-0 grid-pattern opacity-20"></div>
@@ -237,7 +240,7 @@
             </div>
             <div class="animate-on-scroll card card--glow p-6">
                 <h3 class="text-lg font-semibold text-white mb-2">How does Hook0 pricing compare to Svix?</h3>
-                <p class="text-gray-400">Hook0 offers a free tier with 5,000 events per month. Svix also has a free tier but locks self-hosting, advanced features and dedicated support behind enterprise pricing. Hook0 is bootstrapped with no VC pressure to raise prices.</p>
+                <p class="text-gray-400">Both have a free tier. The difference is what you get beyond volume: Hook0 includes self-hosting for free on any plan. Svix locks self-hosting, advanced features, and dedicated support behind enterprise pricing. Hook0 is bootstrapped with no VC pressure to raise prices.</p>
             </div>
             <div class="animate-on-scroll card card--glow p-6">
                 <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 bootstrapped?</h3>
@@ -251,6 +254,18 @@
 <section class="py-12 relative">
     <div class="container mx-auto px-6 text-center">
         <p class="text-gray-400">Want more detail? <a href="https://documentation.hook0.com/comparisons/svix-vs-hook0" class="text-indigo-400 hover:text-indigo-300 underline">Read the feature-by-feature comparison in our docs</a>.</p>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center">Related</h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <a href="./hook0-vs-hookdeck" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Hookdeck</a>
+            <a href="./build-vs-buy-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Build vs Buy Webhooks</a>
+            <a href="./self-hosted-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Self-Hosted Webhooks</a>
+        </div>
     </div>
 </section>
 
