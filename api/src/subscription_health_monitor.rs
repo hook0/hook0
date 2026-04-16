@@ -1,29 +1,12 @@
-//! Subscription health monitor — watches customer webhooks and reacts when they fail too much.
-//!
-//! How it works:
-//! 1. A background loop ticks on a fixed interval — one tick = one DB pass.
-//! 2. Each tick reads new delivery attempts, aggregates per subscription, and asks the pure state
-//!    machine what to do: warn, disable, or resolve.
-//! 3. Decided actions apply in the same transaction — subscription row update, health event
-//!    insert, or auto-disable.
-//! 4. Once a day it also purges old health events and stale buckets.
-//!
-//! Pure decision in `state_machine`, DB I/O in `candidates`. This file is the orchestrator.
-
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
-use paperclip::actix::Apiv2Schema;
-use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, query, query_as, query_scalar};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use strum::Display;
 use tokio::sync::Semaphore;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
-// --- Public Types (API / Configuration) ---
-
-/// Operational knobs for the monitor — thresholds, scan limits, retention windows.
+/// Tuning knobs for one running health monitor instance.
 #[derive(Clone)]
 pub struct SubscriptionHealthMonitorConfig {
     pub interval: Duration,
@@ -39,52 +22,42 @@ pub struct SubscriptionHealthMonitorConfig {
     pub request_attempt_scan_cap_per_tick: u32,
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Display, Serialize, Deserialize, Apiv2Schema, sqlx::Type,
-)]
-#[serde(rename_all = "lowercase")]
-#[strum(serialize_all = "lowercase")]
+/// Subscription health verdict emitted by monitor.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "text", rename_all = "lowercase")]
-pub enum HealthStatus {
+enum HealthStatus {
     Warning,
     Disabled,
     Resolved,
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Display, Serialize, Deserialize, Apiv2Schema, sqlx::Type,
-)]
-#[serde(rename_all = "lowercase")]
-#[strum(serialize_all = "lowercase")]
+/// Origin of health event: monitor or operator.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "text", rename_all = "lowercase")]
-pub enum HealthEventCause {
+enum HealthEventCause {
     Auto,
     Manual,
 }
 
+/// Evaluated subscription with failure rate and last health event.
 #[derive(Debug)]
-pub struct SubscriptionHealth {
-    pub subscription_id: Uuid,
-    pub failure_percent: f64,
-    pub last_health_status: Option<HealthStatus>,
-    pub last_health_at: Option<DateTime<Utc>>,
+struct SubscriptionHealth {
+    subscription_id: Uuid,
+    failure_percent: f64,
+    last_health_status: Option<HealthStatus>,
+    last_health_at: Option<DateTime<Utc>>,
     #[allow(dead_code)]
-    pub last_health_cause: Option<HealthEventCause>,
+    last_health_cause: Option<HealthEventCause>,
     #[allow(dead_code)]
-    pub last_health_user_id: Option<Uuid>,
+    last_health_user_id: Option<Uuid>,
 }
 
-// --- Background Daemon ---
-
-// Purge runs once a day — health history is append-only and small, no point scanning more often.
 const CLEANUP_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 
-/// Watches customer webhook subscriptions forever:
-/// - warns when recent failures cross the warning threshold
-/// - auto-disables when they cross the disable threshold
-/// - emits a recovery event when a warned endpoint starts succeeding again
+/// Evaluates subscription failure rates, emits health events.
 ///
-/// Returns only when the semaphore is closed (shutdown).
+/// Operator sees warning/disabled/resolved per subscription in logs.
+/// Cleans up stale resolved events and old buckets daily.
 pub async fn run_subscription_health_monitor(
     housekeeping_semaphore: &Semaphore,
     db: &PgPool,
@@ -97,15 +70,12 @@ pub async fn run_subscription_health_monitor(
 
     let mut last_cleanup: Option<Instant> = None;
 
-    // Shared across housekeeping tasks — holding a permit bounds DB load from concurrent jobs.
     while let Ok(permit) = housekeeping_semaphore.acquire().await {
+        // run_one_tick is where we do the main work
         if let Err(e) = run_one_tick(db, config).await {
-            // Log and keep looping — transient DB errors shouldn't kill the monitor.
-            // Next tick retries the same window via the cursor.
             error!("Subscription health monitor error: {e}");
         }
 
-        // Daily cleanup for stale events and buckets
         if last_cleanup.is_none_or(|t| t.elapsed() > CLEANUP_INTERVAL) {
             let log_cleanup = |name: &str, result: Result<u64, sqlx::Error>| match result {
                 Ok(n) if n > 0 => info!("Subscription health monitor: cleaned up {n} {name}"),
@@ -113,7 +83,7 @@ pub async fn run_subscription_health_monitor(
                 Err(e) => warn!("Subscription health monitor: cleanup error for {name}: {e}"),
             };
 
-            // Drop old "resolved" events only if a newer event exists for the same subscription.
+            // Keeps latest resolved event per subscription; older purged.
             let resolved_cleanup = query!(
                 r#"
                     delete from webhook.subscription_health_event d
@@ -133,7 +103,6 @@ pub async fn run_subscription_health_monitor(
 
             log_cleanup("resolved subscription_health_event rows", resolved_cleanup);
 
-            // Purge old pre-aggregated buckets
             let buckets_cleanup = query!(
                 r#"
                     delete from webhook.subscription_health_bucket
@@ -150,7 +119,7 @@ pub async fn run_subscription_health_monitor(
             last_cleanup = Some(Instant::now());
         }
 
-        // Release the permit before sleeping so other housekeeping tasks can run during the idle window.
+        // Release permit before sleep; other tasks run during wait.
         drop(permit);
         actix_web::rt::time::sleep(config.interval).await;
     }
@@ -158,41 +127,38 @@ pub async fn run_subscription_health_monitor(
     warn!("Subscription health monitor stopped (semaphore closed)");
 }
 
-// --- Tick Logic ---
-
+/// Side effect scheduled for one subscription during tick.
 #[derive(Debug, Clone, PartialEq)]
-enum PlannedAction {
+enum SubscriptionAction {
     UpdateFailurePercent,
     EmitWarning,
     EmitResolved,
     EmitDisabled,
 }
 
-// Arbitrary fixed key for `pg_try_advisory_xact_lock`. Guarantees one API node per tick.
+// Prevents concurrent ticks across API replicas.
 const ADVISORY_LOCK_ID: i64 = 42_000_001;
 
-// Hard ceiling per tick — prevents long DB locks holding up the monitor.
+// Safety cap; kills runaway tick queries.
 const TICK_STATEMENT_TIMEOUT: &str = "5min";
 
-/// One pass of the monitor:
-/// - Read new delivery attempts since the cursor
-/// - Ask the state machine what to do for each subscription
-/// - Apply updates and health events in a single transaction
+/// Single evaluation pass over all active subscriptions.
+///
+/// Operator sees state transitions logged per subscription.
+/// Entire tick runs in one transaction with advisory lock.
 async fn run_one_tick(
     db: &PgPool,
     config: &SubscriptionHealthMonitorConfig,
 ) -> Result<(), sqlx::Error> {
     let mut tx = db.begin().await?;
 
-    // Timeout dies with the tx — no leak into the next tick's batch.
+    // Scoped to this transaction; resets automatically on commit/rollback.
     query(&format!(
         "set local statement_timeout = '{TICK_STATEMENT_TIMEOUT}'"
     ))
     .execute(&mut *tx)
     .await?;
 
-    // Advisory transaction lock — a Postgres mutex keyed on an arbitrary int. Tied to the tx so a
-    // crashed worker can't leave it held. Non-blocking: skip if already held.
     let acquired: bool = query_scalar("select pg_try_advisory_xact_lock($1)")
         .bind(ADVISORY_LOCK_ID)
         .fetch_one(&mut *tx)
@@ -203,103 +169,100 @@ async fn run_one_tick(
         return Ok(());
     }
 
-    // Advance cursor and fetch subscriptions whose failure rate has changed
-    let subscriptions = list_candidates(&mut tx, config).await?;
+    let candidates_subscriptions =
+        list_health_evaluation_subscriptions_candidates(&mut tx, config).await?;
     info!(
         "Subscription health monitor: evaluated {} subscriptions",
-        subscriptions.len()
+        candidates_subscriptions.len()
     );
 
-    // Single `now` per batch — anti-flap windows stay consistent across the tick.
+    // Shared `now` for anti-flap comparison across all subscriptions.
     let now = Utc::now();
 
-    for subscription in &subscriptions {
-        // Step 1: Pure state machine decision (immutable)
-        let planned_actions = {
-            let failure = subscription.failure_percent;
-            let warning = f64::from(config.failure_percent_for_warning);
-            let disable = f64::from(config.failure_percent_for_disable);
+    for candidate_subscription in &candidates_subscriptions {
+        let candidate_subscription_actions = {
+            let failure_percent = candidate_subscription.failure_percent;
+            let warning_threshold = f64::from(config.failure_percent_for_warning);
+            let disable_threshold = f64::from(config.failure_percent_for_disable);
 
+            // Overflowed chrono range → zero disables anti-flap safely.
             let anti_flap =
                 ChronoDuration::from_std(config.anti_flap_window).unwrap_or(ChronoDuration::zero());
 
-            // Determine if an event must be emitted based on current status and failure rates
-            let state_action = match subscription.last_health_status {
-                Some(HealthStatus::Disabled) => None,
+            let in_anti_flap = candidate_subscription
+                .last_health_at
+                .is_some_and(|at| (now - at) < anti_flap);
 
-                Some(HealthStatus::Resolved)
-                    if subscription
-                        .last_health_at
-                        .is_some_and(|at| (now - at) < anti_flap) =>
-                {
-                    None // Ignored during the anti-flap cooldown
-                }
-
-                Some(HealthStatus::Warning) => {
-                    if failure < warning {
-                        Some(PlannedAction::EmitResolved)
-                    } else if failure >= disable {
-                        Some(PlannedAction::EmitDisabled)
-                    } else {
-                        None // Still in warning zone
-                    }
-                }
-
-                None | Some(HealthStatus::Resolved) => {
-                    if failure >= disable {
-                        Some(PlannedAction::EmitDisabled)
-                    } else if failure >= warning {
-                        Some(PlannedAction::EmitWarning)
-                    } else {
-                        None // Healthy
-                    }
-                }
+            // 1. Determine new status based on metrics
+            let new_status = if failure_percent >= disable_threshold {
+                HealthStatus::Disabled
+            } else if failure_percent >= warning_threshold {
+                HealthStatus::Warning
+            } else {
+                HealthStatus::Resolved
             };
 
-            // Every processed subscription gets its percentage updated.
-            match state_action {
-                Some(action) => vec![PlannedAction::UpdateFailurePercent, action],
-                None => vec![PlannedAction::UpdateFailurePercent],
+            let state_transition_action =
+                match (candidate_subscription.last_health_status, new_status) {
+                    // Disabled state is terminal
+                    (Some(HealthStatus::Disabled), _) => None,
+
+                    // Anti-flap protection: suppress state changes
+                    (Some(HealthStatus::Resolved), _) if in_anti_flap => None,
+
+                    // No actual state change
+                    (Some(old), new) if old == new => None,
+                    (None, HealthStatus::Resolved) => None, // None is implicitly Resolved
+
+                    // Valid transitions to a new state
+                    (_, HealthStatus::Disabled) => Some(SubscriptionAction::EmitDisabled),
+                    (_, HealthStatus::Warning) => Some(SubscriptionAction::EmitWarning),
+                    (_, HealthStatus::Resolved) => Some(SubscriptionAction::EmitResolved),
+                };
+
+            // 3. Assemble actions
+            let mut actions = vec![SubscriptionAction::UpdateFailurePercent];
+            if let Some(new_action) = state_transition_action {
+                actions.push(new_action);
             }
+            actions
         };
 
-        // Step 2: Apply decided actions directly to the database
-        for action in &planned_actions {
-            let action_result = match action {
-                PlannedAction::UpdateFailurePercent => query!(
+        for new_action in &candidate_subscription_actions {
+            let action_result = match new_action {
+                SubscriptionAction::UpdateFailurePercent => query!(
                     "update webhook.subscription set failure_percent = $1 where subscription__id = $2",
-                    subscription.failure_percent,
-                    subscription.subscription_id,
+                    candidate_subscription.failure_percent,
+                    candidate_subscription.subscription_id,
                 )
                 .execute(&mut *tx)
                 .await
                 .map(|_| ()),
 
-                PlannedAction::EmitWarning => query!(
+                SubscriptionAction::EmitWarning => query!(
                     r#"
                         insert into webhook.subscription_health_event (subscription__id, status, cause, user__id)
                         values ($1, 'warning', 'auto', null)
                     "#,
-                    subscription.subscription_id,
+                    candidate_subscription.subscription_id,
                 )
                 .execute(&mut *tx)
                 .await
                 .map(|_| ()),
 
-                PlannedAction::EmitResolved => query!(
+                SubscriptionAction::EmitResolved => query!(
                     r#"
                         insert into webhook.subscription_health_event (subscription__id, status, cause, user__id)
                         values ($1, 'resolved', 'auto', null)
                     "#,
-                    subscription.subscription_id,
+                    candidate_subscription.subscription_id,
                 )
                 .execute(&mut *tx)
                 .await
                 .map(|_| ()),
 
-                PlannedAction::EmitDisabled => {
-                    // Atomic disable + event insert in a single CTE. A manual re-enable between 
-                    // our read and write stays intact.
+                // Atomic disable + event insert. Prevents re-enable race.
+                SubscriptionAction::EmitDisabled => {
                     let disabled_at = query_scalar!(
                         r#"
                             with updated as (
@@ -315,7 +278,7 @@ async fn run_one_tick(
                             )
                             select created_at as "created_at!" from inserted
                         "#,
-                        subscription.subscription_id,
+                        candidate_subscription.subscription_id,
                     )
                     .fetch_optional(&mut *tx)
                     .await;
@@ -324,11 +287,10 @@ async fn run_one_tick(
                         Ok(Some(_)) => {
                             info!(
                                 "Subscription health monitor: disabled subscription {}",
-                                subscription.subscription_id
+                                candidate_subscription.subscription_id
                             );
                             Ok(())
                         }
-                        // Already disabled by someone else — deliberate user action, don't touch.
                         Ok(None) => Ok(()),
                         Err(e) => Err(e),
                     }
@@ -336,34 +298,36 @@ async fn run_one_tick(
             };
 
             if let Err(e) = action_result {
-                // Per-subscription failure — log and keep going to avoid rolling back the whole batch.
                 warn!(
                     "Subscription health monitor: error processing subscription {}: {e}",
-                    subscription.subscription_id
+                    candidate_subscription.subscription_id
                 );
             }
         }
     }
 
-    // Commit atomically — cursor advance and health events land together.
-    // A crash mid-tick replays the exact same window on the next run.
     tx.commit().await?;
     Ok(())
 }
 
-// --- Database Candidates Fetching ---
-
+/// Success/failure counts for one subscription in current scan.
 struct RequestAttemptAggregate {
     subscription_id: Uuid,
     total: i64,
     failed: i64,
 }
 
-pub(super) async fn list_candidates(
+/// Identifies subscriptions whose failure rate crossed threshold.
+///
+/// Returns evaluated subscriptions with failure percent and last health event.
+/// - Advances cursor through request_attempt incrementally.
+/// - Accumulates subscription counts into time-bounded buckets.
+/// - Closes expired/full buckets, evaluates subscriptions over sliding window.
+/// - Clears failure_percent on subscriptions no longer evaluation candidates.
+async fn list_health_evaluation_subscriptions_candidates(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     config: &SubscriptionHealthMonitorConfig,
 ) -> Result<Vec<SubscriptionHealth>, sqlx::Error> {
-    // 1. Fetch current position
     let cursor: DateTime<Utc> = query_scalar!(
         "select last_processed_at from webhook.subscription_health_monitor_cursor where cursor__id = 1",
     )
@@ -379,8 +343,9 @@ pub(super) async fn list_candidates(
 
     let scan_cap = i64::from(config.request_attempt_scan_cap_per_tick);
 
-    // 2. Fetch and aggregate unread requests
-    let rows = query_as!(
+    // Single round-trip: per-subscription request attempt aggregates + max timestamp.
+    // Sentinel row (subscription_id NULL) carries max_completed_at.
+    let request_attempt_aggregate_rows = query_as!(
         AggregateRow,
         r#"
             with new_request_attempts as (
@@ -410,12 +375,13 @@ pub(super) async fn list_candidates(
     .fetch_all(&mut **tx)
     .await?;
 
-    let max_completed_at = rows
+    // Extract sentinel row for cursor advance.
+    let max_completed_at = request_attempt_aggregate_rows
         .iter()
         .find(|row| row.subscription_id.is_none())
         .and_then(|row| row.max_completed_at);
 
-    let aggregates: Vec<RequestAttemptAggregate> = rows
+    let request_attempts_aggregates: Vec<RequestAttemptAggregate> = request_attempt_aggregate_rows
         .into_iter()
         .filter_map(|row| {
             Some(RequestAttemptAggregate {
@@ -426,44 +392,47 @@ pub(super) async fn list_candidates(
         })
         .collect();
 
-    // 3. Upsert into buckets for current window evaluation
-    if !aggregates.is_empty() {
-        let input_ids: Vec<Uuid> = aggregates.iter().map(|a| a.subscription_id).collect();
+    // New request attempts found — upsert into buckets, then close full/expired ones.
+    if !request_attempts_aggregates.is_empty() {
+        let subscriptions_with_new_attempts: Vec<Uuid> = request_attempts_aggregates
+            .iter()
+            .map(|a| a.subscription_id)
+            .collect();
 
-        let open_rows = query!(
+        let open_bucket_rows = query!(
             r#"
                 select subscription__id as "subscription_id!", bucket_start as "bucket_start!"
                 from webhook.subscription_health_bucket
                 where subscription__id = any($1)
                   and bucket_end is null
             "#,
-            &input_ids,
+            &subscriptions_with_new_attempts,
         )
         .fetch_all(&mut **tx)
         .await?;
 
-        let open_buckets: HashMap<Uuid, DateTime<Utc>> = open_rows
+        let open_buckets: HashMap<Uuid, DateTime<Utc>> = open_bucket_rows
             .into_iter()
             .map(|r| (r.subscription_id, r.bucket_start))
             .collect();
         let now = Utc::now();
 
-        // Preparing parallel arrays for postgres `unnest` bulk insert
-        // Preparing parallel arrays for postgres `unnest` bulk insert
-        let subscription_ids: Vec<Uuid> = aggregates.iter().map(|a| a.subscription_id).collect();
-        let bucket_starts: Vec<DateTime<Utc>> = aggregates
+        let bucket_starts: Vec<DateTime<Utc>> = request_attempts_aggregates
             .iter()
+            // No open bucket → start new one at current time.
             .map(|a| open_buckets.get(&a.subscription_id).copied().unwrap_or(now))
             .collect();
-        let totals: Vec<i32> = aggregates
+        // Saturating cast; values beyond i32 capped, not truncated.
+        let total_counts: Vec<i32> = request_attempts_aggregates
             .iter()
             .map(|a| i32::try_from(a.total).unwrap_or(i32::MAX))
             .collect();
-        let faileds: Vec<i32> = aggregates
+        let failed_counts: Vec<i32> = request_attempts_aggregates
             .iter()
             .map(|a| i32::try_from(a.failed).unwrap_or(i32::MAX))
             .collect();
 
+        // Upsert: new buckets created, existing accumulate counts.
         query!(
             r#"
                 insert into webhook.subscription_health_bucket (subscription__id, bucket_start, total_count, failed_count)
@@ -472,20 +441,17 @@ pub(super) async fn list_candidates(
                     total_count = subscription_health_bucket.total_count + excluded.total_count,
                     failed_count = subscription_health_bucket.failed_count + excluded.failed_count
             "#,
-            &subscription_ids,
+            &subscriptions_with_new_attempts,
             &bucket_starts,
-            &totals,
-            &faileds,
+            &total_counts,
+            &failed_counts,
         )
         .execute(&mut **tx)
         .await?;
     }
 
-    // 4. Close buckets that reached max duration or max attempts
-    let bucket_max_duration_secs = config.bucket_max_duration.as_secs_f64();
-    let bucket_max_request_attempts =
-        i32::try_from(config.bucket_max_request_attempts).unwrap_or(i32::MAX);
-
+    // Close buckets exceeding age or attempt cap.
+    // Closed buckets become immutable for evaluation.
     query!(
         r#"
             update webhook.subscription_health_bucket
@@ -494,17 +460,16 @@ pub(super) async fn list_candidates(
               and (bucket_start < now() - make_interval(secs => $1)
                    or total_count >= $2)
         "#,
-        bucket_max_duration_secs,
-        bucket_max_request_attempts,
+        config.bucket_max_duration.as_secs_f64(),
+        i32::try_from(config.bucket_max_request_attempts).unwrap_or(i32::MAX),
     )
     .execute(&mut **tx)
     .await?;
 
-    // 5. Evaluate overall subscription failure rate across recent buckets
-    let evaluation_window_secs = config.failure_rate_window.as_secs_f64();
-    let min_request_attempts = i64::from(config.min_request_attempts);
-
-    let subscriptions = query_as!(
+    // bucket_stats: subscription failure rate over sliding window.
+    // candidates: subscriptions above minimum failures OR currently in warning.
+    // Warning-state subscriptions included for possible resolve transition.
+    let candidates_subscriptions = query_as!(
         SubscriptionHealth,
         r#"
             with bucket_stats as (
@@ -547,14 +512,18 @@ pub(super) async fn list_candidates(
             ) lh on true
             where s.is_enabled = true and s.deleted_at is null
         "#,
-        evaluation_window_secs,
-        min_request_attempts,
+        config.failure_rate_window.as_secs_f64(),
+        i64::from(config.min_request_attempts),
     )
     .fetch_all(&mut **tx)
     .await?;
 
-    // 6. Reset failure rate on currently inactive/healthy subscriptions
-    let active_ids: Vec<Uuid> = subscriptions.iter().map(|s| s.subscription_id).collect();
+    // Reset failure_percent on subscriptions no longer evaluation candidates.
+    // Prevents stale percentage display in API responses.
+    let candidate_ids: Vec<Uuid> = candidates_subscriptions
+        .iter()
+        .map(|s| s.subscription_id)
+        .collect();
     query!(
         r#"
             update webhook.subscription
@@ -562,13 +531,13 @@ pub(super) async fn list_candidates(
             where failure_percent is not null
               and subscription__id <> all($1)
         "#,
-        &active_ids,
+        &candidate_ids,
     )
     .execute(&mut **tx)
     .await?;
 
-    // 7. Finally, bump the cursor forward
-    if let Some(ts) = max_completed_at {
+    // Forward-only cursor. Guards against rewind double-counting.
+    if let Some(cursor_timestamp) = max_completed_at {
         query!(
             r#"
                 update webhook.subscription_health_monitor_cursor
@@ -576,13 +545,13 @@ pub(super) async fn list_candidates(
                 where cursor__id = 1
                   and $1 > last_processed_at
             "#,
-            ts,
+            cursor_timestamp,
         )
         .execute(&mut **tx)
         .await?;
     }
 
-    Ok(subscriptions)
+    Ok(candidates_subscriptions)
 }
 
 #[cfg(test)]
@@ -602,14 +571,14 @@ mod tests {
         let mut tx = pool.begin().await.unwrap();
         set_cursor(&mut tx, cursor_past).await;
 
-        // 3 successes, 2 failures
         let (_org_id, _app_id, sub_id, _secret_token) =
             insert_test_fixtures(&mut tx, 3, 2, now).await;
 
-        // Fills buckets and advances cursor as side effect
-        let subs = list_candidates(&mut tx, &config).await.unwrap();
+        let candidates_subscriptions =
+            list_health_evaluation_subscriptions_candidates(&mut tx, &config)
+                .await
+                .unwrap();
 
-        // 1. Bucket holds aggregated counts
         let bucket = query!(
             r#"
             select total_count, failed_count
@@ -626,11 +595,12 @@ mod tests {
         assert_eq!(bucket.total_count, 5);
         assert_eq!(bucket.failed_count, 2);
 
-        // 2. Subscription appears in candidates
-        let candidate_ids: Vec<Uuid> = subs.iter().map(|s| s.subscription_id).collect();
+        let candidate_ids: Vec<Uuid> = candidates_subscriptions
+            .iter()
+            .map(|s| s.subscription_id)
+            .collect();
         assert!(candidate_ids.contains(&sub_id));
 
-        // 3. Cursor moved forward
         let cursor_after = sqlx::query_scalar!(
         "select last_processed_at from webhook.subscription_health_monitor_cursor where cursor__id = 1",
     )
@@ -650,13 +620,11 @@ mod tests {
         let now = Utc::now();
         let cursor_past = now - chrono::Duration::hours(2);
 
-        // --- PHASE 1: Warning ---
         let mut tx = pool.begin().await.unwrap();
         set_cursor(&mut tx, cursor_past).await;
-        // 2 successes, 5 failures → ~71% (warning zone)
         let (_org_id, app_id, sub_id, secret_token) =
             insert_test_fixtures(&mut tx, 2, 5, now).await;
-        tx.commit().await.unwrap(); // Commit so run_one_tick sees fixtures
+        tx.commit().await.unwrap();
 
         run_one_tick(&pool, &config).await.unwrap();
 
@@ -673,8 +641,6 @@ mod tests {
             "Sub should have triggered a warning event"
         );
 
-        // --- PHASE 2: Recovery ---
-        // Clear old buckets to simulate time passing
         query!(
             "delete from webhook.subscription_health_bucket where subscription__id = $1",
             sub_id
@@ -684,7 +650,6 @@ mod tests {
         .unwrap();
 
         let mut tx = pool.begin().await.unwrap();
-        // 10 successes, 0 failures → 0% (recovery)
         insert_attempts(&mut tx, app_id, sub_id, secret_token, 10, 0, Utc::now()).await;
         tx.commit().await.unwrap();
 
@@ -702,6 +667,33 @@ mod tests {
             Some(1),
             "Sub should have triggered a resolved event"
         );
+
+        query!(
+            "delete from webhook.subscription_health_bucket where subscription__id = $1",
+            sub_id
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let mut tx = pool.begin().await.unwrap();
+        insert_attempts(&mut tx, app_id, sub_id, secret_token, 2, 5, Utc::now()).await;
+        tx.commit().await.unwrap();
+
+        run_one_tick(&pool, &config).await.unwrap();
+
+        let warning_count = sqlx::query_scalar!(
+            "select count(*) from webhook.subscription_health_event where subscription__id = $1 and status = 'warning'",
+            sub_id,
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            warning_count,
+            Some(1),
+            "Anti-flap: no new warning during cooldown"
+        );
     }
 
     #[sqlx::test(migrations = "./migrations")]
@@ -712,8 +704,7 @@ mod tests {
 
         let mut tx = pool.begin().await.unwrap();
         set_cursor(&mut tx, cursor_past).await;
-        // 0 successes, 10 failures → 100% (above 90% disable threshold)
-        let (_org_id, _app_id, sub_id, _secret_token) =
+        let (_org_id, app_id, sub_id, secret_token) =
             insert_test_fixtures(&mut tx, 0, 10, now).await;
         tx.commit().await.unwrap();
 
@@ -739,15 +730,90 @@ mod tests {
         .fetch_one(&pool)
         .await
         .unwrap();
-        assert_eq!(
-            is_enabled, false,
+        assert!(
+            !is_enabled,
             "Subscription should be actually disabled in DB"
+        );
+
+        let mut tx = pool.begin().await.unwrap();
+        insert_attempts(&mut tx, app_id, sub_id, secret_token, 0, 5, Utc::now()).await;
+        tx.commit().await.unwrap();
+
+        run_one_tick(&pool, &config).await.unwrap();
+
+        let disabled_count = sqlx::query_scalar!(
+            "select count(*) from webhook.subscription_health_event where subscription__id = $1 and status = 'disabled'",
+            sub_id,
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            disabled_count,
+            Some(1),
+            "Disabled subscription must not emit more events"
         );
     }
 
-    // ============================================================================
-    // HELPERS & FIXTURES
-    // ============================================================================
+    #[sqlx::test(migrations = "./migrations")]
+    async fn test_e2e_warning_to_disable_escalation(pool: PgPool) {
+        let config = test_config();
+        let now = Utc::now();
+        let cursor_past = now - chrono::Duration::hours(2);
+
+        let mut tx = pool.begin().await.unwrap();
+        set_cursor(&mut tx, cursor_past).await;
+        let (_org_id, app_id, sub_id, secret_token) =
+            insert_test_fixtures(&mut tx, 2, 5, now).await;
+        tx.commit().await.unwrap();
+
+        run_one_tick(&pool, &config).await.unwrap();
+
+        let warning_count = sqlx::query_scalar!(
+            "select count(*) from webhook.subscription_health_event where subscription__id = $1 and status = 'warning'",
+            sub_id,
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(warning_count, Some(1), "Should enter warning first");
+
+        query!(
+            "delete from webhook.subscription_health_bucket where subscription__id = $1",
+            sub_id
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let mut tx = pool.begin().await.unwrap();
+        insert_attempts(&mut tx, app_id, sub_id, secret_token, 0, 10, Utc::now()).await;
+        tx.commit().await.unwrap();
+
+        run_one_tick(&pool, &config).await.unwrap();
+
+        let disabled_count = sqlx::query_scalar!(
+            "select count(*) from webhook.subscription_health_event where subscription__id = $1 and status = 'disabled'",
+            sub_id,
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            disabled_count,
+            Some(1),
+            "Should escalate from warning to disabled"
+        );
+
+        let is_enabled = sqlx::query_scalar!(
+            "select is_enabled from webhook.subscription where subscription__id = $1",
+            sub_id,
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert!(!is_enabled, "Subscription should be disabled in DB");
+    }
 
     fn test_config() -> SubscriptionHealthMonitorConfig {
         SubscriptionHealthMonitorConfig {
@@ -787,7 +853,6 @@ mod tests {
         let target_id = sub_id;
         let secret_token = Uuid::now_v7();
 
-        // Relational tree: Org → App → Subscription → Webhook
         query!(
             "INSERT INTO iam.organization (organization__id, name, created_by) VALUES ($1, $2, $3)",
             org_id,
