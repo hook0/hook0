@@ -454,6 +454,14 @@
     "org": "Org",
     "search": "Search..."
   },
+  "health": {
+    "healthy": "Healthy",
+    "warning": "Warning",
+    "critical": "Critical",
+    "noData": "N/A",
+    "awaitingData": "Not enough data to evaluate health",
+    "failureRateTooltip": "{percent}% failure rate"
+  },
   "home": {
     "gettingStarted": "Getting Started",
     "gettingStartedSubtitle": "If you are new, take a look at our {link} guide.",
