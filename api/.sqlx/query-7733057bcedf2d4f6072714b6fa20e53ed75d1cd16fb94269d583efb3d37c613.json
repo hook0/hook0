@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    delete from webhook.subscription_health_event d\n                    where d.created_at < now() - make_interval(secs => $1)\n                      and d.status = 'resolved'\n                      and exists (\n                          select 1 from webhook.subscription_health_event newer\n                          where newer.subscription__id = d.subscription__id\n                            and newer.created_at > d.created_at\n                      )\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7733057bcedf2d4f6072714b6fa20e53ed75d1cd16fb94269d583efb3d37c613"
+}

@@ -81,8 +81,6 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         None
     };
 
-    // Exposed only when the subscription health monitor is enabled, so API consumers
-    // can mirror the actual thresholds without duplicating defaults.
     let subscription_health_monitor =
         state
             .enable_subscription_health_monitor

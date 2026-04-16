@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                select subscription__id as \"subscription_id!\", bucket_start as \"bucket_start!\"\n                from webhook.subscription_health_bucket\n                where subscription__id = any($1)\n                  and bucket_end is null\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscription_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "bucket_start!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "0e2d94409252f6c279fbaadc3979b58c05591b0f5c9827e8c32420bc2368b387"
+}

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO event.event\n                   (event__id, application__id, event_type__name, payload_content_type, ip, occurred_at, application_secret__token, labels)\n                   VALUES ($1, $2, 'svc.res.created', 'application/json', '127.0.0.1'::inet, $3, $4, '{\"env\":\"test\"}'::jsonb)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6b1c160601be52c7f3ea9b68389b304e82471b024de5930724969864509d75cd"
+}

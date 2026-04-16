@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO webhook.subscription\n               (subscription__id, application__id, target__id, is_enabled, labels)\n               VALUES ($1, $2, $3, true, '{\"env\":\"test\"}'::jsonb)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c8cd4b0b7869b3a960785d108d49a8af6c9ccb04c1e9823a8cfa4ac6ef8c37c7"
+}

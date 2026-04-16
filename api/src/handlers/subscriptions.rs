@@ -45,7 +45,6 @@ pub struct Subscription {
     pub target: Target,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    /// Rolling failure rate (0.0–100.0) computed by the health monitor — `None` until the first health check runs.
     pub failure_percent: Option<f64>,
     pub dedicated_workers: Vec<String>,
 }
