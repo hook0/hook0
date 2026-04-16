@@ -118,20 +118,27 @@ impl PageParts {
 /// Config for bidirectional cursor pagination link building.
 pub struct BidirectionalPageConfig {
     pub endpoint_url: Url,
-    pub base_qs: Vec<(&'static str, Option<String>)>,
-    pub first_cursor: Option<Cursor>,
-    pub last_cursor: Option<Cursor>,
+    pub query_params: Vec<(&'static str, Option<String>)>,
+    pub next_cursor: Option<Cursor>,
+    pub prev_cursor: Option<Cursor>,
     pub is_backward: bool,
     pub has_more: bool,
-    pub has_previous_page: bool,
+    pub is_past_first_page: bool,
 }
 
 impl BidirectionalPageConfig {
     pub fn into_page_parts(self) -> (Option<PageParts>, Option<PageParts>) {
-        let next = if self.is_backward || self.has_more {
-            self.last_cursor.map(|c| PageParts {
+        let show_next = self.has_more || self.is_backward;
+        let show_prev = if self.is_backward {
+            self.has_more
+        } else {
+            self.is_past_first_page
+        };
+
+        let next = if show_next {
+            self.next_cursor.map(|c| PageParts {
                 endpoint_url: self.endpoint_url.clone(),
-                qs: self.base_qs.clone(),
+                qs: self.query_params.clone(),
                 cursor: c,
                 query_param_name: "pagination_cursor",
             })
@@ -139,12 +146,10 @@ impl BidirectionalPageConfig {
             None
         };
 
-        let prev = if (self.is_backward && self.has_more)
-            || (!self.is_backward && self.has_previous_page)
-        {
-            self.first_cursor.map(|c| PageParts {
+        let prev = if show_prev {
+            self.prev_cursor.map(|c| PageParts {
                 endpoint_url: self.endpoint_url,
-                qs: self.base_qs,
+                qs: self.query_params,
                 cursor: c,
                 query_param_name: "pagination_before_cursor",
             })

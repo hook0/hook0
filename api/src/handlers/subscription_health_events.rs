@@ -160,18 +160,18 @@ pub async fn list(
     let (next_page_parts, prev_page_parts) = match endpoint_url {
         Some(url) => BidirectionalPageConfig {
             endpoint_url: url,
-            base_qs: vec![("organization_id", Some(qs.organization_id.to_string()))],
-            first_cursor: events.first().map(|ev| Cursor {
+            query_params: vec![("organization_id", Some(qs.organization_id.to_string()))],
+            prev_cursor: events.first().map(|ev| Cursor {
                 date: ev.created_at,
                 id: ev.health_event_id,
             }),
-            last_cursor: events.last().map(|ev| Cursor {
+            next_cursor: events.last().map(|ev| Cursor {
                 date: ev.created_at,
                 id: ev.health_event_id,
             }),
             is_backward,
             has_more: has_extra,
-            has_previous_page: qs.pagination_cursor.is_some(),
+            is_past_first_page: qs.pagination_cursor.is_some(),
         }
         .into_page_parts(),
         None => (None, None),
