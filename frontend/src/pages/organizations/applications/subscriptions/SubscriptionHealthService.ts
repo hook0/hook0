@@ -15,25 +15,41 @@ export type HealthEventPage = {
   prevCursor: string | null;
 };
 
+/**
+ * Safely parses the Link header to extract pagination cursors.
+ * Uses a dummy base URL so relative URLs don't crash the parser.
+ */
 function parseLinkHeader(linkHeader: string | null): {
   next: string | null;
   prev: string | null;
 } {
   const result = { next: null as string | null, prev: null as string | null };
-  if (!linkHeader) return result;
+
+  if (!linkHeader) {
+    return result;
+  }
 
   for (const part of linkHeader.split(',')) {
     const match = part.match(/<([^>]+)>;\s*rel="(\w+)"/);
     if (!match) continue;
-    const [, url, rel] = match;
-    if (rel === 'next') {
-      const params = new URL(url).searchParams;
-      result.next = params.get('pagination_cursor');
-    } else if (rel === 'prev') {
-      const params = new URL(url).searchParams;
-      result.prev = params.get('pagination_before_cursor');
+
+    const [, urlString, rel] = match;
+
+    try {
+      // Dummy base ensures relative URLs don't throw
+      const parsedUrl = new URL(urlString, 'http://x');
+
+      if (rel === 'next') {
+        result.next = parsedUrl.searchParams.get('pagination_cursor');
+      } else if (rel === 'prev') {
+        result.prev = parsedUrl.searchParams.get('pagination_before_cursor');
+      }
+    } catch (e) {
+      // Ignore malformed link rather than crash the app
+      console.error('Failed to parse link header URL', e);
     }
   }
+
   return result;
 }
 
@@ -44,6 +60,7 @@ export function listHealthEvents(
   direction: 'forward' | 'backward' = 'forward'
 ): Promise<HealthEventPage> {
   const params: Record<string, string> = { organization_id: organizationId };
+
   if (cursor) {
     if (direction === 'backward') {
       params.pagination_before_cursor = cursor;
@@ -59,6 +76,7 @@ export function listHealthEvents(
     .then((response) => {
       const linkHeader = response.headers?.link ?? null;
       const links = parseLinkHeader(linkHeader);
+
       return {
         data: response.data,
         nextCursor: links.next,

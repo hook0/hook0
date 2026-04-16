@@ -27,18 +27,28 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const { warning: warningThreshold, critical: criticalThreshold } = useHealthThresholds();
 
-type BadgeVariant = 'default' | 'success' | 'warning' | 'danger';
+// --- Formatting helpers ---
+// Extracted so column definitions stay readable.
 
-const statusVariantMap: Record<string, BadgeVariant> = {
-  resolved: 'success',
-  warning: 'warning',
-  disabled: 'danger',
-};
+function getStatusVariant(status: string) {
+  switch (status) {
+    case 'resolved':
+      return 'success';
+    case 'warning':
+      return 'warning';
+    case 'disabled':
+      return 'danger';
+    default:
+      return 'default';
+  }
+}
 
-function reasonText(status: string): string {
+function getReasonText(status: string): string {
   const threshold = status === 'disabled' ? criticalThreshold.value : warningThreshold.value;
   return t(`subscriptionDetail.healthReason.${status}`, { threshold });
 }
+
+// --- Table columns ---
 
 const columns = computed<ColumnDef<HealthEventPage['data'][number], unknown>[]>(() => [
   {
@@ -46,34 +56,40 @@ const columns = computed<ColumnDef<HealthEventPage['data'][number], unknown>[]>(
     header: t('common.status'),
     cell: (info) => {
       const event = info.row.original;
-      return h(
-        Hook0Badge,
-        { variant: statusVariantMap[event.status] ?? 'default', size: 'sm' },
-        () => t(`subscriptionDetail.healthStatus.${event.status}`)
-      );
+      const label = t(`subscriptionDetail.healthStatus.${event.status}`);
+
+      return h(Hook0Badge, { variant: getStatusVariant(event.status), size: 'sm' }, () => label);
     },
   },
   {
     accessorKey: 'cause',
     header: t('subscriptionDetail.healthEventCause'),
-    cell: (info) =>
-      h(Hook0Badge, { variant: 'default', size: 'sm' }, () =>
-        t(`subscriptionDetail.healthCause.${info.row.original.cause}`)
-      ),
+    cell: (info) => {
+      const event = info.row.original;
+      const label = t(`subscriptionDetail.healthCause.${event.cause}`);
+
+      return h(Hook0Badge, { variant: 'default', size: 'sm' }, () => label);
+    },
   },
   {
     id: 'reason',
     header: t('subscriptionDetail.healthEventReason'),
     cell: (info) => {
       const event = info.row.original;
-      if (event.cause === 'manual') return h('span', { class: 'health-timeline__dash' }, '—');
-      return h('span', { class: 'health-timeline__reason' }, reasonText(event.status));
+
+      if (event.cause === 'manual') {
+        return h('span', { class: 'health-timeline__dash' }, '—');
+      }
+
+      return h('span', { class: 'health-timeline__reason' }, getReasonText(event.status));
     },
   },
   {
     accessorKey: 'created_at',
     header: t('common.createdAt'),
-    cell: (info) => h(Hook0DateFormatted, { value: info.getValue() as string | null }),
+    cell: (info) => {
+      return h(Hook0DateFormatted, { value: info.getValue() as string | null });
+    },
   },
 ]);
 

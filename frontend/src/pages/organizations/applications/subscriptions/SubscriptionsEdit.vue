@@ -108,12 +108,13 @@ const isNew = computed(() => !subscriptionId.value);
 
 // Health timeline cursor state (driven by URL query params)
 const healthCursor = computed(() => {
-  const c = route.query.health_cursor as string | undefined;
-  return c ?? null;
+  const c = route.query.health_cursor;
+  return typeof c === 'string' ? c : null;
 });
 const healthDirection = computed(() => {
-  const d = route.query.health_dir as string | undefined;
-  return (d === 'backward' ? 'backward' : 'forward') as 'forward' | 'backward';
+  const d = route.query.health_dir;
+  // Gracefully handles garbage input — anything other than 'backward' defaults to 'forward'
+  return d === 'backward' ? 'backward' : 'forward';
 });
 
 // Queries

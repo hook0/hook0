@@ -24,25 +24,42 @@ const level = computed<HealthLevel>(() => {
 });
 
 const variant = computed<BadgeVariant>(() => {
-  const map: Record<HealthLevel, BadgeVariant> = {
-    healthy: 'success',
-    warning: 'warning',
-    critical: 'danger',
-    noData: 'default',
-  };
-  return map[level.value];
+  switch (level.value) {
+    case 'healthy':
+      return 'success';
+    case 'warning':
+      return 'warning';
+    case 'critical':
+      return 'danger';
+    case 'noData':
+    default:
+      return 'default';
+  }
 });
 
 const iconComponent = computed(() => {
-  const map = { healthy: CheckCircle, warning: AlertTriangle, critical: XCircle, noData: Minus };
-  return map[level.value];
+  switch (level.value) {
+    case 'healthy':
+      return CheckCircle;
+    case 'warning':
+      return AlertTriangle;
+    case 'critical':
+      return XCircle;
+    case 'noData':
+    default:
+      return Minus;
+  }
 });
 
 const label = computed(() => t(`health.${level.value}`));
 
 const tooltipContent = computed(() => {
-  if (props.failurePercent === null) return t('health.awaitingData');
-  return t('health.failureRateTooltip', { percent: Math.round(props.failurePercent) });
+  if (props.failurePercent === null) {
+    return t('health.awaitingData');
+  }
+  return t('health.failureRateTooltip', {
+    percent: Math.round(props.failurePercent),
+  });
 });
 </script>
 
