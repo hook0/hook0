@@ -66,6 +66,8 @@ export const logKeys = {
   all: ['logs'] as const,
   lists: () => [...logKeys.all, 'list'] as const,
   list: (applicationId: string) => [...logKeys.lists(), applicationId] as const,
+  bySubscription: (applicationId: string, subscriptionId: string) =>
+    [...logKeys.lists(), applicationId, 'subscription', subscriptionId] as const,
 };
 
 export const requestAttemptKeys = {

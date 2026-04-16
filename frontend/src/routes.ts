@@ -46,6 +46,7 @@ export const routes = {
   SubscriptionsList: 'SubscriptionsList',
   SubscriptionsNew: 'SubscriptionsNew',
   SubscriptionsDetail: 'SubscriptionsDetail',
+  SubscriptionsEdit: 'SubscriptionsEdit',
 
   WebhooksList: 'WebhooksList',
   LogsList: 'LogsList',
@@ -308,8 +309,15 @@ export default [
     name: routes.SubscriptionsDetail,
     path: '/organizations/:organization_id/applications/:application_id/subscriptions/:subscription_id',
     component: () =>
-      import('@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue'),
+      import('@/pages/organizations/applications/subscriptions/SubscriptionsDetail.vue'),
     meta: { title: 'Subscription' },
+  },
+  {
+    name: routes.SubscriptionsEdit,
+    path: '/organizations/:organization_id/applications/:application_id/subscriptions/:subscription_id/edit',
+    component: () =>
+      import('@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue'),
+    meta: { title: 'Edit Subscription' },
   },
   {
     name: routes.LogsList,

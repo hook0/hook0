@@ -11,18 +11,21 @@ export function useLogList(applicationId: Ref<string>) {
   });
 }
 
-export function useRetryDelivery(applicationId: Ref<string>) {
+/** Fetch deliveries scoped to a single subscription — powers the subscription detail page's delivery table */
+export function useLogListBySubscription(applicationId: Ref<string>, subscriptionId: Ref<string>) {
+  return useQuery({
+    queryKey: computed(() => logKeys.bySubscription(applicationId.value, subscriptionId.value)),
+    queryFn: () => LogService.listBySubscription(applicationId.value, subscriptionId.value),
+    enabled: computed(() => !!applicationId.value && !!subscriptionId.value),
+  });
+}
+
+export function useRetryDelivery() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (requestAttemptId: string) =>
-      LogService.retry(requestAttemptId, applicationId.value),
+    mutationFn: (requestAttemptId: string) => LogService.retry(requestAttemptId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: logKeys.lists(),
-      });
-      void queryClient.invalidateQueries({
-        queryKey: requestAttemptKeys.all,
-      });
+      void queryClient.invalidateQueries({ queryKey: logKeys.all });
     },
   });
 }

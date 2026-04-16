@@ -40,20 +40,31 @@ export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixe
   return unwrapResponse(
     http.get<Array<RequestAttemptTypeFixed>>('/request_attempts', {
       params: {
-        application_id: application_id,
+        application_id,
         min_created_at: subDays(new Date(), 7).toISOString(),
       },
     })
   );
 }
 
-export function retry(
-  requestAttemptId: UUID,
-  applicationId: UUID
-): Promise<{ request_attempt_id: string }> {
+export function retry(requestAttemptId: UUID): Promise<{ request_attempt_id: string }> {
   return unwrapResponse(
-    http.post<{ request_attempt_id: string }>(`/request_attempts/${requestAttemptId}/retry`, null, {
-      params: { application_id: applicationId },
+    http.post<{ request_attempt_id: string }>(`/request_attempts/${requestAttemptId}/retry`)
+  );
+}
+
+/** Fetch deliveries scoped to a single subscription — used by the subscription detail page */
+export function listBySubscription(
+  application_id: UUID,
+  subscription_id: UUID
+): Promise<Array<RequestAttemptTypeFixed>> {
+  return unwrapResponse(
+    http.get<Array<RequestAttemptTypeFixed>>('/request_attempts', {
+      params: {
+        application_id,
+        subscription_id,
+        min_created_at: subDays(new Date(), 7).toISOString(),
+      },
     })
   );
 }

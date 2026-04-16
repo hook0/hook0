@@ -914,7 +914,18 @@
     "webhookSiteName": "Webhook.site"
   },
   "subscriptionDetail": {
+    "title": "Subscription",
+    "targetUrl": "Target URL",
+    "failureRate": "Failure rate",
+    "edit": "Edit",
+    "noActivityTitle": "No activity yet",
+    "noActivityDescription": "Send your first event to see deliveries and health data here.",
+    "sendFirstEvent": "Send an event",
+    "deliveries": "Recent Deliveries",
+    "deliveriesSubtitle": "Last 7 days of webhook delivery attempts",
     "healthTimeline": "Health Timeline",
+    "healthEmpty": "No health events",
+    "healthEmptyDescription": "Health events will appear here once the monitor evaluates this subscription.",
     "healthTimelineEmpty": "No health events",
     "healthTimelineEmptyDescription": "Health events will appear here when the subscription triggers warnings or gets disabled.",
     "healthEventCause": "Cause",

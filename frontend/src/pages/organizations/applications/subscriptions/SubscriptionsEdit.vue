@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import { useForm } from 'vee-validate';
@@ -25,9 +25,6 @@ import {
   recordToKvPairs,
   type Hook0KeyValueKeyValuePair,
 } from '@/components/Hook0KeyValue';
-
-import { useSubscriptionHealthEvents } from './useSubscriptionHealthQueries';
-import SubscriptionHealthTimeline from './SubscriptionHealthTimeline.vue';
 
 import SubscriptionsRemove from './SubscriptionsRemove.vue';
 import SubscriptionSectionBasics from './SubscriptionSectionBasics.vue';
@@ -101,21 +98,9 @@ function toApiRecord(map: Record<string, string>): Record<string, never> {
   return map as unknown as Record<string, never>;
 }
 
-const route = useRoute();
 const router = useRouter();
-const { applicationId, organizationId, subscriptionId } = useRouteIds();
+const { applicationId, subscriptionId } = useRouteIds();
 const isNew = computed(() => !subscriptionId.value);
-
-// Health timeline cursor state (driven by URL query params)
-const healthCursor = computed(() => {
-  const c = route.query.health_cursor;
-  return typeof c === 'string' ? c : null;
-});
-const healthDirection = computed(() => {
-  const d = route.query.health_dir;
-  // Gracefully handles garbage input — anything other than 'backward' defaults to 'forward'
-  return d === 'backward' ? 'backward' : 'forward';
-});
 
 // Queries
 const {
@@ -131,13 +116,6 @@ const {
   error: etError,
   refetch: refetchEt,
 } = useEventTypeList(applicationId);
-
-const {
-  data: healthPage,
-  isLoading: healthLoading,
-  error: healthError,
-  refetch: healthRefetch,
-} = useSubscriptionHealthEvents(subscriptionId, organizationId, healthCursor, healthDirection);
 
 // Mutations
 const createMutation = useCreateSubscription();
@@ -227,16 +205,6 @@ watch(
 
 function navigateBack() {
   router.back();
-}
-
-function navigateHealth(cursor: string | null, direction: 'forward' | 'backward') {
-  void router.replace({
-    query: {
-      ...route.query,
-      health_cursor: cursor ?? undefined,
-      health_dir: direction === 'backward' ? 'backward' : undefined,
-    },
-  });
 }
 
 function onHeadersUpdate(pairs: Hook0KeyValueKeyValuePair[] | Record<string, string>) {
@@ -544,21 +512,6 @@ const missingFieldsTooltip = computed(() => {
           :subscription-name="description || ''"
           :application-id="applicationId"
         ></SubscriptionsRemove>
-
-        <Hook0Card v-if="subscriptionId" data-test-health-timeline>
-          <Hook0CardHeader>
-            <template #header>{{ t('subscriptionDetail.healthTimeline') }}</template>
-          </Hook0CardHeader>
-          <Hook0CardContent>
-            <SubscriptionHealthTimeline
-              :page="healthPage"
-              :is-loading="healthLoading"
-              :error="healthError"
-              :refetch="healthRefetch"
-              @navigate="navigateHealth"
-            />
-          </Hook0CardContent>
-        </Hook0Card>
       </template>
     </Hook0Stack>
   </Hook0PageLayout>

@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import { Trash2, Link } from 'lucide-vue-next';
+import { Trash2, Link, Pencil } from 'lucide-vue-next';
 import { DOCS_SUBSCRIPTIONS_URL, API_DOCS_SUBSCRIPTIONS_URL } from '@/constants/externalLinks';
 import Hook0TableCellEventTypes from '@/components/Hook0TableCellEventTypes.vue';
 import Hook0TableCellLabels from '@/components/Hook0TableCellLabels.vue';
@@ -204,21 +204,41 @@ const columns: ColumnDef<Subscription, unknown>[] = [
         'onUpdate:modelValue': () => handleToggle(info.row.original),
       }),
   },
-  ...(canDelete('subscription')
-    ? [
-        {
-          id: 'options',
-          header: t('common.actions'),
-          cell: (info: { row: { original: Subscription } }) =>
-            h(Hook0TableCellLink, {
-              value: t('common.delete'),
-              icon: markRaw(Trash2),
-              variant: 'danger',
-              onClick: () => handleDelete(info.row.original),
+  {
+    id: 'actions',
+    header: t('common.actions'),
+    cell: (info: { row: { original: Subscription } }) => {
+      const sub = info.row.original;
+      const buttons = [
+        h(Hook0TableCellLink, {
+          value: t('common.edit'),
+          icon: markRaw(Pencil),
+          onClick: () =>
+            void router.push({
+              name: routes.SubscriptionsEdit,
+              params: {
+                organization_id: route.params.organization_id,
+                application_id: route.params.application_id,
+                subscription_id: sub.subscription_id,
+              },
             }),
-        },
-      ]
-    : []),
+        }),
+      ];
+
+      if (canDelete('subscription')) {
+        buttons.push(
+          h(Hook0TableCellLink, {
+            value: t('common.delete'),
+            icon: markRaw(Trash2),
+            variant: 'danger',
+            onClick: () => handleDelete(sub),
+          })
+        );
+      }
+
+      return h('div', { style: 'display: flex; gap: 0.5rem;' }, buttons);
+    },
+  },
 ];
 </script>
 
