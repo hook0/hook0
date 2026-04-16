@@ -66,8 +66,18 @@ const tooltipContent = computed(() => {
 <template>
   <Hook0Tooltip :content="tooltipContent" position="top">
     <Hook0Badge :variant="variant" size="sm">
-      <component v-if="level !== 'noData'" :is="iconComponent" :size="12" aria-hidden="true" />
+      <span v-if="level !== 'noData'" class="health-badge__icon">
+        <component :is="iconComponent" :size="12" aria-hidden="true" />
+      </span>
       {{ label }}
     </Hook0Badge>
   </Hook0Tooltip>
 </template>
+
+<style scoped>
+.health-badge__icon {
+  display: inline-flex;
+  margin-right: 0.25rem;
+  vertical-align: middle;
+}
+</style>
