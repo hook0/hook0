@@ -98,7 +98,7 @@ pub struct PageParts {
     pub endpoint_url: Url,
     pub qs: Vec<(&'static str, Option<String>)>,
     pub cursor: Cursor,
-    pub param_name: &'static str,
+    pub query_param_name: &'static str,
 }
 
 impl PageParts {
@@ -106,7 +106,7 @@ impl PageParts {
         let filtered_qs = self
             .qs
             .into_iter()
-            .chain([(self.param_name, self.cursor.to_qs_value())])
+            .chain([(self.query_param_name, self.cursor.to_qs_value())])
             .filter_map(|(k, v_opt)| v_opt.map(|v| (k, v)));
         self.endpoint_url
             .query_pairs_mut()
@@ -115,43 +115,45 @@ impl PageParts {
     }
 }
 
-/// Builds next/prev page parts for bidirectional cursor pagination.
-pub fn bidirectional_page_parts(
-    endpoint_url: Option<Url>,
-    base_qs: Vec<(&'static str, Option<String>)>,
-    first_cursor: Option<Cursor>,
-    last_cursor: Option<Cursor>,
-    is_backward: bool,
-    has_extra: bool,
-    has_forward_cursor: bool,
-) -> (Option<PageParts>, Option<PageParts>) {
-    let Some(url) = endpoint_url else {
-        return (None, None);
-    };
+/// Config for bidirectional cursor pagination link building.
+pub struct BidirectionalPageConfig {
+    pub endpoint_url: Url,
+    pub base_qs: Vec<(&'static str, Option<String>)>,
+    pub first_cursor: Option<Cursor>,
+    pub last_cursor: Option<Cursor>,
+    pub is_backward: bool,
+    pub has_more: bool,
+    pub has_previous_page: bool,
+}
 
-    let next = if is_backward || has_extra {
-        last_cursor.map(|c| PageParts {
-            endpoint_url: url.clone(),
-            qs: base_qs.clone(),
-            cursor: c,
-            param_name: "pagination_cursor",
-        })
-    } else {
-        None
-    };
+impl BidirectionalPageConfig {
+    pub fn into_page_parts(self) -> (Option<PageParts>, Option<PageParts>) {
+        let next = if self.is_backward || self.has_more {
+            self.last_cursor.map(|c| PageParts {
+                endpoint_url: self.endpoint_url.clone(),
+                qs: self.base_qs.clone(),
+                cursor: c,
+                query_param_name: "pagination_cursor",
+            })
+        } else {
+            None
+        };
 
-    let prev = if (is_backward && has_extra) || (!is_backward && has_forward_cursor) {
-        first_cursor.map(|c| PageParts {
-            endpoint_url: url,
-            qs: base_qs,
-            cursor: c,
-            param_name: "pagination_before_cursor",
-        })
-    } else {
-        None
-    };
+        let prev = if (self.is_backward && self.has_more)
+            || (!self.is_backward && self.has_previous_page)
+        {
+            self.first_cursor.map(|c| PageParts {
+                endpoint_url: self.endpoint_url,
+                qs: self.base_qs,
+                cursor: c,
+                query_param_name: "pagination_before_cursor",
+            })
+        } else {
+            None
+        };
 
-    (next, prev)
+        (next, prev)
+    }
 }
 
 /// Adds Link headers for cursor-based pagination
@@ -176,6 +178,9 @@ impl<T: Apiv2Schema + OperationModifier + Responder> Responder for Paginated<T> 
             .map(|parts| format!(r#"<{}>; rel="prev""#, parts.mk_url()));
 
         // RFC 8288: comma-separated Link values
+        // next only: Link: <https://app/ep?pagination_cursor=abc>; rel="next"
+        // prev only: Link: <https://app/ep?pagination_before_cursor=def>; rel="prev"
+        // both:      Link: <...>; rel="prev", <...>; rel="next"
         let combined = match (prev_link, next_link) {
             (Some(prev), Some(next)) => Some(format!("{prev}, {next}")),
             (Some(prev), None) => Some(prev),
@@ -288,7 +293,7 @@ mod tests {
                 date: DateTime::UNIX_EPOCH,
                 id: Uuid::nil(),
             },
-            param_name: "pagination_cursor",
+            query_param_name: "pagination_cursor",
         };
         let expected = Url::parse("https://test.local/endpoint?k1=v1&k3=v3&pagination_cursor=eyJkYXRlIjoiMTk3MC0wMS0wMVQwMDowMDowMFoiLCJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9").unwrap();
         assert_eq!(next_page_parts.mk_url(), expected)
@@ -307,7 +312,7 @@ mod tests {
                 date: DateTime::UNIX_EPOCH,
                 id: Uuid::nil(),
             },
-            param_name: "pagination_before_cursor",
+            query_param_name: "pagination_before_cursor",
         };
         let expected = Url::parse("https://test.local/endpoint?k1=v1&k3=v3&pagination_before_cursor=eyJkYXRlIjoiMTk3MC0wMS0wMVQwMDowMDowMFoiLCJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9").unwrap();
         assert_eq!(prev_page_parts.mk_url(), expected)
@@ -336,13 +341,13 @@ mod tests {
             endpoint_url: Url::parse("https://test.local/items").unwrap(),
             qs: qs.clone(),
             cursor,
-            param_name: "pagination_cursor",
+            query_param_name: "pagination_cursor",
         };
         let prev = PageParts {
             endpoint_url: Url::parse("https://test.local/items").unwrap(),
             qs,
             cursor,
-            param_name: "pagination_before_cursor",
+            query_param_name: "pagination_before_cursor",
         };
 
         let next_url = next.clone().mk_url();

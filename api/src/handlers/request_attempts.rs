@@ -529,7 +529,7 @@ pub async fn list(
                 date: ra.created_at,
                 id: ra.request_attempt_id,
             },
-            param_name: "pagination_cursor",
+            query_param_name: "pagination_cursor",
         })
     });
 

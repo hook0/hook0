@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::iam::{Action, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::pagination::{
-    Cursor, EncodedAscCursor, EncodedDescCursor, Paginated, bidirectional_page_parts,
+    BidirectionalPageConfig, Cursor, EncodedAscCursor, EncodedDescCursor, Paginated,
 };
 use crate::problems::Hook0Problem;
 use crate::subscription_health_monitor::{HealthEventCause, HealthStatus};
@@ -157,27 +157,25 @@ pub async fn list(
         })
         .ok();
 
-    let base_qs: Vec<(&'static str, Option<String>)> =
-        vec![("organization_id", Some(qs.organization_id.to_string()))];
-
-    let first_cursor = events.first().map(|ev| Cursor {
-        date: ev.created_at,
-        id: ev.health_event_id,
-    });
-    let last_cursor = events.last().map(|ev| Cursor {
-        date: ev.created_at,
-        id: ev.health_event_id,
-    });
-
-    let (next_page_parts, prev_page_parts) = bidirectional_page_parts(
-        endpoint_url,
-        base_qs,
-        first_cursor,
-        last_cursor,
-        is_backward,
-        has_extra,
-        qs.pagination_cursor.is_some(),
-    );
+    let (next_page_parts, prev_page_parts) = match endpoint_url {
+        Some(url) => BidirectionalPageConfig {
+            endpoint_url: url,
+            base_qs: vec![("organization_id", Some(qs.organization_id.to_string()))],
+            first_cursor: events.first().map(|ev| Cursor {
+                date: ev.created_at,
+                id: ev.health_event_id,
+            }),
+            last_cursor: events.last().map(|ev| Cursor {
+                date: ev.created_at,
+                id: ev.health_event_id,
+            }),
+            is_backward,
+            has_more: has_extra,
+            has_previous_page: qs.pagination_cursor.is_some(),
+        }
+        .into_page_parts(),
+        None => (None, None),
+    };
 
     Ok(Paginated {
         data: Json(events),
