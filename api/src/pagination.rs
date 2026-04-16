@@ -27,6 +27,41 @@ impl Cursor {
     }
 }
 
+macro_rules! impl_encoded_cursor {
+    ($name:ident) => {
+        impl TypedData for $name {
+            fn data_type() -> paperclip::v2::models::DataType {
+                paperclip::v2::models::DataType::String
+            }
+        }
+
+        impl FromStr for $name {
+            type Err = String;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                BASE64_URL_SAFE
+                    .decode(s)
+                    .map_err(|e| e.to_string())
+                    .and_then(|bytes| {
+                        serde_json::from_slice::<Cursor>(&bytes)
+                            .map(Self)
+                            .map_err(|e| e.to_string())
+                    })
+            }
+        }
+
+        impl<'de> Deserialize<'de> for $name {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                let s = String::deserialize(deserializer)?;
+                FromStr::from_str(&s).map_err(serde::de::Error::custom)
+            }
+        }
+    };
+}
+
 /// Wrapper for [`Cursor`] decoded from base64, descending order
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EncodedDescCursor(pub Cursor);
@@ -40,36 +75,7 @@ impl Default for EncodedDescCursor {
     }
 }
 
-impl TypedData for EncodedDescCursor {
-    fn data_type() -> paperclip::v2::models::DataType {
-        paperclip::v2::models::DataType::String
-    }
-}
-
-impl FromStr for EncodedDescCursor {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        BASE64_URL_SAFE
-            .decode(s)
-            .map_err(|e| e.to_string())
-            .and_then(|bytes| {
-                serde_json::from_slice::<Cursor>(&bytes)
-                    .map(Self)
-                    .map_err(|e| e.to_string())
-            })
-    }
-}
-
-impl<'de> Deserialize<'de> for EncodedDescCursor {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        FromStr::from_str(&s).map_err(serde::de::Error::custom)
-    }
-}
+impl_encoded_cursor!(EncodedDescCursor);
 
 /// Wrapper for [`Cursor`] decoded from base64, ascending order
 #[allow(dead_code)]
@@ -85,50 +91,22 @@ impl Default for EncodedAscCursor {
     }
 }
 
-impl TypedData for EncodedAscCursor {
-    fn data_type() -> paperclip::v2::models::DataType {
-        paperclip::v2::models::DataType::String
-    }
-}
-
-impl FromStr for EncodedAscCursor {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        BASE64_URL_SAFE
-            .decode(s)
-            .map_err(|e| e.to_string())
-            .and_then(|bytes| {
-                serde_json::from_slice::<Cursor>(&bytes)
-                    .map(Self)
-                    .map_err(|e| e.to_string())
-            })
-    }
-}
-
-impl<'de> Deserialize<'de> for EncodedAscCursor {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        FromStr::from_str(&s).map_err(serde::de::Error::custom)
-    }
-}
+impl_encoded_cursor!(EncodedAscCursor);
 
 #[derive(Debug, Clone)]
-pub struct NextPageParts {
+pub struct PageParts {
     pub endpoint_url: Url,
     pub qs: Vec<(&'static str, Option<String>)>,
     pub cursor: Cursor,
+    pub param_name: &'static str,
 }
 
-impl NextPageParts {
+impl PageParts {
     pub fn mk_url(mut self) -> Url {
         let filtered_qs = self
             .qs
             .into_iter()
-            .chain([("pagination_cursor", self.cursor.to_qs_value())])
+            .chain([(self.param_name, self.cursor.to_qs_value())])
             .filter_map(|(k, v_opt)| v_opt.map(|v| (k, v)));
         self.endpoint_url
             .query_pairs_mut()
@@ -137,33 +115,51 @@ impl NextPageParts {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct PrevPageParts {
-    pub endpoint_url: Url,
-    pub qs: Vec<(&'static str, Option<String>)>,
-    pub cursor: Cursor,
-}
+/// Builds next/prev page parts for bidirectional cursor pagination.
+pub fn bidirectional_page_parts(
+    endpoint_url: Option<Url>,
+    base_qs: Vec<(&'static str, Option<String>)>,
+    first_cursor: Option<Cursor>,
+    last_cursor: Option<Cursor>,
+    is_backward: bool,
+    has_extra: bool,
+    has_forward_cursor: bool,
+) -> (Option<PageParts>, Option<PageParts>) {
+    let Some(url) = endpoint_url else {
+        return (None, None);
+    };
 
-impl PrevPageParts {
-    pub fn mk_url(mut self) -> Url {
-        let filtered_qs = self
-            .qs
-            .into_iter()
-            .chain([("pagination_before_cursor", self.cursor.to_qs_value())])
-            .filter_map(|(k, v_opt)| v_opt.map(|v| (k, v)));
-        self.endpoint_url
-            .query_pairs_mut()
-            .extend_pairs(filtered_qs);
-        self.endpoint_url
-    }
+    let next = if is_backward || has_extra {
+        last_cursor.map(|c| PageParts {
+            endpoint_url: url.clone(),
+            qs: base_qs.clone(),
+            cursor: c,
+            param_name: "pagination_cursor",
+        })
+    } else {
+        None
+    };
+
+    let prev = if (is_backward && has_extra) || (!is_backward && has_forward_cursor) {
+        first_cursor.map(|c| PageParts {
+            endpoint_url: url,
+            qs: base_qs,
+            cursor: c,
+            param_name: "pagination_before_cursor",
+        })
+    } else {
+        None
+    };
+
+    (next, prev)
 }
 
 /// Adds Link headers for cursor-based pagination
 #[derive(Debug, Clone)]
 pub struct Paginated<T: Apiv2Schema + OperationModifier + Responder> {
     pub data: T,
-    pub next_page_parts: Option<NextPageParts>,
-    pub prev_page_parts: Option<PrevPageParts>,
+    pub next_page_parts: Option<PageParts>,
+    pub prev_page_parts: Option<PageParts>,
 }
 
 impl<T: Apiv2Schema + OperationModifier + Responder> Responder for Paginated<T> {
@@ -281,7 +277,7 @@ mod tests {
 
     #[test]
     fn next_page_url() {
-        let next_page_parts = NextPageParts {
+        let next_page_parts = PageParts {
             endpoint_url: Url::parse("https://test.local/endpoint").unwrap(),
             qs: vec![
                 ("k1", Some("v1".to_owned())),
@@ -292,6 +288,7 @@ mod tests {
                 date: DateTime::UNIX_EPOCH,
                 id: Uuid::nil(),
             },
+            param_name: "pagination_cursor",
         };
         let expected = Url::parse("https://test.local/endpoint?k1=v1&k3=v3&pagination_cursor=eyJkYXRlIjoiMTk3MC0wMS0wMVQwMDowMDowMFoiLCJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9").unwrap();
         assert_eq!(next_page_parts.mk_url(), expected)
@@ -299,7 +296,7 @@ mod tests {
 
     #[test]
     fn prev_page_url() {
-        let prev_page_parts = PrevPageParts {
+        let prev_page_parts = PageParts {
             endpoint_url: Url::parse("https://test.local/endpoint").unwrap(),
             qs: vec![
                 ("k1", Some("v1".to_owned())),
@@ -310,6 +307,7 @@ mod tests {
                 date: DateTime::UNIX_EPOCH,
                 id: Uuid::nil(),
             },
+            param_name: "pagination_before_cursor",
         };
         let expected = Url::parse("https://test.local/endpoint?k1=v1&k3=v3&pagination_before_cursor=eyJkYXRlIjoiMTk3MC0wMS0wMVQwMDowMDowMFoiLCJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9").unwrap();
         assert_eq!(prev_page_parts.mk_url(), expected)
@@ -334,15 +332,17 @@ mod tests {
         };
         let qs: Vec<(&'static str, Option<String>)> = vec![];
 
-        let next = NextPageParts {
+        let next = PageParts {
             endpoint_url: Url::parse("https://test.local/items").unwrap(),
             qs: qs.clone(),
             cursor,
+            param_name: "pagination_cursor",
         };
-        let prev = PrevPageParts {
+        let prev = PageParts {
             endpoint_url: Url::parse("https://test.local/items").unwrap(),
             qs,
             cursor,
+            param_name: "pagination_before_cursor",
         };
 
         let next_url = next.clone().mk_url();

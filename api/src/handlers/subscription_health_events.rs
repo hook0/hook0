@@ -4,14 +4,14 @@ use chrono::{DateTime, Utc};
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use serde::{Deserialize, Serialize};
-use sqlx::query_scalar;
+use sqlx::{query_as, query_scalar};
 use tracing::error;
 use uuid::Uuid;
 
 use crate::iam::{Action, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::pagination::{
-    Cursor, EncodedAscCursor, EncodedDescCursor, NextPageParts, Paginated, PrevPageParts,
+    Cursor, EncodedAscCursor, EncodedDescCursor, Paginated, bidirectional_page_parts,
 };
 use crate::problems::Hook0Problem;
 use crate::subscription_health_monitor::{HealthEventCause, HealthStatus};
@@ -20,13 +20,10 @@ const PAGE_SIZE: usize = 30;
 
 #[derive(Debug, Serialize, Apiv2Schema, sqlx::FromRow)]
 pub struct HealthEvent {
-    #[sqlx(rename = "health_event__id")]
     pub health_event_id: Uuid,
-    #[sqlx(rename = "subscription__id")]
     pub subscription_id: Uuid,
     pub status: HealthStatus,
     pub cause: HealthEventCause,
-    #[sqlx(rename = "user__id")]
     pub user_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
 }
@@ -57,7 +54,7 @@ pub async fn list(
 
     // Resolve application from subscription
     let application_id = query_scalar!(
-        "SELECT application__id FROM webhook.subscription WHERE subscription__id = $1 AND deleted_at IS NULL LIMIT 1",
+        "select application__id from webhook.subscription where subscription__id = $1 and deleted_at is null limit 1",
         &subscription_id
     )
     .fetch_optional(&state.db)
@@ -67,9 +64,8 @@ pub async fn list(
         Hook0Problem::InternalServerError
     })?;
 
-    let application_id = match application_id {
-        Some(id) => id,
-        None => return Err(Hook0Problem::NotFound),
+    let Some(application_id) = application_id else {
+        return Err(Hook0Problem::NotFound);
     };
 
     if authorize_for_application(
@@ -93,35 +89,49 @@ pub async fn list(
 
     let mut events = if let Some(ref before) = qs.pagination_before_cursor {
         let cursor = before.0;
-        sqlx::query_as::<_, HealthEvent>(
-            "SELECT health_event__id, subscription__id, status, cause, user__id, created_at
-             FROM webhook.subscription_health_event
-             WHERE subscription__id = $1
-               AND (created_at, health_event__id) > ($2, $3)
-             ORDER BY created_at ASC, health_event__id ASC
-             LIMIT $4",
+        query_as!(
+            HealthEvent,
+            "select
+                health_event__id as health_event_id,
+                subscription__id as subscription_id,
+                status as \"status: HealthStatus\",
+                cause as \"cause: HealthEventCause\",
+                user__id as user_id,
+                created_at
+            from webhook.subscription_health_event
+            where subscription__id = $1
+              and (created_at, health_event__id) > ($2, $3)
+            order by created_at asc, health_event__id asc
+            limit $4",
+            subscription_id,
+            cursor.date,
+            cursor.id,
+            fetch_limit,
         )
-        .bind(&subscription_id)
-        .bind(&cursor.date)
-        .bind(&cursor.id)
-        .bind(&fetch_limit)
         .fetch_all(&state.db)
         .await
         .map_err(Hook0Problem::from)?
     } else {
         let cursor = qs.pagination_cursor.unwrap_or_default().0;
-        sqlx::query_as::<_, HealthEvent>(
-            "SELECT health_event__id, subscription__id, status, cause, user__id, created_at
-             FROM webhook.subscription_health_event
-             WHERE subscription__id = $1
-               AND (created_at, health_event__id) < ($2, $3)
-             ORDER BY created_at DESC, health_event__id DESC
-             LIMIT $4",
+        query_as!(
+            HealthEvent,
+            "select
+                health_event__id as health_event_id,
+                subscription__id as subscription_id,
+                status as \"status: HealthStatus\",
+                cause as \"cause: HealthEventCause\",
+                user__id as user_id,
+                created_at
+            from webhook.subscription_health_event
+            where subscription__id = $1
+              and (created_at, health_event__id) < ($2, $3)
+            order by created_at desc, health_event__id desc
+            limit $4",
+            subscription_id,
+            cursor.date,
+            cursor.id,
+            fetch_limit,
         )
-        .bind(&subscription_id)
-        .bind(&cursor.date)
-        .bind(&cursor.id)
-        .bind(&fetch_limit)
         .fetch_all(&state.db)
         .await
         .map_err(Hook0Problem::from)?
@@ -132,7 +142,7 @@ pub async fn list(
         events.truncate(PAGE_SIZE);
     }
 
-    // Backward fetched ASC; reverse to newest-first
+    // Backward fetched ASC to get nearest rows; reverse to newest-first
     if is_backward {
         events.reverse();
     }
@@ -150,36 +160,24 @@ pub async fn list(
     let base_qs: Vec<(&'static str, Option<String>)> =
         vec![("organization_id", Some(qs.organization_id.to_string()))];
 
-    let next_page_parts = if is_backward || has_extra {
-        events.last().and_then(|ev| {
-            endpoint_url.clone().map(|url| NextPageParts {
-                endpoint_url: url,
-                qs: base_qs.clone(),
-                cursor: Cursor {
-                    date: ev.created_at,
-                    id: ev.health_event_id,
-                },
-            })
-        })
-    } else {
-        None
-    };
+    let first_cursor = events.first().map(|ev| Cursor {
+        date: ev.created_at,
+        id: ev.health_event_id,
+    });
+    let last_cursor = events.last().map(|ev| Cursor {
+        date: ev.created_at,
+        id: ev.health_event_id,
+    });
 
-    let has_forward_cursor = qs.pagination_cursor.is_some();
-    let prev_page_parts = if (is_backward && has_extra) || (!is_backward && has_forward_cursor) {
-        events.first().and_then(|ev| {
-            endpoint_url.map(|url| PrevPageParts {
-                endpoint_url: url,
-                qs: base_qs,
-                cursor: Cursor {
-                    date: ev.created_at,
-                    id: ev.health_event_id,
-                },
-            })
-        })
-    } else {
-        None
-    };
+    let (next_page_parts, prev_page_parts) = bidirectional_page_parts(
+        endpoint_url,
+        base_qs,
+        first_cursor,
+        last_cursor,
+        is_backward,
+        has_extra,
+        qs.pagination_cursor.is_some(),
+    );
 
     Ok(Paginated {
         data: Json(events),
