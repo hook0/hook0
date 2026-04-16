@@ -535,6 +535,7 @@ pub async fn list(
     Ok(Paginated {
         data: Json(request_attempts),
         next_page_parts,
+        prev_page_parts: None,
     })
 }
 
