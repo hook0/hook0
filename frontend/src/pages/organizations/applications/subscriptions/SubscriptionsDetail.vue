@@ -13,6 +13,7 @@ import { useSubscriptionDetail, useToggleSubscription } from './useSubscriptionQ
 import { targetIsHttp } from './SubscriptionService';
 import { useLogListBySubscription } from '../logs/useLogQueries';
 import { useSubscriptionHealthEvents } from './useSubscriptionHealthQueries';
+import type { PaginationDirection } from '@/utils/pagination';
 import { useHealthThresholds } from '@/composables/useHealthThresholds';
 import { routes } from '@/routes';
 
@@ -41,9 +42,9 @@ const { organizationId, applicationId, subscriptionId } = useRouteIds();
 // --- Data queries ---
 const {
   data: subscription,
-  isLoading: subLoading,
-  error: subError,
-  refetch: subRefetch,
+  isLoading: subscriptionLoading,
+  error: subscriptionError,
+  refetch: subscriptionRefetch,
 } = useSubscriptionDetail(subscriptionId);
 
 const {
@@ -55,12 +56,11 @@ const {
 
 // Health timeline with bidirectional cursor pagination
 const healthCursor = computed(() => {
-  const c = route.query.health_cursor;
-  return typeof c === 'string' ? c : null;
+  const value = route.query.health_cursor;
+  return typeof value === 'string' ? value : null;
 });
-const healthDirection = computed(() => {
-  const d = route.query.health_dir;
-  return d === 'backward' ? 'backward' : 'forward';
+const healthDirection = computed<PaginationDirection>(() => {
+  return route.query.health_direction === 'backward' ? 'backward' : 'forward';
 });
 
 const {
@@ -70,12 +70,12 @@ const {
   refetch: healthRefetch,
 } = useSubscriptionHealthEvents(subscriptionId, organizationId, healthCursor, healthDirection);
 
-function navigateHealth(cursor: string | null, direction: 'forward' | 'backward') {
+function navigateHealth(healthCursorValue: string | null, direction: PaginationDirection) {
   void router.replace({
     query: {
       ...route.query,
-      health_cursor: cursor ?? undefined,
-      health_dir: direction === 'backward' ? 'backward' : undefined,
+      health_cursor: healthCursorValue ?? undefined,
+      health_direction: direction === 'backward' ? 'backward' : undefined,
     },
   });
 }
@@ -157,10 +157,14 @@ function confirmDisable() {
 <template>
   <Hook0PageLayout :title="t('subscriptionDetail.title')">
     <!-- Error state -->
-    <Hook0ErrorCard v-if="subError && !subLoading" :error="subError" @retry="subRefetch()" />
+    <Hook0ErrorCard
+      v-if="subscriptionError && !subscriptionLoading"
+      :error="subscriptionError"
+      @retry="subscriptionRefetch()"
+    />
 
     <!-- Loading skeleton -->
-    <template v-else-if="subLoading || !subscription">
+    <template v-else-if="subscriptionLoading || !subscription">
       <Hook0CardSkeleton />
       <Hook0CardSkeleton />
     </template>

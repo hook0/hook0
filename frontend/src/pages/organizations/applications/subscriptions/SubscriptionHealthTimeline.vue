@@ -2,7 +2,9 @@
 import { h, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import type { HealthEventPage } from './SubscriptionHealthService';
+import type { CursorPage, PaginationDirection } from '@/utils/pagination';
+import type { HealthEvent } from './SubscriptionHealthService';
+import type { Problem } from '@/http';
 import { useHealthThresholds } from '@/composables/useHealthThresholds';
 
 import Hook0Table from '@/components/Hook0Table.vue';
@@ -14,14 +16,14 @@ import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 
 const props = defineProps<{
-  page: HealthEventPage | undefined;
+  page: CursorPage<HealthEvent> | undefined;
   isLoading: boolean;
-  error: Error | string | null;
+  error: Problem | Error | string | null;
   refetch: () => void;
 }>();
 
 const emit = defineEmits<{
-  navigate: [cursor: string | null, direction: 'forward' | 'backward'];
+  navigate: [cursor: string | null, direction: PaginationDirection];
 }>();
 
 const { t } = useI18n();
@@ -50,7 +52,7 @@ function getReasonText(status: string): string {
 
 // --- Table columns ---
 
-const columns = computed<ColumnDef<HealthEventPage['data'][number], unknown>[]>(() => [
+const columns = computed<ColumnDef<HealthEvent, unknown>[]>(() => [
   {
     accessorKey: 'status',
     header: t('common.status'),

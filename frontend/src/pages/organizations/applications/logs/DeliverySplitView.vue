@@ -6,7 +6,7 @@
  * Handles: column setup, row selection, desktop auto-select, mobile back button,
  * and all the CSS for log status pills and split layout table overrides.
  */
-import { h, ref, watch, computed } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useMediaQuery } from '@vueuse/core';
@@ -42,7 +42,7 @@ const selectedRow = ref<RequestAttemptExtended | null>(null);
 watch(
   [() => props.deliveries, () => route.query.delivery, isDesktop],
   ([attempts, deliveryId]) => {
-    if (!attempts?.length) {
+    if (attempts?.length === 0) {
       selectedRow.value = null;
       return;
     }
@@ -74,11 +74,8 @@ function handleRowClick(row: RequestAttemptExtended) {
 
 function goBackToList() {
   selectedRow.value = null;
-
-  const nextQuery = { ...route.query };
-  delete nextQuery.delivery;
-
-  void router.replace({ query: nextQuery });
+  const { delivery: _, ...rest } = route.query;
+  void router.replace({ query: rest });
 }
 </script>
 
