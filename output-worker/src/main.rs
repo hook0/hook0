@@ -340,6 +340,10 @@ async fn main() -> anyhow::Result<()> {
         .await?;
     info!("Connected to database");
 
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .unwrap();
+
     let worker = get_worker(worker_name, &pool).await?;
 
     if matches!(worker.queue_type, WorkerQueueType::Pg)
@@ -372,10 +376,6 @@ async fn main() -> anyhow::Result<()> {
             &config.pulsar_tenant,
             &config.pulsar_namespace,
         ) {
-            rustls::crypto::aws_lc_rs::default_provider()
-                .install_default()
-                .unwrap();
-
             Some(Arc::new(PulsarConfig {
                 pulsar: Pulsar::builder(pulsar_binary_url.to_owned(), TokioExecutor)
                     .with_auth(Authentication {
