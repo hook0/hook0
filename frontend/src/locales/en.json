@@ -273,6 +273,7 @@
     "name": "Name",
     "navigation": "Navigation",
     "next": "Next",
+    "nextPage": "Next",
     "noData": "Nothing here yet",
     "noResults": "No results found",
     "opensInNewTab": "opens in new tab",
@@ -281,6 +282,7 @@
     "pageNotFound": "Page not found",
     "pageNotFoundDescription": "The page you're looking for doesn't exist or has been moved.",
     "popover": "Popover",
+    "previousPage": "Previous",
     "progress": "Progress",
     "refresh": "Refresh",
     "remove": "Remove",
@@ -909,6 +911,27 @@
     "urlHelp": "The URL that will receive webhook payloads",
     "webhookSiteHint": "Need a test URL? Use {link} to get one instantly.",
     "webhookSiteName": "Webhook.site"
+  },
+  "subscriptionDetail": {
+    "healthTimeline": "Health Timeline",
+    "healthTimelineEmpty": "No health events",
+    "healthTimelineEmptyDescription": "Health events will appear here when the subscription triggers warnings or gets disabled.",
+    "healthEventCause": "Cause",
+    "healthEventReason": "Reason",
+    "healthStatus": {
+      "warning": "Warning",
+      "disabled": "Disabled",
+      "resolved": "Resolved"
+    },
+    "healthCause": {
+      "auto": "Automatic",
+      "manual": "Manual"
+    },
+    "healthReason": {
+      "warning": "Failure rate exceeded {threshold}%",
+      "disabled": "Failure rate exceeded {threshold}%",
+      "resolved": "Failure rate recovered below threshold"
+    }
   },
   "tutorial": {
     "applicationCreated": "Application created",
