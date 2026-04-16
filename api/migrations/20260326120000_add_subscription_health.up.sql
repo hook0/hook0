@@ -17,9 +17,11 @@ create index idx_subscription_health_bucket_open
     on webhook.subscription_health_bucket(subscription__id)
     where bucket_end is null;
 
+-- Default is epoch, not '-infinity': PostgreSQL accepts '-infinity' as timestamptz
+-- but sqlx panics converting it to chrono::DateTime (NaiveDateTime overflow).
 create table webhook.subscription_health_monitor_cursor (
     cursor__id integer primary key default 1 check (cursor__id = 1),
-    last_processed_at timestamptz not null default '-infinity'
+    last_processed_at timestamptz not null default '1970-01-01T00:00:00Z'
 );
 insert into webhook.subscription_health_monitor_cursor default values
     on conflict do nothing;
