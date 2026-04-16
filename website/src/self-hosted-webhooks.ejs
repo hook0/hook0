@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Self-Hosted Webhook Platform — Deploy on Your Infrastructure | Hook0</title>
+    <title>Self-Hosted Webhooks — Docker & Kubernetes | Hook0</title>
     <%
-    locals.pageTitle = 'Self-Hosted Webhook Platform — Deploy on Your Infrastructure | Hook0';
-    locals.pageDescription = 'Deploy Hook0 on your own infrastructure with Docker or Kubernetes. Fully open-source (SSPL v1), same code as the cloud version. No data leaves your network.';
+    locals.pageTitle = 'Self-Hosted Webhooks — Docker & Kubernetes | Hook0';
+    locals.pageDescription = 'Deploy Hook0 on your infrastructure with Docker or Kubernetes. Fully open-source, same code as cloud. No data leaves your network.';
     locals.pageCanonical = '/self-hosted-webhooks';
     locals.pageFAQSchema = {
       "@context": "https://schema.org",
@@ -41,6 +41,14 @@
             "@type": "Answer",
             "text": "No. With self-hosted Hook0, all data stays on your infrastructure. There is no telemetry, no phone-home, no external dependencies beyond your own network. This makes it ideal for regulated industries and data sovereignty requirements."
           }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I try Hook0 before self-hosting?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The Hook0 cloud version offers a free tier with 100 events per day, no credit card required. You can try it out and then deploy on-premise when you are ready."
+          }
         }
       ]
     };
@@ -63,18 +71,18 @@
             <span class="block text-gradient-green">Webhook Platform</span>
         </h1>
         <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
-            Same codebase as the cloud version, running on your servers. Your webhook payloads never leave your network. Docker, Kubernetes, or bare metal.
+            Deploy webhooks on-premise with the same codebase as our cloud version. Your webhook payloads never leave your network. Docker Compose or Kubernetes. Open-source under SSPL v1, no vendor lock-in.
         </p>
 
         <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="https://documentation.hook0.com/self-hosting/docker-compose" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'self-hosted-hero-docs')">
-                Installation Guide
+            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'self-hosted-hero-register')">
+                Start Free
                 <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                 </svg>
             </a>
-            <a href="<%= locals.meta.contact %>" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'self-hosted-hero-contact')">
-                Contact Sales
+            <a href="https://documentation.hook0.com/self-hosting/docker-compose" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'self-hosted-hero-docs')">
+                Installation Guide
             </a>
         </div>
 
@@ -102,6 +110,8 @@
     </div>
 </section>
 
+<%- include('./includes/_social-proof-bar.ejs') %>
+
 <!-- Why Self-Host -->
 <section class="section relative overflow-hidden">
     <div class="absolute inset-0 grid-pattern opacity-20"></div>
@@ -122,7 +132,7 @@
                 </div>
                 <h3 class="text-xl font-bold text-white mb-3">Data Sovereignty</h3>
                 <p class="text-gray-400">
-                    Webhook payloads stay inside your perimeter. Period. No third-party ever sees your data. Required for healthcare, finance, government, and GDPR compliance.
+                    On-premise webhooks where payloads stay inside your perimeter. Period. No third-party ever sees your data. CISO-friendly for healthcare, finance, government, and GDPR compliance.
                 </p>
             </div>
 
@@ -158,7 +168,7 @@
                 </div>
                 <h3 class="text-xl font-bold text-white mb-3">Same Code, Same Features</h3>
                 <p class="text-gray-400">
-                    One codebase. The binary you deploy is built from the same repo as our cloud. Retries, signatures, monitoring, subscriber portal: nothing is stripped out.
+                    One codebase. The binary you deploy is built from the same repo as our cloud. Retries, signatures, monitoring, subscription management: nothing is stripped out.
                 </p>
             </div>
         </div>
@@ -289,60 +299,35 @@
                 <h3 class="text-lg font-semibold text-white mb-2">Can I get support for self-hosted deployments?</h3>
                 <p class="text-gray-400">Yes. Commercial support covers installation help, configuration review, and priority bug fixes.</p>
             </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Can I try Hook0 before self-hosting?</h3>
+                <p class="text-gray-400">Yes. Our cloud version offers a free tier with 100 events per day, no credit card required. Try it out, then deploy on-premise when you are ready.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Deep Dive Link -->
+<section class="py-12 relative">
+    <div class="container mx-auto px-6 text-center">
+        <p class="text-gray-400">Want more detail? <a href="https://documentation.hook0.com/self-hosting/docker-compose" class="text-indigo-400 hover:text-indigo-300 underline">Read the full self-hosting guide in our docs</a>.</p>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center">Related</h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <a href="./hook0-vs-svix" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Svix</a>
+            <a href="./hook0-vs-hookdeck" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Hookdeck</a>
+            <a href="./build-vs-buy-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Build vs Buy Webhooks</a>
         </div>
     </div>
 </section>
 
 <!-- CTA Section -->
-<section class="relative py-20 overflow-hidden">
-    <div class="absolute inset-0 bg-gradient-to-r from-indigo-900/20 via-surface-primary to-green-900/20"></div>
-    <div class="blur-circle blur-circle--indigo w-80 h-80 -top-40 -left-40 opacity-30"></div>
-    <div class="blur-circle blur-circle--green w-80 h-80 -bottom-40 -right-40 opacity-30"></div>
-
-    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div class="animate-on-scroll">
-            <h2 class="text-display font-bold text-white">
-                Ready to self-host?
-            </h2>
-            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto">
-                Deploy on your infrastructure now, or talk to us about commercial support for production.
-            </p>
-
-            <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="https://documentation.hook0.com/self-hosting/docker-compose" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'self-hosted-cta-docs')">
-                    Installation Guide
-                    <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                    </svg>
-                </a>
-                <a href="<%= locals.meta.contact %>" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'self-hosted-cta-contact')">
-                    Contact Sales
-                </a>
-            </div>
-
-            <div class="mt-8 flex flex-wrap gap-6 justify-center text-sm text-gray-500">
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    <span>Free to self-host</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    <span>All features included</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    <span>Commercial support available</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+<%- include('./includes/_cta-inline.ejs') %>
 
 <%- include('./includes/_footer.ejs') %>
 
