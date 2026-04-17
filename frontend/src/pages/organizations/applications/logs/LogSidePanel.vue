@@ -5,14 +5,14 @@ import { ExternalLink } from 'lucide-vue-next';
 
 import { routes } from '@/routes';
 import LogDetailContent from './LogDetailContent.vue';
-import type { RequestAttemptExtended } from './LogService';
+import type { RequestAttempt } from './LogService';
 
 import Hook0SidePanel from '@/components/Hook0SidePanel.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 
 type Props = {
   open: boolean;
-  attempt: RequestAttemptExtended;
+  attempt: RequestAttempt;
   applicationId: string;
 };
 

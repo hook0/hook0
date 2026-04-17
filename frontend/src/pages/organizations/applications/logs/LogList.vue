@@ -10,7 +10,7 @@ import { DOCS_LOGS_URL, API_DOCS_LOGS_URL } from '@/constants/externalLinks';
 
 import { useLogList } from './useLogQueries';
 import { useLogColumns } from './useLogColumns';
-import type { RequestAttemptExtended } from './LogService';
+import type { RequestAttempt } from './LogService';
 import { routes } from '@/routes';
 import { useOrganizationDetail } from '@/pages/organizations/useOrganizationQueries';
 import { usePermissions } from '@/composables/usePermissions';
@@ -50,7 +50,7 @@ const retentionDays = computed(() => {
 
 const columns = useLogColumns();
 
-const selectedRow = ref<RequestAttemptExtended | null>(null);
+const selectedRow = ref<RequestAttempt | null>(null);
 
 // Sync selection from route query; desktop auto-selects first item, mobile does not
 watch(
@@ -80,7 +80,7 @@ watch(
   { immediate: true }
 );
 
-function handleRowClick(row: RequestAttemptExtended) {
+function handleRowClick(row: RequestAttempt) {
   selectedRow.value = row;
   void router.replace({
     query: { ...route.query, delivery: row.request_attempt_id },

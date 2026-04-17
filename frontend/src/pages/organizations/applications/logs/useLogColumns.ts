@@ -3,7 +3,7 @@ import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
 
-import type { RequestAttemptExtended } from './LogService';
+import type { RequestAttempt } from './LogService';
 import { RequestAttemptStatusType } from './LogService';
 import { getStatusConfig } from './logStatusConfig';
 import { routes } from '@/routes';
@@ -13,7 +13,7 @@ import Hook0DateFormatted from '@/components/Hook0DateFormatted.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import { formatDate, formatRelativeTime } from '@/utils/formatDate';
 
-function statusLabel(row: RequestAttemptExtended, t: ReturnType<typeof useI18n>['t']): string {
+function statusLabel(row: RequestAttempt, t: ReturnType<typeof useI18n>['t']): string {
   const httpCode = row.http_response_status;
   if (httpCode != null) return `${httpCode}`;
   // Failed with no response = timeout/DNS failure, distinct from a failed attempt with an error HTTP code
@@ -27,7 +27,7 @@ function statusLabel(row: RequestAttemptExtended, t: ReturnType<typeof useI18n>[
   return t(config.labelKey);
 }
 
-function statusTooltip(row: RequestAttemptExtended, t: ReturnType<typeof useI18n>['t']): string {
+function statusTooltip(row: RequestAttempt, t: ReturnType<typeof useI18n>['t']): string {
   const config = getStatusConfig(row.status.type);
   const retry = Number(row.retry_count ?? 0);
   const retryStr = retry > 0 ? t('logs.tooltipRetry', { count: retry }) : '';
@@ -35,7 +35,7 @@ function statusTooltip(row: RequestAttemptExtended, t: ReturnType<typeof useI18n
   return t(config.tooltipKey, { date, retry: retryStr });
 }
 
-function renderStatusPill(row: RequestAttemptExtended, t: ReturnType<typeof useI18n>['t']) {
+function renderStatusPill(row: RequestAttempt, t: ReturnType<typeof useI18n>['t']) {
   const config = getStatusConfig(row.status.type);
   const label = statusLabel(row, t);
   const tooltip = statusTooltip(row, t);
@@ -52,13 +52,11 @@ function renderStatusPill(row: RequestAttemptExtended, t: ReturnType<typeof useI
   );
 }
 
-// event_type_name is denormalized at attempt level for list views;
-// fall through nested event then UUID for older API responses
-function getEventTypeName(row: RequestAttemptExtended): string {
-  return row.event_type_name ?? row.event?.event_type_name ?? row.event_id;
+function getEventTypeName(row: RequestAttempt): string {
+  return row.event.event_type_name;
 }
 
-export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {
+export function useLogColumns(): ColumnDef<RequestAttempt, unknown>[] {
   const { t } = useI18n();
   const route = useRoute();
 

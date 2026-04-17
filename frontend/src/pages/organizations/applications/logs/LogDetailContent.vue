@@ -31,12 +31,12 @@ import { useRetryDelivery } from './useLogQueries';
 import { filterSensitiveHeaders } from './responseHeaders';
 import { routes } from '@/routes';
 
-import type { RequestAttemptExtended } from './LogService';
+import type { RequestAttempt } from './LogService';
 import { RequestAttemptStatusType } from './LogService';
 import { getStatusConfig } from './logStatusConfig';
 
 type Props = {
-  attempt: RequestAttemptExtended;
+  attempt: RequestAttempt;
   applicationId: string;
 };
 
@@ -118,7 +118,9 @@ const isManualRetry = computed(() => props.attempt.attempt_trigger === 'manual_r
 
 const canRetry = computed(() => {
   const status = props.attempt.status.type;
-  return status === RequestAttemptStatusType.Failed || status === RequestAttemptStatusType.Successful;
+  return (
+    status === RequestAttemptStatusType.Failed || status === RequestAttemptStatusType.Successful
+  );
 });
 
 const filteredHeaders = computed(() => {

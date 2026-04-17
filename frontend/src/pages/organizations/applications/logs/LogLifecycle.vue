@@ -5,11 +5,11 @@ import { CheckCircle2, XCircle, Clock, Circle, CircleDashed } from 'lucide-vue-n
 import Hook0DateFormatted from '@/components/Hook0DateFormatted.vue';
 
 import type { Event } from '@/pages/organizations/applications/events/EventsService';
-import type { RequestAttemptExtended } from './LogService';
+import type { RequestAttempt } from './LogService';
 
 type Props = {
   event: Event;
-  attempt: RequestAttemptExtended;
+  attempt: RequestAttempt;
 };
 
 const props = defineProps<Props>();

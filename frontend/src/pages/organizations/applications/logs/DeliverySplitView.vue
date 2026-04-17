@@ -14,7 +14,7 @@ import { ArrowLeft } from 'lucide-vue-next';
 
 import { useLogColumns } from './useLogColumns';
 import LogDetailContent from './LogDetailContent.vue';
-import type { RequestAttemptExtended } from './LogService';
+import type { RequestAttempt } from './LogService';
 
 import Hook0SplitLayout from '@/components/Hook0SplitLayout.vue';
 import Hook0Table from '@/components/Hook0Table.vue';
@@ -23,7 +23,7 @@ import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 
 const props = defineProps<{
   /** The delivery rows to display */
-  deliveries: RequestAttemptExtended[];
+  deliveries: RequestAttempt[];
   /** Application ID — passed to LogDetailContent for fetching response details */
   applicationId: string;
 }>();
@@ -35,7 +35,7 @@ const isDesktop = useMediaQuery('(min-width: 768px)');
 
 const columns = computed(() => useLogColumns());
 
-const selectedRow = ref<RequestAttemptExtended | null>(null);
+const selectedRow = ref<RequestAttempt | null>(null);
 
 // Sync selection with ?delivery= query param — survives page refresh.
 // Auto-select first row on desktop when no valid selection exists.
@@ -65,7 +65,7 @@ watch(
   { immediate: true }
 );
 
-function handleRowClick(row: RequestAttemptExtended) {
+function handleRowClick(row: RequestAttempt) {
   selectedRow.value = row;
   void router.replace({
     query: { ...route.query, delivery: row.request_attempt_id },

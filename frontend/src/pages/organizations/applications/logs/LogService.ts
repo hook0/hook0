@@ -24,20 +24,9 @@ export const RequestAttemptStatusType = {
   Failed: 'failed',
 } as const satisfies { [K in RequestAttemptStatusType as SnakeToPascal<K>]: K };
 
-export type RequestAttemptStatus = RequestAttempt['status'];
-
-export type RequestAttemptTypeFixed = RequestAttempt;
-
-// TODO: These fields should be in the OpenAPI-generated RequestAttemptTypeFixed type. Remove this extension when the spec is updated.
-export type RequestAttemptExtended = RequestAttemptTypeFixed & {
-  succeeded_at?: string | null;
-  completed_at?: string | null;
-  event_type_name?: string | null;
-};
-
-export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixed>> {
+export function list(application_id: UUID): Promise<Array<RequestAttempt>> {
   return unwrapResponse(
-    http.get<Array<RequestAttemptTypeFixed>>('/request_attempts', {
+    http.get<Array<RequestAttempt>>('/request_attempts', {
       params: {
         application_id,
         min_created_at: subDays(new Date(), 7).toISOString(),
@@ -56,9 +45,9 @@ export function retry(requestAttemptId: UUID): Promise<{ request_attempt_id: str
 export function listBySubscription(
   application_id: UUID,
   subscription_id: UUID
-): Promise<Array<RequestAttemptTypeFixed>> {
+): Promise<Array<RequestAttempt>> {
   return unwrapResponse(
-    http.get<Array<RequestAttemptTypeFixed>>('/request_attempts', {
+    http.get<Array<RequestAttempt>>('/request_attempts', {
       params: {
         application_id,
         subscription_id,
@@ -68,12 +57,9 @@ export function listBySubscription(
   );
 }
 
-export function getById(
-  requestAttemptId: UUID,
-  applicationId: UUID
-): Promise<RequestAttemptExtended> {
+export function getById(requestAttemptId: UUID, applicationId: UUID): Promise<RequestAttempt> {
   return http
-    .get<RequestAttemptExtended>(`/request_attempts/${requestAttemptId}`, {
+    .get<RequestAttempt>(`/request_attempts/${requestAttemptId}`, {
       params: { application_id: applicationId },
     })
     .then((res) => res.data);
