@@ -11,9 +11,18 @@
  */
 
 import type { LocationQueryValue } from 'vue-router';
+import type { operations } from '@/types';
 
-export const PARAM_NEXT_CURSOR = 'pagination_cursor';
-export const PARAM_PREV_CURSOR = 'pagination_before_cursor';
+// Any paginated endpoint as a reference; both params must exist on its query.
+// Template literal filters out non-pagination query keys (e.g. organization_id).
+// Fails compilation if the backend renames the pagination convention.
+type PaginationQueryParam = Extract<
+  keyof operations['subscriptionHealthEvents.list']['parameters']['query'],
+  `pagination_${string}`
+>;
+
+export const PARAM_NEXT_CURSOR = 'pagination_cursor' satisfies PaginationQueryParam;
+export const PARAM_PREV_CURSOR = 'pagination_before_cursor' satisfies PaginationQueryParam;
 
 export type PaginationDirection = 'forward' | 'backward';
 
