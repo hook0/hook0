@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-
-type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
-type BadgeSize = 'sm' | 'md';
-type BadgeDisplay = 'badge' | 'trust' | 'step';
+import type { BadgeVariant, BadgeSize, BadgeDisplay } from './Hook0Badge.types';
 
 const statusVariants: ReadonlySet<string> = new Set(['success', 'warning', 'danger', 'info']);
 

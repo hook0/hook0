@@ -10,17 +10,18 @@ import {
 
 export type HealthEvent = components['schemas']['HealthEvent'];
 
+export type PaginationStep = { cursor: string; direction: PaginationDirection } | null;
+
 export function listHealthEvents(
   subscriptionId: string,
   organizationId: string,
-  cursor: string | null,
-  direction: PaginationDirection
+  pagination: PaginationStep
 ): Promise<CursorPage<HealthEvent>> {
   const params: Record<string, string> = { organization_id: organizationId };
 
-  if (cursor) {
-    const paramName = direction === 'backward' ? PARAM_PREV_CURSOR : PARAM_NEXT_CURSOR;
-    params[paramName] = cursor;
+  if (pagination) {
+    const paramName = pagination.direction === 'backward' ? PARAM_PREV_CURSOR : PARAM_NEXT_CURSOR;
+    params[paramName] = pagination.cursor;
   }
 
   return http
@@ -28,7 +29,7 @@ export function listHealthEvents(
       params,
     })
     .then((response) => {
-      const links = parseLinkHeader(response.headers?.link ?? null);
+      const links = parseLinkHeader(response.headers.link ?? null);
 
       return {
         data: response.data,

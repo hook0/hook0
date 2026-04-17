@@ -14,10 +14,10 @@ import Hook0DateFormatted from '@/components/Hook0DateFormatted.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
+import type { BadgeVariant } from '@/components/Hook0Badge.types';
 
 const props = defineProps<{
   page: CursorPage<HealthEvent> | undefined;
-  isLoading: boolean;
   error: Problem | Error | string | null;
   refetch: () => void;
 }>();
@@ -33,7 +33,6 @@ const { warning: warningThreshold, critical: criticalThreshold } = useHealthThre
 // Extracted so column definitions stay readable.
 
 type HealthStatus = HealthEvent['status'];
-type BadgeVariant = 'default' | 'success' | 'warning' | 'danger';
 
 function getStatusVariant(status: HealthStatus): BadgeVariant {
   switch (status) {
@@ -114,8 +113,8 @@ function goPrev() {
 <template>
   <div class="health-timeline">
     <Hook0ErrorCard v-if="error" :error="error" @retry="refetch()" />
-    <Hook0SkeletonGroup v-else-if="isLoading || !page" :count="3" />
-    <template v-else-if="page">
+    <Hook0SkeletonGroup v-else-if="!page" :count="3" />
+    <template v-else>
       <Hook0EmptyState
         v-if="page.data.length === 0"
         :title="t('subscriptionDetail.healthTimelineEmpty')"
@@ -125,10 +124,10 @@ function goPrev() {
         <Hook0Table :columns="columns" :data="page.data" row-id-field="health_event_id" />
         <div class="health-timeline__pagination">
           <Hook0Button variant="secondary" size="sm" :disabled="!page.prevCursor" @click="goPrev">
-            {{ t('common.previousPage') }}
+            {{ t('common.previous') }}
           </Hook0Button>
           <Hook0Button variant="secondary" size="sm" :disabled="!page.nextCursor" @click="goNext">
-            {{ t('common.nextPage') }}
+            {{ t('common.next') }}
           </Hook0Button>
         </div>
       </template>

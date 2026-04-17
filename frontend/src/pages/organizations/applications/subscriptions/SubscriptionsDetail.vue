@@ -59,21 +59,24 @@ const {
 } = useLogListBySubscription(applicationId, subscriptionId);
 
 // Health timeline with bidirectional cursor pagination
-const healthCursor = computed(() => parseCursorFromQuery(route.query.health_cursor));
-const healthDirection = computed(() => parseDirectionFromQuery(route.query.health_direction));
+const healthPagination = computed(() => {
+  const cursor = parseCursorFromQuery(route.query.health_cursor);
+  if (cursor === null) return null;
+  return { cursor, direction: parseDirectionFromQuery(route.query.health_direction) };
+});
 
 const {
   data: healthPage,
   isLoading: healthLoading,
   error: healthError,
   refetch: healthRefetch,
-} = useSubscriptionHealthEvents(subscriptionId, organizationId, healthCursor, healthDirection);
+} = useSubscriptionHealthEvents(subscriptionId, organizationId, healthPagination);
 
-function navigateHealth(healthCursorValue: string | null, direction: PaginationDirection) {
+function navigateHealth(cursor: string | null, direction: PaginationDirection) {
   void router.replace({
     query: {
       ...route.query,
-      health_cursor: healthCursorValue ?? undefined,
+      health_cursor: cursor ?? undefined,
       health_direction: direction === 'backward' ? 'backward' : undefined,
     },
   });
@@ -271,7 +274,6 @@ function confirmDisable() {
           <Hook0CardContent>
             <SubscriptionHealthTimeline
               :page="healthPage"
-              :is-loading="healthLoading"
               :error="healthError"
               :refetch="healthRefetch"
               @navigate="navigateHealth"

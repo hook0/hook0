@@ -47,10 +47,15 @@ export function parseLinkHeader(linkHeader: string | null): ParsedLinkCursors {
   }
 
   for (const part of linkHeader.split(',')) {
-    const match = part.match(/<([^>]+)>;\s*rel="(\w+)"/);
-    if (!match) continue;
+    const urlMatch = part.match(/<([^>]+)>/);
+    if (!urlMatch) continue;
 
-    const [, urlString, rel] = match;
+    // Per RFC 8288: rel can be quoted or unquoted, params may appear in any order
+    const relMatch = part.match(/;\s*rel\s*=\s*"?([\w-]+)"?/);
+    if (!relMatch) continue;
+
+    const urlString = urlMatch[1];
+    const rel = relMatch[1];
 
     try {
       // Dummy base: Link header may contain relative URLs

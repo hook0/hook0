@@ -24,10 +24,7 @@ type Modify<T, R> = Omit<T, keyof R> & R;
 export type RequestAttemptTypeFixed = Modify<RequestAttempt, { status: RequestAttemptStatus }>;
 
 // TODO: These fields should be in the OpenAPI-generated RequestAttemptTypeFixed type. Remove this extension when the spec is updated.
-export type RequestAttemptExtended = Modify<
-  RequestAttemptTypeFixed,
-  { attempt_trigger?: 'dispatch' | 'auto_retry' | 'manual_retry' }
-> & {
+export type RequestAttemptExtended = RequestAttemptTypeFixed & {
   succeeded_at?: string | null;
   completed_at?: string | null;
   event_type_name?: string | null;

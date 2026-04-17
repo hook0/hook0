@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CheckCircle, AlertTriangle, XCircle, Minus } from 'lucide-vue-next';
+import { CheckCircle, AlertTriangle, XCircle } from 'lucide-vue-next';
 import Hook0Badge from './Hook0Badge.vue';
 import Hook0Tooltip from './Hook0Tooltip.vue';
+import type { BadgeVariant } from './Hook0Badge.types';
 import { useHealthThresholds } from '@/composables/useHealthThresholds';
 
 const props = defineProps<{
@@ -14,7 +15,6 @@ const { t } = useI18n();
 const { warning: warningThreshold, critical: criticalThreshold } = useHealthThresholds();
 
 type HealthLevel = 'healthy' | 'warning' | 'critical' | 'noData';
-type BadgeVariant = 'default' | 'success' | 'warning' | 'danger';
 
 const level = computed<HealthLevel>(() => {
   if (props.failurePercent === null) return 'noData';
@@ -47,7 +47,7 @@ const iconComponent = computed(() => {
       return XCircle;
     case 'noData':
     default:
-      return Minus;
+      return null;
   }
 });
 
@@ -57,9 +57,10 @@ const tooltipContent = computed(() => {
   if (props.failurePercent === null) {
     return t('health.awaitingData');
   }
-  return t('health.failureRateTooltip', {
-    percent: Math.round(props.failurePercent),
-  });
+  // Show "<1%" when rate is non-zero but rounds to 0, else 1 decimal
+  const rounded =
+    props.failurePercent > 0 && props.failurePercent < 0.1 ? '<1' : props.failurePercent.toFixed(1);
+  return t('health.failureRateTooltip', { percent: rounded });
 });
 </script>
 
