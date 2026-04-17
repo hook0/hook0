@@ -11,14 +11,12 @@ use uuid::Uuid;
 use crate::iam::{Action, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::pagination::{
-    BidirectionalPageConfig, Cursor, EncodedCursor, Paginated, PaginationDirection,
+    Cursor, EncodedCursor, PageLimit, Paginated, Pagination, build_endpoint_url,
 };
 use crate::problems::Hook0Problem;
 use crate::subscription_health_monitor::{HealthEventCause, HealthStatus};
 
-const PAGE_SIZE: usize = 30;
-// Always PAGE_SIZE + 1 to detect next page
-const FETCH_LIMIT: i64 = 31;
+const PAGE: PageLimit = PageLimit::new(30);
 
 // --- Models ---
 
@@ -37,7 +35,6 @@ pub struct Qs {
     // Only used for pagination URL generation, not for SQL filtering or auth.
     organization_id: Uuid,
     pagination_cursor: Option<EncodedCursor>,
-    pagination_direction: Option<PaginationDirection>,
 }
 
 // --- Data access (separated from HTTP handler) ---
@@ -89,7 +86,7 @@ impl HealthEvent {
             subscription_id,
             cursor.date,
             cursor.id,
-            FETCH_LIMIT,
+            PAGE.fetch_limit(),
         )
         .fetch_all(db)
         .await
@@ -121,7 +118,7 @@ impl HealthEvent {
             subscription_id,
             cursor.date,
             cursor.id,
-            FETCH_LIMIT,
+            PAGE.fetch_limit(),
         )
         .fetch_all(db)
         .await
@@ -171,67 +168,32 @@ pub async fn list(
         return Err(Hook0Problem::Forbidden);
     }
 
-    // 3. Fetch events
-    // Backward only applies when a cursor is set; otherwise we ignore direction
-    // and return the first page (newest-first).
-    let direction_param = qs.pagination_direction.unwrap_or_default();
-    let is_backward =
-        direction_param == PaginationDirection::Backward && qs.pagination_cursor.is_some();
+    // 3. Fetch events based on cursor direction
+    let pagination = Pagination::new(PAGE, qs.pagination_cursor);
 
-    let mut events = if is_backward {
-        let cursor = qs
-            .pagination_cursor
-            .expect("cursor presence checked above")
-            .0;
-        // Backward: fetch ASC, then reverse to keep newest-first display
-        let mut items = HealthEvent::fetch_backward(&state.db, subscription_id, cursor).await?;
-        items.reverse();
-        items
+    let mut events = if pagination.is_backward() {
+        HealthEvent::fetch_backward(&state.db, subscription_id, pagination.resolved_cursor())
+            .await?
     } else {
-        let cursor = qs.pagination_cursor.unwrap_or_default().0;
-        HealthEvent::fetch_forward(&state.db, subscription_id, cursor).await?
+        HealthEvent::fetch_forward(&state.db, subscription_id, pagination.resolved_cursor()).await?
     };
 
-    // 4. Trim extra row used for has_more detection
-    let has_more = events.len() > PAGE_SIZE;
-    if has_more {
-        events.truncate(PAGE_SIZE);
-    }
+    // 4. Trim the over-fetched row and reverse if backward.
+    let has_more = pagination.trim_and_orient(&mut events);
 
     // 5. Build pagination links
-    let endpoint_url = state
-        .app_url
-        .join(&format!(
-            "/api/v1/subscriptions/{subscription_id}/health_events"
-        ))
-        .inspect_err(|e| error!("Failed to build pagination URL: {e}"))
-        .ok();
+    let endpoint_url = build_endpoint_url(
+        &state.app_url,
+        &format!("/api/v1/subscriptions/{subscription_id}/health_events"),
+    );
 
-    let direction = if is_backward {
-        PaginationDirection::Backward
-    } else {
-        PaginationDirection::Forward
-    };
-
-    let (next_page_parts, prev_page_parts) = match endpoint_url {
-        Some(url) => BidirectionalPageConfig {
-            endpoint_url: url,
-            query_params: vec![("organization_id", Some(qs.organization_id.to_string()))],
-            prev_cursor: events.first().map(|ev| Cursor {
-                date: ev.created_at,
-                id: ev.health_event_id,
-            }),
-            next_cursor: events.last().map(|ev| Cursor {
-                date: ev.created_at,
-                id: ev.health_event_id,
-            }),
-            direction,
-            has_more,
-            is_past_first_page: qs.pagination_cursor.is_some(),
-        }
-        .into_page_parts(),
-        None => (None, None),
-    };
+    let (next_page_parts, prev_page_parts) = pagination.build_page_parts(
+        &events,
+        endpoint_url,
+        vec![("organization_id", qs.organization_id.to_string())],
+        has_more,
+        |ev| (ev.created_at, ev.health_event_id),
+    );
 
     Ok(Paginated {
         data: Json(events),
