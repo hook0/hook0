@@ -24,11 +24,15 @@ pub struct HealthEvent {
 }
 
 // One aggregated point on the failure-rate timeline.
+// `peak_rate` is the worst per-5min failure rate observed in the bin. We surface
+// the peak instead of the average so a short spike inside a wide aggregation
+// bin still touches the threshold visually.
 #[derive(Debug, Serialize, Apiv2Schema, sqlx::FromRow)]
 pub struct HealthBucket {
     pub bucket_start: DateTime<Utc>,
     pub total_count: i64,
     pub failed_count: i64,
+    pub peak_rate: f64,
 }
 
 // Events + buckets in one round-trip for the chart.
@@ -166,7 +170,12 @@ pub async fn list(
                 select
                     date_bin($1::interval, bucket_start, '1970-01-01T00:00:00Z'::timestamptz) as "bucket_start!",
                     sum(total_count)::bigint  as "total_count!",
-                    sum(failed_count)::bigint as "failed_count!"
+                    sum(failed_count)::bigint as "failed_count!",
+                    coalesce(max(
+                        case when total_count > 0
+                             then failed_count::float8 / total_count * 100
+                             else 0 end
+                    ), 0)::float8 as "peak_rate!"
                 from webhook.subscription_health_bucket
                 where subscription__id = $2 and bucket_start >= $3
                 group by 1

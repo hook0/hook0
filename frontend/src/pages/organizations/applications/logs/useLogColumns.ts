@@ -83,7 +83,11 @@ export function useLogColumns(): ColumnDef<RequestAttempt, unknown>[] {
               variant: 'link',
               to: {
                 name: routes.EventsDetail,
-                params: { ...route.params, event_id: row.event_id },
+                params: {
+                  organization_id: route.params.organization_id,
+                  application_id: route.params.application_id,
+                  event_id: row.event_id,
+                },
               },
               class: 'log-cell-link',
               'data-test': 'log-event-link',

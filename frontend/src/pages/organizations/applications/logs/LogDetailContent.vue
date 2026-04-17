@@ -211,7 +211,11 @@ function copyUrl() {
               size="sm"
               :to="{
                 name: routes.EventsDetail,
-                params: { ...route.params, event_id: eventData.event_id },
+                params: {
+                  organization_id: route.params.organization_id,
+                  application_id: route.params.application_id,
+                  event_id: eventData.event_id,
+                },
               }"
               class="detail-meta__link detail-meta__link--mono"
             >

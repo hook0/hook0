@@ -10,12 +10,14 @@ import {
   TooltipComponent,
   MarkLineComponent,
   MarkAreaComponent,
+  VisualMapComponent,
 } from 'echarts/components';
 import type {
   GridComponentOption,
   TooltipComponentOption,
   MarkLineComponentOption,
   MarkAreaComponentOption,
+  VisualMapComponentOption,
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
@@ -26,7 +28,6 @@ import {
   type HealthTimeline,
   type HealthWindow,
   type HealthEvent,
-  type HealthBucket,
 } from './SubscriptionHealthService';
 import { buildTooltipConfig } from '@/components/eventsPerDayChartOptions';
 import { useHealthThresholds } from '@/composables/useHealthThresholds';
@@ -40,6 +41,7 @@ use([
   TooltipComponent,
   MarkLineComponent,
   MarkAreaComponent,
+  VisualMapComponent,
   CanvasRenderer,
 ]);
 
@@ -49,11 +51,8 @@ type ECOption = ComposeOption<
   | TooltipComponentOption
   | MarkLineComponentOption
   | MarkAreaComponentOption
+  | VisualMapComponentOption
 >;
-
-function failurePercent(bucket: HealthBucket): number {
-  return (bucket.failed_count / bucket.total_count) * 100;
-}
 
 function roundOneDecimal(value: number): number {
   return Math.round(value * 10) / 10;
@@ -77,11 +76,7 @@ const buckets = computed(() => props.timeline?.buckets ?? []);
 const events = computed(() => props.timeline?.events ?? []);
 
 const peakFailureRate = computed(() =>
-  roundOneDecimal(
-    buckets.value
-      .filter((bucket) => bucket.total_count > 0)
-      .reduce((max, bucket) => Math.max(max, failurePercent(bucket)), 0)
-  )
+  roundOneDecimal(buckets.value.reduce((max, bucket) => Math.max(max, bucket.peak_rate), 0))
 );
 
 const totalDeliveries = computed(() =>
@@ -116,7 +111,7 @@ function eventLabel(event: HealthEvent): string {
 const seriesData = computed<[number, number | null][]>(() =>
   buckets.value.map((bucket) => [
     new Date(bucket.bucket_start).getTime(),
-    bucket.total_count > 0 ? roundOneDecimal(failurePercent(bucket)) : null,
+    bucket.total_count > 0 ? roundOneDecimal(bucket.peak_rate) : null,
   ])
 );
 
@@ -154,6 +149,22 @@ const chartOption = computed<ECOption>(() => {
 
   return {
     grid: { left: 50, right: 20, top: 24, bottom: 32 },
+    // Color the line piecewise by Y value: green when healthy,
+    // orange in the warning band, red above critical.
+    visualMap: {
+      show: false,
+      seriesIndex: 0,
+      dimension: 1,
+      pieces: [
+        { lte: warningThreshold.value, color: palette.success },
+        {
+          gt: warningThreshold.value,
+          lte: criticalThreshold.value,
+          color: palette.warning,
+        },
+        { gt: criticalThreshold.value, color: palette.error },
+      ],
+    },
     tooltip: {
       ...buildTooltipConfig(palette),
       formatter: (params) => {
@@ -187,8 +198,9 @@ const chartOption = computed<ECOption>(() => {
         showSymbol: false,
         connectNulls: false,
         data: seriesData.value,
-        lineStyle: { width: 2, color: palette.primary },
-        areaStyle: { color: palette.primaryLight, opacity: 0.25 },
+        // Line + area colors are driven by visualMap above (piecewise by value).
+        lineStyle: { width: 2 },
+        areaStyle: { opacity: 0.18 },
         markArea: {
           silent: true,
           data: [

@@ -1026,6 +1026,8 @@ export interface components {
         bucket_start: string;
         /** Format: int64 */
         failed_count: number;
+        /** Format: double */
+        peak_rate: number;
         /** Format: int64 */
         total_count: number;
       }[];
