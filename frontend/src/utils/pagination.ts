@@ -46,26 +46,25 @@ export function parseLinkHeader(linkHeader: string | null): ParsedLinkCursors {
     return parsed;
   }
 
+  // Each part's URL is between angle brackets. The query param identifies
+  // direction (pagination_cursor = next, pagination_before_cursor = prev),
+  // so we don't need to parse the `rel` attribute.
   for (const part of linkHeader.split(',')) {
-    const urlMatch = part.match(/<([^>]+)>/);
-    if (!urlMatch) continue;
+    const start = part.indexOf('<');
+    const end = part.indexOf('>', start);
+    if (start === -1 || end === -1) continue;
 
-    // Per RFC 8288: rel can be quoted or unquoted, params may appear in any order
-    const relMatch = part.match(/;\s*rel\s*=\s*"?([\w-]+)"?/);
-    if (!relMatch) continue;
-
-    const urlString = urlMatch[1];
-    const rel = relMatch[1];
+    const urlString = part.slice(start + 1, end);
 
     try {
       // Dummy base: Link header may contain relative URLs
       const params = new URL(urlString, 'http://x').searchParams;
 
-      if (rel === 'next') {
-        parsed.next = params.get(PARAM_NEXT_CURSOR);
-      } else if (rel === 'prev') {
-        parsed.prev = params.get(PARAM_PREV_CURSOR);
-      }
+      const nextCursor = params.get(PARAM_NEXT_CURSOR);
+      if (nextCursor !== null) parsed.next = nextCursor;
+
+      const prevCursor = params.get(PARAM_PREV_CURSOR);
+      if (prevCursor !== null) parsed.prev = prevCursor;
     } catch {
       console.error('Failed to parse Link header URL:', urlString);
     }
