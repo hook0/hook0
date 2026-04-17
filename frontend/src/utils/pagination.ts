@@ -1,28 +1,24 @@
 /**
- * Bidirectional cursor pagination shared across endpoints.
+ * Generic cursor pagination utilities.
  *
- * Consumers get cursor extraction from Link headers, typed direction
- * enum (from OpenAPI), and safe parsers for URL query params.
+ * The cursor is opaque to the client — direction is baked into the blob
+ * by the server. Callers just follow the `Link: <url>; rel="next|prev"`
+ * headers and pass the cursor back as-is.
  *
- * - `parseLinkHeader` reads RFC 8288 `<url>; rel="next|prev"`.
- * - `parseCursorFromQuery` / `parseDirectionFromQuery` coerce raw
- *   `LocationQueryValue` into typed values, rejecting arrays.
+ * - `parseLinkHeader` extracts next/prev cursors from RFC 8288 Link.
+ * - `parseCursorFromQuery` safely reads a cursor from a URL query value.
  * - `CursorPage<T>` wraps API list responses.
  */
 
 import type { LocationQueryValue } from 'vue-router';
 import type { operations } from '@/types';
 
-// Any paginated endpoint as a reference; both params must exist on its query.
-// Template literal filters out non-pagination query keys (e.g. organization_id).
-// Fails compilation if the backend renames the pagination convention.
+// Any paginated endpoint as a reference. Fails compilation if the backend
+// renames the pagination convention.
 type PaginatedQuery = operations['subscriptionHealthEvents.list']['parameters']['query'];
 type PaginationQueryParam = Extract<keyof PaginatedQuery, `pagination_${string}`>;
 
 export const PARAM_CURSOR = 'pagination_cursor' satisfies PaginationQueryParam;
-export const PARAM_DIRECTION = 'pagination_direction' satisfies PaginationQueryParam;
-
-export type PaginationDirection = NonNullable<PaginatedQuery['pagination_direction']>;
 
 export type CursorPage<T> = {
   data: T[];
@@ -39,7 +35,7 @@ export type ParsedLinkCursors = {
  * Extracts next/prev cursors from an RFC 8288 Link header.
  *
  * @example
- * parseLinkHeader('<https://api.hook0.com/ep?pagination_cursor=abc&pagination_direction=forward>; rel="next"')
+ * parseLinkHeader('<https://api.hook0.com/ep?pagination_cursor=abc>; rel="next"')
  * // => { next: 'abc', prev: null }
  *
  * @example
@@ -53,27 +49,28 @@ export function parseLinkHeader(linkHeader: string | null): ParsedLinkCursors {
     return parsed;
   }
 
-  // Each part's URL is between angle brackets. The `pagination_direction`
-  // param tells us if the cursor is for next or prev.
   for (const part of linkHeader.split(',')) {
-    const start = part.indexOf('<');
-    const end = part.indexOf('>', start);
-    if (start === -1 || end === -1) continue;
+    const urlStart = part.indexOf('<');
+    const urlEnd = part.indexOf('>', urlStart);
+    if (urlStart === -1 || urlEnd === -1) continue;
 
-    const urlString = part.slice(start + 1, end);
+    const urlString = part.slice(urlStart + 1, urlEnd);
+
+    // RFC 8288: rel can be quoted or unquoted, may appear in any order.
+    const relMatch = part.match(/;\s*rel\s*=\s*"?([\w-]+)"?/);
+    if (!relMatch) continue;
+
+    const rel = relMatch[1];
 
     try {
       // Dummy base: Link header may contain relative URLs
-      const params = new URL(urlString, 'http://x').searchParams;
-
-      const cursor = params.get(PARAM_CURSOR);
-      const direction = params.get(PARAM_DIRECTION);
+      const cursor = new URL(urlString, 'http://x').searchParams.get(PARAM_CURSOR);
       if (cursor === null) continue;
 
-      if (direction === 'backward') {
-        parsed.prev = cursor;
-      } else {
+      if (rel === 'next') {
         parsed.next = cursor;
+      } else if (rel === 'prev') {
+        parsed.prev = cursor;
       }
     } catch {
       console.error('Failed to parse Link header URL:', urlString);
@@ -95,19 +92,4 @@ export function parseCursorFromQuery(
   value: LocationQueryValue | LocationQueryValue[]
 ): string | null {
   return typeof value === 'string' ? value : null;
-}
-
-/**
- * Reads a direction from a URL query value. Defaults to 'forward' on anything unexpected.
- *
- * @example
- * parseDirectionFromQuery('backward') // => 'backward'
- * parseDirectionFromQuery('forward')  // => 'forward'
- * parseDirectionFromQuery(['x'])      // => 'forward'
- * parseDirectionFromQuery(undefined)  // => 'forward'
- */
-export function parseDirectionFromQuery(
-  value: LocationQueryValue | LocationQueryValue[]
-): PaginationDirection {
-  return value === 'backward' ? 'backward' : 'forward';
 }

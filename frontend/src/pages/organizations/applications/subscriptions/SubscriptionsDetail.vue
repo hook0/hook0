@@ -14,11 +14,7 @@ import { targetIsHttp } from './SubscriptionService';
 import { useLogListBySubscription } from '../logs/useLogQueries';
 import { RequestAttemptStatusType } from '../logs/LogService';
 import { useSubscriptionHealthEvents } from './useSubscriptionHealthQueries';
-import {
-  type PaginationDirection,
-  parseCursorFromQuery,
-  parseDirectionFromQuery,
-} from '@/utils/pagination';
+import { parseCursorFromQuery } from '@/utils/pagination';
 import { useHealthThresholds } from '@/composables/useHealthThresholds';
 import { routes } from '@/routes';
 
@@ -59,27 +55,19 @@ const {
   refetch: deliveriesRefetch,
 } = useLogListBySubscription(applicationId, subscriptionId);
 
-// Health timeline with bidirectional cursor pagination
-const healthPagination = computed(() => {
-  const cursor = parseCursorFromQuery(route.query.health_cursor);
-  if (cursor === null) return null;
-  return { cursor, direction: parseDirectionFromQuery(route.query.health_direction) };
-});
+// Health timeline pagination — cursor is opaque; direction is baked in by the server.
+const healthCursor = computed(() => parseCursorFromQuery(route.query.health_cursor));
 
 const {
   data: healthPage,
   isLoading: healthLoading,
   error: healthError,
   refetch: healthRefetch,
-} = useSubscriptionHealthEvents(subscriptionId, organizationId, healthPagination);
+} = useSubscriptionHealthEvents(subscriptionId, organizationId, healthCursor);
 
-function navigateHealth(cursor: string | null, direction: PaginationDirection) {
+function navigateHealth(cursor: string) {
   void router.replace({
-    query: {
-      ...route.query,
-      health_cursor: cursor ?? undefined,
-      health_direction: direction === 'backward' ? 'backward' : undefined,
-    },
+    query: { ...route.query, health_cursor: cursor },
   });
 }
 

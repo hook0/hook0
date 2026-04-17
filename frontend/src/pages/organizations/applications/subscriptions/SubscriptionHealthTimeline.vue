@@ -2,7 +2,7 @@
 import { h, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { ColumnDef } from '@tanstack/vue-table';
-import type { CursorPage, PaginationDirection } from '@/utils/pagination';
+import type { CursorPage } from '@/utils/pagination';
 import type { HealthEvent } from './SubscriptionHealthService';
 import type { Problem } from '@/http';
 import { useHealthThresholds } from '@/composables/useHealthThresholds';
@@ -23,7 +23,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  navigate: [cursor: string | null, direction: PaginationDirection];
+  navigate: [cursor: string];
 }>();
 
 const { t } = useI18n();
@@ -99,13 +99,13 @@ const columns = computed<ColumnDef<HealthEvent, unknown>[]>(() => [
 
 function goNext() {
   if (props.page?.nextCursor) {
-    emit('navigate', props.page.nextCursor, 'forward');
+    emit('navigate', props.page.nextCursor);
   }
 }
 
 function goPrev() {
   if (props.page?.prevCursor) {
-    emit('navigate', props.page.prevCursor, 'backward');
+    emit('navigate', props.page.prevCursor);
   }
 }
 </script>
