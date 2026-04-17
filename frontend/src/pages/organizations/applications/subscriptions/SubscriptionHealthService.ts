@@ -1,4 +1,5 @@
 import http from '@/http';
+import type { components } from '@/types';
 import {
   type CursorPage,
   type PaginationDirection,
@@ -7,21 +8,13 @@ import {
   parseLinkHeader,
 } from '@/utils/pagination';
 
-// TODO: replace with OpenAPI generated type when API spec is regenerated
-export type HealthEvent = {
-  health_event_id: string;
-  subscription_id: string;
-  status: 'warning' | 'disabled' | 'resolved';
-  cause: 'auto' | 'manual';
-  user_id: string | null;
-  created_at: string;
-};
+export type HealthEvent = components['schemas']['HealthEvent'];
 
 export function listHealthEvents(
   subscriptionId: string,
   organizationId: string,
-  cursor?: string | null,
-  direction: PaginationDirection = 'forward'
+  cursor: string | null,
+  direction: PaginationDirection
 ): Promise<CursorPage<HealthEvent>> {
   const params: Record<string, string> = { organization_id: organizationId };
 

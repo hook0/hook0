@@ -32,7 +32,10 @@ const { warning: warningThreshold, critical: criticalThreshold } = useHealthThre
 // --- Formatting helpers ---
 // Extracted so column definitions stay readable.
 
-function getStatusVariant(status: string) {
+type HealthStatus = HealthEvent['status'];
+type BadgeVariant = 'default' | 'success' | 'warning' | 'danger';
+
+function getStatusVariant(status: HealthStatus): BadgeVariant {
   switch (status) {
     case 'resolved':
       return 'success';
@@ -45,7 +48,7 @@ function getStatusVariant(status: string) {
   }
 }
 
-function getReasonText(status: string): string {
+function getReasonText(status: HealthStatus): string {
   const threshold = status === 'disabled' ? criticalThreshold.value : warningThreshold.value;
   return t(`subscriptionDetail.healthReason.${status}`, { threshold });
 }
@@ -90,7 +93,7 @@ const columns = computed<ColumnDef<HealthEvent, unknown>[]>(() => [
     accessorKey: 'created_at',
     header: t('common.createdAt'),
     cell: (info) => {
-      return h(Hook0DateFormatted, { value: info.getValue() as string | null });
+      return h(Hook0DateFormatted, { value: info.row.original.created_at });
     },
   },
 ]);
@@ -110,8 +113,8 @@ function goPrev() {
 
 <template>
   <div class="health-timeline">
-    <Hook0SkeletonGroup v-if="isLoading || !page" :count="3" />
-    <Hook0ErrorCard v-else-if="error" :error="error" @retry="refetch()" />
+    <Hook0ErrorCard v-if="error" :error="error" @retry="refetch()" />
+    <Hook0SkeletonGroup v-else-if="isLoading || !page" :count="3" />
     <template v-else-if="page">
       <Hook0EmptyState
         v-if="page.data.length === 0"

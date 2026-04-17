@@ -24,16 +24,13 @@ type Modify<T, R> = Omit<T, keyof R> & R;
 export type RequestAttemptTypeFixed = Modify<RequestAttempt, { status: RequestAttemptStatus }>;
 
 // TODO: These fields should be in the OpenAPI-generated RequestAttemptTypeFixed type. Remove this extension when the spec is updated.
-export type RequestAttemptExtended = RequestAttemptTypeFixed & {
-  retry_count?: number;
+export type RequestAttemptExtended = Modify<
+  RequestAttemptTypeFixed,
+  { attempt_trigger?: 'dispatch' | 'auto_retry' | 'manual_retry' }
+> & {
   succeeded_at?: string | null;
-  failed_at?: string | null;
-  picked_at?: string | null;
-  delay_until?: string | null;
   completed_at?: string | null;
-  created_at?: string | null;
   event_type_name?: string | null;
-  attempt_trigger?: 'dispatch' | 'auto_retry' | 'manual_retry';
 };
 
 export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixed>> {

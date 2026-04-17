@@ -1,9 +1,16 @@
 /**
- * Generic bidirectional cursor pagination utilities.
+ * Bidirectional cursor pagination shared across endpoints.
  *
- * Parses RFC 8288 Link headers emitted by the API and provides
- * shared types for any paginated endpoint.
+ * Consumers get cursor extraction from Link headers, typed direction
+ * enum, and safe parsers for URL query params.
+ *
+ * - `parseLinkHeader` reads RFC 8288 `<url>; rel="next|prev"`.
+ * - `parseCursorFromQuery` / `parseDirectionFromQuery` coerce raw
+ *   `LocationQueryValue` into typed values, rejecting arrays.
+ * - `CursorPage<T>` wraps API list responses.
  */
+
+import type { LocationQueryValue } from 'vue-router';
 
 export const PARAM_NEXT_CURSOR = 'pagination_cursor';
 export const PARAM_PREV_CURSOR = 'pagination_before_cursor';
@@ -14,6 +21,11 @@ export type CursorPage<T> = {
   data: T[];
   nextCursor: string | null;
   prevCursor: string | null;
+};
+
+export type ParsedLinkCursors = {
+  next: string | null;
+  prev: string | null;
 };
 
 /**
@@ -27,14 +39,11 @@ export type CursorPage<T> = {
  * parseLinkHeader(null)
  * // => { next: null, prev: null }
  */
-export function parseLinkHeader(linkHeader: string | null): {
-  next: string | null;
-  prev: string | null;
-} {
-  const result = { next: null as string | null, prev: null as string | null };
+export function parseLinkHeader(linkHeader: string | null): ParsedLinkCursors {
+  const parsed: ParsedLinkCursors = { next: null, prev: null };
 
   if (!linkHeader) {
-    return result;
+    return parsed;
   }
 
   for (const part of linkHeader.split(',')) {
@@ -48,15 +57,43 @@ export function parseLinkHeader(linkHeader: string | null): {
       const params = new URL(urlString, 'http://x').searchParams;
 
       if (rel === 'next') {
-        result.next = params.get(PARAM_NEXT_CURSOR);
+        parsed.next = params.get(PARAM_NEXT_CURSOR);
       } else if (rel === 'prev') {
-        result.prev = params.get(PARAM_PREV_CURSOR);
+        parsed.prev = params.get(PARAM_PREV_CURSOR);
       }
     } catch {
-      // Malformed URL — skip rather than crash
       console.error('Failed to parse Link header URL:', urlString);
     }
   }
 
-  return result;
+  return parsed;
+}
+
+/**
+ * Reads a cursor from a URL query value. Rejects arrays and non-strings.
+ *
+ * @example
+ * parseCursorFromQuery('abc123')  // => 'abc123'
+ * parseCursorFromQuery(['a', 'b']) // => null
+ * parseCursorFromQuery(undefined) // => null
+ */
+export function parseCursorFromQuery(
+  value: LocationQueryValue | LocationQueryValue[]
+): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+/**
+ * Reads a direction from a URL query value. Defaults to 'forward' on anything unexpected.
+ *
+ * @example
+ * parseDirectionFromQuery('backward') // => 'backward'
+ * parseDirectionFromQuery('forward')  // => 'forward'
+ * parseDirectionFromQuery(['x'])      // => 'forward'
+ * parseDirectionFromQuery(undefined)  // => 'forward'
+ */
+export function parseDirectionFromQuery(
+  value: LocationQueryValue | LocationQueryValue[]
+): PaginationDirection {
+  return value === 'backward' ? 'backward' : 'forward';
 }

@@ -20,11 +20,14 @@ export function useHealthThresholds() {
   const { data: instanceConfig } = useInstanceConfig();
 
   const warning = computed(
-    () => instanceConfig.value?.health_monitor?.warning_failure_percent ?? DEFAULT_WARNING_THRESHOLD
+    () =>
+      instanceConfig.value?.subscription_health_monitor?.failure_percent_for_warning ??
+      DEFAULT_WARNING_THRESHOLD
   );
   const critical = computed(
     () =>
-      instanceConfig.value?.health_monitor?.disable_failure_percent ?? DEFAULT_CRITICAL_THRESHOLD
+      instanceConfig.value?.subscription_health_monitor?.failure_percent_for_disable ??
+      DEFAULT_CRITICAL_THRESHOLD
   );
 
   return { warning, critical };

@@ -13,7 +13,11 @@ import { useSubscriptionDetail, useToggleSubscription } from './useSubscriptionQ
 import { targetIsHttp } from './SubscriptionService';
 import { useLogListBySubscription } from '../logs/useLogQueries';
 import { useSubscriptionHealthEvents } from './useSubscriptionHealthQueries';
-import type { PaginationDirection } from '@/utils/pagination';
+import {
+  type PaginationDirection,
+  parseCursorFromQuery,
+  parseDirectionFromQuery,
+} from '@/utils/pagination';
 import { useHealthThresholds } from '@/composables/useHealthThresholds';
 import { routes } from '@/routes';
 
@@ -55,13 +59,8 @@ const {
 } = useLogListBySubscription(applicationId, subscriptionId);
 
 // Health timeline with bidirectional cursor pagination
-const healthCursor = computed(() => {
-  const value = route.query.health_cursor;
-  return typeof value === 'string' ? value : null;
-});
-const healthDirection = computed<PaginationDirection>(() => {
-  return route.query.health_direction === 'backward' ? 'backward' : 'forward';
-});
+const healthCursor = computed(() => parseCursorFromQuery(route.query.health_cursor));
+const healthDirection = computed(() => parseDirectionFromQuery(route.query.health_direction));
 
 const {
   data: healthPage,
