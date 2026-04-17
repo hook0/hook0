@@ -111,12 +111,12 @@ const queryClient = useQueryClient();
 const toggleMutation = useToggleSubscription();
 const showDisableDialog = ref(false);
 
-// Only warn when disabling if there are pending/waiting deliveries that would be affected
+// Only warn when disabling if there are deliveries in flight.
+// A delivery is "in flight" when it hasn't reached a terminal status yet.
 const hasPendingDeliveries = computed(() => {
   if (!deliveries.value) return false;
   return deliveries.value.some(
-    (d) =>
-      d.status.type === 'waiting' || d.status.type === 'pending' || d.status.type === 'inprogress'
+    (d) => d.status.type !== 'successful' && d.status.type !== 'failed'
   );
 });
 
