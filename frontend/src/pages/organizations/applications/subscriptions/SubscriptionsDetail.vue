@@ -13,13 +13,13 @@ import { useSubscriptionDetail, useToggleSubscription } from './useSubscriptionQ
 import { targetIsHttp } from './SubscriptionService';
 import { useLogListBySubscription } from '../logs/useLogQueries';
 import { RequestAttemptStatusType } from '../logs/LogService';
-import { useSubscriptionHealthEvents } from './useSubscriptionHealthQueries';
-import { parseCursorFromQuery } from '@/utils/pagination';
+import { useSubscriptionHealthTimeline } from './useSubscriptionHealthQueries';
+import { HEALTH_WINDOWS, type HealthWindow } from './SubscriptionHealthService';
 import { useHealthThresholds } from '@/composables/useHealthThresholds';
 import { routes } from '@/routes';
 
 import DeliverySplitView from '../logs/DeliverySplitView.vue';
-import SubscriptionHealthTimeline from './SubscriptionHealthTimeline.vue';
+import SubscriptionFailureRateTimeline from './SubscriptionFailureRateTimeline.vue';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -38,7 +38,7 @@ import Hook0CardSkeleton from '@/components/Hook0CardSkeleton.vue';
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const { organizationId, applicationId, subscriptionId } = useRouteIds();
+const { applicationId, subscriptionId } = useRouteIds();
 
 // --- Data queries ---
 const {
@@ -55,27 +55,29 @@ const {
   refetch: deliveriesRefetch,
 } = useLogListBySubscription(applicationId, subscriptionId);
 
-// Health timeline pagination — cursor is opaque; direction is baked in by the server.
-const healthCursor = computed(() => parseCursorFromQuery(route.query.health_cursor));
+// Health chart window — selected via URL so it survives reload / back-nav.
+function parseWindow(raw: unknown): HealthWindow {
+  return HEALTH_WINDOWS.find((value) => value === raw) ?? '7d';
+}
+const healthWindow = computed<HealthWindow>(() => parseWindow(route.query.health_window));
 
 const {
-  data: healthPage,
+  data: healthTimeline,
   isLoading: healthLoading,
   error: healthError,
   refetch: healthRefetch,
-} = useSubscriptionHealthEvents(subscriptionId, organizationId, healthCursor);
+} = useSubscriptionHealthTimeline(subscriptionId, healthWindow);
 
-function navigateHealth(cursor: string) {
+function setHealthWindow(value: HealthWindow) {
   void router.replace({
-    query: { ...route.query, health_cursor: cursor },
+    query: { ...route.query, health_window: value },
   });
 }
 
-// True when both deliveries AND health events are loaded but both empty
 const showMergedEmptyState = computed(() => {
   if (deliveriesLoading.value || healthLoading.value) return false;
   const noDeliveries = !deliveries.value || deliveries.value.length === 0;
-  const noHealth = !healthPage.value || healthPage.value.data.length === 0;
+  const noHealth = !healthTimeline.value || healthTimeline.value.buckets.length === 0;
   return noDeliveries && noHealth;
 });
 
@@ -260,14 +262,16 @@ function confirmDisable() {
         <!-- Health timeline -->
         <Hook0Card>
           <Hook0CardHeader>
-            <template #header>{{ t('subscriptionDetail.healthTimeline') }}</template>
+            <template #header>{{ t('subscriptionDetail.failureRateTimeline') }}</template>
           </Hook0CardHeader>
           <Hook0CardContent>
-            <SubscriptionHealthTimeline
-              :page="healthPage"
-              :error="healthError"
-              :refetch="healthRefetch"
-              @navigate="navigateHealth"
+            <Hook0ErrorCard v-if="healthError" :error="healthError" @retry="healthRefetch()" />
+            <Hook0SkeletonGroup v-else-if="healthLoading && !healthTimeline" :count="3" />
+            <SubscriptionFailureRateTimeline
+              v-else
+              :timeline="healthTimeline"
+              :window="healthWindow"
+              @update:window="setHealthWindow"
             />
           </Hook0CardContent>
         </Hook0Card>

@@ -1239,6 +1239,8 @@ async fn main() -> anyhow::Result<()> {
                         http::header::AUTHORIZATION,
                         http::header::CONTENT_TYPE,
                     ])
+                    // Link is non-safelisted; expose so paginated routes work cross-origin.
+                    .expose_headers([http::header::LINK])
                     .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
                     .max_age(3600);
 

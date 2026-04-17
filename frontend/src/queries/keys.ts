@@ -105,7 +105,6 @@ export const serviceTokenKeys = {
 
 export const healthEventKeys = {
   all: ['healthEvents'] as const,
-  lists: () => [...healthEventKeys.all, 'list'] as const,
-  list: (subscriptionId: string, organizationId: string) =>
-    [...healthEventKeys.lists(), subscriptionId, organizationId] as const,
+  timeline: (subscriptionId: string, window: string) =>
+    [...healthEventKeys.all, 'timeline', subscriptionId, window] as const,
 };

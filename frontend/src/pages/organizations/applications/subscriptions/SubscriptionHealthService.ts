@@ -1,31 +1,22 @@
 import http from '@/http';
-import type { components } from '@/types';
-import { type CursorPage, PARAM_CURSOR, parseLinkHeader } from '@/utils/pagination';
+import type { components, operations } from '@/types';
 
-export type HealthEvent = components['schemas']['HealthEvent'];
+export type HealthTimeline = components['schemas']['HealthTimeline'];
+export type HealthEvent = HealthTimeline['events'][number];
+export type HealthBucket = HealthTimeline['buckets'][number];
 
-export function listHealthEvents(
+export type HealthWindow = NonNullable<
+  operations['subscriptionHealthEvents.list']['parameters']['query']
+>['window'];
+export const HEALTH_WINDOWS = ['24h', '7d', '30d'] as const satisfies readonly HealthWindow[];
+
+export function getHealthTimeline(
   subscriptionId: string,
-  organizationId: string,
-  cursor: string | null
-): Promise<CursorPage<HealthEvent>> {
-  const params: Record<string, string> = { organization_id: organizationId };
-
-  if (cursor) {
-    params[PARAM_CURSOR] = cursor;
-  }
-
+  window: HealthWindow
+): Promise<HealthTimeline> {
   return http
-    .get<HealthEvent[]>(`/subscriptions/${subscriptionId}/health_events`, {
-      params,
+    .get<HealthTimeline>(`/subscriptions/${subscriptionId}/health_events`, {
+      params: { window },
     })
-    .then((response) => {
-      const links = parseLinkHeader(response.headers.link ?? null);
-
-      return {
-        data: response.data,
-        nextCursor: links.next,
-        prevCursor: links.prev,
-      };
-    });
+    .then((response) => response.data);
 }

@@ -824,8 +824,8 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * List health events for a subscription
-     * @description Retrieves health events for a subscription with bidirectional pagination.
+     * Health timeline for a subscription (events + chart buckets)
+     * @description Returns state-change events plus aggregated total/failed counters within the selected window. Granularity adapts: 5min for 24h, 30min for 7d, 2h for 30d.
      */
     get: operations['subscriptionHealthEvents.list'];
     put?: never;
@@ -1020,19 +1020,29 @@ export interface components {
       object_storage?: boolean;
       pulsar?: boolean;
     };
-    HealthEvent: {
-      /** @enum {string} */
-      cause: 'auto' | 'manual';
-      /** Format: date-time */
-      created_at: string;
-      /** Format: uuid */
-      health_event_id: string;
-      /** @enum {string} */
-      status: 'warning' | 'disabled' | 'resolved';
-      /** Format: uuid */
-      subscription_id: string;
-      /** Format: uuid */
-      user_id?: string;
+    HealthTimeline: {
+      buckets: {
+        /** Format: date-time */
+        bucket_start: string;
+        /** Format: int64 */
+        failed_count: number;
+        /** Format: int64 */
+        total_count: number;
+      }[];
+      events: {
+        /** @enum {string} */
+        cause: 'auto' | 'manual';
+        /** Format: date-time */
+        created_at: string;
+        /** Format: uuid */
+        health_event_id: string;
+        /** @enum {string} */
+        status: 'warning' | 'disabled' | 'resolved';
+        /** Format: uuid */
+        subscription_id: string;
+        /** Format: uuid */
+        user_id?: string;
+      }[];
     };
     IngestedEvent: {
       /** Format: uuid */
@@ -4552,8 +4562,7 @@ export interface operations {
   'subscriptionHealthEvents.list': {
     parameters: {
       query: {
-        organization_id: string;
-        pagination_cursor?: string;
+        window: '24h' | '7d' | '30d';
       };
       header?: never;
       path: {
@@ -4569,7 +4578,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['HealthEvent'][];
+          'application/json': components['schemas']['HealthTimeline'];
         };
       };
       /** @description Bad Request */

@@ -922,26 +922,20 @@
     "sendFirstEvent": "Send an event",
     "deliveries": "Recent Deliveries",
     "deliveriesSubtitle": "Last 7 days of webhook delivery attempts",
-    "healthTimeline": "Health Timeline",
-    "healthEmpty": "No health events",
-    "healthEmptyDescription": "Health events will appear here once the monitor evaluates this subscription.",
-    "healthTimelineEmpty": "No health events",
-    "healthTimelineEmptyDescription": "Health events will appear here when the subscription triggers warnings or gets disabled.",
-    "healthEventCause": "Cause",
-    "healthEventReason": "Reason",
+    "failureRateTimeline": "Failure rate timeline",
     "healthStatus": {
       "warning": "Warning",
       "disabled": "Disabled",
       "resolved": "Resolved"
     },
-    "healthCause": {
-      "auto": "Automatic",
-      "manual": "Manual"
-    },
-    "healthReason": {
-      "warning": "Failure rate exceeded {threshold}%",
-      "disabled": "Failure rate exceeded {threshold}%",
-      "resolved": "Failure rate recovered below threshold"
+    "healthChart": {
+      "failureRate": "Failure rate",
+      "peakRate": "Peak failure rate",
+      "deliveries": "Deliveries",
+      "failures": "Failures",
+      "empty": "No deliveries in this window",
+      "manualDisable": "Disabled (manual)",
+      "manualEnable": "Re-enabled (manual)"
     }
   },
   "tutorial": {

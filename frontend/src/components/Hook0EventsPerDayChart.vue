@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { use } from 'echarts/core';
 import { BarChart } from 'echarts/charts';
@@ -17,12 +17,12 @@ import type { EventsPerDayEntry } from '@/pages/organizations/applications/Event
 
 import Hook0Button from '@/components/Hook0Button.vue';
 import {
-  getThemeColors,
   generateDateRange,
   sumByDate,
   buildSimpleChartOption,
   buildStackedChartOption,
 } from '@/components/eventsPerDayChartOptions';
+import { useThemeColors } from '@/composables/useThemeColors';
 
 use([
   BarChart,
@@ -51,22 +51,7 @@ const { t } = useI18n();
 
 const dayPresets = [7, 30, 90] as const;
 
-const themeKey = ref(0);
-let observer: MutationObserver | null = null;
-onMounted(() => {
-  observer = new MutationObserver(() => {
-    themeKey.value++;
-  });
-  observer.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ['class'],
-  });
-});
-onBeforeUnmount(() => observer?.disconnect());
-const colors = computed(() => {
-  void themeKey.value;
-  return getThemeColors();
-});
+const colors = useThemeColors();
 
 // KPI stats
 const totalEvents = computed(() => props.entries.reduce((sum, e) => sum + e.amount, 0));

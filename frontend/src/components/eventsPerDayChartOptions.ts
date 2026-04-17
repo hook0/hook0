@@ -10,6 +10,7 @@ import type {
 
 import { escapeHtml } from '@/utils/escapeHtml';
 import type { EventsPerDayEntry } from '@/pages/organizations/applications/EventsPerDayService';
+import type { ThemeColors } from '@/composables/useThemeColors';
 
 /** Composed ECharts option type matching the registered components. */
 export type ECOption = ComposeOption<
@@ -19,25 +20,6 @@ export type ECOption = ComposeOption<
   | LegendComponentOption
   | MarkLineComponentOption
 >;
-
-/** Color palette resolved from CSS custom properties. */
-export type ThemeColors = {
-  primary: string;
-  primaryLight: string;
-  success: string;
-  successLight: string;
-  warning: string;
-  warningLight: string;
-  error: string;
-  errorLight: string;
-  info: string;
-  infoLight: string;
-  textSecondary: string;
-  border: string;
-  tooltipBg: string;
-  tooltipText: string;
-  tooltipBorder: string;
-};
 
 /** Single parameter passed to ECharts tooltip formatter callback. */
 export type EChartsTooltipParam = {
@@ -70,30 +52,6 @@ const CHART_GRID_STACKED_BASE = { left: 50, right: 20, bottom: 50 };
 const TOOLTIP_PADDING: [number, number] = [8, 12];
 const AXIS_FONT_SIZE = 11;
 const ANIMATION_DURATION_MS = 400;
-
-/** Resolve design-system color palette from CSS custom properties. */
-export function getThemeColors(): ThemeColors {
-  const style = getComputedStyle(document.documentElement);
-  const css = (name: string, fallback: string): string =>
-    style.getPropertyValue(name).trim() || fallback;
-  return {
-    primary: css('--color-primary', '#22c55e'),
-    primaryLight: css('--color-primary-light', '#86efac'),
-    success: css('--color-success', '#22c55e'),
-    successLight: css('--color-success-light', '#86efac'),
-    warning: css('--color-warning', '#f59e0b'),
-    warningLight: css('--color-warning-light', '#fcd34d'),
-    error: css('--color-error', '#ef4444'),
-    errorLight: css('--color-error-light', '#fca5a5'),
-    info: css('--color-info', '#3b82f6'),
-    infoLight: css('--color-info-light', '#93c5fd'),
-    textSecondary: css('--color-text-secondary', '#64748b'),
-    border: css('--color-border', '#e2e8f0'),
-    tooltipBg: css('--color-text-primary', '#0f172a'),
-    tooltipText: css('--color-bg-primary', '#ffffff'),
-    tooltipBorder: css('--color-border', '#e2e8f0'),
-  };
-}
 
 /** Generate array of 'yyyy-MM-dd' strings covering a date range (inclusive). */
 export function generateDateRange(from: string, to: string): string[] {

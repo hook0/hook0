@@ -15,7 +15,7 @@ import type { operations } from '@/types';
 
 // Any paginated endpoint as a reference. Fails compilation if the backend
 // renames the pagination convention.
-type PaginatedQuery = operations['subscriptionHealthEvents.list']['parameters']['query'];
+type PaginatedQuery = operations['requestAttempts.read']['parameters']['query'];
 type PaginationQueryParam = Extract<keyof PaginatedQuery, `pagination_${string}`>;
 
 export const PARAM_CURSOR = 'pagination_cursor' satisfies PaginationQueryParam;
