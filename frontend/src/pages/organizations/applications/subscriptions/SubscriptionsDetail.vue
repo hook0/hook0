@@ -12,6 +12,7 @@ import { healthEventKeys } from '@/queries/keys';
 import { useSubscriptionDetail, useToggleSubscription } from './useSubscriptionQueries';
 import { targetIsHttp } from './SubscriptionService';
 import { useLogListBySubscription } from '../logs/useLogQueries';
+import { RequestAttemptStatusType } from '../logs/LogService';
 import { useSubscriptionHealthEvents } from './useSubscriptionHealthQueries';
 import {
   type PaginationDirection,
@@ -116,7 +117,9 @@ const showDisableDialog = ref(false);
 const hasPendingDeliveries = computed(() => {
   if (!deliveries.value) return false;
   return deliveries.value.some(
-    (d) => d.status.type !== 'successful' && d.status.type !== 'failed'
+    (d) =>
+      d.status.type !== RequestAttemptStatusType.Successful &&
+      d.status.type !== RequestAttemptStatusType.Failed
   );
 });
 

@@ -7,21 +7,26 @@ type definitions = components['schemas'];
 
 export type RequestAttempt = definitions['RequestAttempt'];
 
-export const enum RequestAttemptStatusType {
-  Waiting = 'waiting',
-  Pending = 'pending',
-  InProgress = 'in_progress',
-  Successful = 'successful',
-  Failed = 'failed',
-}
+export type RequestAttemptStatusType = RequestAttempt['status']['type'];
 
-export type RequestAttemptStatus = {
-  type: RequestAttemptStatusType;
-};
+// Transforms snake_case to PascalCase: 'in_progress' → 'InProgress'
+type SnakeToPascal<S extends string> = S extends `${infer H}_${infer T}`
+  ? `${Capitalize<H>}${SnakeToPascal<T>}`
+  : Capitalize<S>;
 
-type Modify<T, R> = Omit<T, keyof R> & R;
+// Mapped type requires one key per union variant, key name derived from value.
+// Adding/removing/renaming a variant in the OpenAPI type fails compilation here.
+export const RequestAttemptStatusType = {
+  Waiting: 'waiting',
+  Pending: 'pending',
+  InProgress: 'in_progress',
+  Successful: 'successful',
+  Failed: 'failed',
+} as const satisfies { [K in RequestAttemptStatusType as SnakeToPascal<K>]: K };
 
-export type RequestAttemptTypeFixed = Modify<RequestAttempt, { status: RequestAttemptStatus }>;
+export type RequestAttemptStatus = RequestAttempt['status'];
+
+export type RequestAttemptTypeFixed = RequestAttempt;
 
 // TODO: These fields should be in the OpenAPI-generated RequestAttemptTypeFixed type. Remove this extension when the spec is updated.
 export type RequestAttemptExtended = RequestAttemptTypeFixed & {
