@@ -10,7 +10,7 @@ export type RequestAttempt = definitions['RequestAttempt'];
 export const enum RequestAttemptStatusType {
   Waiting = 'waiting',
   Pending = 'pending',
-  InProgress = 'inprogress',
+  InProgress = 'in_progress',
   Successful = 'successful',
   Failed = 'failed',
 }
