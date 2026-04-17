@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            select application__id\n            from webhook.subscription\n            where subscription__id = $1 and deleted_at is null\n            limit 1\n            ",
+  "query": "\n        select application__id\n        from webhook.subscription\n        where subscription__id = $1 and deleted_at is null\n        ",
   "describe": {
     "columns": [
       {
@@ -18,5 +18,5 @@
       false
     ]
   },
-  "hash": "0f07d481926bcad94a674413f144550c236546aa66750c9a47a16c98a26214b2"
+  "hash": "e7f077c37c226b5797cbd4179d5c5bc7f558a1450d54f9edbc787a3ccbc21b55"
 }

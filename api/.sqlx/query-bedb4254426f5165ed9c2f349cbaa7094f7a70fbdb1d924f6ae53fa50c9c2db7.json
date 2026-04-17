@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                select\n                    date_bin($1::interval, bucket_start, '1970-01-01T00:00:00Z'::timestamptz) as \"bucket_start!\",\n                    sum(total_count)::bigint  as \"total_count!\",\n                    sum(failed_count)::bigint as \"failed_count!\",\n                    coalesce(max(\n                        case when total_count > 0\n                             then failed_count::float8 / total_count * 100\n                             else 0 end\n                    ), 0)::float8 as \"peak_rate!\"\n                from webhook.subscription_health_bucket\n                where subscription__id = $2 and bucket_start >= $3\n                group by 1\n                order by 1 asc\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bucket_start!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "failed_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "peak_rate!",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "bedb4254426f5165ed9c2f349cbaa7094f7a70fbdb1d924f6ae53fa50c9c2db7"
+}

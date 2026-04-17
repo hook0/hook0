@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select is_enabled from webhook.subscription where subscription__id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "is_enabled",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "467bdb2dc436fd8048f6be54206b2e8e4115e324b93a6111c9c846e39e760d78"
+}

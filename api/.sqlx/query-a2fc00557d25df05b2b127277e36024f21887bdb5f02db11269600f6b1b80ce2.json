@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO webhook.request_attempt\n                       (request_attempt__id, event__id, subscription__id, application__id, succeeded_at)\n                       VALUES ($1, $2, $3, $4, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a2fc00557d25df05b2b127277e36024f21887bdb5f02db11269600f6b1b80ce2"
+}
