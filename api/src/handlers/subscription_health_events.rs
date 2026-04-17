@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::iam::{Action, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::pagination::{
-    BidirectionalPageConfig, Cursor, EncodedAscCursor, EncodedDescCursor, Paginated,
+    BidirectionalPageConfig, Cursor, EncodedCursor, Paginated, PaginationDirection,
 };
 use crate::problems::Hook0Problem;
 use crate::subscription_health_monitor::{HealthEventCause, HealthStatus};
@@ -36,8 +36,8 @@ pub struct HealthEvent {
 pub struct Qs {
     // Only used for pagination URL generation, not for SQL filtering or auth.
     organization_id: Uuid,
-    pagination_cursor: Option<EncodedDescCursor>,
-    pagination_before_cursor: Option<EncodedAscCursor>,
+    pagination_cursor: Option<EncodedCursor>,
+    pagination_direction: Option<PaginationDirection>,
 }
 
 // --- Data access (separated from HTTP handler) ---
@@ -172,11 +172,19 @@ pub async fn list(
     }
 
     // 3. Fetch events
-    let is_backward = qs.pagination_before_cursor.is_some();
+    // Backward only applies when a cursor is set; otherwise we ignore direction
+    // and return the first page (newest-first).
+    let direction_param = qs.pagination_direction.unwrap_or_default();
+    let is_backward =
+        direction_param == PaginationDirection::Backward && qs.pagination_cursor.is_some();
 
-    let mut events = if let Some(before) = &qs.pagination_before_cursor {
+    let mut events = if is_backward {
+        let cursor = qs
+            .pagination_cursor
+            .expect("cursor presence checked above")
+            .0;
         // Backward: fetch ASC, then reverse to keep newest-first display
-        let mut items = HealthEvent::fetch_backward(&state.db, subscription_id, before.0).await?;
+        let mut items = HealthEvent::fetch_backward(&state.db, subscription_id, cursor).await?;
         items.reverse();
         items
     } else {
@@ -199,6 +207,12 @@ pub async fn list(
         .inspect_err(|e| error!("Failed to build pagination URL: {e}"))
         .ok();
 
+    let direction = if is_backward {
+        PaginationDirection::Backward
+    } else {
+        PaginationDirection::Forward
+    };
+
     let (next_page_parts, prev_page_parts) = match endpoint_url {
         Some(url) => BidirectionalPageConfig {
             endpoint_url: url,
@@ -211,7 +225,7 @@ pub async fn list(
                 date: ev.created_at,
                 id: ev.health_event_id,
             }),
-            is_backward,
+            direction,
             has_more,
             is_past_first_page: qs.pagination_cursor.is_some(),
         }

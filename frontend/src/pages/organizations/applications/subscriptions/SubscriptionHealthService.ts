@@ -3,8 +3,8 @@ import type { components } from '@/types';
 import {
   type CursorPage,
   type PaginationDirection,
-  PARAM_NEXT_CURSOR,
-  PARAM_PREV_CURSOR,
+  PARAM_CURSOR,
+  PARAM_DIRECTION,
   parseLinkHeader,
 } from '@/utils/pagination';
 
@@ -20,8 +20,8 @@ export function listHealthEvents(
   const params: Record<string, string> = { organization_id: organizationId };
 
   if (pagination) {
-    const paramName = pagination.direction === 'backward' ? PARAM_PREV_CURSOR : PARAM_NEXT_CURSOR;
-    params[paramName] = pagination.cursor;
+    params[PARAM_CURSOR] = pagination.cursor;
+    params[PARAM_DIRECTION] = pagination.direction;
   }
 
   return http

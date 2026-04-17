@@ -2,7 +2,7 @@
  * Bidirectional cursor pagination shared across endpoints.
  *
  * Consumers get cursor extraction from Link headers, typed direction
- * enum, and safe parsers for URL query params.
+ * enum (from OpenAPI), and safe parsers for URL query params.
  *
  * - `parseLinkHeader` reads RFC 8288 `<url>; rel="next|prev"`.
  * - `parseCursorFromQuery` / `parseDirectionFromQuery` coerce raw
@@ -16,15 +16,13 @@ import type { operations } from '@/types';
 // Any paginated endpoint as a reference; both params must exist on its query.
 // Template literal filters out non-pagination query keys (e.g. organization_id).
 // Fails compilation if the backend renames the pagination convention.
-type PaginationQueryParam = Extract<
-  keyof operations['subscriptionHealthEvents.list']['parameters']['query'],
-  `pagination_${string}`
->;
+type PaginatedQuery = operations['subscriptionHealthEvents.list']['parameters']['query'];
+type PaginationQueryParam = Extract<keyof PaginatedQuery, `pagination_${string}`>;
 
-export const PARAM_NEXT_CURSOR = 'pagination_cursor' satisfies PaginationQueryParam;
-export const PARAM_PREV_CURSOR = 'pagination_before_cursor' satisfies PaginationQueryParam;
+export const PARAM_CURSOR = 'pagination_cursor' satisfies PaginationQueryParam;
+export const PARAM_DIRECTION = 'pagination_direction' satisfies PaginationQueryParam;
 
-export type PaginationDirection = 'forward' | 'backward';
+export type PaginationDirection = NonNullable<PaginatedQuery['pagination_direction']>;
 
 export type CursorPage<T> = {
   data: T[];
@@ -41,7 +39,7 @@ export type ParsedLinkCursors = {
  * Extracts next/prev cursors from an RFC 8288 Link header.
  *
  * @example
- * parseLinkHeader('<https://api.hook0.com/ep?pagination_cursor=abc>; rel="next"')
+ * parseLinkHeader('<https://api.hook0.com/ep?pagination_cursor=abc&pagination_direction=forward>; rel="next"')
  * // => { next: 'abc', prev: null }
  *
  * @example
@@ -55,9 +53,8 @@ export function parseLinkHeader(linkHeader: string | null): ParsedLinkCursors {
     return parsed;
   }
 
-  // Each part's URL is between angle brackets. The query param identifies
-  // direction (pagination_cursor = next, pagination_before_cursor = prev),
-  // so we don't need to parse the `rel` attribute.
+  // Each part's URL is between angle brackets. The `pagination_direction`
+  // param tells us if the cursor is for next or prev.
   for (const part of linkHeader.split(',')) {
     const start = part.indexOf('<');
     const end = part.indexOf('>', start);
@@ -69,11 +66,15 @@ export function parseLinkHeader(linkHeader: string | null): ParsedLinkCursors {
       // Dummy base: Link header may contain relative URLs
       const params = new URL(urlString, 'http://x').searchParams;
 
-      const nextCursor = params.get(PARAM_NEXT_CURSOR);
-      if (nextCursor !== null) parsed.next = nextCursor;
+      const cursor = params.get(PARAM_CURSOR);
+      const direction = params.get(PARAM_DIRECTION);
+      if (cursor === null) continue;
 
-      const prevCursor = params.get(PARAM_PREV_CURSOR);
-      if (prevCursor !== null) parsed.prev = prevCursor;
+      if (direction === 'backward') {
+        parsed.prev = cursor;
+      } else {
+        parsed.next = cursor;
+      }
     } catch {
       console.error('Failed to parse Link header URL:', urlString);
     }

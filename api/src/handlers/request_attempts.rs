@@ -17,7 +17,7 @@ use uuid::Uuid;
 
 use crate::iam::{Action, AuthorizedToken, authorize_for_application};
 use crate::openapi::OaBiscuit;
-use crate::pagination::{Cursor, EncodedDescCursor, PARAM_NEXT_CURSOR, PageParts, Paginated};
+use crate::pagination::{Cursor, EncodedCursor, PageParts, Paginated, PaginationDirection};
 use crate::problems::Hook0Problem;
 use crate::pulsar_dispatch::publish_attempt;
 
@@ -346,7 +346,7 @@ pub struct Qs {
     application_id: Uuid,
     event_id: Option<Uuid>,
     subscription_id: Option<Uuid>,
-    pagination_cursor: Option<EncodedDescCursor>,
+    pagination_cursor: Option<EncodedCursor>,
     min_created_at: Option<DateTime<Utc>>,
     max_created_at: Option<DateTime<Utc>>,
     /// Comma-separated event types
@@ -529,7 +529,7 @@ pub async fn list(
                 date: ra.created_at,
                 id: ra.request_attempt_id,
             },
-            query_param_name: PARAM_NEXT_CURSOR,
+            direction: PaginationDirection::Forward,
         })
     });
 

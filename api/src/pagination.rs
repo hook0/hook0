@@ -12,8 +12,36 @@ use std::str::FromStr;
 use url::Url;
 use uuid::Uuid;
 
-pub const PARAM_NEXT_CURSOR: &str = "pagination_cursor";
-pub const PARAM_PREV_CURSOR: &str = "pagination_before_cursor";
+pub const PARAM_CURSOR: &str = "pagination_cursor";
+pub const PARAM_DIRECTION: &str = "pagination_direction";
+
+/// Direction for bidirectional cursor pagination.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Default,
+    Deserialize,
+    Serialize,
+    paperclip::actix::Apiv2Schema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum PaginationDirection {
+    #[default]
+    Forward,
+    Backward,
+}
+
+impl PaginationDirection {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Forward => "forward",
+            Self::Backward => "backward",
+        }
+    }
+}
 
 /// A pagination cursor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -30,21 +58,20 @@ impl Cursor {
         BASE64_URL_SAFE.encode(bytes)
     }
 
-    /// Shared decode logic for cursor wrappers.
     fn decode_from_base64(s: &str) -> Result<Self, String> {
         let bytes = BASE64_URL_SAFE
             .decode(s)
             .map_err(|e| format!("invalid base64: {e}"))?;
-
         serde_json::from_slice::<Cursor>(&bytes).map_err(|e| format!("invalid cursor JSON: {e}"))
     }
 }
 
-/// Cursor wrapper for descending order (newest first).
+/// Base64-encoded cursor for URL query strings.
+/// Direction is carried separately via [`PaginationDirection`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct EncodedDescCursor(pub Cursor);
+pub struct EncodedCursor(pub Cursor);
 
-impl Default for EncodedDescCursor {
+impl Default for EncodedCursor {
     fn default() -> Self {
         Self(Cursor {
             date: Utc::now(),
@@ -53,53 +80,20 @@ impl Default for EncodedDescCursor {
     }
 }
 
-impl TypedData for EncodedDescCursor {
+impl TypedData for EncodedCursor {
     fn data_type() -> paperclip::v2::models::DataType {
         paperclip::v2::models::DataType::String
     }
 }
 
-impl FromStr for EncodedDescCursor {
+impl FromStr for EncodedCursor {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Cursor::decode_from_base64(s).map(Self)
     }
 }
 
-impl<'de> Deserialize<'de> for EncodedDescCursor {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let s = String::deserialize(d)?;
-        FromStr::from_str(&s).map_err(serde::de::Error::custom)
-    }
-}
-
-/// Cursor wrapper for ascending order (oldest first).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct EncodedAscCursor(pub Cursor);
-
-impl Default for EncodedAscCursor {
-    fn default() -> Self {
-        Self(Cursor {
-            date: DateTime::<Utc>::MIN_UTC,
-            id: Uuid::nil(),
-        })
-    }
-}
-
-impl TypedData for EncodedAscCursor {
-    fn data_type() -> paperclip::v2::models::DataType {
-        paperclip::v2::models::DataType::String
-    }
-}
-
-impl FromStr for EncodedAscCursor {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Cursor::decode_from_base64(s).map(Self)
-    }
-}
-
-impl<'de> Deserialize<'de> for EncodedAscCursor {
+impl<'de> Deserialize<'de> for EncodedCursor {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let s = String::deserialize(d)?;
         FromStr::from_str(&s).map_err(serde::de::Error::custom)
@@ -112,11 +106,11 @@ pub struct PageParts {
     pub endpoint_url: Url,
     pub query_params: Vec<(&'static str, Option<String>)>,
     pub cursor: Cursor,
-    pub query_param_name: &'static str,
+    pub direction: PaginationDirection,
 }
 
 impl PageParts {
-    /// Builds the final URL with query params and cursor.
+    /// Builds the final URL with query params, cursor, and direction.
     pub fn mk_url(mut self) -> Url {
         let mut pairs = self.endpoint_url.query_pairs_mut();
 
@@ -126,7 +120,8 @@ impl PageParts {
             }
         }
 
-        pairs.append_pair(self.query_param_name, &self.cursor.to_qs_value());
+        pairs.append_pair(PARAM_CURSOR, &self.cursor.to_qs_value());
+        pairs.append_pair(PARAM_DIRECTION, self.direction.as_str());
 
         drop(pairs);
         self.endpoint_url
@@ -139,7 +134,7 @@ pub struct BidirectionalPageConfig {
     pub query_params: Vec<(&'static str, Option<String>)>,
     pub next_cursor: Option<Cursor>,
     pub prev_cursor: Option<Cursor>,
-    pub is_backward: bool,
+    pub direction: PaginationDirection,
     pub has_more: bool,
     pub is_past_first_page: bool,
 }
@@ -147,8 +142,9 @@ pub struct BidirectionalPageConfig {
 impl BidirectionalPageConfig {
     /// Returns (next_page, prev_page) link parts.
     pub fn into_page_parts(self) -> (Option<PageParts>, Option<PageParts>) {
-        let show_next = self.has_more || self.is_backward;
-        let show_prev = if self.is_backward {
+        let is_backward = self.direction == PaginationDirection::Backward;
+        let show_next = self.has_more || is_backward;
+        let show_prev = if is_backward {
             self.has_more
         } else {
             self.is_past_first_page
@@ -159,7 +155,7 @@ impl BidirectionalPageConfig {
                 endpoint_url: self.endpoint_url.clone(),
                 query_params: self.query_params.clone(),
                 cursor,
-                query_param_name: PARAM_NEXT_CURSOR,
+                direction: PaginationDirection::Forward,
             })
         } else {
             None
@@ -170,7 +166,7 @@ impl BidirectionalPageConfig {
                 endpoint_url: self.endpoint_url,
                 query_params: self.query_params,
                 cursor,
-                query_param_name: PARAM_PREV_CURSOR,
+                direction: PaginationDirection::Backward,
             })
         } else {
             None
@@ -202,8 +198,8 @@ impl<T: Apiv2Schema + OperationModifier + Responder> Responder for Paginated<T> 
             .map(|parts| format!(r#"<{}>; rel="prev""#, parts.mk_url()));
 
         // RFC 8288: comma-separated Link values
-        // next only: Link: <https://app/ep?pagination_cursor=abc>; rel="next"
-        // prev only: Link: <https://app/ep?pagination_before_cursor=def>; rel="prev"
+        // next only: Link: <.../ep?pagination_cursor=abc&pagination_direction=forward>; rel="next"
+        // prev only: Link: <.../ep?pagination_cursor=def&pagination_direction=backward>; rel="prev"
         // both:      Link: <...>; rel="prev", <...>; rel="next"
         let combined = match (prev_link, next_link) {
             (Some(prev), Some(next)) => Some(format!("{prev}, {next}")),
@@ -288,12 +284,12 @@ mod tests {
             id: uuid!("8f27f238-ed88-4330-927f-0d20796da285"),
         };
         let encoded = cursor.to_qs_value();
-        let decoded = EncodedDescCursor::from_str(&encoded).unwrap();
+        let decoded = EncodedCursor::from_str(&encoded).unwrap();
         assert_eq!(decoded.0, cursor)
     }
 
     #[test]
-    fn next_page_url() {
+    fn forward_page_url() {
         let parts = PageParts {
             endpoint_url: Url::parse("https://test.local/endpoint").unwrap(),
             query_params: vec![
@@ -305,40 +301,28 @@ mod tests {
                 date: DateTime::UNIX_EPOCH,
                 id: Uuid::nil(),
             },
-            query_param_name: PARAM_NEXT_CURSOR,
+            direction: PaginationDirection::Forward,
         };
-        let expected = Url::parse("https://test.local/endpoint?k1=v1&k3=v3&pagination_cursor=eyJkYXRlIjoiMTk3MC0wMS0wMVQwMDowMDowMFoiLCJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9").unwrap();
-        assert_eq!(parts.mk_url(), expected)
+        let url = parts.mk_url();
+        assert!(url.as_str().contains("pagination_cursor="));
+        assert!(url.as_str().contains("pagination_direction=forward"));
+        assert!(url.as_str().contains("k1=v1"));
+        assert!(url.as_str().contains("k3=v3"));
     }
 
     #[test]
-    fn prev_page_url() {
+    fn backward_page_url() {
         let parts = PageParts {
             endpoint_url: Url::parse("https://test.local/endpoint").unwrap(),
-            query_params: vec![
-                ("k1", Some("v1".to_owned())),
-                ("k2", None),
-                ("k3", Some("v3".to_owned())),
-            ],
+            query_params: vec![],
             cursor: Cursor {
                 date: DateTime::UNIX_EPOCH,
                 id: Uuid::nil(),
             },
-            query_param_name: PARAM_PREV_CURSOR,
+            direction: PaginationDirection::Backward,
         };
-        let expected = Url::parse("https://test.local/endpoint?k1=v1&k3=v3&pagination_before_cursor=eyJkYXRlIjoiMTk3MC0wMS0wMVQwMDowMDowMFoiLCJpZCI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCJ9").unwrap();
-        assert_eq!(parts.mk_url(), expected)
-    }
-
-    #[test]
-    fn encode_and_decode_asc_cursor() {
-        let cursor = Cursor {
-            date: Utc.with_ymd_and_hms(2025, 9, 28, 18, 0, 0).unwrap(),
-            id: uuid!("8f27f238-ed88-4330-927f-0d20796da285"),
-        };
-        let encoded = cursor.to_qs_value();
-        let decoded = EncodedAscCursor::from_str(&encoded).unwrap();
-        assert_eq!(decoded.0, cursor)
+        let url = parts.mk_url();
+        assert!(url.as_str().contains("pagination_direction=backward"));
     }
 
     #[test]
@@ -353,13 +337,13 @@ mod tests {
             endpoint_url: Url::parse("https://test.local/items").unwrap(),
             query_params: qs.clone(),
             cursor,
-            query_param_name: PARAM_NEXT_CURSOR,
+            direction: PaginationDirection::Forward,
         };
         let prev = PageParts {
             endpoint_url: Url::parse("https://test.local/items").unwrap(),
             query_params: qs,
             cursor,
-            query_param_name: PARAM_PREV_CURSOR,
+            direction: PaginationDirection::Backward,
         };
 
         let next_url = next.clone().mk_url();

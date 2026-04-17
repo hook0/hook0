@@ -4553,8 +4553,8 @@ export interface operations {
     parameters: {
       query: {
         organization_id: string;
-        pagination_before_cursor?: string;
         pagination_cursor?: string;
+        pagination_direction?: 'forward' | 'backward';
       };
       header?: never;
       path: {
