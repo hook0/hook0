@@ -15,7 +15,7 @@
           "name": "How long does it take to build webhooks from scratch?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "A production-grade webhook system typically takes 3 or more engineering sprints to build. This includes retry logic with automatic retries with increasing delays, dead letter queues, HMAC signature generation, delivery monitoring, subscriber management, and endpoint health checking. Ongoing maintenance adds more cost over time."
+            "text": "A production-grade webhook system typically takes 3 or more engineering sprints to build. This includes configurable retry logic with two-phase schedules, dead letter queues, HMAC signature generation, delivery monitoring, subscriber management, and endpoint health checking. Ongoing maintenance adds more cost over time."
           }
         },
         {
@@ -120,7 +120,7 @@
                     </svg>
                 </div>
                 <h3 class="text-lg font-semibold text-white mb-2">Retry Logic</h3>
-                <p class="text-sm text-gray-400">Exponential backoff, jitter, max attempts, circuit breakers. You will ship bugs here. Everyone does.</p>
+                <p class="text-sm text-gray-400">Two-phase schedules, jitter, max attempts, per-subscription configuration. You will ship bugs here. Everyone does.</p>
             </div>
 
             <div class="animate-on-scroll card card--glow p-6">
@@ -213,7 +213,7 @@
                     <tr class="hover:bg-white/5 transition-colors">
                         <td class="py-4 px-6 text-gray-300">Retry logic</td>
                         <td class="py-4 px-6 text-red-400">Build from scratch</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">Built-in with exponential backoff</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Built-in with configurable two-phase retries (fast + slow), customizable per subscription</td>
                     </tr>
                     <tr class="hover:bg-white/5 transition-colors">
                         <td class="py-4 px-6 text-gray-300">Security (HMAC)</td>

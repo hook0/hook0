@@ -35,10 +35,10 @@ import Head from '@docusaurus/Head';
 | **Open-Source** | ⚠️ Open-core | ✅ SSPL-1.0 |
 | **Multi-tenant filtering** | ⚠️ Basic filtering | ✅ Label-based filtering |
 | **HMAC signatures** | ✅ | ✅ |
-| **Automatic retries** | ✅ | ✅ Fixed schedule + jitter |
+| **Automatic retries** | ✅ | ✅ Configurable two-phase (fast + slow) + jitter |
 | **Dead letter queue** | ✅ | ✅ |
 | **Event type hierarchy** | ✅ | ✅ Dot-notation |
-| **Custom retry schedules** | ✅ | ✅ |
+| **Custom retry schedules** | ✅ | ✅ Configurable per subscription (fast + slow phases, app-level defaults) |
 | **Delivery logs** | ✅ | ✅ |
 | **Manual replay** | ✅ | ✅ |
 | **REST API** | ✅ | ✅ |

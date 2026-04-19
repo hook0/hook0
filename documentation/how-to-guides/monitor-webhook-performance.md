@@ -1,6 +1,6 @@
 ---
-title: "Monitor webhook delivery — latency, failures, and alerts"
-description: "Hook0 logs every delivery attempt with status codes, latency, and retry count. Use the API to track p95 response times, spot failing endpoints, and trigger alerts before your users notice."
+title: "Webhook Delivery Monitoring — Catch Failures Before Users Do"
+description: "Track p95 latency, spot failing endpoints, and set alerts via API. Includes the Hook0 dashboard queries that surface silent delivery failures others miss."
 keywords: [webhook monitoring, webhook delivery tracking, webhook latency, webhook alerts, webhook performance dashboard, delivery failure monitoring]
 ---
 
