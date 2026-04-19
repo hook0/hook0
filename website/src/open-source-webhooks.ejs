@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Best Open-Source Webhook Server (2026) | Hook0</title>
+    <%
+    locals.pageTitle = 'Best Open-Source Webhook Server (2026) | Hook0';
+    locals.pageDescription = 'Compare open-source webhook servers: Hook0 (SSPL, full-feature), Svix (open-core), Convoy (MIT). Cloud from €59/month, or self-host for compliance.';
+    locals.pageCanonical = '/open-source-webhooks';
+    locals.pageNoindex = false;
+    locals.pageFAQSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Hook0 open-source?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 is fully open-source under the SSPL-1.0 license. Every line of code is available on GitHub and GitLab. There is no proprietary enterprise edition — the self-hosted version runs the exact same codebase as the managed cloud."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What license does Hook0 use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hook0 uses the Server Side Public License (SSPL-1.0). This means you can freely self-host, modify, and inspect every line of code. The only restriction is that you cannot offer Hook0 as a managed service to third parties without open-sourcing your entire stack."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does self-hosting Hook0 require?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Self-hosting Hook0 requires Docker Compose or Kubernetes and a PostgreSQL database. You manage your own infrastructure, scaling, backups, updates, and monitoring. The self-hosted binary is built from the same codebase as Hook0 Cloud — no features are stripped out. Hook0 Cloud handles all of that for you if you prefer a managed path."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What are the risks of open-core webhook tools?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Open-core webhook tools split their codebase into a free community edition and a paid enterprise edition. The risk: features you rely on today (SSO, advanced monitoring, self-hosting support) can be moved behind the paywall at any time. You cannot audit the closed-source parts for security. And if you self-host, you run a stripped-down version missing critical capabilities. Hook0 avoids this entirely — the full codebase is available under SSPL, with no enterprise edition."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Hook0 really free to self-host?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 is open-source and self-hostable at no license cost. Hook0 Cloud adds managed infrastructure, automatic updates, EU hosting, priority support, and SLA — so you can focus on your product instead of operating webhook infrastructure. Start with the free cloud tier (100 events/day, no credit card)."
+          }
+        }
+      ]
+    };
+    %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Open-Source</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            Best Open-Source
+            <span class="block text-gradient-green">Webhook Server</span>
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            Hook0 is fully open-source under SSPL — audit every line of code, self-host for compliance, or use Hook0 Cloud for managed infrastructure, automatic updates, and EU hosting. Bootstrapped, no open-core tricks.
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'oss-webhooks-hero-cloud-signup')">
+                Start Free on Cloud
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'oss-webhooks-hero-playground')">
+                Try the Playground
+            </a>
+        </div>
+
+        <!-- Trust Indicators -->
+        <div class="mt-10 flex flex-wrap gap-6 justify-center text-sm text-gray-400 animate-on-scroll">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>100% open-source</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Self-host available (Docker / K8s)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Bootstrapped, no VC</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('./includes/_social-proof-bar.ejs') %>
+
+<!-- Why Open-Source Matters -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Why Open-Source</span>
+            <h2 class="mt-4 text-display font-bold text-white">Why Your Webhook Server Should Be Open-Source</h2>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Audit Every Line of Code</h3>
+                <p class="text-gray-400">
+                    Webhooks carry sensitive payloads. With open-source, your security team can audit exactly how data is handled, signed, and delivered. No black boxes.
+                </p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">No Vendor Lock-in</h3>
+                <p class="text-gray-400">
+                    If the vendor disappears, raises prices, or pivots, you still have the code. Fork it, maintain it, or migrate at your own pace. Your webhook infrastructure is yours.
+                </p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Self-Host Anywhere</h3>
+                <p class="text-gray-400">
+                    Deploy on your own servers, your own cloud, or air-gapped networks. Open-source means you choose where your data lives, not the vendor.
+                </p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Community & Contributions</h3>
+                <p class="text-gray-400">
+                    Report bugs, send PRs, request features. Open-source projects align incentives: the product gets better because users can shape it directly.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Comparison Table -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Licensing</span>
+            <h2 class="mt-4 text-display font-bold text-white">Webhook Licensing Models Compared</h2>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Criteria</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider">SSPL (Hook0)</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Open-Core (Svix)</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">MIT (Convoy)</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Proprietary (Hookdeck)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Source code available</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Yes, 100% on GitHub & GitLab</td>
+                        <td class="py-4 px-6 text-gray-400">Partial (core only)</td>
+                        <td class="py-4 px-6 text-gray-400">Yes, on GitHub</td>
+                        <td class="py-4 px-6 text-gray-400">No</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Can audit code</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Every line, including infra</td>
+                        <td class="py-4 px-6 text-gray-400">Core only, enterprise is closed</td>
+                        <td class="py-4 px-6 text-gray-400">Yes</td>
+                        <td class="py-4 px-6 text-gray-400">No</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Can self-host</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Yes, free (Docker / K8s)</td>
+                        <td class="py-4 px-6 text-gray-400">Enterprise plan only</td>
+                        <td class="py-4 px-6 text-gray-400">Yes, free</td>
+                        <td class="py-4 px-6 text-gray-400">No</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Feature parity (cloud = self-host)</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Same codebase, all features</td>
+                        <td class="py-4 px-6 text-gray-400">Different editions, features gated</td>
+                        <td class="py-4 px-6 text-gray-400">Cloud is a separate product</td>
+                        <td class="py-4 px-6 text-gray-400">N/A (cloud-only)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Vendor lock-in risk</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Low — fork anytime, standard PostgreSQL</td>
+                        <td class="py-4 px-6 text-gray-400">Medium — enterprise features lost if you leave</td>
+                        <td class="py-4 px-6 text-gray-400">Low — MIT allows forking</td>
+                        <td class="py-4 px-6 text-gray-400">High — no source, no self-host</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Data sovereignty</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Full control (self-host or EU Cloud)</td>
+                        <td class="py-4 px-6 text-gray-400">US cloud or enterprise self-host</td>
+                        <td class="py-4 px-6 text-gray-400">Self-host only</td>
+                        <td class="py-4 px-6 text-gray-400">US cloud, no self-host option</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Community contributions</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">PRs welcome on full codebase</td>
+                        <td class="py-4 px-6 text-gray-400">PRs on core only</td>
+                        <td class="py-4 px-6 text-gray-400">PRs welcome</td>
+                        <td class="py-4 px-6 text-gray-400">No community access</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">License restrictions</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Cannot resell as managed service</td>
+                        <td class="py-4 px-6 text-gray-400">Enterprise features require paid license</td>
+                        <td class="py-4 px-6 text-gray-400">None (permissive)</td>
+                        <td class="py-4 px-6 text-gray-400">All usage subject to vendor terms</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Key Differentiators -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--indigo w-64 h-64 bottom-1/4 left-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Hook0 Difference</span>
+            <h2 class="mt-4 text-display font-bold text-white">What Sets Hook0 Apart</h2>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6 text-center">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Audit Every Line</h3>
+                <p class="text-sm text-gray-400">Webhooks carry sensitive payloads. Your security and compliance teams can review the entire codebase — API, worker, database schema — before deploying to production. No closed-source black boxes.</p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-6 text-center">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">No Vendor Lock-in</h3>
+                <p class="text-sm text-gray-400">Migrate anytime. No proprietary APIs, no proprietary data formats. Hook0 stores everything in standard PostgreSQL. If you leave, your data and infrastructure knowledge come with you.</p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-6 text-center">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Cloud When You Want It</h3>
+                <p class="text-sm text-gray-400">Start with Hook0 Cloud for the fastest path to production. Switch to self-host later for compliance or data sovereignty — or the other way around. Same codebase, zero migration effort.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">FAQ</span>
+            <h2 class="mt-4 text-display font-bold text-white">Common Questions</h2>
+        </div>
+
+        <div class="space-y-6 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 open-source?</h3>
+                <p class="text-gray-400">Yes. Hook0 is fully open-source under the SSPL-1.0 license. Every line of code is on GitHub and GitLab. There is no proprietary enterprise edition.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What license does Hook0 use?</h3>
+                <p class="text-gray-400">SSPL-1.0 (Server Side Public License). You can freely self-host, modify, and audit the code. The only restriction is offering Hook0 as a managed service to third parties without open-sourcing your stack.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What does self-hosting Hook0 require?</h3>
+                <p class="text-gray-400">Self-hosting Hook0 requires Docker Compose or Kubernetes and a PostgreSQL database. You manage your own infrastructure, scaling, backups, updates, and monitoring. The self-hosted binary is built from the same codebase as Hook0 Cloud — no features are stripped out. Hook0 Cloud handles all of that for you if you prefer a managed path.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What are the risks of open-core webhook tools?</h3>
+                <p class="text-gray-400">Open-core webhook tools split their codebase into a free community edition and a paid enterprise edition. The risk: features you rely on today (SSO, advanced monitoring, self-hosting support) can be moved behind the paywall at any time. You cannot audit the closed-source parts for security. And if you self-host, you run a stripped-down version. Hook0 avoids this — the full codebase is available under SSPL, with no enterprise edition.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 really free to self-host?</h3>
+                <p class="text-gray-400">Yes. Hook0 is open-source and self-hostable at no license cost. Hook0 Cloud adds managed infrastructure, automatic updates, EU hosting, priority support, and SLA — so you can focus on your product instead of operating webhook infrastructure. Start with the free cloud tier (100 events/day, no credit card).</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center">Related</h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <a href="./self-hosted-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Self-Hosted Webhooks</a>
+            <a href="./hook0-vs-svix" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Svix</a>
+            <a href="./hook0-vs-hookdeck" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Hookdeck</a>
+            <a href="./build-vs-buy-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Build vs Buy Webhooks</a>
+            <a href="./hook0-alternatives" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 Alternatives</a>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<%- include('./includes/_cta-inline.ejs') %>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>

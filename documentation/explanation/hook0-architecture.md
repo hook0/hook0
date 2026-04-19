@@ -1,6 +1,6 @@
 ---
-title: "Hook0 architecture: API, queue backends, workers, and storage"
-description: "How events flow through Hook0 — from API ingestion to queue processing, worker delivery, and storage. Supports PostgreSQL-only or Pulsar + S3 for high throughput."
+title: "Hook0 Architecture — Why Two Queue Backends, Not One"
+description: "API ingestion, queue routing, worker delivery, and storage. PostgreSQL-only for simplicity or Pulsar + S3 when you outgrow it. The architecture decision that avoids rewrites."
 keywords: [webhook, architecture, API, queue, workers, PostgreSQL, Pulsar, S3, Hook0]
 ---
 

@@ -1,6 +1,6 @@
 ---
-title: "Event types and subscriptions in Hook0"
-description: "Structure your webhook events into a type hierarchy, then let subscribers pick which ones they receive. Covers schema design, wildcard filters, and multi-tenant routing."
+title: "Webhook Events & Subscriptions — Design It Right"
+description: "Structure events into a type hierarchy, let subscribers filter with wildcards, and route across tenants. The schema design that saves you a migration later."
 keywords: [webhook event types, webhook subscriptions, event schema design, webhook routing, webhook filtering, multi-tenant webhooks]
 ---
 

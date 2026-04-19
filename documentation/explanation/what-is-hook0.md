@@ -1,6 +1,6 @@
 ---
-title: "What is Hook0? Open-source webhooks as a service"
-description: "Hook0 is an open-source webhook server you can self-host or run as a managed service. It handles retries, HMAC signatures, and delivery monitoring so you don't build that yourself."
+title: "Hook0 — Open-Source Webhook Server You Actually Own"
+description: "Self-host or use the managed cloud. Hook0 handles retries, HMAC signatures, and delivery monitoring. Free tier included — no vendor lock-in, full source access."
 keywords: [what is Hook0, open source webhook server, webhooks as a service, free webhook platform, webhook infrastructure, self-hosted webhooks]
 ---
 

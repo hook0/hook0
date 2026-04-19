@@ -1,6 +1,6 @@
 ---
-title: "Send your first webhook in 5 minutes"
-description: "Create a Hook0 application, define an event type, add a subscription, and fire your first webhook. The free tier covers everything in this tutorial."
+title: "Send Your First Webhook in 5 Minutes — Hook0 Quickstart"
+description: "From zero to working webhook: create an app, define event types, subscribe an endpoint, and fire a test event. Free tier covers everything — no credit card needed."
 keywords: [webhook quickstart, getting started webhooks, send first webhook, Hook0 tutorial, webhook setup guide, free webhook service]
 ---
 
