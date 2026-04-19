@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Free Webhook Testing Tool — Send, Inspect & Debug | Hook0 Playground</title>
+    <%
+    locals.pageTitle = 'Free Webhook Testing Tool — Send, Inspect & Debug | Hook0 Playground';
+    locals.pageDescription = 'Test webhooks for free. Send events, inspect payloads, verify HMAC signatures, and debug delivery in real time. No signup required. Open-source.';
+    locals.pageCanonical = '/webhook-playground';
+    locals.pageNoindex = false;
+    locals.pageFAQSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Hook0 Playground free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 Playground is completely free to use with no signup required. You can send webhook events, inspect payloads, verify HMAC signatures, and debug delivery issues — all in your browser."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What can I test with the webhook playground?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "You can send test webhook events with custom payloads, inspect HTTP headers and response codes, verify HMAC-SHA256 signatures, test retry behavior, and debug endpoint connectivity. It supports all standard webhook patterns used by Stripe, GitHub, Shopify, and other platforms."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I need to create an account?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The playground works instantly without signup. If you want to save your configurations or send more than 100 events/day, you can create a free Hook0 account."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is there a free webhook service I can use in production?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 Cloud scales from free to production — the Developer tier includes 100 events/day, HMAC signatures, delivery monitoring, and 7-day data retention. No credit card required. Self-hosting is also available for specific infrastructure requirements."
+          }
+        }
+      ]
+    };
+    %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative min-h-[70vh] flex items-center gradient-hero overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 left-1/4"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/3 right-1/4"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+        <div class="animate-on-scroll">
+            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium mb-8">
+                <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                Free — No signup required
+            </span>
+            <h1 class="text-display font-bold text-white mb-6">
+                Test webhooks <span class="text-gradient-primary">in seconds</span>
+            </h1>
+            <p class="text-xl text-gray-300 max-w-2xl mx-auto mb-10">
+                Send events, inspect payloads, verify HMAC signatures, and debug delivery — all in your browser. The fastest way to test your webhook integration.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--primary btn--lg" onclick="trackEvent('CTA', 'Click', 'Open Playground')">
+                    Open the Playground
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                </a>
+                <a href="/pricing" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'See Pricing')">
+                    See pricing — Free tier included
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- What you can do -->
+<section class="relative py-24 sm:py-32 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-surface-primary via-surface-secondary to-surface-primary"></div>
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="section__header animate-on-scroll">
+            <span class="section__eyebrow">What you can do</span>
+            <h2 class="section__title">Everything you need to test webhooks</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Send test events</h3>
+                <p class="text-gray-400 text-sm">Fire webhook events with custom JSON payloads to any endpoint. See the response in real time.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Verify HMAC signatures</h3>
+                <p class="text-gray-400 text-sm">Check that your webhook receiver correctly validates HMAC-SHA256 signatures and rejects tampered payloads.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Inspect payloads</h3>
+                <p class="text-gray-400 text-sm">View HTTP headers, request body, status codes, and latency for every delivery attempt.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Test retry behavior</h3>
+                <p class="text-gray-400 text-sm">Simulate endpoint failures and watch Hook0's configurable two-phase retry logic in action (fast retries, then slow retries).</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Code examples</h3>
+                <p class="text-gray-400 text-sm">Copy-paste working code for Python, Node.js, Go, and Rust to integrate webhooks in minutes.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"></path></svg>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">No signup, no install</h3>
+                <p class="text-gray-400 text-sm">Works instantly in your browser. No account creation, no CLI tool, no Docker setup needed to start testing.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- From testing to production -->
+<section class="relative py-24 sm:py-32 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-surface-secondary via-indigo-950/20 to-surface-primary"></div>
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="animate-on-scroll">
+            <h2 class="text-heading-xl font-bold text-white mb-6">From testing to production in 5 minutes</h2>
+            <p class="text-lg text-gray-300 max-w-2xl mx-auto mb-10">
+                When you're ready to send webhooks in production, Hook0 handles retries, HMAC signatures, delivery monitoring, and multi-tenant routing. Start with the free tier — no credit card required.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--primary btn--lg" onclick="trackEvent('CTA', 'Click', 'Open Playground Bottom')">
+                    Try the Playground
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                </a>
+                <a href="/pricing" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'View Pricing Bottom')">
+                    View pricing
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('./includes/_footer.ejs') %>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.animate-on-scroll').forEach(el => {
+        observer.observe(el);
+    });
+
+    document.querySelectorAll('.card--glow').forEach(card => {
+        card.addEventListener('mousemove', function(e) {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            card.style.setProperty('--mouse-x', `${x}px`);
+            card.style.setProperty('--mouse-y', `${y}px`);
+        });
+    });
+});
+</script>
+
+</body>
+</html>

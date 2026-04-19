@@ -676,6 +676,9 @@ const app = express();
 const PORT = 4000;
 
 // Tenant configuration (from database in production)
+// NOTE: retryPolicy here illustrates what a custom implementation would require.
+// Hook0 handles retries automatically with a fixed progressive schedule
+// (3s → 10s → 3min → 30min → 1h → 3h → 5h → 10h, up to 25 attempts over 8 days).
 const TENANT_CONFIG = {
   'acme_corp': {
     webhookUrl: 'https://acme.example.com/webhooks/hook0',
@@ -811,7 +814,7 @@ Before going to production:
 - [ ] Implement idempotency with persistent storage (PostgreSQL)
 - [ ] Add structured logging with request IDs
 - [ ] Set up monitoring and alerting
-- [ ] Configure retry policies per tenant
+- [ ] Review retry behavior (Hook0 uses a fixed progressive schedule: 3s → 10s → 3min → 30min → 1h → 3h → 5h → 10h)
 - [ ] Enable TLS for webhook endpoints
 - [ ] Implement rate limiting on webhook receiver
 - [ ] Set up database backups

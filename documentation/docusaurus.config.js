@@ -59,6 +59,7 @@ const config = {
             "**/build/**",
             "**/.docusaurus/**",
             "**/scripts/**",
+            "**/CLAUDE.md",
           ],
         },
         sitemap: {
