@@ -117,8 +117,8 @@ locals.features = [
   },
   {
     primary: true,
-    title: 'Smart Retries',
-    description: 'Managing webhook retries is a pain. Our exponential back offs, endpoint monitoring and notifications handle it for you.',
+    title: 'Configurable Retries',
+    description: 'Two-phase retry schedules configurable per subscription: fast retries with increasing delays, then slow retries at fixed intervals. Smart defaults included, full control when you need it.',
     wip: false,
   },
   {
@@ -172,7 +172,7 @@ locals.features = [
   },
   {
     title: 'Failure notification',
-    description: "If after several retries we still can't successfuly reach a webhook, your subscriber is notified by email.",
+    description: "If after all retry attempts we still can't reach a webhook endpoint, your subscriber is notified by email.",
     wip: true,
   },
   {
@@ -254,8 +254,10 @@ locals.footerLinks = {
       { label: 'Built to Last', href: './built-to-last' },
       { label: 'Hook0 vs Svix', href: './hook0-vs-svix' },
       { label: 'Hook0 vs Hookdeck', href: './hook0-vs-hookdeck' },
+      { label: 'Hook0 Alternatives', href: './hook0-alternatives' },
       { label: 'Build vs Buy Webhooks', href: './build-vs-buy-webhooks' },
       { label: 'Self-Hosted Webhooks', href: './self-hosted-webhooks' },
+      { label: 'Open-Source Webhooks', href: './open-source-webhooks' },
       { label: 'Media Kit', href: './mediakit/' },
     ],
   },
