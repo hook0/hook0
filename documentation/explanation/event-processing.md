@@ -1,3 +1,9 @@
+---
+title: "How Hook0 Processes Events — Ingestion to Delivery"
+description: "Follow an event through Hook0's pipeline: API ingestion, queue routing, worker delivery, retry logic. Understand exactly where failures happen and how they're recovered."
+keywords: [webhook event processing, webhook delivery pipeline, webhook retry logic, event-driven architecture, webhook queue, guaranteed delivery]
+---
+
 # Event processing model
 
 This document explains how events flow through Hook0, from ingestion to delivery.

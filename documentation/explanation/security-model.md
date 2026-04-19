@@ -1,3 +1,9 @@
+---
+title: "Hook0 Security — Defense-in-Depth for Webhooks"
+description: "HMAC signatures, mTLS, IP allowlisting, and role-based access control. How Hook0 secures webhook delivery from API ingestion to endpoint delivery."
+keywords: [webhook security, webhook HMAC, webhook infrastructure security, defense in depth, webhook access control, secure webhook delivery]
+---
+
 # Security model
 
 Hook0 uses defense-in-depth with multiple layers of protection. This document covers the security architecture, threat model, and best practices.

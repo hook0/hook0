@@ -1,7 +1,7 @@
 ---
-title: Hook0 Documentation
-description: Complete documentation for Hook0 - The open-source webhook server for reliable event delivery
-keywords: [hook0, webhooks, event delivery, api, documentation]
+title: "Hook0 Docs — Webhook Server for Reliable Delivery"
+description: "Guides, API reference, and architecture docs for Hook0. Self-host or use the cloud — retries, HMAC signatures, and monitoring included. Start sending webhooks in 5 minutes."
+keywords: [hook0 documentation, webhook server docs, webhook API reference, open source webhooks, webhook setup guide]
 ---
 
 # Hook0 Documentation

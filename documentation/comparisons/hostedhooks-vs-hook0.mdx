@@ -33,11 +33,11 @@ import Head from '@docusaurus/Head';
 | **Self-hosting** | ❌ | ✅ Full feature parity |
 | **Open-Source** | ❌ Proprietary | ✅ SSPL-1.0 |
 | **HMAC signatures** | ✅ | ✅ |
-| **Automatic retries** | ✅ | ✅ Fixed schedule + jitter |
+| **Automatic retries** | ✅ | ✅ Configurable two-phase (fast + slow) + jitter |
 | **Dead letter queue** | ❌ | ✅ |
 | **Event type hierarchy** | ⚠️ Flat event types | ✅ Dot-notation hierarchy |
 | **Multi-tenant filtering** | ❌ | ✅ Label-based filtering |
-| **Custom retry schedules** | ❌ | ✅ |
+| **Custom retry schedules** | ❌ | ✅ Configurable per subscription (fast + slow phases, app-level defaults) |
 | **Delivery logs** | ✅ | ✅ |
 | **Manual replay** | ❌ | ✅ |
 | **REST API** | ✅ | ✅ |

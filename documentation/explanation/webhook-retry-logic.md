@@ -1,54 +1,58 @@
 ---
-title: "Webhook retry logic: delivery attempts and retry scheduling"
-description: "How Hook0 retries failed webhook deliveries using a predefined retry schedule, and how to replay events after all retries are exhausted."
-keywords: [webhook retry, retry schedule, webhook delivery, retry attempts, replay events]
+title: "Webhook retry logic: configurable delivery attempts and retry scheduling"
+description: "How Hook0 retries failed webhook deliveries using configurable two-phase retry schedules (fast + slow), with per-subscription overrides and smart defaults."
+keywords: [webhook retry, retry schedule, webhook delivery, retry attempts, replay events, configurable retries]
 ---
 
 # Webhook retry logic
 
-When a webhook delivery fails (network timeout, 5xx response, DNS error, connection refused), Hook0 retries with increasing delays. Each failed attempt creates a new request attempt scheduled for later, until the retry limit is reached.
+When a webhook delivery fails (network timeout, 5xx response, DNS error, connection refused), Hook0 retries with increasing delays. Each failed attempt creates a new [request attempt](/concepts/request-attempts) scheduled for later, until the retry limit is reached.
 
 ## Why retries matter
 
 Most webhook delivery failures are transient. The receiving server was restarting, a load balancer was draining connections, or a brief network partition occurred. A retry a few seconds later usually succeeds.
 
-Without retries, every transient failure becomes a lost event. With naive retries (fixed interval, no limit), you risk overwhelming a recovering server. Hook0 uses a predefined retry schedule that spaces out attempts over increasing intervals.
+Without retries, every transient failure becomes a lost event. With naive retries (fixed interval, no limit), you risk overwhelming a recovering server. Hook0 uses a two-phase retry schedule that balances fast recovery with patience.
 
-## Retry schedule
+## Two-phase retry schedule
 
-Hook0 uses a fixed retry schedule (not exponential backoff). Each retry attempt has a predefined delay:
+Hook0 uses a configurable two-phase approach instead of a single fixed schedule:
+
+1. **Fast retries** -- frequent attempts with increasing delays, to recover from brief outages quickly
+2. **Slow retries** -- spaced-out attempts at fixed intervals, to handle longer outages without overwhelming the endpoint
 
 ```mermaid
 flowchart LR
-    A1["1: immediate"]:::hook0 --> A2["2: +3s"]:::external
-    A2 --> A3["3: +10s"]:::external
-    A3 --> A4["4: +3min"]:::external
-    A4 --> A5["5: +30min"]:::processing
-    A5 --> A6["6: +1h"]:::processing
-    A6 --> A7["7: +3h"]:::processing
-    A7 --> A8["8: +5h"]:::customer
-    A8 --> A9["9+: +10h each"]:::customer
+    A1["Phase 1: Fast retries"]:::hook0 --> A2["Delay increases from 5s to 5min"]:::external
+    A2 --> A3["Up to 30 attempts"]:::external
+    A3 --> B1["Phase 2: Slow retries"]:::processing
+    B1 --> B2["Fixed 1h intervals"]:::customer
+    B2 --> B3["Up to 30 attempts"]:::customer
 
     classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
     classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
     classDef customer fill:#ffedd5,stroke:#fb923c,color:#7c2d12
     classDef processing fill:#ede9fe,stroke:#a78bfa,color:#3b0764
-
-    click A1 "/concepts/request-attempts" "Request Attempts"
 ```
 
-The delays are cumulative from the point of failure, not from the original event. For example, if the first delivery fails at T=0, the second attempt is scheduled at T+3s. If that also fails, the third attempt is at T+3s+10s, and so on.
+### Default retry configuration
 
-### Retry limits
+Every [application](/concepts/applications) gets these defaults. Most users never need to change them:
 
-Retries are bounded by two configurable limits (whichever is reached first):
+| Parameter | Default | Range | Description |
+|-----------|---------|-------|-------------|
+| `max_fast_retries` | 30 | 0-100 | Number of fast-phase retry attempts |
+| `max_slow_retries` | 30 | 0-100 | Number of slow-phase retry attempts |
+| `fast_retry_delay_seconds` | 5s | 1-3600s | Initial delay between fast retries |
+| `max_fast_retry_delay_seconds` | 300s (5min) | 1-86400s | Maximum delay between fast retries |
+| `slow_retry_delay_seconds` | 3600s (1h) | 60-604800s | Fixed delay between slow retries |
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `MAX_RETRIES` | 25 | Maximum number of delivery attempts |
-| `MAX_RETRY_WINDOW` | 8 days | Maximum total time window for retries |
+### Per-subscription overrides
 
-At startup, the output worker evaluates the effective retry policy by computing how many retries fit within the configured window. For example, with the default settings, all 25 retries fit comfortably within 8 days.
+Each [subscription](/concepts/subscriptions) can override any of these parameters. When a subscription does not specify a retry configuration, it inherits the application-level defaults. This means you can:
+
+- Set sane defaults for the whole application
+- Customize retry behavior for specific subscriptions that need it (e.g., a critical integration that needs more aggressive retries, or a low-priority endpoint that can tolerate longer delays)
 
 ## What happens on failure
 

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Hook0 Alternatives — Honest Comparison (2026)</title>
+    <%
+    locals.pageTitle = 'Hook0 Alternatives — Honest Comparison (2026)';
+    locals.pageDescription = 'Looking for Hook0 alternatives? Compare Hook0, Svix, Hookdeck, and Convoy side by side on licensing, self-hosting, pricing, and features.';
+    locals.pageCanonical = '/hook0-alternatives';
+    locals.pageNoindex = false;
+    locals.pageFAQSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What are the best Hook0 alternatives?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The main alternatives to Hook0 are Svix (open-core, VC-funded), Hookdeck (closed-source webhook gateway), and Convoy (open-source, VC-funded). Each solves a different slice of the webhook problem. Hook0 is the only one that is fully open-source, bootstrapped, and self-hostable for free."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Hookdeck better than Hook0?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hookdeck is a webhook gateway — it proxies existing webhooks for reliability. Hook0 is a webhook platform — it sends webhooks on your behalf with retries, signatures, and subscriber management. They solve different problems. If you need to add webhooks to your product, Hook0 is the right tool."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Should I use Svix or Hook0?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Both are webhook platforms, but they differ on licensing and funding. Svix is open-core (enterprise features are closed-source) and raised $17M in VC. Hook0 is fully open-source under SSPL, bootstrapped, and offers free self-hosting. If vendor independence and long-term pricing stability matter to you, Hook0 is the safer bet."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does Hook0 cost?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hook0 has a free tier with no credit card required. Hook0 is also open-source and self-hostable for compliance requirements. Hook0 Cloud adds managed infrastructure, EU hosting, automatic updates, and priority support. Paid plans start at €59/month with per-event pricing."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Hook0 work at scale?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0's architecture supports PostgreSQL-only for simplicity or Pulsar + S3 for high throughput. Cloud customers process millions of events per day. The same architecture runs identically when self-hosted."
+          }
+        }
+      ]
+    };
+    %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Comparison</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            Hook0 Alternatives
+            <span class="block text-gradient-green">An Honest Comparison</span>
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            Looking for a webhook platform? Someone published a "Hook0 Alternatives" page, so here is our side of the story. No spin — just facts, side by side.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'alternatives-hero-register')">
+                Start Free
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'alternatives-hero-playground')">
+                Try the Playground
+            </a>
+        </div>
+    </div>
+</section>
+
+<%- include('./includes/_social-proof-bar.ejs') %>
+
+<!-- Comparison Table -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Feature Comparison</span>
+            <h2 class="mt-4 text-display font-bold text-white">Hook0 vs the Alternatives</h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto">
+                Four webhook platforms, one table. Judge for yourself.
+            </p>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Criteria</th>
+                        <th class="py-4 px-4 text-sm font-semibold text-green-400 uppercase tracking-wider">Hook0</th>
+                        <th class="py-4 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Svix</th>
+                        <th class="py-4 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Hookdeck</th>
+                        <th class="py-4 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Convoy</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Open-Source</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Yes (SSPL-1.0, full source)</td>
+                        <td class="py-4 px-4 text-gray-400">Partial (open-core, enterprise closed)</td>
+                        <td class="py-4 px-4 text-gray-400">No (closed-source)</td>
+                        <td class="py-4 px-4 text-gray-400">Yes (MPL-2.0)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Self-Hosting</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Free (Docker / K8s)</td>
+                        <td class="py-4 px-4 text-gray-400">Enterprise plan only</td>
+                        <td class="py-4 px-4 text-gray-400">No</td>
+                        <td class="py-4 px-4 text-gray-400">Yes (self-managed)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Free Tier</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Yes, no credit card</td>
+                        <td class="py-4 px-4 text-gray-400">Yes</td>
+                        <td class="py-4 px-4 text-gray-400">Yes (100k events/mo)</td>
+                        <td class="py-4 px-4 text-gray-400">Community edition only</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Pricing Model</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Per-event, transparent</td>
+                        <td class="py-4 px-4 text-gray-400">Per-event + enterprise tiers</td>
+                        <td class="py-4 px-4 text-gray-400">Per-event, cloud-only</td>
+                        <td class="py-4 px-4 text-gray-400">Enterprise pricing</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">HMAC Signatures</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Included (all plans)</td>
+                        <td class="py-4 px-4 text-gray-400">Included</td>
+                        <td class="py-4 px-4 text-gray-400">Verification only</td>
+                        <td class="py-4 px-4 text-gray-400">Included</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Retry Logic</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Configurable per subscription (fast + slow phases)</td>
+                        <td class="py-4 px-4 text-gray-400">Automatic retries</td>
+                        <td class="py-4 px-4 text-gray-400">Automatic retries</td>
+                        <td class="py-4 px-4 text-gray-400">Automatic retries</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Funding</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">100% Bootstrapped</td>
+                        <td class="py-4 px-4 text-gray-400">$17M VC-funded</td>
+                        <td class="py-4 px-4 text-gray-400">$3.5M VC-funded</td>
+                        <td class="py-4 px-4 text-gray-400">VC-funded</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Data Hosting</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Europe (GDPR) or self-host</td>
+                        <td class="py-4 px-4 text-gray-400">US-based</td>
+                        <td class="py-4 px-4 text-gray-400">US-based</td>
+                        <td class="py-4 px-4 text-gray-400">Self-host only</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Type</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Full webhook platform</td>
+                        <td class="py-4 px-4 text-gray-400">Webhook platform (open-core)</td>
+                        <td class="py-4 px-4 text-gray-400">Webhook gateway / proxy</td>
+                        <td class="py-4 px-4 text-gray-400">Webhook platform</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- What their page doesn't tell you -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">The Full Picture</span>
+            <h2 class="mt-4 text-display font-bold text-white">What Their Comparison Page Doesn't Tell You</h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto">
+                Hookdeck published a "Hook0 Alternatives" page. We appreciate the attention. Here is what they left out.
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <!-- HTTPS-only -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">"Hook0 is HTTPS-only"</h3>
+                <p class="text-gray-400">
+                    Yes — and that is a feature, not a limitation. Sending webhook payloads over plain HTTP means your customers' data transits in clear text. Every serious production system uses HTTPS. We enforce it because security is not optional.
+                </p>
+            </div>
+
+            <!-- SLA -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">"No published SLA"</h3>
+                <p class="text-gray-400">
+                    Hook0 Cloud Enterprise includes a custom SLA with dedicated support. If uptime guarantees matter, that is the fastest path — no infrastructure to manage, no ops team needed. Hook0 is also open-source, so you always have the option to self-host if your compliance requirements demand it.
+                </p>
+            </div>
+
+            <!-- Pricing criticism -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">"Pricing is unclear"</h3>
+                <p class="text-gray-400">
+                    Our pricing is public and per-event. No sales call required. No "contact us" wall. Cloud starts at €59/month — 8x cheaper than Svix for comparable features. Try getting that transparency from a VC-funded, closed-source competitor.
+                </p>
+            </div>
+
+            <!-- Bootstrapped advantage -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">What they won't mention: funding</h3>
+                <p class="text-gray-400">
+                    Hookdeck raised $3.5M in VC. Svix raised $17M. Convoy is VC-funded too. Hook0 is 100% bootstrapped. When your webhook provider needs to 10x revenue to satisfy investors, guess whose prices go up? Not ours.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Why Hook0 -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Why Hook0</span>
+            <h2 class="mt-4 text-display font-bold text-white">The Hook0 Difference</h2>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8 stagger-children">
+            <div class="animate-on-scroll card card--glow p-8 text-center">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6 mx-auto">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2">Not Just a Proxy</h3>
+                <p class="text-gray-400 text-sm">Unlike Hookdeck, Hook0 sends webhooks on your behalf — retries, signatures, subscriber management. Not a middleware layer.</p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-8 text-center">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6 mx-auto">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2">No Enterprise Paywall</h3>
+                <p class="text-gray-400 text-sm">Unlike Svix, every feature ships in every plan. Self-hosting isn't locked behind a sales call.</p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-8 text-center">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6 mx-auto">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2">European & GDPR</h3>
+                <p class="text-gray-400 text-sm">Cloud hosted in EU. Data sovereignty built in. Bootstrapped — no US VC board deciding your data policy.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">FAQ</span>
+            <h2 class="mt-4 text-display font-bold text-white">Common Questions</h2>
+        </div>
+
+        <div class="space-y-6 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What are the best Hook0 alternatives?</h3>
+                <p class="text-gray-400">The main alternatives to Hook0 are Svix (open-core, VC-funded), Hookdeck (closed-source webhook gateway), and Convoy (open-source, VC-funded). Each solves a different slice of the webhook problem. Hook0 is the only one that is fully open-source, bootstrapped, and self-hostable for free.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is Hookdeck better than Hook0?</h3>
+                <p class="text-gray-400">Hookdeck is a webhook gateway — it proxies existing webhooks for reliability. Hook0 is a webhook platform — it sends webhooks on your behalf with retries, signatures, and subscriber management. They solve different problems. If you need to add webhooks to your product, Hook0 is the right tool.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Should I use Svix or Hook0?</h3>
+                <p class="text-gray-400">Both are webhook platforms, but they differ on licensing and funding. Svix is open-core (enterprise features are closed-source) and raised $17M in VC. Hook0 is fully open-source under SSPL, bootstrapped, and offers free self-hosting. If vendor independence and long-term pricing stability matter, Hook0 is the safer bet.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What does Hook0 cost?</h3>
+                <p class="text-gray-400">Hook0 has a free tier with no credit card required. Hook0 is also open-source and self-hostable for compliance requirements. Hook0 Cloud adds managed infrastructure, EU hosting, automatic updates, and priority support. Paid plans start at €59/month with per-event pricing.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Does Hook0 work at scale?</h3>
+                <p class="text-gray-400">Yes. Hook0's architecture supports PostgreSQL-only for simplicity or Pulsar + S3 for high throughput. Cloud customers process millions of events per day. The same architecture runs identically when self-hosted.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center">Related</h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <a href="./hook0-vs-svix" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Svix</a>
+            <a href="./hook0-vs-hookdeck" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Hookdeck</a>
+            <a href="./build-vs-buy-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Build vs Buy Webhooks</a>
+            <a href="./self-hosted-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Self-Hosted Webhooks</a>
+            <a href="./open-source-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Best Open-Source Webhook Server</a>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<%- include('./includes/_cta-inline.ejs') %>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>
