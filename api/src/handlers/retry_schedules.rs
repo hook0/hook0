@@ -71,6 +71,7 @@ pub struct RetrySchedule {
 /// Create request. Ranges here are anti-corruption bounds; business limits are
 /// enforced by the runtime check in `validate_against_state`.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+#[serde(deny_unknown_fields)]
 #[validate(schema(function = "RetrySchedulePost::validate_strategy"))]
 pub struct RetrySchedulePost {
     pub organization_id: Uuid,
@@ -100,6 +101,7 @@ impl RetrySchedulePost {
 
 /// Update request. Same cross-field rules as `RetrySchedulePost`, minus `organization_id`.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+#[serde(deny_unknown_fields)]
 #[validate(schema(function = "RetrySchedulePut::validate_strategy"))]
 pub struct RetrySchedulePut {
     #[validate(non_control_character, length(min = 1, max = 200))]
@@ -128,6 +130,7 @@ impl RetrySchedulePut {
 
 /// Query string that scopes list operations to one organization.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
+#[serde(deny_unknown_fields)]
 pub struct RetryScheduleListQuery {
     pub organization_id: Uuid,
 }
@@ -162,6 +165,22 @@ fn require_some<'a, T>(
         .ok_or_else(|| strategy_error(&format!("{field} is required for {strategy} strategy")))
 }
 
+/// Same as `require_some` but discards the unwrapped reference.
+/// Use when you only care that the field is set, not its value.
+fn require_present<T>(
+    field: &str,
+    value: &Option<T>,
+    strategy: &str,
+) -> Result<(), validator::ValidationError> {
+    if value.is_some() {
+        Ok(())
+    } else {
+        Err(strategy_error(&format!(
+            "{field} is required for {strategy} strategy"
+        )))
+    }
+}
+
 /// Cross-field validation for a retry schedule strategy.
 ///
 /// Wired by the `validator` crate via `#[validate(schema(function = "…"))]`.
@@ -183,7 +202,7 @@ pub fn validate_strategy_fields(
                 "exponential_increasing",
             )?;
             require_none("linear_delay", &linear_delay, "exponential_increasing")?;
-            let _ = require_some(
+            require_present(
                 "increasing_base_delay",
                 &increasing_base_delay,
                 "exponential_increasing",
@@ -203,14 +222,15 @@ pub fn validate_strategy_fields(
             require_none("custom_intervals", &custom_intervals, "linear")?;
             require_none("increasing_base_delay", &increasing_base_delay, "linear")?;
             require_none("increasing_wait_factor", &increasing_wait_factor, "linear")?;
-            let _ = require_some("linear_delay", &linear_delay, "linear")?;
+            require_present("linear_delay", &linear_delay, "linear")?;
         }
         RetryStrategy::Custom => {
             require_none("linear_delay", &linear_delay, "custom")?;
             require_none("increasing_base_delay", &increasing_base_delay, "custom")?;
             require_none("increasing_wait_factor", &increasing_wait_factor, "custom")?;
             let intervals = require_some("custom_intervals", &custom_intervals, "custom")?;
-            if intervals.len() != max_retries as usize {
+            let expected_length = usize::try_from(max_retries).unwrap_or(0);
+            if intervals.len() != expected_length {
                 return Err(strategy_error(
                     "custom_intervals length must equal max_retries",
                 ));
@@ -220,95 +240,146 @@ pub fn validate_strategy_fields(
     Ok(())
 }
 
+/// Borrowed bundle of the six strategy-specific payload fields.
+#[derive(Debug, Clone, Copy)]
+struct StrategyFieldsView<'a> {
+    strategy: RetryStrategy,
+    max_retries: i32,
+    linear_delay: Option<i32>,
+    custom_intervals: Option<&'a [i32]>,
+    increasing_base_delay: Option<i32>,
+    increasing_wait_factor: Option<f64>,
+}
+
 /// Runtime bounds check against the API State config. Rejects payloads that passed
 /// validator attributes (anti-corruption) but breach the tighter business limits.
 fn validate_against_state(
     state: &crate::State,
-    strategy: RetryStrategy,
-    max_retries: i32,
-    linear_delay: Option<i32>,
-    custom_intervals: Option<&[i32]>,
-    increasing_base_delay: Option<i32>,
-    increasing_wait_factor: Option<f64>,
+    fields: StrategyFieldsView<'_>,
 ) -> Result<(), validator::ValidationErrors> {
     let mut errors = validator::ValidationErrors::new();
 
-    if max_retries > state.retry_schedule_max_retries {
+    check_max_retries(
+        &mut errors,
+        fields.max_retries,
+        state.retry_schedule_max_retries,
+    );
+    check_strategy_bounds(&mut errors, state, fields);
+    check_total_duration(&mut errors, state, fields);
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+fn check_max_retries(errors: &mut validator::ValidationErrors, max_retries: i32, cap: i32) {
+    if max_retries > cap {
+        errors.add("max_retries", range_error("max_retries", 1, i64::from(cap)));
+    }
+}
+
+fn check_strategy_bounds(
+    errors: &mut validator::ValidationErrors,
+    state: &crate::State,
+    fields: StrategyFieldsView<'_>,
+) {
+    match fields.strategy {
+        RetryStrategy::ExponentialIncreasing => {
+            check_exponential_base(errors, state, fields.increasing_base_delay);
+            check_exponential_factor(errors, state, fields.increasing_wait_factor);
+        }
+        RetryStrategy::Linear => check_linear_delay(errors, state, fields.linear_delay),
+        RetryStrategy::Custom => check_custom_intervals(errors, state, fields.custom_intervals),
+    }
+}
+
+fn check_exponential_base(
+    errors: &mut validator::ValidationErrors,
+    state: &crate::State,
+    base: Option<i32>,
+) {
+    let Some(base) = base else { return };
+    let min = state.retry_schedule_exponential_base_delay_min_secs;
+    let max = state.retry_schedule_exponential_base_delay_max_secs;
+    if !(min..=max).contains(&base) {
         errors.add(
-            "max_retries",
-            range_error("max_retries", 1, state.retry_schedule_max_retries.into()),
+            "increasing_base_delay",
+            range_error("increasing_base_delay", i64::from(min), i64::from(max)),
         );
     }
+}
 
-    let single_min = state.retry_schedule_min_single_delay_secs;
-    let single_max = state.retry_schedule_max_single_delay_secs;
-
-    match strategy {
-        RetryStrategy::ExponentialIncreasing => {
-            if let Some(base) = increasing_base_delay
-                && (base < state.retry_schedule_exponential_base_delay_min_secs
-                    || base > state.retry_schedule_exponential_base_delay_max_secs)
-            {
-                errors.add(
-                    "increasing_base_delay",
-                    range_error(
-                        "increasing_base_delay",
-                        state.retry_schedule_exponential_base_delay_min_secs.into(),
-                        state.retry_schedule_exponential_base_delay_max_secs.into(),
-                    ),
-                );
-            }
-            if let Some(factor) = increasing_wait_factor
-                && (factor < state.retry_schedule_exponential_wait_factor_min
-                    || factor > state.retry_schedule_exponential_wait_factor_max)
-            {
-                errors.add(
-                    "increasing_wait_factor",
-                    range_error(
-                        "increasing_wait_factor",
-                        state.retry_schedule_exponential_wait_factor_min as i64,
-                        state.retry_schedule_exponential_wait_factor_max as i64,
-                    ),
-                );
-            }
-        }
-        RetryStrategy::Linear => {
-            if let Some(delay) = linear_delay
-                && !(single_min..=single_max).contains(&delay)
-            {
-                errors.add(
-                    "linear_delay",
-                    range_error("linear_delay", single_min.into(), single_max.into()),
-                );
-            }
-        }
-        RetryStrategy::Custom => {
-            if let Some(intervals) = custom_intervals {
-                for (index, value) in intervals.iter().enumerate() {
-                    if !(single_min..=single_max).contains(value) {
-                        errors.add(
-                            "custom_intervals",
-                            range_error(
-                                &format!("custom_intervals[{index}]"),
-                                single_min.into(),
-                                single_max.into(),
-                            ),
-                        );
-                        break;
-                    }
-                }
-            }
-        }
+fn check_exponential_factor(
+    errors: &mut validator::ValidationErrors,
+    state: &crate::State,
+    factor: Option<f64>,
+) {
+    let Some(factor) = factor else { return };
+    let min = state.retry_schedule_exponential_wait_factor_min;
+    let max = state.retry_schedule_exponential_wait_factor_max;
+    if factor < min || factor > max {
+        errors.add(
+            "increasing_wait_factor",
+            range_error("increasing_wait_factor", min, max),
+        );
     }
+}
 
+fn check_linear_delay(
+    errors: &mut validator::ValidationErrors,
+    state: &crate::State,
+    delay: Option<i32>,
+) {
+    let Some(delay) = delay else { return };
+    let min = state.retry_schedule_min_single_delay_secs;
+    let max = state.retry_schedule_max_single_delay_secs;
+    if !(min..=max).contains(&delay) {
+        errors.add(
+            "linear_delay",
+            range_error("linear_delay", i64::from(min), i64::from(max)),
+        );
+    }
+}
+
+fn check_custom_intervals(
+    errors: &mut validator::ValidationErrors,
+    state: &crate::State,
+    intervals: Option<&[i32]>,
+) {
+    let Some(intervals) = intervals else { return };
+    let min = state.retry_schedule_min_single_delay_secs;
+    let max = state.retry_schedule_max_single_delay_secs;
+    if let Some((index, _)) = intervals
+        .iter()
+        .enumerate()
+        .find(|(_, value)| !(min..=max).contains(value))
+    {
+        errors.add(
+            "custom_intervals",
+            range_error(
+                &format!("custom_intervals[{index}]"),
+                i64::from(min),
+                i64::from(max),
+            ),
+        );
+    }
+}
+
+fn check_total_duration(
+    errors: &mut validator::ValidationErrors,
+    state: &crate::State,
+    fields: StrategyFieldsView<'_>,
+) {
     let total = compute_total_duration(
-        strategy,
-        max_retries,
-        linear_delay,
-        custom_intervals,
-        increasing_base_delay,
-        increasing_wait_factor,
-        single_max,
+        fields.strategy,
+        fields.max_retries,
+        fields.linear_delay,
+        fields.custom_intervals,
+        fields.increasing_base_delay,
+        fields.increasing_wait_factor,
+        state.retry_schedule_max_single_delay_secs,
     );
     if total > state.retry_schedule_max_total_duration_secs {
         errors.add(
@@ -320,15 +391,9 @@ fn validate_against_state(
             ),
         );
     }
-
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(errors)
-    }
 }
 
-fn range_error(field: &str, min: i64, max: i64) -> validator::ValidationError {
+fn range_error<T: std::fmt::Display>(field: &str, min: T, max: T) -> validator::ValidationError {
     let mut err = validator::ValidationError::new("range");
     err.message = Some(std::borrow::Cow::Owned(format!(
         "{field} must be within {min}..={max}"
@@ -355,8 +420,9 @@ fn compute_total_duration(
             let cap = f64::from(single_max);
             let mut total: i64 = 0;
             for index in 0..max_retries.max(0) {
-                let term = (f64::from(base) * factor.powi(index)).clamp(0.0, cap) as i64;
-                total = total.saturating_add(term);
+                // Clamp before cast: guarantees 0.0..=single_max so `as i64` is a saturating no-op.
+                let term = (f64::from(base) * factor.powi(index)).clamp(0.0, cap);
+                total = total.saturating_add(term as i64);
             }
             total
         }
@@ -523,12 +589,14 @@ pub async fn create(
     }
     if let Err(errors) = validate_against_state(
         &state,
-        body.strategy,
-        body.max_retries,
-        body.linear_delay,
-        body.custom_intervals.as_deref(),
-        body.increasing_base_delay,
-        body.increasing_wait_factor,
+        StrategyFieldsView {
+            strategy: body.strategy,
+            max_retries: body.max_retries,
+            linear_delay: body.linear_delay,
+            custom_intervals: body.custom_intervals.as_deref(),
+            increasing_base_delay: body.increasing_base_delay,
+            increasing_wait_factor: body.increasing_wait_factor,
+        },
     ) {
         return Err(Hook0Problem::Validation(errors));
     }
@@ -639,12 +707,14 @@ pub async fn edit(
     }
     if let Err(errors) = validate_against_state(
         &state,
-        body.strategy,
-        body.max_retries,
-        body.linear_delay,
-        body.custom_intervals.as_deref(),
-        body.increasing_base_delay,
-        body.increasing_wait_factor,
+        StrategyFieldsView {
+            strategy: body.strategy,
+            max_retries: body.max_retries,
+            linear_delay: body.linear_delay,
+            custom_intervals: body.custom_intervals.as_deref(),
+            increasing_base_delay: body.increasing_base_delay,
+            increasing_wait_factor: body.increasing_wait_factor,
+        },
     ) {
         return Err(Hook0Problem::Validation(errors));
     }

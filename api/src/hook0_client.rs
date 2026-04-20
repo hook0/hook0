@@ -201,6 +201,14 @@ const INSTANCE_VALUE: &str = "1";
 const ORGANIZATION_LABEL: &str = "organization";
 const APPLICATION_LABEL: &str = "application";
 
+/// Standard labels for any event scoped to one organization (no application).
+fn organization_labels(organization_id: Uuid) -> Vec<(String, String)> {
+    vec![
+        (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
+        (ORGANIZATION_LABEL.to_owned(), organization_id.to_string()),
+    ]
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct EventOrganizationCreated {
     pub organization_id: Uuid,
@@ -806,8 +814,8 @@ impl Event for EventSubscriptionRemoved {
 }
 
 impl From<EventSubscriptionRemoved> for Hook0ClientEvent {
-    fn from(e: EventSubscriptionRemoved) -> Self {
-        Self::SubscriptionRemoved(e)
+    fn from(event: EventSubscriptionRemoved) -> Self {
+        Self::SubscriptionRemoved(event)
     }
 }
 
@@ -830,19 +838,13 @@ impl Event for EventRetryScheduleCreated {
     }
 
     fn labels(&self) -> Vec<(String, String)> {
-        vec![
-            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
-            (
-                ORGANIZATION_LABEL.to_owned(),
-                self.organization_id.to_string(),
-            ),
-        ]
+        organization_labels(self.organization_id)
     }
 }
 
 impl From<EventRetryScheduleCreated> for Hook0ClientEvent {
-    fn from(e: EventRetryScheduleCreated) -> Self {
-        Self::RetryScheduleCreated(e)
+    fn from(event: EventRetryScheduleCreated) -> Self {
+        Self::RetryScheduleCreated(event)
     }
 }
 
@@ -865,19 +867,13 @@ impl Event for EventRetryScheduleUpdated {
     }
 
     fn labels(&self) -> Vec<(String, String)> {
-        vec![
-            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
-            (
-                ORGANIZATION_LABEL.to_owned(),
-                self.organization_id.to_string(),
-            ),
-        ]
+        organization_labels(self.organization_id)
     }
 }
 
 impl From<EventRetryScheduleUpdated> for Hook0ClientEvent {
-    fn from(e: EventRetryScheduleUpdated) -> Self {
-        Self::RetryScheduleUpdated(e)
+    fn from(event: EventRetryScheduleUpdated) -> Self {
+        Self::RetryScheduleUpdated(event)
     }
 }
 
@@ -893,18 +889,12 @@ impl Event for EventRetryScheduleRemoved {
     }
 
     fn labels(&self) -> Vec<(String, String)> {
-        vec![
-            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
-            (
-                ORGANIZATION_LABEL.to_owned(),
-                self.organization_id.to_string(),
-            ),
-        ]
+        organization_labels(self.organization_id)
     }
 }
 
 impl From<EventRetryScheduleRemoved> for Hook0ClientEvent {
-    fn from(e: EventRetryScheduleRemoved) -> Self {
-        Self::RetryScheduleRemoved(e)
+    fn from(event: EventRetryScheduleRemoved) -> Self {
+        Self::RetryScheduleRemoved(event)
     }
 }
