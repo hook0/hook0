@@ -131,6 +131,9 @@ pub enum Hook0ClientEvent {
     SubscriptionCreated(EventSubscriptionCreated),
     SubscriptionUpdated(EventSubscriptionUpdated),
     SubscriptionRemoved(EventSubscriptionRemoved),
+    RetryScheduleCreated(EventRetryScheduleCreated),
+    RetryScheduleUpdated(EventRetryScheduleUpdated),
+    RetryScheduleRemoved(EventRetryScheduleRemoved),
 }
 
 impl Hook0ClientEvent {
@@ -181,6 +184,9 @@ impl Hook0ClientEvent {
             }
             Self::SubscriptionUpdated(e) => to_event(e, None),
             Self::SubscriptionRemoved(e) => to_event(e, None),
+            Self::RetryScheduleCreated(e) => to_event(e, None),
+            Self::RetryScheduleUpdated(e) => to_event(e, None),
+            Self::RetryScheduleRemoved(e) => to_event(e, None),
         }
     }
 }
@@ -802,5 +808,103 @@ impl Event for EventSubscriptionRemoved {
 impl From<EventSubscriptionRemoved> for Hook0ClientEvent {
     fn from(e: EventSubscriptionRemoved) -> Self {
         Self::SubscriptionRemoved(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventRetryScheduleCreated {
+    pub organization_id: Uuid,
+    pub retry_schedule_id: Uuid,
+    pub name: String,
+    pub strategy: String,
+    pub max_retries: i32,
+    pub custom_intervals: Option<Vec<i32>>,
+    pub linear_delay: Option<i32>,
+    pub increasing_base_delay: Option<i32>,
+    pub increasing_wait_factor: Option<f64>,
+}
+
+impl Event for EventRetryScheduleCreated {
+    fn event_type(&self) -> &'static str {
+        "api.retry_schedule.created"
+    }
+
+    fn labels(&self) -> Vec<(String, String)> {
+        vec![
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                self.organization_id.to_string(),
+            ),
+        ]
+    }
+}
+
+impl From<EventRetryScheduleCreated> for Hook0ClientEvent {
+    fn from(e: EventRetryScheduleCreated) -> Self {
+        Self::RetryScheduleCreated(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventRetryScheduleUpdated {
+    pub organization_id: Uuid,
+    pub retry_schedule_id: Uuid,
+    pub name: String,
+    pub strategy: String,
+    pub max_retries: i32,
+    pub custom_intervals: Option<Vec<i32>>,
+    pub linear_delay: Option<i32>,
+    pub increasing_base_delay: Option<i32>,
+    pub increasing_wait_factor: Option<f64>,
+}
+
+impl Event for EventRetryScheduleUpdated {
+    fn event_type(&self) -> &'static str {
+        "api.retry_schedule.updated"
+    }
+
+    fn labels(&self) -> Vec<(String, String)> {
+        vec![
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                self.organization_id.to_string(),
+            ),
+        ]
+    }
+}
+
+impl From<EventRetryScheduleUpdated> for Hook0ClientEvent {
+    fn from(e: EventRetryScheduleUpdated) -> Self {
+        Self::RetryScheduleUpdated(e)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventRetryScheduleRemoved {
+    pub organization_id: Uuid,
+    pub retry_schedule_id: Uuid,
+}
+
+impl Event for EventRetryScheduleRemoved {
+    fn event_type(&self) -> &'static str {
+        "api.retry_schedule.removed"
+    }
+
+    fn labels(&self) -> Vec<(String, String)> {
+        vec![
+            (INSTANCE_LABEL.to_owned(), INSTANCE_VALUE.to_owned()),
+            (
+                ORGANIZATION_LABEL.to_owned(),
+                self.organization_id.to_string(),
+            ),
+        ]
+    }
+}
+
+impl From<EventRetryScheduleRemoved> for Hook0ClientEvent {
+    fn from(e: EventRetryScheduleRemoved) -> Self {
+        Self::RetryScheduleRemoved(e)
     }
 }

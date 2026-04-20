@@ -17,9 +17,14 @@ use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as, query_scalar};
 use strum::{Display, EnumString};
+use tracing::error;
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::hook0_client::{
+    EventRetryScheduleCreated, EventRetryScheduleRemoved, EventRetryScheduleUpdated,
+    Hook0ClientEvent,
+};
 use crate::iam::{Action, authorize};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
@@ -570,11 +575,31 @@ pub async fn create(
     .await
     .map_err(Hook0Problem::from)?;
 
-    created
-        .map(CreatedJson)
-        .ok_or(Hook0Problem::TooManyRetrySchedulesPerOrganization(
+    let Some(created) = created else {
+        return Err(Hook0Problem::TooManyRetrySchedulesPerOrganization(
             state.max_retry_schedules_per_organization,
-        ))
+        ));
+    };
+
+    if let Some(hook0_client) = state.hook0_client.as_ref() {
+        let event: Hook0ClientEvent = EventRetryScheduleCreated {
+            organization_id: created.organization_id,
+            retry_schedule_id: created.retry_schedule_id,
+            name: created.name.to_owned(),
+            strategy: created.strategy.to_string(),
+            max_retries: created.max_retries,
+            custom_intervals: created.custom_intervals.to_owned(),
+            linear_delay: created.linear_delay,
+            increasing_base_delay: created.increasing_base_delay,
+            increasing_wait_factor: created.increasing_wait_factor,
+        }
+        .into();
+        if let Err(e) = hook0_client.send_event(&event.mk_hook0_event()).await {
+            error!("Hook0ClientError: {e}");
+        }
+    }
+
+    Ok(CreatedJson(created))
 }
 
 #[api_v2_operation(
@@ -666,7 +691,29 @@ pub async fn edit(
     .await
     .map_err(Hook0Problem::from)?;
 
-    updated.map(Json).ok_or(Hook0Problem::NotFound)
+    let Some(updated) = updated else {
+        return Err(Hook0Problem::NotFound);
+    };
+
+    if let Some(hook0_client) = state.hook0_client.as_ref() {
+        let event: Hook0ClientEvent = EventRetryScheduleUpdated {
+            organization_id: updated.organization_id,
+            retry_schedule_id: updated.retry_schedule_id,
+            name: updated.name.to_owned(),
+            strategy: updated.strategy.to_string(),
+            max_retries: updated.max_retries,
+            custom_intervals: updated.custom_intervals.to_owned(),
+            linear_delay: updated.linear_delay,
+            increasing_base_delay: updated.increasing_base_delay,
+            increasing_wait_factor: updated.increasing_wait_factor,
+        }
+        .into();
+        if let Err(e) = hook0_client.send_event(&event.mk_hook0_event()).await {
+            error!("Hook0ClientError: {e}");
+        }
+    }
+
+    Ok(Json(updated))
 }
 
 #[api_v2_operation(
@@ -710,6 +757,17 @@ pub async fn delete(
 
     if deleted.is_none() {
         return Err(Hook0Problem::NotFound);
+    }
+
+    if let Some(hook0_client) = state.hook0_client.as_ref() {
+        let event: Hook0ClientEvent = EventRetryScheduleRemoved {
+            organization_id,
+            retry_schedule_id,
+        }
+        .into();
+        if let Err(e) = hook0_client.send_event(&event.mk_hook0_event()).await {
+            error!("Hook0ClientError: {e}");
+        }
     }
 
     Ok(NoContent)

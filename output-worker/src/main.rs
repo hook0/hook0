@@ -165,6 +165,11 @@ struct Config {
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "8d")]
     max_retry_window: Duration,
 
+    /// Multiplicative jitter factor applied to every retry delay. 0.2 = delay is multiplied by a random value in [1.0, 1.2).
+    /// 0.0 disables jitter. Protects against thundering-herd after recovery.
+    #[clap(long, env, default_value_t = 0.2)]
+    retry_schedule_jitter_factor: f64,
+
     /// Heartbeat URL that should be called regularly
     #[clap(long, env)]
     monitoring_heartbeat_url: Option<Url>,
@@ -770,6 +775,7 @@ async fn compute_next_retry(
     attempt: &RequestAttempt,
     response: &Response,
     max_retries: u8,
+    jitter_factor: f64,
 ) -> Result<Option<Duration>, sqlx::Error> {
     match response.response_error {
         Some(ResponseError::InvalidHeader) => {
@@ -847,6 +853,7 @@ async fn compute_next_retry(
                             Ok(crate::retry::compute_delay_from_schedule(
                                 &schedule,
                                 attempt.retry_count,
+                                jitter_factor,
                             ))
                         }
                         None => {
@@ -858,7 +865,7 @@ async fn compute_next_retry(
                             );
                             Ok(
                                 compute_next_retry_duration(max_retries, attempt.retry_count)
-                                    .map(crate::retry::with_jitter),
+                                    .map(|d| crate::retry::with_jitter(d, jitter_factor)),
                             )
                         }
                     }
@@ -868,7 +875,7 @@ async fn compute_next_retry(
                     // with the same jitter policy as custom schedules.
                     Ok(
                         compute_next_retry_duration(max_retries, attempt.retry_count)
-                            .map(crate::retry::with_jitter),
+                            .map(|d| crate::retry::with_jitter(d, jitter_factor)),
                     )
                 }
             }

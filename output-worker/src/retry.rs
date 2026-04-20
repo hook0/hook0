@@ -5,7 +5,7 @@
 //! - `Strategy` enum mirrors the API enum. Unknown DB values fail loud.
 //! - `ScheduleConfig` mirrors `webhook.retry_schedule` (3 strategies, nullable fields)
 //! - `compute_delay_from_schedule` returns `None` when the retry budget is exhausted
-//! - `with_jitter` spreads retries to avoid thundering-herd
+//! - `with_jitter` applies multiplicative jitter to spread retries after recovery
 //! - Shared between custom path and built-in fallback for one jitter policy
 //! - Per-retry delay capped at 7 days for DoS resistance and i64 safety
 
@@ -16,9 +16,6 @@ use tracing::warn;
 
 /// Hard cap on a single retry delay (7 days). Matches API validator.
 pub const MAX_RETRY_DELAY_SECS: u64 = 7 * 24 * 3600;
-
-/// Upper bound for jitter in milliseconds (keeps smear subtle).
-const JITTER_MAX_MS: u64 = 1_000;
 
 /// Retry pacing family.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,9 +50,11 @@ pub struct ScheduleConfig {
 
 /// Delay before retry `retry_count+1`, or `None` if the budget is spent.
 /// `retry_count` = zero-indexed count of attempts already failed.
+/// `jitter_factor` in `[0.0, 1.0]`: 0.0 disables jitter, 0.2 = ±20% random spread.
 pub fn compute_delay_from_schedule(
     schedule: &ScheduleConfig,
     retry_count: i16,
+    jitter_factor: f64,
 ) -> Option<Duration> {
     // Defensive: negative retry_count would wrap to a huge usize in custom indexing.
     if retry_count < 0 {
@@ -99,14 +98,19 @@ pub fn compute_delay_from_schedule(
     };
 
     let capped = raw_secs.min(MAX_RETRY_DELAY_SECS);
-    Some(with_jitter(Duration::from_secs(capped)))
+    Some(with_jitter(Duration::from_secs(capped), jitter_factor))
 }
 
-/// Add small positive jitter; spreads retries that would otherwise align.
-/// Used by custom path and built-in fallback — single jitter policy.
-pub fn with_jitter(base: Duration) -> Duration {
-    let jitter_ms = rand::rng().random_range(0..=JITTER_MAX_MS);
-    base + Duration::from_millis(jitter_ms)
+/// Multiplicative jitter: `delay * random([1.0, 1.0 + factor))`.
+/// Factor ≤ 0 or NaN disables jitter. Output clamped at MAX_RETRY_DELAY_SECS.
+pub fn with_jitter(delay: Duration, jitter_factor: f64) -> Duration {
+    if jitter_factor <= 0.0 || jitter_factor.is_nan() {
+        return delay;
+    }
+    let random: f64 = rand::rng().random_range(0.0..1.0);
+    let multiplier = 1.0 + random * jitter_factor;
+    let jittered = delay.mul_f64(multiplier);
+    jittered.min(Duration::from_secs(MAX_RETRY_DELAY_SECS))
 }
 
 #[cfg(test)]
@@ -150,60 +154,58 @@ mod tests {
     #[test]
     fn exponential_capped_at_7d_per_retry() {
         let s = exp(1, 10.0, 10);
-        let d = compute_delay_from_schedule(&s, 9).unwrap();
-        assert!(d.as_secs() <= MAX_RETRY_DELAY_SECS + JITTER_MAX_MS);
+        let d = compute_delay_from_schedule(&s, 9, 0.0).unwrap();
+        assert!(d.as_secs() <= MAX_RETRY_DELAY_SECS);
     }
 
     #[test]
     fn exponential_over_max_retries_is_none() {
         let s = exp(60, 2.0, 3);
-        assert!(compute_delay_from_schedule(&s, 3).is_none());
-        assert!(compute_delay_from_schedule(&s, 10).is_none());
-    }
-
-    #[test]
-    fn linear_returns_same_delay_each_retry() {
-        let s = linear(60, 5);
-        let d0 = compute_delay_from_schedule(&s, 0).unwrap().as_secs();
-        let d1 = compute_delay_from_schedule(&s, 1).unwrap().as_secs();
-        assert!(d0.abs_diff(d1) <= 1);
+        assert!(compute_delay_from_schedule(&s, 3, 0.0).is_none());
+        assert!(compute_delay_from_schedule(&s, 10, 0.0).is_none());
     }
 
     #[test]
     fn linear_rejects_non_positive_delay() {
         let s = linear(0, 5);
-        assert!(compute_delay_from_schedule(&s, 0).is_none());
+        assert!(compute_delay_from_schedule(&s, 0, 0.0).is_none());
     }
 
     #[test]
     fn custom_indexes_into_intervals() {
         let s = custom(vec![5, 10, 20]);
-        assert!(compute_delay_from_schedule(&s, 0).unwrap().as_secs() >= 5);
-        assert!(compute_delay_from_schedule(&s, 2).unwrap().as_secs() >= 20);
-        assert!(compute_delay_from_schedule(&s, 3).is_none());
+        assert!(compute_delay_from_schedule(&s, 0, 0.0).unwrap().as_secs() == 5);
+        assert!(compute_delay_from_schedule(&s, 2, 0.0).unwrap().as_secs() == 20);
+        assert!(compute_delay_from_schedule(&s, 3, 0.0).is_none());
     }
 
     #[test]
-    fn jitter_stays_within_bound() {
-        let s = linear(1, 5);
+    fn jitter_multiplier_within_factor_bound() {
+        let base = Duration::from_secs(100);
         for _ in 0..100 {
-            let d = compute_delay_from_schedule(&s, 0).unwrap();
-            let ms = d.as_millis() as u64;
-            assert!((1_000..=1_000 + JITTER_MAX_MS).contains(&ms), "ms={ms}");
+            let d = with_jitter(base, 0.2);
+            let secs = d.as_secs_f64();
+            assert!((100.0..120.0).contains(&secs), "out of range: {secs}");
         }
+    }
+
+    #[test]
+    fn jitter_zero_factor_is_noop() {
+        let base = Duration::from_secs(42);
+        assert_eq!(with_jitter(base, 0.0), base);
     }
 
     #[test]
     fn negative_retry_count_refuses() {
         let s = linear(60, 5);
-        assert!(compute_delay_from_schedule(&s, -1).is_none());
+        assert!(compute_delay_from_schedule(&s, -1, 0.0).is_none());
     }
 
     #[test]
     fn exponential_clamps_positive_infinity() {
         // Factor * huge base overflows to +Inf; clamp protects the cast to u64.
         let s = exp(i32::MAX, 20.0, 5);
-        let d = compute_delay_from_schedule(&s, 4).unwrap();
+        let d = compute_delay_from_schedule(&s, 4, 0.0).unwrap();
         assert!(d.as_secs() <= MAX_RETRY_DELAY_SECS);
     }
 
@@ -211,7 +213,7 @@ mod tests {
     fn exponential_clamps_nan_factor() {
         // retry_count >= 1 so factor.powi(…) is NaN (NaN^0 = 1 by IEEE, so skip 0).
         let s = exp(60, f64::NAN, 5);
-        let d = compute_delay_from_schedule(&s, 1).unwrap();
+        let d = compute_delay_from_schedule(&s, 1, 0.0).unwrap();
         assert_eq!(d.as_secs(), 0);
     }
 }

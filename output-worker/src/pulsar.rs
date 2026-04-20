@@ -682,9 +682,14 @@ async fn handle_message(
                                 == hook0_protobuf::AttemptTrigger::ManualRetry
                             {
                                 info!(request_attempt_id = %attempt.request_attempt_id, "Manual retry failed; not re-queuing (one-shot)");
-                            } else if let Some(retry_in) =
-                                compute_next_retry(&mut tx, &attempt, &response, config.max_retries)
-                                    .await?
+                            } else if let Some(retry_in) = compute_next_retry(
+                                &mut tx,
+                                &attempt,
+                                &response,
+                                config.max_retries,
+                                config.retry_schedule_jitter_factor,
+                            )
+                            .await?
                             {
                                 let next_retry_count = attempt.retry_count + 1;
                                 let delay_until = Utc::now() + retry_in;
