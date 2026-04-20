@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { X } from 'lucide-vue-next';
 import { formatDelay } from './retryScheduleFormatters';
@@ -8,7 +9,7 @@ type Props = {
   values: number[];
   /** Show a remove button per chip and emit `remove(index)` on click. */
   removable?: boolean;
-  /** Truncate when more than N chips; N+1th becomes a "…" badge. */
+  /** Truncate when more than N chips; overflow becomes a "+N" badge. */
   max?: number;
 };
 
@@ -21,21 +22,19 @@ const emit = defineEmits<{ remove: [index: number] }>();
 
 const { t } = useI18n();
 
-function displayed() {
-  if (props.max === undefined) return props.values;
-  return props.values.slice(0, props.max);
-}
-
-function truncated(): number {
+const displayed = computed(() =>
+  props.max === undefined ? props.values : props.values.slice(0, props.max)
+);
+const truncatedCount = computed(() => {
   if (props.max === undefined) return 0;
   return Math.max(0, props.values.length - props.max);
-}
+});
 </script>
 
 <template>
-  <div v-if="values.length === 0" class="interval-chips__empty">—</div>
+  <span v-if="values.length === 0" class="interval-chips__empty">{{ t('common.emptyDash') }}</span>
   <div v-else class="interval-chips">
-    <span v-for="(v, index) in displayed()" :key="index" class="interval-chips__chip">
+    <span v-for="(v, index) in displayed" :key="`${v}-${index}`" class="interval-chips__chip">
       {{ formatDelay(v) }}
       <button
         v-if="removable"
@@ -47,9 +46,9 @@ function truncated(): number {
         <X :size="12" aria-hidden="true" />
       </button>
     </span>
-    <span v-if="truncated() > 0" class="interval-chips__chip interval-chips__chip--more">
-      +{{ truncated() }}
-    </span>
+    <span v-if="truncatedCount > 0" class="interval-chips__chip interval-chips__chip--more"
+      >+{{ truncatedCount }}</span
+    >
   </div>
 </template>
 

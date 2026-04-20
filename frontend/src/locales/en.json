@@ -302,6 +302,11 @@
     "tutorialProgress": "Tutorial progress",
     "unlimited": "Unlimited",
     "updatedAt": "Updated at",
+    "units": {
+      "retries": "retries",
+      "seconds": "s"
+    },
+    "emptyDash": "—",
     "value": "Value",
     "warning": "Warning"
   },
@@ -741,6 +746,7 @@
     "created": "Retry schedule created",
     "updated": "Retry schedule updated",
     "deleted": "Retry schedule \"{name}\" deleted",
+    "limitsUnavailable": "Couldn't load retry limits from /instance — chip previews may be incomplete.",
     "deleteTitle": "Delete retry schedule",
     "deleteConfirm": "Delete {name}? Subscriptions using it will revert to the built-in exponential backoff.",
     "columns": {
@@ -773,15 +779,10 @@
     },
     "validation": {
       "nameRequired": "Name is required",
-      "nameTooLong": "Name is too long (max 200 characters)",
       "maxRetries": "Maximum retries is {max}",
       "intervalsRequired": "Add at least one interval",
       "intervalOutOfRange": "Interval must be within {min}s and {max}s",
       "totalTooLong": "Total retry duration exceeds the allowed cap of {max} seconds"
-    },
-    "units": {
-      "seconds": "s",
-      "retries": "retries"
     }
   },
   "serviceTokens": {

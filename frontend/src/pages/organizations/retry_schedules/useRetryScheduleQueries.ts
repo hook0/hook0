@@ -17,6 +17,9 @@ export function useRetryScheduleDetail(retryScheduleId: Ref<string>) {
     queryKey: computed(() => retryScheduleKeys.detail(retryScheduleId.value)),
     queryFn: () => RetryScheduleService.getSchedule(retryScheduleId.value),
     enabled: computed(() => !!retryScheduleId.value),
+    // Prevent background refetch from clobbering in-flight edits on the form.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -25,8 +28,10 @@ export function useCreateRetrySchedule() {
   return useMutation({
     mutationFn: (payload: RetryScheduleCreatePayload) =>
       RetryScheduleService.createSchedule(payload),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: retryScheduleKeys.all });
+    onSuccess: (_created, payload) => {
+      void queryClient.invalidateQueries({
+        queryKey: retryScheduleKeys.list(payload.organization_id),
+      });
     },
   });
 }
@@ -36,8 +41,14 @@ export function useUpdateRetrySchedule() {
   return useMutation({
     mutationFn: (args: { retryScheduleId: string; payload: RetrySchedulePayload }) =>
       RetryScheduleService.updateSchedule(args.retryScheduleId, args.payload),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: retryScheduleKeys.all });
+    onSuccess: (updated, args) => {
+      // Refresh the affected detail entry and all lists (could be many orgs).
+      void queryClient.invalidateQueries({
+        queryKey: retryScheduleKeys.detail(args.retryScheduleId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: retryScheduleKeys.list(updated.organization_id),
+      });
     },
   });
 }
@@ -47,6 +58,7 @@ export function useDeleteRetrySchedule() {
   return useMutation({
     mutationFn: (retryScheduleId: string) => RetryScheduleService.deleteSchedule(retryScheduleId),
     onSuccess: () => {
+      // Delete doesn't return the resource, so wide-invalidate by base key.
       void queryClient.invalidateQueries({ queryKey: retryScheduleKeys.all });
     },
   });

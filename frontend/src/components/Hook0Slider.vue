@@ -34,13 +34,13 @@ const clampedModel = computed({
   },
 });
 
-/**
- * Typing buffer for the number input. Kept separate from the model so partial
- * values like "1" (min=10) aren't clamped mid-typing; clamp fires on commit (blur/change).
- */
+// Typing buffer decoupled from model: "1" with min=10 is not clamped mid-typing.
+// Clamp commits on blur/change.
 const buffer = ref<string>(String(model.value));
+// Don't clobber in-flight typing when the range input mutates `model` concurrently.
+const isFocused = ref(false);
 watch(model, (v) => {
-  buffer.value = String(v);
+  if (!isFocused.value) buffer.value = String(v);
 });
 
 function commitBuffer() {
@@ -48,6 +48,11 @@ function commitBuffer() {
   const next = clamp(parsed, props.min, props.max);
   model.value = next;
   buffer.value = String(next);
+  isFocused.value = false;
+}
+
+function onFocus() {
+  isFocused.value = true;
 }
 </script>
 
@@ -74,6 +79,7 @@ function commitBuffer() {
           :step="step"
           :aria-label="`${label} (number input)`"
           class="slider-row__number"
+          @focus="onFocus"
           @blur="commitBuffer"
           @change="commitBuffer"
         />

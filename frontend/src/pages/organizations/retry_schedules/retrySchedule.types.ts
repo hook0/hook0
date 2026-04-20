@@ -1,6 +1,6 @@
 /**
  * Local types for retry_schedule feature. Mirrors the backend OpenAPI shape.
- * TODO: swap for components['schemas']['RetrySchedule*'] once `npm run generate:types`
+ * TODO: swap for `components['schemas']['RetrySchedule*']` once `npm run generate:types`
  * is re-run against the branch's running API.
  */
 

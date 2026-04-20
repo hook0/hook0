@@ -29,7 +29,7 @@ import Hook0Select from '@/components/Hook0Select.vue';
 import Hook0Slider from '@/components/Hook0Slider.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0CardSkeleton from '@/components/Hook0CardSkeleton.vue';
-import Hook0IntervalChips from './Hook0IntervalChips.vue';
+import IntervalChips from './IntervalChips.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -200,19 +200,26 @@ const title = computed(() =>
   isEdit.value ? t('retrySchedules.editTitle') : t('retrySchedules.newTitle')
 );
 
-const secondsUnit = computed(() => t('retrySchedules.units.seconds'));
-const retriesUnit = computed(() => t('retrySchedules.units.retries'));
+const strategyOptions = computed(() => [
+  {
+    value: 'exponential_increasing',
+    label: t('retrySchedules.strategies.exponentialIncreasing'),
+  },
+  { value: 'linear', label: t('retrySchedules.strategies.linear') },
+  { value: 'custom', label: t('retrySchedules.strategies.custom') },
+]);
 </script>
 
 <template>
   <Hook0PageLayout :title="title">
+    <!-- Skeleton first also covers the disabled-query state per CLAUDE.md. -->
+    <Hook0CardSkeleton v-if="isEdit && detailQuery.isLoading.value && !detailQuery.data.value" />
+
     <Hook0ErrorCard
-      v-if="detailQuery.error.value && isEdit"
+      v-else-if="isEdit && detailQuery.error.value"
       :error="detailQuery.error.value"
       @retry="detailQuery.refetch()"
     />
-
-    <Hook0CardSkeleton v-else-if="isEdit && detailQuery.isLoading.value" />
 
     <template v-else>
       <form @submit.prevent="handleSubmit">
@@ -234,14 +241,7 @@ const retriesUnit = computed(() => t('retrySchedules.units.retries'));
               <Hook0Select
                 v-model="strategy"
                 :label="t('retrySchedules.fields.strategy')"
-                :options="[
-                  {
-                    value: 'exponential_increasing',
-                    label: t('retrySchedules.strategies.exponentialIncreasing'),
-                  },
-                  { value: 'linear', label: t('retrySchedules.strategies.linear') },
-                  { value: 'custom', label: t('retrySchedules.strategies.custom') },
-                ]"
+                :options="strategyOptions"
               />
 
               <!-- Exponential fields -->
@@ -251,14 +251,14 @@ const retriesUnit = computed(() => t('retrySchedules.units.retries'));
                   :label="t('retrySchedules.fields.maxRetries')"
                   :min="1"
                   :max="limits.max_retries"
-                  :unit="retriesUnit"
+                  :unit="t('common.units.retries')"
                 />
                 <Hook0Slider
                   v-model="baseDelay"
                   :label="t('retrySchedules.fields.baseDelay')"
                   :min="limits.exponential_base_delay_min_secs"
                   :max="limits.exponential_base_delay_max_secs"
-                  :unit="secondsUnit"
+                  :unit="t('common.units.seconds')"
                   :help-text="t('retrySchedules.help.baseDelay')"
                 />
                 <Hook0Slider
@@ -278,14 +278,14 @@ const retriesUnit = computed(() => t('retrySchedules.units.retries'));
                   :label="t('retrySchedules.fields.maxRetries')"
                   :min="1"
                   :max="limits.max_retries"
-                  :unit="retriesUnit"
+                  :unit="t('common.units.retries')"
                 />
                 <Hook0Slider
                   v-model="linearDelay"
                   :label="t('retrySchedules.fields.linearDelay')"
                   :min="limits.min_single_delay_secs"
                   :max="limits.max_single_delay_secs"
-                  :unit="secondsUnit"
+                  :unit="t('common.units.seconds')"
                   :help-text="t('retrySchedules.help.linearDelay')"
                 />
               </template>
@@ -303,19 +303,18 @@ const retriesUnit = computed(() => t('retrySchedules.units.retries'));
                       })
                     }}
                   </p>
-                  <Hook0IntervalChips
-                    :values="customIntervals"
-                    removable
-                    @remove="removeInterval"
-                  />
+                  <IntervalChips :values="customIntervals" removable @remove="removeInterval" />
                   <div class="custom-intervals__add">
+                    <!-- Enter adds a chip instead of submitting the outer form. -->
                     <input
                       v-model.number="newIntervalValue"
                       type="number"
                       :min="limits.min_single_delay_secs"
                       :max="limits.max_single_delay_secs"
                       :placeholder="t('retrySchedules.fields.intervalPlaceholder')"
+                      :aria-label="t('retrySchedules.fields.intervals')"
                       class="custom-intervals__input"
+                      @keydown.enter.prevent="addInterval"
                     />
                     <Hook0Button
                       variant="secondary"

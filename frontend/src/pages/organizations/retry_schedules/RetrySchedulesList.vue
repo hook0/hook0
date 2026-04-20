@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Clock, Pencil, Plus, Trash2 } from 'lucide-vue-next';
@@ -24,7 +24,7 @@ import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
-import Hook0IntervalChips from './Hook0IntervalChips.vue';
+import IntervalChips from './IntervalChips.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -32,7 +32,14 @@ const { organizationId } = useRouteIds();
 const perms = usePermissions();
 
 const { data: schedules, isLoading, error, refetch } = useRetryScheduleList(organizationId);
-const { limits } = useRetryScheduleLimits();
+const { limits, error: limitsError } = useRetryScheduleLimits();
+
+// Surface /instance errors as a toast — chips fall back to empty if limits are missing.
+watch(limitsError, (err) => {
+  if (err) {
+    toast.error(t('retrySchedules.limitsUnavailable'));
+  }
+});
 
 function strategyLabel(strategy: RetrySchedule['strategy']): string {
   switch (strategy) {
@@ -156,7 +163,7 @@ function goToNew() {
                 <td>{{ strategyLabel(schedule.strategy) }}</td>
                 <td>{{ schedule.max_retries }}</td>
                 <td>
-                  <Hook0IntervalChips :values="intervalsFor(schedule)" :max="8" />
+                  <IntervalChips :values="intervalsFor(schedule)" :max="8" />
                 </td>
                 <td class="schedules-table__actions">
                   <Hook0Button
