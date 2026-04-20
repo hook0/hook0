@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, target__id, created_at, updated_at)\n                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(), statement_timestamp(), statement_timestamp())\n                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at, updated_at\n            ",
+  "query": "\n            UPDATE webhook.subscription\n            SET is_enabled = $1, description = $2, metadata = $3, labels = $4, retry_schedule__id = $7, updated_at = statement_timestamp()\n            WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL\n            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, failure_percent, target__id, retry_schedule__id, created_at, updated_at\n        ",
   "describe": {
     "columns": [
       {
@@ -35,27 +35,39 @@
       },
       {
         "ordinal": 6,
+        "name": "failure_percent",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 7,
         "name": "target__id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
+        "name": "retry_schedule__id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 8,
+        "ordinal": 10,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
         "Bool",
         "Text",
         "Jsonb",
-        "Jsonb"
+        "Jsonb",
+        "Uuid",
+        "Uuid",
+        "Uuid"
       ]
     },
     "nullable": [
@@ -65,10 +77,12 @@
       false,
       false,
       false,
+      true,
       false,
+      true,
       false,
       false
     ]
   },
-  "hash": "d57a768b871af6b25937c46209d0c074db29debba784155b99531d9ca0566e26"
+  "hash": "f1d29db9ee9ef709e50cf11ebbdc09ee0ef470ae68202427d62f485dfd2ccf75"
 }

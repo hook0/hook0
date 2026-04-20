@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE webhook.subscription\n            SET is_enabled = $1, description = $2, metadata = $3, labels = $4, updated_at = statement_timestamp()\n            WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL\n            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, failure_percent, target__id, created_at, updated_at\n        ",
+  "query": "\n                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, target__id, retry_schedule__id, created_at, updated_at)\n                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(), $6, statement_timestamp(), statement_timestamp())\n                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, retry_schedule__id, created_at, updated_at\n            ",
   "describe": {
     "columns": [
       {
@@ -35,12 +35,12 @@
       },
       {
         "ordinal": 6,
-        "name": "failure_percent",
-        "type_info": "Float8"
+        "name": "target__id",
+        "type_info": "Uuid"
       },
       {
         "ordinal": 7,
-        "name": "target__id",
+        "name": "retry_schedule__id",
         "type_info": "Uuid"
       },
       {
@@ -56,11 +56,11 @@
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Bool",
         "Text",
         "Jsonb",
         "Jsonb",
-        "Uuid",
         "Uuid"
       ]
     },
@@ -71,11 +71,11 @@
       false,
       false,
       false,
-      true,
       false,
+      true,
       false,
       false
     ]
   },
-  "hash": "8a80279ffe5e4bc273c4df64524bb2ada4c24f3f85a443aa828056504f06363d"
+  "hash": "0ed97454477bd5898fe324915444a9e055dbdbe386a8c5a53e1d3403cafde249"
 }
