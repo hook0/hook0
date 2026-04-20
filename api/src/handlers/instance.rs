@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, query};
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use std::time::Duration;
 
 use crate::problems::Hook0Problem;
 use crate::{ObjectStorageConfig, PulsarConfig};
@@ -54,6 +55,7 @@ pub struct SubscriptionHealthMonitorConfig {
 }
 
 /// Retry-schedule limits — single source of truth for frontend validation.
+/// Wire format stays in `_secs: integer` so the frontend schema is unchanged while Rust State uses `Duration`.
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct RetryScheduleConfig {
     min_single_delay_secs: i32,
@@ -66,6 +68,14 @@ pub struct RetryScheduleConfig {
     exponential_wait_factor_min: f64,
     exponential_wait_factor_max: f64,
     max_per_organization: i64,
+}
+
+fn duration_as_i32_secs(duration: Duration) -> i32 {
+    i32::try_from(duration.as_secs()).unwrap_or(i32::MAX)
+}
+
+fn duration_as_i64_secs(duration: Duration) -> i64 {
+    i64::try_from(duration.as_secs()).unwrap_or(i64::MAX)
 }
 
 /// Get instance configuration
@@ -108,13 +118,17 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
             });
 
     let retry_schedule = RetryScheduleConfig {
-        min_single_delay_secs: state.retry_schedule_min_single_delay_secs,
-        max_single_delay_secs: state.retry_schedule_max_single_delay_secs,
+        min_single_delay_secs: duration_as_i32_secs(state.retry_schedule_min_single_delay),
+        max_single_delay_secs: duration_as_i32_secs(state.retry_schedule_max_single_delay),
         max_retries: state.retry_schedule_max_retries,
         max_custom_intervals_length: state.retry_schedule_max_retries,
-        max_total_duration_secs: state.retry_schedule_max_total_duration_secs,
-        exponential_base_delay_min_secs: state.retry_schedule_exponential_base_delay_min_secs,
-        exponential_base_delay_max_secs: state.retry_schedule_exponential_base_delay_max_secs,
+        max_total_duration_secs: duration_as_i64_secs(state.retry_schedule_max_total_duration),
+        exponential_base_delay_min_secs: duration_as_i32_secs(
+            state.retry_schedule_exponential_base_delay_min,
+        ),
+        exponential_base_delay_max_secs: duration_as_i32_secs(
+            state.retry_schedule_exponential_base_delay_max,
+        ),
         exponential_wait_factor_min: state.retry_schedule_exponential_wait_factor_min,
         exponential_wait_factor_max: state.retry_schedule_exponential_wait_factor_max,
         max_per_organization: state.max_retry_schedules_per_organization,

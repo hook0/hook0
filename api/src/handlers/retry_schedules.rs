@@ -16,6 +16,7 @@ use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as, query_scalar};
+use std::time::Duration;
 use strum::{Display, EnumString};
 use tracing::error;
 use uuid::Uuid;
@@ -75,7 +76,7 @@ pub struct RetrySchedule {
 }
 
 /// Create request. Ranges here are anti-corruption bounds; business limits are
-/// enforced by the runtime check in `validate_against_state`.
+/// enforced by the runtime check in `validate_against_limits`.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 #[serde(deny_unknown_fields)]
 #[validate(schema(function = "RetrySchedulePost::validate_strategy"))]
@@ -167,27 +168,11 @@ fn require_some<'a, T>(
         .ok_or_else(|| strategy_error(&format!("{field} is required for {strategy} strategy")))
 }
 
-/// Same as `require_some` but discards the unwrapped reference.
-/// Use when you only care that the field is set, not its value.
-fn require_present<T>(
-    field: &str,
-    value: &Option<T>,
-    strategy: &str,
-) -> Result<(), validator::ValidationError> {
-    if value.is_some() {
-        Ok(())
-    } else {
-        Err(strategy_error(&format!(
-            "{field} is required for {strategy} strategy"
-        )))
-    }
-}
-
 /// Cross-field validation for a retry schedule strategy.
 ///
 /// Wired by the `validator` crate via `#[validate(schema(function = "…"))]`.
 /// Only checks mutual exclusion + presence; numeric ranges are handled by attributes
-/// or the runtime `validate_against_state` pass.
+/// or the runtime `validate_against_limits` pass.
 pub fn validate_strategy_fields(
     strategy: RetryStrategy,
     max_retries: i32,
@@ -201,7 +186,7 @@ pub fn validate_strategy_fields(
         RetryStrategy::ExponentialIncreasing => {
             require_none(FIELD_CUSTOM_INTERVALS, &custom_intervals, &strategy_name)?;
             require_none(FIELD_LINEAR_DELAY, &linear_delay, &strategy_name)?;
-            require_present(
+            require_some(
                 FIELD_INCREASING_BASE_DELAY,
                 &increasing_base_delay,
                 &strategy_name,
@@ -229,7 +214,7 @@ pub fn validate_strategy_fields(
                 &increasing_wait_factor,
                 &strategy_name,
             )?;
-            require_present(FIELD_LINEAR_DELAY, &linear_delay, &strategy_name)?;
+            require_some(FIELD_LINEAR_DELAY, &linear_delay, &strategy_name)?;
         }
         RetryStrategy::Custom => {
             require_none(FIELD_LINEAR_DELAY, &linear_delay, &strategy_name)?;
@@ -256,156 +241,138 @@ pub fn validate_strategy_fields(
     Ok(())
 }
 
-/// Borrowed bundle of the six strategy-specific payload fields.
-#[derive(Debug, Clone, Copy)]
-struct StrategyFieldsView<'a> {
-    strategy: RetryStrategy,
-    max_retries: i32,
-    linear_delay: Option<i32>,
-    custom_intervals: Option<&'a [i32]>,
-    increasing_base_delay: Option<i32>,
-    increasing_wait_factor: Option<f64>,
+/// Borrowed view of the six strategy-specific payload fields.
+/// Implemented by `RetrySchedulePost` and `RetrySchedulePut` so validators run on either.
+trait StrategyFields {
+    fn strategy(&self) -> RetryStrategy;
+    fn max_retries(&self) -> i32;
+    fn linear_delay(&self) -> Option<i32>;
+    fn custom_intervals(&self) -> Option<&[i32]>;
+    fn increasing_base_delay(&self) -> Option<i32>;
+    fn increasing_wait_factor(&self) -> Option<f64>;
 }
 
-/// Runtime bounds check against the API State config. Rejects payloads that passed
-/// validator attributes (anti-corruption) but breach the tighter business limits.
-fn validate_against_state(
+macro_rules! impl_strategy_fields {
+    ($struct_name:ident) => {
+        impl StrategyFields for $struct_name {
+            fn strategy(&self) -> RetryStrategy {
+                self.strategy
+            }
+            fn max_retries(&self) -> i32 {
+                self.max_retries
+            }
+            fn linear_delay(&self) -> Option<i32> {
+                self.linear_delay
+            }
+            fn custom_intervals(&self) -> Option<&[i32]> {
+                self.custom_intervals.as_deref()
+            }
+            fn increasing_base_delay(&self) -> Option<i32> {
+                self.increasing_base_delay
+            }
+            fn increasing_wait_factor(&self) -> Option<f64> {
+                self.increasing_wait_factor
+            }
+        }
+    };
+}
+
+impl_strategy_fields!(RetrySchedulePost);
+impl_strategy_fields!(RetrySchedulePut);
+
+/// Saturating Duration → i32 seconds conversion (bounds derive from clap-parsed humantime).
+fn duration_to_i32_secs(duration: Duration) -> i32 {
+    i32::try_from(duration.as_secs()).unwrap_or(i32::MAX)
+}
+
+/// Saturating Duration → i64 seconds conversion (bounds derive from clap-parsed humantime).
+fn duration_to_i64_secs(duration: Duration) -> i64 {
+    i64::try_from(duration.as_secs()).unwrap_or(i64::MAX)
+}
+
+/// Runtime bounds check against the instance-level limits from `State`. Rejects payloads
+/// that passed validator attributes (anti-corruption) but breach the tighter business caps.
+fn validate_against_limits(
     state: &crate::State,
-    fields: StrategyFieldsView<'_>,
+    fields: &impl StrategyFields,
 ) -> Result<(), validator::ValidationErrors> {
     let mut errors = validator::ValidationErrors::new();
 
-    check_max_retries(
-        &mut errors,
-        fields.max_retries,
-        state.retry_schedule_max_retries,
-    );
-    check_strategy_bounds(&mut errors, state, fields);
-    check_total_duration(&mut errors, state, fields);
+    if fields.max_retries() > state.retry_schedule_max_retries {
+        let cap = state.retry_schedule_max_retries;
+        errors.add("max_retries", range_error("max_retries", 1, i64::from(cap)));
+    }
+
+    match fields.strategy() {
+        RetryStrategy::ExponentialIncreasing => {
+            if let Some(base) = fields.increasing_base_delay() {
+                let min = duration_to_i32_secs(state.retry_schedule_exponential_base_delay_min);
+                let max = duration_to_i32_secs(state.retry_schedule_exponential_base_delay_max);
+                if !(min..=max).contains(&base) {
+                    errors.add(
+                        FIELD_INCREASING_BASE_DELAY,
+                        range_error(FIELD_INCREASING_BASE_DELAY, i64::from(min), i64::from(max)),
+                    );
+                }
+            }
+            if let Some(factor) = fields.increasing_wait_factor() {
+                let min = state.retry_schedule_exponential_wait_factor_min;
+                let max = state.retry_schedule_exponential_wait_factor_max;
+                if factor < min || factor > max {
+                    errors.add(
+                        FIELD_INCREASING_WAIT_FACTOR,
+                        range_error(FIELD_INCREASING_WAIT_FACTOR, min, max),
+                    );
+                }
+            }
+        }
+        RetryStrategy::Linear => {
+            if let Some(delay) = fields.linear_delay() {
+                let min = duration_to_i32_secs(state.retry_schedule_min_single_delay);
+                let max = duration_to_i32_secs(state.retry_schedule_max_single_delay);
+                if !(min..=max).contains(&delay) {
+                    errors.add(
+                        FIELD_LINEAR_DELAY,
+                        range_error(FIELD_LINEAR_DELAY, i64::from(min), i64::from(max)),
+                    );
+                }
+            }
+        }
+        RetryStrategy::Custom => {
+            if let Some(intervals) = fields.custom_intervals() {
+                let min = duration_to_i32_secs(state.retry_schedule_min_single_delay);
+                let max = duration_to_i32_secs(state.retry_schedule_max_single_delay);
+                if let Some((index, _)) = intervals
+                    .iter()
+                    .enumerate()
+                    .find(|(_, value)| !(min..=max).contains(value))
+                {
+                    errors.add(
+                        FIELD_CUSTOM_INTERVALS,
+                        range_error(
+                            &format!("{FIELD_CUSTOM_INTERVALS}[{index}]"),
+                            i64::from(min),
+                            i64::from(max),
+                        ),
+                    );
+                }
+            }
+        }
+    }
+
+    let single_max_secs = duration_to_i32_secs(state.retry_schedule_max_single_delay);
+    let total_cap_secs = duration_to_i64_secs(state.retry_schedule_max_total_duration);
+    if compute_total_duration(fields, single_max_secs) > total_cap_secs {
+        errors.add(
+            "total_duration",
+            range_error("total_duration", 0, total_cap_secs),
+        );
+    }
 
     if errors.is_empty() {
         Ok(())
     } else {
         Err(errors)
-    }
-}
-
-fn check_max_retries(errors: &mut validator::ValidationErrors, max_retries: i32, cap: i32) {
-    if max_retries > cap {
-        errors.add("max_retries", range_error("max_retries", 1, i64::from(cap)));
-    }
-}
-
-fn check_strategy_bounds(
-    errors: &mut validator::ValidationErrors,
-    state: &crate::State,
-    fields: StrategyFieldsView<'_>,
-) {
-    match fields.strategy {
-        RetryStrategy::ExponentialIncreasing => {
-            check_exponential_base(errors, state, fields.increasing_base_delay);
-            check_exponential_factor(errors, state, fields.increasing_wait_factor);
-        }
-        RetryStrategy::Linear => check_linear_delay(errors, state, fields.linear_delay),
-        RetryStrategy::Custom => check_custom_intervals(errors, state, fields.custom_intervals),
-    }
-}
-
-fn check_exponential_base(
-    errors: &mut validator::ValidationErrors,
-    state: &crate::State,
-    base: Option<i32>,
-) {
-    let Some(base) = base else { return };
-    let min = state.retry_schedule_exponential_base_delay_min_secs;
-    let max = state.retry_schedule_exponential_base_delay_max_secs;
-    if !(min..=max).contains(&base) {
-        errors.add(
-            FIELD_INCREASING_BASE_DELAY,
-            range_error(FIELD_INCREASING_BASE_DELAY, i64::from(min), i64::from(max)),
-        );
-    }
-}
-
-fn check_exponential_factor(
-    errors: &mut validator::ValidationErrors,
-    state: &crate::State,
-    factor: Option<f64>,
-) {
-    let Some(factor) = factor else { return };
-    let min = state.retry_schedule_exponential_wait_factor_min;
-    let max = state.retry_schedule_exponential_wait_factor_max;
-    if factor < min || factor > max {
-        errors.add(
-            FIELD_INCREASING_WAIT_FACTOR,
-            range_error(FIELD_INCREASING_WAIT_FACTOR, min, max),
-        );
-    }
-}
-
-fn check_linear_delay(
-    errors: &mut validator::ValidationErrors,
-    state: &crate::State,
-    delay: Option<i32>,
-) {
-    let Some(delay) = delay else { return };
-    let min = state.retry_schedule_min_single_delay_secs;
-    let max = state.retry_schedule_max_single_delay_secs;
-    if !(min..=max).contains(&delay) {
-        errors.add(
-            FIELD_LINEAR_DELAY,
-            range_error(FIELD_LINEAR_DELAY, i64::from(min), i64::from(max)),
-        );
-    }
-}
-
-fn check_custom_intervals(
-    errors: &mut validator::ValidationErrors,
-    state: &crate::State,
-    intervals: Option<&[i32]>,
-) {
-    let Some(intervals) = intervals else { return };
-    let min = state.retry_schedule_min_single_delay_secs;
-    let max = state.retry_schedule_max_single_delay_secs;
-    if let Some((index, _)) = intervals
-        .iter()
-        .enumerate()
-        .find(|(_, value)| !(min..=max).contains(value))
-    {
-        errors.add(
-            FIELD_CUSTOM_INTERVALS,
-            range_error(
-                &format!("{FIELD_CUSTOM_INTERVALS}[{index}]"),
-                i64::from(min),
-                i64::from(max),
-            ),
-        );
-    }
-}
-
-fn check_total_duration(
-    errors: &mut validator::ValidationErrors,
-    state: &crate::State,
-    fields: StrategyFieldsView<'_>,
-) {
-    let total = compute_total_duration(
-        fields.strategy,
-        fields.max_retries,
-        fields.linear_delay,
-        fields.custom_intervals,
-        fields.increasing_base_delay,
-        fields.increasing_wait_factor,
-        state.retry_schedule_max_single_delay_secs,
-    );
-    if total > state.retry_schedule_max_total_duration_secs {
-        errors.add(
-            "total_duration",
-            range_error(
-                "total_duration",
-                0,
-                state.retry_schedule_max_total_duration_secs,
-            ),
-        );
     }
 }
 
@@ -417,44 +384,41 @@ fn range_error<T: std::fmt::Display>(field: &str, min: T, max: T) -> validator::
     err
 }
 
-/// Sum of retry delays in seconds. Per-retry delay pre-clamped to single_max
-/// so hostile inputs cannot overflow i64 before the total-cap check.
-fn compute_total_duration(
-    strategy: RetryStrategy,
-    max_retries: i32,
-    linear_delay: Option<i32>,
-    custom_intervals: Option<&[i32]>,
-    increasing_base_delay: Option<i32>,
-    increasing_wait_factor: Option<f64>,
-    single_max: i32,
-) -> i64 {
-    match strategy {
+/// Sum of retry delays in seconds. Per-retry delay pre-clamped to single_max_secs so
+/// hostile inputs cannot overflow i64 before the total-cap check.
+fn compute_total_duration(fields: &impl StrategyFields, single_max_secs: i32) -> i64 {
+    match fields.strategy() {
         RetryStrategy::ExponentialIncreasing => {
-            let (Some(base), Some(factor)) = (increasing_base_delay, increasing_wait_factor) else {
+            let (Some(base), Some(factor)) = (
+                fields.increasing_base_delay(),
+                fields.increasing_wait_factor(),
+            ) else {
                 return 0;
             };
-            let cap = f64::from(single_max);
+            let cap_float = f64::from(single_max_secs);
             let mut total: i64 = 0;
-            for index in 0..max_retries.max(0) {
+            for index in 0..fields.max_retries().max(0) {
                 let base_float = f64::from(base);
                 let factor_power = factor.powi(index);
                 let projected = base_float * factor_power;
-                // Pre-clamped to [0, cap] where cap fits in i32; NaN rejected upstream.
-                let term = projected.clamp(0.0, cap) as i64; // comply-ignore: rust-no-as-numeric-cast — finite and bounded by cap ≤ i32::MAX.
+                let clamped = projected.clamp(0.0, cap_float);
+                // Pre-clamped finite in [0, single_max_secs ≤ i32::MAX]; NaN saturates to 0 via `as i64`.
+                let term = clamped as i64;
                 total = total.saturating_add(term);
             }
             total
         }
-        RetryStrategy::Linear => match linear_delay {
-            Some(delay) => i64::from(max_retries).saturating_mul(i64::from(delay)),
+        RetryStrategy::Linear => match fields.linear_delay() {
+            Some(delay) => i64::from(fields.max_retries()).saturating_mul(i64::from(delay)),
             None => 0,
         },
-        RetryStrategy::Custom => custom_intervals
+        RetryStrategy::Custom => fields
+            .custom_intervals()
             .map(|values| {
                 values
                     .iter()
-                    .map(|value| i64::from(*value).min(i64::from(single_max)))
-                    .fold(0i64, |acc, value| acc.saturating_add(value))
+                    .map(|value| i64::from(*value).min(i64::from(single_max_secs)))
+                    .fold(0i64, |accumulator, value| accumulator.saturating_add(value))
             })
             .unwrap_or(0),
     }
@@ -606,25 +570,13 @@ pub async fn create(
     if let Err(errors) = body.validate() {
         return Err(Hook0Problem::Validation(errors));
     }
-    if let Err(errors) = validate_against_state(
-        &state,
-        StrategyFieldsView {
-            strategy: body.strategy,
-            max_retries: body.max_retries,
-            linear_delay: body.linear_delay,
-            custom_intervals: body.custom_intervals.as_deref(),
-            increasing_base_delay: body.increasing_base_delay,
-            increasing_wait_factor: body.increasing_wait_factor,
-        },
-    ) {
+    if let Err(errors) = validate_against_limits(&state, &*body) {
         return Err(Hook0Problem::Validation(errors));
     }
 
-    let name = body.name.trim();
-
     // Atomic INSERT with per-org quota: the subquery short-circuits when the org is at capacity.
     // Under concurrent creates two inserts may both see count=limit-1 and land — acceptable soft limit.
-    let created = query_as!(
+    let inserted_schedule = query_as!(
         RetrySchedule,
         r#"
             insert into webhook.retry_schedule
@@ -649,7 +601,7 @@ pub async fn create(
                 updated_at as "updated_at!"
         "#,
         &organization_id,
-        name,
+        body.name.trim(),
         body.strategy as RetryStrategy,
         body.max_retries,
         body.custom_intervals.as_deref(),
@@ -662,27 +614,30 @@ pub async fn create(
     .await
     .map_err(Hook0Problem::from)?;
 
-    let Some(created) = created else {
+    // None here means the quota WHERE clause short-circuited the INSERT. Name-uniqueness
+    // violations surface as `Hook0Problem::RetryScheduleNameAlreadyExist` via `problems.rs`,
+    // so this branch is reached only when the organization is already at the schedule cap.
+    let Some(inserted_schedule) = inserted_schedule else {
         return Err(Hook0Problem::TooManyRetrySchedulesPerOrganization(
             state.max_retry_schedules_per_organization,
         ));
     };
 
     let event: Hook0ClientEvent = EventRetryScheduleCreated {
-        organization_id: created.organization_id,
-        retry_schedule_id: created.retry_schedule_id,
-        name: created.name.to_owned(),
-        strategy: created.strategy.to_string(),
-        max_retries: created.max_retries,
-        custom_intervals: created.custom_intervals.to_owned(),
-        linear_delay: created.linear_delay,
-        increasing_base_delay: created.increasing_base_delay,
-        increasing_wait_factor: created.increasing_wait_factor,
+        organization_id: inserted_schedule.organization_id,
+        retry_schedule_id: inserted_schedule.retry_schedule_id,
+        name: inserted_schedule.name.to_owned(),
+        strategy: inserted_schedule.strategy.to_string(),
+        max_retries: inserted_schedule.max_retries,
+        custom_intervals: inserted_schedule.custom_intervals.to_owned(),
+        linear_delay: inserted_schedule.linear_delay,
+        increasing_base_delay: inserted_schedule.increasing_base_delay,
+        increasing_wait_factor: inserted_schedule.increasing_wait_factor,
     }
     .into();
     emit_retry_schedule_event(&state, event).await;
 
-    Ok(CreatedJson(created))
+    Ok(CreatedJson(inserted_schedule))
 }
 
 #[api_v2_operation(
@@ -720,21 +675,9 @@ pub async fn edit(
     if let Err(errors) = body.validate() {
         return Err(Hook0Problem::Validation(errors));
     }
-    if let Err(errors) = validate_against_state(
-        &state,
-        StrategyFieldsView {
-            strategy: body.strategy,
-            max_retries: body.max_retries,
-            linear_delay: body.linear_delay,
-            custom_intervals: body.custom_intervals.as_deref(),
-            increasing_base_delay: body.increasing_base_delay,
-            increasing_wait_factor: body.increasing_wait_factor,
-        },
-    ) {
+    if let Err(errors) = validate_against_limits(&state, &*body) {
         return Err(Hook0Problem::Validation(errors));
     }
-
-    let name = body.name.trim();
 
     let updated = query_as!(
         RetrySchedule,
@@ -764,7 +707,7 @@ pub async fn edit(
                 updated_at as "updated_at!"
         "#,
         &retry_schedule_id,
-        name,
+        body.name.trim(),
         body.strategy as RetryStrategy,
         body.max_retries,
         body.custom_intervals.as_deref(),
@@ -963,15 +906,8 @@ mod tests {
 
     #[test]
     fn compute_total_duration_clamps_per_retry() {
-        let total = compute_total_duration(
-            RetryStrategy::ExponentialIncreasing,
-            10,
-            None,
-            None,
-            Some(1),
-            Some(10.0),
-            7 * 24 * 3600,
-        );
+        let post = exponential_post("clamp", 10, 1, 10.0);
+        let total = compute_total_duration(&post, 7 * 24 * 3600);
         assert!(total > 0);
         assert!(total <= 10 * (7 * 24 * 3600));
     }

@@ -85,7 +85,6 @@ pub async fn compute_next_retry(
 
     // Disabled / soft-deleted subscriptions short-circuit to None.
     // Prevents scheduling follow-ups on mid-flight state.
-    // comply-ignore: timeout-on-io — sqlx queries share the pool-level statement_timeout, project-wide.
     let row = sqlx::query_as!(
         SubscriptionRetrySchedule,
         r#"
@@ -160,7 +159,7 @@ pub fn compute_scheduled_retry_delay(
             let factor = row.increasing_wait_factor?;
             let projected = f64::from(base) * factor.powi(i32::from(retry_count));
             // Pre-clamped to [0, MAX_RETRY_DELAY_SECS_F64]; residual NaN saturates to 0 via `as u64`.
-            projected.clamp(0.0, MAX_RETRY_DELAY_SECS_F64) as u64 // comply-ignore: rust-no-as-numeric-cast — finite and bounded.
+            projected.clamp(0.0, MAX_RETRY_DELAY_SECS_F64) as u64
         }
         Strategy::Linear => {
             let delay = row.linear_delay?;

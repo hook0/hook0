@@ -52,7 +52,6 @@ export function formatDelay(seconds: number): string {
   return `${Math.floor(seconds / 86400)}d`;
 }
 
-// comply-ignore: no-throw — TypeScript exhaustiveness pattern: unreachable at compile time.
 function assertNever(value: never): never {
   throw new Error(`Unexpected retry strategy: ${String(value)}`);
 }

@@ -39,6 +39,8 @@ pub enum Hook0Problem {
     EventTypeAlreadyExist,
     EventTypeDoesNotExist,
 
+    RetryScheduleNameAlreadyExist,
+
     UnauthorizedWorkers(Vec<String>),
 
     EventAlreadyIngested,
@@ -100,16 +102,7 @@ impl From<sqlx::Error> for Hook0Problem {
                         Hook0Problem::InvitedUserAlreadyInOrganization
                     }
                     Some("retry_schedule_organization__id_name_key") => {
-                        // Surface the unique-name collision through the same 422 Validation
-                        // path as other field-level rejections; caller reads `validation.name`.
-                        let mut errors = validator::ValidationErrors::new();
-                        let mut name_error =
-                            validator::ValidationError::new("retry_schedule_name_already_exists");
-                        name_error.message = Some(std::borrow::Cow::Borrowed(
-                            "A retry schedule with this name already exists in this organization.",
-                        ));
-                        errors.add("name", name_error);
-                        Hook0Problem::Validation(errors)
+                        Hook0Problem::RetryScheduleNameAlreadyExist
                     }
                     constraint => {
                         error!(
@@ -302,6 +295,14 @@ impl From<Hook0Problem> for Problem {
                 detail: "Event type does not exist or was deactivated. You should (re)create it.".into(),
                 validation: None,
                 status: StatusCode::BAD_REQUEST,
+            },
+
+            Hook0Problem::RetryScheduleNameAlreadyExist => Problem {
+                id: Hook0Problem::RetryScheduleNameAlreadyExist,
+                title: "Retry schedule name already exists",
+                detail: "A retry schedule with this name already exists in this organization.".into(),
+                validation: None,
+                status: StatusCode::CONFLICT,
             },
 
             Hook0Problem::UnauthorizedWorkers(w) => {

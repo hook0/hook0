@@ -600,25 +600,25 @@ struct Config {
     #[clap(long, env, default_value_t = 15)]
     retry_schedule_max_retries: i32,
 
-    /// Floor for any single retry delay in seconds (linear, custom, exponential base).
-    #[clap(long, env, default_value_t = 1)]
-    retry_schedule_min_single_delay_secs: i32,
+    /// Floor for any single retry delay (linear, custom, exponential base). Accepts humantime (`30s`, `2h`).
+    #[clap(long, env, default_value = "1s", value_parser = humantime::parse_duration)]
+    retry_schedule_min_single_delay: Duration,
 
-    /// Ceiling for any single retry delay in seconds.
-    #[clap(long, env, default_value_t = 7 * 24 * 3600)]
-    retry_schedule_max_single_delay_secs: i32,
+    /// Ceiling for any single retry delay. Accepts humantime (`30s`, `7d`).
+    #[clap(long, env, default_value = "7d", value_parser = humantime::parse_duration)]
+    retry_schedule_max_single_delay: Duration,
 
-    /// Sum-of-delays cap across all retries (clamped per-retry first to avoid overflow).
-    #[clap(long, env, default_value_t = 7 * 24 * 3600)]
-    retry_schedule_max_total_duration_secs: i64,
+    /// Sum-of-delays cap across all retries (per-retry clamped first to avoid overflow). Accepts humantime.
+    #[clap(long, env, default_value = "7d", value_parser = humantime::parse_duration)]
+    retry_schedule_max_total_duration: Duration,
 
-    /// Min base delay for the exponential_increasing strategy.
-    #[clap(long, env, default_value_t = 1)]
-    retry_schedule_exponential_base_delay_min_secs: i32,
+    /// Min base delay for the exponential_increasing strategy. Accepts humantime.
+    #[clap(long, env, default_value = "1s", value_parser = humantime::parse_duration)]
+    retry_schedule_exponential_base_delay_min: Duration,
 
-    /// Max base delay for the exponential_increasing strategy.
-    #[clap(long, env, default_value_t = 3600)]
-    retry_schedule_exponential_base_delay_max_secs: i32,
+    /// Max base delay for the exponential_increasing strategy. Accepts humantime.
+    #[clap(long, env, default_value = "1h", value_parser = humantime::parse_duration)]
+    retry_schedule_exponential_base_delay_max: Duration,
 
     /// Min wait factor for the exponential_increasing strategy.
     #[clap(long, env, default_value_t = 1.5)]
@@ -679,11 +679,11 @@ pub struct State {
     subscription_health_monitor_failure_percent_for_disable: u8,
     max_retry_schedules_per_organization: i64,
     retry_schedule_max_retries: i32,
-    retry_schedule_min_single_delay_secs: i32,
-    retry_schedule_max_single_delay_secs: i32,
-    retry_schedule_max_total_duration_secs: i64,
-    retry_schedule_exponential_base_delay_min_secs: i32,
-    retry_schedule_exponential_base_delay_max_secs: i32,
+    retry_schedule_min_single_delay: Duration,
+    retry_schedule_max_single_delay: Duration,
+    retry_schedule_max_total_duration: Duration,
+    retry_schedule_exponential_base_delay_min: Duration,
+    retry_schedule_exponential_base_delay_max: Duration,
     retry_schedule_exponential_wait_factor_min: f64,
     retry_schedule_exponential_wait_factor_max: f64,
 }
@@ -1262,13 +1262,13 @@ async fn main() -> anyhow::Result<()> {
                 .subscription_health_monitor_failure_percent_for_disable,
             max_retry_schedules_per_organization: config.max_retry_schedules_per_organization,
             retry_schedule_max_retries: config.retry_schedule_max_retries,
-            retry_schedule_min_single_delay_secs: config.retry_schedule_min_single_delay_secs,
-            retry_schedule_max_single_delay_secs: config.retry_schedule_max_single_delay_secs,
-            retry_schedule_max_total_duration_secs: config.retry_schedule_max_total_duration_secs,
-            retry_schedule_exponential_base_delay_min_secs: config
-                .retry_schedule_exponential_base_delay_min_secs,
-            retry_schedule_exponential_base_delay_max_secs: config
-                .retry_schedule_exponential_base_delay_max_secs,
+            retry_schedule_min_single_delay: config.retry_schedule_min_single_delay,
+            retry_schedule_max_single_delay: config.retry_schedule_max_single_delay,
+            retry_schedule_max_total_duration: config.retry_schedule_max_total_duration,
+            retry_schedule_exponential_base_delay_min: config
+                .retry_schedule_exponential_base_delay_min,
+            retry_schedule_exponential_base_delay_max: config
+                .retry_schedule_exponential_base_delay_max,
             retry_schedule_exponential_wait_factor_min: config
                 .retry_schedule_exponential_wait_factor_min,
             retry_schedule_exponential_wait_factor_max: config

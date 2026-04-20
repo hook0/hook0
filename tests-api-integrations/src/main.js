@@ -456,7 +456,6 @@ function scenario_retry_schedules() {
   const custom = create_retry_schedule_custom(baseUrl, organizationId, serviceToken, customName);
 
   if (!exp || !linear || !custom) {
-    // comply-ignore: no-throw — k6 scenario uses throw to signal a fatal setup error; Result not available in k6.
     throw new Error('Failed to create retry schedules');
   }
 
