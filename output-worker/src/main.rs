@@ -2,6 +2,7 @@ mod monitoring;
 mod opentelemetry;
 mod pg;
 mod pulsar;
+mod retry;
 mod throughput_log;
 mod work;
 
@@ -791,29 +792,58 @@ async fn compute_next_retry(
                 warn!(request_attempt_id = %attempt.request_attempt_id, "Invalid target ({msg}); continuing as normal");
             }
 
+            // Pull the subscription alongside any attached retry schedule.
+            // Disabled/soft-deleted subs short-circuit to None so we stop
+            // scheduling follow-ups even if they were mid-flight.
             let sub = query!(
-                "
-                    SELECT true AS whatever
+                r#"
+                    SELECT
+                        rs.strategy AS "strategy?",
+                        rs.max_retries AS "rs_max_retries?",
+                        rs.custom_intervals AS "custom_intervals?",
+                        rs.linear_delay AS "linear_delay?",
+                        rs.increasing_base_delay AS "increasing_base_delay?",
+                        rs.increasing_wait_factor AS "increasing_wait_factor?"
                     FROM webhook.subscription AS s
                     INNER JOIN event.application AS a ON a.application__id = s.application__id
+                    LEFT JOIN webhook.retry_schedule AS rs ON rs.retry_schedule__id = s.retry_schedule__id
                     WHERE s.subscription__id = $1
                         AND s.deleted_at IS NULL
                         AND s.is_enabled
                         AND a.deleted_at IS NULL
-                ",
+                "#,
                 attempt.subscription_id
             )
             .fetch_optional(conn)
             .await?;
 
-            if sub.is_some() {
-                Ok(compute_next_retry_duration(
-                    max_retries,
-                    attempt.retry_count,
-                ))
-            } else {
-                // If the subscription was disabled or soft-deleted (or its application was deleted), we do not schedule a next attempt
-                Ok(None)
+            match sub {
+                Some(row) => {
+                    if let (Some(strategy), Some(rs_max_retries)) =
+                        (row.strategy, row.rs_max_retries)
+                    {
+                        // Subscription has a custom schedule; compute delay from its strategy fields.
+                        let schedule = crate::retry::ScheduleConfig {
+                            strategy,
+                            max_retries: rs_max_retries,
+                            custom_intervals: row.custom_intervals,
+                            linear_delay: row.linear_delay,
+                            increasing_base_delay: row.increasing_base_delay,
+                            increasing_wait_factor: row.increasing_wait_factor,
+                        };
+                        Ok(crate::retry::compute_delay_from_schedule(
+                            &schedule,
+                            attempt.retry_count,
+                        ))
+                    } else {
+                        // No schedule attached — fall back to the built-in escalating table.
+                        Ok(compute_next_retry_duration(
+                            max_retries,
+                            attempt.retry_count,
+                        ))
+                    }
+                }
+                None => Ok(None),
             }
         }
     }
