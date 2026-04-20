@@ -108,3 +108,11 @@ export const healthEventKeys = {
   timeline: (subscriptionId: string, window: string) =>
     [...healthEventKeys.all, 'timeline', subscriptionId, window] as const,
 };
+
+export const retryScheduleKeys = {
+  all: ['retrySchedules'] as const,
+  lists: () => [...retryScheduleKeys.all, 'list'] as const,
+  list: (organizationId: string) => [...retryScheduleKeys.lists(), organizationId] as const,
+  details: () => [...retryScheduleKeys.all, 'detail'] as const,
+  detail: (id: string) => [...retryScheduleKeys.details(), id] as const,
+};
