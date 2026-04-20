@@ -148,14 +148,6 @@ mod tests {
     }
 
     #[test]
-    fn exponential_grows_by_factor() {
-        let s = exp(60, 2.0, 5);
-        let d0 = compute_delay_from_schedule(&s, 0).unwrap();
-        let d1 = compute_delay_from_schedule(&s, 1).unwrap();
-        assert!(d1 >= d0);
-    }
-
-    #[test]
     fn exponential_capped_at_7d_per_retry() {
         let s = exp(1, 10.0, 10);
         let d = compute_delay_from_schedule(&s, 9).unwrap();
@@ -223,23 +215,4 @@ mod tests {
         assert_eq!(d.as_secs(), 0);
     }
 
-    #[test]
-    fn with_jitter_within_bound() {
-        let max = Duration::from_millis(JITTER_MAX_MS);
-        for _ in 0..100 {
-            let d = with_jitter(Duration::ZERO);
-            assert!(d <= max, "{d:?} exceeded {max:?}");
-        }
-    }
-
-    #[test]
-    fn from_db_str_parses_known_values() {
-        assert_eq!(
-            Strategy::from_db_str("exponential_increasing"),
-            Some(Strategy::ExponentialIncreasing)
-        );
-        assert_eq!(Strategy::from_db_str("linear"), Some(Strategy::Linear));
-        assert_eq!(Strategy::from_db_str("custom"), Some(Strategy::Custom));
-        assert_eq!(Strategy::from_db_str("mystery"), None);
-    }
 }

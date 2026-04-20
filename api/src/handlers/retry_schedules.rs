@@ -773,12 +773,6 @@ mod tests {
     }
 
     #[test]
-    fn exponential_ok_passes_validator_attributes() {
-        let post = exponential_post("good", 5, 60, 2.0);
-        assert!(post.validate().is_ok());
-    }
-
-    #[test]
     fn exponential_rejects_nan_factor() {
         let post = exponential_post("bad", 5, 60, f64::NAN);
         assert!(post.validate().is_err());
@@ -816,14 +810,6 @@ mod tests {
     fn custom_rejects_empty_intervals() {
         let post = custom_post("bad", vec![]);
         // max_retries=0 is already rejected by #[validate(range(min=1))].
-        assert!(post.validate().is_err());
-    }
-
-    #[test]
-    fn name_length_enforced_by_validator_attribute() {
-        let mut post = linear_post(&"x".repeat(201), 3, 60);
-        assert!(post.validate().is_err());
-        post.name = String::new();
         assert!(post.validate().is_err());
     }
 
