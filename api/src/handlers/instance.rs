@@ -16,6 +16,7 @@ use sqlx::{PgPool, query};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use crate::handlers::retry_schedules as retry_schedule_limits;
 use crate::problems::Hook0Problem;
 use crate::{ObjectStorageConfig, PulsarConfig};
 
@@ -32,6 +33,7 @@ pub struct InstanceConfig {
     support_email_address: String,
     cloudflare_turnstile_site_key: Option<String>,
     subscription_health_monitor: Option<SubscriptionHealthMonitorConfig>,
+    retry_schedule: RetryScheduleConfig,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -50,6 +52,21 @@ pub struct FormbricksConfig {
 pub struct SubscriptionHealthMonitorConfig {
     failure_percent_for_warning: u8,
     failure_percent_for_disable: u8,
+}
+
+/// Retry-schedule limits — single source of truth for frontend validation.
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct RetryScheduleConfig {
+    min_single_delay_secs: i32,
+    max_single_delay_secs: i32,
+    max_retries: i32,
+    max_custom_intervals_length: i32,
+    max_total_duration_secs: i64,
+    exponential_base_delay_min_secs: i32,
+    exponential_base_delay_max_secs: i32,
+    exponential_wait_factor_min: f64,
+    exponential_wait_factor_max: f64,
+    max_per_org: i64,
 }
 
 /// Get instance configuration
@@ -91,6 +108,19 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
                     .subscription_health_monitor_failure_percent_for_disable,
             });
 
+    let retry_schedule = RetryScheduleConfig {
+        min_single_delay_secs: retry_schedule_limits::MIN_SINGLE_DELAY_SECS,
+        max_single_delay_secs: retry_schedule_limits::MAX_SINGLE_DELAY_SECS,
+        max_retries: retry_schedule_limits::MAX_RETRIES,
+        max_custom_intervals_length: retry_schedule_limits::MAX_RETRIES,
+        max_total_duration_secs: retry_schedule_limits::MAX_TOTAL_DURATION_SECS,
+        exponential_base_delay_min_secs: retry_schedule_limits::EXP_BASE_MIN_SECS,
+        exponential_base_delay_max_secs: retry_schedule_limits::EXP_BASE_MAX_SECS,
+        exponential_wait_factor_min: retry_schedule_limits::EXP_FACTOR_MIN,
+        exponential_wait_factor_max: retry_schedule_limits::EXP_FACTOR_MAX,
+        max_per_org: retry_schedule_limits::MAX_PER_ORG,
+    };
+
     Ok(Json(InstanceConfig {
         biscuit_public_key: state.biscuit_private_key.public().to_bytes_hex(),
         registration_disabled: state.registration_disabled,
@@ -103,6 +133,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         support_email_address: state.support_email_address.to_string(),
         cloudflare_turnstile_site_key: state.cloudflare_turnstile_site_key.to_owned(),
         subscription_health_monitor,
+        retry_schedule,
     }))
 }
 
