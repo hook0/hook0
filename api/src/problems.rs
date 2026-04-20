@@ -526,8 +526,8 @@ impl From<Hook0Problem> for Problem {
             Hook0Problem::EventManualRetryCooldownActive { seconds } => {
                 Problem {
                     id: Hook0Problem::EventManualRetryCooldownActive { seconds },
-                    title: "Retry too soon",
-                    detail: format!("A retry was already triggered for this event. Wait {seconds} seconds before trying again.").into(),
+                    title: "Retried too soon",
+                    detail: format!("A retry was already triggered recently for this event. Wait {seconds} seconds before trying again.").into(),
                     validation: None,
                     status: StatusCode::TOO_MANY_REQUESTS,
                 }

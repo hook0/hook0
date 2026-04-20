@@ -24,6 +24,7 @@ use paperclip::v2::models::{DataType, DefaultSchemaRaw};
 use paperclip::v2::schema::Apiv2Schema;
 
 use crate::PulsarConfig;
+use crate::event_payload::fetch_s3_event_payload;
 use crate::extractor_user_ip::UserIp;
 use crate::iam::{Action, authorize_for_application};
 use crate::mailer::Mail;
@@ -661,39 +662,32 @@ pub async fn replay(
 
     let event = replayed.ok_or(Hook0Problem::NotFound)?;
 
-    let Some(pulsar) = &state.pulsar else {
-        tx.commit().await?;
-        report_replayed_events(1);
-        return Ok(NoContent);
-    };
+    if let Some(pulsar) = &state.pulsar {
+        let payload = match (event.payload, &state.object_storage) {
+            // Payload is inline in the DB — use it directly.
+            (Some(bytes), _) => Ok(bytes),
+            // Payload was offloaded to S3 — fetch it.
+            (None, Some(storage)) => {
+                fetch_s3_event_payload(storage, body.application_id, event_id, event.received_at)
+                    .await
+                    .ok_or(Hook0Problem::InternalServerError)
+            }
+            // No payload in DB and no S3 configured — the payload is lost.
+            (None, None) => Err(Hook0Problem::InternalServerError),
+        }?;
 
-    let payload = match (event.payload, &state.object_storage) {
-        // Payload is inline in the DB — use it directly.
-        (Some(payload), _) => payload,
-        // Payload was offloaded to S3 by the retention policy — fetch it.
-        (None, Some(storage)) => crate::event_payload::fetch_s3_event_payload(
-            storage,
+        send_request_attempts_to_pulsar(
+            &mut tx,
+            pulsar,
             body.application_id,
             event_id,
             event.received_at,
+            &event.event_type,
+            &payload,
+            &event.payload_content_type,
         )
-        .await
-        .ok_or(Hook0Problem::InternalServerError)?,
-        // No payload in DB and no S3 configured — the payload is lost.
-        (None, None) => return Err(Hook0Problem::InternalServerError),
-    };
-
-    send_request_attempts_to_pulsar(
-        &mut tx,
-        pulsar,
-        body.application_id,
-        event_id,
-        event.received_at,
-        &event.event_type,
-        &payload,
-        &event.payload_content_type,
-    )
-    .await?;
+        .await?;
+    }
 
     tx.commit().await?;
     report_replayed_events(1);

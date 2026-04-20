@@ -52,10 +52,8 @@ function renderStatusPill(row: RequestAttemptExtended, t: ReturnType<typeof useI
   );
 }
 
-// event_type_name is denormalized at attempt level for list views;
-// fall through nested event then UUID for older API responses
 function getEventTypeName(row: RequestAttemptExtended): string {
-  return row.event_type_name ?? row.event?.event_type_name ?? row.event_id;
+  return row.event.event_type_name;
 }
 
 export function useLogColumns(): ColumnDef<RequestAttemptExtended, unknown>[] {

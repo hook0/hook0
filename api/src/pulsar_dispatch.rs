@@ -8,10 +8,9 @@
 //! Callers are responsible for resolving which `worker_id` to use (single-row
 //! query for one-shot dispatches, batch JOIN for the event ingestion path).
 
+use actix_web::rt::time::timeout;
 use std::sync::Arc;
 use std::time::Duration;
-
-use actix_web::rt::time::timeout;
 use tracing::error;
 use uuid::Uuid;
 
@@ -50,8 +49,8 @@ pub async fn publish_attempt(
     producer
         .send_non_blocking(
             format!(
-                "persistent://{}/{}/{}.request_attempt",
-                &pulsar.tenant, &pulsar.namespace, worker_id,
+                "persistent://{}/{}/{worker_id}.request_attempt",
+                &pulsar.tenant, &pulsar.namespace,
             ),
             attempt,
         )

@@ -1,6 +1,6 @@
 //! Defines `RequestAttempt` — the in-memory representation of a webhook
 //! delivery attempt — and its conversion to/from the Protobuf wire format
-//! used by Pulsar messages.
+//! used in Pulsar messages.
 
 use chrono::{DateTime, Utc};
 use prost::Message;
@@ -29,9 +29,7 @@ pub enum AttemptTrigger {
 }
 
 /// A single webhook delivery attempt, carrying everything the output
-/// worker needs to make the HTTP call: target URL, headers, payload,
-/// signing secret, and retry metadata.  Serialized to Protobuf for
-/// Pulsar transport; also constructed in-memory by the PG poller.
+/// worker needs to make the HTTP call.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RequestAttempt {
     pub application_id: Uuid,

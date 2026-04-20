@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT EXISTS(\n                    SELECT 1 FROM webhook.request_attempt\n                    WHERE event__id = $1\n                        AND subscription__id = $2\n                        AND attempt_trigger = 'manual_retry'\n                        AND created_at + $3 > statement_timestamp()\n                ) AS \"cooldown_active!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cooldown_active!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9a1bdd542ef6f65d71ca0e06e210b17bbcfa98a3635344fd59674b37bf828165"
+}

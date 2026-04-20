@@ -7,14 +7,16 @@ use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use paperclip::v2::models::{DataType, DataTypeFormat, DefaultSchemaRaw};
 use paperclip::v2::schema::Apiv2Schema as Apiv2SchemaTrait;
 use serde::{Deserialize, Serialize};
+use sqlx::postgres::types::PgInterval;
 use sqlx::{query, query_as, query_scalar};
 use std::cmp::max;
 use std::collections::BTreeMap;
 use std::time::Duration;
-use tracing::{error, info};
+use tracing::{error, trace};
 use url::Url;
 use uuid::Uuid;
 
+use crate::event_payload::fetch_event_payload;
 use crate::iam::{Action, AuthorizedToken, authorize_for_application};
 use crate::openapi::OaBiscuit;
 use crate::pagination::{Cursor, EncodedDescCursor, NextPageParts, Paginated};
@@ -538,7 +540,6 @@ pub async fn list(
     })
 }
 
-/// JSON body returned by POST /request_attempts/{id}/retry.
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct RetryResponse {
     pub request_attempt_id: Uuid,
@@ -552,7 +553,7 @@ pub struct RetryQs {
 
 #[api_v2_operation(
     summary = "Retry a delivery attempt",
-    description = "Creates a new one-shot delivery attempt for the same event. The new attempt is independent: it will not trigger automatic retries on failure. Subject to a configurable per-event cooldown.",
+    description = "Creates a new one-shot delivery attempt for the same event and subscription. The new attempt is independent: it will not trigger automatic retries on failure.",
     operation_id = "requestAttempts.retry",
     produces = "application/json",
     tags("Subscriptions Management")
@@ -565,6 +566,13 @@ pub async fn retry(
     request_attempt_id: Path<Uuid>,
 ) -> Result<HttpResponse, Hook0Problem> {
     let request_attempt_id = request_attempt_id.into_inner();
+    let retry_cooldown = PgInterval::try_from(state.manual_retry_cooldown).map_err(|e| {
+        error!(
+            "Could not convert manual retry cooldown value ({:?}) to PG interval: {e}",
+            state.manual_retry_cooldown
+        );
+        Hook0Problem::InternalServerError
+    })?;
 
     let authorized = match authorize_for_application(
         &state.db,
@@ -627,7 +635,7 @@ pub async fn retry(
     // Fetch the event payload (DB inline column, then S3 fallback). Done
     // before the transaction to avoid holding a row lock during a potentially
     // slow S3 round-trip.
-    let payload = crate::event_payload::fetch_event_payload(
+    let payload = fetch_event_payload(
         &state.db,
         state.object_storage.as_ref(),
         source.application_id,
@@ -636,12 +644,6 @@ pub async fn retry(
     )
     .await?
     .ok_or_else(|| {
-        // A missing payload here is an invariant violation: retention cleans
-        // the DB row first and the S3 object only after, so as long as the
-        // request_attempt row exists, its payload must be reachable from one
-        // of the two stores. If we land in the None branch, it means either
-        // the cleanup ordering was broken or object storage is unreachable —
-        // both are infrastructure bugs, not user errors, so we surface a 500.
         error!(
             request_attempt_id = %request_attempt_id,
             event_id = %source.event_id,
@@ -671,20 +673,22 @@ pub async fn retry(
     .map_err(Hook0Problem::from)?;
 
     // Rate-limit manual retries per event to prevent abuse / accidental
-    // click-storms.  Without this, a user could create thousands of
+    // click-storms. Without this, a user could create thousands of
     // attempts for the same event in seconds.
     if state.manual_retry_cooldown > Duration::ZERO {
         let cooldown_active: bool = query_scalar!(
-            "
+            r#"
                 SELECT EXISTS(
                     SELECT 1 FROM webhook.request_attempt
                     WHERE event__id = $1
+                        AND subscription__id = $2
                         AND attempt_trigger = 'manual_retry'
-                        AND created_at > now() - make_interval(secs => $2::float8)
-                ) AS \"cooldown_active!\"
-            ",
+                        AND created_at + $3 > statement_timestamp()
+                ) AS "cooldown_active!"
+            "#,
             &source.event_id,
-            state.manual_retry_cooldown.as_secs_f64(),
+            &source.subscription_id,
+            retry_cooldown,
         )
         .fetch_one(&mut *tx)
         .await
@@ -715,7 +719,7 @@ pub async fn retry(
 
     tx.commit().await.map_err(Hook0Problem::from)?;
 
-    info!(
+    trace!(
         request_attempt_id = %new_request_attempt_id,
         source_request_attempt_id = %request_attempt_id,
         event_id = %source.event_id,
@@ -730,7 +734,6 @@ pub async fn retry(
         // Routing chain: subscription-level override → organization default.
         // If neither resolves to a pulsar-typed worker, the PG poller delivers
         // the attempt instead — not an error.
-        #[allow(non_snake_case)]
         struct WorkerRoute {
             worker_id: Option<Uuid>,
             worker_queue_type: Option<String>,
