@@ -793,8 +793,8 @@ async fn compute_next_retry(
             }
 
             // Pull the subscription alongside any attached retry schedule.
-            // Disabled/soft-deleted subs short-circuit to None so we stop
-            // scheduling follow-ups even if they were mid-flight.
+            // Disabled / soft-deleted subscriptions short-circuit to None.
+            // Prevents scheduling follow-ups on mid-flight state.
             let sub = query!(
                 r#"
                     SELECT

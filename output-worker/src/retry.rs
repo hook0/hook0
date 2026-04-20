@@ -5,7 +5,8 @@
 //! - `Strategy` enum mirrors the API enum. Unknown DB values fail loud.
 //! - `ScheduleConfig` mirrors `webhook.retry_schedule` (3 strategies, nullable fields)
 //! - `compute_delay_from_schedule` returns `None` when the retry budget is exhausted
-//! - Jitter spreads retries; `with_jitter` is also exposed for the built-in fallback
+//! - `with_jitter` spreads retries to avoid thundering-herd
+//! - Shared between custom path and built-in fallback for one jitter policy
 //! - Per-retry delay capped at 7 days for DoS resistance and i64 safety
 
 use std::time::Duration;
@@ -71,6 +72,7 @@ pub fn compute_delay_from_schedule(
     let cap_f = MAX_RETRY_DELAY_SECS as f64;
     let raw_secs: u64 = match schedule.strategy {
         Strategy::ExponentialIncreasing => {
+            // `?` on null columns is defense-in-depth: DB CHECK enforces non-null.
             let base = schedule.increasing_base_delay?;
             let factor = schedule.increasing_wait_factor?;
             let secs = f64::from(base) * factor.powi(i32::from(retry_count));
@@ -82,6 +84,7 @@ pub fn compute_delay_from_schedule(
             if delay <= 0 {
                 return None;
             }
+            // Bounded by DB CHECK 1..=604800.
             delay as u64
         }
         Strategy::Custom => {
@@ -90,6 +93,7 @@ pub fn compute_delay_from_schedule(
             if v <= 0 {
                 return None;
             }
+            // Bounded by DB CHECK 1..=604800.
             v as u64
         }
     };
@@ -99,7 +103,7 @@ pub fn compute_delay_from_schedule(
 }
 
 /// Add small positive jitter; spreads retries that would otherwise align.
-/// Exposed so the built-in fallback schedule matches the custom-schedule behavior.
+/// Used by custom path and built-in fallback — single jitter policy.
 pub fn with_jitter(base: Duration) -> Duration {
     let jitter_ms = rand::rng().random_range(0..=JITTER_MAX_MS);
     base + Duration::from_millis(jitter_ms)
@@ -204,11 +208,28 @@ mod tests {
     }
 
     #[test]
-    fn exponential_handles_non_finite_gracefully() {
-        // factor that blows up: clamp protects against NaN / +Inf feeding into `as u64`.
+    fn exponential_clamps_positive_infinity() {
+        // Factor * huge base overflows to +Inf; clamp protects the cast to u64.
         let s = exp(i32::MAX, 20.0, 5);
         let d = compute_delay_from_schedule(&s, 4).unwrap();
         assert!(d.as_secs() <= MAX_RETRY_DELAY_SECS);
+    }
+
+    #[test]
+    fn exponential_clamps_nan_factor() {
+        // retry_count >= 1 so factor.powi(…) is NaN (NaN^0 = 1 by IEEE, so skip 0).
+        let s = exp(60, f64::NAN, 5);
+        let d = compute_delay_from_schedule(&s, 1).unwrap();
+        assert_eq!(d.as_secs(), 0);
+    }
+
+    #[test]
+    fn with_jitter_within_bound() {
+        let max = Duration::from_millis(JITTER_MAX_MS);
+        for _ in 0..100 {
+            let d = with_jitter(Duration::ZERO);
+            assert!(d <= max, "{d:?} exceeded {max:?}");
+        }
     }
 
     #[test]

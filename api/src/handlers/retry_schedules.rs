@@ -1,11 +1,12 @@
 //! Retry schedule CRUD endpoints + payload validator.
 //!
-//! Caller-visible effect: full CRUD on `/retry_schedules`; invalid payloads get 400 InvalidPayload, cross-org access collapses to 404.
+//! Caller-visible effect: full CRUD on `/retry_schedules`; 400 on invalid payload, 404 on cross-org access.
 //!
 //! - Entity, strategy enum, discriminated-union payload, business caps
 //! - `validate_payload` + `compute_total_duration` reject out-of-bounds pre-persist
-//! - Handlers (list/get/create/edit/delete) with per-org advisory-locked quota
-//! - Unique-name constraint surfaces as RetryScheduleNameConflict (409)
+//! - Handlers use `Hook0Problem::from` for DB errors; constraint mapping lives there
+//! - Quota write-path takes `pg_advisory_xact_lock` to serialize concurrent creates per org
+//! - Auth failure on get/edit/delete collapses to 404 to close the cross-org existence oracle
 
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
@@ -48,7 +49,7 @@ pub struct RetrySchedule {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Retry pacing family selected when schedule is created.
+/// Retry pacing family: exponential, linear, or custom.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, sqlx::Type, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 #[sqlx(type_name = "text", rename_all = "snake_case")]
@@ -133,7 +134,7 @@ fn payload_name(payload: &RetrySchedulePayload) -> &str {
 }
 
 fn validate_name(name: &str) -> Result<(), Hook0Problem> {
-    // Validate on the trimmed form so persisted == validated (insert calls .trim() too).
+    // Insert writes the trimmed form — validate the same.
     let trimmed_len = name.trim().len();
     if trimmed_len == 0 {
         return Err(invalid(
@@ -380,6 +381,8 @@ pub async fn create(
     // Lock is released on commit/rollback; ordinary inserts elsewhere are unaffected.
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
+    // Text-based hash to match PG's `hashtextextended(text, bigint)` signature.
+    // The allocation per create is negligible next to the DB round-trip.
     sqlx::query!(
         "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))",
         organization_id.to_string(),
@@ -453,7 +456,6 @@ pub async fn edit(
     let retry_schedule_id = retry_schedule_id.into_inner();
     let organization_id = lookup_org(&state.db, &retry_schedule_id).await?;
 
-    // Collapse cross-org auth denial to NotFound so existence doesn't leak.
     if authorize(
         &biscuit,
         Some(organization_id),
@@ -532,7 +534,6 @@ pub async fn delete(
     let retry_schedule_id = retry_schedule_id.into_inner();
     let organization_id = lookup_org(&state.db, &retry_schedule_id).await?;
 
-    // Collapse cross-org auth denial to NotFound so existence doesn't leak.
     if authorize(
         &biscuit,
         Some(organization_id),

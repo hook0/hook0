@@ -1178,10 +1178,7 @@ async fn ensure_retry_schedule_in_org(
     )
     .fetch_one(db)
     .await
-    .map_err(|e| {
-        error!("{e}");
-        Hook0Problem::InternalServerError
-    })?;
+    .map_err(Hook0Problem::from)?;
 
     if exists {
         Ok(())
