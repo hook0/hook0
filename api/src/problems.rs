@@ -69,11 +69,14 @@ pub enum Hook0Problem {
     TooManyEventsToday(QuotaValue),
     TooManySubscriptionsPerApplication(QuotaValue),
     TooManyEventTypesPerApplication(QuotaValue),
+    TooManyRetrySchedulesPerOrganization(i64),
+
+    // Retry schedule specific
+    RetryScheduleNameConflict,
 
     // Generic errors
     JsonPayload(JsonPayloadProblem),
     Validation(validator::ValidationErrors),
-    // TODO(task 4): swap for RetryScheduleValidationFailed
     InvalidPayload { reason: String },
     NotFound,
     InternalServerError,
@@ -99,6 +102,9 @@ impl From<sqlx::Error> for Hook0Problem {
                     ) => Hook0Problem::EventTypeDoesNotExist,
                     Some("user__organization_pkey") => {
                         Hook0Problem::InvitedUserAlreadyInOrganization
+                    }
+                    Some("retry_schedule_organization__id_name_key") => {
+                        Hook0Problem::RetryScheduleNameConflict
                     }
                     constraint => {
                         error!(
@@ -481,6 +487,25 @@ impl From<Hook0Problem> for Problem {
                     validation: None,
                     status: StatusCode::TOO_MANY_REQUESTS,
                 }
+            },
+            Hook0Problem::TooManyRetrySchedulesPerOrganization(limit) => {
+                let detail = format!("This organization cannot have more than {limit} retry schedules.");
+                Problem {
+                    id: Hook0Problem::TooManyRetrySchedulesPerOrganization(limit),
+                    title: "Exceeded number of retry schedules that can be created in this organization",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::TOO_MANY_REQUESTS,
+                }
+            },
+
+            // Retry schedule specific
+            Hook0Problem::RetryScheduleNameConflict => Problem {
+                id: Hook0Problem::RetryScheduleNameConflict,
+                title: "Retry schedule name already used",
+                detail: "A retry schedule with this name already exists in this organization.".into(),
+                validation: None,
+                status: StatusCode::CONFLICT,
             },
 
             // Generic errors

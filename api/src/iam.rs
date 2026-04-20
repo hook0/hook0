@@ -435,6 +435,18 @@ pub enum Action<'a> {
         subscription_id: &'a Uuid,
     },
     //
+    RetryScheduleList,
+    RetryScheduleCreate,
+    RetryScheduleGet {
+        retry_schedule_id: &'a Uuid,
+    },
+    RetryScheduleEdit {
+        retry_schedule_id: &'a Uuid,
+    },
+    RetryScheduleDelete {
+        retry_schedule_id: &'a Uuid,
+    },
+    //
     EventList {
         application_id: &'a Uuid,
     },
@@ -523,6 +535,12 @@ impl Action<'_> {
             Self::SubscriptionEdit { .. } => "subscription:edit",
             Self::SubscriptionDelete { .. } => "subscription:delete",
             //
+            Self::RetryScheduleList => "retry_schedule:list",
+            Self::RetryScheduleCreate => "retry_schedule:create",
+            Self::RetryScheduleGet { .. } => "retry_schedule:get",
+            Self::RetryScheduleEdit { .. } => "retry_schedule:edit",
+            Self::RetryScheduleDelete { .. } => "retry_schedule:delete",
+            //
             Self::EventList { .. } => "event:list",
             Self::EventGet { .. } => "event:get",
             Self::EventIngest { .. } => "event:ingest",
@@ -593,6 +611,12 @@ impl Action<'_> {
             Self::SubscriptionGet { .. } => vec![Role::Viewer],
             Self::SubscriptionEdit { .. } => vec![],
             Self::SubscriptionDelete { .. } => vec![],
+            //
+            Self::RetryScheduleList => vec![Role::Viewer],
+            Self::RetryScheduleCreate => vec![],
+            Self::RetryScheduleGet { .. } => vec![Role::Viewer],
+            Self::RetryScheduleEdit { .. } => vec![],
+            Self::RetryScheduleDelete { .. } => vec![],
             //
             Self::EventList { .. } => vec![Role::Viewer],
             Self::EventGet { .. } => vec![Role::Viewer],
@@ -680,6 +704,12 @@ impl Action<'_> {
             Self::SubscriptionGet { application_id, .. } => Some(**application_id),
             Self::SubscriptionEdit { application_id, .. } => Some(**application_id),
             Self::SubscriptionDelete { application_id, .. } => Some(**application_id),
+            //
+            Self::RetryScheduleList => None,
+            Self::RetryScheduleCreate => None,
+            Self::RetryScheduleGet { .. } => None,
+            Self::RetryScheduleEdit { .. } => None,
+            Self::RetryScheduleDelete { .. } => None,
             //
             Self::EventList { application_id, .. } => Some(**application_id),
             Self::EventGet { application_id, .. } => Some(**application_id),
@@ -774,6 +804,21 @@ impl Action<'_> {
             } => vec![fact!(
                 "subscription_id({subscription_id})",
                 subscription_id = *subscription_id
+            )],
+            //
+            Self::RetryScheduleList => vec![],
+            Self::RetryScheduleCreate => vec![],
+            Self::RetryScheduleGet { retry_schedule_id } => vec![fact!(
+                "retry_schedule_id({retry_schedule_id})",
+                retry_schedule_id = *retry_schedule_id
+            )],
+            Self::RetryScheduleEdit { retry_schedule_id } => vec![fact!(
+                "retry_schedule_id({retry_schedule_id})",
+                retry_schedule_id = *retry_schedule_id
+            )],
+            Self::RetryScheduleDelete { retry_schedule_id } => vec![fact!(
+                "retry_schedule_id({retry_schedule_id})",
+                retry_schedule_id = *retry_schedule_id
             )],
             //
             Self::EventList { .. } => vec![],

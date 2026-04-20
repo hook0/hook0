@@ -1491,6 +1491,22 @@ async fn main() -> anyhow::Result<()> {
                                 ),
                         )
                         .service(
+                            web::scope("/retry_schedules")
+                                .wrap(Compat::new(rate_limiters.token()))
+                                .wrap(biscuit_auth.clone())
+                                .service(
+                                    web::resource("")
+                                        .route(web::get().to(handlers::retry_schedules::list))
+                                        .route(web::post().to(handlers::retry_schedules::create)),
+                                )
+                                .service(
+                                    web::resource("/{retry_schedule_id}")
+                                        .route(web::get().to(handlers::retry_schedules::get))
+                                        .route(web::put().to(handlers::retry_schedules::edit))
+                                        .route(web::delete().to(handlers::retry_schedules::delete)),
+                                ),
+                        )
+                        .service(
                             web::scope("/events")
                                 .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
                                 .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first

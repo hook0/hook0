@@ -6,14 +6,18 @@
 //! - Business constants: single-delay / total-duration / max-retries / name / quota caps
 //! - `validate_payload` + `compute_total_duration` enforced pre-persist
 
-// CRUD handlers land in task 3 and consume these items.
-#![allow(dead_code)]
-
+use actix_web::web::ReqData;
+use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
-use paperclip::actix::Apiv2Schema;
+use paperclip::actix::web::{Data, Json, Path, Query};
+use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
+use sqlx::query_as;
+use tracing::error;
 use uuid::Uuid;
 
+use crate::iam::{Action, authorize};
+use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
 pub const MAX_RETRIES: i32 = 15;
@@ -204,8 +208,417 @@ fn check_retries(max_retries: i32) -> Result<(), Hook0Problem> {
 }
 
 fn invalid(reason: String) -> Hook0Problem {
-    // TODO(task 4): swap for RetryScheduleValidationFailed
     Hook0Problem::InvalidPayload { reason }
+}
+
+/// Query string for list scoped by organization.
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
+pub struct Qs {
+    organization_id: Uuid,
+}
+
+#[api_v2_operation(
+    summary = "List retry schedules",
+    description = "List retry schedules available in an organization. Editors and viewers can read; only editors can create/update/delete.",
+    operation_id = "retrySchedules.list",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Retry Schedules Management")
+)]
+pub async fn list(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    qs: Query<Qs>,
+) -> Result<Json<Vec<RetrySchedule>>, Hook0Problem> {
+    let organization_id = qs.organization_id;
+
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::RetryScheduleList,
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let rows = query_as!(
+        RetrySchedule,
+        r#"
+            SELECT
+                retry_schedule__id AS "retry_schedule_id!",
+                organization__id AS "organization_id!",
+                name AS "name!",
+                strategy AS "strategy!: Strategy",
+                max_retries AS "max_retries!",
+                custom_intervals,
+                linear_delay,
+                increasing_base_delay,
+                increasing_wait_factor,
+                created_at AS "created_at!",
+                updated_at AS "updated_at!"
+            FROM webhook.retry_schedule
+            WHERE organization__id = $1
+            ORDER BY name ASC
+        "#,
+        &organization_id,
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| {
+        error!("{e}");
+        Hook0Problem::InternalServerError
+    })?;
+
+    Ok(Json(rows))
+}
+
+#[api_v2_operation(
+    summary = "Get a retry schedule by its ID",
+    description = "Returns a single retry schedule. The caller must belong to the owning organization.",
+    operation_id = "retrySchedules.get",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Retry Schedules Management")
+)]
+pub async fn get(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    retry_schedule_id: Path<Uuid>,
+) -> Result<Json<RetrySchedule>, Hook0Problem> {
+    let retry_schedule_id = retry_schedule_id.into_inner();
+    let organization_id = lookup_org(&state.db, &retry_schedule_id).await?;
+
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::RetryScheduleGet {
+            retry_schedule_id: &retry_schedule_id,
+        },
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let row = query_as!(
+        RetrySchedule,
+        r#"
+            SELECT
+                retry_schedule__id AS "retry_schedule_id!",
+                organization__id AS "organization_id!",
+                name AS "name!",
+                strategy AS "strategy!: Strategy",
+                max_retries AS "max_retries!",
+                custom_intervals,
+                linear_delay,
+                increasing_base_delay,
+                increasing_wait_factor,
+                created_at AS "created_at!",
+                updated_at AS "updated_at!"
+            FROM webhook.retry_schedule
+            WHERE retry_schedule__id = $1
+        "#,
+        &retry_schedule_id,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| {
+        error!("{e}");
+        Hook0Problem::InternalServerError
+    })?;
+
+    row.map(Json).ok_or(Hook0Problem::NotFound)
+}
+
+/// Create payload — organization_id on top of `RetrySchedulePayload`.
+#[derive(Debug, Deserialize, Apiv2Schema)]
+pub struct RetryScheduleCreatePayload {
+    pub organization_id: Uuid,
+    #[serde(flatten)]
+    pub payload: RetrySchedulePayload,
+}
+
+#[api_v2_operation(
+    summary = "Create a retry schedule",
+    description = "Creates a retry schedule in the given organization. Rejects payloads breaching business bounds (max 15 retries, 7d total duration, per-retry 1s..=7d).",
+    operation_id = "retrySchedules.create",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Retry Schedules Management")
+)]
+pub async fn create(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    body: Json<RetryScheduleCreatePayload>,
+) -> Result<CreatedJson<RetrySchedule>, Hook0Problem> {
+    let RetryScheduleCreatePayload {
+        organization_id,
+        payload,
+    } = body.into_inner();
+
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::RetryScheduleCreate,
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    validate_payload(&payload)?;
+    let fields = payload_to_db_fields(&payload);
+
+    // Atomic insert guarded by per-org quota to avoid TOCTOU races.
+    let created = query_as!(
+        RetrySchedule,
+        r#"
+            INSERT INTO webhook.retry_schedule
+                (organization__id, name, strategy, max_retries,
+                 custom_intervals, linear_delay,
+                 increasing_base_delay, increasing_wait_factor)
+            SELECT $1, $2, $3, $4, $5, $6, $7, $8
+            WHERE (
+                SELECT count(*) FROM webhook.retry_schedule WHERE organization__id = $1
+            ) < $9
+            RETURNING
+                retry_schedule__id AS "retry_schedule_id!",
+                organization__id AS "organization_id!",
+                name AS "name!",
+                strategy AS "strategy!: Strategy",
+                max_retries AS "max_retries!",
+                custom_intervals,
+                linear_delay,
+                increasing_base_delay,
+                increasing_wait_factor,
+                created_at AS "created_at!",
+                updated_at AS "updated_at!"
+        "#,
+        &organization_id,
+        fields.name.trim(),
+        fields.strategy as Strategy,
+        fields.max_retries,
+        fields.custom_intervals.as_deref(),
+        fields.linear_delay,
+        fields.increasing_base_delay,
+        fields.increasing_wait_factor,
+        MAX_PER_ORG,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    created
+        .map(CreatedJson)
+        .ok_or(Hook0Problem::TooManyRetrySchedulesPerOrganization(
+            MAX_PER_ORG,
+        ))
+}
+
+#[api_v2_operation(
+    summary = "Update a retry schedule",
+    description = "Replaces the retry schedule definition. Same business bounds as create.",
+    operation_id = "retrySchedules.edit",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Retry Schedules Management")
+)]
+pub async fn edit(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    retry_schedule_id: Path<Uuid>,
+    body: Json<RetrySchedulePayload>,
+) -> Result<Json<RetrySchedule>, Hook0Problem> {
+    let retry_schedule_id = retry_schedule_id.into_inner();
+    let organization_id = lookup_org(&state.db, &retry_schedule_id).await?;
+
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::RetryScheduleEdit {
+            retry_schedule_id: &retry_schedule_id,
+        },
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let payload = body.into_inner();
+    validate_payload(&payload)?;
+    let fields = payload_to_db_fields(&payload);
+
+    let updated = query_as!(
+        RetrySchedule,
+        r#"
+            UPDATE webhook.retry_schedule
+            SET
+                name = $2,
+                strategy = $3,
+                max_retries = $4,
+                custom_intervals = $5,
+                linear_delay = $6,
+                increasing_base_delay = $7,
+                increasing_wait_factor = $8,
+                updated_at = statement_timestamp()
+            WHERE retry_schedule__id = $1
+            RETURNING
+                retry_schedule__id AS "retry_schedule_id!",
+                organization__id AS "organization_id!",
+                name AS "name!",
+                strategy AS "strategy!: Strategy",
+                max_retries AS "max_retries!",
+                custom_intervals,
+                linear_delay,
+                increasing_base_delay,
+                increasing_wait_factor,
+                created_at AS "created_at!",
+                updated_at AS "updated_at!"
+        "#,
+        &retry_schedule_id,
+        fields.name.trim(),
+        fields.strategy as Strategy,
+        fields.max_retries,
+        fields.custom_intervals.as_deref(),
+        fields.linear_delay,
+        fields.increasing_base_delay,
+        fields.increasing_wait_factor,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    updated.map(Json).ok_or(Hook0Problem::NotFound)
+}
+
+#[api_v2_operation(
+    summary = "Delete a retry schedule",
+    description = "Deletes a retry schedule. Subscriptions still referencing it are set to NULL (FK on-delete set null).",
+    operation_id = "retrySchedules.delete",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("Retry Schedules Management")
+)]
+pub async fn delete(
+    state: Data<crate::State>,
+    _: OaBiscuit,
+    biscuit: ReqData<Biscuit>,
+    retry_schedule_id: Path<Uuid>,
+) -> Result<NoContent, Hook0Problem> {
+    let retry_schedule_id = retry_schedule_id.into_inner();
+    let organization_id = lookup_org(&state.db, &retry_schedule_id).await?;
+
+    if authorize(
+        &biscuit,
+        Some(organization_id),
+        Action::RetryScheduleDelete {
+            retry_schedule_id: &retry_schedule_id,
+        },
+        state.max_authorization_time_in_ms,
+        state.debug_authorizer,
+    )
+    .is_err()
+    {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    let deleted = sqlx::query!(
+        "DELETE FROM webhook.retry_schedule WHERE retry_schedule__id = $1 RETURNING retry_schedule__id",
+        &retry_schedule_id,
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| {
+        error!("{e}");
+        Hook0Problem::InternalServerError
+    })?;
+
+    if deleted.is_none() {
+        return Err(Hook0Problem::NotFound);
+    }
+
+    Ok(NoContent)
+}
+
+/// Owning organization for a retry schedule; 404 if missing.
+async fn lookup_org(db: &sqlx::PgPool, retry_schedule_id: &Uuid) -> Result<Uuid, Hook0Problem> {
+    sqlx::query_scalar!(
+        "SELECT organization__id FROM webhook.retry_schedule WHERE retry_schedule__id = $1",
+        retry_schedule_id,
+    )
+    .fetch_optional(db)
+    .await
+    .map_err(|e| {
+        error!("{e}");
+        Hook0Problem::InternalServerError
+    })?
+    .ok_or(Hook0Problem::NotFound)
+}
+
+/// DB-shaped view of a payload. Strategy-specific columns null where unused.
+struct DbFields<'a> {
+    name: &'a str,
+    strategy: Strategy,
+    max_retries: i32,
+    custom_intervals: Option<Vec<i32>>,
+    linear_delay: Option<i32>,
+    increasing_base_delay: Option<i32>,
+    increasing_wait_factor: Option<f64>,
+}
+
+fn payload_to_db_fields(payload: &RetrySchedulePayload) -> DbFields<'_> {
+    match payload {
+        RetrySchedulePayload::ExponentialIncreasing {
+            name,
+            max_retries,
+            base_delay,
+            wait_factor,
+        } => DbFields {
+            name,
+            strategy: Strategy::ExponentialIncreasing,
+            max_retries: *max_retries,
+            custom_intervals: None,
+            linear_delay: None,
+            increasing_base_delay: Some(*base_delay),
+            increasing_wait_factor: Some(*wait_factor),
+        },
+        RetrySchedulePayload::Linear {
+            name,
+            max_retries,
+            delay,
+        } => DbFields {
+            name,
+            strategy: Strategy::Linear,
+            max_retries: *max_retries,
+            custom_intervals: None,
+            linear_delay: Some(*delay),
+            increasing_base_delay: None,
+            increasing_wait_factor: None,
+        },
+        RetrySchedulePayload::Custom { name, intervals } => DbFields {
+            // Custom strategy derives max_retries from the intervals array length.
+            name,
+            strategy: Strategy::Custom,
+            max_retries: intervals.len() as i32,
+            custom_intervals: Some(intervals.clone()),
+            linear_delay: None,
+            increasing_base_delay: None,
+            increasing_wait_factor: None,
+        },
+    }
 }
 
 #[cfg(test)]
