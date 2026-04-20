@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, useId } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
 
 type Props = {
   label: string;
@@ -18,25 +18,36 @@ const props = withDefaults(defineProps<Props>(), {
   error: undefined,
 });
 
+function clamp(v: number, min: number, max: number): number {
+  if (Number.isNaN(v)) return min;
+  return Math.min(Math.max(v, min), max);
+}
+
 const model = defineModel<number>({ required: true });
 const id = `hook0-slider-${useId()}`;
 
+/** Range input writes back through clamp on every change. */
 const clampedModel = computed({
   get: () => model.value,
   set: (v) => {
-    model.value = clamp(v);
+    model.value = clamp(v, props.min, props.max);
   },
 });
 
-function clamp(v: number): number {
-  if (Number.isNaN(v)) return props.min;
-  return Math.min(Math.max(v, props.min), props.max);
-}
+/**
+ * Typing buffer for the number input. Kept separate from the model so partial
+ * values like "1" (min=10) aren't clamped mid-typing; clamp fires on commit (blur/change).
+ */
+const buffer = ref<string>(String(model.value));
+watch(model, (v) => {
+  buffer.value = String(v);
+});
 
-function onBlur(event: FocusEvent) {
-  const target = event.target as HTMLInputElement;
-  const parsed = Number(target.value);
-  model.value = clamp(parsed);
+function commitBuffer() {
+  const parsed = Number(buffer.value);
+  const next = clamp(parsed, props.min, props.max);
+  model.value = next;
+  buffer.value = String(next);
 }
 </script>
 
@@ -56,15 +67,15 @@ function onBlur(event: FocusEvent) {
       />
       <div class="slider-row__number-wrap">
         <input
-          :value="model"
+          v-model="buffer"
           type="number"
           :min="min"
           :max="max"
           :step="step"
           :aria-label="`${label} (number input)`"
           class="slider-row__number"
-          @blur="onBlur"
-          @input="(e) => (model = Number((e.target as HTMLInputElement).value))"
+          @blur="commitBuffer"
+          @change="commitBuffer"
         />
         <span v-if="unit" class="slider-row__unit">{{ unit }}</span>
       </div>

@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { computed, h, ref } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Clock, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 
 import { useRouteIds } from '@/composables/useRouteIds';
-import { useInstanceConfig } from '@/composables/useInstanceConfig';
+import { usePermissions } from '@/composables/usePermissions';
 import { handleMutationError } from '@/utils/handleMutationError';
 import { routes } from '@/routes';
 
 import { useDeleteRetrySchedule, useRetryScheduleList } from './useRetryScheduleQueries';
-import { computeDelays, formatDelay } from './retryScheduleFormatters';
-import type { RetrySchedule, RetryScheduleLimits } from './retrySchedule.types';
+import { useRetryScheduleLimits } from './useRetryScheduleLimits';
+import { computeDelays } from './retryScheduleFormatters';
+import type { RetrySchedule } from './retrySchedule.types';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -23,20 +24,15 @@ import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0IntervalChips from './Hook0IntervalChips.vue';
 
 const { t } = useI18n();
 const router = useRouter();
 const { organizationId } = useRouteIds();
+const perms = usePermissions();
 
 const { data: schedules, isLoading, error, refetch } = useRetryScheduleList(organizationId);
-
-const instanceQuery = useInstanceConfig();
-const limits = computed<RetryScheduleLimits | null>(() => {
-  const cfg = instanceQuery.data.value as unknown as
-    | { retry_schedule?: RetryScheduleLimits }
-    | undefined;
-  return cfg?.retry_schedule ?? null;
-});
+const { limits } = useRetryScheduleLimits();
 
 function strategyLabel(strategy: RetrySchedule['strategy']): string {
   switch (strategy) {
@@ -49,15 +45,9 @@ function strategyLabel(strategy: RetrySchedule['strategy']): string {
   }
 }
 
-function renderIntervals(schedule: RetrySchedule) {
-  if (!limits.value) return h('span', { class: 'muted' }, '—');
-  const delays = computeDelays(schedule, limits.value);
-  if (delays.length === 0) return h('span', { class: 'muted' }, '—');
-  return h(
-    'div',
-    { class: 'interval-chips' },
-    delays.slice(0, 8).map((s) => h('span', { class: 'interval-chips__chip' }, formatDelay(s)))
-  );
+function intervalsFor(schedule: RetrySchedule): number[] {
+  if (!limits.value) return [];
+  return computeDelays(schedule, limits.value);
 }
 
 // Delete confirmation
@@ -86,10 +76,10 @@ function executeDelete() {
   });
 }
 
-function goToEdit(scheduleId: string, organization_id: string) {
+function goToEdit(scheduleId: string) {
   void router.push({
     name: routes.RetrySchedulesEdit,
-    params: { organization_id, retry_schedule_id: scheduleId },
+    params: { organization_id: organizationId.value, retry_schedule_id: scheduleId },
   });
 }
 
@@ -104,85 +94,96 @@ function goToNew() {
 <template>
   <Hook0PageLayout :title="t('retrySchedules.title')">
     <template #actions>
-      <Hook0Button variant="primary" @click="goToNew">
+      <Hook0Button v-if="perms.canCreate('retry_schedule')" variant="primary" @click="goToNew">
         <Plus :size="14" aria-hidden="true" />
         {{ t('retrySchedules.new') }}
       </Hook0Button>
     </template>
 
-    <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="refetch()" />
-
-    <Hook0Card v-else-if="isLoading || !schedules">
+    <!-- Loading/skeleton first (also covers disabled-query state per CLAUDE.md). -->
+    <Hook0Card v-if="isLoading || !schedules">
       <Hook0CardContent>
         <Hook0SkeletonGroup :count="3" />
       </Hook0CardContent>
     </Hook0Card>
 
-    <Hook0Card v-else-if="schedules.length === 0">
-      <Hook0CardContent>
-        <Hook0EmptyState
-          :title="t('retrySchedules.emptyTitle')"
-          :description="t('retrySchedules.emptyDescription')"
-          :icon="Clock"
-        >
-          <template #action>
-            <Hook0Button variant="primary" @click="goToNew">
-              {{ t('retrySchedules.createFirst') }}
-            </Hook0Button>
-          </template>
-        </Hook0EmptyState>
-      </Hook0CardContent>
-    </Hook0Card>
+    <Hook0ErrorCard v-else-if="error" :error="error" @retry="refetch()" />
 
-    <Hook0Card v-else>
-      <Hook0CardHeader>
-        <template #header>{{ t('retrySchedules.listHeader') }}</template>
-        <template #subtitle>{{ t('retrySchedules.listSubtitle') }}</template>
-      </Hook0CardHeader>
-      <Hook0CardContent>
-        <table class="schedules-table">
-          <thead>
-            <tr>
-              <th>{{ t('retrySchedules.columns.name') }}</th>
-              <th>{{ t('retrySchedules.columns.strategy') }}</th>
-              <th>{{ t('retrySchedules.columns.maxRetries') }}</th>
-              <th>{{ t('retrySchedules.columns.intervals') }}</th>
-              <th class="schedules-table__actions-col">{{ t('common.actions') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="schedule in schedules"
-              :key="schedule.retry_schedule_id"
-              class="schedules-table__row"
-            >
-              <td>{{ schedule.name }}</td>
-              <td>{{ strategyLabel(schedule.strategy) }}</td>
-              <td>{{ schedule.max_retries }}</td>
-              <td><component :is="renderIntervals(schedule)" /></td>
-              <td class="schedules-table__actions">
-                <Hook0Button
-                  variant="ghost"
-                  type="button"
-                  :aria-label="t('common.edit')"
-                  @click="goToEdit(schedule.retry_schedule_id, organizationId)"
-                >
-                  <Pencil :size="14" aria-hidden="true" />
-                </Hook0Button>
-                <Hook0Button
-                  variant="ghost"
-                  type="button"
-                  :aria-label="t('common.delete')"
-                  @click="confirmDelete(schedule)"
-                >
-                  <Trash2 :size="14" aria-hidden="true" />
-                </Hook0Button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </Hook0CardContent>
-    </Hook0Card>
+    <template v-else-if="schedules">
+      <Hook0Card v-if="schedules.length === 0">
+        <Hook0CardContent>
+          <Hook0EmptyState
+            :title="t('retrySchedules.emptyTitle')"
+            :description="t('retrySchedules.emptyDescription')"
+            :icon="Clock"
+          >
+            <template #action>
+              <Hook0Button
+                v-if="perms.canCreate('retry_schedule')"
+                variant="primary"
+                @click="goToNew"
+              >
+                {{ t('retrySchedules.createFirst') }}
+              </Hook0Button>
+            </template>
+          </Hook0EmptyState>
+        </Hook0CardContent>
+      </Hook0Card>
+
+      <Hook0Card v-else>
+        <Hook0CardHeader>
+          <template #header>{{ t('retrySchedules.listHeader') }}</template>
+          <template #subtitle>{{ t('retrySchedules.listSubtitle') }}</template>
+        </Hook0CardHeader>
+        <Hook0CardContent>
+          <table class="schedules-table">
+            <thead>
+              <tr>
+                <th>{{ t('retrySchedules.columns.name') }}</th>
+                <th>{{ t('retrySchedules.columns.strategy') }}</th>
+                <th>{{ t('retrySchedules.columns.maxRetries') }}</th>
+                <th>{{ t('retrySchedules.columns.intervals') }}</th>
+                <th class="schedules-table__actions-col">{{ t('common.actions') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="schedule in schedules"
+                :key="schedule.retry_schedule_id"
+                class="schedules-table__row"
+              >
+                <td>{{ schedule.name }}</td>
+                <td>{{ strategyLabel(schedule.strategy) }}</td>
+                <td>{{ schedule.max_retries }}</td>
+                <td>
+                  <Hook0IntervalChips :values="intervalsFor(schedule)" :max="8" />
+                </td>
+                <td class="schedules-table__actions">
+                  <Hook0Button
+                    v-if="perms.canEdit('retry_schedule')"
+                    variant="ghost"
+                    type="button"
+                    :aria-label="t('common.edit')"
+                    @click="goToEdit(schedule.retry_schedule_id)"
+                  >
+                    <Pencil :size="14" aria-hidden="true" />
+                  </Hook0Button>
+                  <Hook0Button
+                    v-if="perms.canDelete('retry_schedule')"
+                    variant="ghost"
+                    type="button"
+                    :aria-label="t('common.delete')"
+                    @click="confirmDelete(schedule)"
+                  >
+                    <Trash2 :size="14" aria-hidden="true" />
+                  </Hook0Button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </Hook0CardContent>
+      </Hook0Card>
+    </template>
 
     <Hook0Dialog
       :open="scheduleToDelete !== null"
@@ -192,12 +193,7 @@ function goToNew() {
       @close="cancelDelete"
       @confirm="executeDelete"
     >
-      <i18n-t keypath="retrySchedules.deleteConfirm" tag="p">
-        <template #name>
-          &ldquo;<strong>{{ scheduleToDelete?.name }}</strong
-          >&rdquo;
-        </template>
-      </i18n-t>
+      <p>{{ t('retrySchedules.deleteConfirm', { name: scheduleToDelete?.name ?? '' }) }}</p>
     </Hook0Dialog>
   </Hook0PageLayout>
 </template>
@@ -240,25 +236,5 @@ function goToNew() {
   display: flex;
   gap: 0.25rem;
   justify-content: flex-end;
-}
-
-.muted {
-  color: var(--color-text-tertiary);
-}
-
-:deep(.interval-chips) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-:deep(.interval-chips__chip) {
-  display: inline-flex;
-  padding: 0.125rem 0.375rem;
-  border-radius: var(--radius-sm);
-  background-color: var(--color-bg-secondary);
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  color: var(--color-text-secondary);
 }
 </style>

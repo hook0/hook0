@@ -776,7 +776,12 @@
       "nameTooLong": "Name is too long (max 200 characters)",
       "maxRetries": "Maximum retries is {max}",
       "intervalsRequired": "Add at least one interval",
+      "intervalOutOfRange": "Interval must be within {min}s and {max}s",
       "totalTooLong": "Total retry duration exceeds the allowed cap of {max} seconds"
+    },
+    "units": {
+      "seconds": "s",
+      "retries": "retries"
     }
   },
   "serviceTokens": {

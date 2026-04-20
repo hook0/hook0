@@ -3,10 +3,10 @@ import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
-import { Plus, X } from 'lucide-vue-next';
+import { Plus } from 'lucide-vue-next';
 
 import { useRouteIds } from '@/composables/useRouteIds';
-import { useInstanceConfig } from '@/composables/useInstanceConfig';
+import { usePermissions } from '@/composables/usePermissions';
 import { handleMutationError } from '@/utils/handleMutationError';
 import { routes } from '@/routes';
 
@@ -15,11 +15,8 @@ import {
   useRetryScheduleDetail,
   useUpdateRetrySchedule,
 } from './useRetryScheduleQueries';
-import type {
-  RetryScheduleLimits,
-  RetrySchedulePayload,
-  RetryStrategy,
-} from './retrySchedule.types';
+import { useRetryScheduleLimits } from './useRetryScheduleLimits';
+import type { RetrySchedulePayload, RetryStrategy } from './retrySchedule.types';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -32,20 +29,19 @@ import Hook0Select from '@/components/Hook0Select.vue';
 import Hook0Slider from '@/components/Hook0Slider.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0CardSkeleton from '@/components/Hook0CardSkeleton.vue';
+import Hook0IntervalChips from './Hook0IntervalChips.vue';
 
 const { t } = useI18n();
 const router = useRouter();
 const { organizationId, retryScheduleId } = useRouteIds();
+const perms = usePermissions();
 
 const isEdit = computed(() => !!retryScheduleId.value);
+const canSubmit = computed(() =>
+  isEdit.value ? perms.canEdit('retry_schedule') : perms.canCreate('retry_schedule')
+);
 
-const instanceQuery = useInstanceConfig();
-const limits = computed<RetryScheduleLimits | null>(() => {
-  const cfg = instanceQuery.data.value as unknown as
-    | { retry_schedule?: RetryScheduleLimits }
-    | undefined;
-  return cfg?.retry_schedule ?? null;
-});
+const { limits } = useRetryScheduleLimits();
 
 const detailQuery = useRetryScheduleDetail(retryScheduleId);
 
@@ -80,24 +76,36 @@ watch(
   { immediate: true }
 );
 
-// Initialize defaults when limits become available
+// Initialize defaults once when limits arrive — do NOT clobber user edits on refetch.
+const didInit = ref(false);
 watch(
   limits,
   (lim) => {
-    if (!lim || isEdit.value) return;
+    if (!lim || isEdit.value || didInit.value) return;
     maxRetries.value = Math.min(5, lim.max_retries);
     baseDelay.value = Math.max(lim.exponential_base_delay_min_secs, 60);
     waitFactor.value = Math.max(lim.exponential_wait_factor_min, 2);
     linearDelay.value = Math.max(lim.min_single_delay_secs, 60);
+    didInit.value = true;
   },
   { immediate: true }
 );
 
 function addInterval() {
-  if (newIntervalValue.value === null || !limits.value) return;
-  if (customIntervals.value.length >= limits.value.max_custom_intervals_length) return;
-  customIntervals.value.push(newIntervalValue.value);
+  const lim = limits.value;
+  if (newIntervalValue.value === null || !lim) return;
+  const v = newIntervalValue.value;
+  if (v < lim.min_single_delay_secs || v > lim.max_single_delay_secs) {
+    formError.value = t('retrySchedules.validation.intervalOutOfRange', {
+      min: lim.min_single_delay_secs,
+      max: lim.max_single_delay_secs,
+    });
+    return;
+  }
+  if (customIntervals.value.length >= lim.max_custom_intervals_length) return;
+  customIntervals.value.push(v);
   newIntervalValue.value = null;
+  formError.value = null;
 }
 
 function removeInterval(index: number) {
@@ -147,16 +155,18 @@ function handleSubmit() {
   const payload = buildPayload();
   if (!payload) return;
 
+  const target = {
+    name: routes.RetrySchedulesList,
+    params: { organization_id: organizationId.value },
+  };
+
   if (isEdit.value) {
     updateMutation.mutate(
       { retryScheduleId: retryScheduleId.value, payload },
       {
         onSuccess: () => {
           toast.success(t('common.success'), { description: t('retrySchedules.updated') });
-          void router.push({
-            name: routes.RetrySchedulesList,
-            params: { organization_id: organizationId.value },
-          });
+          void router.push(target);
         },
         onError: (err) => handleMutationError(err),
       }
@@ -167,10 +177,7 @@ function handleSubmit() {
       {
         onSuccess: () => {
           toast.success(t('common.success'), { description: t('retrySchedules.created') });
-          void router.push({
-            name: routes.RetrySchedulesList,
-            params: { organization_id: organizationId.value },
-          });
+          void router.push(target);
         },
         onError: (err) => handleMutationError(err),
       }
@@ -192,6 +199,9 @@ const isSubmitting = computed(
 const title = computed(() =>
   isEdit.value ? t('retrySchedules.editTitle') : t('retrySchedules.newTitle')
 );
+
+const secondsUnit = computed(() => t('retrySchedules.units.seconds'));
+const retriesUnit = computed(() => t('retrySchedules.units.retries'));
 </script>
 
 <template>
@@ -205,150 +215,137 @@ const title = computed(() =>
     <Hook0CardSkeleton v-else-if="isEdit && detailQuery.isLoading.value" />
 
     <template v-else>
-      <Hook0Card>
-        <Hook0CardHeader>
-          <template #header>{{ t('retrySchedules.cardHeader') }}</template>
-          <template #subtitle>{{ t('retrySchedules.cardSubtitle') }}</template>
-        </Hook0CardHeader>
-        <Hook0CardContent>
-          <div class="form-grid">
-            <Hook0Input
-              v-model="name"
-              :label="t('retrySchedules.fields.name')"
-              :placeholder="t('retrySchedules.fields.namePlaceholder')"
-              maxlength="200"
-              required
-            />
+      <form @submit.prevent="handleSubmit">
+        <Hook0Card>
+          <Hook0CardHeader>
+            <template #header>{{ t('retrySchedules.cardHeader') }}</template>
+            <template #subtitle>{{ t('retrySchedules.cardSubtitle') }}</template>
+          </Hook0CardHeader>
+          <Hook0CardContent>
+            <div class="form-grid">
+              <Hook0Input
+                v-model="name"
+                :label="t('retrySchedules.fields.name')"
+                :placeholder="t('retrySchedules.fields.namePlaceholder')"
+                maxlength="200"
+                required
+              />
 
-            <Hook0Select
-              v-model="strategy"
-              :label="t('retrySchedules.fields.strategy')"
-              :options="[
-                {
-                  value: 'exponential_increasing',
-                  label: t('retrySchedules.strategies.exponentialIncreasing'),
-                },
-                { value: 'linear', label: t('retrySchedules.strategies.linear') },
-                { value: 'custom', label: t('retrySchedules.strategies.custom') },
-              ]"
-            />
+              <Hook0Select
+                v-model="strategy"
+                :label="t('retrySchedules.fields.strategy')"
+                :options="[
+                  {
+                    value: 'exponential_increasing',
+                    label: t('retrySchedules.strategies.exponentialIncreasing'),
+                  },
+                  { value: 'linear', label: t('retrySchedules.strategies.linear') },
+                  { value: 'custom', label: t('retrySchedules.strategies.custom') },
+                ]"
+              />
 
-            <!-- Exponential fields -->
-            <template v-if="strategy === 'exponential_increasing' && limits">
-              <Hook0Slider
-                v-model="maxRetries"
-                :label="t('retrySchedules.fields.maxRetries')"
-                :min="1"
-                :max="limits.max_retries"
-                unit="retries"
-              />
-              <Hook0Slider
-                v-model="baseDelay"
-                :label="t('retrySchedules.fields.baseDelay')"
-                :min="limits.exponential_base_delay_min_secs"
-                :max="limits.exponential_base_delay_max_secs"
-                unit="s"
-                :help-text="t('retrySchedules.help.baseDelay')"
-              />
-              <Hook0Slider
-                v-model="waitFactor"
-                :label="t('retrySchedules.fields.waitFactor')"
-                :min="limits.exponential_wait_factor_min"
-                :max="limits.exponential_wait_factor_max"
-                :step="0.1"
-                :help-text="t('retrySchedules.help.waitFactor')"
-              />
-            </template>
+              <!-- Exponential fields -->
+              <template v-if="strategy === 'exponential_increasing' && limits">
+                <Hook0Slider
+                  v-model="maxRetries"
+                  :label="t('retrySchedules.fields.maxRetries')"
+                  :min="1"
+                  :max="limits.max_retries"
+                  :unit="retriesUnit"
+                />
+                <Hook0Slider
+                  v-model="baseDelay"
+                  :label="t('retrySchedules.fields.baseDelay')"
+                  :min="limits.exponential_base_delay_min_secs"
+                  :max="limits.exponential_base_delay_max_secs"
+                  :unit="secondsUnit"
+                  :help-text="t('retrySchedules.help.baseDelay')"
+                />
+                <Hook0Slider
+                  v-model="waitFactor"
+                  :label="t('retrySchedules.fields.waitFactor')"
+                  :min="limits.exponential_wait_factor_min"
+                  :max="limits.exponential_wait_factor_max"
+                  :step="0.1"
+                  :help-text="t('retrySchedules.help.waitFactor')"
+                />
+              </template>
 
-            <!-- Linear fields -->
-            <template v-if="strategy === 'linear' && limits">
-              <Hook0Slider
-                v-model="maxRetries"
-                :label="t('retrySchedules.fields.maxRetries')"
-                :min="1"
-                :max="limits.max_retries"
-                unit="retries"
-              />
-              <Hook0Slider
-                v-model="linearDelay"
-                :label="t('retrySchedules.fields.linearDelay')"
-                :min="limits.min_single_delay_secs"
-                :max="limits.max_single_delay_secs"
-                unit="s"
-                :help-text="t('retrySchedules.help.linearDelay')"
-              />
-            </template>
+              <!-- Linear fields -->
+              <template v-if="strategy === 'linear' && limits">
+                <Hook0Slider
+                  v-model="maxRetries"
+                  :label="t('retrySchedules.fields.maxRetries')"
+                  :min="1"
+                  :max="limits.max_retries"
+                  :unit="retriesUnit"
+                />
+                <Hook0Slider
+                  v-model="linearDelay"
+                  :label="t('retrySchedules.fields.linearDelay')"
+                  :min="limits.min_single_delay_secs"
+                  :max="limits.max_single_delay_secs"
+                  :unit="secondsUnit"
+                  :help-text="t('retrySchedules.help.linearDelay')"
+                />
+              </template>
 
-            <!-- Custom intervals — no "preview" label; inputs ARE the preview -->
-            <template v-if="strategy === 'custom' && limits">
-              <div class="custom-intervals">
-                <label class="custom-intervals__label">
-                  {{ t('retrySchedules.fields.intervals') }}
-                </label>
-                <p class="custom-intervals__help">
-                  {{
-                    t('retrySchedules.help.intervals', { max: limits.max_custom_intervals_length })
-                  }}
-                </p>
-                <div class="custom-intervals__chips">
-                  <span
-                    v-for="(interval, index) in customIntervals"
-                    :key="index"
-                    class="custom-intervals__chip"
-                  >
-                    {{ interval }}s
-                    <button
-                      type="button"
-                      class="custom-intervals__chip-remove"
-                      :aria-label="t('common.remove')"
-                      @click="removeInterval(index)"
-                    >
-                      <X :size="12" aria-hidden="true" />
-                    </button>
-                  </span>
-                </div>
-                <div class="custom-intervals__add">
-                  <input
-                    v-model.number="newIntervalValue"
-                    type="number"
-                    :min="limits.min_single_delay_secs"
-                    :max="limits.max_single_delay_secs"
-                    :placeholder="t('retrySchedules.fields.intervalPlaceholder')"
-                    class="custom-intervals__input"
+              <!-- Custom intervals — no "preview" block; the chips are the preview. -->
+              <template v-if="strategy === 'custom' && limits">
+                <div class="custom-intervals">
+                  <label class="custom-intervals__label">
+                    {{ t('retrySchedules.fields.intervals') }}
+                  </label>
+                  <p class="custom-intervals__help">
+                    {{
+                      t('retrySchedules.help.intervals', {
+                        max: limits.max_custom_intervals_length,
+                      })
+                    }}
+                  </p>
+                  <Hook0IntervalChips
+                    :values="customIntervals"
+                    removable
+                    @remove="removeInterval"
                   />
-                  <Hook0Button
-                    variant="secondary"
-                    type="button"
-                    :disabled="
-                      newIntervalValue === null ||
-                      customIntervals.length >= limits.max_custom_intervals_length
-                    "
-                    @click="addInterval"
-                  >
-                    <Plus :size="14" aria-hidden="true" />
-                    {{ t('common.add') }}
-                  </Hook0Button>
+                  <div class="custom-intervals__add">
+                    <input
+                      v-model.number="newIntervalValue"
+                      type="number"
+                      :min="limits.min_single_delay_secs"
+                      :max="limits.max_single_delay_secs"
+                      :placeholder="t('retrySchedules.fields.intervalPlaceholder')"
+                      class="custom-intervals__input"
+                    />
+                    <Hook0Button
+                      variant="secondary"
+                      type="button"
+                      :disabled="
+                        newIntervalValue === null ||
+                        customIntervals.length >= limits.max_custom_intervals_length
+                      "
+                      @click="addInterval"
+                    >
+                      <Plus :size="14" aria-hidden="true" />
+                      {{ t('common.add') }}
+                    </Hook0Button>
+                  </div>
                 </div>
-              </div>
-            </template>
+              </template>
 
-            <p v-if="formError" class="form-error">{{ formError }}</p>
-          </div>
-        </Hook0CardContent>
-        <Hook0CardFooter>
-          <Hook0Button variant="secondary" type="button" @click="handleCancel">
-            {{ t('common.cancel') }}
-          </Hook0Button>
-          <Hook0Button
-            variant="primary"
-            type="button"
-            :disabled="isSubmitting"
-            @click="handleSubmit"
-          >
-            {{ isEdit ? t('common.save') : t('common.create') }}
-          </Hook0Button>
-        </Hook0CardFooter>
-      </Hook0Card>
+              <p v-if="formError" class="form-error">{{ formError }}</p>
+            </div>
+          </Hook0CardContent>
+          <Hook0CardFooter>
+            <Hook0Button variant="secondary" type="button" @click="handleCancel">
+              {{ t('common.cancel') }}
+            </Hook0Button>
+            <Hook0Button variant="primary" type="submit" :disabled="isSubmitting || !canSubmit">
+              {{ isEdit ? t('common.save') : t('common.create') }}
+            </Hook0Button>
+          </Hook0CardFooter>
+        </Hook0Card>
+      </form>
     </template>
   </Hook0PageLayout>
 </template>
@@ -376,41 +373,6 @@ const title = computed(() =>
   margin: 0;
   font-size: 0.75rem;
   color: var(--color-text-tertiary);
-}
-
-.custom-intervals__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-  min-height: 1.75rem;
-}
-
-.custom-intervals__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-full);
-  background-color: var(--color-primary-light);
-  color: var(--color-primary-text);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-}
-
-.custom-intervals__chip-remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  margin: 0;
-  border: none;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-}
-
-.custom-intervals__chip-remove:hover {
-  color: var(--color-error);
 }
 
 .custom-intervals__add {

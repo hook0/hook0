@@ -7,7 +7,7 @@ import type { RetryScheduleCreatePayload, RetrySchedulePayload } from './retrySc
 export function useRetryScheduleList(organizationId: Ref<string>) {
   return useQuery({
     queryKey: computed(() => retryScheduleKeys.list(organizationId.value)),
-    queryFn: () => RetryScheduleService.list(organizationId.value),
+    queryFn: () => RetryScheduleService.listSchedules(organizationId.value),
     enabled: computed(() => !!organizationId.value),
   });
 }
@@ -15,7 +15,7 @@ export function useRetryScheduleList(organizationId: Ref<string>) {
 export function useRetryScheduleDetail(retryScheduleId: Ref<string>) {
   return useQuery({
     queryKey: computed(() => retryScheduleKeys.detail(retryScheduleId.value)),
-    queryFn: () => RetryScheduleService.get(retryScheduleId.value),
+    queryFn: () => RetryScheduleService.getSchedule(retryScheduleId.value),
     enabled: computed(() => !!retryScheduleId.value),
   });
 }
@@ -23,7 +23,8 @@ export function useRetryScheduleDetail(retryScheduleId: Ref<string>) {
 export function useCreateRetrySchedule() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: RetryScheduleCreatePayload) => RetryScheduleService.create(payload),
+    mutationFn: (payload: RetryScheduleCreatePayload) =>
+      RetryScheduleService.createSchedule(payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: retryScheduleKeys.all });
     },
@@ -34,7 +35,7 @@ export function useUpdateRetrySchedule() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (args: { retryScheduleId: string; payload: RetrySchedulePayload }) =>
-      RetryScheduleService.update(args.retryScheduleId, args.payload),
+      RetryScheduleService.updateSchedule(args.retryScheduleId, args.payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: retryScheduleKeys.all });
     },
@@ -44,7 +45,7 @@ export function useUpdateRetrySchedule() {
 export function useDeleteRetrySchedule() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (retryScheduleId: string) => RetryScheduleService.remove(retryScheduleId),
+    mutationFn: (retryScheduleId: string) => RetryScheduleService.deleteSchedule(retryScheduleId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: retryScheduleKeys.all });
     },

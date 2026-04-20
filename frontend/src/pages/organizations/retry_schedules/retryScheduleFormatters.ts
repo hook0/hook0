@@ -23,13 +23,19 @@ export function computeDelays(schedule: RetrySchedule, limits: RetryScheduleLimi
     }
     case 'custom':
       return (schedule.custom_intervals ?? []).map((v) => Math.min(v, cap));
+    default:
+      return assertNever(schedule.strategy);
   }
 }
 
-/** Short human-readable form like "5s", "3min", "2h", "1d". */
+/** Short human-readable form like "5s", "3min", "2h", "1d". Floor-based so thresholds don't round up. */
 export function formatDelay(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.round(seconds / 60)}min`;
-  if (seconds < 86400) return `${Math.round(seconds / 3600)}h`;
-  return `${Math.round(seconds / 86400)}d`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}min`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+  return `${Math.floor(seconds / 86400)}d`;
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unexpected retry strategy: ${String(value)}`);
 }
