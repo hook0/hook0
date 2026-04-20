@@ -62,21 +62,21 @@ export function createCustom(baseUrl, organizationId, serviceToken, name) {
 }
 
 export function listSchedules(baseUrl, organizationId, serviceToken) {
-  const url = baseUrl + `api/v1/retry_schedules?organization_id=${organizationId}`;
+  const url = `${baseUrl}api/v1/retry_schedules?organization_id=${organizationId}`;
   const res = http.get(url, headers(serviceToken));
   check(res, { 'Retry schedule list ok': (response) => response.status === 200 });
   return res.status === 200 ? JSON.parse(res.body) : null;
 }
 
 export function getSchedule(baseUrl, serviceToken, scheduleId) {
-  const url = baseUrl + `api/v1/retry_schedules/${scheduleId}`;
+  const url = `${baseUrl}api/v1/retry_schedules/${scheduleId}`;
   const res = http.get(url, headers(serviceToken));
   check(res, { 'Retry schedule get ok': (response) => response.status === 200 });
   return res.status === 200 ? JSON.parse(res.body) : null;
 }
 
 export function updateSchedule(baseUrl, serviceToken, scheduleId, name) {
-  const url = baseUrl + `api/v1/retry_schedules/${scheduleId}`;
+  const url = `${baseUrl}api/v1/retry_schedules/${scheduleId}`;
   const payload = JSON.stringify({
     strategy: 'linear',
     name,
@@ -89,7 +89,7 @@ export function updateSchedule(baseUrl, serviceToken, scheduleId, name) {
 }
 
 export function deleteSchedule(baseUrl, serviceToken, scheduleId) {
-  const url = baseUrl + `api/v1/retry_schedules/${scheduleId}`;
+  const url = `${baseUrl}api/v1/retry_schedules/${scheduleId}`;
   const res = http.del(url, null, headers(serviceToken));
   check(res, { 'Retry schedule deleted': (response) => response.status === 204 });
   return res.status === 204;
@@ -153,7 +153,7 @@ export function assignToSubscription(
   subscriptionBody,
   scheduleId
 ) {
-  const url = baseUrl + `api/v1/subscriptions/${subscriptionId}`;
+  const url = `${baseUrl}api/v1/subscriptions/${subscriptionId}`;
   const payload = JSON.stringify({
     ...subscriptionBody,
     retry_schedule_id: scheduleId,
@@ -167,7 +167,7 @@ export function assignToSubscription(
 }
 
 export function rejectsCrossOrgAssign(baseUrl, serviceToken, subscriptionId, subscriptionBody) {
-  const url = baseUrl + `api/v1/subscriptions/${subscriptionId}`;
+  const url = `${baseUrl}api/v1/subscriptions/${subscriptionId}`;
   // Fake uuid: a schedule id that can't exist in this org
   const payload = JSON.stringify({
     ...subscriptionBody,
