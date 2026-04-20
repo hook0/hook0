@@ -1,16 +1,17 @@
 //! Per-attempt retry delay computation.
 //!
-//! Operator-visible effect: delays returned here land in `request_attempt.delay_until`
-//! and become the wait between the current failure and the next auto-retry.
+//! Operator-visible effect: delays returned here land in `request_attempt.delay_until`.
 //!
+//! - `Strategy` enum mirrors the API enum. Unknown DB values fail loud.
 //! - `ScheduleConfig` mirrors `webhook.retry_schedule` (3 strategies, nullable fields)
 //! - `compute_delay_from_schedule` returns `None` when the retry budget is exhausted
-//! - Jitter adds positive random smear; prevents thundering-herd when many subs retry together
-//! - Per-retry delay capped at 7 days to guarantee DoS resistance and i64 safety
+//! - Jitter spreads retries; `with_jitter` is also exposed for the built-in fallback
+//! - Per-retry delay capped at 7 days for DoS resistance and i64 safety
 
 use std::time::Duration;
 
 use rand::Rng;
+use tracing::warn;
 
 /// Hard cap on a single retry delay (7 days). Matches API validator.
 pub const MAX_RETRY_DELAY_SECS: u64 = 7 * 24 * 3600;
@@ -18,10 +19,30 @@ pub const MAX_RETRY_DELAY_SECS: u64 = 7 * 24 * 3600;
 /// Upper bound for jitter in milliseconds (keeps smear subtle).
 const JITTER_MAX_MS: u64 = 1_000;
 
-/// Retry schedule fields as persisted; strategy columns are mutually exclusive.
+/// Retry pacing family.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Strategy {
+    ExponentialIncreasing,
+    Linear,
+    Custom,
+}
+
+impl Strategy {
+    /// Parse the persisted string; None on unknown value (caller must log).
+    pub fn from_db_str(s: &str) -> Option<Self> {
+        match s {
+            "exponential_increasing" => Some(Self::ExponentialIncreasing),
+            "linear" => Some(Self::Linear),
+            "custom" => Some(Self::Custom),
+            _ => None,
+        }
+    }
+}
+
+/// Retry schedule fields as persisted; strategy-specific columns are mutually exclusive.
 #[derive(Debug, Clone)]
 pub struct ScheduleConfig {
-    pub strategy: String,
+    pub strategy: Strategy,
     pub max_retries: i32,
     pub custom_intervals: Option<Vec<i32>>,
     pub linear_delay: Option<i32>,
@@ -29,42 +50,48 @@ pub struct ScheduleConfig {
     pub increasing_wait_factor: Option<f64>,
 }
 
-/// Return the delay before retry `retry_count+1`, or `None` if the budget is spent.
-/// `retry_count` is zero-indexed on the attempt that just failed.
+/// Delay before retry `retry_count+1`, or `None` if the budget is spent.
+/// `retry_count` = zero-indexed count of attempts already failed.
 pub fn compute_delay_from_schedule(
     schedule: &ScheduleConfig,
     retry_count: i16,
 ) -> Option<Duration> {
-    let max_retries = schedule.max_retries;
-    if retry_count as i32 >= max_retries {
+    // Defensive: negative retry_count would wrap to a huge usize in custom indexing.
+    if retry_count < 0 {
+        warn!(
+            retry_count,
+            "negative retry_count; refusing to schedule retry"
+        );
+        return None;
+    }
+    if i32::from(retry_count) >= schedule.max_retries {
         return None;
     }
 
-    let raw_secs = match schedule.strategy.as_str() {
-        "exponential_increasing" => {
+    let cap_f = MAX_RETRY_DELAY_SECS as f64;
+    let raw_secs: u64 = match schedule.strategy {
+        Strategy::ExponentialIncreasing => {
             let base = schedule.increasing_base_delay?;
             let factor = schedule.increasing_wait_factor?;
-            let base_f = f64::from(base);
-            let secs = base_f * factor.powi(i32::from(retry_count));
-            secs.max(0.0) as u64
+            let secs = f64::from(base) * factor.powi(i32::from(retry_count));
+            // Clamp before casting so NaN / +Inf / >u64::MAX saturate cleanly.
+            secs.clamp(0.0, cap_f) as u64
         }
-        "linear" => {
+        Strategy::Linear => {
             let delay = schedule.linear_delay?;
             if delay <= 0 {
                 return None;
             }
             delay as u64
         }
-        "custom" => {
+        Strategy::Custom => {
             let intervals = schedule.custom_intervals.as_ref()?;
-            let idx = retry_count as usize;
-            let v = intervals.get(idx).copied()?;
+            let v = intervals.get(retry_count as usize).copied()?;
             if v <= 0 {
                 return None;
             }
             v as u64
         }
-        _ => return None,
     };
 
     let capped = raw_secs.min(MAX_RETRY_DELAY_SECS);
@@ -72,7 +99,8 @@ pub fn compute_delay_from_schedule(
 }
 
 /// Add small positive jitter; spreads retries that would otherwise align.
-fn with_jitter(base: Duration) -> Duration {
+/// Exposed so the built-in fallback schedule matches the custom-schedule behavior.
+pub fn with_jitter(base: Duration) -> Duration {
     let jitter_ms = rand::rng().random_range(0..=JITTER_MAX_MS);
     base + Duration::from_millis(jitter_ms)
 }
@@ -83,7 +111,7 @@ mod tests {
 
     fn exp(base: i32, factor: f64, max: i32) -> ScheduleConfig {
         ScheduleConfig {
-            strategy: "exponential_increasing".to_owned(),
+            strategy: Strategy::ExponentialIncreasing,
             max_retries: max,
             custom_intervals: None,
             linear_delay: None,
@@ -94,7 +122,7 @@ mod tests {
 
     fn linear(delay: i32, max: i32) -> ScheduleConfig {
         ScheduleConfig {
-            strategy: "linear".to_owned(),
+            strategy: Strategy::Linear,
             max_retries: max,
             custom_intervals: None,
             linear_delay: Some(delay),
@@ -106,7 +134,7 @@ mod tests {
     fn custom(intervals: Vec<i32>) -> ScheduleConfig {
         let len = intervals.len() as i32;
         ScheduleConfig {
-            strategy: "custom".to_owned(),
+            strategy: Strategy::Custom,
             max_retries: len,
             custom_intervals: Some(intervals),
             linear_delay: None,
@@ -170,9 +198,27 @@ mod tests {
     }
 
     #[test]
-    fn unknown_strategy_yields_none() {
-        let mut s = linear(1, 5);
-        s.strategy = "mystery".to_owned();
-        assert!(compute_delay_from_schedule(&s, 0).is_none());
+    fn negative_retry_count_refuses() {
+        let s = linear(60, 5);
+        assert!(compute_delay_from_schedule(&s, -1).is_none());
+    }
+
+    #[test]
+    fn exponential_handles_non_finite_gracefully() {
+        // factor that blows up: clamp protects against NaN / +Inf feeding into `as u64`.
+        let s = exp(i32::MAX, 20.0, 5);
+        let d = compute_delay_from_schedule(&s, 4).unwrap();
+        assert!(d.as_secs() <= MAX_RETRY_DELAY_SECS);
+    }
+
+    #[test]
+    fn from_db_str_parses_known_values() {
+        assert_eq!(
+            Strategy::from_db_str("exponential_increasing"),
+            Some(Strategy::ExponentialIncreasing)
+        );
+        assert_eq!(Strategy::from_db_str("linear"), Some(Strategy::Linear));
+        assert_eq!(Strategy::from_db_str("custom"), Some(Strategy::Custom));
+        assert_eq!(Strategy::from_db_str("mystery"), None);
     }
 }

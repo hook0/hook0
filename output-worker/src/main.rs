@@ -798,6 +798,7 @@ async fn compute_next_retry(
             let sub = query!(
                 r#"
                     SELECT
+                        s.retry_schedule__id AS "subscription_retry_schedule_id?",
                         rs.strategy AS "strategy?",
                         rs.max_retries AS "rs_max_retries?",
                         rs.custom_intervals AS "custom_intervals?",
@@ -817,38 +818,66 @@ async fn compute_next_retry(
             .fetch_optional(conn)
             .await?;
 
-            match sub {
-                Some(row) => {
-                    if let (Some(strategy), Some(rs_max_retries)) =
-                        (row.strategy, row.rs_max_retries)
-                    {
-                        // Subscription has a custom schedule; compute delay from its strategy fields.
-                        let schedule = crate::retry::ScheduleConfig {
-                            strategy,
-                            max_retries: rs_max_retries,
-                            custom_intervals: row.custom_intervals,
-                            linear_delay: row.linear_delay,
-                            increasing_base_delay: row.increasing_base_delay,
-                            increasing_wait_factor: row.increasing_wait_factor,
-                        };
-                        Ok(crate::retry::compute_delay_from_schedule(
-                            &schedule,
-                            attempt.retry_count,
-                        ))
-                    } else {
-                        // No schedule attached — fall back to the built-in escalating table.
-                        Ok(compute_next_retry_duration(
-                            max_retries,
-                            attempt.retry_count,
-                        ))
+            let Some(row) = sub else {
+                return Ok(None);
+            };
+
+            // Subscription points to a schedule but the LEFT JOIN found no row. FK has
+            // ON DELETE SET NULL so this should not happen; log loud and fall back.
+            if row.subscription_retry_schedule_id.is_some() && row.strategy.is_none() {
+                tracing::warn!(
+                    subscription_id = %attempt.subscription_id,
+                    schedule_id = ?row.subscription_retry_schedule_id,
+                    "Subscription references a retry_schedule that could not be joined; falling back to built-in backoff",
+                );
+            }
+
+            match (row.strategy.as_deref(), row.rs_max_retries) {
+                (Some(strategy_str), Some(rs_max_retries)) => {
+                    match crate::retry::Strategy::from_db_str(strategy_str) {
+                        Some(strategy) => {
+                            let schedule = crate::retry::ScheduleConfig {
+                                strategy,
+                                max_retries: rs_max_retries,
+                                custom_intervals: row.custom_intervals,
+                                linear_delay: row.linear_delay,
+                                increasing_base_delay: row.increasing_base_delay,
+                                increasing_wait_factor: row.increasing_wait_factor,
+                            };
+                            Ok(crate::retry::compute_delay_from_schedule(
+                                &schedule,
+                                attempt.retry_count,
+                            ))
+                        }
+                        None => {
+                            // Unknown DB strategy value — data corruption. Log, fall back.
+                            tracing::error!(
+                                subscription_id = %attempt.subscription_id,
+                                strategy = strategy_str,
+                                "Unknown retry_schedule strategy; falling back to built-in backoff",
+                            );
+                            Ok(
+                                compute_next_retry_duration(max_retries, attempt.retry_count)
+                                    .map(crate::retry::with_jitter),
+                            )
+                        }
                     }
                 }
-                None => Ok(None),
+                _ => {
+                    // No schedule attached — fall back to the built-in escalating table
+                    // with the same jitter policy as custom schedules.
+                    Ok(
+                        compute_next_retry_duration(max_retries, attempt.retry_count)
+                            .map(crate::retry::with_jitter),
+                    )
+                }
             }
         }
     }
 }
 
+/// Pure, deterministic lookup — jitter is applied at the scheduling call site so
+/// that planning helpers like `evaluate_retry_policy` stay reproducible.
 fn compute_next_retry_duration(max_retries: u8, retry_count: i16) -> Option<Duration> {
     if retry_count < max_retries.into() {
         match retry_count {

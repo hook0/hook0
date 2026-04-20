@@ -519,9 +519,12 @@ pub async fn create(
         return Err(Hook0Problem::Validation(e));
     }
 
+    // Fail fast if the application vanished between auth and now — silently swapping to
+    // the nil UUID would let the retry-schedule FK guard and subsequent inserts fail
+    // downstream with an opaque 500.
     let organization_id = get_owner_organization(&state.db, &body.application_id)
         .await
-        .unwrap_or(Uuid::nil());
+        .ok_or(Hook0Problem::NotFound)?;
 
     let quota_limit = state
         .quotas
@@ -778,9 +781,10 @@ pub async fn edit(
         return Err(Hook0Problem::Validation(e));
     }
 
+    // Fail fast if the application vanished; nil UUID silently breaks the FK guard below.
     let organization_id = get_owner_organization(&state.db, &body.application_id)
         .await
-        .unwrap_or(Uuid::nil());
+        .ok_or(Hook0Problem::NotFound)?;
 
     // Retry schedules are org-scoped; reject cross-org references up-front.
     if let Some(retry_schedule_id) = body.retry_schedule_id.as_ref() {

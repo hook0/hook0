@@ -1,10 +1,11 @@
-//! Retry schedule types and payload validator.
+//! Retry schedule CRUD endpoints + payload validator.
 //!
-//! Caller-visible effect: rejects payloads breaching business bounds with 400 InvalidPayload.
+//! Caller-visible effect: full CRUD on `/retry_schedules`; invalid payloads get 400 InvalidPayload, cross-org access collapses to 404.
 //!
-//! - Entity, strategy enum, discriminated-union payload
-//! - Business constants: single-delay / total-duration / max-retries / name / quota caps
-//! - `validate_payload` + `compute_total_duration` enforced pre-persist
+//! - Entity, strategy enum, discriminated-union payload, business caps
+//! - `validate_payload` + `compute_total_duration` reject out-of-bounds pre-persist
+//! - Handlers (list/get/create/edit/delete) with per-org advisory-locked quota
+//! - Unique-name constraint surfaces as RetryScheduleNameConflict (409)
 
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
@@ -13,7 +14,6 @@ use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::query_as;
-use tracing::error;
 use uuid::Uuid;
 
 use crate::iam::{Action, authorize};
@@ -133,15 +133,16 @@ fn payload_name(payload: &RetrySchedulePayload) -> &str {
 }
 
 fn validate_name(name: &str) -> Result<(), Hook0Problem> {
-    if name.trim().is_empty() {
+    // Validate on the trimmed form so persisted == validated (insert calls .trim() too).
+    let trimmed_len = name.trim().len();
+    if trimmed_len == 0 {
         return Err(invalid(
             "Name must not be empty or whitespace-only.".to_owned(),
         ));
     }
-    let len = name.len();
-    if !(MIN_NAME_LEN..=MAX_NAME_LEN).contains(&len) {
+    if !(MIN_NAME_LEN..=MAX_NAME_LEN).contains(&trimmed_len) {
         return Err(invalid(format!(
-            "Name length ({len}) must be within {MIN_NAME_LEN}..={MAX_NAME_LEN}."
+            "Name length ({trimmed_len}) must be within {MIN_NAME_LEN}..={MAX_NAME_LEN}."
         )));
     }
     Ok(())
@@ -180,8 +181,9 @@ fn validate_strategy_fields(payload: &RetrySchedulePayload) -> Result<(), Hook0P
             Ok(())
         }
         RetrySchedulePayload::Custom { intervals, .. } => {
-            let len = intervals.len() as i32;
-            if intervals.is_empty() || len > MAX_RETRIES {
+            // Compare on usize to avoid silent i32 truncation on massive payloads.
+            let len = intervals.len();
+            if len == 0 || len > MAX_RETRIES as usize {
                 return Err(invalid(format!(
                     "intervals count ({len}) must be within 1..={MAX_RETRIES}."
                 )));
@@ -213,7 +215,7 @@ fn invalid(reason: String) -> Hook0Problem {
 
 /// Query string for list scoped by organization.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
-pub struct Qs {
+pub struct ListQs {
     organization_id: Uuid,
 }
 
@@ -229,7 +231,7 @@ pub async fn list(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
-    qs: Query<Qs>,
+    qs: Query<ListQs>,
 ) -> Result<Json<Vec<RetrySchedule>>, Hook0Problem> {
     let organization_id = qs.organization_id;
 
@@ -268,10 +270,7 @@ pub async fn list(
     )
     .fetch_all(&state.db)
     .await
-    .map_err(|e| {
-        error!("{e}");
-        Hook0Problem::InternalServerError
-    })?;
+    .map_err(Hook0Problem::from)?;
 
     Ok(Json(rows))
 }
@@ -293,6 +292,7 @@ pub async fn get(
     let retry_schedule_id = retry_schedule_id.into_inner();
     let organization_id = lookup_org(&state.db, &retry_schedule_id).await?;
 
+    // Collapse cross-org auth denial to NotFound so existence doesn't leak.
     if authorize(
         &biscuit,
         Some(organization_id),
@@ -304,7 +304,7 @@ pub async fn get(
     )
     .is_err()
     {
-        return Err(Hook0Problem::Forbidden);
+        return Err(Hook0Problem::NotFound);
     }
 
     let row = query_as!(
@@ -329,10 +329,7 @@ pub async fn get(
     )
     .fetch_optional(&state.db)
     .await
-    .map_err(|e| {
-        error!("{e}");
-        Hook0Problem::InternalServerError
-    })?;
+    .map_err(Hook0Problem::from)?;
 
     row.map(Json).ok_or(Hook0Problem::NotFound)
 }
@@ -379,7 +376,18 @@ pub async fn create(
     validate_payload(&payload)?;
     let fields = payload_to_db_fields(&payload);
 
-    // Atomic insert guarded by per-org quota to avoid TOCTOU races.
+    // Serialize concurrent creates in the same org via a transaction-scoped advisory lock.
+    // Lock is released on commit/rollback; ordinary inserts elsewhere are unaffected.
+    let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
+    sqlx::query!(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))",
+        organization_id.to_string(),
+    )
+    .execute(&mut *tx)
+    .await
+    .map_err(Hook0Problem::from)?;
+
     let created = query_as!(
         RetrySchedule,
         r#"
@@ -414,9 +422,11 @@ pub async fn create(
         fields.increasing_wait_factor,
         MAX_PER_ORG,
     )
-    .fetch_optional(&state.db)
+    .fetch_optional(&mut *tx)
     .await
     .map_err(Hook0Problem::from)?;
+
+    tx.commit().await.map_err(Hook0Problem::from)?;
 
     created
         .map(CreatedJson)
@@ -443,6 +453,7 @@ pub async fn edit(
     let retry_schedule_id = retry_schedule_id.into_inner();
     let organization_id = lookup_org(&state.db, &retry_schedule_id).await?;
 
+    // Collapse cross-org auth denial to NotFound so existence doesn't leak.
     if authorize(
         &biscuit,
         Some(organization_id),
@@ -454,7 +465,7 @@ pub async fn edit(
     )
     .is_err()
     {
-        return Err(Hook0Problem::Forbidden);
+        return Err(Hook0Problem::NotFound);
     }
 
     let payload = body.into_inner();
@@ -521,6 +532,7 @@ pub async fn delete(
     let retry_schedule_id = retry_schedule_id.into_inner();
     let organization_id = lookup_org(&state.db, &retry_schedule_id).await?;
 
+    // Collapse cross-org auth denial to NotFound so existence doesn't leak.
     if authorize(
         &biscuit,
         Some(organization_id),
@@ -532,7 +544,7 @@ pub async fn delete(
     )
     .is_err()
     {
-        return Err(Hook0Problem::Forbidden);
+        return Err(Hook0Problem::NotFound);
     }
 
     let deleted = sqlx::query!(
@@ -541,10 +553,7 @@ pub async fn delete(
     )
     .fetch_optional(&state.db)
     .await
-    .map_err(|e| {
-        error!("{e}");
-        Hook0Problem::InternalServerError
-    })?;
+    .map_err(Hook0Problem::from)?;
 
     if deleted.is_none() {
         return Err(Hook0Problem::NotFound);
@@ -561,10 +570,7 @@ async fn lookup_org(db: &sqlx::PgPool, retry_schedule_id: &Uuid) -> Result<Uuid,
     )
     .fetch_optional(db)
     .await
-    .map_err(|e| {
-        error!("{e}");
-        Hook0Problem::InternalServerError
-    })?
+    .map_err(Hook0Problem::from)?
     .ok_or(Hook0Problem::NotFound)
 }
 
