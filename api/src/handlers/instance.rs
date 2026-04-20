@@ -16,7 +16,6 @@ use sqlx::{PgPool, query};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::handlers::retry_schedules as retry_schedule_limits;
 use crate::problems::Hook0Problem;
 use crate::{ObjectStorageConfig, PulsarConfig};
 
@@ -66,7 +65,7 @@ pub struct RetryScheduleConfig {
     exponential_base_delay_max_secs: i32,
     exponential_wait_factor_min: f64,
     exponential_wait_factor_max: f64,
-    max_per_org: i64,
+    max_per_organization: i64,
 }
 
 /// Get instance configuration
@@ -109,16 +108,16 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
             });
 
     let retry_schedule = RetryScheduleConfig {
-        min_single_delay_secs: retry_schedule_limits::MIN_SINGLE_DELAY_SECS,
-        max_single_delay_secs: retry_schedule_limits::MAX_SINGLE_DELAY_SECS,
-        max_retries: retry_schedule_limits::MAX_RETRIES,
-        max_custom_intervals_length: retry_schedule_limits::MAX_RETRIES,
-        max_total_duration_secs: retry_schedule_limits::MAX_TOTAL_DURATION_SECS,
-        exponential_base_delay_min_secs: retry_schedule_limits::EXP_BASE_MIN_SECS,
-        exponential_base_delay_max_secs: retry_schedule_limits::EXP_BASE_MAX_SECS,
-        exponential_wait_factor_min: retry_schedule_limits::EXP_FACTOR_MIN,
-        exponential_wait_factor_max: retry_schedule_limits::EXP_FACTOR_MAX,
-        max_per_org: retry_schedule_limits::MAX_PER_ORG,
+        min_single_delay_secs: state.retry_schedule_min_single_delay_secs,
+        max_single_delay_secs: state.retry_schedule_max_single_delay_secs,
+        max_retries: state.retry_schedule_max_retries,
+        max_custom_intervals_length: state.retry_schedule_max_retries,
+        max_total_duration_secs: state.retry_schedule_max_total_duration_secs,
+        exponential_base_delay_min_secs: state.retry_schedule_exponential_base_delay_min_secs,
+        exponential_base_delay_max_secs: state.retry_schedule_exponential_base_delay_max_secs,
+        exponential_wait_factor_min: state.retry_schedule_exponential_wait_factor_min,
+        exponential_wait_factor_max: state.retry_schedule_exponential_wait_factor_max,
+        max_per_organization: state.max_retry_schedules_per_organization,
     };
 
     Ok(Json(InstanceConfig {

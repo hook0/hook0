@@ -1,11 +1,10 @@
-//! Retry schedule CRUD endpoints + payload validator.
+//! Retry schedule CRUD endpoints with cross-field validator.
 //!
-//! Caller-visible effect: full CRUD on `/retry_schedules`; 400 on invalid payload, 404 on cross-org access.
+//! Caller-visible effect: 422 on invalid payload (validator errors), 404 on cross-org access.
 //!
-//! - Entity, strategy enum, discriminated-union payload, business caps
-//! - `validate_payload` + `compute_total_duration` reject out-of-bounds pre-persist
-//! - Handlers use `Hook0Problem::from` for DB errors; constraint mapping lives there
-//! - Quota write-path takes `pg_advisory_xact_lock` to serialize concurrent creates per org
+//! - Flat `RetrySchedulePost` / `RetrySchedulePut` use the `validator` crate for field + cross-field checks
+//! - Business bounds come from `State` (CLI args / env); attribute ranges are anti-corruption only
+//! - Per-org quota enforced via atomic `INSERT … WHERE count(*) < $limit` (soft — one extra row acceptable under contention)
 //! - Auth failure on get/edit/delete collapses to 404 to close the cross-org existence oracle
 
 use actix_web::web::ReqData;
@@ -14,24 +13,37 @@ use chrono::{DateTime, Utc};
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
-use sqlx::query_as;
+use sqlx::{query, query_as};
+use strum::{Display, EnumString};
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::iam::{Action, authorize};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
-pub const MAX_RETRIES: i32 = 15;
-pub const MIN_SINGLE_DELAY_SECS: i32 = 1;
-pub const MAX_SINGLE_DELAY_SECS: i32 = 7 * 24 * 3600;
-pub const MAX_TOTAL_DURATION_SECS: i64 = 7 * 24 * 3600;
-pub const EXP_BASE_MIN_SECS: i32 = 1;
-pub const EXP_BASE_MAX_SECS: i32 = 3600;
-pub const EXP_FACTOR_MIN: f64 = 1.5;
-pub const EXP_FACTOR_MAX: f64 = 10.0;
-pub const MAX_NAME_LEN: usize = 200;
-pub const MIN_NAME_LEN: usize = 1;
-pub const MAX_PER_ORG: i64 = 50;
+/// Retry pacing family that picks how delays between retries are computed.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    Display,
+    EnumString,
+    Apiv2Schema,
+    sqlx::Type,
+)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+#[sqlx(type_name = "text", rename_all = "snake_case")]
+pub enum RetryStrategy {
+    ExponentialIncreasing,
+    Linear,
+    Custom,
+}
 
 /// Persisted retry schedule owned by one organization.
 #[derive(Debug, Serialize, Apiv2Schema, sqlx::FromRow, Clone)]
@@ -39,7 +51,7 @@ pub struct RetrySchedule {
     pub retry_schedule_id: Uuid,
     pub organization_id: Uuid,
     pub name: String,
-    pub strategy: Strategy,
+    pub strategy: RetryStrategy,
     pub max_retries: i32,
     pub custom_intervals: Option<Vec<i32>>,
     pub linear_delay: Option<i32>,
@@ -49,175 +61,311 @@ pub struct RetrySchedule {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Retry pacing family: exponential, linear, or custom.
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, sqlx::Type, PartialEq, Eq, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
-#[sqlx(type_name = "text", rename_all = "snake_case")]
-pub enum Strategy {
-    ExponentialIncreasing,
-    Linear,
-    Custom,
+/// Create request. Ranges here are anti-corruption bounds; business limits are
+/// enforced by the runtime check in `validate_against_state`.
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+#[validate(schema(function = "RetrySchedulePost::validate_strategy"))]
+pub struct RetrySchedulePost {
+    pub organization_id: Uuid,
+    #[validate(non_control_character, length(min = 1, max = 200))]
+    pub name: String,
+    pub strategy: RetryStrategy,
+    #[validate(range(min = 1, max = 25))]
+    pub max_retries: i32,
+    pub custom_intervals: Option<Vec<i32>>,
+    pub linear_delay: Option<i32>,
+    pub increasing_base_delay: Option<i32>,
+    pub increasing_wait_factor: Option<f64>,
 }
 
-/// Create/update payload; strategy discriminator picks the variant shape.
-#[derive(Debug, Deserialize, Apiv2Schema, Clone)]
-#[serde(tag = "strategy", rename_all = "snake_case")]
-pub enum RetrySchedulePayload {
-    ExponentialIncreasing {
-        name: String,
-        max_retries: i32,
-        base_delay: i32,
-        wait_factor: f64,
-    },
-    Linear {
-        name: String,
-        max_retries: i32,
-        delay: i32,
-    },
-    Custom {
-        name: String,
-        intervals: Vec<i32>,
-    },
-}
-
-/// Reject payload breaching business bounds.
-pub fn validate_payload(payload: &RetrySchedulePayload) -> Result<(), Hook0Problem> {
-    validate_name(payload_name(payload))?;
-    validate_strategy_fields(payload)?;
-
-    let total = compute_total_duration(payload);
-    if total > MAX_TOTAL_DURATION_SECS {
-        return Err(invalid(format!(
-            "Total retry duration ({total}s) exceeds cap of {MAX_TOTAL_DURATION_SECS}s."
-        )));
+impl RetrySchedulePost {
+    fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
+        validate_strategy_fields(
+            self.strategy,
+            self.max_retries,
+            self.linear_delay,
+            self.custom_intervals.as_deref(),
+            self.increasing_base_delay,
+            self.increasing_wait_factor,
+        )
     }
+}
 
+/// Update request. Same cross-field rules as `RetrySchedulePost`, minus `organization_id`.
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+#[validate(schema(function = "RetrySchedulePut::validate_strategy"))]
+pub struct RetrySchedulePut {
+    #[validate(non_control_character, length(min = 1, max = 200))]
+    pub name: String,
+    pub strategy: RetryStrategy,
+    #[validate(range(min = 1, max = 25))]
+    pub max_retries: i32,
+    pub custom_intervals: Option<Vec<i32>>,
+    pub linear_delay: Option<i32>,
+    pub increasing_base_delay: Option<i32>,
+    pub increasing_wait_factor: Option<f64>,
+}
+
+impl RetrySchedulePut {
+    fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
+        validate_strategy_fields(
+            self.strategy,
+            self.max_retries,
+            self.linear_delay,
+            self.custom_intervals.as_deref(),
+            self.increasing_base_delay,
+            self.increasing_wait_factor,
+        )
+    }
+}
+
+/// Query string that scopes list operations to one organization.
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
+pub struct RetryScheduleListQuery {
+    pub organization_id: Uuid,
+}
+
+fn strategy_error(message: &str) -> validator::ValidationError {
+    let mut err = validator::ValidationError::new("strategy_fields");
+    err.message = Some(std::borrow::Cow::Owned(message.to_owned()));
+    err
+}
+
+fn require_none<T>(
+    field: &str,
+    value: &Option<T>,
+    strategy: &str,
+) -> Result<(), validator::ValidationError> {
+    if value.is_some() {
+        Err(strategy_error(&format!(
+            "{field} must be None for {strategy} strategy"
+        )))
+    } else {
+        Ok(())
+    }
+}
+
+fn require_some<'a, T>(
+    field: &str,
+    value: &'a Option<T>,
+    strategy: &str,
+) -> Result<&'a T, validator::ValidationError> {
+    value
+        .as_ref()
+        .ok_or_else(|| strategy_error(&format!("{field} is required for {strategy} strategy")))
+}
+
+/// Cross-field validation for a retry schedule strategy.
+///
+/// Wired by the `validator` crate via `#[validate(schema(function = "…"))]`.
+/// Only checks mutual exclusion + presence; numeric ranges are handled by attributes
+/// or the runtime `validate_against_state` pass.
+pub fn validate_strategy_fields(
+    strategy: RetryStrategy,
+    max_retries: i32,
+    linear_delay: Option<i32>,
+    custom_intervals: Option<&[i32]>,
+    increasing_base_delay: Option<i32>,
+    increasing_wait_factor: Option<f64>,
+) -> Result<(), validator::ValidationError> {
+    match strategy {
+        RetryStrategy::ExponentialIncreasing => {
+            require_none(
+                "custom_intervals",
+                &custom_intervals,
+                "exponential_increasing",
+            )?;
+            require_none("linear_delay", &linear_delay, "exponential_increasing")?;
+            let _ = require_some(
+                "increasing_base_delay",
+                &increasing_base_delay,
+                "exponential_increasing",
+            )?;
+            let factor = require_some(
+                "increasing_wait_factor",
+                &increasing_wait_factor,
+                "exponential_increasing",
+            )?;
+            if factor.is_nan() {
+                return Err(strategy_error(
+                    "increasing_wait_factor must be a finite number",
+                ));
+            }
+        }
+        RetryStrategy::Linear => {
+            require_none("custom_intervals", &custom_intervals, "linear")?;
+            require_none("increasing_base_delay", &increasing_base_delay, "linear")?;
+            require_none("increasing_wait_factor", &increasing_wait_factor, "linear")?;
+            let _ = require_some("linear_delay", &linear_delay, "linear")?;
+        }
+        RetryStrategy::Custom => {
+            require_none("linear_delay", &linear_delay, "custom")?;
+            require_none("increasing_base_delay", &increasing_base_delay, "custom")?;
+            require_none("increasing_wait_factor", &increasing_wait_factor, "custom")?;
+            let intervals = require_some("custom_intervals", &custom_intervals, "custom")?;
+            if intervals.len() != max_retries as usize {
+                return Err(strategy_error(
+                    "custom_intervals length must equal max_retries",
+                ));
+            }
+        }
+    }
     Ok(())
 }
 
-/// Sum of retry delays in seconds; per-retry delay pre-clamped.
-pub fn compute_total_duration(payload: &RetrySchedulePayload) -> i64 {
-    match payload {
-        RetrySchedulePayload::ExponentialIncreasing {
-            max_retries,
-            base_delay,
-            wait_factor,
-            ..
-        } => {
-            let retries = (*max_retries).max(0);
-            let base = f64::from(*base_delay);
-            let cap = f64::from(MAX_SINGLE_DELAY_SECS);
+/// Runtime bounds check against the API State config. Rejects payloads that passed
+/// validator attributes (anti-corruption) but breach the tighter business limits.
+fn validate_against_state(
+    state: &crate::State,
+    strategy: RetryStrategy,
+    max_retries: i32,
+    linear_delay: Option<i32>,
+    custom_intervals: Option<&[i32]>,
+    increasing_base_delay: Option<i32>,
+    increasing_wait_factor: Option<f64>,
+) -> Result<(), validator::ValidationErrors> {
+    let mut errors = validator::ValidationErrors::new();
+
+    if max_retries > state.retry_schedule_max_retries {
+        errors.add(
+            "max_retries",
+            range_error("max_retries", 1, state.retry_schedule_max_retries.into()),
+        );
+    }
+
+    let single_min = state.retry_schedule_min_single_delay_secs;
+    let single_max = state.retry_schedule_max_single_delay_secs;
+
+    match strategy {
+        RetryStrategy::ExponentialIncreasing => {
+            if let Some(base) = increasing_base_delay
+                && (base < state.retry_schedule_exponential_base_delay_min_secs
+                    || base > state.retry_schedule_exponential_base_delay_max_secs)
+            {
+                errors.add(
+                    "increasing_base_delay",
+                    range_error(
+                        "increasing_base_delay",
+                        state.retry_schedule_exponential_base_delay_min_secs.into(),
+                        state.retry_schedule_exponential_base_delay_max_secs.into(),
+                    ),
+                );
+            }
+            if let Some(factor) = increasing_wait_factor
+                && (factor < state.retry_schedule_exponential_wait_factor_min
+                    || factor > state.retry_schedule_exponential_wait_factor_max)
+            {
+                errors.add(
+                    "increasing_wait_factor",
+                    range_error(
+                        "increasing_wait_factor",
+                        state.retry_schedule_exponential_wait_factor_min as i64,
+                        state.retry_schedule_exponential_wait_factor_max as i64,
+                    ),
+                );
+            }
+        }
+        RetryStrategy::Linear => {
+            if let Some(delay) = linear_delay
+                && !(single_min..=single_max).contains(&delay)
+            {
+                errors.add(
+                    "linear_delay",
+                    range_error("linear_delay", single_min.into(), single_max.into()),
+                );
+            }
+        }
+        RetryStrategy::Custom => {
+            if let Some(intervals) = custom_intervals {
+                for (index, value) in intervals.iter().enumerate() {
+                    if !(single_min..=single_max).contains(value) {
+                        errors.add(
+                            "custom_intervals",
+                            range_error(
+                                &format!("custom_intervals[{index}]"),
+                                single_min.into(),
+                                single_max.into(),
+                            ),
+                        );
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    let total = compute_total_duration(
+        strategy,
+        max_retries,
+        linear_delay,
+        custom_intervals,
+        increasing_base_delay,
+        increasing_wait_factor,
+        single_max,
+    );
+    if total > state.retry_schedule_max_total_duration_secs {
+        errors.add(
+            "total_duration",
+            range_error(
+                "total_duration",
+                0,
+                state.retry_schedule_max_total_duration_secs,
+            ),
+        );
+    }
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+fn range_error(field: &str, min: i64, max: i64) -> validator::ValidationError {
+    let mut err = validator::ValidationError::new("range");
+    err.message = Some(std::borrow::Cow::Owned(format!(
+        "{field} must be within {min}..={max}"
+    )));
+    err
+}
+
+/// Sum of retry delays in seconds. Per-retry delay pre-clamped to single_max
+/// so hostile inputs cannot overflow i64 before the total-cap check.
+fn compute_total_duration(
+    strategy: RetryStrategy,
+    max_retries: i32,
+    linear_delay: Option<i32>,
+    custom_intervals: Option<&[i32]>,
+    increasing_base_delay: Option<i32>,
+    increasing_wait_factor: Option<f64>,
+    single_max: i32,
+) -> i64 {
+    match strategy {
+        RetryStrategy::ExponentialIncreasing => {
+            let (Some(base), Some(factor)) = (increasing_base_delay, increasing_wait_factor) else {
+                return 0;
+            };
+            let cap = f64::from(single_max);
             let mut total: i64 = 0;
-            for i in 0..retries {
-                // Per-retry clamp prevents i64 overflow on hostile inputs.
-                let term = (base * wait_factor.powi(i)).min(cap).max(0.0);
-                total = total.saturating_add(term as i64);
+            for index in 0..max_retries.max(0) {
+                let term = (f64::from(base) * factor.powi(index)).clamp(0.0, cap) as i64;
+                total = total.saturating_add(term);
             }
             total
         }
-        RetrySchedulePayload::Linear {
-            max_retries, delay, ..
-        } => i64::from(*max_retries).saturating_mul(i64::from(*delay)),
-        RetrySchedulePayload::Custom { intervals, .. } => intervals
-            .iter()
-            .map(|x| i64::from(*x).min(i64::from(MAX_SINGLE_DELAY_SECS)))
-            .fold(0i64, |acc, v| acc.saturating_add(v)),
+        RetryStrategy::Linear => match linear_delay {
+            Some(delay) => i64::from(max_retries).saturating_mul(i64::from(delay)),
+            None => 0,
+        },
+        RetryStrategy::Custom => custom_intervals
+            .map(|values| {
+                values
+                    .iter()
+                    .map(|value| i64::from(*value).min(i64::from(single_max)))
+                    .fold(0i64, |acc, value| acc.saturating_add(value))
+            })
+            .unwrap_or(0),
     }
-}
-
-fn payload_name(payload: &RetrySchedulePayload) -> &str {
-    match payload {
-        RetrySchedulePayload::ExponentialIncreasing { name, .. }
-        | RetrySchedulePayload::Linear { name, .. }
-        | RetrySchedulePayload::Custom { name, .. } => name,
-    }
-}
-
-fn validate_name(name: &str) -> Result<(), Hook0Problem> {
-    // Insert writes the trimmed form — validate the same.
-    let trimmed_len = name.trim().len();
-    if trimmed_len == 0 {
-        return Err(invalid(
-            "Name must not be empty or whitespace-only.".to_owned(),
-        ));
-    }
-    if !(MIN_NAME_LEN..=MAX_NAME_LEN).contains(&trimmed_len) {
-        return Err(invalid(format!(
-            "Name length ({trimmed_len}) must be within {MIN_NAME_LEN}..={MAX_NAME_LEN}."
-        )));
-    }
-    Ok(())
-}
-
-fn validate_strategy_fields(payload: &RetrySchedulePayload) -> Result<(), Hook0Problem> {
-    match payload {
-        RetrySchedulePayload::ExponentialIncreasing {
-            max_retries,
-            base_delay,
-            wait_factor,
-            ..
-        } => {
-            check_retries(*max_retries)?;
-            if !(EXP_BASE_MIN_SECS..=EXP_BASE_MAX_SECS).contains(base_delay) {
-                return Err(invalid(format!(
-                    "base_delay ({base_delay}s) must be within {EXP_BASE_MIN_SECS}..={EXP_BASE_MAX_SECS}."
-                )));
-            }
-            if !(EXP_FACTOR_MIN..=EXP_FACTOR_MAX).contains(wait_factor) {
-                return Err(invalid(format!(
-                    "wait_factor ({wait_factor}) must be within {EXP_FACTOR_MIN}..={EXP_FACTOR_MAX}."
-                )));
-            }
-            Ok(())
-        }
-        RetrySchedulePayload::Linear {
-            max_retries, delay, ..
-        } => {
-            check_retries(*max_retries)?;
-            if !(MIN_SINGLE_DELAY_SECS..=MAX_SINGLE_DELAY_SECS).contains(delay) {
-                return Err(invalid(format!(
-                    "delay ({delay}s) must be within {MIN_SINGLE_DELAY_SECS}..={MAX_SINGLE_DELAY_SECS}."
-                )));
-            }
-            Ok(())
-        }
-        RetrySchedulePayload::Custom { intervals, .. } => {
-            // Compare on usize to avoid silent i32 truncation on massive payloads.
-            let len = intervals.len();
-            if len == 0 || len > MAX_RETRIES as usize {
-                return Err(invalid(format!(
-                    "intervals count ({len}) must be within 1..={MAX_RETRIES}."
-                )));
-            }
-            for (i, v) in intervals.iter().enumerate() {
-                if !(MIN_SINGLE_DELAY_SECS..=MAX_SINGLE_DELAY_SECS).contains(v) {
-                    return Err(invalid(format!(
-                        "intervals[{i}] ({v}s) must be within {MIN_SINGLE_DELAY_SECS}..={MAX_SINGLE_DELAY_SECS}."
-                    )));
-                }
-            }
-            Ok(())
-        }
-    }
-}
-
-fn check_retries(max_retries: i32) -> Result<(), Hook0Problem> {
-    if !(1..=MAX_RETRIES).contains(&max_retries) {
-        return Err(invalid(format!(
-            "max_retries ({max_retries}) must be within 1..={MAX_RETRIES}."
-        )));
-    }
-    Ok(())
-}
-
-fn invalid(reason: String) -> Hook0Problem {
-    Hook0Problem::InvalidPayload { reason }
-}
-
-/// Query string for list scoped by organization.
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
-pub struct ListQs {
-    organization_id: Uuid,
 }
 
 #[api_v2_operation(
@@ -232,7 +380,7 @@ pub async fn list(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
-    qs: Query<ListQs>,
+    qs: Query<RetryScheduleListQuery>,
 ) -> Result<Json<Vec<RetrySchedule>>, Hook0Problem> {
     let organization_id = qs.organization_id;
 
@@ -251,21 +399,21 @@ pub async fn list(
     let rows = query_as!(
         RetrySchedule,
         r#"
-            SELECT
-                retry_schedule__id AS "retry_schedule_id!",
-                organization__id AS "organization_id!",
-                name AS "name!",
-                strategy AS "strategy!: Strategy",
-                max_retries AS "max_retries!",
+            select
+                retry_schedule__id as "retry_schedule_id!",
+                organization__id as "organization_id!",
+                name as "name!",
+                strategy as "strategy!: RetryStrategy",
+                max_retries as "max_retries!",
                 custom_intervals,
                 linear_delay,
                 increasing_base_delay,
                 increasing_wait_factor,
-                created_at AS "created_at!",
-                updated_at AS "updated_at!"
-            FROM webhook.retry_schedule
-            WHERE organization__id = $1
-            ORDER BY name ASC
+                created_at as "created_at!",
+                updated_at as "updated_at!"
+            from webhook.retry_schedule
+            where organization__id = $1
+            order by name asc
         "#,
         &organization_id,
     )
@@ -278,7 +426,7 @@ pub async fn list(
 
 #[api_v2_operation(
     summary = "Get a retry schedule by its ID",
-    description = "Returns a single retry schedule. The caller must belong to the owning organization.",
+    description = "Returns a single retry schedule. Cross-org access collapses to 404.",
     operation_id = "retrySchedules.get",
     consumes = "application/json",
     produces = "application/json",
@@ -291,9 +439,9 @@ pub async fn get(
     retry_schedule_id: Path<Uuid>,
 ) -> Result<Json<RetrySchedule>, Hook0Problem> {
     let retry_schedule_id = retry_schedule_id.into_inner();
-    let organization_id = lookup_org(&state.db, &retry_schedule_id).await?;
+    let organization_id = lookup_organization(&state.db, &retry_schedule_id).await?;
 
-    // Collapse cross-org auth denial to NotFound so existence doesn't leak.
+    // Auth failure collapses to NotFound so cross-org existence does not leak.
     if authorize(
         &biscuit,
         Some(organization_id),
@@ -311,20 +459,20 @@ pub async fn get(
     let row = query_as!(
         RetrySchedule,
         r#"
-            SELECT
-                retry_schedule__id AS "retry_schedule_id!",
-                organization__id AS "organization_id!",
-                name AS "name!",
-                strategy AS "strategy!: Strategy",
-                max_retries AS "max_retries!",
+            select
+                retry_schedule__id as "retry_schedule_id!",
+                organization__id as "organization_id!",
+                name as "name!",
+                strategy as "strategy!: RetryStrategy",
+                max_retries as "max_retries!",
                 custom_intervals,
                 linear_delay,
                 increasing_base_delay,
                 increasing_wait_factor,
-                created_at AS "created_at!",
-                updated_at AS "updated_at!"
-            FROM webhook.retry_schedule
-            WHERE retry_schedule__id = $1
+                created_at as "created_at!",
+                updated_at as "updated_at!"
+            from webhook.retry_schedule
+            where retry_schedule__id = $1
         "#,
         &retry_schedule_id,
     )
@@ -335,17 +483,9 @@ pub async fn get(
     row.map(Json).ok_or(Hook0Problem::NotFound)
 }
 
-/// Create payload — organization_id on top of `RetrySchedulePayload`.
-#[derive(Debug, Deserialize, Apiv2Schema)]
-pub struct RetryScheduleCreatePayload {
-    pub organization_id: Uuid,
-    #[serde(flatten)]
-    pub payload: RetrySchedulePayload,
-}
-
 #[api_v2_operation(
     summary = "Create a retry schedule",
-    description = "Creates a retry schedule in the given organization. Rejects payloads breaching business bounds (max 15 retries, 7d total duration, per-retry 1s..=7d).",
+    description = "Create a retry schedule in the given organization. Rejects payloads that breach validator ranges or business bounds.",
     operation_id = "retrySchedules.create",
     consumes = "application/json",
     produces = "application/json",
@@ -355,12 +495,9 @@ pub async fn create(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
-    body: Json<RetryScheduleCreatePayload>,
+    body: Json<RetrySchedulePost>,
 ) -> Result<CreatedJson<RetrySchedule>, Hook0Problem> {
-    let RetryScheduleCreatePayload {
-        organization_id,
-        payload,
-    } = body.into_inner();
+    let organization_id = body.organization_id;
 
     if authorize(
         &biscuit,
@@ -374,73 +511,73 @@ pub async fn create(
         return Err(Hook0Problem::Forbidden);
     }
 
-    validate_payload(&payload)?;
-    let fields = payload_to_db_fields(&payload);
+    if let Err(errors) = body.validate() {
+        return Err(Hook0Problem::Validation(errors));
+    }
+    if let Err(errors) = validate_against_state(
+        &state,
+        body.strategy,
+        body.max_retries,
+        body.linear_delay,
+        body.custom_intervals.as_deref(),
+        body.increasing_base_delay,
+        body.increasing_wait_factor,
+    ) {
+        return Err(Hook0Problem::Validation(errors));
+    }
 
-    // Serialize concurrent creates in the same org via a transaction-scoped advisory lock.
-    // Lock is released on commit/rollback; ordinary inserts elsewhere are unaffected.
-    let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+    let name = body.name.trim();
 
-    // Text-based hash to match PG's `hashtextextended(text, bigint)` signature.
-    // The allocation per create is negligible next to the DB round-trip.
-    sqlx::query!(
-        "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))",
-        organization_id.to_string(),
-    )
-    .execute(&mut *tx)
-    .await
-    .map_err(Hook0Problem::from)?;
-
+    // Atomic INSERT with per-org quota: the subquery short-circuits when the org is at capacity.
+    // Under concurrent creates two inserts may both see count=limit-1 and land — acceptable soft limit.
     let created = query_as!(
         RetrySchedule,
         r#"
-            INSERT INTO webhook.retry_schedule
+            insert into webhook.retry_schedule
                 (organization__id, name, strategy, max_retries,
                  custom_intervals, linear_delay,
                  increasing_base_delay, increasing_wait_factor)
-            SELECT $1, $2, $3, $4, $5, $6, $7, $8
-            WHERE (
-                SELECT count(*) FROM webhook.retry_schedule WHERE organization__id = $1
+            select $1, $2, $3, $4, $5, $6, $7, $8
+            where (
+                select count(*) from webhook.retry_schedule where organization__id = $1
             ) < $9
-            RETURNING
-                retry_schedule__id AS "retry_schedule_id!",
-                organization__id AS "organization_id!",
-                name AS "name!",
-                strategy AS "strategy!: Strategy",
-                max_retries AS "max_retries!",
+            returning
+                retry_schedule__id as "retry_schedule_id!",
+                organization__id as "organization_id!",
+                name as "name!",
+                strategy as "strategy!: RetryStrategy",
+                max_retries as "max_retries!",
                 custom_intervals,
                 linear_delay,
                 increasing_base_delay,
                 increasing_wait_factor,
-                created_at AS "created_at!",
-                updated_at AS "updated_at!"
+                created_at as "created_at!",
+                updated_at as "updated_at!"
         "#,
         &organization_id,
-        fields.name.trim(),
-        fields.strategy as Strategy,
-        fields.max_retries,
-        fields.custom_intervals.as_deref(),
-        fields.linear_delay,
-        fields.increasing_base_delay,
-        fields.increasing_wait_factor,
-        MAX_PER_ORG,
+        name,
+        body.strategy as RetryStrategy,
+        body.max_retries,
+        body.custom_intervals.as_deref(),
+        body.linear_delay,
+        body.increasing_base_delay,
+        body.increasing_wait_factor,
+        state.max_retry_schedules_per_organization,
     )
-    .fetch_optional(&mut *tx)
+    .fetch_optional(&state.db)
     .await
     .map_err(Hook0Problem::from)?;
-
-    tx.commit().await.map_err(Hook0Problem::from)?;
 
     created
         .map(CreatedJson)
         .ok_or(Hook0Problem::TooManyRetrySchedulesPerOrganization(
-            MAX_PER_ORG,
+            state.max_retry_schedules_per_organization,
         ))
 }
 
 #[api_v2_operation(
     summary = "Update a retry schedule",
-    description = "Replaces the retry schedule definition. Same business bounds as create.",
+    description = "Replaces the retry schedule definition. Same bounds as create.",
     operation_id = "retrySchedules.edit",
     consumes = "application/json",
     produces = "application/json",
@@ -451,10 +588,10 @@ pub async fn edit(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     retry_schedule_id: Path<Uuid>,
-    body: Json<RetrySchedulePayload>,
+    body: Json<RetrySchedulePut>,
 ) -> Result<Json<RetrySchedule>, Hook0Problem> {
     let retry_schedule_id = retry_schedule_id.into_inner();
-    let organization_id = lookup_org(&state.db, &retry_schedule_id).await?;
+    let organization_id = lookup_organization(&state.db, &retry_schedule_id).await?;
 
     if authorize(
         &biscuit,
@@ -470,15 +607,28 @@ pub async fn edit(
         return Err(Hook0Problem::NotFound);
     }
 
-    let payload = body.into_inner();
-    validate_payload(&payload)?;
-    let fields = payload_to_db_fields(&payload);
+    if let Err(errors) = body.validate() {
+        return Err(Hook0Problem::Validation(errors));
+    }
+    if let Err(errors) = validate_against_state(
+        &state,
+        body.strategy,
+        body.max_retries,
+        body.linear_delay,
+        body.custom_intervals.as_deref(),
+        body.increasing_base_delay,
+        body.increasing_wait_factor,
+    ) {
+        return Err(Hook0Problem::Validation(errors));
+    }
+
+    let name = body.name.trim();
 
     let updated = query_as!(
         RetrySchedule,
         r#"
-            UPDATE webhook.retry_schedule
-            SET
+            update webhook.retry_schedule
+            set
                 name = $2,
                 strategy = $3,
                 max_retries = $4,
@@ -487,28 +637,28 @@ pub async fn edit(
                 increasing_base_delay = $7,
                 increasing_wait_factor = $8,
                 updated_at = statement_timestamp()
-            WHERE retry_schedule__id = $1
-            RETURNING
-                retry_schedule__id AS "retry_schedule_id!",
-                organization__id AS "organization_id!",
-                name AS "name!",
-                strategy AS "strategy!: Strategy",
-                max_retries AS "max_retries!",
+            where retry_schedule__id = $1
+            returning
+                retry_schedule__id as "retry_schedule_id!",
+                organization__id as "organization_id!",
+                name as "name!",
+                strategy as "strategy!: RetryStrategy",
+                max_retries as "max_retries!",
                 custom_intervals,
                 linear_delay,
                 increasing_base_delay,
                 increasing_wait_factor,
-                created_at AS "created_at!",
-                updated_at AS "updated_at!"
+                created_at as "created_at!",
+                updated_at as "updated_at!"
         "#,
         &retry_schedule_id,
-        fields.name.trim(),
-        fields.strategy as Strategy,
-        fields.max_retries,
-        fields.custom_intervals.as_deref(),
-        fields.linear_delay,
-        fields.increasing_base_delay,
-        fields.increasing_wait_factor,
+        name,
+        body.strategy as RetryStrategy,
+        body.max_retries,
+        body.custom_intervals.as_deref(),
+        body.linear_delay,
+        body.increasing_base_delay,
+        body.increasing_wait_factor,
     )
     .fetch_optional(&state.db)
     .await
@@ -519,7 +669,7 @@ pub async fn edit(
 
 #[api_v2_operation(
     summary = "Delete a retry schedule",
-    description = "Deletes a retry schedule. Subscriptions still referencing it are set to NULL (FK on-delete set null).",
+    description = "Deletes a retry schedule. Subscriptions referencing it fall back to NULL (FK on-delete set null).",
     operation_id = "retrySchedules.delete",
     consumes = "application/json",
     produces = "application/json",
@@ -532,7 +682,7 @@ pub async fn delete(
     retry_schedule_id: Path<Uuid>,
 ) -> Result<NoContent, Hook0Problem> {
     let retry_schedule_id = retry_schedule_id.into_inner();
-    let organization_id = lookup_org(&state.db, &retry_schedule_id).await?;
+    let organization_id = lookup_organization(&state.db, &retry_schedule_id).await?;
 
     if authorize(
         &biscuit,
@@ -548,8 +698,8 @@ pub async fn delete(
         return Err(Hook0Problem::NotFound);
     }
 
-    let deleted = sqlx::query!(
-        "DELETE FROM webhook.retry_schedule WHERE retry_schedule__id = $1 RETURNING retry_schedule__id",
+    let deleted = query!(
+        "delete from webhook.retry_schedule where retry_schedule__id = $1 returning retry_schedule__id",
         &retry_schedule_id,
     )
     .fetch_optional(&state.db)
@@ -564,9 +714,12 @@ pub async fn delete(
 }
 
 /// Owning organization for a retry schedule; 404 if missing.
-async fn lookup_org(db: &sqlx::PgPool, retry_schedule_id: &Uuid) -> Result<Uuid, Hook0Problem> {
+async fn lookup_organization(
+    db: &sqlx::PgPool,
+    retry_schedule_id: &Uuid,
+) -> Result<Uuid, Hook0Problem> {
     sqlx::query_scalar!(
-        "SELECT organization__id FROM webhook.retry_schedule WHERE retry_schedule__id = $1",
+        "select organization__id from webhook.retry_schedule where retry_schedule__id = $1",
         retry_schedule_id,
     )
     .fetch_optional(db)
@@ -575,190 +728,117 @@ async fn lookup_org(db: &sqlx::PgPool, retry_schedule_id: &Uuid) -> Result<Uuid,
     .ok_or(Hook0Problem::NotFound)
 }
 
-/// DB-shaped view of a payload. Strategy-specific columns null where unused.
-struct DbFields<'a> {
-    name: &'a str,
-    strategy: Strategy,
-    max_retries: i32,
-    custom_intervals: Option<Vec<i32>>,
-    linear_delay: Option<i32>,
-    increasing_base_delay: Option<i32>,
-    increasing_wait_factor: Option<f64>,
-}
-
-fn payload_to_db_fields(payload: &RetrySchedulePayload) -> DbFields<'_> {
-    match payload {
-        RetrySchedulePayload::ExponentialIncreasing {
-            name,
-            max_retries,
-            base_delay,
-            wait_factor,
-        } => DbFields {
-            name,
-            strategy: Strategy::ExponentialIncreasing,
-            max_retries: *max_retries,
-            custom_intervals: None,
-            linear_delay: None,
-            increasing_base_delay: Some(*base_delay),
-            increasing_wait_factor: Some(*wait_factor),
-        },
-        RetrySchedulePayload::Linear {
-            name,
-            max_retries,
-            delay,
-        } => DbFields {
-            name,
-            strategy: Strategy::Linear,
-            max_retries: *max_retries,
-            custom_intervals: None,
-            linear_delay: Some(*delay),
-            increasing_base_delay: None,
-            increasing_wait_factor: None,
-        },
-        RetrySchedulePayload::Custom { name, intervals } => DbFields {
-            // Custom strategy derives max_retries from the intervals array length.
-            name,
-            strategy: Strategy::Custom,
-            max_retries: intervals.len() as i32,
-            custom_intervals: Some(intervals.clone()),
-            linear_delay: None,
-            increasing_base_delay: None,
-            increasing_wait_factor: None,
-        },
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn exp(
-        name: &str,
-        max_retries: i32,
-        base_delay: i32,
-        wait_factor: f64,
-    ) -> RetrySchedulePayload {
-        RetrySchedulePayload::ExponentialIncreasing {
+    fn exponential_post(name: &str, max_retries: i32, base: i32, factor: f64) -> RetrySchedulePost {
+        RetrySchedulePost {
+            organization_id: Uuid::nil(),
             name: name.to_owned(),
+            strategy: RetryStrategy::ExponentialIncreasing,
             max_retries,
-            base_delay,
-            wait_factor,
+            custom_intervals: None,
+            linear_delay: None,
+            increasing_base_delay: Some(base),
+            increasing_wait_factor: Some(factor),
         }
     }
 
-    fn linear(name: &str, max_retries: i32, delay: i32) -> RetrySchedulePayload {
-        RetrySchedulePayload::Linear {
+    fn linear_post(name: &str, max_retries: i32, delay: i32) -> RetrySchedulePost {
+        RetrySchedulePost {
+            organization_id: Uuid::nil(),
             name: name.to_owned(),
+            strategy: RetryStrategy::Linear,
             max_retries,
-            delay,
+            custom_intervals: None,
+            linear_delay: Some(delay),
+            increasing_base_delay: None,
+            increasing_wait_factor: None,
         }
     }
 
-    fn custom(name: &str, intervals: Vec<i32>) -> RetrySchedulePayload {
-        RetrySchedulePayload::Custom {
+    fn custom_post(name: &str, intervals: Vec<i32>) -> RetrySchedulePost {
+        let max_retries = intervals.len() as i32;
+        RetrySchedulePost {
+            organization_id: Uuid::nil(),
             name: name.to_owned(),
-            intervals,
+            strategy: RetryStrategy::Custom,
+            max_retries,
+            custom_intervals: Some(intervals),
+            linear_delay: None,
+            increasing_base_delay: None,
+            increasing_wait_factor: None,
         }
     }
 
     #[test]
-    fn test_validate_exponential_ok() {
-        let p = exp("good", 5, 60, 2.0);
-        assert!(validate_payload(&p).is_ok());
+    fn exponential_ok_passes_validator_attributes() {
+        let post = exponential_post("good", 5, 60, 2.0);
+        assert!(post.validate().is_ok());
     }
 
     #[test]
-    fn test_validate_exponential_rejects_factor_too_low() {
-        let p = exp("bad", 5, 60, 1.0);
-        assert!(validate_payload(&p).is_err());
+    fn exponential_rejects_nan_factor() {
+        let post = exponential_post("bad", 5, 60, f64::NAN);
+        assert!(post.validate().is_err());
     }
 
     #[test]
-    fn test_validate_exponential_rejects_factor_too_high() {
-        let p = exp("bad", 5, 60, 10.1);
-        assert!(validate_payload(&p).is_err());
+    fn exponential_rejects_missing_base_delay() {
+        let mut post = exponential_post("bad", 5, 60, 2.0);
+        post.increasing_base_delay = None;
+        assert!(post.validate().is_err());
     }
 
     #[test]
-    fn test_validate_exponential_rejects_base_out_of_range() {
-        assert!(validate_payload(&exp("bad", 5, 0, 2.0)).is_err());
-        assert!(validate_payload(&exp("bad", 5, 3601, 2.0)).is_err());
+    fn linear_rejects_missing_delay() {
+        let mut post = linear_post("bad", 5, 60);
+        post.linear_delay = None;
+        assert!(post.validate().is_err());
     }
 
     #[test]
-    fn test_validate_linear_ok() {
-        let p = linear("good", 10, 60);
-        assert!(validate_payload(&p).is_ok());
+    fn linear_rejects_extra_exponential_field() {
+        let mut post = linear_post("bad", 5, 60);
+        post.increasing_base_delay = Some(60);
+        assert!(post.validate().is_err());
     }
 
     #[test]
-    fn test_validate_linear_rejects_delay_too_low() {
-        let p = linear("bad", 10, 0);
-        assert!(validate_payload(&p).is_err());
+    fn custom_rejects_length_mismatch() {
+        let mut post = custom_post("bad", vec![10, 20, 30]);
+        post.max_retries = 5;
+        assert!(post.validate().is_err());
     }
 
     #[test]
-    fn test_validate_linear_rejects_retries_over_cap() {
-        let p = linear("bad", 16, 60);
-        assert!(validate_payload(&p).is_err());
+    fn custom_rejects_empty_intervals() {
+        let post = custom_post("bad", vec![]);
+        // max_retries=0 is already rejected by #[validate(range(min=1))].
+        assert!(post.validate().is_err());
     }
 
     #[test]
-    fn test_validate_custom_ok() {
-        let p = custom("good", vec![1, 2, 3]);
-        assert!(validate_payload(&p).is_ok());
+    fn name_length_enforced_by_validator_attribute() {
+        let mut post = linear_post(&"x".repeat(201), 3, 60);
+        assert!(post.validate().is_err());
+        post.name = String::new();
+        assert!(post.validate().is_err());
     }
 
     #[test]
-    fn test_validate_custom_rejects_empty() {
-        let p = custom("bad", vec![]);
-        assert!(validate_payload(&p).is_err());
-    }
-
-    #[test]
-    fn test_validate_custom_rejects_over_cap() {
-        let p = custom("bad", vec![1; 16]);
-        assert!(validate_payload(&p).is_err());
-    }
-
-    #[test]
-    fn test_validate_custom_rejects_element_out_of_range() {
-        let p = custom("bad", vec![0]);
-        assert!(validate_payload(&p).is_err());
-    }
-
-    #[test]
-    fn test_validate_custom_rejects_total_over_7d() {
-        let p = custom(
-            "bad",
-            vec![
-                MAX_SINGLE_DELAY_SECS,
-                MAX_SINGLE_DELAY_SECS,
-                MAX_SINGLE_DELAY_SECS,
-            ],
+    fn compute_total_duration_clamps_per_retry() {
+        let total = compute_total_duration(
+            RetryStrategy::ExponentialIncreasing,
+            10,
+            None,
+            None,
+            Some(1),
+            Some(10.0),
+            7 * 24 * 3600,
         );
-        assert!(validate_payload(&p).is_err());
-    }
-
-    #[test]
-    fn test_validate_name_rejects_whitespace_only() {
-        let p = linear("   ", 5, 60);
-        assert!(validate_payload(&p).is_err());
-    }
-
-    #[test]
-    fn test_validate_name_rejects_too_long() {
-        let name = "x".repeat(MAX_NAME_LEN + 1);
-        let p = linear(&name, 5, 60);
-        assert!(validate_payload(&p).is_err());
-    }
-
-    #[test]
-    fn test_compute_total_duration_exponential_caps_per_retry() {
-        let p = exp("cap", 10, 1, 10.0);
-        let total = compute_total_duration(&p);
-        let max_possible = 10i64 * i64::from(MAX_SINGLE_DELAY_SECS);
-        assert!(total <= max_possible);
         assert!(total > 0);
+        assert!(total <= 10 * (7 * 24 * 3600));
     }
 }

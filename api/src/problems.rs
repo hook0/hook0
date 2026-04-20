@@ -72,12 +72,11 @@ pub enum Hook0Problem {
     TooManyRetrySchedulesPerOrganization(i64),
 
     // Retry schedule specific
-    RetryScheduleNameConflict,
+    RetryScheduleNameAlreadyExist,
 
     // Generic errors
     JsonPayload(JsonPayloadProblem),
     Validation(validator::ValidationErrors),
-    InvalidPayload { reason: String },
     NotFound,
     InternalServerError,
     Forbidden,
@@ -104,7 +103,7 @@ impl From<sqlx::Error> for Hook0Problem {
                         Hook0Problem::InvitedUserAlreadyInOrganization
                     }
                     Some("retry_schedule_organization__id_name_key") => {
-                        Hook0Problem::RetryScheduleNameConflict
+                        Hook0Problem::RetryScheduleNameAlreadyExist
                     }
                     constraint => {
                         error!(
@@ -500,8 +499,8 @@ impl From<Hook0Problem> for Problem {
             },
 
             // Retry schedule specific
-            Hook0Problem::RetryScheduleNameConflict => Problem {
-                id: Hook0Problem::RetryScheduleNameConflict,
+            Hook0Problem::RetryScheduleNameAlreadyExist => Problem {
+                id: Hook0Problem::RetryScheduleNameAlreadyExist,
                 title: "Retry schedule name already used",
                 detail: "A retry schedule with this name already exists in this organization.".into(),
                 validation: None,
@@ -528,13 +527,6 @@ impl From<Hook0Problem> for Problem {
                     validation: to_value(e).ok(),
                     status: StatusCode::UNPROCESSABLE_ENTITY,
                 }
-            },
-            Hook0Problem::InvalidPayload { reason } => Problem {
-                id: Hook0Problem::InvalidPayload { reason: reason.clone() },
-                title: "Invalid payload",
-                detail: reason.into(),
-                validation: None,
-                status: StatusCode::BAD_REQUEST,
             },
             Hook0Problem::InternalServerError => Problem {
                 id: Hook0Problem::InternalServerError,

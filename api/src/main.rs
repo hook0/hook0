@@ -591,6 +591,42 @@ struct Config {
     /// Max request attempts scanned per tick. Bounds DB load on large backlogs.
     #[clap(long, env, default_value_t = 200_000)]
     subscription_health_monitor_request_attempt_scan_cap_per_tick: u32,
+
+    /// Hard cap on retry schedules per org — prevents unbounded DB rows.
+    #[clap(long, env, default_value_t = 50)]
+    max_retry_schedules_per_organization: i64,
+
+    /// Business cap on per-schedule max_retries. DB CHECK is wider (anti-corruption).
+    #[clap(long, env, default_value_t = 15)]
+    retry_schedule_max_retries: i32,
+
+    /// Floor for any single retry delay in seconds (linear, custom, exponential base).
+    #[clap(long, env, default_value_t = 1)]
+    retry_schedule_min_single_delay_secs: i32,
+
+    /// Ceiling for any single retry delay in seconds.
+    #[clap(long, env, default_value_t = 7 * 24 * 3600)]
+    retry_schedule_max_single_delay_secs: i32,
+
+    /// Sum-of-delays cap across all retries (clamped per-retry first to avoid overflow).
+    #[clap(long, env, default_value_t = 7 * 24 * 3600)]
+    retry_schedule_max_total_duration_secs: i64,
+
+    /// Min base delay for the exponential_increasing strategy.
+    #[clap(long, env, default_value_t = 1)]
+    retry_schedule_exponential_base_delay_min_secs: i32,
+
+    /// Max base delay for the exponential_increasing strategy.
+    #[clap(long, env, default_value_t = 3600)]
+    retry_schedule_exponential_base_delay_max_secs: i32,
+
+    /// Min wait factor for the exponential_increasing strategy.
+    #[clap(long, env, default_value_t = 1.5)]
+    retry_schedule_exponential_wait_factor_min: f64,
+
+    /// Max wait factor for the exponential_increasing strategy.
+    #[clap(long, env, default_value_t = 10.0)]
+    retry_schedule_exponential_wait_factor_max: f64,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -641,6 +677,15 @@ pub struct State {
     enable_subscription_health_monitor: bool,
     subscription_health_monitor_failure_percent_for_warning: u8,
     subscription_health_monitor_failure_percent_for_disable: u8,
+    max_retry_schedules_per_organization: i64,
+    retry_schedule_max_retries: i32,
+    retry_schedule_min_single_delay_secs: i32,
+    retry_schedule_max_single_delay_secs: i32,
+    retry_schedule_max_total_duration_secs: i64,
+    retry_schedule_exponential_base_delay_min_secs: i32,
+    retry_schedule_exponential_base_delay_max_secs: i32,
+    retry_schedule_exponential_wait_factor_min: f64,
+    retry_schedule_exponential_wait_factor_max: f64,
 }
 
 #[derive(Clone)]
@@ -1215,6 +1260,19 @@ async fn main() -> anyhow::Result<()> {
                 .subscription_health_monitor_failure_percent_for_warning,
             subscription_health_monitor_failure_percent_for_disable: config
                 .subscription_health_monitor_failure_percent_for_disable,
+            max_retry_schedules_per_organization: config.max_retry_schedules_per_organization,
+            retry_schedule_max_retries: config.retry_schedule_max_retries,
+            retry_schedule_min_single_delay_secs: config.retry_schedule_min_single_delay_secs,
+            retry_schedule_max_single_delay_secs: config.retry_schedule_max_single_delay_secs,
+            retry_schedule_max_total_duration_secs: config.retry_schedule_max_total_duration_secs,
+            retry_schedule_exponential_base_delay_min_secs: config
+                .retry_schedule_exponential_base_delay_min_secs,
+            retry_schedule_exponential_base_delay_max_secs: config
+                .retry_schedule_exponential_base_delay_max_secs,
+            retry_schedule_exponential_wait_factor_min: config
+                .retry_schedule_exponential_wait_factor_min,
+            retry_schedule_exponential_wait_factor_max: config
+                .retry_schedule_exponential_wait_factor_max,
         };
 
         // Run web server

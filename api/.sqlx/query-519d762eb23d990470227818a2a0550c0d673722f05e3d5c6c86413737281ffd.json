@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO webhook.retry_schedule\n                (organization__id, name, strategy, max_retries,\n                 custom_intervals, linear_delay,\n                 increasing_base_delay, increasing_wait_factor)\n            SELECT $1, $2, $3, $4, $5, $6, $7, $8\n            WHERE (\n                SELECT count(*) FROM webhook.retry_schedule WHERE organization__id = $1\n            ) < $9\n            RETURNING\n                retry_schedule__id AS \"retry_schedule_id!\",\n                organization__id AS \"organization_id!\",\n                name AS \"name!\",\n                strategy AS \"strategy!: Strategy\",\n                max_retries AS \"max_retries!\",\n                custom_intervals,\n                linear_delay,\n                increasing_base_delay,\n                increasing_wait_factor,\n                created_at AS \"created_at!\",\n                updated_at AS \"updated_at!\"\n        ",
+  "query": "\n            update webhook.retry_schedule\n            set\n                name = $2,\n                strategy = $3,\n                max_retries = $4,\n                custom_intervals = $5,\n                linear_delay = $6,\n                increasing_base_delay = $7,\n                increasing_wait_factor = $8,\n                updated_at = statement_timestamp()\n            where retry_schedule__id = $1\n            returning\n                retry_schedule__id as \"retry_schedule_id!\",\n                organization__id as \"organization_id!\",\n                name as \"name!\",\n                strategy as \"strategy!: RetryStrategy\",\n                max_retries as \"max_retries!\",\n                custom_intervals,\n                linear_delay,\n                increasing_base_delay,\n                increasing_wait_factor,\n                created_at as \"created_at!\",\n                updated_at as \"updated_at!\"\n        ",
   "describe": {
     "columns": [
       {
@@ -20,7 +20,7 @@
       },
       {
         "ordinal": 3,
-        "name": "strategy!: Strategy",
+        "name": "strategy!: RetryStrategy",
         "type_info": "Text"
       },
       {
@@ -68,8 +68,7 @@
         "Int4Array",
         "Int4",
         "Int4",
-        "Float8",
-        "Int8"
+        "Float8"
       ]
     },
     "nullable": [
@@ -86,5 +85,5 @@
       false
     ]
   },
-  "hash": "55ec1bb92d19766c5f35539f2880f0190b65fa842809eb347063bed62f717553"
+  "hash": "519d762eb23d990470227818a2a0550c0d673722f05e3d5c6c86413737281ffd"
 }

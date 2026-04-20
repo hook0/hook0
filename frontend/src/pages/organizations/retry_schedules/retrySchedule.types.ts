@@ -56,5 +56,5 @@ export interface RetryScheduleLimits {
   exponential_base_delay_max_secs: number;
   exponential_wait_factor_min: number;
   exponential_wait_factor_max: number;
-  max_per_org: number;
+  max_per_organization: number;
 }

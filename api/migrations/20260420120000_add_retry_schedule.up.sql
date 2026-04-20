@@ -19,12 +19,12 @@ create table webhook.retry_schedule (
     constraint retry_schedule_pkey primary key (retry_schedule__id),
     constraint retry_schedule_organization__id_name_key unique (organization__id, name),
     -- DB checks are anti-corruption bounds: wider than API business limits on purpose.
-    -- API enforces stricter values (see api/src/handlers/retry_schedules.rs consts).
-    constraint retry_schedule_name_chk check (length(name) >= 1 and length(name) <= 200),
-    constraint retry_schedule_strategy_chk check (strategy in ('exponential_increasing', 'linear', 'custom')),
-    constraint retry_schedule_max_retries_chk check (max_retries > 0 and max_retries <= 25),
+    -- API enforces stricter values (see --retry-schedule-* CLI args / env vars).
+    constraint retry_schedule_name_check check (length(name) >= 1 and length(name) <= 200),
+    constraint retry_schedule_strategy_check check (strategy in ('exponential_increasing', 'linear', 'custom')),
+    constraint retry_schedule_max_retries_check check (max_retries > 0 and max_retries <= 25),
     -- Case-switch enforces strategy-specific nullability.
-    constraint retry_schedule_strategy_fields_chk check (
+    constraint retry_schedule_strategy_fields_check check (
         case strategy
             when 'exponential_increasing' then
                 custom_intervals is null
@@ -67,6 +67,7 @@ comment on column webhook.retry_schedule.increasing_base_delay is
 comment on column webhook.retry_schedule.increasing_wait_factor is
     'Populated only when strategy=exponential_increasing. Multiplier applied to the previous delay to compute the next one.';
 
+-- Supports list queries filtering/ordering schedules by organization.
 create index retry_schedule_organization__id_idx
     on webhook.retry_schedule (organization__id);
 
@@ -83,6 +84,7 @@ alter table webhook.subscription
 alter table webhook.subscription
     validate constraint subscription_retry_schedule__id_fkey;
 
+-- Speeds cascade on retry_schedule delete (FK set null) and the worker's LEFT JOIN.
 create index subscription_retry_schedule__id_idx
     on webhook.subscription (retry_schedule__id);
 

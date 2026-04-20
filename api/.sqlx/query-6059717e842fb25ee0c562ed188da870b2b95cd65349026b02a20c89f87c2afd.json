@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                retry_schedule__id AS \"retry_schedule_id!\",\n                organization__id AS \"organization_id!\",\n                name AS \"name!\",\n                strategy AS \"strategy!: Strategy\",\n                max_retries AS \"max_retries!\",\n                custom_intervals,\n                linear_delay,\n                increasing_base_delay,\n                increasing_wait_factor,\n                created_at AS \"created_at!\",\n                updated_at AS \"updated_at!\"\n            FROM webhook.retry_schedule\n            WHERE retry_schedule__id = $1\n        ",
+  "query": "\n            select\n                retry_schedule__id as \"retry_schedule_id!\",\n                organization__id as \"organization_id!\",\n                name as \"name!\",\n                strategy as \"strategy!: RetryStrategy\",\n                max_retries as \"max_retries!\",\n                custom_intervals,\n                linear_delay,\n                increasing_base_delay,\n                increasing_wait_factor,\n                created_at as \"created_at!\",\n                updated_at as \"updated_at!\"\n            from webhook.retry_schedule\n            where retry_schedule__id = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -20,7 +20,7 @@
       },
       {
         "ordinal": 3,
-        "name": "strategy!: Strategy",
+        "name": "strategy!: RetryStrategy",
         "type_info": "Text"
       },
       {
@@ -78,5 +78,5 @@
       false
     ]
   },
-  "hash": "f547635dda5dc20f412ae8764cf6b04201e89a5832c98d530ca30845c5b2637d"
+  "hash": "6059717e842fb25ee0c562ed188da870b2b95cd65349026b02a20c89f87c2afd"
 }
