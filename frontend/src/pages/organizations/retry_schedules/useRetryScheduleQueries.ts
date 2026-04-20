@@ -8,7 +8,7 @@ export function useRetryScheduleList(organizationId: Ref<string>) {
   return useQuery({
     queryKey: computed(() => retryScheduleKeys.list(organizationId.value)),
     queryFn: () => RetryScheduleService.listSchedules(organizationId.value),
-    enabled: computed(() => !!organizationId.value),
+    enabled: computed(() => organizationId.value.length > 0),
   });
 }
 
@@ -16,7 +16,7 @@ export function useRetryScheduleDetail(retryScheduleId: Ref<string>) {
   return useQuery({
     queryKey: computed(() => retryScheduleKeys.detail(retryScheduleId.value)),
     queryFn: () => RetryScheduleService.getSchedule(retryScheduleId.value),
-    enabled: computed(() => !!retryScheduleId.value),
+    enabled: computed(() => retryScheduleId.value.length > 0),
     // Prevent background refetch from clobbering in-flight edits on the form.
     staleTime: Infinity,
     refetchOnWindowFocus: false,

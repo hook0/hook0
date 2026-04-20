@@ -7,35 +7,52 @@ import type { RetrySchedule, RetryScheduleLimits } from './retrySchedule.types';
 export function computeDelays(schedule: RetrySchedule, limits: RetryScheduleLimits): number[] {
   const cap = limits.max_single_delay_secs;
   switch (schedule.strategy) {
-    case 'exponential_increasing': {
-      const base = schedule.increasing_base_delay ?? 0;
-      const factor = schedule.increasing_wait_factor ?? 0;
-      const delays: number[] = [];
-      for (let i = 0; i < schedule.max_retries; i += 1) {
-        const term = Math.floor(base * Math.pow(factor, i));
-        delays.push(Math.min(term, cap));
-      }
-      return delays;
-    }
-    case 'linear': {
-      const delay = Math.min(schedule.linear_delay ?? 0, cap);
-      return Array.from({ length: schedule.max_retries }, () => delay);
-    }
+    case 'exponential_increasing':
+      return exponentialDelays(schedule, cap);
+    case 'linear':
+      return linearDelays(schedule, cap);
     case 'custom':
-      return (schedule.custom_intervals ?? []).map((v) => Math.min(v, cap));
+      return customDelays(schedule, cap);
     default:
       return assertNever(schedule.strategy);
   }
 }
 
+function exponentialDelays(schedule: RetrySchedule, cap: number): number[] {
+  const base = schedule.increasing_base_delay ?? 0;
+  const factor = schedule.increasing_wait_factor ?? 0;
+  const delays: number[] = [];
+  for (let index = 0; index < schedule.max_retries; index += 1) {
+    const term = Math.floor(base * Math.pow(factor, index));
+    delays.push(Math.min(term, cap));
+  }
+  return delays;
+}
+
+function linearDelays(schedule: RetrySchedule, cap: number): number[] {
+  const delay = Math.min(schedule.linear_delay ?? 0, cap);
+  return Array.from({ length: schedule.max_retries }, () => delay);
+}
+
+function customDelays(schedule: RetrySchedule, cap: number): number[] {
+  return (schedule.custom_intervals ?? []).map((value) => Math.min(value, cap));
+}
+
 /** Short human-readable form like "5s", "3min", "2h", "1d". Floor-based so thresholds don't round up. */
 export function formatDelay(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}min`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  if (seconds < 3600) {
+    return `${Math.floor(seconds / 60)}min`;
+  }
+  if (seconds < 86400) {
+    return `${Math.floor(seconds / 3600)}h`;
+  }
   return `${Math.floor(seconds / 86400)}d`;
 }
 
+// comply-ignore: no-throw — TypeScript exhaustiveness pattern: unreachable at compile time.
 function assertNever(value: never): never {
   throw new Error(`Unexpected retry strategy: ${String(value)}`);
 }
