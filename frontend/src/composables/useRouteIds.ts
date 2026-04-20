@@ -18,5 +18,6 @@ export function useRouteIds() {
     subscriptionId: get('subscription_id'),
     responseId: get('response_id'),
     requestAttemptId: get('request_attempt_id'),
+    retryScheduleId: get('retry_schedule_id'),
   };
 }

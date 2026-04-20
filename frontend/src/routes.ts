@@ -48,6 +48,10 @@ export const routes = {
   SubscriptionsDetail: 'SubscriptionsDetail',
   SubscriptionsEdit: 'SubscriptionsEdit',
 
+  RetrySchedulesList: 'RetrySchedulesList',
+  RetrySchedulesNew: 'RetrySchedulesNew',
+  RetrySchedulesEdit: 'RetrySchedulesEdit',
+
   WebhooksList: 'WebhooksList',
   LogsList: 'LogsList',
   LogDetail: 'LogDetail',
@@ -318,6 +322,24 @@ export default [
     component: () =>
       import('@/pages/organizations/applications/subscriptions/SubscriptionsEdit.vue'),
     meta: { title: 'Edit Subscription' },
+  },
+  {
+    name: routes.RetrySchedulesList,
+    path: '/organizations/:organization_id/retry_schedules',
+    component: () => import('@/pages/organizations/retry_schedules/RetrySchedulesList.vue'),
+    meta: { title: 'Retry Schedules' },
+  },
+  {
+    name: routes.RetrySchedulesNew,
+    path: '/organizations/:organization_id/retry_schedules/new',
+    component: () => import('@/pages/organizations/retry_schedules/RetrySchedulesEdit.vue'),
+    meta: { title: 'New Retry Schedule' },
+  },
+  {
+    name: routes.RetrySchedulesEdit,
+    path: '/organizations/:organization_id/retry_schedules/:retry_schedule_id/edit',
+    component: () => import('@/pages/organizations/retry_schedules/RetrySchedulesEdit.vue'),
+    meta: { title: 'Edit Retry Schedule' },
   },
   {
     name: routes.LogsList,

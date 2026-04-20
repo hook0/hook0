@@ -726,6 +726,59 @@
     "sensitiveHidden": "Some sensitive headers (Authorization, Cookie...) are hidden for security.",
     "summary": "Response Summary"
   },
+  "retrySchedules": {
+    "title": "Retry Schedules",
+    "listHeader": "Retry schedules",
+    "listSubtitle": "Define how failed webhook deliveries are retried. Assign a schedule per subscription.",
+    "new": "New retry schedule",
+    "createFirst": "Create your first retry schedule",
+    "emptyTitle": "No retry schedules yet",
+    "emptyDescription": "Create a retry schedule to control how failed deliveries are retried for your subscriptions. Without a schedule, the built-in exponential backoff is used.",
+    "newTitle": "New retry schedule",
+    "editTitle": "Edit retry schedule",
+    "cardHeader": "Retry schedule definition",
+    "cardSubtitle": "Pick a strategy, configure its parameters, and save. Limits are enforced by the server.",
+    "created": "Retry schedule created",
+    "updated": "Retry schedule updated",
+    "deleted": "Retry schedule \"{name}\" deleted",
+    "deleteTitle": "Delete retry schedule",
+    "deleteConfirm": "Delete {name}? Subscriptions using it will revert to the built-in exponential backoff.",
+    "columns": {
+      "name": "Name",
+      "strategy": "Strategy",
+      "maxRetries": "Max retries",
+      "intervals": "Intervals"
+    },
+    "strategies": {
+      "exponentialIncreasing": "Exponential increasing",
+      "linear": "Linear",
+      "custom": "Custom intervals"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "e.g. Aggressive retries for payments",
+      "strategy": "Strategy",
+      "maxRetries": "Max retries",
+      "baseDelay": "Base delay",
+      "waitFactor": "Wait factor",
+      "linearDelay": "Delay between retries",
+      "intervals": "Intervals",
+      "intervalPlaceholder": "Delay in seconds"
+    },
+    "help": {
+      "baseDelay": "First retry wait in seconds. Each subsequent retry multiplies by the wait factor.",
+      "waitFactor": "How much each retry grows versus the previous one.",
+      "linearDelay": "Constant wait between every retry, in seconds.",
+      "intervals": "Up to {max} intervals. Each value is the wait in seconds before that retry."
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "nameTooLong": "Name is too long (max 200 characters)",
+      "maxRetries": "Maximum retries is {max}",
+      "intervalsRequired": "Add at least one interval",
+      "totalTooLong": "Total retry duration exceeds the allowed cap of {max} seconds"
+    }
+  },
   "serviceTokens": {
     "addToConfig": "Add this to your {file}:",
     "advancedDescription": "Full control over Biscuit attenuation with custom Datalog claims and detailed token inspection.",
