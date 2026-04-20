@@ -73,6 +73,8 @@ pub enum Hook0Problem {
     // Generic errors
     JsonPayload(JsonPayloadProblem),
     Validation(validator::ValidationErrors),
+    // TODO(task 4): swap for RetryScheduleValidationFailed
+    InvalidPayload { reason: String },
     NotFound,
     InternalServerError,
     Forbidden,
@@ -501,6 +503,13 @@ impl From<Hook0Problem> for Problem {
                     validation: to_value(e).ok(),
                     status: StatusCode::UNPROCESSABLE_ENTITY,
                 }
+            },
+            Hook0Problem::InvalidPayload { reason } => Problem {
+                id: Hook0Problem::InvalidPayload { reason: reason.clone() },
+                title: "Invalid payload",
+                detail: reason.into(),
+                validation: None,
+                status: StatusCode::BAD_REQUEST,
             },
             Hook0Problem::InternalServerError => Problem {
                 id: Hook0Problem::InternalServerError,
