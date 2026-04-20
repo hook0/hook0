@@ -553,11 +553,6 @@ pub async fn create(
         ));
     }
 
-    // Retry schedules are org-scoped; reject cross-org references up-front.
-    if let Some(retry_schedule_id) = body.retry_schedule_id.as_ref() {
-        ensure_retry_schedule_in_org(&state.db, &organization_id, retry_schedule_id).await?;
-    }
-
     let labels = serde_json::to_value(&labels).unwrap_or_else(|_| Value::Object(Map::new()));
 
     let metadata = match body.metadata.as_ref() {
@@ -581,11 +576,17 @@ pub async fn create(
         updated_at: DateTime<Utc>,
         retry_schedule__id: Option<Uuid>,
     }
+    // Subselect filters the retry_schedule_id by owning organization.
+    // Cross-organization id silently NULLs; post-check below surfaces 404.
     let subscription = query_as!(
             RawSubscription,
             "
                 INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, target__id, retry_schedule__id, created_at, updated_at)
-                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(), $6, statement_timestamp(), statement_timestamp())
+                VALUES (
+                    public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(),
+                    (SELECT retry_schedule__id FROM webhook.retry_schedule WHERE retry_schedule__id = $6 AND organization__id = $7),
+                    statement_timestamp(), statement_timestamp()
+                )
                 RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, retry_schedule__id, created_at, updated_at
             ",
             &body.application_id,
@@ -594,10 +595,16 @@ pub async fn create(
             metadata,
             labels,
             body.retry_schedule_id,
+            &organization_id,
         )
             .fetch_one(&mut *tx)
             .await
             .map_err(Hook0Problem::from)?;
+
+    // Caller requested a retry_schedule_id but the subselect filtered it out (cross-org or gone).
+    if body.retry_schedule_id.is_some() && subscription.retry_schedule__id.is_none() {
+        return Err(Hook0Problem::NotFound);
+    }
 
     match &body.target {
         Target::Http {
@@ -786,11 +793,6 @@ pub async fn edit(
         .await
         .ok_or(Hook0Problem::NotFound)?;
 
-    // Retry schedules are org-scoped; reject cross-org references up-front.
-    if let Some(retry_schedule_id) = body.retry_schedule_id.as_ref() {
-        ensure_retry_schedule_in_org(&state.db, &organization_id, retry_schedule_id).await?;
-    }
-
     let labels = serde_json::to_value(&labels).unwrap_or_else(|_| Value::Object(Map::new()));
 
     let metadata = match body.metadata.as_ref() {
@@ -818,12 +820,17 @@ pub async fn edit(
         retry_schedule__id: Option<Uuid>,
     }
 
-    // Update all fields including is_enabled, description, metadata, labels, retry_schedule__id
+    // Subselect filters cross-organization retry_schedule_id to NULL. Post-check surfaces 404.
     let subscription = query_as!(
         RawSubscription,
         "
             UPDATE webhook.subscription
-            SET is_enabled = $1, description = $2, metadata = $3, labels = $4, retry_schedule__id = $7, updated_at = statement_timestamp()
+            SET is_enabled = $1,
+                description = $2,
+                metadata = $3,
+                labels = $4,
+                retry_schedule__id = (SELECT retry_schedule__id FROM webhook.retry_schedule WHERE retry_schedule__id = $7 AND organization__id = $8),
+                updated_at = statement_timestamp()
             WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL
             RETURNING subscription__id, is_enabled, description, secret, metadata, labels, failure_percent, target__id, retry_schedule__id, created_at, updated_at
         ",
@@ -834,6 +841,7 @@ pub async fn edit(
         &subscription_id,
         &body.application_id,
         body.retry_schedule_id,
+        &organization_id,
     )
     .fetch_optional(&mut *tx)
     .await
@@ -841,6 +849,11 @@ pub async fn edit(
 
     match subscription {
         Some(s) => {
+            // Caller requested a retry_schedule_id but the subselect filtered it out.
+            if body.retry_schedule_id.is_some() && s.retry_schedule__id.is_none() {
+                return Err(Hook0Problem::NotFound);
+            }
+
             match &body.target {
                 Target::Http {
                     method,
@@ -1155,35 +1168,6 @@ pub async fn delete(
             Ok(NoContent)
         }
         None => Err(Hook0Problem::NotFound),
-    }
-}
-
-/// Reject retry_schedule_id that belongs to a different organization.
-/// Missing schedule collapses to NotFound so callers see the same error
-/// regardless of cross-org leak vs. truly-missing id.
-async fn ensure_retry_schedule_in_org(
-    db: &sqlx::PgPool,
-    organization_id: &Uuid,
-    retry_schedule_id: &Uuid,
-) -> Result<(), Hook0Problem> {
-    let exists = query_scalar!(
-        r#"
-            SELECT EXISTS (
-                SELECT 1 FROM webhook.retry_schedule
-                WHERE retry_schedule__id = $1 AND organization__id = $2
-            ) AS "exists!"
-        "#,
-        retry_schedule_id,
-        organization_id,
-    )
-    .fetch_one(db)
-    .await
-    .map_err(Hook0Problem::from)?;
-
-    if exists {
-        Ok(())
-    } else {
-        Err(Hook0Problem::NotFound)
     }
 }
 

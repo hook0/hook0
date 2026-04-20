@@ -1,11 +1,13 @@
-//! Retry schedule CRUD endpoints with cross-field validator.
+//! Retry schedule CRUD with cross-field validator.
 //!
-//! Caller-visible effect: 422 on invalid payload (validator errors), 404 on cross-org access.
+//! End-user sees 422 with field errors on invalid payloads. 404 hides cross-organization access.
 //!
-//! - Flat `RetrySchedulePost` / `RetrySchedulePut` use the `validator` crate for field + cross-field checks
-//! - Business bounds come from `State` (CLI args / env); attribute ranges are anti-corruption only
-//! - Per-org quota enforced via atomic `INSERT … WHERE count(*) < $limit` (soft — one extra row acceptable under contention)
-//! - Auth failure on get/edit/delete collapses to 404 to close the cross-org existence oracle
+//! - Flat `RetrySchedulePost` / `RetrySchedulePut` drive the `validator` crate.
+//! - Business bounds come from `State`. Attribute ranges stay wide.
+//! - Per-organization quota: atomic `INSERT … WHERE count(*) < $limit`.
+//! - Soft cap under contention. One extra row acceptable.
+//! - Auth failure on get/edit/delete returns 404.
+//! - Hides cross-organization existence oracle.
 
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
@@ -13,7 +15,7 @@ use chrono::{DateTime, Utc};
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as};
+use sqlx::{query, query_as, query_scalar};
 use strum::{Display, EnumString};
 use uuid::Uuid;
 use validator::Validate;
@@ -718,7 +720,7 @@ async fn lookup_organization(
     db: &sqlx::PgPool,
     retry_schedule_id: &Uuid,
 ) -> Result<Uuid, Hook0Problem> {
-    sqlx::query_scalar!(
+    query_scalar!(
         "select organization__id from webhook.retry_schedule where retry_schedule__id = $1",
         retry_schedule_id,
     )

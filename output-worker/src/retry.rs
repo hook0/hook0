@@ -214,5 +214,4 @@ mod tests {
         let d = compute_delay_from_schedule(&s, 1).unwrap();
         assert_eq!(d.as_secs(), 0);
     }
-
 }

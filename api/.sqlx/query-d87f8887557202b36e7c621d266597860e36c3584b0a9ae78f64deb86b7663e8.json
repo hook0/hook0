@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, target__id, retry_schedule__id, created_at, updated_at)\n                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(), $6, statement_timestamp(), statement_timestamp())\n                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, retry_schedule__id, created_at, updated_at\n            ",
+  "query": "\n                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, target__id, retry_schedule__id, created_at, updated_at)\n                VALUES (\n                    public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(),\n                    (SELECT retry_schedule__id FROM webhook.retry_schedule WHERE retry_schedule__id = $6 AND organization__id = $7),\n                    statement_timestamp(), statement_timestamp()\n                )\n                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, retry_schedule__id, created_at, updated_at\n            ",
   "describe": {
     "columns": [
       {
@@ -61,6 +61,7 @@
         "Text",
         "Jsonb",
         "Jsonb",
+        "Uuid",
         "Uuid"
       ]
     },
@@ -77,5 +78,5 @@
       false
     ]
   },
-  "hash": "0ed97454477bd5898fe324915444a9e055dbdbe386a8c5a53e1d3403cafde249"
+  "hash": "d87f8887557202b36e7c621d266597860e36c3584b0a9ae78f64deb86b7663e8"
 }

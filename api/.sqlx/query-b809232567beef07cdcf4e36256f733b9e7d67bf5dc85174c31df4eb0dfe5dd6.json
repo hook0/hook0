@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE webhook.subscription\n            SET is_enabled = $1, description = $2, metadata = $3, labels = $4, retry_schedule__id = $7, updated_at = statement_timestamp()\n            WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL\n            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, failure_percent, target__id, retry_schedule__id, created_at, updated_at\n        ",
+  "query": "\n            UPDATE webhook.subscription\n            SET is_enabled = $1,\n                description = $2,\n                metadata = $3,\n                labels = $4,\n                retry_schedule__id = (SELECT retry_schedule__id FROM webhook.retry_schedule WHERE retry_schedule__id = $7 AND organization__id = $8),\n                updated_at = statement_timestamp()\n            WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL\n            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, failure_percent, target__id, retry_schedule__id, created_at, updated_at\n        ",
   "describe": {
     "columns": [
       {
@@ -67,6 +67,7 @@
         "Jsonb",
         "Uuid",
         "Uuid",
+        "Uuid",
         "Uuid"
       ]
     },
@@ -84,5 +85,5 @@
       false
     ]
   },
-  "hash": "f1d29db9ee9ef709e50cf11ebbdc09ee0ef470ae68202427d62f485dfd2ccf75"
+  "hash": "b809232567beef07cdcf4e36256f733b9e7d67bf5dc85174c31df4eb0dfe5dd6"
 }
