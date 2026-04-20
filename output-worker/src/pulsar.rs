@@ -24,11 +24,11 @@ use uuid::Uuid;
 use crate::opentelemetry::{
     end_request_attempt_span, gather_pulsar_consumer_metrics, start_request_attempt_span,
 };
+use crate::retry::compute_next_retry;
 use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
-    compute_next_retry,
 };
 use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;

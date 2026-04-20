@@ -18,7 +18,7 @@ use humantime::format_duration;
 use reqwest::Url;
 use reqwest::header::HeaderName;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use sqlx::{PgConnection, PgPool, query, query_as};
+use sqlx::{PgPool, query, query_as};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -770,144 +770,14 @@ async fn get_worker(name: String, conn: &PgPool) -> anyhow::Result<Worker> {
     }
 }
 
-async fn compute_next_retry(
-    conn: &mut PgConnection,
-    attempt: &RequestAttempt,
-    response: &Response,
-    max_retries: u8,
-    jitter_factor: f64,
-) -> Result<Option<Duration>, sqlx::Error> {
-    match response.response_error {
-        Some(ResponseError::InvalidHeader) => {
-            let msg = response
-                .body
-                .as_ref()
-                .and_then(|bytes| str::from_utf8(bytes).ok())
-                .unwrap_or("???");
-            error!(request_attempt_id = %attempt.request_attempt_id, "Could not construct signature ({msg}); giving up");
-            Ok(None)
-        }
-        _ => {
-            // Temporary warning message; this will be replaced by actual actions at some point
-            if let Some(ResponseError::InvalidTarget) = response.response_error {
-                let msg = response
-                    .body
-                    .as_ref()
-                    .and_then(|bytes| str::from_utf8(bytes).ok())
-                    .unwrap_or("???");
-                warn!(request_attempt_id = %attempt.request_attempt_id, "Invalid target ({msg}); continuing as normal");
-            }
-
-            // Pull the subscription alongside any attached retry schedule.
-            // Disabled / soft-deleted subscriptions short-circuit to None.
-            // Prevents scheduling follow-ups on mid-flight state.
-            let sub = query!(
-                r#"
-                    SELECT
-                        s.retry_schedule__id AS "subscription_retry_schedule_id?",
-                        rs.strategy AS "strategy?",
-                        rs.max_retries AS "rs_max_retries?",
-                        rs.custom_intervals AS "custom_intervals?",
-                        rs.linear_delay AS "linear_delay?",
-                        rs.increasing_base_delay AS "increasing_base_delay?",
-                        rs.increasing_wait_factor AS "increasing_wait_factor?"
-                    FROM webhook.subscription AS s
-                    INNER JOIN event.application AS a ON a.application__id = s.application__id
-                    LEFT JOIN webhook.retry_schedule AS rs ON rs.retry_schedule__id = s.retry_schedule__id
-                    WHERE s.subscription__id = $1
-                        AND s.deleted_at IS NULL
-                        AND s.is_enabled
-                        AND a.deleted_at IS NULL
-                "#,
-                attempt.subscription_id
-            )
-            .fetch_optional(conn)
-            .await?;
-
-            let Some(row) = sub else {
-                return Ok(None);
-            };
-
-            // Subscription points to a schedule but the LEFT JOIN found no row. FK has
-            // ON DELETE SET NULL so this should not happen; log loud and fall back.
-            if row.subscription_retry_schedule_id.is_some() && row.strategy.is_none() {
-                tracing::warn!(
-                    subscription_id = %attempt.subscription_id,
-                    schedule_id = ?row.subscription_retry_schedule_id,
-                    "Subscription references a retry_schedule that could not be joined; falling back to built-in backoff",
-                );
-            }
-
-            match (row.strategy.as_deref(), row.rs_max_retries) {
-                (Some(strategy_str), Some(rs_max_retries)) => {
-                    match crate::retry::Strategy::from_db_str(strategy_str) {
-                        Some(strategy) => {
-                            let schedule = crate::retry::ScheduleConfig {
-                                strategy,
-                                max_retries: rs_max_retries,
-                                custom_intervals: row.custom_intervals,
-                                linear_delay: row.linear_delay,
-                                increasing_base_delay: row.increasing_base_delay,
-                                increasing_wait_factor: row.increasing_wait_factor,
-                            };
-                            Ok(crate::retry::compute_delay_from_schedule(
-                                &schedule,
-                                attempt.retry_count,
-                                jitter_factor,
-                            ))
-                        }
-                        None => {
-                            // Unknown DB strategy value — data corruption. Log, fall back.
-                            tracing::error!(
-                                subscription_id = %attempt.subscription_id,
-                                strategy = strategy_str,
-                                "Unknown retry_schedule strategy; falling back to built-in backoff",
-                            );
-                            Ok(
-                                compute_next_retry_duration(max_retries, attempt.retry_count)
-                                    .map(|d| crate::retry::with_jitter(d, jitter_factor)),
-                            )
-                        }
-                    }
-                }
-                _ => {
-                    // No schedule attached — fall back to the built-in escalating table
-                    // with the same jitter policy as custom schedules.
-                    Ok(
-                        compute_next_retry_duration(max_retries, attempt.retry_count)
-                            .map(|d| crate::retry::with_jitter(d, jitter_factor)),
-                    )
-                }
-            }
-        }
-    }
-}
-
-/// Pure, deterministic lookup — jitter is applied at the scheduling call site so
-/// that planning helpers like `evaluate_retry_policy` stay reproducible.
-fn compute_next_retry_duration(max_retries: u8, retry_count: i16) -> Option<Duration> {
-    if retry_count < max_retries.into() {
-        match retry_count {
-            0 => Some(Duration::from_secs(3)),
-            1 => Some(Duration::from_secs(10)),
-            2 => Some(Duration::from_secs(3 * 60)),
-            3 => Some(Duration::from_secs(30 * 60)),
-            4 => Some(Duration::from_hours(1)),
-            5 => Some(Duration::from_hours(3)),
-            6 => Some(Duration::from_hours(5)),
-            _ => Some(Duration::from_hours(10)),
-        }
-    } else {
-        None
-    }
-}
+// compute_next_retry + built_in_retry_delay moved to retry.rs — single unit.
 
 fn evaluate_retry_policy(max_retries: u8, max_retry_window: Duration) -> (u8, Duration) {
     let mut cumulative = Duration::ZERO;
     let mut effective_retries = 0;
 
     for i in 0..max_retries {
-        match compute_next_retry_duration(max_retries, i.into()) {
+        match retry::built_in_retry_delay(max_retries, i.into()) {
             Some(d) => {
                 if cumulative + d > max_retry_window {
                     break;
@@ -938,13 +808,6 @@ mod tests {
         let (retries, cumulative) = evaluate_retry_policy(30, Duration::ZERO);
         assert_eq!(retries, 0);
         assert_eq!(cumulative, Duration::ZERO);
-    }
-
-    #[test]
-    fn test_compute_next_retry_duration_exceeds_max() {
-        assert_eq!(compute_next_retry_duration(5, 5), None);
-        assert_eq!(compute_next_retry_duration(5, 6), None);
-        assert_eq!(compute_next_retry_duration(0, 0), None);
     }
 
     #[test]

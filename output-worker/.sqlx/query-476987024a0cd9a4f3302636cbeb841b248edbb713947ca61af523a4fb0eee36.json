@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select\n                s.retry_schedule__id as \"subscription_retry_schedule_id?\",\n                rs.strategy as \"strategy?: Strategy\",\n                rs.max_retries as \"max_retries?\",\n                rs.custom_intervals,\n                rs.linear_delay,\n                rs.increasing_base_delay,\n                rs.increasing_wait_factor\n            from webhook.subscription as s\n            inner join event.application as a on a.application__id = s.application__id\n            left join webhook.retry_schedule as rs on rs.retry_schedule__id = s.retry_schedule__id\n            where s.subscription__id = $1\n                and s.deleted_at is null\n                and s.is_enabled\n                and a.deleted_at is null\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscription_retry_schedule_id?",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "strategy?: Strategy",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "max_retries?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "custom_intervals",
+        "type_info": "Int4Array"
+      },
+      {
+        "ordinal": 4,
+        "name": "linear_delay",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "increasing_base_delay",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "increasing_wait_factor",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "476987024a0cd9a4f3302636cbeb841b248edbb713947ca61af523a4fb0eee36"
+}
