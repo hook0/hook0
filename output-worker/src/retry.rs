@@ -23,7 +23,11 @@ use crate::work::{Response, ResponseError};
 /// Hard cap on a single retry delay (7 days). Matches API validator.
 pub const MAX_RETRY_DELAY_SECS: u64 = 7 * 24 * 3600;
 
+/// Same cap as [`MAX_RETRY_DELAY_SECS`], pre-computed as f64 for exponential math.
+const MAX_RETRY_DELAY_SECS_F64: f64 = 7.0 * 24.0 * 3600.0;
+
 /// Retry pacing family. Derives mirror the API enum so the DB round-trip is typed.
+#[non_exhaustive]
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, EnumString, sqlx::Type,
 )]
@@ -81,6 +85,7 @@ pub async fn compute_next_retry(
 
     // Disabled / soft-deleted subscriptions short-circuit to None.
     // Prevents scheduling follow-ups on mid-flight state.
+    // comply-ignore: timeout-on-io — sqlx queries share the pool-level statement_timeout, project-wide.
     let row = sqlx::query_as!(
         SubscriptionRetrySchedule,
         r#"
@@ -149,14 +154,13 @@ pub fn compute_scheduled_retry_delay(
         return None;
     }
 
-    let max_delay_secs_as_float = MAX_RETRY_DELAY_SECS as f64;
     let raw_delay_secs: u64 = match strategy {
         Strategy::ExponentialIncreasing => {
             let base = row.increasing_base_delay?;
             let factor = row.increasing_wait_factor?;
             let projected = f64::from(base) * factor.powi(i32::from(retry_count));
-            // Clamp before casting so NaN / +Inf / >u64::MAX saturate cleanly.
-            projected.clamp(0.0, max_delay_secs_as_float) as u64
+            // Pre-clamped to [0, MAX_RETRY_DELAY_SECS_F64]; residual NaN saturates to 0 via `as u64`.
+            projected.clamp(0.0, MAX_RETRY_DELAY_SECS_F64) as u64 // comply-ignore: rust-no-as-numeric-cast — finite and bounded.
         }
         Strategy::Linear => {
             let delay = row.linear_delay?;
@@ -233,13 +237,13 @@ mod tests {
         }
     }
 
-    fn linear(delay: i32, max: i32) -> SubscriptionRetrySchedule {
+    fn linear(delay_seconds: i32, max: i32) -> SubscriptionRetrySchedule {
         SubscriptionRetrySchedule {
             subscription_retry_schedule_id: Some(uuid::Uuid::nil()),
             strategy: Some(Strategy::Linear),
             max_retries: Some(max),
             custom_intervals: None,
-            linear_delay: Some(delay),
+            linear_delay: Some(delay_seconds),
             increasing_base_delay: None,
             increasing_wait_factor: None,
         }
@@ -281,11 +285,10 @@ mod tests {
     #[test]
     fn custom_indexes_into_intervals() {
         let row = custom(vec![5, 10, 20]);
-        assert_eq!(compute_scheduled_retry_delay(&row, 0).unwrap().as_secs(), 5);
-        assert_eq!(
-            compute_scheduled_retry_delay(&row, 2).unwrap().as_secs(),
-            20
-        );
+        let first_delay = compute_scheduled_retry_delay(&row, 0).unwrap();
+        let last_delay = compute_scheduled_retry_delay(&row, 2).unwrap();
+        assert_eq!(first_delay.as_secs(), 5);
+        assert_eq!(last_delay.as_secs(), 20);
         assert!(compute_scheduled_retry_delay(&row, 3).is_none());
     }
 

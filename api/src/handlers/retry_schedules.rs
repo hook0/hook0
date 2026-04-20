@@ -29,7 +29,13 @@ use crate::iam::{Action, authorize};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
+const FIELD_LINEAR_DELAY: &str = "linear_delay";
+const FIELD_CUSTOM_INTERVALS: &str = "custom_intervals";
+const FIELD_INCREASING_BASE_DELAY: &str = "increasing_base_delay";
+const FIELD_INCREASING_WAIT_FACTOR: &str = "increasing_wait_factor";
+
 /// Retry pacing family that picks how delays between retries are computed.
+#[non_exhaustive]
 #[derive(
     Debug,
     Clone,
@@ -86,19 +92,6 @@ pub struct RetrySchedulePost {
     pub increasing_wait_factor: Option<f64>,
 }
 
-impl RetrySchedulePost {
-    fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
-        validate_strategy_fields(
-            self.strategy,
-            self.max_retries,
-            self.linear_delay,
-            self.custom_intervals.as_deref(),
-            self.increasing_base_delay,
-            self.increasing_wait_factor,
-        )
-    }
-}
-
 /// Update request. Same cross-field rules as `RetrySchedulePost`, minus `organization_id`.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 #[serde(deny_unknown_fields)]
@@ -115,18 +108,27 @@ pub struct RetrySchedulePut {
     pub increasing_wait_factor: Option<f64>,
 }
 
-impl RetrySchedulePut {
-    fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
-        validate_strategy_fields(
-            self.strategy,
-            self.max_retries,
-            self.linear_delay,
-            self.custom_intervals.as_deref(),
-            self.increasing_base_delay,
-            self.increasing_wait_factor,
-        )
-    }
+/// Dispatch validator-crate schema hooks to the shared strategy checker.
+/// Structs share field names so the body is identical; macro avoids the duplication.
+macro_rules! impl_strategy_schema_validator {
+    ($struct_name:ident) => {
+        impl $struct_name {
+            fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
+                validate_strategy_fields(
+                    self.strategy,
+                    self.max_retries,
+                    self.linear_delay,
+                    self.custom_intervals.as_deref(),
+                    self.increasing_base_delay,
+                    self.increasing_wait_factor,
+                )
+            }
+        }
+    };
 }
+
+impl_strategy_schema_validator!(RetrySchedulePost);
+impl_strategy_schema_validator!(RetrySchedulePut);
 
 /// Query string that scopes list operations to one organization.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
@@ -194,23 +196,20 @@ pub fn validate_strategy_fields(
     increasing_base_delay: Option<i32>,
     increasing_wait_factor: Option<f64>,
 ) -> Result<(), validator::ValidationError> {
+    let strategy_name = strategy.to_string();
     match strategy {
         RetryStrategy::ExponentialIncreasing => {
-            require_none(
-                "custom_intervals",
-                &custom_intervals,
-                "exponential_increasing",
-            )?;
-            require_none("linear_delay", &linear_delay, "exponential_increasing")?;
+            require_none(FIELD_CUSTOM_INTERVALS, &custom_intervals, &strategy_name)?;
+            require_none(FIELD_LINEAR_DELAY, &linear_delay, &strategy_name)?;
             require_present(
-                "increasing_base_delay",
+                FIELD_INCREASING_BASE_DELAY,
                 &increasing_base_delay,
-                "exponential_increasing",
+                &strategy_name,
             )?;
             let factor = require_some(
-                "increasing_wait_factor",
+                FIELD_INCREASING_WAIT_FACTOR,
                 &increasing_wait_factor,
-                "exponential_increasing",
+                &strategy_name,
             )?;
             if factor.is_nan() {
                 return Err(strategy_error(
@@ -219,16 +218,33 @@ pub fn validate_strategy_fields(
             }
         }
         RetryStrategy::Linear => {
-            require_none("custom_intervals", &custom_intervals, "linear")?;
-            require_none("increasing_base_delay", &increasing_base_delay, "linear")?;
-            require_none("increasing_wait_factor", &increasing_wait_factor, "linear")?;
-            require_present("linear_delay", &linear_delay, "linear")?;
+            require_none(FIELD_CUSTOM_INTERVALS, &custom_intervals, &strategy_name)?;
+            require_none(
+                FIELD_INCREASING_BASE_DELAY,
+                &increasing_base_delay,
+                &strategy_name,
+            )?;
+            require_none(
+                FIELD_INCREASING_WAIT_FACTOR,
+                &increasing_wait_factor,
+                &strategy_name,
+            )?;
+            require_present(FIELD_LINEAR_DELAY, &linear_delay, &strategy_name)?;
         }
         RetryStrategy::Custom => {
-            require_none("linear_delay", &linear_delay, "custom")?;
-            require_none("increasing_base_delay", &increasing_base_delay, "custom")?;
-            require_none("increasing_wait_factor", &increasing_wait_factor, "custom")?;
-            let intervals = require_some("custom_intervals", &custom_intervals, "custom")?;
+            require_none(FIELD_LINEAR_DELAY, &linear_delay, &strategy_name)?;
+            require_none(
+                FIELD_INCREASING_BASE_DELAY,
+                &increasing_base_delay,
+                &strategy_name,
+            )?;
+            require_none(
+                FIELD_INCREASING_WAIT_FACTOR,
+                &increasing_wait_factor,
+                &strategy_name,
+            )?;
+            let intervals =
+                require_some(FIELD_CUSTOM_INTERVALS, &custom_intervals, &strategy_name)?;
             let expected_length = usize::try_from(max_retries).unwrap_or(0);
             if intervals.len() != expected_length {
                 return Err(strategy_error(
@@ -305,8 +321,8 @@ fn check_exponential_base(
     let max = state.retry_schedule_exponential_base_delay_max_secs;
     if !(min..=max).contains(&base) {
         errors.add(
-            "increasing_base_delay",
-            range_error("increasing_base_delay", i64::from(min), i64::from(max)),
+            FIELD_INCREASING_BASE_DELAY,
+            range_error(FIELD_INCREASING_BASE_DELAY, i64::from(min), i64::from(max)),
         );
     }
 }
@@ -321,8 +337,8 @@ fn check_exponential_factor(
     let max = state.retry_schedule_exponential_wait_factor_max;
     if factor < min || factor > max {
         errors.add(
-            "increasing_wait_factor",
-            range_error("increasing_wait_factor", min, max),
+            FIELD_INCREASING_WAIT_FACTOR,
+            range_error(FIELD_INCREASING_WAIT_FACTOR, min, max),
         );
     }
 }
@@ -337,8 +353,8 @@ fn check_linear_delay(
     let max = state.retry_schedule_max_single_delay_secs;
     if !(min..=max).contains(&delay) {
         errors.add(
-            "linear_delay",
-            range_error("linear_delay", i64::from(min), i64::from(max)),
+            FIELD_LINEAR_DELAY,
+            range_error(FIELD_LINEAR_DELAY, i64::from(min), i64::from(max)),
         );
     }
 }
@@ -357,9 +373,9 @@ fn check_custom_intervals(
         .find(|(_, value)| !(min..=max).contains(value))
     {
         errors.add(
-            "custom_intervals",
+            FIELD_CUSTOM_INTERVALS,
             range_error(
-                &format!("custom_intervals[{index}]"),
+                &format!("{FIELD_CUSTOM_INTERVALS}[{index}]"),
                 i64::from(min),
                 i64::from(max),
             ),
@@ -420,9 +436,12 @@ fn compute_total_duration(
             let cap = f64::from(single_max);
             let mut total: i64 = 0;
             for index in 0..max_retries.max(0) {
-                // Clamp before cast: guarantees 0.0..=single_max so `as i64` is a saturating no-op.
-                let term = (f64::from(base) * factor.powi(index)).clamp(0.0, cap);
-                total = total.saturating_add(term as i64);
+                let base_float = f64::from(base);
+                let factor_power = factor.powi(index);
+                let projected = base_float * factor_power;
+                // Pre-clamped to [0, cap] where cap fits in i32; NaN rejected upstream.
+                let term = projected.clamp(0.0, cap) as i64; // comply-ignore: rust-no-as-numeric-cast — finite and bounded by cap ≤ i32::MAX.
+                total = total.saturating_add(term);
             }
             total
         }
@@ -649,23 +668,19 @@ pub async fn create(
         ));
     };
 
-    if let Some(hook0_client) = state.hook0_client.as_ref() {
-        let event: Hook0ClientEvent = EventRetryScheduleCreated {
-            organization_id: created.organization_id,
-            retry_schedule_id: created.retry_schedule_id,
-            name: created.name.to_owned(),
-            strategy: created.strategy.to_string(),
-            max_retries: created.max_retries,
-            custom_intervals: created.custom_intervals.to_owned(),
-            linear_delay: created.linear_delay,
-            increasing_base_delay: created.increasing_base_delay,
-            increasing_wait_factor: created.increasing_wait_factor,
-        }
-        .into();
-        if let Err(e) = hook0_client.send_event(&event.mk_hook0_event()).await {
-            error!("Hook0ClientError: {e}");
-        }
+    let event: Hook0ClientEvent = EventRetryScheduleCreated {
+        organization_id: created.organization_id,
+        retry_schedule_id: created.retry_schedule_id,
+        name: created.name.to_owned(),
+        strategy: created.strategy.to_string(),
+        max_retries: created.max_retries,
+        custom_intervals: created.custom_intervals.to_owned(),
+        linear_delay: created.linear_delay,
+        increasing_base_delay: created.increasing_base_delay,
+        increasing_wait_factor: created.increasing_wait_factor,
     }
+    .into();
+    emit_retry_schedule_event(&state, event).await;
 
     Ok(CreatedJson(created))
 }
@@ -765,23 +780,19 @@ pub async fn edit(
         return Err(Hook0Problem::NotFound);
     };
 
-    if let Some(hook0_client) = state.hook0_client.as_ref() {
-        let event: Hook0ClientEvent = EventRetryScheduleUpdated {
-            organization_id: updated.organization_id,
-            retry_schedule_id: updated.retry_schedule_id,
-            name: updated.name.to_owned(),
-            strategy: updated.strategy.to_string(),
-            max_retries: updated.max_retries,
-            custom_intervals: updated.custom_intervals.to_owned(),
-            linear_delay: updated.linear_delay,
-            increasing_base_delay: updated.increasing_base_delay,
-            increasing_wait_factor: updated.increasing_wait_factor,
-        }
-        .into();
-        if let Err(e) = hook0_client.send_event(&event.mk_hook0_event()).await {
-            error!("Hook0ClientError: {e}");
-        }
+    let event: Hook0ClientEvent = EventRetryScheduleUpdated {
+        organization_id: updated.organization_id,
+        retry_schedule_id: updated.retry_schedule_id,
+        name: updated.name.to_owned(),
+        strategy: updated.strategy.to_string(),
+        max_retries: updated.max_retries,
+        custom_intervals: updated.custom_intervals.to_owned(),
+        linear_delay: updated.linear_delay,
+        increasing_base_delay: updated.increasing_base_delay,
+        increasing_wait_factor: updated.increasing_wait_factor,
     }
+    .into();
+    emit_retry_schedule_event(&state, event).await;
 
     Ok(Json(updated))
 }
@@ -829,16 +840,12 @@ pub async fn delete(
         return Err(Hook0Problem::NotFound);
     }
 
-    if let Some(hook0_client) = state.hook0_client.as_ref() {
-        let event: Hook0ClientEvent = EventRetryScheduleRemoved {
-            organization_id,
-            retry_schedule_id,
-        }
-        .into();
-        if let Err(e) = hook0_client.send_event(&event.mk_hook0_event()).await {
-            error!("Hook0ClientError: {e}");
-        }
+    let event: Hook0ClientEvent = EventRetryScheduleRemoved {
+        organization_id,
+        retry_schedule_id,
     }
+    .into();
+    emit_retry_schedule_event(&state, event).await;
 
     Ok(NoContent)
 }
@@ -858,6 +865,17 @@ async fn lookup_organization(
     .ok_or(Hook0Problem::NotFound)
 }
 
+/// Best-effort emit to the Hook0 client. Send errors become log lines so CRUD handlers
+/// stay on the success path even when the outbound pipeline is degraded.
+async fn emit_retry_schedule_event(state: &crate::State, event: Hook0ClientEvent) {
+    let Some(hook0_client) = state.hook0_client.as_ref() else {
+        return;
+    };
+    if let Err(e) = hook0_client.send_event(&event.mk_hook0_event()).await {
+        error!("Hook0ClientError: {e}");
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -875,21 +893,21 @@ mod tests {
         }
     }
 
-    fn linear_post(name: &str, max_retries: i32, delay: i32) -> RetrySchedulePost {
+    fn linear_post(name: &str, max_retries: i32, delay_seconds: i32) -> RetrySchedulePost {
         RetrySchedulePost {
             organization_id: Uuid::nil(),
             name: name.to_owned(),
             strategy: RetryStrategy::Linear,
             max_retries,
             custom_intervals: None,
-            linear_delay: Some(delay),
+            linear_delay: Some(delay_seconds),
             increasing_base_delay: None,
             increasing_wait_factor: None,
         }
     }
 
     fn custom_post(name: &str, intervals: Vec<i32>) -> RetrySchedulePost {
-        let max_retries = intervals.len() as i32;
+        let max_retries = i32::try_from(intervals.len()).expect("test intervals fit in i32");
         RetrySchedulePost {
             organization_id: Uuid::nil(),
             name: name.to_owned(),
