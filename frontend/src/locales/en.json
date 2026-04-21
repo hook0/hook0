@@ -784,7 +784,7 @@
     },
     "customActions": {
       "duplicate": "Duplicate retry #{number}",
-      "dragHandle": "Drag to reorder retry #{number}"
+      "dragHandle": "Reorder retry #{number} — drag or use arrow keys"
     },
     "empty": {
       "title": "No retry schedules",

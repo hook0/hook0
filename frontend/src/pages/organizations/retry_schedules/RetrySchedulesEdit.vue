@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useForm } from 'vee-validate';
@@ -273,40 +273,55 @@ const previewRows = computed(() => {
   return [];
 });
 
-const hasExceedingRetries = computed(() => previewRows.value.some((r) => r.exceeds));
-const firstExceedingRetry = computed(() => {
-  const row = previewRows.value.find((r) => r.exceeds);
-  return row ? row.retry : 0;
-});
 const firstExceedingIndex = computed(() => previewRows.value.findIndex((r) => r.exceeds));
+const hasExceedingRetries = computed(() => firstExceedingIndex.value !== -1);
+const firstExceedingRetry = computed(
+  () => previewRows.value[firstExceedingIndex.value]?.retry ?? 0
+);
 
 const totalCumulativeSecs = computed(() =>
   previewRows.value.reduce((sum, r) => sum + r.delaySecs, 0)
 );
 const totalCumulativeFormatted = computed(() => formatDuration(totalCumulativeSecs.value));
 
-// Drive a one-shot pulse on the first exceeding chip whenever the overflow state flips from ok → exceeds,
-// so the user's eye jumps to the culprit instead of scanning all red chips.
-const chipContainerRef = ref<HTMLElement | null>(null);
-const highlightExceedingChip = ref(false);
-watch(hasExceedingRetries, (exceeds, prev) => {
-  if (exceeds && !prev) {
-    highlightExceedingChip.value = false;
-    void nextTick(() => {
-      highlightExceedingChip.value = true;
-      const el = chipContainerRef.value?.querySelector<HTMLElement>(
-        '[data-exceeding-chip="first"]'
-      );
-      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      window.setTimeout(() => {
-        highlightExceedingChip.value = false;
-      }, 1600);
-    });
+// Pulse the first offending chip whenever it changes.
+const firstExceedingChipRef = ref<HTMLElement | null>(null);
+const pulseKey = ref(0);
+const pulseTimeoutId = ref<number | null>(null);
+
+function clearPulseTimeout() {
+  if (pulseTimeoutId.value !== null) {
+    window.clearTimeout(pulseTimeoutId.value);
+    pulseTimeoutId.value = null;
   }
+}
+
+watch(firstExceedingIndex, (index, prev) => {
+  if (index === -1 || index === prev) return;
+  clearPulseTimeout();
+  // Bumping the key forces Vue to re-trigger the CSS animation even if the index is the same as last run.
+  pulseKey.value += 1;
+  void nextTick(() => {
+    firstExceedingChipRef.value?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    });
+    pulseTimeoutId.value = window.setTimeout(() => {
+      pulseTimeoutId.value = null;
+    }, 1600);
+  });
 });
+
+onBeforeUnmount(clearPulseTimeout);
 
 const draggedIndex = ref<number | null>(null);
 const dragOverIndex = ref<number | null>(null);
+const handleRefs = ref<Array<HTMLButtonElement | null>>([]);
+
+function setHandleRef(el: Element | null, index: number) {
+  handleRefs.value[index] = el as HTMLButtonElement | null;
+}
 
 function onDragStart(index: number, event: DragEvent) {
   draggedIndex.value = index;
@@ -327,24 +342,44 @@ function onDragEnter(index: number) {
   dragOverIndex.value = index;
 }
 
+// Native dragleave fires on every child boundary crossing — only clear when the cursor truly leaves the chip.
+function onDragLeave(event: DragEvent) {
+  const currentTarget = event.currentTarget as HTMLElement | null;
+  const related = event.relatedTarget as Node | null;
+  if (!currentTarget || !related || !currentTarget.contains(related)) {
+    dragOverIndex.value = null;
+  }
+}
+
 function onDrop(targetIndex: number) {
   const from = draggedIndex.value;
-  if (from === null || from === targetIndex) {
-    draggedIndex.value = null;
-    dragOverIndex.value = null;
-    return;
-  }
-  const next = [...customIntervalsValue.value];
-  const [moved] = next.splice(from, 1);
-  next.splice(targetIndex, 0, moved);
-  customIntervals.value = next;
   draggedIndex.value = null;
   dragOverIndex.value = null;
+  if (from === null || from === targetIndex) return;
+  const next = [...customIntervalsValue.value];
+  const [moved] = next.splice(from, 1);
+  if (moved === undefined) return;
+  next.splice(targetIndex, 0, moved);
+  customIntervals.value = next;
 }
 
 function onDragEnd() {
   draggedIndex.value = null;
   dragOverIndex.value = null;
+}
+
+function moveInterval(index: number, delta: number) {
+  const current = customIntervalsValue.value;
+  const target = index + delta;
+  if (target < 0 || target >= current.length) return;
+  const next = [...current];
+  const source = next[index];
+  const dest = next[target];
+  if (source === undefined || dest === undefined) return;
+  next[index] = dest;
+  next[target] = source;
+  customIntervals.value = next;
+  void nextTick(() => handleRefs.value[target]?.focus());
 }
 
 function duplicateInterval(index: number) {
@@ -493,12 +528,18 @@ const pageTitle = computed(() =>
                     </span>
                     <span class="preview-section__total-separator" aria-hidden="true">·</span>
                     <span class="preview-section__total-retries">
-                      {{ t('retrySchedules.preview.retriesCount', { count: previewRows.length }) }}
+                      {{
+                        t(
+                          'retrySchedules.preview.retriesCount',
+                          { count: previewRows.length },
+                          previewRows.length
+                        )
+                      }}
                     </span>
                   </span>
                 </div>
 
-                <div ref="chipContainerRef" class="preview-chips">
+                <div class="preview-chips">
                   <Hook0Tooltip
                     v-for="(row, index) in previewRows"
                     :key="row.retry"
@@ -510,13 +551,19 @@ const pageTitle = computed(() =>
                     position="top"
                   >
                     <span
+                      :ref="
+                        (el) => {
+                          if (index === firstExceedingIndex) {
+                            firstExceedingChipRef = el as HTMLElement | null;
+                          }
+                        }
+                      "
+                      :key="`${row.retry}-${pulseKey}`"
                       class="preview-chips__chip"
                       :class="{
                         'preview-chips__chip--exceeds': row.exceeds,
-                        'preview-chips__chip--highlight':
-                          highlightExceedingChip && index === firstExceedingIndex,
+                        'preview-chips__chip--highlight': index === firstExceedingIndex,
                       }"
-                      :data-exceeding-chip="index === firstExceedingIndex ? 'first' : undefined"
                     >
                       {{ row.wayTooMuch ? t('retrySchedules.preview.overOneYear') : row.delay }}
                     </span>
@@ -545,18 +592,24 @@ const pageTitle = computed(() =>
                     @dragstart="onDragStart(index, $event)"
                     @dragover="onDragOver"
                     @dragenter="onDragEnter(index)"
-                    @dragleave="dragOverIndex = null"
+                    @dragleave="onDragLeave"
                     @drop="onDrop(index)"
                     @dragend="onDragEnd"
                   >
-                    <span
+                    <button
+                      :ref="(el) => setHandleRef(el as Element | null, index)"
+                      type="button"
                       class="custom-chips__handle"
                       :aria-label="
                         t('retrySchedules.customActions.dragHandle', { number: index + 1 })
                       "
+                      @keydown.up.prevent="moveInterval(index, -1)"
+                      @keydown.down.prevent="moveInterval(index, 1)"
+                      @keydown.left.prevent="moveInterval(index, -1)"
+                      @keydown.right.prevent="moveInterval(index, 1)"
                     >
                       <GripVertical :size="12" aria-hidden="true" />
-                    </span>
+                    </button>
                     <input
                       type="text"
                       class="custom-chips__input"
@@ -738,12 +791,20 @@ const pageTitle = computed(() =>
   align-items: center;
   justify-content: center;
   padding: 0.25rem 0.125rem 0.25rem 0.375rem;
+  background: transparent;
+  border: none;
   color: var(--color-text-tertiary);
   cursor: grab;
 }
 
 .custom-chips__handle:active {
   cursor: grabbing;
+}
+
+.custom-chips__handle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+  border-radius: var(--radius-sm);
 }
 
 .custom-chips__duplicate {
