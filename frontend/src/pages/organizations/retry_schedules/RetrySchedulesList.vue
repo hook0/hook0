@@ -1,247 +1,234 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { h, markRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Clock, Pencil, Plus, Trash2 } from 'lucide-vue-next';
-import { toast } from 'vue-sonner';
+import type { ColumnDef } from '@tanstack/vue-table';
+import { Plus, Repeat, Trash2 } from 'lucide-vue-next';
 
-import { useRouteIds } from '@/composables/useRouteIds';
-import { usePermissions } from '@/composables/usePermissions';
-import { handleMutationError } from '@/utils/handleMutationError';
+import { useRetryScheduleList, useRemoveRetrySchedule } from './useRetryScheduleQueries';
+import type { RetrySchedule } from './RetryScheduleService';
 import { routes } from '@/routes';
-
-import { useDeleteRetrySchedule, useRetryScheduleList } from './useRetryScheduleQueries';
-import { useRetryScheduleLimits } from './useRetryScheduleLimits';
-import { computeDelays } from './retryScheduleFormatters';
-import type { RetrySchedule } from './retrySchedule.types';
+import { strategyLabel } from './retryScheduleFormatters';
+import { formatDuration } from '@/utils/formatDuration';
+import { useTracking } from '@/composables/useTracking';
+import { usePermissions } from '@/composables/usePermissions';
+import { useEntityDelete } from '@/composables/useEntityDelete';
+import { useRouteIds } from '@/composables/useRouteIds';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
+import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
+import Hook0Table from '@/components/Hook0Table.vue';
+import Hook0TableCellLink from '@/components/Hook0TableCellLink.vue';
+import Hook0Badge from '@/components/Hook0Badge.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
-import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
-import IntervalChips from './IntervalChips.vue';
+import Hook0Dialog from '@/components/Hook0Dialog.vue';
+
+// Retry schedule list page — shows all schedules for an organization with create/delete actions.
+//
+// How it works:
+// 1. Fetches schedules via TanStack Query, renders table with name/strategy/delay/date columns
+// 2. Delete uses useEntityDelete composable for confirm-then-mutate-then-toast pattern
+// 3. Permissions gate create/delete visibility
 
 const { t } = useI18n();
-const router = useRouter();
+const { trackEvent } = useTracking();
+const { canCreate, canDelete } = usePermissions();
+
 const { organizationId } = useRouteIds();
-const perms = usePermissions();
-
 const { data: schedules, isLoading, error, refetch } = useRetryScheduleList(organizationId);
-const { limits, error: limitsError } = useRetryScheduleLimits();
 
-// Surface /instance errors as a toast — chips fall back to empty if limits are missing.
-watch(limitsError, (err) => {
-  if (err) {
-    toast.error(t('retrySchedules.limitsUnavailable'));
-  }
+const removeMutation = useRemoveRetrySchedule();
+
+// useEntityDelete encapsulates the confirm-then-mutate-then-toast pattern — handles dialog state, async deletion, and feedback
+const {
+  showDeleteDialog,
+  entityToDelete: scheduleToDelete,
+  requestDelete,
+  confirmDelete,
+} = useEntityDelete<RetrySchedule>({
+  deleteFn: (row) =>
+    removeMutation.mutateAsync({
+      retryScheduleId: row.retry_schedule_id,
+      organizationId: organizationId.value,
+    }),
+  successTitle: t('common.success'),
+  successMessage: t('retrySchedules.deleted'),
+  onSuccess: () => trackEvent('retry-schedule', 'delete', 'success'),
 });
 
-function strategyLabel(strategy: RetrySchedule['strategy']): string {
-  switch (strategy) {
-    case 'exponential_increasing':
-      return t('retrySchedules.strategies.exponentialIncreasing');
+function computeDelays(schedule: RetrySchedule): number[] {
+  const max = schedule.max_retries;
+  switch (schedule.strategy) {
+    case 'exponential_increasing': {
+      const bd = schedule.increasing_base_delay ?? 3;
+      const wf = schedule.increasing_wait_factor ?? 3;
+      return Array.from({ length: max }, (_, i) => Math.round(bd * Math.pow(wf, i)));
+    }
     case 'linear':
-      return t('retrySchedules.strategies.linear');
+      return Array.from({ length: max }, () => schedule.linear_delay ?? 60);
     case 'custom':
-      return t('retrySchedules.strategies.custom');
+      return schedule.custom_intervals ?? [];
+    default:
+      return [];
   }
 }
 
-function intervalsFor(schedule: RetrySchedule): number[] {
-  if (!limits.value) return [];
-  return computeDelays(schedule, limits.value);
-}
-
-// Delete confirmation
-const scheduleToDelete = ref<RetrySchedule | null>(null);
-const deleteMutation = useDeleteRetrySchedule();
-
-function confirmDelete(schedule: RetrySchedule) {
-  scheduleToDelete.value = schedule;
-}
-
-function cancelDelete() {
-  scheduleToDelete.value = null;
-}
-
-function executeDelete() {
-  const schedule = scheduleToDelete.value;
-  if (!schedule) return;
-  deleteMutation.mutate(schedule.retry_schedule_id, {
-    onSuccess: () => {
-      toast.success(t('common.success'), {
-        description: t('retrySchedules.deleted', { name: schedule.name }),
+const columns: ColumnDef<RetrySchedule, unknown>[] = [
+  {
+    accessorKey: 'name',
+    header: t('retrySchedules.nameColumn'),
+    enableSorting: true,
+    cell: (info) => {
+      const row = info.row.original;
+      return h(Hook0TableCellLink, {
+        value: row.name,
+        to: {
+          name: routes.RetrySchedulesEdit,
+          params: {
+            organization_id: organizationId.value,
+            retry_schedule_id: row.retry_schedule_id,
+          },
+        },
       });
-      scheduleToDelete.value = null;
     },
-    onError: (err) => handleMutationError(err),
-  });
-}
-
-function goToEdit(scheduleId: string) {
-  void router.push({
-    name: routes.RetrySchedulesEdit,
-    params: { organization_id: organizationId.value, retry_schedule_id: scheduleId },
-  });
-}
-
-function goToNew() {
-  void router.push({
-    name: routes.RetrySchedulesNew,
-    params: { organization_id: organizationId.value },
-  });
-}
+  },
+  {
+    id: 'preview',
+    header: t('retrySchedules.previewColumn'),
+    cell: (info) => {
+      const row = info.row.original;
+      const delays = computeDelays(row);
+      return h('div', { class: 'preview-chips' }, [
+        h(Hook0Badge, { variant: 'info', size: 'sm' }, () => strategyLabel(row.strategy, t)),
+        ...delays.map((s) => h('span', { class: 'preview-chips__chip' }, formatDuration(s))),
+      ]);
+    },
+  },
+  ...(canDelete('retry_schedule')
+    ? [
+        {
+          id: 'actions',
+          header: t('common.actions'),
+          cell: (info: { row: { original: RetrySchedule } }) =>
+            h(Hook0TableCellLink, {
+              value: t('common.delete'),
+              icon: markRaw(Trash2),
+              variant: 'danger',
+              onClick: () => requestDelete(info.row.original),
+            }),
+        } satisfies ColumnDef<RetrySchedule, unknown>,
+      ]
+    : []),
+];
 </script>
 
 <template>
   <Hook0PageLayout :title="t('retrySchedules.title')">
-    <template #actions>
-      <Hook0Button v-if="perms.canCreate('retry_schedule')" variant="primary" @click="goToNew">
-        <Plus :size="14" aria-hidden="true" />
-        {{ t('retrySchedules.new') }}
-      </Hook0Button>
-    </template>
+    <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="refetch()" />
 
-    <!-- Loading/skeleton first (also covers disabled-query state per CLAUDE.md). -->
-    <Hook0Card v-if="isLoading || !schedules">
+    <Hook0Card v-else-if="isLoading || !schedules" data-test="retry-schedules-card">
+      <Hook0CardHeader>
+        <template #header>{{ t('retrySchedules.title') }}</template>
+        <template #subtitle>{{ t('retrySchedules.subtitle') }}</template>
+      </Hook0CardHeader>
       <Hook0CardContent>
-        <Hook0SkeletonGroup :count="3" />
+        <Hook0SkeletonGroup :count="5" />
       </Hook0CardContent>
     </Hook0Card>
 
-    <Hook0ErrorCard v-else-if="error" :error="error" @retry="refetch()" />
+    <Hook0Card v-else data-test="retry-schedules-card">
+      <Hook0CardHeader>
+        <template #header>{{ t('retrySchedules.title') }}</template>
+        <template #subtitle>{{ t('retrySchedules.subtitle') }}</template>
+      </Hook0CardHeader>
 
-    <template v-else-if="schedules">
-      <Hook0Card v-if="schedules.length === 0">
-        <Hook0CardContent>
-          <Hook0EmptyState
-            :title="t('retrySchedules.emptyTitle')"
-            :description="t('retrySchedules.emptyDescription')"
-            :icon="Clock"
-          >
-            <template #action>
-              <Hook0Button
-                v-if="perms.canCreate('retry_schedule')"
-                variant="primary"
-                @click="goToNew"
-              >
-                {{ t('retrySchedules.createFirst') }}
-              </Hook0Button>
-            </template>
-          </Hook0EmptyState>
-        </Hook0CardContent>
-      </Hook0Card>
+      <Hook0CardContent v-if="schedules.length > 0">
+        <Hook0Table
+          data-test="retry-schedules-table"
+          :columns="columns"
+          :data="schedules"
+          row-id-field="retry_schedule_id"
+        />
+      </Hook0CardContent>
 
-      <Hook0Card v-else>
-        <Hook0CardHeader>
-          <template #header>{{ t('retrySchedules.listHeader') }}</template>
-          <template #subtitle>{{ t('retrySchedules.listSubtitle') }}</template>
-        </Hook0CardHeader>
-        <Hook0CardContent>
-          <table class="schedules-table">
-            <thead>
-              <tr>
-                <th>{{ t('retrySchedules.columns.name') }}</th>
-                <th>{{ t('retrySchedules.columns.strategy') }}</th>
-                <th>{{ t('retrySchedules.columns.maxRetries') }}</th>
-                <th>{{ t('retrySchedules.columns.intervals') }}</th>
-                <th class="schedules-table__actions-col">{{ t('common.actions') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="schedule in schedules"
-                :key="schedule.retry_schedule_id"
-                class="schedules-table__row"
-              >
-                <td>{{ schedule.name }}</td>
-                <td>{{ strategyLabel(schedule.strategy) }}</td>
-                <td>{{ schedule.max_retries }}</td>
-                <td>
-                  <IntervalChips :values="intervalsFor(schedule)" :max="8" />
-                </td>
-                <td class="schedules-table__actions">
-                  <Hook0Button
-                    v-if="perms.canEdit('retry_schedule')"
-                    variant="ghost"
-                    type="button"
-                    :aria-label="t('common.edit')"
-                    @click="goToEdit(schedule.retry_schedule_id)"
-                  >
-                    <Pencil :size="14" aria-hidden="true" />
-                  </Hook0Button>
-                  <Hook0Button
-                    v-if="perms.canDelete('retry_schedule')"
-                    variant="ghost"
-                    type="button"
-                    :aria-label="t('common.delete')"
-                    @click="confirmDelete(schedule)"
-                  >
-                    <Trash2 :size="14" aria-hidden="true" />
-                  </Hook0Button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </Hook0CardContent>
-      </Hook0Card>
-    </template>
+      <Hook0CardContent v-else>
+        <Hook0EmptyState
+          :title="t('retrySchedules.empty.title')"
+          :description="t('retrySchedules.empty.description')"
+          :icon="Repeat"
+        >
+          <template v-if="canCreate('retry_schedule')" #action>
+            <Hook0Button
+              variant="primary"
+              :to="{
+                name: routes.RetrySchedulesNew,
+                params: { organization_id: organizationId },
+              }"
+            >
+              <template #left>
+                <Plus :size="16" aria-hidden="true" />
+              </template>
+              {{ t('retrySchedules.empty.cta') }}
+            </Hook0Button>
+          </template>
+        </Hook0EmptyState>
+      </Hook0CardContent>
+
+      <Hook0CardFooter v-if="schedules.length > 0 && canCreate('retry_schedule')">
+        <Hook0Button
+          variant="primary"
+          :to="{
+            name: routes.RetrySchedulesNew,
+            params: { organization_id: organizationId },
+          }"
+        >
+          <template #left>
+            <Plus :size="16" aria-hidden="true" />
+          </template>
+          {{ t('retrySchedules.create') }}
+        </Hook0Button>
+      </Hook0CardFooter>
+    </Hook0Card>
 
     <Hook0Dialog
-      :open="scheduleToDelete !== null"
+      :open="showDeleteDialog"
       variant="danger"
-      :title="t('retrySchedules.deleteTitle')"
-      :confirm-text="t('common.delete')"
-      @close="cancelDelete"
-      @confirm="executeDelete"
+      :title="t('retrySchedules.delete')"
+      @close="
+        showDeleteDialog = false;
+        scheduleToDelete = null;
+      "
+      @confirm="confirmDelete()"
     >
-      <p>{{ t('retrySchedules.deleteConfirm', { name: scheduleToDelete?.name ?? '' }) }}</p>
+      <p>{{ t('retrySchedules.deleteConfirm') }}</p>
     </Hook0Dialog>
   </Hook0PageLayout>
 </template>
 
 <style scoped>
-.schedules-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8125rem;
-}
-
-.schedules-table thead th {
-  text-align: left;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-text-tertiary);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.schedules-table tbody td {
-  padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-  vertical-align: middle;
-}
-
-.schedules-table__row:hover td {
-  background-color: var(--color-bg-secondary);
-}
-
-.schedules-table__actions-col {
-  width: 1%;
-  text-align: right;
-}
-
-.schedules-table__actions {
+/* :deep() required because these elements are rendered via h() inside Hook0Table's cell slots */
+:deep(.preview-chips) {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
-  justify-content: flex-end;
+  align-items: center;
+}
+
+:deep(.preview-chips__chip) {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  font-variant-numeric: tabular-nums;
 }
 </style>

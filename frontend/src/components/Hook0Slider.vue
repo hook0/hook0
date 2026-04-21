@@ -1,182 +1,264 @@
 <script setup lang="ts">
-import { computed, ref, useId, watch } from 'vue';
+// Generic range slider with label, formatted display value, and error state. Uses a CSS custom property (--progress) to paint the filled track portion.
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { parseDuration } from '@/utils/parseDuration';
+
+const { t } = useI18n();
 
 type Props = {
-  label: string;
+  modelValue: number;
   min: number;
   max: number;
   step?: number;
-  unit?: string;
-  helpText?: string;
+  label?: string;
+  hideLabel?: boolean;
   error?: string;
+  formatValue?: (value: number) => string;
+  editable?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
   step: 1,
-  unit: undefined,
-  helpText: undefined,
+  label: undefined,
+  hideLabel: false,
   error: undefined,
+  formatValue: undefined,
+  editable: false,
 });
 
-function clamp(v: number, min: number, max: number): number {
-  if (Number.isNaN(v)) return min;
-  return Math.min(Math.max(v, min), max);
+const emit = defineEmits<{
+  'update:modelValue': [value: number];
+}>();
+
+const displayValue = computed(() =>
+  props.formatValue ? props.formatValue(props.modelValue) : String(props.modelValue)
+);
+
+const range = computed(() => props.max - props.min);
+// Feeds the --progress CSS custom property — the linear-gradient uses it to paint filled vs unfilled track
+const progress = computed(() =>
+  // Guard: if min === max the track is degenerate — default to 0% to avoid NaN
+  range.value === 0 ? 0 : ((props.modelValue - props.min) / range.value) * 100
+);
+
+function onInput(event: Event) {
+  const target = event.target as HTMLInputElement;
+  emit('update:modelValue', Number(target.value));
 }
 
-const model = defineModel<number>({ required: true });
-const id = `hook0-slider-${useId()}`;
+// Inline text editing — lets users type exact values like "1h30min" instead of dragging the slider
+const isEditing = ref(false);
+const editText = ref('');
+const editError = ref(false);
+const editErrorMessage = ref('');
 
-/** Range input writes back through clamp on every change. */
-const clampedModel = computed({
-  get: () => model.value,
-  set: (v) => {
-    model.value = clamp(v, props.min, props.max);
-  },
-});
-
-// Typing buffer decoupled from model: "1" with min=10 is not clamped mid-typing.
-// Clamp commits on blur/change.
-const buffer = ref<string>(String(model.value));
-// Don't clobber in-flight typing when the range input mutates `model` concurrently.
-const isFocused = ref(false);
-watch(model, (v) => {
-  if (!isFocused.value) buffer.value = String(v);
-});
-
-function commitBuffer() {
-  const parsed = Number(buffer.value);
-  const next = clamp(parsed, props.min, props.max);
-  model.value = next;
-  buffer.value = String(next);
-  isFocused.value = false;
+function startEditing() {
+  if (!props.editable) {
+    return;
+  }
+  editText.value = displayValue.value;
+  editError.value = false;
+  editErrorMessage.value = '';
+  isEditing.value = true;
 }
 
-function onFocus() {
-  isFocused.value = true;
+function confirmEdit() {
+  const parsed = parseDuration(editText.value);
+  if (parsed === null) {
+    editError.value = true;
+    editErrorMessage.value = t('slider.formatHint');
+    return;
+  }
+  if (parsed < props.min || parsed > props.max) {
+    editError.value = true;
+    editErrorMessage.value = t('slider.rangeError', {
+      min: props.formatValue?.(props.min) ?? props.min,
+      max: props.formatValue?.(props.max) ?? props.max,
+    });
+    return;
+  }
+  emit('update:modelValue', parsed);
+  isEditing.value = false;
+  editError.value = false;
+}
+
+function cancelEdit() {
+  isEditing.value = false;
+  editError.value = false;
 }
 </script>
 
 <template>
-  <div class="slider-row">
-    <label :for="id" class="slider-row__label">{{ label }}</label>
-    <div class="slider-row__inputs">
-      <input
-        :id="id"
-        v-model.number="clampedModel"
-        type="range"
-        :min="min"
-        :max="max"
-        :step="step"
-        :aria-label="label"
-        class="slider-row__range"
-      />
-      <div class="slider-row__number-wrap">
+  <div class="hook0-slider">
+    <div v-if="label && !hideLabel" class="hook0-slider__header">
+      <label class="hook0-slider__label">{{ label }}</label>
+      <div v-if="isEditing" class="hook0-slider__edit-wrapper">
         <input
-          v-model="buffer"
-          type="number"
-          :min="min"
-          :max="max"
-          :step="step"
-          :aria-label="`${label} (number input)`"
-          class="slider-row__number"
-          @focus="onFocus"
-          @blur="commitBuffer"
-          @change="commitBuffer"
+          v-model="editText"
+          class="hook0-slider__edit-input"
+          :class="{ 'hook0-slider__edit-input--error': editError }"
+          :aria-label="label"
+          autofocus
+          @keydown.enter="confirmEdit"
+          @keydown.escape="cancelEdit"
+          @blur="confirmEdit"
         />
-        <span v-if="unit" class="slider-row__unit">{{ unit }}</span>
+        <p v-if="editError" class="hook0-slider__edit-error">{{ editErrorMessage }}</p>
       </div>
+      <span
+        v-else
+        class="hook0-slider__value"
+        :class="{ 'hook0-slider__value--editable': editable }"
+        :tabindex="editable ? 0 : undefined"
+        :role="editable ? 'button' : undefined"
+        :aria-label="editable ? t('slider.editValueLabel', { label }) : undefined"
+        @click="startEditing"
+        @keydown.enter="startEditing"
+      >
+        {{ displayValue }}
+      </span>
     </div>
-    <p v-if="helpText" class="slider-row__help">{{ helpText }}</p>
-    <p v-if="error" class="slider-row__error">{{ error }}</p>
+    <input
+      type="range"
+      class="hook0-slider__input"
+      :min="min"
+      :max="max"
+      :step="step"
+      :value="modelValue"
+      :style="{ '--progress': progress + '%' }"
+      :aria-label="label"
+      :aria-valuenow="modelValue"
+      :aria-valuemin="min"
+      :aria-valuemax="max"
+      @input="onInput"
+    />
+    <p v-if="error" class="hook0-slider__error">{{ error }}</p>
   </div>
 </template>
 
 <style scoped>
-.slider-row {
+.hook0-slider {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
-.slider-row__label {
-  font-size: 0.8125rem;
-  font-weight: 500;
+.hook0-slider__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.hook0-slider__label {
+  font-size: 0.875rem;
+  font-weight: 600;
   color: var(--color-text-primary);
 }
 
-.slider-row__inputs {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+.hook0-slider__value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
 }
 
-.slider-row__range {
-  flex: 1;
-  min-width: 0;
-  height: 2.5rem;
-  accent-color: var(--color-primary);
-  transition: opacity 0.15s ease;
+.hook0-slider__input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    to right,
+    var(--color-primary) 0%,
+    var(--color-primary) var(--progress),
+    var(--color-border) var(--progress),
+    var(--color-border) 100%
+  );
+  outline: none;
+  cursor: pointer;
 }
 
-.slider-row__range:focus-visible {
+.hook0-slider__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-primary);
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+}
+
+.hook0-slider__input::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 4px var(--color-primary-light);
+}
+
+.hook0-slider__input:focus-visible::-webkit-slider-thumb {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
 }
 
-.slider-row__number-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.375rem 0.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-bg-primary);
-  transition: border-color 0.15s ease;
+.hook0-slider__input::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-primary);
+  cursor: pointer;
 }
 
-.slider-row__number-wrap:focus-within {
-  border-color: var(--color-primary);
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-.slider-row__number {
-  width: 4.5rem;
-  padding: 0;
-  border: none;
-  background: transparent;
-  font-family: var(--font-mono);
+.hook0-slider__error {
   font-size: 0.8125rem;
-  color: var(--color-text-primary);
-  text-align: right;
-}
-
-.slider-row__number:focus {
-  outline: none;
-}
-
-.slider-row__unit {
-  font-size: 0.75rem;
-  color: var(--color-text-tertiary);
-}
-
-.slider-row__help {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--color-text-tertiary);
-}
-
-.slider-row__error {
-  margin: 0;
-  font-size: 0.75rem;
   color: var(--color-error);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .slider-row__range,
-  .slider-row__number-wrap {
-    transition: none;
-  }
+.hook0-slider__value--editable {
+  cursor: text;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.hook0-slider__value--editable:hover {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.hook0-slider__edit-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.125rem;
+}
+
+.hook0-slider__edit-input {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+  background: none;
+  border: none;
+  border-bottom: 2px solid var(--color-primary);
+  outline: none;
+  width: 6rem;
+  text-align: right;
+  padding: 0;
+}
+
+.hook0-slider__edit-input--error {
+  border-bottom-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.hook0-slider__edit-input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.hook0-slider__edit-error {
+  font-size: 0.6875rem;
+  color: var(--color-error);
+  margin: 0;
 }
 </style>

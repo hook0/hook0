@@ -1,423 +1,682 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { useForm } from 'vee-validate';
+import { Zap, Timer, ListOrdered } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
-import { Plus } from 'lucide-vue-next';
-
-import { useRouteIds } from '@/composables/useRouteIds';
-import { usePermissions } from '@/composables/usePermissions';
-import { handleMutationError } from '@/utils/handleMutationError';
-import { routes } from '@/routes';
 
 import {
-  useCreateRetrySchedule,
+  createRetryScheduleSchema,
+  type RetryScheduleFormValues,
+  MAX_RETRIES,
+  MAX_INTERVAL_SECONDS,
+  SLIDER_MAX_BASE_DELAY,
+  SLIDER_MAX_LINEAR_DELAY,
+} from './retrySchedule.schema';
+import { toTypedSchema } from '@/utils/zod-adapter';
+import { handleMutationError } from '@/utils/handleMutationError';
+import { formatDuration } from '@/utils/formatDuration';
+import { parseDuration } from '@/utils/parseDuration';
+import {
   useRetryScheduleDetail,
+  useCreateRetrySchedule,
   useUpdateRetrySchedule,
 } from './useRetryScheduleQueries';
-import { useRetryScheduleLimits } from './useRetryScheduleLimits';
-import type { RetrySchedulePayload, RetryStrategy } from './retrySchedule.types';
+import { routes } from '@/routes';
+import { useRouteIds } from '@/composables/useRouteIds';
+import { useTracking } from '@/composables/useTracking';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
 import Hook0CardFooter from '@/components/Hook0CardFooter.vue';
-import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0Form from '@/components/Hook0Form.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
-import Hook0Select from '@/components/Hook0Select.vue';
-import Hook0Slider from '@/components/Hook0Slider.vue';
+import Hook0Button from '@/components/Hook0Button.vue';
 import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
-import Hook0CardSkeleton from '@/components/Hook0CardSkeleton.vue';
-import IntervalChips from './IntervalChips.vue';
+import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
+import Hook0Slider from '@/components/Hook0Slider.vue';
+import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
+import SelectableCard from '@/components/SelectableCard.vue';
+
+// Retry schedule create/edit form.
+//
+// How it works:
+// 1. Detects create vs edit from route params (retryScheduleId presence)
+// 2. Three strategy branches (increasing/linear/custom) show different slider/input fields
+// 3. cleanPayload() nulls out fields irrelevant to the chosen strategy before submission — the API rejects mixed fields
+// 4. Preview chips compute the actual delay sequence so users see what they're configuring
 
 const { t } = useI18n();
+const { trackEvent } = useTracking();
 const router = useRouter();
 const { organizationId, retryScheduleId } = useRouteIds();
-const perms = usePermissions();
+const isNew = computed(() => !retryScheduleId.value);
 
-const isEdit = computed(() => !!retryScheduleId.value);
-const canSubmit = computed(() =>
-  isEdit.value ? perms.canEdit('retry_schedule') : perms.canCreate('retry_schedule')
+const {
+  data: scheduleData,
+  isLoading,
+  error,
+  refetch,
+} = useRetryScheduleDetail(retryScheduleId, organizationId);
+
+const createMutation = useCreateRetrySchedule();
+const updateMutation = useUpdateRetrySchedule();
+
+const { errors, defineField, handleSubmit, resetForm } = useForm({
+  validationSchema: toTypedSchema(createRetryScheduleSchema()),
+  initialValues: {
+    name: '',
+    strategy: 'exponential_increasing' as const,
+    max_retries: 8,
+    linear_delay: 300,
+    custom_intervals: [],
+    increasing_base_delay: 10,
+    increasing_wait_factor: 3,
+  },
+});
+
+const [name, nameAttrs] = defineField('name');
+const [strategy] = defineField('strategy');
+const [maxRetries] = defineField('max_retries');
+const [linearDelay] = defineField('linear_delay');
+const [customIntervals] = defineField('custom_intervals');
+const [increasingBaseDelay] = defineField('increasing_base_delay');
+const [increasingWaitFactor] = defineField('increasing_wait_factor');
+
+// VeeValidate fields can be undefined between resets — these computed refs prevent template crashes by providing type-safe fallbacks
+const strategyValue = computed(() => strategy.value ?? 'exponential_increasing');
+const maxRetriesValue = computed(() => Number(maxRetries.value) || 0);
+const linearDelayValue = computed(() => Number(linearDelay.value) || 0);
+const customIntervalsValue = computed((): number[] =>
+  Array.isArray(customIntervals.value) ? customIntervals.value.map(Number) : []
+);
+const increasingBaseDelayValue = computed(() => Number(increasingBaseDelay.value) || 10);
+const increasingWaitFactorValue = computed(() => Number(increasingWaitFactor.value) || 3);
+
+// Custom strategy derives max_retries from the intervals array — the API rejects payloads where they disagree, so we keep them in lockstep
+watch(
+  () => customIntervalsValue.value.length,
+  (len) => {
+    if (strategyValue.value === 'custom' && len > 0) {
+      maxRetries.value = len;
+    }
+  }
 );
 
-const { limits } = useRetryScheduleLimits();
-
-const detailQuery = useRetryScheduleDetail(retryScheduleId);
-
-// Form state
-const name = ref('');
-const strategy = ref<RetryStrategy>('exponential_increasing');
-const maxRetries = ref(5);
-const baseDelay = ref(60);
-const waitFactor = ref(2);
-const linearDelay = ref(60);
-const customIntervals = ref<number[]>([30, 120, 600]);
-const newIntervalValue = ref<number | null>(null);
-// Submit-time errors for the whole form (bottom banner).
-const formError = ref<string | null>(null);
-// Inline error next to the `addInterval` input — keeps range feedback in the viewport.
-const intervalError = ref<string | null>(null);
-
-// Populate form when editing
+// When the query resolves (edit mode), hydrate the form — without this, the user sees blank fields even though data loaded
 watch(
-  () => detailQuery.data.value,
-  (schedule) => {
-    if (!schedule) return;
-    name.value = schedule.name;
-    strategy.value = schedule.strategy;
-    maxRetries.value = schedule.max_retries;
-    if (schedule.strategy === 'exponential_increasing') {
-      baseDelay.value = schedule.increasing_base_delay ?? 60;
-      waitFactor.value = schedule.increasing_wait_factor ?? 2;
-    } else if (schedule.strategy === 'linear') {
-      linearDelay.value = schedule.linear_delay ?? 60;
-    } else {
-      customIntervals.value = [...(schedule.custom_intervals ?? [])];
+  scheduleData,
+  (data) => {
+    if (data) {
+      resetForm({
+        values: {
+          name: data.name,
+          strategy: data.strategy,
+          max_retries: data.max_retries,
+          linear_delay: data.linear_delay,
+          custom_intervals: data.custom_intervals ?? [],
+          increasing_base_delay: data.increasing_base_delay ?? 3,
+          increasing_wait_factor: data.increasing_wait_factor ?? 3,
+        },
+      });
     }
   },
   { immediate: true }
 );
 
-// Initialize defaults once when limits arrive — do NOT clobber user edits on refetch.
-const didInit = ref(false);
-watch(
-  limits,
-  (lim) => {
-    if (!lim || isEdit.value || didInit.value) return;
-    maxRetries.value = Math.min(5, lim.max_retries);
-    baseDelay.value = Math.max(lim.exponential_base_delay_min_secs, 60);
-    waitFactor.value = Math.max(lim.exponential_wait_factor_min, 2);
-    linearDelay.value = Math.max(lim.min_single_delay_secs, 60);
-    didInit.value = true;
-  },
-  { immediate: true }
-);
-
-function addInterval() {
-  const lim = limits.value;
-  if (newIntervalValue.value === null || !lim) return;
-  const value = newIntervalValue.value;
-  if (value < lim.min_single_delay_secs || value > lim.max_single_delay_secs) {
-    intervalError.value = t('retrySchedules.validation.intervalOutOfRange', {
-      min: lim.min_single_delay_secs,
-      max: lim.max_single_delay_secs,
-    });
-    return;
-  }
-  if (customIntervals.value.length >= lim.max_custom_intervals_length) return;
-  customIntervals.value.push(value);
-  newIntervalValue.value = null;
-  intervalError.value = null;
-}
-
-function removeInterval(index: number) {
-  customIntervals.value.splice(index, 1);
-  intervalError.value = null;
-}
-
-function buildPayload(): RetrySchedulePayload | null {
-  const trimmed = name.value.trim();
-  if (!trimmed) {
-    formError.value = t('retrySchedules.validation.nameRequired');
-    return null;
-  }
-  switch (strategy.value) {
+/**
+ * Strips fields that don't belong to the selected strategy.
+ * The API validates that only the active strategy's fields are non-null —
+ * sending stale values from a previously selected strategy causes a 422.
+ *
+ * @example
+ * cleanPayload({ strategy: 'linear', linear_delay: 60, ... }, 'org-1')
+ * // => { ...base, linear_delay: 60, custom_intervals: null, increasing_base_delay: null, ... }
+ */
+function cleanPayload(values: RetryScheduleFormValues, orgId: string) {
+  const base = {
+    organization_id: orgId,
+    name: values.name,
+    strategy: values.strategy,
+    max_retries: values.max_retries,
+  };
+  switch (values.strategy) {
     case 'exponential_increasing':
       return {
-        name: trimmed,
-        strategy: 'exponential_increasing',
-        max_retries: maxRetries.value,
-        increasing_base_delay: baseDelay.value,
-        increasing_wait_factor: waitFactor.value,
+        ...base,
+        increasing_base_delay: values.increasing_base_delay ?? undefined,
+        increasing_wait_factor: values.increasing_wait_factor ?? undefined,
       };
     case 'linear':
       return {
-        name: trimmed,
-        strategy: 'linear',
-        max_retries: maxRetries.value,
-        linear_delay: linearDelay.value,
+        ...base,
+        linear_delay: values.linear_delay ?? undefined,
       };
     case 'custom':
-      if (customIntervals.value.length === 0) {
-        formError.value = t('retrySchedules.validation.intervalsRequired');
-        return null;
-      }
       return {
-        name: trimmed,
-        strategy: 'custom',
-        // Backend requires max_retries == custom_intervals.len() for the custom strategy.
-        max_retries: customIntervals.value.length,
-        custom_intervals: [...customIntervals.value],
+        ...base,
+        custom_intervals: values.custom_intervals ?? undefined,
+        max_retries: (values.custom_intervals ?? []).length,
       };
   }
 }
 
-const createMutation = useCreateRetrySchedule();
-const updateMutation = useUpdateRetrySchedule();
-
-function handleSubmit() {
-  formError.value = null;
-  const payload = buildPayload();
-  if (!payload) return;
-
-  const target = {
-    name: routes.RetrySchedulesList,
-    params: { organization_id: organizationId.value },
-  };
-
-  if (isEdit.value) {
-    updateMutation.mutate(
-      { retryScheduleId: retryScheduleId.value, payload },
-      {
-        onSuccess: () => {
-          toast.success(t('common.success'), { description: t('retrySchedules.updated') });
-          void router.push(target);
-        },
-        onError: (err) => handleMutationError(err),
-      }
-    );
+const onSubmit = handleSubmit((values) => {
+  if (hasExceedingRetries.value) return;
+  const payload = cleanPayload(values, organizationId.value);
+  if (isNew.value) {
+    createMutation.mutate(payload, {
+      onSuccess: () => {
+        trackEvent('retry-schedule', 'create', 'success');
+        toast.success(t('common.success'), {
+          description: t('retrySchedules.created'),
+          duration: 3000,
+        });
+        void router.push({
+          name: routes.RetrySchedulesList,
+          params: { organization_id: organizationId.value },
+        });
+      },
+      onError: (err) => handleMutationError(err),
+    });
   } else {
-    createMutation.mutate(
-      { organization_id: organizationId.value, ...payload },
+    const { organization_id: _, ...schedule } = payload;
+    updateMutation.mutate(
+      {
+        retryScheduleId: retryScheduleId.value,
+        organizationId: organizationId.value,
+        schedule,
+      },
       {
         onSuccess: () => {
-          toast.success(t('common.success'), { description: t('retrySchedules.created') });
-          void router.push(target);
+          trackEvent('retry-schedule', 'update', 'success');
+          toast.success(t('common.success'), {
+            description: t('retrySchedules.updated'),
+            duration: 3000,
+          });
+          void router.push({
+            name: routes.RetrySchedulesList,
+            params: { organization_id: organizationId.value },
+          });
         },
         onError: (err) => handleMutationError(err),
       }
     );
   }
+});
+
+function addInterval() {
+  const current = customIntervalsValue.value;
+  const last = current.length > 0 ? current[current.length - 1] : 60;
+  const next = Math.min(last * 2, MAX_INTERVAL_SECONDS);
+  customIntervals.value = [...current, next];
 }
 
-function handleCancel() {
-  void router.push({
-    name: routes.RetrySchedulesList,
-    params: { organization_id: organizationId.value },
+function removeInterval(index: number) {
+  const current = customIntervalsValue.value;
+  customIntervals.value = current.filter((_, i) => i !== index);
+}
+
+function updateInterval(index: number, value: string) {
+  const current = [...customIntervalsValue.value];
+  current[index] = Math.min(Math.max(Number(value) || 1, 1), MAX_INTERVAL_SECONDS);
+  customIntervals.value = current;
+}
+
+type PreviewRow = {
+  retry: number;
+  delaySecs: number;
+  delay: string;
+  cumulative: string;
+  exceeds: boolean;
+  wayTooMuch: boolean;
+};
+
+function buildPreviewRows(delaySecs: number[]): PreviewRow[] {
+  let cumulative = 0;
+  return delaySecs.map((s, i) => {
+    cumulative += s;
+    return {
+      retry: i + 1,
+      delaySecs: s,
+      delay: formatDuration(s),
+      cumulative: formatDuration(cumulative),
+      exceeds: s > MAX_INTERVAL_SECONDS,
+      wayTooMuch: s > 365 * 86400,
+    };
   });
 }
 
-const isSubmitting = computed(
-  () => createMutation.isPending.value || updateMutation.isPending.value
-);
+const previewRows = computed(() => {
+  const strat = strategyValue.value;
+  const max = maxRetriesValue.value;
+  if (strat === 'exponential_increasing') {
+    const bd = increasingBaseDelayValue.value;
+    const wf = increasingWaitFactorValue.value;
+    const delays = Array.from({ length: max }, (_, i) => Math.round(bd * Math.pow(wf, i)));
+    return buildPreviewRows(delays);
+  }
+  if (strat === 'linear') {
+    const d = linearDelayValue.value;
+    const delays = Array.from({ length: max }, () => d);
+    return buildPreviewRows(delays);
+  }
+  if (strat === 'custom') {
+    return buildPreviewRows(customIntervalsValue.value);
+  }
+  // Unreachable unless a new strategy is added without updating this switch
+  return [];
+});
 
-const title = computed(() =>
-  isEdit.value ? t('retrySchedules.editTitle') : t('retrySchedules.newTitle')
-);
+const hasExceedingRetries = computed(() => previewRows.value.some((r) => r.exceeds));
+const firstExceedingRetry = computed(() => {
+  const row = previewRows.value.find((r) => r.exceeds);
+  return row ? row.retry : 0;
+});
 
-const strategyOptions = computed(() => [
-  {
-    value: 'exponential_increasing',
-    label: t('retrySchedules.strategies.exponentialIncreasing'),
-  },
-  { value: 'linear', label: t('retrySchedules.strategies.linear') },
-  { value: 'custom', label: t('retrySchedules.strategies.custom') },
-]);
+const pageTitle = computed(() =>
+  isNew.value ? t('retrySchedules.create') : t('retrySchedules.edit')
+);
 </script>
 
 <template>
-  <Hook0PageLayout :title="title">
-    <!-- Skeleton first also covers the disabled-query state per CLAUDE.md. -->
-    <Hook0CardSkeleton v-if="isEdit && detailQuery.isLoading.value && !detailQuery.data.value" />
+  <Hook0PageLayout :title="pageTitle">
+    <Hook0ErrorCard v-if="error && !isLoading && !isNew" :error="error" @retry="refetch()" />
 
-    <Hook0ErrorCard
-      v-else-if="isEdit && detailQuery.error.value"
-      :error="detailQuery.error.value"
-      @retry="detailQuery.refetch()"
-    />
+    <Hook0Card v-else-if="!isNew && (isLoading || !scheduleData)">
+      <Hook0CardContent>
+        <Hook0SkeletonGroup :count="5" />
+      </Hook0CardContent>
+    </Hook0Card>
 
     <template v-else>
-      <form @submit.prevent="handleSubmit">
+      <Hook0Form data-test="retry-schedule-form" @submit="onSubmit">
         <Hook0Card>
           <Hook0CardHeader>
-            <template #header>{{ t('retrySchedules.cardHeader') }}</template>
-            <template #subtitle>{{ t('retrySchedules.cardSubtitle') }}</template>
+            <template #header>{{ pageTitle }}</template>
+            <template #subtitle>{{ t('retrySchedules.aboutDescription') }}</template>
           </Hook0CardHeader>
+
           <Hook0CardContent>
-            <div class="form-grid">
+            <div class="form-fields">
               <Hook0Input
                 v-model="name"
+                v-bind="nameAttrs"
                 :label="t('retrySchedules.fields.name')"
                 :placeholder="t('retrySchedules.fields.namePlaceholder')"
-                maxlength="200"
-                required
+                :error="errors.name"
+                data-test="retry-schedule-name-input"
               />
 
-              <Hook0Select
-                v-model="strategy"
-                :label="t('retrySchedules.fields.strategy')"
-                :options="strategyOptions"
-              />
-
-              <!-- Exponential fields -->
-              <template v-if="strategy === 'exponential_increasing' && limits">
-                <Hook0Slider
-                  v-model="maxRetries"
-                  :label="t('retrySchedules.fields.maxRetries')"
-                  :min="1"
-                  :max="limits.max_retries"
-                  :unit="t('common.units.retries')"
-                />
-                <Hook0Slider
-                  v-model="baseDelay"
-                  :label="t('retrySchedules.fields.baseDelay')"
-                  :min="limits.exponential_base_delay_min_secs"
-                  :max="limits.exponential_base_delay_max_secs"
-                  :unit="t('common.units.seconds')"
-                  :help-text="t('retrySchedules.help.baseDelay')"
-                />
-                <Hook0Slider
-                  v-model="waitFactor"
-                  :label="t('retrySchedules.fields.waitFactor')"
-                  :min="limits.exponential_wait_factor_min"
-                  :max="limits.exponential_wait_factor_max"
-                  :step="0.1"
-                  :help-text="t('retrySchedules.help.waitFactor')"
-                />
-              </template>
-
-              <!-- Linear fields -->
-              <template v-if="strategy === 'linear' && limits">
-                <Hook0Slider
-                  v-model="maxRetries"
-                  :label="t('retrySchedules.fields.maxRetries')"
-                  :min="1"
-                  :max="limits.max_retries"
-                  :unit="t('common.units.retries')"
-                />
-                <Hook0Slider
-                  v-model="linearDelay"
-                  :label="t('retrySchedules.fields.linearDelay')"
-                  :min="limits.min_single_delay_secs"
-                  :max="limits.max_single_delay_secs"
-                  :unit="t('common.units.seconds')"
-                  :help-text="t('retrySchedules.help.linearDelay')"
-                />
-              </template>
-
-              <!-- Custom intervals — no "preview" block; the chips are the preview. -->
-              <template v-if="strategy === 'custom' && limits">
-                <div class="custom-intervals">
-                  <label class="custom-intervals__label">
-                    {{ t('retrySchedules.fields.intervals') }}
-                  </label>
-                  <p class="custom-intervals__help">
-                    {{
-                      t('retrySchedules.help.intervals', {
-                        max: limits.max_custom_intervals_length,
-                      })
-                    }}
-                  </p>
-                  <IntervalChips :values="customIntervals" removable @remove="removeInterval" />
-                  <div class="custom-intervals__add">
-                    <!-- Enter adds a chip instead of submitting the outer form. -->
-                    <input
-                      v-model.number="newIntervalValue"
-                      type="number"
-                      :min="limits.min_single_delay_secs"
-                      :max="limits.max_single_delay_secs"
-                      :placeholder="t('retrySchedules.fields.intervalPlaceholder')"
-                      :aria-label="t('retrySchedules.fields.intervals')"
-                      class="custom-intervals__input"
-                      @keydown.enter.prevent="addInterval"
-                    />
-                    <Hook0Button
-                      variant="secondary"
-                      type="button"
-                      :disabled="
-                        newIntervalValue === null ||
-                        customIntervals.length >= limits.max_custom_intervals_length
-                      "
-                      @click="addInterval"
-                    >
-                      <Plus :size="14" aria-hidden="true" />
-                      {{ t('common.add') }}
-                    </Hook0Button>
-                  </div>
-                  <p v-if="intervalError" class="custom-intervals__error" role="alert">
-                    {{ intervalError }}
-                  </p>
+              <fieldset class="form-fields__group form-fields__group--no-border">
+                <legend class="form-fields__label">
+                  {{ t('retrySchedules.fields.strategy') }}
+                </legend>
+                <div class="strategy-cards">
+                  <SelectableCard
+                    :model-value="strategyValue === 'exponential_increasing'"
+                    :label="t('retrySchedules.strategyIncreasing')"
+                    :description="t('retrySchedules.fields.strategyIncreasingDesc')"
+                    :icon="Zap"
+                    name="strategy"
+                    @update:model-value="strategy = 'exponential_increasing'"
+                  />
+                  <SelectableCard
+                    :model-value="strategyValue === 'linear'"
+                    :label="t('retrySchedules.strategyLinear')"
+                    :description="t('retrySchedules.fields.strategyLinearDesc')"
+                    :icon="Timer"
+                    name="strategy"
+                    @update:model-value="strategy = 'linear'"
+                  />
+                  <SelectableCard
+                    :model-value="strategyValue === 'custom'"
+                    :label="t('retrySchedules.strategyCustom')"
+                    :description="t('retrySchedules.fields.strategyCustomDesc')"
+                    :icon="ListOrdered"
+                    name="strategy"
+                    @update:model-value="strategy = 'custom'"
+                  />
                 </div>
-              </template>
+              </fieldset>
 
-              <p v-if="formError" class="form-error">{{ formError }}</p>
+              <div v-if="strategyValue === 'exponential_increasing'" class="slider-row">
+                <Hook0Slider
+                  :model-value="increasingBaseDelayValue"
+                  :min="1"
+                  :max="SLIDER_MAX_BASE_DELAY"
+                  :label="t('retrySchedules.fields.increasingBaseDelay')"
+                  :format-value="formatDuration"
+                  :editable="true"
+                  :error="errors.increasing_base_delay"
+                  @update:model-value="increasingBaseDelay = $event"
+                />
+                <Hook0Slider
+                  :model-value="increasingWaitFactorValue"
+                  :min="1.5"
+                  :max="10"
+                  :step="0.01"
+                  :label="t('retrySchedules.fields.increasingWaitFactor')"
+                  :format-value="(v: number) => '×' + v.toFixed(2)"
+                  :error="errors.increasing_wait_factor"
+                  @update:model-value="increasingWaitFactor = $event"
+                />
+                <Hook0Slider
+                  :model-value="maxRetriesValue"
+                  :min="1"
+                  :max="MAX_RETRIES"
+                  :label="t('retrySchedules.fields.maxRetries')"
+                  :error="errors.max_retries"
+                  @update:model-value="maxRetries = $event"
+                />
+              </div>
+
+              <!-- Linear: both sliders grouped before preview -->
+              <div v-if="strategyValue === 'linear'" class="slider-row slider-row--two">
+                <Hook0Slider
+                  :model-value="linearDelayValue"
+                  :min="1"
+                  :max="SLIDER_MAX_LINEAR_DELAY"
+                  :step="1"
+                  :label="t('retrySchedules.fields.linearDelay')"
+                  :format-value="formatDuration"
+                  :editable="true"
+                  :error="errors.linear_delay"
+                  @update:model-value="linearDelay = $event"
+                />
+                <Hook0Slider
+                  :model-value="maxRetriesValue"
+                  :min="1"
+                  :max="MAX_RETRIES"
+                  :label="t('retrySchedules.fields.maxRetries')"
+                  :error="errors.max_retries"
+                  @update:model-value="maxRetries = $event"
+                />
+              </div>
+
+              <!-- Preview: retry delay sequence visualization (hidden in custom mode — each row already shows its own value) -->
+              <div
+                v-if="previewRows.length > 0 && strategyValue !== 'custom'"
+                class="preview-section"
+              >
+                <label class="form-fields__label">{{ t('retrySchedules.preview.label') }}</label>
+                <div class="preview-chips">
+                  <Hook0Tooltip
+                    v-for="row in previewRows"
+                    :key="row.retry"
+                    :content="
+                      row.exceeds
+                        ? t('retrySchedules.preview.exceedsMaxDelayTooltip')
+                        : t('retrySchedules.preview.cumulativeTooltip', { total: row.cumulative })
+                    "
+                    position="top"
+                  >
+                    <span
+                      class="preview-chips__chip"
+                      :class="{ 'preview-chips__chip--exceeds': row.exceeds }"
+                    >
+                      {{ row.wayTooMuch ? t('retrySchedules.preview.overOneYear') : row.delay }}
+                    </span>
+                  </Hook0Tooltip>
+                </div>
+                <p v-if="hasExceedingRetries" class="form-fields__error">
+                  {{ t('retrySchedules.preview.exceedsMaxDelay', { n: firstExceedingRetry }) }}
+                </p>
+              </div>
+
+              <div v-if="strategyValue === 'custom'" class="form-fields__group">
+                <label class="form-fields__label">
+                  {{ t('retrySchedules.fields.customIntervals') }}
+                </label>
+                <div class="custom-chips">
+                  <div
+                    v-for="(interval, index) in customIntervalsValue"
+                    :key="`chip-${index}`"
+                    class="custom-chips__chip"
+                  >
+                    <input
+                      type="text"
+                      class="custom-chips__input"
+                      :value="formatDuration(interval)"
+                      :aria-label="t('retrySchedules.fields.retryNumber', { number: index + 1 })"
+                      @blur="
+                        (e) => {
+                          const parsed = parseDuration((e.target as HTMLInputElement).value);
+                          if (parsed !== null && parsed >= 1) {
+                            updateInterval(index, String(Math.min(parsed, MAX_INTERVAL_SECONDS)));
+                          }
+                          (e.target as HTMLInputElement).value = formatDuration(
+                            customIntervalsValue[index]
+                          );
+                        }
+                      "
+                      @keydown.enter="($event.target as HTMLInputElement).blur()"
+                    />
+                    <button
+                      type="button"
+                      class="custom-chips__remove"
+                      :aria-label="t('retrySchedules.fields.removeInterval', { number: index + 1 })"
+                      @click="removeInterval(index)"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <button type="button" class="custom-chips__add" @click="addInterval()">+</button>
+                </div>
+                <p v-if="errors.custom_intervals" class="form-fields__error">
+                  {{ errors.custom_intervals }}
+                </p>
+              </div>
             </div>
           </Hook0CardContent>
+
           <Hook0CardFooter>
-            <Hook0Button variant="secondary" type="button" @click="handleCancel">
+            <Hook0Button
+              variant="secondary"
+              type="button"
+              :to="{
+                name: routes.RetrySchedulesList,
+                params: { organization_id: organizationId },
+              }"
+            >
               {{ t('common.cancel') }}
             </Hook0Button>
-            <Hook0Button variant="primary" type="submit" :disabled="isSubmitting || !canSubmit">
-              {{ isEdit ? t('common.save') : t('common.create') }}
+            <Hook0Button
+              variant="primary"
+              type="submit"
+              :disabled="
+                hasExceedingRetries ||
+                createMutation.isPending.value ||
+                updateMutation.isPending.value
+              "
+              :loading="createMutation.isPending.value || updateMutation.isPending.value"
+            >
+              {{ isNew ? t('common.create') : t('common.save') }}
             </Hook0Button>
           </Hook0CardFooter>
         </Hook0Card>
-      </form>
+      </Hook0Form>
     </template>
   </Hook0PageLayout>
 </template>
 
 <style scoped>
-.form-grid {
+.form-fields {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
-.custom-intervals {
+.form-fields__group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.custom-intervals__label {
-  font-size: 0.8125rem;
-  font-weight: 500;
+.form-fields__group--no-border {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.form-fields__label {
+  font-size: 0.875rem;
+  font-weight: 600;
   color: var(--color-text-primary);
 }
 
-.custom-intervals__help {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--color-text-tertiary);
+.form-fields__error {
+  font-size: 0.8125rem;
+  color: var(--color-error);
 }
 
-.custom-intervals__add {
+.strategy-cards {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
+}
+
+.strategy-cards > * {
+  flex: 1;
+}
+
+@media (max-width: 640px) {
+  .strategy-cards {
+    flex-direction: column;
+  }
+}
+
+.custom-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
   align-items: center;
 }
 
-.custom-intervals__input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.375rem 0.5rem;
+.custom-chips__chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-bg-primary);
-  font-size: 0.8125rem;
-  color: var(--color-text-primary);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
 }
 
-.custom-intervals__input:focus {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
+.custom-chips__chip:focus-within {
   border-color: var(--color-primary);
 }
 
-.custom-intervals__error {
-  margin: 0;
+.custom-chips__input {
+  border: none;
+  background: transparent;
   font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+  padding: 0.25rem 0.5rem;
+  width: 5rem;
+  text-align: center;
+  outline: none;
+}
+
+.custom-chips__input:focus {
+  color: var(--color-text-primary);
+  width: 4rem;
+  text-align: center;
+}
+
+.custom-chips__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--color-border);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 0.25rem 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.custom-chips__remove:hover {
+  background-color: var(--color-error-light);
   color: var(--color-error);
 }
 
-.form-error {
-  margin: 0;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radius-md);
-  background-color: var(--color-error-light);
+.custom-chips__add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-full);
+  border: 1px dashed var(--color-border);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.custom-chips__add:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.slider-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.slider-row--two {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 640px) {
+  .slider-row,
+  .slider-row--two {
+    grid-template-columns: 1fr;
+  }
+}
+
+.preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.preview-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.preview-chips__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+
+.preview-chips__chip--exceeds {
   color: var(--color-error);
-  font-size: 0.8125rem;
+  background-color: var(--color-error-light);
+  border-color: var(--color-error);
 }
 </style>
