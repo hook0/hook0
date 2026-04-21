@@ -75,61 +75,48 @@ pub struct RetrySchedule {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Create request. Ranges here are anti-corruption bounds; business limits are
-/// enforced by the runtime check in `validate_against_limits`.
+/// Strategy-specific body fields, shared between POST (wrapped with `organization_id`) and PUT (direct).
+/// Ranges here are anti-corruption bounds; business limits enforced at runtime in `validate_against_limits`.
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate, Clone)]
+#[serde(deny_unknown_fields)]
+#[validate(schema(function = "RetryScheduleFields::validate_strategy"))]
+pub struct RetryScheduleFields {
+    #[validate(non_control_character, length(min = 1, max = 200))]
+    pub name: String,
+    pub strategy: RetryStrategy,
+    #[validate(range(min = 1, max = 25))]
+    pub max_retries: i32,
+    pub custom_intervals: Option<Vec<i32>>,
+    pub linear_delay: Option<i32>,
+    pub increasing_base_delay: Option<i32>,
+    pub increasing_wait_factor: Option<f64>,
+}
+
+impl RetryScheduleFields {
+    fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
+        validate_strategy_fields(
+            self.strategy,
+            self.max_retries,
+            self.linear_delay,
+            self.custom_intervals.as_deref(),
+            self.increasing_base_delay,
+            self.increasing_wait_factor,
+        )
+    }
+}
+
+/// Create request. `organization_id` plus the shared body fields (flattened for the wire).
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 #[serde(deny_unknown_fields)]
-#[validate(schema(function = "RetrySchedulePost::validate_strategy"))]
 pub struct RetrySchedulePost {
     pub organization_id: Uuid,
-    #[validate(non_control_character, length(min = 1, max = 200))]
-    pub name: String,
-    pub strategy: RetryStrategy,
-    #[validate(range(min = 1, max = 25))]
-    pub max_retries: i32,
-    pub custom_intervals: Option<Vec<i32>>,
-    pub linear_delay: Option<i32>,
-    pub increasing_base_delay: Option<i32>,
-    pub increasing_wait_factor: Option<f64>,
+    #[serde(flatten)]
+    #[validate(nested)]
+    pub fields: RetryScheduleFields,
 }
 
-/// Update request. Same cross-field rules as `RetrySchedulePost`, minus `organization_id`.
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
-#[serde(deny_unknown_fields)]
-#[validate(schema(function = "RetrySchedulePut::validate_strategy"))]
-pub struct RetrySchedulePut {
-    #[validate(non_control_character, length(min = 1, max = 200))]
-    pub name: String,
-    pub strategy: RetryStrategy,
-    #[validate(range(min = 1, max = 25))]
-    pub max_retries: i32,
-    pub custom_intervals: Option<Vec<i32>>,
-    pub linear_delay: Option<i32>,
-    pub increasing_base_delay: Option<i32>,
-    pub increasing_wait_factor: Option<f64>,
-}
-
-/// Dispatch validator-crate schema hooks to the shared strategy checker.
-/// Structs share field names so the body is identical; macro avoids the duplication.
-macro_rules! impl_strategy_schema_validator {
-    ($struct_name:ident) => {
-        impl $struct_name {
-            fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
-                validate_strategy_fields(
-                    self.strategy,
-                    self.max_retries,
-                    self.linear_delay,
-                    self.custom_intervals.as_deref(),
-                    self.increasing_base_delay,
-                    self.increasing_wait_factor,
-                )
-            }
-        }
-    };
-}
-
-impl_strategy_schema_validator!(RetrySchedulePost);
-impl_strategy_schema_validator!(RetrySchedulePut);
+/// Update request. Shape and validation rules match `RetryScheduleFields`.
+pub type RetrySchedulePut = RetryScheduleFields;
 
 /// Query string that scopes list operations to one organization.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
@@ -241,45 +228,6 @@ pub fn validate_strategy_fields(
     Ok(())
 }
 
-/// Borrowed view of the six strategy-specific payload fields.
-/// Implemented by `RetrySchedulePost` and `RetrySchedulePut` so validators run on either.
-trait StrategyFields {
-    fn strategy(&self) -> RetryStrategy;
-    fn max_retries(&self) -> i32;
-    fn linear_delay(&self) -> Option<i32>;
-    fn custom_intervals(&self) -> Option<&[i32]>;
-    fn increasing_base_delay(&self) -> Option<i32>;
-    fn increasing_wait_factor(&self) -> Option<f64>;
-}
-
-macro_rules! impl_strategy_fields {
-    ($struct_name:ident) => {
-        impl StrategyFields for $struct_name {
-            fn strategy(&self) -> RetryStrategy {
-                self.strategy
-            }
-            fn max_retries(&self) -> i32 {
-                self.max_retries
-            }
-            fn linear_delay(&self) -> Option<i32> {
-                self.linear_delay
-            }
-            fn custom_intervals(&self) -> Option<&[i32]> {
-                self.custom_intervals.as_deref()
-            }
-            fn increasing_base_delay(&self) -> Option<i32> {
-                self.increasing_base_delay
-            }
-            fn increasing_wait_factor(&self) -> Option<f64> {
-                self.increasing_wait_factor
-            }
-        }
-    };
-}
-
-impl_strategy_fields!(RetrySchedulePost);
-impl_strategy_fields!(RetrySchedulePut);
-
 /// Saturating Duration → i32 seconds conversion (bounds derive from clap-parsed humantime).
 fn duration_to_i32_secs(duration: Duration) -> i32 {
     i32::try_from(duration.as_secs()).unwrap_or(i32::MAX)
@@ -294,18 +242,18 @@ fn duration_to_i64_secs(duration: Duration) -> i64 {
 /// that passed validator attributes (anti-corruption) but breach the tighter business caps.
 fn validate_against_limits(
     state: &crate::State,
-    fields: &impl StrategyFields,
+    fields: &RetryScheduleFields,
 ) -> Result<(), validator::ValidationErrors> {
     let mut errors = validator::ValidationErrors::new();
 
-    if fields.max_retries() > state.retry_schedule_max_retries {
+    if fields.max_retries > state.retry_schedule_max_retries {
         let cap = state.retry_schedule_max_retries;
         errors.add("max_retries", range_error("max_retries", 1, i64::from(cap)));
     }
 
-    match fields.strategy() {
+    match fields.strategy {
         RetryStrategy::ExponentialIncreasing => {
-            if let Some(base) = fields.increasing_base_delay() {
+            if let Some(base) = fields.increasing_base_delay {
                 let min = duration_to_i32_secs(state.retry_schedule_exponential_base_delay_min);
                 let max = duration_to_i32_secs(state.retry_schedule_exponential_base_delay_max);
                 if !(min..=max).contains(&base) {
@@ -315,7 +263,7 @@ fn validate_against_limits(
                     );
                 }
             }
-            if let Some(factor) = fields.increasing_wait_factor() {
+            if let Some(factor) = fields.increasing_wait_factor {
                 let min = state.retry_schedule_exponential_wait_factor_min;
                 let max = state.retry_schedule_exponential_wait_factor_max;
                 if factor < min || factor > max {
@@ -327,7 +275,7 @@ fn validate_against_limits(
             }
         }
         RetryStrategy::Linear => {
-            if let Some(delay) = fields.linear_delay() {
+            if let Some(delay) = fields.linear_delay {
                 let min = duration_to_i32_secs(state.retry_schedule_min_single_delay);
                 let max = duration_to_i32_secs(state.retry_schedule_max_single_delay);
                 if !(min..=max).contains(&delay) {
@@ -339,7 +287,7 @@ fn validate_against_limits(
             }
         }
         RetryStrategy::Custom => {
-            if let Some(intervals) = fields.custom_intervals() {
+            if let Some(intervals) = fields.custom_intervals.as_deref() {
                 let min = duration_to_i32_secs(state.retry_schedule_min_single_delay);
                 let max = duration_to_i32_secs(state.retry_schedule_max_single_delay);
                 if let Some((index, _)) = intervals
@@ -386,18 +334,17 @@ fn range_error<T: std::fmt::Display>(field: &str, min: T, max: T) -> validator::
 
 /// Sum of retry delays in seconds. Per-retry delay pre-clamped to single_max_secs so
 /// hostile inputs cannot overflow i64 before the total-cap check.
-fn compute_total_duration(fields: &impl StrategyFields, single_max_secs: i32) -> i64 {
-    match fields.strategy() {
+fn compute_total_duration(fields: &RetryScheduleFields, single_max_secs: i32) -> i64 {
+    match fields.strategy {
         RetryStrategy::ExponentialIncreasing => {
-            let (Some(base), Some(factor)) = (
-                fields.increasing_base_delay(),
-                fields.increasing_wait_factor(),
-            ) else {
+            let (Some(base), Some(factor)) =
+                (fields.increasing_base_delay, fields.increasing_wait_factor)
+            else {
                 return 0;
             };
             let cap_float = f64::from(single_max_secs);
             let mut total: i64 = 0;
-            for index in 0..fields.max_retries().max(0) {
+            for index in 0..fields.max_retries.max(0) {
                 let base_float = f64::from(base);
                 let factor_power = factor.powi(index);
                 let projected = base_float * factor_power;
@@ -408,12 +355,13 @@ fn compute_total_duration(fields: &impl StrategyFields, single_max_secs: i32) ->
             }
             total
         }
-        RetryStrategy::Linear => match fields.linear_delay() {
-            Some(delay) => i64::from(fields.max_retries()).saturating_mul(i64::from(delay)),
+        RetryStrategy::Linear => match fields.linear_delay {
+            Some(delay) => i64::from(fields.max_retries).saturating_mul(i64::from(delay)),
             None => 0,
         },
         RetryStrategy::Custom => fields
-            .custom_intervals()
+            .custom_intervals
+            .as_deref()
             .map(|values| {
                 values
                     .iter()
@@ -570,10 +518,11 @@ pub async fn create(
     if let Err(errors) = body.validate() {
         return Err(Hook0Problem::Validation(errors));
     }
-    if let Err(errors) = validate_against_limits(&state, &*body) {
+    if let Err(errors) = validate_against_limits(&state, &body.fields) {
         return Err(Hook0Problem::Validation(errors));
     }
 
+    let fields = &body.fields;
     // Atomic INSERT with per-org quota: the subquery short-circuits when the org is at capacity.
     // Under concurrent creates two inserts may both see count=limit-1 and land — acceptable soft limit.
     let inserted_schedule = query_as!(
@@ -601,13 +550,13 @@ pub async fn create(
                 updated_at as "updated_at!"
         "#,
         &organization_id,
-        body.name.trim(),
-        body.strategy as RetryStrategy,
-        body.max_retries,
-        body.custom_intervals.as_deref(),
-        body.linear_delay,
-        body.increasing_base_delay,
-        body.increasing_wait_factor,
+        fields.name.trim(),
+        fields.strategy as RetryStrategy,
+        fields.max_retries,
+        fields.custom_intervals.as_deref(),
+        fields.linear_delay,
+        fields.increasing_base_delay,
+        fields.increasing_wait_factor,
         state.max_retry_schedules_per_organization,
     )
     .fetch_optional(&state.db)
@@ -675,7 +624,7 @@ pub async fn edit(
     if let Err(errors) = body.validate() {
         return Err(Hook0Problem::Validation(errors));
     }
-    if let Err(errors) = validate_against_limits(&state, &*body) {
+    if let Err(errors) = validate_against_limits(&state, &body) {
         return Err(Hook0Problem::Validation(errors));
     }
 
@@ -823,9 +772,13 @@ async fn emit_retry_schedule_event(state: &crate::State, event: Hook0ClientEvent
 mod tests {
     use super::*;
 
-    fn exponential_post(name: &str, max_retries: i32, base: i32, factor: f64) -> RetrySchedulePost {
-        RetrySchedulePost {
-            organization_id: Uuid::nil(),
+    fn exponential_fields(
+        name: &str,
+        max_retries: i32,
+        base: i32,
+        factor: f64,
+    ) -> RetryScheduleFields {
+        RetryScheduleFields {
             name: name.to_owned(),
             strategy: RetryStrategy::ExponentialIncreasing,
             max_retries,
@@ -836,9 +789,8 @@ mod tests {
         }
     }
 
-    fn linear_post(name: &str, max_retries: i32, delay_seconds: i32) -> RetrySchedulePost {
-        RetrySchedulePost {
-            organization_id: Uuid::nil(),
+    fn linear_fields(name: &str, max_retries: i32, delay_seconds: i32) -> RetryScheduleFields {
+        RetryScheduleFields {
             name: name.to_owned(),
             strategy: RetryStrategy::Linear,
             max_retries,
@@ -849,10 +801,9 @@ mod tests {
         }
     }
 
-    fn custom_post(name: &str, intervals: Vec<i32>) -> RetrySchedulePost {
+    fn custom_fields(name: &str, intervals: Vec<i32>) -> RetryScheduleFields {
         let max_retries = i32::try_from(intervals.len()).expect("test intervals fit in i32");
-        RetrySchedulePost {
-            organization_id: Uuid::nil(),
+        RetryScheduleFields {
             name: name.to_owned(),
             strategy: RetryStrategy::Custom,
             max_retries,
@@ -865,48 +816,48 @@ mod tests {
 
     #[test]
     fn exponential_rejects_nan_factor() {
-        let post = exponential_post("bad", 5, 60, f64::NAN);
+        let post = exponential_fields("bad", 5, 60, f64::NAN);
         assert!(post.validate().is_err());
     }
 
     #[test]
     fn exponential_rejects_missing_base_delay() {
-        let mut post = exponential_post("bad", 5, 60, 2.0);
+        let mut post = exponential_fields("bad", 5, 60, 2.0);
         post.increasing_base_delay = None;
         assert!(post.validate().is_err());
     }
 
     #[test]
     fn linear_rejects_missing_delay() {
-        let mut post = linear_post("bad", 5, 60);
+        let mut post = linear_fields("bad", 5, 60);
         post.linear_delay = None;
         assert!(post.validate().is_err());
     }
 
     #[test]
     fn linear_rejects_extra_exponential_field() {
-        let mut post = linear_post("bad", 5, 60);
+        let mut post = linear_fields("bad", 5, 60);
         post.increasing_base_delay = Some(60);
         assert!(post.validate().is_err());
     }
 
     #[test]
     fn custom_rejects_length_mismatch() {
-        let mut post = custom_post("bad", vec![10, 20, 30]);
+        let mut post = custom_fields("bad", vec![10, 20, 30]);
         post.max_retries = 5;
         assert!(post.validate().is_err());
     }
 
     #[test]
     fn custom_rejects_empty_intervals() {
-        let post = custom_post("bad", vec![]);
+        let post = custom_fields("bad", vec![]);
         // max_retries=0 is already rejected by #[validate(range(min=1))].
         assert!(post.validate().is_err());
     }
 
     #[test]
     fn compute_total_duration_clamps_per_retry() {
-        let post = exponential_post("clamp", 10, 1, 10.0);
+        let post = exponential_fields("clamp", 10, 1, 10.0);
         let total = compute_total_duration(&post, 7 * 24 * 3600);
         assert!(total > 0);
         assert!(total <= 10 * (7 * 24 * 3600));

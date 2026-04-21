@@ -54,7 +54,10 @@ const waitFactor = ref(2);
 const linearDelay = ref(60);
 const customIntervals = ref<number[]>([30, 120, 600]);
 const newIntervalValue = ref<number | null>(null);
+// Submit-time errors for the whole form (bottom banner).
 const formError = ref<string | null>(null);
+// Inline error next to the `addInterval` input — keeps range feedback in the viewport.
+const intervalError = ref<string | null>(null);
 
 // Populate form when editing
 watch(
@@ -94,22 +97,23 @@ watch(
 function addInterval() {
   const lim = limits.value;
   if (newIntervalValue.value === null || !lim) return;
-  const v = newIntervalValue.value;
-  if (v < lim.min_single_delay_secs || v > lim.max_single_delay_secs) {
-    formError.value = t('retrySchedules.validation.intervalOutOfRange', {
+  const value = newIntervalValue.value;
+  if (value < lim.min_single_delay_secs || value > lim.max_single_delay_secs) {
+    intervalError.value = t('retrySchedules.validation.intervalOutOfRange', {
       min: lim.min_single_delay_secs,
       max: lim.max_single_delay_secs,
     });
     return;
   }
   if (customIntervals.value.length >= lim.max_custom_intervals_length) return;
-  customIntervals.value.push(v);
+  customIntervals.value.push(value);
   newIntervalValue.value = null;
-  formError.value = null;
+  intervalError.value = null;
 }
 
 function removeInterval(index: number) {
   customIntervals.value.splice(index, 1);
+  intervalError.value = null;
 }
 
 function buildPayload(): RetrySchedulePayload | null {
@@ -124,8 +128,6 @@ function buildPayload(): RetrySchedulePayload | null {
         name: trimmed,
         strategy: 'exponential_increasing',
         max_retries: maxRetries.value,
-        custom_intervals: null,
-        linear_delay: null,
         increasing_base_delay: baseDelay.value,
         increasing_wait_factor: waitFactor.value,
       };
@@ -134,10 +136,7 @@ function buildPayload(): RetrySchedulePayload | null {
         name: trimmed,
         strategy: 'linear',
         max_retries: maxRetries.value,
-        custom_intervals: null,
         linear_delay: linearDelay.value,
-        increasing_base_delay: null,
-        increasing_wait_factor: null,
       };
     case 'custom':
       if (customIntervals.value.length === 0) {
@@ -150,9 +149,6 @@ function buildPayload(): RetrySchedulePayload | null {
         // Backend requires max_retries == custom_intervals.len() for the custom strategy.
         max_retries: customIntervals.value.length,
         custom_intervals: [...customIntervals.value],
-        linear_delay: null,
-        increasing_base_delay: null,
-        increasing_wait_factor: null,
       };
   }
 }
@@ -339,6 +335,9 @@ const strategyOptions = computed(() => [
                       {{ t('common.add') }}
                     </Hook0Button>
                   </div>
+                  <p v-if="intervalError" class="custom-intervals__error" role="alert">
+                    {{ intervalError }}
+                  </p>
                 </div>
               </template>
 
@@ -405,6 +404,12 @@ const strategyOptions = computed(() => [
   outline: 2px solid var(--color-primary);
   outline-offset: 1px;
   border-color: var(--color-primary);
+}
+
+.custom-intervals__error {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-error);
 }
 
 .form-error {

@@ -54,6 +54,10 @@ pub struct SubscriptionHealthMonitorConfig {
     failure_percent_for_disable: u8,
 }
 
+/// Built-in retry delays (in seconds) used when a subscription has no custom schedule attached.
+/// Must stay in sync with `output_worker::retry::built_in_retry_delay`.
+pub const DEFAULT_SCHEDULE_DELAYS_SECS: &[i64] = &[3, 10, 180, 1800, 3600, 10800, 18000, 36000];
+
 /// Retry-schedule limits — single source of truth for frontend validation.
 /// Wire format stays in `_secs: integer` so the frontend schema is unchanged while Rust State uses `Duration`.
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -68,6 +72,7 @@ pub struct RetryScheduleConfig {
     exponential_wait_factor_min: f64,
     exponential_wait_factor_max: f64,
     max_per_organization: i64,
+    default_schedule_delays_secs: Vec<i64>,
 }
 
 fn duration_as_i32_secs(duration: Duration) -> i32 {
@@ -132,6 +137,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         exponential_wait_factor_min: state.retry_schedule_exponential_wait_factor_min,
         exponential_wait_factor_max: state.retry_schedule_exponential_wait_factor_max,
         max_per_organization: state.max_retry_schedules_per_organization,
+        default_schedule_delays_secs: DEFAULT_SCHEDULE_DELAYS_SECS.to_vec(),
     };
 
     Ok(Json(InstanceConfig {

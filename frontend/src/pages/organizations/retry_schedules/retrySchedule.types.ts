@@ -1,40 +1,15 @@
-/**
- * Local types for retry_schedule feature. Mirrors the backend OpenAPI shape exactly.
- * TODO: swap for `components['schemas']['RetrySchedule*']` once `npm run generate:types`
- * is re-run against the branch's running API.
- */
+import type { components } from '@/types';
+
+type definitions = components['schemas'];
 
 export type RetryStrategy = 'exponential_increasing' | 'linear' | 'custom';
+export type RetrySchedule = definitions['RetrySchedule'];
 
-export interface RetrySchedule {
-  retry_schedule_id: string;
-  organization_id: string;
-  name: string;
-  strategy: RetryStrategy;
-  max_retries: number;
-  custom_intervals: number[] | null;
-  linear_delay: number | null;
-  increasing_base_delay: number | null;
-  increasing_wait_factor: number | null;
-  created_at: string;
-  updated_at: string;
-}
+/** PUT body. Shared fields without `organization_id`. */
+export type RetrySchedulePayload = definitions['RetryScheduleFields'];
 
-/** PUT body. Fields irrelevant to the strategy must be `null`; backend has `deny_unknown_fields`. */
-export interface RetrySchedulePayload {
-  name: string;
-  strategy: RetryStrategy;
-  max_retries: number;
-  custom_intervals: number[] | null;
-  linear_delay: number | null;
-  increasing_base_delay: number | null;
-  increasing_wait_factor: number | null;
-}
-
-/** POST body. Same as PUT plus the owning organization. */
-export type RetryScheduleCreatePayload = RetrySchedulePayload & {
-  organization_id: string;
-};
+/** POST body. `organization_id` + the shared body fields (flattened for the wire). */
+export type RetryScheduleCreatePayload = definitions['RetrySchedulePost'];
 
 /** Snapshot of the /instance `retry_schedule` limits block. */
 export interface RetryScheduleLimits {
@@ -48,4 +23,5 @@ export interface RetryScheduleLimits {
   exponential_wait_factor_min: number;
   exponential_wait_factor_max: number;
   max_per_organization: number;
+  default_schedule_delays_secs: number[];
 }

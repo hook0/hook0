@@ -334,4 +334,16 @@ mod tests {
         assert!(built_in_retry_delay(3, 3).is_none());
         assert!(built_in_retry_delay(3, 0).is_some());
     }
+
+    #[test]
+    fn built_in_schedule_matches_published_defaults() {
+        // These values must match `api::handlers::instance::DEFAULT_SCHEDULE_DELAYS_SECS`.
+        // Changing the table here requires updating the `/instance` endpoint so the frontend
+        // displays accurate built-in delays.
+        let expected = [3u64, 10, 180, 1800, 3600, 10800, 18000, 36000];
+        for (retry_count, &want) in expected.iter().enumerate() {
+            let got = built_in_retry_delay(u8::MAX, i16::try_from(retry_count).unwrap()).unwrap();
+            assert_eq!(got.as_secs(), want, "retry_count={retry_count}");
+        }
+    }
 }

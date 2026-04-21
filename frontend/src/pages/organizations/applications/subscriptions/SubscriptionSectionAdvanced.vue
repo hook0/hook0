@@ -1,11 +1,15 @@
 <script setup lang="ts">
 // Advanced settings sub-form — custom HTTP headers, metadata key-value pairs, and retry schedule selection.
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { routes } from '@/routes';
 import { useRouteIds } from '@/composables/useRouteIds';
 
 import type { Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
 import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
+
+import { useRetryScheduleLimits } from '../../../retry_schedules/useRetryScheduleLimits';
+import { formatDelay } from '../../../retry_schedules/retryScheduleFormatters';
 
 import Hook0KeyValue from '@/components/Hook0KeyValue.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
@@ -14,6 +18,13 @@ import Hook0Button from '@/components/Hook0Button.vue';
 const { organizationId } = useRouteIds();
 
 const { t } = useI18n();
+
+const { limits } = useRetryScheduleLimits();
+
+const defaultScheduleDelayLabels = computed(() => {
+  const delays = limits.value?.default_schedule_delays_secs ?? [];
+  return delays.map((secs) => formatDelay(secs)).join(', ');
+});
 
 type Props = {
   headersKv: Hook0KeyValueKeyValuePair[];
@@ -101,7 +112,7 @@ const emit = defineEmits<{
           @update:model-value="emit('update:retryScheduleId', $event || null)"
         />
         <p v-if="!retryScheduleId" class="sub-row__default-hint">
-          {{ t('retrySchedules.defaultScheduleDesc') }}
+          {{ t('retrySchedules.defaultScheduleDesc', { delays: defaultScheduleDelayLabels }) }}
         </p>
       </div>
     </div>

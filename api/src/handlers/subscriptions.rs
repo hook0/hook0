@@ -476,6 +476,10 @@ pub struct SubscriptionPost {
     #[validate(length(min = 1, max = 20))]
     dedicated_workers: Option<Vec<String>>,
     /// Optional retry schedule. NULL keeps the subscription on the built-in exponential backoff.
+    ///
+    /// PUT semantic: an omitted field deserializes to `None` (serde's default for `Option<T>`)
+    /// and clears the subscription's retry_schedule_id. Callers doing a partial PUT must round-trip
+    /// the current value; the frontend always emits the field (null or UUID) to match this.
     retry_schedule_id: Option<Uuid>,
 }
 
@@ -1176,6 +1180,27 @@ mod tests {
     use serde_json::from_value;
 
     use super::*;
+
+    #[test]
+    fn put_body_missing_retry_schedule_id_clears_it() {
+        // Codifies the PUT semantic documented on SubscriptionPost::retry_schedule_id:
+        // when the field is omitted from the JSON, serde defaults it to None.
+        // In the edit handler, that value is written to retry_schedule__id, effectively
+        // clearing any previously attached schedule. Partial PUTs MUST round-trip the field.
+        let input = json!({
+            "application_id": "00000000-0000-0000-0000-000000000000",
+            "is_enabled": true,
+            "event_types": [],
+            "target": {
+                "type": "http",
+                "method": "POST",
+                "url": "https://example.com/hook",
+                "headers": {}
+            }
+        });
+        let body: SubscriptionPost = from_value(input).expect("parse");
+        assert_eq!(body.retry_schedule_id, None);
+    }
 
     #[test]
     fn test_deserialize_http_target_valid() {

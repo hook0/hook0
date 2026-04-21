@@ -294,8 +294,8 @@ const onSubmit = handleSubmit((values) => {
         labels: toApiRecord(labelsMap.value),
         is_enabled: isEnabled.value,
         event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
-        // Empty string from the select maps back to null (use org default).
-        retry_schedule_id: selectedRetryScheduleId.value || null,
+        // Empty string from the select = "use org default" — drop the field so backend sees missing.
+        retry_schedule_id: selectedRetryScheduleId.value || undefined,
       },
       {
         onSuccess: () => {
@@ -331,8 +331,8 @@ const onSubmit = handleSubmit((values) => {
         event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
         dedicated_workers: dedicatedWorkers.value.length > 0 ? dedicatedWorkers.value : undefined,
         application_id: applicationId.value,
-        // Empty string from the select maps back to null (use org default).
-        retry_schedule_id: selectedRetryScheduleId.value || null,
+        // Empty string from the select = "use org default" — drop the field so backend sees missing.
+        retry_schedule_id: selectedRetryScheduleId.value || undefined,
       },
     },
     {

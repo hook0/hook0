@@ -712,6 +712,58 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/retry_schedules/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List retry schedules
+     * @description List retry schedules available in an organization. Editors and viewers can read; only editors can create/update/delete.
+     */
+    get: operations['retrySchedules.list'];
+    put?: never;
+    /**
+     * Create a retry schedule
+     * @description Create a retry schedule in the given organization. Rejects payloads that breach validator ranges or business bounds.
+     */
+    post: operations['retrySchedules.create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/retry_schedules/{retry_schedule_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a retry schedule by its ID
+     * @description Returns a single retry schedule. Cross-org access collapses to 404.
+     */
+    get: operations['retrySchedules.get'];
+    /**
+     * Update a retry schedule
+     * @description Replaces the retry schedule definition. Same bounds as create.
+     */
+    put: operations['retrySchedules.edit'];
+    post?: never;
+    /**
+     * Delete a retry schedule
+     * @description Deletes a retry schedule. Subscriptions referencing it fall back to NULL (FK on-delete set null).
+     */
+    delete: operations['retrySchedules.delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/service_token/': {
     parameters: {
       query?: never;
@@ -1072,6 +1124,33 @@ export interface components {
       password_minimum_length: number;
       quota_enforcement: boolean;
       registration_disabled: boolean;
+      /**
+       * @description Retry-schedule limits — single source of truth for frontend validation.
+       *      Wire format stays in `_secs: integer` so the frontend schema is unchanged while Rust State uses `Duration`.
+       */
+      retry_schedule: {
+        default_schedule_delays_secs: number[];
+        /** Format: int32 */
+        exponential_base_delay_max_secs: number;
+        /** Format: int32 */
+        exponential_base_delay_min_secs: number;
+        /** Format: double */
+        exponential_wait_factor_max: number;
+        /** Format: double */
+        exponential_wait_factor_min: number;
+        /** Format: int32 */
+        max_custom_intervals_length: number;
+        /** Format: int64 */
+        max_per_organization: number;
+        /** Format: int32 */
+        max_retries: number;
+        /** Format: int32 */
+        max_single_delay_secs: number;
+        /** Format: int64 */
+        max_total_duration_secs: number;
+        /** Format: int32 */
+        min_single_delay_secs: number;
+      };
       subscription_health_monitor?: {
         /** Format: int32 */
         failure_percent_for_disable: number;
@@ -1279,6 +1358,64 @@ export interface components {
       /** Format: uuid */
       response_id: string;
     };
+    /** @description Persisted retry schedule owned by one organization. */
+    RetrySchedule: {
+      /** Format: date-time */
+      created_at: string;
+      custom_intervals?: number[];
+      /** Format: int32 */
+      increasing_base_delay?: number;
+      /** Format: double */
+      increasing_wait_factor?: number;
+      /** Format: int32 */
+      linear_delay?: number;
+      /** Format: int32 */
+      max_retries: number;
+      name: string;
+      /** Format: uuid */
+      organization_id: string;
+      /** Format: uuid */
+      retry_schedule_id: string;
+      /** @enum {string} */
+      strategy: 'exponential_increasing' | 'linear' | 'custom';
+      /** Format: date-time */
+      updated_at: string;
+    };
+    /**
+     * @description Strategy-specific body fields, shared between POST (wrapped with `organization_id`) and PUT (direct).
+     *      Ranges here are anti-corruption bounds; business limits enforced at runtime in `validate_against_limits`.
+     */
+    RetryScheduleFields: {
+      custom_intervals?: number[];
+      /** Format: int32 */
+      increasing_base_delay?: number;
+      /** Format: double */
+      increasing_wait_factor?: number;
+      /** Format: int32 */
+      linear_delay?: number;
+      /** Format: int32 */
+      max_retries: number;
+      name: string;
+      /** @enum {string} */
+      strategy: 'exponential_increasing' | 'linear' | 'custom';
+    };
+    /** @description Create request. `organization_id` plus the shared body fields (flattened for the wire). */
+    RetrySchedulePost: {
+      custom_intervals?: number[];
+      /** Format: int32 */
+      increasing_base_delay?: number;
+      /** Format: double */
+      increasing_wait_factor?: number;
+      /** Format: int32 */
+      linear_delay?: number;
+      /** Format: int32 */
+      max_retries: number;
+      name: string;
+      /** Format: uuid */
+      organization_id: string;
+      /** @enum {string} */
+      strategy: 'exponential_increasing' | 'linear' | 'custom';
+    };
     Revoke: {
       /** Format: uuid */
       user_id: string;
@@ -1317,8 +1454,11 @@ export interface components {
       metadata: {
         [key: string]: string;
       };
-      /** Format: uuid — manual patch; regen via `npm run generate:types` drops this line. */
-      retry_schedule_id?: string | null;
+      /**
+       * Format: uuid
+       * @description Optional override of the default retry schedule. NULL uses the built-in exponential backoff.
+       */
+      retry_schedule_id?: string;
       /** Format: uuid */
       secret: string;
       /** Format: uuid */
@@ -1351,8 +1491,11 @@ export interface components {
       metadata?: {
         [key: string]: string;
       };
-      /** Format: uuid — manual patch; regen via `npm run generate:types` drops this line. */
-      retry_schedule_id?: string | null;
+      /**
+       * Format: uuid
+       * @description Optional retry schedule. NULL keeps the subscription on the built-in exponential backoff.
+       */
+      retry_schedule_id?: string;
       target: {
         headers: Record<string, never>;
         method: string;
@@ -3943,6 +4086,295 @@ export interface operations {
         content: {
           'application/json': components['schemas']['Response'];
         };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  'retrySchedules.list': {
+    parameters: {
+      query: {
+        organization_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RetrySchedule'][];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  'retrySchedules.create': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RetrySchedulePost'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RetrySchedule'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  'retrySchedules.get': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        retry_schedule_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RetrySchedule'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  'retrySchedules.edit': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        retry_schedule_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RetryScheduleFields'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RetrySchedule'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  'retrySchedules.delete': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        retry_schedule_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Bad Request */
       400: {
