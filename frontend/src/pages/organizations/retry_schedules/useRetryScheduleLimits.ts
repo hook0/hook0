@@ -1,6 +1,8 @@
 import { computed } from 'vue';
 import { useInstanceConfig } from '@/composables/useInstanceConfig';
-import type { RetryScheduleLimits } from './retrySchedule.types';
+import type { components } from '@/types';
+
+export type RetryScheduleLimits = components['schemas']['InstanceConfig']['retry_schedule'];
 
 /**
  * Reads the `retry_schedule` limits block from `/instance`.

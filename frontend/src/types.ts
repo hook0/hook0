@@ -1124,15 +1124,12 @@ export interface components {
       password_minimum_length: number;
       quota_enforcement: boolean;
       registration_disabled: boolean;
-      /**
-       * @description Retry-schedule limits — single source of truth for frontend validation.
-       *      Wire format stays in `_secs: integer` so the frontend schema is unchanged while Rust State uses `Duration`.
-       */
+      /** @description Retry-schedule limits — single source of truth for frontend validation. */
       retry_schedule: {
         default_schedule_delays_secs: number[];
-        /** Format: int32 */
+        /** Format: int64 */
         exponential_base_delay_max_secs: number;
-        /** Format: int32 */
+        /** Format: int64 */
         exponential_base_delay_min_secs: number;
         /** Format: double */
         exponential_wait_factor_max: number;
@@ -1144,11 +1141,11 @@ export interface components {
         max_per_organization: number;
         /** Format: int32 */
         max_retries: number;
-        /** Format: int32 */
+        /** Format: int64 */
         max_single_delay_secs: number;
         /** Format: int64 */
         max_total_duration_secs: number;
-        /** Format: int32 */
+        /** Format: int64 */
         min_single_delay_secs: number;
       };
       subscription_health_monitor?: {
@@ -1362,13 +1359,13 @@ export interface components {
     RetrySchedule: {
       /** Format: date-time */
       created_at: string;
-      custom_intervals?: number[];
+      custom_intervals_secs?: number[];
       /** Format: int32 */
-      increasing_base_delay?: number;
+      increasing_base_delay_secs?: number;
       /** Format: double */
       increasing_wait_factor?: number;
       /** Format: int32 */
-      linear_delay?: number;
+      linear_delay_secs?: number;
       /** Format: int32 */
       max_retries: number;
       name: string;
@@ -1381,18 +1378,15 @@ export interface components {
       /** Format: date-time */
       updated_at: string;
     };
-    /**
-     * @description Strategy-specific body fields, shared between POST (wrapped with `organization_id`) and PUT (direct).
-     *      Ranges here are anti-corruption bounds; business limits enforced at runtime in `validate_against_limits`.
-     */
-    RetryScheduleFields: {
-      custom_intervals?: number[];
+    /** @description Update request (PUT). Ranges here are anti-corruption bounds; business limits enforced at runtime. */
+    RetrySchedulePut: {
+      custom_intervals_secs?: number[];
       /** Format: int32 */
-      increasing_base_delay?: number;
+      increasing_base_delay_secs?: number;
       /** Format: double */
       increasing_wait_factor?: number;
       /** Format: int32 */
-      linear_delay?: number;
+      linear_delay_secs?: number;
       /** Format: int32 */
       max_retries: number;
       name: string;
@@ -1401,13 +1395,13 @@ export interface components {
     };
     /** @description Create request. `organization_id` plus the shared body fields (flattened for the wire). */
     RetrySchedulePost: {
-      custom_intervals?: number[];
+      custom_intervals_secs?: number[];
       /** Format: int32 */
-      increasing_base_delay?: number;
+      increasing_base_delay_secs?: number;
       /** Format: double */
       increasing_wait_factor?: number;
       /** Format: int32 */
-      linear_delay?: number;
+      linear_delay_secs?: number;
       /** Format: int32 */
       max_retries: number;
       name: string;
@@ -4308,7 +4302,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['RetryScheduleFields'];
+        'application/json': components['schemas']['RetrySchedulePut'];
       };
     };
     responses: {

@@ -65,14 +65,14 @@ function computeDelays(schedule: RetrySchedule): number[] {
   const max = schedule.max_retries;
   switch (schedule.strategy) {
     case 'exponential_increasing': {
-      const bd = schedule.increasing_base_delay ?? 3;
+      const bd = schedule.increasing_base_delay_secs ?? 3;
       const wf = schedule.increasing_wait_factor ?? 3;
       return Array.from({ length: max }, (_, i) => Math.round(bd * Math.pow(wf, i)));
     }
     case 'linear':
-      return Array.from({ length: max }, () => schedule.linear_delay ?? 60);
+      return Array.from({ length: max }, () => schedule.linear_delay_secs ?? 60);
     case 'custom':
-      return schedule.custom_intervals ?? [];
+      return schedule.custom_intervals_secs ?? [];
     default:
       return [];
   }

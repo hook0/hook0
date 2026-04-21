@@ -13,7 +13,7 @@ import { unwrapResponse } from '@/utils/unwrapResponse';
 type definitions = components['schemas'];
 export type RetrySchedule = definitions['RetrySchedule'];
 export type RetrySchedulePost = definitions['RetrySchedulePost'];
-export type RetrySchedulePut = definitions['RetryScheduleFields'];
+export type RetrySchedulePut = definitions['RetrySchedulePut'];
 
 /**
  * Fetches all retry schedules for an organization.

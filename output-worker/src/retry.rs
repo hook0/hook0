@@ -47,9 +47,9 @@ pub struct SubscriptionRetrySchedule {
     pub subscription_retry_schedule_id: Option<uuid::Uuid>,
     pub strategy: Option<Strategy>,
     pub max_retries: Option<i32>,
-    pub custom_intervals: Option<Vec<i32>>,
-    pub linear_delay: Option<i32>,
-    pub increasing_base_delay: Option<i32>,
+    pub custom_intervals_secs: Option<Vec<i32>>,
+    pub linear_delay_secs: Option<i32>,
+    pub increasing_base_delay_secs: Option<i32>,
     pub increasing_wait_factor: Option<f64>,
 }
 
@@ -92,9 +92,9 @@ pub async fn compute_next_retry(
                 s.retry_schedule__id as "subscription_retry_schedule_id?",
                 rs.strategy as "strategy?: Strategy",
                 rs.max_retries as "max_retries?",
-                rs.custom_intervals,
-                rs.linear_delay,
-                rs.increasing_base_delay,
+                rs.custom_intervals as custom_intervals_secs,
+                rs.linear_delay as linear_delay_secs,
+                rs.increasing_base_delay as increasing_base_delay_secs,
                 rs.increasing_wait_factor
             from webhook.subscription as s
             inner join event.application as a on a.application__id = s.application__id
@@ -155,18 +155,18 @@ pub fn compute_scheduled_retry_delay(
 
     let raw_delay_secs: u64 = match strategy {
         Strategy::ExponentialIncreasing => {
-            let base = row.increasing_base_delay?;
+            let base = row.increasing_base_delay_secs?;
             let factor = row.increasing_wait_factor?;
             let projected = f64::from(base) * factor.powi(i32::from(retry_count));
             // Pre-clamped to [0, MAX_RETRY_DELAY_SECS_F64]; residual NaN saturates to 0 via `as u64`.
             projected.clamp(0.0, MAX_RETRY_DELAY_SECS_F64) as u64
         }
         Strategy::Linear => {
-            let delay = row.linear_delay?;
+            let delay = row.linear_delay_secs?;
             u64::try_from(delay).ok()?
         }
         Strategy::Custom => {
-            let intervals = row.custom_intervals.as_ref()?;
+            let intervals = row.custom_intervals_secs.as_ref()?;
             let index = usize::try_from(retry_count).ok()?;
             let value = intervals.get(index).copied()?;
             u64::try_from(value).ok()?
@@ -184,6 +184,9 @@ pub fn compute_scheduled_retry_delay(
 
 /// Built-in escalating table used when no retry schedule is attached.
 /// Pure and deterministic so planning helpers stay reproducible.
+///
+/// WARNING: keep in sync with `api::handlers::instance::DEFAULT_SCHEDULE_DELAYS`.
+/// Same values must live in both crates until we have a shared crate for retry policy.
 pub fn built_in_retry_delay(max_retries: u8, retry_count: i16) -> Option<Duration> {
     if retry_count >= i16::from(max_retries) {
         return None;
@@ -229,9 +232,9 @@ mod tests {
             subscription_retry_schedule_id: Some(uuid::Uuid::nil()),
             strategy: Some(Strategy::ExponentialIncreasing),
             max_retries: Some(max),
-            custom_intervals: None,
-            linear_delay: None,
-            increasing_base_delay: Some(base),
+            custom_intervals_secs: None,
+            linear_delay_secs: None,
+            increasing_base_delay_secs: Some(base),
             increasing_wait_factor: Some(factor),
         }
     }
@@ -241,9 +244,9 @@ mod tests {
             subscription_retry_schedule_id: Some(uuid::Uuid::nil()),
             strategy: Some(Strategy::Linear),
             max_retries: Some(max),
-            custom_intervals: None,
-            linear_delay: Some(delay_seconds),
-            increasing_base_delay: None,
+            custom_intervals_secs: None,
+            linear_delay_secs: Some(delay_seconds),
+            increasing_base_delay_secs: None,
             increasing_wait_factor: None,
         }
     }
@@ -254,9 +257,9 @@ mod tests {
             subscription_retry_schedule_id: Some(uuid::Uuid::nil()),
             strategy: Some(Strategy::Custom),
             max_retries: Some(max),
-            custom_intervals: Some(intervals),
-            linear_delay: None,
-            increasing_base_delay: None,
+            custom_intervals_secs: Some(intervals),
+            linear_delay_secs: None,
+            increasing_base_delay_secs: None,
             increasing_wait_factor: None,
         }
     }

@@ -54,33 +54,36 @@ pub struct SubscriptionHealthMonitorConfig {
     failure_percent_for_disable: u8,
 }
 
-/// Built-in retry delays (in seconds) used when a subscription has no custom schedule attached.
-/// Must stay in sync with `output_worker::retry::built_in_retry_delay`.
-pub const DEFAULT_SCHEDULE_DELAYS_SECS: &[i64] = &[3, 10, 180, 1800, 3600, 10800, 18000, 36000];
+/// Built-in retry delays used when a subscription has no custom schedule attached.
+///
+/// WARNING: keep in sync with `output_worker::retry::built_in_retry_delay`.
+/// Same values must live in both crates until we have a shared crate for retry policy.
+pub const DEFAULT_SCHEDULE_DELAYS: &[Duration] = &[
+    Duration::from_secs(3),
+    Duration::from_secs(10),
+    Duration::from_secs(180),
+    Duration::from_secs(1800),
+    Duration::from_secs(3600),
+    Duration::from_secs(10800),
+    Duration::from_secs(18000),
+    Duration::from_secs(36000),
+];
 
 /// Retry-schedule limits — single source of truth for frontend validation.
-/// Wire format stays in `_secs: integer` so the frontend schema is unchanged while Rust State uses `Duration`.
+/// All delay fields are expressed in seconds.
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct RetryScheduleConfig {
-    min_single_delay_secs: i32,
-    max_single_delay_secs: i32,
+    min_single_delay_secs: u64,
+    max_single_delay_secs: u64,
     max_retries: i32,
     max_custom_intervals_length: i32,
-    max_total_duration_secs: i64,
-    exponential_base_delay_min_secs: i32,
-    exponential_base_delay_max_secs: i32,
+    max_total_duration_secs: u64,
+    exponential_base_delay_min_secs: u64,
+    exponential_base_delay_max_secs: u64,
     exponential_wait_factor_min: f64,
     exponential_wait_factor_max: f64,
     max_per_organization: i64,
-    default_schedule_delays_secs: Vec<i64>,
-}
-
-fn duration_as_i32_secs(duration: Duration) -> i32 {
-    i32::try_from(duration.as_secs()).unwrap_or(i32::MAX)
-}
-
-fn duration_as_i64_secs(duration: Duration) -> i64 {
-    i64::try_from(duration.as_secs()).unwrap_or(i64::MAX)
+    default_schedule_delays_secs: Vec<u64>,
 }
 
 /// Get instance configuration
@@ -123,21 +126,20 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
             });
 
     let retry_schedule = RetryScheduleConfig {
-        min_single_delay_secs: duration_as_i32_secs(state.retry_schedule_min_single_delay),
-        max_single_delay_secs: duration_as_i32_secs(state.retry_schedule_max_single_delay),
+        min_single_delay_secs: state.retry_schedule_min_single_delay.as_secs(),
+        max_single_delay_secs: state.retry_schedule_max_single_delay.as_secs(),
         max_retries: state.retry_schedule_max_retries,
         max_custom_intervals_length: state.retry_schedule_max_retries,
-        max_total_duration_secs: duration_as_i64_secs(state.retry_schedule_max_total_duration),
-        exponential_base_delay_min_secs: duration_as_i32_secs(
-            state.retry_schedule_exponential_base_delay_min,
-        ),
-        exponential_base_delay_max_secs: duration_as_i32_secs(
-            state.retry_schedule_exponential_base_delay_max,
-        ),
+        max_total_duration_secs: state.retry_schedule_max_total_duration.as_secs(),
+        exponential_base_delay_min_secs: state.retry_schedule_exponential_base_delay_min.as_secs(),
+        exponential_base_delay_max_secs: state.retry_schedule_exponential_base_delay_max.as_secs(),
         exponential_wait_factor_min: state.retry_schedule_exponential_wait_factor_min,
         exponential_wait_factor_max: state.retry_schedule_exponential_wait_factor_max,
         max_per_organization: state.max_retry_schedules_per_organization,
-        default_schedule_delays_secs: DEFAULT_SCHEDULE_DELAYS_SECS.to_vec(),
+        default_schedule_delays_secs: DEFAULT_SCHEDULE_DELAYS
+            .iter()
+            .map(|d| d.as_secs())
+            .collect(),
     };
 
     Ok(Json(InstanceConfig {

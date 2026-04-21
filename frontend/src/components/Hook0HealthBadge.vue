@@ -2,9 +2,8 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CheckCircle, AlertTriangle, XCircle } from 'lucide-vue-next';
-import Hook0Badge from './Hook0Badge.vue';
+import Hook0Badge, { type BadgeVariant } from './Hook0Badge.vue';
 import Hook0Tooltip from './Hook0Tooltip.vue';
-import type { BadgeVariant } from './Hook0Badge.types';
 import { useHealthThresholds } from '@/composables/useHealthThresholds';
 
 const props = defineProps<{

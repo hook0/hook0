@@ -15,7 +15,7 @@ use chrono::{DateTime, Utc};
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as, query_scalar};
+use sqlx::{query, query_as};
 use std::time::Duration;
 use strum::{Display, EnumString};
 use tracing::error;
@@ -30,9 +30,9 @@ use crate::iam::{Action, authorize};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
-const FIELD_LINEAR_DELAY: &str = "linear_delay";
-const FIELD_CUSTOM_INTERVALS: &str = "custom_intervals";
-const FIELD_INCREASING_BASE_DELAY: &str = "increasing_base_delay";
+const FIELD_LINEAR_DELAY: &str = "linear_delay_secs";
+const FIELD_CUSTOM_INTERVALS: &str = "custom_intervals_secs";
+const FIELD_INCREASING_BASE_DELAY: &str = "increasing_base_delay_secs";
 const FIELD_INCREASING_WAIT_FACTOR: &str = "increasing_wait_factor";
 
 /// Retry pacing family that picks how delays between retries are computed.
@@ -67,67 +67,91 @@ pub struct RetrySchedule {
     pub name: String,
     pub strategy: RetryStrategy,
     pub max_retries: i32,
-    pub custom_intervals: Option<Vec<i32>>,
-    pub linear_delay: Option<i32>,
-    pub increasing_base_delay: Option<i32>,
+    pub custom_intervals_secs: Option<Vec<i32>>,
+    pub linear_delay_secs: Option<i32>,
+    pub increasing_base_delay_secs: Option<i32>,
     pub increasing_wait_factor: Option<f64>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-/// Strategy-specific body fields, shared between POST (wrapped with `organization_id`) and PUT (direct).
-/// Ranges here are anti-corruption bounds; business limits enforced at runtime in `validate_against_limits`.
+/// Create request. Business bounds enforced at runtime in `validate_against_limits`.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate, Clone)]
 #[serde(deny_unknown_fields)]
-#[validate(schema(function = "RetryScheduleFields::validate_strategy"))]
-pub struct RetryScheduleFields {
+#[validate(schema(function = "RetrySchedulePost::validate_strategy"))]
+pub struct RetrySchedulePost {
+    pub organization_id: Uuid,
     #[validate(non_control_character, length(min = 1, max = 200))]
     pub name: String,
     pub strategy: RetryStrategy,
     #[validate(range(min = 1, max = 25))]
     pub max_retries: i32,
-    pub custom_intervals: Option<Vec<i32>>,
-    pub linear_delay: Option<i32>,
-    pub increasing_base_delay: Option<i32>,
+    pub custom_intervals_secs: Option<Vec<i32>>,
+    pub linear_delay_secs: Option<i32>,
+    pub increasing_base_delay_secs: Option<i32>,
     pub increasing_wait_factor: Option<f64>,
 }
 
-impl RetryScheduleFields {
+impl RetrySchedulePost {
     fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
         validate_strategy_fields(
             self.strategy,
             self.max_retries,
-            self.linear_delay,
-            self.custom_intervals.as_deref(),
-            self.increasing_base_delay,
+            self.linear_delay_secs,
+            self.custom_intervals_secs.as_deref(),
+            self.increasing_base_delay_secs,
             self.increasing_wait_factor,
         )
     }
 }
 
-/// Create request. `organization_id` plus the shared body fields (flattened for the wire).
-#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+/// Update request. Same rules as `RetrySchedulePost`, minus `organization_id`.
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate, Clone)]
 #[serde(deny_unknown_fields)]
-pub struct RetrySchedulePost {
-    pub organization_id: Uuid,
-    #[serde(flatten)]
-    #[validate(nested)]
-    pub fields: RetryScheduleFields,
+#[validate(schema(function = "RetrySchedulePut::validate_strategy"))]
+pub struct RetrySchedulePut {
+    #[validate(non_control_character, length(min = 1, max = 200))]
+    pub name: String,
+    pub strategy: RetryStrategy,
+    #[validate(range(min = 1, max = 25))]
+    pub max_retries: i32,
+    pub custom_intervals_secs: Option<Vec<i32>>,
+    pub linear_delay_secs: Option<i32>,
+    pub increasing_base_delay_secs: Option<i32>,
+    pub increasing_wait_factor: Option<f64>,
 }
 
-/// Update request. Shape and validation rules match `RetryScheduleFields`.
-pub type RetrySchedulePut = RetryScheduleFields;
+impl RetrySchedulePut {
+    fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
+        validate_strategy_fields(
+            self.strategy,
+            self.max_retries,
+            self.linear_delay_secs,
+            self.custom_intervals_secs.as_deref(),
+            self.increasing_base_delay_secs,
+            self.increasing_wait_factor,
+        )
+    }
+}
 
-/// Query string that scopes list operations to one organization.
+/// Query string that scopes operations to one organization.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 #[serde(deny_unknown_fields)]
-pub struct RetryScheduleListQuery {
+pub struct RetryScheduleQuery {
     pub organization_id: Uuid,
 }
 
 fn strategy_error(message: &str) -> validator::ValidationError {
     let mut err = validator::ValidationError::new("strategy_fields");
     err.message = Some(std::borrow::Cow::Owned(message.to_owned()));
+    err
+}
+
+fn range_error<T: std::fmt::Display>(field: &str, min: T, max: T) -> validator::ValidationError {
+    let mut err = validator::ValidationError::new("range");
+    err.message = Some(std::borrow::Cow::Owned(format!(
+        "{field} must be within {min}..={max}"
+    )));
     err
 }
 
@@ -163,19 +187,23 @@ fn require_some<'a, T>(
 pub fn validate_strategy_fields(
     strategy: RetryStrategy,
     max_retries: i32,
-    linear_delay: Option<i32>,
-    custom_intervals: Option<&[i32]>,
-    increasing_base_delay: Option<i32>,
+    linear_delay_secs: Option<i32>,
+    custom_intervals_secs: Option<&[i32]>,
+    increasing_base_delay_secs: Option<i32>,
     increasing_wait_factor: Option<f64>,
 ) -> Result<(), validator::ValidationError> {
     let strategy_name = strategy.to_string();
     match strategy {
         RetryStrategy::ExponentialIncreasing => {
-            require_none(FIELD_CUSTOM_INTERVALS, &custom_intervals, &strategy_name)?;
-            require_none(FIELD_LINEAR_DELAY, &linear_delay, &strategy_name)?;
+            require_none(
+                FIELD_CUSTOM_INTERVALS,
+                &custom_intervals_secs,
+                &strategy_name,
+            )?;
+            require_none(FIELD_LINEAR_DELAY, &linear_delay_secs, &strategy_name)?;
             require_some(
                 FIELD_INCREASING_BASE_DELAY,
-                &increasing_base_delay,
+                &increasing_base_delay_secs,
                 &strategy_name,
             )?;
             let factor = require_some(
@@ -190,10 +218,14 @@ pub fn validate_strategy_fields(
             }
         }
         RetryStrategy::Linear => {
-            require_none(FIELD_CUSTOM_INTERVALS, &custom_intervals, &strategy_name)?;
+            require_none(
+                FIELD_CUSTOM_INTERVALS,
+                &custom_intervals_secs,
+                &strategy_name,
+            )?;
             require_none(
                 FIELD_INCREASING_BASE_DELAY,
-                &increasing_base_delay,
+                &increasing_base_delay_secs,
                 &strategy_name,
             )?;
             require_none(
@@ -201,13 +233,13 @@ pub fn validate_strategy_fields(
                 &increasing_wait_factor,
                 &strategy_name,
             )?;
-            require_some(FIELD_LINEAR_DELAY, &linear_delay, &strategy_name)?;
+            require_some(FIELD_LINEAR_DELAY, &linear_delay_secs, &strategy_name)?;
         }
         RetryStrategy::Custom => {
-            require_none(FIELD_LINEAR_DELAY, &linear_delay, &strategy_name)?;
+            require_none(FIELD_LINEAR_DELAY, &linear_delay_secs, &strategy_name)?;
             require_none(
                 FIELD_INCREASING_BASE_DELAY,
-                &increasing_base_delay,
+                &increasing_base_delay_secs,
                 &strategy_name,
             )?;
             require_none(
@@ -215,12 +247,15 @@ pub fn validate_strategy_fields(
                 &increasing_wait_factor,
                 &strategy_name,
             )?;
-            let intervals =
-                require_some(FIELD_CUSTOM_INTERVALS, &custom_intervals, &strategy_name)?;
+            let intervals = require_some(
+                FIELD_CUSTOM_INTERVALS,
+                &custom_intervals_secs,
+                &strategy_name,
+            )?;
             let expected_length = usize::try_from(max_retries).unwrap_or(0);
             if intervals.len() != expected_length {
                 return Err(strategy_error(
-                    "custom_intervals length must equal max_retries",
+                    "custom_intervals_secs length must equal max_retries",
                 ));
             }
         }
@@ -228,42 +263,39 @@ pub fn validate_strategy_fields(
     Ok(())
 }
 
-/// Saturating Duration → i32 seconds conversion (bounds derive from clap-parsed humantime).
-fn duration_to_i32_secs(duration: Duration) -> i32 {
-    i32::try_from(duration.as_secs()).unwrap_or(i32::MAX)
-}
-
-/// Saturating Duration → i64 seconds conversion (bounds derive from clap-parsed humantime).
-fn duration_to_i64_secs(duration: Duration) -> i64 {
-    i64::try_from(duration.as_secs()).unwrap_or(i64::MAX)
-}
-
 /// Runtime bounds check against the instance-level limits from `State`. Rejects payloads
 /// that passed validator attributes (anti-corruption) but breach the tighter business caps.
+/// Operates on raw fields so both `RetrySchedulePost` and `RetrySchedulePut` feed the same pass.
 fn validate_against_limits(
     state: &crate::State,
-    fields: &RetryScheduleFields,
+    strategy: RetryStrategy,
+    max_retries: i32,
+    linear_delay_secs: Option<i32>,
+    custom_intervals_secs: Option<&[i32]>,
+    increasing_base_delay_secs: Option<i32>,
+    increasing_wait_factor: Option<f64>,
 ) -> Result<(), validator::ValidationErrors> {
     let mut errors = validator::ValidationErrors::new();
 
-    if fields.max_retries > state.retry_schedule_max_retries {
+    if max_retries > state.retry_schedule_max_retries {
         let cap = state.retry_schedule_max_retries;
         errors.add("max_retries", range_error("max_retries", 1, i64::from(cap)));
     }
 
-    match fields.strategy {
+    match strategy {
         RetryStrategy::ExponentialIncreasing => {
-            if let Some(base) = fields.increasing_base_delay {
-                let min = duration_to_i32_secs(state.retry_schedule_exponential_base_delay_min);
-                let max = duration_to_i32_secs(state.retry_schedule_exponential_base_delay_max);
-                if !(min..=max).contains(&base) {
+            if let Some(base) = increasing_base_delay_secs {
+                let candidate = Duration::from_secs(u64::try_from(base).unwrap_or(0));
+                let min = state.retry_schedule_exponential_base_delay_min;
+                let max = state.retry_schedule_exponential_base_delay_max;
+                if !(min..=max).contains(&candidate) {
                     errors.add(
                         FIELD_INCREASING_BASE_DELAY,
-                        range_error(FIELD_INCREASING_BASE_DELAY, i64::from(min), i64::from(max)),
+                        range_error(FIELD_INCREASING_BASE_DELAY, min.as_secs(), max.as_secs()),
                     );
                 }
             }
-            if let Some(factor) = fields.increasing_wait_factor {
+            if let Some(factor) = increasing_wait_factor {
                 let min = state.retry_schedule_exponential_wait_factor_min;
                 let max = state.retry_schedule_exponential_wait_factor_max;
                 if factor < min || factor > max {
@@ -275,32 +307,32 @@ fn validate_against_limits(
             }
         }
         RetryStrategy::Linear => {
-            if let Some(delay) = fields.linear_delay {
-                let min = duration_to_i32_secs(state.retry_schedule_min_single_delay);
-                let max = duration_to_i32_secs(state.retry_schedule_max_single_delay);
-                if !(min..=max).contains(&delay) {
+            if let Some(delay) = linear_delay_secs {
+                let candidate = Duration::from_secs(u64::try_from(delay).unwrap_or(0));
+                let min = state.retry_schedule_min_single_delay;
+                let max = state.retry_schedule_max_single_delay;
+                if !(min..=max).contains(&candidate) {
                     errors.add(
                         FIELD_LINEAR_DELAY,
-                        range_error(FIELD_LINEAR_DELAY, i64::from(min), i64::from(max)),
+                        range_error(FIELD_LINEAR_DELAY, min.as_secs(), max.as_secs()),
                     );
                 }
             }
         }
         RetryStrategy::Custom => {
-            if let Some(intervals) = fields.custom_intervals.as_deref() {
-                let min = duration_to_i32_secs(state.retry_schedule_min_single_delay);
-                let max = duration_to_i32_secs(state.retry_schedule_max_single_delay);
-                if let Some((index, _)) = intervals
-                    .iter()
-                    .enumerate()
-                    .find(|(_, value)| !(min..=max).contains(value))
-                {
+            if let Some(intervals) = custom_intervals_secs {
+                let min = state.retry_schedule_min_single_delay;
+                let max = state.retry_schedule_max_single_delay;
+                if let Some((index, _)) = intervals.iter().enumerate().find(|(_, value)| {
+                    let candidate = Duration::from_secs(u64::try_from(**value).unwrap_or(0));
+                    !(min..=max).contains(&candidate)
+                }) {
                     errors.add(
                         FIELD_CUSTOM_INTERVALS,
                         range_error(
                             &format!("{FIELD_CUSTOM_INTERVALS}[{index}]"),
-                            i64::from(min),
-                            i64::from(max),
+                            min.as_secs(),
+                            max.as_secs(),
                         ),
                     );
                 }
@@ -308,12 +340,25 @@ fn validate_against_limits(
         }
     }
 
-    let single_max_secs = duration_to_i32_secs(state.retry_schedule_max_single_delay);
-    let total_cap_secs = duration_to_i64_secs(state.retry_schedule_max_total_duration);
-    if compute_total_duration(fields, single_max_secs) > total_cap_secs {
+    let single_max = state.retry_schedule_max_single_delay;
+    let total_cap = state.retry_schedule_max_total_duration;
+    let total = compute_total_duration(
+        strategy,
+        max_retries,
+        linear_delay_secs,
+        custom_intervals_secs,
+        increasing_base_delay_secs,
+        increasing_wait_factor,
+        single_max,
+    );
+    if total > total_cap {
         errors.add(
-            "total_duration",
-            range_error("total_duration", 0, total_cap_secs),
+            "total_duration_secs",
+            range_error(
+                "total_duration_secs",
+                Duration::ZERO.as_secs(),
+                total_cap.as_secs(),
+            ),
         );
     }
 
@@ -324,51 +369,55 @@ fn validate_against_limits(
     }
 }
 
-fn range_error<T: std::fmt::Display>(field: &str, min: T, max: T) -> validator::ValidationError {
-    let mut err = validator::ValidationError::new("range");
-    err.message = Some(std::borrow::Cow::Owned(format!(
-        "{field} must be within {min}..={max}"
-    )));
-    err
-}
-
-/// Sum of retry delays in seconds. Per-retry delay pre-clamped to single_max_secs so
-/// hostile inputs cannot overflow i64 before the total-cap check.
-fn compute_total_duration(fields: &RetryScheduleFields, single_max_secs: i32) -> i64 {
-    match fields.strategy {
+/// Sum of retry delays. Per-retry value pre-clamped to `single_max` so hostile
+/// inputs cannot overflow before the total-cap check.
+fn compute_total_duration(
+    strategy: RetryStrategy,
+    max_retries: i32,
+    linear_delay_secs: Option<i32>,
+    custom_intervals_secs: Option<&[i32]>,
+    increasing_base_delay_secs: Option<i32>,
+    increasing_wait_factor: Option<f64>,
+    single_max: Duration,
+) -> Duration {
+    match strategy {
         RetryStrategy::ExponentialIncreasing => {
-            let (Some(base), Some(factor)) =
-                (fields.increasing_base_delay, fields.increasing_wait_factor)
+            let (Some(base), Some(factor)) = (increasing_base_delay_secs, increasing_wait_factor)
             else {
-                return 0;
+                return Duration::ZERO;
             };
-            let cap_float = f64::from(single_max_secs);
-            let mut total: i64 = 0;
-            for index in 0..fields.max_retries.max(0) {
+            let cap_float = single_max.as_secs() as f64;
+            let mut total = Duration::ZERO;
+            for index in 0..max_retries.max(0) {
                 let base_float = f64::from(base);
                 let factor_power = factor.powi(index);
                 let projected = base_float * factor_power;
                 let clamped = projected.clamp(0.0, cap_float);
-                // Pre-clamped finite in [0, single_max_secs ≤ i32::MAX]; NaN saturates to 0 via `as i64`.
-                let term = clamped as i64;
+                // Clamp + NaN-safe: `as u64` saturates to 0 for NaN, cap_float for >cap.
+                let term = Duration::from_secs(clamped as u64);
                 total = total.saturating_add(term);
             }
             total
         }
-        RetryStrategy::Linear => match fields.linear_delay {
-            Some(delay) => i64::from(fields.max_retries).saturating_mul(i64::from(delay)),
-            None => 0,
+        RetryStrategy::Linear => match linear_delay_secs {
+            Some(delay) => {
+                let per_retry =
+                    Duration::from_secs(u64::try_from(delay).unwrap_or(0)).min(single_max);
+                let count = u32::try_from(max_retries.max(0)).unwrap_or(0);
+                per_retry.saturating_mul(count)
+            }
+            None => Duration::ZERO,
         },
-        RetryStrategy::Custom => fields
-            .custom_intervals
-            .as_deref()
+        RetryStrategy::Custom => custom_intervals_secs
             .map(|values| {
                 values
                     .iter()
-                    .map(|value| i64::from(*value).min(i64::from(single_max_secs)))
-                    .fold(0i64, |accumulator, value| accumulator.saturating_add(value))
+                    .map(|value| {
+                        Duration::from_secs(u64::try_from(*value).unwrap_or(0)).min(single_max)
+                    })
+                    .fold(Duration::ZERO, Duration::saturating_add)
             })
-            .unwrap_or(0),
+            .unwrap_or(Duration::ZERO),
     }
 }
 
@@ -384,7 +433,7 @@ pub async fn list(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
-    qs: Query<RetryScheduleListQuery>,
+    qs: Query<RetryScheduleQuery>,
 ) -> Result<Json<Vec<RetrySchedule>>, Hook0Problem> {
     let organization_id = qs.organization_id;
 
@@ -404,17 +453,17 @@ pub async fn list(
         RetrySchedule,
         r#"
             select
-                retry_schedule__id as "retry_schedule_id!",
-                organization__id as "organization_id!",
-                name as "name!",
-                strategy as "strategy!: RetryStrategy",
-                max_retries as "max_retries!",
-                custom_intervals,
-                linear_delay,
-                increasing_base_delay,
+                retry_schedule__id as retry_schedule_id,
+                organization__id as organization_id,
+                name,
+                strategy as "strategy: RetryStrategy",
+                max_retries,
+                custom_intervals as custom_intervals_secs,
+                linear_delay as linear_delay_secs,
+                increasing_base_delay as increasing_base_delay_secs,
                 increasing_wait_factor,
-                created_at as "created_at!",
-                updated_at as "updated_at!"
+                created_at,
+                updated_at
             from webhook.retry_schedule
             where organization__id = $1
             order by name asc
@@ -441,9 +490,10 @@ pub async fn get(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     retry_schedule_id: Path<Uuid>,
+    qs: Query<RetryScheduleQuery>,
 ) -> Result<Json<RetrySchedule>, Hook0Problem> {
     let retry_schedule_id = retry_schedule_id.into_inner();
-    let organization_id = lookup_organization(&state.db, &retry_schedule_id).await?;
+    let organization_id = qs.organization_id;
 
     // Auth failure collapses to NotFound so cross-org existence does not leak.
     if authorize(
@@ -464,27 +514,30 @@ pub async fn get(
         RetrySchedule,
         r#"
             select
-                retry_schedule__id as "retry_schedule_id!",
-                organization__id as "organization_id!",
-                name as "name!",
-                strategy as "strategy!: RetryStrategy",
-                max_retries as "max_retries!",
-                custom_intervals,
-                linear_delay,
-                increasing_base_delay,
+                retry_schedule__id as retry_schedule_id,
+                organization__id as organization_id,
+                name,
+                strategy as "strategy: RetryStrategy",
+                max_retries,
+                custom_intervals as custom_intervals_secs,
+                linear_delay as linear_delay_secs,
+                increasing_base_delay as increasing_base_delay_secs,
                 increasing_wait_factor,
-                created_at as "created_at!",
-                updated_at as "updated_at!"
+                created_at,
+                updated_at
             from webhook.retry_schedule
             where retry_schedule__id = $1
+              and organization__id = $2
         "#,
         &retry_schedule_id,
+        &organization_id,
     )
     .fetch_optional(&state.db)
     .await
-    .map_err(Hook0Problem::from)?;
+    .map_err(Hook0Problem::from)?
+    .ok_or(Hook0Problem::NotFound)?;
 
-    row.map(Json).ok_or(Hook0Problem::NotFound)
+    Ok(Json(row))
 }
 
 #[api_v2_operation(
@@ -518,11 +571,18 @@ pub async fn create(
     if let Err(errors) = body.validate() {
         return Err(Hook0Problem::Validation(errors));
     }
-    if let Err(errors) = validate_against_limits(&state, &body.fields) {
+    if let Err(errors) = validate_against_limits(
+        &state,
+        body.strategy,
+        body.max_retries,
+        body.linear_delay_secs,
+        body.custom_intervals_secs.as_deref(),
+        body.increasing_base_delay_secs,
+        body.increasing_wait_factor,
+    ) {
         return Err(Hook0Problem::Validation(errors));
     }
 
-    let fields = &body.fields;
     // Atomic INSERT with per-org quota: the subquery short-circuits when the org is at capacity.
     // Under concurrent creates two inserts may both see count=limit-1 and land — acceptable soft limit.
     let inserted_schedule = query_as!(
@@ -537,26 +597,26 @@ pub async fn create(
                 select count(*) from webhook.retry_schedule where organization__id = $1
             ) < $9
             returning
-                retry_schedule__id as "retry_schedule_id!",
-                organization__id as "organization_id!",
-                name as "name!",
-                strategy as "strategy!: RetryStrategy",
-                max_retries as "max_retries!",
-                custom_intervals,
-                linear_delay,
-                increasing_base_delay,
+                retry_schedule__id as retry_schedule_id,
+                organization__id as organization_id,
+                name,
+                strategy as "strategy: RetryStrategy",
+                max_retries,
+                custom_intervals as custom_intervals_secs,
+                linear_delay as linear_delay_secs,
+                increasing_base_delay as increasing_base_delay_secs,
                 increasing_wait_factor,
-                created_at as "created_at!",
-                updated_at as "updated_at!"
+                created_at,
+                updated_at
         "#,
         &organization_id,
-        fields.name.trim(),
-        fields.strategy as RetryStrategy,
-        fields.max_retries,
-        fields.custom_intervals.as_deref(),
-        fields.linear_delay,
-        fields.increasing_base_delay,
-        fields.increasing_wait_factor,
+        body.name.trim(),
+        body.strategy as RetryStrategy,
+        body.max_retries,
+        body.custom_intervals_secs.as_deref(),
+        body.linear_delay_secs,
+        body.increasing_base_delay_secs,
+        body.increasing_wait_factor,
         state.max_retry_schedules_per_organization,
     )
     .fetch_optional(&state.db)
@@ -578,9 +638,9 @@ pub async fn create(
         name: inserted_schedule.name.to_owned(),
         strategy: inserted_schedule.strategy.to_string(),
         max_retries: inserted_schedule.max_retries,
-        custom_intervals: inserted_schedule.custom_intervals.to_owned(),
-        linear_delay: inserted_schedule.linear_delay,
-        increasing_base_delay: inserted_schedule.increasing_base_delay,
+        custom_intervals_secs: inserted_schedule.custom_intervals_secs.to_owned(),
+        linear_delay_secs: inserted_schedule.linear_delay_secs,
+        increasing_base_delay_secs: inserted_schedule.increasing_base_delay_secs,
         increasing_wait_factor: inserted_schedule.increasing_wait_factor,
     }
     .into();
@@ -602,10 +662,11 @@ pub async fn edit(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     retry_schedule_id: Path<Uuid>,
+    qs: Query<RetryScheduleQuery>,
     body: Json<RetrySchedulePut>,
 ) -> Result<Json<RetrySchedule>, Hook0Problem> {
     let retry_schedule_id = retry_schedule_id.into_inner();
-    let organization_id = lookup_organization(&state.db, &retry_schedule_id).await?;
+    let organization_id = qs.organization_id;
 
     if authorize(
         &biscuit,
@@ -624,7 +685,15 @@ pub async fn edit(
     if let Err(errors) = body.validate() {
         return Err(Hook0Problem::Validation(errors));
     }
-    if let Err(errors) = validate_against_limits(&state, &body) {
+    if let Err(errors) = validate_against_limits(
+        &state,
+        body.strategy,
+        body.max_retries,
+        body.linear_delay_secs,
+        body.custom_intervals_secs.as_deref(),
+        body.increasing_base_delay_secs,
+        body.increasing_wait_factor,
+    ) {
         return Err(Hook0Problem::Validation(errors));
     }
 
@@ -633,35 +702,37 @@ pub async fn edit(
         r#"
             update webhook.retry_schedule
             set
-                name = $2,
-                strategy = $3,
-                max_retries = $4,
-                custom_intervals = $5,
-                linear_delay = $6,
-                increasing_base_delay = $7,
-                increasing_wait_factor = $8,
+                name = $3,
+                strategy = $4,
+                max_retries = $5,
+                custom_intervals = $6,
+                linear_delay = $7,
+                increasing_base_delay = $8,
+                increasing_wait_factor = $9,
                 updated_at = statement_timestamp()
             where retry_schedule__id = $1
+              and organization__id = $2
             returning
-                retry_schedule__id as "retry_schedule_id!",
-                organization__id as "organization_id!",
-                name as "name!",
-                strategy as "strategy!: RetryStrategy",
-                max_retries as "max_retries!",
-                custom_intervals,
-                linear_delay,
-                increasing_base_delay,
+                retry_schedule__id as retry_schedule_id,
+                organization__id as organization_id,
+                name,
+                strategy as "strategy: RetryStrategy",
+                max_retries,
+                custom_intervals as custom_intervals_secs,
+                linear_delay as linear_delay_secs,
+                increasing_base_delay as increasing_base_delay_secs,
                 increasing_wait_factor,
-                created_at as "created_at!",
-                updated_at as "updated_at!"
+                created_at,
+                updated_at
         "#,
         &retry_schedule_id,
+        &organization_id,
         body.name.trim(),
         body.strategy as RetryStrategy,
         body.max_retries,
-        body.custom_intervals.as_deref(),
-        body.linear_delay,
-        body.increasing_base_delay,
+        body.custom_intervals_secs.as_deref(),
+        body.linear_delay_secs,
+        body.increasing_base_delay_secs,
         body.increasing_wait_factor,
     )
     .fetch_optional(&state.db)
@@ -678,9 +749,9 @@ pub async fn edit(
         name: updated.name.to_owned(),
         strategy: updated.strategy.to_string(),
         max_retries: updated.max_retries,
-        custom_intervals: updated.custom_intervals.to_owned(),
-        linear_delay: updated.linear_delay,
-        increasing_base_delay: updated.increasing_base_delay,
+        custom_intervals_secs: updated.custom_intervals_secs.to_owned(),
+        linear_delay_secs: updated.linear_delay_secs,
+        increasing_base_delay_secs: updated.increasing_base_delay_secs,
         increasing_wait_factor: updated.increasing_wait_factor,
     }
     .into();
@@ -702,9 +773,10 @@ pub async fn delete(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
     retry_schedule_id: Path<Uuid>,
+    qs: Query<RetryScheduleQuery>,
 ) -> Result<NoContent, Hook0Problem> {
     let retry_schedule_id = retry_schedule_id.into_inner();
-    let organization_id = lookup_organization(&state.db, &retry_schedule_id).await?;
+    let organization_id = qs.organization_id;
 
     if authorize(
         &biscuit,
@@ -721,8 +793,9 @@ pub async fn delete(
     }
 
     let deleted = query!(
-        "delete from webhook.retry_schedule where retry_schedule__id = $1 returning retry_schedule__id",
+        "delete from webhook.retry_schedule where retry_schedule__id = $1 and organization__id = $2 returning retry_schedule__id",
         &retry_schedule_id,
+        &organization_id,
     )
     .fetch_optional(&state.db)
     .await
@@ -740,21 +813,6 @@ pub async fn delete(
     emit_retry_schedule_event(&state, event).await;
 
     Ok(NoContent)
-}
-
-/// Owning organization for a retry schedule; 404 if missing.
-async fn lookup_organization(
-    db: &sqlx::PgPool,
-    retry_schedule_id: &Uuid,
-) -> Result<Uuid, Hook0Problem> {
-    query_scalar!(
-        "select organization__id from webhook.retry_schedule where retry_schedule__id = $1",
-        retry_schedule_id,
-    )
-    .fetch_optional(db)
-    .await
-    .map_err(Hook0Problem::from)?
-    .ok_or(Hook0Problem::NotFound)
 }
 
 /// Best-effort emit to the Hook0 client. Send errors become log lines so CRUD handlers
@@ -777,39 +835,39 @@ mod tests {
         max_retries: i32,
         base: i32,
         factor: f64,
-    ) -> RetryScheduleFields {
-        RetryScheduleFields {
+    ) -> RetrySchedulePut {
+        RetrySchedulePut {
             name: name.to_owned(),
             strategy: RetryStrategy::ExponentialIncreasing,
             max_retries,
-            custom_intervals: None,
-            linear_delay: None,
-            increasing_base_delay: Some(base),
+            custom_intervals_secs: None,
+            linear_delay_secs: None,
+            increasing_base_delay_secs: Some(base),
             increasing_wait_factor: Some(factor),
         }
     }
 
-    fn linear_fields(name: &str, max_retries: i32, delay_seconds: i32) -> RetryScheduleFields {
-        RetryScheduleFields {
+    fn linear_fields(name: &str, max_retries: i32, delay_seconds: i32) -> RetrySchedulePut {
+        RetrySchedulePut {
             name: name.to_owned(),
             strategy: RetryStrategy::Linear,
             max_retries,
-            custom_intervals: None,
-            linear_delay: Some(delay_seconds),
-            increasing_base_delay: None,
+            custom_intervals_secs: None,
+            linear_delay_secs: Some(delay_seconds),
+            increasing_base_delay_secs: None,
             increasing_wait_factor: None,
         }
     }
 
-    fn custom_fields(name: &str, intervals: Vec<i32>) -> RetryScheduleFields {
+    fn custom_fields(name: &str, intervals: Vec<i32>) -> RetrySchedulePut {
         let max_retries = i32::try_from(intervals.len()).expect("test intervals fit in i32");
-        RetryScheduleFields {
+        RetrySchedulePut {
             name: name.to_owned(),
             strategy: RetryStrategy::Custom,
             max_retries,
-            custom_intervals: Some(intervals),
-            linear_delay: None,
-            increasing_base_delay: None,
+            custom_intervals_secs: Some(intervals),
+            linear_delay_secs: None,
+            increasing_base_delay_secs: None,
             increasing_wait_factor: None,
         }
     }
@@ -823,21 +881,21 @@ mod tests {
     #[test]
     fn exponential_rejects_missing_base_delay() {
         let mut post = exponential_fields("bad", 5, 60, 2.0);
-        post.increasing_base_delay = None;
+        post.increasing_base_delay_secs = None;
         assert!(post.validate().is_err());
     }
 
     #[test]
     fn linear_rejects_missing_delay() {
         let mut post = linear_fields("bad", 5, 60);
-        post.linear_delay = None;
+        post.linear_delay_secs = None;
         assert!(post.validate().is_err());
     }
 
     #[test]
     fn linear_rejects_extra_exponential_field() {
         let mut post = linear_fields("bad", 5, 60);
-        post.increasing_base_delay = Some(60);
+        post.increasing_base_delay_secs = Some(60);
         assert!(post.validate().is_err());
     }
 
@@ -858,8 +916,17 @@ mod tests {
     #[test]
     fn compute_total_duration_clamps_per_retry() {
         let post = exponential_fields("clamp", 10, 1, 10.0);
-        let total = compute_total_duration(&post, 7 * 24 * 3600);
-        assert!(total > 0);
-        assert!(total <= 10 * (7 * 24 * 3600));
+        let single_max = Duration::from_secs(7 * 24 * 3600);
+        let total = compute_total_duration(
+            post.strategy,
+            post.max_retries,
+            post.linear_delay_secs,
+            post.custom_intervals_secs.as_deref(),
+            post.increasing_base_delay_secs,
+            post.increasing_wait_factor,
+            single_max,
+        );
+        assert!(total > Duration::ZERO);
+        assert!(total <= single_max.saturating_mul(10));
     }
 }

@@ -826,9 +826,9 @@ pub struct EventRetryScheduleCreated {
     pub name: String,
     pub strategy: String,
     pub max_retries: i32,
-    pub custom_intervals: Option<Vec<i32>>,
-    pub linear_delay: Option<i32>,
-    pub increasing_base_delay: Option<i32>,
+    pub custom_intervals_secs: Option<Vec<i32>>,
+    pub linear_delay_secs: Option<i32>,
+    pub increasing_base_delay_secs: Option<i32>,
     pub increasing_wait_factor: Option<f64>,
 }
 
@@ -855,9 +855,9 @@ pub struct EventRetryScheduleUpdated {
     pub name: String,
     pub strategy: String,
     pub max_retries: i32,
-    pub custom_intervals: Option<Vec<i32>>,
-    pub linear_delay: Option<i32>,
-    pub increasing_base_delay: Option<i32>,
+    pub custom_intervals_secs: Option<Vec<i32>>,
+    pub linear_delay_secs: Option<i32>,
+    pub increasing_base_delay_secs: Option<i32>,
     pub increasing_wait_factor: Option<f64>,
 }
 
