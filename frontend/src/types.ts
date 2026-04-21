@@ -1317,6 +1317,8 @@ export interface components {
       metadata: {
         [key: string]: string;
       };
+      /** Format: uuid — manual patch; regen via `npm run generate:types` drops this line. */
+      retry_schedule_id?: string | null;
       /** Format: uuid */
       secret: string;
       /** Format: uuid */
@@ -1349,6 +1351,8 @@ export interface components {
       metadata?: {
         [key: string]: string;
       };
+      /** Format: uuid — manual patch; regen via `npm run generate:types` drops this line. */
+      retry_schedule_id?: string | null;
       target: {
         headers: Record<string, never>;
         method: string;

@@ -121,18 +121,23 @@ function buildPayload(): RetrySchedulePayload | null {
   switch (strategy.value) {
     case 'exponential_increasing':
       return {
-        strategy: 'exponential_increasing',
         name: trimmed,
+        strategy: 'exponential_increasing',
         max_retries: maxRetries.value,
-        base_delay: baseDelay.value,
-        wait_factor: waitFactor.value,
+        custom_intervals: null,
+        linear_delay: null,
+        increasing_base_delay: baseDelay.value,
+        increasing_wait_factor: waitFactor.value,
       };
     case 'linear':
       return {
-        strategy: 'linear',
         name: trimmed,
+        strategy: 'linear',
         max_retries: maxRetries.value,
-        delay: linearDelay.value,
+        custom_intervals: null,
+        linear_delay: linearDelay.value,
+        increasing_base_delay: null,
+        increasing_wait_factor: null,
       };
     case 'custom':
       if (customIntervals.value.length === 0) {
@@ -140,9 +145,14 @@ function buildPayload(): RetrySchedulePayload | null {
         return null;
       }
       return {
-        strategy: 'custom',
         name: trimmed,
-        intervals: [...customIntervals.value],
+        strategy: 'custom',
+        // Backend requires max_retries == custom_intervals.len() for the custom strategy.
+        max_retries: customIntervals.value.length,
+        custom_intervals: [...customIntervals.value],
+        linear_delay: null,
+        increasing_base_delay: null,
+        increasing_wait_factor: null,
       };
   }
 }
@@ -173,7 +183,7 @@ function handleSubmit() {
     );
   } else {
     createMutation.mutate(
-      { organization_id: organizationId.value, payload },
+      { organization_id: organizationId.value, ...payload },
       {
         onSuccess: () => {
           toast.success(t('common.success'), { description: t('retrySchedules.created') });

@@ -16,6 +16,7 @@ import {
 } from './useSubscriptionQueries';
 import { useEventTypeList } from '../event_types/useEventTypeQueries';
 import type { EventType } from '../event_types/EventTypeService';
+import { useRetryScheduleList } from '../../retry_schedules/useRetryScheduleQueries';
 import { intersectWith } from '@/utils/fp';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
@@ -99,7 +100,7 @@ function toApiRecord(map: Record<string, string>): Record<string, never> {
 }
 
 const router = useRouter();
-const { applicationId, subscriptionId } = useRouteIds();
+const { organizationId, applicationId, subscriptionId } = useRouteIds();
 const isNew = computed(() => !subscriptionId.value);
 
 // Queries
@@ -144,6 +145,25 @@ const headersMap = ref<Record<string, string>>({});
 const labelsMap = ref<Record<string, string>>({ user_id: '1' });
 const metadataMap = ref<Record<string, string>>({});
 
+// null means "use the organization's built-in retry policy" — maps to retry_schedule_id on the API.
+const selectedRetryScheduleId = ref<string | null>(null);
+
+const { data: retrySchedules } = useRetryScheduleList(organizationId);
+const retryScheduleOptions = computed<Hook0SelectSingleOption[]>(() => {
+  const defaultOption: Hook0SelectSingleOption = {
+    value: '',
+    label: t('retrySchedules.defaultSchedule'),
+  };
+  const schedules = retrySchedules.value ?? [];
+  return [
+    defaultOption,
+    ...schedules.map((schedule) => ({
+      value: schedule.retry_schedule_id,
+      label: schedule.name,
+    })),
+  ];
+});
+
 const httpMethods = 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption);
 
 // Populate form from subscription data (edit mode)
@@ -168,6 +188,7 @@ watch(
       metadataMap.value = { ...sub.metadata };
       headersKv.value = recordToKvPairs(sub.target.headers);
       headersMap.value = { ...sub.target.headers } as unknown as Record<string, string>;
+      selectedRetryScheduleId.value = sub.retry_schedule_id ?? null;
     }
   },
   { immediate: true }
@@ -273,6 +294,8 @@ const onSubmit = handleSubmit((values) => {
         labels: toApiRecord(labelsMap.value),
         is_enabled: isEnabled.value,
         event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
+        // Empty string from the select maps back to null (use org default).
+        retry_schedule_id: selectedRetryScheduleId.value || null,
       },
       {
         onSuccess: () => {
@@ -308,6 +331,8 @@ const onSubmit = handleSubmit((values) => {
         event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
         dedicated_workers: dedicatedWorkers.value.length > 0 ? dedicatedWorkers.value : undefined,
         application_id: applicationId.value,
+        // Empty string from the select maps back to null (use org default).
+        retry_schedule_id: selectedRetryScheduleId.value || null,
       },
     },
     {
@@ -458,8 +483,11 @@ const missingFieldsTooltip = computed(() => {
                 <SubscriptionSectionAdvanced
                   :headers-kv="headersKv"
                   :metadata="metadata"
+                  :retry-schedule-id="selectedRetryScheduleId"
+                  :retry-schedule-options="retryScheduleOptions"
                   @update:headers="onHeadersUpdate($event)"
                   @update:metadata="onMetadataUpdate($event)"
+                  @update:retry-schedule-id="selectedRetryScheduleId = $event"
                 />
               </div>
             </Hook0CardContent>

@@ -1,5 +1,5 @@
 /**
- * Local types for retry_schedule feature. Mirrors the backend OpenAPI shape.
+ * Local types for retry_schedule feature. Mirrors the backend OpenAPI shape exactly.
  * TODO: swap for `components['schemas']['RetrySchedule*']` once `npm run generate:types`
  * is re-run against the branch's running API.
  */
@@ -20,30 +20,21 @@ export interface RetrySchedule {
   updated_at: string;
 }
 
-export type RetrySchedulePayload =
-  | {
-      strategy: 'exponential_increasing';
-      name: string;
-      max_retries: number;
-      base_delay: number;
-      wait_factor: number;
-    }
-  | {
-      strategy: 'linear';
-      name: string;
-      max_retries: number;
-      delay: number;
-    }
-  | {
-      strategy: 'custom';
-      name: string;
-      intervals: number[];
-    };
-
-export interface RetryScheduleCreatePayload {
-  organization_id: string;
-  payload: RetrySchedulePayload;
+/** PUT body. Fields irrelevant to the strategy must be `null`; backend has `deny_unknown_fields`. */
+export interface RetrySchedulePayload {
+  name: string;
+  strategy: RetryStrategy;
+  max_retries: number;
+  custom_intervals: number[] | null;
+  linear_delay: number | null;
+  increasing_base_delay: number | null;
+  increasing_wait_factor: number | null;
 }
+
+/** POST body. Same as PUT plus the owning organization. */
+export type RetryScheduleCreatePayload = RetrySchedulePayload & {
+  organization_id: string;
+};
 
 /** Snapshot of the /instance `retry_schedule` limits block. */
 export interface RetryScheduleLimits {

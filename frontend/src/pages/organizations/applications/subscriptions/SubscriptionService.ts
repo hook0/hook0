@@ -56,6 +56,7 @@ export function toggleEnable(
     metadata: subscription.metadata,
 
     labels: subscription.labels,
+    retry_schedule_id: subscription.retry_schedule_id,
   });
 }
 

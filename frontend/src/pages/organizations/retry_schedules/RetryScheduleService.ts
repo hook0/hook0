@@ -18,12 +18,7 @@ export function getSchedule(retryScheduleId: string): Promise<RetrySchedule> {
 }
 
 export function createSchedule(body: RetryScheduleCreatePayload): Promise<RetrySchedule> {
-  return http
-    .post<RetrySchedule>('/retry_schedules', {
-      organization_id: body.organization_id,
-      ...body.payload,
-    })
-    .then((response) => response.data);
+  return http.post<RetrySchedule>('/retry_schedules', body).then((response) => response.data);
 }
 
 export function updateSchedule(
