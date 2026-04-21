@@ -1,13 +1,13 @@
 //! Retry schedule CRUD with cross-field validator.
 //!
-//! End-user sees 422 with field errors on invalid payloads. 404 hides cross-organization access.
+//! End-user sees 422 with field errors on invalid payloads.
 //!
 //! - Flat `RetrySchedulePost` / `RetrySchedulePut` drive the `validator` crate.
 //! - Business bounds come from `State`. Attribute ranges stay wide.
 //! - Per-organization quota: atomic `INSERT … WHERE count(*) < $limit`.
 //! - Soft cap under contention. One extra row acceptable.
-//! - Auth failure on get/edit/delete returns 404.
-//! - Hides cross-organization existence oracle.
+//! - Status codes are uniform across handlers: authz failure returns 403, missing
+//!   or cross-organization schedules return 404.
 
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
@@ -17,7 +17,7 @@ use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::{query, query_as};
 use std::time::Duration;
-use strum::{Display, EnumString};
+use strum::{AsRefStr, Display, EnumString};
 use tracing::error;
 use uuid::Uuid;
 use validator::Validate;
@@ -26,7 +26,7 @@ use crate::hook0_client::{
     EventRetryScheduleCreated, EventRetryScheduleRemoved, EventRetryScheduleUpdated,
     Hook0ClientEvent,
 };
-use crate::iam::{Action, authorize};
+use crate::iam::{Action, authorize, get_retry_schedule_owner_organization};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
@@ -47,6 +47,7 @@ const FIELD_INCREASING_WAIT_FACTOR: &str = "increasing_wait_factor";
     Deserialize,
     Display,
     EnumString,
+    AsRefStr,
     Apiv2Schema,
     sqlx::Type,
 )]
@@ -81,28 +82,22 @@ pub struct RetrySchedule {
 #[validate(schema(function = "RetrySchedulePost::validate_strategy"))]
 pub struct RetrySchedulePost {
     pub organization_id: Uuid,
-    #[validate(non_control_character, length(min = 1, max = 200))]
+    #[validate(
+        non_control_character,
+        length(min = 1, max = 200),
+        custom(function = "validate_name_trimmed")
+    )]
     pub name: String,
     pub strategy: RetryStrategy,
     #[validate(range(min = 1, max = 25))]
     pub max_retries: i32,
+    #[validate(custom(function = "validate_custom_intervals_range"))]
     pub custom_intervals_secs: Option<Vec<i32>>,
+    #[validate(range(min = 1, max = 604_800))]
     pub linear_delay_secs: Option<i32>,
+    #[validate(range(min = 1, max = 604_800))]
     pub increasing_base_delay_secs: Option<i32>,
     pub increasing_wait_factor: Option<f64>,
-}
-
-impl RetrySchedulePost {
-    fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
-        validate_strategy_fields(
-            self.strategy,
-            self.max_retries,
-            self.linear_delay_secs,
-            self.custom_intervals_secs.as_deref(),
-            self.increasing_base_delay_secs,
-            self.increasing_wait_factor,
-        )
-    }
 }
 
 /// Update request. Same rules as `RetrySchedulePost`, minus `organization_id`.
@@ -110,29 +105,73 @@ impl RetrySchedulePost {
 #[serde(deny_unknown_fields)]
 #[validate(schema(function = "RetrySchedulePut::validate_strategy"))]
 pub struct RetrySchedulePut {
-    #[validate(non_control_character, length(min = 1, max = 200))]
+    #[validate(
+        non_control_character,
+        length(min = 1, max = 200),
+        custom(function = "validate_name_trimmed")
+    )]
     pub name: String,
     pub strategy: RetryStrategy,
     #[validate(range(min = 1, max = 25))]
     pub max_retries: i32,
+    #[validate(custom(function = "validate_custom_intervals_range"))]
     pub custom_intervals_secs: Option<Vec<i32>>,
+    #[validate(range(min = 1, max = 604_800))]
     pub linear_delay_secs: Option<i32>,
+    #[validate(range(min = 1, max = 604_800))]
     pub increasing_base_delay_secs: Option<i32>,
     pub increasing_wait_factor: Option<f64>,
 }
 
-impl RetrySchedulePut {
-    fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
-        validate_strategy_fields(
-            self.strategy,
-            self.max_retries,
-            self.linear_delay_secs,
-            self.custom_intervals_secs.as_deref(),
-            self.increasing_base_delay_secs,
-            self.increasing_wait_factor,
-        )
+/// Reject whitespace-only names up front so validation and the eventual trim at INSERT stay aligned.
+fn validate_name_trimmed(name: &str) -> Result<(), validator::ValidationError> {
+    let trimmed_length = name.trim().chars().count();
+    if !(1..=200).contains(&trimmed_length) {
+        let mut err = validator::ValidationError::new("length");
+        err.message = Some(std::borrow::Cow::Borrowed(
+            "name must contain 1 to 200 non-whitespace characters",
+        ));
+        return Err(err);
     }
+    Ok(())
 }
+
+/// Attribute-level guard for custom interval arrays. Stays wide (1..=7 days per entry);
+/// business bounds are enforced in `validate_against_limits`.
+fn validate_custom_intervals_range(intervals: &[i32]) -> Result<(), validator::ValidationError> {
+    if let Some((index, _)) = intervals
+        .iter()
+        .enumerate()
+        .find(|(_, value)| !(1..=604_800).contains(*value))
+    {
+        return Err(range_error(
+            &format!("{FIELD_CUSTOM_INTERVALS}[{index}]"),
+            1,
+            604_800,
+        ));
+    }
+    Ok(())
+}
+
+macro_rules! impl_validate_strategy {
+    ($payload:ty) => {
+        impl $payload {
+            fn validate_strategy(&self) -> Result<(), validator::ValidationError> {
+                validate_strategy_fields(
+                    self.strategy,
+                    self.max_retries,
+                    self.linear_delay_secs,
+                    self.custom_intervals_secs.as_deref(),
+                    self.increasing_base_delay_secs,
+                    self.increasing_wait_factor,
+                )
+            }
+        }
+    };
+}
+
+impl_validate_strategy!(RetrySchedulePost);
+impl_validate_strategy!(RetrySchedulePut);
 
 /// Query string that scopes operations to one organization.
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
@@ -192,26 +231,26 @@ pub fn validate_strategy_fields(
     increasing_base_delay_secs: Option<i32>,
     increasing_wait_factor: Option<f64>,
 ) -> Result<(), validator::ValidationError> {
-    let strategy_name = strategy.to_string();
+    let strategy_name: &str = strategy.as_ref();
     match strategy {
         RetryStrategy::ExponentialIncreasing => {
             require_none(
                 FIELD_CUSTOM_INTERVALS,
                 &custom_intervals_secs,
-                &strategy_name,
+                strategy_name,
             )?;
-            require_none(FIELD_LINEAR_DELAY, &linear_delay_secs, &strategy_name)?;
+            require_none(FIELD_LINEAR_DELAY, &linear_delay_secs, strategy_name)?;
             require_some(
                 FIELD_INCREASING_BASE_DELAY,
                 &increasing_base_delay_secs,
-                &strategy_name,
+                strategy_name,
             )?;
             let factor = require_some(
                 FIELD_INCREASING_WAIT_FACTOR,
                 &increasing_wait_factor,
-                &strategy_name,
+                strategy_name,
             )?;
-            if factor.is_nan() {
+            if !factor.is_finite() {
                 return Err(strategy_error(
                     "increasing_wait_factor must be a finite number",
                 ));
@@ -221,36 +260,36 @@ pub fn validate_strategy_fields(
             require_none(
                 FIELD_CUSTOM_INTERVALS,
                 &custom_intervals_secs,
-                &strategy_name,
+                strategy_name,
             )?;
             require_none(
                 FIELD_INCREASING_BASE_DELAY,
                 &increasing_base_delay_secs,
-                &strategy_name,
+                strategy_name,
             )?;
             require_none(
                 FIELD_INCREASING_WAIT_FACTOR,
                 &increasing_wait_factor,
-                &strategy_name,
+                strategy_name,
             )?;
-            require_some(FIELD_LINEAR_DELAY, &linear_delay_secs, &strategy_name)?;
+            require_some(FIELD_LINEAR_DELAY, &linear_delay_secs, strategy_name)?;
         }
         RetryStrategy::Custom => {
-            require_none(FIELD_LINEAR_DELAY, &linear_delay_secs, &strategy_name)?;
+            require_none(FIELD_LINEAR_DELAY, &linear_delay_secs, strategy_name)?;
             require_none(
                 FIELD_INCREASING_BASE_DELAY,
                 &increasing_base_delay_secs,
-                &strategy_name,
+                strategy_name,
             )?;
             require_none(
                 FIELD_INCREASING_WAIT_FACTOR,
                 &increasing_wait_factor,
-                &strategy_name,
+                strategy_name,
             )?;
             let intervals = require_some(
                 FIELD_CUSTOM_INTERVALS,
                 &custom_intervals_secs,
-                &strategy_name,
+                strategy_name,
             )?;
             let expected_length = usize::try_from(max_retries).unwrap_or(0);
             if intervals.len() != expected_length {
@@ -495,10 +534,18 @@ pub async fn get(
     let retry_schedule_id = retry_schedule_id.into_inner();
     let organization_id = qs.organization_id;
 
-    // Auth failure collapses to NotFound so cross-org existence does not leak.
+    // Derive the authz organization from the row itself rather than trusting the query string.
+    // Unknown schedule → NotFound (no existence oracle). Mismatch between qs and the real
+    // owner also collapses to NotFound for the same reason.
+    let owner_organization_id =
+        match get_retry_schedule_owner_organization(&state.db, &retry_schedule_id).await {
+            Some(id) if id == organization_id => id,
+            _ => return Err(Hook0Problem::NotFound),
+        };
+
     if authorize(
         &biscuit,
-        Some(organization_id),
+        Some(owner_organization_id),
         Action::RetryScheduleGet {
             retry_schedule_id: &retry_schedule_id,
         },
@@ -507,7 +554,7 @@ pub async fn get(
     )
     .is_err()
     {
-        return Err(Hook0Problem::NotFound);
+        return Err(Hook0Problem::Forbidden);
     }
 
     let row = query_as!(
@@ -530,7 +577,7 @@ pub async fn get(
               and organization__id = $2
         "#,
         &retry_schedule_id,
-        &organization_id,
+        &owner_organization_id,
     )
     .fetch_optional(&state.db)
     .await
@@ -668,9 +715,15 @@ pub async fn edit(
     let retry_schedule_id = retry_schedule_id.into_inner();
     let organization_id = qs.organization_id;
 
+    let owner_organization_id =
+        match get_retry_schedule_owner_organization(&state.db, &retry_schedule_id).await {
+            Some(id) if id == organization_id => id,
+            _ => return Err(Hook0Problem::NotFound),
+        };
+
     if authorize(
         &biscuit,
-        Some(organization_id),
+        Some(owner_organization_id),
         Action::RetryScheduleEdit {
             retry_schedule_id: &retry_schedule_id,
         },
@@ -679,7 +732,7 @@ pub async fn edit(
     )
     .is_err()
     {
-        return Err(Hook0Problem::NotFound);
+        return Err(Hook0Problem::Forbidden);
     }
 
     if let Err(errors) = body.validate() {
@@ -726,7 +779,7 @@ pub async fn edit(
                 updated_at
         "#,
         &retry_schedule_id,
-        &organization_id,
+        &owner_organization_id,
         body.name.trim(),
         body.strategy as RetryStrategy,
         body.max_retries,
@@ -778,9 +831,15 @@ pub async fn delete(
     let retry_schedule_id = retry_schedule_id.into_inner();
     let organization_id = qs.organization_id;
 
+    let owner_organization_id =
+        match get_retry_schedule_owner_organization(&state.db, &retry_schedule_id).await {
+            Some(id) if id == organization_id => id,
+            _ => return Err(Hook0Problem::NotFound),
+        };
+
     if authorize(
         &biscuit,
-        Some(organization_id),
+        Some(owner_organization_id),
         Action::RetryScheduleDelete {
             retry_schedule_id: &retry_schedule_id,
         },
@@ -789,13 +848,13 @@ pub async fn delete(
     )
     .is_err()
     {
-        return Err(Hook0Problem::NotFound);
+        return Err(Hook0Problem::Forbidden);
     }
 
     let deleted = query!(
         "delete from webhook.retry_schedule where retry_schedule__id = $1 and organization__id = $2 returning retry_schedule__id",
         &retry_schedule_id,
-        &organization_id,
+        &owner_organization_id,
     )
     .fetch_optional(&state.db)
     .await
@@ -806,7 +865,7 @@ pub async fn delete(
     }
 
     let event: Hook0ClientEvent = EventRetryScheduleRemoved {
-        organization_id,
+        organization_id: owner_organization_id,
         retry_schedule_id,
     }
     .into();

@@ -302,11 +302,6 @@
     "tutorialProgress": "Tutorial progress",
     "unlimited": "Unlimited",
     "updatedAt": "Updated at",
-    "units": {
-      "retries": "retries",
-      "seconds": "s"
-    },
-    "emptyDash": "—",
     "value": "Value",
     "warning": "Warning"
   },
@@ -739,22 +734,16 @@
     "edit": "Edit Retry Schedule",
     "updated": "Retry schedule updated",
     "delete": "Delete Retry Schedule",
-    "deleteConfirm": "Are you sure you want to delete this retry schedule? Subscriptions using it will revert to the default retry policy.",
+    "deleteConfirm": "Are you sure you want to delete \"{name}\"? Subscriptions using it will revert to the default retry policy.",
     "deleted": "Retry schedule deleted",
     "nameColumn": "Name",
-    "strategyColumn": "Strategy",
-    "maxRetriesColumn": "Max Retries",
-    "delayColumn": "Delay",
-    "createdAtColumn": "Created",
     "strategyIncreasing": "Increasing",
     "strategyLinear": "Linear",
     "strategyCustom": "Custom",
-    "delayIncreasing": "{baseDelay} × {factor} escalating",
-    "delayLinear": "{delay} fixed",
-    "delayCustom": "{count} custom interval | {count} custom intervals",
     "defaultSchedule": "Recommended",
-    "defaultScheduleDesc": "Built-in increasing schedule: 3s, 10s, 3min, 30min, 1h, 3h, 5h, then 10h for subsequent retries (up to 25 retries over 8 days).",
-    "aboutDescription": "Customize how failed webhooks are retried. Default policy: 3s, 10s, 3min, 30min, 1h, 3h, 5h, then 10h (up to 25 retries over 8 days).",
+    "defaultScheduleDesc": "Built-in increasing schedule: {delays}.",
+    "aboutDescription": "Customize how failed webhooks are retried. Default policy delays: {delays}.",
+    "limitsUnavailable": "Retry schedule limits are not available on this Hook0 instance. Please contact your administrator.",
     "fields": {
       "name": "Name",
       "namePlaceholder": "e.g. Aggressive then patient",
@@ -769,22 +758,22 @@
       "customIntervals": "Custom Intervals",
       "addInterval": "Add interval",
       "retryNumber": "Retry #{number}",
-      "retryNumberHeader": "Retry",
-      "intervalSeconds": "Delay (seconds)",
-      "removeInterval": "Remove retry #{number}"
+      "removeInterval": "Remove retry #{number}",
+      "intervalInvalid": "Enter a valid duration (e.g. 30s, 5min, 2h)",
+      "intervalBelowMin": "Interval cannot be shorter than {min}",
+      "intervalAboveMax": "Interval cannot exceed {max}",
+      "intervalsMaxReached": "You've reached the {max} interval limit for a retry schedule",
+      "customIntervalsRequired": "Add at least one interval before saving",
+      "customExceedsCap": "One or more intervals exceed the {max} limit"
     },
     "preview": {
       "label": "Preview",
       "cumulativeTooltip": "Total elapsed: {total}",
-      "exceedsMaxDelay": "Retry #{n} onward exceeds the 7-day limit — reduce retries, base delay, or wait factor",
+      "exceedsMaxDelay": "Retry #{n} onward exceeds the {max} limit — reduce retries, base delay, or wait factor",
       "overOneYear": "> 1y",
-      "exceedsMaxDelayTooltip": "Exceeds the 7-day maximum",
+      "exceedsMaxDelayTooltip": "Exceeds the {max} maximum",
       "totalDuration": "{duration} total",
       "retriesCount": "{count} retry | {count} retries"
-    },
-    "customActions": {
-      "duplicate": "Duplicate retry #{number}",
-      "dragHandle": "Reorder retry #{number} — drag or use arrow keys"
     },
     "empty": {
       "title": "No retry schedules",
@@ -882,7 +871,10 @@
     "viewDescription": "A service token allows you to authenticate any API call related to your organization."
   },
   "slider": {
-    "editValueLabel": "Edit {label} value"
+    "editValue": "Edit value",
+    "editValueLabel": "Edit {label} value",
+    "formatHint": "Enter a valid duration (e.g. 30s, 5min, 2h)",
+    "rangeError": "Value must be between {min} and {max}"
   },
   "shortcuts": {
     "closeOverlay": "Close overlay",
@@ -951,6 +943,7 @@
     "refreshEventTypes": "Refresh",
     "retryScheduleHint": "Choose a {link} or leave empty to use the recommended policy.",
     "retryScheduleLabel": "Retry Schedule",
+    "retryScheduleLinkText": "retry schedule",
     "secret": "Secret",
     "secretCopied": "Copied to clipboard",
     "secretDescription": "The secret is used to authenticate the webhooks sent by Hook0.",

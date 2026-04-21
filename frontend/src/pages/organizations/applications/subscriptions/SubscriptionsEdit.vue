@@ -16,7 +16,6 @@ import {
 } from './useSubscriptionQueries';
 import { useEventTypeList } from '../event_types/useEventTypeQueries';
 import type { EventType } from '../event_types/EventTypeService';
-import { useRetryScheduleList } from '../../retry_schedules/useRetryScheduleQueries';
 import { intersectWith } from '@/utils/fp';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
@@ -100,7 +99,7 @@ function toApiRecord(map: Record<string, string>): Record<string, never> {
 }
 
 const router = useRouter();
-const { organizationId, applicationId, subscriptionId } = useRouteIds();
+const { applicationId, subscriptionId } = useRouteIds();
 const isNew = computed(() => !subscriptionId.value);
 
 // Queries
@@ -147,22 +146,6 @@ const metadataMap = ref<Record<string, string>>({});
 
 // null means "use the organization's built-in retry policy" — maps to retry_schedule_id on the API.
 const selectedRetryScheduleId = ref<string | null>(null);
-
-const { data: retrySchedules } = useRetryScheduleList(organizationId);
-const retryScheduleOptions = computed<Hook0SelectSingleOption[]>(() => {
-  const defaultOption: Hook0SelectSingleOption = {
-    value: '',
-    label: t('retrySchedules.defaultSchedule'),
-  };
-  const schedules = retrySchedules.value ?? [];
-  return [
-    defaultOption,
-    ...schedules.map((schedule) => ({
-      value: schedule.retry_schedule_id,
-      label: schedule.name,
-    })),
-  ];
-});
 
 const httpMethods = 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption);
 
@@ -484,7 +467,6 @@ const missingFieldsTooltip = computed(() => {
                   :headers-kv="headersKv"
                   :metadata="metadata"
                   :retry-schedule-id="selectedRetryScheduleId"
-                  :retry-schedule-options="retryScheduleOptions"
                   @update:headers="onHeadersUpdate($event)"
                   @update:metadata="onMetadataUpdate($event)"
                   @update:retry-schedule-id="selectedRetryScheduleId = $event"

@@ -454,6 +454,7 @@ pub async fn get(
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+#[serde(deny_unknown_fields)]
 pub struct SubscriptionPost {
     application_id: Uuid,
     is_enabled: bool,
@@ -480,6 +481,7 @@ pub struct SubscriptionPost {
     /// PUT semantic: an omitted field deserializes to `None` (serde's default for `Option<T>`)
     /// and clears the subscription's retry_schedule_id. Callers doing a partial PUT must round-trip
     /// the current value; the frontend always emits the field (null or UUID) to match this.
+    #[serde(default)]
     retry_schedule_id: Option<Uuid>,
 }
 

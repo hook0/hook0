@@ -7,8 +7,9 @@ import { Plus, Repeat, Trash2 } from 'lucide-vue-next';
 import { useRetryScheduleList, useRemoveRetrySchedule } from './useRetryScheduleQueries';
 import type { RetrySchedule } from './RetryScheduleService';
 import { routes } from '@/routes';
-import { strategyLabel } from './retryScheduleFormatters';
-import { formatDuration } from '@/utils/formatDuration';
+import { computeDelays, strategyLabel } from './retryScheduleFormatters';
+import { useRetryScheduleLimits } from './useRetryScheduleLimits';
+import { formatDuration } from '@/utils/duration';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
 import { useEntityDelete } from '@/composables/useEntityDelete';
@@ -41,6 +42,7 @@ const { canCreate, canDelete } = usePermissions();
 
 const { organizationId } = useRouteIds();
 const { data: schedules, isLoading, error, refetch } = useRetryScheduleList(organizationId);
+const { limits } = useRetryScheduleLimits();
 
 const removeMutation = useRemoveRetrySchedule();
 
@@ -61,21 +63,9 @@ const {
   onSuccess: () => trackEvent('retry-schedule', 'delete', 'success'),
 });
 
-function computeDelays(schedule: RetrySchedule): number[] {
-  const max = schedule.max_retries;
-  switch (schedule.strategy) {
-    case 'exponential_increasing': {
-      const bd = schedule.increasing_base_delay_secs ?? 3;
-      const wf = schedule.increasing_wait_factor ?? 3;
-      return Array.from({ length: max }, (_, i) => Math.round(bd * Math.pow(wf, i)));
-    }
-    case 'linear':
-      return Array.from({ length: max }, () => schedule.linear_delay_secs ?? 60);
-    case 'custom':
-      return schedule.custom_intervals_secs ?? [];
-    default:
-      return [];
-  }
+function closeDeleteDialog() {
+  showDeleteDialog.value = false;
+  scheduleToDelete.value = null;
 }
 
 const columns: ColumnDef<RetrySchedule, unknown>[] = [
@@ -102,7 +92,7 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
     header: t('retrySchedules.previewColumn'),
     cell: (info) => {
       const row = info.row.original;
-      const delays = computeDelays(row);
+      const delays = limits.value ? computeDelays(row, limits.value) : [];
       return h('div', { class: 'preview-chips' }, [
         h(Hook0Badge, { variant: 'info', size: 'sm' }, () => strategyLabel(row.strategy, t)),
         ...delays.map((s) => h('span', { class: 'preview-chips__chip' }, formatDuration(s))),
@@ -199,13 +189,12 @@ const columns: ColumnDef<RetrySchedule, unknown>[] = [
       :open="showDeleteDialog"
       variant="danger"
       :title="t('retrySchedules.delete')"
-      @close="
-        showDeleteDialog = false;
-        scheduleToDelete = null;
-      "
+      @close="closeDeleteDialog()"
       @confirm="confirmDelete()"
     >
-      <p>{{ t('retrySchedules.deleteConfirm') }}</p>
+      <p>
+        {{ t('retrySchedules.deleteConfirm', { name: scheduleToDelete?.name ?? '' }) }}
+      </p>
     </Hook0Dialog>
   </Hook0PageLayout>
 </template>

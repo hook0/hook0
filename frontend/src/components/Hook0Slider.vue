@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // Generic range slider with label, formatted display value, and error state. Uses a CSS custom property (--progress) to paint the filled track portion.
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { parseDuration } from '@/utils/parseDuration';
+import { Pencil } from 'lucide-vue-next';
+import { parseDuration } from '@/utils/duration';
 
 const { t } = useI18n();
 
@@ -20,9 +21,7 @@ type Props = {
 
 const props = withDefaults(defineProps<Props>(), {
   step: 1,
-  label: undefined,
   hideLabel: false,
-  error: undefined,
   formatValue: undefined,
   editable: false,
 });
@@ -31,8 +30,15 @@ const emit = defineEmits<{
   'update:modelValue': [value: number];
 }>();
 
+// Stable id so <label for> links to <input id> — native label behaviour (click focuses slider, SR announces)
+const inputId = useId();
+
 const displayValue = computed(() =>
   props.formatValue ? props.formatValue(props.modelValue) : String(props.modelValue)
+);
+
+const editButtonLabel = computed(() =>
+  props.label ? t('slider.editValueLabel', { label: props.label }) : t('slider.editValue')
 );
 
 const range = computed(() => props.max - props.min);
@@ -52,6 +58,7 @@ const isEditing = ref(false);
 const editText = ref('');
 const editError = ref(false);
 const editErrorMessage = ref('');
+const editInputRef = ref<HTMLInputElement | null>(null);
 
 function startEditing() {
   if (!props.editable) {
@@ -61,6 +68,11 @@ function startEditing() {
   editError.value = false;
   editErrorMessage.value = '';
   isEditing.value = true;
+  // Wait for the input to mount, then select its content so the user can overwrite or refine
+  void nextTick(() => {
+    editInputRef.value?.focus();
+    editInputRef.value?.select();
+  });
 }
 
 function confirmEdit() {
@@ -83,6 +95,17 @@ function confirmEdit() {
   editError.value = false;
 }
 
+// On blur, close the edit regardless of validity — an invalid entry would otherwise strand
+// the user in edit mode after clicking away. Valid values commit; invalid values revert silently.
+function handleBlur() {
+  const parsed = parseDuration(editText.value);
+  if (parsed !== null && parsed >= props.min && parsed <= props.max) {
+    emit('update:modelValue', parsed);
+  }
+  isEditing.value = false;
+  editError.value = false;
+}
+
 function cancelEdit() {
   isEditing.value = false;
   editError.value = false;
@@ -92,34 +115,36 @@ function cancelEdit() {
 <template>
   <div class="hook0-slider">
     <div v-if="label && !hideLabel" class="hook0-slider__header">
-      <label class="hook0-slider__label">{{ label }}</label>
+      <label :for="inputId" class="hook0-slider__label">{{ label }}</label>
       <div v-if="isEditing" class="hook0-slider__edit-wrapper">
         <input
+          ref="editInputRef"
           v-model="editText"
           class="hook0-slider__edit-input"
           :class="{ 'hook0-slider__edit-input--error': editError }"
           :aria-label="label"
-          autofocus
           @keydown.enter="confirmEdit"
           @keydown.escape="cancelEdit"
-          @blur="confirmEdit"
+          @blur="handleBlur"
         />
         <p v-if="editError" class="hook0-slider__edit-error">{{ editErrorMessage }}</p>
       </div>
-      <span
-        v-else
-        class="hook0-slider__value"
-        :class="{ 'hook0-slider__value--editable': editable }"
-        :tabindex="editable ? 0 : undefined"
-        :role="editable ? 'button' : undefined"
-        :aria-label="editable ? t('slider.editValueLabel', { label }) : undefined"
+      <button
+        v-else-if="editable"
+        type="button"
+        class="hook0-slider__value hook0-slider__value--editable"
+        :aria-label="editButtonLabel"
         @click="startEditing"
-        @keydown.enter="startEditing"
       >
-        {{ displayValue }}
+        <span class="hook0-slider__value-text">{{ displayValue }}</span>
+        <Pencil class="hook0-slider__edit-icon" :size="12" aria-hidden="true" />
+      </button>
+      <span v-else class="hook0-slider__value">
+        <span class="hook0-slider__value-text">{{ displayValue }}</span>
       </span>
     </div>
     <input
+      :id="inputId"
       type="range"
       class="hook0-slider__input"
       :min="min"
@@ -127,7 +152,6 @@ function cancelEdit() {
       :step="step"
       :value="modelValue"
       :style="{ '--progress': progress + '%' }"
-      :aria-label="label"
       :aria-valuenow="modelValue"
       :aria-valuemin="min"
       :aria-valuemax="max"
@@ -157,10 +181,23 @@ function cancelEdit() {
 }
 
 .hook0-slider__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-primary);
   font-variant-numeric: tabular-nums;
+}
+
+.hook0-slider__edit-icon {
+  color: var(--color-text-tertiary);
+  transition: color 0.15s ease;
+}
+
+.hook0-slider__value--editable:hover .hook0-slider__edit-icon,
+.hook0-slider__value--editable:focus-visible .hook0-slider__edit-icon {
+  color: var(--color-primary);
 }
 
 .hook0-slider__input {
@@ -215,13 +252,25 @@ function cancelEdit() {
   color: var(--color-error);
 }
 
+/* Reset native <button> styles so the editable value chip looks like a text hint, not a button. */
 .hook0-slider__value--editable {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
   cursor: text;
   border-bottom: 1px dashed var(--color-border);
+  color: var(--color-primary);
 }
 
 .hook0-slider__value--editable:hover {
   color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.hook0-slider__value--editable:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
   border-bottom-color: var(--color-primary);
 }
 

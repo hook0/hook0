@@ -748,6 +748,14 @@ async fn main() -> anyhow::Result<()> {
         );
     }
 
+    // Retry schedule caps are enforced via the `validator` crate at the attribute level with a hard
+    // max of 25. An operator raising the business cap above that would silently produce 422 at runtime.
+    assert!(
+        (1..=25).contains(&config.retry_schedule_max_retries),
+        "retry_schedule_max_retries ({}) must be in [1, 25]",
+        config.retry_schedule_max_retries,
+    );
+
     if let Some(biscuit_private_key) = config.biscuit_private_key {
         // Initialize app logger as well as Sentry integration
         // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work

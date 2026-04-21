@@ -116,7 +116,7 @@ pub async fn compute_next_retry(
     // Subscription points to a schedule but the LEFT JOIN found no row. FK has
     // ON DELETE SET NULL so this should not happen; log loud and fall back.
     if row.subscription_retry_schedule_id.is_some() && row.strategy.is_none() {
-        warn!(
+        error!(
             subscription_id = %attempt.subscription_id,
             schedule_id = ?row.subscription_retry_schedule_id,
             "Subscription references a retry_schedule that could not be joined; falling back to built-in backoff",
@@ -178,6 +178,15 @@ pub fn compute_scheduled_retry_delay(
         return None;
     }
 
+    if raw_delay_secs > MAX_RETRY_DELAY_SECS {
+        warn!(
+            strategy = %strategy,
+            retry_count,
+            raw_delay_secs,
+            cap_secs = MAX_RETRY_DELAY_SECS,
+            "computed retry delay exceeds hard cap; clamping",
+        );
+    }
     let capped = raw_delay_secs.min(MAX_RETRY_DELAY_SECS);
     Some(Duration::from_secs(capped))
 }

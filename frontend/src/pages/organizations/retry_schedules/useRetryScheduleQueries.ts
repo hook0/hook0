@@ -34,7 +34,7 @@ export function useRetryScheduleList(organizationId: Ref<string>) {
   return useQuery({
     queryKey: computed(() => retryScheduleKeys.list(organizationId.value)),
     queryFn: () => RetryScheduleService.list(organizationId.value),
-    enabled: computed(() => !!organizationId.value),
+    enabled: computed(() => organizationId.value !== ''),
   });
 }
 
@@ -47,9 +47,9 @@ export function useRetryScheduleList(organizationId: Ref<string>) {
  */
 export function useRetryScheduleDetail(id: Ref<string>, organizationId: Ref<string>) {
   return useQuery({
-    queryKey: computed(() => retryScheduleKeys.detail(id.value)),
+    queryKey: computed(() => retryScheduleKeys.detail(id.value, organizationId.value)),
     queryFn: () => RetryScheduleService.get(id.value, organizationId.value),
-    enabled: computed(() => !!id.value && !!organizationId.value),
+    enabled: computed(() => id.value !== '' && organizationId.value !== ''),
   });
 }
 

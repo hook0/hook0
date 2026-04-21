@@ -114,5 +114,6 @@ export const retryScheduleKeys = {
   lists: () => [...retryScheduleKeys.all, 'list'] as const,
   list: (organizationId: string) => [...retryScheduleKeys.lists(), organizationId] as const,
   details: () => [...retryScheduleKeys.all, 'detail'] as const,
-  detail: (id: string) => [...retryScheduleKeys.details(), id] as const,
+  detail: (id: string, organizationId: string) =>
+    [...retryScheduleKeys.details(), organizationId, id] as const,
 };

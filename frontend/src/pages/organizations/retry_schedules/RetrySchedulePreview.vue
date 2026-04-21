@@ -1,13 +1,9 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { formatDuration } from '@/utils/formatDuration';
+import { formatDuration, SECONDS_PER_YEAR } from '@/utils/duration';
 import Hook0Tooltip from '@/components/Hook0Tooltip.vue';
-import type { components } from '@/types';
-
-type RetryStrategy = components['schemas']['RetrySchedule']['strategy'];
-
-const SECONDS_PER_YEAR = 365 * 86400;
+import { computeDelaysRaw, type RetryStrategy } from './retryScheduleFormatters';
 
 type Props = {
   strategy: RetryStrategy;
@@ -50,22 +46,18 @@ function buildPreviewRows(delaySecs: number[]): PreviewRow[] {
   });
 }
 
-const previewRows = computed<PreviewRow[]>(() => {
-  switch (props.strategy) {
-    case 'exponential_increasing': {
-      const delays = Array.from({ length: props.maxRetries }, (_, index) =>
-        Math.round(props.increasingBaseDelay * Math.pow(props.increasingWaitFactor, index))
-      );
-      return buildPreviewRows(delays);
-    }
-    case 'linear': {
-      const delays = Array.from({ length: props.maxRetries }, () => props.linearDelay);
-      return buildPreviewRows(delays);
-    }
-    case 'custom':
-      return buildPreviewRows(props.customIntervals);
-  }
-});
+const previewRows = computed<PreviewRow[]>(() =>
+  buildPreviewRows(
+    computeDelaysRaw({
+      strategy: props.strategy,
+      max_retries: props.maxRetries,
+      linear_delay_secs: props.linearDelay,
+      custom_intervals_secs: props.customIntervals,
+      increasing_base_delay_secs: props.increasingBaseDelay,
+      increasing_wait_factor: props.increasingWaitFactor,
+    })
+  )
+);
 
 const firstExceedingIndex = computed(() => previewRows.value.findIndex((row) => row.exceeds));
 const hasExceedingRetries = computed(() => firstExceedingIndex.value !== -1);
@@ -78,6 +70,11 @@ const totalCumulativeSecs = computed(() =>
 );
 const totalCumulativeFormatted = computed(() => formatDuration(totalCumulativeSecs.value));
 
+const maxIntervalFormatted = computed(() => formatDuration(props.maxIntervalSeconds));
+
+// immediate: true — first emit during the initial render so the parent's disabled state is
+// aligned with the real preview from frame 0. Without it the parent starts with the default
+// `false` and only syncs on the first value change, leaving a transient mismatch.
 watch(hasExceedingRetries, (value) => emit('update:has-exceeding', value), { immediate: true });
 </script>
 
@@ -112,7 +109,7 @@ watch(hasExceedingRetries, (value) => emit('update:has-exceeding', value), { imm
         :key="row.retry"
         :content="
           row.exceeds
-            ? t('retrySchedules.preview.exceedsMaxDelayTooltip')
+            ? t('retrySchedules.preview.exceedsMaxDelayTooltip', { max: maxIntervalFormatted })
             : t('retrySchedules.preview.cumulativeTooltip', { total: row.cumulative })
         "
         position="top"
@@ -123,7 +120,12 @@ watch(hasExceedingRetries, (value) => emit('update:has-exceeding', value), { imm
       </Hook0Tooltip>
     </div>
     <p v-if="hasExceedingRetries" class="preview-section__error">
-      {{ t('retrySchedules.preview.exceedsMaxDelay', { n: firstExceedingRetry }) }}
+      {{
+        t('retrySchedules.preview.exceedsMaxDelay', {
+          n: firstExceedingRetry,
+          max: maxIntervalFormatted,
+        })
+      }}
     </p>
   </div>
 </template>

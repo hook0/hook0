@@ -30,6 +30,19 @@ pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Optio
     .unwrap_or(None)
 }
 
+pub async fn get_retry_schedule_owner_organization(
+    db: &PgPool,
+    retry_schedule_id: &Uuid,
+) -> Option<Uuid> {
+    query_scalar!(
+        "SELECT organization__id AS id FROM webhook.retry_schedule WHERE retry_schedule__id = $1",
+        retry_schedule_id
+    )
+    .fetch_optional(db)
+    .await
+    .unwrap_or(None)
+}
+
 #[derive(
     Debug,
     Clone,
