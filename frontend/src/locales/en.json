@@ -778,7 +778,13 @@
       "cumulativeTooltip": "Total elapsed: {total}",
       "exceedsMaxDelay": "Retry #{n} onward exceeds the 7-day limit — reduce retries, base delay, or wait factor",
       "overOneYear": "> 1y",
-      "exceedsMaxDelayTooltip": "Exceeds the 7-day maximum"
+      "exceedsMaxDelayTooltip": "Exceeds the 7-day maximum",
+      "totalDuration": "{duration} total",
+      "retriesCount": "{count} retry | {count} retries"
+    },
+    "customActions": {
+      "duplicate": "Duplicate retry #{number}",
+      "dragHandle": "Drag to reorder retry #{number}"
     },
     "empty": {
       "title": "No retry schedules",
@@ -874,6 +880,9 @@
     "updated": "Service token updated.",
     "useWithAI": "Use with AI Assistants",
     "viewDescription": "A service token allows you to authenticate any API call related to your organization."
+  },
+  "slider": {
+    "editValueLabel": "Edit {label} value"
   },
   "shortcuts": {
     "closeOverlay": "Close overlay",

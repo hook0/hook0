@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useForm } from 'vee-validate';
-import { Zap, Timer, ListOrdered } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
+import { Copy, GripVertical } from 'lucide-vue-next';
+
+import { ExponentialStrategyIcon, LinearStrategyIcon, CustomStrategyIcon } from './strategyIcons';
 
 import {
   createRetryScheduleSchema,
@@ -276,6 +278,83 @@ const firstExceedingRetry = computed(() => {
   const row = previewRows.value.find((r) => r.exceeds);
   return row ? row.retry : 0;
 });
+const firstExceedingIndex = computed(() => previewRows.value.findIndex((r) => r.exceeds));
+
+const totalCumulativeSecs = computed(() =>
+  previewRows.value.reduce((sum, r) => sum + r.delaySecs, 0)
+);
+const totalCumulativeFormatted = computed(() => formatDuration(totalCumulativeSecs.value));
+
+// Drive a one-shot pulse on the first exceeding chip whenever the overflow state flips from ok → exceeds,
+// so the user's eye jumps to the culprit instead of scanning all red chips.
+const chipContainerRef = ref<HTMLElement | null>(null);
+const highlightExceedingChip = ref(false);
+watch(hasExceedingRetries, (exceeds, prev) => {
+  if (exceeds && !prev) {
+    highlightExceedingChip.value = false;
+    void nextTick(() => {
+      highlightExceedingChip.value = true;
+      const el = chipContainerRef.value?.querySelector<HTMLElement>(
+        '[data-exceeding-chip="first"]'
+      );
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      window.setTimeout(() => {
+        highlightExceedingChip.value = false;
+      }, 1600);
+    });
+  }
+});
+
+const draggedIndex = ref<number | null>(null);
+const dragOverIndex = ref<number | null>(null);
+
+function onDragStart(index: number, event: DragEvent) {
+  draggedIndex.value = index;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(index));
+  }
+}
+
+function onDragOver(event: DragEvent) {
+  if (draggedIndex.value === null) return;
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+}
+
+function onDragEnter(index: number) {
+  if (draggedIndex.value === null) return;
+  dragOverIndex.value = index;
+}
+
+function onDrop(targetIndex: number) {
+  const from = draggedIndex.value;
+  if (from === null || from === targetIndex) {
+    draggedIndex.value = null;
+    dragOverIndex.value = null;
+    return;
+  }
+  const next = [...customIntervalsValue.value];
+  const [moved] = next.splice(from, 1);
+  next.splice(targetIndex, 0, moved);
+  customIntervals.value = next;
+  draggedIndex.value = null;
+  dragOverIndex.value = null;
+}
+
+function onDragEnd() {
+  draggedIndex.value = null;
+  dragOverIndex.value = null;
+}
+
+function duplicateInterval(index: number) {
+  const current = customIntervalsValue.value;
+  const value = current[index];
+  if (value === undefined) return;
+  const next = [...current];
+  next.splice(index + 1, 0, value);
+  customIntervals.value = next;
+}
 
 const pageTitle = computed(() =>
   isNew.value ? t('retrySchedules.create') : t('retrySchedules.edit')
@@ -320,7 +399,7 @@ const pageTitle = computed(() =>
                     :model-value="strategyValue === 'exponential_increasing'"
                     :label="t('retrySchedules.strategyIncreasing')"
                     :description="t('retrySchedules.fields.strategyIncreasingDesc')"
-                    :icon="Zap"
+                    :icon="ExponentialStrategyIcon"
                     name="strategy"
                     @update:model-value="strategy = 'exponential_increasing'"
                   />
@@ -328,7 +407,7 @@ const pageTitle = computed(() =>
                     :model-value="strategyValue === 'linear'"
                     :label="t('retrySchedules.strategyLinear')"
                     :description="t('retrySchedules.fields.strategyLinearDesc')"
-                    :icon="Timer"
+                    :icon="LinearStrategyIcon"
                     name="strategy"
                     @update:model-value="strategy = 'linear'"
                   />
@@ -336,7 +415,7 @@ const pageTitle = computed(() =>
                     :model-value="strategyValue === 'custom'"
                     :label="t('retrySchedules.strategyCustom')"
                     :description="t('retrySchedules.fields.strategyCustomDesc')"
-                    :icon="ListOrdered"
+                    :icon="CustomStrategyIcon"
                     name="strategy"
                     @update:model-value="strategy = 'custom'"
                   />
@@ -402,10 +481,26 @@ const pageTitle = computed(() =>
                 v-if="previewRows.length > 0 && strategyValue !== 'custom'"
                 class="preview-section"
               >
-                <label class="form-fields__label">{{ t('retrySchedules.preview.label') }}</label>
-                <div class="preview-chips">
+                <div class="preview-section__header">
+                  <label class="form-fields__label">{{ t('retrySchedules.preview.label') }}</label>
+                  <span class="preview-section__total">
+                    <span class="preview-section__total-value">
+                      {{
+                        t('retrySchedules.preview.totalDuration', {
+                          duration: totalCumulativeFormatted,
+                        })
+                      }}
+                    </span>
+                    <span class="preview-section__total-separator" aria-hidden="true">·</span>
+                    <span class="preview-section__total-retries">
+                      {{ t('retrySchedules.preview.retriesCount', { count: previewRows.length }) }}
+                    </span>
+                  </span>
+                </div>
+
+                <div ref="chipContainerRef" class="preview-chips">
                   <Hook0Tooltip
-                    v-for="row in previewRows"
+                    v-for="(row, index) in previewRows"
                     :key="row.retry"
                     :content="
                       row.exceeds
@@ -416,7 +511,12 @@ const pageTitle = computed(() =>
                   >
                     <span
                       class="preview-chips__chip"
-                      :class="{ 'preview-chips__chip--exceeds': row.exceeds }"
+                      :class="{
+                        'preview-chips__chip--exceeds': row.exceeds,
+                        'preview-chips__chip--highlight':
+                          highlightExceedingChip && index === firstExceedingIndex,
+                      }"
+                      :data-exceeding-chip="index === firstExceedingIndex ? 'first' : undefined"
                     >
                       {{ row.wayTooMuch ? t('retrySchedules.preview.overOneYear') : row.delay }}
                     </span>
@@ -436,7 +536,27 @@ const pageTitle = computed(() =>
                     v-for="(interval, index) in customIntervalsValue"
                     :key="`chip-${index}`"
                     class="custom-chips__chip"
+                    :class="{
+                      'custom-chips__chip--dragging': draggedIndex === index,
+                      'custom-chips__chip--drag-over':
+                        dragOverIndex === index && draggedIndex !== index,
+                    }"
+                    draggable="true"
+                    @dragstart="onDragStart(index, $event)"
+                    @dragover="onDragOver"
+                    @dragenter="onDragEnter(index)"
+                    @dragleave="dragOverIndex = null"
+                    @drop="onDrop(index)"
+                    @dragend="onDragEnd"
                   >
+                    <span
+                      class="custom-chips__handle"
+                      :aria-label="
+                        t('retrySchedules.customActions.dragHandle', { number: index + 1 })
+                      "
+                    >
+                      <GripVertical :size="12" aria-hidden="true" />
+                    </span>
                     <input
                       type="text"
                       class="custom-chips__input"
@@ -455,6 +575,16 @@ const pageTitle = computed(() =>
                       "
                       @keydown.enter="($event.target as HTMLInputElement).blur()"
                     />
+                    <button
+                      type="button"
+                      class="custom-chips__duplicate"
+                      :aria-label="
+                        t('retrySchedules.customActions.duplicate', { number: index + 1 })
+                      "
+                      @click="duplicateInterval(index)"
+                    >
+                      <Copy :size="12" aria-hidden="true" />
+                    </button>
                     <button
                       type="button"
                       class="custom-chips__remove"
@@ -540,11 +670,30 @@ const pageTitle = computed(() =>
 
 .strategy-cards > * {
   flex: 1;
+  min-width: 0;
 }
 
 @media (max-width: 640px) {
   .strategy-cards {
-    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .strategy-cards :deep(.selectable-card) {
+    padding: 0.625rem 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .strategy-cards :deep(.selectable-card__icon) {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .strategy-cards :deep(.selectable-card__label) {
+    font-size: 0.8125rem;
+  }
+
+  .strategy-cards :deep(.selectable-card__indicator) {
+    display: none;
   }
 }
 
@@ -564,11 +713,56 @@ const pageTitle = computed(() =>
   background-color: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   overflow: hidden;
-  transition: border-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .custom-chips__chip:focus-within {
   border-color: var(--color-primary);
+}
+
+.custom-chips__chip--dragging {
+  opacity: 0.4;
+}
+
+.custom-chips__chip--drag-over {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.custom-chips__handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.125rem 0.25rem 0.375rem;
+  color: var(--color-text-tertiary);
+  cursor: grab;
+}
+
+.custom-chips__handle:active {
+  cursor: grabbing;
+}
+
+.custom-chips__duplicate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--color-border);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 0.25rem 0.375rem;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.custom-chips__duplicate:hover {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 .custom-chips__input {
@@ -678,5 +872,59 @@ const pageTitle = computed(() =>
   color: var(--color-error);
   background-color: var(--color-error-light);
   border-color: var(--color-error);
+}
+
+.preview-chips__chip--highlight {
+  animation: preview-chip-pulse 1.6s ease-in-out;
+}
+
+@keyframes preview-chip-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+    transform: scale(1);
+  }
+  20% {
+    box-shadow: 0 0 0 4px var(--color-error-light);
+    transform: scale(1.1);
+  }
+  60% {
+    box-shadow: 0 0 0 6px transparent;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-chips__chip--highlight {
+    animation: none;
+    outline: 2px solid var(--color-error);
+    outline-offset: 2px;
+  }
+}
+
+.preview-section__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.preview-section__total {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.preview-section__total-value {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.preview-section__total-separator {
+  color: var(--color-text-tertiary);
 }
 </style>
