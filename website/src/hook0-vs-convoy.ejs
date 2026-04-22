@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Hook0 vs Convoy — Open-Source Webhook Platforms Compared (2026)</title>
+    <%
+    locals.pageTitle = 'Hook0 vs Convoy — Open-Source Webhook Platforms Compared (2026)';
+    locals.pageDescription = 'Both open-source, both on PostgreSQL. Compare Hook0 (Rust, SSPL, managed cloud) and Convoy (Go, MPL-2.0, self-host only). Side-by-side features and trade-offs.';
+    locals.pageCanonical = '/hook0-vs-convoy';
+    locals.pageFAQSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Convoy fully open-source?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Convoy is open-source under the MPL-2.0 license. Hook0 is open-source under the SSPL-1.0 license. Both make their full source code available, but the licenses have different implications for commercial use and redistribution."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Convoy have a managed cloud?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Convoy is self-host only — there is no managed cloud offering. You need to provision and maintain your own infrastructure. Hook0 offers both a managed cloud hosted in Europe and free self-hosting via Docker or Kubernetes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do Hook0 and Convoy compare on performance?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hook0 is built in Rust, which provides predictable latency and low memory usage without garbage collection pauses. Convoy is built in Go, which offers good performance but uses garbage collection. Both use PostgreSQL, but Convoy also requires Redis as an additional dependency."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which is better for self-hosting?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Both can be self-hosted. Convoy is self-host only — it's your only option. Hook0 offers free self-hosting via Docker Compose or Kubernetes, plus a managed cloud if you don't want to manage infrastructure. Hook0 requires only PostgreSQL, while Convoy requires both PostgreSQL and Redis."
+          }
+        }
+      ]
+    };
+    %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Comparison</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            Hook0 vs Convoy
+            <span class="block text-gradient-green">Same Problem, Different Trade-offs</span>
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            Both open-source. Both built on PostgreSQL. But the similarities stop there: Rust vs Go, managed cloud vs self-host only, SSPL vs MPL-2.0. This page breaks down what actually matters when you're picking one for production.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'vs-convoy-hero-register')">
+                Start Free
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'vs-convoy-hero-playground')">
+                Try the Playground
+            </a>
+        </div>
+    </div>
+</section>
+
+<%- include('./includes/_social-proof-bar.ejs') %>
+
+<!-- Key Differentiators -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Why Hook0</span>
+            <h2 class="mt-4 text-display font-bold text-white">Key Differences</h2>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <!-- Managed Cloud vs Self-Host Only -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Managed Cloud vs Self-Host Only</h3>
+                <p class="text-gray-400">
+                    Convoy is self-host only. No managed cloud, period. You run it, you maintain it. Hook0 lets you pick: use the managed cloud (hosted in Europe) or self-host for free with Docker or Kubernetes.
+                </p>
+            </div>
+
+            <!-- Rust vs Go -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Rust vs Go</h3>
+                <p class="text-gray-400">
+                    Hook0 is written in Rust. No garbage collector means no GC pauses, lower memory usage, and more predictable latency under load. Convoy is written in Go, which has good throughput but does use garbage collection. At high volume, the difference shows up in tail latencies.
+                </p>
+            </div>
+
+            <!-- SSPL vs MPL-2.0 -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">SSPL vs MPL-2.0</h3>
+                <p class="text-gray-400">
+                    Convoy uses MPL-2.0. Very permissive, no restrictions on redistribution. Hook0 uses SSPL-1.0: full source is available, but cloud providers can't resell it as a competing service. Both are open-source. The difference is about what third parties can do with the code.
+                </p>
+            </div>
+
+            <!-- European Hosting vs DIY -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">European Hosting vs DIY Infrastructure</h3>
+                <p class="text-gray-400">
+                    Hook0's cloud runs in Europe, GDPR-compliant out of the box. With Convoy, you pick your own hosting location, but you also own the entire ops stack: monitoring, backups, scaling, uptime. There is no managed option, so it's all on you.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Comparison Table -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Feature Comparison</span>
+            <h2 class="mt-4 text-display font-bold text-white">Side by Side</h2>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Feature</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider">Hook0</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Convoy</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">License</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">SSPL-1.0 (full source available)</td>
+                        <td class="py-4 px-6 text-gray-400">MPL-2.0</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Language</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Rust</td>
+                        <td class="py-4 px-6 text-gray-400">Go</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Database</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">PostgreSQL only</td>
+                        <td class="py-4 px-6 text-gray-400">PostgreSQL + Redis</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Managed Cloud</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Yes (EU-hosted)</td>
+                        <td class="py-4 px-6 text-gray-400">No</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Self-Hosting</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Free (Docker / K8s)</td>
+                        <td class="py-4 px-6 text-gray-400">Yes (only option)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Free Tier</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Yes (cloud)</td>
+                        <td class="py-4 px-6 text-gray-400">N/A (self-host only)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">HMAC Signatures</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Yes</td>
+                        <td class="py-4 px-6 text-gray-400">Yes</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Retry Logic</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">Configurable 2-phase (fast + slow, smart defaults)</td>
+                        <td class="py-4 px-6 text-gray-400">Configurable</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Primary Repo</td>
+                        <td class="py-4 px-6 text-green-400 font-medium"><a href="https://github.com/hook0/hook0" class="underline">GitHub</a> + <a href="https://gitlab.com/hook0/hook0" class="underline">GitLab</a></td>
+                        <td class="py-4 px-6 text-gray-400"><a href="https://github.com/frain-dev/convoy" class="underline">GitHub</a> (~2.8k stars)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 text-gray-300">Funding</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">100% Bootstrapped</td>
+                        <td class="py-4 px-6 text-gray-400">VC-backed (Frain Technologies)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">FAQ</span>
+            <h2 class="mt-4 text-display font-bold text-white">Common Questions</h2>
+        </div>
+
+        <div class="space-y-6 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is Convoy fully open-source?</h3>
+                <p class="text-gray-400">Yes. Convoy uses the MPL-2.0 license, Hook0 uses SSPL-1.0. Both publish their full source code. The practical difference is in redistribution: MPL-2.0 has fewer restrictions, while SSPL-1.0 prevents cloud providers from offering the software as a competing managed service.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Does Convoy have a managed cloud?</h3>
+                <p class="text-gray-400">No. Convoy is self-host only, so you run and maintain everything yourself. Hook0 has a managed cloud (hosted in Europe) and also supports free self-hosting with Docker or Kubernetes.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">How do Hook0 and Convoy compare on performance?</h3>
+                <p class="text-gray-400">Hook0 is written in Rust, so there are no garbage collection pauses. That means more predictable latency and lower memory usage under load. Convoy is written in Go, which performs well but does have GC overhead. Infrastructure-wise, both need PostgreSQL, but Convoy also requires Redis.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Which is better for self-hosting?</h3>
+                <p class="text-gray-400">Both can be self-hosted, but with Convoy that's your only option. Hook0 supports Docker Compose and Kubernetes for free self-hosting, and also has a managed cloud if you'd rather skip the ops work. One practical difference: Hook0 only needs PostgreSQL. Convoy needs PostgreSQL and Redis.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center">Related</h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <a href="./hook0-vs-svix" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Svix</a>
+            <a href="./hook0-vs-hookdeck" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Hookdeck</a>
+            <a href="./hook0-alternatives" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 Alternatives</a>
+            <a href="./self-hosted-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Self-Hosted Webhooks</a>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<%- include('./includes/_cta-inline.ejs') %>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>

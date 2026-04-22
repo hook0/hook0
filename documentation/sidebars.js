@@ -118,6 +118,9 @@ const sidebars = {
         "explanation/event-processing",
         "explanation/security-model",
         "explanation/webhook-retry-logic",
+        "explanation/webhook-retry-strategies",
+        "explanation/webhook-delivery-guarantees",
+        "explanation/webhook-vs-polling",
       ],
     },
     {

@@ -186,6 +186,9 @@ Hook0 blocks webhook deliveries to private/internal IP addresses by default (loo
 
 ## Further reading
 
+- [Webhook delivery guarantees](/explanation/webhook-delivery-guarantees) -- at-least-once delivery and the idempotency pattern
+- [Webhook retry strategies compared](/explanation/webhook-retry-strategies) -- fixed interval vs exponential backoff vs two-phase, with trade-offs
+- [Webhook vs Polling](/explanation/webhook-vs-polling) -- when to use webhooks, when to poll, and the hybrid pattern
 - [Monitor webhook performance](/how-to-guides/monitor-webhook-performance) -- track delivery rates and latency
 - [Debug failed webhooks](/how-to-guides/debug-failed-webhooks) -- investigate specific delivery failures
 - [Webhook best practices](/how-to-guides/webhook-best-practices) -- patterns for producers and consumers
