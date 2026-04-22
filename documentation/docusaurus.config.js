@@ -22,6 +22,13 @@ const config = {
     "Comprehensive documentation for Hook0 - The open-source webhook server",
   favicon: "favicon.ico",
 
+  future: {
+    v4: {
+      removeLegacyPostBuildHeadAttribute: true,
+      fasterByDefault: true,
+    },
+  },
+
   // Set the production url of your site here
   url,
   // Set the /<baseUrl>/ pathname under which your site is served

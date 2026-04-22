@@ -24,9 +24,10 @@
     "clean-api": "rimraf docs/api openapi/hook0-api.json"
   },
   "dependencies": {
-    "@docusaurus/core": "^3.9.2",
-    "@docusaurus/preset-classic": "^3.9.2",
-    "@docusaurus/theme-mermaid": "^3.9.2",
+    "@docusaurus/core": "^3.10.0",
+    "@docusaurus/faster": "^3.10.0",
+    "@docusaurus/preset-classic": "^3.10.0",
+    "@docusaurus/theme-mermaid": "^3.10.0",
     "@easyops-cn/docusaurus-search-local": "^0.55.1",
     "@mdx-js/react": "^3.1.1",
     "@scalar/docusaurus": "^0.8.0",
@@ -36,8 +37,8 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^3.9.2",
-    "@docusaurus/types": "^3.9.2",
+    "@docusaurus/module-type-aliases": "^3.10.0",
+    "@docusaurus/types": "^3.10.0",
     "docusaurus-plugin-module-alias": "^0.0.2",
     "glob": "^13.0.6",
     "rimraf": "^6.1.3"
