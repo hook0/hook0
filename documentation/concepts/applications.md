@@ -22,7 +22,7 @@ flowchart TD
     APP["Application"]:::hook0
     ET["Event Types<br/>(categories of events)"]:::customer
     SUB["Subscriptions<br/>(webhook endpoints)"]:::customer
-    SEC["Application Secrets<br/>(signing keys)"]:::processing
+    SEC["Application Secrets<br/>(API keys)"]:::processing
     EVT["Events<br/>(notifications sent)"]:::customer
 
     ORG --> APP
@@ -56,7 +56,7 @@ Each application operates within quotas defined by your [organization's](organiz
 - **[Events](events.md) per day** - Maximum events that can be sent daily
 - **Event retention** - How long [events](events.md) are stored for replay
 
-When quotas are exceeded, new [events](events.md) are rejected until the next billing period.
+When quotas are exceeded, new [events](events.md) are rejected until the next billing period (for organizations on Free Plan) or billed as extra (see [pricing](https://www.hook0.com/pricing)).
 
 ## Onboarding Progress
 
