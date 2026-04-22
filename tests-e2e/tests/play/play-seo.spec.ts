@@ -23,7 +23,7 @@ test.describe("Play SEO", () => {
     await page.goto("/");
 
     const canonical = page.locator('link[rel="canonical"]');
-    await expect(canonical).toHaveAttribute("href", "https://play.hook0.com/");
+    await expect(canonical).toHaveAttribute("href", "https://www.hook0.com/webhook-playground");
   });
 
   test("page has FAQPage JSON-LD script", async ({ page }) => {
