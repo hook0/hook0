@@ -1,12 +1,18 @@
+use std::collections::HashMap;
+use std::str::FromStr;
+use std::time::{Duration, Instant};
+
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
+use futures_util::stream::{self, StreamExt};
+use lettre::{Address, message::Mailbox};
 use paperclip::actix::Apiv2Schema;
 use serde::Serialize;
 use sqlx::{PgPool, query, query_as, query_scalar};
-use std::collections::HashMap;
-use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
+
+use crate::mailer::{Mail, Mailer};
 
 /// Tuning knobs for one running health monitor instance.
 #[derive(Clone)]
@@ -47,6 +53,10 @@ pub enum HealthEventCause {
 #[derive(Debug)]
 struct SubscriptionHealth {
     subscription_id: Uuid,
+    organization_id: Uuid,
+    application_name: String,
+    description: Option<String>,
+    target_url: String,
     failure_percent: f64,
     last_health_status: Option<HealthStatus>,
     last_health_at: Option<DateTime<Utc>>,
@@ -56,15 +66,53 @@ struct SubscriptionHealth {
     last_health_user_id: Option<Uuid>,
 }
 
+/// Describes a side-effect (email / Hook0 event) to perform after the
+/// transaction has been committed.
+pub enum HealthAction {
+    Warning(HealthActionInfo),
+    Disabled(HealthActionInfo),
+    Resolved(HealthActionInfo),
+}
+
+/// Data needed to send emails and Hook0 events outside the transaction.
+#[derive(Debug, Clone)]
+pub struct HealthActionInfo {
+    pub subscription_id: Uuid,
+    pub organization_id: Uuid,
+    pub application_name: String,
+    pub description: Option<String>,
+    pub target_url: String,
+    pub failure_percent: f64,
+    pub disabled_at: Option<DateTime<Utc>>,
+}
+
+impl HealthActionInfo {
+    fn from_subscription(
+        subscription: &SubscriptionHealth,
+        disabled_at: Option<DateTime<Utc>>,
+    ) -> Self {
+        Self {
+            subscription_id: subscription.subscription_id,
+            organization_id: subscription.organization_id,
+            application_name: subscription.application_name.clone(),
+            description: subscription.description.clone(),
+            target_url: subscription.target_url.clone(),
+            failure_percent: subscription.failure_percent,
+            disabled_at,
+        }
+    }
+}
+
 const CLEANUP_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 
-/// Evaluates subscription failure rates, emits health events.
+/// Evaluates subscription failure rates, emits health events, sends notification emails.
 ///
 /// Operator sees warning/disabled/resolved per subscription in logs.
 /// Cleans up stale resolved events and old buckets daily.
 pub async fn run_subscription_health_monitor(
     housekeeping_semaphore: &Semaphore,
     db: &PgPool,
+    mailer: &Mailer,
     config: &SubscriptionHealthMonitorConfig,
 ) {
     info!(
@@ -75,9 +123,13 @@ pub async fn run_subscription_health_monitor(
     let mut last_cleanup: Option<Instant> = None;
 
     while let Ok(permit) = housekeeping_semaphore.acquire().await {
-        // run_one_tick is where we do the main work
-        if let Err(e) = run_one_tick(db, config).await {
-            error!("Subscription health monitor error: {e}");
+        match run_one_tick(db, config).await {
+            Ok(actions) => {
+                dispatch_health_actions(&actions, mailer, db, config).await;
+            }
+            Err(e) => {
+                error!("Subscription health monitor error: {e}");
+            }
         }
 
         if last_cleanup.is_none_or(|t| t.elapsed() > CLEANUP_INTERVAL) {
@@ -149,11 +201,13 @@ const TICK_STATEMENT_TIMEOUT: &str = "5min";
 /// Single evaluation pass over all active subscriptions.
 ///
 /// Operator sees state transitions logged per subscription.
-/// Entire tick runs in one transaction with advisory lock.
+/// Returns a list of health actions to dispatch (emails, Hook0 events) after commit.
 async fn run_one_tick(
     db: &PgPool,
     config: &SubscriptionHealthMonitorConfig,
-) -> Result<(), sqlx::Error> {
+) -> Result<Vec<HealthAction>, sqlx::Error> {
+    let mut actions: Vec<HealthAction> = Vec::new();
+
     let mut tx = db.begin().await?;
 
     // Scoped to this transaction; resets automatically on commit/rollback.
@@ -170,7 +224,7 @@ async fn run_one_tick(
 
     if !acquired {
         info!("Subscription health monitor: another instance holds the lock, skipping");
-        return Ok(());
+        return Ok(vec![]);
     }
 
     let candidates_subscriptions =
@@ -243,27 +297,45 @@ async fn run_one_tick(
                 .await
                 .map(|_| ()),
 
-                SubscriptionAction::EmitWarning => query!(
-                    r#"
-                        insert into webhook.subscription_health_event (subscription__id, status, cause, user__id)
-                        values ($1, 'warning', 'auto', null)
-                    "#,
-                    candidate_subscription.subscription_id,
-                )
-                .execute(&mut *tx)
-                .await
-                .map(|_| ()),
+                SubscriptionAction::EmitWarning => {
+                    let result = query!(
+                        r#"
+                            insert into webhook.subscription_health_event (subscription__id, status, cause, user__id)
+                            values ($1, 'warning', 'auto', null)
+                        "#,
+                        candidate_subscription.subscription_id,
+                    )
+                    .execute(&mut *tx)
+                    .await
+                    .map(|_| ());
 
-                SubscriptionAction::EmitResolved => query!(
-                    r#"
-                        insert into webhook.subscription_health_event (subscription__id, status, cause, user__id)
-                        values ($1, 'resolved', 'auto', null)
-                    "#,
-                    candidate_subscription.subscription_id,
-                )
-                .execute(&mut *tx)
-                .await
-                .map(|_| ()),
+                    if result.is_ok() {
+                        actions.push(HealthAction::Warning(
+                            HealthActionInfo::from_subscription(candidate_subscription, None),
+                        ));
+                    }
+                    result
+                }
+
+                SubscriptionAction::EmitResolved => {
+                    let result = query!(
+                        r#"
+                            insert into webhook.subscription_health_event (subscription__id, status, cause, user__id)
+                            values ($1, 'resolved', 'auto', null)
+                        "#,
+                        candidate_subscription.subscription_id,
+                    )
+                    .execute(&mut *tx)
+                    .await
+                    .map(|_| ());
+
+                    if result.is_ok() {
+                        actions.push(HealthAction::Resolved(
+                            HealthActionInfo::from_subscription(candidate_subscription, None),
+                        ));
+                    }
+                    result
+                }
 
                 // Atomic disable + event insert. Prevents re-enable race.
                 SubscriptionAction::EmitDisabled => {
@@ -288,11 +360,14 @@ async fn run_one_tick(
                     .await;
 
                     match disabled_at {
-                        Ok(Some(_)) => {
+                        Ok(Some(at)) => {
                             info!(
                                 "Subscription health monitor: disabled subscription {}",
                                 candidate_subscription.subscription_id
                             );
+                            actions.push(HealthAction::Disabled(
+                                HealthActionInfo::from_subscription(candidate_subscription, Some(at)),
+                            ));
                             Ok(())
                         }
                         Ok(None) => Ok(()),
@@ -311,7 +386,8 @@ async fn run_one_tick(
     }
 
     tx.commit().await?;
-    Ok(())
+
+    Ok(actions)
 }
 
 /// Success/failure counts for one subscription in current scan.
@@ -498,15 +574,21 @@ async fn list_health_evaluation_subscriptions_candidates(
                 where latest.status = 'warning'
             )
             select
-                bs.subscription__id as "subscription_id!",
-                bs.failure_percent as "failure_percent!",
-                lh.status as "last_health_status?: HealthStatus",
-                lh.created_at as "last_health_at?",
-                lh.cause as "last_health_cause?: HealthEventCause",
-                lh.user__id as "last_health_user_id?"
+                bs.subscription__id as subscription_id,
+                app.organization__id as organization_id,
+                app.name as "application_name!",
+                s.description,
+                coalesce(th.url, '') as "target_url!",
+                coalesce(bs.failure_percent, 0.0) as "failure_percent!",
+                lh.status as "last_health_status: HealthStatus",
+                lh.created_at as last_health_at,
+                lh.cause as "last_health_cause: HealthEventCause",
+                lh.user__id as last_health_user_id
             from candidates c
             inner join bucket_stats bs on bs.subscription__id = c.subscription__id
             inner join webhook.subscription s on s.subscription__id = c.subscription__id
+            inner join event.application app on app.application__id = s.application__id
+            left join webhook.target_http th on th.target__id = s.target__id
             left join lateral (
                 select she.status, she.created_at, she.cause, she.user__id
                 from webhook.subscription_health_event she
@@ -556,6 +638,147 @@ async fn list_health_evaluation_subscriptions_candidates(
     }
 
     Ok(candidates_subscriptions)
+}
+
+/// Post-commit dispatch of emails and Hook0 events.
+async fn dispatch_health_actions(
+    actions: &[HealthAction],
+    mailer: &Mailer,
+    db: &PgPool,
+    config: &SubscriptionHealthMonitorConfig,
+) {
+    if actions.is_empty() {
+        return;
+    }
+
+    let evaluation_window = humantime::format_duration(config.failure_rate_window).to_string();
+
+    // Group actions by organization to query users once per org (avoid N+1).
+    let mut actions_by_organization: HashMap<Uuid, Vec<Mail>> = HashMap::new();
+    for action in actions {
+        let info = match action {
+            HealthAction::Warning(i) | HealthAction::Disabled(i) | HealthAction::Resolved(i) => i,
+        };
+        let mail = build_health_mail(action, info, &evaluation_window);
+        actions_by_organization
+            .entry(info.organization_id)
+            .or_default()
+            .push(mail);
+    }
+
+    // Send emails per organization with parallel SMTP calls.
+    for (organization_id, mails) in actions_by_organization {
+        send_emails_to_organization(mailer, db, organization_id, mails).await;
+    }
+}
+
+fn build_health_mail(
+    action: &HealthAction,
+    info: &HealthActionInfo,
+    evaluation_window: &str,
+) -> Mail {
+    let description = info
+        .description
+        .clone()
+        .unwrap_or_else(|| info.subscription_id.to_string());
+
+    match action {
+        HealthAction::Warning(_) => Mail::SubscriptionWarning {
+            application_name: info.application_name.clone(),
+            subscription_description: description,
+            target_url: info.target_url.clone(),
+            failure_percent: info.failure_percent,
+            evaluation_window: evaluation_window.to_owned(),
+        },
+        HealthAction::Disabled(_) => Mail::SubscriptionDisabled {
+            application_name: info.application_name.clone(),
+            subscription_description: description,
+            target_url: info.target_url.clone(),
+            failure_percent: info.failure_percent,
+            evaluation_window: evaluation_window.to_owned(),
+            disabled_at: info
+                .disabled_at
+                .expect("HealthAction::Disabled always has disabled_at")
+                .to_rfc3339(),
+        },
+        HealthAction::Resolved(_) => Mail::SubscriptionResolved {
+            application_name: info.application_name.clone(),
+            subscription_description: description,
+            target_url: info.target_url.clone(),
+        },
+    }
+}
+
+/// Sends emails to all members of an organization (parallel SMTP).
+async fn send_emails_to_organization(
+    mailer: &Mailer,
+    db: &PgPool,
+    organization_id: Uuid,
+    mails: Vec<Mail>,
+) {
+    struct OrganizationUser {
+        first_name: String,
+        last_name: String,
+        email: String,
+    }
+
+    let users = match query_as!(
+        OrganizationUser,
+        r#"
+        select u.first_name, u.last_name, u.email
+        from iam.user u
+        inner join iam.user__organization uo on u.user__id = uo.user__id
+        where uo.organization__id = $1
+        "#,
+        organization_id,
+    )
+    .fetch_all(db)
+    .await
+    {
+        Ok(users) => users,
+        Err(e) => {
+            warn!(
+                "Subscription health monitor: failed to query org users for email (org {}): {e}",
+                organization_id
+            );
+            return;
+        }
+    };
+
+    if users.is_empty() {
+        return;
+    }
+
+    // Build all (mail, recipient) pairs, then send in parallel.
+    let mut send_tasks = Vec::new();
+    for user in &users {
+        let address = match Address::from_str(&user.email) {
+            Ok(a) => a,
+            Err(e) => {
+                warn!("Subscription health monitor: invalid email address: {e}",);
+                continue;
+            }
+        };
+        let recipient = Mailbox::new(
+            Some(format!("{} {}", user.first_name, user.last_name)),
+            address,
+        );
+
+        for mail in &mails {
+            send_tasks.push((mail.clone(), recipient.clone()));
+        }
+    }
+
+    // Parallel sends with bounded concurrency.
+    const SMTP_CONCURRENCY: usize = 8;
+
+    stream::iter(send_tasks)
+        .for_each_concurrent(SMTP_CONCURRENCY, |(mail, recipient)| async move {
+            if let Err(e) = mailer.send_mail(mail, recipient).await {
+                warn!("Subscription health monitor: failed to send email: {e}");
+            }
+        })
+        .await;
 }
 
 #[cfg(test)]

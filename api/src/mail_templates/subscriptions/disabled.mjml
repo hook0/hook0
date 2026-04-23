@@ -1,0 +1,44 @@
+<mjml>
+    <mj-head>
+        <mj-title>Subscription Disabled</mj-title>
+        <mj-style>
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+                background-color: #f0f0f0;
+            }
+            h1 { font-size: 24px; }
+            h2 { font-size: 20px; }
+            p { font-size: 16px; }
+            .error { color: #dc2626; }
+            .info-box {
+                background-color: #fee2e2;
+                border-left: 4px solid #dc2626;
+                padding: 15px;
+                margin: 15px 0;
+            }
+        </mj-style>
+    </mj-head>
+    <mj-body>
+        <mj-section>
+            <mj-column>
+                <mj-image src="{ $logo_url }" alt="Hook0" width="150px" />
+                <mj-text align="center">
+                    <h1 class="error">Subscription Disabled</h1>
+                    <p>Your subscription in application <strong>{ $application_name }</strong> has been automatically disabled due to high failure rate.</p>
+                </mj-text>
+                <mj-text>
+                    <div class="info-box">
+                        <p><strong>Subscription:</strong> { $subscription_description }</p>
+                        <p><strong>Target URL:</strong> { $target_url }</p>
+                        <p><strong>Failure rate:</strong> { $failure_percent }% (over { $evaluation_window })</p>
+                        <p><strong>Disabled at:</strong> { $disabled_at }</p>
+                    </div>
+                    <p>Events will no longer be delivered to this subscription until you re-enable it manually.</p>
+                    <p>Please fix the underlying issue with your endpoint before re-enabling the subscription in your Hook0 dashboard.</p>
+                </mj-text>
+            </mj-column>
+        </mj-section>
+    </mj-body>
+</mjml>

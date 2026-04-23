@@ -48,6 +48,26 @@ pub enum Mail {
         events_per_days_limit: i32,
         extra_variables: Vec<(String, String)>,
     },
+    SubscriptionWarning {
+        application_name: String,
+        subscription_description: String,
+        target_url: String,
+        failure_percent: f64,
+        evaluation_window: String,
+    },
+    SubscriptionDisabled {
+        application_name: String,
+        subscription_description: String,
+        target_url: String,
+        failure_percent: f64,
+        evaluation_window: String,
+        disabled_at: String,
+    },
+    SubscriptionResolved {
+        application_name: String,
+        subscription_description: String,
+        target_url: String,
+    },
 }
 
 impl Mail {
@@ -62,6 +82,15 @@ impl Mail {
             Mail::QuotaEventsPerDayReached { .. } => {
                 include_str!("mail_templates/quotas/events_per_day_reached.mjml")
             }
+            Mail::SubscriptionWarning { .. } => {
+                include_str!("mail_templates/subscriptions/warning.mjml")
+            }
+            Mail::SubscriptionDisabled { .. } => {
+                include_str!("mail_templates/subscriptions/disabled.mjml")
+            }
+            Mail::SubscriptionResolved { .. } => {
+                include_str!("mail_templates/subscriptions/resolved.mjml")
+            }
         }
     }
 
@@ -72,6 +101,9 @@ impl Mail {
             // Mail::Welcome { .. } => "Welcome to our platform".to_owned(),
             Mail::QuotaEventsPerDayWarning { .. } => "[Hook0] Quota Warning".to_owned(),
             Mail::QuotaEventsPerDayReached { .. } => "[Hook0] Quota Reached".to_owned(),
+            Mail::SubscriptionWarning { .. } => "[Hook0] Subscription Health Warning".to_owned(),
+            Mail::SubscriptionDisabled { .. } => "[Hook0] Subscription Disabled".to_owned(),
+            Mail::SubscriptionResolved { .. } => "[Hook0] Subscription Health Resolved".to_owned(),
         }
     }
 
@@ -125,6 +157,61 @@ impl Mail {
                 vars.extend(extra_variables.clone());
                 vars
             }
+            Mail::SubscriptionWarning {
+                application_name,
+                subscription_description,
+                target_url,
+                failure_percent,
+                evaluation_window,
+                ..
+            } => vec![
+                ("application_name".to_owned(), application_name.clone()),
+                (
+                    "subscription_description".to_owned(),
+                    subscription_description.clone(),
+                ),
+                ("target_url".to_owned(), target_url.clone()),
+                (
+                    "failure_percent".to_owned(),
+                    format!("{:.1}", failure_percent),
+                ),
+                ("evaluation_window".to_owned(), evaluation_window.clone()),
+            ],
+            Mail::SubscriptionDisabled {
+                application_name,
+                subscription_description,
+                target_url,
+                failure_percent,
+                evaluation_window,
+                disabled_at,
+                ..
+            } => vec![
+                ("application_name".to_owned(), application_name.clone()),
+                (
+                    "subscription_description".to_owned(),
+                    subscription_description.clone(),
+                ),
+                ("target_url".to_owned(), target_url.clone()),
+                (
+                    "failure_percent".to_owned(),
+                    format!("{:.1}", failure_percent),
+                ),
+                ("evaluation_window".to_owned(), evaluation_window.clone()),
+                ("disabled_at".to_owned(), disabled_at.clone()),
+            ],
+            Mail::SubscriptionResolved {
+                application_name,
+                subscription_description,
+                target_url,
+                ..
+            } => vec![
+                ("application_name".to_owned(), application_name.clone()),
+                (
+                    "subscription_description".to_owned(),
+                    subscription_description.clone(),
+                ),
+                ("target_url".to_owned(), target_url.clone()),
+            ],
         }
     }
 

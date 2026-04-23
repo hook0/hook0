@@ -1,0 +1,41 @@
+<mjml>
+    <mj-head>
+        <mj-title>Subscription Health Resolved</mj-title>
+        <mj-style>
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+                background-color: #f0f0f0;
+            }
+            h1 { font-size: 24px; }
+            h2 { font-size: 20px; }
+            p { font-size: 16px; }
+            .success { color: #16a34a; }
+            .info-box {
+                background-color: #dcfce7;
+                border-left: 4px solid #16a34a;
+                padding: 15px;
+                margin: 15px 0;
+            }
+        </mj-style>
+    </mj-head>
+    <mj-body>
+        <mj-section>
+            <mj-column>
+                <mj-image src="{ $logo_url }" alt="Hook0" width="150px" />
+                <mj-text align="center">
+                    <h1 class="success">Subscription Health Resolved</h1>
+                    <p>Your subscription in application <strong>{ $application_name }</strong> is now healthy again.</p>
+                </mj-text>
+                <mj-text>
+                    <div class="info-box">
+                        <p><strong>Subscription:</strong> { $subscription_description }</p>
+                        <p><strong>Target URL:</strong> { $target_url }</p>
+                    </div>
+                    <p>The failure rate has dropped below the warning threshold. Events are being delivered successfully.</p>
+                </mj-text>
+            </mj-column>
+        </mj-section>
+    </mj-body>
+</mjml>

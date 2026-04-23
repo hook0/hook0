@@ -1,0 +1,43 @@
+<mjml>
+    <mj-head>
+        <mj-title>Subscription Health Warning</mj-title>
+        <mj-style>
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+                background-color: #f0f0f0;
+            }
+            h1 { font-size: 24px; }
+            h2 { font-size: 20px; }
+            p { font-size: 16px; }
+            .warning { color: #f59e0b; }
+            .info-box {
+                background-color: #fef3c7;
+                border-left: 4px solid #f59e0b;
+                padding: 15px;
+                margin: 15px 0;
+            }
+        </mj-style>
+    </mj-head>
+    <mj-body>
+        <mj-section>
+            <mj-column>
+                <mj-image src="{ $logo_url }" alt="Hook0" width="150px" />
+                <mj-text align="center">
+                    <h1 class="warning">Subscription Health Warning</h1>
+                    <p>Your subscription in application <strong>{ $application_name }</strong> is experiencing delivery issues.</p>
+                </mj-text>
+                <mj-text>
+                    <div class="info-box">
+                        <p><strong>Subscription:</strong> { $subscription_description }</p>
+                        <p><strong>Target URL:</strong> { $target_url }</p>
+                        <p><strong>Failure rate:</strong> { $failure_percent }% (over { $evaluation_window })</p>
+                    </div>
+                    <p>Please check your endpoint availability and response codes. If the failure rate continues to increase, the subscription will be automatically disabled.</p>
+                    <p>You can view the subscription health in your Hook0 dashboard.</p>
+                </mj-text>
+            </mj-column>
+        </mj-section>
+    </mj-body>
+</mjml>
