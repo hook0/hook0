@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                ra.event__id AS event_id,\n                ra.subscription__id AS subscription_id,\n                ra.application__id AS application_id,\n                e.received_at,\n                e.payload_content_type,\n                e.event_type__name AS event_type_name,\n                t_http.method AS http_method,\n                t_http.url AS http_url,\n                t_http.headers AS http_headers,\n                s.secret\n            FROM webhook.request_attempt AS ra\n            INNER JOIN event.event AS e ON e.event__id = ra.event__id\n            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id\n            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id\n            WHERE ra.request_attempt__id = $1\n                AND ra.application__id = $2\n                AND s.deleted_at IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "event_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "subscription_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "application_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "received_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "payload_content_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "event_type_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "http_method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "http_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "http_headers",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "secret",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9cbb19e518917a251360ec12e9fb2830776b1525b00d8423f5f46bac42a07b13"
+}

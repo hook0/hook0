@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from webhook.retry_schedule where retry_schedule__id = $1 and organization__id = $2 returning retry_schedule__id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "retry_schedule__id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ed8c50f57580153bbb7c84d6b8b642c9bf32c54a53fefffceffaa5ba7f7d2607"
+}

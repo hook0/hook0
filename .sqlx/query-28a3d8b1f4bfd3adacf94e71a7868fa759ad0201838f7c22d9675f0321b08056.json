@@ -1,0 +1,90 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            insert into webhook.retry_schedule\n                (organization__id, name, strategy, max_retries,\n                 custom_intervals, linear_delay,\n                 increasing_base_delay, increasing_wait_factor)\n            select $1, $2, $3, $4, $5, $6, $7, $8\n            where (\n                select count(*) from webhook.retry_schedule where organization__id = $1\n            ) < $9\n            returning\n                retry_schedule__id as retry_schedule_id,\n                organization__id as organization_id,\n                name,\n                strategy as \"strategy: RetryStrategy\",\n                max_retries,\n                custom_intervals as custom_intervals_secs,\n                linear_delay as linear_delay_secs,\n                increasing_base_delay as increasing_base_delay_secs,\n                increasing_wait_factor,\n                created_at,\n                updated_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "retry_schedule_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "organization_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "strategy: RetryStrategy",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "max_retries",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "custom_intervals_secs",
+        "type_info": "Int4Array"
+      },
+      {
+        "ordinal": 6,
+        "name": "linear_delay_secs",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "increasing_base_delay_secs",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "increasing_wait_factor",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4Array",
+        "Int4",
+        "Int4",
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "28a3d8b1f4bfd3adacf94e71a7868fa759ad0201838f7c22d9675f0321b08056"
+}

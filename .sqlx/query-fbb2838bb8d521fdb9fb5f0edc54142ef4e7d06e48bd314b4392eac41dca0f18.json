@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select last_processed_at from webhook.subscription_health_monitor_cursor where cursor__id = 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "last_processed_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fbb2838bb8d521fdb9fb5f0edc54142ef4e7d06e48bd314b4392eac41dca0f18"
+}

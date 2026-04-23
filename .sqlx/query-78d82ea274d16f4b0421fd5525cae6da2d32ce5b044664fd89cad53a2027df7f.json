@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                                            SELECT token__id AS token_id\n                                            FROM iam.token\n                                            WHERE revocation_id = $1\n                                                AND (expired_at IS NULL OR expired_at > statement_timestamp())\n                                            LIMIT 1\n                                        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "78d82ea274d16f4b0421fd5525cae6da2d32ce5b044664fd89cad53a2027df7f"
+}
