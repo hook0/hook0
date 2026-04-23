@@ -1,12 +1,17 @@
+use std::collections::HashMap;
+use std::str::FromStr;
+use std::time::{Duration, Instant};
+
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
+use lettre::{Address, message::Mailbox};
 use paperclip::actix::Apiv2Schema;
 use serde::Serialize;
 use sqlx::{PgPool, query, query_as, query_scalar};
-use std::collections::HashMap;
-use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
+
+use crate::mailer::{Mail, Mailer};
 
 /// Tuning knobs for one running health monitor instance.
 #[derive(Clone)]
@@ -47,6 +52,11 @@ pub enum HealthEventCause {
 #[derive(Debug)]
 struct SubscriptionHealth {
     subscription_id: Uuid,
+    organization_id: Uuid,
+    application_id: Uuid,
+    application_name: String,
+    description: Option<String>,
+    target_url: String,
     failure_percent: f64,
     last_health_status: Option<HealthStatus>,
     last_health_at: Option<DateTime<Utc>>,
@@ -56,15 +66,30 @@ struct SubscriptionHealth {
     last_health_user_id: Option<Uuid>,
 }
 
+/// Info collected during transaction for sending emails after commit.
+#[derive(Debug, Clone)]
+struct HealthEmailAction {
+    status: HealthStatus,
+    subscription_id: Uuid,
+    organization_id: Uuid,
+    application_id: Uuid,
+    application_name: String,
+    description: Option<String>,
+    target_url: String,
+    failure_percent: f64,
+    disabled_at: Option<DateTime<Utc>>,
+}
+
 const CLEANUP_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 
-/// Evaluates subscription failure rates, emits health events.
+/// Evaluates subscription failure rates, emits health events, sends notification emails.
 ///
 /// Operator sees warning/disabled/resolved per subscription in logs.
 /// Cleans up stale resolved events and old buckets daily.
 pub async fn run_subscription_health_monitor(
     housekeeping_semaphore: &Semaphore,
     db: &PgPool,
+    mailer: &Mailer,
     config: &SubscriptionHealthMonitorConfig,
 ) {
     info!(
@@ -76,7 +101,7 @@ pub async fn run_subscription_health_monitor(
 
     while let Ok(permit) = housekeeping_semaphore.acquire().await {
         // run_one_tick is where we do the main work
-        if let Err(e) = run_one_tick(db, config).await {
+        if let Err(e) = run_one_tick(db, Some(mailer), config).await {
             error!("Subscription health monitor error: {e}");
         }
 
@@ -149,11 +174,15 @@ const TICK_STATEMENT_TIMEOUT: &str = "5min";
 /// Single evaluation pass over all active subscriptions.
 ///
 /// Operator sees state transitions logged per subscription.
-/// Entire tick runs in one transaction with advisory lock.
+/// Phase 1: transaction with advisory lock evaluates health and emits events.
+/// Phase 2: sends notification emails after commit (best-effort).
 async fn run_one_tick(
     db: &PgPool,
+    mailer: Option<&Mailer>,
     config: &SubscriptionHealthMonitorConfig,
 ) -> Result<(), sqlx::Error> {
+    let mut email_actions: Vec<HealthEmailAction> = Vec::new();
+
     let mut tx = db.begin().await?;
 
     // Scoped to this transaction; resets automatically on commit/rollback.
@@ -243,27 +272,61 @@ async fn run_one_tick(
                 .await
                 .map(|_| ()),
 
-                SubscriptionAction::EmitWarning => query!(
-                    r#"
-                        insert into webhook.subscription_health_event (subscription__id, status, cause, user__id)
-                        values ($1, 'warning', 'auto', null)
-                    "#,
-                    candidate_subscription.subscription_id,
-                )
-                .execute(&mut *tx)
-                .await
-                .map(|_| ()),
+                SubscriptionAction::EmitWarning => {
+                    let result = query!(
+                        r#"
+                            insert into webhook.subscription_health_event (subscription__id, status, cause, user__id)
+                            values ($1, 'warning', 'auto', null)
+                        "#,
+                        candidate_subscription.subscription_id,
+                    )
+                    .execute(&mut *tx)
+                    .await
+                    .map(|_| ());
 
-                SubscriptionAction::EmitResolved => query!(
-                    r#"
-                        insert into webhook.subscription_health_event (subscription__id, status, cause, user__id)
-                        values ($1, 'resolved', 'auto', null)
-                    "#,
-                    candidate_subscription.subscription_id,
-                )
-                .execute(&mut *tx)
-                .await
-                .map(|_| ()),
+                    if result.is_ok() {
+                        email_actions.push(HealthEmailAction {
+                            status: HealthStatus::Warning,
+                            subscription_id: candidate_subscription.subscription_id,
+                            organization_id: candidate_subscription.organization_id,
+                            application_id: candidate_subscription.application_id,
+                            application_name: candidate_subscription.application_name.clone(),
+                            description: candidate_subscription.description.clone(),
+                            target_url: candidate_subscription.target_url.clone(),
+                            failure_percent: candidate_subscription.failure_percent,
+                            disabled_at: None,
+                        });
+                    }
+                    result
+                }
+
+                SubscriptionAction::EmitResolved => {
+                    let result = query!(
+                        r#"
+                            insert into webhook.subscription_health_event (subscription__id, status, cause, user__id)
+                            values ($1, 'resolved', 'auto', null)
+                        "#,
+                        candidate_subscription.subscription_id,
+                    )
+                    .execute(&mut *tx)
+                    .await
+                    .map(|_| ());
+
+                    if result.is_ok() {
+                        email_actions.push(HealthEmailAction {
+                            status: HealthStatus::Resolved,
+                            subscription_id: candidate_subscription.subscription_id,
+                            organization_id: candidate_subscription.organization_id,
+                            application_id: candidate_subscription.application_id,
+                            application_name: candidate_subscription.application_name.clone(),
+                            description: candidate_subscription.description.clone(),
+                            target_url: candidate_subscription.target_url.clone(),
+                            failure_percent: candidate_subscription.failure_percent,
+                            disabled_at: None,
+                        });
+                    }
+                    result
+                }
 
                 // Atomic disable + event insert. Prevents re-enable race.
                 SubscriptionAction::EmitDisabled => {
@@ -288,11 +351,22 @@ async fn run_one_tick(
                     .await;
 
                     match disabled_at {
-                        Ok(Some(_)) => {
+                        Ok(Some(at)) => {
                             info!(
                                 "Subscription health monitor: disabled subscription {}",
                                 candidate_subscription.subscription_id
                             );
+                            email_actions.push(HealthEmailAction {
+                                status: HealthStatus::Disabled,
+                                subscription_id: candidate_subscription.subscription_id,
+                                organization_id: candidate_subscription.organization_id,
+                                application_id: candidate_subscription.application_id,
+                                application_name: candidate_subscription.application_name.clone(),
+                                description: candidate_subscription.description.clone(),
+                                target_url: candidate_subscription.target_url.clone(),
+                                failure_percent: candidate_subscription.failure_percent,
+                                disabled_at: Some(at),
+                            });
                             Ok(())
                         }
                         Ok(None) => Ok(()),
@@ -311,7 +385,119 @@ async fn run_one_tick(
     }
 
     tx.commit().await?;
+
+    // Phase 2: send notification emails (best-effort, after commit)
+    if let Some(mailer) = mailer {
+        for action in &email_actions {
+            send_health_notification_emails(db, mailer, action, config).await;
+        }
+    }
+
     Ok(())
+}
+
+/// Sends health notification emails to all members of an organization.
+/// Best-effort: failures are logged but do not fail the tick. Emails are not retried.
+async fn send_health_notification_emails(
+    db: &PgPool,
+    mailer: &Mailer,
+    action: &HealthEmailAction,
+    config: &SubscriptionHealthMonitorConfig,
+) {
+    let description = action
+        .description
+        .clone()
+        .unwrap_or_else(|| action.subscription_id.to_string());
+    let evaluation_window = humantime::format_duration(config.failure_rate_window).to_string();
+
+    let mail = match action.status {
+        HealthStatus::Warning => Mail::SubscriptionWarning {
+            organization_id: action.organization_id,
+            application_id: action.application_id,
+            application_name: action.application_name.clone(),
+            subscription_description: description,
+            subscription_id: action.subscription_id,
+            target_url: action.target_url.clone(),
+            failure_percent: action.failure_percent,
+            evaluation_window,
+        },
+        HealthStatus::Disabled => Mail::SubscriptionDisabled {
+            organization_id: action.organization_id,
+            application_id: action.application_id,
+            application_name: action.application_name.clone(),
+            subscription_description: description,
+            subscription_id: action.subscription_id,
+            target_url: action.target_url.clone(),
+            failure_percent: action.failure_percent,
+            evaluation_window,
+            disabled_at: action
+                .disabled_at
+                .unwrap_or_else(Utc::now)
+                .to_rfc3339(),
+        },
+        HealthStatus::Resolved => Mail::SubscriptionResolved {
+            organization_id: action.organization_id,
+            application_id: action.application_id,
+            application_name: action.application_name.clone(),
+            subscription_description: description,
+            subscription_id: action.subscription_id,
+            target_url: action.target_url.clone(),
+        },
+    };
+
+    struct OrganizationUser {
+        first_name: String,
+        last_name: String,
+        email: String,
+    }
+
+    let users = match query_as!(
+        OrganizationUser,
+        r#"
+        select u.first_name, u.last_name, u.email
+        from iam.user u
+        inner join iam.user__organization uo on u.user__id = uo.user__id
+        where uo.organization__id = $1
+        "#,
+        action.organization_id,
+    )
+    .fetch_all(db)
+    .await
+    {
+        Ok(users) => users,
+        Err(e) => {
+            warn!(
+                "Subscription health monitor: failed to query org users for email (org {}): {e}",
+                action.organization_id
+            );
+            return;
+        }
+    };
+
+    for user in users {
+        let address = match Address::from_str(&user.email) {
+            Ok(a) => a,
+            Err(e) => {
+                warn!(
+                    "Subscription health monitor: invalid email address {}: {e}",
+                    user.email
+                );
+                continue;
+            }
+        };
+
+        let recipient = Mailbox::new(
+            Some(format!("{} {}", user.first_name, user.last_name)),
+            address,
+        );
+
+        if let Err(e) = mailer.send_mail(mail.clone(), recipient).await {
+            warn!(
+                "Subscription health monitor: failed to send email to {}: {e}",
+                user.email
+            );
+        }
+    }
 }
 
 /// Success/failure counts for one subscription in current scan.
@@ -498,15 +684,22 @@ async fn list_health_evaluation_subscriptions_candidates(
                 where latest.status = 'warning'
             )
             select
-                bs.subscription__id as "subscription_id!",
-                bs.failure_percent as "failure_percent!",
-                lh.status as "last_health_status?: HealthStatus",
-                lh.created_at as "last_health_at?",
-                lh.cause as "last_health_cause?: HealthEventCause",
-                lh.user__id as "last_health_user_id?"
+                bs.subscription__id as subscription_id,
+                app.organization__id as organization_id,
+                s.application__id as application_id,
+                app.name as "application_name!",
+                s.description,
+                coalesce(th.url, '') as "target_url!",
+                coalesce(bs.failure_percent, 0.0) as "failure_percent!",
+                lh.status as "last_health_status: HealthStatus",
+                lh.created_at as last_health_at,
+                lh.cause as "last_health_cause: HealthEventCause",
+                lh.user__id as last_health_user_id
             from candidates c
             inner join bucket_stats bs on bs.subscription__id = c.subscription__id
             inner join webhook.subscription s on s.subscription__id = c.subscription__id
+            inner join event.application app on app.application__id = s.application__id
+            left join webhook.target_http th on th.target__id = s.target__id
             left join lateral (
                 select she.status, she.created_at, she.cause, she.user__id
                 from webhook.subscription_health_event she
@@ -630,7 +823,7 @@ mod tests {
             insert_test_fixtures(&mut tx, 2, 5, now).await;
         tx.commit().await.unwrap();
 
-        run_one_tick(&pool, &config).await.unwrap();
+        run_one_tick(&pool, None, &config).await.unwrap();
 
         let warning_event = sqlx::query_scalar!(
         "select count(*) from webhook.subscription_health_event where subscription__id = $1 and status = 'warning'",
@@ -657,7 +850,7 @@ mod tests {
         insert_attempts(&mut tx, app_id, sub_id, secret_token, 10, 0, Utc::now()).await;
         tx.commit().await.unwrap();
 
-        run_one_tick(&pool, &config).await.unwrap();
+        run_one_tick(&pool, None, &config).await.unwrap();
 
         let resolved_event = sqlx::query_scalar!(
         "select count(*) from webhook.subscription_health_event where subscription__id = $1 and status = 'resolved'",
@@ -684,7 +877,7 @@ mod tests {
         insert_attempts(&mut tx, app_id, sub_id, secret_token, 2, 5, Utc::now()).await;
         tx.commit().await.unwrap();
 
-        run_one_tick(&pool, &config).await.unwrap();
+        run_one_tick(&pool, None, &config).await.unwrap();
 
         let warning_count = sqlx::query_scalar!(
             "select count(*) from webhook.subscription_health_event where subscription__id = $1 and status = 'warning'",
@@ -712,7 +905,7 @@ mod tests {
             insert_test_fixtures(&mut tx, 0, 10, now).await;
         tx.commit().await.unwrap();
 
-        run_one_tick(&pool, &config).await.unwrap();
+        run_one_tick(&pool, None, &config).await.unwrap();
 
         let disabled_event = sqlx::query_scalar!(
         "select count(*) from webhook.subscription_health_event where subscription__id = $1 and status = 'disabled'",
@@ -743,7 +936,7 @@ mod tests {
         insert_attempts(&mut tx, app_id, sub_id, secret_token, 0, 5, Utc::now()).await;
         tx.commit().await.unwrap();
 
-        run_one_tick(&pool, &config).await.unwrap();
+        run_one_tick(&pool, None, &config).await.unwrap();
 
         let disabled_count = sqlx::query_scalar!(
             "select count(*) from webhook.subscription_health_event where subscription__id = $1 and status = 'disabled'",
@@ -771,7 +964,7 @@ mod tests {
             insert_test_fixtures(&mut tx, 2, 5, now).await;
         tx.commit().await.unwrap();
 
-        run_one_tick(&pool, &config).await.unwrap();
+        run_one_tick(&pool, None, &config).await.unwrap();
 
         let warning_count = sqlx::query_scalar!(
             "select count(*) from webhook.subscription_health_event where subscription__id = $1 and status = 'warning'",
@@ -794,7 +987,7 @@ mod tests {
         insert_attempts(&mut tx, app_id, sub_id, secret_token, 0, 10, Utc::now()).await;
         tx.commit().await.unwrap();
 
-        run_one_tick(&pool, &config).await.unwrap();
+        run_one_tick(&pool, None, &config).await.unwrap();
 
         let disabled_count = sqlx::query_scalar!(
             "select count(*) from webhook.subscription_health_event where subscription__id = $1 and status = 'disabled'",

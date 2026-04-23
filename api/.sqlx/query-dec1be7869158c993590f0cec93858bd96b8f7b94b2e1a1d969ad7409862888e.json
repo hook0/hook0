@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            with bucket_stats as (\n                select subscription__id,\n                       sum(total_count) as total_count,\n                       sum(failed_count) as failed_count,\n                       sum(failed_count)::float8 / nullif(sum(total_count), 0) * 100.0 as failure_percent\n                from webhook.subscription_health_bucket\n                where bucket_start > now() - make_interval(secs => $1)\n                group by subscription__id\n                having sum(total_count) >= $2\n            ),\n            candidates as (\n                select subscription__id from bucket_stats where failed_count > $2\n                union\n                select subscription__id\n                from (\n                    select distinct on (subscription__id) subscription__id, status\n                    from webhook.subscription_health_event\n                    order by subscription__id, created_at desc\n                ) latest\n                where latest.status = 'warning'\n            )\n            select\n                bs.subscription__id as subscription_id,\n                app.organization__id as organization_id,\n                s.application__id as application_id,\n                app.name as \"application_name!\",\n                s.description,\n                coalesce(th.url, '') as \"target_url!\",\n                coalesce(bs.failure_percent, 0.0) as \"failure_percent!\",\n                lh.status as \"last_health_status: HealthStatus\",\n                lh.created_at as last_health_at,\n                lh.cause as \"last_health_cause: HealthEventCause\",\n                lh.user__id as last_health_user_id\n            from candidates c\n            inner join bucket_stats bs on bs.subscription__id = c.subscription__id\n            inner join webhook.subscription s on s.subscription__id = c.subscription__id\n            inner join event.application app on app.application__id = s.application__id\n            left join webhook.target_http th on th.target__id = s.target__id\n            left join lateral (\n                select she.status, she.created_at, she.cause, she.user__id\n                from webhook.subscription_health_event she\n                where she.subscription__id = c.subscription__id\n                order by she.created_at desc\n                limit 1\n            ) lh on true\n            where s.is_enabled = true and s.deleted_at is null\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscription_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "organization_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "application_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "application_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "target_url!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "failure_percent!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_health_status: HealthStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "last_health_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "last_health_cause: HealthEventCause",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "last_health_user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "dec1be7869158c993590f0cec93858bd96b8f7b94b2e1a1d969ad7409862888e"
+}

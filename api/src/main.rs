@@ -1185,6 +1185,7 @@ async fn main() -> anyhow::Result<()> {
         if config.enable_subscription_health_monitor {
             let subscription_health_db = housekeeping_pool.clone();
             let subscription_health_semaphore = housekeeping_semaphore.clone();
+            let subscription_health_mailer = mailer.clone();
             let subscription_health_config =
                 subscription_health_monitor::SubscriptionHealthMonitorConfig {
                     interval: config.subscription_health_monitor_interval,
@@ -1208,6 +1209,7 @@ async fn main() -> anyhow::Result<()> {
                 subscription_health_monitor::run_subscription_health_monitor(
                     &subscription_health_semaphore,
                     &subscription_health_db,
+                    &subscription_health_mailer,
                     &subscription_health_config,
                 )
                 .await;

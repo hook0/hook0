@@ -1,0 +1,53 @@
+<mjml>
+    <mj-head>
+        <mj-title>Subscription Health Warning</mj-title>
+        <mj-style inline="inline">
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+                background-color: #f0f0f0;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            h2 {
+                font-size: 20px;
+            }
+            p {
+                font-size: 16px;
+            }
+            .warning {
+                color: #f59e0b;
+            }
+            .code {
+                font-family: monospace;
+                background-color: #f3f4f6;
+                padding: 2px 6px;
+                border-radius: 4px;
+            }
+        </mj-style>
+    </mj-head>
+    <mj-body>
+        <mj-section>
+            <mj-column>
+                <mj-image src="{ $logo_url }" alt="Hook0" width="150px" />
+                <mj-text align="center">
+                    <h1 class="warning">Subscription Health Warning</h1>
+                    <p>Your subscription <strong>{ $subscription_description }</strong> in application <strong>{ $application_name }</strong> is experiencing delivery issues.</p>
+                </mj-text>
+                <mj-text>
+                    <p><strong>Failure rate:</strong> { $failure_percent }% over the last { $evaluation_window }</p>
+                    <p><strong>Target URL:</strong> <span class="code">{ $target_url }</span></p>
+                </mj-text>
+                <mj-text align="center">
+                    <p>If the failure rate continues to increase, the subscription will be automatically disabled to prevent further delivery attempts.</p>
+                </mj-text>
+                <mj-button background-color="#f59e0b" color="white" font-size="16px" border-radius="5px" href="{ $app_url }/organizations/{ $organization_id }/applications/{ $application_id }/subscriptions/{ $subscription_id }">View Subscription</mj-button>
+                <mj-text align="center">
+                    <p><small>If you have questions, contact us at <a href="mailto:{ $support_email_address }">{ $support_email_address }</a>.</small></p>
+                </mj-text>
+            </mj-column>
+        </mj-section>
+    </mj-body>
+</mjml>
