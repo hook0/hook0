@@ -2,8 +2,7 @@ import { expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "./email-verification";
 
 /** Shared UUID pattern for extracting IDs from URLs. */
-export const UUID_PATTERN =
-  /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+export const UUID_PATTERN = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
 
 export interface TestEnv {
   email: string;
@@ -127,13 +126,11 @@ async function loginAndCreateAppWithEventType(
  */
 async function expectToast(
   page: import("@playwright/test").Page,
-  options: { type?: 'success' | 'error'; contains?: string; timeout?: number } | number = 10000
+  options: { type?: "success" | "error"; contains?: string; timeout?: number } | number = 10000
 ) {
-  const opts = typeof options === 'number' ? { timeout: options } : options;
+  const opts = typeof options === "number" ? { timeout: options } : options;
   const { type, contains, timeout = 10000 } = opts;
-  const selector = type
-    ? `[data-sonner-toast][data-type="${type}"]`
-    : "[data-sonner-toast]";
+  const selector = type ? `[data-sonner-toast][data-type="${type}"]` : "[data-sonner-toast]";
   const toast = page.locator(selector).first();
   await expect(toast).toBeVisible({ timeout });
   if (contains) {
@@ -141,5 +138,11 @@ async function expectToast(
   }
 }
 
-export { loginAsNewUser, loginAndCreateApp, loginAndCreateAppWithEventType, expectToast, API_BASE_URL };
+export {
+  loginAsNewUser,
+  loginAndCreateApp,
+  loginAndCreateAppWithEventType,
+  expectToast,
+  API_BASE_URL,
+};
 export { test, expect } from "@playwright/test";

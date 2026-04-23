@@ -59,7 +59,7 @@ test.describe("Members", () => {
   test.skip(
     !membersFeatureEnabled,
     "Members feature tests require MEMBERS_FEATURE_ENABLED=true environment variable. " +
-    "Set this variable in .envrc or your CI configuration to enable these tests."
+      "Set this variable in .envrc or your CI configuration to enable these tests."
   );
 
   /**

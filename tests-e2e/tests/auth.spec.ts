@@ -176,7 +176,11 @@ test.describe("Authentication", () => {
 
       // Navigate to org dashboard to dismiss tutorial wizard overlay
       await page.goto(`/organizations/${verificationResult.organizationId}/dashboard`);
-      await expect(page.locator('[data-test="organization-dashboard-card"], [data-test="applications-card"]').first()).toBeVisible({
+      await expect(
+        page
+          .locator('[data-test="organization-dashboard-card"], [data-test="applications-card"]')
+          .first()
+      ).toBeVisible({
         timeout: 15000,
       });
 

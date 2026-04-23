@@ -135,7 +135,10 @@ test.describe("Applications", () => {
     let responseBody: { application_id?: string; name?: string } = {};
     const responsePromise = page.waitForResponse(
       async (response) => {
-        if (response.url().includes("/api/v1/applications") && response.request().method() === "POST") {
+        if (
+          response.url().includes("/api/v1/applications") &&
+          response.request().method() === "POST"
+        ) {
           if (response.status() < 400) {
             responseBody = await response.json();
           }
@@ -229,7 +232,10 @@ test.describe("Applications", () => {
     let responseBody: { name?: string } = {};
     const responsePromise = page.waitForResponse(
       async (response) => {
-        if (response.url().includes(`/api/v1/applications/${app.application_id}`) && response.request().method() === "PUT") {
+        if (
+          response.url().includes(`/api/v1/applications/${app.application_id}`) &&
+          response.request().method() === "PUT"
+        ) {
           if (response.status() < 400) {
             responseBody = await response.json();
           }
@@ -373,7 +379,9 @@ test.describe("Applications", () => {
     await page.locator('[data-test="application-delete-button"]').click();
 
     // Wait for confirmation dialog and click confirm
-    const confirmButton = page.locator('.hook0-dialog--danger .hook0-dialog__actions button:last-child');
+    const confirmButton = page.locator(
+      ".hook0-dialog--danger .hook0-dialog__actions button:last-child"
+    );
     await expect(confirmButton).toBeVisible({ timeout: 5000 });
 
     const responsePromise = page.waitForResponse(

@@ -111,11 +111,9 @@ test.describe("Logs", () => {
     );
     await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-test="events-send-button"]').click();
-    await page.waitForURL('**/events/send');
+    await page.waitForURL("**/events/send");
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
-    await page
-      .locator('[data-test="send-event-type-select"]')
-      .selectOption("link.test.created");
+    await page.locator('[data-test="send-event-type-select"]').selectOption("link.test.created");
 
     // Add event labels
     const eventLabelKey = page.locator(
@@ -153,9 +151,7 @@ test.describe("Logs", () => {
     await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
 
     // Navigate to logs and wait for data
-    await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
-    );
+    await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/logs`);
     await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('[data-test="logs-table"] [row-id]').first()).toBeVisible({
       timeout: 15000,
@@ -222,8 +218,12 @@ test.describe("Logs", () => {
     await page.locator('[data-test="subscription-url-input"]').fill("https://webhook.site/test");
 
     // Add a label using data-test selectors (scoped to subscription-labels container)
-    const labelKeyInput = page.locator('[data-test="subscription-labels"] [data-test="kv-key-input-0"]');
-    const labelValueInput = page.locator('[data-test="subscription-labels"] [data-test="kv-value-input-0"]');
+    const labelKeyInput = page.locator(
+      '[data-test="subscription-labels"] [data-test="kv-key-input-0"]'
+    );
+    const labelValueInput = page.locator(
+      '[data-test="subscription-labels"] [data-test="kv-value-input-0"]'
+    );
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
 
     // Clear and fill key input, then blur to trigger debounced emit
@@ -262,7 +262,7 @@ test.describe("Logs", () => {
     );
     await expect(page.locator('[data-test="events-send-button"]')).toBeVisible({ timeout: 10000 });
     await page.locator('[data-test="events-send-button"]').click();
-    await page.waitForURL('**/events/send');
+    await page.waitForURL("**/events/send");
 
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
     await page
@@ -271,8 +271,12 @@ test.describe("Logs", () => {
 
     // Add labels (required for event submission, and must match subscription labels)
     // Use data-test selectors (scoped to send-event-labels container)
-    const eventLabelKeyInput = page.locator('[data-test="send-event-labels"] [data-test="kv-key-input-0"]');
-    const eventLabelValueInput = page.locator('[data-test="send-event-labels"] [data-test="kv-value-input-0"]');
+    const eventLabelKeyInput = page.locator(
+      '[data-test="send-event-labels"] [data-test="kv-key-input-0"]'
+    );
+    const eventLabelValueInput = page.locator(
+      '[data-test="send-event-labels"] [data-test="kv-value-input-0"]'
+    );
     await expect(eventLabelKeyInput).toBeVisible({ timeout: 5000 });
 
     // Clear and fill key input, then blur to trigger debounced emit
@@ -295,7 +299,9 @@ test.describe("Logs", () => {
 
     const sendEventResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/event") && response.request().method() === "POST" && !response.url().includes("/api/v1/event_types"),
+        response.url().includes("/api/v1/event") &&
+        response.request().method() === "POST" &&
+        !response.url().includes("/api/v1/event_types"),
       { timeout: 15000 }
     );
     await page.locator('[data-test="send-event-submit-button"]').click();
@@ -310,7 +316,9 @@ test.describe("Logs", () => {
 
     // Poll for at least one row to appear (webhook might take a moment to be processed)
     // Use expect with longer timeout instead of arbitrary waitForTimeout
-    await expect(page.locator('[data-test="logs-table"] [row-id]').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-test="logs-table"] [row-id]').first()).toBeVisible({
+      timeout: 15000,
+    });
 
     // The logs table should have at least 1 row (the webhook request)
     const rows = page.locator('[data-test="logs-table"] [row-id]');

@@ -148,8 +148,7 @@ test.describe("User Settings", () => {
     // Step 2: Submit and wait for API response
     const responsePromise = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/auth/password") &&
-        response.request().method() === "POST",
+        response.url().includes("/api/v1/auth/password") && response.request().method() === "POST",
       { timeout: 15000 }
     );
 
@@ -305,7 +304,10 @@ test.describe("User Settings", () => {
     });
   });
 
-  test("should show not implemented error when trying to delete account", async ({ page, request }) => {
+  test("should show not implemented error when trying to delete account", async ({
+    page,
+    request,
+  }) => {
     // Note: The delete account feature is not implemented yet.
     // The frontend shows "Not implemented yet" error when clicking delete.
     // This test verifies the error notification appears.
@@ -492,12 +494,9 @@ test.describe("Password Reset Flow", () => {
     await verifyEmailViaMailpit(request, email);
 
     // Step 2: Initiate password reset via API
-    const beginResetResponse = await request.post(
-      `${API_BASE_URL}/auth/begin-reset-password`,
-      {
-        data: { email },
-      }
-    );
+    const beginResetResponse = await request.post(`${API_BASE_URL}/auth/begin-reset-password`, {
+      data: { email },
+    });
     expect(beginResetResponse.status()).toBeLessThan(400);
 
     // Step 3: Get the password reset token from Mailpit
@@ -514,9 +513,7 @@ test.describe("Password Reset Flow", () => {
 
     // Step 5: Fill in new password
     await page.locator('[data-test="reset-password-new-password-input"]').fill(newPassword);
-    await page
-      .locator('[data-test="reset-password-confirm-password-input"]')
-      .fill(newPassword);
+    await page.locator('[data-test="reset-password-confirm-password-input"]').fill(newPassword);
 
     // Step 6: Submit and wait for API response
     const resetResponsePromise = page.waitForResponse(
@@ -544,8 +541,7 @@ test.describe("Password Reset Flow", () => {
 
     const loginResponsePromise = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/auth/login") &&
-        response.request().method() === "POST",
+        response.url().includes("/api/v1/auth/login") && response.request().method() === "POST",
       { timeout: 15000 }
     );
 

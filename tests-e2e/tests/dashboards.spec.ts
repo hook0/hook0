@@ -70,7 +70,7 @@ test.describe("Dashboards", () => {
     const createAppResponse = page.waitForResponse(
       (response) =>
         response.url().includes("/api/v1/applications") && response.request().method() === "POST",
-      { timeout: 15000 },
+      { timeout: 15000 }
     );
     await page.locator('[data-test="application-submit-button"]').click();
     const appResponse = await createAppResponse;
@@ -82,7 +82,9 @@ test.describe("Dashboards", () => {
     await page.goto(`/organizations/${env.organizationId}/applications/${applicationId}/dashboard`);
 
     // Verify application dashboard page renders
-    await expect(page.locator('[data-test="application-dashboard"]')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-test="application-dashboard"]')).toBeVisible({
+      timeout: 15000,
+    });
 
     // Verify tutorial widget section is visible
     const tutorialWidget = page

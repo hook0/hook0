@@ -25,6 +25,7 @@ npm test
 ### Exécution CI
 
 Le CI :
+
 1. Utilise les services GitLab CI pour postgres et mailpit
 2. Build l'API et le frontend depuis les artifacts des jobs précédents
 3. Lance l'API et le frontend comme processus background
@@ -32,9 +33,9 @@ Le CI :
 
 ### Différences local vs CI
 
-| Aspect | Local | CI |
-|--------|-------|-----|
-| Infrastructure | docker-compose.yaml | Services GitLab CI |
-| API/Frontend | Containers Docker | Binaires/processus |
-| Base de données | Container postgres | Service postgres |
-| Email | Container mailpit | Service mailpit |
+| Aspect          | Local               | CI                 |
+| --------------- | ------------------- | ------------------ |
+| Infrastructure  | docker-compose.yaml | Services GitLab CI |
+| API/Frontend    | Containers Docker   | Binaires/processus |
+| Base de données | Container postgres  | Service postgres   |
+| Email           | Container mailpit   | Service mailpit    |

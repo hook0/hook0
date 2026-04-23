@@ -74,14 +74,19 @@ test.describe("Tutorial", () => {
     await expect(page.locator('[data-test="tutorial-skip-button"]')).toBeVisible();
   });
 
-  test("should skip tutorial and redirect to organizations dashboard", async ({ page, request }) => {
+  test("should skip tutorial and redirect to organizations dashboard", async ({
+    page,
+    request,
+  }) => {
     await setupTestEnvironment(page, request, "skip");
 
     // Navigate directly to tutorial page
     await page.goto("/tutorial");
 
     // Wait for tutorial page to load
-    await expect(page.locator('[data-test="tutorial-skip-button"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="tutorial-skip-button"]')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Click skip button
     await page.locator('[data-test="tutorial-skip-button"]').click();
@@ -104,7 +109,9 @@ test.describe("Tutorial", () => {
     await page.goto("/tutorial");
 
     // Wait for tutorial page to load
-    await expect(page.locator('[data-test="tutorial-start-button"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="tutorial-start-button"]')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Click start button
     await page.locator('[data-test="tutorial-start-button"]').click();
