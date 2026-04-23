@@ -476,7 +476,13 @@ function scenario_retry_schedules() {
     'Retry schedule get matches name': (response) => response && response.name === expName,
   });
 
-  const updated = update_retry_schedule(baseUrl, organizationId, serviceToken, exp.retry_schedule_id, expName);
+  const updated = update_retry_schedule(
+    baseUrl,
+    organizationId,
+    serviceToken,
+    exp.retry_schedule_id,
+    expName
+  );
   check(updated, {
     'Retry schedule updated strategy': (response) => response && response.strategy === 'linear',
   });
