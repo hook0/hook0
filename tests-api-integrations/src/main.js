@@ -468,8 +468,7 @@ function scenario_retry_schedules() {
   // List + get + update flows.
   const list = list_retry_schedules(baseUrl, organizationId, serviceToken);
   check(list, {
-    'Retry schedule list contains created entries': (response) =>
-      response && response.length >= 3,
+    'Retry schedule list contains created entries': (response) => response && response.length >= 3,
   });
 
   const fetched = get_retry_schedule(baseUrl, serviceToken, exp.retry_schedule_id);
