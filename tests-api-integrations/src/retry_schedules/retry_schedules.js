@@ -82,7 +82,7 @@ export function updateSchedule(baseUrl, serviceToken, scheduleId, name) {
     strategy: 'linear',
     name,
     max_retries: 10,
-    delay: 120,
+    linear_delay_secs: 120,
   });
   const res = http.put(url, payload, headers(serviceToken));
   check(res, { 'Retry schedule updated': (response) => response.status === 200 });
@@ -103,7 +103,7 @@ export function rejectsTooManyRetries(baseUrl, organizationId, serviceToken) {
     strategy: 'linear',
     name: 'too-many-retries',
     max_retries: 16,
-    delay: 60,
+    linear_delay_secs: 60,
   });
   const res = http.post(url, payload, headers(serviceToken));
   check(res, { 'Over-cap max_retries rejected': (response) => response.status === 400 });
@@ -116,7 +116,7 @@ export function rejectsTooShortDelay(baseUrl, organizationId, serviceToken) {
     strategy: 'linear',
     name: 'zero-delay',
     max_retries: 3,
-    delay: 0,
+    linear_delay_secs: 0,
   });
   const res = http.post(url, payload, headers(serviceToken));
   check(res, { 'Zero delay rejected': (response) => response.status === 400 });
@@ -128,7 +128,8 @@ export function rejectsTotalOverCap(baseUrl, organizationId, serviceToken) {
     organization_id: organizationId,
     strategy: 'custom',
     name: 'total-too-long',
-    intervals: [604800, 604800, 604800],
+    max_retries: 3,
+    custom_intervals_secs: [604800, 604800, 604800],
   });
   const res = http.post(url, payload, headers(serviceToken));
   check(res, { 'Total duration over 7d rejected': (response) => response.status === 400 });
