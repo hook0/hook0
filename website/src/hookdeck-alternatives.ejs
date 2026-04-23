@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Best Hookdeck Alternatives (2026) — Webhook Platforms That Do More</title>
+    <%
+    locals.pageTitle = 'Best Hookdeck Alternatives (2026) — Webhook Platforms That Do More';
+    locals.pageDescription = 'Hookdeck is a webhook proxy, not a webhook platform. Compare real alternatives: Hook0, Svix, Convoy for sending, managing, and monitoring webhooks.';
+    locals.pageCanonical = '/hookdeck-alternatives';
+    locals.pageNoindex = false;
+    locals.pageFAQSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Hookdeck open-source?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Hookdeck is closed-source and cloud-only. You cannot inspect the code, audit it, or self-host it. If open-source matters to you, alternatives like Hook0 (SSPL-1.0) or Convoy (MPL-2.0) are fully open-source."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I self-host Hookdeck?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Hookdeck does not offer a self-hosted option. It is cloud-only. If you need to run your webhook infrastructure on your own servers for compliance, data sovereignty, or cost reasons, Hook0 and Convoy both support self-hosting."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the difference between a webhook proxy and a webhook platform?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A webhook proxy (like Hookdeck) sits between a webhook sender and your application. It receives, routes, and retries incoming webhooks. A webhook platform (like Hook0 or Svix) lets you send webhooks to your users — it handles delivery, retries, signatures, and subscriber management on your behalf. If you need to add webhooks to your product, you need a platform, not a proxy."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the best Hookdeck alternative for sending webhooks?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hook0, if you need to send webhooks. You publish events, Hook0 delivers them to your subscribers with retries, HMAC signatures, and a management dashboard. The code is open-source (SSPL-1.0), you can self-host it, the company is bootstrapped, and the cloud runs in Europe."
+          }
+        }
+      ]
+    };
+    %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Comparison</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            Hookdeck Alternatives
+            <span class="block text-gradient-green">Hookdeck Is a Proxy — You Might Need a Platform</span>
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            Hookdeck is a webhook gateway: it receives and routes incoming webhooks. If you need to <strong class="text-white">send</strong> webhooks to your users -- with retries, signatures, and subscriber management -- Hookdeck doesn't do that. These alternatives do.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'hookdeck-alternatives-hero-register')">
+                Start Free
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'hookdeck-alternatives-hero-playground')">
+                Try the Playground
+            </a>
+        </div>
+    </div>
+</section>
+
+<%- include('./includes/_social-proof-bar.ejs') %>
+
+<!-- Gateway vs Platform -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Key Distinction</span>
+            <h2 class="mt-4 text-display font-bold text-white">Gateway vs Platform — What's the Difference?</h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto">
+                Pick the wrong category and you'll end up building the missing half yourself.
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <!-- Gateway -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Webhook Gateway (Hookdeck)</h3>
+                <p class="text-gray-400">
+                    A gateway sits between a third-party webhook sender and your application. It receives incoming webhooks, buffers them, retries failed deliveries, and routes events to the right endpoint. It's basically a reverse proxy for webhooks. <strong class="text-white">You are the consumer.</strong>
+                </p>
+            </div>
+
+            <!-- Platform -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Webhook Platform (Hook0, Svix, Convoy)</h3>
+                <p class="text-gray-400">
+                    A platform lets you send webhooks to your users. You publish events, the platform delivers them with retries, HMAC signatures, and a subscriber management portal. <strong class="text-white">You are the producer.</strong> This is what you need to add webhooks to your product.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Comparison Table -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Feature Comparison</span>
+            <h2 class="mt-4 text-display font-bold text-white">Hookdeck vs the Alternatives</h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto">
+                Five options, one table. What matters most is whether you need to send webhooks, receive them, or both.
+            </p>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Criteria</th>
+                        <th class="py-4 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Hookdeck</th>
+                        <th class="py-4 px-4 text-sm font-semibold text-green-400 uppercase tracking-wider">Hook0</th>
+                        <th class="py-4 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Svix</th>
+                        <th class="py-4 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">Convoy</th>
+                        <th class="py-4 px-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">AWS EventBridge</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Type</td>
+                        <td class="py-4 px-4 text-gray-400">Webhook gateway / proxy</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Full webhook platform</td>
+                        <td class="py-4 px-4 text-gray-400">Webhook platform (open-core)</td>
+                        <td class="py-4 px-4 text-gray-400">Webhook platform</td>
+                        <td class="py-4 px-4 text-gray-400">Event bus (AWS ecosystem)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Sending Webhooks</td>
+                        <td class="py-4 px-4 text-gray-400">No</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Yes (core feature)</td>
+                        <td class="py-4 px-4 text-gray-400">Yes</td>
+                        <td class="py-4 px-4 text-gray-400">Yes</td>
+                        <td class="py-4 px-4 text-gray-400">Yes (via API Destinations)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Receiving Webhooks</td>
+                        <td class="py-4 px-4 text-gray-400">Yes (core feature)</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">No (by design)</td>
+                        <td class="py-4 px-4 text-gray-400">No</td>
+                        <td class="py-4 px-4 text-gray-400">Yes (incoming + outgoing)</td>
+                        <td class="py-4 px-4 text-gray-400">Yes (event ingestion)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Self-Hosting</td>
+                        <td class="py-4 px-4 text-gray-400">No</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Free (Docker / K8s)</td>
+                        <td class="py-4 px-4 text-gray-400">Enterprise plan only</td>
+                        <td class="py-4 px-4 text-gray-400">Yes (self-managed)</td>
+                        <td class="py-4 px-4 text-gray-400">No (AWS only)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Open Source</td>
+                        <td class="py-4 px-4 text-gray-400">No (closed-source)</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Yes (SSPL-1.0, full source)</td>
+                        <td class="py-4 px-4 text-gray-400">Partial (open-core, enterprise closed)</td>
+                        <td class="py-4 px-4 text-gray-400">Yes (MPL-2.0)</td>
+                        <td class="py-4 px-4 text-gray-400">No (AWS proprietary)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Free Tier</td>
+                        <td class="py-4 px-4 text-gray-400">Yes (100k events/mo)</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Yes, no credit card</td>
+                        <td class="py-4 px-4 text-gray-400">Yes</td>
+                        <td class="py-4 px-4 text-gray-400">Community edition only</td>
+                        <td class="py-4 px-4 text-gray-400">Pay-per-use (AWS billing)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Data Hosting</td>
+                        <td class="py-4 px-4 text-gray-400">US-based</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">Europe (GDPR) or self-host</td>
+                        <td class="py-4 px-4 text-gray-400">US-based</td>
+                        <td class="py-4 px-4 text-gray-400">Self-host only</td>
+                        <td class="py-4 px-4 text-gray-400">Multi-region (AWS)</td>
+                    </tr>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-4 text-gray-300">Funding</td>
+                        <td class="py-4 px-4 text-gray-400">$3.5M VC-funded</td>
+                        <td class="py-4 px-4 text-green-400 font-medium">100% Bootstrapped</td>
+                        <td class="py-4 px-4 text-gray-400">$17M VC-funded</td>
+                        <td class="py-4 px-4 text-gray-400">VC-funded</td>
+                        <td class="py-4 px-4 text-gray-400">Amazon (public company)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Why Look Beyond Hookdeck -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Why Look Beyond Hookdeck</span>
+            <h2 class="mt-4 text-display font-bold text-white">When Hookdeck Isn't Enough</h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto">
+                Hookdeck does one thing well: receiving and routing webhooks. But there are clear cases where it falls short.
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">You Need to Send Webhooks</h3>
+                <p class="text-gray-400">
+                    Hookdeck doesn't send webhooks. Period. If your product needs to notify customers via webhooks with retries, HMAC signatures, and delivery logs, you need a webhook platform: Hook0, Svix, or Convoy.
+                </p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">You Want to Self-Host</h3>
+                <p class="text-gray-400">
+                    Hookdeck is cloud-only. There is no self-hosting option. If compliance or data sovereignty rules require you to run on your own infrastructure, Hook0 and Convoy are both self-hostable at no cost.
+                </p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">You Need European Data Hosting</h3>
+                <p class="text-gray-400">
+                    Hookdeck is US-based. Hook0 Cloud is hosted in Europe with GDPR compliance built in. If you're an EU company handling sensitive data, the choice is straightforward.
+                </p>
+            </div>
+
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">You Want to Audit the Source Code</h3>
+                <p class="text-gray-400">
+                    Hookdeck is closed-source. You can't see how your webhook data is processed. Hook0's entire codebase is open under SSPL-1.0, so you can read and audit every line.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">FAQ</span>
+            <h2 class="mt-4 text-display font-bold text-white">Common Questions</h2>
+        </div>
+
+        <div class="space-y-6 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is Hookdeck open-source?</h3>
+                <p class="text-gray-400">No. Hookdeck is closed-source and cloud-only. You cannot inspect the code, audit it, or self-host it. If open-source matters to you, alternatives like Hook0 (SSPL-1.0) or Convoy (MPL-2.0) are fully open-source.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Can I self-host Hookdeck?</h3>
+                <p class="text-gray-400">No. Hookdeck does not offer a self-hosted option. It is cloud-only. If you need to run your webhook infrastructure on your own servers for compliance, data sovereignty, or cost reasons, Hook0 and Convoy both support self-hosting.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What's the difference between a webhook proxy and a webhook platform?</h3>
+                <p class="text-gray-400">A webhook proxy (like Hookdeck) sits between a webhook sender and your application. It receives, routes, and retries incoming webhooks. A webhook platform (like Hook0 or Svix) lets you send webhooks to your users. It handles delivery, retries, signatures, and subscriber management for you. If you want to add webhooks to your product, you need a platform, not a proxy.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What's the best Hookdeck alternative for sending webhooks?</h3>
+                <p class="text-gray-400">Hook0, if you need to send webhooks. You publish events, Hook0 delivers them to your subscribers with retries, HMAC signatures, and a management dashboard. The code is open-source (SSPL-1.0), you can self-host it, the company is bootstrapped, and the cloud runs in Europe.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center">Related</h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <a href="./hook0-vs-hookdeck" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Hookdeck</a>
+            <a href="./hook0-alternatives" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 Alternatives</a>
+            <a href="./hook0-vs-svix" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Svix</a>
+            <a href="./build-vs-buy-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Build vs Buy Webhooks</a>
+            <a href="./self-hosted-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Self-Hosted Webhooks</a>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<%- include('./includes/_cta-inline.ejs') %>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>
