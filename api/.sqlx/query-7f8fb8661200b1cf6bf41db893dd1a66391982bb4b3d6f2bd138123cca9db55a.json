@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO iam.user__organization (user__id, organization__id, role)\n                    VALUES ($1, $2, $3)\n                    ON CONFLICT DO NOTHING\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7f8fb8661200b1cf6bf41db893dd1a66391982bb4b3d6f2bd138123cca9db55a"
+}
