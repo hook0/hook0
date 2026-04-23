@@ -68,6 +68,28 @@ Hook0's approach to security, authentication, and data protection.
 
 ---
 
+### [Webhook delivery guarantees](webhook-delivery-guarantees.md)
+At-most-once, at-least-once, effectively-once -- and the idempotency pattern that makes duplicates harmless.
+
+**Topics covered:**
+- The three delivery guarantees and their tradeoffs
+- Why at-least-once is the right default
+- Idempotency pattern with code examples (Python, Node.js, Rust)
+- Common mistakes that break idempotency
+
+---
+
+### [Webhook vs Polling](webhook-vs-polling.md)
+When to use webhooks, when to poll, and the hybrid pattern that covers both.
+
+**Topics covered:**
+- Latency and cost comparison with concrete numbers
+- When polling is the right choice
+- The webhook-first + polling-fallback hybrid pattern
+- How Hook0 eliminates the need for polling fallback
+
+---
+
 ## Design philosophy
 
 ### Reliability first
