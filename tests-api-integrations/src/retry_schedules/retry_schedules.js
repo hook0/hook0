@@ -18,7 +18,7 @@ export function createExponential(baseUrl, organizationId, serviceToken, name) {
     name,
     max_retries: 5,
     increasing_base_delay_secs: 60,
-    wait_factor: 2,
+    increasing_wait_factor: 2,
   });
   const res = http.post(url, payload, headers(serviceToken));
   check(res, {
@@ -51,6 +51,7 @@ export function createCustom(baseUrl, organizationId, serviceToken, name) {
     organization_id: organizationId,
     strategy: 'custom',
     name,
+    max_retries: 3,
     custom_intervals_secs: [30, 60, 120],
   });
   const res = http.post(url, payload, headers(serviceToken));
