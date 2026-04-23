@@ -144,6 +144,9 @@ const headersMap = ref<Record<string, string>>({});
 const labelsMap = ref<Record<string, string>>({ user_id: '1' });
 const metadataMap = ref<Record<string, string>>({});
 
+// null means "use the organization's built-in retry policy" — maps to retry_schedule_id on the API.
+const selectedRetryScheduleId = ref<string | null>(null);
+
 const httpMethods = 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption);
 
 // Populate form from subscription data (edit mode)
@@ -168,6 +171,7 @@ watch(
       metadataMap.value = { ...sub.metadata };
       headersKv.value = recordToKvPairs(sub.target.headers);
       headersMap.value = { ...sub.target.headers } as unknown as Record<string, string>;
+      selectedRetryScheduleId.value = sub.retry_schedule_id ?? null;
     }
   },
   { immediate: true }
@@ -273,6 +277,8 @@ const onSubmit = handleSubmit((values) => {
         labels: toApiRecord(labelsMap.value),
         is_enabled: isEnabled.value,
         event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
+        // Empty string from the select = "use org default" — drop the field so backend sees missing.
+        retry_schedule_id: selectedRetryScheduleId.value || undefined,
       },
       {
         onSuccess: () => {
@@ -308,6 +314,8 @@ const onSubmit = handleSubmit((values) => {
         event_types: EventTypeNamesFromSelectedEventTypes(eventTypes.value),
         dedicated_workers: dedicatedWorkers.value.length > 0 ? dedicatedWorkers.value : undefined,
         application_id: applicationId.value,
+        // Empty string from the select = "use org default" — drop the field so backend sees missing.
+        retry_schedule_id: selectedRetryScheduleId.value || undefined,
       },
     },
     {
@@ -458,8 +466,10 @@ const missingFieldsTooltip = computed(() => {
                 <SubscriptionSectionAdvanced
                   :headers-kv="headersKv"
                   :metadata="metadata"
+                  :retry-schedule-id="selectedRetryScheduleId"
                   @update:headers="onHeadersUpdate($event)"
                   @update:metadata="onMetadataUpdate($event)"
+                  @update:retry-schedule-id="selectedRetryScheduleId = $event"
                 />
               </div>
             </Hook0CardContent>

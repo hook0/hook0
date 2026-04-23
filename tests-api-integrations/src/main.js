@@ -1,3 +1,4 @@
+import { check } from 'k6';
 import { getEnvironmentVariables } from './config.js';
 import create_application from './applications/create_application.js';
 import create_event_type from './event_types/create_event_type.js';
@@ -12,6 +13,19 @@ import query_request_attempts from './database/query_request_attempts.js';
 import delete_application from './applications/delete_application.js';
 import get_quota from './unauthentified/quotas.js';
 import get_environment_variables from './unauthentified/environment_variables.js';
+import {
+  createExponential as create_retry_schedule_exp,
+  createLinear as create_retry_schedule_linear,
+  createCustom as create_retry_schedule_custom,
+  listSchedules as list_retry_schedules,
+  getSchedule as get_retry_schedule,
+  updateSchedule as update_retry_schedule,
+  deleteSchedule as delete_retry_schedule,
+  rejectsTooManyRetries as reject_too_many_retries,
+  rejectsTooShortDelay as reject_too_short_delay,
+  rejectsTotalOverCap as reject_total_over_cap,
+  rejectsDuplicateName as reject_duplicate_name,
+} from './retry_schedules/retry_schedules.js';
 
 export const config = getEnvironmentVariables();
 
@@ -427,8 +441,61 @@ function scenario_subscription_disable() {
   }
 }
 
+function scenario_retry_schedules() {
+  const baseUrl = config.apiOrigin;
+  const serviceToken = config.serviceToken;
+  const organizationId = config.organizationId;
+
+  const suffix = new Date().toISOString();
+  const expName = `k6-exp-${suffix}`;
+  const linearName = `k6-linear-${suffix}`;
+  const customName = `k6-custom-${suffix}`;
+
+  const exp = create_retry_schedule_exp(baseUrl, organizationId, serviceToken, expName);
+  const linear = create_retry_schedule_linear(baseUrl, organizationId, serviceToken, linearName);
+  const custom = create_retry_schedule_custom(baseUrl, organizationId, serviceToken, customName);
+
+  if (!exp || !linear || !custom) {
+    throw new Error('Failed to create retry schedules');
+  }
+
+  // Abuse-limit checks (all must return 4xx from the API validator).
+  reject_too_many_retries(baseUrl, organizationId, serviceToken);
+  reject_too_short_delay(baseUrl, organizationId, serviceToken);
+  reject_total_over_cap(baseUrl, organizationId, serviceToken);
+  reject_duplicate_name(baseUrl, organizationId, serviceToken, expName);
+
+  // List + get + update flows.
+  const list = list_retry_schedules(baseUrl, organizationId, serviceToken);
+  check(list, {
+    'Retry schedule list contains created entries': (response) => response && response.length >= 3,
+  });
+
+  const fetched = get_retry_schedule(baseUrl, organizationId, serviceToken, exp.retry_schedule_id);
+  check(fetched, {
+    'Retry schedule get matches name': (response) => response && response.name === expName,
+  });
+
+  const updated = update_retry_schedule(
+    baseUrl,
+    organizationId,
+    serviceToken,
+    exp.retry_schedule_id,
+    expName
+  );
+  check(updated, {
+    'Retry schedule updated strategy': (response) => response && response.strategy === 'linear',
+  });
+
+  // Cleanup.
+  delete_retry_schedule(baseUrl, organizationId, serviceToken, exp.retry_schedule_id);
+  delete_retry_schedule(baseUrl, organizationId, serviceToken, linear.retry_schedule_id);
+  delete_retry_schedule(baseUrl, organizationId, serviceToken, custom.retry_schedule_id);
+}
+
 export default function () {
   scenario_1();
   scenario_subscription_deletion();
   scenario_subscription_disable();
+  scenario_retry_schedules();
 }

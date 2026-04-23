@@ -96,11 +96,18 @@ export function setup(): SetupData {
 export default function (setupData: SetupData): void {
   const et = getMultipleRandom(setupData.eventTypes, 1)[0];
   const lv = getMultipleRandom(setupData.labelValues, 1)[0];
-  const e = send_event(config.serviceToken, config.apiOrigin, setupData.applicationId, et, {
-    [setupData.labelKey]: lv,
-    otherLabel1: 'otherValue1',
-    otherLabel2: 'otherValue2',
-  }, null);
+  const e = send_event(
+    config.serviceToken,
+    config.apiOrigin,
+    setupData.applicationId,
+    et,
+    {
+      [setupData.labelKey]: lv,
+      otherLabel1: 'otherValue1',
+      otherLabel2: 'otherValue2',
+    },
+    null
+  );
   expect(e).not.toBeNull();
 }
 
@@ -142,5 +149,5 @@ select
     ra.max_target_response_time
 from events as e
 inner join request_attempts as ra on ra.application__id = e.application__id
-where e.application__id = '${setupData.applicationId}';\n\n\n`)
+where e.application__id = '${setupData.applicationId}';\n\n\n`);
 }

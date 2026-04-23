@@ -591,6 +591,42 @@ struct Config {
     /// Max request attempts scanned per tick. Bounds DB load on large backlogs.
     #[clap(long, env, default_value_t = 200_000)]
     subscription_health_monitor_request_attempt_scan_cap_per_tick: u32,
+
+    /// Hard cap on retry schedules per org — prevents unbounded DB rows.
+    #[clap(long, env, default_value_t = 50)]
+    max_retry_schedules_per_organization: i64,
+
+    /// Business cap on per-schedule max_retries. DB CHECK is wider (anti-corruption).
+    #[clap(long, env, default_value_t = 15)]
+    retry_schedule_max_retries: i32,
+
+    /// Floor for any single retry delay (linear, custom, exponential base). Accepts humantime (`30s`, `2h`).
+    #[clap(long, env, default_value = "1s", value_parser = humantime::parse_duration)]
+    retry_schedule_min_single_delay: Duration,
+
+    /// Ceiling for any single retry delay. Accepts humantime (`30s`, `7d`).
+    #[clap(long, env, default_value = "7d", value_parser = humantime::parse_duration)]
+    retry_schedule_max_single_delay: Duration,
+
+    /// Sum-of-delays cap across all retries (per-retry clamped first to avoid overflow). Accepts humantime.
+    #[clap(long, env, default_value = "7d", value_parser = humantime::parse_duration)]
+    retry_schedule_max_total_duration: Duration,
+
+    /// Min base delay for the exponential_increasing strategy. Accepts humantime.
+    #[clap(long, env, default_value = "1s", value_parser = humantime::parse_duration)]
+    retry_schedule_exponential_base_delay_min: Duration,
+
+    /// Max base delay for the exponential_increasing strategy. Accepts humantime.
+    #[clap(long, env, default_value = "1h", value_parser = humantime::parse_duration)]
+    retry_schedule_exponential_base_delay_max: Duration,
+
+    /// Min wait factor for the exponential_increasing strategy.
+    #[clap(long, env, default_value_t = 1.5)]
+    retry_schedule_exponential_wait_factor_min: f64,
+
+    /// Max wait factor for the exponential_increasing strategy.
+    #[clap(long, env, default_value_t = 10.0)]
+    retry_schedule_exponential_wait_factor_max: f64,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -641,6 +677,15 @@ pub struct State {
     enable_subscription_health_monitor: bool,
     subscription_health_monitor_failure_percent_for_warning: u8,
     subscription_health_monitor_failure_percent_for_disable: u8,
+    max_retry_schedules_per_organization: i64,
+    retry_schedule_max_retries: i32,
+    retry_schedule_min_single_delay: Duration,
+    retry_schedule_max_single_delay: Duration,
+    retry_schedule_max_total_duration: Duration,
+    retry_schedule_exponential_base_delay_min: Duration,
+    retry_schedule_exponential_base_delay_max: Duration,
+    retry_schedule_exponential_wait_factor_min: f64,
+    retry_schedule_exponential_wait_factor_max: f64,
 }
 
 #[derive(Clone)]
@@ -702,6 +747,14 @@ async fn main() -> anyhow::Result<()> {
             "subscription_health failure percents must be in [1, 100]"
         );
     }
+
+    // Retry schedule caps are enforced via the `validator` crate at the attribute level with a hard
+    // max of 25. An operator raising the business cap above that would silently produce 422 at runtime.
+    assert!(
+        (1..=25).contains(&config.retry_schedule_max_retries),
+        "retry_schedule_max_retries ({}) must be in [1, 25]",
+        config.retry_schedule_max_retries,
+    );
 
     if let Some(biscuit_private_key) = config.biscuit_private_key {
         // Initialize app logger as well as Sentry integration
@@ -1132,6 +1185,7 @@ async fn main() -> anyhow::Result<()> {
         if config.enable_subscription_health_monitor {
             let subscription_health_db = housekeeping_pool.clone();
             let subscription_health_semaphore = housekeeping_semaphore.clone();
+            let subscription_health_mailer = mailer.clone();
             let subscription_health_config =
                 subscription_health_monitor::SubscriptionHealthMonitorConfig {
                     interval: config.subscription_health_monitor_interval,
@@ -1155,6 +1209,7 @@ async fn main() -> anyhow::Result<()> {
                 subscription_health_monitor::run_subscription_health_monitor(
                     &subscription_health_semaphore,
                     &subscription_health_db,
+                    &subscription_health_mailer,
                     &subscription_health_config,
                 )
                 .await;
@@ -1215,6 +1270,19 @@ async fn main() -> anyhow::Result<()> {
                 .subscription_health_monitor_failure_percent_for_warning,
             subscription_health_monitor_failure_percent_for_disable: config
                 .subscription_health_monitor_failure_percent_for_disable,
+            max_retry_schedules_per_organization: config.max_retry_schedules_per_organization,
+            retry_schedule_max_retries: config.retry_schedule_max_retries,
+            retry_schedule_min_single_delay: config.retry_schedule_min_single_delay,
+            retry_schedule_max_single_delay: config.retry_schedule_max_single_delay,
+            retry_schedule_max_total_duration: config.retry_schedule_max_total_duration,
+            retry_schedule_exponential_base_delay_min: config
+                .retry_schedule_exponential_base_delay_min,
+            retry_schedule_exponential_base_delay_max: config
+                .retry_schedule_exponential_base_delay_max,
+            retry_schedule_exponential_wait_factor_min: config
+                .retry_schedule_exponential_wait_factor_min,
+            retry_schedule_exponential_wait_factor_max: config
+                .retry_schedule_exponential_wait_factor_max,
         };
 
         // Run web server
@@ -1488,6 +1556,22 @@ async fn main() -> anyhow::Result<()> {
                                         .route(web::get().to(handlers::service_token::get))
                                         .route(web::put().to(handlers::service_token::edit))
                                         .route(web::delete().to(handlers::service_token::delete)),
+                                ),
+                        )
+                        .service(
+                            web::scope("/retry_schedules")
+                                .wrap(Compat::new(rate_limiters.token()))
+                                .wrap(biscuit_auth.clone())
+                                .service(
+                                    web::resource("")
+                                        .route(web::get().to(handlers::retry_schedules::list))
+                                        .route(web::post().to(handlers::retry_schedules::create)),
+                                )
+                                .service(
+                                    web::resource("/{retry_schedule_id}")
+                                        .route(web::get().to(handlers::retry_schedules::get))
+                                        .route(web::put().to(handlers::retry_schedules::edit))
+                                        .route(web::delete().to(handlers::retry_schedules::delete)),
                                 ),
                         )
                         .service(

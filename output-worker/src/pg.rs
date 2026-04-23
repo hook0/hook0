@@ -11,11 +11,10 @@ use tokio_util::task::TaskTracker;
 use tracing::{debug, info, trace, warn};
 
 use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span};
+use crate::retry::compute_next_retry;
 use crate::throughput_log::ThroughputStats;
 use crate::work::work;
-use crate::{
-    Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, Worker, compute_next_retry,
-};
+use crate::{Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, Worker};
 use hook0_protobuf::{AttemptTrigger, ObjectStorageResponse, RequestAttempt};
 use hook0_sentry_integration::log_object_storage_error_with_context;
 
@@ -300,6 +299,7 @@ pub async fn look_for_work(
                         &attempt_with_payload,
                         &response,
                         config.max_retries,
+                        config.retry_schedule_jitter_factor,
                     )
                     .await?
                     {

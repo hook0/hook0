@@ -24,11 +24,11 @@ use uuid::Uuid;
 use crate::opentelemetry::{
     end_request_attempt_span, gather_pulsar_consumer_metrics, start_request_attempt_span,
 };
+use crate::retry::compute_next_retry;
 use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
-    compute_next_retry,
 };
 use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -682,9 +682,14 @@ async fn handle_message(
                                 == hook0_protobuf::AttemptTrigger::ManualRetry
                             {
                                 info!(request_attempt_id = %attempt.request_attempt_id, "Manual retry failed; not re-queuing (one-shot)");
-                            } else if let Some(retry_in) =
-                                compute_next_retry(&mut tx, &attempt, &response, config.max_retries)
-                                    .await?
+                            } else if let Some(retry_in) = compute_next_retry(
+                                &mut tx,
+                                &attempt,
+                                &response,
+                                config.max_retries,
+                                config.retry_schedule_jitter_factor,
+                            )
+                            .await?
                             {
                                 let next_retry_count = attempt.retry_count + 1;
                                 let delay_until = Utc::now() + retry_in;

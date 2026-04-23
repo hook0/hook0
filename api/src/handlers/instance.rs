@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, query};
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use std::time::Duration;
 
 use crate::problems::Hook0Problem;
 use crate::{ObjectStorageConfig, PulsarConfig};
@@ -32,6 +33,7 @@ pub struct InstanceConfig {
     support_email_address: String,
     cloudflare_turnstile_site_key: Option<String>,
     subscription_health_monitor: Option<SubscriptionHealthMonitorConfig>,
+    retry_schedule: RetryScheduleConfig,
 }
 
 #[derive(Debug, Serialize, Apiv2Schema)]
@@ -50,6 +52,38 @@ pub struct FormbricksConfig {
 pub struct SubscriptionHealthMonitorConfig {
     failure_percent_for_warning: u8,
     failure_percent_for_disable: u8,
+}
+
+/// Built-in retry delays used when a subscription has no custom schedule attached.
+///
+/// WARNING: keep in sync with `output_worker::retry::built_in_retry_delay`.
+/// Same values must live in both crates until we have a shared crate for retry policy.
+pub const DEFAULT_SCHEDULE_DELAYS: &[Duration] = &[
+    Duration::from_secs(3),
+    Duration::from_secs(10),
+    Duration::from_secs(180),
+    Duration::from_secs(1800),
+    Duration::from_secs(3600),
+    Duration::from_secs(10800),
+    Duration::from_secs(18000),
+    Duration::from_secs(36000),
+];
+
+/// Retry-schedule limits — single source of truth for frontend validation.
+/// All delay fields are expressed in seconds.
+#[derive(Debug, Serialize, Apiv2Schema)]
+pub struct RetryScheduleConfig {
+    min_single_delay_secs: u64,
+    max_single_delay_secs: u64,
+    max_retries: i32,
+    max_custom_intervals_length: i32,
+    max_total_duration_secs: u64,
+    exponential_base_delay_min_secs: u64,
+    exponential_base_delay_max_secs: u64,
+    exponential_wait_factor_min: f64,
+    exponential_wait_factor_max: f64,
+    max_per_organization: i64,
+    default_schedule_delays_secs: Vec<u64>,
 }
 
 /// Get instance configuration
@@ -91,6 +125,23 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
                     .subscription_health_monitor_failure_percent_for_disable,
             });
 
+    let retry_schedule = RetryScheduleConfig {
+        min_single_delay_secs: state.retry_schedule_min_single_delay.as_secs(),
+        max_single_delay_secs: state.retry_schedule_max_single_delay.as_secs(),
+        max_retries: state.retry_schedule_max_retries,
+        max_custom_intervals_length: state.retry_schedule_max_retries,
+        max_total_duration_secs: state.retry_schedule_max_total_duration.as_secs(),
+        exponential_base_delay_min_secs: state.retry_schedule_exponential_base_delay_min.as_secs(),
+        exponential_base_delay_max_secs: state.retry_schedule_exponential_base_delay_max.as_secs(),
+        exponential_wait_factor_min: state.retry_schedule_exponential_wait_factor_min,
+        exponential_wait_factor_max: state.retry_schedule_exponential_wait_factor_max,
+        max_per_organization: state.max_retry_schedules_per_organization,
+        default_schedule_delays_secs: DEFAULT_SCHEDULE_DELAYS
+            .iter()
+            .map(|d| d.as_secs())
+            .collect(),
+    };
+
     Ok(Json(InstanceConfig {
         biscuit_public_key: state.biscuit_private_key.public().to_bytes_hex(),
         registration_disabled: state.registration_disabled,
@@ -103,6 +154,7 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook
         support_email_address: state.support_email_address.to_string(),
         cloudflare_turnstile_site_key: state.cloudflare_turnstile_site_key.to_owned(),
         subscription_health_monitor,
+        retry_schedule,
     }))
 }
 

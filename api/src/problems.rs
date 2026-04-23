@@ -39,6 +39,8 @@ pub enum Hook0Problem {
     EventTypeAlreadyExist,
     EventTypeDoesNotExist,
 
+    RetryScheduleNameAlreadyExist,
+
     UnauthorizedWorkers(Vec<String>),
 
     EventAlreadyIngested,
@@ -69,6 +71,7 @@ pub enum Hook0Problem {
     TooManyEventsToday(QuotaValue),
     TooManySubscriptionsPerApplication(QuotaValue),
     TooManyEventTypesPerApplication(QuotaValue),
+    TooManyRetrySchedulesPerOrganization(i64),
 
     // Generic errors
     JsonPayload(JsonPayloadProblem),
@@ -97,6 +100,9 @@ impl From<sqlx::Error> for Hook0Problem {
                     ) => Hook0Problem::EventTypeDoesNotExist,
                     Some("user__organization_pkey") => {
                         Hook0Problem::InvitedUserAlreadyInOrganization
+                    }
+                    Some("retry_schedule_organization__id_name_key") => {
+                        Hook0Problem::RetryScheduleNameAlreadyExist
                     }
                     constraint => {
                         error!(
@@ -291,6 +297,14 @@ impl From<Hook0Problem> for Problem {
                 status: StatusCode::BAD_REQUEST,
             },
 
+            Hook0Problem::RetryScheduleNameAlreadyExist => Problem {
+                id: Hook0Problem::RetryScheduleNameAlreadyExist,
+                title: "Retry schedule name already exists",
+                detail: "A retry schedule with this name already exists in this organization.".into(),
+                validation: None,
+                status: StatusCode::CONFLICT,
+            },
+
             Hook0Problem::UnauthorizedWorkers(w) => {
                 let detail = format!("You do not have access to the following workers: {}", w.join(", "));
                 Problem {
@@ -475,6 +489,16 @@ impl From<Hook0Problem> for Problem {
                 Problem {
                     id: Hook0Problem::TooManyEventTypesPerApplication(limit),
                     title: "Exceeded number of event types that can be created in this application",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::TOO_MANY_REQUESTS,
+                }
+            },
+            Hook0Problem::TooManyRetrySchedulesPerOrganization(limit) => {
+                let detail = format!("This organization cannot have more than {limit} retry schedules.");
+                Problem {
+                    id: Hook0Problem::TooManyRetrySchedulesPerOrganization(limit),
+                    title: "Exceeded number of retry schedules that can be created in this organization",
                     detail: detail.into(),
                     validation: None,
                     status: StatusCode::TOO_MANY_REQUESTS,

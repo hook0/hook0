@@ -11,6 +11,7 @@ import {
   Box,
   Key,
   Users,
+  Repeat,
 } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { routes } from '@/routes';
@@ -124,6 +125,16 @@ export function useNavigationTabs() {
           icon: Key,
           to: { name: routes.ServicesTokenList, params },
           active: route.name === routes.ServicesTokenList || route.name === routes.ServiceTokenView,
+        },
+        {
+          id: 'retry-schedules',
+          label: t('nav.retrySchedules'),
+          icon: Repeat,
+          to: { name: routes.RetrySchedulesList, params },
+          active:
+            route.name === routes.RetrySchedulesList ||
+            route.name === routes.RetrySchedulesNew ||
+            route.name === routes.RetrySchedulesEdit,
         },
         {
           id: 'team',

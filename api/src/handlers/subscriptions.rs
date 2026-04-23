@@ -47,6 +47,8 @@ pub struct Subscription {
     pub updated_at: DateTime<Utc>,
     pub failure_percent: Option<f64>,
     pub dedicated_workers: Vec<String>,
+    /// Optional override of the default retry schedule. NULL uses the built-in exponential backoff.
+    pub retry_schedule_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -227,6 +229,7 @@ pub async fn list(
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
         dedicated_workers: Option<Vec<String>>,
+        retry_schedule__id: Option<Uuid>,
     }
 
     let raw_subscriptions = query_as!(
@@ -234,7 +237,7 @@ pub async fn list(
         r#"
             WITH subs AS (
                 SELECT
-                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.failure_percent, s.target__id, s.created_at, s.updated_at,
+                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.failure_percent, s.target__id, s.retry_schedule__id, s.created_at, s.updated_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -257,7 +260,7 @@ pub async fn list(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.failure_percent, subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.failure_percent, subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers, subs.retry_schedule__id
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
         "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
@@ -298,6 +301,7 @@ pub async fn list(
                 updated_at: s.updated_at,
                 failure_percent: s.failure_percent,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
+                retry_schedule_id: s.retry_schedule__id,
             }
         })
         .collect::<Vec<_>>();
@@ -369,6 +373,7 @@ pub async fn get(
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
         dedicated_workers: Option<Vec<String>>,
+        retry_schedule__id: Option<Uuid>,
     }
 
     let raw_subscription = query_as!(
@@ -376,7 +381,7 @@ pub async fn get(
         r#"
             WITH subs AS (
                 SELECT
-                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.failure_percent, s.target__id, s.created_at, s.updated_at,
+                    s.application__id, s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.failure_percent, s.target__id, s.retry_schedule__id, s.created_at, s.updated_at,
                     CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
                         THEN array_agg(set.event_type__name)
                         ELSE ARRAY[]::text[] END AS event_types,
@@ -399,7 +404,7 @@ pub async fn get(
                 ) AS target_json FROM webhook.target_http
                 WHERE target__id IN (SELECT target__id FROM subs)
             )
-            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.failure_percent, subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+            SELECT subs.application__id AS "application__id!", subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.failure_percent, subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers, subs.retry_schedule__id
             FROM subs
             INNER JOIN targets ON subs.target__id = targets.target__id
             LIMIT 1
@@ -441,6 +446,7 @@ pub async fn get(
                 updated_at: s.updated_at,
                 failure_percent: s.failure_percent,
                 dedicated_workers: s.dedicated_workers.unwrap_or_default(),
+                retry_schedule_id: s.retry_schedule__id,
             }))
         }
         None => Err(Hook0Problem::NotFound),
@@ -469,6 +475,13 @@ pub struct SubscriptionPost {
     target: Target,
     #[validate(length(min = 1, max = 20))]
     dedicated_workers: Option<Vec<String>>,
+    /// Optional retry schedule. NULL keeps the subscription on the built-in exponential backoff.
+    ///
+    /// PUT semantic: an omitted field deserializes to `None` (serde's default for `Option<T>`)
+    /// and clears the subscription's retry_schedule_id. Callers doing a partial PUT must round-trip
+    /// the current value; the frontend always emits the field (null or UUID) to match this.
+    #[serde(default)]
+    retry_schedule_id: Option<Uuid>,
 }
 
 #[api_v2_operation(
@@ -511,9 +524,12 @@ pub async fn create(
         return Err(Hook0Problem::Validation(e));
     }
 
+    // Fail fast if the application vanished between auth and now — silently swapping to
+    // the nil UUID would let the retry-schedule FK guard and subsequent inserts fail
+    // downstream with an opaque 500.
     let organization_id = get_owner_organization(&state.db, &body.application_id)
         .await
-        .unwrap_or(Uuid::nil());
+        .ok_or(Hook0Problem::NotFound)?;
 
     let quota_limit = state
         .quotas
@@ -563,23 +579,37 @@ pub async fn create(
         target__id: Uuid,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
+        retry_schedule__id: Option<Uuid>,
     }
+    // Subselect filters the retry_schedule_id by owning organization.
+    // Cross-organization id silently NULLs; post-check below surfaces 404.
     let subscription = query_as!(
             RawSubscription,
             "
-                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, target__id, created_at, updated_at)
-                VALUES (public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(), statement_timestamp(), statement_timestamp())
-                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, created_at, updated_at
+                INSERT INTO webhook.subscription (subscription__id, application__id, is_enabled, description, secret, metadata, labels, target__id, retry_schedule__id, created_at, updated_at)
+                VALUES (
+                    public.gen_random_uuid(), $1, $2, $3, public.gen_random_uuid(), $4, $5, public.gen_random_uuid(),
+                    (SELECT retry_schedule__id FROM webhook.retry_schedule WHERE retry_schedule__id = $6 AND organization__id = $7),
+                    statement_timestamp(), statement_timestamp()
+                )
+                RETURNING subscription__id, is_enabled, description, secret, metadata, labels, target__id, retry_schedule__id, created_at, updated_at
             ",
             &body.application_id,
             &body.is_enabled,
             body.description,
             metadata,
             labels,
+            body.retry_schedule_id,
+            &organization_id,
         )
             .fetch_one(&mut *tx)
             .await
             .map_err(Hook0Problem::from)?;
+
+    // Caller requested a retry_schedule_id but the subselect filtered it out (cross-org or gone).
+    if body.retry_schedule_id.is_some() && subscription.retry_schedule__id.is_none() {
+        return Err(Hook0Problem::NotFound);
+    }
 
     match &body.target {
         Target::Http {
@@ -693,6 +723,7 @@ pub async fn create(
         updated_at: subscription.updated_at,
         failure_percent: None,
         dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
+        retry_schedule_id: subscription.retry_schedule__id,
     };
 
     if let Some(hook0_client) = state.hook0_client.as_ref() {
@@ -762,9 +793,10 @@ pub async fn edit(
         return Err(Hook0Problem::Validation(e));
     }
 
+    // Fail fast if the application vanished; nil UUID silently breaks the FK guard below.
     let organization_id = get_owner_organization(&state.db, &body.application_id)
         .await
-        .unwrap_or(Uuid::nil());
+        .ok_or(Hook0Problem::NotFound)?;
 
     let labels = serde_json::to_value(&labels).unwrap_or_else(|_| Value::Object(Map::new()));
 
@@ -790,23 +822,31 @@ pub async fn edit(
         target__id: Uuid,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
+        retry_schedule__id: Option<Uuid>,
     }
 
-    // Update all fields including is_enabled, description, metadata, labels
+    // Subselect filters cross-organization retry_schedule_id to NULL. Post-check surfaces 404.
     let subscription = query_as!(
         RawSubscription,
         "
             UPDATE webhook.subscription
-            SET is_enabled = $1, description = $2, metadata = $3, labels = $4, updated_at = statement_timestamp()
+            SET is_enabled = $1,
+                description = $2,
+                metadata = $3,
+                labels = $4,
+                retry_schedule__id = (SELECT retry_schedule__id FROM webhook.retry_schedule WHERE retry_schedule__id = $7 AND organization__id = $8),
+                updated_at = statement_timestamp()
             WHERE subscription__id = $5 AND application__id = $6 AND deleted_at IS NULL
-            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, failure_percent, target__id, created_at, updated_at
+            RETURNING subscription__id, is_enabled, description, secret, metadata, labels, failure_percent, target__id, retry_schedule__id, created_at, updated_at
         ",
         &body.is_enabled,
         body.description,
         metadata,
         labels,
         &subscription_id,
-        &body.application_id
+        &body.application_id,
+        body.retry_schedule_id,
+        &organization_id,
     )
     .fetch_optional(&mut *tx)
     .await
@@ -814,6 +854,11 @@ pub async fn edit(
 
     match subscription {
         Some(s) => {
+            // Caller requested a retry_schedule_id but the subselect filtered it out.
+            if body.retry_schedule_id.is_some() && s.retry_schedule__id.is_none() {
+                return Err(Hook0Problem::NotFound);
+            }
+
             match &body.target {
                 Target::Http {
                     method,
@@ -986,6 +1031,7 @@ pub async fn edit(
                 updated_at: s.updated_at,
                 failure_percent: s.failure_percent,
                 dedicated_workers: body.dedicated_workers.clone().unwrap_or_default(),
+                retry_schedule_id: s.retry_schedule__id,
             };
 
             if let Some(hook0_client) = state.hook0_client.as_ref() {
@@ -1135,6 +1181,27 @@ mod tests {
     use serde_json::from_value;
 
     use super::*;
+
+    #[test]
+    fn put_body_missing_retry_schedule_id_clears_it() {
+        // Codifies the PUT semantic documented on SubscriptionPost::retry_schedule_id:
+        // when the field is omitted from the JSON, serde defaults it to None.
+        // In the edit handler, that value is written to retry_schedule__id, effectively
+        // clearing any previously attached schedule. Partial PUTs MUST round-trip the field.
+        let input = json!({
+            "application_id": "00000000-0000-0000-0000-000000000000",
+            "is_enabled": true,
+            "event_types": [],
+            "target": {
+                "type": "http",
+                "method": "POST",
+                "url": "https://example.com/hook",
+                "headers": {}
+            }
+        });
+        let body: SubscriptionPost = from_value(input).expect("parse");
+        assert_eq!(body.retry_schedule_id, None);
+    }
 
     #[test]
     fn test_deserialize_http_target_valid() {

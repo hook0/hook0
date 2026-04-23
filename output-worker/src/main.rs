@@ -2,6 +2,7 @@ mod monitoring;
 mod opentelemetry;
 mod pg;
 mod pulsar;
+mod retry;
 mod throughput_log;
 mod work;
 
@@ -17,7 +18,7 @@ use humantime::format_duration;
 use reqwest::Url;
 use reqwest::header::HeaderName;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use sqlx::{PgConnection, PgPool, query, query_as};
+use sqlx::{PgPool, query, query_as};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -163,6 +164,11 @@ struct Config {
     /// Maximum time window for delivery retries before giving up (the effective number of retries is limited by `MAX_RETRIES`, `MAX_RETRY_WINDOW` and the retry policy)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "8d")]
     max_retry_window: Duration,
+
+    /// Multiplicative jitter factor applied to every retry delay. 0.2 = delay is multiplied by a random value in [1.0, 1.2).
+    /// 0.0 disables jitter. Protects against thundering-herd after recovery.
+    #[clap(long, env, default_value_t = 0.2)]
+    retry_schedule_jitter_factor: f64,
 
     /// Heartbeat URL that should be called regularly
     #[clap(long, env)]
@@ -764,84 +770,14 @@ async fn get_worker(name: String, conn: &PgPool) -> anyhow::Result<Worker> {
     }
 }
 
-async fn compute_next_retry(
-    conn: &mut PgConnection,
-    attempt: &RequestAttempt,
-    response: &Response,
-    max_retries: u8,
-) -> Result<Option<Duration>, sqlx::Error> {
-    match response.response_error {
-        Some(ResponseError::InvalidHeader) => {
-            let msg = response
-                .body
-                .as_ref()
-                .and_then(|bytes| str::from_utf8(bytes).ok())
-                .unwrap_or("???");
-            error!(request_attempt_id = %attempt.request_attempt_id, "Could not construct signature ({msg}); giving up");
-            Ok(None)
-        }
-        _ => {
-            // Temporary warning message; this will be replaced by actual actions at some point
-            if let Some(ResponseError::InvalidTarget) = response.response_error {
-                let msg = response
-                    .body
-                    .as_ref()
-                    .and_then(|bytes| str::from_utf8(bytes).ok())
-                    .unwrap_or("???");
-                warn!(request_attempt_id = %attempt.request_attempt_id, "Invalid target ({msg}); continuing as normal");
-            }
-
-            let sub = query!(
-                "
-                    SELECT true AS whatever
-                    FROM webhook.subscription AS s
-                    INNER JOIN event.application AS a ON a.application__id = s.application__id
-                    WHERE s.subscription__id = $1
-                        AND s.deleted_at IS NULL
-                        AND s.is_enabled
-                        AND a.deleted_at IS NULL
-                ",
-                attempt.subscription_id
-            )
-            .fetch_optional(conn)
-            .await?;
-
-            if sub.is_some() {
-                Ok(compute_next_retry_duration(
-                    max_retries,
-                    attempt.retry_count,
-                ))
-            } else {
-                // If the subscription was disabled or soft-deleted (or its application was deleted), we do not schedule a next attempt
-                Ok(None)
-            }
-        }
-    }
-}
-
-fn compute_next_retry_duration(max_retries: u8, retry_count: i16) -> Option<Duration> {
-    if retry_count < max_retries.into() {
-        match retry_count {
-            0 => Some(Duration::from_secs(3)),
-            1 => Some(Duration::from_secs(10)),
-            2 => Some(Duration::from_secs(3 * 60)),
-            3 => Some(Duration::from_secs(30 * 60)),
-            4 => Some(Duration::from_hours(1)),
-            5 => Some(Duration::from_hours(3)),
-            6 => Some(Duration::from_hours(5)),
-            _ => Some(Duration::from_hours(10)),
-        }
-    } else {
-        None
-    }
-}
+// compute_next_retry + built_in_retry_delay moved to retry.rs — single unit.
 
 fn evaluate_retry_policy(max_retries: u8, max_retry_window: Duration) -> (u8, Duration) {
     let mut cumulative = Duration::ZERO;
     let mut effective_retries = 0;
 
     for i in 0..max_retries {
-        match compute_next_retry_duration(max_retries, i.into()) {
+        match retry::built_in_retry_delay(max_retries, i.into()) {
             Some(d) => {
                 if cumulative + d > max_retry_window {
                     break;
@@ -872,13 +808,6 @@ mod tests {
         let (retries, cumulative) = evaluate_retry_policy(30, Duration::ZERO);
         assert_eq!(retries, 0);
         assert_eq!(cumulative, Duration::ZERO);
-    }
-
-    #[test]
-    fn test_compute_next_retry_duration_exceeds_max() {
-        assert_eq!(compute_next_retry_duration(5, 5), None);
-        assert_eq!(compute_next_retry_duration(5, 6), None);
-        assert_eq!(compute_next_retry_duration(0, 0), None);
     }
 
     #[test]
