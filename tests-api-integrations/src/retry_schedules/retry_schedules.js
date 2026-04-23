@@ -17,7 +17,7 @@ export function createExponential(baseUrl, organizationId, serviceToken, name) {
     strategy: 'exponential_increasing',
     name,
     max_retries: 5,
-    base_delay_secs: 60,
+    increasing_base_delay_secs: 60,
     wait_factor: 2,
   });
   const res = http.post(url, payload, headers(serviceToken));
@@ -35,7 +35,7 @@ export function createLinear(baseUrl, organizationId, serviceToken, name) {
     strategy: 'linear',
     name,
     max_retries: 3,
-    delay_secs: 60,
+    linear_delay_secs: 60,
   });
   const res = http.post(url, payload, headers(serviceToken));
   check(res, {
