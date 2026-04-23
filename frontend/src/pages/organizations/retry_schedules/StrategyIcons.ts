@@ -1,4 +1,5 @@
 // Sparkline icons for the strategy picker. Each hints at the shape of delay over retry #.
+/* eslint-disable vue/one-component-per-file -- Tiny render-function icons, splitting would be overkill */
 import { defineComponent, h } from 'vue';
 
 const svgProps = {
