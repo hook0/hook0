@@ -9,11 +9,17 @@ import { loginAndCreateAppWithEventType, API_BASE_URL } from "../fixtures/test-s
  */
 test.describe("Subscriptions", () => {
   test("should display subscriptions list with created subscription", async ({ page, request }) => {
-    const env = await loginAndCreateAppWithEventType(page, request, "list", { service: "billing", resource: "invoice", verb: "created" });
+    const env = await loginAndCreateAppWithEventType(page, request, "list", {
+      service: "billing",
+      resource: "invoice",
+      verb: "created",
+    });
 
     // Verify event type appears in the list (confirms data is persisted and available)
     await expect(page.locator('[data-test="event-types-table"]')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('[data-test="event-types-table"] [row-id]').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="event-types-table"] [row-id]').first()).toBeVisible({
+      timeout: 10000,
+    });
     const description = `Test Subscription ${env.timestamp}`;
     const webhookUrl = "https://webhook.site/test-list";
 
@@ -31,8 +37,12 @@ test.describe("Subscriptions", () => {
     await page.locator('[data-test="subscription-url-input"]').fill(webhookUrl);
 
     // Add a label using data-test selectors
-    const labelKeyInput = page.locator('[data-test="subscription-labels"] [data-test="kv-key-input-0"]');
-    const labelValueInput = page.locator('[data-test="subscription-labels"] [data-test="kv-value-input-0"]');
+    const labelKeyInput = page.locator(
+      '[data-test="subscription-labels"] [data-test="kv-key-input-0"]'
+    );
+    const labelValueInput = page.locator(
+      '[data-test="subscription-labels"] [data-test="kv-value-input-0"]'
+    );
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
     await labelKeyInput.fill("env");
     await labelValueInput.fill("test");
@@ -77,7 +87,11 @@ test.describe("Subscriptions", () => {
   });
 
   test("should display subscription form with all required elements", async ({ page, request }) => {
-    const env = await loginAndCreateAppWithEventType(page, request, "form", { service: "billing", resource: "invoice", verb: "created" });
+    const env = await loginAndCreateAppWithEventType(page, request, "form", {
+      service: "billing",
+      resource: "invoice",
+      verb: "created",
+    });
 
     // Navigate to create subscription page
     await page.goto(
@@ -101,7 +115,11 @@ test.describe("Subscriptions", () => {
     page,
     request,
   }) => {
-    const env = await loginAndCreateAppWithEventType(page, request, "create", { service: "billing", resource: "invoice", verb: "created" });
+    const env = await loginAndCreateAppWithEventType(page, request, "create", {
+      service: "billing",
+      resource: "invoice",
+      verb: "created",
+    });
     const description = `Test Subscription ${env.timestamp}`;
     const webhookUrl = "https://webhook.site/test-hook";
 
@@ -124,8 +142,12 @@ test.describe("Subscriptions", () => {
     await page.locator('[data-test="subscription-url-input"]').fill(webhookUrl);
 
     // Add a label (required for subscriptions) using data-test selectors
-    const labelKeyInput = page.locator('[data-test="subscription-labels"] [data-test="kv-key-input-0"]');
-    const labelValueInput = page.locator('[data-test="subscription-labels"] [data-test="kv-value-input-0"]');
+    const labelKeyInput = page.locator(
+      '[data-test="subscription-labels"] [data-test="kv-key-input-0"]'
+    );
+    const labelValueInput = page.locator(
+      '[data-test="subscription-labels"] [data-test="kv-value-input-0"]'
+    );
 
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
     await labelKeyInput.fill("env");
@@ -167,7 +189,11 @@ test.describe("Subscriptions", () => {
   });
 
   test("should show disabled submit when required fields are empty", async ({ page, request }) => {
-    const env = await loginAndCreateAppWithEventType(page, request, "validation", { service: "billing", resource: "invoice", verb: "created" });
+    const env = await loginAndCreateAppWithEventType(page, request, "validation", {
+      service: "billing",
+      resource: "invoice",
+      verb: "created",
+    });
 
     // Navigate to create subscription page
     await page.goto(
@@ -191,7 +217,11 @@ test.describe("Subscriptions", () => {
   });
 
   test("should navigate back when clicking cancel button", async ({ page, request }) => {
-    const env = await loginAndCreateAppWithEventType(page, request, "cancel", { service: "billing", resource: "invoice", verb: "created" });
+    const env = await loginAndCreateAppWithEventType(page, request, "cancel", {
+      service: "billing",
+      resource: "invoice",
+      verb: "created",
+    });
 
     // Navigate to subscriptions list first
     await page.goto(
@@ -268,8 +298,7 @@ test.describe("Subscriptions", () => {
     // Submit the form and wait for API response
     const createResponsePromise = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/subscriptions") &&
-        response.request().method() === "POST",
+        response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST",
       { timeout: 15000 }
     );
 
@@ -308,7 +337,10 @@ test.describe("Subscriptions", () => {
     const subscription = subscriptions.find(
       (sub: { description?: string }) => sub.description === description
     );
-    expect(subscription, `Could not find subscription with description "${description}"`).toBeTruthy();
+    expect(
+      subscription,
+      `Could not find subscription with description "${description}"`
+    ).toBeTruthy();
 
     return subscription.subscription_id;
   }
@@ -317,7 +349,11 @@ test.describe("Subscriptions", () => {
     page,
     request,
   }) => {
-    const env = await loginAndCreateAppWithEventType(page, request, "update", { service: "billing", resource: "invoice", verb: "created" });
+    const env = await loginAndCreateAppWithEventType(page, request, "update", {
+      service: "billing",
+      resource: "invoice",
+      verb: "created",
+    });
     const originalDescription = `Original Subscription ${env.timestamp}`;
     const updatedDescription = `Updated Subscription ${env.timestamp}`;
 
@@ -326,7 +362,7 @@ test.describe("Subscriptions", () => {
 
     // Navigate to subscription edit page
     await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}/edit`
     );
 
     await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
@@ -354,13 +390,13 @@ test.describe("Subscriptions", () => {
     expect(response.status()).toBeLessThan(400);
 
     // Step 4: Wait for navigation away from the edit page (router.back() is called)
-    await expect(page).not.toHaveURL(new RegExp(`/subscriptions/${subscriptionId}`), {
+    await expect(page).not.toHaveURL(new RegExp(`/subscriptions/${subscriptionId}/edit`), {
       timeout: 10000,
     });
 
-    // Step 5: Verify the update persisted by navigating back to the subscription
+    // Step 5: Verify the update persisted by navigating back to the subscription edit page
     await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}/edit`
     );
     await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
       timeout: 10000,
@@ -371,7 +407,11 @@ test.describe("Subscriptions", () => {
   });
 
   test("should update subscription URL and verify API response", async ({ page, request }) => {
-    const env = await loginAndCreateAppWithEventType(page, request, "update-url", { service: "billing", resource: "invoice", verb: "created" });
+    const env = await loginAndCreateAppWithEventType(page, request, "update-url", {
+      service: "billing",
+      resource: "invoice",
+      verb: "created",
+    });
     const description = `URL Update Test ${env.timestamp}`;
     const updatedUrl = "https://webhook.site/updated-endpoint";
 
@@ -380,7 +420,7 @@ test.describe("Subscriptions", () => {
 
     // Navigate to subscription edit page
     await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}/edit`
     );
 
     await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
@@ -408,13 +448,13 @@ test.describe("Subscriptions", () => {
     expect(response.status()).toBeLessThan(400);
 
     // Step 4: Wait for navigation away from the edit page (router.back() is called)
-    await expect(page).not.toHaveURL(new RegExp(`/subscriptions/${subscriptionId}`), {
+    await expect(page).not.toHaveURL(new RegExp(`/subscriptions/${subscriptionId}/edit`), {
       timeout: 10000,
     });
 
-    // Step 5: Verify the update persisted by navigating back to the subscription
+    // Step 5: Verify the update persisted by navigating back to the subscription edit page
     await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}/edit`
     );
     await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
       timeout: 10000,
@@ -423,7 +463,11 @@ test.describe("Subscriptions", () => {
   });
 
   test("should delete subscription and verify API response", async ({ page, request }) => {
-    const env = await loginAndCreateAppWithEventType(page, request, "delete", { service: "billing", resource: "invoice", verb: "created" });
+    const env = await loginAndCreateAppWithEventType(page, request, "delete", {
+      service: "billing",
+      resource: "invoice",
+      verb: "created",
+    });
     const description = `Delete Test Subscription ${env.timestamp}`;
 
     // Create a subscription first
@@ -431,7 +475,7 @@ test.describe("Subscriptions", () => {
 
     // Navigate to subscription edit page (where delete button is)
     await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}/edit`
     );
 
     await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
@@ -472,7 +516,11 @@ test.describe("Subscriptions", () => {
   });
 
   test("should cancel delete when dialog is dismissed", async ({ page, request }) => {
-    const env = await loginAndCreateAppWithEventType(page, request, "delete-cancel", { service: "billing", resource: "invoice", verb: "created" });
+    const env = await loginAndCreateAppWithEventType(page, request, "delete-cancel", {
+      service: "billing",
+      resource: "invoice",
+      verb: "created",
+    });
     const description = `Cancel Delete Test ${env.timestamp}`;
 
     // Create a subscription first
@@ -480,7 +528,7 @@ test.describe("Subscriptions", () => {
 
     // Navigate to subscription edit page
     await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}/edit`
     );
 
     await expect(page.locator('[data-test="subscription-delete-card"]')).toBeVisible({
@@ -496,7 +544,7 @@ test.describe("Subscriptions", () => {
     await cancelButton.click();
 
     // Should still be on the edit page (not redirected)
-    await expect(page).toHaveURL(new RegExp(`/subscriptions/${subscriptionId}$`), {
+    await expect(page).toHaveURL(new RegExp(`/subscriptions/${subscriptionId}/edit$`), {
       timeout: 5000,
     });
 
@@ -508,7 +556,11 @@ test.describe("Subscriptions", () => {
     page,
     request,
   }) => {
-    const env = await loginAndCreateAppWithEventType(page, request, "event-checkboxes", { service: "billing", resource: "invoice", verb: "created" });
+    const env = await loginAndCreateAppWithEventType(page, request, "event-checkboxes", {
+      service: "billing",
+      resource: "invoice",
+      verb: "created",
+    });
 
     // Navigate to create subscription page
     await page.goto(
@@ -532,7 +584,11 @@ test.describe("Subscriptions", () => {
   });
 
   test("should test endpoint and display result", async ({ page, request }) => {
-    const env = await loginAndCreateAppWithEventType(page, request, "test-endpoint", { service: "billing", resource: "invoice", verb: "created" });
+    const env = await loginAndCreateAppWithEventType(page, request, "test-endpoint", {
+      service: "billing",
+      resource: "invoice",
+      verb: "created",
+    });
     const description = `Test Endpoint Sub ${env.timestamp}`;
 
     // Create a subscription first to get an existing subscription with a URL
@@ -540,7 +596,7 @@ test.describe("Subscriptions", () => {
 
     // Navigate to subscription edit page (test endpoint button is in the form)
     await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}`
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/subscriptions/${subscriptionId}/edit`
     );
 
     await expect(page.locator('[data-test="subscription-form"]')).toBeVisible({
@@ -580,17 +636,13 @@ test.describe("Subscriptions", () => {
 
     if (hasResult) {
       // Verify status badge is displayed
-      await expect(
-        page.locator('[data-test="subscription-test-endpoint-status"]')
-      ).toBeVisible();
+      await expect(page.locator('[data-test="subscription-test-endpoint-status"]')).toBeVisible();
 
       // Verify latency is displayed
-      await expect(
-        page.locator('[data-test="subscription-test-endpoint-latency"]')
-      ).toBeVisible();
-      await expect(
-        page.locator('[data-test="subscription-test-endpoint-latency"]')
-      ).toContainText("ms");
+      await expect(page.locator('[data-test="subscription-test-endpoint-latency"]')).toBeVisible();
+      await expect(page.locator('[data-test="subscription-test-endpoint-latency"]')).toContainText(
+        "ms"
+      );
     }
   });
 });

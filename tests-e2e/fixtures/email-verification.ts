@@ -14,10 +14,9 @@ const DATABASE_URL =
 
 /**
  * API base URL for direct API calls in tests.
- * The API always runs on port 8081 (both locally and in CI).
- * The frontend is served on port 8001 but doesn't proxy API requests.
+ * Default: port 8081 (docker-compose / CI). Override via API_BASE_URL env var.
  */
-export const API_BASE_URL = "http://localhost:8081/api/v1";
+export const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8081/api/v1";
 
 /**
  * Result of database verification including organization ID.
@@ -148,9 +147,16 @@ export async function verifyEmailViaMailpit(
               failOnStatusCode: false,
             });
             if (verifyResponse.ok()) {
-              return { organizationId: organizationId ?? null };
+              // Token verification succeeded — now fetch organizationId from DB
+              if (organizationId) {
+                return { organizationId };
+              }
+              // Caller didn't pass organizationId, query DB for it
+              return fetchOrganizationIdFromDb(email);
             }
-            console.log(`[Mailpit] verify-email API returned ${verifyResponse.status()}: ${await verifyResponse.text()}`);
+            console.log(
+              `[Mailpit] verify-email API returned ${verifyResponse.status()}: ${await verifyResponse.text()}`
+            );
           } else {
             console.log(`[Mailpit] No token found in email content (length=${content.length})`);
           }
@@ -170,6 +176,29 @@ export async function verifyEmailViaMailpit(
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fetch organization ID for a user from the database.
+ * Used when Mailpit verification succeeds but caller didn't provide organizationId.
+ */
+async function fetchOrganizationIdFromDb(email: string): Promise<VerificationResult> {
+  const client = new Client({ connectionString: DATABASE_URL });
+  try {
+    await client.connect();
+    const result = await client.query(
+      `SELECT uo.organization__id
+       FROM iam.user u
+       JOIN iam.user__organization uo ON u.user__id = uo.user__id
+       WHERE u.email = $1
+       LIMIT 1`,
+      [email]
+    );
+    const organizationId = result.rows.length > 0 ? result.rows[0].organization__id : null;
+    return { organizationId };
+  } finally {
+    await client.end();
+  }
 }
 
 /**
@@ -219,9 +248,7 @@ export async function getPasswordResetTokenFromMailpit(
             // Remove line breaks to handle multi-line tokens
             const cleanedContent = content.replace(/[\r\n]+/g, "");
 
-            const tokenMatch = cleanedContent.match(
-              /reset-password\?token=([A-Za-z0-9_\-+/=]+)/i
-            );
+            const tokenMatch = cleanedContent.match(/reset-password\?token=([A-Za-z0-9_\-+/=]+)/i);
             if (tokenMatch) {
               return tokenMatch[1];
             }
