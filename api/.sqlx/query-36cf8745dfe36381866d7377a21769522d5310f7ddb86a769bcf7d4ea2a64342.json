@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "ALTER TABLE event.event DISABLE TRIGGER event_dispatch",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "36cf8745dfe36381866d7377a21769522d5310f7ddb86a769bcf7d4ea2a64342"
+}
