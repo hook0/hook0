@@ -190,6 +190,13 @@ function toPutBody(post: RetrySchedulePost): RetrySchedulePut {
 
 const previewExceedsCap = ref(false);
 
+// Reset previewExceedsCap when strategy changes — the preview component is v-if'd out for custom,
+// so it won't emit updates. Without this, switching from exponential/linear to custom leaves
+// the stale flag and shows a bogus warning.
+watch(strategy, () => {
+  previewExceedsCap.value = false;
+});
+
 // Custom strategy has no preview — detect cap violations here instead. Preview-emitted state covers exponential/linear.
 const customExceedsCap = computed(() => {
   if (strategyValue.value !== 'custom' || !limits.value) return false;

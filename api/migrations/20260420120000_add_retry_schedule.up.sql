@@ -45,6 +45,7 @@ create table webhook.retry_schedule (
                 and increasing_wait_factor is null
                 and custom_intervals is not null
                 and array_length(custom_intervals, 1) = max_retries
+                and array_position(custom_intervals, null) is null
                 and 1 <= all(custom_intervals)
                 and 604800 >= all(custom_intervals)
             else false

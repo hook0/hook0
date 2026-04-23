@@ -454,7 +454,6 @@ pub async fn get(
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
-#[serde(deny_unknown_fields)]
 pub struct SubscriptionPost {
     application_id: Uuid,
     is_enabled: bool,

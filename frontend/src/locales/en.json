@@ -944,6 +944,7 @@
     "retryScheduleHint": "Choose a {link} or leave empty to use the recommended policy.",
     "retryScheduleLabel": "Retry Schedule",
     "retryScheduleLinkText": "retry schedule",
+    "retryScheduleLoadError": "Failed to load retry schedules. The default schedule will be used.",
     "secret": "Secret",
     "secretCopied": "Copied to clipboard",
     "secretDescription": "The secret is used to authenticate the webhooks sent by Hook0.",

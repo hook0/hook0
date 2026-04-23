@@ -123,23 +123,41 @@ pub async fn compute_next_retry(
         );
     }
 
-    let delay = compute_scheduled_retry_delay(&row, attempt.retry_count)
-        .or_else(|| built_in_retry_delay(max_retries, attempt.retry_count));
+    let delay = match compute_scheduled_retry_delay(&row, attempt.retry_count) {
+        ScheduledRetryOutcome::Delay(d) => Some(d),
+        ScheduledRetryOutcome::Exhausted => None,
+        ScheduledRetryOutcome::NoSchedule => built_in_retry_delay(max_retries, attempt.retry_count),
+    };
 
     Ok(delay.map(|d| with_jitter(d, jitter_factor)))
 }
 
-/// Compute the delay from an attached retry schedule. Returns `None` when:
-/// - no schedule attached
-/// - retry_count exceeds the schedule's max_retries
-/// - retry_count is negative
-/// - required strategy fields are missing (defense-in-depth; DB CHECK already enforces)
+/// Outcome of scheduled retry computation. Distinguishes "no schedule attached" (caller should
+/// fall back to built-in) from "schedule attached but exhausted" (caller should NOT fall back).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScheduledRetryOutcome {
+    /// No retry schedule is attached — caller should use the built-in table.
+    NoSchedule,
+    /// A schedule is attached and produced a delay.
+    Delay(Duration),
+    /// A schedule is attached but max_retries is reached — stop retrying.
+    Exhausted,
+}
+
+/// Compute the delay from an attached retry schedule. Returns:
+/// - `NoSchedule` when no schedule is attached (caller falls back to built-in)
+/// - `Delay(d)` when schedule produces a valid delay
+/// - `Exhausted` when retry_count exceeds schedule's max_retries (do NOT fall back)
 pub fn compute_scheduled_retry_delay(
     row: &SubscriptionRetrySchedule,
     retry_count: i16,
-) -> Option<Duration> {
-    let strategy = row.strategy?;
-    let max_retries = row.max_retries?;
+) -> ScheduledRetryOutcome {
+    let Some(strategy) = row.strategy else {
+        return ScheduledRetryOutcome::NoSchedule;
+    };
+    let Some(max_retries) = row.max_retries else {
+        return ScheduledRetryOutcome::NoSchedule;
+    };
 
     // Defensive: negative retry_count would wrap to a huge usize in custom indexing.
     if retry_count < 0 {
@@ -147,35 +165,52 @@ pub fn compute_scheduled_retry_delay(
             retry_count,
             "negative retry_count; refusing to schedule retry"
         );
-        return None;
+        return ScheduledRetryOutcome::Exhausted;
     }
     if i32::from(retry_count) >= max_retries {
-        return None;
+        return ScheduledRetryOutcome::Exhausted;
     }
 
     let raw_delay_secs: u64 = match strategy {
         Strategy::ExponentialIncreasing => {
-            let base = row.increasing_base_delay_secs?;
-            let factor = row.increasing_wait_factor?;
+            let (Some(base), Some(factor)) =
+                (row.increasing_base_delay_secs, row.increasing_wait_factor)
+            else {
+                return ScheduledRetryOutcome::NoSchedule;
+            };
             let projected = f64::from(base) * factor.powi(i32::from(retry_count));
             // Pre-clamped to [0, MAX_RETRY_DELAY_SECS_F64]; residual NaN saturates to 0 via `as u64`.
             projected.clamp(0.0, MAX_RETRY_DELAY_SECS_F64) as u64
         }
         Strategy::Linear => {
-            let delay = row.linear_delay_secs?;
-            u64::try_from(delay).ok()?
+            let Some(delay) = row.linear_delay_secs else {
+                return ScheduledRetryOutcome::NoSchedule;
+            };
+            match u64::try_from(delay) {
+                Ok(v) => v,
+                Err(_) => return ScheduledRetryOutcome::NoSchedule,
+            }
         }
         Strategy::Custom => {
-            let intervals = row.custom_intervals_secs.as_ref()?;
-            let index = usize::try_from(retry_count).ok()?;
-            let value = intervals.get(index).copied()?;
-            u64::try_from(value).ok()?
+            let Some(intervals) = row.custom_intervals_secs.as_ref() else {
+                return ScheduledRetryOutcome::NoSchedule;
+            };
+            let Ok(index) = usize::try_from(retry_count) else {
+                return ScheduledRetryOutcome::NoSchedule;
+            };
+            let Some(value) = intervals.get(index).copied() else {
+                return ScheduledRetryOutcome::Exhausted;
+            };
+            match u64::try_from(value) {
+                Ok(v) => v,
+                Err(_) => return ScheduledRetryOutcome::NoSchedule,
+            }
         }
     };
 
     if raw_delay_secs == 0 && !matches!(strategy, Strategy::ExponentialIncreasing) {
         // A zero or negative persisted delay is effectively "give up" — DB CHECK forbids it.
-        return None;
+        return ScheduledRetryOutcome::Exhausted;
     }
 
     if raw_delay_secs > MAX_RETRY_DELAY_SECS {
@@ -188,7 +223,7 @@ pub fn compute_scheduled_retry_delay(
         );
     }
     let capped = raw_delay_secs.min(MAX_RETRY_DELAY_SECS);
-    Some(Duration::from_secs(capped))
+    ScheduledRetryOutcome::Delay(Duration::from_secs(capped))
 }
 
 /// Built-in escalating table used when no retry schedule is attached.
@@ -214,12 +249,16 @@ pub fn built_in_retry_delay(max_retries: u8, retry_count: i16) -> Option<Duratio
 
 /// Multiplicative jitter: `delay * random([1.0, 1.0 + factor))`.
 /// Factor ≤ 0 or NaN disables jitter. Output clamped at MAX_RETRY_DELAY_SECS.
+/// Jitter factor is clamped internally to prevent overflow in Duration::mul_f64.
 pub fn with_jitter(delay: Duration, jitter_factor: f64) -> Duration {
     if jitter_factor <= 0.0 || jitter_factor.is_nan() {
         return delay;
     }
+    // Clamp jitter_factor to a sane maximum (100% = doubling) to prevent overflow in mul_f64.
+    // Extreme env var values would otherwise panic on Duration overflow.
+    let safe_factor = jitter_factor.min(1.0);
     let random: f64 = rand::rng().random_range(0.0..1.0);
-    let multiplier = 1.0 + random * jitter_factor;
+    let multiplier = 1.0 + random * safe_factor;
     let jittered = delay.mul_f64(multiplier);
     jittered.min(Duration::from_secs(MAX_RETRY_DELAY_SECS))
 }
@@ -276,31 +315,51 @@ mod tests {
     #[test]
     fn exponential_capped_at_7d_per_retry() {
         let row = exponential(1, 10.0, 10);
-        let delay = compute_scheduled_retry_delay(&row, 9).unwrap();
+        let ScheduledRetryOutcome::Delay(delay) = compute_scheduled_retry_delay(&row, 9) else {
+            panic!("expected Delay");
+        };
         assert!(delay.as_secs() <= MAX_RETRY_DELAY_SECS);
     }
 
     #[test]
-    fn exponential_over_max_retries_is_none() {
+    fn exponential_over_max_retries_is_exhausted() {
         let row = exponential(60, 2.0, 3);
-        assert!(compute_scheduled_retry_delay(&row, 3).is_none());
-        assert!(compute_scheduled_retry_delay(&row, 10).is_none());
+        assert_eq!(
+            compute_scheduled_retry_delay(&row, 3),
+            ScheduledRetryOutcome::Exhausted
+        );
+        assert_eq!(
+            compute_scheduled_retry_delay(&row, 10),
+            ScheduledRetryOutcome::Exhausted
+        );
     }
 
     #[test]
     fn linear_rejects_non_positive_delay() {
         let row = linear(0, 5);
-        assert!(compute_scheduled_retry_delay(&row, 0).is_none());
+        assert_eq!(
+            compute_scheduled_retry_delay(&row, 0),
+            ScheduledRetryOutcome::Exhausted
+        );
     }
 
     #[test]
     fn custom_indexes_into_intervals() {
         let row = custom(vec![5, 10, 20]);
-        let first_delay = compute_scheduled_retry_delay(&row, 0).unwrap();
-        let last_delay = compute_scheduled_retry_delay(&row, 2).unwrap();
+        let ScheduledRetryOutcome::Delay(first_delay) = compute_scheduled_retry_delay(&row, 0)
+        else {
+            panic!("expected Delay");
+        };
+        let ScheduledRetryOutcome::Delay(last_delay) = compute_scheduled_retry_delay(&row, 2)
+        else {
+            panic!("expected Delay");
+        };
         assert_eq!(first_delay.as_secs(), 5);
         assert_eq!(last_delay.as_secs(), 20);
-        assert!(compute_scheduled_retry_delay(&row, 3).is_none());
+        assert_eq!(
+            compute_scheduled_retry_delay(&row, 3),
+            ScheduledRetryOutcome::Exhausted
+        );
     }
 
     #[test]
@@ -322,14 +381,19 @@ mod tests {
     #[test]
     fn negative_retry_count_refuses() {
         let row = linear(60, 5);
-        assert!(compute_scheduled_retry_delay(&row, -1).is_none());
+        assert_eq!(
+            compute_scheduled_retry_delay(&row, -1),
+            ScheduledRetryOutcome::Exhausted
+        );
     }
 
     #[test]
     fn exponential_clamps_positive_infinity() {
         // Factor * huge base overflows to +Inf; clamp protects the cast to u64.
         let row = exponential(i32::MAX, 20.0, 5);
-        let delay = compute_scheduled_retry_delay(&row, 4).unwrap();
+        let ScheduledRetryOutcome::Delay(delay) = compute_scheduled_retry_delay(&row, 4) else {
+            panic!("expected Delay");
+        };
         assert!(delay.as_secs() <= MAX_RETRY_DELAY_SECS);
     }
 
@@ -337,7 +401,9 @@ mod tests {
     fn exponential_clamps_nan_factor() {
         // retry_count >= 1 so factor.powi(…) is NaN (NaN^0 = 1 by IEEE, so skip 0).
         let row = exponential(60, f64::NAN, 5);
-        let delay = compute_scheduled_retry_delay(&row, 1).unwrap();
+        let ScheduledRetryOutcome::Delay(delay) = compute_scheduled_retry_delay(&row, 1) else {
+            panic!("expected Delay");
+        };
         assert_eq!(delay.as_secs(), 0);
     }
 

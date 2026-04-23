@@ -20,13 +20,17 @@ const { organizationId } = useRouteIds();
 
 const { t } = useI18n();
 
-const { limits, isLoading: limitsLoading } = useRetryScheduleLimits();
+const { limits, isLoading: limitsLoading, error: limitsError } = useRetryScheduleLimits();
 
 // Fetch the schedule list locally so the <select> stays unmounted until the options are ready.
 // Hook0Select.initValue() normalizes the bound value to '' when the current id isn't in options —
 // if we let it render with an empty list, the saved schedule silently reverts to "default" on edit.
 // TanStack Query deduplicates this call with any sibling consumer (e.g. the parent page).
-const { data: retrySchedules, isLoading: schedulesLoading } = useRetryScheduleList(organizationId);
+const {
+  data: retrySchedules,
+  isLoading: schedulesLoading,
+  isError: schedulesError,
+} = useRetryScheduleList(organizationId);
 
 const retryScheduleOptions = computed<Hook0SelectSingleOption[]>(() => {
   const defaultOption: Hook0SelectSingleOption = {
@@ -42,7 +46,10 @@ const retryScheduleOptions = computed<Hook0SelectSingleOption[]>(() => {
   ];
 });
 
-const retryScheduleReady = computed(() => !schedulesLoading.value && !limitsLoading.value);
+const retryScheduleReady = computed(
+  () =>
+    !schedulesLoading.value && !limitsLoading.value && !schedulesError.value && !limitsError.value
+);
 
 const defaultScheduleDelayLabels = computed(() =>
   formatDelayList(limits.value?.default_schedule_delays_secs ?? [])
@@ -104,7 +111,7 @@ const emit = defineEmits<{
     </div>
 
     <!-- Retry schedule — render the select only once schedules + limits are loaded so Hook0Select doesn't normalize the bound value to '' against an empty options list. -->
-    <div v-if="!retryScheduleReady" class="sub-row">
+    <div v-if="schedulesLoading || limitsLoading" class="sub-row">
       <div class="sub-row__label">
         <Hook0Skeleton class="sub-row__skeleton-label" />
       </div>
@@ -112,7 +119,17 @@ const emit = defineEmits<{
         <Hook0Skeleton class="sub-row__skeleton-field" />
       </div>
     </div>
-    <div v-else class="sub-row">
+    <div v-else-if="schedulesError || limitsError" class="sub-row">
+      <div class="sub-row__label">
+        <span class="sub-row__title sub-row__title--muted">{{
+          t('subscriptions.retryScheduleLabel')
+        }}</span>
+      </div>
+      <div class="sub-row__content">
+        <p class="sub-row__error">{{ t('subscriptions.retryScheduleLoadError') }}</p>
+      </div>
+    </div>
+    <div v-else-if="retryScheduleReady" class="sub-row">
       <div class="sub-row__label">
         <span id="retry-schedule-label" class="sub-row__title sub-row__title--muted">{{
           t('subscriptions.retryScheduleLabel')
@@ -227,5 +244,10 @@ const emit = defineEmits<{
 .sub-row__skeleton-field {
   height: 2.25rem;
   width: 100%;
+}
+
+.sub-row__error {
+  font-size: 0.8125rem;
+  color: var(--color-error);
 }
 </style>

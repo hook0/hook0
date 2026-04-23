@@ -59,6 +59,8 @@ const editText = ref('');
 const editError = ref(false);
 const editErrorMessage = ref('');
 const editInputRef = ref<HTMLInputElement | null>(null);
+// Guards against double-emit when Enter triggers both confirmEdit and then blur fires
+const justConfirmed = ref(false);
 
 function startEditing() {
   if (!props.editable) {
@@ -90,6 +92,7 @@ function confirmEdit() {
     });
     return;
   }
+  justConfirmed.value = true;
   emit('update:modelValue', parsed);
   isEditing.value = false;
   editError.value = false;
@@ -97,7 +100,12 @@ function confirmEdit() {
 
 // On blur, close the edit regardless of validity — an invalid entry would otherwise strand
 // the user in edit mode after clicking away. Valid values commit; invalid values revert silently.
+// Skip emit if confirmEdit already fired (Enter key triggers blur after removing the input).
 function handleBlur() {
+  if (justConfirmed.value) {
+    justConfirmed.value = false;
+    return;
+  }
   const parsed = parseDuration(editText.value);
   if (parsed !== null && parsed >= props.min && parsed <= props.max) {
     emit('update:modelValue', parsed);
