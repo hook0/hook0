@@ -69,15 +69,15 @@ export function listSchedules(baseUrl, organizationId, serviceToken) {
   return res.status === 200 ? JSON.parse(res.body) : null;
 }
 
-export function getSchedule(baseUrl, serviceToken, scheduleId) {
-  const url = `${baseUrl}api/v1/retry_schedules/${scheduleId}`;
+export function getSchedule(baseUrl, organizationId, serviceToken, scheduleId) {
+  const url = `${baseUrl}api/v1/retry_schedules/${scheduleId}?organization_id=${organizationId}`;
   const res = http.get(url, headers(serviceToken));
   check(res, { 'Retry schedule get ok': (response) => response.status === 200 });
   return res.status === 200 ? JSON.parse(res.body) : null;
 }
 
-export function updateSchedule(baseUrl, serviceToken, scheduleId, name) {
-  const url = `${baseUrl}api/v1/retry_schedules/${scheduleId}`;
+export function updateSchedule(baseUrl, organizationId, serviceToken, scheduleId, name) {
+  const url = `${baseUrl}api/v1/retry_schedules/${scheduleId}?organization_id=${organizationId}`;
   const payload = JSON.stringify({
     strategy: 'linear',
     name,
@@ -89,8 +89,8 @@ export function updateSchedule(baseUrl, serviceToken, scheduleId, name) {
   return res.status === 200 ? JSON.parse(res.body) : null;
 }
 
-export function deleteSchedule(baseUrl, serviceToken, scheduleId) {
-  const url = `${baseUrl}api/v1/retry_schedules/${scheduleId}`;
+export function deleteSchedule(baseUrl, organizationId, serviceToken, scheduleId) {
+  const url = `${baseUrl}api/v1/retry_schedules/${scheduleId}?organization_id=${organizationId}`;
   const res = http.del(url, null, headers(serviceToken));
   check(res, { 'Retry schedule deleted': (response) => response.status === 204 });
   return res.status === 204;
@@ -106,7 +106,7 @@ export function rejectsTooManyRetries(baseUrl, organizationId, serviceToken) {
     linear_delay_secs: 60,
   });
   const res = http.post(url, payload, headers(serviceToken));
-  check(res, { 'Over-cap max_retries rejected': (response) => response.status === 400 });
+  check(res, { 'Over-cap max_retries rejected': (response) => response.status === 422 });
 }
 
 export function rejectsTooShortDelay(baseUrl, organizationId, serviceToken) {
@@ -119,7 +119,7 @@ export function rejectsTooShortDelay(baseUrl, organizationId, serviceToken) {
     linear_delay_secs: 0,
   });
   const res = http.post(url, payload, headers(serviceToken));
-  check(res, { 'Zero delay rejected': (response) => response.status === 400 });
+  check(res, { 'Zero delay rejected': (response) => response.status === 422 });
 }
 
 export function rejectsTotalOverCap(baseUrl, organizationId, serviceToken) {
@@ -132,7 +132,7 @@ export function rejectsTotalOverCap(baseUrl, organizationId, serviceToken) {
     custom_intervals_secs: [604800, 604800, 604800],
   });
   const res = http.post(url, payload, headers(serviceToken));
-  check(res, { 'Total duration over 7d rejected': (response) => response.status === 400 });
+  check(res, { 'Total duration over 7d rejected': (response) => response.status === 422 });
 }
 
 export function rejectsDuplicateName(baseUrl, organizationId, serviceToken, existingName) {
@@ -142,7 +142,7 @@ export function rejectsDuplicateName(baseUrl, organizationId, serviceToken, exis
     strategy: 'linear',
     name: existingName,
     max_retries: 3,
-    delay: 60,
+    linear_delay_secs: 60,
   });
   const res = http.post(url, payload, headers(serviceToken));
   check(res, { 'Duplicate name rejected': (response) => response.status === 409 });
