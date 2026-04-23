@@ -6,6 +6,57 @@
     locals.pageTitle = 'Hook0 — Free Open-Source Webhook Platform | Webhooks as a Service';
     locals.pageDescription = 'Free webhook platform, open-source. Send webhooks with one API call — Hook0 handles retries, HMAC signatures, and delivery monitoring. Free forever, no credit card. Self-host or use our cloud.';
     locals.pageCanonical = '/';
+    locals.pageSchema = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "name": "Hook0",
+          "url": locals.seo.siteUrl,
+          "logo": locals.seo.siteUrl + "/mediakit/logo/110x110-white.png",
+          "description": locals.seo.defaultDescription,
+          "foundingDate": "2021",
+          "founders": [
+            { "@type": "Person", "name": "Francois-Guillaume Ribreau" },
+            { "@type": "Person", "name": "David Sferruzza" }
+          ],
+          "sameAs": [
+            locals.social.twitter.href,
+            locals.social.github.href,
+            locals.social.linkedin.href,
+            locals.social.youtube.href,
+            locals.social.discord.href
+          ],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "email": "support@hook0.com",
+            "contactType": "customer service"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "Hook0",
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "Any",
+          "url": locals.seo.siteUrl,
+          "description": "Open-source webhook infrastructure. Send webhooks with one API call — retries, HMAC signatures, and delivery monitoring included.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "description": "Free tier: 100 webhook events/day, HMAC signatures, delivery monitoring. No credit card required."
+          },
+          "author": {
+            "@type": "Organization",
+            "name": "Hook0"
+          },
+          "license": "https://opensource.org/licenses/SSPL-1.0",
+          "downloadUrl": locals.social.github.repoHref,
+          "softwareVersion": "2026",
+          "featureList": "Webhook delivery, HMAC signatures, Configurable retries, Delivery monitoring, Subscriber portal, Self-hosting, REST API, SDKs"
+        }
+      ]
+    };
     locals.pageFAQSchema = {
       "@context": "https://schema.org",
       "@type": "FAQPage",
