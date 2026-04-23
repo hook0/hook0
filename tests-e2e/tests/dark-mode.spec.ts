@@ -85,8 +85,8 @@ test.describe("Dark Mode", () => {
 
     // Step 2: Logout via navigation to login (clearing auth triggers redirect)
     // Use the user dropdown menu to logout
-    await page.locator(".hook0-topnav__user-trigger").click();
-    const logoutButton = page.locator(".hook0-topnav__dropdown-item--danger");
+    await page.locator('.hook0-topnav__user-trigger').click();
+    const logoutButton = page.locator('.hook0-topnav__dropdown-item--danger');
     await expect(logoutButton).toBeVisible({ timeout: 5000 });
     await logoutButton.click();
 

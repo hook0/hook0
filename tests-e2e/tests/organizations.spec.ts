@@ -102,10 +102,7 @@ test.describe("Organizations", () => {
     let responseBody: { organization_id?: string; name?: string } = {};
     const responsePromise = page.waitForResponse(
       async (response) => {
-        if (
-          response.url().includes("/api/v1/organizations") &&
-          response.request().method() === "POST"
-        ) {
+        if (response.url().includes("/api/v1/organizations") && response.request().method() === "POST") {
           if (response.status() < 400) {
             responseBody = await response.json();
           }
@@ -187,10 +184,7 @@ test.describe("Organizations", () => {
     let responseBody: { name?: string } = {};
     const responsePromise = page.waitForResponse(
       async (response) => {
-        if (
-          response.url().includes(`/api/v1/organizations/${organizationId}`) &&
-          response.request().method() === "PUT"
-        ) {
+        if (response.url().includes(`/api/v1/organizations/${organizationId}`) && response.request().method() === "PUT") {
           if (response.status() < 400) {
             responseBody = await response.json();
           }
@@ -369,9 +363,7 @@ test.describe("Organizations", () => {
     await page.locator('[data-test="organization-delete-button"]').click();
 
     // Wait for confirmation dialog and click confirm
-    const confirmButton = page.locator(
-      ".hook0-dialog--danger .hook0-dialog__actions button:last-child"
-    );
+    const confirmButton = page.locator('.hook0-dialog--danger .hook0-dialog__actions button:last-child');
     await expect(confirmButton).toBeVisible({ timeout: 5000 });
 
     const deleteResponsePromise = page.waitForResponse(

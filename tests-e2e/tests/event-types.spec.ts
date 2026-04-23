@@ -63,10 +63,7 @@ test.describe("Event Types", () => {
     let applicationId: string = "";
     const createAppResponse = page.waitForResponse(
       async (response) => {
-        if (
-          response.url().includes("/api/v1/applications") &&
-          response.request().method() === "POST"
-        ) {
+        if (response.url().includes("/api/v1/applications") && response.request().method() === "POST") {
           if (response.status() < 400) {
             const app = await response.json();
             applicationId = app.application_id;
@@ -102,7 +99,9 @@ test.describe("Event Types", () => {
     expect(eventTypeResponse.status()).toBeLessThan(400);
 
     // Step 2: Navigate to event types list
-    await page.goto(`/organizations/${organizationId}/applications/${applicationId}/event_types`);
+    await page.goto(
+      `/organizations/${organizationId}/applications/${applicationId}/event_types`
+    );
 
     // Verify event types card is visible
     await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
@@ -464,9 +463,7 @@ test.describe("Event Types", () => {
     await targetRow.locator('[data-test="event-type-deactivate-button"]').click();
 
     // Wait for confirmation dialog and click confirm
-    const confirmButton = page.locator(
-      ".hook0-dialog--danger .hook0-dialog__actions button:last-child"
-    );
+    const confirmButton = page.locator('.hook0-dialog--danger .hook0-dialog__actions button:last-child');
     await expect(confirmButton).toBeVisible({ timeout: 5000 });
 
     const deactivateResponsePromise = page.waitForResponse(

@@ -72,81 +72,65 @@ test.describe("Navigation", () => {
       await page.locator('[data-test="event-type-submit-button"]').click();
       await expect(page).toHaveURL(/\/event_types$/, { timeout: 15000 });
 
-      await test.step("Navigate to Event Types List", async () => {
+      await test.step('Navigate to Event Types List', async () => {
         await page.goto(
           `/organizations/${organizationId}/applications/${applicationId}/event_types`
         );
 
         // STRICT assertion: Page title must contain "Event Types"
-        await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({
-          timeout: 10000,
-        });
-        const eventTypesHeader = page
-          .locator('[data-test="event-types-card"] h2, [data-test="event-types-card"] h3')
-          .first();
+        await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
+        const eventTypesHeader = page.locator('[data-test="event-types-card"] h2, [data-test="event-types-card"] h3').first();
         await expect(eventTypesHeader).toContainText("Event Types");
 
         // STRICT assertion: Table should have our event type
         await expect(page.locator('[data-test="event-types-table"]')).toBeVisible();
-        await expect(page.locator('[data-test="event-types-table"]')).toContainText(
-          "test.resource.created"
-        );
+        await expect(page.locator('[data-test="event-types-table"]')).toContainText("test.resource.created");
       });
 
-      await test.step("Navigate to Events List", async () => {
+      await test.step('Navigate to Events List', async () => {
         await page.goto(`/organizations/${organizationId}/applications/${applicationId}/events`);
 
         // STRICT assertion: Card must be visible with correct header
         await expect(page.locator('[data-test="events-card"]')).toBeVisible({ timeout: 10000 });
-        const eventsHeader = page
-          .locator('[data-test="events-card"] h2, [data-test="events-card"] h3')
-          .first();
+        const eventsHeader = page.locator('[data-test="events-card"] h2, [data-test="events-card"] h3').first();
         await expect(eventsHeader).toContainText("Events");
 
         // STRICT assertion: Either table or empty state must be present
         await expect(
-          page
-            .locator('[data-test="events-table"]')
-            .or(page.locator('[data-test="events-send-button"]'))
+          page.locator('[data-test="events-table"]').or(page.locator('[data-test="events-send-button"]'))
         ).toBeVisible({ timeout: 5000 });
       });
 
-      await test.step("Navigate to Subscriptions List", async () => {
+      await test.step('Navigate to Subscriptions List', async () => {
         await page.goto(
           `/organizations/${organizationId}/applications/${applicationId}/subscriptions`
         );
 
         // STRICT assertion: Card must be visible
-        await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({
-          timeout: 10000,
-        });
-        const subscriptionsHeader = page
-          .locator('[data-test="subscriptions-card"] h2, [data-test="subscriptions-card"] h3')
-          .first();
+        await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
+        const subscriptionsHeader = page.locator('[data-test="subscriptions-card"] h2, [data-test="subscriptions-card"] h3').first();
         await expect(subscriptionsHeader).toContainText("Subscriptions");
 
         // STRICT assertion: Create button must be accessible
         await expect(page.locator('[data-test="subscriptions-create-button"]')).toBeVisible();
       });
 
-      await test.step("Navigate to Logs List", async () => {
+      await test.step('Navigate to Logs List', async () => {
         await page.goto(`/organizations/${organizationId}/applications/${applicationId}/logs`);
 
         // STRICT assertion: Card must be visible
         await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
-        const logsHeader = page
-          .locator('[data-test="logs-card"] h2, [data-test="logs-card"] h3')
-          .first();
+        const logsHeader = page.locator('[data-test="logs-card"] h2, [data-test="logs-card"] h3').first();
         await expect(logsHeader).toContainText("Delivery Logs");
       });
 
-      await test.step("Navigate to Application Settings", async () => {
-        await page.goto(`/organizations/${organizationId}/applications/${applicationId}/settings`);
+      await test.step('Navigate to Application Settings', async () => {
+        await page.goto(
+          `/organizations/${organizationId}/applications/${applicationId}/settings`
+        );
 
         // STRICT assertion: Form must be visible with application name
-        await expect(page.locator('[data-test="application-form"]')).toBeVisible({
-          timeout: 10000,
-        });
+        await expect(page.locator('[data-test="application-form"]')).toBeVisible({ timeout: 10000 });
         const nameInput = page.locator('[data-test="application-name-input"]');
         await expect(nameInput).toBeVisible();
         await expect(nameInput).toHaveValue(appName);
@@ -155,48 +139,38 @@ test.describe("Navigation", () => {
         await expect(page.locator('[data-test="application-delete-card"]')).toBeVisible();
       });
 
-      await test.step("Navigate to Organization Dashboard", async () => {
+      await test.step('Navigate to Organization Dashboard', async () => {
         await page.goto(`/organizations/${organizationId}/dashboard`);
 
         // Wait for page to load (either dashboard card or applications card will be visible)
         // The org dashboard includes an ApplicationsList component that has data-test="applications-card"
         await expect(
-          page
-            .locator('[data-test="organization-dashboard-card"], [data-test="applications-card"]')
-            .first()
+          page.locator('[data-test="organization-dashboard-card"], [data-test="applications-card"]').first()
         ).toBeVisible({ timeout: 15000 });
       });
 
-      await test.step("Navigate to Organization Settings", async () => {
+      await test.step('Navigate to Organization Settings', async () => {
         await page.goto(`/organizations/${organizationId}/settings`);
 
         // STRICT assertion: Form must be visible
-        await expect(page.locator('[data-test="organization-form"]')).toBeVisible({
-          timeout: 10000,
-        });
+        await expect(page.locator('[data-test="organization-form"]')).toBeVisible({ timeout: 10000 });
         await expect(page.locator('[data-test="organization-name-input"]')).toBeVisible();
       });
 
-      await test.step("Navigate to Service Tokens", async () => {
+      await test.step('Navigate to Service Tokens', async () => {
         await page.goto(`/organizations/${organizationId}/services_tokens`);
 
         // STRICT assertion: Service tokens card must be visible
-        await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({
-          timeout: 10000,
-        });
-        const serviceTokensHeader = page
-          .locator('[data-test="service-tokens-card"] h2, [data-test="service-tokens-card"] h3')
-          .first();
+        await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible({ timeout: 10000 });
+        const serviceTokensHeader = page.locator('[data-test="service-tokens-card"] h2, [data-test="service-tokens-card"] h3').first();
         await expect(serviceTokensHeader).toContainText("Service Tokens");
       });
 
-      await test.step("Navigate to Applications List", async () => {
+      await test.step('Navigate to Applications List', async () => {
         await page.goto(`/organizations/${organizationId}/applications`);
 
         // STRICT assertion: Applications card must be visible
-        await expect(page.locator('[data-test="applications-card"]')).toBeVisible({
-          timeout: 10000,
-        });
+        await expect(page.locator('[data-test="applications-card"]')).toBeVisible({ timeout: 10000 });
 
         // STRICT assertion: Our created app must be in the list
         await expect(page.locator('[data-test="applications-table"]')).toContainText(appName);
@@ -250,9 +224,7 @@ test.describe("Navigation", () => {
       await page.goto(`/organizations/${organizationId}/applications/${applicationId}/dashboard`);
       // Wait for dashboard to load - it includes EventTypesList which has data-test="event-types-card"
       await expect(
-        page
-          .locator('[data-test="application-dashboard-card"], [data-test="event-types-card"]')
-          .first()
+        page.locator('[data-test="application-dashboard-card"], [data-test="event-types-card"]').first()
       ).toBeVisible({ timeout: 15000 });
 
       // Click on Events in navigation (using data-test tab selector)
@@ -277,9 +249,7 @@ test.describe("Navigation", () => {
       await subscriptionsNavLink.click();
       await expect(page).toHaveURL(/\/subscriptions/, { timeout: 10000 });
       // STRICT assertion: Subscriptions card must render
-      await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({
-        timeout: 10000,
-      });
+      await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
 
       // Click on Logs in navigation
       const logsNavLink = page.locator('[data-test="tab-logs"]');
@@ -336,7 +306,9 @@ test.describe("Navigation", () => {
       // =================================================================
       // TEST: Event Types - list → create → list
       // =================================================================
-      await page.goto(`/organizations/${organizationId}/applications/${applicationId}/event_types`);
+      await page.goto(
+        `/organizations/${organizationId}/applications/${applicationId}/event_types`
+      );
       await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
 
       // Click create button
@@ -362,9 +334,7 @@ test.describe("Navigation", () => {
       await page.goto(
         `/organizations/${organizationId}/applications/${applicationId}/subscriptions`
       );
-      await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({
-        timeout: 10000,
-      });
+      await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
 
       // Click create button
       await page.locator('[data-test="subscriptions-create-button"]').click();
@@ -379,9 +349,7 @@ test.describe("Navigation", () => {
       await expect(page).toHaveURL(/\/subscriptions$/, { timeout: 10000 });
 
       // STRICT assertion: List must render again
-      await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({
-        timeout: 10000,
-      });
+      await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
     });
 
     test("should handle rapid navigation without blank pages", async ({ page, request }) => {
@@ -435,9 +403,7 @@ test.describe("Navigation", () => {
 
       // Final page should render correctly
       await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
-      const logsHeader = page
-        .locator('[data-test="logs-card"] h2, [data-test="logs-card"] h3')
-        .first();
+      const logsHeader = page.locator('[data-test="logs-card"] h2, [data-test="logs-card"] h3').first();
       await expect(logsHeader).toContainText("Delivery Logs");
 
       // Navigate back to event types
@@ -486,13 +452,13 @@ test.describe("Navigation", () => {
       const applicationId = app.application_id;
 
       // Navigate to an app-level page
-      await page.goto(`/organizations/${organizationId}/applications/${applicationId}/event_types`);
+      await page.goto(
+        `/organizations/${organizationId}/applications/${applicationId}/event_types`
+      );
       await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 10000 });
 
       // Context bar should show org name
-      await expect(page.locator('[data-test="context-bar-org-name"]')).toBeVisible({
-        timeout: 10000,
-      });
+      await expect(page.locator('[data-test="context-bar-org-name"]')).toBeVisible({ timeout: 10000 });
 
       // Click the org name link to navigate back to org dashboard
       await page.locator('[data-test="context-bar-org-name"]').click();
@@ -560,9 +526,7 @@ test.describe("Navigation", () => {
 
       // Visit Subscriptions (adds to history)
       await page.goto(`${baseUrl}/subscriptions`);
-      await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({
-        timeout: 10000,
-      });
+      await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
 
       // Go back to Events
       await page.goBack();
@@ -586,9 +550,7 @@ test.describe("Navigation", () => {
       await page.goForward();
       await expect(page).toHaveURL(/\/subscriptions/, { timeout: 10000 });
       // STRICT assertion: Subscriptions card must render after forward navigation
-      await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({
-        timeout: 10000,
-      });
+      await expect(page.locator('[data-test="subscriptions-card"]')).toBeVisible({ timeout: 10000 });
     });
 
     test("should switch between applications via context bar app switcher", async ({
@@ -685,7 +647,7 @@ test.describe("Navigation", () => {
       await expect(page.locator('[data-test="login-form"]')).toBeVisible({ timeout: 10000 });
 
       // Check for page title content
-      const pageTitle = page.locator("h1, h2").first();
+      const pageTitle = page.locator('h1, h2').first();
       await expect(pageTitle).toContainText(/Welcome|Sign in|Log in/i);
 
       // Check email input has correct placeholder or label
@@ -716,7 +678,7 @@ test.describe("Navigation", () => {
       await expect(page.locator('[data-test="register-form"]')).toBeVisible({ timeout: 10000 });
 
       // Check page title (may be in h1, h2, h3, or a div within the card header)
-      const pageTitle = page.locator("h1, h2, h3, .hook0-card-header").first();
+      const pageTitle = page.locator('h1, h2, h3, .hook0-card-header').first();
       await expect(pageTitle).toContainText(/Free Trial|Create|Sign up|Register/i);
 
       // Check all form fields exist
@@ -760,9 +722,7 @@ test.describe("Navigation", () => {
       await page.goto("/begin-reset-password");
 
       // STRICT assertions: Verify form renders with correct content
-      await expect(page.locator('[data-test="reset-password-form"]')).toBeVisible({
-        timeout: 10000,
-      });
+      await expect(page.locator('[data-test="reset-password-form"]')).toBeVisible({ timeout: 10000 });
 
       // Check email input
       await expect(page.locator('[data-test="reset-password-email-input"]')).toBeVisible();

@@ -52,7 +52,7 @@ test.describe("Service Tokens", () => {
 
     // Step 1: Create a service token via UI (uses Hook0Dialog modal)
     await page.locator('[data-test="service-tokens-create-button"]').click();
-    await page.waitForURL("**/service_tokens/new");
+    await page.waitForURL('**/service_tokens/new');
 
     // Fill the name in the dialog modal
     const dialogInput = page.locator('[data-test="service-token-name-input"]');
@@ -170,7 +170,7 @@ test.describe("Service Tokens", () => {
 
     // Step 2: Click create to open Hook0Dialog modal
     await page.locator('[data-test="service-tokens-create-button"]').click();
-    await page.waitForURL("**/service_tokens/new");
+    await page.waitForURL('**/service_tokens/new');
 
     // Fill the name in the dialog modal
     const dialogInput = page.locator('[data-test="service-token-name-input"]');
@@ -181,10 +181,7 @@ test.describe("Service Tokens", () => {
     let responseBody: { token_id?: string; name?: string } = {};
     const responsePromise = page.waitForResponse(
       async (response) => {
-        if (
-          response.url().includes("/api/v1/service_token") &&
-          response.request().method() === "POST"
-        ) {
+        if (response.url().includes("/api/v1/service_token") && response.request().method() === "POST") {
           if (response.status() < 400) {
             responseBody = await response.json();
           }
@@ -249,7 +246,7 @@ test.describe("Service Tokens", () => {
 
     // Click create button to open the Hook0Dialog modal
     await page.locator('[data-test="service-tokens-create-button"]').click();
-    await page.waitForURL("**/service_tokens/new");
+    await page.waitForURL('**/service_tokens/new');
 
     // Wait for the dialog to appear, then click cancel
     await expect(page.locator('[data-test="dialog-cancel-button"]')).toBeVisible({ timeout: 5000 });
@@ -264,10 +261,7 @@ test.describe("Service Tokens", () => {
     await expect(page.locator('[data-test="service-tokens-card"]')).toBeVisible();
   });
 
-  test("should delete a service token and verify it is removed from the list", async ({
-    page,
-    request,
-  }) => {
+  test("should delete a service token and verify it is removed from the list", async ({ page, request }) => {
     // Setup: Create test user
     const timestamp = Date.now();
     const email = `test-tokens-delete-${timestamp}@hook0.local`;
@@ -309,7 +303,7 @@ test.describe("Service Tokens", () => {
 
     // Step 1: Create a service token via UI
     await page.locator('[data-test="service-tokens-create-button"]').click();
-    await page.waitForURL("**/service_tokens/new");
+    await page.waitForURL('**/service_tokens/new');
 
     const dialogInput = page.locator('[data-test="service-token-name-input"]');
     await expect(dialogInput).toBeVisible({ timeout: 5000 });
@@ -340,14 +334,11 @@ test.describe("Service Tokens", () => {
     await deleteLink.click();
 
     // Wait for the danger confirmation dialog and click confirm
-    await expect(page.locator('[data-test="dialog-confirm-button"]')).toBeVisible({
-      timeout: 5000,
-    });
+    await expect(page.locator('[data-test="dialog-confirm-button"]')).toBeVisible({ timeout: 5000 });
 
     const deleteResponsePromise = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/service_token") &&
-        response.request().method() === "DELETE",
+        response.url().includes("/api/v1/service_token") && response.request().method() === "DELETE",
       { timeout: 15000 }
     );
 
@@ -406,7 +397,7 @@ test.describe("Service Tokens", () => {
 
     // Step 1: Create a service token via UI
     await page.locator('[data-test="service-tokens-create-button"]').click();
-    await page.waitForURL("**/service_tokens/new");
+    await page.waitForURL('**/service_tokens/new');
 
     const createDialogInput = page.locator('[data-test="service-token-name-input"]');
     await expect(createDialogInput).toBeVisible({ timeout: 5000 });
@@ -435,7 +426,7 @@ test.describe("Service Tokens", () => {
     // Step 2: Click "Edit" on the first row to open edit dialog
     const editLink = rows.first().locator('[data-test="token-edit-action"]');
     await editLink.click();
-    await page.waitForURL("**/edit");
+    await page.waitForURL('**/edit');
 
     // Fill the new name in the edit dialog
     const editDialogInput = page.locator('[data-test="service-token-edit-name-input"]');

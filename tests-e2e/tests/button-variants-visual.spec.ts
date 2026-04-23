@@ -164,7 +164,11 @@ test.describe("Hook0Button Visual Regression", () => {
     const disabledSection = page.locator('[data-test="button-disabled"]');
     await expect(disabledSection).toBeVisible();
 
-    const disabledBtns = ["btn-disabled-primary", "btn-disabled-secondary", "btn-disabled-danger"];
+    const disabledBtns = [
+      "btn-disabled-primary",
+      "btn-disabled-secondary",
+      "btn-disabled-danger",
+    ];
 
     for (const testId of disabledBtns) {
       const btn = page.locator(`[data-test="${testId}"]`);
@@ -182,7 +186,9 @@ test.describe("Hook0Button Visual Regression", () => {
       // Disabled buttons should have reduced opacity
       expect(parseFloat(styles.opacity)).toBeLessThan(1);
       // cursor should be not-allowed (or pointer-events: none prevents click)
-      expect(styles.cursor === "not-allowed" || styles.pointerEvents === "none").toBeTruthy();
+      expect(
+        styles.cursor === "not-allowed" || styles.pointerEvents === "none"
+      ).toBeTruthy();
     }
 
     await expect(disabledSection).toHaveScreenshot("button-disabled.png", {
@@ -194,7 +200,11 @@ test.describe("Hook0Button Visual Regression", () => {
     const loadingSection = page.locator('[data-test="button-loading"]');
     await expect(loadingSection).toBeVisible();
 
-    const loadingBtns = ["btn-loading-primary", "btn-loading-secondary", "btn-loading-danger"];
+    const loadingBtns = [
+      "btn-loading-primary",
+      "btn-loading-secondary",
+      "btn-loading-danger",
+    ];
 
     for (const testId of loadingBtns) {
       const btn = page.locator(`[data-test="${testId}"]`);
@@ -274,7 +284,12 @@ test.describe("Hook0Button Visual Regression", () => {
   });
 
   test("all variants have consistent flex layout", async ({ page }) => {
-    const flexButtons = ["btn-primary", "btn-secondary", "btn-danger", "btn-ghost"];
+    const flexButtons = [
+      "btn-primary",
+      "btn-secondary",
+      "btn-danger",
+      "btn-ghost",
+    ];
 
     for (const testId of flexButtons) {
       const btn = page.locator(`[data-test="${testId}"]`);

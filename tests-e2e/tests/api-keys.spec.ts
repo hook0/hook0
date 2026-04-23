@@ -65,10 +65,7 @@ test.describe("API Keys", () => {
     let applicationId: string = "";
     const createAppResponse = page.waitForResponse(
       async (response) => {
-        if (
-          response.url().includes("/api/v1/applications") &&
-          response.request().method() === "POST"
-        ) {
+        if (response.url().includes("/api/v1/applications") && response.request().method() === "POST") {
           if (response.status() < 400) {
             try {
               const app = await response.json();
@@ -89,8 +86,7 @@ test.describe("API Keys", () => {
 
     // Wait for redirect to complete - URL should contain a UUID application ID, not "new"
     // UUID pattern: 8-4-4-4-12 hex characters
-    const uuidPattern =
-      /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+    const uuidPattern = /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
     await expect(page).toHaveURL(uuidPattern, { timeout: 15000 });
     const url = page.url();
     const match = url.match(uuidPattern);
@@ -134,7 +130,7 @@ test.describe("API Keys", () => {
     );
 
     // Click confirm button in the dialog
-    await page.locator(".hook0-dialog .hook0-dialog__actions button:last-child").click();
+    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
 
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
@@ -188,10 +184,7 @@ test.describe("API Keys", () => {
     let responseBody: { token?: string; name?: string } = {};
     const responsePromise = page.waitForResponse(
       async (response) => {
-        if (
-          response.url().includes("/api/v1/application_secrets") &&
-          response.request().method() === "POST"
-        ) {
+        if (response.url().includes("/api/v1/application_secrets") && response.request().method() === "POST") {
           if (response.status() < 400) {
             responseBody = await response.json();
           }
@@ -203,7 +196,7 @@ test.describe("API Keys", () => {
     );
 
     // Click confirm button in the dialog
-    await page.locator(".hook0-dialog .hook0-dialog__actions button:last-child").click();
+    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
 
     const response = await responsePromise;
 
@@ -264,7 +257,7 @@ test.describe("API Keys", () => {
       { timeout: 15000 }
     );
 
-    await page.locator(".hook0-dialog .hook0-dialog__actions button:last-child").click();
+    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
 
@@ -280,9 +273,7 @@ test.describe("API Keys", () => {
     await deleteLink.click();
 
     // Wait for delete confirmation dialog and click confirm
-    const deleteConfirmButton = page.locator(
-      ".hook0-dialog--danger .hook0-dialog__actions button:last-child"
-    );
+    const deleteConfirmButton = page.locator('.hook0-dialog--danger .hook0-dialog__actions button:last-child');
     await expect(deleteConfirmButton).toBeVisible({ timeout: 5000 });
 
     const deleteResponsePromise = page.waitForResponse(

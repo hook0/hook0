@@ -72,7 +72,8 @@ test.describe("Log Detail", () => {
 
     const createSubResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST",
+        response.url().includes("/api/v1/subscriptions") &&
+        response.request().method() === "POST",
       { timeout: 15000 }
     );
     await page.locator('[data-test="subscription-submit-button"]').click();
@@ -87,7 +88,9 @@ test.describe("Log Detail", () => {
     await page.locator('[data-test="events-send-button"]').click();
     await page.waitForURL("**/events/send");
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
-    await page.locator('[data-test="send-event-type-select"]').selectOption("log.test.created");
+    await page
+      .locator('[data-test="send-event-type-select"]')
+      .selectOption("log.test.created");
 
     // Add event labels matching the subscription
     const eventLabelKey = page.locator(
@@ -125,7 +128,9 @@ test.describe("Log Detail", () => {
     await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
 
     // Navigate to logs and wait for data
-    await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/logs`);
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
+    );
     await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
 
     return env;
@@ -134,9 +139,9 @@ test.describe("Log Detail", () => {
   async function waitForLogRow(page: import("@playwright/test").Page) {
     await expect(async () => {
       await page.reload();
-      await expect(page.locator('[data-test="logs-table"] [row-id]').first()).toBeVisible({
-        timeout: 10000,
-      });
+      await expect(
+        page.locator('[data-test="logs-table"] [row-id]').first()
+      ).toBeVisible({ timeout: 10000 });
     }).toPass({ timeout: 60000, intervals: [2000] });
   }
 
@@ -150,10 +155,10 @@ test.describe("Log Detail", () => {
 
     // Click on the status column of the first row (not the event link which navigates away)
     const firstRow = page.locator('[data-test="logs-table"] [row-id]').first();
-    await firstRow.locator(".log-status").click();
+    await firstRow.locator('.log-status').click();
 
     // Verify the detail panel shows content (scoped to the detail side of the split)
-    const detail = page.locator(".hook0-split-layout__detail");
+    const detail = page.locator('.hook0-split-layout__detail');
     await expect(detail.getByText("log.test.created")).toBeVisible({ timeout: 10000 });
     await expect(detail.getByText("Request")).toBeVisible();
     await expect(detail.getByText("Payload")).toBeVisible();
@@ -163,7 +168,10 @@ test.describe("Log Detail", () => {
     await expect(page).toHaveURL(/delivery=/, { timeout: 5000 });
   });
 
-  test("should navigate to LogDetail full page", async ({ page, request }) => {
+  test("should navigate to LogDetail full page", async ({
+    page,
+    request,
+  }) => {
     test.slow();
     const env = await setupLogsWithDelivery(page, request, "full-page");
     await waitForLogRow(page);
@@ -207,7 +215,9 @@ test.describe("Log Detail", () => {
     );
 
     await expect(page).toHaveURL(
-      new RegExp(`/organizations/${env.organizationId}/applications/${env.applicationId}/logs`),
+      new RegExp(
+        `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
+      ),
       { timeout: 10000 }
     );
     await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
@@ -232,7 +242,9 @@ test.describe("Log Detail", () => {
     await page.goBack();
 
     await expect(page).toHaveURL(
-      new RegExp(`/organizations/${env.organizationId}/applications/${env.applicationId}/logs`),
+      new RegExp(
+        `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
+      ),
       { timeout: 10000 }
     );
     await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });

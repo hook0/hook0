@@ -33,7 +33,9 @@ test.describe("Error Handling", () => {
 
     // Navigate to a valid org but fake application UUID
     const fakeAppId = "00000000-0000-0000-0000-000000000000";
-    await page.goto(`/organizations/${env.organizationId}/applications/${fakeAppId}/dashboard`);
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${fakeAppId}/dashboard`
+    );
 
     // The page should show an error card
     // ApplicationsDashboard.vue shows Hook0ErrorCard on appError
@@ -49,7 +51,9 @@ test.describe("Error Handling", () => {
 
     // Navigate to a valid org but fake app UUID on a sub-page (event_types)
     const fakeAppId = "00000000-0000-0000-0000-000000000000";
-    await page.goto(`/organizations/${env.organizationId}/applications/${fakeAppId}/event_types`);
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${fakeAppId}/event_types`
+    );
 
     // Should show an error card or error state
     await expect(page.locator('[data-test="error-card"]')).toBeVisible({ timeout: 15000 });

@@ -70,8 +70,7 @@ test.describe("Command Palette", () => {
     });
     await page.locator('[data-test="application-name-input"]').fill(`CmdPal App ${timestamp}`);
 
-    const uuidPattern =
-      /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+    const uuidPattern = /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
     const createAppResponse = page.waitForResponse(
       (response) =>
         response.url().includes("/api/v1/applications") && response.request().method() === "POST",
@@ -108,9 +107,7 @@ test.describe("Command Palette", () => {
       `/organizations/${env.organizationId}/applications/${env.applicationId}/dashboard`
     );
     await expect(
-      page
-        .locator('[data-test="event-types-card"], [data-test="application-dashboard-card"]')
-        .first()
+      page.locator('[data-test="event-types-card"], [data-test="application-dashboard-card"]').first()
     ).toBeVisible({ timeout: 15000 });
 
     // Step 1: Click the Search button in top nav
@@ -133,9 +130,7 @@ test.describe("Command Palette", () => {
       `/organizations/${env.organizationId}/applications/${env.applicationId}/dashboard`
     );
     await expect(
-      page
-        .locator('[data-test="event-types-card"], [data-test="application-dashboard-card"]')
-        .first()
+      page.locator('[data-test="event-types-card"], [data-test="application-dashboard-card"]').first()
     ).toBeVisible({ timeout: 15000 });
 
     // Step 1: Open command palette
@@ -159,9 +154,7 @@ test.describe("Command Palette", () => {
       `/organizations/${env.organizationId}/applications/${env.applicationId}/dashboard`
     );
     await expect(
-      page
-        .locator('[data-test="event-types-card"], [data-test="application-dashboard-card"]')
-        .first()
+      page.locator('[data-test="event-types-card"], [data-test="application-dashboard-card"]').first()
     ).toBeVisible({ timeout: 15000 });
 
     // Step 1: Open command palette and type "Event Types"
@@ -188,9 +181,7 @@ test.describe("Command Palette", () => {
       `/organizations/${env.organizationId}/applications/${env.applicationId}/dashboard`
     );
     await expect(
-      page
-        .locator('[data-test="event-types-card"], [data-test="application-dashboard-card"]')
-        .first()
+      page.locator('[data-test="event-types-card"], [data-test="application-dashboard-card"]').first()
     ).toBeVisible({ timeout: 15000 });
 
     // Step 1: Open command palette
