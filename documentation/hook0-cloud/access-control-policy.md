@@ -27,6 +27,18 @@ The policy is applicable to all internal and external personnel.
   - Public: 12 months
 - 2FA (Two Factor Authentication) must be used for systems holding Sensitive information
 
+## Multi-Factor Authentication (MFA) implementation status
+
+- MFA is enforced for all infrastructure access: Clever Cloud (hosting), GitLab (source code), Stripe (billing), and all administrative tools
+- MFA for individual Hook0 customer accounts is not yet implemented and is planned for a future release
+- Until customer-facing MFA is available, strong password requirements (Argon2 hashing, minimum complexity) and session expiration provide baseline protection
+
+## Role-Based Access Control (RBAC)
+
+- The Hook0 platform implements RBAC using Biscuit capability-based authorization tokens
+- Access to customer data follows the need-to-know principle
+- Platform roles are defined per organization with granular permissions
+
 ## Requirements for user IDs
 
 - User names are created by concatenating the user's first and last name, separated by a period, all in lower case (e.g. maurice.pasman)

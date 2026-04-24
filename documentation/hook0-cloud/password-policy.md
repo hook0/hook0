@@ -22,3 +22,9 @@ The policy is applicable to all internal and external personnel and Systems and 
 - Change the password at least twice per year
 - Do not use variants of the old password (e.g. adding a number to the old password)
 - The use of **Bitwarden password manager is mandatory**.
+
+## Server-side password storage
+
+- All user passwords are hashed using Argon2 with default parameters (memory-hard, resistant to GPU/ASIC attacks)
+- Passwords are never stored in plaintext or with reversible encryption
+- Each password is salted with a unique, randomly generated salt

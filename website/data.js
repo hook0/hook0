@@ -246,12 +246,20 @@ locals.footerLinks = {
     title: 'About',
     items: [
       { label: 'Contact', href: locals.meta.contact },
-      { label: 'Pricing', href: './#pricing' },
+      { label: 'Pricing', href: './pricing' },
       { label: 'Resources', href: locals.meta.doc_guides },
       { label: 'Security & Compliance', href: './security' },
+      { label: 'Built to Last', href: './built-to-last' },
+      { label: 'Media Kit', href: './mediakit/' },
       { label: 'Privacy Policy', href: './privacy-policy' },
       { label: 'Terms of Service', href: './terms' },
-      { label: 'Built to Last', href: './built-to-last' },
+      { label: 'Legal Notice', href: './mentions-legales' },
+      { label: 'Terms of Sale', href: './terms-of-sale' },
+    ],
+  },
+  compare: {
+    title: 'Compare',
+    items: [
       { label: 'Hook0 vs Svix', href: './hook0-vs-svix' },
       { label: 'Hook0 vs Hookdeck', href: './hook0-vs-hookdeck' },
       { label: 'Hook0 vs Convoy', href: './hook0-vs-convoy' },
@@ -261,7 +269,6 @@ locals.footerLinks = {
       { label: 'Build vs Buy Webhooks', href: './build-vs-buy-webhooks' },
       { label: 'Self-Hosted Webhooks', href: './self-hosted-webhooks' },
       { label: 'Open-Source Webhooks', href: './open-source-webhooks' },
-      { label: 'Media Kit', href: './mediakit/' },
     ],
   },
   guides: {

@@ -38,6 +38,20 @@
                 </ul>
             </div>
 
+            <!-- Compare Column -->
+            <div>
+                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= locals.footerLinks.compare.title %></h3>
+                <ul role="list" class="space-y-3">
+                    <% locals.footerLinks.compare.items.forEach((item) => { %>
+                    <li>
+                        <a href="<%= item.href %>" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors">
+                            <%= item.label %>
+                        </a>
+                    </li>
+                    <% }) %>
+                </ul>
+            </div>
+
             <!-- Guides Column -->
             <div>
                 <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= locals.footerLinks.guides.title %></h3>
