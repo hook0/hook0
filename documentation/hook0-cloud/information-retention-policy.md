@@ -54,3 +54,47 @@ Refer to the table below for relevant retention periods and disposal instruction
 - Retention period: 7 years
 - Location: Digitally on file server(s) and payment system
 - Disposal instructions: Delete
+
+## Service-specific retention periods
+
+### Account data (username, email, encrypted password, API keys)
+
+- Retention period: Duration of the service contract + 30 days after account deletion
+- Location: Digitally in production database
+- Disposal instructions: Delete
+
+### Billing and invoicing records
+
+- Retention period: 10 years (French tax law, art. L102 B Livre des procédures fiscales)
+- Location: Digitally on payment system and file server(s)
+- Disposal instructions: Delete
+
+### Webhook event data
+
+- Retention period: Per customer plan — Developer: 7 days, Startup: 14 days, Pro: 30 days, Enterprise: custom
+- Location: Digitally in production database
+- Disposal instructions: Automatic purge after retention window
+
+### Website analytics (Matomo)
+
+- Retention period: 25 months (CNIL recommendation)
+- Location: Matomo instance
+- Disposal instructions: Automatic anonymization and deletion
+
+### Support communications
+
+- Retention period: 3 years from the last exchange (statutory limitation period for contractual claims)
+- Location: Digitally on support platform and mail server
+- Disposal instructions: Delete
+
+### Consent records
+
+- Retention period: 5 years (ability to demonstrate GDPR compliance, Art. 7(1))
+- Location: Digitally in production database
+- Disposal instructions: Delete
+
+### Server logs
+
+- Retention period: 30 days minimum
+- Location: Digitally on log management system
+- Disposal instructions: Automatic rotation and deletion

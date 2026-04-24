@@ -65,13 +65,8 @@
 <meta name="twitter:image" content="<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>">
 <% } %>
 
-<!-- Preconnect to Google Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-<!-- Preload critical font -->
-<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
+<!-- Self-hosted Inter font -->
+<link rel="stylesheet" href="<%= locals.seo.siteUrl %>/fonts/inter.css">
 
 <!-- DNS Prefetch for external resources -->
 <link rel="dns-prefetch" href="https://api.producthunt.com">
@@ -89,11 +84,10 @@
 <%# PWA Manifest - added via JS to avoid Parcel resolution %>
 
 <% if (process.env.CRISP_WEBSITE_ID) { %>
-<!-- Crisp -->
-<script type="text/javascript">
-    window.$crisp=[];
-    window.CRISP_WEBSITE_ID="<%= process.env.CRISP_WEBSITE_ID %>";
-    (function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();
+<!-- Crisp (loaded only with consent) -->
+<script type="text/javascript" data-crisp-id="<%= process.env.CRISP_WEBSITE_ID %>">
+window.$crisp=[];
+function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySelector('[data-crisp-id]').getAttribute('data-crisp-id');window.CRISP_WEBSITE_ID=id;var d=document,s=d.createElement('script');s.src='https://client.crisp.chat/l.js';s.async=1;d.getElementsByTagName('head')[0].appendChild(s);}
 </script>
 <% } %>
 
@@ -123,10 +117,10 @@
 <!-- Matomo with Consent -->
 <script>
 (function(){
-    var KEY='hook0_cookie_consent',_paq=window._paq=window._paq||[];
-    function getConsent(){try{return localStorage.getItem(KEY)}catch(e){return null}}
-    function setConsent(v){try{localStorage.setItem(KEY,v)}catch(e){}}
-    function removeConsent(){try{localStorage.removeItem(KEY)}catch(e){}}
+    var KEY='hook0_cookie_consent',DKEY=KEY+'_date',TTL=13*30*24*60*60*1000,_paq=window._paq=window._paq||[];
+    function getConsent(){try{var v=localStorage.getItem(KEY);if(v){var d=parseInt(localStorage.getItem(DKEY)||'0',10);if(d&&(Date.now()-d)>TTL){localStorage.removeItem(KEY);localStorage.removeItem(DKEY);return null}}return v}catch(e){return null}}
+    function setConsent(v){try{localStorage.setItem(KEY,v);localStorage.setItem(DKEY,Date.now().toString())}catch(e){}}
+    function removeConsent(){try{localStorage.removeItem(KEY);localStorage.removeItem(DKEY)}catch(e){}}
     _paq.push(['requireConsent']);
     var consent=getConsent();
     if(consent==='granted')_paq.push(['setConsentGiven']);
@@ -145,12 +139,13 @@
     function show(){var b=document.getElementById('cookie-consent-banner');if(b)b.classList.add('is-visible')}
     function hide(){var b=document.getElementById('cookie-consent-banner');if(b)b.classList.remove('is-visible')}
     window.hook0Consent={
-        accept:function(){setConsent('granted');window._paq.push(['setConsentGiven']);hide()},
+        accept:function(){setConsent('granted');window._paq.push(['setConsentGiven']);if(typeof loadCrisp==='function')loadCrisp();hide()},
         deny:function(){setConsent('denied');window._paq.push(['forgetConsentGiven']);hide()},
         reset:function(){removeConsent();window._paq.push(['forgetConsentGiven']);show()},
         getStatus:function(){return getConsent()}
     };
     document.addEventListener('DOMContentLoaded',function(){
+        if(consent==='granted'&&typeof loadCrisp==='function')loadCrisp();
         if(!consent)show();
         // Goal 1: Registration Click - tracked via inline onclick handlers
         // Goal 2: Login Click - Event Name exact "Login"
