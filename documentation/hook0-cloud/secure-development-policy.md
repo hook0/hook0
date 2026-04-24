@@ -39,3 +39,20 @@ The use of libraries and frameworks is encouraged, but
 
 - The versions should be periodically assessed for vulnerabilities
 - Use the library or framework as-is, refrain from making changes (this makes updating a lot more complicated, and it may pose licensing problems)
+
+### Security tooling
+
+The following tools are integrated into the CI/CD pipeline and enforced on every merge request:
+
+- **Static Application Security Testing (SAST)**: GitLab SAST template, run automatically on each pipeline
+- **Dynamic Application Security Testing (DAST)**: GitLab DAST template, run automatically on each pipeline
+- **Container scanning**: Trivy for filesystem and container image vulnerability scanning
+- **Dependency vulnerability scanning**: osv-scanner for detecting known vulnerabilities in dependencies
+- **Secret detection**: GitLab secret detection template to prevent credentials from being committed
+- **Code linting**: Clippy with warnings treated as errors (`-D warnings`), enforced in CI
+- **Code formatting**: `cargo fmt --check` to ensure consistent code style across the codebase
+
+### Observability
+
+- **Error tracking**: Sentry (optional, configured via environment variable) for runtime error monitoring
+- **Distributed tracing**: OpenTelemetry with OTLP export for end-to-end request tracing
