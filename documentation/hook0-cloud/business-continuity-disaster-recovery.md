@@ -81,6 +81,22 @@ Maintenance will include:
 - Reviewing and updating the plan
 - Training employees on the plan
 
+## Data breach notification
+
+In the event of a personal data breach as defined by Article 4(12) of the GDPR, the following procedure applies:
+
+1. **Detection and assessment**: The breach is assessed for severity, categories of data affected, and number of individuals impacted.
+
+2. **Internal notification**: The designated privacy contact (legal@hook0.com) is notified immediately upon detection.
+
+3. **Authority notification (CNIL)**: If the breach is likely to result in a risk to the rights and freedoms of individuals, the CNIL (French data protection authority) is notified within **72 hours** of becoming aware of the breach, in accordance with Article 33 of the GDPR.
+
+4. **Customer notification**: Affected customers (as data controllers) are notified without undue delay and in any event within 72 hours, enabling them to meet their own notification obligations.
+
+5. **Individual notification**: Where the breach is likely to result in a high risk to individuals, affected individuals are notified without undue delay in accordance with Article 34 of the GDPR.
+
+6. **Documentation**: All breaches are documented regardless of severity, including the facts, effects, and remedial actions taken.
+
 ## Conclusion
 
 This BCDR provides Hook0 with a roadmap for resuming critical business operations in the event of a disaster. By following the procedures outlined in this BCDR, Hook0 can minimize the impact of a disaster and ensure that it can continue to serve its customers.

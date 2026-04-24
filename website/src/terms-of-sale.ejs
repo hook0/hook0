@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Hook0 - Terms of Sale</title>
+    <%
+    locals.pageTitle = 'Hook0 - Terms of Sale';
+    locals.pageDescription = 'Terms of Sale for Hook0 Webhooks-as-a-Service. Pricing, payment terms, invoicing, and cancellation policy for Cloud and On-Premise plans.';
+    locals.pageCanonical = '/terms-of-sale';
+    %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-24">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Legal</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            Terms of Sale
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            Commercial terms governing the purchase of Hook0 plans and services
+        </p>
+        <div class="mt-6 text-sm text-gray-500">
+            Last Updated: April 24, 2026
+        </div>
+    </div>
+</section>
+
+<!-- Main Content Section -->
+<section class="relative bg-surface-primary py-16 sm:py-20 overflow-hidden">
+    <!-- Background Effects -->
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--indigo w-64 h-64 top-1/4 right-0 opacity-10"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 bottom-1/4 left-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Introduction Card -->
+        <div class="card card--glow mb-12 animate-on-scroll">
+            <div class="prose prose-invert prose-lg max-w-none">
+                <p class="text-gray-300 leading-relaxed">
+                    These Terms of Sale govern all orders and subscriptions placed with FGRibreau SARL, a French company registered under number 850 824 350 at the RCS La Roche-sur-Yon, with registered office at 3 rue de l'Aubépine, 85110 Chantonnay, France, VAT number FR27850824350 (hereinafter "Hook0" or "we"), for access to the Hook0 platform and related services.
+                </p>
+                <p class="text-gray-300 leading-relaxed">
+                    These Terms of Sale apply exclusively to business-to-business (B2B) transactions. They are incorporated by reference into and supplement the <a href="/terms" class="text-green-400 hover:text-green-300 transition-colors">Terms of Service</a>. In the event of a conflict between these Terms of Sale and the Terms of Service, these Terms of Sale shall prevail with respect to commercial and billing matters.
+                </p>
+                <p class="text-gray-300 leading-relaxed">
+                    By placing an order or activating a paid subscription, the customer expressly accepts these Terms of Sale in full.
+                </p>
+            </div>
+        </div>
+
+        <!-- Section 1: Scope and Applicability -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">1. Scope and Applicability</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">1.1.</strong> These Terms of Sale apply to any subscription to Hook0 Cloud plans (Developer, Startup, Pro, Enterprise) and On-Premise plans (Self-hosted, Pro, Enterprise), regardless of the channel through which the order is placed.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">1.2.</strong> These Terms of Sale apply exclusively to professional customers (businesses, associations, public entities). They do not apply to consumers within the meaning of the French Consumer Code.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">1.3.</strong> Any general purchasing conditions of the customer are expressly excluded and shall have no effect, even if communicated to Hook0 after acceptance of these Terms of Sale, unless Hook0 has expressly accepted them in writing.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Pricing -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">2. Pricing</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">2.1.</strong> All prices are stated exclusive of taxes (excl. VAT). Applicable VAT or equivalent taxes are added automatically at the time of invoicing in accordance with the applicable legislation, based on the customer's country of establishment.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">2.2.</strong> Current prices for all plans are published at <a href="/pricing" class="text-green-400 hover:text-green-300 transition-colors">hook0.com/pricing</a> and are incorporated by reference into these Terms of Sale. Published prices are subject to change in accordance with Section 9 of these Terms of Sale.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">2.3. Cloud plans</strong> — indicative pricing at the date of last update:</p>
+                    <ul class="text-gray-300">
+                        <li><strong class="text-white">Developer</strong>: Free — 100 events/day, 7-day retention</li>
+                        <li><strong class="text-white">Startup</strong>: €59/month excl. VAT — 30,000 events/day; overage at €0.003/event</li>
+                        <li><strong class="text-white">Pro</strong>: €190/month or €1,824/year excl. VAT — 100,000 events/day; overage at €0.0001/event</li>
+                        <li><strong class="text-white">Enterprise</strong>: Custom quote</li>
+                    </ul>
+
+                    <p class="text-gray-300"><strong class="text-white">2.4. On-Premise plans</strong> — indicative pricing at the date of last update:</p>
+                    <ul class="text-gray-300">
+                        <li><strong class="text-white">Self-hosted</strong>: Free (SSPL license)</li>
+                        <li><strong class="text-white">Pro</strong>: €1,000 setup fee + €500/month or €6,000/year excl. VAT</li>
+                        <li><strong class="text-white">Enterprise</strong>: Custom quote</li>
+                    </ul>
+
+                    <p class="text-gray-300"><strong class="text-white">2.5.</strong> The prices listed in Sections 2.3 and 2.4 are provided for information purposes only. The binding prices are those displayed on <a href="/pricing" class="text-green-400 hover:text-green-300 transition-colors">hook0.com/pricing</a> at the time the order is placed, or as set out in a specific quote for Enterprise customers.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Ordering and Subscription -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">3. Ordering and Subscription</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">3.1.</strong> Subscriptions to self-service plans (Developer, Startup, Pro) are placed directly via the Hook0 application at <a href="https://app.hook0.com" class="text-green-400 hover:text-green-300 transition-colors">app.hook0.com</a>. The customer selects the desired plan and provides valid payment information.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">3.2.</strong> Enterprise and On-Premise Pro subscriptions require a custom quote. The customer may request a quote by contacting <a href="mailto:sales@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">sales@hook0.com</a>. The contract is formed upon written acceptance of the quote by both parties.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">3.3.</strong> For self-service plans, the contract is formed at the time the customer confirms the order in the application and Hook0 activates the selected plan.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Invoicing -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">4. Invoicing</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">4.1.</strong> Invoicing for self-service plans is handled automatically through Stripe, Hook0's payment service provider. Invoices are generated at the start of each billing period (monthly or annual, according to the selected plan) and are available in the customer's Stripe billing portal.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">4.2.</strong> For Enterprise and On-Premise Pro plans, invoices are issued by Hook0 directly and sent to the billing address provided by the customer at the time of order.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">4.3.</strong> Annual subscriptions are invoiced in full at the start of the subscription year.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">4.4.</strong> Overage charges, where applicable, are calculated at the end of each billing period and invoiced with the following period's invoice or separately, at Hook0's discretion.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: Payment Terms -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">5. Payment Terms</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">5.1. Self-service plans (Developer, Startup, Pro)</strong>. Payment is due immediately upon invoicing by direct debit from the payment card registered with Stripe. By subscribing, the customer authorizes Hook0 to charge the registered payment method on a recurring basis in accordance with the selected billing cycle.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">5.2. Enterprise and On-Premise Pro plans</strong>. Unless otherwise specified in the applicable quote or order form, invoices are payable within thirty (30) days of the invoice date.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">5.3.</strong> All payments shall be made in euros (EUR). Bank transfer fees and currency conversion costs, if any, are borne by the customer.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 6: Late Payment -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">6. Late Payment</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">6.1.</strong> In accordance with article L441-10 of the French Commercial Code, any amount not paid by the due date shall automatically and without prior notice give rise to late payment penalties calculated at a rate equal to three (3) times the legal interest rate in force, applied to the outstanding amount from the due date until the date of actual payment.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">6.2.</strong> In addition, pursuant to article D441-5 of the French Commercial Code, a flat-rate recovery fee of forty euros (€40) shall be due by the customer for each unpaid invoice, in addition to any late payment penalties. Where the recovery costs actually incurred by Hook0 exceed this amount, Hook0 reserves the right to claim additional compensation upon presentation of supporting documents.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">6.3.</strong> Without prejudice to the foregoing, Hook0 reserves the right to suspend or restrict the customer's access to the service, without prior notice and without liability, in the event of non-payment of any amount due after a grace period of seven (7) calendar days following the due date. Service suspension does not release the customer from its payment obligations.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 7: Overage Charges -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">7. Overage Charges</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">7.1.</strong> Each paid plan includes a daily event quota as set out in Section 2.3. When usage exceeds the included quota, overage charges apply at the per-event rate specified for the customer's plan.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">7.2.</strong> For the Developer (free) plan, no overage billing applies. Events exceeding the daily quota are blocked until the quota resets at the start of the following day.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">7.3.</strong> Overage charges are calculated automatically and invoiced as described in Section 4.4. The customer accepts that usage of the service above the included quota constitutes an implicit order for overage capacity at the applicable per-event rate.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 8: Plan Changes -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">8. Plan Changes</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">8.1. Upgrade</strong>. A plan upgrade (switch to a higher-tier plan) takes effect immediately upon confirmation. The customer is billed the pro-rated difference for the remainder of the current billing period.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">8.2. Downgrade</strong>. A plan downgrade (switch to a lower-tier plan) takes effect at the end of the current billing period. The customer retains access to the current plan's features and quotas until that date. No refund is issued for the remaining period.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">8.3.</strong> Plan changes can be initiated from the Hook0 application or by contacting <a href="mailto:support@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">support@hook0.com</a>.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 9: Price Changes -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">9. Price Changes</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">9.1.</strong> Hook0 reserves the right to modify its pricing at any time, subject to thirty (30) days' prior written notice sent to the customer's registered email address or published on the Hook0 website.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">9.2.</strong> New prices apply to the first billing period commencing after the end of the notice period. Price changes have no retroactive effect on periods already billed.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">9.3.</strong> If the customer does not accept the new pricing, it may cancel its subscription before the new prices take effect in accordance with Section 10. Continued use of the service after the effective date of the price change constitutes acceptance of the new prices.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 10: Cancellation and Termination -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">10. Cancellation and Termination</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">10.1.</strong> The customer may cancel its subscription at any time by sending a request to <a href="mailto:support@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">support@hook0.com</a>.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">10.2.</strong> Cancellation takes effect at the end of the current billing period. The customer retains access to the subscribed plan until that date.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">10.3. No refund policy</strong>. Periods already billed and paid are non-refundable, regardless of the reason for cancellation and regardless of whether the service was actually used during that period. This policy applies to both monthly and annual subscriptions.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">10.4. Data retention after cancellation</strong>. Customer data is retained for thirty (30) days following the end of the subscription, during which the customer may request an export of its data by contacting <a href="mailto:support@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">support@hook0.com</a>. After this thirty-day period, all customer data is permanently deleted.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">10.5.</strong> Hook0 may terminate a subscription immediately and without refund in the event of material breach of the Terms of Service by the customer, including but not limited to non-payment, fraudulent use, or violation of acceptable use policies.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 11: Free Plan -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">11. Free Plan</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">11.1.</strong> The Developer plan is provided free of charge. It does not constitute a commercial commitment on the part of Hook0 and may be modified, limited, or discontinued at Hook0's discretion.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">11.2.</strong> Hook0 will provide at least ninety (90) days' prior notice before discontinuing the free Developer plan or materially reducing its included quotas. Notice will be sent to the registered email address and/or published on the Hook0 website.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 12: Taxes -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">12. Taxes</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">12.1.</strong> All prices are stated exclusive of taxes (excl. VAT). Applicable VAT or equivalent indirect taxes are added to the invoice amount and collected by Hook0 or by Stripe, in accordance with the tax rules applicable in the customer's country of establishment.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">12.2.</strong> Business customers established in a European Union member state other than France may be exempt from French VAT if they provide a valid intra-community VAT number. It is the customer's responsibility to provide accurate and up-to-date tax information in their account settings.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">12.3.</strong> Customers established outside the European Union are responsible for any import duties, withholding taxes, or other levies applicable in their country. Hook0 does not collect taxes on behalf of foreign tax authorities except where required by applicable law.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 13: Applicable Law and Jurisdiction -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">13. Applicable Law and Jurisdiction</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">13.1.</strong> These Terms of Sale are governed exclusively by French law. The application of the United Nations Convention on Contracts for the International Sale of Goods (CISG) is expressly excluded.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">13.2.</strong> In the event of a dispute arising from the formation, interpretation, performance, or termination of these Terms of Sale, the parties agree to first seek an amicable resolution. If no amicable resolution is reached within thirty (30) days of written notice of the dispute, the dispute shall be submitted to the exclusive jurisdiction of the competent courts of Nantes, France, notwithstanding multiple defendants or third-party proceedings.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 14: Contact -->
+        <div class="mb-12 animate-on-scroll">
+            <div class="mb-6">
+                <h2 class="text-display font-bold text-white">14. Contact</h2>
+                <div class="mt-3 h-1 w-20 bg-gradient-to-r from-green-500 to-indigo-500 rounded-full"></div>
+            </div>
+            <div class="card card--glow">
+                <div class="prose prose-invert prose-lg max-w-none">
+                    <p class="text-gray-300"><strong class="text-white">14.1.</strong> For any question relating to these Terms of Sale, invoicing, or commercial matters, please contact:</p>
+                    <ul class="text-gray-300">
+                        <li><strong class="text-white">Legal matters</strong>: <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a></li>
+                        <li><strong class="text-white">Billing and subscriptions</strong>: <a href="mailto:support@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">support@hook0.com</a></li>
+                        <li><strong class="text-white">Enterprise sales</strong>: <a href="mailto:sales@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">sales@hook0.com</a></li>
+                        <li><strong class="text-white">Registered office</strong>: FGRibreau SARL, 3 rue de l'Aubépine, 85110 Chantonnay, France</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>
