@@ -1,20 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Hook0 - Privacy Policy</title>
+    <title>Hook0 - Privacy Policy / Politique de confidentialité</title>
     <%
-    locals.pageTitle = 'Hook0 - Privacy Policy';
-    locals.pageDescription = 'Hook0 Privacy Policy - Learn how we handle and protect your data. GDPR compliant, hosted in Europe, with transparent data processing practices.';
+    locals.pageTitle = 'Hook0 - Privacy Policy / Politique de confidentialité';
+    locals.pageDescription = 'Hook0 Privacy Policy — GDPR Article 13 compliant. Legal basis, data retention, your rights, subprocessors, and transfers outside the EU. / Politique de confidentialité conforme à l\'article 13 du RGPD.';
     locals.pageCanonical = '/privacy-policy';
     %>
     <%- include('./includes/_head.ejs') %>
+    <style>
+        .policy-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+        .policy-table th,
+        .policy-table td {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.875rem 1rem;
+            text-align: left;
+            vertical-align: top;
+        }
+        .policy-table th {
+            background-color: rgba(99, 102, 241, 0.3);
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .policy-table td {
+            background-color: rgba(255, 255, 255, 0.02);
+            color: #d1d5db;
+            font-size: 0.9375rem;
+            line-height: 1.5;
+        }
+        .policy-table tr:hover td {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        .lang-divider {
+            border: 0;
+            border-top: 2px solid rgba(99, 102, 241, 0.4);
+            margin: 4rem 0;
+        }
+        .lang-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.875rem;
+            border-radius: 9999px;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            color: #a5b4fc;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+        }
+        .section-anchor {
+            scroll-margin-top: 5rem;
+        }
+    </style>
 </head>
 <body>
 <%- include('./includes/_header.ejs') %>
 
 <!-- Hero Section -->
 <section class="relative gradient-hero overflow-hidden py-20 sm:py-24">
-    <!-- Background Effects -->
     <div class="absolute inset-0 grid-pattern opacity-50"></div>
     <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
     <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
@@ -23,93 +76,850 @@
         <span class="section__eyebrow">Legal</span>
         <h1 class="mt-4 text-display-xl text-white">
             Privacy Policy
+            <span class="block text-2xl font-normal text-gray-400 mt-2">Politique de confidentialité</span>
         </h1>
         <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
-            Your privacy is important to us. Here's how we handle and protect your data.
+            How Hook0 collects, uses, and protects your personal data — in compliance with GDPR Article 13.
         </p>
+        <div class="mt-4 inline-flex items-center px-4 py-2 rounded-full bg-white/10 text-sm text-gray-300">
+            <svg class="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            Last updated: April 24, 2026
+        </div>
     </div>
 </section>
 
 <!-- Main Content Section -->
 <section class="relative bg-surface-primary py-16 sm:py-20 overflow-hidden">
-    <!-- Background Effects -->
     <div class="absolute inset-0 grid-pattern opacity-20"></div>
     <div class="blur-circle blur-circle--indigo w-64 h-64 top-1/4 right-0 opacity-10"></div>
     <div class="blur-circle blur-circle--green w-64 h-64 bottom-1/4 left-0 opacity-10"></div>
 
     <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div class="card card--glow animate-on-scroll">
-            <div class="prose prose-invert prose-lg max-w-none">
+        <!-- ===== ENGLISH VERSION ===== -->
+        <div class="mb-4">
+            <span class="lang-badge">English</span>
+        </div>
 
-                <!-- Our Story -->
-                <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white mb-4">Our Story</h2>
-                    <p class="text-gray-300 leading-relaxed">
-                        Hook0 started life as a way to open-source the internal webhook management services from Francois-Guillaume Ribreau's and David Sferruzza's successive SaaS ventures and stop writing the same code again and again.
-                    </p>
-                </div>
-
-                <!-- Privacy Commitments -->
-                <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white mb-4">Our Privacy Commitments</h2>
-                    <ul class="space-y-4">
-                        <li class="flex items-start gap-3">
-                            <%- include('./includes/_checkmark-icon.ejs') %>
-                            <span class="text-gray-300">We do not share user data with third parties under any circumstances.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <%- include('./includes/_checkmark-icon.ejs') %>
-                            <span class="text-gray-300">All revenue comes from paid subscriptions, removing the need for any type of tracking.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <%- include('./includes/_checkmark-icon.ejs') %>
-                            <span class="text-gray-300">Hook0 does not store your payment information. Payment is handled through Stripe, but if you are uncomfortable using those services, alternative arrangements are available.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <%- include('./includes/_checkmark-icon.ejs') %>
-                            <span class="text-gray-300">Hook0 earns all of its revenue through user subscriptions, and has no business relationship with large surveillance-based platforms like Facebook, Amazon or Google.</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <% if (process.env.MATOMO_URL && process.env.MATOMO_SITE_ID) { %>
-                <!-- Analytics -->
-                <div class="mb-8 p-6 rounded-xl bg-white/5 border border-white/10">
-                    <h2 class="text-2xl font-bold text-white mb-4">Analytics & Cookies</h2>
-                    <p class="text-gray-300 mb-4">
-                        We use a self-hosted instance of Matomo to track visits on this website. It is configured to be GDPR compliant and does not track any personal data without your consent.
-                    </p>
-                    <div class="flex flex-wrap gap-4 mb-4">
-                        <button type="button" onclick="window.hook0Consent && window.hook0Consent.reset()" class="btn btn--secondary btn--sm">
-                            Change Cookie Settings
-                        </button>
-                    </div>
-                    <div id="matomo-opt-out" class="p-4 rounded-lg bg-surface-secondary"></div>
-                    <script src="<%= process.env.MATOMO_URL %>/index.php?module=CoreAdminHome&action=optOutJS&divId=matomo-opt-out&language=auto&showIntro=1"></script>
-                </div>
-                <% } %>
-
-                <!-- Security Breach Disclosure -->
-                <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white mb-4">Security & Breach Disclosure</h2>
-                    <ul class="space-y-4">
-                        <li class="flex items-start gap-3">
-                            <%- include('./includes/_icon-wrapper.ejs', { color: 'indigo', iconPath: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' }) %>
-                            <span class="text-gray-300">If there is a privacy breach, we promise to disclose it as soon as possible on our <a href="https://twitter.com/hook0_" class="text-green-400 hover:text-green-300 transition-colors">Twitter</a> account.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <%- include('./includes/_icon-wrapper.ejs', { color: 'indigo', iconPath: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' }) %>
-                            <span class="text-gray-300">If you choose to delete your account, all your data will be removed after a 30-day waiting period.</span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <%- include('./includes/_icon-wrapper.ejs', { color: 'indigo', iconPath: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' }) %>
-                            <span class="text-gray-300">If you spot a privacy leak, please report it to <a href="mailto:support@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">support@hook0.com</a>.</span>
-                        </li>
-                    </ul>
-                </div>
-
+        <!-- 1. Data Controller -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="controller">
+            <h2 class="text-2xl font-bold text-white mb-4">1. Data Controller</h2>
+            <p class="text-gray-300 leading-relaxed mb-3">
+                The data controller responsible for processing your personal data in connection with the Hook0 service is:
+            </p>
+            <div class="p-4 rounded-lg bg-white/5 border border-white/10 text-gray-300 leading-relaxed">
+                <strong class="text-white">FGRibreau SARL</strong><br>
+                3 rue de l'Aubépine<br>
+                85110 Chantonnay, France<br>
+                SIRET: available on request<br>
+                Privacy contact: <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>
             </div>
+            <p class="text-gray-400 text-sm mt-3">
+                Hook0 is a 100% B2B SaaS platform. We do not intentionally collect data from individuals acting in a personal capacity.
+            </p>
+        </div>
+
+        <!-- 2. Purposes and Legal Bases -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="purposes">
+            <h2 class="text-2xl font-bold text-white mb-4">2. Purposes and Legal Bases</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                The following table sets out each processing activity, the data involved, and the legal basis under Article 6 GDPR.
+            </p>
+            <div class="overflow-x-auto">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>Purpose</th>
+                            <th>Data categories</th>
+                            <th>Legal basis (Art. 6 GDPR)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong class="text-white">Service provision</strong><br><span class="text-gray-400 text-sm">Account creation, authentication, API access, webhook delivery</span></td>
+                            <td>Email address, name, API keys, webhook payloads, IP address, usage logs</td>
+                            <td>Art. 6(1)(b) — Performance of a contract</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Billing and payment</strong><br><span class="text-gray-400 text-sm">Subscription management, invoicing, tax records</span></td>
+                            <td>Name, email, billing address, payment instrument data (processed by Stripe), subscription history</td>
+                            <td>Art. 6(1)(b) — Performance of a contract<br>Art. 6(1)(c) — Legal obligation (French fiscal law, 10-year retention)</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Website analytics</strong><br><span class="text-gray-400 text-sm">Understanding how visitors use our site via Matomo (self-hosted)</span></td>
+                            <td>Anonymised IP address, pages visited, referrer, device type, session duration</td>
+                            <td>Art. 6(1)(a) — Consent (cookie banner)</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Conversion tracking</strong><br><span class="text-gray-400 text-sm">Google Ads conversion measurement</span></td>
+                            <td>Pseudonymous click and conversion identifiers</td>
+                            <td>Art. 6(1)(a) — Consent (cookie banner)</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Customer support — live chat</strong><br><span class="text-gray-400 text-sm">Crisp widget (loaded only after consent)</span></td>
+                            <td>Name, email, chat messages, browser metadata</td>
+                            <td>Art. 6(1)(a) — Consent</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Customer support — email</strong><br><span class="text-gray-400 text-sm">Handling support requests sent to legal@hook0.com or support@hook0.com</span></td>
+                            <td>Name, email, content of exchanges</td>
+                            <td>Art. 6(1)(f) — Legitimate interests (responding to customer requests)</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Security and monitoring</strong><br><span class="text-gray-400 text-sm">Error tracking, uptime monitoring, DDoS protection, incident response</span></td>
+                            <td>IP address, error stack traces, request metadata, uptime check results</td>
+                            <td>Art. 6(1)(f) — Legitimate interests (ensuring service integrity and security)</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Commercial communications</strong><br><span class="text-gray-400 text-sm">Product updates, release notes, newsletters</span></td>
+                            <td>Email address, first name</td>
+                            <td>Art. 6(1)(a) — Consent</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. Data Categories -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="data-categories">
+            <h2 class="text-2xl font-bold text-white mb-4">3. Categories of Personal Data</h2>
+            <ul class="space-y-3 text-gray-300">
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Identity data:</strong> first name, last name, professional email address</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Account data:</strong> username, encrypted password, API keys</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Payment data:</strong> billing address, last 4 digits of card and expiry date (Stripe stores full card data — Hook0 never has access to full card numbers)</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Technical data:</strong> IP address, browser user-agent, connection timestamps, error logs</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Usage data:</strong> webhook events sent and received, API call volume, feature usage metrics</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Communications:</strong> content of support exchanges, chat transcripts</span>
+                </li>
+            </ul>
+            <p class="text-gray-400 text-sm mt-4">
+                Hook0 does not process special categories of personal data (Article 9 GDPR) and does not perform automated decision-making or profiling with legal or similarly significant effects.
+            </p>
+        </div>
+
+        <!-- 4. Recipients and Subprocessors -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="subprocessors">
+            <h2 class="text-2xl font-bold text-white mb-4">4. Recipients and Subprocessors</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                We share data with our subprocessors strictly as needed to provide the Service. The complete and up-to-date list is maintained at <a href="/gdpr-subprocessors" class="text-green-400 hover:text-green-300 transition-colors">/gdpr-subprocessors</a>. A summary is provided below.
+            </p>
+
+            <h3 class="text-lg font-semibold text-white mt-6 mb-3">Infrastructure</h3>
+            <div class="overflow-x-auto">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>Subprocessor</th>
+                            <th>Country</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Clever Cloud SAS</td>
+                            <td>France (EU)</td>
+                            <td>Database, API, web application hosting</td>
+                        </tr>
+                        <tr>
+                            <td>Cloudflare, Inc.</td>
+                            <td>USA</td>
+                            <td>DNS and DDoS protection</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="text-lg font-semibold text-white mt-6 mb-3">Service operation</h3>
+            <div class="overflow-x-auto">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>Subprocessor</th>
+                            <th>Country</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Clever Cloud SAS</td>
+                            <td>France (EU)</td>
+                            <td>Workers calling webhook subscription endpoints</td>
+                        </tr>
+                        <tr>
+                            <td>Scaleway SAS</td>
+                            <td>France (EU)</td>
+                            <td>Private dedicated workers (selected plans)</td>
+                        </tr>
+                        <tr>
+                            <td>Stripe, Inc.</td>
+                            <td>USA</td>
+                            <td>Subscription and payment management</td>
+                        </tr>
+                        <tr>
+                            <td>Brevo (Sendinblue)</td>
+                            <td>France (EU)</td>
+                            <td>Automated transactional emails</td>
+                        </tr>
+                        <tr>
+                            <td>Postmark (ActiveCampaign)</td>
+                            <td>USA</td>
+                            <td>Automated transactional emails</td>
+                        </tr>
+                        <tr>
+                            <td>BetterUptime</td>
+                            <td>Czech Republic (EU)</td>
+                            <td>Uptime monitoring and status page</td>
+                        </tr>
+                        <tr>
+                            <td>Sentry, Inc.</td>
+                            <td>USA</td>
+                            <td>Application error tracking</td>
+                        </tr>
+                        <tr>
+                            <td>Crisp</td>
+                            <td>France (EU)</td>
+                            <td>Customer support chat (consent-gated)</td>
+                        </tr>
+                        <tr>
+                            <td>Google LLC (Gmail)</td>
+                            <td>USA</td>
+                            <td>Support inbox</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="text-lg font-semibold text-white mt-6 mb-3">Analytics (consent-gated)</h3>
+            <div class="overflow-x-auto">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th>Country</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Matomo (self-hosted on matomo.hook0.com)</td>
+                            <td>France (EU)</td>
+                            <td>Website analytics</td>
+                        </tr>
+                        <tr>
+                            <td>Google Ads</td>
+                            <td>USA</td>
+                            <td>Conversion tracking</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="text-gray-400 text-sm mt-4">
+                A Data Processing Agreement (DPA) is in place with each subprocessor. For transfers outside the EU, see Section 5.
+            </p>
+        </div>
+
+        <!-- 5. Transfers Outside the EU -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="transfers">
+            <h2 class="text-2xl font-bold text-white mb-4">5. Transfers Outside the European Union</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                Several subprocessors are established in the United States: Cloudflare, Stripe, Postmark, Sentry, Gmail (Google), and Google Ads. These transfers are governed by <strong class="text-white">Standard Contractual Clauses (SCCs)</strong> approved by the European Commission (Decision 2021/914), which provide an adequate level of protection for personal data.
+            </p>
+            <div class="p-4 rounded-lg bg-amber-900/20 border border-amber-500/30 text-amber-200 text-sm leading-relaxed">
+                <strong>CLOUD Act notice:</strong> US-established providers may be subject to the CLOUD Act (Clarifying Lawful Overseas Use of Data Act), which may allow US authorities to require access to data held by those providers, even when stored outside the US. Hook0 applies a data minimisation approach and limits the personal data shared with US-based subprocessors to what is strictly necessary.
+            </div>
+        </div>
+
+        <!-- 6. Retention Periods -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="retention">
+            <h2 class="text-2xl font-bold text-white mb-4">6. Retention Periods</h2>
+            <div class="overflow-x-auto">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>Data category</th>
+                            <th>Retention period</th>
+                            <th>Justification</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Account data</td>
+                            <td>Duration of the contract + 30 days after account deletion</td>
+                            <td>Contractual necessity; 30-day grace period to allow data export</td>
+                        </tr>
+                        <tr>
+                            <td>Billing and invoicing records</td>
+                            <td>10 years from the date of the transaction</td>
+                            <td>Legal obligation — French General Tax Code (Code général des impôts), Art. L102 B of the Tax Procedures Book</td>
+                        </tr>
+                        <tr>
+                            <td>Webhook event logs</td>
+                            <td>7 to 30 days depending on the subscription plan</td>
+                            <td>Service delivery; configurable per plan</td>
+                        </tr>
+                        <tr>
+                            <td>Website analytics (Matomo)</td>
+                            <td>25 months</td>
+                            <td>CNIL recommendation for analytics data</td>
+                        </tr>
+                        <tr>
+                            <td>Support communications</td>
+                            <td>3 years from the last exchange</td>
+                            <td>Legitimate interests; statutory limitation period for contractual claims</td>
+                        </tr>
+                        <tr>
+                            <td>Consent records</td>
+                            <td>5 years from the date of consent</td>
+                            <td>Ability to demonstrate compliance (Art. 7(1) GDPR)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 7. Your Rights -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="rights">
+            <h2 class="text-2xl font-bold text-white mb-4">7. Your Rights</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                Under the GDPR, you have the following rights with respect to your personal data:
+            </p>
+            <ul class="space-y-3 text-gray-300 mb-4">
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Right of access</strong> (Art. 15) — obtain a copy of the personal data we hold about you</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Right to rectification</strong> (Art. 16) — correct inaccurate or incomplete data</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Right to erasure</strong> (Art. 17) — request deletion of your data, subject to legal retention obligations</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Right to restriction</strong> (Art. 18) — request that we restrict processing in certain circumstances</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Right to data portability</strong> (Art. 20) — receive your data in a structured, machine-readable format, where processing is based on consent or contract</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Right to object</strong> (Art. 21) — object to processing based on legitimate interests or for direct marketing purposes</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Right to withdraw consent</strong> (Art. 7(3)) — withdraw consent at any time without affecting the lawfulness of prior processing</span>
+                </li>
+            </ul>
+            <div class="p-4 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm leading-relaxed">
+                To exercise any of these rights, send a request to <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. We will respond within 30 days. We may ask you to verify your identity before processing your request.
+            </div>
+        </div>
+
+        <!-- 8. Right to Lodge a Complaint -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="cnil">
+            <h2 class="text-2xl font-bold text-white mb-4">8. Right to Lodge a Complaint with the CNIL</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                If you consider that the processing of your personal data infringes the GDPR, you have the right to lodge a complaint with the French data protection authority:
+            </p>
+            <div class="p-4 rounded-lg bg-white/5 border border-white/10 text-gray-300 leading-relaxed">
+                <strong class="text-white">Commission Nationale de l'Informatique et des Libertés (CNIL)</strong><br>
+                3 Place de Fontenoy — TSA 80715<br>
+                75334 Paris Cedex 07, France<br>
+                Website: <a href="https://www.cnil.fr" class="text-green-400 hover:text-green-300 transition-colors" target="_blank" rel="noopener">www.cnil.fr</a>
+            </div>
+            <p class="text-gray-400 text-sm mt-3">
+                You may also contact any EU supervisory authority in the Member State of your habitual residence or place of work.
+            </p>
+        </div>
+
+        <!-- 9. Cookies and Trackers -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="cookies">
+            <h2 class="text-2xl font-bold text-white mb-4">9. Cookies and Trackers</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                Hook0 uses a consent management mechanism on its website. The following services are only loaded after you have given explicit consent:
+            </p>
+            <ul class="space-y-2 text-gray-300 mb-4">
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Matomo Analytics</strong> (self-hosted) — website usage analytics, anonymised by default</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Google Ads</strong> — conversion tracking (Google tag)</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Crisp</strong> — live chat widget</span>
+                </li>
+            </ul>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                Consent preferences are stored in <code class="text-green-400">localStorage</code> with a validity of <strong class="text-white">13 months</strong>, in line with CNIL guidelines. You can change your preferences at any time:
+            </p>
+            <div class="flex flex-wrap gap-4 mb-4">
+                <button type="button" onclick="window.hook0Consent && window.hook0Consent.reset()" class="btn btn--secondary btn--sm">
+                    Change Cookie Settings
+                </button>
+            </div>
+            <% if (process.env.MATOMO_URL && process.env.MATOMO_SITE_ID) { %>
+            <div id="matomo-opt-out" class="p-4 rounded-lg bg-surface-secondary mt-4"></div>
+            <script src="<%= process.env.MATOMO_URL %>/index.php?module=CoreAdminHome&action=optOutJS&divId=matomo-opt-out&language=auto&showIntro=1"></script>
+            <% } %>
+        </div>
+
+        <!-- 10. Security -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="security">
+            <h2 class="text-2xl font-bold text-white mb-4">10. Security</h2>
+            <p class="text-gray-300 leading-relaxed mb-3">
+                Hook0 implements appropriate technical and organisational measures to protect personal data against accidental loss, unauthorised access, disclosure, alteration, or destruction. These include encryption in transit (TLS 1.2+), encryption at rest, access controls, and regular security reviews.
+            </p>
+            <p class="text-gray-300 leading-relaxed mb-3">
+                Details of our security practices are available on our <a href="/security" class="text-green-400 hover:text-green-300 transition-colors">Security page</a>.
+            </p>
+            <p class="text-gray-300 leading-relaxed">
+                In the event of a personal data breach likely to result in a risk to your rights and freedoms, we will notify the CNIL within 72 hours (Art. 33 GDPR) and affected individuals without undue delay where required (Art. 34 GDPR). If you discover a potential data exposure, please report it immediately to <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.
+            </p>
+        </div>
+
+        <!-- 11. Changes -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="changes">
+            <h2 class="text-2xl font-bold text-white mb-4">11. Changes to This Policy</h2>
+            <p class="text-gray-300 leading-relaxed">
+                We may update this Privacy Policy from time to time. When we do, we will update the "Last updated" date at the top of this page. For material changes, we will notify you by email to the address associated with your account or by a prominent notice on the website at least 30 days before the change takes effect.
+            </p>
+        </div>
+
+        <!-- ===== FRENCH VERSION ===== -->
+        <hr class="lang-divider">
+
+        <div class="mb-4">
+            <span class="lang-badge">Français</span>
+        </div>
+
+        <!-- FR 1. Responsable du traitement -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="fr-responsable">
+            <h2 class="text-2xl font-bold text-white mb-4">1. Responsable du traitement</h2>
+            <p class="text-gray-300 leading-relaxed mb-3">
+                Le responsable du traitement de vos données personnelles dans le cadre du service Hook0 est :
+            </p>
+            <div class="p-4 rounded-lg bg-white/5 border border-white/10 text-gray-300 leading-relaxed">
+                <strong class="text-white">FGRibreau SARL</strong><br>
+                3 rue de l'Aubépine<br>
+                85110 Chantonnay, France<br>
+                SIRET : disponible sur demande<br>
+                Contact protection des données : <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>
+            </div>
+            <p class="text-gray-400 text-sm mt-3">
+                Hook0 est une plateforme SaaS exclusivement destinée aux professionnels (B2B). Nous ne collectons pas intentionnellement de données relatives à des personnes physiques agissant à titre privé.
+            </p>
+        </div>
+
+        <!-- FR 2. Finalités et bases légales -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="fr-finalites">
+            <h2 class="text-2xl font-bold text-white mb-4">2. Finalités et bases légales des traitements</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                Le tableau ci-dessous décrit chaque traitement, les données concernées et la base légale applicable au sens de l'article 6 du RGPD.
+            </p>
+            <div class="overflow-x-auto">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>Finalité</th>
+                            <th>Catégories de données</th>
+                            <th>Base légale (art. 6 RGPD)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong class="text-white">Fourniture du service</strong><br><span class="text-gray-400 text-sm">Création de compte, authentification, accès à l'API, livraison des webhooks</span></td>
+                            <td>Adresse e-mail, nom, clés API, charges utiles des webhooks, adresse IP, journaux d'utilisation</td>
+                            <td>Art. 6(1)(b) — Exécution du contrat</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Facturation et paiement</strong><br><span class="text-gray-400 text-sm">Gestion de l'abonnement, émission de factures, obligations fiscales</span></td>
+                            <td>Nom, e-mail, adresse de facturation, données d'instrument de paiement (traitées par Stripe), historique d'abonnement</td>
+                            <td>Art. 6(1)(b) — Exécution du contrat<br>Art. 6(1)(c) — Obligation légale (droit fiscal français, conservation 10 ans)</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Analytique du site web</strong><br><span class="text-gray-400 text-sm">Mesure de fréquentation via Matomo (auto-hébergé)</span></td>
+                            <td>Adresse IP anonymisée, pages visitées, référent, type d'appareil, durée de session</td>
+                            <td>Art. 6(1)(a) — Consentement (bandeau cookies)</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Suivi des conversions publicitaires</strong><br><span class="text-gray-400 text-sm">Mesure des conversions Google Ads</span></td>
+                            <td>Identifiants de clics et de conversions pseudonymisés</td>
+                            <td>Art. 6(1)(a) — Consentement (bandeau cookies)</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Support client — chat en direct</strong><br><span class="text-gray-400 text-sm">Widget Crisp (chargé uniquement après consentement)</span></td>
+                            <td>Nom, e-mail, messages de chat, métadonnées du navigateur</td>
+                            <td>Art. 6(1)(a) — Consentement</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Support client — e-mail</strong><br><span class="text-gray-400 text-sm">Traitement des demandes adressées à legal@hook0.com ou support@hook0.com</span></td>
+                            <td>Nom, e-mail, contenu des échanges</td>
+                            <td>Art. 6(1)(f) — Intérêt légitime (répondre aux demandes des clients)</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Sécurité et supervision</strong><br><span class="text-gray-400 text-sm">Suivi des erreurs, monitoring de disponibilité, protection DDoS, gestion des incidents</span></td>
+                            <td>Adresse IP, traces d'erreurs, métadonnées des requêtes, résultats de sondes de disponibilité</td>
+                            <td>Art. 6(1)(f) — Intérêt légitime (garantir l'intégrité et la sécurité du service)</td>
+                        </tr>
+                        <tr>
+                            <td><strong class="text-white">Communications commerciales</strong><br><span class="text-gray-400 text-sm">Mises à jour produit, notes de version, newsletters</span></td>
+                            <td>Adresse e-mail, prénom</td>
+                            <td>Art. 6(1)(a) — Consentement</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- FR 3. Catégories de données -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="fr-categories">
+            <h2 class="text-2xl font-bold text-white mb-4">3. Catégories de données traitées</h2>
+            <ul class="space-y-3 text-gray-300">
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Données d'identité :</strong> prénom, nom de famille, adresse e-mail professionnelle</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Données de compte :</strong> identifiant, mot de passe chiffré, clés API</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Données de paiement :</strong> adresse de facturation, 4 derniers chiffres de la carte et date d'expiration (les données complètes de carte sont stockées par Stripe — Hook0 n'y a pas accès)</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Données techniques :</strong> adresse IP, user-agent du navigateur, horodatages de connexion, journaux d'erreurs</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Données d'usage :</strong> événements webhook envoyés et reçus, volume d'appels API, métriques d'utilisation des fonctionnalités</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Communications :</strong> contenu des échanges de support, transcriptions de chat</span>
+                </li>
+            </ul>
+            <p class="text-gray-400 text-sm mt-4">
+                Hook0 ne traite pas de catégories particulières de données (art. 9 RGPD) et ne procède à aucune prise de décision automatisée ni à aucun profilage produisant des effets juridiques ou similairement significatifs.
+            </p>
+        </div>
+
+        <!-- FR 4. Destinataires et sous-traitants -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="fr-sous-traitants">
+            <h2 class="text-2xl font-bold text-white mb-4">4. Destinataires et sous-traitants</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                Nous partageons vos données avec nos sous-traitants dans la stricte mesure nécessaire à la fourniture du Service. La liste complète et à jour est disponible sur <a href="/gdpr-subprocessors" class="text-green-400 hover:text-green-300 transition-colors">/gdpr-subprocessors</a>. Un résumé est présenté ci-dessous.
+            </p>
+
+            <h3 class="text-lg font-semibold text-white mt-6 mb-3">Infrastructure</h3>
+            <div class="overflow-x-auto">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>Sous-traitant</th>
+                            <th>Pays</th>
+                            <th>Finalité</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Clever Cloud SAS</td>
+                            <td>France (UE)</td>
+                            <td>Hébergement base de données, API, application web</td>
+                        </tr>
+                        <tr>
+                            <td>Cloudflare, Inc.</td>
+                            <td>États-Unis</td>
+                            <td>DNS et protection DDoS</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="text-lg font-semibold text-white mt-6 mb-3">Exploitation du service</h3>
+            <div class="overflow-x-auto">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>Sous-traitant</th>
+                            <th>Pays</th>
+                            <th>Finalité</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Clever Cloud SAS</td>
+                            <td>France (UE)</td>
+                            <td>Workers appelant les endpoints webhook</td>
+                        </tr>
+                        <tr>
+                            <td>Scaleway SAS</td>
+                            <td>France (UE)</td>
+                            <td>Workers dédiés privés (offres sélectionnées)</td>
+                        </tr>
+                        <tr>
+                            <td>Stripe, Inc.</td>
+                            <td>États-Unis</td>
+                            <td>Gestion des abonnements et paiements</td>
+                        </tr>
+                        <tr>
+                            <td>Brevo (Sendinblue)</td>
+                            <td>France (UE)</td>
+                            <td>Emails transactionnels automatisés</td>
+                        </tr>
+                        <tr>
+                            <td>Postmark (ActiveCampaign)</td>
+                            <td>États-Unis</td>
+                            <td>Emails transactionnels automatisés</td>
+                        </tr>
+                        <tr>
+                            <td>BetterUptime</td>
+                            <td>République tchèque (UE)</td>
+                            <td>Monitoring de disponibilité et page de statut</td>
+                        </tr>
+                        <tr>
+                            <td>Sentry, Inc.</td>
+                            <td>États-Unis</td>
+                            <td>Suivi des erreurs applicatives</td>
+                        </tr>
+                        <tr>
+                            <td>Crisp</td>
+                            <td>France (UE)</td>
+                            <td>Chat de support client (conditionné au consentement)</td>
+                        </tr>
+                        <tr>
+                            <td>Google LLC (Gmail)</td>
+                            <td>États-Unis</td>
+                            <td>Boîte email de support</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="text-lg font-semibold text-white mt-6 mb-3">Analytique (conditionné au consentement)</h3>
+            <div class="overflow-x-auto">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th>Pays</th>
+                            <th>Finalité</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Matomo (auto-hébergé sur matomo.hook0.com)</td>
+                            <td>France (UE)</td>
+                            <td>Analytique du site web</td>
+                        </tr>
+                        <tr>
+                            <td>Google Ads</td>
+                            <td>États-Unis</td>
+                            <td>Suivi des conversions publicitaires</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="text-gray-400 text-sm mt-4">
+                Un contrat de traitement de données (DPA) est en vigueur avec chaque sous-traitant. Pour les transferts hors UE, voir la section 5.
+            </p>
+        </div>
+
+        <!-- FR 5. Transferts hors UE -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="fr-transferts">
+            <h2 class="text-2xl font-bold text-white mb-4">5. Transferts hors de l'Union européenne</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                Plusieurs sous-traitants sont établis aux États-Unis : Cloudflare, Stripe, Postmark, Sentry, Gmail (Google) et Google Ads. Ces transferts sont encadrés par les <strong class="text-white">clauses contractuelles types (CCT)</strong> adoptées par la Commission européenne (décision 2021/914), qui garantissent un niveau de protection adéquat pour les données personnelles.
+            </p>
+            <div class="p-4 rounded-lg bg-amber-900/20 border border-amber-500/30 text-amber-200 text-sm leading-relaxed">
+                <strong>Note CLOUD Act :</strong> Les prestataires établis aux États-Unis peuvent être soumis au CLOUD Act (Clarifying Lawful Overseas Use of Data Act), qui peut contraindre ces prestataires à communiquer des données aux autorités américaines, y compris lorsque ces données sont hébergées hors des États-Unis. Hook0 applique un principe de minimisation des données et limite les données personnelles transmises à ses sous-traitants américains au strict nécessaire.
+            </div>
+        </div>
+
+        <!-- FR 6. Durées de conservation -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="fr-conservation">
+            <h2 class="text-2xl font-bold text-white mb-4">6. Durées de conservation</h2>
+            <div class="overflow-x-auto">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>Catégorie de données</th>
+                            <th>Durée de conservation</th>
+                            <th>Justification</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Données de compte</td>
+                            <td>Durée du contrat + 30 jours après suppression du compte</td>
+                            <td>Nécessité contractuelle ; période de grâce de 30 jours pour permettre l'export des données</td>
+                        </tr>
+                        <tr>
+                            <td>Pièces comptables et factures</td>
+                            <td>10 ans à compter de la date de transaction</td>
+                            <td>Obligation légale — Code général des impôts, art. L102 B du Livre des procédures fiscales</td>
+                        </tr>
+                        <tr>
+                            <td>Journaux d'événements webhook</td>
+                            <td>7 à 30 jours selon le plan d'abonnement</td>
+                            <td>Fourniture du service ; configurable selon l'offre souscrite</td>
+                        </tr>
+                        <tr>
+                            <td>Données analytiques (Matomo)</td>
+                            <td>25 mois</td>
+                            <td>Recommandation CNIL pour les données d'analyse d'audience</td>
+                        </tr>
+                        <tr>
+                            <td>Communications de support</td>
+                            <td>3 ans après le dernier échange</td>
+                            <td>Intérêt légitime ; prescription de droit commun des actions contractuelles</td>
+                        </tr>
+                        <tr>
+                            <td>Preuves de consentement</td>
+                            <td>5 ans à compter de la date du consentement</td>
+                            <td>Capacité à démontrer la conformité (art. 7(1) RGPD)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- FR 7. Droits des personnes -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="fr-droits">
+            <h2 class="text-2xl font-bold text-white mb-4">7. Vos droits</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                Conformément au RGPD, vous disposez des droits suivants sur vos données personnelles :
+            </p>
+            <ul class="space-y-3 text-gray-300 mb-4">
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Droit d'accès</strong> (art. 15) — obtenir une copie des données personnelles que nous détenons vous concernant</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Droit de rectification</strong> (art. 16) — corriger des données inexactes ou incomplètes</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Droit à l'effacement</strong> (art. 17) — demander la suppression de vos données, sous réserve des obligations légales de conservation</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Droit à la limitation du traitement</strong> (art. 18) — demander la restriction du traitement dans certaines circonstances</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Droit à la portabilité</strong> (art. 20) — recevoir vos données dans un format structuré et lisible par machine, lorsque le traitement est fondé sur le consentement ou sur un contrat</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Droit d'opposition</strong> (art. 21) — vous opposer au traitement fondé sur l'intérêt légitime ou à des fins de prospection commerciale</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Droit de retrait du consentement</strong> (art. 7(3)) — retirer votre consentement à tout moment, sans que cela n'affecte la licéité des traitements antérieurs</span>
+                </li>
+            </ul>
+            <div class="p-4 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm leading-relaxed">
+                Pour exercer l'un de ces droits, adressez votre demande à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. Nous y répondrons dans un délai de 30 jours. Nous pourrons vous demander de justifier de votre identité avant de traiter votre demande.
+            </div>
+        </div>
+
+        <!-- FR 8. Droit de réclamation auprès de la CNIL -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="fr-cnil">
+            <h2 class="text-2xl font-bold text-white mb-4">8. Droit de réclamation auprès de la CNIL</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                Si vous estimez que le traitement de vos données personnelles constitue une violation du RGPD, vous avez le droit d'introduire une réclamation auprès de l'autorité de contrôle compétente :
+            </p>
+            <div class="p-4 rounded-lg bg-white/5 border border-white/10 text-gray-300 leading-relaxed">
+                <strong class="text-white">Commission Nationale de l'Informatique et des Libertés (CNIL)</strong><br>
+                3 Place de Fontenoy — TSA 80715<br>
+                75334 Paris Cedex 07<br>
+                Site internet : <a href="https://www.cnil.fr" class="text-green-400 hover:text-green-300 transition-colors" target="_blank" rel="noopener">www.cnil.fr</a>
+            </div>
+            <p class="text-gray-400 text-sm mt-3">
+                Vous pouvez également saisir l'autorité de contrôle de votre État membre de résidence habituelle ou de lieu de travail au sein de l'Union européenne.
+            </p>
+        </div>
+
+        <!-- FR 9. Cookies et traceurs -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="fr-cookies">
+            <h2 class="text-2xl font-bold text-white mb-4">9. Cookies et traceurs</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                Hook0 dispose d'un mécanisme de gestion du consentement sur son site web. Les services suivants ne sont chargés qu'après recueil de votre consentement explicite :
+            </p>
+            <ul class="space-y-2 text-gray-300 mb-4">
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Matomo Analytics</strong> (auto-hébergé) — mesure d'audience, anonymisée par défaut</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Google Ads</strong> — suivi des conversions publicitaires (balise Google)</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Crisp</strong> — widget de chat en direct</span>
+                </li>
+            </ul>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                Les préférences de consentement sont stockées dans le <code class="text-green-400">localStorage</code> du navigateur pour une durée de <strong class="text-white">13 mois</strong>, conformément aux lignes directrices de la CNIL. Vous pouvez modifier vos préférences à tout moment :
+            </p>
+            <div class="flex flex-wrap gap-4">
+                <button type="button" onclick="window.hook0Consent && window.hook0Consent.reset()" class="btn btn--secondary btn--sm">
+                    Modifier les paramètres de cookies
+                </button>
+            </div>
+        </div>
+
+        <!-- FR 10. Sécurité -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="fr-securite">
+            <h2 class="text-2xl font-bold text-white mb-4">10. Sécurité</h2>
+            <p class="text-gray-300 leading-relaxed mb-3">
+                Hook0 met en œuvre des mesures techniques et organisationnelles appropriées pour protéger les données personnelles contre la perte accidentelle, l'accès non autorisé, la divulgation, l'altération ou la destruction. Ces mesures comprennent le chiffrement en transit (TLS 1.2+), le chiffrement au repos, des contrôles d'accès et des revues de sécurité régulières.
+            </p>
+            <p class="text-gray-300 leading-relaxed mb-3">
+                Le détail de nos pratiques de sécurité est disponible sur notre <a href="/security" class="text-green-400 hover:text-green-300 transition-colors">page Sécurité</a>.
+            </p>
+            <p class="text-gray-300 leading-relaxed">
+                En cas de violation de données personnelles susceptible d'engendrer un risque pour vos droits et libertés, nous notifierons la CNIL dans les 72 heures (art. 33 RGPD) et les personnes concernées dans les meilleurs délais lorsque cela est requis (art. 34 RGPD). Si vous constatez une fuite de données potentielle, signalez-la immédiatement à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.
+            </p>
+        </div>
+
+        <!-- FR 11. Modifications -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="fr-modifications">
+            <h2 class="text-2xl font-bold text-white mb-4">11. Modifications de la présente politique</h2>
+            <p class="text-gray-300 leading-relaxed">
+                Nous pouvons mettre à jour la présente politique de confidentialité ponctuellement. Toute mise à jour sera signalée par la modification de la date figurant en haut de cette page. En cas de changement substantiel, nous vous en informerons par e-mail à l'adresse associée à votre compte, ou par un avis bien visible sur le site web, au moins 30 jours avant l'entrée en vigueur de la modification.
+            </p>
         </div>
 
     </div>

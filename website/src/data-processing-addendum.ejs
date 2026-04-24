@@ -90,7 +90,7 @@
             <svg class="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
-            Last Update: September 28th, 2024
+            Last Update: April 24, 2026
         </div>
     </div>
 </section>
@@ -189,7 +189,7 @@
 
                 <h2>8. PERSONAL DATA BREACH NOTIFICATION</h2>
 
-                <p>Hook0 shall notify the Customer of any Personal Data Breach without undue delay and in writing after it becomes aware of a Personal Data Breach. When the information is available to Hook0, such notification shall:</p>
+                <p>Hook0 shall notify the Customer of any Personal Data Breach without undue delay, and in any event within 72 hours of becoming aware of the breach, in accordance with Article 33 of the GDPR, and in writing after it becomes aware of a Personal Data Breach. When the information is available to Hook0, such notification shall:</p>
 
                 <ol>
                     <li>describe the nature of the Personal Data Breach including where possible, the categories and approximate number of the concerned Data Subjects and the categories and approximate number of Personal Data concerned;</li>
@@ -248,12 +248,28 @@
 
                 <table class="legal-table">
                     <tr>
+                        <th>Data Controller</th>
+                        <td>The Customer (as identified in the Terms of Service)</td>
+                    </tr>
+                    <tr>
+                        <th>Data Processor</th>
+                        <td>FGRibreau SARL, 3 rue de l'Aubépine, 85110 Chantonnay, France</td>
+                    </tr>
+                    <tr>
                         <th>Nature of the Processing operations</th>
-                        <td><em>[to be completed by the Customer]</em></td>
+                        <td>
+                            <ul>
+                                <li>Receiving, storing, and forwarding webhook events on behalf of the Customer</li>
+                                <li>Retry management for failed webhook deliveries</li>
+                                <li>Logging and monitoring of webhook delivery attempts</li>
+                                <li>User authentication and access management for the Hook0 platform</li>
+                                <li>Billing and subscription management (via Stripe)</li>
+                            </ul>
+                        </td>
                     </tr>
                     <tr>
                         <th>Purpose(s) of Processing</th>
-                        <td><em>[to be completed by the Customer]</em></td>
+                        <td>Provision of the Hook0 webhook-as-a-service platform as described in the Terms of Service.</td>
                     </tr>
                     <tr>
                         <th>Name and contact details of the Customer's Data Protection Officer (if applicable)</th>
@@ -261,11 +277,15 @@
                     </tr>
                     <tr>
                         <th>Category/ies of Personal Data</th>
-                        <td><em>[to be completed by the Customer]</em><br><br>At the Customer's request, processing of Special Categories of Personal Data may be performed by Hook0. In such case, the Processing shall be covered by a specific addendum to the DPA to be entered into between the Customer and Hook0.</td>
+                        <td>
+                            Email addresses, names, IP addresses, webhook payload data (content determined by Customer), authentication tokens, billing information (processed by Stripe).<br><br>
+                            <strong>Sensitive Data:</strong> None by default. The Customer is responsible for ensuring that webhook payloads do not contain special categories of data unless agreed upon in writing.<br><br>
+                            At the Customer's request, processing of Special Categories of Personal Data may be performed by Hook0. In such case, the Processing shall be covered by a specific addendum to the DPA to be entered into between the Customer and Hook0.
+                        </td>
                     </tr>
                     <tr>
                         <th>Category/ies of Data Subjects</th>
-                        <td><em>[to be completed by the Customer]</em></td>
+                        <td>Customer's end users whose data is transmitted via webhooks; Customer's authorized users of the Hook0 platform.</td>
                     </tr>
                     <tr>
                         <th>Location(s) of Processing operations</th>
@@ -276,104 +296,77 @@
                         <td>Please see: <a href="./gdpr-subprocessors">Hook0 / GDPR Sub-processors</a></td>
                     </tr>
                     <tr>
+                        <th>Frequency of Processing</th>
+                        <td>Continuous, automated processing.</td>
+                    </tr>
+                    <tr>
                         <th>Duration of Processing operations</th>
-                        <td>For the duration of the Terms of Services.</td>
+                        <td>For the duration of the Terms of Service, plus 30 days after account deletion.</td>
                     </tr>
                 </table>
 
                 <h2>APPENDIX 2 - APPROPRIATE TECHNICAL AND ORGANISATIONAL MEASURES IMPLEMENTED</h2>
 
-                <p>The following technical and organisational measures are implemented by Hook0 in order to protect Personal Data against accidental or unlawful destruction, loss, alteration, unauthorized disclosure or, or access to Personal Data transmitted, stored or otherwise processed:</p>
+                <p>The following technical and organisational measures are implemented by Hook0 in order to protect Personal Data against accidental or unlawful destruction, loss, alteration, unauthorized disclosure or access to Personal Data transmitted, stored or otherwise processed:</p>
 
-                <h3>People, Awareness, and HR</h3>
+                <h3>Infrastructure Security (managed by Clever Cloud SAS)</h3>
                 <ul>
-                    <li>All recruitments follow a screening process according to the principles of the Hook0 background check policy;</li>
-                    <li>In each contract, each employee has Non-Disclosure Agreements clauses;</li>
-                    <li>Code of Ethics awareness training (including a test) is a yearly obligation for all employees and is to be performed through a dedicated e-learning module;</li>
-                    <li>Group IT Acceptable Use policy or local version, are shared with all employees;</li>
-                    <li>Security policy statement signed by the Management is shared with all employees;</li>
-                    <li>Hook0 staff is obliged on a yearly basis to follow the Hook0 Data Protection policy, Information Security and Safety training (including a test);</li>
-                    <li>Regular awareness trainings on GDPR for all employees (in addition to Hook0 Data Protection policy, Information Security and Safety training);</li>
-                    <li>Access to systems is provided on a 'need to have basis' taken into account segregation of duties;</li>
-                    <li>Regular internal security audits are conducted to verify the security practices.</li>
+                    <li>Application hosted on Clever Cloud SAS infrastructure in France (EU);</li>
+                    <li>Database encryption at rest (managed by Clever Cloud);</li>
+                    <li>TLS 1.2+ encryption for all data in transit (rustls);</li>
+                    <li>Automated daily backups with 30-day retention;</li>
+                    <li>DDoS protection via Cloudflare;</li>
+                    <li>Physical access controls for datacenter facilities are delegated to Clever Cloud SAS in accordance with their ISO 27001-certified security programme.</li>
                 </ul>
 
-                <h3>Physical Security and Paper Records</h3>
-                <p>Compliance with the Hook0 Physical and Environmental Security policy:</p>
+                <h3>Application Security</h3>
                 <ul>
-                    <li>Access control and visitor management systems implemented for all visitors/guests;</li>
-                    <li>Physical access reviews as per defined periodicity;</li>
-                    <li>Clean desk, clear screen and follow me printing, process implemented;</li>
-                    <li>Information, which includes paper documents, handled by the data importer is classified, labelled, protected and handled according to the Hook0 information classification policy;</li>
-                    <li>Except with prior specific authorization, laptops and desktops are not taken off the site;</li>
-                    <li>CCTV surveillance to protect restricted areas;</li>
-                    <li>Fire alarm and fire-fighting systems implemented for employee safety;</li>
-                    <li>Fire evacuation drills are conducted at specified frequencies;</li>
+                    <li>Password hashing with Argon2 (state-of-the-art);</li>
+                    <li>Capability-based authorization tokens (Biscuit);</li>
+                    <li>Role-Based Access Control (RBAC) for platform access;</li>
+                    <li>Automatic session expiration.</li>
+                </ul>
+                <p><strong>Note on multi-factor authentication (MFA):</strong> MFA is enforced for all infrastructure access (Clever Cloud, GitLab, Stripe). MFA for individual Hook0 user accounts is not yet implemented at the application level and is planned for a future release.</p>
+
+                <h3>Development Security</h3>
+                <ul>
+                    <li>All code changes require peer review via merge requests;</li>
+                    <li>Automated CI/CD pipeline including:
+                        <ul>
+                            <li>Static Application Security Testing (SAST);</li>
+                            <li>Dynamic Application Security Testing (DAST);</li>
+                            <li>Container scanning (Trivy);</li>
+                            <li>Dependency vulnerability scanning (osv-scanner);</li>
+                            <li>Secret detection.</li>
+                        </ul>
+                    </li>
+                    <li>Strict code linting (Clippy with warnings-as-errors).</li>
                 </ul>
 
-                <h3>Remote End User Devices are Protected</h3>
-                <p>The remote users are working with laptop and desktop on Hook0 secured network. Following security measures are incorporated in addition:</p>
+                <h3>Monitoring and Incident Response</h3>
                 <ul>
-                    <li>Encryption of the hard disk on company-assigned laptops;</li>
-                    <li>2 Factors Authentication (PKI / Alternative);</li>
-                    <li>Centrally managed and anti-virus protection;</li>
-                    <li>Management and monitoring of the software to control an authorized software installation;</li>
-                    <li>Vendor supplied updates are installed;</li>
-                    <li>All the laptops and desktops working on the Hook0 projects follow a strong overwriting process before it is reassigned;</li>
-                    <li>Login ID and password controls are implemented to access information;</li>
-                    <li>Periodic access review is implemented;</li>
-                    <li>E-mails are automatically scanned by anti-virus and anti-spam software.</li>
+                    <li>Error tracking via Sentry;</li>
+                    <li>Distributed tracing via OpenTelemetry;</li>
+                    <li>Uptime monitoring via BetterUptime with public status page;</li>
+                    <li>Responsible disclosure policy with PGP-secured reporting.</li>
                 </ul>
 
-                <h3>Remote Access Security</h3>
-                <p>2-factor authentication is used in general for remote access to the critical Hook0 target systems. If the source of the remote connection is a Hook0 controlled system then device authentication based on a certificate on the device is implemented. If the source is not under Hook0 control, it should connect to a virtual desktop system.</p>
-                <p>Any other set up of connections needs to be upfront approved by the security department.</p>
-
-                <h3>Generic Security Measures</h3>
+                <h3>Organisational Measures</h3>
                 <ul>
-                    <li>Data is only stored in the EU Data Centers or in case of laptops encrypted on the local device;</li>
-                    <li>Termination of access connection in Demilitarized Zone;</li>
-                    <li>All connectivity up to the secured area (PCI zone) is encrypted;</li>
-                    <li>Access to PCI zone only possible via strong authentication via Hook0 provided security client;</li>
-                    <li>Multiple layers of firewalls & intrusion detection need to be passed;</li>
-                    <li>Access managed according to Role Based Access Control principles.</li>
+                    <li>Information classification policy (Public, Internal, Confidential, Sensitive);</li>
+                    <li>NDAs required for all personnel;</li>
+                    <li>Security awareness practices;</li>
+                    <li>Need-to-know access principle;</li>
+                    <li>MFA enforced for infrastructure access (Clever Cloud, GitLab, Stripe);</li>
+                    <li>Penetration testing conducted annually or after major architectural changes.</li>
                 </ul>
 
-                <h3>Access Control to Personal Data</h3>
-                <p>Employees with access to private data can only access the data that are necessary for the purpose of the activities under their responsibility. Access authorisation is provided based on the 'need to know' and 'need to access' and is either role based or name based. Access logs are in place and the responsibility for access control is assigned.</p>
-
-                <p>Following measures are in place:</p>
+                <h3>Data Retention</h3>
                 <ul>
-                    <li>Obligation for employees to comply with the applicable Hook0 security policies and data protection policies;</li>
-                    <li>Work instructions on handling private data;</li>
-                    <li>User (password) codes for access to Private Data;</li>
-                    <li>Differentiated access regulations (e.g. partial blocking);</li>
-                    <li>Access Logging and control;</li>
-                    <li>Controlled destruction of data media;</li>
-                    <li>Procedures for Checking compliance with procedures and work instructions are in place;</li>
-                    <li>Formalised Control frameworks and TPA to take care that not a single person can access, modify or use critical information assets without authorization or detection;</li>
-                </ul>
-
-                <h3>Security and Confidentiality of Personal Data</h3>
-                <p>Based on a risk assessment (and if required an additional DPIA) Hook0 will ensure a level of security appropriate to the risk, including inter alia as appropriate:</p>
-                <ul>
-                    <li>The anonymization, pseudonymisation (e.g. tokenization) and encryption of Personal Data;</li>
-                    <li>The ability to ensure the ongoing confidentiality, integrity, availability and resilience of processing systems and services;</li>
-                    <li>The ability to restore the availability and access to Personal Data in a timely manner in the event of a physical or technical incident;</li>
-                    <li>A process for regularly testing, assessing and evaluating the effectiveness of technical and organisational measures for ensuring the security of the processing;</li>
-                    <li>Ensure a logical separation between its own data, the data of its customers and suppliers;</li>
-                    <li>Set up a process to keep processed data accurate, reliable and up-to-date;</li>
-                    <li>Process registers according to GDPR requirements;</li>
-                    <li>Access log systems' use with relevant for the purposes of being able to detect unauthorized access attempts.</li>
-                    <li>Customer Data (including back-ups and archives) will only be stored for as long as it serves the purposes for which the data was collected unless there is a legal or contractual obligation to retain the data for a longer period of time.</li>
-                </ul>
-
-                <h3>Organization Control</h3>
-                <p>The Data Processor shall maintain its internal organization in a manner that meets the requirements of the applicable legislation and the Data Controller requirements on data security. This shall be accomplished by:</p>
-                <ul>
-                    <li>Internal data processing policies and procedures, guidelines, work instructions, process descriptions and regulations for programming, testing, and release, insofar as they relate to the Personal Data transferred by the Controller;</li>
-                    <li>Implementing a Data Protection control framework that is audited on compliance on a yearly basis;</li>
-                    <li>Having an emergency plan with procedures and allocation of responsibilities in place (backup contingency plan).</li>
+                    <li>Webhook event data: per customer plan (7–30 days);</li>
+                    <li>Account data: duration of contract plus 30 days;</li>
+                    <li>Billing records: 10 years (French tax law);</li>
+                    <li>Logs: 30 days minimum.</li>
                 </ul>
 
             </div>
