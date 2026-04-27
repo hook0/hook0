@@ -592,6 +592,9 @@ struct Config {
     #[clap(long, env, default_value_t = 200_000)]
     subscription_health_monitor_request_attempt_scan_cap_per_tick: u32,
 
+    #[clap(long, env, default_value_t = 8)]
+    subscription_health_monitor_smtp_concurrency: usize,
+
     /// Hard cap on retry schedules per org — prevents unbounded DB rows.
     #[clap(long, env, default_value_t = 50)]
     max_retry_schedules_per_organization: i64,
@@ -1204,6 +1207,7 @@ async fn main() -> anyhow::Result<()> {
                     bucket_retention: config.subscription_health_monitor_bucket_retention,
                     request_attempt_scan_cap_per_tick: config
                         .subscription_health_monitor_request_attempt_scan_cap_per_tick,
+                    smtp_concurrency: config.subscription_health_monitor_smtp_concurrency,
                 };
             actix_web::rt::spawn(async move {
                 subscription_health_monitor::run_subscription_health_monitor(

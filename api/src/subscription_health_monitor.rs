@@ -28,6 +28,7 @@ pub struct SubscriptionHealthMonitorConfig {
     pub bucket_max_request_attempts: u32,
     pub bucket_retention: Duration,
     pub request_attempt_scan_cap_per_tick: u32,
+    pub smtp_concurrency: usize,
 }
 
 /// Subscription health verdict emitted by monitor.
@@ -668,7 +669,7 @@ async fn dispatch_health_actions(
 
     // Send emails per organization with parallel SMTP calls.
     for (organization_id, mails) in actions_by_organization {
-        send_emails_to_organization(mailer, db, organization_id, mails).await;
+        send_emails_to_organization(mailer, db, organization_id, mails, config.smtp_concurrency).await;
     }
 }
 
@@ -715,6 +716,7 @@ async fn send_emails_to_organization(
     db: &PgPool,
     organization_id: Uuid,
     mails: Vec<Mail>,
+    smtp_concurrency: usize,
 ) {
     struct OrganizationUser {
         first_name: String,
@@ -769,13 +771,10 @@ async fn send_emails_to_organization(
         }
     }
 
-    // Parallel sends with bounded concurrency.
-    const SMTP_CONCURRENCY: usize = 8;
-
     stream::iter(send_tasks)
-        .for_each_concurrent(SMTP_CONCURRENCY, |(mail, recipient)| async move {
+        .for_each_concurrent(smtp_concurrency, |(mail, recipient)| async move {
             if let Err(e) = mailer.send_mail(mail, recipient).await {
-                warn!("Subscription health monitor: failed to send email: {e}");
+                error!("Subscription health monitor: failed to send email: {e}");
             }
         })
         .await;
@@ -1055,6 +1054,7 @@ mod tests {
             bucket_max_request_attempts: 100,
             bucket_retention: Duration::from_secs(30 * 86_400),
             request_attempt_scan_cap_per_tick: 50_000,
+            smtp_concurrency: 8,
         }
     }
 
