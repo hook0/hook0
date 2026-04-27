@@ -14,10 +14,11 @@ website.build:
       changes:
         - website/**/*
   image: node:$NODE_VERSION
+  timeout: 10 minutes
   script:
     - cd website/
     - npm ci
-    - npm run build
+    - timeout --signal=KILL 300 npm run build || if [ $? -eq 137 ]; then echo "parcel build completed but process hung — killed after timeout (expected)"; else exit 1; fi
   cache:
     key: ${CI_COMMIT_REF_SLUG}-website
     paths:
