@@ -31,7 +31,7 @@ async function handleApiResponse(response: Response) {
 
     switch (error.id) {
       case 'TooManyEventsToday':
-        // Wait until tomorrow or upgrade plan
+        // Free plan only — events are blocked until tomorrow. Paid plans never receive this error.
         throw new QuotaExceededError(error.detail);
 
       case 'AuthInvalidBiscuit':
@@ -108,7 +108,7 @@ function logError(error: any) {
 |---------------|----------|----------------|
 | Authentication (401, 403) | Refresh token, re-authenticate | `AuthInvalidBiscuit`, `AuthFailedLogin` |
 | Validation (400, 422) | Fix request data | `Validation`, `JsonPayload` |
-| Quota (429) | Wait or upgrade | `TooManyEventsToday` |
+| Quota (429) | Free plan only — wait or upgrade | `TooManyEventsToday` |
 | Server (500, 503) | Retry with backoff | `InternalServerError`, `ServiceUnavailable` |
 | Not Found (404) | Check resource exists | `NotFound` |
 
