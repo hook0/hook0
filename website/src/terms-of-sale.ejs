@@ -183,11 +183,13 @@
             </div>
             <div class="card card--glow">
                 <div class="prose prose-invert prose-lg max-w-none">
-                    <p class="text-gray-300"><strong class="text-white">7.1.</strong> Each paid plan includes a daily event quota as set out in Section 2.3. When usage exceeds the included quota, overage charges apply at the per-event rate specified for the customer's plan.</p>
+                    <p class="text-gray-300"><strong class="text-white">7.1.</strong> Each paid plan includes a daily event quota as set out in Section 2.3. When usage exceeds the included quota, overage charges apply at the per-event rate specified for the customer's plan. For paid plans, event ingestion is not interrupted when the daily quota is exceeded, ensuring uninterrupted service delivery.</p>
 
-                    <p class="text-gray-300"><strong class="text-white">7.2.</strong> For the Developer (free) plan, no overage billing applies. Events exceeding the daily quota are blocked until the quota resets at the start of the following day.</p>
+                    <p class="text-gray-300"><strong class="text-white">7.2.</strong> For the Developer (free) plan, no overage billing applies. Events exceeding the daily quota are blocked until the quota resets at midnight UTC the following day.</p>
 
                     <p class="text-gray-300"><strong class="text-white">7.3.</strong> Overage charges are calculated automatically and invoiced as described in Section 4.4. The customer accepts that usage of the service above the included quota constitutes an implicit order for overage capacity at the applicable per-event rate.</p>
+
+                    <p class="text-gray-300"><strong class="text-white">7.4.</strong> The customer can monitor real-time event consumption through the organization dashboard in the Hook0 application. Hook0 sends email notifications when daily consumption approaches the quota threshold.</p>
                 </div>
             </div>
         </div>

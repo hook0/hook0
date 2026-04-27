@@ -96,8 +96,79 @@
                     <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                 </div>
                 <h3 class="text-lg font-semibold text-white mb-2">No hidden fees</h3>
-                <p class="text-gray-400 text-sm">Retries are free. HMAC signatures included. No per-endpoint charges.</p>
+                <p class="text-gray-400 text-sm">Retries are free. HMAC signatures included. No per-endpoint charges. Overage rates are shown on each plan.</p>
             </div>
+        </div>
+    </div>
+</section>
+
+<!-- Pricing FAQ -->
+<section class="relative py-24 sm:py-32 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-surface-primary via-surface-secondary to-surface-primary"></div>
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <h2 class="text-heading-xl font-bold text-white">Pricing FAQ</h2>
+        </div>
+        <div class="space-y-4 stagger-children">
+            <details class="faq-item animate-on-scroll group">
+                <summary class="text-white font-medium">
+                    <span>What happens if I exceed my daily event limit?</span>
+                    <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </summary>
+                <div class="faq-item__content">
+                    On the free Developer plan, extra events are blocked (HTTP 429). On paid plans (Startup and Pro), extra events are <strong>never blocked</strong> — they are billed at a per-event rate (€0.003/event on Startup, €0.0001/event on Pro). We chose not to interrupt delivery to avoid causing issues to customers building products on top of Hook0.
+                </div>
+            </details>
+
+            <details class="faq-item animate-on-scroll group">
+                <summary class="text-white font-medium">
+                    <span>How can I monitor my usage?</span>
+                    <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </summary>
+                <div class="faq-item__content">
+                    The Organization Dashboard in the Hook0 app shows your event consumption for the current day and past days. For billing details and invoice history, check your Stripe billing portal.
+                </div>
+            </details>
+
+            <details class="faq-item animate-on-scroll group">
+                <summary class="text-white font-medium">
+                    <span>Is Hook0 free?</span>
+                    <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </summary>
+                <div class="faq-item__content">
+                    Yes. Hook0 has a free Developer tier that includes 100 webhook events per day, HMAC signatures, and delivery monitoring. No credit card required. Hook0 is also open-source and self-hostable if you need data sovereignty or specific infrastructure requirements.
+                </div>
+            </details>
+
+            <details class="faq-item animate-on-scroll group">
+                <summary class="text-white font-medium">
+                    <span>Can I self-host Hook0 for free?</span>
+                    <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </summary>
+                <div class="faq-item__content">
+                    Yes. Hook0 is fully open-source under the SSPL-1.0 license. You can self-host it with Docker Compose or Kubernetes. When self-hosting, you manage your own infrastructure, scaling, updates, and monitoring. Most teams start with Hook0 Cloud for the fastest path to production.
+                </div>
+            </details>
+
+            <details class="faq-item animate-on-scroll group">
+                <summary class="text-white font-medium">
+                    <span>How does Hook0 pricing compare to Svix and Hookdeck?</span>
+                    <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </summary>
+                <div class="faq-item__content">
+                    Hook0 Cloud starts at €59/month vs Svix at $490/month for comparable features. Svix locks self-hosting behind enterprise pricing. Hookdeck has no self-hosted option. Hook0 is also fully open-source under SSPL, so you can self-host if you need data sovereignty.
+                </div>
+            </details>
         </div>
     </div>
 </section>
