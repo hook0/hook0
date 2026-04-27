@@ -61,7 +61,8 @@
     <div class="blur-circle blur-circle--indigo w-[800px] h-[800px] top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20"></div>
 
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Section Header -->
+        <!-- Section Header (hidden when included from dedicated pricing page) -->
+        <% if (!locals.hidePricingHeader) { %>
         <div class="section__header animate-on-scroll">
             <span class="section__eyebrow">Pricing</span>
             <h2 class="section__title">Hook0 Pricing</h2>
@@ -69,6 +70,7 @@
                 Choose the plan that's right for you, and start sending webhooks now
             </p>
         </div>
+        <% } %>
 
         <!-- Pricing Toggle -->
         <div class="animate-on-scroll flex justify-center mb-12">
