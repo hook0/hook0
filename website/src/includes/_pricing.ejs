@@ -61,7 +61,8 @@
     <div class="blur-circle blur-circle--indigo w-[800px] h-[800px] top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20"></div>
 
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Section Header -->
+        <!-- Section Header (hidden when included from dedicated pricing page) -->
+        <% if (!locals.hidePricingHeader) { %>
         <div class="section__header animate-on-scroll">
             <span class="section__eyebrow">Pricing</span>
             <h2 class="section__title">Hook0 Pricing</h2>
@@ -69,6 +70,7 @@
                 Choose the plan that's right for you, and start sending webhooks now
             </p>
         </div>
+        <% } %>
 
         <!-- Pricing Toggle -->
         <div class="animate-on-scroll flex justify-center mb-12">
@@ -136,8 +138,10 @@
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                Up to <strong>100</strong> events/day
-                                <span class="block text-xs text-gray-500 mt-0.5 ml-6">Extra events are blocked</span>
+                                <span>Up to <strong>100</strong> events/day</span>
+                            </li>
+                            <li class="pricing-card__feature text-xs text-gray-500 -mt-2 ml-6">
+                                Extra events are blocked
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -191,8 +195,10 @@
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                Up to <strong>30,000</strong> events/day
-                                <span class="block text-xs text-gray-500 mt-0.5 ml-6">Then €0.003/event (never blocked)</span>
+                                <span>Up to <strong>30,000</strong> events/day</span>
+                            </li>
+                            <li class="pricing-card__feature text-xs text-gray-500 -mt-2 ml-6">
+                                Then €0.003/event (never blocked)
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -248,8 +254,10 @@
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                Up to <strong>100,000</strong> events/day
-                                <span class="block text-xs text-gray-500 mt-0.5 ml-6">Then €0.0001/event (never blocked)</span>
+                                <span>Up to <strong>100,000</strong> events/day</span>
+                            </li>
+                            <li class="pricing-card__feature text-xs text-gray-500 -mt-2 ml-6">
+                                Then €0.0001/event (never blocked)
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>

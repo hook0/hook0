@@ -23,7 +23,7 @@ Hook0 offers several plans to match your needs. For comprehensive details, consu
 
 ### Free (Developer) plan
 
-When you exceed your daily event quota, new [events](../concepts/events.md) are **rejected** with an HTTP 429 status code (`TooManyEventsToday`). The quota resets daily.
+When you exceed your daily event quota, new [events](/concepts/events) are **rejected** with an HTTP 429 status code (`TooManyEventsToday`). The quota resets daily.
 
 ### Paid plans (Startup, Pro)
 
