@@ -407,6 +407,8 @@ All API errors follow this structure (RFC 7807):
 }
 ```
 
+> **Note:** This error is only returned for organizations on the **Free (Developer) plan**. On paid plans (Startup, Pro), extra events are never blocked — they are billed as overage. See [Quotas and limits](/concepts/applications#quotas-and-limits).
+
 ### TooManyEventTypesPerApplication
 
 ```json
