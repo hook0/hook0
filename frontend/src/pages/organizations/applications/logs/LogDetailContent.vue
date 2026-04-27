@@ -59,7 +59,7 @@ const statusDescription = computed(() => {
   const type = props.attempt.status.type;
   if (type === RequestAttemptStatusType.Successful) return t('logs.statusSuccessfulDesc');
   if (type === RequestAttemptStatusType.Failed) return t('logs.statusFailedDesc');
-  if (type === RequestAttemptStatusType.InProgress) return t('logs.statusInProgressDesc');
+  if (type === RequestAttemptStatusType.Inprogress) return t('logs.statusInProgressDesc');
   if (type === RequestAttemptStatusType.Pending) return t('logs.statusPendingDesc');
   if (type === RequestAttemptStatusType.Waiting) return t('logs.statusWaitingDesc');
   return '';
@@ -69,7 +69,7 @@ const statusIcon = computed(() => {
   const type = props.attempt.status.type;
   if (type === RequestAttemptStatusType.Successful) return CheckCircle2;
   if (type === RequestAttemptStatusType.Failed) return XCircle;
-  if (type === RequestAttemptStatusType.InProgress) return Loader;
+  if (type === RequestAttemptStatusType.Inprogress) return Loader;
   if (type === RequestAttemptStatusType.Waiting) return Clock;
   return CircleDashed;
 });

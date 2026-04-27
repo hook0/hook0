@@ -53,7 +53,7 @@ pub struct SubscriptionSummary {
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum RequestAttemptStatus {
     Waiting {
         since: DateTime<Utc>,
@@ -88,7 +88,7 @@ impl Apiv2SchemaTrait for RequestAttemptStatus {
         // Variants:
         // - waiting: {type: "waiting", since: DateTime, until: DateTime}
         // - pending: {type: "pending", since: DateTime}
-        // - in_progress: {type: "in_progress", since: DateTime}
+        // - inprogress: {type: "inprogress", since: DateTime}
         // - successful: {type: "successful", at: DateTime, full_processing_ms: i64}
         // - failed: {type: "failed", at: DateTime, full_processing_ms: i64}
 
@@ -100,13 +100,13 @@ impl Apiv2SchemaTrait for RequestAttemptStatus {
             Box::new(DefaultSchemaRaw {
                 data_type: Some(DataType::String),
                 description: Some(
-                    "Status type discriminator. One of: waiting, pending, in_progress, successful, failed"
+                    "Status type discriminator. One of: waiting, pending, inprogress, successful, failed"
                         .to_owned(),
                 ),
                 enum_: vec![
                     serde_json::Value::String("waiting".to_owned()),
                     serde_json::Value::String("pending".to_owned()),
-                    serde_json::Value::String("in_progress".to_owned()),
+                    serde_json::Value::String("inprogress".to_owned()),
                     serde_json::Value::String("successful".to_owned()),
                     serde_json::Value::String("failed".to_owned()),
                 ],
@@ -114,14 +114,14 @@ impl Apiv2SchemaTrait for RequestAttemptStatus {
             }),
         );
 
-        // since field (present in waiting, pending, in_progress)
+        // since field (present in waiting, pending, inprogress)
         properties.insert(
             "since".to_owned(),
             Box::new(DefaultSchemaRaw {
                 data_type: Some(DataType::String),
                 format: Some(DataTypeFormat::DateTime),
                 description: Some(
-                    "Timestamp when the status started (present in waiting, pending, in_progress)"
+                    "Timestamp when the status started (present in waiting, pending, inprogress)"
                         .to_owned(),
                 ),
                 ..Default::default()
@@ -178,7 +178,7 @@ impl Apiv2SchemaTrait for RequestAttemptStatus {
                 "Status of a request attempt. The 'type' field indicates the status variant. \
                  - waiting: {type, since, until} - Scheduled for future delivery \
                  - pending: {type, since} - Ready to be processed \
-                 - in_progress: {type, since} - Currently being delivered \
+                 - inprogress: {type, since} - Currently being delivered \
                  - successful: {type, at, full_processing_ms} - Delivered successfully \
                  - failed: {type, at, full_processing_ms} - Delivery failed"
                     .to_owned(),
@@ -357,7 +357,7 @@ pub struct Qs {
 
 #[api_v2_operation(
     summary = "List request attempts",
-    description = "Retrieves webhook delivery attempts for an application. Each attempt shows the delivery status (pending, in_progress, successful, failed, waiting), retry count, and timestamps. Filter by event_id, subscription_id, date range, or event types. Paginated via Link header.",
+    description = "Retrieves webhook delivery attempts for an application. Each attempt shows the delivery status (pending, inprogress, successful, failed, waiting), retry count, and timestamps. Filter by event_id, subscription_id, date range, or event types. Paginated via Link header.",
     operation_id = "requestAttempts.read",
     consumes = "application/json",
     produces = "application/json",
@@ -875,8 +875,8 @@ mod tests {
         assert!(type_values.contains(&"waiting"), "Missing 'waiting' type");
         assert!(type_values.contains(&"pending"), "Missing 'pending' type");
         assert!(
-            type_values.contains(&"in_progress"),
-            "Missing 'in_progress' type"
+            type_values.contains(&"inprogress"),
+            "Missing 'inprogress' type"
         );
         assert!(
             type_values.contains(&"successful"),

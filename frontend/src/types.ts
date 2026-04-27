@@ -1323,7 +1323,7 @@ export interface components {
          * @description Status type discriminator. One of: waiting, pending, in_progress, successful, failed
          * @enum {string}
          */
-        type: 'waiting' | 'pending' | 'in_progress' | 'successful' | 'failed';
+        type: 'waiting' | 'pending' | 'inprogress' | 'successful' | 'failed';
         /**
          * Format: date-time
          * @description Timestamp until which waiting (only present in waiting status)

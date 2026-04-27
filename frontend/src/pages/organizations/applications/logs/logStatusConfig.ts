@@ -34,7 +34,7 @@ export const STATUS_CONFIG: Record<RequestAttemptStatusType, StatusConfig> = {
     tooltipDateField: 'created_at',
     icon: CircleDashed,
   },
-  [RequestAttemptStatusType.InProgress]: {
+  [RequestAttemptStatusType.Inprogress]: {
     labelKey: 'logs.statusRetrying',
     variant: 'warning',
     tooltipKey: 'logs.tooltipInProgress',

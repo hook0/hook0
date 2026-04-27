@@ -9,20 +9,17 @@ export type RequestAttempt = definitions['RequestAttempt'];
 
 export type RequestAttemptStatusType = RequestAttempt['status']['type'];
 
-// Transforms snake_case to PascalCase: 'in_progress' → 'InProgress'
-type SnakeToPascal<S extends string> = S extends `${infer H}_${infer T}`
-  ? `${Capitalize<H>}${SnakeToPascal<T>}`
-  : Capitalize<S>;
+type Capitalize_<S extends string> = S extends `${infer H}${infer T}`
+  ? `${Uppercase<H>}${T}`
+  : S;
 
-// Mapped type requires one key per union variant, key name derived from value.
-// Adding/removing/renaming a variant in the OpenAPI type fails compilation here.
 export const RequestAttemptStatusType = {
   Waiting: 'waiting',
   Pending: 'pending',
-  InProgress: 'in_progress',
+  Inprogress: 'inprogress',
   Successful: 'successful',
   Failed: 'failed',
-} as const satisfies { [K in RequestAttemptStatusType as SnakeToPascal<K>]: K };
+} as const satisfies { [K in RequestAttemptStatusType as Capitalize_<K>]: K };
 
 export function list(application_id: UUID): Promise<Array<RequestAttempt>> {
   return unwrapResponse(
