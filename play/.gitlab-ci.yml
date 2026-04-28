@@ -91,9 +91,10 @@ play.e2e-playwright:
 play.docker:
   stage: build
   dependencies: []
+  # BuildKit rootless replaces Kaniko (archived 2025-06-03). Same image used by release.containers.
   image:
-    name: gcr.io/kaniko-project/executor:v1.23.2-debug
-    entrypoint: [""]
+    name: moby/buildkit:$BUILDKIT_VERSION
+    entrypoint: ["sh", "-c"]
   retry:
     max: 2
     when:
@@ -103,18 +104,25 @@ play.docker:
     - changes:
         - play/**/*
         - Cargo.*
-  script:
-    - mkdir -p /kaniko/.docker
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+  before_script:
+    - mkdir -p ~/.docker
     - |
-      echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf '%s:%s' "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
-    - >
-      /kaniko/executor
-      --context "${CI_PROJECT_DIR}"
-      --dockerfile "${CI_PROJECT_DIR}/play/Dockerfile"
-      --destination "${CI_REGISTRY_IMAGE}/play:${CI_COMMIT_SHORT_SHA}"
-      --destination "${CI_REGISTRY_IMAGE}/play:latest"
-      --cache=true
-      --cache-repo="${CI_REGISTRY_IMAGE}/play/cache"
+      echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf '%s:%s' "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > ~/.docker/config.json
+  script:
+    - |
+      buildctl-daemonless.sh build \
+        --progress=plain \
+        --frontend dockerfile.v0 \
+        --opt platform=linux/amd64 \
+        --local context="${CI_PROJECT_DIR}" \
+        --local dockerfile="${CI_PROJECT_DIR}/play" \
+        --export-cache type=registry,ref="${CI_REGISTRY_IMAGE}/play/cache:buildkit",mode=max \
+        --import-cache type=registry,ref="${CI_REGISTRY_IMAGE}/play/cache:buildkit" \
+        --output "type=image,\"name=${CI_REGISTRY_IMAGE}/play:${CI_COMMIT_SHORT_SHA},${CI_REGISTRY_IMAGE}/play:latest\",push=true"
+  after_script:
+    - rm -f ~/.docker/config.json
 
 play.deploy:
   stage: release
