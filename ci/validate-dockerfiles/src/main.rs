@@ -52,8 +52,7 @@ fn run(root: &Path) -> Result<u32, String> {
 
 fn read_workspace_members(root: &Path) -> Result<BTreeSet<String>, String> {
     let path = root.join("Cargo.toml");
-    let content =
-        fs::read_to_string(&path).map_err(|e| format!("read {}: {e}", path.display()))?;
+    let content = fs::read_to_string(&path).map_err(|e| format!("read {}: {e}", path.display()))?;
     let value: toml::Value =
         toml::from_str(&content).map_err(|e| format!("parse {}: {e}", path.display()))?;
     let members = value
@@ -110,7 +109,10 @@ fn check_workspace_mounts(rel: &Path, body: &str, members: &BTreeSet<String>) ->
     if !mounts_cargo_toml || !mounts_any_member {
         return 0;
     }
-    let missing: Vec<&String> = members.iter().filter(|m| !mounts.contains(m.as_str())).collect();
+    let missing: Vec<&String> = members
+        .iter()
+        .filter(|m| !mounts.contains(m.as_str()))
+        .collect();
     if missing.is_empty() {
         println!(
             "[OK]   {} mounts all {} workspace members",
