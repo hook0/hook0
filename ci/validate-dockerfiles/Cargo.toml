@@ -1,0 +1,9 @@
+[package]
+name = "validate-dockerfiles"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+toml = "0.9"
+walkdir = "2"

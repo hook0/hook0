@@ -2,6 +2,7 @@
 members = [
   "api",
   "cli",
+  "ci/validate-dockerfiles",
   "play",
   "output-worker",
   "sentry-integration",
