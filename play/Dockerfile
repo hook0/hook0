@@ -6,6 +6,7 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY play play
 COPY cli cli
+COPY ci/validate-dockerfiles ci/validate-dockerfiles
 COPY api api
 COPY clients/rust clients/rust
 COPY clients/mcp clients/mcp

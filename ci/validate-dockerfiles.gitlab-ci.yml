@@ -1,0 +1,34 @@
+validate.dockerfiles:
+  stage: build
+  dependencies: []
+  image: rust:$RUST_VERSION
+  extends: .rust-cache-pull-only
+  rules:
+    - changes:
+        - "**/Dockerfile"
+        - "**/Dockerfile.*"
+        - "**/.dockerignore"
+        - Cargo.toml
+        - Cargo.lock
+        - ci/validate-dockerfiles/**/*
+        - ci/validate-dockerfiles.gitlab-ci.yml
+  script:
+    - rustc --version && cargo --version
+    - cargo run --release -p validate-dockerfiles
+
+lint.dockerfiles:
+  stage: build
+  dependencies: []
+  image: hadolint/hadolint:latest-alpine
+  rules:
+    - changes:
+        - "**/Dockerfile"
+        - "**/Dockerfile.*"
+  before_script:
+    - hadolint --version
+  script:
+    # Lint every Dockerfile discovered, fail on any error.
+    # DL3008/DL3009: pin apt versions / clean apt cache — left as warnings (not enforced yet).
+    - find . -type d \( -name target -o -name node_modules -o -name .git -o -name build-context -o -name dist \) -prune -o -type f \( -name 'Dockerfile' -o -name 'Dockerfile.*' \) -not -name '*.dockerignore' -print | xargs -r -n1 hadolint --no-fail
+    # Strict pass — only fail on errors (severity >= error)
+    - find . -type d \( -name target -o -name node_modules -o -name .git -o -name build-context -o -name dist \) -prune -o -type f \( -name 'Dockerfile' -o -name 'Dockerfile.*' \) -not -name '*.dockerignore' -print | xargs -r -n1 hadolint --failure-threshold error
