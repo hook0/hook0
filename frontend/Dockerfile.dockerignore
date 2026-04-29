@@ -1,0 +1,13 @@
+.env
+target/
+.git/
+api/
+cli/
+output-worker/
+frontend/node_modules/
+play/
+documentation/
+website/
+e2e-tests/
+.gitlab-ci.yml
+*.md
