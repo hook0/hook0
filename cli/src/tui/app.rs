@@ -681,7 +681,7 @@ pub(crate) fn cap_body(body: Vec<u8>) -> Option<Vec<u8>> {
 /// Convert a HashMap to a sorted HeaderMap
 pub(crate) fn sorted_headers(map: &std::collections::HashMap<String, String>) -> HeaderMap {
     let mut headers: HeaderMap = map.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
-    headers.sort_by(|a, b| a.0.to_lowercase().cmp(&b.0.to_lowercase()));
+    headers.sort_by_key(|a| a.0.to_lowercase());
     headers
 }
 
