@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                                INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)\n                                VALUES ($1, $2, $3, $4, $5)\n                                RETURNING response__id\n                            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "response__id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int2",
+        "Jsonb",
+        "Bytea",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8482e24794d4739bfbac945712881de5b7b190c1347c078bb28b503639016255"
+}

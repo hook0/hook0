@@ -52,6 +52,20 @@ enum PriorityPermit {
 
 type AckMessage = (MessageIdData, Option<PriorityPermit>, bool, bool); // (msg_id, permit, is_ok, is_lp)
 
+/// RAII guard that removes a `request_attempt__id` from the in-flight set on drop.
+/// Ensures the slot is released on every exit path of `handle_message`, including
+/// early returns and panics.
+struct InFlightGuard {
+    set: Arc<papaya::HashSet<Uuid>>,
+    id: Uuid,
+}
+
+impl Drop for InFlightGuard {
+    fn drop(&mut self) {
+        self.set.pin().remove(&self.id);
+    }
+}
+
 pub async fn load_waiting_request_attempts_from_db(
     pool: &PgPool,
     worker_id: &Arc<Uuid>,
@@ -321,6 +335,12 @@ pub async fn look_for_work(
     let lp_sem = Arc::new(Semaphore::new(config.concurrent_lp_reserved.into()));
     let dynamic_sem = Arc::new(Semaphore::new(dynamic_slots.into()));
 
+    // Tracks request attempt IDs currently being processed by this worker process,
+    // so a duplicate delivery (e.g. bulk-load re-publish or Pulsar redelivery) cannot
+    // run a second concurrent HTTP call for the same id. Covers both HP and LP topics.
+    let in_flight: Arc<papaya::HashSet<Uuid>> =
+        Arc::new(papaya::HashSet::with_capacity(config.concurrent.into()));
+
     // This channel is used to bring back the semaphore permit and the message ID to properly destroy/(N)ACK them
     // This is needed because the webhook sendings happen in a Tokio task (to allow concurrency) but we need mutable access to the Pulsar consumer to (N)ACK messages
     let (ack_tx, mut ack_rx) = channel::<AckMessage>(config.concurrent.into());
@@ -433,11 +453,12 @@ pub async fn look_for_work(
                         let hp_rp = hp_retry_producer.clone();
                         let lp_rp = lp_retry_producer.clone();
                         let st = stats.clone();
+                        let infl = in_flight.clone();
 
                         // We handle the request attempt in a new Tokio task
                         task_tracker.spawn(async move {
                             if let Err(e) = handle_message(
-                                &c, &po, &os, &wi, &wn, &wv, &hp_rp, &lp_rp, msg, permit, ack_tx, &st, is_lp,
+                                &c, &po, &os, &wi, &wn, &wv, &hp_rp, &lp_rp, msg, permit, ack_tx, &st, is_lp, infl,
                             )
                             .await
                             {
@@ -532,6 +553,7 @@ async fn handle_message(
     ack_tx: Sender<AckMessage>,
     stats: &ThroughputStats,
     is_lp: bool,
+    in_flight: Arc<papaya::HashSet<Uuid>>,
 ) -> anyhow::Result<()> {
     let picked_at = Utc::now();
     let attempt_is_hp = !is_lp;
@@ -539,395 +561,419 @@ async fn handle_message(
 
     match msg.deserialize() {
         Ok(attempt) => {
-            // Check if request attempt must still be done
-            struct RawRequestAttemptStatus {
-                not_cancelled: bool,
-                not_done: bool,
-                delay_until: Option<DateTime<Utc>>,
-                for_this_worker: bool,
-            }
-            let fetch_start = std::time::Instant::now();
-            let request_attempt_status = match query_as!(
-                RawRequestAttemptStatus,
-                r#"
-                    SELECT
-                        (s.is_enabled AND a.deleted_at IS NULL) AS "not_cancelled!",
-                        (ra.succeeded_at IS NULL AND ra.failed_at IS NULL) AS "not_done!",
-                        ra.delay_until,
-                        (
-                            EXISTS (
-                                SELECT 1
-                                FROM webhook.subscription__worker AS sw1
-                                WHERE sw1.subscription__id = ra.subscription__id
-                                    AND sw1.worker__id IS NOT DISTINCT FROM $2
-                            )
-                            OR (
-                                NOT EXISTS (
+            // Claim the request attempt ID in the in-flight set before doing any work.
+            // If another task in this process already holds it, ACK this duplicate copy;
+            // the original task will finalize the DB row, and any later delivery hits the
+            // existing AlreadyDone branch.
+            let request_attempt_id = attempt.request_attempt_id;
+            if !in_flight.pin().insert(request_attempt_id) {
+                debug!(%request_attempt_id, is_lp, "Duplicate in-flight delivery; ACKing");
+                ack_tx
+                    .send((msg.message_id().clone(), Some(permit), true, is_lp))
+                    .await?;
+                Ok(())
+            } else {
+                let _release = InFlightGuard {
+                    set: in_flight.clone(),
+                    id: request_attempt_id,
+                };
+
+                // Check if request attempt must still be done
+                struct RawRequestAttemptStatus {
+                    not_cancelled: bool,
+                    not_done: bool,
+                    delay_until: Option<DateTime<Utc>>,
+                    for_this_worker: bool,
+                }
+                let fetch_start = std::time::Instant::now();
+                let request_attempt_status = match query_as!(
+                    RawRequestAttemptStatus,
+                    r#"
+                        SELECT
+                            (s.is_enabled AND a.deleted_at IS NULL) AS "not_cancelled!",
+                            (ra.succeeded_at IS NULL AND ra.failed_at IS NULL) AS "not_done!",
+                            ra.delay_until,
+                            (
+                                EXISTS (
                                     SELECT 1
-                                    FROM webhook.subscription__worker AS sw2
-                                    WHERE sw2.subscription__id = ra.subscription__id
+                                    FROM webhook.subscription__worker AS sw1
+                                    WHERE sw1.subscription__id = ra.subscription__id
+                                        AND sw1.worker__id IS NOT DISTINCT FROM $2
                                 )
-                                AND EXISTS (
-                                    SELECT 1
-                                    FROM iam.organization__worker AS ow
-                                    WHERE ow.organization__id = a.organization__id
-                                        AND ow.default = true
-                                        AND ow.worker__id IS NOT DISTINCT FROM $2
+                                OR (
+                                    NOT EXISTS (
+                                        SELECT 1
+                                        FROM webhook.subscription__worker AS sw2
+                                        WHERE sw2.subscription__id = ra.subscription__id
+                                    )
+                                    AND EXISTS (
+                                        SELECT 1
+                                        FROM iam.organization__worker AS ow
+                                        WHERE ow.organization__id = a.organization__id
+                                            AND ow.default = true
+                                            AND ow.worker__id IS NOT DISTINCT FROM $2
+                                    )
                                 )
-                            )
-                        ) AS "for_this_worker!"
-                    FROM webhook.request_attempt AS ra
-                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                    INNER JOIN event.application AS a ON a.application__id = s.application__id
-                    WHERE ra.request_attempt__id = $1
-                "#,
-                attempt.request_attempt_id,
-                worker_id,
-            )
-            .fetch_optional(pool)
-            .await?
-            {
-                Some(RawRequestAttemptStatus {
-                    not_cancelled: true,
-                    not_done: true,
-                    for_this_worker: true,
-                    delay_until: Some(d),
-                }) if d > (Utc::now() + DELAY_TOLERANCE) => RequestAttemptStatus::Delayed {
-                    delay_until: d,
-                    lead: d - Utc::now(),
-                },
-                Some(RawRequestAttemptStatus {
-                    not_cancelled: true,
-                    not_done: true,
-                    for_this_worker: true,
-                    delay_until,
-                }) => RequestAttemptStatus::Ready { delay_until },
-                Some(RawRequestAttemptStatus {
-                    not_cancelled: true,
-                    not_done: false,
-                    ..
-                }) => RequestAttemptStatus::AlreadyDone,
-                Some(RawRequestAttemptStatus {
-                    not_cancelled: false,
-                    ..
-                }) => RequestAttemptStatus::Cancelled,
-                Some(RawRequestAttemptStatus {
-                    not_cancelled: true,
-                    not_done: true,
-                    for_this_worker: false,
-                    ..
-                }) => RequestAttemptStatus::NotForThisWorker,
-                None => RequestAttemptStatus::NotFound,
-            };
-            stats.record_db_fetch(fetch_start.elapsed());
+                            ) AS "for_this_worker!"
+                        FROM webhook.request_attempt AS ra
+                        INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                        INNER JOIN event.application AS a ON a.application__id = s.application__id
+                        WHERE ra.request_attempt__id = $1
+                    "#,
+                    attempt.request_attempt_id,
+                    worker_id,
+                )
+                .fetch_optional(pool)
+                .await?
+                {
+                    Some(RawRequestAttemptStatus {
+                        not_cancelled: true,
+                        not_done: true,
+                        for_this_worker: true,
+                        delay_until: Some(d),
+                    }) if d > (Utc::now() + DELAY_TOLERANCE) => RequestAttemptStatus::Delayed {
+                        delay_until: d,
+                        lead: d - Utc::now(),
+                    },
+                    Some(RawRequestAttemptStatus {
+                        not_cancelled: true,
+                        not_done: true,
+                        for_this_worker: true,
+                        delay_until,
+                    }) => RequestAttemptStatus::Ready { delay_until },
+                    Some(RawRequestAttemptStatus {
+                        not_cancelled: true,
+                        not_done: false,
+                        ..
+                    }) => RequestAttemptStatus::AlreadyDone,
+                    Some(RawRequestAttemptStatus {
+                        not_cancelled: false,
+                        ..
+                    }) => RequestAttemptStatus::Cancelled,
+                    Some(RawRequestAttemptStatus {
+                        not_cancelled: true,
+                        not_done: true,
+                        for_this_worker: false,
+                        ..
+                    }) => RequestAttemptStatus::NotForThisWorker,
+                    None => RequestAttemptStatus::NotFound,
+                };
+                stats.record_db_fetch(fetch_start.elapsed());
 
-            match request_attempt_status {
-                RequestAttemptStatus::Ready { delay_until } => {
-                    // Record queue lag: time between becoming eligible and pickup
-                    let eligible_at = delay_until
-                        .unwrap_or(attempt.created_at)
-                        .max(attempt.created_at);
-                    if let Ok(lag) = (picked_at - eligible_at).to_std() {
-                        stats.record_lag(lag, attempt_is_hp);
-                    }
+                match request_attempt_status {
+                    RequestAttemptStatus::Ready { delay_until } => {
+                        // Record queue lag: time between becoming eligible and pickup
+                        let eligible_at = delay_until
+                            .unwrap_or(attempt.created_at)
+                            .max(attempt.created_at);
+                        if let Ok(lag) = (picked_at - eligible_at).to_std() {
+                            stats.record_lag(lag, attempt_is_hp);
+                        }
 
-                    // Start OpenTelemetry span
-                    let span = start_request_attempt_span(&attempt);
+                        // Start OpenTelemetry span
+                        let span = start_request_attempt_span(&attempt);
 
-                    // Work
-                    let response = work(config, &attempt).await;
-                    trace!(request_attempt_id = %attempt.request_attempt_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
+                        // Work
+                        let response = work(config, &attempt).await;
+                        trace!(request_attempt_id = %attempt.request_attempt_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
 
-                    // Open DB transaction
-                    let mut tx = pool.begin().await?;
+                        // Open DB transaction
+                        let mut tx = pool.begin().await?;
 
-                    // Store response
-                    trace!(request_attempt_id = %attempt.request_attempt_id, "Storing response");
-                    let response_headers = response.headers();
-                    let response_contents_to_insert = if let Some(true) =
-                        object_storage.as_ref().as_ref().map(|object_storage| {
-                            object_storage.store_response_body_and_headers
-                                && (object_storage
-                                    .store_response_body_and_headers_only_for
-                                    .is_empty()
-                                    || object_storage
+                        // Store response
+                        trace!(request_attempt_id = %attempt.request_attempt_id, "Storing response");
+                        let response_headers = response.headers();
+                        let response_contents_to_insert = if let Some(true) =
+                            object_storage.as_ref().as_ref().map(|object_storage| {
+                                object_storage.store_response_body_and_headers
+                                    && (object_storage
                                         .store_response_body_and_headers_only_for
-                                        .contains(&attempt.application_id))
-                                && (response.body.is_some() || response_headers.is_some())
-                        }) {
-                        None
-                    } else {
-                        Some((&response.body, &response_headers))
-                    };
-                    let response_id = query!(
-                        "
-                            INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
-                            VALUES ($1, $2, $3, $4, $5)
-                            RETURNING response__id
-                        ",
-                        response.response_error__name(),
-                        response.http_code(),
-                        response_contents_to_insert.map(|(_, headers)| headers.to_owned()).unwrap_or(None),
-                        response_contents_to_insert.map(|(body, _)| body.to_owned()).unwrap_or(None),
-                        response.elapsed_time_ms(),
-                    )
-                    .fetch_one(&mut *tx)
-                    .await?
-                    .response__id;
+                                        .is_empty()
+                                        || object_storage
+                                            .store_response_body_and_headers_only_for
+                                            .contains(&attempt.application_id))
+                                    && (response.body.is_some() || response_headers.is_some())
+                            }) {
+                            None
+                        } else {
+                            Some((&response.body, &response_headers))
+                        };
+                        let response_id = query!(
+                            "
+                                INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
+                                VALUES ($1, $2, $3, $4, $5)
+                                RETURNING response__id
+                            ",
+                            response.response_error__name(),
+                            response.http_code(),
+                            response_contents_to_insert.map(|(_, headers)| headers.to_owned()).unwrap_or(None),
+                            response_contents_to_insert.map(|(body, _)| body.to_owned()).unwrap_or(None),
+                            response.elapsed_time_ms(),
+                        )
+                        .fetch_one(&mut *tx)
+                        .await?
+                        .response__id;
 
-                    if let Some(object_storage) = object_storage.as_ref()
-                        && object_storage.store_response_body_and_headers
-                        && (object_storage
-                            .store_response_body_and_headers_only_for
-                            .is_empty()
-                            || object_storage
+                        if let Some(object_storage) = object_storage.as_ref()
+                            && object_storage.store_response_body_and_headers
+                            && (object_storage
                                 .store_response_body_and_headers_only_for
-                                .contains(&attempt.application_id))
-                        && (response.body.is_some() || response_headers.is_some())
-                    {
-                        let key = format!(
-                            "{}/response/{}/{response_id}",
-                            attempt.application_id,
-                            attempt.created_at.naive_utc().date()
-                        );
-                        let object: Vec<u8> = ObjectStorageResponse {
-                            body: response.body.clone().unwrap_or_default(),
-                            headers: response_headers.unwrap_or_default(),
+                                .is_empty()
+                                || object_storage
+                                    .store_response_body_and_headers_only_for
+                                    .contains(&attempt.application_id))
+                            && (response.body.is_some() || response_headers.is_some())
+                        {
+                            let key = format!(
+                                "{}/response/{}/{response_id}",
+                                attempt.application_id,
+                                attempt.created_at.naive_utc().date()
+                            );
+                            let object: Vec<u8> = ObjectStorageResponse {
+                                body: response.body.clone().unwrap_or_default(),
+                                headers: response_headers.unwrap_or_default(),
+                            }
+                            .try_into()?;
+                            object_storage
+                                .client
+                                .put_object()
+                                .bucket(&object_storage.bucket)
+                                .key(&key)
+                                .content_type("application/protobuf")
+                                .body(ByteStream::from(object))
+                                .send()
+                                .await
+                                .inspect_err(|e| {
+                                    log_object_storage_error_with_context!(
+                                        "S3 PUT OBJECT failed",
+                                        error_chain = DisplayErrorContext(e).to_string(),
+                                        object_key = &key,
+                                    );
+                                })?;
                         }
-                        .try_into()?;
-                        object_storage
-                            .client
-                            .put_object()
-                            .bucket(&object_storage.bucket)
-                            .key(&key)
-                            .content_type("application/protobuf")
-                            .body(ByteStream::from(object))
-                            .send()
-                            .await
-                            .inspect_err(|e| {
-                                log_object_storage_error_with_context!(
-                                    "S3 PUT OBJECT failed",
-                                    error_chain = DisplayErrorContext(e).to_string(),
-                                    object_key = &key,
-                                );
-                            })?;
-                    }
 
-                    // Between the status check and this UPDATE, another process (e.g. subscription disable or Pulsar message redelivery) may have already finalized this attempt.
-                    // The UPDATE guards against this by requiring succeeded_at/failed_at to still be NULL.
-                    let race_detected = if response.is_success() {
-                        // Mark attempt as completed
-                        trace!(request_attempt_id = %attempt.request_attempt_id, "Completing request attempt");
-                        let update_result = query!(
-                            "
-                                UPDATE webhook.request_attempt
-                                SET worker_name = $1,
-                                    worker_version = $2,
-                                    picked_at = $3,
-                                    response__id = $4,
-                                    succeeded_at = statement_timestamp()
-                                WHERE request_attempt__id = $5
-                                    AND succeeded_at IS NULL
-                                    AND failed_at IS NULL
-                            ",
-                            worker_name,
-                            worker_version,
-                            picked_at,
-                            response_id,
-                            attempt.request_attempt_id,
-                        )
-                        .execute(&mut *tx)
-                        .await?;
+                        // Between the status check and this UPDATE, another process (e.g. subscription disable or Pulsar message redelivery) may have already finalized this attempt.
+                        // The UPDATE guards against this by requiring succeeded_at/failed_at to still be NULL.
+                        let race_detected = if response.is_success() {
+                            // Mark attempt as completed
+                            trace!(request_attempt_id = %attempt.request_attempt_id, "Completing request attempt");
+                            let update_result = query!(
+                                "
+                                    UPDATE webhook.request_attempt
+                                    SET worker_name = $1,
+                                        worker_version = $2,
+                                        picked_at = $3,
+                                        response__id = $4,
+                                        succeeded_at = statement_timestamp()
+                                    WHERE request_attempt__id = $5
+                                        AND succeeded_at IS NULL
+                                        AND failed_at IS NULL
+                                ",
+                                worker_name,
+                                worker_version,
+                                picked_at,
+                                response_id,
+                                attempt.request_attempt_id,
+                            )
+                            .execute(&mut *tx)
+                            .await?;
 
-                        if update_result.rows_affected() == 0 {
-                            warn!(request_attempt_id = %attempt.request_attempt_id, "Race detected: request attempt was already finalized by another process; skipping");
-                            true
+                            if update_result.rows_affected() == 0 {
+                                warn!(request_attempt_id = %attempt.request_attempt_id, "Race detected: request attempt was already finalized by another process; skipping");
+                                true
+                            } else {
+                                debug!(request_attempt_id = %attempt.request_attempt_id, "Request attempt completed successfully");
+                                false
+                            }
                         } else {
-                            debug!(request_attempt_id = %attempt.request_attempt_id, "Request attempt completed successfully");
-                            false
-                        }
-                    } else {
-                        // Mark attempt as failed
-                        trace!(request_attempt_id = %attempt.request_attempt_id, "Failing request attempt");
-                        let update_result = query!(
-                            "
-                                UPDATE webhook.request_attempt
-                                SET worker_name = $1,
-                                    worker_version = $2,
-                                    picked_at = $3,
-                                    response__id = $4,
-                                    failed_at = statement_timestamp()
-                                WHERE request_attempt__id = $5
-                                    AND succeeded_at IS NULL
-                                    AND failed_at IS NULL
-                            ",
-                            worker_name,
-                            worker_version,
-                            picked_at,
-                            response_id,
-                            attempt.request_attempt_id,
-                        )
-                        .execute(&mut *tx)
-                        .await?;
+                            // Mark attempt as failed
+                            trace!(request_attempt_id = %attempt.request_attempt_id, "Failing request attempt");
+                            let update_result = query!(
+                                "
+                                    UPDATE webhook.request_attempt
+                                    SET worker_name = $1,
+                                        worker_version = $2,
+                                        picked_at = $3,
+                                        response__id = $4,
+                                        failed_at = statement_timestamp()
+                                    WHERE request_attempt__id = $5
+                                        AND succeeded_at IS NULL
+                                        AND failed_at IS NULL
+                                ",
+                                worker_name,
+                                worker_version,
+                                picked_at,
+                                response_id,
+                                attempt.request_attempt_id,
+                            )
+                            .execute(&mut *tx)
+                            .await?;
 
-                        if update_result.rows_affected() == 0 {
-                            warn!(request_attempt_id = %attempt.request_attempt_id, "Race detected: request attempt was already finalized by another process; skipping retry");
-                            true
-                        } else {
-                            // Creating a retry request or giving up
-                            if let Some(retry_in) =
-                                compute_next_retry(&mut tx, &attempt, &response, config.max_retries)
-                                    .await?
-                            {
-                                let next_retry_count = attempt.retry_count + 1;
-                                let delay_until = Utc::now() + retry_in;
-
-                                #[allow(non_snake_case)]
-                                struct Retry {
-                                    request_attempt__id: Uuid,
-                                    created_at: DateTime<Utc>,
-                                }
-                                let retry = query_as!(
-                                    Retry,
-                                    "
-                                        INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count)
-                                        VALUES ($1, $2, $3, $4, $5)
-                                        RETURNING request_attempt__id, created_at
-                                    ",
-                                    attempt.application_id,
-                                    attempt.event_id,
-                                    attempt.subscription_id,
-                                    delay_until,
-                                    next_retry_count,
+                            if update_result.rows_affected() == 0 {
+                                warn!(request_attempt_id = %attempt.request_attempt_id, "Race detected: request attempt was already finalized by another process; skipping retry");
+                                true
+                            } else {
+                                // Creating a retry request or giving up
+                                if let Some(retry_in) = compute_next_retry(
+                                    &mut tx,
+                                    &attempt,
+                                    &response,
+                                    config.max_retries,
                                 )
-                                .fetch_one(&mut *tx)
-                                .await?;
+                                .await?
+                                {
+                                    let next_retry_count = attempt.retry_count + 1;
+                                    let delay_until = Utc::now() + retry_in;
 
-                                debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = next_retry_count, retry_id = %retry.request_attempt__id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
+                                    #[allow(non_snake_case)]
+                                    struct Retry {
+                                        request_attempt__id: Uuid,
+                                        created_at: DateTime<Utc>,
+                                    }
+                                    let retry = query_as!(
+                                        Retry,
+                                        "
+                                            INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count)
+                                            VALUES ($1, $2, $3, $4, $5)
+                                            RETURNING request_attempt__id, created_at
+                                        ",
+                                        attempt.application_id,
+                                        attempt.event_id,
+                                        attempt.subscription_id,
+                                        delay_until,
+                                        next_retry_count,
+                                    )
+                                    .fetch_one(&mut *tx)
+                                    .await?;
 
-                                // Route retry to HP or LP topic based on priority cutoff
-                                let retry_producer =
-                                    if SlotRole::is_hp(next_retry_count, config.hp_retry_cutoff) {
+                                    debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = next_retry_count, retry_id = %retry.request_attempt__id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
+
+                                    // Route retry to HP or LP topic based on priority cutoff
+                                    let retry_producer = if SlotRole::is_hp(
+                                        next_retry_count,
+                                        config.hp_retry_cutoff,
+                                    ) {
                                         hp_retry_producer
                                     } else {
                                         lp_retry_producer
                                     };
-                                retry_producer
-                                    .lock()
-                                    .await
-                                    .create_message()
-                                    .event_time(retry.created_at.timestamp_micros() as u64)
-                                    .deliver_at(delay_until.into())?
-                                    .with_content(RequestAttempt {
-                                        request_attempt_id: retry.request_attempt__id,
-                                        created_at: retry.created_at,
-                                        retry_count: next_retry_count,
-                                        ..attempt
-                                    })
-                                    .send_non_blocking()
-                                    .await?;
-                            } else {
-                                debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
+                                    retry_producer
+                                        .lock()
+                                        .await
+                                        .create_message()
+                                        .event_time(retry.created_at.timestamp_micros() as u64)
+                                        .deliver_at(delay_until.into())?
+                                        .with_content(RequestAttempt {
+                                            request_attempt_id: retry.request_attempt__id,
+                                            created_at: retry.created_at,
+                                            retry_count: next_retry_count,
+                                            ..attempt
+                                        })
+                                        .send_non_blocking()
+                                        .await?;
+                                } else {
+                                    debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
+                                }
+                                false
                             }
-                            false
+                        };
+
+                        if race_detected {
+                            tx.rollback().await?;
+                        } else {
+                            tx.commit().await?;
+
+                            stats.record_attempt(
+                                response.is_success(),
+                                attempt.retry_count,
+                                response.elapsed_time,
+                                config.hp_retry_cutoff,
+                            );
                         }
-                    };
 
-                    if race_detected {
-                        tx.rollback().await?;
-                    } else {
-                        tx.commit().await?;
-
-                        stats.record_attempt(
-                            response.is_success(),
-                            attempt.retry_count,
-                            response.elapsed_time,
-                            config.hp_retry_cutoff,
-                        );
-                    }
-
-                    // End OpenTelemetry span
-                    end_request_attempt_span(span, &response);
-
-                    ack_tx
-                        .send((msg.message_id().clone(), Some(permit), true, is_lp))
-                        .await?;
-
-                    Ok(())
-                }
-                // This should never happen because delayed request attempts are sent to Pulsar with a `deliver_at` constraint
-                // This process is there to make sure delayed request attempts will not be processed immediately if the Pulsar producer made a mistake
-                RequestAttemptStatus::Delayed { delay_until, lead } => {
-                    stats.record_not_ready();
-                    trace!(request_attempt_id = %attempt.request_attempt_id, lead = ?lead, "Request attempt was scheduled for later");
-                    // Re-send to the same topic (HP or LP) it came from
-                    let retry_producer = if is_lp {
-                        lp_retry_producer
-                    } else {
-                        hp_retry_producer
-                    };
-                    retry_producer
-                        .lock()
-                        .await
-                        .create_message()
-                        .event_time(attempt.created_at.timestamp_micros() as u64)
-                        .deliver_at(delay_until.into())?
-                        .with_content(attempt)
-                        .send_non_blocking()
-                        .await?;
-                    ack_tx
-                        .send((msg.message_id().clone(), Some(permit), true, is_lp))
-                        .await?;
-
-                    Ok(())
-                }
-                RequestAttemptStatus::AlreadyDone => {
-                    stats.record_not_ready();
-                    trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt was already done");
-                    ack_tx
-                        .send((msg.message_id().clone(), Some(permit), true, is_lp))
-                        .await?;
-
-                    Ok(())
-                }
-                RequestAttemptStatus::Cancelled => {
-                    stats.record_not_ready();
-                    trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt was cancelled");
-                    ack_tx
-                        .send((msg.message_id().clone(), Some(permit), true, is_lp))
-                        .await?;
-
-                    Ok(())
-                }
-                RequestAttemptStatus::NotForThisWorker => {
-                    debug!(request_attempt_id = %attempt.request_attempt_id, "Request attempt should not be handled by the present worker");
-
-                    // Message is only ACKed and not republished into the right topic because the rightful worker is supposed to reload everything from the database when it first starts
-                    ack_tx
-                        .send((msg.message_id().clone(), Some(permit), true, is_lp))
-                        .await?;
-
-                    Ok(())
-                }
-                RequestAttemptStatus::NotFound => {
-                    stats.record_not_ready();
-                    if attempt.created_at + config.request_attempt_db_commit_grace_period
-                        >= Utc::now()
-                    {
-                        trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt not found in database; created recently, will retry later");
-
-                        ack_tx
-                            .send((msg.message_id().clone(), Some(permit), false, is_lp))
-                            .await?;
-                    } else {
-                        trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt not found in database; not recent, dropping");
+                        // End OpenTelemetry span
+                        end_request_attempt_span(span, &response);
 
                         ack_tx
                             .send((msg.message_id().clone(), Some(permit), true, is_lp))
                             .await?;
-                    }
 
-                    Ok(())
+                        Ok(())
+                    }
+                    // This should never happen because delayed request attempts are sent to Pulsar with a `deliver_at` constraint
+                    // This process is there to make sure delayed request attempts will not be processed immediately if the Pulsar producer made a mistake
+                    RequestAttemptStatus::Delayed { delay_until, lead } => {
+                        stats.record_not_ready();
+                        trace!(request_attempt_id = %attempt.request_attempt_id, lead = ?lead, "Request attempt was scheduled for later");
+                        // Re-send to the same topic (HP or LP) it came from
+                        let retry_producer = if is_lp {
+                            lp_retry_producer
+                        } else {
+                            hp_retry_producer
+                        };
+                        retry_producer
+                            .lock()
+                            .await
+                            .create_message()
+                            .event_time(attempt.created_at.timestamp_micros() as u64)
+                            .deliver_at(delay_until.into())?
+                            .with_content(attempt)
+                            .send_non_blocking()
+                            .await?;
+                        ack_tx
+                            .send((msg.message_id().clone(), Some(permit), true, is_lp))
+                            .await?;
+
+                        Ok(())
+                    }
+                    RequestAttemptStatus::AlreadyDone => {
+                        stats.record_not_ready();
+                        trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt was already done");
+                        ack_tx
+                            .send((msg.message_id().clone(), Some(permit), true, is_lp))
+                            .await?;
+
+                        Ok(())
+                    }
+                    RequestAttemptStatus::Cancelled => {
+                        stats.record_not_ready();
+                        trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt was cancelled");
+                        ack_tx
+                            .send((msg.message_id().clone(), Some(permit), true, is_lp))
+                            .await?;
+
+                        Ok(())
+                    }
+                    RequestAttemptStatus::NotForThisWorker => {
+                        debug!(request_attempt_id = %attempt.request_attempt_id, "Request attempt should not be handled by the present worker");
+
+                        // Message is only ACKed and not republished into the right topic because the rightful worker is supposed to reload everything from the database when it first starts
+                        ack_tx
+                            .send((msg.message_id().clone(), Some(permit), true, is_lp))
+                            .await?;
+
+                        Ok(())
+                    }
+                    RequestAttemptStatus::NotFound => {
+                        stats.record_not_ready();
+                        if attempt.created_at + config.request_attempt_db_commit_grace_period
+                            >= Utc::now()
+                        {
+                            trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt not found in database; created recently, will retry later");
+
+                            ack_tx
+                                .send((msg.message_id().clone(), Some(permit), false, is_lp))
+                                .await?;
+                        } else {
+                            trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt not found in database; not recent, dropping");
+
+                            ack_tx
+                                .send((msg.message_id().clone(), Some(permit), true, is_lp))
+                                .await?;
+                        }
+
+                        Ok(())
+                    }
                 }
             }
         }
