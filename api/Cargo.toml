@@ -43,7 +43,7 @@ tracing-actix-web = "0.7.21"
 mrml = "5.1.0"
 opentelemetry = { version = "0.31.0", default-features = false, features = ["trace", "metrics"] }
 opentelemetry-otlp = { version = "0.31.1", default-features = false, features = ["trace", "metrics", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls-webpki-roots"] }
-opentelemetry_sdk = { version = "0.31.0", default-features = false, features = ["trace", "metrics", "rt-tokio"] }
+opentelemetry_sdk = { version = "0.31.0", default-features = false, features = ["trace", "metrics", "rt-tokio", "spec_unstable_metrics_views"] }
 paperclip = { version = "0.9.5", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 pulsar = { version = "6.7.2", default-features = false, features = ["tokio-rustls-runtime"] }
 regex = "1.12.3"

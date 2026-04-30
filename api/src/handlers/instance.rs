@@ -15,7 +15,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, query};
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tracing::trace;
 
+use crate::opentelemetry::report_health_check_duration;
 use crate::problems::Hook0Problem;
 use crate::{ObjectStorageConfig, PulsarConfig};
 
@@ -93,6 +96,10 @@ pub struct HealthCheck {
     database: bool,
     pulsar: Option<bool>,
     object_storage: Option<bool>,
+    database_duration_ms: u64,
+    pulsar_duration_ms: Option<u64>,
+    object_storage_duration_ms: Option<u64>,
+    total_duration_ms: u64,
 }
 
 impl HealthCheck {
@@ -207,43 +214,64 @@ pub async fn health(
         Some(k) => {
             // Comparison is not done in constant time, but stakes are very low here
             if k.is_empty() || k == qs_key {
+                let total_start = Instant::now();
+                let timeout_duration = state.health_check_timeout;
+
                 let pool = state.db.clone();
-                let database_task =
-                    spawn(timeout(state.health_check_timeout, check_database(pool)));
+                let database_task = spawn(timeout(timeout_duration, check_database(pool)));
 
-                let pulsar_config = state.pulsar.clone();
+                let pulsar_configured = state.pulsar.is_some();
                 let pulsar_task = spawn(timeout(
-                    state.health_check_timeout,
-                    check_pulsar(pulsar_config),
+                    timeout_duration,
+                    check_pulsar(state.pulsar.clone()),
                 ));
 
-                let object_storage_config = state.object_storage.clone();
+                let object_storage_configured = state.object_storage.is_some();
                 let object_storage_task = spawn(timeout(
-                    state.health_check_timeout,
-                    check_object_storage(object_storage_config),
+                    timeout_duration,
+                    check_object_storage(state.object_storage.clone()),
                 ));
 
-                let database = matches!(database_task.await, Ok(Ok(true)));
-                let pulsar = if let Ok(Ok(r)) = pulsar_task.await {
-                    r
-                } else if state.pulsar.is_some() {
-                    Some(false)
-                } else {
-                    None
-                };
-                let object_storage = if let Ok(Ok(r)) = object_storage_task.await {
-                    r
-                } else if state.object_storage.is_some() {
-                    Some(false)
-                } else {
-                    None
-                };
+                let (database, db_duration, db_outcome) =
+                    classify_required(database_task.await, timeout_duration);
+                let (pulsar, pulsar_duration, pulsar_outcome) =
+                    classify_optional(pulsar_task.await, pulsar_configured, timeout_duration);
+                let (object_storage, os_duration, os_outcome) = classify_optional(
+                    object_storage_task.await,
+                    object_storage_configured,
+                    timeout_duration,
+                );
+
+                report_health_check_duration("database", db_outcome, db_duration);
+                if let (Some(d), Some(o)) = (pulsar_duration, pulsar_outcome) {
+                    report_health_check_duration("pulsar", o, d);
+                }
+                if let (Some(d), Some(o)) = (os_duration, os_outcome) {
+                    report_health_check_duration("object_storage", o, d);
+                }
+
+                let total_duration = total_start.elapsed();
 
                 let health_check = HealthCheck {
                     database,
                     pulsar,
                     object_storage,
+                    database_duration_ms: duration_ms(db_duration),
+                    pulsar_duration_ms: pulsar_duration.map(duration_ms),
+                    object_storage_duration_ms: os_duration.map(duration_ms),
+                    total_duration_ms: duration_ms(total_duration),
                 };
+
+                let total_outcome = if health_check.is_ok() { "ok" } else { "error" };
+                report_health_check_duration("total", total_outcome, total_duration);
+
+                trace!(
+                    database_ms = health_check.database_duration_ms,
+                    pulsar_ms = health_check.pulsar_duration_ms,
+                    object_storage_ms = health_check.object_storage_duration_ms,
+                    total_ms = health_check.total_duration_ms,
+                    "health check completed"
+                );
 
                 Ok(HealthCheckWithOa(health_check))
             } else {
@@ -254,12 +282,51 @@ pub async fn health(
     }
 }
 
-async fn check_database(db: PgPool) -> bool {
-    query("SELECT 1").fetch_one(&db).await.is_ok()
+fn duration_ms(d: Duration) -> u64 {
+    u64::try_from(d.as_millis()).unwrap_or(u64::MAX)
 }
 
-async fn check_pulsar(pulsar: Option<Arc<PulsarConfig>>) -> Option<bool> {
-    if let Some(p) = pulsar {
+type SpawnTimeoutResult<T> =
+    Result<Result<(T, Duration), tokio::time::error::Elapsed>, tokio::task::JoinError>;
+
+fn classify_required(
+    res: SpawnTimeoutResult<bool>,
+    timeout_duration: Duration,
+) -> (bool, Duration, &'static str) {
+    match res {
+        Ok(Ok((value, duration))) => (value, duration, if value { "ok" } else { "error" }),
+        Ok(Err(_elapsed)) => (false, timeout_duration, "timeout"),
+        Err(_join) => (false, timeout_duration, "error"),
+    }
+}
+
+fn classify_optional(
+    res: SpawnTimeoutResult<Option<bool>>,
+    configured: bool,
+    timeout_duration: Duration,
+) -> (Option<bool>, Option<Duration>, Option<&'static str>) {
+    match res {
+        Ok(Ok((Some(value), duration))) => (
+            Some(value),
+            Some(duration),
+            Some(if value { "ok" } else { "error" }),
+        ),
+        Ok(Ok((None, _))) => (None, None, None),
+        Ok(Err(_elapsed)) if configured => (Some(false), Some(timeout_duration), Some("timeout")),
+        Err(_join) if configured => (Some(false), Some(timeout_duration), Some("error")),
+        Ok(Err(_)) | Err(_) => (None, None, None),
+    }
+}
+
+async fn check_database(db: PgPool) -> (bool, Duration) {
+    let start = Instant::now();
+    let ok = query("SELECT 1").fetch_one(&db).await.is_ok();
+    (ok, start.elapsed())
+}
+
+async fn check_pulsar(pulsar: Option<Arc<PulsarConfig>>) -> (Option<bool>, Duration) {
+    let start = Instant::now();
+    let result = if let Some(p) = pulsar {
         Some(
             p.pulsar
                 .get_topics_of_namespace(format!("{}/{}", p.tenant, p.namespace), Mode::All)
@@ -268,11 +335,15 @@ async fn check_pulsar(pulsar: Option<Arc<PulsarConfig>>) -> Option<bool> {
         )
     } else {
         None
-    }
+    };
+    (result, start.elapsed())
 }
 
-async fn check_object_storage(object_storage: Option<ObjectStorageConfig>) -> Option<bool> {
-    if let Some(os) = object_storage {
+async fn check_object_storage(
+    object_storage: Option<ObjectStorageConfig>,
+) -> (Option<bool>, Duration) {
+    let start = Instant::now();
+    let result = if let Some(os) = object_storage {
         Some(
             os.client
                 .head_bucket()
@@ -283,7 +354,8 @@ async fn check_object_storage(object_storage: Option<ObjectStorageConfig>) -> Op
         )
     } else {
         None
-    }
+    };
+    (result, start.elapsed())
 }
 
 #[cfg(feature = "profiling")]

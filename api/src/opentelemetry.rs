@@ -5,7 +5,7 @@ use opentelemetry_otlp::{
     WithHttpConfig,
 };
 use opentelemetry_sdk::Resource;
-use opentelemetry_sdk::metrics::SdkMeterProvider;
+use opentelemetry_sdk::metrics::{Aggregation, Instrument, SdkMeterProvider, Stream};
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -43,6 +43,7 @@ pub fn init(
         let otlp_exporter = builder.build()?;
         let metrics_provider = SdkMeterProvider::builder()
             .with_periodic_exporter(otlp_exporter)
+            .with_view(health_check_duration_view)
             .with_resource(resource.clone())
             .build();
         global::set_meter_provider(metrics_provider.clone());
@@ -166,4 +167,41 @@ pub fn report_replayed_events(amount: u64) {
     let meter = global::meter(crate_name!());
     let counter = meter.u64_counter("events.replayed").build();
     counter.add(amount, &[]);
+}
+
+pub fn report_health_check_duration(
+    subsystem: &'static str,
+    outcome: &'static str,
+    duration: Duration,
+) {
+    let meter = global::meter(crate_name!());
+    let histogram = meter
+        .f64_histogram("health_check.duration")
+        .with_unit("s")
+        .with_description("Duration of a /health subsystem probe")
+        .build();
+    histogram.record(
+        duration.as_secs_f64(),
+        &[
+            KeyValue::new("subsystem", subsystem),
+            KeyValue::new("outcome", outcome),
+        ],
+    );
+}
+
+// SDK default boundaries are tuned for milliseconds; this metric is in seconds.
+fn health_check_duration_view(instrument: &Instrument) -> Option<Stream> {
+    if instrument.name() == "health_check.duration" {
+        Stream::builder()
+            .with_aggregation(Aggregation::ExplicitBucketHistogram {
+                boundaries: vec![
+                    0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 7.5, 10.0,
+                ],
+                record_min_max: true,
+            })
+            .build()
+            .ok()
+    } else {
+        None
+    }
 }
