@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                                    UPDATE webhook.request_attempt\n                                    SET worker_name = $1,\n                                        worker_version = $2,\n                                        picked_at = $3,\n                                        response__id = $4,\n                                        failed_at = statement_timestamp()\n                                    WHERE request_attempt__id = $5\n                                        AND succeeded_at IS NULL\n                                        AND failed_at IS NULL\n                                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ae12a1e2ae86a6f166b3aed1ca408e18319fa1be5fa479f038912ad5d1ae2c30"
+}
