@@ -8,7 +8,7 @@ workflow:
 
 variables:
   PG_VERSION: "18"
-  RUST_VERSION: "1.94-trixie"
+  RUST_VERSION: "1.95-trixie"
   NODE_VERSION: "24-trixie"
   PROTOC_VERSION: "33.5"
   POSTGRES_DB: hook0-ci
