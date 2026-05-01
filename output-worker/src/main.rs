@@ -209,12 +209,16 @@ struct Config {
     load_waiting_request_attempts_into_pulsar: bool,
 
     /// Grace period to wait for database commit before dropping unfound request attempts (only for Pulsar workers)
-    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "10s")]
     request_attempt_db_commit_grace_period: Duration,
 
     /// Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "15s")]
     pulsar_consumer_stats_interval: Duration,
+
+    /// Maximum time to wait for the Pulsar broker to acknowledge a sent message (only for Pulsar workers)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "10s")]
+    pulsar_send_receipt_timeout: Duration,
 
     /// Interval between periodic throughput log lines (set to "0s" to disable)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "60s")]
@@ -684,10 +688,16 @@ async fn main() -> anyhow::Result<()> {
                 let pu_clone = pu.clone();
                 let os_clone = os.clone();
                 let hp_cutoff = c.hp_retry_cutoff;
+                let send_receipt_timeout = c.pulsar_send_receipt_timeout;
                 spawn(async move {
                     info!("Loading waiting request attempts from database into Pulsar...");
                     match pulsar::load_waiting_request_attempts_from_db(
-                        &po_clone, &wid_clone, &pu_clone, &os_clone, hp_cutoff,
+                        &po_clone,
+                        &wid_clone,
+                        &pu_clone,
+                        &os_clone,
+                        hp_cutoff,
+                        send_receipt_timeout,
                     )
                     .await
                     {
