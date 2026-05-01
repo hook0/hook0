@@ -174,6 +174,10 @@ struct Config {
     #[clap(long, env, group = "pulsar")]
     pulsar_namespace: Option<String>,
 
+    /// [Pulsar] Maximum time to wait for the Pulsar broker to acknowledge a sent message
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "10s")]
+    pulsar_send_receipt_timeout: Duration,
+
     /// [Object Storage] Host of the S3-like object storage (without https://)
     #[clap(long, env)]
     object_storage_host: Option<String>,
@@ -598,6 +602,7 @@ struct PulsarConfig {
     tenant: String,
     namespace: String,
     request_attempts_producer: Arc<Mutex<MultiTopicProducer<TokioExecutor>>>,
+    send_receipt_timeout: Duration,
 }
 
 #[derive(Debug, Clone)]
@@ -801,6 +806,7 @@ async fn main() -> anyhow::Result<()> {
                         tenant: pulsar_tenant,
                         namespace: pulsar_namespace,
                         request_attempts_producer: Arc::new(Mutex::new(request_attempts_producer)),
+                        send_receipt_timeout: config.pulsar_send_receipt_timeout,
                     }))
                 }
                 Err(e) => {
