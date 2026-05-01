@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, TimeDelta, Utc};
@@ -72,6 +72,7 @@ pub async fn load_waiting_request_attempts_from_db(
     pulsar: &Arc<PulsarConfig>,
     object_storage: &Option<ObjectStorageConfig>,
     hp_retry_cutoff: i16,
+    pulsar_send_receipt_timeout: Duration,
 ) -> anyhow::Result<u64> {
     let hp_topic = format!(
         "persistent://{}/{}/{}.request_attempt",
@@ -219,10 +220,21 @@ pub async fn load_waiting_request_attempts_from_db(
                 msg_builder = msg_builder.deliver_at(delay_until.into())?;
             }
 
-            msg_builder
+            let request_attempt_id = ra.request_attempt_id;
+            let send_future = msg_builder
                 .with_content(request_attempt)
                 .send_non_blocking()
                 .await?;
+            timeout(pulsar_send_receipt_timeout, send_future)
+                .await
+                .map_err(|_| {
+                    error!(%request_attempt_id, "Pulsar broker receipt timed out");
+                    anyhow!("Pulsar broker receipt timed out")
+                })?
+                .map_err(|e| {
+                    error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
+                    anyhow::Error::from(e)
+                })?;
 
             counter += 1;
         } else {
@@ -857,20 +869,31 @@ async fn handle_message(
                                     } else {
                                         lp_retry_producer
                                     };
-                                    retry_producer
+                                    let request_attempt_id = retry.request_attempt__id;
+                                    let send_future = retry_producer
                                         .lock()
                                         .await
                                         .create_message()
                                         .event_time(retry.created_at.timestamp_micros() as u64)
                                         .deliver_at(delay_until.into())?
                                         .with_content(RequestAttempt {
-                                            request_attempt_id: retry.request_attempt__id,
+                                            request_attempt_id,
                                             created_at: retry.created_at,
                                             retry_count: next_retry_count,
                                             ..attempt
                                         })
                                         .send_non_blocking()
                                         .await?;
+                                    timeout(config.pulsar_send_receipt_timeout, send_future)
+                                        .await
+                                        .map_err(|_| {
+                                            error!(%request_attempt_id, "Pulsar broker receipt timed out");
+                                            anyhow!("Pulsar broker receipt timed out")
+                                        })?
+                                        .map_err(|e| {
+                                            error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
+                                            anyhow::Error::from(e)
+                                        })?;
                                 } else {
                                     debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
                                 }
@@ -911,7 +934,8 @@ async fn handle_message(
                         } else {
                             hp_retry_producer
                         };
-                        retry_producer
+                        let request_attempt_id = attempt.request_attempt_id;
+                        let send_future = retry_producer
                             .lock()
                             .await
                             .create_message()
@@ -920,6 +944,16 @@ async fn handle_message(
                             .with_content(attempt)
                             .send_non_blocking()
                             .await?;
+                        timeout(config.pulsar_send_receipt_timeout, send_future)
+                            .await
+                            .map_err(|_| {
+                                error!(%request_attempt_id, "Pulsar broker receipt timed out");
+                                anyhow!("Pulsar broker receipt timed out")
+                            })?
+                            .map_err(|e| {
+                                error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
+                                anyhow::Error::from(e)
+                            })?;
                         ack_tx
                             .send((msg.message_id().clone(), Some(permit), true, is_lp))
                             .await?;

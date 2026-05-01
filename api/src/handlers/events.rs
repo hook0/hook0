@@ -808,7 +808,8 @@ async fn send_request_attempts_to_pulsar<'a>(
                 secret: ra.secret,
             };
 
-            let mut producer = timeout(
+            let request_attempt_id = ra.request_attempt__id;
+            let send_future = timeout(
                 Duration::from_secs(3),
                 pulsar.request_attempts_producer.lock(),
             )
@@ -816,18 +817,27 @@ async fn send_request_attempts_to_pulsar<'a>(
             .map_err(|_| {
                 error!("Timed out while waiting access to Pulsar producer");
                 Hook0Problem::InternalServerError
+            })?
+            .send_non_blocking(
+                format!(
+                    "persistent://{}/{}/{}.request_attempt",
+                    &pulsar.tenant, &pulsar.namespace, worker_id,
+                ),
+                request_attempt,
+            )
+            .await
+            .map_err(|e| {
+                error!("Error while sending a message to Pulsar: {e}");
+                Hook0Problem::InternalServerError
             })?;
-            producer
-                .send_non_blocking(
-                    format!(
-                        "persistent://{}/{}/{}.request_attempt",
-                        &pulsar.tenant, &pulsar.namespace, worker_id,
-                    ),
-                    request_attempt,
-                )
+            timeout(pulsar.send_receipt_timeout, send_future)
                 .await
+                .map_err(|_| {
+                    error!(%request_attempt_id, "Pulsar broker receipt timed out");
+                    Hook0Problem::InternalServerError
+                })?
                 .map_err(|e| {
-                    error!("Error while sending a message to Pulsar: {e}");
+                    error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
                     Hook0Problem::InternalServerError
                 })?;
             report_request_attempts_sent_to_pulsar(1);
