@@ -25,6 +25,12 @@ e2e-playwright.test:
     SMTP_CONNECTION_URL: "smtp://mailpit:1025"
     EMAIL_SENDER_ADDRESS: "sender@hook0.local"
     APP_URL: "http://localhost:8001"
+    # Pagination Link headers must point at the API origin (port 8081), not the
+    # SPA origin (port 8001 served by `npx serve`). Without this, cursor URLs
+    # are built from APP_URL and end up hitting the SPA, which returns
+    # `index.html` for any path — the frontend then iterates the HTML string
+    # as if it were an array of items (~3.4k characters → 3454 phantom rows).
+    API_PUBLIC_URL: "http://localhost:8081"
     BISCUIT_PRIVATE_KEY: "bbea79cd66926b219b3219a3186decb36136d774dd7c35a8239e512090fa8854"
     IP: "0.0.0.0"
     PORT: "8081"
