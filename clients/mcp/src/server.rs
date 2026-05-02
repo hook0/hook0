@@ -258,12 +258,15 @@ impl ServerHandler for Hook0McpServer {
                         .get(&format!("/applications/{}/events/", app_id))
                         .await
                 } else if let Some(app_id) = rest.strip_suffix("/subscriptions") {
+                    // Cursor-paginated since issue #45 — follow Link headers
+                    // up to a 1000-item cap with truncation marker.
                     self.client
-                        .get(&format!("/applications/{}/subscriptions/", app_id))
+                        .get_paginated(&format!("/applications/{}/subscriptions/", app_id))
                         .await
                 } else if let Some(app_id) = rest.strip_suffix("/event_types") {
+                    // Cursor-paginated since issue #45.
                     self.client
-                        .get(&format!("/applications/{}/event_types/", app_id))
+                        .get_paginated(&format!("/applications/{}/event_types/", app_id))
                         .await
                 } else {
                     self.client.get(&format!("/applications/{}/", rest)).await
