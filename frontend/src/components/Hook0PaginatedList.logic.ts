@@ -3,10 +3,8 @@
  *
  * Extracted into a standalone module so they can be unit-tested without
  * mounting the SFC (the Jest setup currently has no Vue SFC transformer).
- *
- * The tests for these helpers double as the AC-20 / AC-26 contract for the
- * paginated-list component: they pin the disable rules, the page indicator,
- * and the i18n keys we depend on.
+ * The tests pin the prev/next disable rules, the page indicator, and the
+ * i18n keys the component depends on.
  */
 
 export type PaginatedListState = {
@@ -43,7 +41,7 @@ export function isNextDisabled(
  * The set of i18n keys consumed by `Hook0PaginatedList.vue`.
  * The component template is the source of truth, but we keep this list here
  * so the test suite can pin them down — a missing key in `en.json` would cause
- * raw `pagination.*` strings to leak into the UI (regression of AC-26).
+ * raw `pagination.*` strings to leak into the UI.
  */
 export const PAGINATION_I18N_KEYS = [
   'pagination.previous',

@@ -3,14 +3,15 @@
 //! Spins up a `wiremock::MockServer` that mimics Hook0's RFC 5988 `Link: rel="next"`
 //! pagination contract and verifies the MCP cursor-follow helper:
 //!
-//! - AC-29: walking a 3-page chain returns the merged flat array (no duplicates,
+//! - Walking a 3-page chain returns the merged flat array (no duplicates,
 //!   no skipped items, in the order returned by the server).
-//! - AC-30: when total rows exceed the 1000-item cap, the response is wrapped in
-//!   the `{ items, _truncated, _truncated_count, _message }` envelope so the LLM
-//!   can drop down to manual cursor follow.
+//! - When total rows exceed the 1000-item cap, the response is wrapped in
+//!   the `{ items, _truncated, _truncated_count, _message }` envelope so the
+//!   LLM can drop down to manual cursor follow.
+//! - Single-page responses come back as a plain array, no envelope.
 //!
-//! The MCP server itself is not exercised here — we test the HTTP client layer
-//! used by every paginated MCP tool, which is the actual unit shipped in this PR.
+//! The MCP server itself is not exercised here — we test the HTTP client
+//! layer used by every paginated MCP tool.
 
 use hook0_mcp::client::Hook0Client;
 use hook0_mcp::config::{Config, Transport};

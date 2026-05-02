@@ -317,7 +317,7 @@ describe('Hook0Client', () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  // AC-18: paginatedFetch helper must follow `Link: rel="next"` until exhausted.
+  // paginatedFetch must follow `Link: rel="next"` until exhausted.
   test('paginated_fetch_follows_link_until_done', async () => {
     const baseUrl = 'https://api.example.com/event_types?application_id=app-123';
     const cursor1 = 'CURSOR_PAGE_2';
@@ -379,9 +379,9 @@ describe('Hook0Client', () => {
     expect(names[249]).toBe('svc.res.v249');
   });
 
-  // AC-17: SDK upsertEventTypes wires paginatedFetch and sees ALL 250 server-side
-  // event types; nothing is silently dropped, and no duplicate POST is issued
-  // for an existing event type that lived on page 2 or 3.
+  // upsertEventTypes wires paginatedFetch and sees ALL 250 server-side event
+  // types; nothing is silently dropped, and no duplicate POST is issued for
+  // an existing event type that lived on page 2 or 3.
   test('upsertEventTypes_with_250_items_fetches_all', async () => {
     const baseUrl = 'https://api.example.com/event_types?application_id=app-123';
     const url2 = `${baseUrl}&pagination_cursor=PAGE2&limit=100`;

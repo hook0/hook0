@@ -2,19 +2,17 @@ import { test, expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
 
 /**
- * Hook0PaginatedList interactions on the EventTypes page (issue #45).
+ * Hook0PaginatedList interactions on the EventTypes page.
  *
  * Boots the live frontend, creates a fresh tenant + application, seeds enough
  * event types to span 2 pages (default page size = 100), then exercises the
- * full prev/next/loading/edge-disable contract of `Hook0PaginatedList.vue`.
- *
- * Verifies (Plan AC-21..AC-26):
- *  - Page 1 renders 100 rows + indicator says "Page 1"
- *  - Next button is enabled, Prev button is disabled on first page
- *  - Click Next → page 2 renders the remaining rows + indicator becomes "Page 2"
- *  - Prev becomes enabled, Next becomes disabled on last page
- *  - Click Prev → returns to page 1 (served from cache, no network refetch)
- *  - All assertions are over data-test selectors only (no class/CSS coupling)
+ * full prev/next/loading/edge-disable contract of `Hook0PaginatedList.vue`:
+ *  - Page 1 renders 100 rows + indicator says "Page 1".
+ *  - Next button is enabled, Prev button is disabled on first page.
+ *  - Click Next → page 2 renders the remaining rows + indicator becomes "Page 2".
+ *  - Prev becomes enabled, Next becomes disabled on last page.
+ *  - Click Prev → returns to page 1 (served from cache, no network refetch).
+ *  - All assertions are over `data-test-*` selectors only (no class/CSS coupling).
  */
 test.describe("EventTypes pagination (Hook0PaginatedList)", () => {
   // Seeding 105 event types via REST is by far the slowest part of this test.

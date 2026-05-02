@@ -1,8 +1,8 @@
 /**
  * Unit tests for `Hook0PaginatedList`. Exercises the pure helpers that drive
  * the prev/next disable rules and the page indicator, plus pins the i18n
- * keys expected by the SFC against `en.json` so AC-26 (no missing-key
- * warnings) stays green.
+ * keys expected by the SFC against `en.json` so missing-key warnings can't
+ * silently leak into the UI.
  */
 // Use require so the test works regardless of esModuleInterop setting in
 // tsconfig (the production build sets it via Vite). ts-jest compiles to

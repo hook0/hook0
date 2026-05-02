@@ -5,12 +5,12 @@ import create_event_type from '../event_types/create_event_type.js';
 import create_subscription from './create_subscription.js';
 
 /**
- * AC-2, AC-4..AC-11 — cursor + limit pagination on GET /api/v1/subscriptions
+ * Cursor + limit pagination on GET /api/v1/subscriptions.
  *
  * Seeds N event types + N subscriptions, walks the cursor-paginated list,
- * asserts no rows duplicated/skipped, exercises 400 paths, and verifies
- * AC-11: deleting a subscription mid-pagination doesn't duplicate or skip
- * rows on subsequent pages.
+ * asserts no rows duplicated/skipped, exercises 400 paths, and verifies that
+ * deleting a subscription mid-pagination doesn't duplicate or skip rows on
+ * subsequent pages.
  */
 
 const SEED_COUNT = 250;
@@ -58,25 +58,25 @@ export default function (baseUrl, serviceToken, applicationId, targetUrl) {
   const seeded = seedSubscriptions(baseUrl, serviceToken, applicationId, targetUrl, SEED_COUNT);
   const listUrl = `${baseUrl}/api/v1/subscriptions/?application_id=${applicationId}`;
 
-  // AC-2: default limit returns 100 + Link: rel="next"
+  // Default limit returns 100 items + Link: rel="next".
   let res = http.get(listUrl, params);
   let body = JSON.parse(res.body);
   let links = parseLinkHeader(res.headers['Link'] || res.headers['link']);
   check(res, {
-    'AC-2 default limit returns 100 with next link': (r) =>
+    'default limit returns 100 with next link': (r) =>
       r.status === 200 && body.length === 100 && !!links.next,
   });
 
-  // AC-4: ?limit=50 returns 50, limit propagated
+  // Custom `limit` honored and propagated into the next-link URL.
   res = http.get(`${listUrl}&limit=50`, params);
   body = JSON.parse(res.body);
   links = parseLinkHeader(res.headers['Link'] || res.headers['link']);
   check(res, {
-    'AC-4 (subscriptions) custom limit propagated': (r) =>
+    'custom limit propagated': (r) =>
       r.status === 200 && body.length === 50 && !!links.next && links.next.includes('limit=50'),
   });
 
-  // AC-5: walk all pages with limit=100, expect 250 unique IDs
+  // Walking all pages visits every seeded subscription exactly once.
   const seenIds = new Set();
   let pageUrl = `${listUrl}&limit=100`;
   let pageCount = 0;
@@ -91,27 +91,27 @@ export default function (baseUrl, serviceToken, applicationId, targetUrl) {
     pageUrl = links.next || null;
   }
   check(null, {
-    'AC-5 (subscriptions) walking all pages covers all seeded items': () =>
-      seenIds.size === SEED_COUNT,
-    'AC-6 (subscriptions) prev link from page 2': () => prevSeenOnSecondPage,
-    'AC-7 (subscriptions) last page has no next link': () => !pageUrl,
+    'walking all pages covers all seeded items': () => seenIds.size === SEED_COUNT,
+    'prev link from page 2': () => prevSeenOnSecondPage,
+    'last page has no next link': () => !pageUrl,
   });
 
-  // AC-9: bad limits 400
+  // Out-of-range `limit` values return HTTP 400.
   for (const badLimit of ['0', '101', '-1']) {
     res = http.get(`${listUrl}&limit=${badLimit}`, params);
     check(res, {
-      [`AC-9 (subscriptions) limit=${badLimit} returns 400`]: (r) => r.status === 400,
+      [`limit=${badLimit} returns 400`]: (r) => r.status === 400,
     });
   }
 
-  // AC-10: malformed cursor returns 400
+  // Malformed cursor returns HTTP 400.
   res = http.get(`${listUrl}&pagination_cursor=not-base64@@`, params);
   check(res, {
-    'AC-10 (subscriptions) malformed cursor returns 400': (r) => r.status === 400,
+    'malformed cursor returns 400': (r) => r.status === 400,
   });
 
-  // AC-11: delete a subscription between page 1 and page 2 -> no dup, no skip
+  // Killer feature of cursor over offset: deleting a row mid-pagination
+  // must not duplicate or skip rows on the subsequent pages.
   // Re-fetch page 1 with limit=10 to keep the test focused.
   res = http.get(`${listUrl}&limit=10`, params);
   body = JSON.parse(res.body);
@@ -119,14 +119,11 @@ export default function (baseUrl, serviceToken, applicationId, targetUrl) {
   const page1Ids = body.map((s) => s.subscription_id);
   const nextUrl = links.next;
 
-  // Pick a subscription that should appear on a page > 1 (it's the last one in seeding =
-  // the most recent on a DESC list, so it's actually on page 1; pick the SECOND-to-last
-  // seeded so it lives further down). To keep the test simple and deterministic, just
-  // pick any seeded subscription that's NOT in page1Ids.
+  // Pick any seeded subscription that's NOT in page1Ids — it lives on a later page.
   const candidatesToDelete = seeded.filter((id) => !page1Ids.includes(id));
   if (candidatesToDelete.length === 0) {
     // Should not happen with seed=250 and limit=10.
-    check(null, { 'AC-11 setup: at least one subscription beyond page 1': () => false });
+    check(null, { 'setup: at least one subscription beyond page 1': () => false });
     return seeded.length;
   }
   const deletedId = candidatesToDelete[0];
@@ -137,11 +134,11 @@ export default function (baseUrl, serviceToken, applicationId, targetUrl) {
     params
   );
   check(delRes, {
-    'AC-11 setup: delete subscription mid-pagination 204/200': (r) =>
+    'setup: delete subscription mid-pagination 204/200': (r) =>
       r.status === 204 || r.status === 200,
   });
 
-  // Now follow the next-link from page 1 and walk to the end. The deleted subscription
+  // Follow the next-link from page 1 and walk to the end. The deleted subscription
   // must NOT appear, and no subscription that was on page 1 must reappear.
   const remainingIds = new Set(page1Ids);
   pageUrl = nextUrl;
@@ -161,9 +158,9 @@ export default function (baseUrl, serviceToken, applicationId, targetUrl) {
     pageUrl = links.next || null;
   }
   check(null, {
-    'AC-11 no duplicate row across delete-mid-pagination': () => !dupSeen,
-    'AC-11 deleted row not seen after delete': () => !deletedSeen,
-    'AC-11 remaining seeded count matches expected (SEED_COUNT - 1)': () =>
+    'no duplicate row across delete-mid-pagination': () => !dupSeen,
+    'deleted row not seen after delete': () => !deletedSeen,
+    'remaining seeded count matches expected (SEED_COUNT - 1)': () =>
       remainingIds.size === SEED_COUNT - 1,
   });
 

@@ -3,7 +3,7 @@ import { check } from 'k6';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 /**
- * AC-1, AC-4..AC-10 — cursor + limit pagination on GET /api/v1/event_types
+ * Cursor + limit pagination on GET /api/v1/event_types.
  *
  * Seeds N event types on the application, walks the cursor-paginated list
  * with various `limit` values, asserts `Link: rel="next"` / `rel="prev"`
@@ -60,25 +60,25 @@ export default function (baseUrl, serviceToken, applicationId) {
   const seeded = seedEventTypes(baseUrl, serviceToken, applicationId, SEED_COUNT);
   const listUrl = `${baseUrl}api/v1/event_types/?application_id=${applicationId}`;
 
-  // AC-1: default limit returns 100 + Link: rel="next"
+  // Default limit returns 100 items + Link: rel="next".
   let res = http.get(listUrl, params);
   let body = JSON.parse(res.body);
   let links = parseLinkHeader(res.headers['Link'] || res.headers['link']);
   check(res, {
-    'AC-1 default limit returns 100 with next link': (r) =>
+    'default limit returns 100 with next link': (r) =>
       r.status === 200 && body.length === 100 && !!links.next,
   });
 
-  // AC-4: ?limit=50 returns 50 with limit propagated in next URL
+  // Custom limit honored and propagated into the next-link URL.
   res = http.get(`${listUrl}&limit=50`, params);
   body = JSON.parse(res.body);
   links = parseLinkHeader(res.headers['Link'] || res.headers['link']);
   check(res, {
-    'AC-4 custom limit returns 50 + propagates in next link': (r) =>
+    'custom limit returns 50 + propagates in next link': (r) =>
       r.status === 200 && body.length === 50 && !!links.next && links.next.includes('limit=50'),
   });
 
-  // AC-5: walk all pages with limit=100 -> visit all 250 unique event types, no duplicates
+  // Walking all pages with limit=100 visits every seeded item exactly once.
   const seenNames = new Set();
   let pageUrl = `${listUrl}&limit=100`;
   let pageCount = 0;
@@ -93,24 +93,24 @@ export default function (baseUrl, serviceToken, applicationId) {
     pageUrl = links.next || null;
   }
   check(null, {
-    'AC-5 walking all pages returns all seeded items, no duplicates': () =>
+    'walking all pages returns all seeded items, no duplicates': () =>
       seenNames.size === SEED_COUNT,
-    'AC-6 prev link present from page 2 onward': () => prevSeenOnSecondPage,
-    'AC-7 last page has no next link': () => !pageUrl,
+    'prev link present from page 2 onward': () => prevSeenOnSecondPage,
+    'last page has no next link': () => !pageUrl,
   });
 
-  // AC-9: limit=0, limit=101, limit=-1 all 400
+  // Out-of-range `limit` values return HTTP 400.
   for (const badLimit of ['0', '101', '-1']) {
     res = http.get(`${listUrl}&limit=${badLimit}`, params);
     check(res, {
-      [`AC-9 limit=${badLimit} returns 400`]: (r) => r.status === 400,
+      [`limit=${badLimit} returns 400`]: (r) => r.status === 400,
     });
   }
 
-  // AC-10: malformed cursor returns 400
+  // Malformed cursor returns HTTP 400.
   res = http.get(`${listUrl}&pagination_cursor=not-base64@@`, params);
   check(res, {
-    'AC-10 malformed cursor returns 400': (r) => r.status === 400,
+    'malformed cursor returns 400': (r) => r.status === 400,
   });
 
   return seeded.length;

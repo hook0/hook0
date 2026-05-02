@@ -1,10 +1,9 @@
 use actix_web::Responder;
 use actix_web::http::header::{HeaderValue, LINK};
 use base64::engine::Engine;
-// NOTE (issue #45 Phase 0 extraction): we keep `BASE64_URL_SAFE` (with `=` padding)
-// instead of `BASE64_URL_SAFE_NO_PAD` (which MR !246 introduced) to preserve
-// backward-compatibility with cursor URLs already in flight from older clients.
-// Revisit when MR !246 lands on master and we can coordinate the wire-format change.
+// We use `BASE64_URL_SAFE` (with `=` padding) for cursor encoding so cursor URLs
+// already in flight from older clients keep decoding. Switching to NO_PAD requires
+// a coordinated wire-format migration with all consumers (request_attempts SDK).
 use base64::prelude::BASE64_URL_SAFE;
 use chrono::{DateTime, Utc};
 use paperclip::actix::OperationModifier;
@@ -864,10 +863,10 @@ mod tests {
         assert_eq!(link, expected);
     }
 
-    /// AC-15 regression: ensure the cursor wire format stays on `URL_SAFE` (with `=` padding).
-    /// Phase 0 explicitly reverted MR !246's switch to `BASE64_URL_SAFE_NO_PAD` to preserve
-    /// backward compatibility with cursor URLs already in flight from older clients. This test
-    /// fails if anyone re-introduces NO_PAD without also handling the wire-format migration.
+    /// Cursor wire format must stay on `URL_SAFE` (with `=` padding) so cursor
+    /// URLs already in flight from older clients keep decoding. This test fails
+    /// if anyone re-introduces `NO_PAD` without coordinating the wire-format
+    /// migration with the consumers (request_attempts SDK callers in particular).
     #[test]
     fn wire_format_compat_pad() {
         let cursor = Cursor::forward(DateTime::UNIX_EPOCH, Uuid::nil());
@@ -879,7 +878,7 @@ mod tests {
         );
     }
 
-    /// AC-12: round-trip a `(date, name)` cursor for endpoints with a string tiebreak.
+    /// Round-trip a `(date, name)` cursor for endpoints with a string tiebreak.
     #[test]
     fn encode_and_decode_name_cursor() {
         let cursor = NameCursor::forward(
@@ -900,7 +899,7 @@ mod tests {
         assert!(EncodedNameCursor::from_str(&bad_payload).is_err());
     }
 
-    /// AC-15 (name variant): NameCursor must also stay on URL_SAFE-with-padding.
+    /// `NameCursor` must also stay on URL_SAFE-with-padding (matches `Cursor`).
     #[test]
     fn name_cursor_wire_format_compat_pad() {
         let cursor = NameCursor::forward(DateTime::UNIX_EPOCH, "x".to_owned());
@@ -911,7 +910,7 @@ mod tests {
         );
     }
 
-    /// AC-13: `PageLimit::try_new` enforces 1 <= size <= MAX_LIMIT.
+    /// `PageLimit::try_new` enforces 1 <= size <= MAX_LIMIT.
     #[test]
     fn page_limit_bounds() {
         assert_eq!(PageLimit::try_new(0).unwrap_err(), PageLimitError::TooSmall);
@@ -927,10 +926,10 @@ mod tests {
         assert!(PageLimit::try_new(PageLimit::default().size).is_ok());
     }
 
-    /// AC-14: `PageParts::mk_url` propagates `limit` query param into the next-link URL
-    /// when handlers include it in `query_params`. The pagination machinery itself does
-    /// NOT inject `limit` automatically — that's the handler's job; this test pins the
-    /// contract that whatever the handler puts in `query_params` ends up in the URL.
+    /// `PageParts::mk_url` propagates whatever the handler puts in `query_params`
+    /// into the next-link URL — including `limit`. The pagination machinery itself
+    /// does NOT inject `limit` automatically; that's the handler's job. This test
+    /// pins that contract.
     #[test]
     fn next_url_propagates_limit() {
         let parts = PageParts {

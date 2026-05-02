@@ -414,8 +414,8 @@ function scenario_subscription_disable() {
 }
 
 /**
- * Issue #45: cursor + limit pagination on /event_types and /subscriptions.
- * Each helper seeds 250 records and exercises AC-1..AC-11 against the live API.
+ * Cursor + limit pagination scenarios on /event_types and /subscriptions.
+ * Each helper seeds 250 records and walks the cursor-paginated list.
  */
 function scenario_pagination_event_types() {
   const h = config.apiOrigin;

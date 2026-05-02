@@ -4,7 +4,7 @@
  * The composable itself is a thin Vue-reactive wrapper around the helpers in
  * `cursorInfiniteQueryLogic.ts`. The Jest setup has no Vue SFC transformer
  * and no jsdom env, so we exercise the helpers directly — they encode the
- * full navigation contract (AC-19).
+ * full navigation contract.
  */
 import {
   getCurrentPageItems,
