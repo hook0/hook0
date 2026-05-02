@@ -116,17 +116,66 @@ Error responses include a JSON body:
 
 ## Pagination
 
-List endpoints support pagination using query parameters:
+List endpoints use **cursor-based pagination**. Two query parameters control the page:
 
-- `limit`: Number of items per page (default: 20, max: 100)
-- `offset`: Number of items to skip
-- `sort`: Sort field and direction (e.g., `created_at:desc`)
+- `pagination_cursor` (optional): an opaque, base64-encoded token returned by Hook0 in the previous response's `Link` header. Clients **must not** parse or modify this value — treat it as a black box.
+- `limit` (optional): number of items per page. **Default: 100. Min: 1. Max: 100.** Out-of-range values return HTTP 400.
 
-Example:
+Pagination metadata is returned via the `Link` HTTP header ([RFC 8288](https://www.rfc-editor.org/rfc/rfc8288)):
 
+- `Link: <…>; rel="next"` — URL of the next page. Absent on the last page.
+- `Link: <…>; rel="prev"` — URL of the previous page. Absent on the first page.
+
+The next-link URL preserves the client's `limit`, so you do not need to re-append it when following the cursor.
+
+To walk the full result set, follow `rel="next"` until no `next` link is present.
+
+### Example
+
+Request:
+
+```http
+GET /api/v1/event_types?application_id=11111111-1111-1111-1111-111111111111&limit=50
+Authorization: Bearer {YOUR_TOKEN}
 ```
-GET /api/v1/events?limit=50&offset=100&sort=created_at:desc
+
+Response (truncated):
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Link: <https://app.hook0.com/api/v1/event_types?application_id=11111111-1111-1111-1111-111111111111&pagination_cursor=eyJkYXRlIjoiMjAyNi0wNC0yOFQxMjozNDo1Ni43ODlaIiwibmFtZSI6ImlhbS51c2VyLmNyZWF0ZWQiLCJkaXJlY3Rpb24iOiJmb3J3YXJkIn0%3D&limit=50>; rel="next"
+
+[
+  { "event_type_name": "iam.user.created", ... },
+  { "event_type_name": "iam.user.updated", ... }
+]
 ```
+
+Follow the next page:
+
+```http
+GET /api/v1/event_types?application_id=11111111-1111-1111-1111-111111111111&pagination_cursor=eyJkYXRlIjoi…&limit=50
+Authorization: Bearer {YOUR_TOKEN}
+```
+
+When the response no longer includes a `Link: rel="next"` header, you have reached the last page.
+
+### Cursor opacity and security
+
+The cursor is **a position hint, not an authorization token**. It encodes only the row to start from (a timestamp plus a tiebreaker). Authentication and per-tenant scoping are enforced independently by your [API token](#authentication) and the always-present `application_id` filter — a tampered cursor cannot leak data across tenants, only narrow the result.
+
+Do not store cursors long-term. They are stable as long as the underlying row exists, but they are not contractual identifiers.
+
+### Endpoint coverage
+
+Cursor pagination is enabled on:
+
+- `GET /api/v1/event_types`
+- `GET /api/v1/subscriptions`
+- `GET /api/v1/request_attempts`
+
+Default page sizes currently differ between endpoints (100 for `event_types` and `subscriptions`, 50 for `request_attempts`). They will be unified to 100 in a future release. Until then, always rely on the `Link` header rather than assuming a fixed page size.
 
 ## Webhooks
 

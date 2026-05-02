@@ -1,6 +1,12 @@
 ---
 title: Event Types
-description: Categories for webhook events in Hook0
+description: Categories for webhook events in Hook0. Naming conventions, payload contracts, subscription filtering, and how to list event types via the cursor-paginated API.
+keywords:
+  - event types
+  - webhook event types
+  - hook0 event types
+  - event naming conventions
+  - cursor pagination
 ---
 
 # Event Types
@@ -36,6 +42,23 @@ Event types serve two primary purposes:
 1. **Payload Structure**: [Events](events.md) with the same event type are expected to have the same payload structure, making it simpler for webhook receivers to process data.
 
 2. **[Subscription](subscriptions.md) Filtering**: Users creating [subscriptions](subscriptions.md) can choose which event types they want to hear about, allowing Hook0 to forward only matching [events](events.md) for specific [subscriptions](subscriptions.md).
+
+## Listing event types
+
+`GET /api/v1/event_types` is **cursor-paginated**. The response carries `Link: rel="next"` and `Link: rel="prev"` headers when more pages exist (see the [pagination contract](/openapi/intro#pagination) for full details).
+
+Fetch the first page, then follow `Link: rel="next"` until it is absent:
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" \
+  "https://app.hook0.com/api/v1/event_types?application_id=$APPLICATION_ID&limit=100"
+
+# The response's Link header points at the next page:
+#   Link: <…&pagination_cursor=…&limit=100>; rel="next"
+curl -i -H "Authorization: Bearer $TOKEN" "$NEXT_URL_FROM_LINK_HEADER"
+```
+
+The official [Hook0 SDKs](/reference/sdk/javascript) follow `Link` headers automatically.
 
 ## What's Next?
 

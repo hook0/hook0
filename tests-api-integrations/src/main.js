@@ -9,6 +9,7 @@ import send_event from './events/send_event.js';
 import list_request_attempt from './events/list_request_attempt.js';
 import list_event_types_pagination from './event_types/list_event_types_pagination.js';
 import list_subscriptions_pagination from './subscriptions/list_subscriptions_pagination.js';
+import pagination_doc_test from './docs/pagination_doc_test.js';
 import query_request_attempts from './database/query_request_attempts.js';
 import delete_application from './applications/delete_application.js';
 import get_quota from './unauthentified/quotas.js';
@@ -464,4 +465,5 @@ export default function () {
   scenario_subscription_disable();
   scenario_pagination_event_types();
   scenario_pagination_subscriptions();
+  pagination_doc_test();
 }

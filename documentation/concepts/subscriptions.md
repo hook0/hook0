@@ -1,6 +1,12 @@
 ---
 title: Subscriptions
-description: Webhook endpoints that receive events from Hook0
+description: Webhook subscriptions in Hook0 — how to configure delivery endpoints, filter by event types and labels, and list subscriptions via the cursor-paginated API.
+keywords:
+  - subscriptions
+  - webhook subscriptions
+  - hook0 subscriptions
+  - webhook endpoints
+  - cursor pagination
 ---
 
 # Subscriptions
@@ -67,6 +73,23 @@ Each subscription has an associated [secret](application-secrets.md) used to sig
 - The webhook came from Hook0
 - The payload wasn't modified in transit
 - The webhook is fresh (timestamp validation)
+
+## Listing subscriptions
+
+`GET /api/v1/subscriptions` is **cursor-paginated**. The response carries `Link: rel="next"` and `Link: rel="prev"` headers when more pages exist (see the [pagination contract](/openapi/intro#pagination) for full details).
+
+Fetch the first page, then follow `Link: rel="next"` until it is absent:
+
+```bash
+curl -i -H "Authorization: Bearer $TOKEN" \
+  "https://app.hook0.com/api/v1/subscriptions?application_id=$APPLICATION_ID&limit=100"
+
+# The response's Link header points at the next page:
+#   Link: <…&pagination_cursor=…&limit=100>; rel="next"
+curl -i -H "Authorization: Bearer $TOKEN" "$NEXT_URL_FROM_LINK_HEADER"
+```
+
+The official [Hook0 SDKs](/reference/sdk/javascript) follow `Link` headers automatically.
 
 ## What's next?
 
