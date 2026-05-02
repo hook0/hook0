@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach, jest } from '@jest/globals';
 
-import { Hook0Client, Event } from '../index';
+import { Hook0Client, Event, paginatedFetch } from '../index';
 
 function makeFakeFetchResponse(res: Partial<Response>): Response {
   return Object.assign(
@@ -315,5 +315,131 @@ describe('Hook0Client', () => {
 
     expect(result).toEqual([]);
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  // AC-18: paginatedFetch helper must follow `Link: rel="next"` until exhausted.
+  test('paginated_fetch_follows_link_until_done', async () => {
+    const baseUrl = 'https://api.example.com/event_types?application_id=app-123';
+    const cursor1 = 'CURSOR_PAGE_2';
+    const cursor2 = 'CURSOR_PAGE_3';
+    const url2 = `${baseUrl}&pagination_cursor=${cursor1}&limit=100`;
+    const url3 = `${baseUrl}&pagination_cursor=${cursor2}&limit=100`;
+
+    const page1: Array<{ event_type_name: string }> = Array.from({ length: 100 }, (_, i) => ({
+      event_type_name: `svc.res.v${i}`,
+    }));
+    const page2: Array<{ event_type_name: string }> = Array.from({ length: 100 }, (_, i) => ({
+      event_type_name: `svc.res.v${100 + i}`,
+    }));
+    const page3: Array<{ event_type_name: string }> = Array.from({ length: 50 }, (_, i) => ({
+      event_type_name: `svc.res.v${200 + i}`,
+    }));
+
+    mockFetch.mockResolvedValueOnce(
+      makeFakeFetchResponse({
+        ok: true,
+        headers: new Headers({ Link: `<${url2}>; rel="next"` }),
+        json: async () => page1,
+      })
+    );
+    mockFetch.mockResolvedValueOnce(
+      makeFakeFetchResponse({
+        ok: true,
+        headers: new Headers({
+          Link: `<${url3}>; rel="next", <${baseUrl}>; rel="prev"`,
+        }),
+        json: async () => page2,
+      })
+    );
+    mockFetch.mockResolvedValueOnce(
+      makeFakeFetchResponse({
+        ok: true,
+        // Last page: only `prev`, no `next` → loop stops.
+        headers: new Headers({ Link: `<${url2}>; rel="prev"` }),
+        json: async () => page3,
+      })
+    );
+
+    const result = await paginatedFetch<{ event_type_name: string }>(baseUrl, {
+      Authorization: 'Bearer token-xyz',
+    });
+
+    expect(result).toHaveLength(250);
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+
+    // Verify the cursor chain was actually followed (URLs from the Link headers,
+    // not just the initial URL repeated).
+    const calledUrls = mockFetch.mock.calls.map((call) => (call as [string, RequestInit])[0]);
+    expect(calledUrls).toEqual([baseUrl, url2, url3]);
+
+    // No row dropped, no row duplicated.
+    const names = result.map((et) => et.event_type_name);
+    expect(new Set(names).size).toBe(250);
+    expect(names[0]).toBe('svc.res.v0');
+    expect(names[249]).toBe('svc.res.v249');
+  });
+
+  // AC-17: SDK upsertEventTypes wires paginatedFetch and sees ALL 250 server-side
+  // event types; nothing is silently dropped, and no duplicate POST is issued
+  // for an existing event type that lived on page 2 or 3.
+  test('upsertEventTypes_with_250_items_fetches_all', async () => {
+    const baseUrl = 'https://api.example.com/event_types?application_id=app-123';
+    const url2 = `${baseUrl}&pagination_cursor=PAGE2&limit=100`;
+    const url3 = `${baseUrl}&pagination_cursor=PAGE3&limit=100`;
+
+    // Server already has 250 event types spread across 3 pages of 100/100/50.
+    // The "duplicate" we want to avoid re-creating lives on page 3.
+    const page1 = Array.from({ length: 100 }, (_, i) => ({
+      event_type_name: `svc.res.v${i}`,
+    }));
+    const page2 = Array.from({ length: 100 }, (_, i) => ({
+      event_type_name: `svc.res.v${100 + i}`,
+    }));
+    const page3 = [
+      ...Array.from({ length: 49 }, (_, i) => ({
+        event_type_name: `svc.res.v${200 + i}`,
+      })),
+      // The event type that the caller will try to "create" — it already exists,
+      // but on page 3, so a non-paginating SDK would silently re-POST it.
+      { event_type_name: 'auth.user.create' },
+    ];
+
+    mockFetch.mockResolvedValueOnce(
+      makeFakeFetchResponse({
+        ok: true,
+        headers: new Headers({ Link: `<${url2}>; rel="next"` }),
+        json: async () => page1,
+      })
+    );
+    mockFetch.mockResolvedValueOnce(
+      makeFakeFetchResponse({
+        ok: true,
+        headers: new Headers({ Link: `<${url3}>; rel="next"` }),
+        json: async () => page2,
+      })
+    );
+    mockFetch.mockResolvedValueOnce(
+      makeFakeFetchResponse({
+        ok: true,
+        // Last page: no `Link: rel="next"` — loop terminates.
+        headers: new Headers(),
+        json: async () => page3,
+      })
+    );
+
+    // Caller asks to upsert one event type that already exists on page 3.
+    // Expectation: zero POSTs (no row created), and no extra HTTP call beyond
+    // the 3 GET pages.
+    const result = await client.upsertEventTypes(['auth.user.create']);
+
+    expect(result).toEqual([]);
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+
+    const calls = mockFetch.mock.calls.map((call) => {
+      const [url, init] = call as [string, RequestInit];
+      return { url, method: init.method ?? 'GET' };
+    });
+    // All three calls were GETs walking the cursor chain — no spurious POST.
+    expect(calls.every((c) => c.method === 'GET')).toBe(true);
   });
 });

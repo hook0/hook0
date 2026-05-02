@@ -2,6 +2,100 @@ import { URL } from 'url';
 import { Signature } from './index';
 
 /**
+ * Maximum number of pages `paginatedFetch` will follow before throwing.
+ * Guards against accidental infinite loops if a server returns a self-referential
+ * `Link: rel="next"` header.
+ */
+const PAGINATED_FETCH_MAX_PAGES = 100;
+
+/**
+ * Parse the URL of the `rel="next"` link from an RFC 5988 Link header value.
+ * Returns null when no `next` relation is present.
+ *
+ * Accepts the conventional comma-separated form, e.g.:
+ *   `<https://api.example.com/event_types?application_id=X&pagination_cursor=ABC>; rel="next", <…>; rel="prev"`
+ */
+function parseNextLink(linkHeader: string | null): string | null {
+  if (!linkHeader) {
+    return null;
+  }
+
+  // Split on commas that are NOT inside <…>. Link header URIs cannot contain `>`
+  // (per RFC 3986 / RFC 5988), so a simple split on `, ` between segments is safe
+  // when we first match each `<URI>; params` group.
+  const segmentRegex = /<([^>]+)>\s*;\s*([^,]+)/g;
+  let match: RegExpExecArray | null;
+  while ((match = segmentRegex.exec(linkHeader)) !== null) {
+    const url = match[1];
+    const params = match[2];
+    if (/rel\s*=\s*"?next"?/i.test(params)) {
+      return url;
+    }
+  }
+  return null;
+}
+
+/**
+ * Follow cursor-paginated `Link: rel="next"` chains until exhausted and
+ * return the merged flat array.
+ *
+ * Hook0 list endpoints (`/event_types`, `/subscriptions`, `/request_attempts`)
+ * cap responses at 100 items and signal more pages via an RFC 5988 `Link` header.
+ * Single-page responses (no `Link` header) work transparently.
+ *
+ * Hard-caps at {@link PAGINATED_FETCH_MAX_PAGES} pages to prevent infinite
+ * loops on broken/buggy servers; throws above that.
+ *
+ * @param url - Initial URL to fetch
+ * @param headers - Request headers (forwarded as-is on every page)
+ * @returns Merged array of items across all pages
+ */
+export function paginatedFetch<T>(url: string, headers: Record<string, string>): Promise<T[]> {
+  const collected: T[] = [];
+
+  const fetchPage = (pageUrl: string, pageCount: number): Promise<T[]> => {
+    if (pageCount > PAGINATED_FETCH_MAX_PAGES) {
+      return Promise.reject(
+        new Error(
+          `paginatedFetch exceeded ${PAGINATED_FETCH_MAX_PAGES} pages while following Link: rel="next" — aborting to prevent an infinite loop. Last URL: ${pageUrl}`
+        )
+      );
+    }
+
+    return fetch(pageUrl, { method: 'GET', headers }).then((response) => {
+      if (!response.ok) {
+        return Promise.reject(
+          new Error(`HTTP ${response.status} ${response.statusText} on ${pageUrl}`)
+        );
+      }
+
+      return response.json().then((body) => {
+        if (!Array.isArray(body)) {
+          return Promise.reject(
+            new Error(
+              `paginatedFetch expected an array body but received ${typeof body} on ${pageUrl}`
+            )
+          );
+        }
+        for (const item of body) {
+          collected.push(item as T);
+        }
+
+        // Headers API normalizes header names case-insensitively.
+        const linkHeader = response.headers.get('link');
+        const nextUrl = parseNextLink(linkHeader);
+        if (nextUrl === null) {
+          return collected;
+        }
+        return fetchPage(nextUrl, pageCount + 1);
+      });
+    });
+  };
+
+  return fetchPage(url, 1);
+}
+
+/**
  * Custom error class for Hook0Client
  */
 export class Hook0ClientError extends Error {
@@ -147,25 +241,24 @@ export class Hook0Client {
       console.debug('Getting the list of available event types');
     }
     const eventTypesUrl = new URL('event_types', this.apiUrl);
-    const response = await fetch(
-      `${eventTypesUrl.toString()}?application_id=${this.applicationId}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.headers.headers,
-        },
-      }
-    );
+    const listUrl = `${eventTypesUrl.toString()}?application_id=${this.applicationId}`;
+    const listHeaders = {
+      'Content-Type': 'application/json',
+      ...this.headers.headers,
+    };
 
-    if (!response.ok) {
-      throw Hook0ClientError.GetAvailableEventTypes(new Error(response.statusText));
-    }
-
-    const availableEventTypesVec = await response.json();
-    const availableEventTypes = new Set(
-      availableEventTypesVec.map((et: { event_type_name: string }) => et.event_type_name)
-    );
+    // Server caps each page at 100 items and emits a `Link: rel="next"` header
+    // when more pages exist. Follow the cursor chain until exhausted so we
+    // never silently miss event types beyond the first page.
+    const availableEventTypesVec = await paginatedFetch<{ event_type_name: string }>(
+      listUrl,
+      listHeaders
+    ).catch((error: unknown) => {
+      throw Hook0ClientError.GetAvailableEventTypes(
+        error instanceof Error ? error : new Error(String(error))
+      );
+    });
+    const availableEventTypes = new Set(availableEventTypesVec.map((et) => et.event_type_name));
 
     if (this.debug) {
       console.debug(`There are currently ${availableEventTypes.size} event types`);

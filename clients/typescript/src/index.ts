@@ -3,6 +3,7 @@ export {
   Hook0Client,
   Event,
   EventType,
+  paginatedFetch,
   verifyWebhookSignature,
   verifyWebhookSignatureWithCurrentTime,
 } from './lib';
