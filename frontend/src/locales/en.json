@@ -685,7 +685,6 @@
   },
   "pagination": {
     "currentPage": "Page {page}",
-    "errorRetry": "Retry",
     "loading": "Loading…",
     "next": "Next",
     "previous": "Previous"

@@ -1132,10 +1132,13 @@ async fn main() -> anyhow::Result<()> {
 
         // Run web server
         let webapp_path = config.webapp_path.clone();
-        let app_url = config.app_url;
+        // The OpenAPI spec describes the API itself, so its `host` / `servers`
+        // field must be the API's public URL — not the SPA's. Falls back to
+        // `app_url` when `API_PUBLIC_URL` isn't set (production: same origin).
+        let openapi_host_url = initial_state.api_public_url.clone();
         HttpServer::new(move || {
             // Compute default OpenAPI spec and apply post-processing
-            let mut spec = openapi::default_spec(&app_url);
+            let mut spec = openapi::default_spec(&openapi_host_url);
             openapi_postprocess::enrich_openapi_spec(&mut spec);
 
             // Prepare user IP extraction middleware
