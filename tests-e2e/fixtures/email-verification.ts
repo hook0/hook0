@@ -16,8 +16,13 @@ const DATABASE_URL =
  * API base URL for direct API calls in tests.
  * The API always runs on port 8081 (both locally and in CI).
  * The frontend is served on port 8001 but doesn't proxy API requests.
+ *
+ * Override with the `API_BASE_URL` environment variable when the stack runs
+ * on non-default ports (e.g. parallel dev stacks). Must include the `/api/v1`
+ * suffix.
  */
-export const API_BASE_URL = "http://localhost:8081/api/v1";
+export const API_BASE_URL =
+  process.env.API_BASE_URL || "http://localhost:8081/api/v1";
 
 /**
  * Result of database verification including organization ID.

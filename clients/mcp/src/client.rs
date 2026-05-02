@@ -46,11 +46,21 @@ impl Hook0Client {
         })
     }
 
-    /// Build a URL for an API path
+    /// Build a URL for an API path. Accepts paths that include a `?query`
+    /// suffix (e.g. `/event_types?application_id=…`); the query is preserved
+    /// rather than percent-encoded into the path component.
     fn url(&self, path: &str) -> Url {
+        // Split off the optional query string before touching the path.
+        // `Url::set_path` percent-encodes literal `?` in its argument, which
+        // would corrupt callers like `get_paginated("/event_types?app=X")`.
+        let (path_only, query_only) = match path.find('?') {
+            Some(idx) => (&path[..idx], Some(&path[idx + 1..])),
+            None => (path, None),
+        };
+
         let mut url = self.base_url.clone();
         let base_path = url.path().trim_end_matches('/');
-        let clean_path = path.trim_start_matches('/');
+        let clean_path = path_only.trim_start_matches('/');
 
         // Ensure we're using the API v1 prefix
         let full_path = if clean_path.starts_with("api/v1/") {
@@ -60,6 +70,7 @@ impl Hook0Client {
         };
 
         url.set_path(&full_path);
+        url.set_query(query_only);
         url
     }
 
@@ -315,6 +326,38 @@ mod tests {
         // Should not duplicate api/v1 prefix
         let url = client.url("/api/v1/applications");
         assert_eq!(url.as_str(), "https://app.hook0.com/api/v1/applications");
+    }
+
+    #[test]
+    fn url_preserves_query_string() {
+        // Regression: get_paginated() and server.rs handlers pass paths shaped
+        // as `/event_types?application_id=…`. Naively running set_path() on
+        // such a string percent-encodes the `?` into `%3F`, producing a
+        // malformed URL that the API answers with 404. The url() helper must
+        // split path/query before set_path().
+        let config = Config {
+            api_url: Url::parse("https://app.hook0.com").unwrap(),
+            api_token: "test-token".to_string(),
+            transport: crate::config::Transport::Stdio,
+            read_only: false,
+        };
+        let client = Hook0Client::new(&config).unwrap();
+
+        let url = client.url("/event_types?application_id=11111111-1111-1111-1111-111111111111");
+        assert_eq!(url.path(), "/api/v1/event_types");
+        assert_eq!(
+            url.query(),
+            Some("application_id=11111111-1111-1111-1111-111111111111"),
+        );
+        assert!(
+            !url.as_str().contains("%3F"),
+            "raw `?` must not be percent-encoded into the path: {url}"
+        );
+
+        // Same contract for the already-prefixed form.
+        let url = client.url("/api/v1/subscriptions?application_id=foo");
+        assert_eq!(url.path(), "/api/v1/subscriptions");
+        assert_eq!(url.query(), Some("application_id=foo"));
     }
 
     #[test]

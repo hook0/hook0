@@ -58,3 +58,4 @@ reqwest = { version = "0.13.3", features = ["blocking"] }
 
 [dev-dependencies]
 tokio-test = "0.4"
+wiremock = "0.6"
