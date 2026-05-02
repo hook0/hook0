@@ -140,7 +140,9 @@ test.describe("EventTypes pagination (Hook0PaginatedList)", () => {
     await expect(page.locator('[data-test="event-types-card"]')).toBeVisible({ timeout: 15000 });
 
     const table = page.locator('[data-test="event-types-table"]');
-    const rows = page.locator('[data-test="event-types-table"] [row-id]');
+    // Scope to tbody so we exclude skeleton rows (no row-id) and stray
+    // `[row-id]` elements from neighbouring components or stale renders.
+    const rows = page.locator('[data-test="event-types-table"] tbody tr[row-id]');
     const indicator = page.locator('[data-test="pagination-current-page"]');
     const prevBtn = page.locator('[data-test="pagination-prev"]');
     const nextBtn = page.locator('[data-test="pagination-next"]');
@@ -154,7 +156,9 @@ test.describe("EventTypes pagination (Hook0PaginatedList)", () => {
     await expect(prevBtn).toBeDisabled();
     await expect(nextBtn).toBeEnabled();
 
-    // Click Next -> page 2 renders the remaining 5 rows.
+    // Click Next -> page 2 renders the remaining 5 rows. Wait for the row
+    // count to drop to exactly the page-2 size before asserting the indicator,
+    // so the assertion races the table's row-render flush, not the page-flip.
     await nextBtn.click();
     await expect.poll(() => rows.count(), { timeout: 15000 }).toBe(SEED_COUNT - 100);
     await expect(indicator).toContainText("Page 2");

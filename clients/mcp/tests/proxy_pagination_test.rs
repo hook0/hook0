@@ -96,7 +96,9 @@ async fn paginated_walk_merges_three_pages_in_order() {
         .await
         .expect("paginated walk must succeed");
 
-    let items = result.as_array().expect("non-truncated walk returns Value::Array");
+    let items = result
+        .as_array()
+        .expect("non-truncated walk returns Value::Array");
     assert_eq!(
         items.len(),
         205,
@@ -221,6 +223,8 @@ async fn paginated_walk_single_page_returns_array_directly() {
         .await
         .expect("paginated walk must succeed");
 
-    let arr = result.as_array().expect("single page must return Value::Array, not envelope");
+    let arr = result
+        .as_array()
+        .expect("single page must return Value::Array, not envelope");
     assert_eq!(arr.len(), 3);
 }

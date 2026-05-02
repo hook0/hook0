@@ -1,5 +1,5 @@
 import http from 'k6/http';
-import { check } from 'k6';
+import { check, sleep } from 'k6';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 /**
@@ -11,7 +11,10 @@ import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
  * 400 paths (limit out of range, malformed cursor).
  */
 
-const SEED_COUNT = 250;
+// Spans 2 pages with default limit=100 + leaves room for the limit=50 walk.
+// Larger fixtures hit the API per-token rate limit (10 req/s) and slow the
+// suite without testing anything new.
+const SEED_COUNT = 105;
 
 function parseLinkHeader(headerValue) {
   // RFC 8288: comma-separated values like
@@ -41,9 +44,22 @@ function seedEventTypes(baseUrl, serviceToken, applicationId, count) {
       resource_type: `pag_k6_r_${uuidv4().slice(0, 8)}`,
       verb: `pag_k6_v_${uuidv4().slice(0, 8)}`,
     });
-    const res = http.post(url, payload, params);
-    if (res.status !== 201) {
-      throw new Error(`seed event_type ${i} failed: status=${res.status} body=${res.body}`);
+    // The API enforces a 10 req/s per-token rate limit. Retry on 429 with an
+    // exponential backoff capped at 1s — that drains the token-bucket fast
+    // enough that a 105-row seed completes in roughly 12-15s.
+    let backoff = 0.1;
+    let res = null;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      res = http.post(url, payload, params);
+      if (res.status === 201) break;
+      if (res.status !== 429) {
+        throw new Error(`seed event_type ${i} failed: status=${res.status} body=${res.body}`);
+      }
+      sleep(backoff);
+      backoff = Math.min(backoff * 2, 1);
+    }
+    if (!res || res.status !== 201) {
+      throw new Error(`seed event_type ${i} exhausted 429 retries`);
     }
     const body = JSON.parse(res.body);
     created.push(body.event_type_name);

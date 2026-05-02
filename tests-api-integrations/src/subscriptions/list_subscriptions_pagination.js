@@ -1,8 +1,7 @@
 import http from 'k6/http';
-import { check } from 'k6';
+import { check, sleep } from 'k6';
 import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import create_event_type from '../event_types/create_event_type.js';
-import create_subscription from './create_subscription.js';
 
 /**
  * Cursor + limit pagination on GET /api/v1/subscriptions.
@@ -13,7 +12,10 @@ import create_subscription from './create_subscription.js';
  * subsequent pages.
  */
 
-const SEED_COUNT = 250;
+// Spans 2 pages with default limit=100 + leaves room for the limit=50 walk
+// and the delete-mid-pagination scenario. Larger fixtures hit the API
+// per-token rate limit (10 req/s) without testing anything new.
+const SEED_COUNT = 105;
 
 function parseLinkHeader(headerValue) {
   if (!headerValue) return {};
@@ -26,26 +28,50 @@ function parseLinkHeader(headerValue) {
 }
 
 function seedSubscriptions(baseUrl, serviceToken, applicationId, targetUrl, count) {
-  // Each subscription needs at least one event type. Reuse a single event type
-  // across all to keep seeding fast.
+  // Each subscription needs at least one event type. Reuse a single one across
+  // all 105 subscriptions to keep seeding fast.
   const sharedEventType = create_event_type(baseUrl, serviceToken, applicationId);
   if (!sharedEventType) {
     throw new Error('failed to seed shared event type for subscription pagination test');
   }
+  const url = `${baseUrl}/api/v1/subscriptions/`;
+  const params = {
+    headers: {
+      Authorization: `Bearer ${serviceToken}`,
+      'Content-Type': 'application/json',
+    },
+  };
   const seeded = [];
+  // Direct POST + 429 retry. We avoid the `create_subscription.js` helper here
+  // because its built-in `check()` would record every 429-then-retry attempt
+  // as a failed assertion, dragging the test threshold below `rate>=1.0`.
+  // The pagination assertions below still use `check()` — those are the only
+  // ones that should count toward the success rate.
   for (let i = 0; i < count; i++) {
-    const sub = create_subscription(
-      baseUrl,
-      serviceToken,
-      applicationId,
-      [sharedEventType],
-      targetUrl,
-      { pag_k6: uuidv4().slice(0, 8) }
-    );
-    if (!sub) {
-      throw new Error(`seed subscription ${i} failed`);
+    const payload = JSON.stringify({
+      is_enabled: true,
+      metadata: { test_k6: 'true' },
+      application_id: applicationId,
+      description: 'pagination seed',
+      labels: { pag_k6: uuidv4().slice(0, 8) },
+      event_types: [sharedEventType],
+      target: { type: 'http', method: 'POST', url: targetUrl, headers: {} },
+    });
+    let backoff = 0.1;
+    let res = null;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      res = http.post(url, payload, params);
+      if (res.status === 201) break;
+      if (res.status !== 429) {
+        throw new Error(`seed subscription ${i} failed: status=${res.status} body=${res.body}`);
+      }
+      sleep(backoff);
+      backoff = Math.min(backoff * 2, 1);
     }
-    seeded.push(sub.subscription_id);
+    if (!res || res.status !== 201) {
+      throw new Error(`seed subscription ${i} exhausted 429 retries`);
+    }
+    seeded.push(JSON.parse(res.body).subscription_id);
   }
   return seeded;
 }
