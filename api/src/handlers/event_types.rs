@@ -303,7 +303,7 @@ pub async fn list(
 
     let has_more = pagination.trim_and_orient(&mut event_types);
 
-    let endpoint_url = build_endpoint_url(&state.app_url, "/api/v1/event_types");
+    let endpoint_url = build_endpoint_url(&state.api_public_url, "/api/v1/event_types");
     let query_params: Vec<(&'static str, String)> = vec![
         ("application_id", qs.application_id.to_string()),
         ("limit", page_limit.size.to_string()),

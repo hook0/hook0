@@ -54,6 +54,12 @@ services:
       - SMTP_CONNECTION_URL=smtp://mailpit:1025
       - EMAIL_SENDER_ADDRESS=sender@hook0.local
       - APP_URL=http://localhost:8001
+      # Public URL of the API itself (issue #45). Defaults to APP_URL when
+      # unset — that's correct for production where SPA + API share an origin.
+      # In this split-port local-dev setup, set it to the API origin so the
+      # `Link` headers built for cursor pagination are reachable by the
+      # browser via cross-origin XHRs.
+      - API_PUBLIC_URL=http://localhost:8081
       - BISCUIT_PRIVATE_KEY=bbea79cd66926b219b3219a3186decb36136d774dd7c35a8239e512090fa8854  # DO NOT USE THIS KEY IN PRODUCTION
     ports:
       - "8081:8081"

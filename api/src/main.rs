@@ -501,9 +501,19 @@ struct Config {
     #[clap(long, env, default_value = "https://app.hook0.com/256x256.png")]
     email_logo_url: Url,
 
-    /// [Frontend] Frontend application URL (used for building links in emails and pagination)
+    /// [Frontend] Frontend application URL (used for building links in emails)
     #[clap(long, env)]
     app_url: Url,
+
+    /// [API] Public URL of the API itself (used to build absolute URLs in
+    /// pagination `Link` headers). When unset, falls back to `app_url` — that
+    /// matches the production deployment where the SPA and the API share an
+    /// origin (a single load balancer routes `/api/v1/*` to the API and `/*`
+    /// to the SPA). For local-dev split-port docker-compose, set this to the
+    /// API origin (e.g. `http://localhost:8081`) so `Link` URLs are reachable
+    /// by the SPA's cross-origin XHRs.
+    #[clap(long, env)]
+    api_public_url: Option<Url>,
 
     /// [Auth] Maximum duration (in millisecond) that can be spent running Biscuit's authorizer
     #[clap(long, env, default_value = "10")]
@@ -560,6 +570,10 @@ pub struct State {
     biscuit_private_key: PrivateKey,
     mailer: mailer::Mailer,
     app_url: Url,
+    /// Public URL of the API itself, used to build absolute URLs in pagination
+    /// `Link` headers. Defaults to `app_url` when `API_PUBLIC_URL` is not set
+    /// (production: same origin for SPA + API).
+    api_public_url: Url,
     #[cfg(feature = "migrate-users-from-keycloak")]
     enable_keycloak_migration: bool,
     #[cfg(feature = "migrate-users-from-keycloak")]
@@ -1061,11 +1075,17 @@ async fn main() -> anyhow::Result<()> {
         .expect("Could not initialize mailer; check SMTP configuration");
 
         // Initialize state
+        // Default api_public_url to app_url for backward-compat (prod: same origin).
+        let api_public_url = config
+            .api_public_url
+            .clone()
+            .unwrap_or_else(|| config.app_url.clone());
         let initial_state = State {
             db: pool,
             pulsar: pulsar_config,
             object_storage: object_storage_config,
             app_url: config.app_url.clone(),
+            api_public_url,
             biscuit_private_key,
             mailer,
             #[cfg(feature = "migrate-users-from-keycloak")]

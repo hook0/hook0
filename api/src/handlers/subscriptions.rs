@@ -390,7 +390,7 @@ pub async fn list(
         })
         .collect::<Vec<_>>();
 
-    let endpoint_url = build_endpoint_url(&state.app_url, "/api/v1/subscriptions");
+    let endpoint_url = build_endpoint_url(&state.api_public_url, "/api/v1/subscriptions");
     let query_params: Vec<(&'static str, String)> = vec![
         ("application_id", qs.application_id.to_string()),
         ("limit", page_limit.size.to_string()),
