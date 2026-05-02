@@ -21,12 +21,19 @@ use crate::hook0_client::{
 use crate::iam::{Action, authorize_for_application, get_owner_organization};
 use crate::openapi::OaBiscuit;
 use crate::opentelemetry::report_cancelled_request_attempts;
+use crate::pagination::{
+    EncodedCursor, PageLimit, PageLimitError, Paginated, Pagination, build_endpoint_url,
+};
 use crate::problems::Hook0Problem;
 use crate::quotas::Quota;
 use crate::validators::{
     subscription_target_http_method, subscription_target_http_method_headers,
     subscription_target_http_url,
 };
+
+/// Default page size when the caller does not pass `?limit=`. Matches the
+/// previously-published doc max=100 cap.
+const DEFAULT_PAGE_SIZE: PageLimit = PageLimit::new(100);
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct Subscription {
@@ -183,9 +190,17 @@ pub struct Qs {
     application_id: Uuid,
 }
 
+#[derive(Debug, Deserialize, Apiv2Schema)]
+pub struct ListQs {
+    application_id: Uuid,
+    pagination_cursor: Option<EncodedCursor>,
+    /// Page size. Default 100, max 100, min 1. Out-of-range -> HTTP 400.
+    limit: Option<usize>,
+}
+
 #[api_v2_operation(
     summary = "List subscriptions",
-    description = "Retrieves all active webhook subscriptions for an application. Each subscription defines which event types to listen for and where to deliver them (HTTP endpoint). Use application_id query parameter to filter by application.",
+    description = "Retrieves active webhook subscriptions for an application, ordered by `created_at DESC`. Cursor-paginated: pass `pagination_cursor` from the response `Link: <…>; rel=\"next\"` (or `rel=\"prev\"`) header to navigate. Optional `limit` query parameter (default 100, max 100, min 1).",
     operation_id = "subscriptions.list",
     consumes = "application/json",
     produces = "application/json",
@@ -195,8 +210,8 @@ pub async fn list(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
-    qs: Query<Qs>,
-) -> Result<Json<Vec<Subscription>>, Hook0Problem> {
+    qs: Query<ListQs>,
+) -> Result<Paginated<Json<Vec<Subscription>>>, Hook0Problem> {
     if authorize_for_application(
         &state.db,
         &biscuit,
@@ -211,6 +226,22 @@ pub async fn list(
     {
         return Err(Hook0Problem::Forbidden);
     }
+
+    let page_limit = match qs.limit {
+        Some(size) => PageLimit::try_new(size).map_err(|e| match e {
+            PageLimitError::TooSmall | PageLimitError::TooLarge => {
+                Hook0Problem::PaginationLimitOutOfRange {
+                    received: size,
+                    min: 1,
+                    max: PageLimit::MAX_LIMIT,
+                }
+            }
+        })?,
+        None => DEFAULT_PAGE_SIZE,
+    };
+
+    let pagination = Pagination::new(page_limit, qs.pagination_cursor);
+    let resolved_cursor = pagination.resolved_cursor();
 
     #[allow(non_snake_case)]
     struct RawSubscription {
@@ -227,46 +258,106 @@ pub async fn list(
         dedicated_workers: Option<Vec<String>>,
     }
 
-    let raw_subscriptions = query_as!(
-        RawSubscription,
-        r#"
-            WITH subs AS (
-                SELECT
-                    s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.updated_at,
-                    CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
-                        THEN array_agg(set.event_type__name)
-                        ELSE ARRAY[]::text[] END AS event_types,
-                    CASE WHEN length((array_agg(w.name))[1]) > 0
-                        THEN array_agg(w.name)
-                        ELSE ARRAY[]::text[] END AS dedicated_workers
-                FROM webhook.subscription AS s
-                LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
-                LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
-                LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
-                WHERE s.application__id = $1 AND deleted_at IS NULL
-                GROUP BY s.subscription__id
-                ORDER BY s.created_at ASC
-            ), targets AS (
-                SELECT target__id, jsonb_build_object(
-                    'type', replace(tableoid::regclass::text, 'webhook.target_', ''),
-                    'method', method,
-                    'url', url,
-                    'headers', headers
-                ) AS target_json FROM webhook.target_http
-                WHERE target__id IN (SELECT target__id FROM subs)
-            )
-            SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
-            FROM subs
-            INNER JOIN targets ON subs.target__id = targets.target__id
-        "#, // Column aliases ending with "!" are there because sqlx does not seem to infer correctly that these columns' types are not options
-        &qs.application_id,
-    )
-    .fetch_all(&state.db)
-    .await
-    .map_err(|e| {
-        error!("{e}");
-        Hook0Problem::InternalServerError
-    })?;
+    // Backward fetches from the older side of the cursor and reverses; forward fetches DESC.
+    let mut raw_subscriptions = if pagination.is_backward() {
+        query_as!(
+            RawSubscription,
+            r#"
+                WITH subs AS (
+                    SELECT
+                        s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.updated_at,
+                        CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
+                            THEN array_agg(set.event_type__name)
+                            ELSE ARRAY[]::text[] END AS event_types,
+                        CASE WHEN length((array_agg(w.name))[1]) > 0
+                            THEN array_agg(w.name)
+                            ELSE ARRAY[]::text[] END AS dedicated_workers
+                    FROM webhook.subscription AS s
+                    LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
+                    LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                    LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
+                    WHERE s.application__id = $1
+                        AND deleted_at IS NULL
+                        AND (s.created_at, s.subscription__id) > ($2, $3)
+                    GROUP BY s.subscription__id
+                    ORDER BY s.created_at ASC, s.subscription__id ASC
+                    LIMIT $4
+                ), targets AS (
+                    SELECT target__id, jsonb_build_object(
+                        'type', replace(tableoid::regclass::text, 'webhook.target_', ''),
+                        'method', method,
+                        'url', url,
+                        'headers', headers
+                    ) AS target_json FROM webhook.target_http
+                    WHERE target__id IN (SELECT target__id FROM subs)
+                )
+                SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+                FROM subs
+                INNER JOIN targets ON subs.target__id = targets.target__id
+                ORDER BY subs.created_at ASC, subs.subscription__id ASC
+            "#,
+            &qs.application_id,
+            resolved_cursor.date,
+            resolved_cursor.id,
+            pagination.fetch_limit(),
+        )
+        .fetch_all(&state.db)
+        .await
+        .map_err(|e| {
+            error!("{e}");
+            Hook0Problem::InternalServerError
+        })?
+    } else {
+        query_as!(
+            RawSubscription,
+            r#"
+                WITH subs AS (
+                    SELECT
+                        s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.updated_at,
+                        CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
+                            THEN array_agg(set.event_type__name)
+                            ELSE ARRAY[]::text[] END AS event_types,
+                        CASE WHEN length((array_agg(w.name))[1]) > 0
+                            THEN array_agg(w.name)
+                            ELSE ARRAY[]::text[] END AS dedicated_workers
+                    FROM webhook.subscription AS s
+                    LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
+                    LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                    LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.subscription__id
+                    WHERE s.application__id = $1
+                        AND deleted_at IS NULL
+                        AND (s.created_at, s.subscription__id) < ($2, $3)
+                    GROUP BY s.subscription__id
+                    ORDER BY s.created_at DESC, s.subscription__id DESC
+                    LIMIT $4
+                ), targets AS (
+                    SELECT target__id, jsonb_build_object(
+                        'type', replace(tableoid::regclass::text, 'webhook.target_', ''),
+                        'method', method,
+                        'url', url,
+                        'headers', headers
+                    ) AS target_json FROM webhook.target_http
+                    WHERE target__id IN (SELECT target__id FROM subs)
+                )
+                SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+                FROM subs
+                INNER JOIN targets ON subs.target__id = targets.target__id
+                ORDER BY subs.created_at DESC, subs.subscription__id DESC
+            "#,
+            &qs.application_id,
+            resolved_cursor.date,
+            resolved_cursor.id,
+            pagination.fetch_limit(),
+        )
+        .fetch_all(&state.db)
+        .await
+        .map_err(|e| {
+            error!("{e}");
+            Hook0Problem::InternalServerError
+        })?
+    };
+
+    let has_more = pagination.trim_and_orient(&mut raw_subscriptions);
 
     let subscriptions = raw_subscriptions
         .into_iter()
@@ -299,7 +390,22 @@ pub async fn list(
         })
         .collect::<Vec<_>>();
 
-    Ok(Json(subscriptions))
+    let endpoint_url = build_endpoint_url(&state.app_url, "/api/v1/subscriptions");
+    let query_params: Vec<(&'static str, String)> = vec![
+        ("application_id", qs.application_id.to_string()),
+        ("limit", page_limit.size.to_string()),
+    ];
+
+    let (next_page_parts, prev_page_parts) =
+        pagination.build_page_parts(&subscriptions, endpoint_url, query_params, has_more, |s| {
+            (s.created_at, s.subscription_id)
+        });
+
+    Ok(Paginated {
+        data: Json(subscriptions),
+        next_page_parts,
+        prev_page_parts,
+    })
 }
 
 #[api_v2_operation(

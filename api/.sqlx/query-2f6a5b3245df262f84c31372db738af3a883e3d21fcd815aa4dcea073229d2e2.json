@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name\n                FROM event.event_type\n                WHERE application__id = $1 AND deactivated_at IS NULL\n                ORDER BY event_type__name ASC\n            ",
+  "query": "\n                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name, created_at\n                FROM event.event_type\n                WHERE application__id = $1 AND event_type__name = $2 AND deactivated_at IS NULL\n            ",
   "describe": {
     "columns": [
       {
@@ -22,19 +22,26 @@
         "ordinal": 3,
         "name": "event_type_name",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Text"
       ]
     },
     "nullable": [
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "04d5d580d0553a37fce1cc871f1c1374270d188e648ca4c4563aac567df29623"
+  "hash": "2f6a5b3245df262f84c31372db738af3a883e3d21fcd815aa4dcea073229d2e2"
 }

@@ -1,6 +1,6 @@
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
@@ -12,21 +12,41 @@ use validator::Validate;
 use crate::hook0_client::{EventEventTypeCreated, EventEventTypeRemoved, Hook0ClientEvent};
 use crate::iam::{Action, authorize_for_application, get_owner_organization};
 use crate::openapi::OaBiscuit;
+use crate::pagination::{
+    EncodedNameCursor, NamePagination, PageLimit, PageLimitError, PaginatedByName,
+    build_endpoint_url,
+};
 use crate::problems::Hook0Problem;
 use crate::quotas::Quota;
+
+/// Default page size when the caller does not pass `?limit=`. Matches the
+/// previously-published doc max=100 cap and minimizes the breaking change for
+/// callers that previously got "all rows".
+const DEFAULT_PAGE_SIZE: PageLimit = PageLimit::new(100);
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct EventType {
     service_name: String,
     resource_type_name: String,
     verb_name: String,
-    // status
     event_type_name: String,
+    /// Creation timestamp. Used as the primary key of the `pagination_cursor`
+    /// for stable keyset pagination in `list`. Returned to clients as part of
+    /// the public response shape.
+    created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema)]
 pub struct Qs {
     application_id: Uuid,
+}
+
+#[derive(Debug, Deserialize, Apiv2Schema)]
+pub struct ListQs {
+    application_id: Uuid,
+    pagination_cursor: Option<EncodedNameCursor>,
+    /// Page size. Default 100, max 100, min 1. Out-of-range -> HTTP 400.
+    limit: Option<usize>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
@@ -146,7 +166,7 @@ pub async fn create(
                 INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name)
                 VALUES ($1, $2, $3, $4)
                 ON CONFLICT (application__id, event_type__name) DO UPDATE SET deactivated_at = NULL
-                RETURNING service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
+                RETURNING service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name, created_at
             ",
             &body.application_id,
             &body.service,
@@ -185,7 +205,7 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "List event types",
-    description = "Retrieves all active event types for an application. Event types follow the pattern 'service.resource.verb'. Use application_id query parameter to filter by application.",
+    description = "Retrieves active event types for an application, ordered by `created_at DESC`. Cursor-paginated: pass `pagination_cursor` from the response `Link: <…>; rel=\"next\"` (or `rel=\"prev\"`) header to navigate. Optional `limit` query parameter (default 100, max 100, min 1).",
     operation_id = "eventTypes.list",
     consumes = "application/json",
     produces = "application/json",
@@ -195,8 +215,8 @@ pub async fn list(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
-    qs: Query<Qs>,
-) -> Result<Json<Vec<EventType>>, Hook0Problem> {
+    qs: Query<ListQs>,
+) -> Result<PaginatedByName<Json<Vec<EventType>>>, Hook0Problem> {
     if authorize_for_application(
         &state.db,
         &biscuit,
@@ -212,21 +232,93 @@ pub async fn list(
         return Err(Hook0Problem::Forbidden);
     }
 
-    let event_types = query_as!(
+    let page_limit = match qs.limit {
+        Some(size) => PageLimit::try_new(size).map_err(|e| match e {
+            PageLimitError::TooSmall | PageLimitError::TooLarge => {
+                Hook0Problem::PaginationLimitOutOfRange {
+                    received: size,
+                    min: 1,
+                    max: PageLimit::MAX_LIMIT,
+                }
+            }
+        })?,
+        None => DEFAULT_PAGE_SIZE,
+    };
+
+    let pagination = NamePagination::new(page_limit, qs.pagination_cursor.clone());
+    let resolved_cursor = pagination.resolved_cursor();
+
+    // Backward fetches ASC (newer side of the cursor) then reverses; forward fetches DESC.
+    let mut event_types = if pagination.is_backward() {
+        query_as!(
             EventType,
             "
-                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
+                SELECT
+                    service__name AS service_name,
+                    resource_type__name AS resource_type_name,
+                    verb__name AS verb_name,
+                    event_type__name AS event_type_name,
+                    created_at
                 FROM event.event_type
-                WHERE application__id = $1 AND deactivated_at IS NULL
-                ORDER BY event_type__name ASC
+                WHERE application__id = $1
+                    AND deactivated_at IS NULL
+                    AND (created_at, event_type__name) > ($2, $3)
+                ORDER BY created_at ASC, event_type__name ASC
+                LIMIT $4
             ",
-            &qs.application_id
+            &qs.application_id,
+            resolved_cursor.date,
+            resolved_cursor.name,
+            pagination.fetch_limit(),
         )
         .fetch_all(&state.db)
         .await
-        .map_err(Hook0Problem::from)?;
+        .map_err(Hook0Problem::from)?
+    } else {
+        query_as!(
+            EventType,
+            "
+                SELECT
+                    service__name AS service_name,
+                    resource_type__name AS resource_type_name,
+                    verb__name AS verb_name,
+                    event_type__name AS event_type_name,
+                    created_at
+                FROM event.event_type
+                WHERE application__id = $1
+                    AND deactivated_at IS NULL
+                    AND (created_at, event_type__name) < ($2, $3)
+                ORDER BY created_at DESC, event_type__name DESC
+                LIMIT $4
+            ",
+            &qs.application_id,
+            resolved_cursor.date,
+            resolved_cursor.name,
+            pagination.fetch_limit(),
+        )
+        .fetch_all(&state.db)
+        .await
+        .map_err(Hook0Problem::from)?
+    };
 
-    Ok(Json(event_types))
+    let has_more = pagination.trim_and_orient(&mut event_types);
+
+    let endpoint_url = build_endpoint_url(&state.app_url, "/api/v1/event_types");
+    let query_params: Vec<(&'static str, String)> = vec![
+        ("application_id", qs.application_id.to_string()),
+        ("limit", page_limit.size.to_string()),
+    ];
+
+    let (next_page_parts, prev_page_parts) =
+        pagination.build_page_parts(&event_types, endpoint_url, query_params, has_more, |et| {
+            (et.created_at, et.event_type_name.clone())
+        });
+
+    Ok(PaginatedByName {
+        data: Json(event_types),
+        next_page_parts,
+        prev_page_parts,
+    })
 }
 
 #[api_v2_operation(
@@ -262,7 +354,7 @@ pub async fn get(
     let event_type = query_as!(
             EventType,
             "
-                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
+                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name, created_at
                 FROM event.event_type
                 WHERE application__id = $1 AND event_type__name = $2 AND deactivated_at IS NULL
             ",
@@ -313,7 +405,7 @@ pub async fn delete(
     let event_type = query_as!(
             EventType,
             "
-                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name
+                SELECT service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name, created_at
                 FROM event.event_type
                 WHERE application__id = $1 AND event_type__name = $2 AND deactivated_at IS NULL
             ",

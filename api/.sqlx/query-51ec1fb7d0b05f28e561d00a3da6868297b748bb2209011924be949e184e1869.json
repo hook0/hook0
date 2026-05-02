@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name)\n                VALUES ($1, $2, $3, $4)\n                ON CONFLICT (application__id, event_type__name) DO UPDATE SET deactivated_at = NULL\n                RETURNING service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name\n            ",
+  "query": "\n                INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name)\n                VALUES ($1, $2, $3, $4)\n                ON CONFLICT (application__id, event_type__name) DO UPDATE SET deactivated_at = NULL\n                RETURNING service__name AS service_name, resource_type__name AS resource_type_name, verb__name AS verb_name, event_type__name AS event_type_name, created_at\n            ",
   "describe": {
     "columns": [
       {
@@ -22,6 +22,11 @@
         "ordinal": 3,
         "name": "event_type_name",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
@@ -36,8 +41,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "32051d3761c1597087623bd48ecc3a0e367e214b29d7e819563d6fb83243538e"
+  "hash": "51ec1fb7d0b05f28e561d00a3da6868297b748bb2209011924be949e184e1869"
 }

@@ -69,6 +69,13 @@ pub enum Hook0Problem {
     TooManySubscriptionsPerApplication(QuotaValue),
     TooManyEventTypesPerApplication(QuotaValue),
 
+    // Pagination errors
+    PaginationLimitOutOfRange {
+        received: usize,
+        min: usize,
+        max: usize,
+    },
+
     // Generic errors
     JsonPayload(JsonPayloadProblem),
     Validation(validator::ValidationErrors),
@@ -477,6 +484,20 @@ impl From<Hook0Problem> for Problem {
                     detail: detail.into(),
                     validation: None,
                     status: StatusCode::TOO_MANY_REQUESTS,
+                }
+            },
+
+            // Pagination errors
+            Hook0Problem::PaginationLimitOutOfRange { received, min, max } => {
+                let detail = format!(
+                    "`limit` must be between {min} and {max} (received {received})."
+                );
+                Problem {
+                    id: Hook0Problem::PaginationLimitOutOfRange { received, min, max },
+                    title: "Pagination `limit` out of range",
+                    detail: detail.into(),
+                    validation: None,
+                    status: StatusCode::BAD_REQUEST,
                 }
             },
 
