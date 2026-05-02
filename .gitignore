@@ -34,7 +34,8 @@ tests-e2e/test-results
 .worktrees
 frontend/docs/
 reviews/
-dogfood-output/
+dogfood-output*/
+.dogfood-output*
 human-ui-tests/
 docs/plans/
 .DS_Store

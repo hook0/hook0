@@ -200,7 +200,7 @@ pub struct ListQs {
 
 #[api_v2_operation(
     summary = "List subscriptions",
-    description = "Retrieves active webhook subscriptions for an application, ordered by `created_at DESC`. Cursor-paginated: pass `pagination_cursor` from the response `Link: <…>; rel=\"next\"` (or `rel=\"prev\"`) header to navigate. Optional `limit` query parameter (default 100, max 100, min 1).",
+    description = "Retrieves active webhook subscriptions for an application, most recent first. Each subscription defines which event types to listen for and where to deliver them (HTTP endpoint). Use application_id query parameter to filter by application. Cursor-paginated; follow the response `Link` header to walk pages.",
     operation_id = "subscriptions.list",
     consumes = "application/json",
     produces = "application/json",

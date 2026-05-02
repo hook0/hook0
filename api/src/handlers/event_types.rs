@@ -205,7 +205,7 @@ pub async fn create(
 
 #[api_v2_operation(
     summary = "List event types",
-    description = "Retrieves active event types for an application, ordered by `created_at DESC`. Cursor-paginated: pass `pagination_cursor` from the response `Link: <…>; rel=\"next\"` (or `rel=\"prev\"`) header to navigate. Optional `limit` query parameter (default 100, max 100, min 1).",
+    description = "Retrieves active event types for an application, most recent first. Event types follow the pattern 'service.resource.verb'. Use application_id query parameter to filter by application. Cursor-paginated; follow the response `Link` header to walk pages.",
     operation_id = "eventTypes.list",
     consumes = "application/json",
     produces = "application/json",
