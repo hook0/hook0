@@ -1133,6 +1133,8 @@ async fn main() -> anyhow::Result<()> {
                         http::header::CONTENT_TYPE,
                     ])
                     .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+                    // Expose Link so browser callers can read pagination next/prev URLs.
+                    .expose_headers([http::header::LINK])
                     .max_age(3600);
 
                 for origin in &config.cors_allowed_origins {
