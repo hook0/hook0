@@ -7,6 +7,8 @@ import update_subscription from './subscriptions/update_subscription.js';
 import delete_subscription from './subscriptions/delete_subscription.js';
 import send_event from './events/send_event.js';
 import list_request_attempt from './events/list_request_attempt.js';
+import list_event_types_pagination from './event_types/list_event_types_pagination.js';
+import list_subscriptions_pagination from './subscriptions/list_subscriptions_pagination.js';
 import query_request_attempts from './database/query_request_attempts.js';
 import delete_application from './applications/delete_application.js';
 import get_quota from './unauthentified/quotas.js';
@@ -410,8 +412,56 @@ function scenario_subscription_disable() {
   }
 }
 
+/**
+ * Issue #45: cursor + limit pagination on /event_types and /subscriptions.
+ * Each helper seeds 250 records and exercises AC-1..AC-11 against the live API.
+ */
+function scenario_pagination_event_types() {
+  const h = config.apiOrigin;
+  const s = config.serviceToken;
+  const o = config.organizationId;
+  let application_id = null;
+  try {
+    application_id = create_application(h, o, s);
+    if (!isNotNull(application_id)) {
+      throw new Error('Failed to create application for event_types pagination scenario');
+    }
+    list_event_types_pagination(h, s, application_id);
+  } catch (error) {
+    console.error(error.message);
+    throw error;
+  } finally {
+    if (application_id && !config.keepTestApplication) {
+      delete_application(h, application_id, s);
+    }
+  }
+}
+
+function scenario_pagination_subscriptions() {
+  const h = config.apiOrigin;
+  const s = config.serviceToken;
+  const o = config.organizationId;
+  let application_id = null;
+  try {
+    application_id = create_application(h, o, s);
+    if (!isNotNull(application_id)) {
+      throw new Error('Failed to create application for subscriptions pagination scenario');
+    }
+    list_subscriptions_pagination(h, s, application_id, config.targetUrl);
+  } catch (error) {
+    console.error(error.message);
+    throw error;
+  } finally {
+    if (application_id && !config.keepTestApplication) {
+      delete_application(h, application_id, s);
+    }
+  }
+}
+
 export default function () {
   scenario_1();
   scenario_subscription_deletion();
   scenario_subscription_disable();
+  scenario_pagination_event_types();
+  scenario_pagination_subscriptions();
 }
