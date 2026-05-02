@@ -1,7 +1,8 @@
 import http, { UUID } from '@/http';
 import { subDays } from 'date-fns';
 import type { components } from '@/types';
-import { unwrapResponse } from '@/utils/unwrapResponse';
+import { followAllPages, unwrapCursorPage } from '@/utils/cursorPagination';
+import type { CursorPage } from '@/composables/useCursorInfiniteQuery';
 
 type definitions = components['schemas'];
 
@@ -35,14 +36,42 @@ export type RequestAttemptExtended = RequestAttemptTypeFixed & {
   event_type_name?: string | null;
 };
 
-export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixed>> {
-  return unwrapResponse(
-    http.get<Array<RequestAttemptTypeFixed>>('/request_attempts', {
+/**
+ * Fetch one page of request attempts (delivery log entries).
+ * - If `cursor` is undefined → fetches the first page using `application_id`
+ *   and a 7-day `min_created_at` filter.
+ * - If `cursor` is a fully-qualified URL (extracted from the `Link` header of
+ *   a previous response) → axios follows it directly. The backend preserves
+ *   the original filters in the cursor URL so we don't need to re-pass them.
+ */
+export function listPage(
+  application_id: UUID,
+  cursor?: string
+): Promise<CursorPage<RequestAttemptTypeFixed>> {
+  if (cursor) {
+    return unwrapCursorPage(http.get<RequestAttemptTypeFixed[]>(cursor));
+  }
+  return unwrapCursorPage(
+    http.get<RequestAttemptTypeFixed[]>('/request_attempts', {
       params: {
         application_id: application_id,
         min_created_at: subDays(new Date(), 7).toISOString(),
       },
     })
+  );
+}
+
+/**
+ * Backward-compatible shim that follows ALL cursors and returns a flat array.
+ *
+ * NOTE: Fixes the silent-drop bug where the previous implementation only ever
+ * fetched the first page from the cursor-paginated `request_attempts` endpoint
+ * (issue #45 — adjacent bug).
+ */
+export function list(application_id: UUID): Promise<Array<RequestAttemptTypeFixed>> {
+  return followAllPages<RequestAttemptTypeFixed>(
+    () => listPage(application_id),
+    (url) => listPage(application_id, url)
   );
 }
 

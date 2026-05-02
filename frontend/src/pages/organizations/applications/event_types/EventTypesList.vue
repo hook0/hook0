@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, markRaw } from 'vue';
+import { computed, h, markRaw } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
@@ -7,7 +7,7 @@ import type { ColumnDef } from '@tanstack/vue-table';
 import { Trash2, FolderTree } from 'lucide-vue-next';
 import { DOCS_EVENT_TYPES_URL, API_DOCS_EVENT_TYPES_URL } from '@/constants/externalLinks';
 
-import { useEventTypeList, useDeactivateEventType } from './useEventTypeQueries';
+import { useEventTypeListInfinite, useDeactivateEventType } from './useEventTypeQueries';
 import type { EventType } from './EventTypeService';
 import { routes } from '@/routes';
 import { usePermissions } from '@/composables/usePermissions';
@@ -27,6 +27,7 @@ import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
+import Hook0PaginatedList from '@/components/Hook0PaginatedList.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -36,7 +37,15 @@ const router = useRouter();
 const { canCreate, canDelete } = usePermissions();
 
 const { applicationId } = useRouteIds();
-const { data: eventTypes, isLoading, error, refetch } = useEventTypeList(applicationId);
+const eventTypesQuery = useEventTypeListInfinite(applicationId);
+const { currentPageItems, isLoading, error, refetch, totalPagesSeen, currentPageIdx } =
+  eventTypesQuery;
+
+// "Empty list" detection: empty only when we've finished loading and the very
+// first page came back empty.
+const hasAnyItems = computed(
+  () => totalPagesSeen.value > 0 && (currentPageItems.value.length > 0 || currentPageIdx.value > 0)
+);
 
 const deactivateMutation = useDeactivateEventType();
 
@@ -86,8 +95,8 @@ const columns: ColumnDef<EventType, unknown>[] = [
     <!-- Error state (check FIRST - errors take priority) -->
     <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="refetch()" />
 
-    <!-- Loading skeleton (also shown when query is disabled and data is undefined) -->
-    <Hook0Card v-else-if="isLoading || !eventTypes" data-test="event-types-card">
+    <!-- Loading skeleton (also shown when query is disabled and the first page is missing) -->
+    <Hook0Card v-else-if="isLoading && totalPagesSeen === 0" data-test="event-types-card">
       <Hook0CardHeader>
         <template #header>{{ t('eventTypes.title') }}</template>
       </Hook0CardHeader>
@@ -96,7 +105,7 @@ const columns: ColumnDef<EventType, unknown>[] = [
       </Hook0CardContent>
     </Hook0Card>
 
-    <!-- Data loaded (eventTypes is guaranteed to be defined here) -->
+    <!-- Data loaded -->
     <template v-else>
       <Hook0Card data-test="event-types-card">
         <Hook0CardHeader>
@@ -107,13 +116,17 @@ const columns: ColumnDef<EventType, unknown>[] = [
           </template>
         </Hook0CardHeader>
 
-        <Hook0CardContent v-if="eventTypes.length > 0">
-          <Hook0Table
-            data-test="event-types-table"
-            :columns="columns"
-            :data="eventTypes"
-            row-id-field="event_type_name"
-          />
+        <Hook0CardContent v-if="hasAnyItems">
+          <Hook0PaginatedList :query="eventTypesQuery">
+            <template #default="{ items }">
+              <Hook0Table
+                data-test="event-types-table"
+                :columns="columns"
+                :data="items"
+                row-id-field="event_type_name"
+              />
+            </template>
+          </Hook0PaginatedList>
         </Hook0CardContent>
 
         <Hook0CardContent v-else>
@@ -143,7 +156,7 @@ const columns: ColumnDef<EventType, unknown>[] = [
           </Hook0EmptyState>
         </Hook0CardContent>
 
-        <Hook0CardFooter v-if="eventTypes.length > 0 && canCreate('event_type')">
+        <Hook0CardFooter v-if="hasAnyItems && canCreate('event_type')">
           <Hook0Button
             variant="primary"
             type="button"

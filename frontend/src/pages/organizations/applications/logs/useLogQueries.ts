@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/vue-query';
 import { computed, type Ref } from 'vue';
 import * as LogService from './LogService';
 import { logKeys, requestAttemptKeys } from '@/queries/keys';
+import { useCursorInfiniteQuery } from '@/composables/useCursorInfiniteQuery';
 
 export function useLogList(applicationId: Ref<string>) {
   return useQuery({
@@ -9,6 +10,18 @@ export function useLogList(applicationId: Ref<string>) {
     queryFn: () => LogService.list(applicationId.value),
     enabled: computed(() => !!applicationId.value),
   });
+}
+
+/**
+ * Cursor-paginated infinite query for the deliveries log list page.
+ * Replaces the silent-drop {@link useLogList} usage in the LogList view.
+ */
+export function useLogListInfinite(applicationId: Ref<string>) {
+  return useCursorInfiniteQuery(
+    () => [...logKeys.list(applicationId.value), 'infinite'],
+    (cursor) => LogService.listPage(applicationId.value, cursor),
+    { enabled: () => !!applicationId.value }
+  );
 }
 
 export function useRequestAttemptDetail(requestAttemptId: Ref<string>, applicationId: Ref<string>) {

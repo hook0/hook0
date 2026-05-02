@@ -4,6 +4,7 @@ import * as SubscriptionService from './SubscriptionService';
 import type { SubscriptionPost, Subscription } from './SubscriptionService';
 import { subscriptionKeys } from '@/queries/keys';
 import { useInvalidatingMutation } from '@/composables/queryHelpers';
+import { useCursorInfiniteQuery } from '@/composables/useCursorInfiniteQuery';
 
 export function useSubscriptionList(applicationId: Ref<string>) {
   return useQuery({
@@ -11,6 +12,17 @@ export function useSubscriptionList(applicationId: Ref<string>) {
     queryFn: () => SubscriptionService.list(applicationId.value),
     enabled: computed(() => !!applicationId.value),
   });
+}
+
+/**
+ * Cursor-paginated infinite query for the subscriptions list page.
+ */
+export function useSubscriptionListInfinite(applicationId: Ref<string>) {
+  return useCursorInfiniteQuery(
+    () => [...subscriptionKeys.list(applicationId.value), 'infinite'],
+    (cursor) => SubscriptionService.listPage(applicationId.value, cursor),
+    { enabled: () => !!applicationId.value }
+  );
 }
 
 export function useSubscriptionDetail(id: Ref<string>) {

@@ -1,6 +1,8 @@
 import http, { UUID } from '@/http';
 import type { components } from '@/types';
 import { unwrapResponse } from '@/utils/unwrapResponse';
+import { followAllPages, unwrapCursorPage } from '@/utils/cursorPagination';
+import type { CursorPage } from '@/composables/useCursorInfiniteQuery';
 
 type definitions = components['schemas'];
 
@@ -51,13 +53,32 @@ export function toggleEnable(
   });
 }
 
-export function list(application_id: UUID): Promise<Array<Subscription>> {
-  return unwrapResponse(
-    http.get<Array<Subscription>>('/subscriptions', {
+/**
+ * Fetch one page of subscriptions.
+ * - If `cursor` is undefined → fetches the first page using `application_id`.
+ * - If `cursor` is a fully-qualified URL (extracted from the `Link` header of
+ *   a previous response) → axios follows it directly.
+ */
+export function listPage(application_id: UUID, cursor?: string): Promise<CursorPage<Subscription>> {
+  if (cursor) {
+    return unwrapCursorPage(http.get<Subscription[]>(cursor));
+  }
+  return unwrapCursorPage(
+    http.get<Subscription[]>('/subscriptions', {
       params: {
         application_id: application_id,
       },
     })
+  );
+}
+
+/**
+ * Backward-compatible shim that follows all cursors and returns a flat array.
+ */
+export function list(application_id: UUID): Promise<Array<Subscription>> {
+  return followAllPages<Subscription>(
+    () => listPage(application_id),
+    (url) => listPage(application_id, url)
   );
 }
 

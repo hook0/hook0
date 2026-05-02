@@ -683,6 +683,13 @@
     "updated": "Organization updated",
     "updatedMessage": "Organization \"{name}\" updated."
   },
+  "pagination": {
+    "currentPage": "Page {page}",
+    "errorRetry": "Retry",
+    "loading": "Loading…",
+    "next": "Next",
+    "previous": "Previous"
+  },
   "remove": {
     "confirmDeleteApplication": "Delete application {name}?",
     "confirmDeleteOrganization": "Delete organization {name}?",

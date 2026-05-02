@@ -8,7 +8,7 @@ import { useMediaQuery } from '@vueuse/core';
 import { ArrowLeft, Send } from 'lucide-vue-next';
 import { DOCS_LOGS_URL, API_DOCS_LOGS_URL } from '@/constants/externalLinks';
 
-import { useLogList } from './useLogQueries';
+import { useLogListInfinite } from './useLogQueries';
 import { useLogColumns } from './useLogColumns';
 import type { RequestAttemptExtended } from './LogService';
 import { routes } from '@/routes';
@@ -30,12 +30,24 @@ import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0HelpText from '@/components/Hook0HelpText.vue';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
+import Hook0PaginatedList from '@/components/Hook0PaginatedList.vue';
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { organizationId, applicationId } = useRouteIds();
-const { data: requestAttempts, isLoading, error, refetch } = useLogList(applicationId);
+const logsQuery = useLogListInfinite(applicationId);
+const {
+  isLoading,
+  error,
+  refetch,
+  totalPagesSeen,
+  currentPageItems: requestAttempts,
+  currentPageIdx,
+} = logsQuery;
+const hasAnyAttempts = computed(
+  () => totalPagesSeen.value > 0 && (requestAttempts.value.length > 0 || currentPageIdx.value > 0)
+);
 const { data: organization } = useOrganizationDetail(organizationId);
 const { canCreate } = usePermissions();
 
@@ -98,7 +110,7 @@ function goBackToList() {
   <Hook0PageLayout :title="t('logs.title')">
     <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="void refetch()" />
 
-    <Hook0Card v-else-if="isLoading || !requestAttempts" data-test="logs-card">
+    <Hook0Card v-else-if="isLoading && totalPagesSeen === 0" data-test="logs-card">
       <Hook0CardHeader>
         <template #header>{{ t('logs.title') }}</template>
       </Hook0CardHeader>
@@ -124,7 +136,7 @@ function goBackToList() {
       </Hook0Card>
 
       <Hook0SplitLayout
-        v-if="requestAttempts.length > 0"
+        v-if="hasAnyAttempts"
         :show-detail="!!selectedRow"
         :detail-key="selectedRow?.request_attempt_id"
       >
@@ -135,15 +147,19 @@ function goBackToList() {
           </Hook0Button>
         </template>
         <template #list>
-          <Hook0Table
-            data-test="logs-table"
-            :columns="columns"
-            :data="requestAttempts"
-            row-id-field="request_attempt_id"
-            clickable-rows
-            :active-row-id="selectedRow?.request_attempt_id"
-            @row-click="handleRowClick"
-          />
+          <Hook0PaginatedList :query="logsQuery">
+            <template #default="{ items }">
+              <Hook0Table
+                data-test="logs-table"
+                :columns="columns"
+                :data="items"
+                row-id-field="request_attempt_id"
+                clickable-rows
+                :active-row-id="selectedRow?.request_attempt_id"
+                @row-click="handleRowClick"
+              />
+            </template>
+          </Hook0PaginatedList>
         </template>
         <template #detail>
           <LogDetailContent

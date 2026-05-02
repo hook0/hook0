@@ -11,7 +11,7 @@ import Hook0TableCellLabels from '@/components/Hook0TableCellLabels.vue';
 import Hook0TableCellTarget from '@/components/Hook0TableCellTarget.vue';
 
 import {
-  useSubscriptionList,
+  useSubscriptionListInfinite,
   useToggleSubscription,
   useRemoveSubscription,
 } from './useSubscriptionQueries';
@@ -37,6 +37,7 @@ import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0SkeletonGroup from '@/components/Hook0SkeletonGroup.vue';
 import Hook0Dialog from '@/components/Hook0Dialog.vue';
 import Hook0DocButtons from '@/components/Hook0DocButtons.vue';
+import Hook0PaginatedList from '@/components/Hook0PaginatedList.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -46,7 +47,13 @@ const router = useRouter();
 const { canCreate, canDelete } = usePermissions();
 
 const { applicationId } = useRouteIds();
-const { data: subscriptions, isLoading, error, refetch } = useSubscriptionList(applicationId);
+const subscriptionsQuery = useSubscriptionListInfinite(applicationId);
+const { isLoading, error, refetch, totalPagesSeen, currentPageItems, currentPageIdx } =
+  subscriptionsQuery;
+
+const hasAnySubscriptions = computed(
+  () => totalPagesSeen.value > 0 && (currentPageItems.value.length > 0 || currentPageIdx.value > 0)
+);
 
 const toggleMutation = useToggleSubscription();
 const removeMutation = useRemoveSubscription();
@@ -218,8 +225,8 @@ const columns: ColumnDef<Subscription, unknown>[] = [
     <!-- Error state (check FIRST - errors take priority) -->
     <Hook0ErrorCard v-if="error && !isLoading" :error="error" @retry="refetch()" />
 
-    <!-- Loading skeleton (also shown when query is disabled and data is undefined) -->
-    <Hook0Card v-else-if="isLoading || !subscriptions" data-test="subscriptions-card">
+    <!-- Loading skeleton (also shown when the first page is missing) -->
+    <Hook0Card v-else-if="isLoading && totalPagesSeen === 0" data-test="subscriptions-card">
       <Hook0CardHeader>
         <template #header>{{ t('subscriptions.title') }}</template>
       </Hook0CardHeader>
@@ -228,7 +235,7 @@ const columns: ColumnDef<Subscription, unknown>[] = [
       </Hook0CardContent>
     </Hook0Card>
 
-    <!-- Data loaded (subscriptions is guaranteed to be defined here) -->
+    <!-- Data loaded -->
     <template v-else>
       <Hook0Card data-test="subscriptions-card">
         <Hook0CardHeader>
@@ -244,13 +251,17 @@ const columns: ColumnDef<Subscription, unknown>[] = [
           </template>
         </Hook0CardHeader>
 
-        <Hook0CardContent v-if="subscriptions.length > 0">
-          <Hook0Table
-            data-test="subscriptions-table"
-            :columns="columns"
-            :data="subscriptions"
-            row-id-field="subscription_id"
-          />
+        <Hook0CardContent v-if="hasAnySubscriptions">
+          <Hook0PaginatedList :query="subscriptionsQuery">
+            <template #default="{ items }">
+              <Hook0Table
+                data-test="subscriptions-table"
+                :columns="columns"
+                :data="items"
+                row-id-field="subscription_id"
+              />
+            </template>
+          </Hook0PaginatedList>
         </Hook0CardContent>
 
         <Hook0CardContent v-else>
@@ -280,7 +291,7 @@ const columns: ColumnDef<Subscription, unknown>[] = [
           </Hook0EmptyState>
         </Hook0CardContent>
 
-        <Hook0CardFooter v-if="subscriptions.length > 0 && canCreate('subscription')">
+        <Hook0CardFooter v-if="hasAnySubscriptions && canCreate('subscription')">
           <Hook0Button
             variant="primary"
             type="button"
