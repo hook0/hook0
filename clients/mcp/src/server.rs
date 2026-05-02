@@ -253,33 +253,37 @@ impl ServerHandler for Hook0McpServer {
             "hook0://applications" => self.client.get("/applications/").await,
             uri if uri.starts_with("hook0://applications/") => {
                 let rest = uri.strip_prefix("hook0://applications/").unwrap();
+                // Hook0 v1 routes are top-level with `?application_id=…`,
+                // not nested under `/applications/{id}/…`. Fix the URL building
+                // for the list resources (the nested form returned 404).
                 if let Some(app_id) = rest.strip_suffix("/events") {
                     self.client
-                        .get(&format!("/applications/{}/events/", app_id))
+                        .get(&format!("/events?application_id={}", app_id))
                         .await
                 } else if let Some(app_id) = rest.strip_suffix("/subscriptions") {
                     // Cursor-paginated since issue #45 — follow Link headers
                     // up to a 1000-item cap with truncation marker.
                     self.client
-                        .get_paginated(&format!("/applications/{}/subscriptions/", app_id))
+                        .get_paginated(&format!("/subscriptions?application_id={}", app_id))
                         .await
                 } else if let Some(app_id) = rest.strip_suffix("/event_types") {
                     // Cursor-paginated since issue #45.
                     self.client
-                        .get_paginated(&format!("/applications/{}/event_types/", app_id))
+                        .get_paginated(&format!("/event_types?application_id={}", app_id))
                         .await
                 } else {
-                    self.client.get(&format!("/applications/{}/", rest)).await
+                    self.client.get(&format!("/applications/{}", rest)).await
                 }
             }
             uri if uri.starts_with("hook0://events/") => {
                 let rest = uri.strip_prefix("hook0://events/").unwrap();
                 if let Some(event_id) = rest.strip_suffix("/attempts") {
+                    // request_attempts is also top-level; filter by event_id.
                     self.client
-                        .get(&format!("/events/{}/request_attempts/", event_id))
+                        .get(&format!("/request_attempts?event_id={}", event_id))
                         .await
                 } else {
-                    self.client.get(&format!("/events/{}/", rest)).await
+                    self.client.get(&format!("/events/{}", rest)).await
                 }
             }
             _ => {

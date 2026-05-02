@@ -323,7 +323,7 @@ pub async fn list(
                     FROM webhook.subscription AS s
                     LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
                     LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
-                    LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.subscription__id
+                    LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
                     WHERE s.application__id = $1
                         AND deleted_at IS NULL
                         AND (s.created_at, s.subscription__id) < ($2, $3)
