@@ -55,6 +55,20 @@ const authStore = useAuthStore();
 authStore.initialize();
 authStore.setupRouterGuard();
 
+// Persist cross-origin cookie consent transferred from www.hook0.com via
+// `?consent=granted` URL param. localStorage is per-origin so the website's
+// banner cannot reach app.hook0.com directly.
+{
+  const consentParam = new URLSearchParams(window.location.search).get('consent');
+  if (consentParam === 'granted' || consentParam === 'denied') {
+    try {
+      window.localStorage.setItem('hook0_cookie_consent', consentParam);
+    } catch {
+      // ignore storage failures (private mode, etc.)
+    }
+  }
+}
+
 // Google Ads conversion tracking (sync init, script loads lazily with consent)
 setupGtag();
 

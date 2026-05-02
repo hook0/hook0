@@ -383,13 +383,24 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function(e) {
         var link = e.target.closest('a[href*="app.hook0.com"], a[href*="documentation.hook0.com"]');
         if (!link) return;
-        var stored = sessionStorage.getItem(STORAGE_KEY);
-        if (!stored) return;
-        var data = JSON.parse(stored);
         var url = new URL(link.href);
-        Object.keys(data).forEach(function(key) {
-            if (!url.searchParams.has(key)) url.searchParams.set(key, data[key]);
-        });
+        // Propagate persisted UTM/MTM/gclid params
+        var stored = sessionStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            var data = JSON.parse(stored);
+            Object.keys(data).forEach(function(key) {
+                if (!url.searchParams.has(key)) url.searchParams.set(key, data[key]);
+            });
+        }
+        // Propagate cookie consent across origins so app.hook0.com can fire
+        // Google Ads conversion without needing its own consent banner.
+        // localStorage is per-origin; we transfer the value via URL param.
+        try {
+            var consent = localStorage.getItem('hook0_cookie_consent');
+            if (consent === 'granted' && !url.searchParams.has('consent')) {
+                url.searchParams.set('consent', 'granted');
+            }
+        } catch (e) {}
         link.href = url.toString();
     }, true);
 })();

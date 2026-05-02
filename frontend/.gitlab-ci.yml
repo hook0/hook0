@@ -12,6 +12,13 @@ frontend.build:
   variables:
     # API endpoint for E2E tests - must match the port used in tests-e2e/.gitlab-ci.yml
     VITE_API_ENDPOINT: "http://localhost:8081/api/v1"
+    # Google Ads conversion tracking — passed through to the bundle so Vite
+    # injects the values into import.meta.env at build time. Project-level
+    # CI/CD variables GOOGLE_ADS_CONVERSION_ID and GOOGLE_ADS_CONVERSION_LABEL
+    # must be set in GitLab → Settings → CI/CD → Variables (not protected,
+    # not scoped) for production conversions to fire.
+    VITE_GOOGLE_ADS_CONVERSION_ID: $GOOGLE_ADS_CONVERSION_ID
+    VITE_GOOGLE_ADS_CONVERSION_LABEL: $GOOGLE_ADS_CONVERSION_LABEL
   script:
     - pushd frontend/
     - npm ci
