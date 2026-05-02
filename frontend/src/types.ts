@@ -313,7 +313,7 @@ export interface paths {
     };
     /**
      * List event types
-     * @description Retrieves all active event types for an application. Event types follow the pattern 'service.resource.verb'. Use application_id query parameter to filter by application.
+     * @description Retrieves active event types for an application, ordered by `created_at DESC`. Cursor-paginated: pass `pagination_cursor` from the response `Link: <…>; rel="next"` (or `rel="prev"`) header to navigate. Optional `limit` query parameter (default 100, max 100, min 1).
      */
     get: operations['eventTypes.list'];
     put?: never;
@@ -753,7 +753,7 @@ export interface paths {
     };
     /**
      * List subscriptions
-     * @description Retrieves all active webhook subscriptions for an application. Each subscription defines which event types to listen for and where to deliver them (HTTP endpoint). Use application_id query parameter to filter by application.
+     * @description Retrieves active webhook subscriptions for an application, ordered by `created_at DESC`. Cursor-paginated: pass `pagination_cursor` from the response `Link: <…>; rel="next"` (or `rel="prev"`) header to navigate. Optional `limit` query parameter (default 100, max 100, min 1).
      */
     get: operations['subscriptions.list'];
     put?: never;
@@ -939,6 +939,13 @@ export interface components {
       payload_content_type: string;
     };
     EventType: {
+      /**
+       * Format: date-time
+       * @description Creation timestamp. Used as the primary key of the `pagination_cursor`
+       *      for stable keyset pagination in `list`. Returned to clients as part of
+       *      the public response shape.
+       */
+      created_at: string;
       event_type_name: string;
       resource_type_name: string;
       service_name: string;
@@ -2395,6 +2402,9 @@ export interface operations {
     parameters: {
       query: {
         application_id: string;
+        /** @description Page size. Default 100, max 100, min 1. Out-of-range -> HTTP 400. */
+        limit?: number;
+        pagination_cursor?: string;
       };
       header?: never;
       path?: never;
@@ -4157,6 +4167,9 @@ export interface operations {
     parameters: {
       query: {
         application_id: string;
+        /** @description Page size. Default 100, max 100, min 1. Out-of-range -> HTTP 400. */
+        limit?: number;
+        pagination_cursor?: string;
       };
       header?: never;
       path?: never;

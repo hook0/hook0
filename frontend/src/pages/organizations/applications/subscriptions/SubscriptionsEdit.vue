@@ -72,6 +72,11 @@ function EventTypeNamesFromSelectedEventTypes(
 }
 
 function SelectedEventTypesFromEventTypeNames(eventTypeNames: string[]): SelectableEventType[] {
+  // Synthesised entries used solely to feed the multi-select with the
+  // server's previously-selected names. The real `created_at` is unknown
+  // without an extra fetch — we use the epoch as a stable placeholder.
+  // The select component never displays this field; the parent reconciles
+  // selections with the live list to produce the API payload.
   return eventTypeNames.map((eventTypeName) => {
     const [resource_type_name, service_name, verb_name] = eventTypeName.split('.');
     return {
@@ -79,6 +84,7 @@ function SelectedEventTypesFromEventTypeNames(eventTypeNames: string[]): Selecta
       resource_type_name,
       service_name,
       verb_name,
+      created_at: new Date(0).toISOString(),
       selected: true,
     };
   });
