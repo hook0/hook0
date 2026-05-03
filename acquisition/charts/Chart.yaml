@@ -1,0 +1,6 @@
+apiVersion: v2
+name: hook0-acquisition
+description: Hook0 server-side Google Ads conversion uploader
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

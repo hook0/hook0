@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hook0-acquisition.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hook0-acquisition.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "hook0-acquisition.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "hook0-acquisition.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: hook0-acquisition
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: ACQUISITION_HOST
+              value: {{ .Values.acquisition.host | quote }}
+            - name: ACQUISITION_PORT
+              value: {{ .Values.acquisition.port | quote }}
+            - name: ACQUISITION_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.acquisition.secretName }}
+                  key: api-token
+            - name: GOOGLE_ADS_DEVELOPER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.acquisition.secretName }}
+                  key: google-ads-developer-token
+            - name: GOOGLE_ADS_CUSTOMER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.acquisition.secretName }}
+                  key: google-ads-customer-id
+            - name: GOOGLE_ADS_LOGIN_CUSTOMER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.acquisition.secretName }}
+                  key: google-ads-login-customer-id
+                  optional: true
+            - name: GOOGLE_ADS_CONVERSION_ACTION_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.acquisition.secretName }}
+                  key: google-ads-conversion-action-id
+            - name: GOOGLE_ADS_OAUTH_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.acquisition.secretName }}
+                  key: google-ads-oauth-client-id
+            - name: GOOGLE_ADS_OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.acquisition.secretName }}
+                  key: google-ads-oauth-client-secret
+            - name: GOOGLE_ADS_OAUTH_REFRESH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.acquisition.secretName }}
+                  key: google-ads-oauth-refresh-token
+            - name: RUST_LOG
+              value: "hook0_acquisition=info,tower_http=info"
+          ports:
+            - name: http
+              containerPort: {{ .Values.acquisition.port }}
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001

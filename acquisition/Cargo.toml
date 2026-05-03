@@ -1,0 +1,26 @@
+[package]
+name = "hook0-acquisition"
+version = "0.1.0"
+edition = "2021"
+license = "SSPL-1.0"
+description = "Hook0 server-side conversion uploader for Google Ads Enhanced Conversions"
+authors = ["François-Guillaume Ribreau <fg@hook0.com>"]
+repository = "https://gitlab.com/hook0/hook0"
+
+[dependencies]
+axum = { version = "0.8", features = ["macros"] }
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4.6", features = ["derive", "env"] }
+hex = "0.4"
+reqwest = { version = "0.13.3", features = ["json", "form"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+thiserror = "2.0"
+tokio = { version = "1.52", features = ["full"] }
+tower-http = { version = "0.6", features = ["trace", "request-id", "util"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+[dev-dependencies]
+portpicker = "0.1"

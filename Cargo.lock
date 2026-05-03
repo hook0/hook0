@@ -2884,6 +2884,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "hook0-acquisition"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "clap",
+ "hex",
+ "portpicker",
+ "reqwest 0.13.3",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.18",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "hook0-api"
 version = "1.0.0-alpha.3"
 dependencies = [

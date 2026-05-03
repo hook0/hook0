@@ -1,0 +1,111 @@
+acquisition.check:
+  stage: test
+  dependencies: []
+  image: rust:$RUST_VERSION
+  extends: .rust-cache-pull-only
+  rules:
+    - changes:
+        - acquisition/**/*
+        - Cargo.*
+  before_script:
+    - rustc --version && cargo --version
+    - rustup component add clippy rustfmt
+  script:
+    - cargo fmt -p hook0-acquisition -- --check
+    - cargo clippy -p hook0-acquisition --all-targets --all-features -- -D warnings
+    - cargo test -p hook0-acquisition --all-features
+
+acquisition.docker:
+  stage: build
+  dependencies: []
+  # BuildKit rootless replaces Kaniko (archived 2025-06-03). Same image used by play.docker.
+  image:
+    name: moby/buildkit:$BUILDKIT_VERSION
+    entrypoint: ["sh", "-c"]
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+  rules:
+    - changes:
+        - acquisition/**/*
+        - Cargo.*
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+  before_script:
+    - mkdir -p ~/.docker
+    - |
+      echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf '%s:%s' "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > ~/.docker/config.json
+  script:
+    - |
+      buildctl-daemonless.sh build \
+        --progress=plain \
+        --frontend dockerfile.v0 \
+        --opt platform=linux/amd64 \
+        --local context="${CI_PROJECT_DIR}" \
+        --local dockerfile="${CI_PROJECT_DIR}/acquisition" \
+        --export-cache type=registry,ref="${CI_REGISTRY_IMAGE}/acquisition/cache:buildkit",mode=max \
+        --import-cache type=registry,ref="${CI_REGISTRY_IMAGE}/acquisition/cache:buildkit" \
+        --output "type=image,\"name=${CI_REGISTRY_IMAGE}/acquisition:${CI_COMMIT_SHORT_SHA},${CI_REGISTRY_IMAGE}/acquisition:latest\",push=true"
+  after_script:
+    - rm -f ~/.docker/config.json
+
+acquisition.deploy:
+  stage: release
+  dependencies: []
+  image:
+    name: bitnami/kubectl:1.32
+    entrypoint: [""]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - acquisition/**/*
+        - Cargo.*
+      when: manual
+  environment:
+    name: production
+    url: https://acquisition.hook0.com
+  script:
+    # Restart the deployment to pull the new :latest image (pullPolicy: Always)
+    - kubectl rollout restart deployment/hook0-acquisition -n hosted-hook0-acquisition-prod
+    - kubectl rollout status deployment/hook0-acquisition -n hosted-hook0-acquisition-prod --timeout=120s
+
+acquisition.smoke-test:
+  stage: release
+  dependencies: []
+  needs:
+    - job: acquisition.deploy
+  image: alpine:$ALPINE_VERSION
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - acquisition/**/*
+        - Cargo.*
+  before_script:
+    - apk add --no-cache curl
+  script:
+    # Wait for deployment to stabilize
+    - sleep 30
+    # Smoke test 1: GET /health must return 200 with JSON body
+    - |
+      HTTP_CODE=$(curl -s -o /tmp/acq-health.json -w '%{http_code}' https://acquisition.hook0.com/health)
+      if [ "$HTTP_CODE" != "200" ]; then
+        echo "FAIL: GET /health returned HTTP $HTTP_CODE (expected 200)"
+        cat /tmp/acq-health.json
+        exit 1
+      fi
+      grep -q '"status":"ok"' /tmp/acq-health.json || { echo "FAIL: /health body missing status:ok"; cat /tmp/acq-health.json; exit 1; }
+      grep -q '"service":"hook0-acquisition"' /tmp/acq-health.json || { echo "FAIL: /health body missing service tag"; cat /tmp/acq-health.json; exit 1; }
+      echo "OK: /health returns 200 with expected body"
+    # Smoke test 2: POST /conversion/signup without auth must return 401
+    - |
+      AUTH_CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST https://acquisition.hook0.com/conversion/signup \
+        -H 'Content-Type: application/json' \
+        -d '{"gclid":"smoke","email":"smoke@example.com"}')
+      if [ "$AUTH_CODE" != "401" ]; then
+        echo "FAIL: unauthenticated POST returned HTTP $AUTH_CODE (expected 401)"
+        exit 1
+      fi
+      echo "OK: unauthenticated POST returns 401"
+    - echo "All smoke tests passed"

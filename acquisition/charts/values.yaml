@@ -1,0 +1,47 @@
+fullnameOverride: "hook0-acquisition"
+
+image:
+  repository: registry.gitlab.com/hook0/hook0/acquisition
+  tag: "latest"
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: gitlab-registry
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 3040
+
+ingress:
+  enabled: true
+  host: acquisition.hook0.com
+  clusterIssuer: "letsencrypt-prod"
+  annotations: {}
+
+acquisition:
+  host: "0.0.0.0"
+  port: 3040
+  # All sensitive values are loaded from a Kubernetes Secret named
+  # `hook0-acquisition-secrets` (see secret.yaml). Required keys:
+  #   - api-token
+  #   - google-ads-developer-token
+  #   - google-ads-customer-id
+  #   - google-ads-login-customer-id  (optional, set to "" if not under MCC)
+  #   - google-ads-conversion-action-id
+  #   - google-ads-oauth-client-id
+  #   - google-ads-oauth-client-secret
+  #   - google-ads-oauth-refresh-token
+  secretName: "hook0-acquisition-secrets"
+
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "50m"
+  limits:
+    memory: "256Mi"
+    cpu: "250m"
+
+nodeSelector:
+  node-role.kubernetes.io/worker: ""
