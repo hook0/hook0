@@ -7,6 +7,7 @@ acquisition.check:
     - changes:
         - acquisition/**/*
         - Cargo.*
+        - .gitlab-ci.yml
   before_script:
     - rustc --version && cargo --version
     - rustup component add clippy rustfmt
@@ -31,6 +32,7 @@ acquisition.docker:
     - changes:
         - acquisition/**/*
         - Cargo.*
+        - .gitlab-ci.yml
   variables:
     BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
   before_script:
