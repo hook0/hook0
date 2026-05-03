@@ -47,7 +47,7 @@ opentelemetry_sdk = { version = "0.31.0", default-features = false, features = [
 paperclip = { version = "0.9.7", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 pulsar = { version = "6.7.2", default-features = false, features = ["tokio-rustls-runtime"] }
 regex = "1.12.3"
-reqwest = { version = "0.13.3", features = ["hickory-dns", "form"] }
+reqwest = { version = "0.13.3", features = ["hickory-dns", "form", "json"] }
 rustls = { version = "0.23.40", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
 sentry-actix = "0.48.0"
 serde = "1.0.228"
