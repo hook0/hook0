@@ -32,6 +32,7 @@ include:
   - template: SAST.gitlab-ci.yml
   - template: DAST.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
+  - local: "acquisition/.gitlab-ci.yml"
   - local: "api/.gitlab-ci.yml"
   - local: "ci/release.gitlab-ci.yml"
   - local: "ci/release-sdk.gitlab-ci.yml"
