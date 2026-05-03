@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y protobuf-compiler
 
 RUN --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
+    --mount=type=bind,source=acquisition,target=acquisition \
     --mount=type=bind,source=api,target=api \
     --mount=type=bind,source=cli,target=cli \
     --mount=type=bind,source=ci/validate-dockerfiles,target=ci/validate-dockerfiles \

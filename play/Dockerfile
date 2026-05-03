@@ -4,6 +4,7 @@ FROM rust:${RUST_VERSION} AS builder-rust
 WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./
+COPY acquisition acquisition
 COPY play play
 COPY cli cli
 COPY ci/validate-dockerfiles ci/validate-dockerfiles
