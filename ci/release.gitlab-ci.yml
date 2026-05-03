@@ -156,7 +156,14 @@ release.build-frontend:
     # docs and CLI binaries that this job has no use for.
     - git lfs pull --include="frontend/**"
     # Fail fast if any representative LFS asset is still a pointer.
-    - for f in frontend/public/256x256.png frontend/public/favicon.ico frontend/public/fonts/Inter-Regular.woff2; do test "$(wc -c < $f)" -gt 1000 || { echo "ERROR: $f is still an LFS pointer"; exit 1; }; done
+    # Literal block scalar avoids YAML treating { } as a flow mapping.
+    - |
+      for f in frontend/public/256x256.png frontend/public/favicon.ico frontend/public/fonts/Inter-Regular.woff2; do
+        if [ "$(wc -c < "$f")" -lt 1000 ]; then
+          echo "ERROR: $f is still an LFS pointer"
+          exit 1
+        fi
+      done
   script:
     - cd frontend
     - npm ci
