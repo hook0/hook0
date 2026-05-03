@@ -8,7 +8,6 @@ import { useForm } from 'vee-validate';
 import { createRegisterSchema } from './register.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
-import { trackSignupConversion } from '@/plugins/gtag';
 import { useI18n } from 'vue-i18n';
 import { ArrowRight, Check } from 'lucide-vue-next';
 
@@ -49,6 +48,11 @@ const isLoading = ref<boolean>(false);
 // Captcha token
 const captchaToken = ref<string>('');
 
+// Google Ads click identifier captured from the URL when the user lands
+// here after clicking an ad. Forwarded to the API for server-side
+// conversion upload (no gtag.js, no client-side trackers, no PII).
+const gclid = ref<string>('');
+
 // Analytics tracking
 const { trackEvent, trackPageWithDimensions } = useTracking();
 const { handleAuthError } = useAuthErrorHandler();
@@ -64,6 +68,11 @@ function handleFormStart() {
 onMounted(() => {
   trackPageWithDimensions('auth', 'view', 'signup-form');
   trackEvent('signup', 'page-view', 'register');
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.get('gclid');
+  if (fromUrl) {
+    gclid.value = fromUrl;
+  }
 });
 
 const onSubmit = handleSubmit((values) => {
@@ -78,11 +87,11 @@ const onSubmit = handleSubmit((values) => {
       values.firstName,
       values.lastName,
       values.password,
-      captchaToken.value !== '' ? captchaToken.value : undefined
+      captchaToken.value !== '' ? captchaToken.value : undefined,
+      gclid.value !== '' ? gclid.value : undefined
     )
     .then(() => {
       trackEvent('signup', 'form-success', 'register');
-      trackSignupConversion();
       return router.push({ name: routes.CheckEmail });
     })
     .catch((err) => {

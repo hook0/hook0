@@ -42,6 +42,13 @@ pub struct RegistrationPost {
     )]
     password: String,
     turnstile_token: Option<String>,
+    /// Optional Google Ads click identifier captured during the user's
+    /// journey from a Google Ad. When present and the API has Google Ads
+    /// credentials configured, the signup is uploaded as a click conversion
+    /// (server-side, no PII leaves Hook0). Bounded length to defend against
+    /// abuse — real gclid values are ~50–60 chars.
+    #[validate(non_control_character, length(max = 256))]
+    gclid: Option<String>,
 }
 
 #[api_v2_operation(
@@ -171,6 +178,18 @@ pub async fn register(
                 })?;
 
             tx.commit().await?;
+
+            // Server-side Google Ads conversion upload — fire-and-forget.
+            // Only fires when (1) the gclid arrived with the signup and (2)
+            // the API has Google Ads credentials configured. Failures are
+            // logged inside spawn_upload, never propagated to the user.
+            if let (Some(client), Some(gclid)) = (
+                state.google_ads.as_ref().cloned(),
+                body.gclid.as_ref().map(|s| s.trim().to_string()),
+            ) && !gclid.is_empty()
+            {
+                crate::google_ads::spawn_upload(client, gclid);
+            }
 
             Ok(CreatedJson(Registration {
                 organization_id,
