@@ -410,100 +410,72 @@ pub async fn list(
         http_response_status: Option<i16>,
     }
 
+    // The forward and backward queries differ only in the cursor comparison operator
+    // (`<` vs `>`) and the ORDER BY direction (`DESC` vs `ASC`). Factor the SQL through a
+    // local macro so the body is written once; sqlx still type-checks each variant at
+    // compile time because each macro call expands to a `query_as!` invocation with a
+    // string literal (sqlx's `source =` parser accepts `+`-separated string literals).
+    macro_rules! list_request_attempts_query {
+        ($cmp:literal, $dir:literal) => {
+            query_as!(
+                RawRequestAttempt,
+                "
+                    SELECT
+                        ra.request_attempt__id,
+                        ra.event__id,
+                        ra.subscription__id,
+                        ra.created_at,
+                        ra.picked_at,
+                        ra.failed_at,
+                        ra.succeeded_at,
+                        ra.delay_until,
+                        ra.response__id,
+                        ra.retry_count,
+                        s.description AS subscription__description,
+                        e.event_type__name,
+                        r.http_code AS http_response_status
+                    FROM webhook.request_attempt AS ra
+                    INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                    INNER JOIN event.event AS e ON e.event__id = ra.event__id
+                    LEFT JOIN webhook.response AS r ON r.response__id = ra.response__id
+                    WHERE ra.application__id = $1
+                        AND (ra.event__id = $2 OR $2 IS NULL)
+                        AND (s.subscription__id = $3 OR $3 IS NULL)
+                        AND ra.created_at BETWEEN $4 AND $5
+                        AND (ra.created_at, ra.request_attempt__id) " + $cmp + " ($6, $7)
+                        AND (e.event_type__name = any($8) OR $8 = '{}')
+                    ORDER BY
+                        ra.created_at " + $dir + ",
+                        ra.request_attempt__id " + $dir + "
+                    LIMIT $9
+                ",
+                &qs.application_id,
+                qs.event_id,
+                qs.subscription_id,
+                min_created_at,
+                max_created_at,
+                resolved_cursor.date,
+                resolved_cursor.id,
+                &event_type_names,
+                pagination.fetch_limit(),
+            )
+        };
+    }
+
     // Backward fetches ASC to get rows nearest the cursor in the newer direction, then reverses.
+    // Each `query_as!` invocation expands to a unique anonymous closure type, so the call to
+    // `.fetch_all` must live inside each branch (the two `Map<_>` futures are otherwise
+    // incompatible at the `if`/`else` join point).
     let mut raw_request_attempts = if pagination.is_backward() {
-        query_as!(
-            RawRequestAttempt,
-            "
-                SELECT
-                    ra.request_attempt__id,
-                    ra.event__id,
-                    ra.subscription__id,
-                    ra.created_at,
-                    ra.picked_at,
-                    ra.failed_at,
-                    ra.succeeded_at,
-                    ra.delay_until,
-                    ra.response__id,
-                    ra.retry_count,
-                    s.description AS subscription__description,
-                    e.event_type__name,
-                    r.http_code AS http_response_status
-                FROM webhook.request_attempt AS ra
-                INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                INNER JOIN event.event AS e ON e.event__id = ra.event__id
-                LEFT JOIN webhook.response AS r ON r.response__id = ra.response__id
-                WHERE ra.application__id = $1
-                    AND (ra.event__id = $2 OR $2 IS NULL)
-                    AND (s.subscription__id = $3 OR $3 IS NULL)
-                    AND ra.created_at BETWEEN $4 AND $5
-                    AND (ra.created_at, ra.request_attempt__id) > ($6, $7)
-                    AND (e.event_type__name = any($8) OR $8 = '{}')
-                ORDER BY
-                    ra.created_at ASC,
-                    ra.request_attempt__id ASC
-                LIMIT $9
-            ",
-            &qs.application_id,
-            qs.event_id,
-            qs.subscription_id,
-            min_created_at,
-            max_created_at,
-            resolved_cursor.date,
-            resolved_cursor.id,
-            &event_type_names,
-            pagination.fetch_limit(),
-        )
-        .fetch_all(&state.db)
-        .await
-        .map_err(Hook0Problem::from)?
+        list_request_attempts_query!(">", "ASC")
+            .fetch_all(&state.db)
+            .await
     } else {
-        query_as!(
-            RawRequestAttempt,
-            "
-                SELECT
-                    ra.request_attempt__id,
-                    ra.event__id,
-                    ra.subscription__id,
-                    ra.created_at,
-                    ra.picked_at,
-                    ra.failed_at,
-                    ra.succeeded_at,
-                    ra.delay_until,
-                    ra.response__id,
-                    ra.retry_count,
-                    s.description AS subscription__description,
-                    e.event_type__name,
-                    r.http_code AS http_response_status
-                FROM webhook.request_attempt AS ra
-                INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-                INNER JOIN event.event AS e ON e.event__id = ra.event__id
-                LEFT JOIN webhook.response AS r ON r.response__id = ra.response__id
-                WHERE ra.application__id = $1
-                    AND (ra.event__id = $2 OR $2 IS NULL)
-                    AND (s.subscription__id = $3 OR $3 IS NULL)
-                    AND ra.created_at BETWEEN $4 AND $5
-                    AND (ra.created_at, ra.request_attempt__id) < ($6, $7)
-                    AND (e.event_type__name = any($8) OR $8 = '{}')
-                ORDER BY
-                    ra.created_at DESC,
-                    ra.request_attempt__id DESC
-                LIMIT $9
-            ",
-            &qs.application_id,
-            qs.event_id,
-            qs.subscription_id,
-            min_created_at,
-            max_created_at,
-            resolved_cursor.date,
-            resolved_cursor.id,
-            &event_type_names,
-            pagination.fetch_limit(),
-        )
-        .fetch_all(&state.db)
-        .await
-        .map_err(Hook0Problem::from)?
-    };
+        list_request_attempts_query!("<", "DESC")
+            .fetch_all(&state.db)
+            .await
+    }
+    .map_err(Hook0Problem::from)?;
 
     let has_more = pagination.trim_and_orient(&mut raw_request_attempts);
 

@@ -248,58 +248,57 @@ pub async fn list(
     let pagination = NamePagination::new(page_limit, qs.pagination_cursor.clone());
     let resolved_cursor = pagination.resolved_cursor();
 
+    // The forward and backward queries differ only in the cursor comparison operator
+    // (`<` vs `>`) and the ORDER BY direction (`DESC` vs `ASC`). Factor the SQL through a
+    // local macro so the body is written once; sqlx still type-checks each variant at
+    // compile time because each macro call expands to a `query_as!` invocation with a
+    // string literal (sqlx's `source =` parser accepts `+`-separated string literals).
+    macro_rules! list_event_types_query {
+        ($cmp:literal, $dir:literal) => {
+            query_as!(
+                EventType,
+                "
+                    SELECT
+                        service__name AS service_name,
+                        resource_type__name AS resource_type_name,
+                        verb__name AS verb_name,
+                        event_type__name AS event_type_name,
+                        created_at
+                    FROM event.event_type
+                    WHERE application__id = $1
+                        AND deactivated_at IS NULL
+                        AND (created_at, event_type__name) "
+                    + $cmp
+                    + " ($2, $3)
+                    ORDER BY created_at "
+                    + $dir
+                    + ", event_type__name "
+                    + $dir
+                    + "
+                    LIMIT $4
+                ",
+                &qs.application_id,
+                resolved_cursor.date,
+                resolved_cursor.name,
+                pagination.fetch_limit(),
+            )
+        };
+    }
+
     // Backward fetches ASC (newer side of the cursor) then reverses; forward fetches DESC.
+    // Each `query_as!` invocation expands to a unique anonymous closure type, so the call to
+    // `.fetch_all` must live inside each branch (the two `Map<_>` futures are otherwise
+    // incompatible at the `if`/`else` join point).
     let mut event_types = if pagination.is_backward() {
-        query_as!(
-            EventType,
-            "
-                SELECT
-                    service__name AS service_name,
-                    resource_type__name AS resource_type_name,
-                    verb__name AS verb_name,
-                    event_type__name AS event_type_name,
-                    created_at
-                FROM event.event_type
-                WHERE application__id = $1
-                    AND deactivated_at IS NULL
-                    AND (created_at, event_type__name) > ($2, $3)
-                ORDER BY created_at ASC, event_type__name ASC
-                LIMIT $4
-            ",
-            &qs.application_id,
-            resolved_cursor.date,
-            resolved_cursor.name,
-            pagination.fetch_limit(),
-        )
-        .fetch_all(&state.db)
-        .await
-        .map_err(Hook0Problem::from)?
+        list_event_types_query!(">", "ASC")
+            .fetch_all(&state.db)
+            .await
     } else {
-        query_as!(
-            EventType,
-            "
-                SELECT
-                    service__name AS service_name,
-                    resource_type__name AS resource_type_name,
-                    verb__name AS verb_name,
-                    event_type__name AS event_type_name,
-                    created_at
-                FROM event.event_type
-                WHERE application__id = $1
-                    AND deactivated_at IS NULL
-                    AND (created_at, event_type__name) < ($2, $3)
-                ORDER BY created_at DESC, event_type__name DESC
-                LIMIT $4
-            ",
-            &qs.application_id,
-            resolved_cursor.date,
-            resolved_cursor.name,
-            pagination.fetch_limit(),
-        )
-        .fetch_all(&state.db)
-        .await
-        .map_err(Hook0Problem::from)?
-    };
+        list_event_types_query!("<", "DESC")
+            .fetch_all(&state.db)
+            .await
+    }
+    .map_err(Hook0Problem::from)?;
 
     let has_more = pagination.trim_and_orient(&mut event_types);
 

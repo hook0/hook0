@@ -258,104 +258,74 @@ pub async fn list(
         dedicated_workers: Option<Vec<String>>,
     }
 
+    // The forward and backward queries differ only in the cursor comparison operator
+    // (`<` vs `>`) and the ORDER BY direction (`DESC` vs `ASC`). Factor the SQL through a
+    // local macro so the body is written once; sqlx still type-checks each variant at
+    // compile time because each macro call expands to a `query_as!` invocation with a
+    // string literal (sqlx's `source =` parser accepts `+`-separated string literals).
+    macro_rules! list_subscriptions_query {
+        ($cmp:literal, $dir:literal) => {
+            query_as!(
+                RawSubscription,
+                r#"
+                    WITH subs AS (
+                        SELECT
+                            s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.updated_at,
+                            CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
+                                THEN array_agg(set.event_type__name)
+                                ELSE ARRAY[]::text[] END AS event_types,
+                            CASE WHEN length((array_agg(w.name))[1]) > 0
+                                THEN array_agg(w.name)
+                                ELSE ARRAY[]::text[] END AS dedicated_workers
+                        FROM webhook.subscription AS s
+                        LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
+                        LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
+                        LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
+                        WHERE s.application__id = $1
+                            AND deleted_at IS NULL
+                            AND (s.created_at, s.subscription__id) "# + $cmp + r#" ($2, $3)
+                        GROUP BY s.subscription__id
+                        ORDER BY s.created_at "# + $dir + r#", s.subscription__id "# + $dir + r#"
+                        LIMIT $4
+                    ), targets AS (
+                        SELECT target__id, jsonb_build_object(
+                            'type', replace(tableoid::regclass::text, 'webhook.target_', ''),
+                            'method', method,
+                            'url', url,
+                            'headers', headers
+                        ) AS target_json FROM webhook.target_http
+                        WHERE target__id IN (SELECT target__id FROM subs)
+                    )
+                    SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
+                    FROM subs
+                    INNER JOIN targets ON subs.target__id = targets.target__id
+                    ORDER BY subs.created_at "# + $dir + r#", subs.subscription__id "# + $dir + r#"
+                "#,
+                &qs.application_id,
+                resolved_cursor.date,
+                resolved_cursor.id,
+                pagination.fetch_limit(),
+            )
+        };
+    }
+
     // Backward fetches from the older side of the cursor and reverses; forward fetches DESC.
+    // Each `query_as!` invocation expands to a unique anonymous closure type, so the call to
+    // `.fetch_all` must live inside each branch (the two `Map<_>` futures are otherwise
+    // incompatible at the `if`/`else` join point).
     let mut raw_subscriptions = if pagination.is_backward() {
-        query_as!(
-            RawSubscription,
-            r#"
-                WITH subs AS (
-                    SELECT
-                        s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.updated_at,
-                        CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
-                            THEN array_agg(set.event_type__name)
-                            ELSE ARRAY[]::text[] END AS event_types,
-                        CASE WHEN length((array_agg(w.name))[1]) > 0
-                            THEN array_agg(w.name)
-                            ELSE ARRAY[]::text[] END AS dedicated_workers
-                    FROM webhook.subscription AS s
-                    LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
-                    LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
-                    LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
-                    WHERE s.application__id = $1
-                        AND deleted_at IS NULL
-                        AND (s.created_at, s.subscription__id) > ($2, $3)
-                    GROUP BY s.subscription__id
-                    ORDER BY s.created_at ASC, s.subscription__id ASC
-                    LIMIT $4
-                ), targets AS (
-                    SELECT target__id, jsonb_build_object(
-                        'type', replace(tableoid::regclass::text, 'webhook.target_', ''),
-                        'method', method,
-                        'url', url,
-                        'headers', headers
-                    ) AS target_json FROM webhook.target_http
-                    WHERE target__id IN (SELECT target__id FROM subs)
-                )
-                SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
-                FROM subs
-                INNER JOIN targets ON subs.target__id = targets.target__id
-                ORDER BY subs.created_at ASC, subs.subscription__id ASC
-            "#,
-            &qs.application_id,
-            resolved_cursor.date,
-            resolved_cursor.id,
-            pagination.fetch_limit(),
-        )
-        .fetch_all(&state.db)
-        .await
-        .map_err(|e| {
-            error!("{e}");
-            Hook0Problem::InternalServerError
-        })?
+        list_subscriptions_query!(">", "ASC")
+            .fetch_all(&state.db)
+            .await
     } else {
-        query_as!(
-            RawSubscription,
-            r#"
-                WITH subs AS (
-                    SELECT
-                        s.subscription__id, s.is_enabled, s.description, s.secret, s.metadata, s.labels, s.target__id, s.created_at, s.updated_at,
-                        CASE WHEN length((array_agg(set.event_type__name))[1]) > 0
-                            THEN array_agg(set.event_type__name)
-                            ELSE ARRAY[]::text[] END AS event_types,
-                        CASE WHEN length((array_agg(w.name))[1]) > 0
-                            THEN array_agg(w.name)
-                            ELSE ARRAY[]::text[] END AS dedicated_workers
-                    FROM webhook.subscription AS s
-                    LEFT JOIN webhook.subscription__event_type AS set ON set.subscription__id = s.subscription__id
-                    LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = s.subscription__id
-                    LEFT JOIN infrastructure.worker AS w ON w.worker__id = sw.worker__id
-                    WHERE s.application__id = $1
-                        AND deleted_at IS NULL
-                        AND (s.created_at, s.subscription__id) < ($2, $3)
-                    GROUP BY s.subscription__id
-                    ORDER BY s.created_at DESC, s.subscription__id DESC
-                    LIMIT $4
-                ), targets AS (
-                    SELECT target__id, jsonb_build_object(
-                        'type', replace(tableoid::regclass::text, 'webhook.target_', ''),
-                        'method', method,
-                        'url', url,
-                        'headers', headers
-                    ) AS target_json FROM webhook.target_http
-                    WHERE target__id IN (SELECT target__id FROM subs)
-                )
-                SELECT subs.subscription__id AS "subscription__id!", subs.is_enabled AS "is_enabled!", subs.description, subs.secret AS "secret!", subs.metadata AS "metadata!", subs.labels AS "labels!", subs.created_at AS "created_at!", subs.updated_at AS "updated_at!", subs.event_types, targets.target_json, subs.dedicated_workers
-                FROM subs
-                INNER JOIN targets ON subs.target__id = targets.target__id
-                ORDER BY subs.created_at DESC, subs.subscription__id DESC
-            "#,
-            &qs.application_id,
-            resolved_cursor.date,
-            resolved_cursor.id,
-            pagination.fetch_limit(),
-        )
-        .fetch_all(&state.db)
-        .await
-        .map_err(|e| {
-            error!("{e}");
-            Hook0Problem::InternalServerError
-        })?
-    };
+        list_subscriptions_query!("<", "DESC")
+            .fetch_all(&state.db)
+            .await
+    }
+    .map_err(|e| {
+        error!("{e}");
+        Hook0Problem::InternalServerError
+    })?;
 
     let has_more = pagination.trim_and_orient(&mut raw_subscriptions);
 

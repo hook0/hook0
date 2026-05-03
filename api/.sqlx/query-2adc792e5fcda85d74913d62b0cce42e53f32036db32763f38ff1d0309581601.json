@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT\n                    service__name AS service_name,\n                    resource_type__name AS resource_type_name,\n                    verb__name AS verb_name,\n                    event_type__name AS event_type_name,\n                    created_at\n                FROM event.event_type\n                WHERE application__id = $1\n                    AND deactivated_at IS NULL\n                    AND (created_at, event_type__name) > ($2, $3)\n                ORDER BY created_at ASC, event_type__name ASC\n                LIMIT $4\n            ",
+  "query": "\n                    SELECT\n                        service__name AS service_name,\n                        resource_type__name AS resource_type_name,\n                        verb__name AS verb_name,\n                        event_type__name AS event_type_name,\n                        created_at\n                    FROM event.event_type\n                    WHERE application__id = $1\n                        AND deactivated_at IS NULL\n                        AND (created_at, event_type__name) > ($2, $3)\n                    ORDER BY created_at ASC, event_type__name ASC\n                    LIMIT $4\n                ",
   "describe": {
     "columns": [
       {
@@ -45,5 +45,5 @@
       false
     ]
   },
-  "hash": "e610f418c66e2edc16a6dc21eda1cb1034ee9e537866e44225899c4284bc6503"
+  "hash": "2adc792e5fcda85d74913d62b0cce42e53f32036db32763f38ff1d0309581601"
 }
