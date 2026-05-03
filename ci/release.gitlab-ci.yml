@@ -143,6 +143,18 @@ release.build-frontend:
   image: node:$NODE_VERSION
   needs:
     - job: release.verify-versions
+  variables:
+    GIT_LFS_SKIP_SMUDGE: "0"
+  before_script:
+    # The base node:*-trixie image ships without git-lfs, so the runner clones
+    # LFS pointers as 130-byte text files. Without resolution, Vite copies the
+    # pointers into dist/ and production serves broken assets (favicon, email
+    # logo, fonts, illustrations). Install git-lfs and materialize objects.
+    - apt-get update && apt-get install -y --no-install-recommends git-lfs
+    - git lfs install --local
+    - git lfs pull
+    # Fail fast if LFS objects are still pointers (e.g. credentials missing).
+    - test "$(wc -c < frontend/public/256x256.png)" -gt 1000 || { echo "ERROR: frontend/public/256x256.png is still an LFS pointer"; exit 1; }
   script:
     - cd frontend
     - npm ci
