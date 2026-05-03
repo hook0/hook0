@@ -143,6 +143,20 @@ release.build-frontend:
   image: node:$NODE_VERSION
   needs:
     - job: release.verify-versions
+  variables:
+    # Skip the runner's automatic LFS smudge during get_sources: it would try to
+    # invoke git-lfs in the job container (node:*-trixie) which doesn't ship it,
+    # and silently fails — leaving 130-byte pointer files. Install git-lfs and
+    # pull explicitly in before_script instead. Same pattern as .release-trigger.
+    GIT_LFS_SKIP_SMUDGE: "1"
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends git-lfs
+    - git lfs install --local
+    # Scope the pull to frontend assets — the repo also LFS-tracks mediakit,
+    # docs and CLI binaries that this job has no use for.
+    - git lfs pull --include="frontend/**"
+    # Fail fast if any representative LFS asset is still a pointer.
+    - for f in frontend/public/256x256.png frontend/public/favicon.ico frontend/public/fonts/Inter-Regular.woff2; do test "$(wc -c < $f)" -gt 1000 || { echo "ERROR: $f is still an LFS pointer"; exit 1; }; done
   script:
     - cd frontend
     - npm ci
