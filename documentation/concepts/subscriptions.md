@@ -1,6 +1,6 @@
 ---
 title: Subscriptions
-description: Webhook subscriptions in Hook0 — how to configure delivery endpoints, filter by event types and labels, and list subscriptions via the cursor-paginated API.
+description: Webhook subscriptions in Hook0
 keywords:
   - subscriptions
   - webhook subscriptions

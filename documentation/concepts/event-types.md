@@ -1,6 +1,6 @@
 ---
 title: Event Types
-description: Categories for webhook events in Hook0. Naming conventions, payload contracts, subscription filtering, and how to list event types via the cursor-paginated API.
+description: Categories for webhook events in Hook0
 keywords:
   - event types
   - webhook event types
