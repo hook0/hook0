@@ -548,12 +548,13 @@ struct Config {
 
     /// [Google Ads] Developer token (enables server-side conversion upload).
     /// All Google Ads fields must be provided together; if any is missing,
-    /// the conversion upload is silently disabled.
-    #[clap(long, env, group = "google_ads")]
+    /// the conversion upload is silently disabled (build_google_ads_client
+    /// emits a warn log when partially configured).
+    #[clap(long, env)]
     google_ads_developer_token: Option<String>,
 
     /// [Google Ads] Customer ID (e.g. 629-941-8464)
-    #[clap(long, env, group = "google_ads")]
+    #[clap(long, env)]
     google_ads_customer_id: Option<String>,
 
     /// [Google Ads] MCC login customer ID (optional)
@@ -561,19 +562,19 @@ struct Config {
     google_ads_login_customer_id: Option<String>,
 
     /// [Google Ads] Numeric ID of the signup conversion action (e.g. 7576442588)
-    #[clap(long, env, group = "google_ads")]
+    #[clap(long, env)]
     google_ads_conversion_action_id: Option<String>,
 
     /// [Google Ads] OAuth client ID (Desktop App credentials)
-    #[clap(long, env, group = "google_ads")]
+    #[clap(long, env)]
     google_ads_oauth_client_id: Option<String>,
 
     /// [Google Ads] OAuth client secret
-    #[clap(long, env, group = "google_ads")]
+    #[clap(long, env)]
     google_ads_oauth_client_secret: Option<String>,
 
     /// [Google Ads] OAuth refresh token
-    #[clap(long, env, group = "google_ads")]
+    #[clap(long, env)]
     google_ads_oauth_refresh_token: Option<String>,
 }
 
