@@ -584,8 +584,41 @@ fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
 
 /// Build the optional Google Ads client from the CLI config. Returns `None`
 /// if any of the required fields is missing (server-side conversion upload
-/// is then silently disabled).
+/// is then silently disabled). When the config is partially set, logs a
+/// warning listing the missing fields — useful for self-hosters who started
+/// configuring but forgot one variable, while staying non-fatal so an empty
+/// config (the typical self-hosting case) is silent.
 fn build_google_ads_client(config: &Config) -> Option<Arc<google_ads::GoogleAdsClient>> {
+    let mut missing: Vec<&'static str> = Vec::new();
+    if config.google_ads_developer_token.is_none() {
+        missing.push("GOOGLE_ADS_DEVELOPER_TOKEN");
+    }
+    if config.google_ads_customer_id.is_none() {
+        missing.push("GOOGLE_ADS_CUSTOMER_ID");
+    }
+    if config.google_ads_conversion_action_id.is_none() {
+        missing.push("GOOGLE_ADS_CONVERSION_ACTION_ID");
+    }
+    if config.google_ads_oauth_client_id.is_none() {
+        missing.push("GOOGLE_ADS_OAUTH_CLIENT_ID");
+    }
+    if config.google_ads_oauth_client_secret.is_none() {
+        missing.push("GOOGLE_ADS_OAUTH_CLIENT_SECRET");
+    }
+    if config.google_ads_oauth_refresh_token.is_none() {
+        missing.push("GOOGLE_ADS_OAUTH_REFRESH_TOKEN");
+    }
+    let total = 6;
+    if !missing.is_empty() && missing.len() < total {
+        tracing::warn!(
+            "Google Ads conversion upload is partially configured ({}/{} required env vars set): missing {:?}. \
+            Server-side conversion tracking disabled until all variables are set. \
+            Self-hosters: leave all GOOGLE_ADS_* unset to silence this warning.",
+            total - missing.len(),
+            total,
+            missing
+        );
+    }
     let developer_token = config.google_ads_developer_token.clone()?;
     let customer_id = config.google_ads_customer_id.clone()?;
     let conversion_action_id = config.google_ads_conversion_action_id.clone()?;
