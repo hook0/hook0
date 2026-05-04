@@ -209,6 +209,11 @@ const onSubmit = handleSubmit((values) => {
           >
             {{ isLoading ? t('auth.register.submitting') : t('auth.register.submit') }}
           </Hook0Button>
+
+          <p v-if="gclid" class="register-gclid-notice" data-test="register-gclid-notice">
+            {{ t('auth.register.gclidNotice') }}
+            <a href="https://www.hook0.com/privacy-policy#server-side-tracking" target="_blank" rel="noopener noreferrer">{{ t('auth.register.gclidLearnMore') }}</a>
+          </p>
         </Hook0Form>
       </Hook0CardContent>
 
@@ -343,5 +348,22 @@ const onSubmit = handleSubmit((values) => {
 
 .register-captcha {
   margin-top: 0.5rem;
+}
+
+.register-gclid-notice {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.register-gclid-notice a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.register-gclid-notice a:hover {
+  color: var(--color-primary-hover);
 }
 </style>

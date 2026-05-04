@@ -85,7 +85,7 @@
             <svg class="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
-            Last updated: April 24, 2026
+            Last updated: May 4, 2026
         </div>
     </div>
 </section>
@@ -153,9 +153,9 @@
                             <td>Art. 6(1)(a) — Consent (cookie banner)</td>
                         </tr>
                         <tr>
-                            <td><strong class="text-white">Conversion tracking</strong><br><span class="text-gray-400 text-sm">Google Ads conversion measurement</span></td>
-                            <td>Pseudonymous click and conversion identifiers</td>
-                            <td>Art. 6(1)(a) — Consent (cookie banner)</td>
+                            <td><strong class="text-white">Conversion tracking (server-side)</strong><br><span class="text-gray-400 text-sm">Google Ads conversion measurement, server-side via the click identifier (gclid) only — no email, no IP, no User-Agent transmitted to Google. Right to object at <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span></td>
+                            <td>Click identifier (gclid) — pseudonymous identifier issued by Google during the ad click</td>
+                            <td>Art. 6(1)(f) — Legitimate interests (measuring advertising ROI)<br><span class="text-gray-400 text-sm">Right to object: Art. 21(2) GDPR</span></td>
                         </tr>
                         <tr>
                             <td><strong class="text-white">Customer support — live chat</strong><br><span class="text-gray-400 text-sm">Crisp widget (loaded only after consent)</span></td>
@@ -308,6 +308,26 @@
                 </table>
             </div>
 
+            <h3 class="text-lg font-semibold text-white mt-6 mb-3">Marketing measurement (legitimate interest, server-side)</h3>
+            <div class="overflow-x-auto">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>Subprocessor</th>
+                            <th>Country</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Google LLC (Google Ads)</td>
+                            <td>USA</td>
+                            <td>Server-side conversion measurement (gclid only). See Section 9b.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
             <h3 class="text-lg font-semibold text-white mt-6 mb-3">Analytics (consent-gated)</h3>
             <div class="overflow-x-auto">
                 <table class="policy-table">
@@ -323,11 +343,6 @@
                             <td>Matomo (self-hosted on matomo.hook0.com)</td>
                             <td>France (EU)</td>
                             <td>Website analytics</td>
-                        </tr>
-                        <tr>
-                            <td>Google Ads</td>
-                            <td>USA</td>
-                            <td>Conversion tracking</td>
                         </tr>
                     </tbody>
                 </table>
@@ -468,10 +483,6 @@
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
-                    <span><strong class="text-white">Google Ads</strong> — conversion tracking (Google tag)</span>
-                </li>
-                <li class="flex items-start gap-3">
-                    <%- include('./includes/_checkmark-icon.ejs') %>
                     <span><strong class="text-white">Crisp</strong> — live chat widget</span>
                 </li>
             </ul>
@@ -487,6 +498,43 @@
             <div id="matomo-opt-out" class="p-4 rounded-lg bg-surface-secondary mt-4"></div>
             <script src="<%= process.env.MATOMO_URL %>/index.php?module=CoreAdminHome&action=optOutJS&divId=matomo-opt-out&language=auto&showIntro=1"></script>
             <% } %>
+        </div>
+
+        <!-- 9b. Server-side Conversion Measurement -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="server-side-tracking">
+            <h2 class="text-2xl font-bold text-white mb-4">9b. Server-Side Conversion Measurement (Google Ads)</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                When you reach our service by clicking on a Google Ads advertisement, Google Ads automatically appends a click identifier ("gclid") to the destination URL. This gclid is forwarded to our backend during your account creation and uploaded server-side to Google Ads to measure the effectiveness of our advertising campaigns.
+            </p>
+            <ul class="space-y-2 text-gray-300 mb-4">
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Purpose</strong>: measure cost-per-acquisition of our paid campaigns to allocate marketing budget.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Legal basis</strong>: Art. 6(1)(f) GDPR — legitimate interests. Documented balance test available on request.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Data transmitted to Google</strong>: gclid, conversion type, conversion date/time. <strong>No email, IP address, or User-Agent</strong> is transmitted to Google in this context.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Joint Controller</strong>: Google LLC, under the Customer Data Processing Terms (Art. 26 GDPR). Transfer to the USA is governed by Standard Contractual Clauses (Decision 2021/914).</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Retention</strong>: the gclid is processed in memory during the registration HTTP request and is not persisted in our databases after transmission to Google Ads.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Right to object</strong> (Art. 21(2) GDPR): you may object to this processing at any time by emailing <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. We will mark your account so the gclid is not transmitted to Google Ads. Your registration is not affected.</span>
+                </li>
+            </ul>
+            <p class="text-gray-400 text-sm">
+                Note: this server-side measurement does <strong>not</strong> rely on cookies, gtag.js, or any client-side tracker. Article 82 of the French Data Protection Act (transposing Article 5(3) of the e-Privacy Directive) does not apply to this processing.
+            </p>
         </div>
 
         <!-- 10. Security -->
@@ -568,9 +616,9 @@
                             <td>Art. 6(1)(a) — Consentement (bandeau cookies)</td>
                         </tr>
                         <tr>
-                            <td><strong class="text-white">Suivi des conversions publicitaires</strong><br><span class="text-gray-400 text-sm">Mesure des conversions Google Ads</span></td>
-                            <td>Identifiants de clics et de conversions pseudonymisés</td>
-                            <td>Art. 6(1)(a) — Consentement (bandeau cookies)</td>
+                            <td><strong class="text-white">Suivi des conversions publicitaires (server-side)</strong><br><span class="text-gray-400 text-sm">Mesure des conversions Google Ads, exclusivement côté serveur via l'identifiant de clic (gclid) — aucun e-mail, aucune adresse IP, aucun User-Agent n'est transmis à Google. Droit d'opposition à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span></td>
+                            <td>Identifiant de clic (gclid) — identifiant pseudonyme généré par Google lors du clic publicitaire</td>
+                            <td>Art. 6(1)(f) — Intérêt légitime (mesure de la performance publicitaire)<br><span class="text-gray-400 text-sm">Droit d'opposition : art. 21(2) RGPD</span></td>
                         </tr>
                         <tr>
                             <td><strong class="text-white">Support client — chat en direct</strong><br><span class="text-gray-400 text-sm">Widget Crisp (chargé uniquement après consentement)</span></td>
@@ -723,6 +771,26 @@
                 </table>
             </div>
 
+            <h3 class="text-lg font-semibold text-white mt-6 mb-3">Mesure marketing (intérêt légitime, server-side)</h3>
+            <div class="overflow-x-auto">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>Sous-traitant</th>
+                            <th>Pays</th>
+                            <th>Finalité</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Google LLC (Google Ads)</td>
+                            <td>États-Unis</td>
+                            <td>Mesure de conversion côté serveur (gclid uniquement). Voir section 9b.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
             <h3 class="text-lg font-semibold text-white mt-6 mb-3">Analytique (conditionné au consentement)</h3>
             <div class="overflow-x-auto">
                 <table class="policy-table">
@@ -738,11 +806,6 @@
                             <td>Matomo (auto-hébergé sur matomo.hook0.com)</td>
                             <td>France (UE)</td>
                             <td>Analytique du site web</td>
-                        </tr>
-                        <tr>
-                            <td>Google Ads</td>
-                            <td>États-Unis</td>
-                            <td>Suivi des conversions publicitaires</td>
                         </tr>
                     </tbody>
                 </table>
@@ -883,10 +946,6 @@
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
-                    <span><strong class="text-white">Google Ads</strong> — suivi des conversions publicitaires (balise Google)</span>
-                </li>
-                <li class="flex items-start gap-3">
-                    <%- include('./includes/_checkmark-icon.ejs') %>
                     <span><strong class="text-white">Crisp</strong> — widget de chat en direct</span>
                 </li>
             </ul>
@@ -898,6 +957,43 @@
                     Modifier les paramètres de cookies
                 </button>
             </div>
+        </div>
+
+        <!-- FR 9b. Mesure de conversion server-side -->
+        <div class="card card--glow mb-8 animate-on-scroll section-anchor" id="fr-server-side-tracking">
+            <h2 class="text-2xl font-bold text-white mb-4">9b. Mesure des conversions publicitaires (Google Ads, server-side)</h2>
+            <p class="text-gray-300 leading-relaxed mb-4">
+                Lorsque vous accédez à notre service en cliquant sur une annonce Google Ads, Google Ads ajoute automatiquement un identifiant de clic publicitaire (« gclid ») à l'URL de destination. Ce gclid est transmis à notre backend lors de la création de votre compte et envoyé côté serveur à Google Ads pour mesurer l'efficacité de nos campagnes publicitaires.
+            </p>
+            <ul class="space-y-2 text-gray-300 mb-4">
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Finalité</strong> : mesurer le coût par acquisition de nos campagnes payantes afin d'allouer notre budget marketing.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Base légale</strong> : art. 6(1)(f) RGPD — intérêt légitime. Test de proportionnalité documenté disponible sur demande.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Données transmises à Google</strong> : gclid, type de conversion, date/heure de conversion. <strong>Aucun e-mail, aucune adresse IP, aucun User-Agent</strong> n'est transmis à Google dans ce cadre.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Co-responsable de traitement</strong> : Google LLC, dans le cadre des Customer Data Processing Terms (art. 26 RGPD). Le transfert vers les États-Unis est encadré par les clauses contractuelles types (décision 2021/914).</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Conservation</strong> : le gclid est traité en mémoire vive lors de la requête HTTP d'inscription et n'est pas conservé dans nos bases de données après transmission à Google Ads.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Droit d'opposition</strong> (art. 21(2) RGPD) : vous pouvez vous opposer à ce traitement à tout moment en écrivant à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. Nous noterons cette opposition sur votre compte afin que votre gclid ne soit pas transmis à Google Ads. Votre inscription n'en est pas affectée.</span>
+                </li>
+            </ul>
+            <p class="text-gray-400 text-sm">
+                Note : cette mesure côté serveur ne repose <strong>pas</strong> sur des cookies, gtag.js, ni aucun traceur côté client. L'article 82 de la loi Informatique et Libertés (transposition de l'article 5(3) de la Directive e-Privacy) ne s'applique pas à ce traitement.
+            </p>
         </div>
 
         <!-- FR 10. Sécurité -->

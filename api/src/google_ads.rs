@@ -19,7 +19,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use thiserror::Error;
 use tokio::sync::Mutex;
-use tracing::{debug, info, warn};
+use tracing::{debug, error, info, warn};
 
 const GOOGLE_OAUTH_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const GOOGLE_ADS_BASE_URL: &str = "https://googleads.googleapis.com/v23";
@@ -246,24 +246,108 @@ impl GoogleAdsClient {
     }
 }
 
+/// Returns true if the error is worth retrying. 4xx (except 429) are treated
+/// as permanent (bad request, unauthorized, forbidden) — retrying won't help.
+/// 429 (rate limit), 5xx and transport errors are retryable.
+fn is_retryable(err: &GoogleAdsError) -> bool {
+    match err {
+        GoogleAdsError::Api { status, .. } => *status >= 500 || *status == 429,
+        GoogleAdsError::OAuth { status, .. } => *status >= 500 || *status == 429,
+        GoogleAdsError::Http(_) => true,
+        GoogleAdsError::Header(_) => false,
+    }
+}
+
+/// Delays inserted between attempts. Total: 4 attempts, 3 inter-attempt
+/// delays of 30s, 2min, 10min.
+const RETRY_DELAYS: [Duration; 3] = [
+    Duration::from_secs(30),
+    Duration::from_secs(120),
+    Duration::from_secs(600),
+];
+
 /// Spawn a fire-and-forget task that uploads the conversion. Errors are
-/// logged but never propagated. Returns immediately.
+/// logged (and reported to Sentry on final failure) but never propagated.
+/// Returns immediately. Retries up to 3 times with exponential backoff
+/// (30s / 2min / 10min) on retryable errors (5xx, 429, network).
 pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String) {
     tokio::spawn(async move {
         let started = Instant::now();
-        match client.upload_click_conversion(&gclid, Utc::now()).await {
-            Ok(()) => info!(
-                target: "api::google_ads",
-                gclid_prefix = %gclid.chars().take(8).collect::<String>(),
-                duration_ms = started.elapsed().as_millis() as u64,
-                "click conversion uploaded"
-            ),
-            Err(e) => warn!(
-                target: "api::google_ads",
-                gclid_prefix = %gclid.chars().take(8).collect::<String>(),
-                error = %e,
-                "click conversion upload failed"
-            ),
+        let gclid_prefix: String = gclid.chars().take(8).collect();
+        let max_attempts = RETRY_DELAYS.len() + 1;
+
+        for attempt in 1..=max_attempts {
+            match client.upload_click_conversion(&gclid, Utc::now()).await {
+                Ok(()) => {
+                    debug!(
+                        target: "api::google_ads",
+                        gclid = %gclid,
+                        attempt = attempt,
+                        "click conversion uploaded (full gclid)"
+                    );
+                    info!(
+                        target: "api::google_ads",
+                        gclid_prefix = %gclid_prefix,
+                        attempt = attempt,
+                        duration_ms = started.elapsed().as_millis() as u64,
+                        "click conversion uploaded"
+                    );
+                    return;
+                }
+                Err(e) => {
+                    if !is_retryable(&e) {
+                        // error! emits a Sentry event via sentry-tracing
+                        // layer (configured by hook0-sentry-integration).
+                        // Non-retryable errors usually indicate a config
+                        // issue (4xx) that needs manual review.
+                        error!(
+                            target: "api::google_ads",
+                            gclid_prefix = %gclid_prefix,
+                            attempt = attempt,
+                            error = %e,
+                            "click conversion upload failed (non-retryable)"
+                        );
+                        debug!(
+                            target: "api::google_ads",
+                            gclid = %gclid,
+                            error = %e,
+                            "click conversion upload failed (full gclid)"
+                        );
+                        return;
+                    }
+
+                    if attempt == max_attempts {
+                        // error! emits a Sentry event via sentry-tracing
+                        // layer. A lost conversion after exhausted retries
+                        // is operationally significant.
+                        error!(
+                            target: "api::google_ads",
+                            gclid_prefix = %gclid_prefix,
+                            attempts = attempt,
+                            error = %e,
+                            "click conversion upload abandoned after retries"
+                        );
+                        debug!(
+                            target: "api::google_ads",
+                            gclid = %gclid,
+                            error = %e,
+                            "click conversion upload abandoned (full gclid)"
+                        );
+                        return;
+                    }
+
+                    let delay = RETRY_DELAYS[attempt - 1];
+                    warn!(
+                        target: "api::google_ads",
+                        gclid_prefix = %gclid_prefix,
+                        attempt = attempt,
+                        next_retry_in_ms = delay.as_millis() as u64,
+                        error = %e,
+                        "click conversion upload failed, will retry"
+                    );
+                    tokio::time::sleep(delay).await;
+                }
+            }
         }
     });
 }
@@ -292,5 +376,59 @@ mod tests {
             cfg.conversion_action_resource(),
             "customers/1234567890/conversionActions/42"
         );
+    }
+
+    #[test]
+    fn is_retryable_classifies_errors_correctly() {
+        // 5xx and 429 from the Ads API are retryable
+        assert!(is_retryable(&GoogleAdsError::Api {
+            status: 500,
+            body: "".into()
+        }));
+        assert!(is_retryable(&GoogleAdsError::Api {
+            status: 503,
+            body: "".into()
+        }));
+        assert!(is_retryable(&GoogleAdsError::Api {
+            status: 429,
+            body: "".into()
+        }));
+
+        // 4xx (other than 429) are permanent — bad request, auth, forbidden
+        assert!(!is_retryable(&GoogleAdsError::Api {
+            status: 400,
+            body: "".into()
+        }));
+        assert!(!is_retryable(&GoogleAdsError::Api {
+            status: 401,
+            body: "".into()
+        }));
+        assert!(!is_retryable(&GoogleAdsError::Api {
+            status: 403,
+            body: "".into()
+        }));
+
+        // OAuth refresh: same logic — 5xx/429 retryable, 4xx permanent
+        assert!(is_retryable(&GoogleAdsError::OAuth {
+            status: 503,
+            body: "".into()
+        }));
+        assert!(is_retryable(&GoogleAdsError::OAuth {
+            status: 429,
+            body: "".into()
+        }));
+        assert!(!is_retryable(&GoogleAdsError::OAuth {
+            status: 401,
+            body: "".into()
+        }));
+        assert!(!is_retryable(&GoogleAdsError::OAuth {
+            status: 400,
+            body: "".into()
+        }));
+
+        // Header errors are programming bugs, never retryable. Note: we cannot
+        // construct an InvalidHeaderValue easily from a unit test (no public
+        // constructor), and reqwest::Error has no public constructor either,
+        // so transport-level variants are intentionally not asserted here.
     }
 }
