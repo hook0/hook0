@@ -1,13 +1,13 @@
 # Registre des activités de traitement — Art. 30 RGPD
 
-**Document interne — FGRibreau SARL**
-Ce document est établi conformément à l'article 30 du Règlement (UE) 2016/679 (RGPD). Il n'est pas destiné à publication. Il est tenu à disposition de la Commission Nationale de l'Informatique et des Libertés (CNIL) sur demande, conformément à l'article 30.4 du RGPD.
+**Document public — FGRibreau SARL**
+Ce document est établi conformément à l'article 30 du Règlement (UE) 2016/679 (RGPD). Ce registre est publié dans le dépôt open-source Hook0 (`https://gitlab.com/hook0/hook0/`) par souci de transparence vis-à-vis des utilisateurs et de la communauté. Sa publication ne dispense pas FGRibreau SARL de le tenir à jour conformément à l'art. 30 RGPD ni de le présenter à la CNIL en cas de contrôle.
 
 ---
 
 | Métadonnée | Valeur |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date d'établissement** | 4 mai 2026 |
 | **Prochain réexamen** | 4 mai 2027 |
 | **Responsable de la tenue** | Direction FGRibreau SARL |
@@ -29,6 +29,8 @@ Ce document est établi conformément à l'article 30 du Règlement (UE) 2016/67
 8. [Mesure des conversions publicitaires Google Ads (server-side)](#traitement-8)
 9. [Communications commerciales (newsletters et release notes)](#traitement-9)
 10. [Journaux HTTP — tracking par requête utilisateur](#traitement-10)
+11. [Outil gratuit play.hook0.com — webhook playground](#traitement-11)
+12. [Feedback produit in-app via Formbricks](#traitement-12)
 
 **Annexes**
 
@@ -157,17 +159,18 @@ Concernant les données personnelles éventuellement présentes dans les payload
 
 **Sous-traitants :**
 - **Clever Cloud SAS** (France) — workers de livraison et base de données des événements et logs.
-- **Scaleway SAS** (France) — workers dédiés privés pour les offres sélectionnées.
+- **Scaleway SAS** (France) — workers dédiés privés pour les offres sélectionnées ; Scaleway Object Storage S3-compatible pour le stockage des payloads webhook volumineux (offload depuis PostgreSQL).
 
 ### 7. Transferts hors UE
 
-Aucun. Les workers et la base de données sont hébergés en France (Clever Cloud, Paris ; Scaleway, Paris).
+Aucun. Les workers et la base de données sont hébergés en France (Clever Cloud, Paris ; Scaleway, Paris). Le stockage objet Scaleway est configuré par l'env var `OBJECT_STORAGE_HOST` — en production : datacenter Scaleway Paris (fr-par). Les self-hosters peuvent substituer tout provider S3-compatible de leur choix ; dans ce cas, les garanties de transfert hors UE relèvent de leur responsabilité.
 
 ### 8. Durée de conservation
 
 | Données | Durée | Justification |
 |---|---|---|
-| Payloads et logs de livraison | 7 à 30 jours selon le plan d'abonnement souscrit | Nécessité du service (consultation des logs par le client) ; configurable par plan |
+| Payloads et logs de livraison (PostgreSQL) | 7 à 30 jours selon le plan d'abonnement souscrit | Nécessité du service (consultation des logs par le client) ; configurable par plan |
+| Payloads volumineux (Scaleway Object Storage) | 7 à 30 jours selon le plan ; cleanup automatique via job périodique | Cohérent avec la rétention PostgreSQL ; suppression automatique des objets orphelins |
 | Métadonnées de configuration (URLs, headers) | Durée du contrat | Nécessité contractuelle |
 
 ### 9. Mesures de sécurité (description générale)
@@ -422,13 +425,14 @@ Utilisateurs professionnels de Hook0 (lors de l'utilisation de l'API ou de l'int
 - **Sentry, Inc.** (USA) — agrégation et alerting des erreurs applicatives.
 - **BetterStack (BetterUptime)** (République tchèque, UE) — monitoring de disponibilité et page de statut publique.
 - **Cloudflare, Inc.** (USA) — proxy réseau, protection DDoS, résolution DNS.
+- **Cloudflare, Inc. — Turnstile** (USA) — CAPTCHA anti-bot invisible, vérifié à l'inscription sur app.hook0.com/register. Les données traitées lors de la vérification Turnstile incluent l'adresse IP, le User-Agent et des métadonnées comportementales du navigateur (évaluation bot/humain). Cloudflare agit à la fois comme sous-traitant de FGRibreau SARL et, pour ses propres finalités de sécurité anti-fraude globale, comme responsable autonome.
 
 ### 7. Transferts hors UE
 
 **Oui — vers les États-Unis (Sentry, Inc. et Cloudflare, Inc.).**
 
 - **Sentry** : Clauses Contractuelles Types (CCT), Décision 2021/914. Lien DPA : https://sentry.io/legal/dpa/
-- **Cloudflare** : Clauses Contractuelles Types (CCT), Décision 2021/914. Lien DPA : https://www.cloudflare.com/cloudflare-customer-dpa/
+- **Cloudflare (proxy DDoS/DNS et Turnstile)** : Clauses Contractuelles Types (CCT), Décision 2021/914. Le DPA Cloudflare couvre l'ensemble des services Cloudflare contractualisés. À vérifier : confirmer que le DPA Cloudflare existant de FGRibreau SARL liste explicitement Turnstile ou couvre les services anti-bot. Lien DPA : https://www.cloudflare.com/cloudflare-customer-dpa/
 
 BetterStack est établi dans l'UE (République tchèque) : aucun transfert hors UE.
 
@@ -707,12 +711,149 @@ Collectées automatiquement par les serveurs Hook0 et l'infrastructure Cloudflar
 
 ---
 
+## Traitement n°11 — Outil gratuit play.hook0.com — webhook playground {#traitement-11}
+
+### 1. Identité du responsable de traitement
+
+**FGRibreau SARL** — cf. traitement n°1.
+
+Nota bene : pour les payloads que les utilisateurs de play.hook0.com envoient vers leurs endpoints de test, FGRibreau SARL agit en qualité de **sous-traitant au sens de l'art. 28 RGPD** si ces payloads contiennent des données personnelles appartenant à des tiers. L'utilisateur de l'outil reste responsable de ne pas y transmettre des données personnelles réelles de ses propres utilisateurs sans encadrement contractuel adéquat.
+
+### 2. Finalité(s) du traitement
+
+**Finalité principale :** Permettre à tout développeur de tester des webhooks entrants gratuitement et sans authentification, via un endpoint temporaire généré aléatoirement sur play.hook0.com.
+
+**Finalités secondaires :**
+- Faire connaître la plateforme Hook0 et ses capacités (outil de découverte/marketing).
+- Permettre le débogage de l'intégration webhook d'un système tiers sans nécessiter un compte payant.
+
+### 3. Base légale (art. 6 RGPD)
+
+**Art. 6.1.f — Intérêt légitime :** la mise à disposition d'un outil gratuit de test webhook constitue un intérêt légitime de FGRibreau SARL (acquisition et fidélisation de développeurs). La balance d'intérêts est favorable : les données collectées sont minimales, éphémères et ne concernent que les métadonnées techniques de requêtes HTTP envoyées volontairement par l'utilisateur.
+
+### 4. Catégories de personnes concernées
+
+- Développeurs et techniciens utilisant l'outil de test (usage anonyme, pas d'inscription requise).
+- Tiers dont les données personnelles pourraient figurer dans les payloads de test envoyés par les utilisateurs (responsabilité de l'utilisateur).
+
+### 5. Catégories de données personnelles
+
+**Données collectées par FGRibreau SARL en tant que responsable de traitement :**
+- Adresse IP de l'utilisateur (logs HTTP standards).
+- URL d'endpoint temporaire (pseudo-aléatoire, générée par le service).
+- Headers HTTP des requêtes entrantes envoyées à l'endpoint de test.
+- Horodatages des requêtes.
+
+**Données en tant que sous-traitant potentiel (contenu des payloads) :**
+- Nature variable, déterminée exclusivement par l'utilisateur. Peut contenir des données personnelles si l'utilisateur teste avec des données réelles.
+- Hook0 ne lit pas, n'analyse pas et ne modifie pas le contenu des payloads.
+
+### 6. Catégories de destinataires
+
+**Interne :** équipe technique FGRibreau SARL (accès restreint aux logs d'infrastructure).
+
+**Sous-traitants :**
+- **France-Nuage** (France) — hébergement Kubernetes de l'application play.hook0.com (namespace `hosted-hook0-play-server-prod`). À vérifier : confirmer la signature d'un DPA avec France-Nuage.
+- **Redis in-cluster** — stockage éphémère des payloads reçus (TTL court, géré par France-Nuage dans le cluster Kubernetes).
+
+### 7. Transferts hors UE
+
+Aucun. France-Nuage est un hébergeur français, datacenter en France (UE).
+
+### 8. Durée de conservation
+
+| Données | Durée | Justification |
+|---|---|---|
+| Payloads reçus sur l'endpoint de test | Quelques heures (TTL Redis configurable) | Minimisation — l'outil est conçu pour des tests temporaires |
+| Logs HTTP (IP, headers, horodatage) | 30 jours maximum | Cohérent avec la politique de rétention des logs de FGRibreau SARL |
+
+### 9. Mesures de sécurité (description générale)
+
+- Pas d'authentification requise — les endpoints sont pseudo-aléatoires (sécurité par obscurité, non par authentification).
+- Payloads stockés uniquement en mémoire Redis in-cluster, non persistés en base de données durable.
+- Chiffrement en transit TLS 1.2+ entre l'utilisateur et play.hook0.com.
+- Avertissement à intégrer dans les CGU et l'interface de play.hook0.com : recommander aux utilisateurs de ne pas envoyer de données personnelles réelles de leurs propres clients.
+
+### 10. Source des données
+
+Collectées automatiquement lors de l'envoi de requêtes HTTP vers les endpoints de test par les utilisateurs de l'outil.
+
+---
+
+## Traitement n°12 — Feedback produit in-app via Formbricks {#traitement-12}
+
+### 1. Identité du responsable de traitement
+
+**FGRibreau SARL** — cf. traitement n°1.
+
+### 2. Finalité(s) du traitement
+
+**Finalité principale :** Collecter le feedback des utilisateurs authentifiés de app.hook0.com via des sondages in-app (NPS, satisfaction produit, enquêtes sur les fonctionnalités) afin d'améliorer la plateforme Hook0.
+
+**Finalités secondaires :**
+- Mesurer le Net Promoter Score (NPS) de Hook0.
+- Identifier les fonctionnalités à prioriser dans la roadmap produit.
+- Détecter les utilisateurs en difficulté ou à risque de churn.
+
+### 3. Base légale (art. 6 RGPD)
+
+**Art. 6.1.f — Intérêt légitime :** l'amélioration continue d'un service SaaS à partir du feedback de ses utilisateurs constitue un intérêt légitime prépondérant de FGRibreau SARL. La balance d'intérêts est favorable : les utilisateurs professionnels B2B peuvent raisonnablement s'attendre à être sollicités pour améliorer un outil qu'ils utilisent dans le cadre de leur activité professionnelle ; ils peuvent refuser les sondages ou contacter legal@hook0.com pour exercer leur droit d'opposition.
+
+Alternative à envisager : si Formbricks affiche des sondages pouvant être assimilés à des communications marketing, basculer vers le consentement (art. 6.1.a).
+
+### 4. Catégories de personnes concernées
+
+Utilisateurs professionnels authentifiés sur app.hook0.com ayant été exposés à un sondage Formbricks.
+
+### 5. Catégories de données personnelles
+
+- Identifiant utilisateur Hook0 (transmis à Formbricks via `formbricks.setUserId(state.userId)`).
+- Adresse email professionnelle (transmise comme attribut utilisateur Formbricks).
+- Prénom et nom (transmis comme attributs utilisateur Formbricks).
+- Page courante dans l'application au moment du sondage.
+- Réponses aux sondages (NPS, verbatim, choix multiples selon le sondage).
+
+### 6. Catégories de destinataires
+
+**Interne :** équipe produit et direction FGRibreau SARL.
+
+**Sous-traitants :**
+- **Formbricks GmbH** (Allemagne) — plateforme de sondages in-app. L'API host est configurable via l'env var `FORMBRICKS_API_HOST` (par défaut : `https://app.formbricks.com`). Si l'instance est self-hosted par FGRibreau SARL, Formbricks GmbH ne serait pas destinataire des données.
+
+### 7. Transferts hors UE
+
+**À vérifier.** Formbricks GmbH est une entité allemande (UE). Cependant, son offre SaaS Cloud (`app.formbricks.com`) peut s'appuyer sur des infrastructures cloud dont certaines ressources sont localisées hors UE (notamment AWS ou Azure US). FGRibreau SARL doit :
+1. Consulter le DPA Formbricks et la liste de ses sous-traitants (sous-processors).
+2. Vérifier que les CCT 2021/914 couvrent les éventuels transferts vers des sous-processors hors UE.
+3. Documenter le résultat dans ce registre lors du prochain réexamen.
+
+Si Formbricks Cloud transfère des données aux USA, la base de transfert applicable est les CCT 2021/914 incluses dans le DPA Formbricks. Lien DPA Formbricks : https://formbricks.com/privacy (à vérifier).
+
+### 8. Durée de conservation
+
+| Données | Durée | Justification |
+|---|---|---|
+| Réponses aux sondages | Durée du contrat + 3 ans | Analyse des tendances produit et gestion des litiges |
+| Attributs utilisateur (email, prénom, nom) | Jusqu'à suppression du compte Hook0 | Cohérence avec le traitement n°1 |
+
+### 9. Mesures de sécurité (description générale)
+
+- Accès à la plateforme Formbricks restreint à l'équipe produit (authentification MFA recommandée).
+- Chiffrement en transit TLS 1.2+ entre l'application et l'API Formbricks.
+- L'env var `FORMBRICKS_API_HOST` permet de basculer vers une instance Formbricks self-hosted si FGRibreau SARL souhaite éliminer tout transfert de données vers un tiers.
+
+### 10. Source des données
+
+Collectées directement auprès de la personne concernée lors de sa participation à un sondage in-app sur app.hook0.com, et indirectement via les attributs utilisateur transmis par l'API Hook0 à Formbricks lors de l'initialisation de la session.
+
+---
+
 ## Annexe 1 — Liste consolidée des sous-traitants {#annexe-1}
 
 | Sous-traitant | Rôle | Pays | DPA en vigueur | Base de transfert hors UE |
 |---|---|---|---|---|
 | **Clever Cloud SAS** | Hébergement infrastructure (BDD, API, workers) | France (UE) | DPA Clever Cloud | N/A |
-| **Scaleway SAS** | Workers dédiés (offres sélectionnées) | France (UE) | DPA Scaleway | N/A |
+| **Scaleway SAS** | Workers dédiés (offres sélectionnées) + Object Storage S3-compatible (payloads webhook volumineux) | France (UE) | DPA Scaleway (à vérifier : couvre Object Storage en plus des workers ?) | N/A |
 | **Stripe, Inc.** | Paiement et gestion des abonnements | USA | DPA Stripe | CCT 2021/914 + DPF |
 | **Brevo SAS (Sendinblue)** | Emails transactionnels et newsletters | France (UE) | DPA Brevo | N/A |
 | **Postmark (ActiveCampaign, Inc.)** | Emails transactionnels (complément / bascule) | USA | DPA Postmark | CCT 2021/914 |
@@ -722,6 +863,9 @@ Collectées automatiquement par les serveurs Hook0 et l'infrastructure Cloudflar
 | **Sentry, Inc.** | Suivi des erreurs applicatives | USA | DPA Sentry | CCT 2021/914 |
 | **BetterStack (BetterUptime)** | Monitoring de disponibilité | République tchèque (UE) | DPA BetterStack | N/A |
 | **Cloudflare, Inc.** | Proxy réseau, DDoS, DNS | USA | DPA Cloudflare | CCT 2021/914 + DPF |
+| **Cloudflare, Inc. — Turnstile** | CAPTCHA anti-bot à l'inscription | USA | DPA Cloudflare (à vérifier : Turnstile explicitement couvert ?) | CCT 2021/914 + DPF |
+| **France-Nuage** | Hébergement Kubernetes play.hook0.com | France (UE) | DPA à signer (vérification requise) | N/A |
+| **Formbricks GmbH** | In-app surveys / feedback utilisateur (app.hook0.com) | Allemagne (UE) — Cloud peut utiliser infra hors UE | DPA Formbricks à vérifier et signer | À vérifier (sous-processors Formbricks Cloud) |
 
 **Légende :**
 - CCT 2021/914 : Clauses Contractuelles Types, Décision de la Commission européenne du 4 juin 2021.
@@ -735,6 +879,8 @@ Collectées automatiquement par les serveurs Hook0 et l'infrastructure Cloudflar
 - CDPT Google Ads : https://business.safety.google/adscontrollerterms/
 - Sentry DPA : https://sentry.io/legal/dpa/
 - Cloudflare DPA : https://www.cloudflare.com/cloudflare-customer-dpa/
+- Formbricks DPA : https://formbricks.com/privacy (à vérifier et signer)
+- France-Nuage : DPA à solliciter auprès de France-Nuage
 
 ---
 
@@ -826,5 +972,5 @@ Si la violation est **susceptible d'engendrer un risque élevé** pour les droit
 
 ---
 
-*Document interne FGRibreau SARL — Version 1.0 — Établi le 4 mai 2026 — Prochain réexamen : 4 mai 2027.*
-*Non destiné à publication. Disponible sur demande de la CNIL conformément à l'article 30.4 du Règlement (UE) 2016/679.*
+*Document public FGRibreau SARL — Version 1.1 — Établi le 4 mai 2026 — Prochain réexamen : 4 mai 2027.*
+*Publié dans le dépôt open-source Hook0 par souci de transparence. Disponible sur demande de la CNIL conformément à l'article 30.4 du Règlement (UE) 2016/679.*
