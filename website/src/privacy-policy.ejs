@@ -485,9 +485,13 @@
                     <%- include('./includes/_checkmark-icon.ejs') %>
                     <span><strong class="text-white">Crisp</strong> — live chat widget</span>
                 </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">hook0_gclid cookie</strong> (Domain <code class="text-green-400">.hook0.com</code>, 30-day TTL) — bridges the Google Ads click identifier between www.hook0.com and app.hook0.com so a deferred signup can still be attributed. Set only after consent and only when an ad click brought you here. Cleared when consent is withdrawn. See Section 9b for details.</span>
+                </li>
             </ul>
             <p class="text-gray-300 leading-relaxed mb-4">
-                Consent preferences are stored in <code class="text-green-400">localStorage</code> with a validity of <strong class="text-white">13 months</strong>, in line with CNIL guidelines. You can change your preferences at any time:
+                Your consent on www.hook0.com covers all hook0.com subdomains (including app.hook0.com). Consent preferences are stored in <code class="text-green-400">localStorage</code> with a validity of <strong class="text-white">13 months</strong>, in line with CNIL guidelines. You can change your preferences at any time:
             </p>
             <div class="flex flex-wrap gap-4 mb-4">
                 <button type="button" onclick="window.hook0Consent && window.hook0Consent.reset()" class="btn btn--secondary btn--sm">
@@ -948,9 +952,13 @@
                     <%- include('./includes/_checkmark-icon.ejs') %>
                     <span><strong class="text-white">Crisp</strong> — widget de chat en direct</span>
                 </li>
+                <li class="flex items-start gap-3">
+                    <%- include('./includes/_checkmark-icon.ejs') %>
+                    <span><strong class="text-white">Cookie hook0_gclid</strong> (Domain <code class="text-green-400">.hook0.com</code>, durée 30 jours) — relaie l'identifiant de clic Google Ads entre www.hook0.com et app.hook0.com pour permettre l'attribution d'une inscription différée. Posé uniquement après recueil du consentement et uniquement si vous arrivez depuis un clic publicitaire. Effacé au retrait du consentement. Voir Section 9b pour les détails.</span>
+                </li>
             </ul>
             <p class="text-gray-300 leading-relaxed mb-4">
-                Les préférences de consentement sont stockées dans le <code class="text-green-400">localStorage</code> du navigateur pour une durée de <strong class="text-white">13 mois</strong>, conformément aux lignes directrices de la CNIL. Vous pouvez modifier vos préférences à tout moment :
+                Votre consentement donné sur www.hook0.com s'étend à l'ensemble des sous-domaines hook0.com (y compris app.hook0.com). Les préférences de consentement sont stockées dans le <code class="text-green-400">localStorage</code> du navigateur pour une durée de <strong class="text-white">13 mois</strong>, conformément aux lignes directrices de la CNIL. Vous pouvez modifier vos préférences à tout moment :
             </p>
             <div class="flex flex-wrap gap-4">
                 <button type="button" onclick="window.hook0Consent && window.hook0Consent.reset()" class="btn btn--secondary btn--sm">
