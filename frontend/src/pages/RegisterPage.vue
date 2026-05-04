@@ -212,7 +212,13 @@ const onSubmit = handleSubmit((values) => {
 
           <p v-if="gclid" class="register-gclid-notice" data-test="register-gclid-notice">
             {{ t('auth.register.gclidNotice') }}
-            <a href="https://www.hook0.com/privacy-policy#server-side-tracking" target="_blank" rel="noopener noreferrer">{{ t('auth.register.gclidLearnMore') }}</a>
+            <a
+              href="https://www.hook0.com/privacy-policy#server-side-tracking"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ t('auth.register.gclidLearnMore') }}
+            </a>
           </p>
         </Hook0Form>
       </Hook0CardContent>
