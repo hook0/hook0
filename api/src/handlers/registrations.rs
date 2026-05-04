@@ -177,19 +177,63 @@ pub async fn register(
                     e
                 })?;
 
+            // Persist the gclid alongside the user so the conversion can be
+            // uploaded once the user verifies their email — this filters out
+            // throwaway / bot signups from the conversion stream. The
+            // attribution row is deleted on successful upload (verify_email
+            // handler); a periodic 30-day cleanup runs lazily here too so
+            // unverified signups don't accumulate.
+            let trimmed_gclid = body
+                .gclid
+                .as_ref()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty());
+            if let Some(gclid) = trimmed_gclid {
+                query!(
+                    "
+                        INSERT INTO iam.signup_attribution (user__id, gclid)
+                        VALUES ($1, $2)
+                    ",
+                    &user_id,
+                    &gclid,
+                )
+                .execute(&mut *tx)
+                .await?;
+            }
+
             tx.commit().await?;
 
-            // Server-side Google Ads conversion upload — fire-and-forget.
-            // Only fires when (1) the gclid arrived with the signup and (2)
-            // the API has Google Ads credentials configured. Failures are
-            // logged inside spawn_upload, never propagated to the user.
-            if let (Some(client), Some(gclid)) = (
-                state.google_ads.as_ref().cloned(),
-                body.gclid.as_ref().map(|s| s.trim().to_string()),
-            ) && !gclid.is_empty()
-            {
-                crate::google_ads::spawn_upload(client, gclid);
-            }
+            // Lazy cleanup: drop attributions older than 30 days. Runs in a
+            // separate connection (not in tx) so it never blocks signup.
+            // Errors are logged but never surfaced.
+            let pool = state.db.clone();
+            tokio::spawn(async move {
+                let result = query!(
+                    "
+                        DELETE FROM iam.signup_attribution
+                        WHERE created_at < statement_timestamp() - INTERVAL '30 days'
+                    "
+                )
+                .execute(&pool)
+                .await;
+                match result {
+                    Ok(done) if done.rows_affected() > 0 => {
+                        tracing::info!(
+                            target: "api::signup_attribution",
+                            rows = done.rows_affected(),
+                            "pruned stale signup attribution rows"
+                        );
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::warn!(
+                            target: "api::signup_attribution",
+                            error = %e,
+                            "failed to prune stale signup attribution rows"
+                        );
+                    }
+                }
+            });
 
             Ok(CreatedJson(Registration {
                 organization_id,

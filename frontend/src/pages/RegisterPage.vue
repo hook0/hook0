@@ -65,13 +65,32 @@ function handleFormStart() {
   }
 }
 
+function readGclidCookie(): string {
+  const match = document.cookie.match(/(?:^|;\s*)hook0_gclid=([^;]+)/);
+  if (!match) return '';
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return '';
+  }
+}
+
 onMounted(() => {
   trackPageWithDimensions('auth', 'view', 'signup-form');
   trackEvent('signup', 'page-view', 'register');
+  // URL gclid wins (fresh ad click in this session). Fall back to the
+  // .hook0.com parent-domain cookie set on www.hook0.com after consent —
+  // bridges deferred signups (user clicked an ad earlier, returns to app
+  // later without the gclid in the URL).
   const params = new URLSearchParams(window.location.search);
   const fromUrl = params.get('gclid');
   if (fromUrl) {
     gclid.value = fromUrl;
+    return;
+  }
+  const fromCookie = readGclidCookie();
+  if (fromCookie) {
+    gclid.value = fromCookie;
   }
 });
 
