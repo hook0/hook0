@@ -423,6 +423,9 @@ release.gitlab:
     - git fetch --tags origin $CI_COMMIT_REF_NAME
     - git checkout $CI_COMMIT_REF_NAME
     - git reset --hard origin/$CI_COMMIT_REF_NAME
+    # Purge any residual files from previous jobs on the shared runner workspace
+    # so `git status --porcelain` is empty for the pre-release.sh cleanliness check.
+    - git clean -ffdx
 
 release:patch:
   extends: .release-trigger
