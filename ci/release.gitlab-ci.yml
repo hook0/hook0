@@ -166,9 +166,9 @@ release.extract-notes:
 release.containers:
   extends: .release-rules
   stage: release
-  image: docker:latest
-  services:
-    - docker:dind
+  image:
+    name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/moby/buildkit:${BUILDKIT_VERSION}
+    entrypoint: [""]
   needs:
     - job: release.build-api-amd64
       artifacts: true
@@ -188,54 +188,58 @@ release.containers:
     - job: frontend.check
       artifacts: false
   variables:
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ""
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
   before_script:
     - export VERSION="${CI_COMMIT_TAG#v}"
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKERHUB_TOKEN"
-    - docker login ghcr.io -u "$GITHUB_USERNAME" -p "$GITHUB_TOKEN"
-    - docker buildx create --use --name multiarch --driver docker-container
+    # Write a single docker config.json with auth for all 3 registries.
+    # BuildKit reads this to push to multiple registries from one build.
+    - mkdir -p ~/.docker
+    - |
+      cat > ~/.docker/config.json <<EOF
+      {
+        "auths": {
+          "${CI_REGISTRY}": {
+            "auth": "$(printf '%s:%s' "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | base64 -w0)"
+          },
+          "https://index.docker.io/v1/": {
+            "auth": "$(printf '%s:%s' "$DOCKERHUB_USERNAME" "$DOCKERHUB_TOKEN" | base64 -w0)"
+          },
+          "ghcr.io": {
+            "auth": "$(printf '%s:%s' "$GITHUB_USERNAME" "$GITHUB_TOKEN" | base64 -w0)"
+          }
+        }
+      }
+      EOF
   script:
     # Prepare build context for API
     - mkdir -p build-context/api
     - cp artifacts/hook0-api-linux-amd64 build-context/api/
-    # DISABLED: arm64 builds are too slow on CI
-    # - cp artifacts/hook0-api-linux-arm64 build-context/api/
     - cp api/Dockerfile.release build-context/api/Dockerfile
 
     # Prepare build context for Worker
     - mkdir -p build-context/worker
     - cp artifacts/hook0-output-worker-linux-amd64 build-context/worker/
-    # DISABLED: arm64 builds are too slow on CI
-    # - cp artifacts/hook0-output-worker-linux-arm64 build-context/worker/
     - cp output-worker/Dockerfile.release build-context/worker/Dockerfile
 
-    # Build and push API (amd64 only - arm64 disabled)
-    # docker buildx build --platform linux/amd64,linux/arm64 \
+    # Build and push API to all 3 registries in one shot
     - |
-      docker buildx build --platform linux/amd64 \
-        --tag "$CI_REGISTRY_IMAGE/hook0-api:$VERSION" \
-        --tag "$CI_REGISTRY_IMAGE/hook0-api:latest" \
-        --tag "rbaumier/hook0-api:$VERSION" \
-        --tag "rbaumier/hook0-api:latest" \
-        --tag "ghcr.io/rbaumier/hook0-api:$VERSION" \
-        --tag "ghcr.io/rbaumier/hook0-api:latest" \
-        --push \
-        build-context/api
+      buildctl-daemonless.sh build \
+        --frontend dockerfile.v0 \
+        --local context=build-context/api \
+        --local dockerfile=build-context/api \
+        --opt platform=linux/amd64 \
+        --opt build-arg:TARGETARCH=amd64 \
+        --output "type=image,\"name=${CI_REGISTRY_IMAGE}/hook0-api:${VERSION},${CI_REGISTRY_IMAGE}/hook0-api:latest,docker.io/rbaumier/hook0-api:${VERSION},docker.io/rbaumier/hook0-api:latest,ghcr.io/rbaumier/hook0-api:${VERSION},ghcr.io/rbaumier/hook0-api:latest\",push=true"
 
-    # Build and push Output Worker (amd64 only - arm64 disabled)
-    # docker buildx build --platform linux/amd64,linux/arm64 \
+    # Build and push Output Worker to all 3 registries in one shot
     - |
-      docker buildx build --platform linux/amd64 \
-        --tag "$CI_REGISTRY_IMAGE/output-worker:$VERSION" \
-        --tag "$CI_REGISTRY_IMAGE/output-worker:latest" \
-        --tag "rbaumier/output-worker:$VERSION" \
-        --tag "rbaumier/output-worker:latest" \
-        --tag "ghcr.io/rbaumier/output-worker:$VERSION" \
-        --tag "ghcr.io/rbaumier/output-worker:latest" \
-        --push \
-        build-context/worker
+      buildctl-daemonless.sh build \
+        --frontend dockerfile.v0 \
+        --local context=build-context/worker \
+        --local dockerfile=build-context/worker \
+        --opt platform=linux/amd64 \
+        --opt build-arg:TARGETARCH=amd64 \
+        --output "type=image,\"name=${CI_REGISTRY_IMAGE}/output-worker:${VERSION},${CI_REGISTRY_IMAGE}/output-worker:latest,docker.io/rbaumier/output-worker:${VERSION},docker.io/rbaumier/output-worker:latest,ghcr.io/rbaumier/output-worker:${VERSION},ghcr.io/rbaumier/output-worker:latest\",push=true"
 
 # --- Release ---
 
@@ -292,7 +296,7 @@ release.github:
       EOF
     - sed -i "s/\${VERSION}/$VERSION/g" artifacts/RELEASE_NOTES.md
     - echo "=== Creating GitHub Release ==="
-    - gh release create $CI_COMMIT_TAG --repo rbaumier/hook0-release-test --title "Release $CI_COMMIT_TAG" --notes-file artifacts/RELEASE_NOTES.md artifacts/*
+    - gh release create $CI_COMMIT_TAG --repo hook0/hook0 --title "Release $CI_COMMIT_TAG" --notes-file artifacts/RELEASE_NOTES.md artifacts/*
 
 # =============================================================================
 # Manual Release Jobs (master branch only)

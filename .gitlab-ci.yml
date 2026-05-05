@@ -15,6 +15,7 @@ variables:
   POSTGRES_USER: runner
   POSTGRES_PASSWORD: ""
   POSTGRES_HOST_AUTH_METHOD: trust
+  BUILDKIT_VERSION: "v0.27.1-rootless"
 
 stages:
   - build
