@@ -126,6 +126,10 @@ This documentation may not cover all options or reflect recent changes.
 | `EXPIRED_TOKENS_CLEANUP_PERIOD` | Duration to wait between expired tokens cleanups | `1h` |  |
 | `EXPIRED_TOKENS_CLEANUP_REPORT_AND_DELETE` | If true, expired tokens will be reported and cleaned up; if false (default), they will only be reported | `false` |  |
 | `MATERIALIZED_VIEWS_REFRESH_PERIOD_IN_S` | Duration (in second) to wait between materialized views refreshes | `60` |  |
+| `OBJECT_STORAGE_CLEANUP_COLLECT_CONCURRENCY` | Maximum number of applications to process concurrently during object storage cleanup prefix collection | `1` |  |
+| `OBJECT_STORAGE_CLEANUP_DELETE_CONCURRENCY` | Maximum number of prefixes to delete concurrently during object storage cleanup | `1` |  |
+| `OBJECT_STORAGE_CLEANUP_OPERATION_ATTEMPT_TIMEOUT` | Operation attempt timeout for object storage cleanup operations | `2m` |  |
+| `OBJECT_STORAGE_CLEANUP_OPERATION_TIMEOUT` | Operation timeout for object storage cleanup operations | `7m` |  |
 | `OBJECT_STORAGE_CLEANUP_PERIOD` | Duration to wait between object storage cleanups | `1d` |  |
 | `OBJECT_STORAGE_CLEANUP_REPORT_AND_DELETE` | If true, allow to delete outdated objects from object storage; if false (default), they will only be reported | `false` |  |
 | `OLD_EVENTS_CLEANUP_GRACE_PERIOD_IN_DAY` | Duration (in day) to wait before actually deleting events that are passed retention period | `30` |  |
@@ -184,6 +188,7 @@ This documentation may not cover all options or reflect recent changes.
 |----------|-------------|---------|----------|
 | `PULSAR_BINARY_URL` | Pulsar binary URL | - |  |
 | `PULSAR_NAMESPACE` | Pulsar namespace | - |  |
+| `PULSAR_SEND_RECEIPT_TIMEOUT` | Maximum time to wait for the Pulsar broker to acknowledge a sent message | `10s` |  |
 | `PULSAR_TENANT` | Pulsar tenant | - |  |
 | `PULSAR_TOKEN` 🔒 | Pulsar token | - |  |
 
@@ -226,6 +231,9 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | `WORKER_NAME` | Worker name (as defined in the infrastructure.worker table) | - | ✓ |
 | `WORKER_VERSION` | Worker version (if empty, will use version from Cargo.toml) | - |  |
 | `CONCURRENT` | Number of request attempts to handle concurrently (for a worker with pg queue type, this means opening 1 connection to PostgreSQL per concurrent unit) | `1` |  |
+| `HP_RETRY_CUTOFF` | Retry count cutoff for queue priority classification: if retry_count >= cutoff, item is placed in low priority queue | `2` |  |
+| `CONCURRENT_HP_RESERVED` | Number of concurrent slots reserved exclusively for high-priority jobs (first attempts and early retries) | `0` |  |
+| `CONCURRENT_LP_RESERVED` | Number of concurrent slots reserved exclusively for low-priority jobs (later retries) | `0` |  |
 | `MAX_RETRIES` | Maximum number of delivery retries before giving up (the effective number of retries is limited by `MAX_RETRIES`, `MAX_RETRY_WINDOW` and the retry policy) | `25` |  |
 | `MAX_RETRY_WINDOW` | Maximum time window for delivery retries before giving up (the effective number of retries is limited by `MAX_RETRIES`, `MAX_RETRY_WINDOW` and the retry policy) | `8d` |  |
 | `MONITORING_HEARTBEAT_URL` | Heartbeat URL that should be called regularly | - |  |
@@ -235,9 +243,10 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | `TIMEOUT` | Timeout for obtaining a HTTP response from the target, including connect phase (if exceeded, request attempt will fail) | `15s` |  |
 | `SIGNATURE_HEADER_NAME` | Name of the header containing webhook's signature | `X-Hook0-Signature` |  |
 | `ENABLED_SIGNATURE_VERSIONS` | A comma-separated list of enabled signature versions | `v1` |  |
-| `LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR` | If true, will load waiting request attempts (that can be picked by this worker) from DB into Pulsar before starting working; this is useful when migrating to a Pulsar worker; has no effect if worker has not a pulsar queue type | `false` |  |
-| `REQUEST_ATTEMPT_DB_COMMIT_GRACE_PERIOD` | Grace period to wait for DB commit before dropping unfound request attempts (Pulsar workers only) | `5s` |  |
+| `LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR` | If true, loads waiting request attempts that can be picked by this worker from the DB into Pulsar before starting work; this is useful when migrating to a Pulsar worker and has no effect if the worker does not use a Pulsar queue type | `false` |  |
+| `REQUEST_ATTEMPT_DB_COMMIT_GRACE_PERIOD` | Grace period to wait for database commit before dropping unfound request attempts (only for Pulsar workers) | `10s` |  |
 | `PULSAR_CONSUMER_STATS_INTERVAL` | Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers) | `15s` |  |
+| `PULSAR_SEND_RECEIPT_TIMEOUT` | Maximum time to wait for the Pulsar broker to acknowledge a sent message (only for Pulsar workers) | `10s` |  |
 | `THROUGHPUT_LOG_INTERVAL` | Interval between periodic throughput log lines (set to "0s" to disable) | `60s` |  |
 
 ## Notes
