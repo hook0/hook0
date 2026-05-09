@@ -8,6 +8,10 @@
   image: rust:$RUST_VERSION
   allow_failure: false
   dependencies: []
+  # Run independently — don't wait for the (mostly manual) release stage to
+  # complete before becoming playable. Releases are user-driven, not gated on
+  # deploy decisions.
+  needs: []
   variables:
     GIT_DEPTH: "0"
     GIT_LFS_SKIP_SMUDGE: "1"
