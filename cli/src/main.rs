@@ -21,11 +21,34 @@ fn setup_logging(verbosity: u8) {
         .init();
 }
 
+fn install_keyring_store() {
+    #[cfg(target_os = "macos")]
+    {
+        let store = apple_native_keyring_store::keychain::Store::new()
+            .expect("Failed to initialize macOS keychain store");
+        keyring_core::set_default_store(store);
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let store = windows_native_keyring_store::Store::new()
+            .expect("Failed to initialize Windows credential store");
+        keyring_core::set_default_store(store);
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let store = linux_keyutils_keyring_store::Store::new()
+            .expect("Failed to initialize Linux keyutils store");
+        keyring_core::set_default_store(store);
+    }
+}
+
 #[tokio::main]
 async fn main() -> ExitCode {
     rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
         .expect("Failed to install rustls CryptoProvider");
+
+    install_keyring_store();
 
     let cli = Cli::parse();
 
