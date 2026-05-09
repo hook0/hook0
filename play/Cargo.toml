@@ -7,6 +7,10 @@ description = "Hook0 Webhook Relay Server - webhook.site-like inspection + local
 authors = ["François-Guillaume Ribreau <fg@hook0.com>"]
 repository = "https://gitlab.com/hook0/hook0"
 
+[package.metadata.release]
+release = true
+publish = false
+
 [dependencies]
 aes-gcm = "0.10"
 anyhow = "1.0"
