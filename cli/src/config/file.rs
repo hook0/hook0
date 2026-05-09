@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
-use keyring::Entry;
+use keyring_core::Entry;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
