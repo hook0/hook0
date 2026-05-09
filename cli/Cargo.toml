@@ -10,6 +10,10 @@ keywords = ["webhooks", "cli", "hook0"]
 categories = ["command-line-utilities", "web-programming"]
 build = "build.rs"
 
+[package.metadata.release]
+release = true
+publish = false
+
 [build-dependencies]
 heck = "0.5"
 reqwest = { version = "0.13", features = ["blocking", "rustls"], default-features = false }
