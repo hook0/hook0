@@ -5,7 +5,7 @@
 # `script:` line that calls `./ci/pre-release.sh <package> <patch|minor|major>`.
 .release-trigger:
   stage: trigger-release
-  image: rust:$RUST_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/rust:$RUST_VERSION
   allow_failure: false
   dependencies: []
   # Run independently — don't wait for the (mostly manual) release stage to
@@ -41,7 +41,7 @@
 .release-build-rust:
   extends: .rust-cache-pull-only
   stage: build
-  image: rust:$RUST_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/rust:$RUST_VERSION
   timeout: 3h
   variables:
     SQLX_OFFLINE: "true"
@@ -59,7 +59,7 @@
 .release-container:
   stage: release
   image:
-    name: moby/buildkit:$BUILDKIT_VERSION
+    name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/moby/buildkit:$BUILDKIT_VERSION
     entrypoint: ["sh", "-c"]
   variables:
     BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
