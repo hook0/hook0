@@ -245,7 +245,7 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | `ENABLED_SIGNATURE_VERSIONS` | A comma-separated list of enabled signature versions | `v1` |  |
 | `LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR` | If true, loads waiting request attempts that can be picked by this worker from the DB into Pulsar before starting work; this is useful when migrating to a Pulsar worker and has no effect if the worker does not use a Pulsar queue type | `false` |  |
 | `REQUEST_ATTEMPT_DB_COMMIT_GRACE_PERIOD` | Grace period to wait for database commit before dropping unfound request attempts (only for Pulsar workers) | `10s` |  |
-| `PULSAR_CONSUMER_STATS_INTERVAL` | Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers) | `15s` |  |
+| `PULSAR_CONSUMER_STATS_INTERVAL` | Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers) [this feature is unstable/unreliable] | `0` |  |
 | `PULSAR_SEND_RECEIPT_TIMEOUT` | Maximum time to wait for the Pulsar broker to acknowledge a sent message (only for Pulsar workers) | `10s` |  |
 | `THROUGHPUT_LOG_INTERVAL` | Interval between periodic throughput log lines (set to "0s" to disable) | `60s` |  |
 
