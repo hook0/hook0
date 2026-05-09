@@ -1,0 +1,180 @@
+# Hook0 Frontend release flow.
+# Tag convention: frontend/vX.Y.Z (see adr/0004-monorepo-tag-convention.md)
+
+.frontend-release-rules:
+  extends: .release-globals
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^frontend\/v\d+\.\d+\.\d+(-(?:alpha|beta|rc)(?:\.\d+)?)?$/
+
+# --- Manual triggers ---
+
+frontend:patch:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh frontend patch
+
+frontend:minor:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh frontend minor
+
+frontend:major:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh frontend major
+
+# --- Tag pipeline ---
+
+frontend.verify-version:
+  extends: .frontend-release-rules
+  stage: build
+  image: alpine:$ALPINE_VERSION
+  before_script:
+    - apk add --no-cache jq
+  script:
+    - |
+      TAG_VERSION="${CI_COMMIT_TAG#frontend/v}"
+      FRONTEND_VERSION=$(jq -r '.version' frontend/package.json)
+      echo "Tag version:      $TAG_VERSION"
+      echo "Frontend version: $FRONTEND_VERSION"
+      if [ "$TAG_VERSION" != "$FRONTEND_VERSION" ]; then
+        echo "ERROR: frontend/package.json ($FRONTEND_VERSION) does not match tag ($TAG_VERSION)"
+        exit 1
+      fi
+      echo "Version check passed: frontend at $TAG_VERSION"
+
+frontend.release-build:
+  extends: .frontend-release-rules
+  stage: build
+  image: node:$NODE_VERSION
+  needs:
+    - job: frontend.verify-version
+  variables:
+    GIT_LFS_SKIP_SMUDGE: "1"
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends git-lfs
+    - git lfs install --local
+    - git lfs pull --include="frontend/**"
+    - |
+      for f in frontend/public/256x256.png frontend/public/favicon.ico frontend/public/fonts/Inter-Regular.woff2; do
+        if [ "$(wc -c < "$f")" -lt 1000 ]; then
+          echo "ERROR: $f is still an LFS pointer"
+          exit 1
+        fi
+      done
+  script:
+    - cd frontend
+    - npm ci
+    - npm run build
+    - cd ..
+    - mkdir -p artifacts
+    - tar -czf artifacts/frontend-dist.tar.gz -C frontend dist
+  artifacts:
+    paths:
+      - artifacts/
+    expire_in: 1 week
+
+frontend.extract-notes:
+  extends: .frontend-release-rules
+  stage: build
+  image: alpine:$ALPINE_VERSION
+  variables:
+    GIT_DEPTH: "0"
+  before_script:
+    - apk add --no-cache curl git
+    - curl -L https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-musl.tar.gz | tar xz
+    - mv git-cliff-*/git-cliff /usr/local/bin/
+  script:
+    - mkdir -p artifacts
+    - git-cliff
+        --include-path 'frontend/**'
+        --tag-pattern '^frontend/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'
+        --current
+        --strip header
+        > artifacts/RELEASE_NOTES.md
+    - |
+      cat >> artifacts/RELEASE_NOTES.md <<EOF
+
+      ## Docker images
+
+      - \`hook0/hook0-frontend:${CI_COMMIT_TAG#frontend/v}\` (DockerHub)
+      - \`ghcr.io/hook0/hook0-frontend:${CI_COMMIT_TAG#frontend/v}\` (GHCR)
+      - \`registry.gitlab.com/hook0/hook0/hook0-frontend:${CI_COMMIT_TAG#frontend/v}\` (GitLab)
+      EOF
+    - cat artifacts/RELEASE_NOTES.md
+  artifacts:
+    paths:
+      - artifacts/RELEASE_NOTES.md
+    expire_in: 1 week
+
+frontend.container:
+  extends:
+    - .frontend-release-rules
+    - .release-container
+  needs:
+    - job: frontend.release-build
+      artifacts: true
+    - job: frontend.check
+      artifacts: false
+  script:
+    - export VERSION="${CI_COMMIT_TAG#frontend/v}"
+    - mkdir -p build-context
+    - tar -xzf artifacts/frontend-dist.tar.gz -C build-context/
+    - cp frontend/scripts/docker-entrypoint.sh build-context/
+    - cp frontend/Dockerfile.release build-context/Dockerfile
+    - |
+      buildctl-daemonless.sh build \
+        --progress=plain \
+        --frontend dockerfile.v0 \
+        --opt platform=linux/amd64 \
+        --local context=build-context \
+        --local dockerfile=build-context \
+        --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-frontend:$VERSION,$CI_REGISTRY_IMAGE/hook0-frontend:latest,${DOCKERHUB_PREFIX}/hook0-frontend:$VERSION,${DOCKERHUB_PREFIX}/hook0-frontend:latest,${GHCR_PREFIX}/hook0-frontend:$VERSION,${GHCR_PREFIX}/hook0-frontend:latest\",push=true"
+
+frontend.github:
+  extends: .frontend-release-rules
+  stage: release
+  image: alpine:$ALPINE_VERSION
+  needs:
+    - job: frontend.extract-notes
+      artifacts: true
+    - job: frontend.release-build
+      artifacts: true
+    - job: frontend.container
+  variables:
+    GH_TOKEN: $GITHUB_TOKEN
+  before_script:
+    - apk add --no-cache github-cli
+  script:
+    - gh release create "$CI_COMMIT_TAG"
+        --repo "$GITHUB_REPO"
+        --title "$CI_COMMIT_TAG"
+        --notes-file artifacts/RELEASE_NOTES.md
+        artifacts/frontend-dist.tar.gz
+
+frontend.gitlab:
+  extends: .frontend-release-rules
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: frontend.extract-notes
+      artifacts: true
+    - job: frontend.release-build
+      artifacts: true
+    - job: frontend.container
+  script:
+    - apk --no-cache add curl
+    - |
+      curl --fail --silent --show-error \
+        --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        --upload-file "artifacts/frontend-dist.tar.gz" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0-frontend/${CI_COMMIT_TAG#frontend/v}/frontend-dist.tar.gz"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: "$CI_COMMIT_TAG"
+    description: "./artifacts/RELEASE_NOTES.md"
+    assets:
+      links:
+        - name: "frontend-dist.tar.gz"
+          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0-frontend/${CI_COMMIT_TAG}/frontend-dist.tar.gz"
+          link_type: "package"
