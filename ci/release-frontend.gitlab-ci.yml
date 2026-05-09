@@ -28,7 +28,7 @@ frontend:major:
 frontend.verify-version:
   extends: .frontend-release-rules
   stage: build
-  image: alpine:$ALPINE_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/alpine:$ALPINE_VERSION
   before_script:
     - apk add --no-cache jq
   script:
@@ -46,7 +46,7 @@ frontend.verify-version:
 frontend.release-build:
   extends: .frontend-release-rules
   stage: build
-  image: node:$NODE_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:$NODE_VERSION
   needs:
     - job: frontend.verify-version
   variables:
@@ -77,7 +77,7 @@ frontend.release-build:
 frontend.extract-notes:
   extends: .frontend-release-rules
   stage: build
-  image: alpine:$ALPINE_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/alpine:$ALPINE_VERSION
   variables:
     GIT_DEPTH: "0"
   before_script:
@@ -134,7 +134,7 @@ frontend.container:
 frontend.github:
   extends: .frontend-release-rules
   stage: release
-  image: alpine:$ALPINE_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/alpine:$ALPINE_VERSION
   needs:
     - job: frontend.extract-notes
       artifacts: true
