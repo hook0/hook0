@@ -1,0 +1,165 @@
+# Hook0 API release flow.
+# Tag convention: api/vX.Y.Z (see adr/0004-monorepo-tag-convention.md)
+
+.api-release-rules:
+  extends: .release-globals
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^api\/v\d+\.\d+\.\d+(-(?:alpha|beta|rc)(?:\.\d+)?)?$/
+
+# --- Manual triggers (master only) ---
+
+api:patch:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh api patch
+
+api:minor:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh api minor
+
+api:major:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh api major
+
+# --- Tag pipeline ---
+
+api.verify-version:
+  extends: .api-release-rules
+  stage: build
+  image: alpine:$ALPINE_VERSION
+  before_script:
+    - apk add --no-cache jq
+  script:
+    - |
+      TAG_VERSION="${CI_COMMIT_TAG#api/v}"
+      API_VERSION=$(grep '^version = ' api/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+      echo "Tag version: $TAG_VERSION"
+      echo "API version:  $API_VERSION"
+      if [ "$TAG_VERSION" != "$API_VERSION" ]; then
+        echo "ERROR: api/Cargo.toml ($API_VERSION) does not match tag ($TAG_VERSION)"
+        exit 1
+      fi
+      echo "Version check passed: api at $TAG_VERSION"
+
+api.build-amd64:
+  extends:
+    - .api-release-rules
+    - .release-build-rust
+  needs:
+    - job: api.verify-version
+  variables:
+    TARGET: x86_64-unknown-linux-gnu
+    CROSS_DEPS: ""
+  script:
+    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip
+    - mkdir protoc && unzip protoc.zip -d protoc/
+    - export PROTOC="$(realpath ./protoc/bin/protoc)"
+    - mkdir -p artifacts
+    - cargo build --release --package hook0-api --target $TARGET
+    - cp target/$TARGET/release/hook0-api artifacts/hook0-api-linux-amd64
+
+api.extract-notes:
+  extends: .api-release-rules
+  stage: build
+  image: alpine:$ALPINE_VERSION
+  variables:
+    GIT_DEPTH: "0"
+  before_script:
+    - apk add --no-cache curl git
+    - curl -L https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-musl.tar.gz | tar xz
+    - mv git-cliff-*/git-cliff /usr/local/bin/
+  script:
+    - mkdir -p artifacts
+    - git-cliff
+        --include-path 'api/**'
+        --tag-pattern '^api/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'
+        --current
+        --strip header
+        > artifacts/RELEASE_NOTES.md
+    - |
+      cat >> artifacts/RELEASE_NOTES.md <<EOF
+
+      ## Docker images
+
+      - \`hook0/hook0-api:${CI_COMMIT_TAG#api/v}\` (DockerHub)
+      - \`ghcr.io/hook0/hook0-api:${CI_COMMIT_TAG#api/v}\` (GHCR)
+      - \`registry.gitlab.com/hook0/hook0/hook0-api:${CI_COMMIT_TAG#api/v}\` (GitLab)
+      EOF
+    - cat artifacts/RELEASE_NOTES.md
+  artifacts:
+    paths:
+      - artifacts/RELEASE_NOTES.md
+    expire_in: 1 week
+
+api.container:
+  extends:
+    - .api-release-rules
+    - .release-container
+  needs:
+    - job: api.build-amd64
+      artifacts: true
+    - job: api.check
+      artifacts: false
+  script:
+    - export VERSION="${CI_COMMIT_TAG#api/v}"
+    - mkdir -p build-context
+    - cp artifacts/hook0-api-linux-amd64 build-context/
+    - cp api/Dockerfile.release build-context/Dockerfile
+    - |
+      buildctl-daemonless.sh build \
+        --progress=plain \
+        --frontend dockerfile.v0 \
+        --opt platform=linux/amd64 \
+        --local context=build-context \
+        --local dockerfile=build-context \
+        --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-api:$VERSION,$CI_REGISTRY_IMAGE/hook0-api:latest,${DOCKERHUB_PREFIX}/hook0-api:$VERSION,${DOCKERHUB_PREFIX}/hook0-api:latest,${GHCR_PREFIX}/hook0-api:$VERSION,${GHCR_PREFIX}/hook0-api:latest\",push=true"
+
+api.github:
+  extends: .api-release-rules
+  stage: release
+  image: alpine:$ALPINE_VERSION
+  needs:
+    - job: api.extract-notes
+      artifacts: true
+    - job: api.build-amd64
+      artifacts: true
+    - job: api.container
+  variables:
+    GH_TOKEN: $GITHUB_TOKEN
+  before_script:
+    - apk add --no-cache github-cli
+  script:
+    - gh release create "$CI_COMMIT_TAG"
+        --repo "$GITHUB_REPO"
+        --title "$CI_COMMIT_TAG"
+        --notes-file artifacts/RELEASE_NOTES.md
+        artifacts/hook0-api-linux-amd64
+
+api.gitlab:
+  extends: .api-release-rules
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: api.extract-notes
+      artifacts: true
+    - job: api.build-amd64
+      artifacts: true
+    - job: api.container
+  script:
+    - apk --no-cache add curl
+    - |
+      curl --fail --silent --show-error \
+        --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        --upload-file "artifacts/hook0-api-linux-amd64" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0-api/${CI_COMMIT_TAG#api/v}/hook0-api-linux-amd64"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: "$CI_COMMIT_TAG"
+    description: "./artifacts/RELEASE_NOTES.md"
+    assets:
+      links:
+        - name: "hook0-api-linux-amd64"
+          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0-api/${CI_COMMIT_TAG}/hook0-api-linux-amd64"
+          link_type: "package"
