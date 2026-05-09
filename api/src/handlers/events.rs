@@ -7,6 +7,7 @@ use base64::engine::general_purpose::STANDARD as Base64;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
 use futures_util::TryStreamExt;
+use futures_util::future::try_join_all;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
@@ -16,9 +17,9 @@ use sqlx::{PgTransaction, query_as, query_scalar};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use strum::{IntoStaticStr, VariantNames};
-use tracing::error;
+use tracing::{error, trace};
 use uuid::Uuid;
 use validator::Validate;
 
@@ -787,6 +788,8 @@ async fn send_request_attempts_to_pulsar<'a>(
     )
     .fetch(&mut **tx);
 
+    let mut receipt_futures = Vec::new();
+
     while let Some(ra) = request_attempts_stream.try_next().await? {
         if let Some(worker_id) = ra.worker_id
             && ra.worker_queue_type.as_deref() == Some("pulsar")
@@ -830,19 +833,34 @@ async fn send_request_attempts_to_pulsar<'a>(
                 error!("Error while sending a message to Pulsar: {e}");
                 Hook0Problem::InternalServerError
             })?;
-            timeout(pulsar.send_receipt_timeout, send_future)
-                .await
-                .map_err(|_| {
-                    error!(%request_attempt_id, "Pulsar broker receipt timed out");
-                    Hook0Problem::InternalServerError
-                })?
-                .map_err(|e| {
-                    error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
-                    Hook0Problem::InternalServerError
-                })?;
+
+            let receipt_timeout = pulsar.send_receipt_timeout;
+            receipt_futures.push(async move {
+                timeout(receipt_timeout, send_future)
+                    .await
+                    .map_err(|_| {
+                        error!(%request_attempt_id, "Pulsar broker receipt timed out");
+                        Hook0Problem::InternalServerError
+                    })?
+                    .map_err(|e| {
+                        error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
+                        Hook0Problem::InternalServerError
+                    })?;
+                Ok::<(), Hook0Problem>(())
+            });
+
             report_request_attempts_sent_to_pulsar(1);
         }
     }
+
+    let start = Instant::now();
+    let amount = receipt_futures.len();
+    try_join_all(receipt_futures).await?;
+    trace!(
+        amount,
+        elapsed_ms = start.elapsed().as_millis(),
+        "Got all receipts from Pulsar"
+    );
 
     Ok(())
 }
