@@ -10,6 +10,10 @@ homepage = "https://www.hook0.com/"
 repository = "https://github.com/hook0/hook0"
 readme = "README.md"
 
+[package.metadata.release]
+release = true
+publish = true
+
 [[bin]]
 name = "hook0-mcp"
 path = "src/main.rs"
