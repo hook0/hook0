@@ -2885,7 +2885,7 @@ dependencies = [
 
 [[package]]
 name = "hook0-api"
-version = "1.0.0-alpha.3"
+version = "1.0.0"
 dependencies = [
  "actix-cors",
  "actix-files",
@@ -2941,7 +2941,7 @@ dependencies = [
 
 [[package]]
 name = "hook0-cli"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -3025,7 +3025,7 @@ dependencies = [
 
 [[package]]
 name = "hook0-output-worker"
-version = "1.0.0-alpha.3"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "aws-sdk-s3",
@@ -3057,7 +3057,7 @@ dependencies = [
 
 [[package]]
 name = "hook0-play"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "aes-gcm",
  "anyhow",

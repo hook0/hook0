@@ -1,0 +1,152 @@
+# Hook0 MCP server release flow.
+# Tag convention: mcp/vX.Y.Z (see adr/0004-monorepo-tag-convention.md)
+# Legacy tag hook0-mcp-v1.0.0 is preserved untouched (see ADR).
+
+.mcp-release-rules:
+  extends: .release-globals
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^mcp\/v\d+\.\d+\.\d+(-(?:alpha|beta|rc)(?:\.\d+)?)?$/
+
+# --- Manual triggers ---
+
+mcp:patch:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh mcp patch
+
+mcp:minor:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh mcp minor
+
+mcp:major:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh mcp major
+
+# --- Tag pipeline ---
+
+mcp.verify-version:
+  extends: .mcp-release-rules
+  stage: build
+  image: alpine:$ALPINE_VERSION
+  script:
+    - |
+      TAG_VERSION="${CI_COMMIT_TAG#mcp/v}"
+      MCP_VERSION=$(grep '^version = ' clients/mcp/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+      echo "Tag version: $TAG_VERSION"
+      echo "MCP version: $MCP_VERSION"
+      if [ "$TAG_VERSION" != "$MCP_VERSION" ]; then
+        echo "ERROR: clients/mcp/Cargo.toml ($MCP_VERSION) does not match tag ($TAG_VERSION)"
+        exit 1
+      fi
+      echo "Version check passed: mcp at $TAG_VERSION"
+
+mcp.build:
+  extends:
+    - .mcp-release-rules
+    - .release-build-rust
+  needs:
+    - job: mcp.verify-version
+  variables:
+    TARGET: x86_64-unknown-linux-gnu
+    CROSS_DEPS: ""
+  script:
+    - mkdir -p artifacts
+    - cargo build --release --package hook0-mcp --target $TARGET
+    - cp target/$TARGET/release/hook0-mcp artifacts/hook0-mcp-linux-amd64
+
+mcp.extract-notes:
+  extends: .mcp-release-rules
+  stage: build
+  image: alpine:$ALPINE_VERSION
+  variables:
+    GIT_DEPTH: "0"
+  before_script:
+    - apk add --no-cache curl git
+    - curl -L https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-musl.tar.gz | tar xz
+    - mv git-cliff-*/git-cliff /usr/local/bin/
+  script:
+    - mkdir -p artifacts
+    - git-cliff
+        --include-path 'clients/mcp/**'
+        --tag-pattern '^mcp/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'
+        --current
+        --strip header
+        > artifacts/RELEASE_NOTES.md
+    - |
+      cat >> artifacts/RELEASE_NOTES.md <<EOF
+
+      ## Install
+
+      \`\`\`bash
+      cargo install hook0-mcp@${CI_COMMIT_TAG#mcp/v}
+      \`\`\`
+      EOF
+    - cat artifacts/RELEASE_NOTES.md
+  artifacts:
+    paths:
+      - artifacts/RELEASE_NOTES.md
+    expire_in: 1 week
+
+mcp.publish:
+  extends: .mcp-release-rules
+  stage: release
+  image: rust:$RUST_VERSION
+  needs:
+    - job: mcp.build
+      artifacts: true
+    - job: client.mcp.check
+      artifacts: false
+  script:
+    - cd clients/mcp
+    - cargo publish --token "$CARGO_REGISTRY_TOKEN"
+
+mcp.github:
+  extends: .mcp-release-rules
+  stage: release
+  image: alpine:$ALPINE_VERSION
+  needs:
+    - job: mcp.extract-notes
+      artifacts: true
+    - job: mcp.build
+      artifacts: true
+    - job: mcp.publish
+  variables:
+    GH_TOKEN: $GITHUB_TOKEN
+  before_script:
+    - apk add --no-cache github-cli
+  script:
+    - gh release create "$CI_COMMIT_TAG"
+        --repo "$GITHUB_REPO"
+        --title "$CI_COMMIT_TAG"
+        --notes-file artifacts/RELEASE_NOTES.md
+        artifacts/hook0-mcp-linux-amd64
+
+mcp.gitlab:
+  extends: .mcp-release-rules
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: mcp.extract-notes
+      artifacts: true
+    - job: mcp.build
+      artifacts: true
+    - job: mcp.publish
+  script:
+    - apk --no-cache add curl
+    - export VERSION="${CI_COMMIT_TAG#mcp/v}"
+    - |
+      curl --fail --silent --show-error \
+        --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        --upload-file "artifacts/hook0-mcp-linux-amd64" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0-mcp/${VERSION}/hook0-mcp-linux-amd64"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: "$CI_COMMIT_TAG"
+    description: "./artifacts/RELEASE_NOTES.md"
+    assets:
+      links:
+        - name: "hook0-mcp-linux-amd64"
+          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0-mcp/${CI_COMMIT_TAG}/hook0-mcp-linux-amd64"
+          link_type: "package"

@@ -1,6 +1,6 @@
 [package]
 name = "hook0-cli"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 license = "SSPL-1.0"
 description = "CLI for Hook0 webhooks platform"
