@@ -1,3 +1,669 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [api/v1.0.1] - 2026-05-09
+
+### Added
+
+- Create API project
+- Add DB connection
+- Add OpenAPI doc generation
+- Add routes
+- Add CRUD handlers for applications
+- Use crate name as app name when connecting to PG
+- Add event_types endpoints
+- Put API URLs inside /api/
+- Serve webapp
+- Add application_secrets endpoints
+- Add endpoints to see events
+- Add event ingestion endpoint
+- Rewrite Sentry integration & use it in both apps
+- Feat
+- Add authentication for application endpoints
+- Add authentication for every endpoint that should require it
+- Add endpoint to list organizations
+- Add subscriptions endpoints
+- Error management + swagger-ui
+- Add request attempts endpoint
+- Allow to filter request attempts
+- Add responses endpoint
+- Add organization metadata in database
+- Enable auto DB migration by default
+- Improve JWT claims extraction & update dependencies
+- Allow authentication using both JWT or application secret
+- Improve auth module to better handle event ingestion
+- Add a registration endpoint
+- Allow to disable registration
+- Add API rate limiting
+- Expose instance config
+- Cors
+- Add input validation infrastructure
+- Add input validators
+- Check max length of input strings
+- Return JSON body parsing errors as Hook0 problems
+- Add more validators
+- Require front client ID to be set and expose it
+- Add a secure extractor for user's IP
+- Allow to configure CORS allowed origins
+- Add multiple rate limiters
+- Add an endpoint to list organization's users
+- Add endpoints to invite or remove users from organizations
+- Add an endpoint to create an organization
+- Add a created_by field for organizations
+- Add an endpoint to edit organizations
+- Switch API spec from OpenAPI v2 to v3
+- Add an endpoint to remove an organization
+- Improve the way event playload content types are handled
+- Add an endpoint to get a subscription
+- Expose application_id in subscriptions endpoints
+- Allow to not serve web app (api)
+- Initialize a Hook0 client in Hook0 API
+- Implement Hook0 client for some events
+- Implement Hook0 client for more events
+- Support the new way of handling payload content in events
+- Implement Hook0 client for more events
+- Upsert Hook0 client event types on startup
+- Improve labels of Hook0 events
+- Implement Hook0 client for more events
+- Implement Hook0 client for more events
+- Add user info in Sentry reports
+- Publish openapi to readme.io (api)
+- User must provide a password when registering (api)
+- Add options to allow Sentry to trace and profile transactions
+- Add Sentry middleware for Actix Web
+- Add a Cargo feature to use rustls-native-certs for outgoing HTTPS requests
+- Add server in OpenAPI spec (api)
+- Declare application secret authentication in OpenAPI (api)
+- Add quotas (api)
+- Allow fetching quotas to use transactions
+- Enforce some quotas
+- Add a second name to plans for user-facing display
+- Allow to disable pricing
+- Add dedicated workers
+- Allow to configure a master API key (api)
+- Allow to set default organization workers
+- Enforce events per day quota (api)
+- Check that subscriptions target URLs are valid (api)
+- Add health check endpoint (api)
+- Clean up old events (api)
+- Backup events per day before cleaning up and do some housekeeping after (api)
+- Only run housekeeping operations after actual data was deleted because of retention policy (api)
+- Add secured headers / HSTS with configuration (api)
+- Betters named give to configuration / enable by default the HSTS (api)
+- Init (api)
+- Add module for send some mails with template made in mjml (api)
+- #20 upgrade mails semantics / add reset password mail (api)
+- #20 upgrade variable system of each mail / add a new template (welcome) (api)
+- #20 remove subject field from Mails enum (api)
+- #20 add conversion for html to text (api)
+- Support SMTP authentication (api)
+- Some little updates (api)
+- IAM v2
+- IAM v2
+- Add mailer (api)
+- Implement module for email verification with mailer to send a mail (api)
+- Add /auth/verify-email process (not finished) (api)
+- Finished the part for email verification (api)
+- Implement "Forgot Password" + "Password Reset" + "Change Password" features (api)
+- Add email_logo_url config used for replace variable { $logo_url } in mail template (api)
+- Add route for get information about only one service token (api)
+- Add migration to replay an event (migrations)
+- Add possibility to replay an event when he's already consume in the past (api/frontend)
+- Add authorizer MAX_AUTHORIZATION_TIME_IN_MS config (api)
+- Add comment and constant for MAX_DURATION_TIME_IN_MS (api)
+- Make email case insensitive and return a proper error when registering with an already registered email (api)
+- Clean all unverfied users (api)
+- Prepare application secrets deprecation and hide service token UIs
+- Improve emails (api)
+- Change HSTS max age to 2 years (api)
+- Improve emails (api)
+- Add a security header (api)
+- Update api keywords (api)
+- Delete unreachable organizations (api)
+- Only clean up empty organizations (api)
+- Vacuum, analyze and reindex after unverified users cleanup (api)
+- Update dependencies
+- Add a system for revokate token of users when password changes (frontend/api)
+- Limit number of event types and subscriptions by application on the plans (#61) (frontend/api)
+- Add an index (api)
+- Feat(api)
+- Add tutorial's wizard in application dashboard (api/frontend)
+- Add Matomo integration (frontend)
+- Implement AuthEmailNotVerified problem (#68) (api)
+- Add routes for exposing default quotas (#61) (api)
+- Start impleting change user role in organization (api/frontend)
+- Send email when events per days quota reached (api)
+- Implement consumption (api)
+- Allow to whitelist trusted reverse proxies using CIDR IPs (api)
+- Support user IP extraction when behind Cloudflare (api)
+- Add support email adress to configuration field (api)
+- Add a default value for support email address (api)
+- Add Cloudflare Turnstile on registration form
+- Add pagination on the request attempts endpoint (api)
+- Add pagination on the request attempts endpoint (api)
+- Improve OpenAPI documentation for paginated responses (api)
+- Allow to extract profiling information (api)
+- Add a Pulsar-based worker mode
+- Improve health check (api)
+- Use protobuf to serialize request attempts transported by Pulsar
+- Prevent housekeeping tasks from running concurrently (api)
+- Add a timeout on materialized views refresh (api)
+- Allow to continue starting without Pulsar connection (api)
+- Improve housekeeping (api)
+- Add support for storing events' payload in object storage
+- Allow to configure health check timeout (api)
+- Enable retries in object storage client
+- Improve log message when finding orphan applications in object storage (api)
+- Add support for storing responses' body and headers in object storage
+- Allow to configure DB statement timeout (api)
+- Allow to configure maximum number of attempts for object storage operations
+- Marks subscription as failed when disabling/deleting a subscription or deleting and application.
+- Add OTLP metrics/traces support (api)
+- Report span when refreshing materialized views (api)
+- Track size of rate limiters (api)
+- Add event type filter and response to request attempts endpoint (api)
+- Add GET /api/v1/environments endpoint (api)
+- Add Hook0 MCP server for AI assistant integration (mcp)
+- Add comprehensive GitLab CI release automation workflow with version management and changelog generation
+- Add metrics related to events ingestion (api)
+- Use latest behavior of S3 client
+- Add timeouts to object storage operations
+- Improve token rate limiter (api)
+- Improve S3 errors messages
+- Migrate Rust loggers from log to tracing
+- Improve log messages (output-worker)
+- Make Sentry SDK debug mode OFF by default
+- Allow to configure sending default PII to Sentry
+- Allow to configure sending spans to Sentry
+- Add sdk release workflow with manual triggers (release)
+- Add organization/application consumption
+- Add updated_at timestamp to subscription API responses (api)
+- Add hook0 CLI with full API coverage (cli)
+- Add http_response_status to RequestAttempt list query (api)
+- Add GET /request_attempts/:id endpoint (api)
+- Make event ID optional and use UUIDv7 in big tables
+- Add concurrency and configurable timeouts to object storage cleanup (api)
+- Improve health check (api)
+- Per-package release flow + monorepo tag convention (ci)
+
+### Breaking Changes
+
+- Edit info! for dbg! (auth.rs) + remove useless .clone (api)
+
+### Build
+
+- Use SQLx in offline mode
+- Fix warning (api)
+
+### CI/CD
+
+- Split rust job
+- Fix jobs restricted to master branch
+- Check frontend & avoid downloading previous artifacts if not necessary
+- Update Clever Cloud Pipeline component
+- Update deployment component
+- Update readme CLI
+- Fix change rule
+- Fix publishing of API documentation (api)
+- Remove useless job & fix stages (documentation)
+- Allow release jobs to run with alpha/beta/rc versions
+- Validate Dockerfile workspace coverage and migrate play.docker to BuildKit
+
+### Changed
+
+- Sort dependencies
+- Fix indentation
+- Use sqlx DB migrations
+- Fix
+- Reformat imports
+- Improve queries formatting
+- Use a Hook0Problem to report user-facing errors
+- Use strum to implement Display
+- Fix
+- Log sqlx error messages
+- Create a service to use Keycloak API
+- Rephrase
+- Improve naming
+- Use validator wherever possible for the event ingestion endpoint
+- Separate user IP generic middleware from extractor
+- Rename middleware
+- Remove useless default config value
+- Cors allowed headers
+- Allow Role type in responses
+- Rename types and endpoints
+- Remove useless exception
+- Add a price table (api)
+- Fix typo (api)
+- Old events cleanup (api)
+- Mailer (api)
+- Improve a lot of things (api)
+- Run cargo fmt (api)
+- Improve a lot of things (api)
+- Improve a lot of things (api)
+- Run cargo fmt (api)
+- Clean up unverified users (api)
+- Add semver checks in CI, fixes #48 (repo)
+- Run cargo fmt (api)
+- Apply suggestions from David's review
+- Refactor(api)
+- Fix Dockerfile warnings
+- Style(api)
+- Edit the datas management (org & app stats -> onboarding_steps (api/frontend)
+- Make more performant the sql request for organization onboardingsteps (api/frontend)
+- Put onboarding logic in its own modules
+- Check if the password is correct before checking if the user's email is verified (api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- Refactor(api)
+- User IP detection (api)
+- Minor improvements
+- Cloudflare Turnstile integration
+- Metadata and labels validation
+- Remove unnecessary boxing (api)
+- Minor improvements
+- Remove Actix as a direct dependency (api)
+- Improve pulsar health check (api)
+- Merge conditional SQL queries into a unique one (api)
+- Improve logs related to object storage operations (api)
+- Variable name (api)
+- Improve metric name (api)
+- Remove dbg (api)
+- Improve error messages related to object storage
+- Improve endpoint metadata (api)
+- Token expiration query on password change (api)
+
+### Documentation
+
+- Update .env and readme
+- Add warnings to some organizations-related endpoints
+- Improve configuration docs (api)
+- Add description to service_token (api)
+- Add description (api)
+- Add/improve endpoint descriptions (api)
+- Fix OpenAPI schema for Target (api)
+- Update technical detail from openApi documentation (api)
+
+### Fixed
+
+- Default webapp path
+- Do not return application_id when provided in input
+- Typo
+- Building workspace
+- Regen sqlx offline data
+- Add missing auth middleware
+- Remove double underscores from public entities
+- Remove tests
+- Remove unused imports
+- Implement From instead of Into
+- Application create
+- Regen sqlx offline data
+- Upgrade cargo version
+- API documentation
+- Add license
+- Cargo warning
+- Remove a natural join
+- Warning
+- Regen sqlx offline data
+- Regen sqlx offline data
+- Regen sqlx offline data
+- HTTP methods and webhook response errors must be uppercase
+- Problem's details consistency
+- Event dispatch
+- Warning
+- Cors
+- Typo
+- API docs ordering
+- Log
+- User IP detection
+- Cors
+- Warnings
+- Warnings
+- Typo
+- Do not allow soft-deleted application secrets for authentication
+- Do not list soft-deleted application secrets through API
+- Backward-compatible change to make application_id optional
+- Fix sql unwrap issue (api)
+- Fix sqlx (api)
+- Allow API paths to have a final slash
+- Regen sqlx offline data
+- Allow to soft delete subscriptions
+- Event type primary key
+- Display a proper error when creating a duplicate event type (api)
+- Logic issue related to dedicated workers (api)
+- Disable jobs when on schedule (gitlab-ci)
+- Remove deprecated only/except & replace with rules (gitlab-ci)
+- Warning (api)
+- Quota limits calculation (api)
+- Rare dispatch issue (api)
+- Do not require metadata field when updating a subscription (api)
+- Get subgroups on recent Keycloak versions (api)
+- Remove useless check (api)
+- Regen sqlx offline data
+- Dispatch issue (api)
+- Better display frontend errors (frontend)
+- Fix(ci)
+- Removed domain url to app_url and api_url (they can be different) (api)
+- Return HTTP error (api)
+- Add expiration for the email verification token (api)
+- Unsupported DateTime in biscuit auth. Replaced by SystemTime (api)
+- Removed get method in route /api/v1/auth/verify-email (api)
+- Convert Option<String> to String because he is useless (api)
+- Add AND email_verified_at IS NULL in UPDATE iam.user (api)
+- Little modification for adding dbg when token verification failed (authorize_email_verification) (api)
+- Remove useless impl error (api)
+- Rename some part of verify_email struct and argument (api)
+- Split reset password process to begin-reset-password / reset-password (api)
+- Fix logo_url variable (api)
+- Remove unused biscuit token from ChangePasswordPost body (already get by ReqData<Biscuit>) (api)
+- Change message when email sending failed. More user-friendly (need to check with @dsferruzza if we remove the detail to user and only warn and alert our team ??) (api)
+- Replace default logo url (api)
+- Some fixes (api)
+- Prepare to remove application_secret__token from events (api)
+- Fix organization's viewers can't see right now the services tokens and api keys (api)
+- Fix organization's viewers can't see right now the services tokens and api keys (api)
+- David's thread fix (api/frontend)
+- Prepare sqlx modified request (migration)
+- David comment's fix (api)
+- Sqlx prepare (api)
+- Add config to enable or not keycloack migration and service tokens (api)
+- David comment's fix (api)
+- Pipeline fix (api)
+- Pipeline fix (api)
+- Some fixes (api)
+- Sqlx prepare fix (api)
+- Reject revoked application secrets (api)
+- Automate output-worker deploy to clever (ci)
+- Unverified users config (api)
+- Replace deprecated reqwest feature
+- Docker deployment
+- Weird routing behavior when 'application-secret-compatibility' feature is disabled (api)
+- Remove wrong ignores
+- Unhandled event type errors (api)
+- Return a 404 response when organization does not exist (api)
+- Import from Keyclaok when an organization was removed (api)
+- Display an error when constraint (user__organization_pkey) violated
+- Remove useless warning
+- Fixes FEATURES build arg scope for API Dockerfile (docker)
+- Concurrent builds with cache (docker)
+- Update the RUST_VERSION argument to 1.83.0 (last stable rust docker image)
+- #57
+- Cargo fmt
+- Password display on validation error #57
+- Password min length while login (api)
+- Cargo fmt (api)
+- Cargo fmt (#61) (api)
+- Cargo sqlx prepare (#61) (api)
+- Default quota value (api)
+- Subscriptions and event types quotas (api)
+- Subscriptions and event types quotas (api)
+- Never delete unreachable organizations that have a plan (api)
+- Cargo sqlx prepare (api)
+- Remove deleted event_type & subscription from orga & app statistics (api)
+- Cargo sqlx prepare (api)
+- Error when organization does not have any application (api)
+- Remove trailing slash in Matomo URL (api)
+- Do not allow current user to change his role (api)
+- Add the real default quota (api)
+- Remove index drop (already droped by drop table) (api)
+- Fix email link (api)
+- IPv6 support (api)
+- Fix openapi typ (api)
+- Internal server error (api)
+- Better validate custom headers in subscriptions (api)
+- Computation of organization consumption (api)
+- Do not block organization deletion that contain soft-deleted applications (api)
+- Missing OpenAPI documentation for paginated responses (api)
+- Invalid OpenAPI documentation for paginated responses (api)
+- Do regular housekeeping on rate limiters (api)
+- Regen sqlx offline data
+- Index name (api)
+- Removing dangling responses (api)
+- Regen sqlx offline data
+- Replaying events with a pulsar worker (api)
+- Add protoc and protobuf mount to Docker build (api,output-worker)
+- Timeout for refreshing materialized views (api)
+- Object storage cleanup with deleted applications (api)
+- Use housekeeping DB pool to refresh materialized views (api)
+- Cargo fmt (api)
+- Delete a sql request (api)
+- Add missing sqlx files (ci)
+- Address MR review feedback for environment_variables endpoint (api)
+- Environment variables groups (api)
+- Server URL in API reference (documentation)
+- Typos (api)
+- TLS crypto provider
+- Warning in response endpoint (api)
+- Switch release containers from docker:dind to BuildKit rootless (ci)
+- Remove duplicate rate limiter (api)
+- Improve object storage cleanup task (api)
+- Add ca-certificates to Dockerfile (api)
+- Add mcp tag to request_attempt.get endpoint (api)
+- Ensure request attempts cannot be both succeeded and failed
+- Race condition when disabling/removing subscription/application (api)
+- Make sure Pulsar messages are ACKed by the broker
+
+### Other
+
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Rename crates
+- Update dependencies
+- Update dependencies
+- Add TODO
+- Update dependencies
+- Update dependencies
+- Chore(ignore)
+- Migrate to actix-web 4
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update to Rust 2021 edition
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update actix-governor
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Trigger recompilation when a new migration is added
+- Improve debug compile time
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Add a comment on a table
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Remove support of Sentry profiling
+- Update dependencies
+- Update dependencies
+- Remove useless folder
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Add editorconfig and clevercloud deploy (ci)
+- Remove dead code (api)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Remove keycloak deps (docker)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Remove useless comments (api)
+- Update dependencies
+- Update dependencies
+- Enable only necessary features for Hook0 client (api)
+- Update dependencies
+- Update to Rust Edition 2024
+- Update dependencies & improve mailer
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Remove migrate-users-from-keycloak from default features (api)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Add log messages (api)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies & fix Dockerfiles
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Remove automatic reindexing from housekeeping tasks (api)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update to reqwest 0.13
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update to Rust 1.94
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+
+### Performance
+
+- Add an index on event table (api)
+- Add an index in request attempt table (api)
+- Add indexes to improve performances of picking request attempts (output-worker)
+- Add index to improve performance of picking request attempts (output-worker)
+- Use jemalloc (api)
+- Disable authorizer context log message by default (api)
+- Avoid re-deriving Biscuit public key on each request (api)
+- Add indexes (api)
+- Allow to avoid reindexing big tables (api)
+- Add various indexes (api)
+- Change type of request attempt created_at index
+- Improve a slow query (api)
+- Avoid manually reindexing tables (api)
+- Reduce scope of events per day materialized view (api)
+- Add application ID to request_attempt table
+- Improve request attempts listing endpoint (api)
+- Properly run blocking Argon2 operations (api)
+- Split queue (output-worker)
+- Wait for all Pulsar ACKs after sending all messages instead of one by one (api)
+
+### Testing
+
+- HTTP target deserialization (api)
+
 # Changelog — api
 
 All notable changes to the Hook0 API are documented here.
