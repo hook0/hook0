@@ -21,7 +21,7 @@ actix-web = "4.13.0"
 anyhow = "1.0.102"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
-aws-sdk-s3 = { version = "1.131.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.132.0", features = ["behavior-version-latest"] }
 base64 = "0.22.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.44", features = ["serde"] }
@@ -41,21 +41,21 @@ lettre = { version = "0.11.21", default-features = false, features = ["builder",
 tracing = "0.1.44"
 tracing-actix-web = "0.7.21"
 mrml = "6.0.1"
-opentelemetry = { version = "0.31.0", default-features = false, features = ["trace", "metrics"] }
-opentelemetry-otlp = { version = "0.31.1", default-features = false, features = ["trace", "metrics", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls-webpki-roots"] }
-opentelemetry_sdk = { version = "0.31.0", default-features = false, features = ["trace", "metrics", "rt-tokio", "spec_unstable_metrics_views"] }
+opentelemetry = { version = "0.32.0", default-features = false, features = ["trace", "metrics"] }
+opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls"] }
+opentelemetry_sdk = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "rt-tokio", "spec_unstable_metrics_views"] }
 paperclip = { version = "0.9.7", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
 pulsar = { version = "6.7.2", default-features = false, features = ["tokio-rustls-runtime"] }
 regex = "1.12.3"
 reqwest = { version = "0.13.3", features = ["hickory-dns", "form"] }
 rustls = { version = "0.23.40", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
-sentry-actix = "0.48.0"
+sentry-actix = "0.48.1"
 serde = "1.0.228"
 serde_json = "1.0.149"
 sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
 strum = { version = "0.28.0", features = ["derive"] }
 thiserror = "2.0.18"
-tokio = { version = "1.52.1" }
+tokio = { version = "1.52.3" }
 url = "2.5.8"
 uuid = { version = "1.23.1", features = ["serde", "v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }
