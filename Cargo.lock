@@ -3039,7 +3039,7 @@ dependencies = [
 
 [[package]]
 name = "hook0-output-worker"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "aws-sdk-s3",
