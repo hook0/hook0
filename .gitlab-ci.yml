@@ -33,7 +33,13 @@ include:
   - template: DAST.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
   - local: "api/.gitlab-ci.yml"
-  - local: "ci/release.gitlab-ci.yml"
+  - local: "ci/release-common.gitlab-ci.yml"
+  - local: "ci/release-api.gitlab-ci.yml"
+  - local: "ci/release-output-worker.gitlab-ci.yml"
+  - local: "ci/release-cli.gitlab-ci.yml"
+  - local: "ci/release-play.gitlab-ci.yml"
+  - local: "ci/release-frontend.gitlab-ci.yml"
+  - local: "ci/release-mcp.gitlab-ci.yml"
   - local: "ci/release-sdk.gitlab-ci.yml"
   - local: "ci/semver-checks.gitlab-ci.yml"
   - local: "ci/rust-cache.gitlab-ci.yml"
