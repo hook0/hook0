@@ -29,7 +29,7 @@ mcp:major:
 mcp.verify-version:
   extends: .mcp-release-rules
   stage: build
-  image: alpine:$ALPINE_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/alpine:$ALPINE_VERSION
   script:
     - |
       TAG_VERSION="${CI_COMMIT_TAG#mcp/v}"
@@ -59,7 +59,7 @@ mcp.release-build:
 mcp.extract-notes:
   extends: .mcp-release-rules
   stage: build
-  image: alpine:$ALPINE_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/alpine:$ALPINE_VERSION
   variables:
     GIT_DEPTH: "0"
   before_script:
@@ -92,7 +92,7 @@ mcp.extract-notes:
 mcp.publish:
   extends: .mcp-release-rules
   stage: release
-  image: rust:$RUST_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/rust:$RUST_VERSION
   needs:
     - job: mcp.release-build
       artifacts: true
@@ -105,7 +105,7 @@ mcp.publish:
 mcp.github:
   extends: .mcp-release-rules
   stage: release
-  image: alpine:$ALPINE_VERSION
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/alpine:$ALPINE_VERSION
   needs:
     - job: mcp.extract-notes
       artifacts: true
