@@ -31,7 +31,7 @@ dialoguer = "0.12"
 dirs = "6.0"
 futures-util = "0.3"
 indicatif = "0.18"
-keyring = { version = "3.6" }
+keyring-core = "1"
 portpicker = { version = "0.1", optional = true }
 rand = "0.10"
 ratatui = { version = "0.30", optional = true }
@@ -64,13 +64,13 @@ tokio-test = "0.4"
 wiremock = "0.6"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-keyring = { version = "3.6", features = ["apple-native"] }
+apple-native-keyring-store = { version = "1", features = ["keychain"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-keyring = { version = "3.6", features = ["windows-native"] }
+windows-native-keyring-store = "1"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-keyring = { version = "3.6", features = ["linux-native"] }
+linux-keyutils-keyring-store = "1"
 
 [[bin]]
 name = "hook0"
