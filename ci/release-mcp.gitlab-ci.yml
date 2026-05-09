@@ -42,7 +42,7 @@ mcp.verify-version:
       fi
       echo "Version check passed: mcp at $TAG_VERSION"
 
-mcp.build:
+mcp.release-build:
   extends:
     - .mcp-release-rules
     - .release-build-rust
@@ -94,7 +94,7 @@ mcp.publish:
   stage: release
   image: rust:$RUST_VERSION
   needs:
-    - job: mcp.build
+    - job: mcp.release-build
       artifacts: true
     - job: client.mcp.check
       artifacts: false
@@ -109,7 +109,7 @@ mcp.github:
   needs:
     - job: mcp.extract-notes
       artifacts: true
-    - job: mcp.build
+    - job: mcp.release-build
       artifacts: true
     - job: mcp.publish
   variables:
@@ -130,7 +130,7 @@ mcp.gitlab:
   needs:
     - job: mcp.extract-notes
       artifacts: true
-    - job: mcp.build
+    - job: mcp.release-build
       artifacts: true
     - job: mcp.publish
   script:
