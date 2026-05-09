@@ -1,0 +1,80 @@
+# Shared release templates
+# See adr/0004-monorepo-tag-convention.md for the per-package tag convention.
+
+# Manual trigger template — each package extends this and supplies its own
+# `script:` line that calls `./ci/pre-release.sh <package> <patch|minor|major>`.
+.release-trigger:
+  stage: trigger-release
+  image: rust:$RUST_VERSION
+  allow_failure: false
+  dependencies: []
+  variables:
+    GIT_DEPTH: "0"
+    GIT_LFS_SKIP_SMUDGE: "1"
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: manual
+  before_script:
+    - apt-get update && apt-get install -y jq
+    - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+    - cargo binstall cargo-release --version ${CARGO_RELEASE_VERSION} --no-confirm
+    - curl -L https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz | tar xz
+    - mv git-cliff-*/git-cliff /usr/local/bin/
+    - git config user.email "ci@hook0.com"
+    - git config user.name "Hook0 CI"
+    - git remote set-url origin "https://oauth2:${GITLAB_RELEASE_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git"
+    - git config core.hooksPath /dev/null
+    - git fetch --tags origin $CI_COMMIT_REF_NAME
+    - git checkout $CI_COMMIT_REF_NAME
+    - git reset --hard origin/$CI_COMMIT_REF_NAME
+    - git clean -ffdx
+
+# Rust release-build template — used by api, output-worker, mcp.
+# Subclasses must set TARGET, CARGO_PACKAGE, ARTIFACT_NAME and supply the
+# protoc/cross-deps install in their before_script if needed.
+.release-build-rust:
+  extends: .rust-cache-pull-only
+  stage: build
+  image: rust:$RUST_VERSION
+  timeout: 3h
+  variables:
+    SQLX_OFFLINE: "true"
+  before_script:
+    - rustup target add $TARGET
+    - apt-get update && apt-get install -y cmake $CROSS_DEPS
+  artifacts:
+    paths:
+      - artifacts/
+    expire_in: 1 week
+
+# BuildKit rootless multi-registry container push template.
+# Subclasses set DOCKER_IMAGE_NAMES (comma-separated list of "name:tag") and
+# point context/dockerfile via variables.
+.release-container:
+  stage: release
+  image:
+    name: moby/buildkit:$BUILDKIT_VERSION
+    entrypoint: ["sh", "-c"]
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+    DOCKERHUB_PREFIX: "hook0"
+    GHCR_PREFIX: "ghcr.io/hook0"
+  before_script:
+    - mkdir -p ~/.docker
+    - |
+      echo "{\"auths\":{
+        \"$CI_REGISTRY\":{\"auth\":\"$(printf '%s' "$CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD" | base64 | tr -d '\n')\"},
+        \"https://index.docker.io/v1/\":{\"auth\":\"$(printf '%s' "$DOCKERHUB_USERNAME:$DOCKERHUB_TOKEN" | base64 | tr -d '\n')\"},
+        \"ghcr.io\":{\"auth\":\"$(printf '%s' "$GITHUB_USERNAME:$GITHUB_TOKEN" | base64 | tr -d '\n')\"}
+      }}" > ~/.docker/config.json
+  after_script:
+    - rm -f ~/.docker/config.json
+
+# Common variables for every release flow (DockerHub/GHCR prefixes, GitHub repo).
+.release-globals:
+  variables:
+    DOCKERHUB_PREFIX: "hook0"
+    GHCR_PREFIX: "ghcr.io/hook0"
+    GITHUB_REPO: "hook0/hook0"

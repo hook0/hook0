@@ -91,7 +91,7 @@ cli.check:
       - dist/
     expire_in: 1 week
   rules:
-    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_TAG =~ /^cli\/v\d+\.\d+\.\d+(-(?:alpha|beta|rc)(?:\.\d+)?)?$/
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 cli.build:linux-amd64:
@@ -122,9 +122,8 @@ cli.build:darwin-amd64:
     SUFFIX: ""
     ARTIFACT_NAME: darwin-amd64
   rules:
-    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_TAG =~ /^cli\/v\d+\.\d+\.\d+(-(?:alpha|beta|rc)(?:\.\d+)?)?$/
       when: manual
-      allow_failure: true
 
 cli.build:darwin-arm64:
   extends: .cli-build-template
@@ -135,9 +134,8 @@ cli.build:darwin-arm64:
     SUFFIX: ""
     ARTIFACT_NAME: darwin-arm64
   rules:
-    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_TAG =~ /^cli\/v\d+\.\d+\.\d+(-(?:alpha|beta|rc)(?:\.\d+)?)?$/
       when: manual
-      allow_failure: true
 
 cli.build:windows-amd64:
   extends: .cli-build-template

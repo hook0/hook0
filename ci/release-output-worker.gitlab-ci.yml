@@ -1,0 +1,165 @@
+# Hook0 Output Worker release flow.
+# Tag convention: output-worker/vX.Y.Z (see adr/0004-monorepo-tag-convention.md)
+
+.output-worker-release-rules:
+  extends: .release-globals
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^output-worker\/v\d+\.\d+\.\d+(-(?:alpha|beta|rc)(?:\.\d+)?)?$/
+
+# --- Manual triggers ---
+
+output-worker:patch:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh output-worker patch
+
+output-worker:minor:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh output-worker minor
+
+output-worker:major:
+  extends: .release-trigger
+  script:
+    - ./ci/pre-release.sh output-worker major
+
+# --- Tag pipeline ---
+
+output-worker.verify-version:
+  extends: .output-worker-release-rules
+  stage: build
+  image: alpine:$ALPINE_VERSION
+  before_script:
+    - apk add --no-cache jq
+  script:
+    - |
+      TAG_VERSION="${CI_COMMIT_TAG#output-worker/v}"
+      WORKER_VERSION=$(grep '^version = ' output-worker/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+      echo "Tag version:    $TAG_VERSION"
+      echo "Worker version: $WORKER_VERSION"
+      if [ "$TAG_VERSION" != "$WORKER_VERSION" ]; then
+        echo "ERROR: output-worker/Cargo.toml ($WORKER_VERSION) does not match tag ($TAG_VERSION)"
+        exit 1
+      fi
+      echo "Version check passed: output-worker at $TAG_VERSION"
+
+output-worker.build-amd64:
+  extends:
+    - .output-worker-release-rules
+    - .release-build-rust
+  needs:
+    - job: output-worker.verify-version
+  variables:
+    TARGET: x86_64-unknown-linux-gnu
+    CROSS_DEPS: ""
+  script:
+    - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip
+    - mkdir protoc && unzip protoc.zip -d protoc/
+    - export PROTOC="$(realpath ./protoc/bin/protoc)"
+    - mkdir -p artifacts
+    - cargo build --release --package hook0-output-worker --target $TARGET
+    - cp target/$TARGET/release/hook0-output-worker artifacts/hook0-output-worker-linux-amd64
+
+output-worker.extract-notes:
+  extends: .output-worker-release-rules
+  stage: build
+  image: alpine:$ALPINE_VERSION
+  variables:
+    GIT_DEPTH: "0"
+  before_script:
+    - apk add --no-cache curl git
+    - curl -L https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-musl.tar.gz | tar xz
+    - mv git-cliff-*/git-cliff /usr/local/bin/
+  script:
+    - mkdir -p artifacts
+    - git-cliff
+        --include-path 'output-worker/**'
+        --tag-pattern '^output-worker/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'
+        --current
+        --strip header
+        > artifacts/RELEASE_NOTES.md
+    - |
+      cat >> artifacts/RELEASE_NOTES.md <<EOF
+
+      ## Docker images
+
+      - \`hook0/hook0-output-worker:${CI_COMMIT_TAG#output-worker/v}\` (DockerHub)
+      - \`ghcr.io/hook0/hook0-output-worker:${CI_COMMIT_TAG#output-worker/v}\` (GHCR)
+      - \`registry.gitlab.com/hook0/hook0/hook0-output-worker:${CI_COMMIT_TAG#output-worker/v}\` (GitLab)
+      EOF
+    - cat artifacts/RELEASE_NOTES.md
+  artifacts:
+    paths:
+      - artifacts/RELEASE_NOTES.md
+    expire_in: 1 week
+
+output-worker.container:
+  extends:
+    - .output-worker-release-rules
+    - .release-container
+  needs:
+    - job: output-worker.build-amd64
+      artifacts: true
+    - job: output_worker.check
+      artifacts: false
+  script:
+    - export VERSION="${CI_COMMIT_TAG#output-worker/v}"
+    - mkdir -p build-context
+    - cp artifacts/hook0-output-worker-linux-amd64 build-context/
+    - cp output-worker/Dockerfile.release build-context/Dockerfile
+    - |
+      buildctl-daemonless.sh build \
+        --progress=plain \
+        --frontend dockerfile.v0 \
+        --opt platform=linux/amd64 \
+        --local context=build-context \
+        --local dockerfile=build-context \
+        --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-output-worker:$VERSION,$CI_REGISTRY_IMAGE/hook0-output-worker:latest,${DOCKERHUB_PREFIX}/hook0-output-worker:$VERSION,${DOCKERHUB_PREFIX}/hook0-output-worker:latest,${GHCR_PREFIX}/hook0-output-worker:$VERSION,${GHCR_PREFIX}/hook0-output-worker:latest\",push=true"
+
+output-worker.github:
+  extends: .output-worker-release-rules
+  stage: release
+  image: alpine:$ALPINE_VERSION
+  needs:
+    - job: output-worker.extract-notes
+      artifacts: true
+    - job: output-worker.build-amd64
+      artifacts: true
+    - job: output-worker.container
+  variables:
+    GH_TOKEN: $GITHUB_TOKEN
+  before_script:
+    - apk add --no-cache github-cli
+  script:
+    - gh release create "$CI_COMMIT_TAG"
+        --repo "$GITHUB_REPO"
+        --title "$CI_COMMIT_TAG"
+        --notes-file artifacts/RELEASE_NOTES.md
+        artifacts/hook0-output-worker-linux-amd64
+
+output-worker.gitlab:
+  extends: .output-worker-release-rules
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: output-worker.extract-notes
+      artifacts: true
+    - job: output-worker.build-amd64
+      artifacts: true
+    - job: output-worker.container
+  script:
+    - apk --no-cache add curl
+    - |
+      curl --fail --silent --show-error \
+        --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        --upload-file "artifacts/hook0-output-worker-linux-amd64" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0-output-worker/${CI_COMMIT_TAG#output-worker/v}/hook0-output-worker-linux-amd64"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: "$CI_COMMIT_TAG"
+    description: "./artifacts/RELEASE_NOTES.md"
+    assets:
+      links:
+        - name: "hook0-output-worker-linux-amd64"
+          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0-output-worker/${CI_COMMIT_TAG}/hook0-output-worker-linux-amd64"
+          link_type: "package"
