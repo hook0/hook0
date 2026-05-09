@@ -12,6 +12,12 @@
   # complete before becoming playable. Releases are user-driven, not gated on
   # deploy decisions.
   needs: []
+  # Serialize all release triggers across all packages: each one fetches master,
+  # bumps its version file, commits and pushes. Two parallel jobs would race on
+  # the master branch tip and the second one's `git push HEAD` would be rejected
+  # as non-fast-forward (which is exactly what happened on 2026-05-09 when six
+  # patch jobs were triggered together).
+  resource_group: release-master-push
   variables:
     GIT_DEPTH: "0"
     GIT_LFS_SKIP_SMUDGE: "1"
