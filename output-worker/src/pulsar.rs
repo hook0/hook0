@@ -50,7 +50,12 @@ enum PriorityPermit {
     Dynamic(OwnedSemaphorePermit),
 }
 
-type AckMessage = (MessageIdData, Option<PriorityPermit>, bool, bool); // (msg_id, permit, is_ok, is_lp)
+struct AckMessage {
+    msg_id: MessageIdData,
+    permit: Option<PriorityPermit>,
+    is_ok: bool,
+    is_lp: bool,
+}
 
 /// RAII guard that removes a `request_attempt__id` from the in-flight set on drop.
 /// Ensures the slot is released on every exit path of `handle_message`, including
@@ -476,7 +481,7 @@ pub async fn look_for_work(
                             {
                                 // If the request attempt handling failed, we NACK the message
                                 error!("Error while handling message: {e}");
-                                if let Err(e) = ack_tx_for_error.send((msg_id, None, false, error_is_lp)).await {
+                                if let Err(e) = ack_tx_for_error.send(AckMessage { msg_id, permit: None, is_ok: false, is_lp: error_is_lp }).await {
                                     error!("Could not send NACK for message (consumer likely restarting): {e}");
                                 }
                             }
@@ -581,7 +586,12 @@ async fn handle_message(
             if !in_flight.pin().insert(request_attempt_id) {
                 debug!(%request_attempt_id, is_lp, "Duplicate in-flight delivery; ACKing");
                 ack_tx
-                    .send((msg.message_id().clone(), Some(permit), true, is_lp))
+                    .send(AckMessage {
+                        msg_id: msg.message_id().clone(),
+                        permit: Some(permit),
+                        is_ok: true,
+                        is_lp,
+                    })
                     .await?;
                 Ok(())
             } else {
@@ -918,7 +928,12 @@ async fn handle_message(
                         end_request_attempt_span(span, &response);
 
                         ack_tx
-                            .send((msg.message_id().clone(), Some(permit), true, is_lp))
+                            .send(AckMessage {
+                                msg_id: msg.message_id().clone(),
+                                permit: Some(permit),
+                                is_ok: true,
+                                is_lp,
+                            })
                             .await?;
 
                         Ok(())
@@ -955,7 +970,12 @@ async fn handle_message(
                                 anyhow::Error::from(e)
                             })?;
                         ack_tx
-                            .send((msg.message_id().clone(), Some(permit), true, is_lp))
+                            .send(AckMessage {
+                                msg_id: msg.message_id().clone(),
+                                permit: Some(permit),
+                                is_ok: true,
+                                is_lp,
+                            })
                             .await?;
 
                         Ok(())
@@ -964,7 +984,12 @@ async fn handle_message(
                         stats.record_not_ready();
                         trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt was already done");
                         ack_tx
-                            .send((msg.message_id().clone(), Some(permit), true, is_lp))
+                            .send(AckMessage {
+                                msg_id: msg.message_id().clone(),
+                                permit: Some(permit),
+                                is_ok: true,
+                                is_lp,
+                            })
                             .await?;
 
                         Ok(())
@@ -973,7 +998,12 @@ async fn handle_message(
                         stats.record_not_ready();
                         trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt was cancelled");
                         ack_tx
-                            .send((msg.message_id().clone(), Some(permit), true, is_lp))
+                            .send(AckMessage {
+                                msg_id: msg.message_id().clone(),
+                                permit: Some(permit),
+                                is_ok: true,
+                                is_lp,
+                            })
                             .await?;
 
                         Ok(())
@@ -983,7 +1013,12 @@ async fn handle_message(
 
                         // Message is only ACKed and not republished into the right topic because the rightful worker is supposed to reload everything from the database when it first starts
                         ack_tx
-                            .send((msg.message_id().clone(), Some(permit), true, is_lp))
+                            .send(AckMessage {
+                                msg_id: msg.message_id().clone(),
+                                permit: Some(permit),
+                                is_ok: true,
+                                is_lp,
+                            })
                             .await?;
 
                         Ok(())
@@ -996,13 +1031,23 @@ async fn handle_message(
                             trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt not found in database; created recently, will retry later");
 
                             ack_tx
-                                .send((msg.message_id().clone(), Some(permit), false, is_lp))
+                                .send(AckMessage {
+                                    msg_id: msg.message_id().clone(),
+                                    permit: Some(permit),
+                                    is_ok: false,
+                                    is_lp,
+                                })
                                 .await?;
                         } else {
                             trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt not found in database; not recent, dropping");
 
                             ack_tx
-                                .send((msg.message_id().clone(), Some(permit), true, is_lp))
+                                .send(AckMessage {
+                                    msg_id: msg.message_id().clone(),
+                                    permit: Some(permit),
+                                    is_ok: true,
+                                    is_lp,
+                                })
                                 .await?;
                         }
 
@@ -1014,7 +1059,12 @@ async fn handle_message(
         Err(e) => {
             error!("Could not deserialize request attempt: {e}");
             ack_tx
-                .send((msg.message_id().clone(), Some(permit), false, is_lp))
+                .send(AckMessage {
+                    msg_id: msg.message_id().clone(),
+                    permit: Some(permit),
+                    is_ok: false,
+                    is_lp,
+                })
                 .await?;
 
             Ok(())
@@ -1029,7 +1079,12 @@ async fn dispatch_ack<T, E>(
     lp_consumer: &mut Consumer<T, E>,
     lp_topic: &str,
     heartbeat_tx: &Option<Sender<u16>>,
-    (msg_id, permit, is_ok, is_lp): AckMessage,
+    AckMessage {
+        msg_id,
+        permit,
+        is_ok,
+        is_lp,
+    }: AckMessage,
 ) -> Result<(), SendError<u16>>
 where
     T: DeserializeMessage,
