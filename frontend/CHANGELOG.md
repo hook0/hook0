@@ -1,3 +1,502 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [frontend/v1.0.1] - 2026-05-09
+
+### Added
+
+- Frontend
+- Feat
+- Improved frontend
+- Routing is working
+- Components
+- Application listing and application create
+- Error management + swagger-ui
+- Add organization metadata in database
+- Add support for working on another api environment
+- Add footer + universal button
+- Add Hook0Table and Hook0TableCellLink (frontend)
+- Application create, edit (frontend)
+- Organization crud
+- Complete organisation & application support + partial event_types support
+- Add support for event types deletion
+- Remove application and bug fixes
+- Support organization and application removal
+- Display problem as alert
+- Fill in default organization_id & application_id
+- Events and eventsdetail
+- Full organization support
+- Better event list display (frontend)
+- Fix types and add Hook0Code and Hook0DateTime (frontend)
+- Toggle on subscription list (frontend)
+- First version of logs
+- Add container and docker-compose (docker)
+- Add more lists to application dashboard (frontend)
+- Add ability to edit and view subscription's metadata (SubscriptionsEdit)
+- Improve navigation lisibility (frontend)
+- Display plan on organization dashboard (frontend)
+- Add a second name to plans for user-facing display
+- Allow to disable pricing
+- Do not override dedicated workers when editing a subscription (frontend)
+- Allow to select text in tables (frontend)
+- Improve several tables (frontend)
+- Improve several tables (frontend)
+- Improve event details (frontend)
+- Add subscriptions to application dashboard (frontend)
+- Hide unfinished search bar (frontend)
+- Adjust default column size for IPs (frontend)
+- DAST support (gitlab)
+- Updated logo
+- Add Crisp chatbox (frontend)
+- Handle organization members (frontend)
+- Never index pages from this app (frontend)
+- Improve some data tables (frontend)
+- Add subscription secret (frontend)
+- Add some personal information's and possibility to delete your account (frontend)
+- IAM v2
+- Login page form and field with iam-v2 (frontend)
+- Modification applied (check David's comment) (frontend)
+- Add iam-v2 form and routes (frontend)
+- Some modification and upgrade of Register / AuthPlugin (frontend)
+- Add email verification frontend + modify some details (@dsferruzza comment's) (frontend)
+- Tentative to add notifications system into hook0 project (frontend)
+- Modify the Hook0Problem with notification system (notivue) (frontend)
+- Add notification when user logged in (frontend)
+- Feat(frontend) add banner / logo to /public
+- Add automatically pushed user to login routes when registered (frontend)
+- Add and modify UserSettings to the new iam + add frontend change password (frontend)
+- Finish begin reset password && reset password frontend part (frontend)
+- Organization services tokens (frontend)
+- Add service token view page and start to implement biscuit auth (frontend)
+- Some updates (frontend)
+- Complete a part for get BiscuitToken deserialized (frontend)
+- Some updates (frontend)
+- Finish the part for attenuate biscuit token with some params (frontend)
+- Add function to get ServiceToken information by he's token_id (frontend)
+- Some updates in token view part. Changed the moment when receive the biscuit token not by getting routes params but an api call (frontend)
+- Some updates (frontend)
+- Check if attenuate expiration date is in the future and convert it to RFC 3339 (frontend)
+- Finished the work with attenuation token (frontend)
+- Add plugin (didn't work actually) for check on load if webassembly is supported on user browser. (frontend)
+- Display unattenuated biscuit token. (frontend)
+- Various improvements (frontend)
+- Add a message on organization's dashboard when no service token exist (frontend)
+- Add a button to return to service token list when viewing a service token (frontend)
+- Suppress reload and add notification when create/removing/editing organizations (frontend)
+- Add a message on organization's dashboard when no service token exist (frontend)
+- Add possibility to replay an event when he's already consume in the past (api/frontend)
+- Remove useless item in event list datatable (frontend)
+- Better displaying for login / registration part (frontend)
+- Prepare application secrets deprecation and hide service token UIs
+- Make logout safer (frontend)
+- Update Hook0Select.vue to use default props (api)
+- Update dependencies
+- Display the organization id in organizations/{org_id}/settings and add a copy button
+- Add better display of organization_id and application_id (#56)
+- Add copy button (#56)
+- Add better display of organization_id and application_id (#56)
+- Upgrade for the mobile ui
+- Better display for org id & app id (#56)
+- Add possibility to copy app and org id with text on mobile (#56) (frontend)
+- Add a system for revokate token of users when password changes (frontend/api)
+- Limit number of event types and subscriptions by application on the plans (#61) (frontend/api)
+- Add non persistant cache for api instance (frontend)
+- Start implementation of tutorial (not finished only 2 steps ) (frontend)
+- Rebase to iam-v2 for merging (frontend)
+- Add possibility to select an existing organization for the tutorial (frontend)
+- Partial init of progress bar component
+- #9
+- Lot of things (UX/UI edit (fg & david comment's)) (frontend)
+- Add CodeMirror in send event payload (frontend)
+- Add tutorial check flow for onboarding and application setup (frontend)
+- Feat(tutorial): replace TutorialOnboarding with TutorialIntroduction for better clarity and user experience
+feat(tutorial): create TutorialIntroduction.vue to provide a welcoming tutorial interface and guide users through initial steps
+- Feat(tutorial): refactor progress bar implementation to use a shared progressItems array for consistency and maintainability
+fix(tutorial): update step numbers in various components to reflect the correct order in the tutorial flow
+chore(tutorial): create TutorialService.ts to centralize progressItems data for better organization and reusability
+- Feat(frontend): enhance tutorial flow by passing organization and application IDs to the success page
+fix(frontend): remove unnecessary console log from event listing in OrganizationAndApplicationSelector.vue
+refactor(frontend): implement error handling for missing organization and application IDs in TutorialSuccess.vue
+- Add possibility to use an existing application or creating a new one in tutorial (frontend)
+- Feat(frontend)
+- Add tutorial's wizard in application dashboard (api/frontend)
+- Feat/fix(frontend)
+- Feat/fix(frontend)
+- Improve contents (frontend)
+- Add card tree structure for org & app (frontend)
+- Avoid concurrent config API calls (frontend)
+- Add Matomo integration (frontend)
+- Start impleting change user role in organization (api/frontend)
+- Implement consumption (frontend)
+- Add color changes on 80% and 100% on quotas progress bar (frontend)
+- Add support email adress to configuration field (frontend)
+- Add Cloudflare Turnstile on registration form
+- Improve subscription UI (frontend)
+- Only display request attempts that are more recent than 7 days (frontend)
+- Ask for confirmation when disabling a subscription (frontend)
+- Redesign login page with modern dark theme (frontend)
+- Add Hook0 MCP server for AI assistant integration (mcp)
+- Implement GDPR-compliant Matomo tracking with all goals (analytics)
+- Add animated 404 error page with fishing hook theme (ui)
+- Display login and error pages in full-screen mode (ui)
+- Allow to set API_ENDPOINT at runtime when using Docker image (frontend)
+- Allow to set API_ENDPOINT and API_TIMEOUT at runtime when using Docker image (frontend)
+- Add sdk release workflow with manual triggers (release)
+- Add organization/application consumption
+- Add response detail view to delivery logs (frontend)
+- Extract header filter to pure function with unit tests (frontend)
+- Add requestAttempt detail service, keys, and composable (frontend)
+- Extract and test formatBody and statusCodeClass (frontend)
+- Create LogDetailContent shared component (frontend)
+- Create LogSidePanel drawer component (frontend)
+- Create LogDetail page and update routes (frontend)
+- Redesign logs table and delivery drawer (frontend)
+- Split-panel layout, responsive mobile, lifecycle animations (frontend)
+- Add Hook0Section component (frontend)
+- Add Hook0SplitLayout component (frontend)
+- Google Ads landing pages, conversion tracking, SEO fixes (website,docs,frontend)
+- Improve health check (api)
+- Per-package release flow + monorepo tag convention (ci)
+
+### Build
+
+- Remove deprecated plugin (frontend)
+- Fix dev mode (frontend)
+- Add ARG for API endpoint in frontend Dockerfile and update dependencies
+
+### CI/CD
+
+- Fix watched paths
+- Check frontend & avoid downloading previous artifacts if not necessary
+- Fix a path
+- Remove some warnings (frontend)
+- Fix job rules
+- Add frontend container build and GitLab release to pipeline
+- Validate Dockerfile workspace coverage and migrate play.docker to BuildKit
+
+### Changed
+
+- Activate prettier everywhere
+- Display metadata and labels (EventsDetail)
+- Add a cell renderer for dates (frontend)
+- Remove a useless dependency (frontend)
+- Optimization and simplification of displaying errors (frontend)
+- Optimization and simplification of displaying errors (frontend)
+- Improve content (frontend)
+- Do not display optional section before checking if it should be displayed (frontend)
+- Remove a debug message (frontend)
+- Remove non-working WASM check (frontend)
+- Rename some components (frontend)
+- Add semver checks in CI, fixes #48 (repo)
+- Apply suggestions from David's review
+- Refactor(frontend)
+- Apply suggestions from David's review
+- Refactor(ci)
+- Fix Dockerfile warnings
+- Rename the routes and files for better naming (frontend)
+- Remove an useless comment (frontend)
+- Update header text to be more inviting and concise for better user experience (frontend)
+- Update text (frontend)
+- Update text (frontend)
+- Pdate subtitles and descriptions (frontend)
+- Change icons for use the actual's one (frontend)
+- Refactor(frontend)
+- Style component (tutorial & wizard) changes (frontend)
+- Refactor(frontend)
+- Redirect to tutorial routes when orga & app created (frontend)
+- Edit the datas management (org & app stats -> onboarding_steps (api/frontend)
+- Make more performant the sql request for organization onboardingsteps (api/frontend)
+- Put onboarding logic in its own modules
+- Improve Hook0ProgressBar props (frontend)
+- Rename events (frontend)
+- Improve components (frontend)
+- Improve OrganizationAndApplicationSelector.vue components (frontend)
+- Add progress bar for quota displaying (frontend)
+- Minor improvements
+- Cloudflare Turnstile integration
+- Remove workaround for subscriptions target (frontend)
+- Update and improve Formbricks integration (frontend)
+- Metadata and labels validation
+- Remove mention of old build variables (frontend)
+- Run Caddy with exec (frontend)
+- Rename e2e-tests to tests-api-integrations and add Playwright E2E tests
+- Wire LogSidePanel, remove Response column, delete ResponseDetail (frontend)
+- Refactor tooltips, align created_at, polish lifecycle (frontend)
+- Format LogLifecycle.vue (frontend)
+- Extract shared formatDate utility, remove duplication from useLogColumns (frontend)
+- Use Hook0Section and Hook0CardContentLine in LogDetailContent (frontend)
+- Use Hook0Badge and Hook0CardContentLine for grids and labels (frontend)
+- Use Hook0SplitLayout in LogList (frontend)
+
+### Documentation
+
+- Improve some contents and comments (frontend)
+- Comprehensive documentation overhaul
+
+### Fixed
+
+- Vue
+- It works
+- Navigation
+- Routing
+- Ui
+- Remove unused imports
+- Build
+- Application create
+- Add license
+- Ci (should be the last time)
+- Use different names for Keycloak clients used by frontend/backend
+- Rebase glitches
+- API docs ordering
+- Pin nodejs version
+- Forgot to set button with the right pointer (frontend)
+- Input component should have default value (frontend)
+- Move api doc behind a feature flag
+- Event_type creation UI & add subscription edit
+- Api documentation is now authenticated
+- Convert timeouts axios's error to Problem
+- Dev mode
+- Center vertically
+- Add missing files (frontend)
+- Add missing file
+- Enable/disable subscriptions (frontend)
+- Better navigation menu and bring back prettier
+- Always set active (frontend)
+- Fix subscription edit and add tests (frontend)
+- Lock file (frontend)
+- Subscription deletion (frontend)
+- Typo (frontend)
+- Better app selected (ui)
+- Link (frontend)
+- Improve request attempts page (frontend)
+- Cancel action on application creation ui now does not throw error
+- Fix typescript issue (Hook0Table)
+- Updated and aligned menu icon (frontend)
+- Deprecation warning (frontend)
+- Subscription editing (frontend)
+- App title (frontend)
+- Subscription editing (frontend)
+- Fix column width for options (frontend)
+- Remove debugger; (frontend)
+- Correctly populate HTTP target headers when editing (frontend)
+- Disable jobs when on schedule (gitlab-ci)
+- Remove deprecated only/except & replace with rules (gitlab-ci)
+- Disabled buttons (frontend)
+- Typo (frontend)
+- Increase default API timeout (frontend)
+- Fix api keys token resizable (frontend)
+- Better display frontend errors (frontend)
+- Display error < 500 (frontend)
+- Close the dropdown after click on item (frontend)
+- Close the dropdown after click on item (frontend)
+- Close the dropdown after click on item (frontend)
+- Close the dropdown after click on item (frontend)
+- Remove useless setTimeout (api)
+- Display error and not error notification (frontend)
+- Edit verified message successfully / remove unused codes (frontend)
+- Remove useless verification when user logged in (already worked in iam.ts) (frontend)
+- Add unauthenticated post to verifyEmail function (frontend)
+- Some fix (frontend)
+- Some fix + start implement for reset password frontend (frontend)
+- Another implementation for resetting password. Not finished (frontend)
+- David's comment fix (frontend)
+- Remove hook0button disable when clicked (frontend)
+- Undo some modification (frontend)
+- Miss linter (frontend)
+- Add eye + pen fontawesome icon (frontend)
+- Some fixe about biscuit auth attenuation (frontend)
+- Fix some types (frontend)
+- Fix some types (frontend)
+- Some fixes but not finished (frontend)
+- David's comment fixes (frontend)
+- Linter format (frontend)
+- Some fixes (frontend)
+- David's thread fix (api/frontend)
+- Remove useless export (frontend)
+- David comment's fix (frontend)
+- Rename 256x256.svg to logo.svg (frontend)
+- Add width to svg logo (frontend)
+- Fix links (frontend)
+- Remove useless broken code (frontend)
+- Docker deployment
+- Frontend sending 404 responses on paths other than / (docker)
+- Fix typescript build error (frontend)
+- Sidebar opening on mobile (frontend)
+- Remove outdated welcome message (frontend)
+- Sidebar disappearing on desktop (frontend)
+- Remove console.log (#56)
+- Sidebar doesn't open on mobile (#8) (frontend)
+- Metadata Rows Not Handling Multiple Entries in Subscription Configuration (#50) (frontend)
+- Fix(ci)
+- Add a scroll possibility for the users on OrganizationAndApplicationSelector.vue (#65) (frontend)
+- Some david's thread fixes (frontend)
+- David comment's fix (frontend)
+- Fix ci (frontend)
+- Update image source path to use absolute path for better accessibility (TutorialIntroduction.vue)
+- Update subtitle text to specify Hook0 for clarity and branding consistency (TutorialIntroduction.vue)
+- Update error messages to provide a more user-friendly response and maintain consistency across components (tutorial)
+- Navbar UX/UI fix (frontend)
+- Display tutorial after email verification (frontend)
+- Warning (frontend)
+- Build (frontend)
+- Component fix (frontend)
+- Allow multiple labels in event test UI (frontend)
+- Timeout error message (frontend)
+- Optimize sign-up page performance and UX (#114) (frontend)
+- Convert SVG files from LFS to regular git files (frontend)
+- Harmless error (frontend)
+- Filter API endpoint from query string (frontend)
+- Polish org & app dashboard quotas UI (dashboard)
+- Fix response detail loading state and improve coverage (frontend)
+- Align response grid layout, use unified CSS grid for summary+headers (frontend)
+- UI polish — grid layout, status labels, attempt prop, response visibility (frontend)
+- Address code review issues — error handling, a11y, BEM, dates, types (frontend)
+- Fix statusQueued fallback without delay_until, contextual 404 error (frontend)
+- Normalize font sizes to 13px, fix tooltip overflow in drawer (frontend)
+- Address review — a11y focus-visible, dark mode tokens, scoped CSS (frontend)
+- Fix stale drawer, error state ordering, tooltip clamping (frontend)
+- Review feedback — drop date-fns, simplify lifecycle props, add comments (frontend)
+- Polish split-panel — underline fix, mono event, lifecycle colors (frontend)
+- Guard auto-select on refetch, add tabindex on tooltip trigger (frontend)
+- Address MR review — a11y, permissions, button fix, docs (frontend)
+- Remove custom header styling in LogSidePanel, align with Hook0SidePanel (frontend)
+- Use Hook0Uuid for subscription fallback display instead of raw UUID (frontend)
+- Auto-select first row on desktop when delivery param is stale (frontend)
+
+### Other
+
+- List necessary frontend env var
+- Downgrade before release (frontend)
+- Chore(frontend)
+- Chore(frontend)
+- Chore(ignore)
+- Update caniuse
+- Update front dependencies & improve linter support
+- Regenerate types from backend
+- Fix warnings
+- Enable more Typescript lints & fix corresponding violations
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies & use Node.js 18
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies (frontend)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Add Prettier & update frontend types (frontend)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Move adr to root folder
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Remove useless folder
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Add logo (frontend)
+- Remove useless files (frontend)
+- Update dependencies
+- Remove Keycloak JS (frontend)
+- Upgrade to node v20 (frontend)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Remove keycloak deps (docker)
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies & improve mailer
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies & fix Dockerfiles
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Commit to force frontend deployment
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+
+### Testing
+
+- Fix all e2e tests for split-panel layout and button link variant (e2e)
+
 # Changelog — frontend
 
 All notable changes to the Hook0 frontend SPA are documented here.
