@@ -2,6 +2,7 @@ mod monitoring;
 mod opentelemetry;
 mod pg;
 mod pulsar;
+mod pulsar_loading;
 mod throughput_log;
 mod work;
 
@@ -18,6 +19,7 @@ use reqwest::Url;
 use reqwest::header::HeaderName;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{PgConnection, PgPool, query, query_as};
+use std::collections::HashSet;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -223,6 +225,10 @@ struct Config {
     /// Interval between periodic throughput log lines (set to "0s" to disable)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "60s")]
     throughput_log_interval: Duration,
+
+    /// Interval between periodic DB-to-Pulsar reconciliations of waiting request attempts; set to "0" to disable (only for Pulsar workers).
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "0")]
+    pulsar_waiting_request_attempts_loading_interval: Duration,
 }
 
 #[derive(Debug, Clone)]
@@ -689,15 +695,19 @@ async fn main() -> anyhow::Result<()> {
                 let os_clone = os.clone();
                 let hp_cutoff = c.hp_retry_cutoff;
                 let send_receipt_timeout = c.pulsar_send_receipt_timeout;
-                spawn(async move {
+                let tt_clone = task_tracker_main.clone();
+                tasks.spawn(async move {
                     info!("Loading waiting request attempts from database into Pulsar...");
-                    match pulsar::load_waiting_request_attempts_from_db(
+                    match pulsar_loading::load_waiting_request_attempts_from_db(
                         &po_clone,
                         &wid_clone,
                         &pu_clone,
                         &os_clone,
                         hp_cutoff,
                         send_receipt_timeout,
+                        &HashSet::new(),
+                        false,
+                        &tt_clone,
                     )
                     .await
                     {
@@ -708,6 +718,31 @@ async fn main() -> anyhow::Result<()> {
                             "Error while loading waiting request attempts from database into Pulsar: {e}"
                         ),
                     }
+                });
+            }
+
+            if !c.pulsar_waiting_request_attempts_loading_interval.is_zero() {
+                let po_clone = po.clone();
+                let wid_clone = wid.clone();
+                let pu_clone = pu.clone();
+                let os_clone = os.clone();
+                let hp_cutoff = c.hp_retry_cutoff;
+                let send_receipt_timeout = c.pulsar_send_receipt_timeout;
+                let interval = c.pulsar_waiting_request_attempts_loading_interval;
+                let tt_clone = task_tracker_main.clone();
+                tasks.spawn(async move {
+                    pulsar_loading::run_periodic_request_attempts_loading(
+                        &po_clone,
+                        &wid_clone,
+                        &pu_clone,
+                        &os_clone,
+                        hp_cutoff,
+                        send_receipt_timeout,
+                        interval,
+                        &tt_clone,
+                    )
+                    .await;
+                    debug!("Periodic request_attempts reload task terminated");
                 });
             }
 

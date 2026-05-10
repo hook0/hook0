@@ -27,13 +27,13 @@ use crate::opentelemetry::{
 use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
-    Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
-    SlotRole, compute_next_retry,
+    Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, SlotRole, compute_next_retry,
 };
 use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;
 
-const DELAY_TOLERANCE: Duration = Duration::from_secs(1);
+/// Attempts due within this window of `now` are processed immediately instead of being re-scheduled
+pub const DELAY_TOLERANCE: Duration = Duration::from_secs(1);
 
 /// Number of consecutive errors from the Pulsar consumer before giving up and restarting
 const MAX_CONSECUTIVE_CONSUMER_ERRORS: u32 = 10;
@@ -69,185 +69,6 @@ impl Drop for InFlightGuard {
     fn drop(&mut self) {
         self.set.pin().remove(&self.id);
     }
-}
-
-pub async fn load_waiting_request_attempts_from_db(
-    pool: &PgPool,
-    worker_id: &Arc<Uuid>,
-    pulsar: &Arc<PulsarConfig>,
-    object_storage: &Option<ObjectStorageConfig>,
-    hp_retry_cutoff: i16,
-    pulsar_send_receipt_timeout: Duration,
-) -> anyhow::Result<u64> {
-    let hp_topic = format!(
-        "persistent://{}/{}/{}.request_attempt",
-        &pulsar.tenant, &pulsar.namespace, worker_id,
-    );
-    let lp_topic = format!(
-        "persistent://{}/{}/{}.request_attempt.lp",
-        &pulsar.tenant, &pulsar.namespace, worker_id,
-    );
-    let mut hp_producer = pulsar
-        .pulsar
-        .producer()
-        .with_topic(&hp_topic)
-        .with_name(format!(
-            "hook0-output-worker.{worker_id}.request-attempts-initial-loading.hp.{}",
-            Uuid::now_v7()
-        ))
-        .with_options(ProducerOptions {
-            block_queue_if_full: true,
-            ..Default::default()
-        })
-        .build()
-        .await?;
-    let mut lp_producer = pulsar
-        .pulsar
-        .producer()
-        .with_topic(&lp_topic)
-        .with_name(format!(
-            "hook0-output-worker.{worker_id}.request-attempts-initial-loading.lp.{}",
-            Uuid::now_v7()
-        ))
-        .with_options(ProducerOptions {
-            block_queue_if_full: true,
-            ..Default::default()
-        })
-        .build()
-        .await?;
-
-    let mut request_attempts_stream = query_as!(
-        RequestAttemptWithOptionalPayload,
-        "
-            SELECT
-                e.application__id AS application_id,
-                ra.request_attempt__id AS request_attempt_id,
-                ra.event__id AS event_id,
-                e.received_at AS event_received_at,
-                ra.subscription__id AS subscription_id,
-                ra.created_at,
-                ra.retry_count,
-                ra.delay_until,
-                t_http.method as http_method,
-                t_http.url as http_url,
-                t_http.headers as http_headers,
-                e.event_type__name AS event_type_name,
-                e.payload,
-                e.payload_content_type,
-                s.secret
-            FROM webhook.request_attempt AS ra
-            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
-            INNER JOIN event.event AS e ON e.event__id = ra.event__id
-            LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id
-            INNER JOIN event.application AS a ON a.application__id = s.application__id
-            LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
-            WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL
-                AND a.deleted_at IS NULL
-                AND COALESCE(sw.worker__id, ow.worker__id) = $1
-        ",
-        worker_id.as_ref(),
-    )
-    .fetch(pool);
-
-    let mut counter = 0u64;
-    while let Some(ra) = request_attempts_stream.try_next().await? {
-        let payload = if let Some(p) = ra.payload {
-            Some(p)
-        } else if let Some(os) = &object_storage {
-            let key = format!(
-                "{}/event/{}/{}",
-                ra.application_id,
-                ra.event_received_at.naive_utc().date(),
-                ra.event_id
-            );
-            match os
-                .client
-                .get_object()
-                .bucket(&os.bucket)
-                .key(&key)
-                .send()
-                .await
-            {
-                Ok(obj) => match obj.body.collect().await {
-                    Ok(ab) => Some(ab.to_vec()),
-                    Err(e) => {
-                        log_object_storage_error_with_context!(
-                            "S3 GET OBJECT body collect failed",
-                            error_chain = format!("{e}"),
-                            object_key = &key,
-                        );
-                        None
-                    }
-                },
-                Err(e) => {
-                    log_object_storage_error_with_context!(
-                        "S3 GET OBJECT failed",
-                        error_chain = DisplayErrorContext(&e).to_string(),
-                        object_key = &key,
-                    );
-                    None
-                }
-            }
-        } else {
-            None
-        };
-
-        if let Some(p) = payload {
-            let request_attempt = RequestAttempt {
-                application_id: ra.application_id,
-                request_attempt_id: ra.request_attempt_id,
-                event_id: ra.event_id,
-                event_received_at: ra.event_received_at,
-                subscription_id: ra.subscription_id,
-                created_at: ra.created_at,
-                retry_count: ra.retry_count,
-                http_method: ra.http_method,
-                http_url: ra.http_url,
-                http_headers: ra.http_headers,
-                event_type_name: ra.event_type_name,
-                payload: p,
-                payload_content_type: ra.payload_content_type,
-                secret: ra.secret,
-            };
-
-            let producer = if SlotRole::is_hp(ra.retry_count, hp_retry_cutoff) {
-                &mut hp_producer
-            } else {
-                &mut lp_producer
-            };
-            let mut msg_builder = producer
-                .create_message()
-                .event_time(request_attempt.created_at.timestamp_micros() as u64);
-            if let Some(delay_until) = ra.delay_until
-                && delay_until > (Utc::now() + DELAY_TOLERANCE)
-            {
-                msg_builder = msg_builder.deliver_at(delay_until.into())?;
-            }
-
-            let request_attempt_id = ra.request_attempt_id;
-            let send_future = msg_builder
-                .with_content(request_attempt)
-                .send_non_blocking()
-                .await?;
-            timeout(pulsar_send_receipt_timeout, send_future)
-                .await
-                .map_err(|_| {
-                    error!(%request_attempt_id, "Pulsar broker receipt timed out");
-                    anyhow!("Pulsar broker receipt timed out")
-                })?
-                .map_err(|e| {
-                    error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
-                    anyhow::Error::from(e)
-                })?;
-
-            counter += 1;
-        } else {
-            warn!(event_id = %ra.event_id, "Could not get event's payload");
-        }
-    }
-
-    Ok(counter)
 }
 
 #[allow(clippy::too_many_arguments)]
