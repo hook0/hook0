@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 # Generate per-package release notes for a tag pipeline, with a fail-safe fallback.
+# POSIX shell (busybox ash on the alpine release-notes job — alpine has no /bin/bash).
 #
 # Usage: ./ci/extract-release-notes.sh <include-path> <tag-pattern> <output-file>
 #
