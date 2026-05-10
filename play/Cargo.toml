@@ -1,6 +1,6 @@
 [package]
 name = "hook0-play"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2021"
 license = "SSPL-1.0"
 description = "Hook0 Webhook Relay Server - webhook.site-like inspection + local tunneling"
