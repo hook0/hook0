@@ -43,7 +43,8 @@ pub struct WhoamiArgs {}
 
 /// Check if we're running in an interactive terminal
 fn is_interactive() -> bool {
-    atty::is(atty::Stream::Stdin)
+    use std::io::IsTerminal;
+    std::io::stdin().is_terminal()
 }
 
 /// Helper to get a value from CLI arg, env var (with confirmation), or interactive prompt
