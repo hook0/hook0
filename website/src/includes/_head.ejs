@@ -107,7 +107,7 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
 </style>
 <div id="cookie-consent-banner" class="cookie-banner" role="dialog" aria-label="Cookie consent">
     <div class="cookie-banner__inner">
-        <div class="cookie-banner__text">We use cookies to analyze site usage and improve your experience. <a href="/privacy-policy">Privacy Policy</a></div>
+        <div class="cookie-banner__text">We use cookies on Hook0.com and its subdomains (including app.hook0.com) to analyze site usage, measure advertising performance, and improve your experience. <a href="/privacy-policy">Privacy Policy</a></div>
         <div class="cookie-banner__buttons">
             <button type="button" class="cookie-banner__btn--decline" onclick="window.hook0Consent.deny()">Decline</button>
             <button type="button" class="cookie-banner__btn--accept" onclick="window.hook0Consent.accept()">Accept</button>
@@ -183,6 +183,52 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
 })();
 </script>
 <!-- End Matomo Code -->
+
+<!-- Google Ads click identifier (gclid) bridging www <-> app via parent-domain cookie -->
+<script>
+(function(){
+    var CONSENT_KEY='hook0_cookie_consent';
+    var COOKIE_NAME='hook0_gclid';
+    var COOKIE_TTL_SECONDS=30*24*60*60; // 30 days, matches signup_attribution TTL
+    function getConsent(){try{return localStorage.getItem(CONSENT_KEY)}catch(e){return null}}
+    function getUrlGclid(){try{return new URL(window.location.href).searchParams.get('gclid')}catch(e){return null}}
+    function setGclidCookie(value){
+        if(!value)return;
+        var safe=String(value).replace(/[^A-Za-z0-9_-]/g,'').slice(0,256);
+        if(!safe)return;
+        document.cookie=COOKIE_NAME+'='+encodeURIComponent(safe)+
+            '; Domain=.hook0.com; Path=/; Max-Age='+COOKIE_TTL_SECONDS+
+            '; SameSite=Lax; Secure';
+    }
+    function clearGclidCookie(){
+        document.cookie=COOKIE_NAME+'=; Domain=.hook0.com; Path=/; Max-Age=0; SameSite=Lax; Secure';
+    }
+    // If consent is already granted and a gclid is in the URL, persist it.
+    if(getConsent()==='granted'){
+        var g=getUrlGclid();
+        if(g)setGclidCookie(g);
+    }
+    // Hook into the consent lifecycle.
+    var origAccept=window.hook0Consent&&window.hook0Consent.accept;
+    var origDeny=window.hook0Consent&&window.hook0Consent.deny;
+    var origReset=window.hook0Consent&&window.hook0Consent.reset;
+    if(window.hook0Consent){
+        window.hook0Consent.accept=function(){
+            if(origAccept)origAccept();
+            var g=getUrlGclid();
+            if(g)setGclidCookie(g);
+        };
+        window.hook0Consent.deny=function(){
+            if(origDeny)origDeny();
+            clearGclidCookie();
+        };
+        window.hook0Consent.reset=function(){
+            if(origReset)origReset();
+            clearGclidCookie();
+        };
+    }
+})();
+</script>
 <% } %>
 
 <% if (process.env.GOOGLE_ADS_CONVERSION_ID) { %>

@@ -30,6 +30,7 @@ use uuid::Uuid;
 mod cloudflare_turnstile;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
+mod google_ads;
 mod handlers;
 mod hook0_client;
 mod iam;
@@ -548,11 +549,107 @@ struct Config {
     /// [Frontend] Cloudflare Turnstile secret key (enables Turnstile for user registration)
     #[clap(long, env, group = "cloudflare_turnstile")]
     cloudflare_turnstile_secret_key: Option<String>,
+
+    /// [Google Ads] Developer token (enables server-side conversion upload).
+    /// All Google Ads fields must be provided together; if any is missing,
+    /// the conversion upload is silently disabled (build_google_ads_client
+    /// emits a warn log when partially configured).
+    #[clap(long, env)]
+    google_ads_developer_token: Option<String>,
+
+    /// [Google Ads] Customer ID (e.g. 629-941-8464)
+    #[clap(long, env)]
+    google_ads_customer_id: Option<String>,
+
+    /// [Google Ads] MCC login customer ID (optional)
+    #[clap(long, env)]
+    google_ads_login_customer_id: Option<String>,
+
+    /// [Google Ads] Numeric ID of the signup conversion action (e.g. 7576442588)
+    #[clap(long, env)]
+    google_ads_conversion_action_id: Option<String>,
+
+    /// [Google Ads] OAuth client ID (Desktop App credentials)
+    #[clap(long, env)]
+    google_ads_oauth_client_id: Option<String>,
+
+    /// [Google Ads] OAuth client secret
+    #[clap(long, env)]
+    google_ads_oauth_client_secret: Option<String>,
+
+    /// [Google Ads] OAuth refresh token
+    #[clap(long, env)]
+    google_ads_oauth_refresh_token: Option<String>,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
     PrivateKey::from_bytes_hex(input, biscuit_auth::Algorithm::Ed25519)
         .map_err(|e| format!("Value of BISCUIT_PRIVATE_KEY is invalid ({e}). Re-run this app without the environment variable set to get a randomly generated key."))
+}
+
+/// Build the optional Google Ads client from the CLI config. Returns `None`
+/// if any of the required fields is missing (server-side conversion upload
+/// is then silently disabled). When the config is partially set, logs a
+/// warning listing the missing fields — useful for self-hosters who started
+/// configuring but forgot one variable, while staying non-fatal so an empty
+/// config (the typical self-hosting case) is silent.
+fn build_google_ads_client(config: &Config) -> Option<Arc<google_ads::GoogleAdsClient>> {
+    let mut missing: Vec<&'static str> = Vec::new();
+    if config.google_ads_developer_token.is_none() {
+        missing.push("GOOGLE_ADS_DEVELOPER_TOKEN");
+    }
+    if config.google_ads_customer_id.is_none() {
+        missing.push("GOOGLE_ADS_CUSTOMER_ID");
+    }
+    if config.google_ads_conversion_action_id.is_none() {
+        missing.push("GOOGLE_ADS_CONVERSION_ACTION_ID");
+    }
+    if config.google_ads_oauth_client_id.is_none() {
+        missing.push("GOOGLE_ADS_OAUTH_CLIENT_ID");
+    }
+    if config.google_ads_oauth_client_secret.is_none() {
+        missing.push("GOOGLE_ADS_OAUTH_CLIENT_SECRET");
+    }
+    if config.google_ads_oauth_refresh_token.is_none() {
+        missing.push("GOOGLE_ADS_OAUTH_REFRESH_TOKEN");
+    }
+    let total = 6;
+    if !missing.is_empty() && missing.len() < total {
+        tracing::warn!(
+            "Google Ads conversion upload is partially configured ({}/{} required env vars set): missing {:?}. \
+            Server-side conversion tracking disabled until all variables are set. \
+            Self-hosters: leave all GOOGLE_ADS_* unset to silence this warning.",
+            total - missing.len(),
+            total,
+            missing
+        );
+    }
+    let developer_token = config.google_ads_developer_token.clone()?;
+    let customer_id = config.google_ads_customer_id.clone()?;
+    let conversion_action_id = config.google_ads_conversion_action_id.clone()?;
+    let oauth_client_id = config.google_ads_oauth_client_id.clone()?;
+    let oauth_client_secret = config.google_ads_oauth_client_secret.clone()?;
+    let oauth_refresh_token = config.google_ads_oauth_refresh_token.clone()?;
+
+    let cfg = google_ads::GoogleAdsConfig {
+        developer_token,
+        customer_id,
+        login_customer_id: config.google_ads_login_customer_id.clone(),
+        conversion_action_id,
+        oauth_client_id,
+        oauth_client_secret,
+        oauth_refresh_token,
+    };
+    match google_ads::GoogleAdsClient::new(cfg) {
+        Ok(client) => {
+            tracing::info!("Google Ads conversion uploader configured");
+            Some(client)
+        }
+        Err(e) => {
+            tracing::warn!("Failed to build Google Ads client: {e}");
+            None
+        }
+    }
 }
 
 /// The app state
@@ -594,6 +691,7 @@ pub struct State {
     support_email_address: Address,
     cloudflare_turnstile_site_key: Option<String>,
     cloudflare_turnstile_secret_key: Option<String>,
+    google_ads: Option<Arc<google_ads::GoogleAdsClient>>,
 }
 
 #[derive(Clone)]
@@ -638,6 +736,12 @@ impl std::fmt::Debug for PulsarConfig {
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
+
+    // Build Google Ads client up-front (None when any required field is
+    // missing — server-side conversion upload then silently disabled).
+    // Built here so it doesn't fight with the partial moves out of `config`
+    // happening downstream.
+    let google_ads_client = build_google_ads_client(&config);
 
     if let Some(biscuit_private_key) = config.biscuit_private_key {
         // Initialize app logger as well as Sentry integration
@@ -1114,6 +1218,7 @@ async fn main() -> anyhow::Result<()> {
             support_email_address: config.support_email_address,
             cloudflare_turnstile_site_key: config.cloudflare_turnstile_site_key,
             cloudflare_turnstile_secret_key: config.cloudflare_turnstile_secret_key,
+            google_ads: google_ads_client,
         };
 
         // Run web server
