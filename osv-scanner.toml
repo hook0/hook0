@@ -7,7 +7,7 @@
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2024-0436"
-ignoreUntil = "2026-12-31"
+ignoreUntil = "2026-12-31T00:00:00Z"
 reason = """
 paste 1.0.15 is unmaintained but only pulled transitively by
 tikv-jemalloc-ctl (jemalloc feature on hook0-api) and pprof_util
@@ -18,7 +18,7 @@ upstream — tracked at https://github.com/tikv/jemallocator/issues
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2023-0071"
-ignoreUntil = "2026-12-31"
+ignoreUntil = "2026-12-31T00:00:00Z"
 reason = """
 rsa 0.9.10 Marvin attack timing sidechannel only affects code that
 performs RSA decryption with PKCS#1 v1.5 padding. The crate is in
@@ -34,27 +34,27 @@ codebase.
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2025-0081"
-ignoreUntil = "2026-12-31"
+ignoreUntil = "2026-12-31T00:00:00Z"
 reason = "unic-char-property: unmaintained warning, transitively via validator 0.20"
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2025-0075"
-ignoreUntil = "2026-12-31"
+ignoreUntil = "2026-12-31T00:00:00Z"
 reason = "unic-char-range: unmaintained warning, transitively via validator 0.20"
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2025-0080"
-ignoreUntil = "2026-12-31"
+ignoreUntil = "2026-12-31T00:00:00Z"
 reason = "unic-common: unmaintained warning, transitively via validator 0.20"
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2025-0101"
-ignoreUntil = "2026-12-31"
+ignoreUntil = "2026-12-31T00:00:00Z"
 reason = "unic-ucd-common: unmaintained warning, transitively via validator 0.20"
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2025-0098"
-ignoreUntil = "2026-12-31"
+ignoreUntil = "2026-12-31T00:00:00Z"
 reason = "unic-ucd-version: unmaintained warning, transitively via validator 0.20"
 
 # Rust transitive bumps deferred to a follow-up MR (require major upgrades
@@ -63,25 +63,25 @@ reason = "unic-ucd-version: unmaintained warning, transitively via validator 0.2
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0118"
-ignoreUntil = "2026-08-31"
+ignoreUntil = "2026-08-31T00:00:00Z"
 reason = "hickory-proto 0.25.2 → 0.26.x deferred to follow-up MR (needs reqwest major bump). Tracked."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0119"
-ignoreUntil = "2026-08-31"
+ignoreUntil = "2026-08-31T00:00:00Z"
 reason = "hickory-proto 0.25.2 → 0.26.1 deferred to follow-up MR (needs reqwest major bump). Tracked."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0098"
-ignoreUntil = "2026-08-31"
+ignoreUntil = "2026-08-31T00:00:00Z"
 reason = "rustls-webpki 0.101.7 → 0.103.x deferred to follow-up MR (needs aws-sdk-s3 → rustls 0.23). Tracked."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0099"
-ignoreUntil = "2026-08-31"
+ignoreUntil = "2026-08-31T00:00:00Z"
 reason = "rustls-webpki 0.101.7 → 0.103.x deferred to follow-up MR (needs aws-sdk-s3 → rustls 0.23). Tracked."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0104"
-ignoreUntil = "2026-08-31"
+ignoreUntil = "2026-08-31T00:00:00Z"
 reason = "rustls-webpki 0.101.7 → 0.103.x deferred to follow-up MR (needs aws-sdk-s3 → rustls 0.23). Tracked."
