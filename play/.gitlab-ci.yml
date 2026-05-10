@@ -34,7 +34,7 @@ play.e2e:
 play.e2e-playwright:
   stage: test
   dependencies: []
-  image: mcr.microsoft.com/playwright:v1.49.1-noble
+  image: mcr.microsoft.com/playwright:v1.59.1-noble
   extends: .rust-cache-pull-only
   rules:
     - changes:

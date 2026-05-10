@@ -4,7 +4,7 @@
 
 e2e-playwright.test:
   stage: test
-  image: mcr.microsoft.com/playwright:v1.49.1-noble
+  image: mcr.microsoft.com/playwright:v1.59.1-noble
   needs:
     - job: api-integration-tests.build
       artifacts: true
