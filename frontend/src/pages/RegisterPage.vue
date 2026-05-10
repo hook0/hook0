@@ -8,7 +8,6 @@ import { useForm } from 'vee-validate';
 import { createRegisterSchema } from './register.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
-import { trackSignupConversion } from '@/plugins/gtag';
 import { useI18n } from 'vue-i18n';
 import { ArrowRight, Check } from 'lucide-vue-next';
 
@@ -49,6 +48,11 @@ const isLoading = ref<boolean>(false);
 // Captcha token
 const captchaToken = ref<string>('');
 
+// Google Ads click identifier captured from the URL when the user lands
+// here after clicking an ad. Forwarded to the API for server-side
+// conversion upload (no gtag.js, no client-side trackers, no PII).
+const gclid = ref<string>('');
+
 // Analytics tracking
 const { trackEvent, trackPageWithDimensions } = useTracking();
 const { handleAuthError } = useAuthErrorHandler();
@@ -61,9 +65,33 @@ function handleFormStart() {
   }
 }
 
+function readGclidCookie(): string {
+  const match = document.cookie.match(/(?:^|;\s*)hook0_gclid=([^;]+)/);
+  if (!match) return '';
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return '';
+  }
+}
+
 onMounted(() => {
   trackPageWithDimensions('auth', 'view', 'signup-form');
   trackEvent('signup', 'page-view', 'register');
+  // URL gclid wins (fresh ad click in this session). Fall back to the
+  // .hook0.com parent-domain cookie set on www.hook0.com after consent —
+  // bridges deferred signups (user clicked an ad earlier, returns to app
+  // later without the gclid in the URL).
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.get('gclid');
+  if (fromUrl) {
+    gclid.value = fromUrl;
+    return;
+  }
+  const fromCookie = readGclidCookie();
+  if (fromCookie) {
+    gclid.value = fromCookie;
+  }
 });
 
 const onSubmit = handleSubmit((values) => {
@@ -78,11 +106,11 @@ const onSubmit = handleSubmit((values) => {
       values.firstName,
       values.lastName,
       values.password,
-      captchaToken.value !== '' ? captchaToken.value : undefined
+      captchaToken.value !== '' ? captchaToken.value : undefined,
+      gclid.value !== '' ? gclid.value : undefined
     )
     .then(() => {
       trackEvent('signup', 'form-success', 'register');
-      trackSignupConversion();
       return router.push({ name: routes.CheckEmail });
     })
     .catch((err) => {
@@ -200,6 +228,17 @@ const onSubmit = handleSubmit((values) => {
           >
             {{ isLoading ? t('auth.register.submitting') : t('auth.register.submit') }}
           </Hook0Button>
+
+          <p v-if="gclid" class="register-gclid-notice" data-test="register-gclid-notice">
+            {{ t('auth.register.gclidNotice') }}
+            <a
+              href="https://www.hook0.com/privacy-policy#server-side-tracking"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ t('auth.register.gclidLearnMore') }}
+            </a>
+          </p>
         </Hook0Form>
       </Hook0CardContent>
 
@@ -334,5 +373,22 @@ const onSubmit = handleSubmit((values) => {
 
 .register-captcha {
   margin-top: 0.5rem;
+}
+
+.register-gclid-notice {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.register-gclid-notice a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.register-gclid-notice a:hover {
+  color: var(--color-primary-hover);
 }
 </style>
