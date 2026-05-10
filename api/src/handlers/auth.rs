@@ -541,6 +541,29 @@ pub async fn verify_email(
         .is_some();
 
         if user_was_verified {
+            // Pop the attribution row (if any) and fire the Google Ads
+            // conversion upload. Done after the email is confirmed so
+            // unverified / bot signups never reach Google Ads. The DELETE
+            // returns the gclid so we know what to upload — and removes the
+            // row in the same query, ensuring the conversion fires at most
+            // once per user.
+            let attribution = query!(
+                "
+                    DELETE FROM iam.signup_attribution
+                    WHERE user__id = $1
+                    RETURNING gclid
+                ",
+                &token.user_id,
+            )
+            .fetch_optional(&state.db)
+            .await?;
+
+            if let Some(row) = attribution
+                && let Some(client) = state.google_ads.as_ref().cloned()
+            {
+                crate::google_ads::spawn_upload(client, row.gclid);
+            }
+
             Ok(NoContent)
         } else {
             debug!(

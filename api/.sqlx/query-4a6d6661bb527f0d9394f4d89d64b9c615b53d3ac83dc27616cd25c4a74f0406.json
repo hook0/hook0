@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    DELETE FROM iam.signup_attribution\n                    WHERE user__id = $1\n                    RETURNING gclid\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "gclid",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4a6d6661bb527f0d9394f4d89d64b9c615b53d3ac83dc27616cd25c4a74f0406"
+}
