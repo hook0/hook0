@@ -13,7 +13,7 @@ use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::types::ipnetwork::IpNetwork;
-use sqlx::{PgTransaction, query_as, query_scalar};
+use sqlx::{query_as, query_scalar};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -561,9 +561,11 @@ pub async fn ingest(
             report_event_payloads_stored_in_object_storage(1);
         }
 
-        if let Some(pulsar) = &state.pulsar {
-            send_request_attempts_to_pulsar(
-                &mut tx,
+        tx.commit().await?;
+
+        if let Some(pulsar) = &state.pulsar
+            && let Err(e) = send_request_attempts_to_pulsar(
+                &state.db,
                 pulsar,
                 application_id,
                 event.event_id,
@@ -571,11 +573,18 @@ pub async fn ingest(
                 &body.event_type,
                 &payload,
                 &body.payload_content_type,
+                false,
             )
-            .await?;
+            .await
+        {
+            error!(
+                application_id = %application_id,
+                event_id = %event.event_id,
+                error = ?e,
+                "Failed to enqueue request attempts to Pulsar after commit; output-worker periodic loader will reconcile"
+            );
         }
 
-        tx.commit().await?;
         report_ingested_events(1);
         Ok(CreatedJson(event))
     } else {
@@ -706,7 +715,7 @@ pub async fn replay(
 
                 if let Some(p) = payload {
                     send_request_attempts_to_pulsar(
-                        &mut tx,
+                        &mut *tx,
                         pulsar,
                         body.application_id,
                         event_id,
@@ -714,6 +723,7 @@ pub async fn replay(
                         &event.event_type,
                         &p,
                         &event.payload_content_type,
+                        true,
                     )
                     .await?;
 
@@ -735,8 +745,8 @@ pub async fn replay(
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn send_request_attempts_to_pulsar<'a>(
-    tx: &mut PgTransaction<'a>,
+async fn send_request_attempts_to_pulsar<'e, E>(
+    executor: E,
     pulsar: &Arc<PulsarConfig>,
     application_id: Uuid,
     event_id: Uuid,
@@ -744,7 +754,11 @@ async fn send_request_attempts_to_pulsar<'a>(
     event_type: &str,
     payload: &[u8],
     payload_content_type: &str,
-) -> Result<(), Hook0Problem> {
+    wait_for_receipts: bool,
+) -> Result<(), Hook0Problem>
+where
+    E: sqlx::PgExecutor<'e>,
+{
     #[derive(Debug, Clone)]
     #[allow(non_snake_case)]
     struct RawRequestAttempt {
@@ -786,7 +800,7 @@ async fn send_request_attempts_to_pulsar<'a>(
         ",
         &event_id,
     )
-    .fetch(&mut **tx);
+    .fetch(executor);
 
     let mut receipt_futures = Vec::new();
 
@@ -834,33 +848,37 @@ async fn send_request_attempts_to_pulsar<'a>(
                 Hook0Problem::InternalServerError
             })?;
 
-            let receipt_timeout = pulsar.send_receipt_timeout;
-            receipt_futures.push(async move {
-                timeout(receipt_timeout, send_future)
-                    .await
-                    .map_err(|_| {
-                        error!(%request_attempt_id, "Pulsar broker receipt timed out");
-                        Hook0Problem::InternalServerError
-                    })?
-                    .map_err(|e| {
-                        error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
-                        Hook0Problem::InternalServerError
-                    })?;
-                Ok::<(), Hook0Problem>(())
-            });
+            if wait_for_receipts {
+                let receipt_timeout = pulsar.send_receipt_timeout;
+                receipt_futures.push(async move {
+                    timeout(receipt_timeout, send_future)
+                        .await
+                        .map_err(|_| {
+                            error!(%request_attempt_id, "Pulsar broker receipt timed out");
+                            Hook0Problem::InternalServerError
+                        })?
+                        .map_err(|e| {
+                            error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
+                            Hook0Problem::InternalServerError
+                        })?;
+                    Ok::<(), Hook0Problem>(())
+                });
+            }
 
             report_request_attempts_sent_to_pulsar(1);
         }
     }
 
-    let start = Instant::now();
-    let amount = receipt_futures.len();
-    try_join_all(receipt_futures).await?;
-    trace!(
-        amount,
-        elapsed_ms = start.elapsed().as_millis(),
-        "Got all receipts from Pulsar"
-    );
+    if !receipt_futures.is_empty() {
+        let start = Instant::now();
+        let amount = receipt_futures.len();
+        try_join_all(receipt_futures).await?;
+        trace!(
+            amount,
+            elapsed_ms = start.elapsed().as_millis(),
+            "Got all receipts from Pulsar"
+        );
+    }
 
     Ok(())
 }
