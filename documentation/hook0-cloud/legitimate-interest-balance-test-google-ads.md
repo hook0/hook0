@@ -195,7 +195,7 @@ Les pointillés signalent un appel asynchrone non bloquant : la réponse Google 
 
 ### Annexe 3 — Référence aux CDPT Google Ads
 
-- Customer Data Processing Terms (Google Ads) : <https://business.safety.google/adscontrollerterms/>
+- Customer Data Processing Terms (Google Ads) : [business.safety.google/adscontrollerterms](https://business.safety.google/adscontrollerterms/)
 - Acceptation : effectuée dans la console Google Ads par l'administrateur du compte FGRibreau SARL le 25 mars 2026 (acceptation des conditions générales Google Ads, qui intègrent les CDPT depuis leur mise à jour 2024).
 - Module CCT applicable : module 2 (contrôleur → contrôleur), cohérent avec la qualification de co-responsabilité art. 26 retenue dans le présent document.
 - Capture d'écran horodatée à archiver dans le dossier juridique de FGRibreau SARL.
