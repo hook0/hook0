@@ -1039,7 +1039,7 @@ async fn handle_message(
                                 })
                                 .await?;
                         } else {
-                            trace!(request_attempt_id = %attempt.request_attempt_id, "Request attempt not found in database; not recent, dropping");
+                            warn!(request_attempt_id = %attempt.request_attempt_id, "Request attempt not found in database; not recent, dropping");
 
                             ack_tx
                                 .send(AckMessage {
