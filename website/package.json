@@ -37,5 +37,12 @@
   },
   "volta": {
     "node": "18.17.1"
+  },
+  "dependencies": {
+    "@parcel/reporter-dev-server": "^2.16.4",
+    "msgpackr": "^1.11.12"
+  },
+  "overrides": {
+    "msgpackr": "^1.11.12"
   }
 }
