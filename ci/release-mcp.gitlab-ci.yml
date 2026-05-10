@@ -67,13 +67,7 @@ mcp.extract-notes:
     - curl -L https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-musl.tar.gz | tar xz
     - mv git-cliff-*/git-cliff /usr/local/bin/
   script:
-    - mkdir -p artifacts
-    - git-cliff
-        --include-path 'clients/mcp/**'
-        --tag-pattern '^mcp/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'
-        --current
-        --strip header
-        > artifacts/RELEASE_NOTES.md
+    - ./ci/extract-release-notes.sh 'clients/mcp/**' '^mcp/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$' artifacts/RELEASE_NOTES.md
     - |
       cat >> artifacts/RELEASE_NOTES.md <<EOF
 
