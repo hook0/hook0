@@ -94,7 +94,7 @@ mcp.publish:
       artifacts: false
   script:
     - cd clients/mcp
-    - cargo publish --token "$CARGO_REGISTRY_TOKEN"
+    - cargo publish --token "$CARGO_TOKEN"
 
 mcp.github:
   extends: .mcp-release-rules
