@@ -2998,7 +2998,7 @@ dependencies = [
 
 [[package]]
 name = "hook0-mcp"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "anyhow",
  "chrono",
