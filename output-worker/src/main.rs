@@ -31,13 +31,24 @@ use tokio_util::task::TaskTracker;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
+use crate::pulsar::LoadMode;
+use crate::work::*;
 use hook0_protobuf::RequestAttempt;
-use work::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 enum SignatureVersion {
     V0,
     V1,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+#[clap(rename_all = "kebab-case")]
+enum LoadWaitingRequestAttemptsIntoPulsarMode {
+    #[value(alias = "false")]
+    Off,
+    #[value(alias = "true")]
+    All,
+    DueNow,
 }
 
 #[derive(Debug, Clone, Parser)]
@@ -204,9 +215,9 @@ struct Config {
     #[clap(long, env, default_value = "v1", value_delimiter = ',')]
     enabled_signature_versions: Vec<SignatureVersion>,
 
-    /// If true, loads waiting request attempts that can be picked by this worker from the DB into Pulsar before starting work; this is useful when migrating to a Pulsar worker and has no effect if the worker does not use a Pulsar queue type
-    #[clap(long, env, default_value_t = false)]
-    load_waiting_request_attempts_into_pulsar: bool,
+    /// Loads request attempts that haven't been delivered yet from the DB into Pulsar before starting work; `all` loads everything; `due-now` skips request attempts scheduled more than ~10 s in the future; this is useful when migrating to a Pulsar worker (only for Pulsar workers)
+    #[clap(long, env, default_value = "off")]
+    load_waiting_request_attempts_into_pulsar: LoadWaitingRequestAttemptsIntoPulsarMode,
 
     /// Grace period to wait for database commit before dropping unfound request attempts (only for Pulsar workers)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "10s")]
@@ -682,7 +693,12 @@ async fn main() -> anyhow::Result<()> {
             let wv = Arc::new(worker_version.to_owned());
             let pu = pulsar.clone();
 
-            if c.load_waiting_request_attempts_into_pulsar {
+            let load_mode = match c.load_waiting_request_attempts_into_pulsar {
+                LoadWaitingRequestAttemptsIntoPulsarMode::Off => None,
+                LoadWaitingRequestAttemptsIntoPulsarMode::All => Some(LoadMode::All),
+                LoadWaitingRequestAttemptsIntoPulsarMode::DueNow => Some(LoadMode::DueNow),
+            };
+            if let Some(mode) = load_mode {
                 let po_clone = po.clone();
                 let wid_clone = wid.clone();
                 let pu_clone = pu.clone();
@@ -690,7 +706,10 @@ async fn main() -> anyhow::Result<()> {
                 let hp_cutoff = c.hp_retry_cutoff;
                 let send_receipt_timeout = c.pulsar_send_receipt_timeout;
                 spawn(async move {
-                    info!("Loading waiting request attempts from database into Pulsar...");
+                    info!(
+                        ?mode,
+                        "Loading waiting request attempts from database into Pulsar..."
+                    );
                     match pulsar::load_waiting_request_attempts_from_db(
                         &po_clone,
                         &wid_clone,
@@ -698,13 +717,18 @@ async fn main() -> anyhow::Result<()> {
                         &os_clone,
                         hp_cutoff,
                         send_receipt_timeout,
+                        mode,
                     )
                     .await
                     {
                         Ok(c) => {
-                            info!("Loaded {c} waiting request attempts from database into Pulsar")
+                            info!(
+                                ?mode,
+                                "Loaded {c} waiting request attempts from database into Pulsar"
+                            )
                         }
                         Err(e) => error!(
+                            ?mode,
                             "Error while loading waiting request attempts from database into Pulsar: {e}"
                         ),
                     }
