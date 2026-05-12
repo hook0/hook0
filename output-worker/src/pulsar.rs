@@ -3,6 +3,7 @@ use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, TimeDelta, Utc};
 use futures::TryStreamExt;
+use futures::future::try_join_all;
 use pulsar::consumer::{InitialPosition, Message};
 use pulsar::proto::MessageIdData;
 use pulsar::{
@@ -34,6 +35,12 @@ use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;
 
 const DELAY_TOLERANCE: Duration = Duration::from_secs(1);
+
+#[derive(Debug, Clone, Copy)]
+pub enum LoadMode {
+    All,
+    DueNow,
+}
 
 /// Number of consecutive errors from the Pulsar consumer before giving up and restarting
 const MAX_CONSECUTIVE_CONSUMER_ERRORS: u32 = 10;
@@ -78,7 +85,10 @@ pub async fn load_waiting_request_attempts_from_db(
     object_storage: &Option<ObjectStorageConfig>,
     hp_retry_cutoff: i16,
     pulsar_send_receipt_timeout: Duration,
+    mode: LoadMode,
 ) -> anyhow::Result<u64> {
+    let only_due_now = matches!(mode, LoadMode::DueNow);
+
     let hp_topic = format!(
         "persistent://{}/{}/{}.request_attempt",
         &pulsar.tenant, &pulsar.namespace, worker_id,
@@ -145,12 +155,19 @@ pub async fn load_waiting_request_attempts_from_db(
             WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL
                 AND a.deleted_at IS NULL
                 AND COALESCE(sw.worker__id, ow.worker__id) = $1
+                AND (
+                    NOT $2
+                    OR ra.delay_until IS NULL
+                    OR ra.delay_until <= NOW() + interval '10 seconds'
+                )
         ",
         worker_id.as_ref(),
+        only_due_now,
     )
     .fetch(pool);
 
     let mut counter = 0u64;
+    let mut receipt_futures = Vec::new();
     while let Some(ra) = request_attempts_stream.try_next().await? {
         let payload = if let Some(p) = ra.payload {
             Some(p)
@@ -230,21 +247,35 @@ pub async fn load_waiting_request_attempts_from_db(
                 .with_content(request_attempt)
                 .send_non_blocking()
                 .await?;
-            timeout(pulsar_send_receipt_timeout, send_future)
-                .await
-                .map_err(|_| {
-                    error!(%request_attempt_id, "Pulsar broker receipt timed out");
-                    anyhow!("Pulsar broker receipt timed out")
-                })?
-                .map_err(|e| {
-                    error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
-                    anyhow::Error::from(e)
-                })?;
+            receipt_futures.push(async move {
+                timeout(pulsar_send_receipt_timeout, send_future)
+                    .await
+                    .map_err(|_| {
+                        error!(%request_attempt_id, "Pulsar broker receipt timed out");
+                        anyhow!("Pulsar broker receipt timed out")
+                    })?
+                    .map_err(|e| {
+                        error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
+                        anyhow::Error::from(e)
+                    })?;
+                Ok::<(), anyhow::Error>(())
+            });
 
             counter += 1;
         } else {
             warn!(event_id = %ra.event_id, "Could not get event's payload");
         }
+    }
+
+    if !receipt_futures.is_empty() {
+        let start = Instant::now();
+        let amount = receipt_futures.len();
+        try_join_all(receipt_futures).await?;
+        trace!(
+            amount,
+            elapsed_ms = start.elapsed().as_millis(),
+            "Got all receipts from Pulsar"
+        );
     }
 
     Ok(counter)
