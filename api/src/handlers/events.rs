@@ -471,7 +471,13 @@ pub async fn ingest(
             if actual_consumption_percent
                 > i32::from(state.quota_notification_events_per_day_threshold)
             {
+                // Template Mail — `recipient_first_name` is intentionally None
+                // here and hydrated per-admin inside the send loop
+                // (`quotas.rs::send_organization_email_notification`). A render
+                // attempt before hydration returns Err (see
+                // `mailer.rs::Mail::render` fail-fast check).
                 let mail = Mail::QuotaEventsPerDayWarning {
+                    recipient_first_name: None,
                     pricing_url_hash: "#pricing".to_owned(),
                     actual_consumption_percent,
                     current_events_per_day,
@@ -589,7 +595,10 @@ pub async fn ingest(
         Ok(CreatedJson(event))
     } else {
         if state.enable_quota_based_email_notifications {
+            // Template Mail — same hydration pattern as
+            // `QuotaEventsPerDayWarning` above.
             let mail = Mail::QuotaEventsPerDayReached {
+                recipient_first_name: None,
                 pricing_url_hash: "#pricing".to_owned(),
                 current_events_per_day,
                 events_per_days_limit,
