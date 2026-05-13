@@ -75,8 +75,9 @@ export async function verifyEmailViaDatabase(email: string): Promise<Verificatio
   }
 }
 
-interface MailpitMessage {
+export interface MailpitMessage {
   ID: string;
+  Subject?: string;
   To: Array<{ Address: string }>;
   Text?: string;
   HTML?: string;
@@ -170,6 +171,60 @@ export async function verifyEmailViaMailpit(
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fetch the most recent message in Mailpit for a recipient whose body or
+ * subject matches `subjectOrBodyFilter`. Does NOT fall back to database
+ * verification — these helpers are for asserting the actual rendered email
+ * content (logo, CTA labels, Matomo tagging, footer), which the database
+ * shortcut would bypass.
+ *
+ * Fails after `maxWaitMs` if no matching email arrives in Mailpit.
+ */
+export async function getEmailFromMailpit(
+  request: APIRequestContext,
+  email: string,
+  subjectOrBodyFilter: string,
+  maxWaitMs = 15000
+): Promise<MailpitMessage> {
+  const startTime = Date.now();
+  let lastError = "";
+
+  while (Date.now() - startTime < maxWaitMs) {
+    const messagesResponse = await request
+      .get(`${MAILPIT_URL}/api/v1/search?query=to:${encodeURIComponent(email)}`, {
+        timeout: 5000,
+      })
+      .catch((e) => {
+        lastError = `Mailpit search failed: ${e}`;
+        return null;
+      });
+
+    if (messagesResponse && messagesResponse.ok()) {
+      const result: MailpitSearchResult = await messagesResponse.json();
+      const messages = result.messages || [];
+
+      for (const message of messages) {
+        const detail = await request
+          .get(`${MAILPIT_URL}/api/v1/message/${message.ID}`, { timeout: 5000 })
+          .catch(() => null);
+        if (!detail || !detail.ok()) continue;
+        const full: MailpitMessage = await detail.json();
+        const haystack = `${(full as { Subject?: string }).Subject ?? ""}\n${full.HTML ?? ""}\n${full.Text ?? ""}`;
+        if (haystack.includes(subjectOrBodyFilter)) {
+          return full;
+        }
+      }
+      lastError = `No message matched "${subjectOrBodyFilter}" among ${messages.length} for ${email}`;
+    }
+
+    await sleep(500);
+  }
+
+  throw new Error(
+    `getEmailFromMailpit timed out after ${maxWaitMs}ms for ${email} (${subjectOrBodyFilter}). Last error: ${lastError}`
+  );
 }
 
 /**
