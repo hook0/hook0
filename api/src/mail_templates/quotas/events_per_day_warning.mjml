@@ -1,70 +1,13 @@
-<mjml>
-    <mj-head>
-        <mj-title>Quota Warning</mj-title>
-        <mj-style inline="inline">
-            body {
-                margin: 0;
-                padding: 0;
-                width: 100% !important;
-                background-color: #f9f9f9;
-                font-family: Arial, sans-serif;
-            }
-            h1, h2 {
-                color: #333333;
-            }
-            h1 {
-                font-size: 26px;
-                margin-bottom: 10px;
-            }
-            h2 {
-                font-size: 20px;
-                margin-top: 20px;
-                margin-bottom: 10px;
-            }
-            p {
-                font-size: 16px;
-                line-height: 1.5;
-                color: #555555;
-            }
-            .button {
-                background-color: #f45e43;
-                border: none;
-                padding: 15px 30px;
-                border-radius: 5px;
-                font-size: 16px;
-                cursor: pointer;
-                text-decoration: none;
-                display: inline-block;
-                margin-top: 20px;
-                color: white;
-            }
-            .small {
-                font-size: 12px;
-                color: #888888;
-            }
-        </mj-style>
-    </mj-head>
-    <mj-body>
-        <mj-section background-color="#ffffff" padding="20px" border-radius="8px" box-shadow="0 0 10px rgba(0, 0, 0, 0.1)">
-            <mj-column>
-                <mj-image src="{ $logo_url }" alt="Hook0" width="120px" />
-                <mj-text align="center">
-                    <h1>Quota Warning</h1>
-                    <p>Your account is approaching the quota limit for <strong>events per day</strong> and is currently at <strong>{ $actual_consumption_percent }%</strong>. To ensure uninterrupted service, please consider an upgrade.</p>
-                </mj-text>
-                <mj-text align="center">
-                    <h2>Details:</h2>
-                    <p>You are approaching the maximum number of events per day: <strong>{ $current_events_per_day }</strong>/<strong>{ $events_per_days_limit }</strong></p>
-                </mj-text>
-                <mj-button background-color="#007bff" color="white" class="button" href="{ $app_url }{ $entity_hash }">View Application</mj-button>
-                <mj-text align="center">
-                    <p>To continue enjoying Hook0 services without interruption, please upgrade your plan.</p>
-                </mj-text>
-                <mj-button background-color="#28a745" color="white" class="button" href="{ $website_url }{ $pricing_url_hash }">Upgrade Plan</mj-button>
-                <mj-text align="center">
-                    <p class="small">Questions? Reach out to our support team at <a href="mailto:{ $support_email_address }">{ $support_email_address }</a>.</p>
-                </mj-text>
-            </mj-column>
-        </mj-section>
-    </mj-body>
-</mjml>
+        <mj-text>
+          <h1>You're at { $actual_consumption_percent }% of today's quota</h1>
+        </mj-text>
+        <mj-text padding="14px 0 0 0">
+          Hi { $recipient_first_name }, your account has sent <strong>{ $current_events_per_day }</strong> of <strong>{ $events_per_days_limit }</strong> events today.
+        </mj-text>
+        <mj-text padding="8px 0 0 0" font-size="13px" color="#64748b">
+          Cross the limit and Hook0 stops accepting new events until tomorrow's reset at 00:00 UTC. Upgrading now keeps everything flowing.
+        </mj-text>
+        <mj-button href="{ $pricing_url_tracked }" align="left" padding="20px 0 16px 0">Upgrade your plan</mj-button>
+        <mj-text padding="14px 0 0 0" font-size="13px" color="#475569">
+          Want to check usage first? <a href="{ $dashboard_url_tracked }" style="font-weight:600;">Open the dashboard</a>.
+        </mj-text>

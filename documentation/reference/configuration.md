@@ -77,7 +77,12 @@ This documentation may not cover all options or reflect recent changes.
 | `CLOUDFLARE_TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key (enables Turnstile for user registration) | - |  |
 | `CLOUDFLARE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key (enables Turnstile for user registration) | - |  |
 | `DISABLE_SERVING_WEBAPP` | Set to true to disable serving the web app and only serve the API | - |  |
-| `EMAIL_LOGO_URL` | URL of the Hook0 logo | `https://app.hook0.com/256x256.png` |  |
+| `EMAIL_LOGO_URL` | URL of the Hook0 logo (must be a publicly fetchable transparent PNG) | `https://www.hook0.com/mediakit/logo/512x512-banner-transparent.png` |  |
+| `EMAIL_DOC_URL` | URL of the Hook0 documentation (used as a secondary CTA in welcome emails) | `https://documentation.hook0.com/` |  |
+| `EMAIL_PRIVACY_POLICY_URL` | URL of the Hook0 privacy policy (linked in every email footer for GDPR Art. 13 compliance) | `https://www.hook0.com/privacy-policy` |  |
+| `EMAIL_COMPANY_LEGAL_NAME` | Legal name of the company publishing Hook0 (footer mention, Art. L1463-1 CPCE) | `FGRibreau SARL` |  |
+| `EMAIL_COMPANY_POSTAL_ADDRESS` | Postal address of the company publishing Hook0 (footer mention, Art. L1463-1 CPCE + Art. 6 LCEN) | `3 rue de l'Aubépine, 85110 Chantonnay, France` |  |
+| `EMAIL_COMPANY_RCS` | RCS / company registration identifier (footer mention) | `RCS La Roche-sur-Yon 850 824 350` |  |
 | `FORMBRICKS_API_HOST` | Formbricks API host | `https://app.formbricks.com` |  |
 | `FORMBRICKS_ENVIRONMENT_ID` | Formbricks API environment ID | - |  |
 | `MATOMO_SITE_ID` | Matomo site ID | - |  |

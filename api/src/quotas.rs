@@ -417,13 +417,28 @@ impl Quotas {
                         recipient_address,
                     );
 
-                    let entity_hash = match application_id {
+                    let dashboard_path = match application_id {
                         Some(application_id) => format!("/organizations/{organization_id}/applications/{application_id}/dashboard"),
                         None => format!("/organizations/{organization_id}/dashboard"),
                     };
 
                     let mut mail = mail.clone();
-                    mail.add_variable("entity_hash".to_owned(), entity_hash);
+                    // Per-recipient personalization (boost CTR via first-name).
+                    // Quota mails are constructed as a template with
+                    // `recipient_first_name: None` in `handlers/events.rs`
+                    // and MUST be hydrated here before `send_mail`, otherwise
+                    // `Mail::render` fails fast.
+                    match &mut mail {
+                        Mail::QuotaEventsPerDayWarning { recipient_first_name, .. }
+                        | Mail::QuotaEventsPerDayReached { recipient_first_name, .. } => {
+                            *recipient_first_name = Some(user.first_name.clone());
+                        }
+                        _ => {}
+                    }
+                    let dashboard_url_tracked = state
+                        .mailer
+                        .build_tracked_app_url(&mail, &dashboard_path);
+                    mail.add_variable("dashboard_url_tracked".to_owned(), dashboard_url_tracked);
 
                     if let Err(e) = &state.mailer
                         .send_mail(
