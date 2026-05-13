@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [api/v1.0.2] - 2026-05-13
+
+### Added
+
+- Server-side Google Ads conversion via gclid only (api,frontend)
+- Redesign transactional emails + Matomo + welcome (api)
+
+### Fixed
+
+- Commit event ingestion before sending request attempts to Pulsar (api)
+
+### Other
+
+- Update dependencies
+
 ## [api/v1.0.1] - 2026-05-09
 
 ### Added
