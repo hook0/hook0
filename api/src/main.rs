@@ -502,9 +502,37 @@ struct Config {
     #[clap(long, env, default_value = "5")]
     smtp_timeout_in_s: u64,
 
-    /// [Frontend] URL of the Hook0 logo
-    #[clap(long, env, default_value = "https://app.hook0.com/256x256.png")]
+    /// [Frontend] URL of the Hook0 logo (must be a publicly fetchable transparent PNG; do NOT use app.hook0.com — that path serves a Git LFS pointer instead of the image). The default points to the banner-transparent variant which renders cleanly on any background.
+    #[clap(
+        long,
+        env,
+        default_value = "https://www.hook0.com/mediakit/logo/512x512-banner-transparent.png"
+    )]
     email_logo_url: Url,
+
+    /// [Email] URL of the Hook0 documentation (used as a secondary CTA in welcome emails)
+    #[clap(long, env, default_value = "https://documentation.hook0.com/")]
+    email_doc_url: Url,
+
+    /// [Email] URL of the Hook0 privacy policy (linked in every email footer for GDPR Art. 13 compliance)
+    #[clap(long, env, default_value = "https://www.hook0.com/privacy-policy")]
+    email_privacy_policy_url: Url,
+
+    /// [Email] Legal name of the company publishing Hook0 (footer mention required by Art. L1463-1 CPCE)
+    #[clap(long, env, default_value = "FGRibreau SARL")]
+    email_company_legal_name: String,
+
+    /// [Email] Postal address of the company publishing Hook0 (footer mention required by Art. L1463-1 CPCE + Art. 6 LCEN)
+    #[clap(
+        long,
+        env,
+        default_value = "3 rue de l'Aubépine, 85110 Chantonnay, France"
+    )]
+    email_company_postal_address: String,
+
+    /// [Email] RCS / company registration identifier of the company publishing Hook0 (footer mention)
+    #[clap(long, env, default_value = "RCS La Roche-sur-Yon 850 824 350")]
+    email_company_rcs: String,
 
     /// [Frontend] Frontend application URL (used for building links in emails and pagination)
     #[clap(long, env)]
@@ -1165,7 +1193,12 @@ async fn main() -> anyhow::Result<()> {
             config.email_logo_url,
             config.website_url,
             config.app_url.clone(),
+            config.email_doc_url,
+            config.email_privacy_policy_url,
             config.support_email_address.clone(),
+            config.email_company_legal_name,
+            config.email_company_postal_address,
+            config.email_company_rcs,
         )
         .await
         .expect("Could not initialize mailer; check SMTP configuration");

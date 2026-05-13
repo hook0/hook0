@@ -170,7 +170,13 @@ pub async fn register(
             };
             state
                 .mailer
-                .send_mail(Mail::VerifyUserEmail { url }, recipient)
+                .send_mail(
+                    Mail::VerifyUserEmail {
+                        recipient_first_name: Some(body.first_name.clone()),
+                        url,
+                    },
+                    recipient,
+                )
                 .await
                 .map_err(|e| {
                     warn!("Could not send verification email: {e}");

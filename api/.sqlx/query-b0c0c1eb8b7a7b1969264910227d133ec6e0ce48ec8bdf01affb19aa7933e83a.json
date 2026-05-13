@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE iam.user\n                SET email_verified_at = statement_timestamp()\n                WHERE user__id = $1 AND email_verified_at IS NULL\n                RETURNING email, first_name, last_name\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "last_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b0c0c1eb8b7a7b1969264910227d133ec6e0ce48ec8bdf01affb19aa7933e83a"
+}

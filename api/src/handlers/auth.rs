@@ -11,7 +11,7 @@ use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use sqlx::{Acquire, Postgres, query, query_as, query_scalar};
 use std::str::FromStr;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 use uuid::Uuid;
 use validator::Validate;
 
@@ -527,20 +527,25 @@ pub async fn verify_email(
         })?;
 
     if let Ok(token) = authorize_email_verification(&token) {
-        let user_was_verified = query!(
+        struct VerifiedUser {
+            email: String,
+            first_name: String,
+            last_name: String,
+        }
+        let verified_user = query_as!(
+            VerifiedUser,
             "
                 UPDATE iam.user
                 SET email_verified_at = statement_timestamp()
                 WHERE user__id = $1 AND email_verified_at IS NULL
-                RETURNING user__id
+                RETURNING email, first_name, last_name
             ",
             &token.user_id,
         )
         .fetch_optional(&state.db)
-        .await?
-        .is_some();
+        .await?;
 
-        if user_was_verified {
+        if let Some(user) = verified_user {
             // Pop the attribution row (if any) and fire the Google Ads
             // conversion upload. Done after the email is confirmed so
             // unverified / bot signups never reach Google Ads. The DELETE
@@ -562,6 +567,27 @@ pub async fn verify_email(
                 && let Some(client) = state.google_ads.as_ref().cloned()
             {
                 crate::google_ads::spawn_upload(client, row.gclid);
+            }
+
+            // Send the welcome email post-verification (non-blocking: the
+            // verification itself MUST succeed regardless of SMTP availability).
+            // The UPDATE ... WHERE email_verified_at IS NULL filter above
+            // guarantees the welcome can only fire once per user (idempotent
+            // even on double-click on the verify link).
+            match Address::from_str(&user.email) {
+                Ok(address) => {
+                    let recipient = Mailbox::new(
+                        Some(format!("{} {}", user.first_name, user.last_name)),
+                        address,
+                    );
+                    let welcome_mail = crate::mailer::Mail::Welcome {
+                        recipient_first_name: Some(user.first_name.clone()),
+                    };
+                    if let Err(e) = state.mailer.send_mail(welcome_mail, recipient).await {
+                        warn!("Could not send welcome email to {}: {e}", user.email);
+                    }
+                }
+                Err(e) => warn!("Could not parse verified user email for welcome message: {e}"),
             }
 
             Ok(NoContent)
@@ -641,7 +667,13 @@ pub async fn begin_reset_password(
 
         match state
             .mailer
-            .send_mail(Mail::ResetPassword { url }, recipient)
+            .send_mail(
+                Mail::ResetPassword {
+                    recipient_first_name: Some(user.first_name.clone()),
+                    url,
+                },
+                recipient,
+            )
             .await
         {
             Ok(_) => Ok(NoContent),

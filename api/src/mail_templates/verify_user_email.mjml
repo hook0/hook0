@@ -1,41 +1,19 @@
-<mjml>
-    <mj-head>
-        <mj-title>Verify your email</mj-title>
-        <mj-style inline="inline">
-            body {
-                margin: 0;
-                padding: 0;
-                width: 100% !important;
-                background-color: #f0f0f0;
-            }
-            h1 {
-                font-size: 24px;
-            }
-            h2 {
-                font-size: 20px;
-            }
-            p {
-                font-size: 16px;
-            }
-        </mj-style>
-    </mj-head>
-    <mj-body>
-        <mj-section>
-            <mj-column>
-                <mj-image src="{ $logo_url }" alt="Hook0" width="150px" />
-                <mj-text align="center">
-                    <h1>Welcome to Hook0!</h1>
-                    <p>A Hook0 account was created with your email address. If this was you, click the link below to verify your email address and activate you account:</p>
-                </mj-text>
-                <mj-button background-color="#f45e43" color="white" font-size="20px" border-radius="5px" href="{ $url }">Verify email</mj-button>
-                <mj-text align="center">
-                    <p><small><a href="{ $url }">{ $url }</a></small></p>
-                </mj-text>
-                <mj-text align="center">
-                    <p>This link will expire within <strong>5 minutes</strong>.</p>
-                    <p class="small">If you didn't create an account, do not click on the link and ignore this message.</p>
-                </mj-text>
-            </mj-column>
-        </mj-section>
-    </mj-body>
-</mjml>
+        <mj-text>
+          <h1>Verify your email</h1>
+        </mj-text>
+        <mj-text padding="14px 0 0 0">
+          Hi { $recipient_first_name }, confirm this address to activate your Hook0 account.
+        </mj-text>
+        <mj-text padding="8px 0 0 0" font-size="13px" color="#64748b">
+          The link expires in 5 minutes and only works once.
+        </mj-text>
+        <mj-button href="{ $url }" align="left" padding="20px 0 16px 0">Verify email</mj-button>
+        <mj-text padding="6px 0 0 0" font-size="12px" color="#64748b">
+          Button blocked? Paste this link instead:
+        </mj-text>
+        <mj-text padding="6px 0 0 0">
+          <span class="codelink"><a href="{ $url }">{ $url }</a></span>
+        </mj-text>
+        <mj-text padding="20px 0 0 0" font-size="12px" color="#94a3b8" line-height="1.6">
+          If a link expires you can sign in again to request a fresh one. Didn't create a Hook0 account? You can safely ignore this email.
+        </mj-text>
