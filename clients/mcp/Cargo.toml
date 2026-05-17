@@ -20,7 +20,7 @@ path = "src/main.rs"
 
 [dependencies]
 # MCP SDK
-rmcp = { version = "1.6", features = ["server", "transport-io", "macros"] }
+rmcp = { version = "1.7", features = ["server", "transport-io", "macros"] }
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }
@@ -29,12 +29,10 @@ tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.13", features = ["hickory-dns", "json"] }
 
 # Serialization
-serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Error handling
 thiserror = "2.0"
-anyhow = "1.0"
 
 # Logging
 tracing = "0.1"
@@ -42,12 +40,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # URL handling
 url = "2.5"
-
-# UUID
-uuid = { version = "1.23", features = ["serde", "v4"] }
-
-# DateTime
-chrono = { version = "0.4", features = ["serde"] }
 
 [build-dependencies]
 # OpenAPI parsing
@@ -61,4 +53,4 @@ serde_json = "1.0"
 reqwest = { version = "0.13.3", features = ["blocking"] }
 
 [dev-dependencies]
-tokio-test = "0.4"
+serde = { version = "1.0", features = ["derive"] }

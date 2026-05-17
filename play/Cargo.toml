@@ -13,7 +13,6 @@ publish = false
 
 [dependencies]
 aes-gcm = "0.10"
-anyhow = "1.0"
 async-trait = "0.1"
 axum = { version = "0.8", features = ["ws", "macros"] }
 base64 = "0.22"
@@ -23,7 +22,6 @@ dashmap = "6.1"
 futures-util = { version = "0.3", features = ["sink"] }
 rand = "0.10"
 redis = { version = "1.2", features = ["tokio-comp", "connection-manager"] }
-reqwest = { version = "0.13", features = ["json"], default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
