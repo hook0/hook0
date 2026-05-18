@@ -298,32 +298,132 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
 {
   "@context": "https://schema.org",
   "@type": "Organization",
+  "@id": "<%= locals.seo.siteUrl %>/#organization",
   "name": "Hook0",
+  "alternateName": ["hook0", "Hook Zero"],
+  "legalName": "FGRibreau SARL",
   "url": "<%= locals.seo.siteUrl %>",
-  "logo": "<%= locals.seo.siteUrl %>/mediakit/logo/110x110-white.png",
+  "logo": {
+    "@type": "ImageObject",
+    "url": "<%= locals.seo.siteUrl %>/mediakit/logo/256x256-white.png",
+    "width": 256,
+    "height": 256
+  },
+  "image": "<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>",
   "description": "<%= locals.seo.defaultDescription %>",
-  "foundingDate": "2021",
+  "foundingDate": "2021-01-01",
   "founders": [
     {
       "@type": "Person",
-      "name": "Francois-Guillaume Ribreau"
+      "name": "François-Guillaume Ribreau",
+      "sameAs": "https://fgribreau.com"
     },
     {
       "@type": "Person",
-      "name": "David Sferruzza"
+      "name": "David Sferruzza",
+      "sameAs": "https://david.sferruzza.fr"
     }
   ],
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "3 rue de l'Aubépine",
+    "postalCode": "85110",
+    "addressLocality": "Chantonnay",
+    "addressRegion": "Pays de la Loire",
+    "addressCountry": "FR"
+  },
+  "identifier": [
+    {
+      "@type": "PropertyValue",
+      "propertyID": "SIREN",
+      "value": "850824350"
+    },
+    {
+      "@type": "PropertyValue",
+      "propertyID": "SIRET",
+      "value": "85082435000019"
+    },
+    {
+      "@type": "PropertyValue",
+      "propertyID": "RCS",
+      "value": "La Roche-sur-Yon 850 824 350"
+    },
+    {
+      "@type": "PropertyValue",
+      "propertyID": "VAT",
+      "value": "FR27850824350"
+    }
+  ],
+  "vatID": "FR27850824350",
+  "taxID": "FR27850824350",
+  "brand": {
+    "@type": "Brand",
+    "name": "Hook0",
+    "alternateName": "hook0",
+    "logo": "<%= locals.seo.siteUrl %>/mediakit/logo/256x256-white.png"
+  },
   "sameAs": [
     "<%= locals.social.twitter.href %>",
     "<%= locals.social.github.href %>",
+    "<%= locals.social.gitlab.href %>",
     "<%= locals.social.linkedin.href %>",
     "<%= locals.social.youtube.href %>",
     "<%= locals.social.discord.href %>"
   ],
-  "contactPoint": {
-    "@type": "ContactPoint",
-    "email": "support@hook0.com",
-    "contactType": "customer service"
+  "contactPoint": [
+    {
+      "@type": "ContactPoint",
+      "email": "support@hook0.com",
+      "contactType": "customer support",
+      "availableLanguage": ["en", "fr"],
+      "telephone": "+33-2-52-43-10-53"
+    },
+    {
+      "@type": "ContactPoint",
+      "email": "legal@hook0.com",
+      "contactType": "legal",
+      "availableLanguage": ["en", "fr"]
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "@id": "<%= locals.seo.siteUrl %>/#software",
+  "name": "Hook0",
+  "alternateName": ["hook0", "Hook Zero"],
+  "applicationCategory": "DeveloperApplication",
+  "applicationSubCategory": "Webhook delivery platform",
+  "operatingSystem": "Linux, macOS, Windows, Cross-platform (cloud)",
+  "url": "<%= locals.seo.siteUrl %>",
+  "description": "<%= locals.seo.defaultDescription %>",
+  "image": "<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>",
+  "softwareVersion": "stable",
+  "license": "https://spdx.org/licenses/SSPL-1.0.html",
+  "codeRepository": "<%= locals.social.github.repoHref %>",
+  "programmingLanguage": ["Rust", "TypeScript"],
+  "offers": [
+    {
+      "@type": "Offer",
+      "name": "Free",
+      "price": "0",
+      "priceCurrency": "EUR",
+      "category": "Free Tier",
+      "description": "Free forever, no credit card required. Self-host or use Hook0 Cloud."
+    },
+    {
+      "@type": "Offer",
+      "name": "Self-hosted",
+      "price": "0",
+      "priceCurrency": "EUR",
+      "category": "Open Source",
+      "description": "Source-available under SSPL-1.0. Run on your own infrastructure."
+    }
+  ],
+  "publisher": {
+    "@id": "<%= locals.seo.siteUrl %>/#organization"
   }
 }
 </script>
