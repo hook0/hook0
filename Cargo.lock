@@ -3005,7 +3005,7 @@ dependencies = [
 
 [[package]]
 name = "hook0-play"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "aes-gcm",
  "async-trait",

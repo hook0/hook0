@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [play/v1.0.4] - 2026-05-18
+
+### Added
+
+- Brand schema.org + canonical fix + comparisons title + CVE bumps (website,docs,play)
+
+### Fixed
+
+- Bump npm packages flagged by osv-scanner + clean atty + osv config (deps)
+
+### Other
+
+- Update dependencies and remove unused ones
+
 ## [play/v1.0.3] - 2026-05-10
 
 ### Added
