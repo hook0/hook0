@@ -43,6 +43,7 @@
     "msgpackr": "^1.11.12"
   },
   "overrides": {
-    "msgpackr": "^1.11.12"
+    "msgpackr": "^1.11.12",
+    "@parcel/reporter-dev-server": "^2.16.4"
   }
 }
