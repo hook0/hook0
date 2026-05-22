@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Webhook.site Alternative — Switch to Hook0 in 30 Min</title>
+    <%
+    locals.pageTitle = 'Webhook.site Alternative — Switch to Hook0 in 30 Min';
+    locals.pageDescription = 'Looking for a webhook.site alternative? Hook0 is the production-grade upgrade: HMAC signatures, configurable retries, subscriber portal, open-source. Free forever.';
+    locals.pageCanonical = '/migrate-from-webhook-site';
+    locals.pageFAQSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Hook0 a webhook.site alternative?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — Hook0 is the production-grade alternative when you outgrow webhook.site. Where webhook.site is a request inspector ('what payload did I receive?'), Hook0 is a webhook platform: it sends events to your subscribers, signs them with HMAC, retries on failure, and stores delivery logs. Use webhook.site to debug; use Hook0 in production."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I migrate from webhook.site to Hook0?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sign up for Hook0 (free, no credit card), create an application, and replace the webhook.site URL in your code with one Hook0 REST API call. You get HMAC-signed delivery, retries, dead letter queues and a subscriber portal — no code change beyond the API endpoint."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I still inspect raw webhook payloads with Hook0?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Every event sent through Hook0 is logged with the full request, response, status code and latency. You can replay any event from the dashboard. For ad-hoc testing without an account, play.hook0.com lets you generate disposable webhook URLs the same way webhook.site does."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Hook0 open-source unlike webhook.site?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 is fully open-source under SSPL-1.0 and self-hostable on Docker Compose or Kubernetes. webhook.site is a closed-source SaaS. If you need to keep traffic on your own infrastructure, Hook0 is the answer."
+          }
+        }
+      ]
+    };
+    %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Webhook.site Alternative</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            Past webhook.site?
+            <span class="block text-gradient-green">Switch to Hook0</span>
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            webhook.site catches inbound HTTP for debugging. Hook0 sends webhooks out to your customers with HMAC signing, retries, delivery logs and a subscriber portal. Different job, same domain. Open-source.
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'migrate-webhook-site-hero-register')">
+                Switch to Hook0
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'migrate-webhook-site-hero-playground')">
+                Try the Playground
+            </a>
+        </div>
+        <p class="mt-4 text-sm text-gray-500">100 events/day free. No credit card. Open-source.</p>
+    </div>
+</section>
+
+<%- include('./includes/_social-proof-bar.ejs') %>
+
+<!-- Same problem, different tools -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Two adjacent tools</span>
+            <h2 class="mt-4 text-display font-bold text-white">Inbound inspector vs outbound platform</h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto">webhook.site receives. Hook0 sends. Picking the right one upfront saves you a refactor later.</p>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Need</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">webhook.site</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider">Hook0</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <tr><td class="py-4 px-6 text-gray-300">Inspect incoming requests for debugging</td><td class="py-4 px-6 text-green-400 font-medium">Yes</td><td class="py-4 px-6 text-green-400 font-medium">Yes (play.hook0.com)</td></tr>
+                    <tr><td class="py-4 px-6 text-gray-300">Send webhooks to your customers in production</td><td class="py-4 px-6 text-gray-400">No</td><td class="py-4 px-6 text-green-400 font-medium">Yes</td></tr>
+                    <tr><td class="py-4 px-6 text-gray-300">HMAC-sign every payload</td><td class="py-4 px-6 text-gray-400">No</td><td class="py-4 px-6 text-green-400 font-medium">Yes</td></tr>
+                    <tr><td class="py-4 px-6 text-gray-300">Retries and dead letter queues</td><td class="py-4 px-6 text-gray-400">No</td><td class="py-4 px-6 text-green-400 font-medium">Yes</td></tr>
+                    <tr><td class="py-4 px-6 text-gray-300">Subscriber portal for your customers</td><td class="py-4 px-6 text-gray-400">No</td><td class="py-4 px-6 text-green-400 font-medium">Yes</td></tr>
+                    <tr><td class="py-4 px-6 text-gray-300">Self-host on your infra</td><td class="py-4 px-6 text-gray-400">No</td><td class="py-4 px-6 text-green-400 font-medium">Free (SSPL-1.0)</td></tr>
+                    <tr><td class="py-4 px-6 text-gray-300">Free tier</td><td class="py-4 px-6 text-green-400 font-medium">Yes</td><td class="py-4 px-6 text-green-400 font-medium">Yes</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Migration path -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Migration</span>
+            <h2 class="mt-4 text-display font-bold text-white">webhook.site to production in 30 minutes</h2>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="text-green-400 font-bold mb-2">Step 1</div>
+                <h3 class="text-lg font-bold text-white mb-2">Create the application</h3>
+                <p class="text-gray-400">Sign up, create an application. You get an auth token and an application ID on the spot. No credit card.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="text-green-400 font-bold mb-2">Step 2</div>
+                <h3 class="text-lg font-bold text-white mb-2">Swap the URL</h3>
+                <p class="text-gray-400">Replace the webhook.site URL with a Hook0 API call. Python or Node.js SDK, or plain HTTP.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <div class="text-green-400 font-bold mb-2">Step 3</div>
+                <h3 class="text-lg font-bold text-white mb-2">Hand over the portal</h3>
+                <p class="text-gray-400">Drop the subscriber portal in front of your customers. They register their own endpoints, rotate their own keys, read their own delivery logs.</p>
+            </div>
+        </div>
+
+        <div class="mt-12 animate-on-scroll card card--glow p-6 overflow-x-auto">
+<pre class="text-sm text-gray-300"><code>// Before. webhook.site as a debug receiver:
+fetch("https://webhook.site/abcd-1234", {
+  method: "POST",
+  body: JSON.stringify(payload)
+});
+
+// After. Hook0 as a production webhook platform:
+await hook0.message.create("&lt;application_id&gt;", {
+  event_type: "invoice.paid",
+  event_id:   "evt_Wqb1k73rXprtTm7Qdlr38G",
+  payload
+});
+
+// What changes for your subscribers: signed payloads,
+// automatic retries, delivery logs they can replay themselves.
+</code></pre>
+        </div>
+
+        <div class="mt-8 text-center">
+            <a href="https://documentation.hook0.com/docs/getting-started" class="text-indigo-400 hover:text-indigo-300 underline" onclick="trackEvent('CTA', 'Click', 'migrate-webhook-site-docs')">Read the getting-started guide →</a>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">FAQ</span>
+            <h2 class="mt-4 text-display font-bold text-white">Migration questions</h2>
+        </div>
+
+        <div class="space-y-6 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 a webhook.site alternative?</h3>
+                <p class="text-gray-400">Yes — Hook0 is the production-grade alternative when you outgrow webhook.site. Where webhook.site is a request inspector ("what payload did I receive?"), Hook0 is a webhook platform: it sends events to your subscribers, signs them with HMAC, retries on failure, and stores delivery logs. Use webhook.site to debug; use Hook0 in production.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">How do I migrate from webhook.site to Hook0?</h3>
+                <p class="text-gray-400">Sign up for Hook0 (free, no credit card), create an application, and replace the webhook.site URL in your code with one Hook0 REST API call. You get HMAC-signed delivery, retries, dead letter queues and a subscriber portal — no code change beyond the API endpoint.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Can I still inspect raw webhook payloads with Hook0?</h3>
+                <p class="text-gray-400">Yes. Every event sent through Hook0 is logged with the full request, response, status code and latency. You can replay any event from the dashboard. For ad-hoc testing without an account, play.hook0.com lets you generate disposable webhook URLs the same way webhook.site does.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 open-source unlike webhook.site?</h3>
+                <p class="text-gray-400">Yes. Hook0 is fully open-source under SSPL-1.0 and self-hostable on Docker Compose or Kubernetes. webhook.site is a closed-source SaaS. If you need to keep traffic on your own infrastructure, Hook0 is the answer.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center">Related</h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <a href="./webhook-platform" class="text-indigo-400 hover:text-indigo-300 underline">Webhook Platform</a>
+            <a href="./webhook-api" class="text-indigo-400 hover:text-indigo-300 underline">Webhook API</a>
+            <a href="./hook0-vs-svix" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Svix</a>
+            <a href="./hook0-vs-hookdeck" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Hookdeck</a>
+            <a href="./build-vs-buy-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Build vs Buy Webhooks</a>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<%- include('./includes/_cta-inline.ejs') %>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>
