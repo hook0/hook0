@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Webhook API — One REST Call to Deliver Events | Hook0</title>
+    <%
+    locals.pageTitle = 'Webhook API — One REST Call to Deliver Events | Hook0';
+    locals.pageDescription = 'Hook0 exposes a clean REST webhook API: one call to send an event, automatic HMAC signing, configurable retries and SDKs for Python, Node.js and more. Free forever.';
+    locals.pageCanonical = '/webhook-api';
+    locals.pageFAQSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is the Hook0 webhook API?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The Hook0 webhook API is a REST interface that lets your backend trigger an event with a single HTTP call. Hook0 then signs the payload with HMAC, delivers it to every matching subscriber, retries on failure with a configurable two-phase backoff, and logs every attempt. SDKs are available for Python, Node.js and other languages."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I authenticate with the webhook API?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Authentication uses a Bearer token (application authentication token) passed in the Authorization header. Tokens are scoped to an application and can be rotated from the dashboard at any time."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does the webhook API include retries and HMAC signatures?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Every event triggered via the webhook API is automatically signed with HMAC (so subscribers can verify it) and retried using a two-phase backoff strategy on delivery failure. Dead letter queues capture events that exhaust their retry budget."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What SDKs are available for the Hook0 webhook API?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Official SDKs include Python and Node.js, with community libraries available for more languages. The REST API is fully documented in the API reference, so any HTTP client works."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the webhook API rate-limited?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Rate limits scale with the plan: the free tier allows 100 events per day, paid tiers raise both the daily volume and the burst rate. Self-hosted deployments are not rate-limited by Hook0."
+          }
+        }
+      ]
+    };
+    %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Webhook API</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            The Webhook API That
+            <span class="block text-gradient-green">Just Works in 30 Minutes</span>
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            One POST from your backend. Hook0 does the HMAC, the retries, the DLQ and the delivery logs. SDKs in Python and Node.js. Open-source, free tier, no credit card.
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'webhook-api-hero-register')">
+                Start Free
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="https://documentation.hook0.com/reference/" target="_blank" rel="noopener" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'webhook-api-hero-reference')">
+                Read the API Reference
+            </a>
+        </div>
+        <p class="mt-4 text-sm text-gray-500">100 events/day free. No credit card. Open-source.</p>
+    </div>
+</section>
+
+<%- include('./includes/_social-proof-bar.ejs') %>
+
+<!-- Code Example -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Code</span>
+            <h2 class="mt-4 text-display font-bold text-white">Send your first event in 30 seconds</h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto">One endpoint, one payload. No SDK required, no webhook concepts to learn first.</p>
+        </div>
+
+        <div class="animate-on-scroll card card--glow p-6 overflow-x-auto">
+<pre class="text-sm text-gray-300"><code>POST https://api.hook0.com/api/v1/event
+Authorization: Bearer &lt;APPLICATION_AUTH_TOKEN&gt;
+Content-Type: application/json
+
+{
+  "application_id": "c0ea6ffa-1972-4435-b434-ec9e93d38f42",
+  "event_type":     "invoice.paid",
+  "event_id":       "evt_Wqb1k73rXprtTm7Qdlr38G",
+  "payload": {
+    "invoice_id": "in_8X9aBcDeFgHiJk",
+    "status":     "paid",
+    "amount_eur": 4990
+  },
+  "labels": { "tenant": "acme", "env": "prod" }
+}
+</code></pre>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 mt-12 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-bold text-white mb-2">Python</h3>
+<pre class="text-sm text-gray-300 overflow-x-auto"><code>hook0 = Hook0("AUTH_TOKEN")
+hook0.message.create(
+  "app_id",
+  MessageIn(
+    event_type="invoice.paid",
+    event_id="evt_123",
+    payload={"status": "paid"}
+  )
+)</code></pre>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-bold text-white mb-2">Node.js</h3>
+<pre class="text-sm text-gray-300 overflow-x-auto"><code>const hook0 = Hook0("AUTH_TOKEN");
+await hook0.message.create("app_id", {
+  event_type: "invoice.paid",
+  event_id:   "evt_123",
+  payload:    { status: "paid" }
+});</code></pre>
+            </div>
+        </div>
+
+        <div class="mt-8 text-center">
+            <a href="https://documentation.hook0.com/reference/" class="text-indigo-400 hover:text-indigo-300 underline" onclick="trackEvent('CTA', 'Click', 'webhook-api-docs')">Browse the full API reference →</a>
+        </div>
+    </div>
+</section>
+
+<!-- What the API gives you -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Inside the API</span>
+            <h2 class="mt-4 text-display font-bold text-white">What the webhook API does for you</h2>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <div class="animate-on-scroll card card--glow p-8">
+                <h3 class="text-xl font-bold text-white mb-3">HMAC-SHA256 signing</h3>
+                <p class="text-gray-400">Payloads carry a signature and a timestamp. Subscribers verify both. Replay attacks fail the timestamp check.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-8">
+                <h3 class="text-xl font-bold text-white mb-3">Two-phase retries</h3>
+                <p class="text-gray-400">Fast retries within the first few minutes for flaky endpoints. Slow retries over hours and days for real outages. DLQ when the budget runs out.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-8">
+                <h3 class="text-xl font-bold text-white mb-3">Idempotent event IDs</h3>
+                <p class="text-gray-400">Pass your own <code class="text-green-400">event_id</code>. Hook0 deduplicates on it, so the API call is safe to retry without firing twice downstream.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-8">
+                <h3 class="text-xl font-bold text-white mb-3">Delivery logs and replay</h3>
+                <p class="text-gray-400">Headers, body, response code, latency. Stored per attempt. Replay any event by ID, from the dashboard or the API.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-8">
+                <h3 class="text-xl font-bold text-white mb-3">Open-source SDKs</h3>
+                <p class="text-gray-400">Python and Node.js. Generated from the OpenAPI spec, so the client and the API stay in sync.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-8">
+                <h3 class="text-xl font-bold text-white mb-3">Free tier, no gates</h3>
+                <p class="text-gray-400">100 events per day, no credit card. Paid plans scale volume. Every feature on this page is in the free tier.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">FAQ</span>
+            <h2 class="mt-4 text-display font-bold text-white">Webhook API questions</h2>
+        </div>
+
+        <div class="space-y-6 stagger-children">
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What is the Hook0 webhook API?</h3>
+                <p class="text-gray-400">The Hook0 webhook API is a REST interface that lets your backend trigger an event with a single HTTP call. Hook0 then signs the payload with HMAC, delivers it to every matching subscriber, retries on failure with a configurable two-phase backoff, and logs every attempt. SDKs are available for Python, Node.js and other languages.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">How do I authenticate with the webhook API?</h3>
+                <p class="text-gray-400">Authentication uses a Bearer token (application authentication token) passed in the <code class="text-green-400">Authorization</code> header. Tokens are scoped to an application and can be rotated from the dashboard at any time.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Does the webhook API include retries and HMAC signatures?</h3>
+                <p class="text-gray-400">Yes. Every event triggered via the webhook API is automatically signed with HMAC (so subscribers can verify it) and retried using a two-phase backoff strategy on delivery failure. Dead letter queues capture events that exhaust their retry budget.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What SDKs are available for the Hook0 webhook API?</h3>
+                <p class="text-gray-400">Official SDKs include Python and Node.js, with community libraries available for more languages. The REST API is fully documented in the API reference, so any HTTP client works.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is the webhook API rate-limited?</h3>
+                <p class="text-gray-400">Yes. Rate limits scale with the plan: the free tier allows 100 events per day, paid tiers raise both the daily volume and the burst rate. Self-hosted deployments are not rate-limited by Hook0.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center">Related</h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <a href="./webhook-platform" class="text-indigo-400 hover:text-indigo-300 underline">Webhook Platform</a>
+            <a href="./hook0-vs-svix" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Svix</a>
+            <a href="./hook0-vs-hookdeck" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Hookdeck</a>
+            <a href="./build-vs-buy-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Build vs Buy Webhooks</a>
+            <a href="./self-hosted-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Self-Hosted Webhooks</a>
+            <a href="./open-source-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Open-Source Webhooks</a>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<%- include('./includes/_cta-inline.ejs') %>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>
