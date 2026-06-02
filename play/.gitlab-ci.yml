@@ -198,9 +198,10 @@ play.smoke-test:
       HEALTH=$(curl -s -w '%{http_code}' https://play.hook0.com/health)
       echo "$HEALTH" | grep -q '200' || { echo "FAIL: /health not 200"; exit 1; }
       echo "OK: /health returns 200"
-    # Verify webhook endpoint accepts POST
+    # Verify webhook endpoint accepts POST. The token must be a valid format
+    # (c_ + 27 base62 chars, see relay::is_valid_token); an invalid format returns 404.
     - |
-      WH_CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST https://play.hook0.com/in/c_SmokeTest1234567890abcdefg/ -H "Content-Type: application/json" -d '{"smoke":"test"}')
+      WH_CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST https://play.hook0.com/in/c_SmokeTest1234567890abcdefgh/ -H "Content-Type: application/json" -d '{"smoke":"test"}')
       if [ "$WH_CODE" != "200" ]; then
         echo "FAIL: POST /in/{token}/ returned $WH_CODE (expected 200)"
         exit 1
