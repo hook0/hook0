@@ -1974,8 +1974,12 @@ async fn test_get_root_contains_seo_meta_tags() {
         "Page should contain meta description tag"
     );
     assert!(
-        body.contains("rel=\"canonical\""),
-        "Page should contain canonical link"
+        body.contains("rel=\"canonical\" href=\"https://play.hook0.com/\""),
+        "Canonical must self-reference https://play.hook0.com/ — guards the regression where prod served the marketing-page canonical"
+    );
+    assert!(
+        !body.contains("href=\"https://www.hook0.com/webhook-playground\""),
+        "Canonical must not point to the marketing page webhook-playground (stale canonical regression)"
     );
     assert!(
         body.contains("og:title"),

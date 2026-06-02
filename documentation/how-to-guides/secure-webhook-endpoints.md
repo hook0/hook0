@@ -1,3 +1,9 @@
+---
+title: "Webhook Endpoint Security: 5 Attacks Most Receivers Don't Block"
+description: "Secure webhook endpoints against spoofing, replay, and injection. HMAC verification, timestamp validation, idempotency, and rate limiting, with examples."
+keywords: [secure webhook endpoints, webhook endpoint security, webhook replay attack, webhook hmac verification, webhook idempotency, webhook rate limiting, webhook threat model]
+---
+
 # Securing webhook endpoints
 
 Security practices for webhook endpoints, from signature verification to attack detection. Covers protecting your webhook receivers against common attacks using [application secrets](/concepts/application-secrets) and [subscription](/concepts/subscriptions) configuration.

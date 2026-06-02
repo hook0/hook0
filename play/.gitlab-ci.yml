@@ -177,6 +177,14 @@ play.smoke-test:
         exit 1
       fi
       echo "OK: HTML contains 'Hook0 Play'"
+    # Verify canonical is self-referencing (guards against stale SEO deploys serving an outdated embedded HTML)
+    - |
+      if ! grep -q '<link rel="canonical" href="https://play.hook0.com/">' /tmp/play-body.html; then
+        echo "FAIL: canonical tag is not self-referencing https://play.hook0.com/"
+        grep -i canonical /tmp/play-body.html || echo "(no canonical tag found)"
+        exit 1
+      fi
+      echo "OK: canonical is self-referencing"
     # Verify security headers
     - |
       HEADERS=$(curl -sI https://play.hook0.com/)
