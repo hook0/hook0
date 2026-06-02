@@ -128,7 +128,9 @@ play.deploy:
   stage: release
   dependencies: []
   image:
-    name: bitnami/kubectl:1.32
+    # bitnami/kubectl was removed from Docker Hub (Bitnami Secure Images migration, 2025).
+    # bitnamilegacy/* is Bitnami's drop-in relocation for the deleted public images.
+    name: bitnamilegacy/kubectl:1.32
     entrypoint: [""]
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
