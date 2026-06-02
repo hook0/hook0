@@ -1,0 +1,30 @@
+# Grants the GitLab Kubernetes runner ServiceAccount permission to restart the
+# hook0-play Deployment, so the play.deploy CI job works without manual kubectl.
+# No secret data — safe to commit in plaintext (kubeseal not applicable to RBAC).
+# Apply: kubectl --context france-nuage-prod apply -f play/k8s/runner-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gitlab-runner-play-deployer
+  namespace: hosted-hook0-play-server-prod
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "patch"] # patch = rollout restart ; get/watch = rollout status
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"] # defensive: some kubectl versions read RS during status
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitlab-runner-play-deployer
+  namespace: hosted-hook0-play-server-prod
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: managed-hook0-gitlab-runner-prod
+roleRef:
+  kind: Role
+  name: gitlab-runner-play-deployer
+  apiGroup: rbac.authorization.k8s.io
