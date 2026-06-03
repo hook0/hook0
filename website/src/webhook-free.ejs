@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Free Webhooks: Cloud, Self-Hosted or Playground | Hook0</title>
+    <%
+    locals.pageTitle = 'Free Webhooks: Cloud, Self-Hosted or Playground | Hook0';
+    locals.pageDescription = 'Three genuinely free ways to use Hook0: test webhooks in your browser with no account, self-host the open-source server (SSPL-1.0) unlimited, or a free cloud tier with no credit card.';
+    locals.pageCanonical = '/webhook-free';
+    locals.pageFAQSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Hook0 really free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, in three honest ways. play.hook0.com is a free tool to test and inspect webhooks in your browser, no account needed. The open-source server is free forever to self-host with no volume cap imposed by Hook0 (SSPL-1.0). And Hook0 Cloud has a free Developer tier: 100 events/day, no credit card, no feature gating. No bait-and-switch."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is there a free open-source webhook server?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Hook0 is a free, open-source webhook server under SSPL-1.0, published on GitHub and GitLab. It ships with Docker Compose and Kubernetes manifests and runs on PostgreSQL. Self-hosting is free with no license cost and no volume cap from Hook0. It is the same codebase as the cloud, with the same features."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What are the free tier limits on Hook0 Cloud?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The free Developer tier includes 1 developer, 1 application, 10 event types, 10 subscriptions, up to 100 events/day, and 7 days of data retention. All delivery features are included: HMAC signing, retries, delivery logs and the subscriber portal. No credit card is required and the tier is free forever for side-projects."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I test a webhook for free without an account?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. play.hook0.com gives you a public URL to receive, inspect and replay webhook payloads directly in your browser. There is nothing to install and no signup. It is free and itself open-source."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is self-hosting Hook0 free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. There is no license cost and no volume cap imposed by Hook0 when you self-host. You provide the infrastructure (Docker or Kubernetes plus PostgreSQL) and get community support on Discord. Managed scaling, an uptime SLA and managed updates are the things you take on yourself when self-hosting."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the difference between play.hook0.com and Hook0 Cloud?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "play.hook0.com is a free tool to receive, inspect and debug webhooks that other services send you. Hook0 Cloud is the infrastructure to send signed webhooks to your own users in production, with retries, a dead letter queue and a subscriber portal. Use Play to debug, use Cloud or self-hosted to ship."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does the free cloud tier expire or require a credit card?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The free Developer tier has no time limit and requires no credit card. It is free forever for side-projects."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What happens when I exceed the free cloud tier?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Events beyond 100/day on the free tier are blocked until the next day. To send more, you upgrade to a paid plan (Startup at €59/mo excl. VAT, or Pro). Paid plans only unlock higher volume and support; no feature is locked behind them. If you want no volume cap at all, self-host the open-source server for free."
+          }
+        }
+      ]
+    };
+    %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow">Free Webhooks</span>
+        <h1 class="mt-4 text-display-xl text-white">
+            Free webhooks, three honest ways
+            <span class="block text-gradient-green">Test one now, or run the server for free</span>
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            Three things at Hook0 are genuinely free, with no hidden paywall. <strong class="text-gray-200">play.hook0.com</strong> inspects and tests any webhook, no account. The <strong class="text-gray-200">open-source server</strong> (SSPL-1.0) self-hosts unlimited on your own infra. And <strong class="text-gray-200">Hook0 Cloud</strong> has a free tier: 100 events/day, no credit card, no feature gating. Pick what you actually need.
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'webhook-free-hero-play')">
+                Test a webhook now
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="https://documentation.hook0.com/self-hosting/docker-compose" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'webhook-free-hero-selfhost')">
+                Self-host the server free
+            </a>
+        </div>
+        <p class="mt-4 text-sm text-gray-500">No account to test · Unlimited self-host · Free cloud tier, no credit card</p>
+
+        <figure class="mt-14 max-w-3xl mx-auto animate-on-scroll">
+          <svg viewBox="0 0 720 110" role="img" aria-labelledby="flow-title flow-desc" class="w-full h-auto" style="max-width:720px;">
+            <title id="flow-title">How Hook0 delivers a webhook</title>
+            <desc id="flow-desc">An event is signed with HMAC, delivered, automatically retried after a 503 error, then accepted with a 200 response.</desc>
+            <defs>
+              <style>
+                .h0n{fill:#14141a;}
+                .h0lbl{font-family:ui-monospace,'SFMono-Regular',Menlo,monospace;font-size:13px;fill:#e5e7eb;}
+                .h0sub{font-family:ui-monospace,'SFMono-Regular',Menlo,monospace;font-size:10px;fill:#9ca3af;}
+                .h0dash{stroke:#818cf8;stroke-width:2.5;stroke-dasharray:5 9;animation:h0flow 1.1s linear infinite;}
+                @keyframes h0flow{to{stroke-dashoffset:-14;}}
+              </style>
+            </defs>
+            <!-- baseline + animated event flow (visible in the gaps between stages) -->
+            <line x1="104" y1="66" x2="704" y2="66" stroke="rgba(255,255,255,.14)" stroke-width="2.5"/>
+            <line x1="104" y1="66" x2="704" y2="66" class="h0dash"/>
+            <!-- stages -->
+            <g>
+              <rect class="h0n" x="8" y="44" width="96" height="44" rx="8" stroke="rgba(255,255,255,.22)"/>
+              <text class="h0lbl" x="56" y="71" text-anchor="middle">event</text>
+            </g>
+            <g>
+              <rect class="h0n" x="128" y="44" width="96" height="44" rx="8" stroke="rgba(255,255,255,.22)"/>
+              <text class="h0lbl" x="176" y="64" text-anchor="middle">sign</text>
+              <text class="h0sub" x="176" y="79" text-anchor="middle">HMAC</text>
+            </g>
+            <g>
+              <rect class="h0n" x="248" y="44" width="96" height="44" rx="8" stroke="rgba(255,255,255,.22)"/>
+              <text class="h0lbl" x="296" y="71" text-anchor="middle">deliver</text>
+            </g>
+            <g>
+              <rect class="h0n" x="368" y="44" width="96" height="44" rx="8" stroke="#fe884e"/>
+              <text class="h0lbl" x="416" y="71" text-anchor="middle" fill="#fdba74">503</text>
+            </g>
+            <g>
+              <rect class="h0n" x="488" y="44" width="96" height="44" rx="8" stroke="#fe884e"/>
+              <text class="h0lbl" x="536" y="71" text-anchor="middle" fill="#fdba74">retry</text>
+            </g>
+            <g>
+              <rect class="h0n" x="608" y="44" width="96" height="44" rx="8" stroke="#818cf8"/>
+              <text class="h0lbl" x="656" y="71" text-anchor="middle" fill="#c7d2fe">200 ✓</text>
+            </g>
+          </svg>
+          <figcaption class="mt-4 text-center text-sm text-gray-500">Every event is signed (HMAC), delivered, retried automatically on failure, then logged, whether on the cloud or self-hosted.</figcaption>
+        </figure>
+    </div>
+</section>
+
+<%- include('./includes/_social-proof-bar.ejs') %>
+
+<!-- Pick your path: receive (Play) vs send (Cloud / self-host) -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-8 animate-on-scroll">
+            <span class="section__eyebrow">Start here</span>
+            <h2 class="mt-4 text-display font-bold text-white">Receive or send? Pick your free path</h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto">"Free webhook" covers two different jobs. The diagram shows which one you need. Both are free.</p>
+        </div>
+        <figure class="animate-on-scroll max-w-4xl mx-auto mb-12">
+          <svg viewBox="0 0 900 250" role="img" aria-labelledby="roles-title roles-desc" class="w-full h-auto">
+            <title id="roles-title">Receiving versus sending webhooks with Hook0</title>
+            <desc id="roles-desc">On the left, you receive and inspect a webhook a service sends you, using the free play.hook0.com tool. On the right, you send your own HMAC-signed webhooks to your users, with the free Cloud tier or the self-hosted open-source server.</desc>
+            <defs>
+              <style>
+                .r0n{fill:#14141a;}
+                .r0lbl{font-family:ui-monospace,'SFMono-Regular',Menlo,monospace;font-size:13px;fill:#e5e7eb;}
+                .r0sub{font-family:ui-monospace,'SFMono-Regular',Menlo,monospace;font-size:10px;fill:#9ca3af;}
+                .r0eye{font-family:Inter,system-ui,sans-serif;font-size:12px;font-weight:700;letter-spacing:.09em;fill:#818cf8;}
+                .r0arrow{stroke:#818cf8;stroke-width:1.6;fill:none;}
+              </style>
+              <marker id="r0ah" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,1 L6,4 L0,7" fill="none" stroke="#818cf8" stroke-width="1.5"/></marker>
+            </defs>
+
+            <line x1="450" y1="20" x2="450" y2="230" stroke="rgba(255,255,255,.12)" stroke-width="1.5" stroke-dasharray="3 5"/>
+
+            <!-- LEFT: receive & debug -->
+            <text class="r0eye" x="24" y="40">RECEIVE &amp; DEBUG</text>
+            <text class="r0sub" x="24" y="58">play.hook0.com · no account</text>
+            <g>
+              <rect class="r0n" x="24" y="110" width="132" height="54" rx="8" stroke="rgba(255,255,255,.22)"/>
+              <text class="r0lbl" x="90" y="140" text-anchor="middle">a service</text>
+              <text class="r0sub" x="90" y="156" text-anchor="middle">Stripe, GitHub…</text>
+            </g>
+            <line x1="156" y1="137" x2="246" y2="137" class="r0arrow" marker-end="url(#r0ah)"/>
+            <text class="r0sub" x="201" y="128" text-anchor="middle">POST</text>
+            <g>
+              <rect class="r0n" x="250" y="110" width="160" height="54" rx="8" stroke="#818cf8"/>
+              <text class="r0lbl" x="330" y="135" text-anchor="middle" fill="#c7d2fe">Hook0 Play</text>
+              <text class="r0sub" x="330" y="153" text-anchor="middle">inspect · replay</text>
+            </g>
+
+            <!-- RIGHT: send signed -->
+            <text class="r0eye" x="486" y="40">SEND SIGNED</text>
+            <text class="r0sub" x="486" y="58">Cloud or self-host · production</text>
+            <g>
+              <rect class="r0n" x="486" y="110" width="120" height="54" rx="8" stroke="#818cf8"/>
+              <text class="r0lbl" x="546" y="135" text-anchor="middle" fill="#c7d2fe">Hook0</text>
+              <text class="r0sub" x="546" y="153" text-anchor="middle">sign · retry</text>
+            </g>
+            <line x1="606" y1="137" x2="772" y2="84" class="r0arrow" marker-end="url(#r0ah)"/>
+            <line x1="606" y1="137" x2="772" y2="137" class="r0arrow" marker-end="url(#r0ah)"/>
+            <line x1="606" y1="137" x2="772" y2="190" class="r0arrow" marker-end="url(#r0ah)"/>
+            <text class="r0sub" x="690" y="96" text-anchor="middle" fill="#a5b4fc">HMAC signed</text>
+            <text class="r0sub" x="690" y="214" text-anchor="middle" fill="#fdba74">auto-retry on 5xx</text>
+            <g>
+              <rect class="r0n" x="772" y="66" width="108" height="36" rx="6" stroke="rgba(255,255,255,.22)"/>
+              <text class="r0lbl" x="826" y="89" text-anchor="middle">your user</text>
+            </g>
+            <g>
+              <rect class="r0n" x="772" y="119" width="108" height="36" rx="6" stroke="rgba(255,255,255,.22)"/>
+              <text class="r0lbl" x="826" y="142" text-anchor="middle">your user</text>
+            </g>
+            <g>
+              <rect class="r0n" x="772" y="172" width="108" height="36" rx="6" stroke="rgba(255,255,255,.22)"/>
+              <text class="r0lbl" x="826" y="195" text-anchor="middle">your user</text>
+            </g>
+          </svg>
+          <figcaption class="mt-4 text-center text-sm text-gray-500"><strong class="text-gray-300">Left</strong>, you receive &amp; inspect a webhook with the free <a href="https://play.hook0.com" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300 underline" onclick="trackEvent('CTA', 'Click', 'webhook-free-roles-play')">play.hook0.com</a> tool. <strong class="text-gray-300">Right</strong>, you send your own signed webhooks to your users, free on the <a href="./self-hosted-webhooks" class="text-indigo-400 hover:text-indigo-300 underline" onclick="trackEvent('CTA', 'Click', 'webhook-free-roles-selfhost')">self-hosted server</a> or the Cloud free tier.</figcaption>
+        </figure>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <div class="animate-on-scroll card card--glow p-8 flex flex-col">
+                <h3 class="text-xl font-bold text-white mb-3">I just need to test a webhook</h3>
+                <p class="text-gray-400 flex-1">Generate a public URL, inspect the payloads a service sends you, replay them. In your browser, nothing to install, no signup.</p>
+                <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--primary mt-6 self-start" onclick="trackEvent('CTA', 'Click', 'webhook-free-router-play')">Open play.hook0.com →</a>
+                <p class="mt-3 text-sm text-gray-500">Free forever. Public tool, open-source.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-8 flex flex-col">
+                <h3 class="text-xl font-bold text-white mb-3">I need webhook infra for my product</h3>
+                <p class="text-gray-400 flex-1">Sign, retry, fan-out and monitor the webhooks you send to your own users. Self-host the open-source server, or start on the cloud free tier.</p>
+                <div class="flex flex-wrap gap-3 mt-6">
+                    <a href="https://documentation.hook0.com/self-hosting/docker-compose" class="btn btn--secondary self-start" onclick="trackEvent('CTA', 'Click', 'webhook-free-router-selfhost')">Self-host free (SSPL)</a>
+                    <a href="https://app.hook0.com/register" class="btn btn--secondary self-start" onclick="trackEvent('CTA', 'Click', 'webhook-free-router-cloud')">Start on Cloud free</a>
+                </div>
+                <p class="mt-3 text-sm text-gray-500">Open-source unlimited, or 100 events/day on Cloud.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- The three free ways -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 right-0 opacity-10"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Three free ways</span>
+            <h2 class="mt-4 text-display font-bold text-white">Three ways to run Hook0 free, and where each stops</h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto">No surprise paywall. Here is exactly what is free and where each option stops.</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8 stagger-children">
+            <div class="animate-on-scroll card card--glow p-8 flex flex-col">
+                <h3 class="text-xl font-bold text-white mb-2">Playground</h3>
+                <p class="text-sm text-green-400 font-semibold mb-3">Free forever · no account</p>
+                <p class="text-gray-400 flex-1">Receive, inspect, debug and replay webhook payloads in the browser. The fastest way to see what a service is actually sending.</p>
+                <p class="mt-4 text-sm text-gray-500">Best for: debugging an integration right now.</p>
+                <a href="https://play.hook0.com" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300 underline mt-3" onclick="trackEvent('CTA', 'Click', 'webhook-free-card-play')">Open the playground →</a>
+            </div>
+            <div class="animate-on-scroll card card--glow p-8 flex flex-col">
+                <h3 class="text-xl font-bold text-white mb-2">Self-hosted (open-source)</h3>
+                <p class="text-sm text-green-400 font-semibold mb-3">Free forever · unlimited volume</p>
+                <p class="text-gray-400 flex-1">Run the full Hook0 server on your own infra under SSPL-1.0. Same codebase as the cloud, all delivery features, your data stays with you. No license cost, no volume cap from Hook0.</p>
+                <p class="mt-4 text-sm text-gray-500">Best for: production with full control and no metering.</p>
+                <a href="https://documentation.hook0.com/self-hosting/docker-compose" class="text-indigo-400 hover:text-indigo-300 underline mt-3" onclick="trackEvent('CTA', 'Click', 'webhook-free-card-selfhost')">Self-hosting guide →</a>
+            </div>
+            <div class="animate-on-scroll card card--glow p-8 flex flex-col">
+                <h3 class="text-xl font-bold text-white mb-2">Cloud free tier</h3>
+                <p class="text-sm text-green-400 font-semibold mb-3">Free forever · no credit card</p>
+                <p class="text-gray-400 flex-1">Managed by us, nothing to run. 1 application, 10 event types, 10 subscriptions, up to 100 events/day, 7 days retention. All features included. Extra events above 100/day are blocked.</p>
+                <p class="mt-4 text-sm text-gray-500">Best for: side-projects and a serious trial, no infra to own.</p>
+                <a href="https://app.hook0.com/register" class="text-indigo-400 hover:text-indigo-300 underline mt-3" onclick="trackEvent('CTA', 'Click', 'webhook-free-card-cloud')">Start free on Cloud →</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Competitor free comparison -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Honest comparison</span>
+            <h2 class="mt-4 text-display font-bold text-white">How "free" compares across webhook tools</h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto">Most "free" webhook offers stop at a metered cloud tier. Hook0 is the only one of these you can self-host for free, unlimited.</p>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Criteria</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider">Hook0</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Svix</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Hookdeck</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">webhook.site</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 stagger-children--tight">
+                    <tr class="hover:bg-white/5 transition-colors animate-on-scroll"><td class="py-4 px-6 text-gray-300">Free cloud tier</td><td class="py-4 px-6 text-green-400 font-medium">Yes, no credit card</td><td class="py-4 px-6 text-gray-400">Yes</td><td class="py-4 px-6 text-gray-400">Yes</td><td class="py-4 px-6 text-gray-400">Yes (tester only)</td></tr>
+                    <tr class="hover:bg-white/5 transition-colors animate-on-scroll"><td class="py-4 px-6 text-gray-300">Self-host for free, unlimited</td><td class="py-4 px-6 text-green-400 font-medium">Yes (SSPL)</td><td class="py-4 px-6 text-gray-400">Partial (open-core model)</td><td class="py-4 px-6 text-gray-400">No</td><td class="py-4 px-6 text-gray-400">No</td></tr>
+                    <tr class="hover:bg-white/5 transition-colors animate-on-scroll"><td class="py-4 px-6 text-gray-300">Send webhooks to your users</td><td class="py-4 px-6 text-green-400 font-medium">Yes</td><td class="py-4 px-6 text-gray-400">Yes</td><td class="py-4 px-6 text-gray-400">Yes</td><td class="py-4 px-6 text-gray-400">No (receive only)</td></tr>
+                    <tr class="hover:bg-white/5 transition-colors animate-on-scroll"><td class="py-4 px-6 text-gray-300">Free tool to test webhooks</td><td class="py-4 px-6 text-green-400 font-medium">Yes (play.hook0.com)</td><td class="py-4 px-6 text-gray-400">Yes</td><td class="py-4 px-6 text-gray-400">Console</td><td class="py-4 px-6 text-gray-400">Yes</td></tr>
+                    <tr class="hover:bg-white/5 transition-colors animate-on-scroll"><td class="py-4 px-6 text-gray-300">Full source available</td><td class="py-4 px-6 text-green-400 font-medium">Yes, 100% (GitHub &amp; GitLab)</td><td class="py-4 px-6 text-gray-400">Core only</td><td class="py-4 px-6 text-gray-400">No</td><td class="py-4 px-6 text-gray-400">No</td></tr>
+                    <tr class="hover:bg-white/5 transition-colors animate-on-scroll"><td class="py-4 px-6 text-gray-300">EU data residency / GDPR</td><td class="py-4 px-6 text-green-400 font-medium">Yes, EU-hosted, GDPR-ready</td><td class="py-4 px-6 text-gray-400">US cloud</td><td class="py-4 px-6 text-gray-400">US cloud</td><td class="py-4 px-6 text-gray-400">Varies</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="mt-4 text-xs text-gray-500 text-center">Comparison of publicly documented offers, June 2026. Check each vendor's current plans before deciding.</p>
+    </div>
+</section>
+
+<!-- Where free ends -->
+<section class="section relative overflow-hidden">
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-8 animate-on-scroll">
+            <span class="section__eyebrow">No surprises</span>
+            <h2 class="mt-4 text-display font-bold text-white">Where "free" ends</h2>
+        </div>
+        <div class="animate-on-scroll card card--glow p-8">
+            <p class="text-gray-400">Being upfront beats a hidden paywall. Here is exactly when you pay:</p>
+            <ul class="mt-4 space-y-3 text-gray-400 list-disc list-inside stagger-children--tight">
+                <li class="animate-on-scroll"><strong class="text-gray-200">Self-hosted stays free forever</strong>: no license cost, no volume cap. You only pay for your own infrastructure.</li>
+                <li class="animate-on-scroll"><strong class="text-gray-200">Cloud paid plans</strong> (Startup at €59/mo excl. VAT, then Pro) unlock higher volume, more applications and dedicated support. No feature is locked behind them; the free tier already has HMAC signing, retries, logs and the portal.</li>
+                <li class="animate-on-scroll"><strong class="text-gray-200">Scale and support are what you pay for.</strong> If you need more than 100 events/day on the cloud, or a managed SLA, that is the paid line.</li>
+            </ul>
+            <div class="mt-6">
+                <a href="./pricing" class="text-indigo-400 hover:text-indigo-300 underline" onclick="trackEvent('CTA', 'Click', 'webhook-free-pricing')">See full pricing →</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">FAQ</span>
+            <h2 class="mt-4 text-display font-bold text-white">Free webhook questions</h2>
+        </div>
+
+        <div class="space-y-6 stagger-children--tight">
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 really free?</h3>
+                <p class="text-gray-400">Yes, in three honest ways. play.hook0.com is a free tool to test and inspect webhooks in your browser, no account needed. The open-source server is free forever to self-host with no volume cap imposed by Hook0 (SSPL-1.0). And Hook0 Cloud has a free Developer tier: 100 events/day, no credit card, no feature gating. No bait-and-switch.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is there a free open-source webhook server?</h3>
+                <p class="text-gray-400">Yes. Hook0 is a free, open-source webhook server under SSPL-1.0, published on GitHub and GitLab. It ships with Docker Compose and Kubernetes manifests and runs on PostgreSQL. Self-hosting is free with no license cost and no volume cap from Hook0. It is the same codebase as the cloud, with the same features.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What are the free tier limits on Hook0 Cloud?</h3>
+                <p class="text-gray-400">The free Developer tier includes 1 developer, 1 application, 10 event types, 10 subscriptions, up to 100 events/day, and 7 days of data retention. All delivery features are included: HMAC signing, retries, delivery logs and the subscriber portal. No credit card is required and the tier is free forever for side-projects.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Can I test a webhook for free without an account?</h3>
+                <p class="text-gray-400">Yes. play.hook0.com gives you a public URL to receive, inspect and replay webhook payloads directly in your browser. There is nothing to install and no signup. It is free and itself open-source.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is self-hosting Hook0 free?</h3>
+                <p class="text-gray-400">Yes. There is no license cost and no volume cap imposed by Hook0 when you self-host. You provide the infrastructure (Docker or Kubernetes plus PostgreSQL) and get community support on Discord. Managed scaling, an uptime SLA and managed updates are the things you take on yourself when self-hosting.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What is the difference between play.hook0.com and Hook0 Cloud?</h3>
+                <p class="text-gray-400">play.hook0.com is a free tool to receive, inspect and debug webhooks that other services send you. Hook0 Cloud is the infrastructure to send signed webhooks to your own users in production, with retries, a dead letter queue and a subscriber portal. Use Play to debug, use Cloud or self-hosted to ship.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Does the free cloud tier expire or require a credit card?</h3>
+                <p class="text-gray-400">No. The free Developer tier has no time limit and requires no credit card. It is free forever for side-projects.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">What happens when I exceed the free cloud tier?</h3>
+                <p class="text-gray-400">Events beyond 100/day on the free tier are blocked until the next day. To send more, you upgrade to a paid plan (Startup at €59/mo excl. VAT, or Pro). Paid plans only unlock higher volume and support; no feature is locked behind them. If you want no volume cap at all, self-host the open-source server for free.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center">Related</h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300 underline">Webhook Playground</a>
+            <a href="./open-source-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Open-Source Webhooks</a>
+            <a href="./self-hosted-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Self-Hosted Webhooks</a>
+            <a href="./webhook-platform" class="text-indigo-400 hover:text-indigo-300 underline">Webhook Platform</a>
+            <a href="./pricing" class="text-indigo-400 hover:text-indigo-300 underline">Pricing</a>
+            <a href="./hook0-vs-svix" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Svix</a>
+            <a href="./hook0-vs-hookdeck" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Hookdeck</a>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<%- include('./includes/_cta-inline.ejs') %>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>

@@ -464,24 +464,25 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
 <!-- Scroll Animation Script -->
 <script defer>
 document.addEventListener('DOMContentLoaded', function() {
-    // Intersection Observer for scroll-triggered animations
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
+    // Scroll-triggered animations — respect the user's reduced-motion setting.
+    var animatedEls = document.querySelectorAll('.animate-on-scroll');
+    var prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('is-visible');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, observerOptions);
+    if (prefersReducedMotion) {
+        // No motion: reveal everything immediately so nothing stays hidden.
+        animatedEls.forEach(function(el) { el.classList.add('is-visible'); });
+    } else {
+        var observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
-    document.querySelectorAll('.animate-on-scroll').forEach(function(el) {
-        observer.observe(el);
-    });
+        animatedEls.forEach(function(el) { observer.observe(el); });
+    }
 
     // Header scroll effect
     const header = document.getElementById('main-header');

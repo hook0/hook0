@@ -654,6 +654,47 @@
     }
   }
 
+  // Tighter stagger for dense groups (FAQ lists, comparison table rows)
+  // — avoids the perceived lag when many items reveal at once.
+  .stagger-children--tight > * {
+    @for $i from 1 through 12 {
+      &:nth-child(#{$i}) {
+        transition-delay: #{($i - 1) * 0.05}s;
+      }
+    }
+  }
+
+  // --------------------------------------------
+  // ACCESSIBILITY — REDUCED MOTION
+  // --------------------------------------------
+  // WCAG 2.3.3 / 2.2.2: honour the user's "reduce motion" OS setting.
+  // Neutralise scroll-reveals (keep content visible) and stop every looping
+  // keyframe animation (decorative pulses, SVG flow dashes, etc.).
+  @media (prefers-reduced-motion: reduce) {
+    .animate-on-scroll,
+    .animate-on-scroll--left,
+    .animate-on-scroll--right,
+    .animate-on-scroll--scale {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+
+    .stagger-children > *,
+    .stagger-children--tight > * {
+      transition-delay: 0s !important;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   // --------------------------------------------
   // TEXT GRADIENTS
   // --------------------------------------------
