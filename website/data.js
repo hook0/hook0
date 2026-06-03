@@ -260,6 +260,7 @@ locals.footerLinks = {
   compare: {
     title: 'Compare',
     items: [
+      { label: 'Free Webhooks', href: './webhook-free' },
       { label: 'Hook0 vs Svix', href: './hook0-vs-svix' },
       { label: 'Hook0 vs Hookdeck', href: './hook0-vs-hookdeck' },
       { label: 'Hook0 vs Convoy', href: './hook0-vs-convoy' },
