@@ -24,46 +24,27 @@
                 </div>
             </div>
 
-            <!-- Right Column - Logo Grid -->
+            <!-- Right Column - Logo Grid (animated rotation, see src/js/logo-wall.js) -->
             <div class="animate-on-scroll animate-on-scroll--right">
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-8 lg:gap-10">
-                    <div class="flex items-center justify-center p-6 rounded-2xl bg-white/5 border border-white/5
-                                hover:bg-white/10 hover:border-white/10 transition-all duration-300 group">
-                        <img class="max-h-10 w-auto object-contain opacity-60 group-hover:opacity-100 transition-opacity
-                                    filter brightness-0 invert"
-                             src="./customers/coinbase.svg" alt="Coinbase" width="120" height="40" loading="lazy" />
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-8 lg:gap-10" data-logo-rotator>
+                    <% locals.customers.slice(0, 6).forEach(c => { %>
+                    <div class="logo-cell rounded-2xl bg-white/5 border border-white/5
+                                hover:bg-white/10 hover:border-white/10 transition-all duration-300" data-logo-cell>
+                        <img class="logo-layer logo-layer--active" src="<%= c.logo %>" alt="<%= c.name %>" data-logo="<%= c.logo %>" width="120" height="40" loading="lazy" />
+                        <img class="logo-layer" alt="" />
                     </div>
-                    <div class="flex items-center justify-center p-6 rounded-2xl bg-white/5 border border-white/5
-                                hover:bg-white/10 hover:border-white/10 transition-all duration-300 group">
-                        <img class="max-h-10 w-auto object-contain opacity-60 group-hover:opacity-100 transition-opacity
-                                    filter brightness-0 invert"
-                             src="./customers/woodwing.svg" alt="WoodWing" width="120" height="40" loading="lazy" />
-                    </div>
-                    <div class="flex items-center justify-center p-6 rounded-2xl bg-white/5 border border-white/5
-                                hover:bg-white/10 hover:border-white/10 transition-all duration-300 group">
-                        <img class="max-h-10 w-auto object-contain opacity-60 group-hover:opacity-100 transition-opacity
-                                    filter brightness-0 invert"
-                             src="./customers/optery.svg" alt="Optery" width="120" height="40" loading="lazy" />
-                    </div>
-                    <div class="flex items-center justify-center p-6 rounded-2xl bg-white/5 border border-white/5
-                                hover:bg-white/10 hover:border-white/10 transition-all duration-300 group">
-                        <img class="max-h-10 w-auto object-contain opacity-60 group-hover:opacity-100 transition-opacity
-                                    filter brightness-0 invert"
-                             src="./customers/alteos.svg" alt="Alteos" width="120" height="40" loading="lazy" />
-                    </div>
-                    <div class="flex items-center justify-center p-6 rounded-2xl bg-white/5 border border-white/5
-                                hover:bg-white/10 hover:border-white/10 transition-all duration-300 group">
-                        <img class="max-h-10 w-auto object-contain opacity-60 group-hover:opacity-100 transition-opacity
-                                    filter brightness-0 invert"
-                             src="./customers/activeants.svg" alt="ActiveAnts" width="120" height="40" loading="lazy" />
-                    </div>
-                    <div class="flex items-center justify-center p-6 rounded-2xl bg-white/5 border border-white/5
-                                hover:bg-white/10 hover:border-white/10 transition-all duration-300 group">
-                        <img class="max-h-10 w-auto object-contain opacity-60 group-hover:opacity-100 transition-opacity
-                                    filter brightness-0 invert"
-                             src="./customers/apizee.svg" alt="Apizee" width="120" height="40" loading="lazy" />
-                    </div>
+                    <% }) %>
                 </div>
+                <%# Full logo pool (incl. benched logos), preloaded & resolved by the bundler so the
+                    rotation script gets the final (hashed) asset URLs. `data-logo` is the stable
+                    identity key. No hardcoded list in JS — the pool is discovered from the DOM. %>
+                <div class="hidden" data-logo-pool aria-hidden="true">
+                    <% locals.customers.forEach(c => { %>
+                    <img src="<%= c.logo %>" data-logo="<%= c.logo %>" data-name="<%= c.name %>" data-pinned="<%= c.pinned %>" alt="" />
+                    <% }) %>
+                </div>
+                <%# Logo rotation — Parcel-bundled module, not inline JS (see website/CLAUDE.md). %>
+                <script type="module" src="./js/logo-wall.js"></script>
             </div>
         </div>
 
