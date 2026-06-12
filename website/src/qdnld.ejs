@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <title>Hook0 pour les lecteurs de Quoi de neuf les devs ? — 100 € de crédit offert</title>
+    <%
+    locals.pageTitle = 'Hook0 pour les lecteurs de Quoi de neuf les devs ? — 100 € de crédit offert';
+    locals.pageDescription = "Lecteur de Quoi de neuf les devs ? Activez 100 € HT de crédit Cloud sur Hook0 avec le code QDNLD2026. Webhooks-as-a-Service open source en Rust, hébergé en France, RGPD conforme.";
+    locals.pageCanonical = '/qdnld';
+    locals.pageImage = '/og-image.png';
+    locals.pageSchema = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": locals.seo.siteUrl + "/#organization",
+          "name": "Hook0",
+          "legalName": "FGRibreau SARL",
+          "url": locals.seo.siteUrl,
+          "logo": locals.seo.siteUrl + "/mediakit/logo/256x256-white.png",
+          "founders": [
+            { "@type": "Person", "name": "François-Guillaume Ribreau" },
+            { "@type": "Person", "name": "David Sferruzza" }
+          ],
+          "sameAs": [
+            locals.social.github.href,
+            locals.social.gitlab.href,
+            locals.social.linkedin.href,
+            locals.social.twitter.href,
+            locals.social.discord.href
+          ]
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "Hook0",
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "Cross-platform (cloud) / Linux (self-host)",
+          "url": locals.seo.siteUrl,
+          "description": "Webhooks-as-a-Service open source en Rust. Hook0 gère retries, HMAC, replay et monitoring depuis un appel API.",
+          "license": "https://spdx.org/licenses/SSPL-1.0.html",
+          "codeRepository": locals.social.github.repoHref,
+          "programmingLanguage": ["Rust"],
+          "publisher": { "@id": locals.seo.siteUrl + "/#organization" }
+        },
+        {
+          "@type": "Offer",
+          "name": "Crédit signup QDNLD2026",
+          "description": "100 € HT de crédit sur Hook0 Cloud pour les lecteurs de la newsletter Quoi de neuf les devs ?",
+          "priceCurrency": "EUR",
+          "price": "0",
+          "url": locals.seo.siteUrl + "/qdnld",
+          "availabilityStarts": "2026-05-18",
+          "availabilityEnds": "2026-11-18",
+          "category": "Promotion",
+          "eligibleCustomerType": "Newsletter subscriber",
+          "seller": { "@id": locals.seo.siteUrl + "/#organization" }
+        }
+      ]
+    };
+    locals.pageFAQSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "C'est quoi la license SSPL ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "La SSPL-1.0 (Server Side Public License) est une licence source-available. Vous pouvez lire, auditer, modifier et auto-héberger Hook0 librement, y compris en production interne. La contrainte ne s'active que si vous voulez revendre Hook0 en tant que service managé concurrent — auquel cas vous devez publier l'intégralité de votre stack opérationnel sous SSPL. Pour 99 % des usages (intégrer Hook0 dans votre produit, ou l'utiliser en interne), c'est strictement équivalent à de l'open source classique."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Je peux vraiment auto-héberger Hook0 sur mon infra ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui, et avec parité 100 % vs le cloud Hook0. Docker Compose pour démarrer, Helm chart Kubernetes pour le prod. Pas de fonctionnalités payantes cachées, pas d'open core. Le code complet est sur GitHub et GitLab. Documentation : documentation.hook0.com/self-hosting."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Je suis dev Laravel, ça remplace quoi ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hook0 remplace votre table maison + Horizon + retries + signature HMAC pour la livraison webhook sortante vers vos propres clients. Vous gardez Laravel pour votre app et déléguez à Hook0 ce que vous délégueriez à Stripe pour le paiement : un appel POST /events, et Hook0 livre, retry, signe, log. Pas de SDK Laravel officiel mais l'API REST est documentée et un client HTTP Guzzle de 30 lignes suffit."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "RGPD et hébergement France, vraiment ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Stockage et traitement Hook0 hébergés sur Clever Cloud (datacenters France), entité de facturation FGRibreau SARL (RCS La Roche-sur-Yon 850 824 350), DPA signable en ligne (art. 28 RGPD). Hook0 n'est pas soumis au CLOUD Act US (pas de filiale ou société mère américaine). La liste complète des sous-traitants, y compris le CDN edge Cloudflare, est publique sur hook0.com/gdpr-subprocessors."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Différence avec Svix ou Hookdeck ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Svix : MIT mais open core (features entreprise propriétaires), VC ($17M a16z), hébergé US. Hookdeck : code source fermé, VC, hébergé US/CA. Hook0 : SSPL avec parité auto-hébergement, bootstrappé, hébergé France. Si vous avez besoin de souveraineté UE ou d'un budget infra de moins de 100 €/mois pour démarrer, Hook0 est généralement le meilleur fit. Si vous traitez 100 M d'events/jour pour un public US, Svix peut faire sens."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Comment j'active mes 100 € de crédit ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Créez un compte sur app.hook0.com/register, saisissez le code QDNLD2026 dans le champ 'code promotion' au moment de l'inscription. Le crédit de 100 € HT s'applique automatiquement et reste valide 6 mois. Il couvre vos premiers mois sur les plans payants (Startup 59 € HT/mois ou Pro 190 € HT/mois). Pas de carte bancaire requise pour démarrer en tier gratuit."
+          }
+        }
+      ]
+    };
+    %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<a name="top"></a>
+
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+    <div class="blur-circle blur-circle--indigo w-64 h-64 bottom-20 left-1/4 opacity-30"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <!-- Badge QDNLD -->
+        <div class="animate-on-scroll inline-flex items-center gap-3 px-1 pr-4 py-1 rounded-full
+                    bg-white/5 border border-white/10 backdrop-blur-sm mb-8">
+            <span class="px-3 py-1 text-xs font-semibold tracking-wide bg-green-500 text-white rounded-full">
+                Lecteurs QDNLD
+            </span>
+            <span class="text-sm text-gray-300">
+                Quoi de neuf les devs ? × Hook0
+            </span>
+        </div>
+
+        <!-- Headline -->
+        <h1 class="animate-on-scroll text-display-xl text-white">
+            Arrêtez de recoder vos webhooks.
+            <span class="block text-gradient-green mt-2 pb-1 leading-relaxed">Hook0 livre à leur place.</span>
+        </h1>
+
+        <!-- Sous-titre -->
+        <p class="animate-on-scroll mt-6 text-body-lg text-gray-400 max-w-3xl mx-auto">
+            Un POST sur l'API Hook0, et on s'occupe du reste : retries configurables,
+            signature HMAC-SHA256 avec rotation de secret, replay, monitoring, dashboard subscribers.
+            Open source en Rust, hébergé sur Clever Cloud (France), RGPD conforme.
+        </p>
+
+        <!-- Mini social proof above fold -->
+        <p class="animate-on-scroll mt-4 text-sm text-gray-500">
+            Utilisé en prod par <span class="text-gray-300">Coinbase</span>, <span class="text-gray-300">WoodWing</span>, <span class="text-gray-300">ActiveAnts</span>, <span class="text-gray-300">Alteos</span>.
+        </p>
+
+        <!-- Carte offre 100 € -->
+        <div class="animate-on-scroll mt-10 max-w-2xl mx-auto card card--glow p-6 sm:p-8 text-left">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-6">
+                <div class="flex-shrink-0">
+                    <div class="text-5xl sm:text-6xl font-extrabold text-gradient-green leading-none">100 €</div>
+                    <div class="text-xs text-gray-400 mt-1">HT de crédit Cloud</div>
+                </div>
+                <div class="flex-1">
+                    <p class="text-white font-semibold mb-2">Offert aux lecteurs de QDNLD</p>
+                    <p class="text-sm text-gray-400 mb-4">
+                        Code <code class="px-2 py-0.5 rounded bg-white/10 text-green-400 font-mono">QDNLD2026</code>
+                        — valide 6 mois — applicable au signup
+                    </p>
+                    <a href="https://app.hook0.com/register?promo=QDNLD2026&mtm_source=quoidedeneuflesdevs&mtm_medium=newsletter&mtm_campaign=sponsor-permanent-2026&mtm_content=hero-card"
+                       class="inline-flex items-center gap-2 text-sm font-semibold text-green-400 hover:text-green-300 transition-colors"
+                       onclick="trackEvent('CTA','Click','qdnld-hero-card')">
+                        Activer le code maintenant
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA principal -->
+        <div class="animate-on-scroll mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://app.hook0.com/register?promo=QDNLD2026&mtm_source=quoidedeneuflesdevs&mtm_medium=newsletter&mtm_campaign=sponsor-permanent-2026&mtm_content=hero-primary"
+               class="btn btn--primary btn--lg group whitespace-nowrap"
+               onclick="trackEvent('CTA','Click','qdnld-hero-primary')">
+                Récupérer mes 100 €
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="https://play.hook0.com?mtm_source=quoidedeneuflesdevs&mtm_medium=newsletter&mtm_campaign=sponsor-permanent-2026&mtm_content=hero-secondary"
+               target="_blank" rel="noopener"
+               class="btn btn--secondary btn--lg whitespace-nowrap"
+               onclick="trackEvent('CTA','Click','qdnld-hero-playground')">
+                Tester sans créer de compte
+            </a>
+        </div>
+
+        <!-- Risk reversal microcopy -->
+        <p class="animate-on-scroll mt-4 text-xs text-gray-500">
+            Sans carte bancaire · Tier gratuit à vie · Annulable en 1 clic · Vos données restent les vôtres
+        </p>
+
+        <!-- Trust indicators -->
+        <div class="animate-on-scroll mt-10 flex flex-wrap gap-6 justify-center text-sm text-gray-400">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Tier gratuit à vie</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Sans carte bancaire</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Hébergé en France (Clever Cloud)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>RGPD conforme, DPA en ligne</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('./includes/_social-proof-bar.ejs') %>
+
+<!-- Pourquoi Hook0 (4 cards) -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Pourquoi Hook0</span>
+            <h2 class="mt-4 section__title">Le système que vous avez déjà codé trois fois en interne</h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-3xl mx-auto">
+                Table en DB + worker + cron retry + signature HMAC + dashboard subscribers. Ça marche
+                jusqu'au jour où ça ne marche plus. Hook0 fait ce travail à votre place, sans bugs maison.
+            </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <!-- Rust -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Codé en Rust, pas en JS</h3>
+                <p class="text-gray-400">
+                    Pas de garbage collector qui freeze le worker au mauvais moment. Async natif via Tokio :
+                    un seul process gère des milliers de livraisons HTTP concurrentes. Les requêtes SQL sont
+                    validées au build via <code class="text-green-400 font-mono text-sm">sqlx</code> — une typo
+                    casse le build, pas la prod à 3h du matin.
+                </p>
+            </div>
+
+            <!-- SSPL Self-host -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">SSPL avec parité auto-héberg.</h3>
+                <p class="text-gray-400">
+                    Même code en Cloud et en auto-hébergement. Pas d'open core, pas de features entreprise
+                    cachées derrière un mur. Docker Compose pour tester, Helm chart pour le prod.
+                    <a href="https://github.com/hook0/hook0" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300">Code sur GitHub</a>,
+                    auditez avant d'adopter.
+                </p>
+            </div>
+
+            <!-- Clever Cloud FR -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Hébergé en France, RGPD conforme</h3>
+                <p class="text-gray-400">
+                    Stockage et traitement sur Clever Cloud (datacenters France), entité FGRibreau SARL (France),
+                    DPA signable en ligne. Pas de filiale US — Hook0 n'est pas soumis au CLOUD Act.
+                    Liste publique et à jour des sous-traitants (y compris le CDN edge) sur
+                    <a href="/gdpr-subprocessors" class="text-indigo-400 hover:text-indigo-300">/gdpr-subprocessors</a>.
+                </p>
+            </div>
+
+            <!-- Bootstrap -->
+            <div class="animate-on-scroll card card--glow p-8">
+                <div class="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">100 % bootstrappé, 0 € VC</h3>
+                <p class="text-gray-400">
+                    Aucun investisseur, donc pas de pivot trimestriel pour satisfaire un board.
+                    Facturation prédictible : un prix mensuel + per-event au-delà du quota — pas
+                    de surprise en fin de mois. Releases hebdo, roadmap publique sur GitLab,
+                    construit pour durer 10 ans.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Comment ça marche concrètement (code snippet) -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">Concrètement</span>
+            <h2 class="section__title">Un POST. Hook0 fait le reste.</h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-3xl mx-auto">
+                Vous appelez l'API Hook0 quand un événement métier se produit dans votre app.
+                Hook0 livre l'événement aux endpoints de vos clients, gère les retries selon une
+                stratégie configurable, signe avec HMAC, et garde l'historique pour replay.
+            </p>
+        </div>
+
+        <div class="animate-on-scroll glass rounded-2xl p-6 sm:p-8">
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Depuis votre app Laravel</p>
+            <pre class="text-sm text-gray-200 overflow-x-auto mb-6"><code>// Au moment ou un evenement metier arrive dans votre app
+Http::withToken(config('services.hook0.token'))
+    -&gt;post('https://api.hook0.com/api/v1/event', [
+        'application_id' =&gt; config('services.hook0.app_id'),
+        'event_type'     =&gt; 'invoice.paid',
+        'payload_content_type' =&gt; 'application/json',
+        'payload'        =&gt; ['invoice_id' =&gt; 'inv_42', 'amount_cents' =&gt; 19900],
+        'labels'         =&gt; ['customer_id' =&gt; 'cus_123'],
+    ]);</code></pre>
+
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Ou en curl, n'importe quel langage</p>
+            <pre class="text-sm text-gray-200 overflow-x-auto"><code>curl -X POST https://api.hook0.com/api/v1/event \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"application_id":"...","event_type":"invoice.paid",
+       "payload_content_type":"application/json",
+       "payload":{"invoice_id":"inv_42"},
+       "labels":{"customer_id":"cus_123"}}'</code></pre>
+
+            <p class="mt-6 text-sm text-gray-400">
+                C'est tout. Hook0 livre aux subscribers concernes (filtres par labels), retry sur
+                erreur (fast + slow phases configurables), signe avec HMAC-SHA256 (secret par
+                subscriber, rotation supportee), garde le payload pour replay manuel ou automatique,
+                log chaque tentative dans le dashboard.
+            </p>
+        </div>
+
+        <div class="mt-8 text-center animate-on-scroll">
+            <a href="https://documentation.hook0.com/docs/getting-started?mtm_source=quoidedeneuflesdevs&mtm_medium=newsletter&mtm_campaign=sponsor-permanent-2026&mtm_content=code-snippet"
+               class="link link--arrow text-indigo-400 hover:text-indigo-300"
+               onclick="trackEvent('CTA','Click','qdnld-quick-start')">
+                Quick start détaillé (5 minutes)
+                <svg class="w-4 h-4 ml-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                </svg>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Offre QDNLD detaillée -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 gradient-mesh opacity-30"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/3 -left-40 opacity-30"></div>
+    <div class="blur-circle blur-circle--indigo w-72 h-72 bottom-0 -right-32 opacity-30"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">L'offre</span>
+            <h2 class="section__title">100 € HT de crédit, valide 6 mois</h2>
+            <p class="mt-4 text-body-lg text-gray-400 max-w-2xl mx-auto">
+                C'est environ 1,7 mois du plan Startup (59 € HT/mois) ou 16 jours de Pro (190 € HT/mois).
+                Assez pour passer en prod sans payer pendant que vous validez Hook0 sur un vrai projet.
+            </p>
+        </div>
+
+        <div class="animate-on-scroll grid md:grid-cols-3 gap-6 stagger-children">
+            <!-- Etape 1 -->
+            <div class="card p-6">
+                <div class="text-3xl font-extrabold text-gradient-indigo mb-3">1</div>
+                <h3 class="text-lg font-semibold text-white mb-2">Créez votre compte</h3>
+                <p class="text-sm text-gray-400">
+                    Sur <a href="https://app.hook0.com/register?promo=QDNLD2026&mtm_source=quoidedeneuflesdevs&mtm_medium=newsletter&mtm_campaign=sponsor-permanent-2026&mtm_content=steps-1" class="text-indigo-400 hover:text-indigo-300">app.hook0.com/register</a>. Email + mot de passe, pas de carte bancaire requise.
+                </p>
+            </div>
+            <!-- Etape 2 -->
+            <div class="card p-6">
+                <div class="text-3xl font-extrabold text-gradient-green mb-3">2</div>
+                <h3 class="text-lg font-semibold text-white mb-2">Saisissez le code QDNLD2026</h3>
+                <p class="text-sm text-gray-400">
+                    Champ « code promotion » au signup. Le crédit de 100 € HT est appliqué
+                    automatiquement sur votre compte.
+                </p>
+            </div>
+            <!-- Etape 3 -->
+            <div class="card p-6">
+                <div class="text-3xl font-extrabold text-gradient-indigo mb-3">3</div>
+                <h3 class="text-lg font-semibold text-white mb-2">Envoyez votre 1er event</h3>
+                <p class="text-sm text-gray-400">
+                    Quick start en 5 minutes. Le crédit couvre vos premiers mois de plan payant
+                    si vous passez en prod.
+                </p>
+            </div>
+        </div>
+
+        <!-- 2 chemins -->
+        <div class="mt-12 grid md:grid-cols-2 gap-6 animate-on-scroll">
+            <a href="https://app.hook0.com/register?promo=QDNLD2026&mtm_source=quoidedeneuflesdevs&mtm_medium=newsletter&mtm_campaign=sponsor-permanent-2026&mtm_content=path-signup"
+               class="card card--glow p-6 hover:border-green-500/30 transition-all group"
+               onclick="trackEvent('CTA','Click','qdnld-path-signup')">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-white mb-2 group-hover:text-green-400 transition-colors">Je crée mon compte (recommandé)</h3>
+                        <p class="text-sm text-gray-400">
+                            Inscription + code QDNLD2026 + 1<sup>er</sup> event en 5 min. Tier gratuit puis crédit qui couvre le mois.
+                        </p>
+                    </div>
+                </div>
+            </a>
+            <a href="https://play.hook0.com?mtm_source=quoidedeneuflesdevs&mtm_medium=newsletter&mtm_campaign=sponsor-permanent-2026&mtm_content=path-playground"
+               target="_blank" rel="noopener"
+               class="card card--glow p-6 hover:border-indigo-500/30 transition-all group"
+               onclick="trackEvent('CTA','Click','qdnld-path-playground')">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-white mb-2 group-hover:text-indigo-400 transition-colors">Je teste sans compte</h3>
+                        <p class="text-sm text-gray-400">
+                            play.hook0.com : envoyez un event, voyez la livraison, le retry, la signature HMAC. Aucun compte requis.
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ -->
+<section class="relative bg-surface-secondary py-24 sm:py-32 overflow-hidden">
+    <div class="absolute inset-0 gradient-mesh opacity-30"></div>
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-12 lg:gap-16">
+            <div class="lg:col-span-4 animate-on-scroll animate-on-scroll--left">
+                <span class="section__eyebrow">FAQ</span>
+                <h2 class="text-display font-bold text-white mt-4">Vos questions, sans détour</h2>
+                <p class="mt-4 text-body-lg text-gray-400">
+                    Une question qui n'est pas listée ?
+                    <a href="https://www.hook0.com/community" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300">Le Discord Hook0</a>
+                    est le moyen le plus rapide pour en parler avec FGR ou David directement.
+                </p>
+            </div>
+            <div class="lg:col-span-8 mt-12 lg:mt-0">
+                <div class="space-y-4 stagger-children">
+
+                    <details class="faq-item animate-on-scroll group">
+                        <summary class="text-white font-medium">
+                            <span>C'est quoi la license SSPL ?</span>
+                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </summary>
+                        <div class="faq-item__content">
+                            La SSPL-1.0 (Server Side Public License) est une licence source-available.
+                            Vous pouvez lire, auditer, modifier et auto-héberger Hook0 librement, y compris
+                            en production interne. La contrainte ne s'active que si vous voulez revendre
+                            Hook0 en tant que service managé concurrent — auquel cas vous devez publier
+                            l'intégralité de votre stack opérationnel sous SSPL. Pour 99 % des usages
+                            (intégrer Hook0 dans votre produit, ou l'utiliser en interne), c'est strictement
+                            équivalent à de l'open source classique.
+                        </div>
+                    </details>
+
+                    <details class="faq-item animate-on-scroll group">
+                        <summary class="text-white font-medium">
+                            <span>Je peux vraiment auto-héberger Hook0 sur mon infra ?</span>
+                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </summary>
+                        <div class="faq-item__content">
+                            Oui, et avec parité 100 % vs le cloud Hook0. Docker Compose pour démarrer, Helm chart
+                            Kubernetes pour le prod. Pas de fonctionnalités payantes cachées, pas d'open core.
+                            Le code complet est sur
+                            <a href="https://github.com/hook0/hook0" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300">GitHub</a>
+                            et <a href="https://gitlab.com/hook0/hook0" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300">GitLab</a>.
+                            Doc d'auto-hébergement :
+                            <a href="https://documentation.hook0.com/docs/self-hosting" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300">documentation.hook0.com/docs/self-hosting</a>.
+                        </div>
+                    </details>
+
+                    <details class="faq-item animate-on-scroll group">
+                        <summary class="text-white font-medium">
+                            <span>Je suis dev Laravel, ça remplace quoi ?</span>
+                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </summary>
+                        <div class="faq-item__content">
+                            Hook0 remplace votre table maison + Horizon + retries + signature HMAC pour la
+                            livraison webhook sortante vers vos propres clients. Vous gardez Laravel pour votre
+                            app et déléguez à Hook0 ce que vous délégueriez à Stripe pour le paiement :
+                            un appel <code class="text-green-400 font-mono">POST /events</code>, et Hook0 livre,
+                            retry, signe, log. Pas de SDK Laravel officiel mais l'API REST est documentée et
+                            un client HTTP Guzzle de 30 lignes suffit.
+                        </div>
+                    </details>
+
+                    <details class="faq-item animate-on-scroll group">
+                        <summary class="text-white font-medium">
+                            <span>RGPD et hébergement France, vraiment ?</span>
+                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </summary>
+                        <div class="faq-item__content">
+                            Stockage et traitement Hook0 hébergés sur Clever Cloud (datacenters France), entité de facturation
+                            FGRibreau SARL (RCS La Roche-sur-Yon 850 824 350, France), DPA signable en ligne
+                            (art. 28 RGPD). Hook0 n'est pas soumis au CLOUD Act US (pas de filiale ou société
+                            mère américaine). La liste complète des sous-traitants, y compris le CDN edge
+                            Cloudflare, est publique sur
+                            <a href="/gdpr-subprocessors" class="text-indigo-400 hover:text-indigo-300">hook0.com/gdpr-subprocessors</a>.
+                        </div>
+                    </details>
+
+                    <details class="faq-item animate-on-scroll group">
+                        <summary class="text-white font-medium">
+                            <span>Différence avec Svix ou Hookdeck ?</span>
+                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </summary>
+                        <div class="faq-item__content">
+                            <strong>Svix :</strong> MIT mais open core (features entreprise propriétaires), VC ($17M a16z), hébergé US.<br>
+                            <strong>Hookdeck :</strong> code source fermé, VC, hébergé US/CA.<br>
+                            <strong>Hook0 :</strong> SSPL avec parité auto-hébergement, bootstrappé, hébergé France.<br>
+                            Si vous avez besoin de souveraineté UE ou d'un budget infra de moins de 100 €/mois pour démarrer, Hook0 est généralement le meilleur fit.
+                            Si vous traitez 100 M d'events/jour pour un public US, Svix peut faire sens.
+                            Comparatif complet :
+                            <a href="/hook0-vs-svix" class="text-indigo-400 hover:text-indigo-300">Hook0 vs Svix</a> ·
+                            <a href="/hook0-vs-hookdeck" class="text-indigo-400 hover:text-indigo-300">Hook0 vs Hookdeck</a>.
+                        </div>
+                    </details>
+
+                    <details class="faq-item animate-on-scroll group">
+                        <summary class="text-white font-medium">
+                            <span>Comment j'active mes 100 € de crédit ?</span>
+                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </summary>
+                        <div class="faq-item__content">
+                            Créez un compte sur
+                            <a href="https://app.hook0.com/register?promo=QDNLD2026&mtm_source=quoidedeneuflesdevs&mtm_medium=newsletter&mtm_campaign=sponsor-permanent-2026&mtm_content=faq-credit" class="text-indigo-400 hover:text-indigo-300">app.hook0.com/register</a>,
+                            saisissez le code <code class="text-green-400 font-mono">QDNLD2026</code> dans le champ
+                            « code promotion » au moment de l'inscription. Le crédit de 100 € HT s'applique automatiquement
+                            et reste valide 6 mois. Il couvre vos premiers mois sur les plans payants (Startup
+                            59 € HT/mois ou Pro 190 € HT/mois). Pas de carte bancaire requise pour démarrer en tier gratuit.
+                        </div>
+                    </details>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA final -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 gradient-mesh opacity-30"></div>
+    <div class="blur-circle blur-circle--green w-96 h-96 -top-32 left-1/4 opacity-30"></div>
+    <div class="blur-circle blur-circle--indigo w-80 h-80 bottom-0 right-1/4 opacity-30"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="animate-on-scroll">
+            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
+                Déjà 10&nbsp;M+ de webhooks livrés depuis 2021 · Coinbase · WoodWing · ActiveAnts
+            </p>
+            <h2 class="text-display font-bold text-white">Vous gardez Laravel. Hook0 prend les webhooks.</h2>
+            <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+                Code <code class="px-2 py-0.5 rounded bg-white/10 text-green-400 font-mono">QDNLD2026</code>
+                — 100 € HT de crédit — valide 6 mois — applicable au signup. Pas de carte bancaire pour démarrer.
+            </p>
+
+            <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="https://app.hook0.com/register?promo=QDNLD2026&mtm_source=quoidedeneuflesdevs&mtm_medium=newsletter&mtm_campaign=sponsor-permanent-2026&mtm_content=cta-final-primary"
+                   class="btn btn--primary btn--lg group whitespace-nowrap"
+                   onclick="trackEvent('CTA','Click','qdnld-final-primary')">
+                    Réserver mes 100 € HT de crédit
+                    <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                    </svg>
+                </a>
+                <a href="https://play.hook0.com?mtm_source=quoidedeneuflesdevs&mtm_medium=newsletter&mtm_campaign=sponsor-permanent-2026&mtm_content=cta-final-secondary"
+                   target="_blank" rel="noopener"
+                   class="btn btn--secondary btn--lg whitespace-nowrap"
+                   onclick="trackEvent('CTA','Click','qdnld-final-playground')">
+                    Tester le playground
+                </a>
+            </div>
+
+            <p class="mt-8 text-sm text-gray-500">
+                Toujours indécis ?
+                <a href="https://github.com/hook0/hook0" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300">Lire le code sur GitHub</a> ·
+                <a href="https://www.hook0.com/community" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300">Rejoindre le Discord</a> ·
+                <a href="https://documentation.hook0.com/docs/getting-started" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300">Lire le quick start</a>
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Explore More - Exit-intent navigation -->
+<section class="relative py-16 overflow-hidden">
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+            <h2 class="text-xl font-semibold text-white">Pour aller plus loin</h2>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <a href="/built-to-last" class="group p-5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-center" onclick="trackEvent('Navigation','Click','qdnld-explore-built-to-last')">
+                <svg class="w-6 h-6 mx-auto text-green-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"></path></svg>
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">Built to Last</span>
+            </a>
+            <a href="/hook0-vs-svix" class="group p-5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-center" onclick="trackEvent('Navigation','Click','qdnld-explore-vs-svix')">
+                <svg class="w-6 h-6 mx-auto text-purple-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">Hook0 vs Svix</span>
+            </a>
+            <a href="/pricing" class="group p-5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-center" onclick="trackEvent('Navigation','Click','qdnld-explore-pricing')">
+                <svg class="w-6 h-6 mx-auto text-yellow-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path></svg>
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">Tarifs détaillés</span>
+            </a>
+            <a href="/security" class="group p-5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-center" onclick="trackEvent('Navigation','Click','qdnld-explore-security')">
+                <svg class="w-6 h-6 mx-auto text-indigo-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">Sécurité</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>
