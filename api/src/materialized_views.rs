@@ -2,7 +2,7 @@ use actix_web::rt::time::sleep;
 use clap::crate_name;
 use opentelemetry::trace::Tracer;
 use opentelemetry::{global, trace::TraceContextExt};
-use sqlx::{PgPool, query};
+use sqlx::{AssertSqlSafe, PgPool, query};
 use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
 use tracing::{debug, error, trace};
@@ -35,10 +35,10 @@ async fn refresh_materialized_views(db: &PgPool, timeout: Duration) -> Result<()
             let start = Instant::now();
 
             let mut tx = db.begin().await?;
-            query(&format!(
+            query(AssertSqlSafe(format!(
                 "SET LOCAL statement_timeout = '{}s'",
                 timeout.as_secs()
-            ))
+            )))
             .execute(&mut *tx)
             .await?;
             query!("REFRESH MATERIALIZED VIEW CONCURRENTLY event.events_per_day")

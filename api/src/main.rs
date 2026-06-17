@@ -17,6 +17,7 @@ use pulsar::{
     Authentication, ConnectionRetryOptions, MultiTopicProducer, ProducerOptions, Pulsar,
     TokioExecutor,
 };
+use sqlx::AssertSqlSafe;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -854,8 +855,10 @@ async fn main() -> anyhow::Result<()> {
                     if !statement_timeout.is_zero() {
                         sqlx::Executor::execute(
                             conn,
-                            format!("SET statement_timeout = {}", statement_timeout.as_millis())
-                                .as_str(),
+                            AssertSqlSafe(format!(
+                                "SET statement_timeout = {}",
+                                statement_timeout.as_millis()
+                            )),
                         )
                         .await?;
                     }
