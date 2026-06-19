@@ -10,10 +10,12 @@ use sqlx::{PgPool, query_scalar};
 use crate::problems::Hook0Problem;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::str::FromStr;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 use strum::{AsRefStr, EnumIter, EnumString, VariantNames};
 use tracing::{error, trace, warn};
 use uuid::Uuid;
+
+use crate::opentelemetry::report_authorizer_duration;
 
 #[cfg(feature = "migrate-users-from-keycloak")]
 const GROUP_SEP: &str = "/";
@@ -871,6 +873,8 @@ fn authorize(
     max_authorization_time: Duration,
     debug_authorizer: bool,
 ) -> Result<AuthorizedToken, biscuit_auth::error::Token> {
+    let action_name = action.action_name();
+
     let mut authorizer = authorizer!(
         r#"
             valid_types(["master_access", "service_access", "user_access"]);
@@ -909,8 +913,7 @@ fn authorize(
         // This is not supposed to happen, that is why we display a big error and fail if it does
         if !action.can_work_without_organization() {
             error!(
-                "Action '{}' cannot be used without providing an organization ID. This is probably a bug.",
-                action.action_name()
+                "Action '{action_name}' cannot be used without providing an organization ID. This is probably a bug.",
             );
             return Err(biscuit_auth::error::Token::InternalError);
         }
@@ -927,10 +930,23 @@ fn authorize(
         ..Default::default()
     });
     let mut authorizer = authorizer.build(biscuit)?;
+    let start = Instant::now();
     let result = authorizer.authorize();
+    let elapsed = start.elapsed();
     if debug_authorizer {
         trace!("Authorizer state:\n{}", authorizer.print_world());
     }
+
+    let outcome = match &result {
+        Ok(_) => "ok",
+        Err(biscuit_auth::error::Token::RunLimit(biscuit_auth::error::RunLimit::Timeout)) => {
+            "timeout"
+        }
+        Err(biscuit_auth::error::Token::FailedLogic(_)) => "denied",
+        Err(_) => "error",
+    };
+    report_authorizer_duration(outcome, elapsed);
+
     result?;
 
     let raw_type: Vec<(String,)> = authorizer.query(rule!("data($id) <- type($id)"))?;
