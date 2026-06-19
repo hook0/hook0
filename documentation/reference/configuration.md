@@ -197,12 +197,6 @@ This documentation may not cover all options or reflect recent changes.
 | `PULSAR_TENANT` | Pulsar tenant | - |  |
 | `PULSAR_TOKEN` 🔒 | Pulsar token | - |  |
 
-### Deprecated
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `ENABLE_APPLICATION_SECRET_COMPATIBILITY` | Enable application secret compatibility mode | `true` |  |
-
 ### Google Ads
 
 | Variable | Description | Default | Required |
@@ -214,6 +208,12 @@ This documentation may not cover all options or reflect recent changes.
 | `GOOGLE_ADS_OAUTH_CLIENT_ID` | OAuth client ID (Desktop App credentials) | - |  |
 | `GOOGLE_ADS_OAUTH_CLIENT_SECRET` | OAuth client secret | - |  |
 | `GOOGLE_ADS_OAUTH_REFRESH_TOKEN` | OAuth refresh token | - |  |
+
+### Deprecated
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `ENABLE_APPLICATION_SECRET_COMPATIBILITY` | Enable application secret compatibility mode | `true` |  |
 
 ## Output Worker
 

@@ -53,6 +53,7 @@ function generateMarkdown(envVars) {
     'Hook0 Client',
     'Object Storage',
     'Pulsar',
+    'Google Ads',
     'Deprecated',
   ];
 
