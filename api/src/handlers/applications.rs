@@ -11,7 +11,9 @@ use validator::Validate;
 use crate::hook0_client::{
     EventApplicationCreated, EventApplicationRemoved, EventApplicationUpdated, Hook0ClientEvent,
 };
-use crate::iam::{Action, authorize, authorize_for_application, get_owner_organization};
+use crate::iam::{
+    Action, authorize_for_application, authorize_for_organization, get_owner_organization,
+};
 use crate::onboarding::{ApplicationOnboardingSteps, get_application_onboarding_steps};
 use crate::openapi::OaBiscuit;
 use crate::opentelemetry::report_cancelled_request_attempts;
@@ -86,17 +88,13 @@ pub async fn create(
     biscuit: ReqData<Biscuit>,
     body: Json<ApplicationPost>,
 ) -> Result<CreatedJson<Application>, Hook0Problem> {
-    if authorize(
+    authorize_for_organization(
         &biscuit,
         Some(body.organization_id),
         Action::ApplicationCreate,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    )?;
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -175,20 +173,16 @@ pub async fn get(
     biscuit: ReqData<Biscuit>,
     application_id: Path<Uuid>,
 ) -> Result<Json<ApplicationInfo>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::ApplicationGet {
             application_id: &application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let application_id = application_id.into_inner();
 
@@ -270,17 +264,13 @@ pub async fn list(
     biscuit: ReqData<Biscuit>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Application>>, Hook0Problem> {
-    if authorize(
+    authorize_for_organization(
         &biscuit,
         Some(qs.organization_id),
         Action::ApplicationList,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    )?;
 
     let applications = query_as!(
             Application,
@@ -309,20 +299,16 @@ pub async fn edit(
     application_id: Path<Uuid>,
     body: Json<ApplicationPost>,
 ) -> Result<Json<Application>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::ApplicationEdit {
             application_id: &application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -382,20 +368,16 @@ pub async fn delete(
     biscuit: ReqData<Biscuit>,
     application_id: Path<Uuid>,
 ) -> Result<NoContent, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::ApplicationDelete {
             application_id: &application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let application = query_as!(
         Application,

@@ -50,20 +50,16 @@ pub async fn get(
     qs: Query<Qs>,
     response_id: Path<Uuid>,
 ) -> Result<Json<Response>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::ResponseGet {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     #[allow(non_snake_case)]
     struct RawResponse {

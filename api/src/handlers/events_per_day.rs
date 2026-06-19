@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::query_as;
 use uuid::Uuid;
 
-use crate::iam::{Action, authorize, authorize_for_application};
+use crate::iam::{Action, authorize_for_application, authorize_for_organization};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 
@@ -72,20 +72,16 @@ pub async fn application(
         return Err(Hook0Problem::InvalidDateRange);
     }
 
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::EventsPerDayApplication {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let entries = query_as!(
         EventsPerDayEntryRaw,
@@ -158,17 +154,13 @@ pub async fn organization(
         return Err(Hook0Problem::InvalidDateRange);
     }
 
-    if authorize(
+    authorize_for_organization(
         &biscuit,
         Some(qs.organization_id),
         Action::EventsPerDayOrganization,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    )?;
 
     let entries = query_as!(
         EventsPerDayEntryRaw,

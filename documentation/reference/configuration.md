@@ -57,7 +57,7 @@ This documentation may not cover all options or reflect recent changes.
 | `DEBUG_AUTHORIZER` | If true, a trace log message containing authorizer context is emitted on each request; default is false because this feature implies a small overhead and might expose PII in logs | `false` |  |
 | `DISABLE_REGISTRATION` | Set to true to disable registration endpoint | - |  |
 | `MASTER_API_KEY` 🔒 | A global admin API key that have almost all rights. Better left undefined, USE AT YOUR OWN RISKS! | - |  |
-| `MAX_AUTHORIZATION_TIME_IN_MS` | Maximum duration (in millisecond) that can be spent running Biscuit's authorizer | `10` |  |
+| `MAX_AUTHORIZATION_TIME` | Maximum duration that can be spent running Biscuit's authorizer | `30ms` |  |
 | `PASSWORD_MINIMUM_LENGTH` | Minimum length of user passwords. This is checked when a user registers | `12` |  |
 
 ### Email

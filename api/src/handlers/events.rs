@@ -173,20 +173,16 @@ pub async fn list(
     biscuit: ReqData<Biscuit>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Event>>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::EventList {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let raw_events = query_as!(
             EventRaw,
@@ -265,20 +261,16 @@ pub async fn get(
     event_id: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<Json<EventWithPayload>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::EventGet {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let event_id = event_id.into_inner();
 
@@ -396,20 +388,16 @@ pub async fn ingest(
 ) -> Result<CreatedJson<IngestedEvent>, Hook0Problem> {
     let application_id = body.application_id;
 
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::EventIngest {
             application_id: &application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
     }
@@ -640,20 +628,16 @@ pub async fn replay(
 ) -> Result<NoContent, Hook0Problem> {
     let event_id = event_id.into_inner();
 
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::EventReplay {
             application_id: &body.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let mut tx = state.db.begin().await?;
 
