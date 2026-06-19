@@ -6,47 +6,101 @@
       {
         "ordinal": 0,
         "name": "event__id",
-        "type_info": "Uuid"
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "event.event",
+            "name": "event__id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "event_type__name",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "event.event",
+            "name": "event_type__name"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "payload",
-        "type_info": "Bytea"
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "event.event",
+            "name": "payload"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "payload_content_type",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "event.event",
+            "name": "payload_content_type"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "ip",
-        "type_info": "Inet"
+        "type_info": "Inet",
+        "origin": {
+          "Table": {
+            "table": "event.event",
+            "name": "ip"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "metadata",
-        "type_info": "Jsonb"
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "event.event",
+            "name": "metadata"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "occurred_at",
-        "type_info": "Timestamptz"
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "event.event",
+            "name": "occurred_at"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "received_at",
-        "type_info": "Timestamptz"
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "event.event",
+            "name": "received_at"
+          }
+        }
       },
       {
         "ordinal": 8,
         "name": "labels",
-        "type_info": "Jsonb"
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "event.event",
+            "name": "labels"
+          }
+        }
       }
     ],
     "parameters": {

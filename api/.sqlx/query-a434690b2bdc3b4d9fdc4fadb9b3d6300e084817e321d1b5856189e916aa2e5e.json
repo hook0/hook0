@@ -6,47 +6,91 @@
       {
         "ordinal": 0,
         "name": "request_attempt__id",
-        "type_info": "Uuid"
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "webhook.request_attempt",
+            "name": "request_attempt__id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "subscription__id",
-        "type_info": "Uuid"
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "webhook.request_attempt",
+            "name": "subscription__id"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "created_at",
-        "type_info": "Timestamptz"
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "webhook.request_attempt",
+            "name": "created_at"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "http_method",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "webhook.target_http",
+            "name": "method"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "http_url",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "webhook.target_http",
+            "name": "url"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "http_headers",
-        "type_info": "Jsonb"
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "webhook.target_http",
+            "name": "headers"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "secret",
-        "type_info": "Uuid"
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "webhook.subscription",
+            "name": "secret"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "worker_id",
-        "type_info": "Uuid"
+        "type_info": "Uuid",
+        "origin": "Expression"
       },
       {
         "ordinal": 8,
         "name": "worker_queue_type",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": "Expression"
       }
     ],
     "parameters": {

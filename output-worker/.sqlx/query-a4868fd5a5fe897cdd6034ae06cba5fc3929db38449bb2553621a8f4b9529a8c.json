@@ -6,17 +6,35 @@
       {
         "ordinal": 0,
         "name": "worker__id",
-        "type_info": "Uuid"
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "infrastructure.worker",
+            "name": "worker__id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "public",
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "infrastructure.worker",
+            "name": "public"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "queue_type",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "infrastructure.worker",
+            "name": "queue_type"
+          }
+        }
       }
     ],
     "parameters": {
