@@ -238,7 +238,7 @@ pub async fn get(
     qs: Query<GetQs>,
     request_attempt_id: Path<Uuid>,
 ) -> Result<Json<RequestAttempt>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::RequestAttemptGet {
@@ -247,11 +247,7 @@ pub async fn get(
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     #[allow(non_snake_case)]
     struct RawRequestAttempt {
@@ -374,7 +370,7 @@ pub async fn list(
         })
         .unwrap_or_default();
 
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::RequestAttemptList {
@@ -384,11 +380,7 @@ pub async fn list(
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let pagination = qs.pagination_cursor.unwrap_or_default().0;
 

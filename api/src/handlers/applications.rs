@@ -175,7 +175,7 @@ pub async fn get(
     biscuit: ReqData<Biscuit>,
     application_id: Path<Uuid>,
 ) -> Result<Json<ApplicationInfo>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::ApplicationGet {
@@ -184,11 +184,7 @@ pub async fn get(
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let application_id = application_id.into_inner();
 
@@ -309,7 +305,7 @@ pub async fn edit(
     application_id: Path<Uuid>,
     body: Json<ApplicationPost>,
 ) -> Result<Json<Application>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::ApplicationEdit {
@@ -318,11 +314,7 @@ pub async fn edit(
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -382,7 +374,7 @@ pub async fn delete(
     biscuit: ReqData<Biscuit>,
     application_id: Path<Uuid>,
 ) -> Result<NoContent, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::ApplicationDelete {
@@ -391,11 +383,7 @@ pub async fn delete(
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let application = query_as!(
         Application,
