@@ -31,12 +31,11 @@ pub struct ExampleArgs {
 }
 
 pub async fn execute(_cli: &Cli, args: &ExampleArgs) -> Result<()> {
-    let token = args.token.clone().unwrap_or_else(generate_token);
-
-    let ping_interval = Duration::from_secs(args.ping_interval);
-
     #[cfg(feature = "tui")]
     {
+        let token = args.token.clone().unwrap_or_else(generate_token);
+        let ping_interval = Duration::from_secs(args.ping_interval);
+
         crate::tui::run_example_tui(
             &args.relay_url,
             token,
