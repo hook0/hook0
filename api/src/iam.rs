@@ -6,6 +6,8 @@ use chrono::{DateTime, Utc};
 use paperclip::v2::schema::TypedData;
 use serde::Serialize;
 use sqlx::{PgPool, query_scalar};
+
+use crate::problems::Hook0Problem;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
@@ -20,14 +22,30 @@ const ORGA_GROUP_PREFIX: &str = "orga_";
 #[cfg(feature = "migrate-users-from-keycloak")]
 const ROLE_GROUP_PREFIX: &str = "role_";
 
-pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Option<Uuid> {
+/// Look up the organization owning an application, surfacing DB errors to the
+/// caller. A transient DB failure (e.g. pool exhaustion under load) must NOT be
+/// confused with "application not found": `Ok(None)` means the application is
+/// genuinely absent, `Err(_)` means the lookup itself failed.
+pub async fn get_owner_organization_or_db_error(
+    db: &PgPool,
+    application_id: &Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
     query_scalar!(
         "SELECT organization__id AS id FROM event.application WHERE application__id = $1 AND deleted_at IS NULL",
         application_id
     )
     .fetch_optional(db)
     .await
-    .unwrap_or(None)
+}
+
+/// Convenience wrapper that collapses any DB error to `None`. Kept for callers
+/// that only need a best-effort lookup; the authorization path uses
+/// [`get_owner_organization_or_db_error`] instead so a DB hiccup never silently
+/// becomes a 403.
+pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Option<Uuid> {
+    get_owner_organization_or_db_error(db, application_id)
+        .await
+        .unwrap_or(None)
 }
 
 #[derive(
@@ -1151,41 +1169,80 @@ pub fn authorize_refresh_token(
     })
 }
 
+/// A Biscuit authorization can fail for two fundamentally different reasons:
+///
+///   - the datalog evaluation exhausted its wall-clock budget
+///     (`RunLimit::Timeout`). This happens transiently when the instance is
+///     saturated (CPU/runtime starvation) and says nothing about the caller's
+///     actual rights;
+///   - the token genuinely lacks the requested right (any other error).
+///
+/// The first MUST surface as a retryable 5xx, never as a misleading permanent
+/// 403. When unsure we treat the failure as a denial (safe default: deny).
+fn is_transient_authorization_error(e: &biscuit_auth::error::Token) -> bool {
+    matches!(
+        e,
+        biscuit_auth::error::Token::RunLimit(biscuit_auth::error::RunLimit::Timeout)
+    )
+}
+
+/// Authorize an application-scoped action.
+///
+/// Failure mapping (the whole point of this function — see issue context):
+///
+/// ```text
+///   cause                                        -> Hook0Problem        -> HTTP
+///   action not application-scoped (bug)             Forbidden              403
+///   DB error while resolving owner organization     <from sqlx::Error>     503 (PoolTimedOut) / 500
+///   application genuinely absent (Ok(None))         Forbidden              403
+///   authorizer timed out (RunLimit::Timeout)        ServiceUnavailable     503 + Retry-After
+///   token lacks the right (any other biscuit error) Forbidden              403
+/// ```
 pub async fn authorize_for_application(
     db: &PgPool,
     biscuit: &Biscuit,
     action: Action<'_>,
     max_authorization_time_in_ms: u64,
     debug_authorizer: bool,
-) -> Result<AuthorizedToken, String> {
+) -> Result<AuthorizedToken, Hook0Problem> {
     let application_id = action.application_id().ok_or_else(|| {
-        let e = format!("The following action is not application-scoped (please report the issue, this is most likely a bug): {action:?}");
-        trace!("{e}");
-        e
+        error!(
+            "The following action is not application-scoped (please report the issue, this is most likely a bug): {action:?}"
+        );
+        Hook0Problem::Forbidden
     })?;
 
-    get_owner_organization(db, &application_id)
+    // A DB error here (e.g. connection pool exhaustion under load) is transient
+    // and must not be silently turned into a 403: propagate it so it surfaces
+    // as a retryable 5xx (PoolTimedOut -> 503).
+    let organization_id = get_owner_organization_or_db_error(db, &application_id)
         .await
+        .map_err(Hook0Problem::from)?
         .ok_or_else(|| {
-            format!(
-                "Could not find owner organization of application {}",
-                &application_id
-            )
-        })
-        .and_then(|organization_id| {
-            authorize(
-                biscuit,
-                Some(organization_id),
-                action,
-                max_authorization_time_in_ms,
-                debug_authorizer,
-            )
-            .map_err(|e| format!("{e:?}"))
-        })
-        .map_err(|e| {
-            trace!("{e}");
-            e
-        })
+            trace!("Could not find owner organization of application {application_id}");
+            Hook0Problem::Forbidden
+        })?;
+
+    authorize(
+        biscuit,
+        Some(organization_id),
+        action,
+        max_authorization_time_in_ms,
+        debug_authorizer,
+    )
+    .map_err(|e| {
+        if is_transient_authorization_error(&e) {
+            warn!(
+                application_id = %application_id,
+                error = ?e,
+                "Authorization timed out under load; returning a retryable 503 instead of a misleading 403"
+            );
+            Hook0Problem::ServiceUnavailable
+        } else {
+            trace!("Authorization denied for application {application_id}: {e:?}");
+            Hook0Problem::Forbidden
+        }
+    })
 }
 
 #[cfg(test)]
@@ -1285,6 +1342,56 @@ mod tests {
                 true
             ))
             .is_err()
+        );
+    }
+
+    /// A saturated authorizer (here forced via a 0 ms budget) must be reported
+    /// as a transient failure so it surfaces as a retryable 503 — never as a
+    /// misleading permanent 403.
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn authorizer_timeout_is_classified_as_transient() {
+        let keypair = KeyPair::new();
+        let token_id = Uuid::new_v4();
+        let organization_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+
+        // A 0 ms budget forces the datalog evaluation to run out of wall-clock
+        // time, reproducing what happens to the authorizer under saturation.
+        let err = authorize(&biscuit, Some(organization_id), Action::TestSimple, 0, true)
+            .expect_err("a 0ms authorizer budget must time out");
+
+        assert!(
+            is_transient_authorization_error(&err),
+            "an authorizer timeout must be classified as transient (retryable 503), got: {err:?}"
+        );
+    }
+
+    /// A real authorization denial (valid token, wrong organization) must NOT
+    /// be classified as transient: it stays a permanent 403.
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn genuine_denial_is_not_classified_as_transient() {
+        let keypair = KeyPair::new();
+        let token_id = Uuid::new_v4();
+        let organization_id = Uuid::new_v4();
+        let other_organization_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+
+        let err = authorize(
+            &biscuit,
+            Some(other_organization_id),
+            Action::TestSimple,
+            MAX_DURATION_TIME_IN_MS,
+            true,
+        )
+        .expect_err("authorizing against the wrong organization must be denied");
+
+        assert!(
+            !is_transient_authorization_error(&err),
+            "a genuine denial must NOT be classified as transient (stays 403), got: {err:?}"
         );
     }
 

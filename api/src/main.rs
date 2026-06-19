@@ -540,7 +540,7 @@ struct Config {
     app_url: Url,
 
     /// [Auth] Maximum duration (in millisecond) that can be spent running Biscuit's authorizer
-    #[clap(long, env, default_value = "10")]
+    #[clap(long, env, default_value = "100")]
     max_authorization_time_in_ms: u64,
 
     /// [Auth] If true, a trace log message containing authorizer context is emitted on each request; default is false because this feature implies a small overhead and might expose PII in logs

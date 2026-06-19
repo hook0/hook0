@@ -197,7 +197,7 @@ pub async fn list(
     biscuit: ReqData<Biscuit>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<Subscription>>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::SubscriptionList {
@@ -206,11 +206,7 @@ pub async fn list(
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     #[allow(non_snake_case)]
     struct RawSubscription {
@@ -335,7 +331,7 @@ pub async fn get(
 
     let application_id = application_id.expect("Could not unwrap application_id");
 
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::SubscriptionGet {
@@ -345,11 +341,7 @@ pub async fn get(
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     #[allow(non_snake_case)]
     struct RawSubscription {
@@ -486,7 +478,7 @@ pub async fn create(
         _ => Err(Hook0Problem::LabelsAmbiguity),
     }?;
 
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::SubscriptionCreate {
@@ -496,11 +488,7 @@ pub async fn create(
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -736,7 +724,7 @@ pub async fn edit(
         _ => Err(Hook0Problem::LabelsAmbiguity),
     }?;
 
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::SubscriptionEdit {
@@ -746,11 +734,7 @@ pub async fn edit(
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -1024,7 +1008,7 @@ pub async fn delete(
     subscription_id: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::SubscriptionDelete {
@@ -1034,11 +1018,7 @@ pub async fn delete(
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let application_id = qs.application_id;
 

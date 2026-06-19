@@ -72,7 +72,7 @@ pub async fn application(
         return Err(Hook0Problem::InvalidDateRange);
     }
 
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::EventsPerDayApplication {
@@ -81,11 +81,7 @@ pub async fn application(
         state.max_authorization_time_in_ms,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let entries = query_as!(
         EventsPerDayEntryRaw,
