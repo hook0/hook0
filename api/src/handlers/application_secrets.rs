@@ -51,20 +51,16 @@ pub async fn create(
     biscuit: ReqData<Biscuit>,
     body: Json<ApplicationSecretPost>,
 ) -> Result<CreatedJson<ApplicationSecret>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::ApplicationSecretCreate {
             application_id: &body.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -119,20 +115,16 @@ pub async fn list(
     biscuit: ReqData<Biscuit>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<ApplicationSecret>>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::ApplicationSecretList {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let application_secrets = query_as!(
         ApplicationSecret,
@@ -166,20 +158,16 @@ pub async fn edit(
     application_secret_token: Path<Uuid>,
     body: Json<ApplicationSecretPost>,
 ) -> Result<Json<ApplicationSecret>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::ApplicationSecretEdit {
             application_id: &body.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -241,20 +229,16 @@ pub async fn delete(
     application_secret_token: Path<Uuid>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::ApplicationSecretDelete {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let application_id = qs.application_id;
     let application_secret = query_as!(

@@ -474,32 +474,30 @@ pub async fn logout(
     _: OaBiscuitUserAccess,
     biscuit: ReqData<Biscuit>,
 ) -> Result<NoContent, Hook0Problem> {
-    if let Ok(token) = authorize_only_user(
+    let token = authorize_only_user(
         &biscuit,
         None,
         Action::AuthLogout,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
-    ) {
-        query!(
-            "
-                UPDATE iam.token
-                SET expired_at = statement_timestamp()
-                WHERE user__id = $1
-                    AND expired_at > statement_timestamp()
-                    AND session_id = $2
-                    AND type IN ('user_access', 'refresh')
-            ",
-            &token.user_id,
-            &token.session_id,
-        )
-        .execute(&state.db)
-        .await?;
+    )?;
 
-        Ok(NoContent)
-    } else {
-        Err(Hook0Problem::Forbidden)
-    }
+    query!(
+        "
+            UPDATE iam.token
+            SET expired_at = statement_timestamp()
+            WHERE user__id = $1
+                AND expired_at > statement_timestamp()
+                AND session_id = $2
+                AND type IN ('user_access', 'refresh')
+        ",
+        &token.user_id,
+        &token.session_id,
+    )
+    .execute(&state.db)
+    .await?;
+
+    Ok(NoContent)
 }
 
 #[api_v2_operation(
@@ -777,25 +775,23 @@ pub async fn change_password(
 
     let body = body.into_inner();
 
-    if let Ok(token) = authorize_only_user(
+    let token = authorize_only_user(
         &biscuit,
         None,
         Action::AuthChangePassword,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
-    ) {
-        do_change_password(
-            &state.db,
-            state.password_minimum_length,
-            &body.new_password,
-            token.user_id,
-        )
-        .await?;
+    )?;
 
-        Ok(NoContent)
-    } else {
-        Err(Hook0Problem::Forbidden)
-    }
+    do_change_password(
+        &state.db,
+        state.password_minimum_length,
+        &body.new_password,
+        token.user_id,
+    )
+    .await?;
+
+    Ok(NoContent)
 }
 
 async fn do_change_password<'a, A: Acquire<'a, Database = Postgres>>(

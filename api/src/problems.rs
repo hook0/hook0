@@ -20,7 +20,7 @@ use crate::quotas::QuotaValue;
  * 2/ Implement the Problem inside From<Hook0Problem> for Problem
  * 3/ Done! Enjoy!
  */
-#[api_v2_errors(code = 403, code = 500, code = 400, code = 404, code = 409)]
+#[api_v2_errors(code = 403, code = 500, code = 400, code = 404, code = 409, code = 503)]
 #[derive(Debug, Clone, EnumIter, strum::Display)]
 pub enum Hook0Problem {
     // Functional errors
@@ -75,6 +75,7 @@ pub enum Hook0Problem {
     NotFound,
     InternalServerError,
     Forbidden,
+    ServiceUnavailable,
 }
 
 impl From<sqlx::Error> for Hook0Problem {
@@ -106,6 +107,10 @@ impl From<sqlx::Error> for Hook0Problem {
                         Hook0Problem::InternalServerError
                     }
                 }
+            }
+            Error::PoolTimedOut => {
+                warn!("Database connection pool timed out (likely saturation under load)");
+                Hook0Problem::ServiceUnavailable
             }
             err => {
                 error!("{}", &err);
@@ -181,12 +186,17 @@ impl ResponseError for Hook0Problem {
 
         let json = problem.json_bytes();
 
-        actix_web::HttpResponse::build(actix_status)
-            .append_header((
-                actix_web::http::header::CONTENT_TYPE,
-                PROBLEM_JSON_MEDIA_TYPE,
-            ))
-            .body(json)
+        let mut builder = actix_web::HttpResponse::build(actix_status);
+        builder.append_header((
+            actix_web::http::header::CONTENT_TYPE,
+            PROBLEM_JSON_MEDIA_TYPE,
+        ));
+        if actix_status == actix_web::http::StatusCode::SERVICE_UNAVAILABLE {
+            // Tell well-behaved clients (e.g. Business Central, SDKs) to back off
+            // and retry rather than treating this transient saturation as permanent.
+            builder.append_header((actix_web::http::header::RETRY_AFTER, "5"));
+        }
+        builder.body(json)
     }
 }
 
@@ -521,6 +531,13 @@ impl From<Hook0Problem> for Problem {
                 detail: "You don't have the right to access or edit this resource.".into(),
                 validation: None,
                 status: StatusCode::FORBIDDEN,
+            },
+            Hook0Problem::ServiceUnavailable => Problem {
+                id: Hook0Problem::ServiceUnavailable,
+                title: "Service temporarily unavailable",
+                detail: "Hook0 is under heavy load and could not authorize your request in time. This is a temporary, server-side condition, not a rights issue: the request is safe to retry. Wait a moment and resubmit, honoring the Retry-After response header.".into(),
+                validation: None,
+                status: StatusCode::SERVICE_UNAVAILABLE,
             },
         }
     }
