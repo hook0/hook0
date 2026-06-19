@@ -91,7 +91,7 @@ pub async fn list(
         &biscuit,
         None,
         Action::OrganizationList,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     ) {
         let (token_organizations, is_master) = match token {
@@ -183,7 +183,7 @@ pub async fn create(
         &biscuit,
         None,
         Action::OrganizationCreate,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     ) {
         if let Err(e) = body.validate() {
@@ -315,7 +315,7 @@ pub async fn get(
         &biscuit,
         Some(organization_id),
         Action::OrganizationGet,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .is_err()
@@ -492,7 +492,7 @@ pub async fn edit(
         &biscuit,
         Some(organization_id.as_ref().to_owned()),
         Action::OrganizationEdit,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .is_err()
@@ -562,7 +562,7 @@ pub async fn invite(
         &biscuit,
         Some(organization_id),
         Action::OrganizationInvite,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .is_err()
@@ -652,7 +652,7 @@ pub async fn revoke(
         &biscuit,
         Some(organization_id),
         Action::OrganizationRevoke,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .is_err()
@@ -734,7 +734,7 @@ pub async fn edit_role(
         &biscuit,
         Some(organization_id),
         Action::OrganizationEditRole,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     ) {
         if let AuthorizedToken::User(user_token) = token
@@ -783,7 +783,7 @@ pub async fn delete(
         &biscuit,
         Some(organization_id),
         Action::OrganizationDelete,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .is_err()

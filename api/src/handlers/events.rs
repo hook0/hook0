@@ -179,7 +179,7 @@ pub async fn list(
         Action::EventList {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .await?;
@@ -267,7 +267,7 @@ pub async fn get(
         Action::EventGet {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .await?;
@@ -394,7 +394,7 @@ pub async fn ingest(
         Action::EventIngest {
             application_id: &application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .await?;
@@ -634,7 +634,7 @@ pub async fn replay(
         Action::EventReplay {
             application_id: &body.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .await?;

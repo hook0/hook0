@@ -78,7 +78,7 @@ pub async fn application(
         Action::EventsPerDayApplication {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .await?;
@@ -158,7 +158,7 @@ pub async fn organization(
         &biscuit,
         Some(qs.organization_id),
         Action::EventsPerDayOrganization,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .is_err()

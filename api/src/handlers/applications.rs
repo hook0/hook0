@@ -90,7 +90,7 @@ pub async fn create(
         &biscuit,
         Some(body.organization_id),
         Action::ApplicationCreate,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .is_err()
@@ -181,7 +181,7 @@ pub async fn get(
         Action::ApplicationGet {
             application_id: &application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .await?;
@@ -270,7 +270,7 @@ pub async fn list(
         &biscuit,
         Some(qs.organization_id),
         Action::ApplicationList,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .is_err()
@@ -311,7 +311,7 @@ pub async fn edit(
         Action::ApplicationEdit {
             application_id: &application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .await?;
@@ -380,7 +380,7 @@ pub async fn delete(
         Action::ApplicationDelete {
             application_id: &application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .await?;
