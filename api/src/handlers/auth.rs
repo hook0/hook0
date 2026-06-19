@@ -478,7 +478,7 @@ pub async fn logout(
         &biscuit,
         None,
         Action::AuthLogout,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     ) {
         query!(
@@ -781,7 +781,7 @@ pub async fn change_password(
         &biscuit,
         None,
         Action::AuthChangePassword,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     ) {
         do_change_password(

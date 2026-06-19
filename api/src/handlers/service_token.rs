@@ -60,7 +60,7 @@ pub async fn create(
         &biscuit,
         Some(organization_id),
         Action::ServiceTokenCreate,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .is_err()
@@ -141,7 +141,7 @@ pub async fn list(
         &biscuit,
         Some(organization_id),
         Action::ServiceTokenList,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .is_err()
@@ -192,7 +192,7 @@ pub async fn edit(
         Action::ServiceTokenEdit {
             service_token_id: &token_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .is_err()
@@ -270,7 +270,7 @@ pub async fn delete(
         Action::ServiceTokenDelete {
             service_token_id: &token_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .is_err()
@@ -355,7 +355,7 @@ pub async fn get(
         &biscuit,
         Some(organization_id),
         Action::ServiceTokenGet,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .is_err()

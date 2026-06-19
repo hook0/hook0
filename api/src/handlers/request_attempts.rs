@@ -244,7 +244,7 @@ pub async fn get(
         Action::RequestAttemptGet {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .await?;
@@ -377,7 +377,7 @@ pub async fn list(
             application_id: &qs.application_id,
             event_type_names: &event_type_names,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .await?;

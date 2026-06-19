@@ -56,7 +56,7 @@ pub async fn get(
         Action::ResponseGet {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
     .await?;
