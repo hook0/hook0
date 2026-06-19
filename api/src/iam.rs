@@ -1207,7 +1207,8 @@ pub async fn authorize_for_application(
 ) -> Result<AuthorizedToken, Hook0Problem> {
     let application_id = action.application_id().ok_or_else(|| {
         error!(
-            "The following action is not application-scoped (please report the issue, this is most likely a bug): {action:?}"
+            action = action.action_name(),
+            "Action is not application-scoped"
         );
         Hook0Problem::Forbidden
     })?;
@@ -1235,7 +1236,7 @@ pub async fn authorize_for_application(
             warn!(
                 application_id = %application_id,
                 error = ?e,
-                "Authorization timed out under load; returning a retryable 503 instead of a misleading 403"
+                "Authorization timed out under load"
             );
             Hook0Problem::ServiceUnavailable
         } else {
