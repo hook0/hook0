@@ -1,4 +1,5 @@
 use clap::crate_name;
+use opentelemetry::metrics::Histogram;
 use opentelemetry::{KeyValue, global};
 use opentelemetry_otlp::{
     Compression, ExporterBuildError, MetricExporter, Protocol, SpanExporter, WithExportConfig,
@@ -9,6 +10,7 @@ use opentelemetry_sdk::metrics::{Aggregation, Instrument, SdkMeterProvider, Stre
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use sqlx::PgPool;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use std::time::Duration;
 use tracing::{info, warn};
 use url::Url;
@@ -44,6 +46,7 @@ pub fn init(
         let metrics_provider = SdkMeterProvider::builder()
             .with_periodic_exporter(otlp_exporter)
             .with_view(health_check_duration_view)
+            .with_view(authorizer_duration_view)
             .with_resource(resource.clone())
             .build();
         global::set_meter_provider(metrics_provider.clone());
@@ -196,6 +199,34 @@ fn health_check_duration_view(instrument: &Instrument) -> Option<Stream> {
             .with_aggregation(Aggregation::ExplicitBucketHistogram {
                 boundaries: vec![
                     0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 7.5, 10.0,
+                ],
+                record_min_max: true,
+            })
+            .build()
+            .ok()
+    } else {
+        None
+    }
+}
+
+static AUTHORIZER_DURATION: LazyLock<Histogram<f64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .f64_histogram("biscuit_authorizer.duration")
+        .with_unit("s")
+        .with_description("Time spent in the Biscuit authorizer")
+        .build()
+});
+
+pub fn report_authorizer_duration(outcome: &'static str, duration: Duration) {
+    AUTHORIZER_DURATION.record(duration.as_secs_f64(), &[KeyValue::new("outcome", outcome)]);
+}
+
+fn authorizer_duration_view(instrument: &Instrument) -> Option<Stream> {
+    if instrument.name() == "biscuit_authorizer.duration" {
+        Stream::builder()
+            .with_aggregation(Aggregation::ExplicitBucketHistogram {
+                boundaries: vec![
+                    0.0001, 0.00025, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25,
                 ],
                 record_min_max: true,
             })
