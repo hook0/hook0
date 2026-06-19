@@ -6,32 +6,68 @@
       {
         "ordinal": 0,
         "name": "user_id",
-        "type_info": "Uuid"
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "user__id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "password_hash",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "password"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "email",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "email"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "first_name",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "first_name"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "last_name",
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "last_name"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "email_verified_at",
-        "type_info": "Timestamptz"
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "email_verified_at"
+          }
+        }
       }
     ],
     "parameters": {

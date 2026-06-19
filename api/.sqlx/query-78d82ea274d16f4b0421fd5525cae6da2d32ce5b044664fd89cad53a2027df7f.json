@@ -6,7 +6,13 @@
       {
         "ordinal": 0,
         "name": "token_id",
-        "type_info": "Uuid"
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "iam.token",
+            "name": "token__id"
+          }
+        }
       }
     ],
     "parameters": {
