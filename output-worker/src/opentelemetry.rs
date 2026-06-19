@@ -1,5 +1,6 @@
 use clap::crate_name;
 use opentelemetry::global::BoxedSpan;
+use opentelemetry::metrics::Gauge;
 use opentelemetry::trace::noop::NoopTracerProvider;
 use opentelemetry::trace::{Span, Tracer};
 use opentelemetry::{KeyValue, global};
@@ -14,6 +15,7 @@ use opentelemetry_sdk::trace::SdkTracerProvider;
 use pulsar::proto::CommandConsumerStatsResponse;
 use sqlx::PgPool;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use std::time::Duration;
 use tracing::{info, warn};
 
@@ -117,6 +119,32 @@ pub fn init(config: &Config, version: &str) -> Result<OtlpExporters, ExporterBui
     })
 }
 
+// These instruments are built once on first use and stay bound to the global
+// meter provider that exists at that moment. This is safe because `init()` sets
+// the provider during startup, before any of the functions below can be called.
+// A new caller that runs before `init()` would bind its instrument to the no-op
+// provider permanently.
+static DB_MAX_CONNECTIONS: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("db.max_connections")
+        .build()
+});
+static DB_OPENED_CONNECTIONS: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("db.opened_connections")
+        .build()
+});
+static DB_IDLE_CONNECTIONS: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("db.idle_connections")
+        .build()
+});
+static DB_ACTIVE_CONNECTIONS: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("db.active_connections")
+        .build()
+});
+
 pub fn gather_pool_metrics(pool: &PgPool) {
     let max_connections = u64::from(pool.options().get_max_connections());
     let opened_connections = u64::from(pool.size());
@@ -125,74 +153,74 @@ pub fn gather_pool_metrics(pool: &PgPool) {
         .ok();
     let active_connections = idle_connections.map(|idle| opened_connections - idle);
 
-    let meter = global::meter(crate_name!());
-    meter
-        .u64_gauge("db.max_connections")
-        .build()
-        .record(max_connections, &[]);
-    meter
-        .u64_gauge("db.opened_connections")
-        .build()
-        .record(opened_connections, &[]);
+    DB_MAX_CONNECTIONS.record(max_connections, &[]);
+    DB_OPENED_CONNECTIONS.record(opened_connections, &[]);
     if let Some(value) = idle_connections {
-        meter
-            .u64_gauge("db.idle_connections")
-            .build()
-            .record(value, &[]);
+        DB_IDLE_CONNECTIONS.record(value, &[]);
     }
     if let Some(value) = active_connections {
-        meter
-            .u64_gauge("db.active_connections")
-            .build()
-            .record(value, &[]);
+        DB_ACTIVE_CONNECTIONS.record(value, &[]);
     }
 }
 
-pub fn gather_pulsar_consumer_metrics(stats: &[CommandConsumerStatsResponse]) {
-    let meter = global::meter(crate_name!());
+static PULSAR_UNACKED_MESSAGES: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("pulsar.request_attempt_consumer.unacked_messages")
+        .build()
+});
+static PULSAR_BLOCKED_CONSUMER_ON_UNACKED_MSGS: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("pulsar.request_attempt_consumer.blocked_consumer_on_unacked_msgs")
+        .build()
+});
+static PULSAR_MSG_RATE_OUT: LazyLock<Gauge<f64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .f64_gauge("pulsar.request_attempt_consumer.msg_rate_out")
+        .build()
+});
+static PULSAR_MSG_THROUGHPUT_OUT: LazyLock<Gauge<f64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .f64_gauge("pulsar.request_attempt_consumer.msg_throughput_out")
+        .build()
+});
+static PULSAR_MSG_RATE_REDELIVER: LazyLock<Gauge<f64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .f64_gauge("pulsar.request_attempt_consumer.msg_rate_redeliver")
+        .build()
+});
+static PULSAR_MESSAGE_ACK_RATE: LazyLock<Gauge<f64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .f64_gauge("pulsar.request_attempt_consumer.message_ack_rate")
+        .build()
+});
+static PULSAR_AVAILABLE_PERMITS: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("pulsar.request_attempt_consumer.available_permits")
+        .build()
+});
 
+pub fn gather_pulsar_consumer_metrics(stats: &[CommandConsumerStatsResponse]) {
     for stat in stats {
         if let Some(value) = stat.unacked_messages {
-            meter
-                .u64_gauge("pulsar.request_attempt_consumer.unacked_messages")
-                .build()
-                .record(value, &[]);
+            PULSAR_UNACKED_MESSAGES.record(value, &[]);
         }
         if let Some(value) = stat.blocked_consumer_on_unacked_msgs {
-            meter
-                .u64_gauge("pulsar.request_attempt_consumer.blocked_consumer_on_unacked_msgs")
-                .build()
-                .record(u64::from(value), &[]);
+            PULSAR_BLOCKED_CONSUMER_ON_UNACKED_MSGS.record(u64::from(value), &[]);
         }
         if let Some(value) = stat.msg_rate_out {
-            meter
-                .f64_gauge("pulsar.request_attempt_consumer.msg_rate_out")
-                .build()
-                .record(value, &[]);
+            PULSAR_MSG_RATE_OUT.record(value, &[]);
         }
         if let Some(value) = stat.msg_throughput_out {
-            meter
-                .f64_gauge("pulsar.request_attempt_consumer.msg_throughput_out")
-                .build()
-                .record(value, &[]);
+            PULSAR_MSG_THROUGHPUT_OUT.record(value, &[]);
         }
         if let Some(value) = stat.msg_rate_redeliver {
-            meter
-                .f64_gauge("pulsar.request_attempt_consumer.msg_rate_redeliver")
-                .build()
-                .record(value, &[]);
+            PULSAR_MSG_RATE_REDELIVER.record(value, &[]);
         }
         if let Some(value) = stat.message_ack_rate {
-            meter
-                .f64_gauge("pulsar.request_attempt_consumer.message_ack_rate")
-                .build()
-                .record(value, &[]);
+            PULSAR_MESSAGE_ACK_RATE.record(value, &[]);
         }
         if let Some(value) = stat.available_permits {
-            meter
-                .u64_gauge("pulsar.request_attempt_consumer.available_permits")
-                .build()
-                .record(value, &[]);
+            PULSAR_AVAILABLE_PERMITS.record(value, &[]);
         }
     }
 }

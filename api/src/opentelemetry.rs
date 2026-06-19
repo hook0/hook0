@@ -1,5 +1,5 @@
 use clap::crate_name;
-use opentelemetry::metrics::Histogram;
+use opentelemetry::metrics::{Counter, Gauge, Histogram};
 use opentelemetry::{KeyValue, global};
 use opentelemetry_otlp::{
     Compression, ExporterBuildError, MetricExporter, Protocol, SpanExporter, WithExportConfig,
@@ -77,6 +77,32 @@ pub fn init(
     Ok(())
 }
 
+// These instruments are built once on first use and stay bound to the global
+// meter provider that exists at that moment. This is safe because `init()` sets
+// the provider during startup, before any of the functions below can be called.
+// A new caller that runs before `init()` would bind its instrument to the no-op
+// provider permanently.
+static DB_MAX_CONNECTIONS: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("db.max_connections")
+        .build()
+});
+static DB_OPENED_CONNECTIONS: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("db.opened_connections")
+        .build()
+});
+static DB_IDLE_CONNECTIONS: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("db.idle_connections")
+        .build()
+});
+static DB_ACTIVE_CONNECTIONS: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("db.active_connections")
+        .build()
+});
+
 pub fn gather_pools_metrics(pools: &[(&'static str, PgPool)]) {
     for (name, pool) in pools {
         let max_connections = u64::from(pool.options().get_max_connections());
@@ -86,31 +112,24 @@ pub fn gather_pools_metrics(pools: &[(&'static str, PgPool)]) {
             .ok();
         let active_connections = idle_connections.map(|idle| opened_connections - idle);
 
-        let meter = global::meter(crate_name!());
         let attributes = [KeyValue::new("pool_name", *name)];
 
-        meter
-            .u64_gauge("db.max_connections")
-            .build()
-            .record(max_connections, &attributes);
-        meter
-            .u64_gauge("db.opened_connections")
-            .build()
-            .record(opened_connections, &attributes);
+        DB_MAX_CONNECTIONS.record(max_connections, &attributes);
+        DB_OPENED_CONNECTIONS.record(opened_connections, &attributes);
         if let Some(value) = idle_connections {
-            meter
-                .u64_gauge("db.idle_connections")
-                .build()
-                .record(value, &attributes);
+            DB_IDLE_CONNECTIONS.record(value, &attributes);
         }
         if let Some(value) = active_connections {
-            meter
-                .u64_gauge("db.active_connections")
-                .build()
-                .record(value, &attributes);
+            DB_ACTIVE_CONNECTIONS.record(value, &attributes);
         }
     }
 }
+
+static RATE_LIMITER_LEN: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("rate_limiter.len")
+        .build()
+});
 
 pub fn report_rate_limiters_metrics(rate_limiters: &[(&'static str, usize)]) {
     for (name, len) in rate_limiters {
@@ -118,72 +137,88 @@ pub fn report_rate_limiters_metrics(rate_limiters: &[(&'static str, usize)]) {
             .inspect_err(|e| warn!("Could not convert {len} to u64: {e}"))
             .ok();
 
-        let meter = global::meter(crate_name!());
         let attributes = [KeyValue::new("key", *name)];
 
         if let Some(value) = len_u64 {
-            meter
-                .u64_gauge("rate_limiter.len")
-                .build()
-                .record(value, &attributes);
+            RATE_LIMITER_LEN.record(value, &attributes);
         }
     }
 }
 
+static CANCELLED_REQUEST_ATTEMPTS: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("cancelled_request_attempts")
+        .build()
+});
+
 pub fn report_cancelled_request_attempts(amount: u64) {
-    let meter = global::meter(crate_name!());
-    let counter = meter.u64_counter("cancelled_request_attempts").build();
-    counter.add(amount, &[]);
+    CANCELLED_REQUEST_ATTEMPTS.add(amount, &[]);
 }
+
+static CLEANED_UP_OBJECTS: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("object_storage.cleaned_up_objects")
+        .build()
+});
 
 pub fn report_cleaned_up_objects(amount: u64) {
-    let meter = global::meter(crate_name!());
-    let counter = meter
-        .u64_counter("object_storage.cleaned_up_objects")
-        .build();
-    counter.add(amount, &[]);
+    CLEANED_UP_OBJECTS.add(amount, &[]);
 }
+
+static INGESTED_EVENTS: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("events.ingested")
+        .build()
+});
 
 pub fn report_ingested_events(amount: u64) {
-    let meter = global::meter(crate_name!());
-    let counter = meter.u64_counter("events.ingested").build();
-    counter.add(amount, &[]);
+    INGESTED_EVENTS.add(amount, &[]);
 }
+
+static EVENT_PAYLOADS_STORED_IN_OBJECT_STORAGE: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("events.payloads_stored_in_object_storage")
+        .build()
+});
 
 pub fn report_event_payloads_stored_in_object_storage(amount: u64) {
-    let meter = global::meter(crate_name!());
-    let counter = meter
-        .u64_counter("events.payloads_stored_in_object_storage")
-        .build();
-    counter.add(amount, &[]);
+    EVENT_PAYLOADS_STORED_IN_OBJECT_STORAGE.add(amount, &[]);
 }
+
+static REQUEST_ATTEMPTS_SENT_TO_PULSAR: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("events.request_attempts_sent_to_pulsar")
+        .build()
+});
 
 pub fn report_request_attempts_sent_to_pulsar(amount: u64) {
-    let meter = global::meter(crate_name!());
-    let counter = meter
-        .u64_counter("events.request_attempts_sent_to_pulsar")
-        .build();
-    counter.add(amount, &[]);
+    REQUEST_ATTEMPTS_SENT_TO_PULSAR.add(amount, &[]);
 }
 
+static REPLAYED_EVENTS: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("events.replayed")
+        .build()
+});
+
 pub fn report_replayed_events(amount: u64) {
-    let meter = global::meter(crate_name!());
-    let counter = meter.u64_counter("events.replayed").build();
-    counter.add(amount, &[]);
+    REPLAYED_EVENTS.add(amount, &[]);
 }
+
+static HEALTH_CHECK_DURATION: LazyLock<Histogram<f64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .f64_histogram("health_check.duration")
+        .with_unit("s")
+        .with_description("Duration of a /health subsystem probe")
+        .build()
+});
 
 pub fn report_health_check_duration(
     subsystem: &'static str,
     outcome: &'static str,
     duration: Duration,
 ) {
-    let meter = global::meter(crate_name!());
-    let histogram = meter
-        .f64_histogram("health_check.duration")
-        .with_unit("s")
-        .with_description("Duration of a /health subsystem probe")
-        .build();
-    histogram.record(
+    HEALTH_CHECK_DURATION.record(
         duration.as_secs_f64(),
         &[
             KeyValue::new("subsystem", subsystem),
