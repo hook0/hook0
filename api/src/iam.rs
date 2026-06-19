@@ -864,7 +864,7 @@ pub struct AuthorizedResetPasswordToken {
     pub user_id: Uuid,
 }
 
-pub fn authorize(
+fn authorize(
     biscuit: &Biscuit,
     organization_id: Option<Uuid>,
     action: Action,
@@ -1028,20 +1028,19 @@ pub fn authorize_only_user(
     action: Action,
     max_authorization_time: Duration,
     debug_authorizer: bool,
-) -> Result<AuthorizedUserToken, biscuit_auth::error::Token> {
-    match authorize(
+) -> Result<AuthorizedUserToken, Hook0Problem> {
+    match authorize_for_organization(
         biscuit,
         organization_id,
         action,
         max_authorization_time,
         debug_authorizer,
-    ) {
-        Ok(AuthorizedToken::User(aut)) => Ok(aut),
-        Ok(_) => {
+    )? {
+        AuthorizedToken::User(aut) => Ok(aut),
+        _ => {
             trace!("Authorization was denied because a user_access token was required");
-            Err(biscuit_auth::error::Token::InternalError)
+            Err(Hook0Problem::Forbidden)
         }
-        Err(e) => Err(e),
     }
 }
 
@@ -1186,6 +1185,51 @@ fn is_transient_authorization_error(e: &biscuit_auth::error::Token) -> bool {
     )
 }
 
+/// Map a Biscuit authorization error to the right [`Hook0Problem`].
+fn authorization_error_to_problem(
+    e: &biscuit_auth::error::Token,
+    action: Action<'_>,
+    organization_id: Option<Uuid>,
+) -> Hook0Problem {
+    if is_transient_authorization_error(e) {
+        warn!(
+            action = action.action_name(),
+            organization_id = ?organization_id,
+            application_id = ?action.application_id(),
+            error = ?e,
+            "Authorization timed out under load"
+        );
+        Hook0Problem::ServiceUnavailable
+    } else {
+        trace!(
+            action = action.action_name(),
+            organization_id = ?organization_id,
+            application_id = ?action.application_id(),
+            "Authorization denied: {e:?}"
+        );
+        Hook0Problem::Forbidden
+    }
+}
+
+/// Authorize an organization-scoped action, or a token-only action when
+/// `organization_id` is `None` (e.g. listing one's organizations, logging out).
+pub fn authorize_for_organization(
+    biscuit: &Biscuit,
+    organization_id: Option<Uuid>,
+    action: Action<'_>,
+    max_authorization_time: Duration,
+    debug_authorizer: bool,
+) -> Result<AuthorizedToken, Hook0Problem> {
+    authorize(
+        biscuit,
+        organization_id,
+        action,
+        max_authorization_time,
+        debug_authorizer,
+    )
+    .map_err(|e| authorization_error_to_problem(&e, action, organization_id))
+}
+
 /// Authorize an application-scoped action.
 ///
 /// Failure mapping (the whole point of this function — see issue context):
@@ -1224,26 +1268,13 @@ pub async fn authorize_for_application(
             Hook0Problem::Forbidden
         })?;
 
-    authorize(
+    authorize_for_organization(
         biscuit,
         Some(organization_id),
         action,
         max_authorization_time,
         debug_authorizer,
     )
-    .map_err(|e| {
-        if is_transient_authorization_error(&e) {
-            warn!(
-                application_id = %application_id,
-                error = ?e,
-                "Authorization timed out under load"
-            );
-            Hook0Problem::ServiceUnavailable
-        } else {
-            trace!("Authorization denied for application {application_id}: {e:?}");
-            Hook0Problem::Forbidden
-        }
-    })
 }
 
 #[cfg(test)]
@@ -1399,6 +1430,85 @@ mod tests {
         assert!(
             !is_transient_authorization_error(&err),
             "a genuine denial must NOT be classified as transient (stays 403), got: {err:?}"
+        );
+    }
+
+    /// `authorize_for_organization` must turn an authorizer timeout into a retryable
+    /// `ServiceUnavailable` (503), not a misleading `Forbidden` (403).
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn authorize_for_organization_timeout_maps_to_service_unavailable() {
+        let keypair = KeyPair::new();
+        let token_id = Uuid::new_v4();
+        let organization_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+
+        let problem = authorize_for_organization(
+            &biscuit,
+            Some(organization_id),
+            Action::TestSimple,
+            Duration::ZERO,
+            true,
+        )
+        .expect_err("a 0ms authorizer budget must time out");
+
+        assert!(
+            matches!(problem, Hook0Problem::ServiceUnavailable),
+            "an authorizer timeout must map to ServiceUnavailable (503), got: {problem:?}"
+        );
+    }
+
+    /// A genuine denial (valid token, wrong organization) must stay a `Forbidden` (403).
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn authorize_for_organization_denial_maps_to_forbidden() {
+        let keypair = KeyPair::new();
+        let token_id = Uuid::new_v4();
+        let organization_id = Uuid::new_v4();
+        let other_organization_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+
+        let problem = authorize_for_organization(
+            &biscuit,
+            Some(other_organization_id),
+            Action::TestSimple,
+            MAX_DURATION_TIME,
+            true,
+        )
+        .expect_err("authorizing against the wrong organization must be denied");
+
+        assert!(
+            matches!(problem, Hook0Problem::Forbidden),
+            "a genuine denial must map to Forbidden (403), got: {problem:?}"
+        );
+    }
+
+    /// `authorize_only_user` succeeds at authorization for a service token's own org, but
+    /// the token is not a user token: that is a genuine denial and must surface as
+    /// `Forbidden` (403), not as a transient error.
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn authorize_only_user_rejects_service_token_with_forbidden() {
+        let keypair = KeyPair::new();
+        let token_id = Uuid::new_v4();
+        let organization_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+
+        let problem = authorize_only_user(
+            &biscuit,
+            Some(organization_id),
+            Action::TestSimple,
+            MAX_DURATION_TIME,
+            true,
+        )
+        .expect_err("a service token must not satisfy a user-only authorization");
+
+        assert!(
+            matches!(problem, Hook0Problem::Forbidden),
+            "a non-user token must be denied with Forbidden (403), got: {problem:?}"
         );
     }
 

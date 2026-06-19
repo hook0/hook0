@@ -9,7 +9,7 @@ use tracing::error;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::iam::{Action, RootToken, authorize};
+use crate::iam::{Action, RootToken, authorize_for_organization};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
 use crate::{
@@ -56,17 +56,13 @@ pub async fn create(
 ) -> Result<CreatedJson<ServiceToken>, Hook0Problem> {
     let organization_id = body.organization_id;
 
-    if authorize(
+    authorize_for_organization(
         &biscuit,
         Some(organization_id),
         Action::ServiceTokenCreate,
         state.max_authorization_time,
         state.debug_authorizer,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    )?;
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -137,17 +133,13 @@ pub async fn list(
 ) -> Result<Json<Vec<ServiceToken>>, Hook0Problem> {
     let organization_id = qs.organization_id;
 
-    if authorize(
+    authorize_for_organization(
         &biscuit,
         Some(organization_id),
         Action::ServiceTokenList,
         state.max_authorization_time,
         state.debug_authorizer,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    )?;
 
     let service_tokens = query_as!(
         ServiceToken,
@@ -186,7 +178,7 @@ pub async fn edit(
     let organization_id = body.organization_id;
     let token_id = token_id.into_inner();
 
-    if authorize(
+    authorize_for_organization(
         &biscuit,
         Some(organization_id),
         Action::ServiceTokenEdit {
@@ -194,11 +186,7 @@ pub async fn edit(
         },
         state.max_authorization_time,
         state.debug_authorizer,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    )?;
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -264,7 +252,7 @@ pub async fn delete(
     let organization_id = qs.organization_id;
     let token_id = token_id.into_inner();
 
-    if authorize(
+    authorize_for_organization(
         &biscuit,
         Some(organization_id),
         Action::ServiceTokenDelete {
@@ -272,11 +260,7 @@ pub async fn delete(
         },
         state.max_authorization_time,
         state.debug_authorizer,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    )?;
 
     let service_token = query_as!(
         ServiceToken,
@@ -351,17 +335,13 @@ pub async fn get(
     let organization_id = qs.organization_id;
     let token_id = token_id.into_inner();
 
-    if authorize(
+    authorize_for_organization(
         &biscuit,
         Some(organization_id),
         Action::ServiceTokenGet,
         state.max_authorization_time,
         state.debug_authorizer,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    )?;
 
     let service_token = query_as!(
         ServiceToken,
