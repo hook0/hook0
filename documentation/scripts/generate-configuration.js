@@ -157,7 +157,7 @@ The output-worker is a separate binary with its own configuration. Run \`hook0-o
 | \`TIMEOUT\` | Timeout for obtaining a HTTP response from the target, including connect phase (if exceeded, request attempt will fail) | \`15s\` |  |
 | \`SIGNATURE_HEADER_NAME\` | Name of the header containing webhook's signature | \`X-Hook0-Signature\` |  |
 | \`ENABLED_SIGNATURE_VERSIONS\` | A comma-separated list of enabled signature versions | \`v1\` |  |
-| \`LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR\` | If true, loads waiting request attempts that can be picked by this worker from the DB into Pulsar before starting work; this is useful when migrating to a Pulsar worker and has no effect if the worker does not use a Pulsar queue type | \`false\` |  |
+| \`LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR\` | Loads request attempts that haven't been delivered yet from the DB into Pulsar before starting work; \`all\` loads everything; \`due-now\` skips request attempts scheduled more than ~10 s in the future; this is useful when migrating to a Pulsar worker (only for Pulsar workers) | \`off\` |  |
 | \`REQUEST_ATTEMPT_DB_COMMIT_GRACE_PERIOD\` | Grace period to wait for database commit before dropping unfound request attempts (only for Pulsar workers) | \`10s\` |  |
 | \`PULSAR_CONSUMER_STATS_INTERVAL\` | Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers) [this feature is unstable/unreliable] | \`0\` |  |
 | \`PULSAR_SEND_RECEIPT_TIMEOUT\` | Maximum time to wait for the Pulsar broker to acknowledge a sent message (only for Pulsar workers) | \`10s\` |  |
