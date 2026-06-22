@@ -85,7 +85,7 @@
             <svg class="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
-            Last updated: May 4, 2026
+            Last updated: June 22, 2026
         </div>
     </div>
 </section>
@@ -407,6 +407,11 @@
                             <td>5 years from the date of consent</td>
                             <td>Ability to demonstrate compliance (Art. 7(1) GDPR)</td>
                         </tr>
+                        <tr>
+                            <td>Ad click identifier (gclid) — table <code>iam.signup_attribution</code></td>
+                            <td>Until both conversion events ("Signup" and "Activation") have been uploaded to Google Ads, then set to NULL. Maximum retention: 30 days from registration (aligned with the Google Ads attribution window). Rows are automatically deleted after 30 days as a safety net.</td>
+                            <td>Legitimate interests (advertising effectiveness measurement, Art. 6(1)(f) GDPR). See <a href="/documentation/hook0-cloud/legitimate-interest-balance-test-google-ads" class="text-green-400 hover:text-green-300 transition-colors">balance test</a> and Section 9b.</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -513,11 +518,11 @@
             <ul class="space-y-2 text-gray-300 mb-4">
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
-                    <span><strong class="text-white">Purpose</strong>: measure cost-per-acquisition of our paid campaigns to allocate marketing budget.</span>
+                    <span><strong class="text-white">Purpose</strong>: measure cost-per-acquisition of our paid campaigns to allocate marketing budget. Two conversion events are reported: (1) "Signup" — when the user verifies their email address; (2) "Activation" — when the user's organisation creates its first API key (application secret).</span>
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
-                    <span><strong class="text-white">Legal basis</strong>: Art. 6(1)(f) GDPR — legitimate interests. Documented balance test available on request.</span>
+                    <span><strong class="text-white">Legal basis</strong>: Art. 6(1)(f) GDPR — legitimate interests. The balance test is documented in <a href="/documentation/hook0-cloud/legitimate-interest-balance-test-google-ads" class="text-green-400 hover:text-green-300 transition-colors">legitimate-interest-balance-test-google-ads.md</a>.</span>
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
@@ -529,11 +534,11 @@
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
-                    <span><strong class="text-white">Retention</strong>: the gclid is processed in memory during the registration HTTP request and is not persisted in our databases after transmission to Google Ads.</span>
+                    <span><strong class="text-white">Retention</strong>: the gclid is stored in the table <code class="text-green-400">iam.signup_attribution</code> and set to NULL as soon as both conversion events ("Signup" and "Activation") have been uploaded to Google Ads. If only one conversion applies or no upload has occurred, the row is automatically deleted after 30 days (maximum retention, aligned with the Google Ads attribution window). See Section 6.</span>
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
-                    <span><strong class="text-white">Right to object</strong> (Art. 21(2) GDPR): you may object to this processing at any time by emailing <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. We will mark your account so the gclid is not transmitted to Google Ads. Your registration is not affected.</span>
+                    <span><strong class="text-white">Right to object</strong> (Art. 21(2) GDPR): you may object to this processing at any time by emailing <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. We will delete your row in <code class="text-green-400">iam.signup_attribution</code>, which removes the gclid before any pending upload is triggered. Your registration is not affected.</span>
                 </li>
             </ul>
             <p class="text-gray-400 text-sm">
@@ -874,6 +879,11 @@
                             <td>5 ans à compter de la date du consentement</td>
                             <td>Capacité à démontrer la conformité (art. 7(1) RGPD)</td>
                         </tr>
+                        <tr>
+                            <td>Identifiant de clic publicitaire (gclid) — table <code>iam.signup_attribution</code></td>
+                            <td>Jusqu'à ce que les deux conversions (« Signup » et « Activation ») aient été remontées à Google Ads, puis mis à NULL. Durée maximale : 30 jours à compter de l'inscription (fenêtre d'attribution Google Ads). Les lignes d'attribution sont purgées automatiquement au bout de 30 jours comme filet de sécurité.</td>
+                            <td>Intérêt légitime (mesure de l'efficacité publicitaire, art. 6(1)(f) RGPD). Voir le <a href="/documentation/hook0-cloud/legitimate-interest-balance-test-google-ads" class="text-green-400 hover:text-green-300 transition-colors">test de mise en balance</a> et la section 9b.</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -976,11 +986,11 @@
             <ul class="space-y-2 text-gray-300 mb-4">
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
-                    <span><strong class="text-white">Finalité</strong> : mesurer le coût par acquisition de nos campagnes payantes afin d'allouer notre budget marketing.</span>
+                    <span><strong class="text-white">Finalité</strong> : mesurer le coût par acquisition de nos campagnes payantes afin d'allouer notre budget marketing. Deux événements de conversion sont remontés : (1) « Signup » — lorsque l'utilisateur vérifie son adresse e-mail ; (2) « Activation » — lorsque l'organisation de l'utilisateur crée sa première clé API (application secret).</span>
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
-                    <span><strong class="text-white">Base légale</strong> : art. 6(1)(f) RGPD — intérêt légitime. Test de proportionnalité documenté disponible sur demande.</span>
+                    <span><strong class="text-white">Base légale</strong> : art. 6(1)(f) RGPD — intérêt légitime. Le test de mise en balance est documenté dans <a href="/documentation/hook0-cloud/legitimate-interest-balance-test-google-ads" class="text-green-400 hover:text-green-300 transition-colors">legitimate-interest-balance-test-google-ads.md</a>.</span>
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
@@ -992,11 +1002,11 @@
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
-                    <span><strong class="text-white">Conservation</strong> : le gclid est traité en mémoire vive lors de la requête HTTP d'inscription et n'est pas conservé dans nos bases de données après transmission à Google Ads.</span>
+                    <span><strong class="text-white">Conservation</strong> : le gclid est stocké dans la table <code class="text-green-400">iam.signup_attribution</code> et mis à NULL dès que les deux conversions (« Signup » et « Activation ») ont été remontées à Google Ads. En l'absence d'un upload ou des deux, la ligne est purgée automatiquement au bout de 30 jours (durée maximale, calée sur la fenêtre d'attribution Google Ads). Voir la section 6.</span>
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
-                    <span><strong class="text-white">Droit d'opposition</strong> (art. 21(2) RGPD) : vous pouvez vous opposer à ce traitement à tout moment en écrivant à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. Nous noterons cette opposition sur votre compte afin que votre gclid ne soit pas transmis à Google Ads. Votre inscription n'en est pas affectée.</span>
+                    <span><strong class="text-white">Droit d'opposition</strong> (art. 21(2) RGPD) : vous pouvez vous opposer à ce traitement à tout moment en écrivant à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. Nous supprimerons votre ligne dans <code class="text-green-400">iam.signup_attribution</code>, ce qui efface le gclid avant tout upload non encore déclenché. Votre inscription n'en est pas affectée.</span>
                 </li>
             </ul>
             <p class="text-gray-400 text-sm">
