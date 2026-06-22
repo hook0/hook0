@@ -47,7 +47,7 @@ pub struct GoogleAdsConfig {
     pub customer_id: String,
     pub login_customer_id: Option<String>,
     /// Numeric ID of the "signup" conversion action (required).
-    pub conversion_action_id: String,
+    pub signup_conversion_action_id: String,
     /// Numeric ID of the "activation" conversion action (optional). When
     /// `None`, activation uploads are skipped and only signup is tracked.
     pub activation_conversion_action_id: Option<String>,
@@ -81,7 +81,7 @@ impl GoogleAdsConfig {
     /// conversion action is configured.
     fn conversion_action_resource(&self, kind: ConversionKind) -> Option<String> {
         let conversion_action_id = match kind {
-            ConversionKind::Signup => self.conversion_action_id.clone(),
+            ConversionKind::Signup => self.signup_conversion_action_id.clone(),
             ConversionKind::Activation => self.activation_conversion_action_id.clone()?,
         };
         Some(format!(
@@ -127,7 +127,10 @@ impl std::fmt::Debug for GoogleAdsClient {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GoogleAdsClient")
             .field("customer_id", &self.config.customer_id)
-            .field("conversion_action_id", &self.config.conversion_action_id)
+            .field(
+                "signup_conversion_action_id",
+                &self.config.signup_conversion_action_id,
+            )
             .field("base_url", &self.base_url)
             .finish_non_exhaustive()
     }
@@ -405,7 +408,7 @@ mod tests {
             developer_token: "t".into(),
             customer_id: "123-456-7890".into(),
             login_customer_id: Some("987-654-3210".into()),
-            conversion_action_id: "42".into(),
+            signup_conversion_action_id: "42".into(),
             activation_conversion_action_id: activation.map(|s| s.to_string()),
             oauth_client_id: "c".into(),
             oauth_client_secret: "s".into(),

@@ -596,7 +596,7 @@ struct Config {
 
     /// [Google Ads] Numeric ID of the signup conversion action (e.g. 7576442588)
     #[clap(long, env)]
-    google_ads_conversion_action_id: Option<String>,
+    google_ads_signup_conversion_action_id: Option<String>,
 
     /// [Google Ads] Numeric ID of the ACTIVATION conversion action (optional).
     /// When unset, signup conversion still works and activation upload is skipped.
@@ -635,8 +635,8 @@ fn build_google_ads_client(config: &Config) -> Option<Arc<google_ads::GoogleAdsC
     if config.google_ads_customer_id.is_none() {
         missing.push("GOOGLE_ADS_CUSTOMER_ID");
     }
-    if config.google_ads_conversion_action_id.is_none() {
-        missing.push("GOOGLE_ADS_CONVERSION_ACTION_ID");
+    if config.google_ads_signup_conversion_action_id.is_none() {
+        missing.push("GOOGLE_ADS_SIGNUP_CONVERSION_ACTION_ID");
     }
     if config.google_ads_oauth_client_id.is_none() {
         missing.push("GOOGLE_ADS_OAUTH_CLIENT_ID");
@@ -660,7 +660,7 @@ fn build_google_ads_client(config: &Config) -> Option<Arc<google_ads::GoogleAdsC
     }
     let developer_token = config.google_ads_developer_token.clone()?;
     let customer_id = config.google_ads_customer_id.clone()?;
-    let conversion_action_id = config.google_ads_conversion_action_id.clone()?;
+    let signup_conversion_action_id = config.google_ads_signup_conversion_action_id.clone()?;
     let oauth_client_id = config.google_ads_oauth_client_id.clone()?;
     let oauth_client_secret = config.google_ads_oauth_client_secret.clone()?;
     let oauth_refresh_token = config.google_ads_oauth_refresh_token.clone()?;
@@ -669,7 +669,7 @@ fn build_google_ads_client(config: &Config) -> Option<Arc<google_ads::GoogleAdsC
         developer_token,
         customer_id,
         login_customer_id: config.google_ads_login_customer_id.clone(),
-        conversion_action_id,
+        signup_conversion_action_id,
         // Optional: activation conversion is skipped when this is unset, so it
         // is NOT part of the required-vars check above (keeps signup tracking
         // working on deploys before the new env var is provisioned).
