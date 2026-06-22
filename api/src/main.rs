@@ -48,6 +48,7 @@ mod pagination;
 mod problems;
 mod quotas;
 mod rate_limiting;
+mod signup_attribution;
 mod soft_deleted_applications_cleanup;
 mod unverified_users_cleanup;
 mod validators;
@@ -597,6 +598,11 @@ struct Config {
     #[clap(long, env)]
     google_ads_conversion_action_id: Option<String>,
 
+    /// [Google Ads] Numeric ID of the ACTIVATION conversion action (optional).
+    /// When unset, signup conversion still works and activation upload is skipped.
+    #[clap(long, env)]
+    google_ads_activation_conversion_action_id: Option<String>,
+
     /// [Google Ads] OAuth client ID (Desktop App credentials)
     #[clap(long, env)]
     google_ads_oauth_client_id: Option<String>,
@@ -664,6 +670,10 @@ fn build_google_ads_client(config: &Config) -> Option<Arc<google_ads::GoogleAdsC
         customer_id,
         login_customer_id: config.google_ads_login_customer_id.clone(),
         conversion_action_id,
+        // Optional: activation conversion is skipped when this is unset, so it
+        // is NOT part of the required-vars check above (keeps signup tracking
+        // working on deploys before the new env var is provisioned).
+        activation_conversion_action_id: config.google_ads_activation_conversion_action_id.clone(),
         oauth_client_id,
         oauth_client_secret,
         oauth_refresh_token,

@@ -46,10 +46,23 @@ pub struct GoogleAdsConfig {
     pub developer_token: String,
     pub customer_id: String,
     pub login_customer_id: Option<String>,
+    /// Numeric ID of the "signup" conversion action (required).
     pub conversion_action_id: String,
+    /// Numeric ID of the "activation" conversion action (optional). When
+    /// `None`, activation uploads are skipped and only signup is tracked.
+    pub activation_conversion_action_id: Option<String>,
     pub oauth_client_id: String,
     pub oauth_client_secret: String,
     pub oauth_refresh_token: String,
+}
+
+/// Which conversion action a click conversion targets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConversionKind {
+    /// User verified their email after signing up.
+    Signup,
+    /// Organization created its first API key (first real product use).
+    Activation,
 }
 
 impl GoogleAdsConfig {
@@ -63,12 +76,19 @@ impl GoogleAdsConfig {
             .map(|id| id.replace('-', ""))
     }
 
-    fn conversion_action_resource(&self) -> String {
-        format!(
+    /// Build the `customers/{cid}/conversionActions/{id}` resource for a given
+    /// conversion kind. Returns `None` for `Activation` when no activation
+    /// conversion action is configured.
+    fn conversion_action_resource(&self, kind: ConversionKind) -> Option<String> {
+        let conversion_action_id = match kind {
+            ConversionKind::Signup => self.conversion_action_id.clone(),
+            ConversionKind::Activation => self.activation_conversion_action_id.clone()?,
+        };
+        Some(format!(
             "customers/{}/conversionActions/{}",
             self.normalized_customer_id(),
-            self.conversion_action_id
-        )
+            conversion_action_id
+        ))
     }
 }
 
@@ -188,12 +208,30 @@ impl GoogleAdsClient {
         Ok(headers)
     }
 
+    /// Returns `true` if an activation conversion action is configured.
+    pub fn has_activation_conversion(&self) -> bool {
+        self.config.activation_conversion_action_id.is_some()
+    }
+
     /// Upload a click conversion using only the gclid (no PII).
+    ///
+    /// For [`ConversionKind::Activation`] when no activation conversion action
+    /// is configured, this is a silent no-op (returns `Ok(())`).
     pub async fn upload_click_conversion(
         &self,
         gclid: &str,
+        kind: ConversionKind,
         conversion_date_time: DateTime<Utc>,
     ) -> Result<(), GoogleAdsError> {
+        let Some(conversion_action) = self.config.conversion_action_resource(kind) else {
+            debug!(
+                target: "api::google_ads",
+                ?kind,
+                "conversion action not configured; skipping upload"
+            );
+            return Ok(());
+        };
+
         let access_token = self.get_access_token().await?;
         let headers = self.build_headers(&access_token)?;
 
@@ -210,14 +248,14 @@ impl GoogleAdsClient {
         let body = serde_json::json!({
             "conversions": [{
                 "gclid": gclid,
-                "conversionAction": self.config.conversion_action_resource(),
+                "conversionAction": conversion_action,
                 "conversionDateTime": formatted_dt,
             }],
             "partialFailure": true,
             "validateOnly": false
         });
 
-        debug!(target: "api::google_ads", url = %url, "uploading click conversion");
+        debug!(target: "api::google_ads", url = %url, ?kind, "uploading click conversion");
         let resp = self
             .http
             .post(&url)
@@ -270,14 +308,17 @@ const RETRY_DELAYS: [Duration; 3] = [
 /// logged (and reported to Sentry on final failure) but never propagated.
 /// Returns immediately. Retries up to 3 times with exponential backoff
 /// (30s / 2min / 10min) on retryable errors (5xx, 429, network).
-pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String) {
+pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String, kind: ConversionKind) {
     tokio::spawn(async move {
         let started = Instant::now();
         let gclid_prefix: String = gclid.chars().take(8).collect();
         let max_attempts = RETRY_DELAYS.len() + 1;
 
         for attempt in 1..=max_attempts {
-            match client.upload_click_conversion(&gclid, Utc::now()).await {
+            match client
+                .upload_click_conversion(&gclid, kind, Utc::now())
+                .await
+            {
                 Ok(()) => {
                     debug!(
                         target: "api::google_ads",
@@ -288,6 +329,7 @@ pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String) {
                     info!(
                         target: "api::google_ads",
                         gclid_prefix = %gclid_prefix,
+                        conversion = ?kind,
                         attempt = attempt,
                         duration_ms = started.elapsed().as_millis() as u64,
                         "click conversion uploaded"
@@ -303,6 +345,7 @@ pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String) {
                         error!(
                             target: "api::google_ads",
                             gclid_prefix = %gclid_prefix,
+                            conversion = ?kind,
                             attempt = attempt,
                             error = %e,
                             "click conversion upload failed (non-retryable)"
@@ -323,6 +366,7 @@ pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String) {
                         error!(
                             target: "api::google_ads",
                             gclid_prefix = %gclid_prefix,
+                            conversion = ?kind,
                             attempts = attempt,
                             error = %e,
                             "click conversion upload abandoned after retries"
@@ -356,25 +400,60 @@ pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String) {
 mod tests {
     use super::*;
 
-    #[test]
-    fn customer_id_is_normalized() {
-        let cfg = GoogleAdsConfig {
+    fn test_config(activation: Option<&str>) -> GoogleAdsConfig {
+        GoogleAdsConfig {
             developer_token: "t".into(),
             customer_id: "123-456-7890".into(),
             login_customer_id: Some("987-654-3210".into()),
             conversion_action_id: "42".into(),
+            activation_conversion_action_id: activation.map(|s| s.to_string()),
             oauth_client_id: "c".into(),
             oauth_client_secret: "s".into(),
             oauth_refresh_token: "r".into(),
-        };
+        }
+    }
+
+    #[test]
+    fn customer_id_is_normalized() {
+        let cfg = test_config(None);
         assert_eq!(cfg.normalized_customer_id(), "1234567890");
         assert_eq!(
             cfg.normalized_login_customer_id().as_deref(),
             Some("9876543210")
         );
+    }
+
+    #[test]
+    fn signup_conversion_resource_is_built() {
+        let cfg = test_config(None);
         assert_eq!(
-            cfg.conversion_action_resource(),
-            "customers/1234567890/conversionActions/42"
+            cfg.conversion_action_resource(ConversionKind::Signup)
+                .as_deref(),
+            Some("customers/1234567890/conversionActions/42")
+        );
+    }
+
+    #[test]
+    fn activation_conversion_resource_requires_configuration() {
+        // Not configured → None (upload becomes a no-op).
+        let cfg = test_config(None);
+        assert_eq!(
+            cfg.conversion_action_resource(ConversionKind::Activation),
+            None
+        );
+
+        // Configured → resolves to its own conversion action id.
+        let cfg = test_config(Some("99"));
+        assert_eq!(
+            cfg.conversion_action_resource(ConversionKind::Activation)
+                .as_deref(),
+            Some("customers/1234567890/conversionActions/99")
+        );
+        // Signup is unaffected by the activation id.
+        assert_eq!(
+            cfg.conversion_action_resource(ConversionKind::Signup)
+                .as_deref(),
+            Some("customers/1234567890/conversionActions/42")
         );
     }
 

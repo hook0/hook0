@@ -102,6 +102,35 @@ pub async fn create(
         };
     }
 
+    // Activation conversion (Google Ads): the first API key an organization
+    // creates is its activation signal. Fired at most once per organization
+    // (atomic claim). Strictly fire-and-forget — it must NEVER block or fail
+    // application secret creation, so every error here is logged, not returned.
+    // Only attributed to the organization created at signup (which carries the
+    // gclid); activation in a different org simply finds no attribution row.
+    if let Some(client) = state.google_ads.as_ref().cloned()
+        && client.has_activation_conversion()
+        && let Some(organization_id) = get_owner_organization(&state.db, &body.application_id).await
+    {
+        match crate::signup_attribution::claim_activation_gclid(&state.db, &organization_id).await {
+            Ok(Some(gclid)) => {
+                crate::google_ads::spawn_upload(
+                    client,
+                    gclid,
+                    crate::google_ads::ConversionKind::Activation,
+                );
+                // Both conversions are now uploaded for this org → minimise.
+                crate::signup_attribution::clear_gclid_if_fully_uploaded_by_org(
+                    &state.db,
+                    &organization_id,
+                )
+                .await;
+            }
+            Ok(None) => {}
+            Err(e) => error!("activation conversion claim failed: {e}"),
+        }
+    }
+
     Ok(CreatedJson(application_secret))
 }
 

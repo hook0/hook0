@@ -67,6 +67,7 @@ tikv-jemallocator = { version = "0.6.1", optional = true }
 
 [dev-dependencies]
 insta = { version = "1.47", features = ["json"] }
+proptest = "1"
 test-log = { version = "0.2.20", default-features = false, features = ["trace", "color", "unstable"] }
 
 [features]

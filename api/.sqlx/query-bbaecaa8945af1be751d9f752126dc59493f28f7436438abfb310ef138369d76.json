@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE iam.signup_attribution\n            SET gclid = NULL\n            WHERE organization__id = $1\n              AND gclid IS NOT NULL\n              AND signup_uploaded_at IS NOT NULL\n              AND activation_uploaded_at IS NOT NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bbaecaa8945af1be751d9f752126dc59493f28f7436438abfb310ef138369d76"
+}
