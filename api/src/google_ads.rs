@@ -11,15 +11,25 @@
 //!
 //! Reference:
 //! - <https://developers.google.com/google-ads/api/docs/conversions/upload-clicks>
+//!
+//! This module also owns the `iam.signup_attribution` gclid lifecycle shared by
+//! the registration / email-verification flow (signup conversion) and the
+//! application-secret creation flow (activation conversion): the gclid is
+//! retained until BOTH conversions have been uploaded, then cleared (data
+//! minimisation). The 30-day cleanup in `handlers::registrations` is the safety
+//! net for rows that never reach that state. See
+//! `documentation/hook0-cloud/legitimate-interest-balance-test-google-ads.md`.
 
 use chrono::{DateTime, Utc};
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::Deserialize;
+use sqlx::PgPool;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use thiserror::Error;
 use tokio::sync::Mutex;
 use tracing::{debug, error, info, warn};
+use uuid::Uuid;
 
 const GOOGLE_OAUTH_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const GOOGLE_ADS_BASE_URL: &str = "https://googleads.googleapis.com/v23";
@@ -46,10 +56,23 @@ pub struct GoogleAdsConfig {
     pub developer_token: String,
     pub customer_id: String,
     pub login_customer_id: Option<String>,
-    pub conversion_action_id: String,
+    /// Numeric ID of the "signup" conversion action (required).
+    pub signup_conversion_action_id: String,
+    /// Numeric ID of the "activation" conversion action (optional). When
+    /// `None`, activation uploads are skipped and only signup is tracked.
+    pub activation_conversion_action_id: Option<String>,
     pub oauth_client_id: String,
     pub oauth_client_secret: String,
     pub oauth_refresh_token: String,
+}
+
+/// Which conversion action a click conversion targets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConversionKind {
+    /// User verified their email after signing up.
+    Signup,
+    /// Organization created its first API key (first real product use).
+    Activation,
 }
 
 impl GoogleAdsConfig {
@@ -63,12 +86,19 @@ impl GoogleAdsConfig {
             .map(|id| id.replace('-', ""))
     }
 
-    fn conversion_action_resource(&self) -> String {
-        format!(
+    /// Build the `customers/{cid}/conversionActions/{id}` resource for a given
+    /// conversion kind. Returns `None` for `Activation` when no activation
+    /// conversion action is configured.
+    fn conversion_action_resource(&self, kind: ConversionKind) -> Option<String> {
+        let conversion_action_id = match kind {
+            ConversionKind::Signup => self.signup_conversion_action_id.clone(),
+            ConversionKind::Activation => self.activation_conversion_action_id.clone()?,
+        };
+        Some(format!(
             "customers/{}/conversionActions/{}",
             self.normalized_customer_id(),
-            self.conversion_action_id
-        )
+            conversion_action_id
+        ))
     }
 }
 
@@ -107,7 +137,10 @@ impl std::fmt::Debug for GoogleAdsClient {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GoogleAdsClient")
             .field("customer_id", &self.config.customer_id)
-            .field("conversion_action_id", &self.config.conversion_action_id)
+            .field(
+                "signup_conversion_action_id",
+                &self.config.signup_conversion_action_id,
+            )
             .field("base_url", &self.base_url)
             .finish_non_exhaustive()
     }
@@ -188,12 +221,30 @@ impl GoogleAdsClient {
         Ok(headers)
     }
 
+    /// Returns `true` if an activation conversion action is configured.
+    pub fn has_activation_conversion(&self) -> bool {
+        self.config.activation_conversion_action_id.is_some()
+    }
+
     /// Upload a click conversion using only the gclid (no PII).
+    ///
+    /// For [`ConversionKind::Activation`] when no activation conversion action
+    /// is configured, this is a silent no-op (returns `Ok(())`).
     pub async fn upload_click_conversion(
         &self,
         gclid: &str,
+        kind: ConversionKind,
         conversion_date_time: DateTime<Utc>,
     ) -> Result<(), GoogleAdsError> {
+        let Some(conversion_action) = self.config.conversion_action_resource(kind) else {
+            debug!(
+                target: "api::google_ads",
+                ?kind,
+                "conversion action not configured; skipping upload"
+            );
+            return Ok(());
+        };
+
         let access_token = self.get_access_token().await?;
         let headers = self.build_headers(&access_token)?;
 
@@ -210,14 +261,14 @@ impl GoogleAdsClient {
         let body = serde_json::json!({
             "conversions": [{
                 "gclid": gclid,
-                "conversionAction": self.config.conversion_action_resource(),
+                "conversionAction": conversion_action,
                 "conversionDateTime": formatted_dt,
             }],
             "partialFailure": true,
             "validateOnly": false
         });
 
-        debug!(target: "api::google_ads", url = %url, "uploading click conversion");
+        debug!(target: "api::google_ads", url = %url, ?kind, "uploading click conversion");
         let resp = self
             .http
             .post(&url)
@@ -270,14 +321,17 @@ const RETRY_DELAYS: [Duration; 3] = [
 /// logged (and reported to Sentry on final failure) but never propagated.
 /// Returns immediately. Retries up to 3 times with exponential backoff
 /// (30s / 2min / 10min) on retryable errors (5xx, 429, network).
-pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String) {
+pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String, kind: ConversionKind) {
     tokio::spawn(async move {
         let started = Instant::now();
         let gclid_prefix: String = gclid.chars().take(8).collect();
         let max_attempts = RETRY_DELAYS.len() + 1;
 
         for attempt in 1..=max_attempts {
-            match client.upload_click_conversion(&gclid, Utc::now()).await {
+            match client
+                .upload_click_conversion(&gclid, kind, Utc::now())
+                .await
+            {
                 Ok(()) => {
                     debug!(
                         target: "api::google_ads",
@@ -288,6 +342,7 @@ pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String) {
                     info!(
                         target: "api::google_ads",
                         gclid_prefix = %gclid_prefix,
+                        conversion = ?kind,
                         attempt = attempt,
                         duration_ms = started.elapsed().as_millis() as u64,
                         "click conversion uploaded"
@@ -303,6 +358,7 @@ pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String) {
                         error!(
                             target: "api::google_ads",
                             gclid_prefix = %gclid_prefix,
+                            conversion = ?kind,
                             attempt = attempt,
                             error = %e,
                             "click conversion upload failed (non-retryable)"
@@ -323,6 +379,7 @@ pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String) {
                         error!(
                             target: "api::google_ads",
                             gclid_prefix = %gclid_prefix,
+                            conversion = ?kind,
                             attempts = attempt,
                             error = %e,
                             "click conversion upload abandoned after retries"
@@ -352,29 +409,164 @@ pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String) {
     });
 }
 
+// ---------------------------------------------------------------------------
+// gclid attribution lifecycle (table `iam.signup_attribution`)
+// ---------------------------------------------------------------------------
+
+/// Maximum gclid length accepted, mirroring the `signup_attribution_gclid_length`
+/// DB CHECK. Real Google gclids are ~50-100 chars; anything longer is treated as
+/// invalid and dropped — this bounds untrusted input and avoids failing the
+/// INSERT on the length CHECK.
+pub const MAX_GCLID_LEN: usize = 256;
+
+/// Normalize a raw gclid from the registration payload: trim surrounding
+/// whitespace, then drop it if empty or longer than [`MAX_GCLID_LEN`] characters.
+/// Returns the value to store, or `None` when there is nothing valid to keep.
+pub fn normalize_gclid(raw: Option<&str>) -> Option<String> {
+    raw.map(str::trim)
+        .filter(|s| !s.is_empty() && s.chars().count() <= MAX_GCLID_LEN)
+        .map(str::to_string)
+}
+
+/// Atomically claim the activation conversion for an organization.
+///
+/// The `UPDATE ... RETURNING` makes this fire **at most once** per organization
+/// even under concurrent first-API-key creations: only the statement that flips
+/// `activation_uploaded_at` from NULL wins and returns the gclid. Returns `None`
+/// when there is nothing to upload (no attribution row for the org, gclid
+/// already cleared, or activation already claimed).
+pub async fn claim_activation_gclid(
+    db: &PgPool,
+    organization_id: &Uuid,
+) -> Result<Option<String>, sqlx::Error> {
+    let row = sqlx::query!(
+        "
+            UPDATE iam.signup_attribution
+            SET activation_uploaded_at = statement_timestamp()
+            WHERE organization__id = $1
+              AND activation_uploaded_at IS NULL
+              AND gclid IS NOT NULL
+            RETURNING gclid
+        ",
+        organization_id,
+    )
+    .fetch_optional(db)
+    .await?;
+
+    Ok(row.and_then(|r| r.gclid))
+}
+
+/// Clear the gclid (data minimisation) once BOTH conversions are uploaded, for
+/// the attribution row of `user_id`. Best-effort: errors are logged, never
+/// surfaced (the conversion has already been queued).
+pub async fn clear_gclid_if_fully_uploaded_by_user(db: &PgPool, user_id: &Uuid) {
+    let result = sqlx::query!(
+        "
+            UPDATE iam.signup_attribution
+            SET gclid = NULL
+            WHERE user__id = $1
+              AND gclid IS NOT NULL
+              AND signup_uploaded_at IS NOT NULL
+              AND activation_uploaded_at IS NOT NULL
+        ",
+        user_id,
+    )
+    .execute(db)
+    .await;
+
+    if let Err(e) = result {
+        warn!(
+            target: "api::signup_attribution",
+            error = %e,
+            "failed to clear minimised gclid (by user)"
+        );
+    }
+}
+
+/// Same as [`clear_gclid_if_fully_uploaded_by_user`], keyed by organization.
+pub async fn clear_gclid_if_fully_uploaded_by_org(db: &PgPool, organization_id: &Uuid) {
+    let result = sqlx::query!(
+        "
+            UPDATE iam.signup_attribution
+            SET gclid = NULL
+            WHERE organization__id = $1
+              AND gclid IS NOT NULL
+              AND signup_uploaded_at IS NOT NULL
+              AND activation_uploaded_at IS NOT NULL
+        ",
+        organization_id,
+    )
+    .execute(db)
+    .await;
+
+    if let Err(e) = result {
+        warn!(
+            target: "api::signup_attribution",
+            error = %e,
+            "failed to clear minimised gclid (by org)"
+        );
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
-    #[test]
-    fn customer_id_is_normalized() {
-        let cfg = GoogleAdsConfig {
+    fn test_config(activation: Option<&str>) -> GoogleAdsConfig {
+        GoogleAdsConfig {
             developer_token: "t".into(),
             customer_id: "123-456-7890".into(),
             login_customer_id: Some("987-654-3210".into()),
-            conversion_action_id: "42".into(),
+            signup_conversion_action_id: "42".into(),
+            activation_conversion_action_id: activation.map(|s| s.to_string()),
             oauth_client_id: "c".into(),
             oauth_client_secret: "s".into(),
             oauth_refresh_token: "r".into(),
-        };
+        }
+    }
+
+    #[test]
+    fn customer_id_is_normalized() {
+        let cfg = test_config(None);
         assert_eq!(cfg.normalized_customer_id(), "1234567890");
         assert_eq!(
             cfg.normalized_login_customer_id().as_deref(),
             Some("9876543210")
         );
+    }
+
+    #[test]
+    fn signup_conversion_resource_is_built() {
+        let cfg = test_config(None);
         assert_eq!(
-            cfg.conversion_action_resource(),
-            "customers/1234567890/conversionActions/42"
+            cfg.conversion_action_resource(ConversionKind::Signup)
+                .as_deref(),
+            Some("customers/1234567890/conversionActions/42")
+        );
+    }
+
+    #[test]
+    fn activation_conversion_resource_requires_configuration() {
+        // Not configured → None (upload becomes a no-op).
+        let cfg = test_config(None);
+        assert_eq!(
+            cfg.conversion_action_resource(ConversionKind::Activation),
+            None
+        );
+
+        // Configured → resolves to its own conversion action id.
+        let cfg = test_config(Some("99"));
+        assert_eq!(
+            cfg.conversion_action_resource(ConversionKind::Activation)
+                .as_deref(),
+            Some("customers/1234567890/conversionActions/99")
+        );
+        // Signup is unaffected by the activation id.
+        assert_eq!(
+            cfg.conversion_action_resource(ConversionKind::Signup)
+                .as_deref(),
+            Some("customers/1234567890/conversionActions/42")
         );
     }
 
@@ -430,5 +622,52 @@ mod tests {
         // construct an InvalidHeaderValue easily from a unit test (no public
         // constructor), and reqwest::Error has no public constructor either,
         // so transport-level variants are intentionally not asserted here.
+    }
+
+    #[test]
+    fn normalize_drops_absent_empty_and_whitespace() {
+        assert_eq!(normalize_gclid(None), None);
+        assert_eq!(normalize_gclid(Some("")), None);
+        assert_eq!(normalize_gclid(Some("   ")), None);
+        assert_eq!(normalize_gclid(Some("\t\n ")), None);
+    }
+
+    #[test]
+    fn normalize_trims_surrounding_whitespace() {
+        assert_eq!(
+            normalize_gclid(Some("  Cj0KCQ...  ")),
+            Some("Cj0KCQ...".to_string())
+        );
+    }
+
+    #[test]
+    fn normalize_drops_overlong_keeps_at_limit() {
+        let too_long = "a".repeat(MAX_GCLID_LEN + 1);
+        assert_eq!(normalize_gclid(Some(&too_long)), None);
+
+        let at_limit = "a".repeat(MAX_GCLID_LEN);
+        assert_eq!(normalize_gclid(Some(&at_limit)), Some(at_limit));
+    }
+
+    proptest! {
+        // Output invariant: the stored gclid is always None, or a non-empty,
+        // trimmed string within the DB length bound. Guarantees we never INSERT
+        // a value the `signup_attribution_gclid_length` CHECK would reject.
+        #[test]
+        fn normalized_output_is_bounded_and_trimmed(raw in ".*") {
+            if let Some(s) = normalize_gclid(Some(&raw)) {
+                prop_assert!(!s.is_empty());
+                prop_assert!(s.chars().count() <= MAX_GCLID_LEN);
+                prop_assert_eq!(s.trim(), s.as_str());
+            }
+        }
+
+        // Idempotence: normalizing an already-normalized value changes nothing.
+        #[test]
+        fn normalize_is_idempotent(raw in ".*") {
+            let once = normalize_gclid(Some(&raw));
+            let twice = normalize_gclid(once.as_deref());
+            prop_assert_eq!(once, twice);
+        }
     }
 }
