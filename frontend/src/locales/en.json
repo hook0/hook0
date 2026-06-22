@@ -125,7 +125,7 @@
       "submit": "Create account",
       "submitting": "Creating account...",
       "subtitle": "No credit card required",
-      "gclidNotice": "If you arrived from a Google Ads link, your click identifier (gclid) may be transmitted to Google Ads for conversion measurement (no email or IP shared).",
+      "gclidNotice": "If you arrived from a Google Ads link, your click identifier (gclid) is shared with Google LLC, joint controller with Hook0 under Art. 26 GDPR, to measure ad conversions. No email or IP is shared, and you can object at any time.",
       "gclidLearnMore": "Learn more",
       "testimonialAuthor": "Marc D.",
       "testimonialQuote": "Hook0 replaced our homegrown webhook system in a day. Delivery reliability went from 94% to 99.9%.",
