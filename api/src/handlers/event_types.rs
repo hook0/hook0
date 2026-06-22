@@ -54,20 +54,16 @@ pub async fn create(
     biscuit: ReqData<Biscuit>,
     body: Json<EventTypePost>,
 ) -> Result<CreatedJson<EventType>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::EventTypeCreate {
             application_id: &body.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -197,20 +193,16 @@ pub async fn list(
     biscuit: ReqData<Biscuit>,
     qs: Query<Qs>,
 ) -> Result<Json<Vec<EventType>>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::EventTypeList {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let event_types = query_as!(
             EventType,
@@ -244,20 +236,16 @@ pub async fn get(
     event_type_name: Path<String>,
     qs: Query<Qs>,
 ) -> Result<Json<EventType>, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::EventTypeGet {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let event_type = query_as!(
             EventType,
@@ -294,20 +282,16 @@ pub async fn delete(
     event_type_name: Path<String>,
     qs: Query<Qs>,
 ) -> Result<NoContent, Hook0Problem> {
-    if authorize_for_application(
+    authorize_for_application(
         &state.db,
         &biscuit,
         Action::EventTypeDelete {
             application_id: &qs.application_id,
         },
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
     )
-    .await
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    .await?;
 
     let application_id = qs.application_id;
     let event_type = query_as!(

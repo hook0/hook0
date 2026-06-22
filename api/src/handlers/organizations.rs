@@ -15,8 +15,8 @@ use crate::hook0_client::{
     EventOrganizationRevoked, EventOrganizationUpdated, Hook0ClientEvent,
 };
 use crate::iam::{
-    Action, AuthorizeServiceToken, AuthorizedToken, AuthorizedUserToken, Role, authorize,
-    authorize_only_user,
+    Action, AuthorizeServiceToken, AuthorizedToken, AuthorizedUserToken, Role,
+    authorize_for_organization, authorize_only_user,
 };
 use crate::onboarding::{
     OnboardingStepStatus, OrganizationOnboardingSteps, get_organization_onboarding_steps,
@@ -87,76 +87,72 @@ pub async fn list(
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
 ) -> Result<Json<Vec<Organization>>, Hook0Problem> {
-    if let Ok(token) = authorize(
+    let token = authorize_for_organization(
         &biscuit,
         None,
         Action::OrganizationList,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
-    ) {
-        let (token_organizations, is_master) = match token {
-            AuthorizedToken::User(AuthorizedUserToken { organizations, .. }) => {
-                (organizations, false)
-            }
-            AuthorizedToken::Service(AuthorizeServiceToken { organization_id }) => {
-                (vec![(organization_id, Role::Editor)], false)
-            }
-            AuthorizedToken::Master => (vec![], true),
-        };
+    )?;
 
-        struct OrganizationMetadata {
-            organization_id: Uuid,
-            name: String,
-            plan_name: Option<String>,
-            plan_label: Option<String>,
+    let (token_organizations, is_master) = match token {
+        AuthorizedToken::User(AuthorizedUserToken { organizations, .. }) => (organizations, false),
+        AuthorizedToken::Service(AuthorizeServiceToken { organization_id }) => {
+            (vec![(organization_id, Role::Editor)], false)
         }
-        let metadatas = query_as!(
-            OrganizationMetadata,
-            r#"
-                SELECT o.organization__id AS organization_id, o.name, p.name AS "plan_name?", p.label AS "plan_label?"
-                FROM iam.organization AS o
-                LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
-                LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
-                WHERE organization__id = ANY($1) OR $2
-            "#,
-            &token_organizations.iter().map(|(i, _)| *i).collect::<Vec<_>>(),
-            is_master,
-        )
-        .fetch_all(&state.db)
-        .await
-        .map_err(Hook0Problem::from)?;
+        AuthorizedToken::Master => (vec![], true),
+    };
 
-        let organizations = metadatas
-            .into_iter()
-            .map(|metadata| {
-                let role = if is_master {
-                    "master".to_owned()
-                } else {
-                    token_organizations
-                        .iter()
-                        .find(|(i, _)| i == &metadata.organization_id)
-                        .map(|(_, r)| r.to_string())
-                        .unwrap_or_else(|| "???".to_owned())
-                };
-
-                let plan = match (metadata.plan_name, metadata.plan_label) {
-                    (Some(name), Some(label)) => Some(OrganizationInfoPlan { name, label }),
-                    _ => None,
-                };
-
-                Organization {
-                    organization_id: metadata.organization_id,
-                    role,
-                    name: metadata.name,
-                    plan,
-                }
-            })
-            .collect::<Vec<_>>();
-
-        Ok(Json(organizations))
-    } else {
-        Err(Hook0Problem::Forbidden)
+    struct OrganizationMetadata {
+        organization_id: Uuid,
+        name: String,
+        plan_name: Option<String>,
+        plan_label: Option<String>,
     }
+    let metadatas = query_as!(
+        OrganizationMetadata,
+        r#"
+            SELECT o.organization__id AS organization_id, o.name, p.name AS "plan_name?", p.label AS "plan_label?"
+            FROM iam.organization AS o
+            LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
+            LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
+            WHERE organization__id = ANY($1) OR $2
+        "#,
+        &token_organizations.iter().map(|(i, _)| *i).collect::<Vec<_>>(),
+        is_master,
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    let organizations = metadatas
+        .into_iter()
+        .map(|metadata| {
+            let role = if is_master {
+                "master".to_owned()
+            } else {
+                token_organizations
+                    .iter()
+                    .find(|(i, _)| i == &metadata.organization_id)
+                    .map(|(_, r)| r.to_string())
+                    .unwrap_or_else(|| "???".to_owned())
+            };
+
+            let plan = match (metadata.plan_name, metadata.plan_label) {
+                (Some(name), Some(label)) => Some(OrganizationInfoPlan { name, label }),
+                _ => None,
+            };
+
+            Organization {
+                organization_id: metadata.organization_id,
+                role,
+                name: metadata.name,
+                plan,
+            }
+        })
+        .collect::<Vec<_>>();
+
+    Ok(Json(organizations))
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
@@ -179,120 +175,110 @@ pub async fn create(
     biscuit: ReqData<Biscuit>,
     body: Json<OrganizationPost>,
 ) -> Result<Json<OrganizationInfo>, Hook0Problem> {
-    if let Ok(token) = authorize_only_user(
+    let token = authorize_only_user(
         &biscuit,
         None,
         Action::OrganizationCreate,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
-    ) {
-        if let Err(e) = body.validate() {
-            return Err(Hook0Problem::Validation(e));
-        }
+    )?;
 
-        let mut tx = state.db.begin().await?;
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
+    }
 
-        let organization_id = Uuid::new_v4();
-        query!(
-            "
-                INSERT INTO iam.organization (organization__id, name, created_by)
-                VALUES ($1, $2, $3)
-            ",
-            &organization_id,
-            &body.name,
-            &token.user_id,
-        )
-        .execute(&mut *tx)
-        .await?;
+    let mut tx = state.db.begin().await?;
 
-        query!(
-            "
-                INSERT INTO iam.user__organization (user__id, organization__id, role)
-                VALUES ($1, $2, $3)
-            ",
-            &token.user_id,
-            &organization_id,
-            Role::Editor.as_ref(),
-        )
-        .execute(&mut *tx)
-        .await?;
+    let organization_id = Uuid::new_v4();
+    query!(
+        "
+            INSERT INTO iam.organization (organization__id, name, created_by)
+            VALUES ($1, $2, $3)
+        ",
+        &organization_id,
+        &body.name,
+        &token.user_id,
+    )
+    .execute(&mut *tx)
+    .await?;
 
-        tx.commit().await?;
+    query!(
+        "
+            INSERT INTO iam.user__organization (user__id, organization__id, role)
+            VALUES ($1, $2, $3)
+        ",
+        &token.user_id,
+        &organization_id,
+        Role::Editor.as_ref(),
+    )
+    .execute(&mut *tx)
+    .await?;
 
-        if let Some(hook0_client) = state.hook0_client.as_ref() {
-            let hook0_client_event: Hook0ClientEvent = EventOrganizationCreated {
-                organization_id,
-                name: body.name.to_owned(),
-                created_at: Utc::now(),
-                created_by: token.user_id,
-            }
-            .into();
-            if let Err(e) = hook0_client
-                .send_event(&hook0_client_event.mk_hook0_event())
-                .await
-            {
-                error!("Hook0ClientError: {e}");
-            };
-        }
+    tx.commit().await?;
 
-        let quotas = OrganizationQuotas {
-            members_per_organization_limit: state
-                .quotas
-                .get_limit_for_organization(
-                    &state.db,
-                    Quota::MembersPerOrganization,
-                    &organization_id,
-                )
-                .await?,
-            applications_per_organization_limit: state
-                .quotas
-                .get_limit_for_organization(
-                    &state.db,
-                    Quota::ApplicationsPerOrganization,
-                    &organization_id,
-                )
-                .await?,
-            events_per_day_limit: state
-                .quotas
-                .get_limit_for_organization(&state.db, Quota::EventsPerDay, &organization_id)
-                .await?,
-            days_of_events_retention_limit: state
-                .quotas
-                .get_limit_for_organization(
-                    &state.db,
-                    Quota::DaysOfEventsRetention,
-                    &organization_id,
-                )
-                .await?,
-        };
-
-        Ok(Json(OrganizationInfo {
+    if let Some(hook0_client) = state.hook0_client.as_ref() {
+        let hook0_client_event: Hook0ClientEvent = EventOrganizationCreated {
             organization_id,
             name: body.name.to_owned(),
-            plan: None,
-            users: vec![OrganizationUser {
-                user_id: token.user_id,
-                email: token.email,
-                first_name: token.first_name,
-                last_name: token.last_name,
-                role: Role::Editor,
-            }],
-            quotas,
-            consumption: OrganizationConsumption {
-                members: Some(1),
-                applications: Some(0),
-                events_per_day: Some(0),
-            },
-            onboarding_steps: OrganizationOnboardingSteps {
-                application: OnboardingStepStatus::ToDo,
-                event_type: OnboardingStepStatus::ToDo,
-                subscription: OnboardingStepStatus::ToDo,
-                event: OnboardingStepStatus::ToDo,
-            },
-        }))
-    } else {
-        Err(Hook0Problem::Forbidden)
+            created_at: Utc::now(),
+            created_by: token.user_id,
+        }
+        .into();
+        if let Err(e) = hook0_client
+            .send_event(&hook0_client_event.mk_hook0_event())
+            .await
+        {
+            error!("Hook0ClientError: {e}");
+        };
     }
+
+    let quotas = OrganizationQuotas {
+        members_per_organization_limit: state
+            .quotas
+            .get_limit_for_organization(&state.db, Quota::MembersPerOrganization, &organization_id)
+            .await?,
+        applications_per_organization_limit: state
+            .quotas
+            .get_limit_for_organization(
+                &state.db,
+                Quota::ApplicationsPerOrganization,
+                &organization_id,
+            )
+            .await?,
+        events_per_day_limit: state
+            .quotas
+            .get_limit_for_organization(&state.db, Quota::EventsPerDay, &organization_id)
+            .await?,
+        days_of_events_retention_limit: state
+            .quotas
+            .get_limit_for_organization(&state.db, Quota::DaysOfEventsRetention, &organization_id)
+            .await?,
+    };
+
+    Ok(Json(OrganizationInfo {
+        organization_id,
+        name: body.name.to_owned(),
+        plan: None,
+        users: vec![OrganizationUser {
+            user_id: token.user_id,
+            email: token.email,
+            first_name: token.first_name,
+            last_name: token.last_name,
+            role: Role::Editor,
+        }],
+        quotas,
+        consumption: OrganizationConsumption {
+            members: Some(1),
+            applications: Some(0),
+            events_per_day: Some(0),
+        },
+        onboarding_steps: OrganizationOnboardingSteps {
+            application: OnboardingStepStatus::ToDo,
+            event_type: OnboardingStepStatus::ToDo,
+            subscription: OnboardingStepStatus::ToDo,
+            event: OnboardingStepStatus::ToDo,
+        },
+    }))
 }
 
 #[api_v2_operation(
@@ -311,17 +297,13 @@ pub async fn get(
 ) -> Result<Json<OrganizationInfo>, Hook0Problem> {
     let organization_id = organization_id.into_inner();
 
-    if authorize(
+    authorize_for_organization(
         &biscuit,
         Some(organization_id),
         Action::OrganizationGet,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    )?;
 
     struct OrganizationMetadata {
         name: String,
@@ -488,17 +470,13 @@ pub async fn edit(
     organization_id: Path<Uuid>,
     body: Json<OrganizationPost>,
 ) -> Result<Json<OrganizationInfo>, Hook0Problem> {
-    if authorize(
+    authorize_for_organization(
         &biscuit,
         Some(organization_id.as_ref().to_owned()),
         Action::OrganizationEdit,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    )?;
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -558,17 +536,13 @@ pub async fn invite(
 ) -> Result<Json<UserInvitation>, Hook0Problem> {
     let organization_id = organization_id.into_inner();
 
-    if authorize(
+    authorize_for_organization(
         &biscuit,
         Some(organization_id),
         Action::OrganizationInvite,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    )?;
 
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
@@ -648,17 +622,13 @@ pub async fn revoke(
 ) -> Result<Json<Revoke>, Hook0Problem> {
     let organization_id = organization_id.into_inner();
 
-    if authorize(
+    authorize_for_organization(
         &biscuit,
         Some(organization_id),
         Action::OrganizationRevoke,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    )?;
 
     let user_role = query_scalar!(
         "
@@ -730,37 +700,35 @@ pub async fn edit_role(
 ) -> Result<Json<OrganizationEditRole>, Hook0Problem> {
     let organization_id = organization_id.into_inner();
 
-    if let Ok(token) = authorize(
+    let token = authorize_for_organization(
         &biscuit,
         Some(organization_id),
         Action::OrganizationEditRole,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
-    ) {
-        if let AuthorizedToken::User(user_token) = token
-            && user_token.user_id == body.user_id
-        {
-            return Err(Hook0Problem::Forbidden);
-        }
+    )?;
 
-        query!(
-            "
-                UPDATE iam.user__organization
-                SET role = $1
-                WHERE user__id = $2
-                    AND organization__id = $3
-            ",
-            &body.role,
-            &body.user_id,
-            &organization_id,
-        )
-        .execute(&state.db)
-        .await?;
-
-        Ok(body)
-    } else {
-        Err(Hook0Problem::Forbidden)
+    if let AuthorizedToken::User(user_token) = token
+        && user_token.user_id == body.user_id
+    {
+        return Err(Hook0Problem::Forbidden);
     }
+
+    query!(
+        "
+            UPDATE iam.user__organization
+            SET role = $1
+            WHERE user__id = $2
+                AND organization__id = $3
+        ",
+        &body.role,
+        &body.user_id,
+        &organization_id,
+    )
+    .execute(&state.db)
+    .await?;
+
+    Ok(body)
 }
 
 #[api_v2_operation(
@@ -779,17 +747,13 @@ pub async fn delete(
 ) -> Result<NoContent, Hook0Problem> {
     let organization_id = organization_id.into_inner();
 
-    if authorize(
+    authorize_for_organization(
         &biscuit,
         Some(organization_id),
         Action::OrganizationDelete,
-        state.max_authorization_time_in_ms,
+        state.max_authorization_time,
         state.debug_authorizer,
-    )
-    .is_err()
-    {
-        return Err(Hook0Problem::Forbidden);
-    }
+    )?;
 
     let organization_is_empty = query_scalar!(
         r#"

@@ -17,6 +17,7 @@ use pulsar::{
     Authentication, ConnectionRetryOptions, MultiTopicProducer, ProducerOptions, Pulsar,
     TokioExecutor,
 };
+use sqlx::AssertSqlSafe;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -538,9 +539,9 @@ struct Config {
     #[clap(long, env)]
     app_url: Url,
 
-    /// [Auth] Maximum duration (in millisecond) that can be spent running Biscuit's authorizer
-    #[clap(long, env, default_value = "10")]
-    max_authorization_time_in_ms: u64,
+    /// [Auth] Maximum duration that can be spent running Biscuit's authorizer
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30ms")]
+    max_authorization_time: Duration,
 
     /// [Auth] If true, a trace log message containing authorizer context is emitted on each request; default is false because this feature implies a small overhead and might expose PII in logs
     #[clap(long, env, default_value_t = false)]
@@ -716,7 +717,7 @@ pub struct State {
     quotas: quotas::Quotas,
     health_check_key: Option<String>,
     health_check_timeout: Duration,
-    max_authorization_time_in_ms: u64,
+    max_authorization_time: Duration,
     debug_authorizer: bool,
     enable_quota_enforcement: bool,
     matomo_url: Option<Url>,
@@ -863,8 +864,10 @@ async fn main() -> anyhow::Result<()> {
                     if !statement_timeout.is_zero() {
                         sqlx::Executor::execute(
                             conn,
-                            format!("SET statement_timeout = {}", statement_timeout.as_millis())
-                                .as_str(),
+                            AssertSqlSafe(format!(
+                                "SET statement_timeout = {}",
+                                statement_timeout.as_millis()
+                            )),
                         )
                         .await?;
                     }
@@ -1247,7 +1250,7 @@ async fn main() -> anyhow::Result<()> {
             quotas,
             health_check_key: config.health_check_key,
             health_check_timeout: config.health_check_timeout,
-            max_authorization_time_in_ms: config.max_authorization_time_in_ms,
+            max_authorization_time: config.max_authorization_time,
             debug_authorizer: config.debug_authorizer,
             enable_quota_enforcement: config.enable_quota_enforcement,
             matomo_url: config.matomo_url,

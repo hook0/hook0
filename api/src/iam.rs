@@ -6,12 +6,16 @@ use chrono::{DateTime, Utc};
 use paperclip::v2::schema::TypedData;
 use serde::Serialize;
 use sqlx::{PgPool, query_scalar};
+
+use crate::problems::Hook0Problem;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::str::FromStr;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 use strum::{AsRefStr, EnumIter, EnumString, VariantNames};
 use tracing::{error, trace, warn};
 use uuid::Uuid;
+
+use crate::opentelemetry::report_authorizer_duration;
 
 #[cfg(feature = "migrate-users-from-keycloak")]
 const GROUP_SEP: &str = "/";
@@ -20,14 +24,30 @@ const ORGA_GROUP_PREFIX: &str = "orga_";
 #[cfg(feature = "migrate-users-from-keycloak")]
 const ROLE_GROUP_PREFIX: &str = "role_";
 
-pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Option<Uuid> {
+/// Look up the organization owning an application, surfacing DB errors to the
+/// caller. A transient DB failure (e.g. pool exhaustion under load) must NOT be
+/// confused with "application not found": `Ok(None)` means the application is
+/// genuinely absent, `Err(_)` means the lookup itself failed.
+pub async fn get_owner_organization_or_db_error(
+    db: &PgPool,
+    application_id: &Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
     query_scalar!(
         "SELECT organization__id AS id FROM event.application WHERE application__id = $1 AND deleted_at IS NULL",
         application_id
     )
     .fetch_optional(db)
     .await
-    .unwrap_or(None)
+}
+
+/// Convenience wrapper that collapses any DB error to `None`. Kept for callers
+/// that only need a best-effort lookup; the authorization path uses
+/// [`get_owner_organization_or_db_error`] instead so a DB hiccup never silently
+/// becomes a 403.
+pub async fn get_owner_organization(db: &PgPool, application_id: &Uuid) -> Option<Uuid> {
+    get_owner_organization_or_db_error(db, application_id)
+        .await
+        .unwrap_or(None)
 }
 
 #[derive(
@@ -846,13 +866,15 @@ pub struct AuthorizedResetPasswordToken {
     pub user_id: Uuid,
 }
 
-pub fn authorize(
+fn authorize(
     biscuit: &Biscuit,
     organization_id: Option<Uuid>,
     action: Action,
-    max_authorization_time_in_ms: u64,
+    max_authorization_time: Duration,
     debug_authorizer: bool,
 ) -> Result<AuthorizedToken, biscuit_auth::error::Token> {
+    let action_name = action.action_name();
+
     let mut authorizer = authorizer!(
         r#"
             valid_types(["master_access", "service_access", "user_access"]);
@@ -891,8 +913,7 @@ pub fn authorize(
         // This is not supposed to happen, that is why we display a big error and fail if it does
         if !action.can_work_without_organization() {
             error!(
-                "Action '{}' cannot be used without providing an organization ID. This is probably a bug.",
-                action.action_name()
+                "Action '{action_name}' cannot be used without providing an organization ID. This is probably a bug.",
             );
             return Err(biscuit_auth::error::Token::InternalError);
         }
@@ -905,14 +926,27 @@ pub fn authorize(
     authorizer = authorizer.allow_all();
 
     authorizer = authorizer.set_limits(AuthorizerLimits {
-        max_time: Duration::from_millis(max_authorization_time_in_ms),
+        max_time: max_authorization_time,
         ..Default::default()
     });
     let mut authorizer = authorizer.build(biscuit)?;
+    let start = Instant::now();
     let result = authorizer.authorize();
+    let elapsed = start.elapsed();
     if debug_authorizer {
         trace!("Authorizer state:\n{}", authorizer.print_world());
     }
+
+    let outcome = match &result {
+        Ok(_) => "ok",
+        Err(biscuit_auth::error::Token::RunLimit(biscuit_auth::error::RunLimit::Timeout)) => {
+            "timeout"
+        }
+        Err(biscuit_auth::error::Token::FailedLogic(_)) => "denied",
+        Err(_) => "error",
+    };
+    report_authorizer_duration(outcome, elapsed);
+
     result?;
 
     let raw_type: Vec<(String,)> = authorizer.query(rule!("data($id) <- type($id)"))?;
@@ -1008,22 +1042,21 @@ pub fn authorize_only_user(
     biscuit: &Biscuit,
     organization_id: Option<Uuid>,
     action: Action,
-    max_authorization_time_in_ms: u64,
+    max_authorization_time: Duration,
     debug_authorizer: bool,
-) -> Result<AuthorizedUserToken, biscuit_auth::error::Token> {
-    match authorize(
+) -> Result<AuthorizedUserToken, Hook0Problem> {
+    match authorize_for_organization(
         biscuit,
         organization_id,
         action,
-        max_authorization_time_in_ms,
+        max_authorization_time,
         debug_authorizer,
-    ) {
-        Ok(AuthorizedToken::User(aut)) => Ok(aut),
-        Ok(_) => {
+    )? {
+        AuthorizedToken::User(aut) => Ok(aut),
+        _ => {
             trace!("Authorization was denied because a user_access token was required");
-            Err(biscuit_auth::error::Token::InternalError)
+            Err(Hook0Problem::Forbidden)
         }
-        Err(e) => Err(e),
     }
 }
 
@@ -1151,41 +1184,113 @@ pub fn authorize_refresh_token(
     })
 }
 
+/// A Biscuit authorization can fail for two fundamentally different reasons:
+///
+///   - the datalog evaluation exhausted its wall-clock budget
+///     (`RunLimit::Timeout`). This happens transiently when the instance is
+///     saturated (CPU/runtime starvation) and says nothing about the caller's
+///     actual rights;
+///   - the token genuinely lacks the requested right (any other error).
+///
+/// The first MUST surface as a retryable 5xx, never as a misleading permanent
+/// 403. When unsure we treat the failure as a denial (safe default: deny).
+fn is_transient_authorization_error(e: &biscuit_auth::error::Token) -> bool {
+    matches!(
+        e,
+        biscuit_auth::error::Token::RunLimit(biscuit_auth::error::RunLimit::Timeout)
+    )
+}
+
+/// Map a Biscuit authorization error to the right [`Hook0Problem`].
+fn authorization_error_to_problem(
+    e: &biscuit_auth::error::Token,
+    action: Action<'_>,
+    organization_id: Option<Uuid>,
+) -> Hook0Problem {
+    if is_transient_authorization_error(e) {
+        warn!(
+            action = action.action_name(),
+            organization_id = ?organization_id,
+            application_id = ?action.application_id(),
+            error = ?e,
+            "Authorization timed out under load"
+        );
+        Hook0Problem::ServiceUnavailable
+    } else {
+        trace!(
+            action = action.action_name(),
+            organization_id = ?organization_id,
+            application_id = ?action.application_id(),
+            "Authorization denied: {e:?}"
+        );
+        Hook0Problem::Forbidden
+    }
+}
+
+/// Authorize an organization-scoped action, or a token-only action when
+/// `organization_id` is `None` (e.g. listing one's organizations, logging out).
+pub fn authorize_for_organization(
+    biscuit: &Biscuit,
+    organization_id: Option<Uuid>,
+    action: Action<'_>,
+    max_authorization_time: Duration,
+    debug_authorizer: bool,
+) -> Result<AuthorizedToken, Hook0Problem> {
+    authorize(
+        biscuit,
+        organization_id,
+        action,
+        max_authorization_time,
+        debug_authorizer,
+    )
+    .map_err(|e| authorization_error_to_problem(&e, action, organization_id))
+}
+
+/// Authorize an application-scoped action.
+///
+/// Failure mapping (the whole point of this function — see issue context):
+///
+/// ```text
+///   cause                                        -> Hook0Problem        -> HTTP
+///   action not application-scoped (bug)             Forbidden              403
+///   DB error while resolving owner organization     <from sqlx::Error>     503 (PoolTimedOut) / 500
+///   application genuinely absent (Ok(None))         Forbidden              403
+///   authorizer timed out (RunLimit::Timeout)        ServiceUnavailable     503 + Retry-After
+///   token lacks the right (any other biscuit error) Forbidden              403
+/// ```
 pub async fn authorize_for_application(
     db: &PgPool,
     biscuit: &Biscuit,
     action: Action<'_>,
-    max_authorization_time_in_ms: u64,
+    max_authorization_time: Duration,
     debug_authorizer: bool,
-) -> Result<AuthorizedToken, String> {
+) -> Result<AuthorizedToken, Hook0Problem> {
     let application_id = action.application_id().ok_or_else(|| {
-        let e = format!("The following action is not application-scoped (please report the issue, this is most likely a bug): {action:?}");
-        trace!("{e}");
-        e
+        error!(
+            action = action.action_name(),
+            "Action is not application-scoped"
+        );
+        Hook0Problem::Forbidden
     })?;
 
-    get_owner_organization(db, &application_id)
+    // A DB error here (e.g. connection pool exhaustion under load) is transient
+    // and must not be silently turned into a 403: propagate it so it surfaces
+    // as a retryable 5xx (PoolTimedOut -> 503).
+    let organization_id = get_owner_organization_or_db_error(db, &application_id)
         .await
+        .map_err(Hook0Problem::from)?
         .ok_or_else(|| {
-            format!(
-                "Could not find owner organization of application {}",
-                &application_id
-            )
-        })
-        .and_then(|organization_id| {
-            authorize(
-                biscuit,
-                Some(organization_id),
-                action,
-                max_authorization_time_in_ms,
-                debug_authorizer,
-            )
-            .map_err(|e| format!("{e:?}"))
-        })
-        .map_err(|e| {
-            trace!("{e}");
-            e
-        })
+            trace!("Could not find owner organization of application {application_id}");
+            Hook0Problem::Forbidden
+        })?;
+
+    authorize_for_organization(
+        biscuit,
+        Some(organization_id),
+        action,
+        max_authorization_time,
+        debug_authorizer,
+    )
 }
 
 #[cfg(test)]
@@ -1197,7 +1302,7 @@ mod tests {
 
     use super::*;
 
-    const MAX_DURATION_TIME_IN_MS: u64 = 10;
+    const MAX_DURATION_TIME: Duration = Duration::from_millis(10);
 
     #[test_log::test]
     #[test_log(default_log_filter = "trace")]
@@ -1213,7 +1318,7 @@ mod tests {
                 &biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true,
             )),
             Ok(AuthorizedToken::Service(AuthorizeServiceToken {
@@ -1249,7 +1354,7 @@ mod tests {
                 &not_yet_expired_biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_ok()
@@ -1259,7 +1364,7 @@ mod tests {
                 &expired_biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_err()
@@ -1281,10 +1386,145 @@ mod tests {
                 &biscuit,
                 Some(other_organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_err()
+        );
+    }
+
+    /// A saturated authorizer (here forced via a 0 ms budget) must be reported
+    /// as a transient failure so it surfaces as a retryable 503 — never as a
+    /// misleading permanent 403.
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn authorizer_timeout_is_classified_as_transient() {
+        let keypair = KeyPair::new();
+        let token_id = Uuid::new_v4();
+        let organization_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+
+        // A 0 ms budget forces the datalog evaluation to run out of wall-clock
+        // time, reproducing what happens to the authorizer under saturation.
+        let err = authorize(
+            &biscuit,
+            Some(organization_id),
+            Action::TestSimple,
+            Duration::ZERO,
+            true,
+        )
+        .expect_err("a 0ms authorizer budget must time out");
+
+        assert!(
+            is_transient_authorization_error(&err),
+            "an authorizer timeout must be classified as transient (retryable 503), got: {err:?}"
+        );
+    }
+
+    /// A real authorization denial (valid token, wrong organization) must NOT
+    /// be classified as transient: it stays a permanent 403.
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn genuine_denial_is_not_classified_as_transient() {
+        let keypair = KeyPair::new();
+        let token_id = Uuid::new_v4();
+        let organization_id = Uuid::new_v4();
+        let other_organization_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+
+        let err = authorize(
+            &biscuit,
+            Some(other_organization_id),
+            Action::TestSimple,
+            MAX_DURATION_TIME,
+            true,
+        )
+        .expect_err("authorizing against the wrong organization must be denied");
+
+        assert!(
+            !is_transient_authorization_error(&err),
+            "a genuine denial must NOT be classified as transient (stays 403), got: {err:?}"
+        );
+    }
+
+    /// `authorize_for_organization` must turn an authorizer timeout into a retryable
+    /// `ServiceUnavailable` (503), not a misleading `Forbidden` (403).
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn authorize_for_organization_timeout_maps_to_service_unavailable() {
+        let keypair = KeyPair::new();
+        let token_id = Uuid::new_v4();
+        let organization_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+
+        let problem = authorize_for_organization(
+            &biscuit,
+            Some(organization_id),
+            Action::TestSimple,
+            Duration::ZERO,
+            true,
+        )
+        .expect_err("a 0ms authorizer budget must time out");
+
+        assert!(
+            matches!(problem, Hook0Problem::ServiceUnavailable),
+            "an authorizer timeout must map to ServiceUnavailable (503), got: {problem:?}"
+        );
+    }
+
+    /// A genuine denial (valid token, wrong organization) must stay a `Forbidden` (403).
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn authorize_for_organization_denial_maps_to_forbidden() {
+        let keypair = KeyPair::new();
+        let token_id = Uuid::new_v4();
+        let organization_id = Uuid::new_v4();
+        let other_organization_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+
+        let problem = authorize_for_organization(
+            &biscuit,
+            Some(other_organization_id),
+            Action::TestSimple,
+            MAX_DURATION_TIME,
+            true,
+        )
+        .expect_err("authorizing against the wrong organization must be denied");
+
+        assert!(
+            matches!(problem, Hook0Problem::Forbidden),
+            "a genuine denial must map to Forbidden (403), got: {problem:?}"
+        );
+    }
+
+    /// `authorize_only_user` succeeds at authorization for a service token's own org, but
+    /// the token is not a user token: that is a genuine denial and must surface as
+    /// `Forbidden` (403), not as a transient error.
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn authorize_only_user_rejects_service_token_with_forbidden() {
+        let keypair = KeyPair::new();
+        let token_id = Uuid::new_v4();
+        let organization_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_service_access_token(&keypair.private(), token_id, organization_id).unwrap();
+
+        let problem = authorize_only_user(
+            &biscuit,
+            Some(organization_id),
+            Action::TestSimple,
+            MAX_DURATION_TIME,
+            true,
+        )
+        .expect_err("a service token must not satisfy a user-only authorization");
+
+        assert!(
+            matches!(problem, Hook0Problem::Forbidden),
+            "a non-user token must be denied with Forbidden (403), got: {problem:?}"
         );
     }
 
@@ -1313,7 +1553,7 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &application_id
                 },
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_ok()
@@ -1325,7 +1565,7 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &application_id
                 },
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_ok()
@@ -1337,7 +1577,7 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &application_id
                 },
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_err()
@@ -1348,7 +1588,7 @@ mod tests {
                 &application_restricted_biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_err()
@@ -1369,7 +1609,7 @@ mod tests {
                 &biscuit,
                 None,
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_err()
@@ -1379,7 +1619,7 @@ mod tests {
                 &biscuit,
                 None,
                 Action::TestNoOrganization,
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_ok()
@@ -1412,7 +1652,7 @@ mod tests {
                 &biscuit,
                 Some(organization_id),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             )),
             Ok(AuthorizedToken::User(AuthorizedUserToken {
@@ -1457,7 +1697,7 @@ mod tests {
                 &biscuit,
                 Some(organization_id1),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_ok()
@@ -1467,7 +1707,7 @@ mod tests {
                 &biscuit,
                 Some(organization_id2),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_ok()
@@ -1477,7 +1717,7 @@ mod tests {
                 &biscuit,
                 Some(organization_id3),
                 Action::TestSimple,
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_err()
@@ -1489,7 +1729,7 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &Uuid::new_v4()
                 },
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_ok()
@@ -1501,7 +1741,7 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &Uuid::new_v4()
                 },
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_err()
@@ -1513,7 +1753,7 @@ mod tests {
                 Action::TestWithApplication {
                     application_id: &Uuid::new_v4()
                 },
-                MAX_DURATION_TIME_IN_MS,
+                MAX_DURATION_TIME,
                 true
             ))
             .is_err()

@@ -15,8 +15,8 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.102"
-aws-sdk-s3 = { version = "1.132.0", features = ["behavior-version-latest"] }
-chrono = { version = "0.4.44", features = ["serde"] }
+aws-sdk-s3 = { version = "1.137.0", features = ["behavior-version-latest"] }
+chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.1", features = ["derive", "env", "cargo", "wrap_help"] }
 futures = "0.3.32"
 hex = "0.4.3"
@@ -24,20 +24,20 @@ hmac = "0.13.0"
 hook0-protobuf = { path = "../protobuf" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 humantime = "2.3.0"
-itertools = "0.14.0"
+itertools = "0.15.0"
 tracing = "0.1.44"
 opentelemetry = { version = "0.32.0", default-features = false, features = ["trace", "metrics"] }
 opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls"] }
-opentelemetry_sdk = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "rt-tokio"] }
+opentelemetry_sdk = { version = "0.32.1", default-features = false, features = ["trace", "metrics", "rt-tokio"] }
 papaya = "0.2.4"
-pulsar = { version = "6.7.2", default-features = false, features = ["tokio-rustls-runtime"] }
-reqwest = { version = "0.13.3", features = ["hickory-dns", "json"] }
+pulsar = { version = "6.8.0", default-features = false, features = ["tokio-rustls-runtime"] }
+reqwest = { version = "0.13.4", features = ["hickory-dns", "json"] }
 rustls = { version = "0.23.40", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 sha2 = "0.11.0"
-sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json"] }
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json"] }
 strum = { version = "0.28.0", features = ["derive"] }
 tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "time", "signal"] }
 tokio-util = { version = "0.7.18", features = ["rt"] }
-uuid = { version = "1.23.1", features = ["v4", "v7"] }
+uuid = { version = "1.23.3", features = ["v4", "v7"] }

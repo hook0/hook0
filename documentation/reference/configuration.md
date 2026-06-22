@@ -57,13 +57,18 @@ This documentation may not cover all options or reflect recent changes.
 | `DEBUG_AUTHORIZER` | If true, a trace log message containing authorizer context is emitted on each request; default is false because this feature implies a small overhead and might expose PII in logs | `false` |  |
 | `DISABLE_REGISTRATION` | Set to true to disable registration endpoint | - |  |
 | `MASTER_API_KEY` 🔒 | A global admin API key that have almost all rights. Better left undefined, USE AT YOUR OWN RISKS! | - |  |
-| `MAX_AUTHORIZATION_TIME_IN_MS` | Maximum duration (in millisecond) that can be spent running Biscuit's authorizer | `10` |  |
+| `MAX_AUTHORIZATION_TIME` | Maximum duration that can be spent running Biscuit's authorizer | `30ms` |  |
 | `PASSWORD_MINIMUM_LENGTH` | Minimum length of user passwords. This is checked when a user registers | `12` |  |
 
 ### Email
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
+| `EMAIL_COMPANY_LEGAL_NAME` | Legal name of the company publishing Hook0 (footer mention required by Art. L1463-1 CPCE) | `FGRibreau SARL` |  |
+| `EMAIL_COMPANY_POSTAL_ADDRESS` | Postal address of the company publishing Hook0 (footer mention required by Art. L1463-1 CPCE + Art. 6 LCEN) | `3 rue de l'Aubépine, 85110 Chantonnay, France` |  |
+| `EMAIL_COMPANY_RCS` | RCS / company registration identifier of the company publishing Hook0 (footer mention) | `RCS La Roche-sur-Yon 850 824 350` |  |
+| `EMAIL_DOC_URL` | URL of the Hook0 documentation (used as a secondary CTA in welcome emails) | `https://documentation.hook0.com/` |  |
+| `EMAIL_PRIVACY_POLICY_URL` | URL of the Hook0 privacy policy (linked in every email footer for GDPR Art. 13 compliance) | `https://www.hook0.com/privacy-policy` |  |
 | `EMAIL_SENDER_ADDRESS` | Sender email address | - | ✓ |
 | `EMAIL_SENDER_NAME` | Sender name | `Hook0` |  |
 | `SMTP_CONNECTION_URL` 🔒 | Connection URL to SMTP server; for example: `smtp://localhost:1025`, `smtps://user:password@provider.com:465` (SMTP over TLS) or `smtp://user:password@provider.com:465?tls=required` (SMTP with STARTTLS) | - | ✓ |
@@ -77,12 +82,7 @@ This documentation may not cover all options or reflect recent changes.
 | `CLOUDFLARE_TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key (enables Turnstile for user registration) | - |  |
 | `CLOUDFLARE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key (enables Turnstile for user registration) | - |  |
 | `DISABLE_SERVING_WEBAPP` | Set to true to disable serving the web app and only serve the API | - |  |
-| `EMAIL_LOGO_URL` | URL of the Hook0 logo (must be a publicly fetchable transparent PNG) | `https://www.hook0.com/mediakit/logo/512x512-banner-transparent.png` |  |
-| `EMAIL_DOC_URL` | URL of the Hook0 documentation (used as a secondary CTA in welcome emails) | `https://documentation.hook0.com/` |  |
-| `EMAIL_PRIVACY_POLICY_URL` | URL of the Hook0 privacy policy (linked in every email footer for GDPR Art. 13 compliance) | `https://www.hook0.com/privacy-policy` |  |
-| `EMAIL_COMPANY_LEGAL_NAME` | Legal name of the company publishing Hook0 (footer mention, Art. L1463-1 CPCE) | `FGRibreau SARL` |  |
-| `EMAIL_COMPANY_POSTAL_ADDRESS` | Postal address of the company publishing Hook0 (footer mention, Art. L1463-1 CPCE + Art. 6 LCEN) | `3 rue de l'Aubépine, 85110 Chantonnay, France` |  |
-| `EMAIL_COMPANY_RCS` | RCS / company registration identifier (footer mention) | `RCS La Roche-sur-Yon 850 824 350` |  |
+| `EMAIL_LOGO_URL` | URL of the Hook0 logo (must be a publicly fetchable transparent PNG; do NOT use app.hook0.com — that path serves a Git LFS pointer instead of the image). The default points to the banner-transparent variant which renders cleanly on any background | `https://www.hook0.com/mediakit/logo/512x512-banner-transparent.png` |  |
 | `FORMBRICKS_API_HOST` | Formbricks API host | `https://app.formbricks.com` |  |
 | `FORMBRICKS_ENVIRONMENT_ID` | Formbricks API environment ID | - |  |
 | `MATOMO_SITE_ID` | Matomo site ID | - |  |
@@ -197,6 +197,18 @@ This documentation may not cover all options or reflect recent changes.
 | `PULSAR_TENANT` | Pulsar tenant | - |  |
 | `PULSAR_TOKEN` 🔒 | Pulsar token | - |  |
 
+### Google Ads
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `GOOGLE_ADS_CONVERSION_ACTION_ID` | Numeric ID of the signup conversion action (e.g. 7576442588) | - |  |
+| `GOOGLE_ADS_CUSTOMER_ID` | Customer ID (e.g. 629-941-8464) | - |  |
+| `GOOGLE_ADS_DEVELOPER_TOKEN` | Developer token (enables server-side conversion upload). All Google Ads fields must be provided together; if any is missing, the conversion upload is silently disabled (build_google_ads_client emits a warn log when partially configured) | - |  |
+| `GOOGLE_ADS_LOGIN_CUSTOMER_ID` | MCC login customer ID (optional) | - |  |
+| `GOOGLE_ADS_OAUTH_CLIENT_ID` | OAuth client ID (Desktop App credentials) | - |  |
+| `GOOGLE_ADS_OAUTH_CLIENT_SECRET` | OAuth client secret | - |  |
+| `GOOGLE_ADS_OAUTH_REFRESH_TOKEN` | OAuth refresh token | - |  |
+
 ### Deprecated
 
 | Variable | Description | Default | Required |
@@ -248,7 +260,7 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | `TIMEOUT` | Timeout for obtaining a HTTP response from the target, including connect phase (if exceeded, request attempt will fail) | `15s` |  |
 | `SIGNATURE_HEADER_NAME` | Name of the header containing webhook's signature | `X-Hook0-Signature` |  |
 | `ENABLED_SIGNATURE_VERSIONS` | A comma-separated list of enabled signature versions | `v1` |  |
-| `LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR` | If true, loads waiting request attempts that can be picked by this worker from the DB into Pulsar before starting work; this is useful when migrating to a Pulsar worker and has no effect if the worker does not use a Pulsar queue type | `false` |  |
+| `LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR` | Loads request attempts that haven't been delivered yet from the DB into Pulsar before starting work; `all` loads everything; `due-now` skips request attempts scheduled more than ~10 s in the future; this is useful when migrating to a Pulsar worker (only for Pulsar workers) | `off` |  |
 | `REQUEST_ATTEMPT_DB_COMMIT_GRACE_PERIOD` | Grace period to wait for database commit before dropping unfound request attempts (only for Pulsar workers) | `10s` |  |
 | `PULSAR_CONSUMER_STATS_INTERVAL` | Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers) [this feature is unstable/unreliable] | `0` |  |
 | `PULSAR_SEND_RECEIPT_TIMEOUT` | Maximum time to wait for the Pulsar broker to acknowledge a sent message (only for Pulsar workers) | `10s` |  |

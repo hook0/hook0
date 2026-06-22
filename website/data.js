@@ -212,6 +212,23 @@ locals.subscriptionLinks = {
   },
 };
 
+// Customer logos — single source of truth for the homepage grid (_customers.ejs)
+// and the social-proof bar (_social-proof-bar.ejs).
+// Array order = DOM order: the first 6 fill the homepage 2×3 grid at rest, the
+// rest start "on the bench" and rotate in. `pinned: true` keeps a logo always
+// visible on screen (the rotation never benches it). `logo` is also the identity
+// used by the rotation script.
+locals.customers = [
+  { name: 'Coinbase', logo: './customers/coinbase.svg', pinned: true },
+  { name: 'Eudonet', logo: './customers/eudonet.svg', pinned: false },
+  { name: 'GEODIS', logo: './customers/geodis.svg', pinned: false },
+  { name: 'WoodWing', logo: './customers/woodwing.svg', pinned: false },
+  { name: 'Optery', logo: './customers/optery.svg', pinned: false },
+  { name: 'Alteos', logo: './customers/alteos.svg', pinned: false },
+  { name: 'ActiveAnts', logo: './customers/activeants.svg', pinned: false },
+  { name: 'Apizee', logo: './customers/apizee.svg', pinned: false },
+];
+
 try {
   locals.ossFriends = require('./oss-friends.json').data;
 } catch {
@@ -260,6 +277,7 @@ locals.footerLinks = {
   compare: {
     title: 'Compare',
     items: [
+      { label: 'Free Webhooks', href: './webhook-free' },
       { label: 'Hook0 vs Svix', href: './hook0-vs-svix' },
       { label: 'Hook0 vs Hookdeck', href: './hook0-vs-hookdeck' },
       { label: 'Hook0 vs Convoy', href: './hook0-vs-convoy' },
