@@ -578,7 +578,7 @@ pub async fn verify_email(
                     );
                     // If activation already happened before verification, both
                     // conversions are now uploaded → minimise the gclid.
-                    crate::signup_attribution::clear_gclid_if_fully_uploaded_by_user(
+                    crate::google_ads::clear_gclid_if_fully_uploaded_by_user(
                         &state.db,
                         &token.user_id,
                     )

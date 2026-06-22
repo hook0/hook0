@@ -48,7 +48,6 @@ mod pagination;
 mod problems;
 mod quotas;
 mod rate_limiting;
-mod signup_attribution;
 mod soft_deleted_applications_cleanup;
 mod unverified_users_cleanup;
 mod validators;

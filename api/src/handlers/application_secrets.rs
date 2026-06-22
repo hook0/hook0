@@ -112,7 +112,7 @@ pub async fn create(
         && client.has_activation_conversion()
         && let Some(organization_id) = get_owner_organization(&state.db, &body.application_id).await
     {
-        match crate::signup_attribution::claim_activation_gclid(&state.db, &organization_id).await {
+        match crate::google_ads::claim_activation_gclid(&state.db, &organization_id).await {
             Ok(Some(gclid)) => {
                 crate::google_ads::spawn_upload(
                     client,
@@ -120,7 +120,7 @@ pub async fn create(
                     crate::google_ads::ConversionKind::Activation,
                 );
                 // Both conversions are now uploaded for this org → minimise.
-                crate::signup_attribution::clear_gclid_if_fully_uploaded_by_org(
+                crate::google_ads::clear_gclid_if_fully_uploaded_by_org(
                     &state.db,
                     &organization_id,
                 )

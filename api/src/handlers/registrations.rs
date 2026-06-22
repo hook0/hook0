@@ -190,8 +190,7 @@ pub async fn register(
             // The gclid is kept until both are uploaded, then nulled (data
             // minimisation); a periodic 30-day cleanup runs lazily here too so
             // attribution rows never accumulate.
-            let normalized_gclid =
-                crate::signup_attribution::normalize_gclid(body.gclid.as_deref());
+            let normalized_gclid = crate::google_ads::normalize_gclid(body.gclid.as_deref());
             if let Some(gclid) = normalized_gclid {
                 query!(
                     "
