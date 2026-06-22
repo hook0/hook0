@@ -183,24 +183,22 @@ pub async fn register(
                     e
                 })?;
 
-            // Persist the gclid alongside the user so the conversion can be
-            // uploaded once the user verifies their email — this filters out
-            // throwaway / bot signups from the conversion stream. The
-            // attribution row is deleted on successful upload (verify_email
-            // handler); a periodic 30-day cleanup runs lazily here too so
-            // unverified signups don't accumulate.
-            let trimmed_gclid = body
-                .gclid
-                .as_ref()
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty());
-            if let Some(gclid) = trimmed_gclid {
+            // Persist the gclid alongside the user (and their personal
+            // organization) so two conversions can be uploaded server-side:
+            // "signup" once the email is verified (filters out throwaway / bot
+            // signups), and "activation" when the org creates its first API key.
+            // The gclid is kept until both are uploaded, then nulled (data
+            // minimisation); a periodic 30-day cleanup runs lazily here too so
+            // attribution rows never accumulate.
+            let normalized_gclid = crate::google_ads::normalize_gclid(body.gclid.as_deref());
+            if let Some(gclid) = normalized_gclid {
                 query!(
                     "
-                        INSERT INTO iam.signup_attribution (user__id, gclid)
-                        VALUES ($1, $2)
+                        INSERT INTO iam.signup_attribution (user__id, organization__id, gclid)
+                        VALUES ($1, $2, $3)
                     ",
                     &user_id,
+                    &organization_id,
                     &gclid,
                 )
                 .execute(&mut *tx)

@@ -544,27 +544,44 @@ pub async fn verify_email(
         .await?;
 
         if let Some(user) = verified_user {
-            // Pop the attribution row (if any) and fire the Google Ads
-            // conversion upload. Done after the email is confirmed so
-            // unverified / bot signups never reach Google Ads. The DELETE
-            // returns the gclid so we know what to upload — and removes the
-            // row in the same query, ensuring the conversion fires at most
-            // once per user.
-            let attribution = query!(
-                "
-                    DELETE FROM iam.signup_attribution
-                    WHERE user__id = $1
-                    RETURNING gclid
-                ",
-                &token.user_id,
-            )
-            .fetch_optional(&state.db)
-            .await?;
+            // Fire the Google Ads "signup" conversion. Done after the email is
+            // confirmed so unverified / bot signups never reach Google Ads.
+            // Unlike before, the attribution row is KEPT (gclid retained) so the
+            // later "activation" conversion (first API key) can reuse the gclid.
+            // The `signup_uploaded_at IS NULL` guard makes this fire at most once
+            // per user. The row is cleaned up by the 30-day job, or its gclid is
+            // nulled once both conversions are uploaded (data minimisation).
+            if let Some(client) = state.google_ads.as_ref().cloned() {
+                let attribution = query!(
+                    "
+                        UPDATE iam.signup_attribution
+                        SET signup_uploaded_at = statement_timestamp()
+                        WHERE user__id = $1
+                          AND signup_uploaded_at IS NULL
+                          AND gclid IS NOT NULL
+                        RETURNING gclid
+                    ",
+                    &token.user_id,
+                )
+                .fetch_optional(&state.db)
+                .await?;
 
-            if let Some(row) = attribution
-                && let Some(client) = state.google_ads.as_ref().cloned()
-            {
-                crate::google_ads::spawn_upload(client, row.gclid);
+                if let Some(row) = attribution
+                    && let Some(gclid) = row.gclid
+                {
+                    crate::google_ads::spawn_upload(
+                        client,
+                        gclid,
+                        crate::google_ads::ConversionKind::Signup,
+                    );
+                    // If activation already happened before verification, both
+                    // conversions are now uploaded → minimise the gclid.
+                    crate::google_ads::clear_gclid_if_fully_uploaded_by_user(
+                        &state.db,
+                        &token.user_id,
+                    )
+                    .await;
+                }
             }
 
             // Send the welcome email post-verification (non-blocking: the
