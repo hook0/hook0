@@ -4,18 +4,51 @@
     <title>Hook0 vs Svix — Open-Source Webhook Platform Comparison</title>
     <%
     locals.pageTitle = 'Hook0 vs Svix — Open-Source Webhook Platform Comparison';
-    locals.pageDescription = 'Compare Hook0 and Svix: fully open-source vs open-core, bootstrapped vs VC-funded, self-hostable vs enterprise-only. See the differences.';
+    locals.pageDescription = 'Compare Hook0 and Svix: open-source SSPL vs open-core, bootstrapped vs VC-funded, EU-hosted vs US, self-hostable on every plan. An honest side-by-side.';
     locals.pageCanonical = '/hook0-vs-svix';
+    locals.pageModified = '2026-06-22';
     locals.pageFAQSchema = {
       "@context": "https://schema.org",
       "@type": "FAQPage",
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "Is Hook0 fully open-source unlike Svix?",
+          "name": "Is Hook0 open-source like Svix?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Hook0 is fully open-source under the SSPL-1.0 license with no proprietary enterprise tier. Svix follows an open-core model where key enterprise features are closed-source and only available via paid plans."
+            "text": "Hook0's server is published under SSPL-1.0 and the client SDKs under MIT, with no proprietary enterprise tier. SSPL is a source-available copyleft license: you can read, modify, and self-host the whole platform freely. Svix's core is MIT, but several enterprise features are closed-source and only available on paid plans."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does Hook0's free tier compare to Svix's?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Svix's free tier allows a higher monthly message volume. Hook0's free tier is smaller, but self-hosting is free on every plan with no feature-gating: you run the exact same code we run in the cloud. Svix reserves self-hosting and several features for paid plans."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Hook0 support Standard Webhooks?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Standard Webhooks is a specification authored by Svix. Hook0 signs every payload with HMAC-SHA256 and documents the scheme. Standard Webhooks support is planned."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Hook0 have SOC 2, HIPAA, or PCI-DSS like Svix?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Svix carries SOC 2, HIPAA and PCI-DSS attestations. Hook0 does not yet. If you need those attestations today, Svix has them. If you need webhook data kept in the EU on infrastructure you can self-host and audit, that's what Hook0 is built for."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Hook0 hosted in the EU and outside the US CLOUD Act?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hook0 Cloud is operated by a French company (FGRibreau SARL) on French infrastructure (Clever Cloud), so it falls outside US CLOUD Act jurisdiction. Your webhook payloads, which often carry customer data, stay in the EU. Svix and Hookdeck are US companies. You can also self-host Hook0 so no webhook data leaves your network."
           }
         },
         {
@@ -23,15 +56,7 @@
           "name": "Can I self-host Hook0 for free?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Hook0 can be self-hosted with Docker Compose or Kubernetes at no cost. The self-hosted version has the same features as the cloud version. Svix only offers self-hosting on their enterprise plan."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "How does Hook0 pricing compare to Svix?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Both have a free tier. The difference is what you get beyond volume: Hook0 includes self-hosting for free on any plan. Svix locks self-hosting, advanced features, and dedicated support behind enterprise pricing. Hook0 is bootstrapped with no VC pressure to raise prices."
+            "text": "Yes. Hook0 can be self-hosted with Docker Compose or Kubernetes at no cost. The self-hosted version has the same features as the cloud version. Svix only offers self-hosting on its enterprise plan."
           }
         },
         {
@@ -39,7 +64,15 @@
           "name": "Is Hook0 bootstrapped?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Hook0 is 100% bootstrapped with zero VC funding. Svix has raised $17M in venture capital. Bootstrapped means Hook0 is built for long-term sustainability, not for a quick exit."
+            "text": "Yes. Hook0 is 100% bootstrapped with zero VC funding. Svix is venture-funded. Bootstrapped means Hook0 answers to its users, not to investors looking for an exit."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do Svix and Hookdeck consider Hook0 a competitor?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Svix and Hookdeck each publish comparison pages that include Hook0. You can read their own assessments alongside ours."
           }
         }
       ]
@@ -102,9 +135,9 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
                     </svg>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-3">Fully Open-Source, Not Open-Core</h3>
+                <h3 class="text-xl font-bold text-white mb-3">Source-Available, No Closed Add-Ons</h3>
                 <p class="text-gray-400">
-                    Svix uses an open-core model: the basic version is MIT-licensed, but enterprise features (SSO, advanced analytics, dedicated support) are proprietary. Hook0 ships everything under SSPL. No closed-source add-ons.
+                    Hook0's server ships under SSPL-1.0 and the SDKs under MIT. You get the whole platform: read it, modify it, self-host it. Svix's core is MIT, but enterprise features (SSO, advanced analytics, dedicated support) stay closed-source on paid plans.
                 </p>
             </div>
 
@@ -115,9 +148,9 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                     </svg>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-3">Bootstrapped vs $17M VC</h3>
+                <h3 class="text-xl font-bold text-white mb-3">Bootstrapped From Day One</h3>
                 <p class="text-gray-400">
-                    Svix raised $17M in venture capital. VCs expect a return, which means pressure to raise prices or get acquired. Hook0 is 100% bootstrapped since day one. No board meetings, no growth-at-all-costs mandate.
+                    Svix is venture-funded. Investors expect a return, which means pressure to raise prices or get acquired. Hook0 is 100% bootstrapped. No board to please, no growth-at-all-costs mandate.
                 </p>
             </div>
 
@@ -141,9 +174,9 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                     </svg>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-3">European Hosting, GDPR Native</h3>
+                <h3 class="text-xl font-bold text-white mb-3">EU Hosting, Outside the CLOUD Act</h3>
                 <p class="text-gray-400">
-                    Hook0 cloud is hosted in Europe with GDPR compliance baked in. Svix is US-based. If you need data sovereignty in the EU, that matters.
+                    Hook0 Cloud runs on French infrastructure (Clever Cloud) and is operated by a French company, so it falls outside US CLOUD Act jurisdiction. Your webhook payloads stay in the EU. Svix is US-based. You can also self-host so no webhook data leaves your network.
                 </p>
             </div>
         </div>
@@ -177,7 +210,7 @@
                     <tr class="hover:bg-white/5 transition-colors">
                         <td class="py-4 px-6 text-gray-300">Funding</td>
                         <td class="py-4 px-6 text-green-400 font-medium">100% Bootstrapped</td>
-                        <td class="py-4 px-6 text-gray-400">$17M VC-funded</td>
+                        <td class="py-4 px-6 text-gray-400">VC-funded</td>
                     </tr>
                     <tr class="hover:bg-white/5 transition-colors">
                         <td class="py-4 px-6 text-gray-300">Self-Hosting</td>
@@ -231,22 +264,39 @@
 
         <div class="space-y-6 stagger-children">
             <div class="animate-on-scroll card card--glow p-6">
-                <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 fully open-source unlike Svix?</h3>
-                <p class="text-gray-400">Yes. Hook0 is fully open-source under the SSPL-1.0 license with no proprietary enterprise tier. Svix follows an open-core model where key enterprise features are closed-source and only available via paid plans.</p>
+                <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 open-source like Svix?</h3>
+                <p class="text-gray-400">Hook0's server is published under SSPL-1.0 and the client SDKs under MIT, with no proprietary enterprise tier. SSPL is a source-available copyleft license: you can read, modify, and self-host the whole platform freely. Svix's core is MIT, but several enterprise features are closed-source and only available on paid plans.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">How does Hook0's free tier compare to Svix's?</h3>
+                <p class="text-gray-400">Svix's free tier allows a higher monthly message volume. Hook0's free tier is smaller, but self-hosting is free on every plan with no feature-gating: you run the exact same code we run in the cloud. Svix reserves self-hosting and several features for paid plans.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Does Hook0 support Standard Webhooks?</h3>
+                <p class="text-gray-400">Standard Webhooks is a specification authored by Svix. Hook0 signs every payload with HMAC-SHA256 and documents the scheme. Standard Webhooks support is planned.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Does Hook0 have SOC 2, HIPAA, or PCI-DSS like Svix?</h3>
+                <p class="text-gray-400">Svix carries SOC 2, HIPAA and PCI-DSS attestations. Hook0 does not yet. If you need those attestations today, Svix has them. If you need webhook data kept in the EU on infrastructure you can self-host and audit, that's what Hook0 is built for.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 hosted in the EU and outside the US CLOUD Act?</h3>
+                <p class="text-gray-400">Hook0 Cloud is operated by a French company (FGRibreau SARL) on French infrastructure (Clever Cloud), so it falls outside US CLOUD Act jurisdiction. Your webhook payloads, which often carry customer data, stay in the EU. Svix and Hookdeck are US companies. You can also self-host Hook0 so no webhook data leaves your network.</p>
             </div>
             <div class="animate-on-scroll card card--glow p-6">
                 <h3 class="text-lg font-semibold text-white mb-2">Can I self-host Hook0 for free?</h3>
-                <p class="text-gray-400">Yes. Hook0 can be self-hosted with Docker Compose or Kubernetes at no cost. The self-hosted version has the same features as the cloud version. Svix only offers self-hosting on their enterprise plan.</p>
-            </div>
-            <div class="animate-on-scroll card card--glow p-6">
-                <h3 class="text-lg font-semibold text-white mb-2">How does Hook0 pricing compare to Svix?</h3>
-                <p class="text-gray-400">Both have a free tier. The difference is what you get beyond volume: Hook0 includes self-hosting for free on any plan. Svix locks self-hosting, advanced features, and dedicated support behind enterprise pricing. Hook0 is bootstrapped with no VC pressure to raise prices.</p>
+                <p class="text-gray-400">Yes. Hook0 can be self-hosted with Docker Compose or Kubernetes at no cost. The self-hosted version has the same features as the cloud version. Svix only offers self-hosting on its enterprise plan.</p>
             </div>
             <div class="animate-on-scroll card card--glow p-6">
                 <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 bootstrapped?</h3>
-                <p class="text-gray-400">Yes. Hook0 is 100% bootstrapped with zero VC funding. Svix has raised $17M in venture capital. Bootstrapped means Hook0 is built for long-term sustainability, not for a quick exit.</p>
+                <p class="text-gray-400">Yes. Hook0 is 100% bootstrapped with zero VC funding. Svix is venture-funded. Bootstrapped means Hook0 answers to its users, not to investors looking for an exit.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Do Svix and Hookdeck consider Hook0 a competitor?</h3>
+                <p class="text-gray-400">Svix and Hookdeck each publish comparison pages that include Hook0. You can read their own assessments alongside ours.</p>
             </div>
         </div>
+        <p class="mt-8 text-center text-sm text-gray-500">Last reviewed June 2026.</p>
     </div>
 </section>
 
