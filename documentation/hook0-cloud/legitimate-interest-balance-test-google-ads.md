@@ -95,9 +95,9 @@ La solution retenue (Mode A server-side, gclid only) constitue le minimum techni
 
 ### Mitigations en faveur de la personne concernée
 
-Neuf mesures concrètes ont été mises en œuvre (dont deux ajoutées par la révision 1.2).
+Neuf mesures concrètes sont en place ou en cours de finalisation (dont deux ajoutées par la révision 1.2).
 
-La politique de confidentialité (sections 2 et 9b de `privacy-policy.md`) décrit le traitement, sa finalité, sa base légale, le co-responsable et les droits afférents. Une mention courte sous le bouton « S'inscrire » sur `app.hook0.com/register` rappelle ces éléments au moment de la collecte (art. 13.1 et 13.2 RGPD), avec lien vers la politique. Cette mention identifie expressément Google LLC comme co-responsable et précise les coordonnées permettant d'exercer les droits vis-à-vis des deux co-responsables (art. 26.2).
+La politique de confidentialité publique (sections « Conversion tracking » et 9b de www.hook0.com/privacy-policy) décrit le traitement, sa finalité, sa base légale, le co-responsable et les droits afférents. Une mention contextuelle s'affiche sous le formulaire d'inscription sur `app.hook0.com/register` lorsqu'un gclid est présent (composant `RegisterPage.vue`), avec lien vers la section « server-side tracking » de la politique (art. 13.1 et 13.2 RGPD) : elle informe que l'identifiant de clic peut être transmis à Google Ads pour la mesure de conversion (sans e-mail ni IP). Cette mention ne nomme pas encore Google LLC comme co-responsable ni les coordonnées d'exercice des droits vis-à-vis des deux co-responsables (art. 26.2) — renforcement à prévoir avant mise en production de l'Activation (cf. § 5).
 
 Le droit d'opposition (art. 21.2 RGPD) est effectif via l'adresse `legal@hook0.com`. Comme l'opposition fondée sur un traitement marketing au titre de l'art. 21.2 confère un droit absolu, FGRibreau SARL n'oppose aucun motif impérieux : la cessation est immédiate. Concrètement, la procédure interne :
 
@@ -116,15 +116,15 @@ L'intérêt légitime de FGRibreau SARL à mesurer l'efficacité de ses campagne
 
 | Mesure | Statut | Référence |
 |--------|--------|-----------|
-| Politique de confidentialité (sections 2 et 9b) | Réalisée | `documentation/hook0-cloud/privacy-policy.md`, version du 4 mai 2026 |
-| Mention contextuelle au signup, identifiant Google LLC comme co-responsable et coordonnées d'exercice des droits | Réalisée | Composant Vue `RegisterForm.vue`, lien vers la section 2 de la politique de confidentialité |
+| Politique de confidentialité (sections « Conversion tracking » et 9b) | Réalisée | `website/src/privacy-policy.ejs` (www.hook0.com/privacy-policy), mise à jour du 22 juin 2026 (finalités Signup + Activation, rétention, opposition) |
+| Mention contextuelle au signup (information art. 13.1/13.2 : transmission du gclid à Google Ads) | Partielle | Composant Vue `RegisterPage.vue` (affichée lorsqu'un gclid est présent), lien vers la section « server-side tracking » de la politique. Ne nomme pas encore Google LLC comme co-responsable ni les coordonnées art. 26.2 — à renforcer avant mise en production. |
 | Endpoint `legal@hook0.com` pour l'exercice du droit d'opposition art. 21.2 | Réalisé | Documenté dans la politique de confidentialité, section « Vos droits » |
 | Procédure interne sur réception d'une demande d'opposition art. 21.2 | Manuelle | Suppression de la ligne d'attribution de l'utilisateur dans `iam.signup_attribution` (DELETE par `user__id`), qui efface le gclid avant tout upload non encore déclenché. Demande de suppression adressée à Google pour les données déjà transmises (cf. section 3.3). Un drapeau d'opposition persistant par utilisateur n'est pas encore implémenté (cf. risques résiduels). |
 | Co-responsabilité Google Ads art. 26 RGPD | Réalisée | Customer Data Processing Terms acceptés dans la console Google Ads, module 2 (contrôleur → contrôleur). |
 | Transfert hors UE encadré | Réalisé | Clauses Contractuelles Types issues de la Décision d'exécution (UE) 2021/914 de la Commission du 4 juin 2021 (JOUE L 199 du 7 juin 2021), incluses dans les CDPT acceptés. |
 | Inscription au registre des traitements art. 30 RGPD | Réalisée | `record-of-processing-activities.md`, traitement n°8 |
 | Nullification du gclid dès que les deux uploads sont réalisés (minimisation art. 5.1.e) | Réalisée | Requête `UPDATE iam.signup_attribution SET gclid = NULL WHERE … AND signup_uploaded_at IS NOT NULL AND activation_uploaded_at IS NOT NULL` exécutée après chaque upload (Signup et Activation). La ligne subsiste pour le cleanup 30 j mais ne contient plus de donnée pseudonyme. |
-| Politique de confidentialité — 2ᵉ finalité « Activation » | À réaliser | `documentation/hook0-cloud/privacy-policy.md` doit être mis à jour (sections 2 et 9b) pour mentionner la conversion Activation et la rétention prolongée jusqu'aux deux uploads ou 30 jours. |
+| Politique de confidentialité — 2ᵉ finalité « Activation » | Réalisée | `website/src/privacy-policy.ejs` (www.hook0.com/privacy-policy) mise à jour le 22 juin 2026 : sections « Conversion tracking » (2) et 9b mentionnent les deux conversions (Signup + Activation) et la rétention prolongée (jusqu'aux deux uploads ou 30 jours). |
 
 **Logging.** Le gclid peut apparaître dans les logs applicatifs : niveau `info` pour un préfixe de 8 caractères tronqué, niveau `debug` pour la valeur complète. La rétention des logs est plafonnée à 30 jours et leur accès est restreint à l'équipe technique de FGRibreau SARL. Aucun partage de logs avec un tiers n'est opéré.
 
@@ -139,7 +139,7 @@ L'intérêt légitime de FGRibreau SARL à mesurer l'efficacité de ses campagne
 | Fuite du gclid via les logs applicatifs | Très faible | Rétention des logs plafonnée à 30 jours, pas de transfert tiers, accès restreint à l'équipe technique |
 | Rétention du gclid au-delà de l'upload Signup du fait de l'attente de l'upload Activation | Très faible | La nullification intervient dès que les deux uploads sont réalisés ; la durée effective est généralement quelques heures à quelques jours (création de clé API rapide en pratique) ; la borne absolue est 30 jours, alignée sur la fenêtre d'attribution Google Ads |
 | Évolution jurisprudentielle sur le statut du gclid (CJUE, CNIL) ou modification unilatérale des CDPT par Google | Moyen | Veille juridique CNIL/CJUE annuelle, ré-examen formel du présent document tous les 12 mois |
-| Politique de confidentialité non mise à jour pour refléter la 2ᵉ finalité (Activation) | Moyen — à traiter | Mise à jour de `privacy-policy.md` sections 2 et 9b requise avant mise en production de la fonctionnalité Activation (cf. art. 13.1.c RGPD — obligation d'information sur les finalités) |
+| Mention au signup ne nommant pas encore Google LLC comme co-responsable ni les coordonnées art. 26.2 | Moyen — à traiter | Renforcer la mention `RegisterPage.vue` et la section co-responsable de la politique avant mise en production de l'Activation : nommer Google LLC co-responsable + coordonnées d'exercice des droits vis-à-vis des deux co-responsables (art. 13.1/26.2) |
 
 Ces risques sont jugés acceptables au regard de l'intérêt légitime poursuivi et de la robustesse des mitigations.
 

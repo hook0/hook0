@@ -153,7 +153,7 @@
                             <td>Art. 6(1)(a) — Consent (cookie banner)</td>
                         </tr>
                         <tr>
-                            <td><strong class="text-white">Conversion tracking (server-side)</strong><br><span class="text-gray-400 text-sm">Google Ads conversion measurement, server-side via the click identifier (gclid) only — no email, no IP, no User-Agent transmitted to Google. Right to object at <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span></td>
+                            <td><strong class="text-white">Conversion tracking (server-side)</strong><br><span class="text-gray-400 text-sm">Google Ads conversion measurement, server-side via the click identifier (gclid) only — no email, no IP, no User-Agent transmitted to Google. Two conversion events are reported: Signup (email verification) and Activation (first API key). Right to object at <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span></td>
                             <td>Click identifier (gclid) — pseudonymous identifier issued by Google during the ad click</td>
                             <td>Art. 6(1)(f) — Legitimate interests (measuring advertising ROI)<br><span class="text-gray-400 text-sm">Right to object: Art. 21(2) GDPR</span></td>
                         </tr>
@@ -410,7 +410,7 @@
                         <tr>
                             <td>Ad click identifier (gclid) — table <code>iam.signup_attribution</code></td>
                             <td>Until both conversion events ("Signup" and "Activation") have been uploaded to Google Ads, then set to NULL. Maximum retention: 30 days from registration (aligned with the Google Ads attribution window). Rows are automatically deleted after 30 days as a safety net.</td>
-                            <td>Legitimate interests (advertising effectiveness measurement, Art. 6(1)(f) GDPR). See <a href="/documentation/hook0-cloud/legitimate-interest-balance-test-google-ads" class="text-green-400 hover:text-green-300 transition-colors">balance test</a> and Section 9b.</td>
+                            <td>Legitimate interests (advertising effectiveness measurement, Art. 6(1)(f) GDPR). Our legitimate-interest balance test is available on request from <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a> (see also Section 9b).</td>
                         </tr>
                     </tbody>
                 </table>
@@ -522,7 +522,7 @@
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
-                    <span><strong class="text-white">Legal basis</strong>: Art. 6(1)(f) GDPR — legitimate interests. The balance test is documented in <a href="/documentation/hook0-cloud/legitimate-interest-balance-test-google-ads" class="text-green-400 hover:text-green-300 transition-colors">legitimate-interest-balance-test-google-ads.md</a>.</span>
+                    <span><strong class="text-white">Legal basis</strong>: Art. 6(1)(f) GDPR — legitimate interests. The legitimate-interest balance test is available on request from <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span>
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
@@ -625,7 +625,7 @@
                             <td>Art. 6(1)(a) — Consentement (bandeau cookies)</td>
                         </tr>
                         <tr>
-                            <td><strong class="text-white">Suivi des conversions publicitaires (server-side)</strong><br><span class="text-gray-400 text-sm">Mesure des conversions Google Ads, exclusivement côté serveur via l'identifiant de clic (gclid) — aucun e-mail, aucune adresse IP, aucun User-Agent n'est transmis à Google. Droit d'opposition à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span></td>
+                            <td><strong class="text-white">Suivi des conversions publicitaires (server-side)</strong><br><span class="text-gray-400 text-sm">Mesure des conversions Google Ads, exclusivement côté serveur via l'identifiant de clic (gclid) — aucun e-mail, aucune adresse IP, aucun User-Agent n'est transmis à Google. Deux événements de conversion sont remontés : Signup (vérification de l'e-mail) et Activation (première clé API). Droit d'opposition à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span></td>
                             <td>Identifiant de clic (gclid) — identifiant pseudonyme généré par Google lors du clic publicitaire</td>
                             <td>Art. 6(1)(f) — Intérêt légitime (mesure de la performance publicitaire)<br><span class="text-gray-400 text-sm">Droit d'opposition : art. 21(2) RGPD</span></td>
                         </tr>
@@ -882,7 +882,7 @@
                         <tr>
                             <td>Identifiant de clic publicitaire (gclid) — table <code>iam.signup_attribution</code></td>
                             <td>Jusqu'à ce que les deux conversions (« Signup » et « Activation ») aient été remontées à Google Ads, puis mis à NULL. Durée maximale : 30 jours à compter de l'inscription (fenêtre d'attribution Google Ads). Les lignes d'attribution sont purgées automatiquement au bout de 30 jours comme filet de sécurité.</td>
-                            <td>Intérêt légitime (mesure de l'efficacité publicitaire, art. 6(1)(f) RGPD). Voir le <a href="/documentation/hook0-cloud/legitimate-interest-balance-test-google-ads" class="text-green-400 hover:text-green-300 transition-colors">test de mise en balance</a> et la section 9b.</td>
+                            <td>Intérêt légitime (mesure de l'efficacité publicitaire, art. 6(1)(f) RGPD). Notre test de mise en balance est disponible sur demande à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a> (voir aussi la section 9b).</td>
                         </tr>
                     </tbody>
                 </table>
@@ -990,7 +990,7 @@
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
-                    <span><strong class="text-white">Base légale</strong> : art. 6(1)(f) RGPD — intérêt légitime. Le test de mise en balance est documenté dans <a href="/documentation/hook0-cloud/legitimate-interest-balance-test-google-ads" class="text-green-400 hover:text-green-300 transition-colors">legitimate-interest-balance-test-google-ads.md</a>.</span>
+                    <span><strong class="text-white">Base légale</strong> : art. 6(1)(f) RGPD — intérêt légitime. Le test de mise en balance est disponible sur demande à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span>
                 </li>
                 <li class="flex items-start gap-3">
                     <%- include('./includes/_checkmark-icon.ejs') %>
