@@ -31,9 +31,12 @@ api.check:
   variables:
     SQLX_OFFLINE: "true"
     # DB-backed tests (`#[sqlx::test]`) provision an ephemeral database per test
-    # against this service. Trust auth lets the superuser `postgres` create them.
-    POSTGRES_HOST_AUTH_METHOD: "trust"
-    DATABASE_URL: "postgres://postgres@postgres:5432/postgres"
+    # against this service. Override the global POSTGRES_* (user `runner`,
+    # db `hook0-ci`) so the superuser the tests connect as actually exists.
+    POSTGRES_DB: "postgres"
+    POSTGRES_USER: "postgres"
+    POSTGRES_PASSWORD: "postgres"
+    DATABASE_URL: "postgres://postgres:postgres@postgres:5432/postgres"
   services:
     - postgres:$PG_VERSION
   before_script:
