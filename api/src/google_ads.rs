@@ -508,9 +508,47 @@ pub async fn clear_gclid_if_fully_uploaded_by_org(db: &PgPool, organization_id: 
     }
 }
 
+/// Build a client whose Google Ads base URL is overridden (to point at a local
+/// fake server) and whose OAuth token is pre-seeded (so no token endpoint is
+/// hit). Lives at module level so both the unit tests here and the handler
+/// integration test can construct one despite the private fields.
+#[cfg(test)]
+pub(crate) fn test_client_with_base_url(
+    base_url: String,
+    activation_conversion_action_id: Option<&str>,
+) -> Arc<GoogleAdsClient> {
+    let config = GoogleAdsConfig {
+        developer_token: "t".into(),
+        customer_id: "123-456-7890".into(),
+        login_customer_id: Some("987-654-3210".into()),
+        signup_conversion_action_id: "42".into(),
+        activation_conversion_action_id: activation_conversion_action_id.map(str::to_string),
+        oauth_client_id: "c".into(),
+        oauth_client_secret: "s".into(),
+        oauth_refresh_token: "r".into(),
+    };
+    Arc::new(GoogleAdsClient {
+        http: reqwest::Client::builder()
+            .timeout(Duration::from_secs(5))
+            .build()
+            .expect("test http client"),
+        config,
+        cached_token: Mutex::new(Some(CachedToken {
+            value: "test-access-token".to_string(),
+            fetched_at: Instant::now(),
+            lifetime: Duration::from_secs(3600),
+        })),
+        base_url,
+        oauth_url: "http://127.0.0.1:9/unused".to_string(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_util::{
+        FakeGoogleAds, attribution_state, seed_attribution, seed_org, seed_user,
+    };
     use proptest::prelude::*;
 
     fn test_config(activation: Option<&str>) -> GoogleAdsConfig {
@@ -669,5 +707,174 @@ mod tests {
             let twice = normalize_gclid(once.as_deref());
             prop_assert_eq!(once, twice);
         }
+    }
+
+    // ----- Upload boundary: the real outbound request, against a local socket -----
+
+    #[actix_web::test]
+    async fn activation_upload_targets_activation_conversion_action() {
+        let fake = FakeGoogleAds::start(200, "{}");
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"));
+
+        client
+            .upload_click_conversion("gclid-activation", ConversionKind::Activation, Utc::now())
+            .await
+            .expect("activation upload should succeed");
+
+        let reqs = fake.requests();
+        assert_eq!(reqs.len(), 1, "exactly one upload request");
+        assert_eq!(reqs[0].path, "/customers/1234567890:uploadClickConversions");
+
+        let body: serde_json::Value = serde_json::from_str(&reqs[0].body).expect("json body");
+        assert_eq!(body["partialFailure"], serde_json::json!(true));
+        assert_eq!(body["conversions"][0]["gclid"], "gclid-activation");
+        assert_eq!(
+            body["conversions"][0]["conversionAction"],
+            "customers/1234567890/conversionActions/777"
+        );
+    }
+
+    #[actix_web::test]
+    async fn signup_and_activation_use_distinct_conversion_actions() {
+        let fake = FakeGoogleAds::start(200, "{}");
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"));
+
+        client
+            .upload_click_conversion("g1", ConversionKind::Signup, Utc::now())
+            .await
+            .expect("signup upload");
+        client
+            .upload_click_conversion("g2", ConversionKind::Activation, Utc::now())
+            .await
+            .expect("activation upload");
+
+        let reqs = fake.requests();
+        assert_eq!(reqs.len(), 2);
+        let action_of = |i: usize| -> String {
+            let v: serde_json::Value = serde_json::from_str(&reqs[i].body).expect("json");
+            v["conversions"][0]["conversionAction"]
+                .as_str()
+                .expect("conversionAction")
+                .to_string()
+        };
+        assert_eq!(action_of(0), "customers/1234567890/conversionActions/42");
+        assert_eq!(action_of(1), "customers/1234567890/conversionActions/777");
+    }
+
+    #[actix_web::test]
+    async fn upload_is_noop_when_activation_action_unconfigured() {
+        let fake = FakeGoogleAds::start(200, "{}");
+        let client = test_client_with_base_url(fake.base_url.clone(), None);
+
+        client
+            .upload_click_conversion("g", ConversionKind::Activation, Utc::now())
+            .await
+            .expect("noop upload returns Ok");
+
+        assert!(
+            fake.requests().is_empty(),
+            "no request is sent when the activation action is not configured"
+        );
+    }
+
+    #[actix_web::test]
+    async fn partial_failure_is_non_fatal() {
+        let fake = FakeGoogleAds::start(
+            200,
+            r#"{"partialFailureError":{"code":3,"message":"gclid invalid"}}"#,
+        );
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"));
+
+        // A 200 carrying a per-operation partialFailureError (e.g. unknown
+        // gclid) is treated as Ok — the conversion is not worth retrying.
+        client
+            .upload_click_conversion("bad-gclid", ConversionKind::Activation, Utc::now())
+            .await
+            .expect("partial failure is non-fatal");
+    }
+
+    #[actix_web::test]
+    async fn api_4xx_is_a_non_retryable_error() {
+        let fake = FakeGoogleAds::start(400, r#"{"error":"bad request"}"#);
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"));
+
+        let err = client
+            .upload_click_conversion("g", ConversionKind::Activation, Utc::now())
+            .await
+            .expect_err("4xx must surface as an error");
+        assert!(!is_retryable(&err), "a 4xx upload error is permanent");
+    }
+
+    // ----- gclid attribution lifecycle, against a real Postgres -----
+
+    #[sqlx::test]
+    async fn claim_activation_fires_at_most_once(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        seed_attribution(&pool, user, org, "gclid-claim", true).await;
+
+        let first = claim_activation_gclid(&pool, &org).await.expect("claim ok");
+        assert_eq!(first.as_deref(), Some("gclid-claim"));
+
+        let second = claim_activation_gclid(&pool, &org)
+            .await
+            .expect("second claim ok");
+        assert_eq!(second, None, "activation is claimed only once per org");
+
+        let (_, activation_uploaded) = attribution_state(&pool, org).await;
+        assert!(
+            activation_uploaded,
+            "activation_uploaded_at is set after claim"
+        );
+    }
+
+    #[sqlx::test]
+    async fn claim_returns_none_without_attribution_row(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        // No attribution row: an org with no gclid never fires an activation.
+        let claimed = claim_activation_gclid(&pool, &org).await.expect("claim ok");
+        assert_eq!(claimed, None);
+    }
+
+    #[sqlx::test]
+    async fn gclid_cleared_only_after_both_conversions(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        // Signup already uploaded, activation still pending.
+        seed_attribution(&pool, user, org, "gclid-clear", true).await;
+
+        // Activation not yet claimed → clearing is a no-op.
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org).await;
+        let (gclid, _) = attribution_state(&pool, org).await;
+        assert_eq!(
+            gclid.as_deref(),
+            Some("gclid-clear"),
+            "gclid kept until both conversions are uploaded"
+        );
+
+        // Claim activation, then clearing nulls the gclid (data minimisation).
+        claim_activation_gclid(&pool, &org).await.expect("claim");
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org).await;
+        let (gclid, activation_uploaded) = attribution_state(&pool, org).await;
+        assert_eq!(gclid, None, "gclid nulled once both conversions uploaded");
+        assert!(activation_uploaded);
+    }
+
+    #[sqlx::test]
+    async fn gclid_not_cleared_while_signup_pending(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        // Signup NOT uploaded yet.
+        seed_attribution(&pool, user, org, "gclid-keep", false).await;
+
+        claim_activation_gclid(&pool, &org).await.expect("claim");
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org).await;
+        let (gclid, _) = attribution_state(&pool, org).await;
+        assert_eq!(
+            gclid.as_deref(),
+            Some("gclid-keep"),
+            "signup still pending → gclid retained"
+        );
     }
 }
