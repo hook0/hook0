@@ -50,8 +50,6 @@ mod problems;
 mod quotas;
 mod rate_limiting;
 mod soft_deleted_applications_cleanup;
-#[cfg(test)]
-mod test_util;
 mod unverified_users_cleanup;
 mod validators;
 
@@ -1647,7 +1645,7 @@ async fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod activation_handler_tests {
-    use crate::test_util::{
+    use crate::google_ads::test_support::{
         FakeGoogleAds, attribution_state, issue_user_token, seed_attribution, seed_membership,
         seed_org, seed_user, test_state,
     };
