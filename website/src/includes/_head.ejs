@@ -436,6 +436,22 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
 </script>
 <% } %>
 
+<!-- WebPage freshness (dateModified) -->
+<% if (locals.pageModified && locals.pageCanonical) { %>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "@id": "<%= locals.seo.siteUrl %><%= locals.pageCanonical %>#webpage",
+  "url": "<%= locals.seo.siteUrl %><%= locals.pageCanonical %>",
+  "name": "<%= locals.pageTitle || locals.seo.defaultTitle %>",
+  "dateModified": "<%= locals.pageModified %>",
+  "isPartOf": { "@id": "<%= locals.seo.siteUrl %>/#organization" },
+  "publisher": { "@id": "<%= locals.seo.siteUrl %>/#organization" }
+}
+</script>
+<% } %>
+
 <!-- PWA: Service Worker & Manifest (added via JS to avoid Parcel resolution) -->
 <script>
 (function() {
