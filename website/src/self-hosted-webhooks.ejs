@@ -6,6 +6,7 @@
     locals.pageTitle = 'Self-Hosted Webhooks — Docker & Kubernetes | Hook0';
     locals.pageDescription = 'Deploy Hook0 on your infrastructure with Docker or Kubernetes. Fully open-source, same code as cloud. No data leaves your network.';
     locals.pageCanonical = '/self-hosted-webhooks';
+    locals.pageModified = '2026-06-22';
     locals.pageFAQSchema = {
       "@context": "https://schema.org",
       "@type": "FAQPage",
@@ -15,7 +16,7 @@
           "name": "Can I self-host Hook0?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Hook0 is fully open-source under the SSPL-1.0 license and supports self-hosting via Docker Compose or Kubernetes. The self-hosted version runs the exact same code as the managed cloud service."
+            "text": "Yes. Hook0's server source is published under the SSPL-1.0 license and supports self-hosting via Docker Compose or Kubernetes. The self-hosted version runs the exact same code as the managed cloud service."
           }
         },
         {
@@ -31,7 +32,7 @@
           "name": "What infrastructure do I need to self-host Hook0?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Hook0 can be deployed with Docker Compose for simple setups or Kubernetes (Helm chart) for production environments. It requires PostgreSQL for storage. Minimum requirements are modest — a single node can handle thousands of events per minute."
+            "text": "Hook0 can be deployed with Docker Compose for simple setups or Kubernetes (Helm chart) for production environments. It requires PostgreSQL for storage. Minimum requirements are modest: a single node can handle thousands of events per minute."
           }
         },
         {
@@ -39,7 +40,7 @@
           "name": "Does my data leave my network with self-hosted Hook0?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. With self-hosted Hook0, all data stays on your infrastructure. There is no telemetry, no phone-home, no external dependencies beyond your own network. This makes it ideal for regulated industries and data sovereignty requirements."
+            "text": "No. With self-hosted Hook0, all data stays on your infrastructure. There is no telemetry, no phone-home, no external dependencies beyond your own network. If you prefer a managed service, Hook0 Cloud runs on French infrastructure (Clever Cloud) and is operated by a French company, so it stays in the EU and outside US CLOUD Act jurisdiction. Either way, your webhook data stays under EU rules, which suits regulated industries and data sovereignty requirements."
           }
         },
         {
@@ -293,7 +294,7 @@
             </div>
             <div class="animate-on-scroll card card--glow p-6">
                 <h3 class="text-lg font-semibold text-white mb-2">Does my data leave my network?</h3>
-                <p class="text-gray-400">No. Everything stays on your infrastructure. No telemetry, no phone-home, no external calls.</p>
+                <p class="text-gray-400">No. Everything stays on your infrastructure. No telemetry, no phone-home, no external calls. If you prefer a managed service, Hook0 Cloud runs on French infrastructure (Clever Cloud), so your data stays in the EU and outside the US CLOUD Act.</p>
             </div>
             <div class="animate-on-scroll card card--glow p-6">
                 <h3 class="text-lg font-semibold text-white mb-2">Can I get support for self-hosted deployments?</h3>

@@ -50,7 +50,7 @@
             "@type": "Organization",
             "name": "Hook0"
           },
-          "license": "https://opensource.org/licenses/SSPL-1.0",
+          "license": "https://spdx.org/licenses/SSPL-1.0.html",
           "downloadUrl": locals.social.github.repoHref,
           "softwareVersion": "2026",
           "featureList": "Webhook delivery, HMAC signatures, Configurable retries, Delivery monitoring, Subscriber portal, Self-hosting, REST API, SDKs"
@@ -66,7 +66,7 @@
           "name": "Does Hook0 have a free tier?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Hook0 has a free tier that includes 100 webhook events per day, HMAC signatures, and delivery monitoring. No credit card required. Hook0 is also fully open-source — you can self-host it at no cost."
+            "text": "Yes. Hook0 has a free tier that includes 100 webhook events per day, HMAC signatures, and delivery monitoring. No credit card required. Hook0 is also open-source: you can self-host it at no cost."
           }
         },
         {
@@ -87,6 +87,14 @@
         },
         {
           "@type": "Question",
+          "name": "Is SSPL really open source?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hook0's full server source is published under SSPL-1.0, and the client SDKs under MIT. SSPL is a source-available copyleft license: you can read, modify, self-host, and run Hook0 freely. It's stricter than MIT in one case. If you resell Hook0 as a managed service, you have to open-source your own infrastructure stack. If you're building on Hook0 or self-hosting it, SSPL adds no obligation over MIT."
+          }
+        },
+        {
+          "@type": "Question",
           "name": "Can I self-host Hook0?",
           "acceptedAnswer": {
             "@type": "Answer",
@@ -98,7 +106,7 @@
           "name": "How does Hook0 compare to Svix, Hookdeck, or HostedHooks?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Hook0 is the only fully open-source option with self-hosting support. Unlike Svix (open-core), Hook0 has no proprietary enterprise tier. Compared to Hookdeck (webhook gateway) and HostedHooks (closed-source SaaS), Hook0 is bootstrapped with no VC funding and offers both cloud and on-premise deployment."
+            "text": "Hook0 ships its full server source under SSPL-1.0 with no proprietary enterprise tier, and self-hosting is free on every plan. Svix's core is MIT but reserves several features for paid plans. Hookdeck is a webhook gateway and HostedHooks is closed-source. Hook0 is bootstrapped with no VC funding and runs both in the cloud (hosted in the EU) and on-premise."
           }
         }
       ]

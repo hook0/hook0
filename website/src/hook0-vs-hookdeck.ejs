@@ -6,6 +6,7 @@
     locals.pageTitle = 'Hook0 vs Hookdeck — Webhook Platform vs Gateway';
     locals.pageDescription = 'Compare Hook0 and Hookdeck: webhook platform vs gateway, open-source vs closed-source, self-hostable vs cloud-only. See the key differences.';
     locals.pageCanonical = '/hook0-vs-hookdeck';
+    locals.pageModified = '2026-06-22';
     locals.pageFAQSchema = {
       "@context": "https://schema.org",
       "@type": "FAQPage",
@@ -23,7 +24,7 @@
           "name": "Is Hook0 open-source?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Hook0 is fully open-source under the SSPL-1.0 license. You can inspect, modify, and self-host the entire codebase. Hookdeck is closed-source and only available as a managed SaaS."
+            "text": "Hook0's server is published under SSPL-1.0 and the SDKs under MIT. SSPL is a source-available copyleft license: you can inspect, modify, and self-host the entire platform freely. Hookdeck is closed-source and only available as a managed SaaS."
           }
         },
         {
@@ -31,7 +32,7 @@
           "name": "Can I self-host Hook0?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Hook0 supports self-hosting via Docker Compose or Kubernetes at no cost. Hookdeck does not offer self-hosting — it is a cloud-only service."
+            "text": "Yes. Hook0 supports self-hosting via Docker Compose or Kubernetes at no cost. Hookdeck does not offer self-hosting: it is a cloud-only service."
           }
         },
         {
@@ -40,6 +41,22 @@
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "If you need to add webhooks to your product (send events to your users' endpoints), use Hook0. If you already receive webhooks from third parties and just need a reliability proxy, Hookdeck may fit. They are different tools for different problems."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Hook0 hosted in the EU, unlike Hookdeck?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hook0 Cloud is operated by a French company (FGRibreau SARL) on French infrastructure (Clever Cloud), so it falls outside US CLOUD Act jurisdiction, and your webhook payloads stay in the EU. Hookdeck is a US company. You can also self-host Hook0 so no webhook data leaves your network."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Hookdeck consider Hook0 an alternative?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hookdeck publishes comparison pages that include Hook0, and so does Svix. You can read their own assessments alongside ours."
           }
         }
       ]
@@ -63,7 +80,7 @@
             <span class="block text-gradient-green">Open-Source Webhook Platform Alternative</span>
         </h1>
         <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
-            Looking for a Hookdeck alternative? Hook0 is a 100% open-source webhook platform you can self-host. Hookdeck is a webhook gateway. They solve different problems. Here is what each one actually covers.
+            Looking for a Hookdeck alternative? Hook0 is a 100% open-source, EU-hosted webhook platform with no vendor lock-in. Hookdeck is a webhook gateway. They solve different problems. Here is what each one actually covers.
         </p>
 
         <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
@@ -222,7 +239,7 @@
                     </tr>
                     <tr class="hover:bg-white/5 transition-colors">
                         <td class="py-4 px-6 text-gray-300">Free Tier</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">100 events/day, no credit card</td>
+                        <td class="py-4 px-6 text-green-400 font-medium">100/day free, EU-hosted</td>
                         <td class="py-4 px-6 text-gray-400">100,000 events/month</td>
                     </tr>
                     <tr class="hover:bg-white/5 transition-colors">
@@ -252,17 +269,26 @@
             </div>
             <div class="animate-on-scroll card card--glow p-6">
                 <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 open-source?</h3>
-                <p class="text-gray-400">Yes. Hook0 is fully open-source under the SSPL-1.0 license. You can inspect, modify, and self-host the entire codebase. Hookdeck is closed-source and only available as a managed SaaS.</p>
+                <p class="text-gray-400">Hook0's server is published under SSPL-1.0 and the SDKs under MIT. SSPL is a source-available copyleft license: you can inspect, modify, and self-host the entire platform freely. Hookdeck is closed-source and only available as a managed SaaS.</p>
             </div>
             <div class="animate-on-scroll card card--glow p-6">
                 <h3 class="text-lg font-semibold text-white mb-2">Can I self-host Hook0?</h3>
-                <p class="text-gray-400">Yes. Hook0 supports self-hosting via Docker Compose or Kubernetes at no cost. Hookdeck does not offer self-hosting — it is a cloud-only service.</p>
+                <p class="text-gray-400">Yes. Hook0 supports self-hosting via Docker Compose or Kubernetes at no cost. Hookdeck does not offer self-hosting: it is a cloud-only service.</p>
             </div>
             <div class="animate-on-scroll card card--glow p-6">
                 <h3 class="text-lg font-semibold text-white mb-2">Which should I choose?</h3>
                 <p class="text-gray-400">If you need to add webhooks to your product (send events to your users' endpoints), use Hook0. If you already receive webhooks from third parties and just need a reliability proxy, Hookdeck may fit. They're different tools for different problems.</p>
             </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 hosted in the EU, unlike Hookdeck?</h3>
+                <p class="text-gray-400">Hook0 Cloud is operated by a French company (FGRibreau SARL) on French infrastructure (Clever Cloud), so it falls outside US CLOUD Act jurisdiction, and your webhook payloads stay in the EU. Hookdeck is a US company. You can also self-host Hook0 so no webhook data leaves your network.</p>
+            </div>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2">Does Hookdeck consider Hook0 an alternative?</h3>
+                <p class="text-gray-400">Hookdeck publishes comparison pages that include Hook0, and so does Svix. You can read their own assessments alongside ours.</p>
+            </div>
         </div>
+        <p class="mt-8 text-center text-sm text-gray-500">Last reviewed June 2026.</p>
     </div>
 </section>
 
