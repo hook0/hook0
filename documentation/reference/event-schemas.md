@@ -31,13 +31,18 @@ Hook0 events follow this structure:
 
 ```json
 {
-  "event_id": "string (UUID, optional — server generates UUIDv7 if omitted)",
-  "event_type": "string",
-  "payload": "object",
-  "labels": "object (optional)",
-  "timestamp": "string (ISO 8601)"
+  "application_id": "string (UUID, required)",
+  "event_id": "string (UUID, optional; server generates UUIDv7 if omitted)",
+  "event_type": "string (required, e.g. user.account.created)",
+  "payload": "string (required; for JSON, send the stringified object shown in the examples below)",
+  "payload_content_type": "string (required; application/json, text/plain, or application/octet-stream+base64)",
+  "labels": "object (required; string keys and values)",
+  "metadata": "object (optional; string keys and values)",
+  "occurred_at": "string (ISO 8601, required)"
 }
 ```
+
+The examples below show each event's `payload` as a JSON object for readability. A real ingestion request sends `payload` as a string (with `payload_content_type: application/json`) alongside `application_id`, `labels`, and `occurred_at`, as listed above. See [events](/concepts/events) for the full ingestion contract.
 
 ## User Lifecycle Events
 
@@ -83,7 +88,7 @@ interface UserCreatedPayload {
     "source": "auth_service",
     "priority": "normal"
   },
-  "timestamp": "2024-01-15T10:30:01Z"
+  "occurred_at": "2024-01-15T10:30:01Z"
 }
 ```
 
@@ -124,7 +129,7 @@ interface UserUpdatedPayload {
     "environment": "production",
     "source": "user_service"
   },
-  "timestamp": "2024-01-15T14:20:01Z"
+  "occurred_at": "2024-01-15T14:20:01Z"
 }
 ```
 
@@ -162,7 +167,7 @@ interface UserDeletedPayload {
     "source": "user_service",
     "priority": "high"
   },
-  "timestamp": "2024-01-15T18:45:01Z"
+  "occurred_at": "2024-01-15T18:45:01Z"
 }
 ```
 
@@ -195,7 +200,7 @@ interface UserEmailVerifiedPayload {
     "environment": "production",
     "source": "auth_service"
   },
-  "timestamp": "2024-01-15T11:15:01Z"
+  "occurred_at": "2024-01-15T11:15:01Z"
 }
 ```
 
@@ -247,7 +252,7 @@ interface SubscriptionCreatedPayload {
     "source": "billing_service",
     "priority": "high"
   },
-  "timestamp": "2024-01-15T10:30:01Z"
+  "occurred_at": "2024-01-15T10:30:01Z"
 }
 ```
 
@@ -328,7 +333,7 @@ interface PaymentSucceededPayload {
     "source": "payment_service",
     "priority": "high"
   },
-  "timestamp": "2024-01-15T10:30:01Z"
+  "occurred_at": "2024-01-15T10:30:01Z"
 }
 ```
 
@@ -378,7 +383,7 @@ interface PaymentFailedPayload {
     "source": "payment_service",
     "priority": "critical"
   },
-  "timestamp": "2024-01-15T10:30:01Z"
+  "occurred_at": "2024-01-15T10:30:01Z"
 }
 ```
 
@@ -465,7 +470,7 @@ interface OrderCreatedPayload {
     "environment": "production",
     "source": "order_service"
   },
-  "timestamp": "2024-01-15T10:30:01Z"
+  "occurred_at": "2024-01-15T10:30:01Z"
 }
 ```
 
@@ -521,7 +526,7 @@ interface OrderShippedPayload {
     "source": "fulfillment_service",
     "priority": "normal"
   },
-  "timestamp": "2024-01-16T14:20:01Z"
+  "occurred_at": "2024-01-16T14:20:01Z"
 }
 ```
 
