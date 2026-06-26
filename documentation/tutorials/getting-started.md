@@ -53,7 +53,7 @@ docker-compose up -d
 sleep 10
 
 # Verify API is running (check swagger endpoint)
-curl -s https://app.hook0.com/api/v1/swagger.json | head -c 100
+curl -s http://localhost:8081/api/v1/swagger.json | head -c 100
 ```
 
 Access the dashboard at http://localhost:8001 and create your first organization account.

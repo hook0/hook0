@@ -343,7 +343,10 @@ console.log(`Sent ${eventIds.length} events`);
 ### 4. Use Unique Event IDs
 
 ```typescript
-// Provide your own event ID for idempotency
+import { v5 as uuidv5 } from 'uuid';
+
+// Provide your own event ID for idempotency.
+// Hook0 requires event_id to be a UUID, so derive a stable one from your domain key.
 const event = new Event(
   'payment.transaction.processed',
   JSON.stringify({ amount: 100.00 }),
@@ -351,7 +354,7 @@ const event = new Event(
   { transaction_id },
   undefined, // metadata
   new Date(), // occurredAt
-  `payment-${transaction_id}` // Your own event ID
+  uuidv5(transaction_id, uuidv5.URL) // Your own event ID (stable UUID derived from transaction_id)
 );
 
 const eventId = await hook0.sendEvent(event);

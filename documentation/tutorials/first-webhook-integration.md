@@ -111,7 +111,7 @@ curl -X POST "$HOOK0_API/event_types" \
 **Response:**
 ```json
 {
-  "service_name":"orders",
+  "service_name":"order",
   "resource_type_name":"purchase",
   "verb_name":"completed",
   "event_type_name":"order.purchase.completed"
@@ -297,7 +297,7 @@ tenant_id: "customer_456" -> tenant_id = "customer_123"   ->  ❌ Skipped
 See what events have been sent:
 
 ```bash
-curl -X GET "$HOOK0_API/events/?application_id=$APP_ID" \
+curl -X GET "$HOOK0_API/events?application_id=$APP_ID" \
   -H "Authorization: Bearer $HOOK0_TOKEN"
 ```
 
