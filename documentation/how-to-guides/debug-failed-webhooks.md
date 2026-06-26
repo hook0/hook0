@@ -214,15 +214,15 @@ const computed = crypto.createHmac('sha256', secret)
   .update(JSON.stringify(req.body))  // Wrong if body already parsed
   .digest('hex');
 
-// ✅ Correct - Use raw body or re-stringify
-const bodyString = JSON.stringify(req.body);
+// ✅ Correct - Use the raw request body, not the re-serialized parsed body
+const rawBodyString = req.rawBody.toString('utf8');
 const computed = crypto.createHmac('sha256', secret)
-  .update(bodyString)
+  .update(rawBodyString)
   .digest('hex');
 ```
 
 **Solutions:**
-1. Use raw request body for signature verification (or `JSON.stringify(req.body)`)
+1. Use the raw request body for signature verification, never `JSON.stringify(req.body)`
 2. Ensure consistent character encoding (UTF-8)
 3. Verify you're using the correct subscription secret (fetch from API)
 4. Check HMAC algorithm (SHA256)
@@ -241,7 +241,7 @@ See [Implementing Webhook Authentication](../tutorials/webhook-authentication.md
 # Monitor request patterns - filter 429 responses
 curl "$HOOK0_API/request_attempts/?application_id=$APP_ID&subscription_id={SUBSCRIPTION_ID}" \
   -H "Authorization: Bearer $HOOK0_TOKEN" | \
-  jq '.[] | select(.status.type == "failed")'
+  jq '.[] | select(.failed_at != null)'
 ```
 
 **Solutions:**
@@ -423,7 +423,7 @@ async function getFailureRate(subscriptionId, hours = 24) {
   const attempts = await response.json();
 
   const total = attempts.length;
-  // Status is a string: "pending", "succeeded", or "failed"
+  // failed_at is set (non-null) only when a delivery attempt has failed
   const failed = attempts.filter(a => a.failed_at !== null).length;
   const failureRate = total > 0 ? (failed / total) * 100 : 0;
 
@@ -464,7 +464,7 @@ setInterval(monitorSubscriptions, 5 * 60 * 1000); // Every 5 minutes
 // alert-system.js
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   host: 'smtp.your-domain.com',
   port: 587,
   auth: {

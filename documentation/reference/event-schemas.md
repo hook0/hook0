@@ -18,7 +18,7 @@ service.resource.verb
 - `user.account.created` - A user account was created
 - `order.payment.completed` - An order payment was completed
 - `inventory.stock.updated` - Inventory stock was updated
-- `subscription.plan.cancelled` - A subscription plan was cancelled
+- `subscription.plan.canceled` - A subscription plan was canceled
 
 **Anti-patterns (avoid 2-part names):**
 - ❌ `user.created` → ✅ `user.account.created`
@@ -62,7 +62,7 @@ interface UserCreatedPayload {
 **Example:**
 ```json
 {
-  "event_id": "evt_user_created_123",
+  "event_id": "0190f3c2-7a1d-7b2e-8c3f-4d5e6f708192",
   "event_type": "user.account.created",
   "payload": {
     "user_id": "user_12345",
@@ -105,7 +105,7 @@ interface UserUpdatedPayload {
 **Example:**
 ```json
 {
-  "event_id": "evt_user_updated_456",
+  "event_id": "0190f3c3-8b2e-7c3f-9d40-5e6f70819203",
   "event_type": "user.account.updated",
   "payload": {
     "user_id": "user_12345",
@@ -147,7 +147,7 @@ interface UserDeletedPayload {
 **Example:**
 ```json
 {
-  "event_id": "evt_user_deleted_789",
+  "event_id": "0190f3c4-9c3f-7d40-a51e-6f7081920314",
   "event_type": "user.account.deleted",
   "payload": {
     "user_id": "user_12345",
@@ -183,7 +183,7 @@ interface UserEmailVerifiedPayload {
 **Example:**
 ```json
 {
-  "event_id": "evt_email_verified_101",
+  "event_id": "0190f3c5-ad40-7e51-b62f-708192031425",
   "event_type": "user.email.verified",
   "payload": {
     "user_id": "user_12345",
@@ -226,7 +226,7 @@ interface SubscriptionCreatedPayload {
 **Example:**
 ```json
 {
-  "event_id": "evt_sub_created_202",
+  "event_id": "0190f3c6-be51-7f62-8a30-819203142536",
   "event_type": "subscription.plan.created",
   "payload": {
     "subscription_id": "sub_67890",
@@ -306,7 +306,7 @@ interface PaymentSucceededPayload {
 **Example:**
 ```json
 {
-  "event_id": "evt_payment_success_303",
+  "event_id": "0190f3c7-cf62-7a73-9b41-920314253647",
   "event_type": "payment.transaction.succeeded",
   "payload": {
     "payment_id": "pay_12345",
@@ -357,7 +357,7 @@ interface PaymentFailedPayload {
 **Example:**
 ```json
 {
-  "event_id": "evt_payment_failed_404",
+  "event_id": "0190f3c8-da73-7b84-ac52-031425364758",
   "event_type": "payment.transaction.failed",
   "payload": {
     "payment_id": "pay_12346",
@@ -430,7 +430,7 @@ interface OrderCreatedPayload {
 **Example:**
 ```json
 {
-  "event_id": "evt_order_created_505",
+  "event_id": "0190f3c9-eb84-7c95-8d63-142536475869",
   "event_type": "order.purchase.created",
   "payload": {
     "order_id": "ord_98765",
@@ -497,7 +497,7 @@ interface OrderShippedPayload {
 **Example:**
 ```json
 {
-  "event_id": "evt_order_shipped_606",
+  "event_id": "0190f3ca-fc95-7da6-9e74-25364758697a",
   "event_type": "order.shipment.shipped",
   "payload": {
     "order_id": "ord_98765",

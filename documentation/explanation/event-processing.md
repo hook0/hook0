@@ -114,7 +114,7 @@ Hook0 categorizes HTTP responses to decide what happens next:
 - No further action needed
 
 #### Non-success responses (4xx, 5xx) and network issues
-- Schedule retry according to the fixed retry schedule (see [Webhook retry logic](./webhook-retry-logic.md) for details on predefined retry delays and jitter)
+- Schedule retry according to the fixed retry schedule (see [Webhook retry logic](./webhook-retry-logic.md) for details on the predefined retry delays)
 - Increment attempt counter
 - See [HTTP Status Code Categories](../how-to-guides/debug-failed-webhooks.md#http-status-code-categories) for retry behavior details
 - Eventually move to dead letter queue after max retries exhausted
@@ -150,5 +150,5 @@ struct RequestAttempt {
 
 - [Security Model](./security-model.md)
 - [Debugging Failed Webhooks](../how-to-guides/debug-failed-webhooks.md)
-- [Webhook retry logic](./webhook-retry-logic.md) - Fixed retry schedule, jitter, circuit breakers, and dead letter queues
+- [Webhook retry logic](./webhook-retry-logic.md) - Fixed retry schedule, retry limits, and replay for exhausted deliveries
 - [Webhook best practices](../how-to-guides/webhook-best-practices.md) - Production patterns for producers and consumers
