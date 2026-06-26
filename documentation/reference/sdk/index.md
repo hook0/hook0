@@ -50,7 +50,7 @@ npm install hook0-client
 import { Hook0Client, Event } from 'hook0-client';
 
 const hook0 = new Hook0Client(
-  'http://localhost:8081',
+  'http://localhost:8081/api/v1',
   'app_1234567890',
   '{YOUR_TOKEN}'
 );
@@ -132,7 +132,7 @@ Everything Hook0 does is available through the REST API. Here is how to send eve
 import requests
 
 response = requests.post(
-    'http://localhost:8081',
+    'http://localhost:8081/api/v1/event',
     headers={
         'Authorization': 'Bearer {YOUR_TOKEN}',
         'Content-Type': 'application/json'
@@ -262,6 +262,7 @@ app.post('/webhook', express.json({
   Object.entries(req.headers).forEach(([key, value]) => {
     if (typeof value === 'string') headers.set(key, value);
   });
+  const secret = process.env.WEBHOOK_SECRET;
 
   try {
     const isValid = verifyWebhookSignature(
@@ -307,7 +308,7 @@ try {
 
 ```javascript
 // REST API error handling
-fetch('http://localhost:8081', {
+fetch('http://localhost:8081/api/v1/event', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer {YOUR_TOKEN}',
@@ -370,7 +371,7 @@ test('should send event', async () => {
   });
   
   const client = new Hook0Client(
-    'http://localhost:8081',
+    'http://localhost:8081/api/v1',
     'app_test',
     'test_token'
   );
@@ -385,7 +386,7 @@ test('should send event', async () => {
   await client.sendEvent(event);
   
   expect(fetch).toHaveBeenCalledWith(
-    'http://localhost:8081',
+    'http://localhost:8081/api/v1/event',
     expect.objectContaining({
       method: 'POST'
     })

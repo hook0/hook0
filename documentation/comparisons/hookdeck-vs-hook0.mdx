@@ -71,13 +71,13 @@ flowchart LR
 | **Inbound webhook proxy** | ✅ Core focus | ❌ |
 | **Outbound webhook delivery** | ⚠️ Secondary | ✅ Core focus |
 | **HMAC signature verification** | ✅ Verify incoming | ✅ Sign outgoing |
-| **Automatic retries** | ✅ | ✅ Configurable two-phase (fast + slow) + jitter |
+| **Automatic retries** | ✅ | ✅ Fixed escalating backoff, capped by max retries + window |
 | **Dead letter queue** | ✅ | ✅ |
 | **Request transformation** | ✅ | ❌ |
 | **Webhook deduplication** | ✅ | ✅ Via event IDs |
 | **Event type hierarchy** | ❌ | ✅ Dot-notation |
 | **Multi-tenant filtering** | ❌ | ✅ Label-based |
-| **Custom retry schedules** | ✅ | ✅ Configurable per subscription (fast + slow phases, app-level defaults) |
+| **Custom retry schedules** | ✅ | ⚠️ Global limits only (self-hosted), not per subscription |
 | **Delivery logs & replay** | ✅ | ✅ |
 | **REST API** | ✅ | ✅ |
 | **Local development tunnel** | ✅ CLI tool | ❌ |
