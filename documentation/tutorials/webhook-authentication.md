@@ -240,12 +240,13 @@ func main() {
 During rotation, accept signatures from both old and new secrets:
 
 ```javascript
-function verifyWithSecrets(payload, signature, secrets) {
-  return secrets.some(s => verifyHook0Signature(payload, signature, s));
+function verifyWithSecrets(rawBody, signature, headers, secrets) {
+  return secrets.some(s => verifyHook0Signature(rawBody, signature, headers, s));
 }
 
 const secrets = [process.env.WEBHOOK_SECRET, process.env.WEBHOOK_SECRET_OLD].filter(Boolean);
-if (!verifyWithSecrets(JSON.stringify(req.body), signature, secrets)) {
+const rawBodyString = req.rawBody.toString('utf8');
+if (!verifyWithSecrets(rawBodyString, signature, req.headers, secrets)) {
   return res.status(401).json({ error: 'Invalid signature' });
 }
 ```
@@ -308,12 +309,13 @@ curl -X POST "$HOOK0_API/subscriptions" \
 // Note: Express.js normalizes all header names to lowercase
 app.post('/webhooks/authenticated', (req, res) => {
   const signature = req.headers['x-hook0-signature'];
+  const rawBodyString = req.rawBody.toString('utf8');
   const apiKey = req.headers['x-api-key'];
   const webhookSource = req.headers['x-webhook-source'];
   const authorization = req.headers['authorization'];
   
   // Verify Hook0 signature
-  if (!verifyHook0Signature(req.body, signature, process.env.WEBHOOK_SECRET)) {
+  if (!verifyHook0Signature(rawBodyString, signature, req.headers, process.env.WEBHOOK_SECRET)) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
   
@@ -409,20 +411,20 @@ class WebhookAuth {
         return res.status(401).json({ error: 'Missing signature' });
       }
 
-      // 4. Parse the signature format: t=...,v1=...
+      // 3. Parse the signature format: t=...,v1=...
       const parts = this.parseSignature(signatureHeader);
       if (!parts.t || !parts.v1) {
         return res.status(401).json({ error: 'Invalid signature format' });
       }
 
-      // 5. Timestamp validation (replay attack protection)
+      // 4. Timestamp validation (replay attack protection)
       const now = Math.floor(Date.now() / 1000);
       if (Math.abs(now - parseInt(parts.t)) > this.timestampTolerance) {
         return res.status(401).json({ error: 'Timestamp too old or in future' });
       }
 
-      // 6. Verify signature against all secrets (rotation support)
-      const payload = JSON.stringify(req.body);
+      // 5. Verify signature against all secrets (rotation support)
+      const payload = req.rawBody.toString('utf8');
       let signatureValid = false;
 
       for (const secret of this.secrets) {
@@ -442,7 +444,7 @@ class WebhookAuth {
         return res.status(401).json({ error: 'Invalid signature' });
       }
 
-      // 7. Attach parsed body for the controller
+      // 6. Attach parsed body for the controller
       req.webhook = req.body;
 
       next();

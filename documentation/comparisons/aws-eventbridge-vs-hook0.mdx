@@ -67,7 +67,7 @@ EventBridge can send events to HTTP endpoints via API Destinations, but it wasn'
 | **Internal event routing** | ✅ Core focus | ❌ |
 | **External webhook delivery** | ⚠️ Via API Destinations | ✅ Core focus |
 | **HMAC signatures** | ❌ | ✅ |
-| **Per-endpoint retry config** | ⚠️ Limited (max 185 retries) | ✅ Fixed retry schedule + jitter |
+| **Per-endpoint retry config** | ⚠️ Limited (max 185 retries) | ⚠️ Fixed schedule; global limits, not per endpoint |
 | **Dead letter queue** | ✅ (SQS-based) | ✅ Built-in with replay |
 | **Delivery logs per endpoint** | ❌ | ✅ Full request/response history |
 | **Manual replay** | ❌ | ✅ |

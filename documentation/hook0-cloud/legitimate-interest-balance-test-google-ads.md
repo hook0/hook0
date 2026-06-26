@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Traitement** | Transmission du gclid à Google Ads pour mesure de deux conversions publicitaires server-side : (1) « Signup » à la vérification d'email ; (2) « Activation » à la création de la première clé API de l'organisation |
-| **Numéro au registre art. 30** | Traitement n°8 (cf. `record-of-processing-activities.md`) |
+| **Numéro au registre art. 30** | Traitement n°8 (cf. `registre-des-traitements-art-30-rgpd.md`) |
 | **Responsable de traitement** | FGRibreau SARL, 3 rue de l'Aubépine, 85110 Chantonnay, France (RCS La Roche-sur-Yon 850 824 350) |
 | **Co-responsable** | Google LLC, dans le cadre des Customer Data Processing Terms — module 2 (contrôleur → contrôleur), art. 26 RGPD |
 | **DPO** | Non désigné. FGRibreau SARL n'est pas soumise à l'obligation de l'art. 37.1 RGPD : ni autorité publique, ni traitement à grande échelle de données sensibles, ni suivi systématique de personnes à grande échelle. Point de contact RGPD : `legal@hook0.com`. |
@@ -122,7 +122,7 @@ L'intérêt légitime de FGRibreau SARL à mesurer l'efficacité de ses campagne
 | Procédure interne sur réception d'une demande d'opposition art. 21.2 | Manuelle | Suppression de la ligne d'attribution de l'utilisateur dans `iam.signup_attribution` (DELETE par `user__id`), qui efface le gclid avant tout upload non encore déclenché. Demande de suppression adressée à Google pour les données déjà transmises (cf. section 3.3). Un drapeau d'opposition persistant par utilisateur n'est pas encore implémenté (cf. risques résiduels). |
 | Co-responsabilité Google Ads art. 26 RGPD | Réalisée | Customer Data Processing Terms acceptés dans la console Google Ads, module 2 (contrôleur → contrôleur). |
 | Transfert hors UE encadré | Réalisé | Clauses Contractuelles Types issues de la Décision d'exécution (UE) 2021/914 de la Commission du 4 juin 2021 (JOUE L 199 du 7 juin 2021), incluses dans les CDPT acceptés. |
-| Inscription au registre des traitements art. 30 RGPD | Réalisée | `record-of-processing-activities.md`, traitement n°8 |
+| Inscription au registre des traitements art. 30 RGPD | Réalisée | `registre-des-traitements-art-30-rgpd.md`, traitement n°8 |
 | Nullification du gclid dès que les deux uploads sont réalisés (minimisation art. 5.1.e) | Réalisée | Requête `UPDATE iam.signup_attribution SET gclid = NULL WHERE … AND signup_uploaded_at IS NOT NULL AND activation_uploaded_at IS NOT NULL` exécutée après chaque upload (Signup et Activation). La ligne subsiste pour le cleanup 30 j mais ne contient plus de donnée pseudonyme. |
 | Politique de confidentialité — 2ᵉ finalité « Activation » | Réalisée | `website/src/privacy-policy.ejs` (www.hook0.com/privacy-policy) mise à jour le 22 juin 2026 : sections « Conversion tracking » (2) et 9b mentionnent les deux conversions (Signup + Activation) et la rétention prolongée (jusqu'aux deux uploads ou 30 jours). |
 

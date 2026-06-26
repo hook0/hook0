@@ -28,8 +28,8 @@ flowchart TD
 
     A --> B --> C
     C --> D
-    C --> E
-    E -- "if retries remaining" --> F
+    C -- "fail, retries remaining" --> F
+    C -- "fail, retries exhausted" --> E
     F --> G --> B
 
     classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
