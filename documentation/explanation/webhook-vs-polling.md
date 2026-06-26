@@ -77,7 +77,7 @@ Hook0's [retry logic](/explanation/webhook-retry-logic) does something similar o
 
 Hook0 wraps the "webhook-first" pattern into something you can run in production without building retry queues, signature verification, or delivery monitoring from scratch.
 
-It accepts [events](/concepts/events) from your application via API, routes them to subscriber endpoints based on [subscriptions](/concepts/subscriptions), and retries failed deliveries with a configurable [two-phase schedule](/explanation/webhook-retry-logic#two-phase-retry-schedule). You also get delivery logs, latency metrics, and replay.
+It accepts [events](/concepts/events) from your application via API, routes them to subscriber endpoints based on [subscriptions](/concepts/subscriptions), and retries failed deliveries on a [fixed escalating schedule](/explanation/webhook-retry-logic). You also get delivery logs, latency metrics, and replay.
 
 The [getting started tutorial](/tutorials/getting-started) walks through setup.
 

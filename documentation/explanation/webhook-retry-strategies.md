@@ -1,6 +1,6 @@
 ---
 title: "Why Most Webhook Retry Strategies Fail — and How to Fix Yours"
-description: "Fixed interval, exponential backoff, jitter, and two-phase retry compared side by side with real failure scenarios and config examples."
+description: "Fixed interval, exponential backoff, jitter, and two-phase retry compared side by side, with real failure scenarios and how Hook0's own retry schedule works."
 keywords: [webhook retry strategy, exponential backoff webhook, webhook retry best practices, webhook delivery retry, retry with jitter, two-phase retry]
 ---
 
@@ -64,51 +64,27 @@ stateDiagram-v2
     classDef danger fill:#fee2e2,stroke:#f87171,color:#7f1d1d
 ```
 
-## Hook0's default two-phase configuration
+## How Hook0 retries
 
-By default, Hook0 uses two-phase retry with these parameters:
+Hook0 does not expose per-phase or per-subscription retry tuning. It applies one fixed schedule of increasing delays to every failed delivery:
 
-| Phase | Attempts | Delay range | Total window |
-|-------|:---:|-------------|:---:|
-| Fast | 5 | 10s → 5min (increasing) | ~15min |
-| Slow | 10 | 1h (fixed) | ~10h |
+| Failed attempts so far | Delay before next attempt |
+|---|---|
+| 1 | 3 seconds |
+| 2 | 10 seconds |
+| 3 | 3 minutes |
+| 4 | 30 minutes |
+| 5 | 1 hour |
+| 6 | 3 hours |
+| 7 | 5 hours |
+| 8 and beyond | 10 hours |
 
-The fast phase covers the ~95% of transient failures that resolve within minutes: container restarts, deploy rollouts, brief network partitions.
+The seconds-apart attempts at the start catch the transient failures that resolve in moments, like container restarts, deploy rollouts, or brief network partitions. The hours-apart attempts later cover longer outages, such as provider downtime or DNS propagation, without hammering an endpoint that is coming back. From the eighth retry on, the delay holds at 10 hours.
 
-The slow phase picks up the rest -- provider outages, DNS propagation, certificate renewals. Spacing retries at 1-hour intervals avoids overwhelming the endpoint while still recovering when it comes back.
-
-In practice, this handles nearly all transient failures without anyone intervening.
-
-## Configuring retries
-
-You can override retry parameters per [application](/concepts/applications) or per [subscription](/concepts/subscriptions). Here is the default configuration as JSON:
-
-```json
-{
-  "max_fast_retries": 5,
-  "fast_retry_delay_seconds": 10,
-  "max_fast_retry_delay_seconds": 300,
-  "max_slow_retries": 10,
-  "slow_retry_delay_seconds": 3600
-}
-```
-
-For critical integrations where you want faster recovery and a longer retry window, something like this works:
-
-```json
-{
-  "max_fast_retries": 10,
-  "fast_retry_delay_seconds": 5,
-  "max_fast_retry_delay_seconds": 120,
-  "max_slow_retries": 20,
-  "slow_retry_delay_seconds": 1800
-}
-```
-
-The full configuration reference and per-subscription overrides are documented in [Webhook retry logic](/explanation/webhook-retry-logic).
+Two limits bound the schedule, whichever is reached first: `MAX_RETRIES` (default 25) and `MAX_RETRY_WINDOW` (default 8 days). Both are set on the output worker, not per subscription. With the defaults, a failing delivery is retried up to 25 times across roughly 8 days. The full reference is in [Webhook retry logic](/explanation/webhook-retry-logic).
 
 ## Further reading
 
-- [Webhook retry logic](/explanation/webhook-retry-logic) -- full two-phase retry configuration reference
+- [Webhook retry logic](/explanation/webhook-retry-logic) -- how Hook0 schedules and bounds retries
 - [Request attempts](/concepts/request-attempts) -- how each delivery attempt is tracked
 - [Monitor webhook performance](/how-to-guides/monitor-webhook-performance) -- delivery rates and retry patterns

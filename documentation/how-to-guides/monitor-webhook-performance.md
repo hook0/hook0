@@ -408,7 +408,7 @@ Build your own monitoring dashboard by polling Hook0's API:
 // Example: Fetch recent request attempts and calculate metrics
 async function fetchWebhookMetrics(applicationId, token) {
   const response = await fetch(
-    `http://localhost:8081/api/v1/request_attempts?application_id=${applicationId}&limit=1000`,
+    `http://localhost:8081/api/v1/request_attempts/?application_id=${applicationId}`,
     {
       headers: {
         'Authorization': `Bearer ${token}`

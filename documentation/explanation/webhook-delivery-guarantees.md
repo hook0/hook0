@@ -130,7 +130,7 @@ sequenceDiagram
 
 ## What Hook0 gives you
 
-Hook0 handles the sending side of effectively-once processing. Failed deliveries are retried with a [configurable two-phase schedule](/explanation/webhook-retry-logic). Each event gets a unique `event_id` (server-generated UUIDv7 if you don't provide one; duplicate rejection if you do -- see [events](/concepts/events)).
+Hook0 handles the sending side of effectively-once processing. Failed deliveries are retried on a [fixed escalating schedule](/explanation/webhook-retry-logic). Each event gets a unique `event_id` (server-generated UUIDv7 if you don't provide one; duplicate rejection if you do -- see [events](/concepts/events)).
 
 Every [request attempt](/concepts/request-attempts) is logged with timestamps, status codes, and error details. And HMAC signatures let consumers [verify that events come from Hook0](/tutorials/webhook-authentication), not an attacker replaying old payloads.
 

@@ -1,7 +1,7 @@
 ---
-title: "Webhook retry logic: configurable delivery attempts and retry scheduling"
-description: "How Hook0 retries failed webhook deliveries using configurable two-phase retry schedules (fast + slow), with per-subscription overrides and smart defaults."
-keywords: [webhook retry, retry schedule, webhook delivery, retry attempts, replay events, configurable retries]
+title: "Webhook retry logic: how Hook0 retries failed deliveries"
+description: "How Hook0 retries failed webhook deliveries on a fixed escalating schedule, bounded by MAX_RETRIES and a retry window, with replay for exhausted attempts."
+keywords: [webhook retry, retry schedule, webhook delivery, retry attempts, replay events, retry backoff]
 ---
 
 # Webhook retry logic
@@ -12,22 +12,35 @@ When a webhook delivery fails (network timeout, 5xx response, DNS error, connect
 
 Most webhook delivery failures are transient. The receiving server was restarting, a load balancer was draining connections, or a brief network partition occurred. A retry a few seconds later usually succeeds.
 
-Without retries, every transient failure becomes a lost event. With naive retries (fixed interval, no limit), you risk overwhelming a recovering server. Hook0 uses a two-phase retry schedule that balances fast recovery with patience.
+Without retries, every transient failure becomes a lost event. With naive retries (fixed interval, no limit), you risk overwhelming a recovering server. Hook0 uses a fixed escalating schedule. Short delays come first, to recover from brief outages quickly; longer delays follow, so a struggling endpoint is not hammered.
 
-## Two-phase retry schedule
+## The retry schedule
 
-Hook0 uses a configurable two-phase approach instead of a single fixed schedule:
+Hook0 retries on a fixed schedule of increasing delays. The delay before each attempt depends only on how many times the delivery has already failed:
 
-1. **Fast retries** -- frequent attempts with increasing delays, to recover from brief outages quickly
-2. **Slow retries** -- spaced-out attempts at fixed intervals, to handle longer outages without overwhelming the endpoint
+| Failed attempts so far | Delay before next attempt |
+|---|---|
+| 1 | 3 seconds |
+| 2 | 10 seconds |
+| 3 | 3 minutes |
+| 4 | 30 minutes |
+| 5 | 1 hour |
+| 6 | 3 hours |
+| 7 | 5 hours |
+| 8 and beyond | 10 hours |
+
+The first attempts are seconds apart to recover from brief outages quickly. Later attempts stretch to hours so a long outage does not turn into a retry storm against an endpoint that is just coming back. From the eighth retry on, the delay holds steady at 10 hours.
 
 ```mermaid
 flowchart LR
-    A1["Phase 1: Fast retries"]:::hook0 --> A2["Delay increases from 5s to 5min"]:::external
-    A2 --> A3["Up to 30 attempts"]:::external
-    A3 --> B1["Phase 2: Slow retries"]:::processing
-    B1 --> B2["Fixed 1h intervals"]:::customer
-    B2 --> B3["Up to 30 attempts"]:::customer
+    F["Delivery fails"]:::customer --> R1["3s"]:::hook0
+    R1 --> R2["10s"]:::hook0
+    R2 --> R3["3min"]:::processing
+    R3 --> R4["30min"]:::processing
+    R4 --> R5["1h"]:::external
+    R5 --> R6["3h"]:::external
+    R6 --> R7["5h"]:::external
+    R7 --> R8["10h (repeats)"]:::external
 
     classDef external fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f
     classDef hook0 fill:#dcfce7,stroke:#4ade80,color:#14532d
@@ -35,24 +48,16 @@ flowchart LR
     classDef processing fill:#ede9fe,stroke:#a78bfa,color:#3b0764
 ```
 
-### Default retry configuration
+This schedule is the same for every [application](/concepts/applications) and [subscription](/concepts/subscriptions). It is not tuned per subscription; the two limits that bound it are set on the output worker (see [Configuration](#configuration)).
 
-Every [application](/concepts/applications) gets these defaults. Most users never need to change them:
+## How far retries go
 
-| Parameter | Default | Range | Description |
-|-----------|---------|-------|-------------|
-| `max_fast_retries` | 30 | 0-100 | Number of fast-phase retry attempts |
-| `max_slow_retries` | 30 | 0-100 | Number of slow-phase retry attempts |
-| `fast_retry_delay_seconds` | 5s | 1-3600s | Initial delay between fast retries |
-| `max_fast_retry_delay_seconds` | 300s (5min) | 1-86400s | Maximum delay between fast retries |
-| `slow_retry_delay_seconds` | 3600s (1h) | 60-604800s | Fixed delay between slow retries |
+Two limits decide when Hook0 stops retrying, whichever is reached first:
 
-### Per-subscription overrides
+- `MAX_RETRIES` (default 25): the maximum number of retry attempts.
+- `MAX_RETRY_WINDOW` (default 8 days): the maximum total time spent retrying. Hook0 schedules the next attempt only if it still fits inside this window.
 
-Each [subscription](/concepts/subscriptions) can override any of these parameters. When a subscription does not specify a retry configuration, it inherits the application-level defaults. This means you can:
-
-- Set sane defaults for the whole application
-- Customize retry behavior for specific subscriptions that need it (e.g., a critical integration that needs more aggressive retries, or a low-priority endpoint that can tolerate longer delays)
+With the defaults, a failing delivery is retried up to 25 times over roughly 8 days before Hook0 gives up.
 
 ## What happens on failure
 
@@ -93,9 +98,9 @@ Each webhook delivery attempt goes through these states:
 ```mermaid
 stateDiagram-v2
     [*] --> PENDING
-    PENDING --> PICKED
-    PICKED --> SUCCESSFUL
-    PICKED --> FAILED
+    PENDING --> IN_PROGRESS
+    IN_PROGRESS --> SUCCESSFUL
+    IN_PROGRESS --> FAILED
     FAILED --> PENDING : retry
     FAILED --> [*] : no retry (final FAILED)
 ```

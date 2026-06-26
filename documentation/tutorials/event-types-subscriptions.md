@@ -619,9 +619,6 @@ curl "$HOOK0_API/subscriptions/?application_id=$APP_ID" \
     "labels": {
       "environment": "production"
     },
-    "labels": {
-      "environment": "production"
-    },
     "target": {
       "type": "http",
       "method": "POST",
