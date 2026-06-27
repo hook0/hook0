@@ -10,4 +10,13 @@ module.exports = {
   'pricing': { fr: 'tarifs', de: 'preise' },
   'webhook-api': { fr: 'api-webhook', de: 'webhook-api' },
   'oss-friends': { fr: 'amis-open-source', de: 'open-source-freunde' },
+  'security': { fr: 'securite', de: 'sicherheit' },
+  'webhook-playground': { fr: 'testeur-webhook', de: 'webhook-tester' },
+  'built-to-last': { fr: 'construit-pour-durer', de: 'gebaut-um-zu-bleiben' },
+  'migrate-from-webhook-site': { fr: 'migrer-depuis-webhook-site', de: 'von-webhook-site-migrieren' },
+  'open-source-webhooks': { fr: 'webhooks-open-source', de: 'quelloffene-webhooks' },
+  'hook0-vs-convoy': { fr: 'hook0-vs-convoy', de: 'hook0-vs-convoy' },
+  'self-hosted-webhooks': { fr: 'webhooks-auto-heberges', de: 'selbst-gehostete-webhooks' },
+  'build-vs-buy-webhooks': { fr: 'build-vs-buy-webhooks', de: 'build-vs-buy-webhooks' },
+  'hook0-vs-svix': { fr: 'hook0-vs-svix', de: 'hook0-vs-svix' },
 };
