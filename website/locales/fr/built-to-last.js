@@ -23,7 +23,7 @@ module.exports = {
     cards: [
       {
         title: 'Une techno construite pour durer',
-        body: 'Chez Hook0, on s\'engage à construire un logiciel qui résiste au temps. À une époque où l\'information est souvent éphémère, garantir la longévité des données est essentiel. Notre mission, c\'est de fournir une infrastructure webhook open-source, fiable et durable, pour que les intégrations que tu construis aujourd\'hui restent opérationnelles dans le futur.',
+        body: 'Chez Hook0, on s\'engage à construire un logiciel qui résiste au temps. À une époque où l\'information est souvent éphémère, garantir la longévité des données est essentiel. Notre mission, c\'est de fournir une infrastructure webhook au code source ouvert (SSPL-1.0), fiable et durable, pour que les intégrations que tu construis aujourd\'hui restent opérationnelles dans le futur.',
       },
       {
         title: 'Comment on construit notre boîte',
