@@ -29,4 +29,5 @@ module.exports = {
   'gdpr-subprocessors': { fr: 'sous-traitants-rgpd', de: 'dsgvo-unterauftragsverarbeiter' },
   'terms-of-sale': { fr: 'conditions-vente', de: 'verkaufsbedingungen' },
   'data-processing-addendum': { fr: 'accord-traitement-donnees', de: 'auftragsverarbeitungsvertrag' },
+  'privacy-policy': { fr: 'politique-confidentialite', de: 'datenschutzerklaerung' },
 };
