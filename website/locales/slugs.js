@@ -27,4 +27,5 @@ module.exports = {
   'mentions-legales': { fr: 'mentions-legales', de: 'impressum' },
   'terms': { fr: 'conditions-utilisation', de: 'nutzungsbedingungen' },
   'gdpr-subprocessors': { fr: 'sous-traitants-rgpd', de: 'dsgvo-unterauftragsverarbeiter' },
+  'terms-of-sale': { fr: 'conditions-vente', de: 'verkaufsbedingungen' },
 };
