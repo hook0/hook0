@@ -22,4 +22,6 @@ module.exports = {
   'svix-alternatives': { fr: 'alternatives-a-svix', de: 'svix-alternativen' },
   'hook0-vs-hookdeck': { fr: 'hook0-vs-hookdeck', de: 'hook0-vs-hookdeck' },
   'hookdeck-alternatives': { fr: 'alternatives-a-hookdeck', de: 'hookdeck-alternativen' },
+  'hook0-alternatives': { fr: 'alternatives-a-hook0', de: 'hook0-alternativen' },
+  'mediakit': { fr: 'kit-presse', de: 'pressekit' },
 };

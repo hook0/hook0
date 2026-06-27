@@ -1,7 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
+<%
+if (locals.i18nHelpers) { Object.assign(locals, locals.i18nHelpers.getPageLocals('mediakit', locals.lang || 'en')); }
+var t = locals.t;
+%><!DOCTYPE html>
+<html lang="<%= locals.pageLang %>">
 <head>
-    <title>Hook0 - Media Kit - Brand Assets & Press Resources</title>
+    <title><%= locals.pageTitle %></title>
     <%- include('./includes/_head.ejs') %>
 </head>
 <body>
@@ -19,22 +22,22 @@
         <div class="animate-on-scroll inline-flex items-center gap-3 px-1 pr-4 py-1 rounded-full
                     bg-white/5 border border-white/10 backdrop-blur-sm mb-8">
             <span class="px-3 py-1 text-xs font-semibold tracking-wide bg-indigo-500 text-white rounded-full">
-                Press Resources
+                <%= t.hero.badge.label %>
             </span>
             <span class="text-sm text-gray-300">
-                Brand Assets & Guidelines
+                <%= t.hero.badge.text %>
             </span>
         </div>
 
         <!-- Headline -->
         <h1 class="animate-on-scroll text-display-xl text-white mb-6">
-            Media Kit
-            <span class="block text-gradient-green mt-2 pb-1 leading-relaxed">Brand Resources</span>
+            <%= t.hero.titleBefore %>
+            <span class="block text-gradient-green mt-2 pb-1 leading-relaxed"><%= t.hero.titleAccent %></span>
         </h1>
 
         <!-- Description -->
         <p class="animate-on-scroll text-body-lg text-gray-400 max-w-3xl mx-auto">
-            Everything you need to feature Hook0 in your publications. Download our logos, learn about our brand, and discover the team behind Hook0.
+            <%= t.hero.description %>
         </p>
     </div>
 </section>
@@ -45,10 +48,10 @@
 
     <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="animate-on-scroll text-center mb-16">
-            <span class="section__eyebrow">Brand Identity</span>
-            <h2 class="section__title">Our Logo</h2>
+            <span class="section__eyebrow"><%= t.logo.eyebrow %></span>
+            <h2 class="section__title"><%= t.logo.h2 %></h2>
             <p class="text-gray-400 mt-4 max-w-2xl mx-auto">
-                The Hook0 logo represents reliability and connectivity. Please use it responsibly and maintain proper spacing.
+                <%= t.logo.sub %>
             </p>
         </div>
 
@@ -58,8 +61,8 @@
                 <div class="inline-block p-8 bg-white rounded-2xl mb-6">
                     <img src="./mediakit/logo/512x512.png" alt="Hook0 Logo" class="w-48 h-48 mx-auto" />
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-2">Primary Logo</h3>
-                <p class="text-gray-400 text-sm">Use this version on light backgrounds</p>
+                <h3 class="text-xl font-semibold text-white mb-2"><%= t.logo.primary.title %></h3>
+                <p class="text-gray-400 text-sm"><%= t.logo.primary.desc %></p>
             </div>
         </div>
 
@@ -70,10 +73,10 @@
                 <div class="p-6 bg-white rounded-xl mb-4 flex items-center justify-center">
                     <img src="./mediakit/logo/256x256.png" alt="Hook0 Color Logo" class="w-32 h-32" />
                 </div>
-                <h4 class="text-lg font-semibold text-white mb-1">Color</h4>
-                <p class="text-gray-400 text-sm mb-4">For light backgrounds</p>
+                <h4 class="text-lg font-semibold text-white mb-1"><%= t.logo.variants[0].title %></h4>
+                <p class="text-gray-400 text-sm mb-4"><%= t.logo.variants[0].desc %></p>
                 <a data-download="/mediakit/logo/1024x1024.png" class="btn btn--secondary btn--sm w-full download-link">
-                    Download PNG
+                    <%= t.logo.variants[0].button %>
                 </a>
             </div>
 
@@ -82,10 +85,10 @@
                 <div class="p-6 bg-gray-800 rounded-xl mb-4 flex items-center justify-center">
                     <img src="./mediakit/logo/256x256-white.png" alt="Hook0 White Logo" class="w-32 h-32" />
                 </div>
-                <h4 class="text-lg font-semibold text-white mb-1">White</h4>
-                <p class="text-gray-400 text-sm mb-4">For dark backgrounds</p>
+                <h4 class="text-lg font-semibold text-white mb-1"><%= t.logo.variants[1].title %></h4>
+                <p class="text-gray-400 text-sm mb-4"><%= t.logo.variants[1].desc %></p>
                 <a data-download="/mediakit/logo/1024x1024-white.png" class="btn btn--secondary btn--sm w-full download-link">
-                    Download PNG
+                    <%= t.logo.variants[1].button %>
                 </a>
             </div>
 
@@ -94,36 +97,36 @@
                 <div class="p-6 bg-gray-100 rounded-xl mb-4 flex items-center justify-center">
                     <img src="./mediakit/logo/256x256-gray.png" alt="Hook0 Gray Logo" class="w-32 h-32" />
                 </div>
-                <h4 class="text-lg font-semibold text-white mb-1">Grayscale</h4>
-                <p class="text-gray-400 text-sm mb-4">For monochrome contexts</p>
+                <h4 class="text-lg font-semibold text-white mb-1"><%= t.logo.variants[2].title %></h4>
+                <p class="text-gray-400 text-sm mb-4"><%= t.logo.variants[2].desc %></p>
                 <a data-download="/mediakit/logo/1024x1024-gray.png" class="btn btn--secondary btn--sm w-full download-link">
-                    Download PNG
+                    <%= t.logo.variants[2].button %>
                 </a>
             </div>
         </div>
 
         <!-- Banner Logos -->
         <div class="animate-on-scroll mb-12">
-            <h3 class="text-xl font-semibold text-white mb-6 text-center">Banner Variants</h3>
+            <h3 class="text-xl font-semibold text-white mb-6 text-center"><%= t.logo.bannerVariantsH3 %></h3>
             <div class="grid md:grid-cols-2 gap-6">
                 <div class="card">
                     <div class="p-6 bg-white rounded-xl mb-4 flex items-center justify-center">
                         <img src="./mediakit/logo/512x512-banner.png" alt="Hook0 Banner" class="h-24 object-contain" />
                     </div>
-                    <h4 class="text-lg font-semibold text-white mb-1">Banner (Light)</h4>
-                    <p class="text-gray-400 text-sm mb-4">Logo with wordmark for headers</p>
+                    <h4 class="text-lg font-semibold text-white mb-1"><%= t.logo.banner[0].title %></h4>
+                    <p class="text-gray-400 text-sm mb-4"><%= t.logo.banner[0].desc %></p>
                     <a data-download="/mediakit/logo/1024x1024-banner.png" class="btn btn--secondary btn--sm w-full download-link">
-                        Download PNG
+                        <%= t.logo.banner[0].button %>
                     </a>
                 </div>
                 <div class="card">
                     <div class="p-6 bg-gray-800 rounded-xl mb-4 flex items-center justify-center">
                         <img src="./mediakit/logo/512x512-banner-transparent.png" alt="Hook0 Banner Transparent" class="h-24 object-contain" />
                     </div>
-                    <h4 class="text-lg font-semibold text-white mb-1">Banner (Transparent)</h4>
-                    <p class="text-gray-400 text-sm mb-4">Transparent version for overlays</p>
+                    <h4 class="text-lg font-semibold text-white mb-1"><%= t.logo.banner[1].title %></h4>
+                    <p class="text-gray-400 text-sm mb-4"><%= t.logo.banner[1].desc %></p>
                     <a data-download="/mediakit/logo/1024x1024-banner-transparent.png" class="btn btn--secondary btn--sm w-full download-link">
-                        Download PNG
+                        <%= t.logo.banner[1].button %>
                     </a>
                 </div>
             </div>
@@ -138,10 +141,10 @@
 
     <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="animate-on-scroll text-center mb-16">
-            <span class="section__eyebrow">Visual Identity</span>
-            <h2 class="section__title">Brand Colors</h2>
+            <span class="section__eyebrow"><%= t.colors.eyebrow %></span>
+            <h2 class="section__title"><%= t.colors.h2 %></h2>
             <p class="text-gray-400 mt-4 max-w-2xl mx-auto">
-                Our color palette reflects trust, innovation, and reliability.
+                <%= t.colors.sub %>
             </p>
         </div>
 
@@ -149,25 +152,25 @@
             <!-- Primary Green -->
             <div class="animate-on-scroll card">
                 <div class="h-32 rounded-xl mb-4" style="background-color: #22c55e;"></div>
-                <h4 class="text-lg font-semibold text-white mb-1">Green 500</h4>
+                <h4 class="text-lg font-semibold text-white mb-1"><%= t.colors.swatches[0].name %></h4>
                 <p class="text-gray-400 text-sm font-mono">#22c55e</p>
-                <p class="text-gray-500 text-xs mt-1">Primary brand color</p>
+                <p class="text-gray-500 text-xs mt-1"><%= t.colors.swatches[0].role %></p>
             </div>
 
             <!-- Primary Indigo -->
             <div class="animate-on-scroll card">
                 <div class="h-32 rounded-xl mb-4" style="background-color: #6366f1;"></div>
-                <h4 class="text-lg font-semibold text-white mb-1">Indigo 500</h4>
+                <h4 class="text-lg font-semibold text-white mb-1"><%= t.colors.swatches[1].name %></h4>
                 <p class="text-gray-400 text-sm font-mono">#6366f1</p>
-                <p class="text-gray-500 text-xs mt-1">Accent color</p>
+                <p class="text-gray-500 text-xs mt-1"><%= t.colors.swatches[1].role %></p>
             </div>
 
             <!-- Dark Background -->
             <div class="animate-on-scroll card">
                 <div class="h-32 rounded-xl mb-4 border border-white/10" style="background-color: #0f0f14;"></div>
-                <h4 class="text-lg font-semibold text-white mb-1">Surface Primary</h4>
+                <h4 class="text-lg font-semibold text-white mb-1"><%= t.colors.swatches[2].name %></h4>
                 <p class="text-gray-400 text-sm font-mono">#0f0f14</p>
-                <p class="text-gray-500 text-xs mt-1">Dark background</p>
+                <p class="text-gray-500 text-xs mt-1"><%= t.colors.swatches[2].role %></p>
             </div>
 
             <!-- Light Text -->
@@ -175,9 +178,9 @@
                 <div class="h-32 rounded-xl mb-4 flex items-center justify-center" style="background-color: #f9fafb;">
                     <span class="text-gray-800 font-semibold">Aa</span>
                 </div>
-                <h4 class="text-lg font-semibold text-white mb-1">Gray 50</h4>
+                <h4 class="text-lg font-semibold text-white mb-1"><%= t.colors.swatches[3].name %></h4>
                 <p class="text-gray-400 text-sm font-mono">#f9fafb</p>
-                <p class="text-gray-500 text-xs mt-1">Light mode backgrounds</p>
+                <p class="text-gray-500 text-xs mt-1"><%= t.colors.swatches[3].role %></p>
             </div>
         </div>
     </div>
@@ -190,10 +193,10 @@
 
     <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="animate-on-scroll text-center mb-16">
-            <span class="section__eyebrow">The Team</span>
-            <h2 class="section__title">Meet the Founders</h2>
+            <span class="section__eyebrow"><%= t.founders.eyebrow %></span>
+            <h2 class="section__title"><%= t.founders.h2 %></h2>
             <p class="text-gray-400 mt-4 max-w-2xl mx-auto">
-                Hook0 was founded by two experienced developers from Nantes, France, with a passion for building reliable infrastructure.
+                <%= t.founders.sub %>
             </p>
         </div>
 
@@ -202,13 +205,13 @@
             <div class="animate-on-scroll card card--glow text-center">
                 <div class="relative mb-6">
                     <div class="w-48 h-48 mx-auto rounded-full overflow-hidden ring-4 ring-indigo-500/20">
-                        <img data-src="/mediakit/founders/francois-guillaume-ribreau.jpg" alt="Francois-Guillaume Ribreau" class="w-full h-full object-cover founder-img" />
+                        <img data-src="/mediakit/founders/francois-guillaume-ribreau.jpg" alt="<%= t.founders.items[0].name %>" class="w-full h-full object-cover founder-img" />
                     </div>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-1">Francois-Guillaume Ribreau</h3>
-                <p class="text-indigo-400 font-medium mb-4">Co-Founder & CEO</p>
+                <h3 class="text-xl font-bold text-white mb-1"><%= t.founders.items[0].name %></h3>
+                <p class="text-indigo-400 font-medium mb-4"><%= t.founders.items[0].role %></p>
                 <p class="text-gray-400 text-sm mb-6">
-                    Serial entrepreneur with 15+ years of experience building developer tools and SaaS products.
+                    <%= t.founders.items[0].bio %>
                 </p>
                 <div class="flex justify-center gap-4">
                     <a href="https://x.com/FGRibreau" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
@@ -222,7 +225,7 @@
                     </a>
                 </div>
                 <a data-download="/mediakit/founders/francois-guillaume-ribreau.jpg" class="btn btn--secondary btn--sm mt-6 download-link">
-                    Download Photo
+                    <%= t.founders.items[0].downloadLabel %>
                 </a>
             </div>
 
@@ -230,13 +233,13 @@
             <div class="animate-on-scroll card card--glow text-center">
                 <div class="relative mb-6">
                     <div class="w-48 h-48 mx-auto rounded-full overflow-hidden ring-4 ring-green-500/20">
-                        <img data-src="/mediakit/founders/david-sferruzza.jpg" alt="David Sferruzza" class="w-full h-full object-cover founder-img" />
+                        <img data-src="/mediakit/founders/david-sferruzza.jpg" alt="<%= t.founders.items[1].name %>" class="w-full h-full object-cover founder-img" />
                     </div>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-1">David Sferruzza</h3>
-                <p class="text-green-400 font-medium mb-4">Co-Founder & CTO</p>
+                <h3 class="text-xl font-bold text-white mb-1"><%= t.founders.items[1].name %></h3>
+                <p class="text-green-400 font-medium mb-4"><%= t.founders.items[1].role %></p>
                 <p class="text-gray-400 text-sm mb-6">
-                    Software architect and functional programming enthusiast with deep expertise in distributed systems.
+                    <%= t.founders.items[1].bio %>
                 </p>
                 <div class="flex justify-center gap-4">
                     <a href="https://x.com/d_sferruzza" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
@@ -250,7 +253,7 @@
                     </a>
                 </div>
                 <a data-download="/mediakit/founders/david-sferruzza.jpg" class="btn btn--secondary btn--sm mt-6 download-link">
-                    Download Photo
+                    <%= t.founders.items[1].downloadLabel %>
                 </a>
             </div>
         </div>
@@ -264,10 +267,10 @@
 
     <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="animate-on-scroll text-center mb-16">
-            <span class="section__eyebrow">Brand Character</span>
-            <h2 class="section__title">Meet Hooky</h2>
+            <span class="section__eyebrow"><%= t.hooky.eyebrow %></span>
+            <h2 class="section__title"><%= t.hooky.h2 %></h2>
             <p class="text-gray-400 mt-4 max-w-2xl mx-auto">
-                Our mascot embodies the Hook0 promise: Reliability, Transparency, and Robustness.
+                <%= t.hooky.sub %>
             </p>
         </div>
 
@@ -280,10 +283,10 @@
                         <img data-src="/mediakit/hooky/hooky.jpg" alt="Hooky - Hook0 Mascot" class="w-full max-w-md mx-auto rounded-2xl hooky-img" />
                         <div class="mt-6 flex flex-wrap justify-center gap-3">
                             <a data-download="/mediakit/hooky/hooky.jpg" class="btn btn--secondary btn--sm download-link">
-                                Download JPG
+                                <%= t.hooky.downloadJpg %>
                             </a>
                             <a data-download="/mediakit/hooky/hooky-large.png" class="btn btn--secondary btn--sm download-link">
-                                Download Large PNG
+                                <%= t.hooky.downloadLargePng %>
                             </a>
                         </div>
                     </div>
@@ -293,17 +296,15 @@
             <!-- Hooky Description -->
             <div class="animate-on-scroll space-y-8">
                 <div>
-                    <h3 class="text-2xl font-bold text-white mb-4">Character Essence</h3>
+                    <h3 class="text-2xl font-bold text-white mb-4"><%= t.hooky.characterEssenceH3 %></h3>
                     <p class="text-gray-400">
-                        Hooky is not a marketing gimmick. He is the visual manifestation of the Hook0 promise.
-                        While other mascots might be abstract shapes representing "synergy," Hooky is a machine
-                        with a purpose—ensuring message deliverability with precision and reliability.
+                        <%= t.hooky.characterEssenceP %>
                     </p>
                 </div>
 
                 <!-- Personality Pillars -->
                 <div class="space-y-4">
-                    <h4 class="text-lg font-semibold text-white">The 3 Pillars of Personality</h4>
+                    <h4 class="text-lg font-semibold text-white"><%= t.hooky.pillarsH4 %></h4>
 
                     <div class="card border-indigo-500/20">
                         <div class="flex items-start gap-4">
@@ -313,8 +314,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <h5 class="font-semibold text-white">The Technical Expert</h5>
-                                <p class="text-gray-400 text-sm">He speaks JSON, understands HTTP status codes natively, and prefers exact numbers over approximations.</p>
+                                <h5 class="font-semibold text-white"><%= t.hooky.pillars[0].title %></h5>
+                                <p class="text-gray-400 text-sm"><%= t.hooky.pillars[0].body %></p>
                             </div>
                         </div>
                     </div>
@@ -327,8 +328,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <h5 class="font-semibold text-white">The European Guardian</h5>
-                                <p class="text-gray-400 text-sm">Protective and vigilant. GDPR Native. He treats personal data like radioactive material—handled with extreme care.</p>
+                                <h5 class="font-semibold text-white"><%= t.hooky.pillars[1].title %></h5>
+                                <p class="text-gray-400 text-sm"><%= t.hooky.pillars[1].body %></p>
                             </div>
                         </div>
                     </div>
@@ -341,8 +342,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <h5 class="font-semibold text-white">The Independent</h5>
-                                <p class="text-gray-400 text-sm">Built to last. Solid, made of high-grade metal, not disposable plastic. Scratches on his armor are badges of honor.</p>
+                                <h5 class="font-semibold text-white"><%= t.hooky.pillars[2].title %></h5>
+                                <p class="text-gray-400 text-sm"><%= t.hooky.pillars[2].body %></p>
                             </div>
                         </div>
                     </div>
@@ -350,18 +351,18 @@
 
                 <!-- Voice & Tone -->
                 <div class="card border-white/10">
-                    <h4 class="text-lg font-semibold text-white mb-3">Voice & Tone</h4>
+                    <h4 class="text-lg font-semibold text-white mb-3"><%= t.hooky.voiceToneH4 %></h4>
                     <p class="text-gray-400 text-sm mb-4">
-                        Hooky speaks to developers. His tone is informative, encouraging, concise, and dryly humorous.
-                        He avoids corporate jargon entirely.
+                        <%= t.hooky.voiceToneP %>
                     </p>
                     <div class="flex flex-wrap gap-2">
-                        <span class="px-3 py-1 text-xs font-mono bg-green-500/10 text-green-400 rounded-full">Payload</span>
-                        <span class="px-3 py-1 text-xs font-mono bg-green-500/10 text-green-400 rounded-full">Endpoint</span>
-                        <span class="px-3 py-1 text-xs font-mono bg-green-500/10 text-green-400 rounded-full">Latency</span>
-                        <span class="px-3 py-1 text-xs font-mono bg-green-500/10 text-green-400 rounded-full">Dispatch</span>
-                        <span class="px-3 py-1 text-xs font-mono bg-red-500/10 text-red-400 rounded-full line-through">Synergy</span>
-                        <span class="px-3 py-1 text-xs font-mono bg-red-500/10 text-red-400 rounded-full line-through">Leverage</span>
+                        <% t.hooky.vocabKeep.forEach(function(v) { %>
+                            <% if (v.kind === 'keep') { %>
+                                <span class="px-3 py-1 text-xs font-mono bg-green-500/10 text-green-400 rounded-full"><%= v.label %></span>
+                            <% } else { %>
+                                <span class="px-3 py-1 text-xs font-mono bg-red-500/10 text-red-400 rounded-full line-through"><%= v.label %></span>
+                            <% } %>
+                        <% }); %>
                     </div>
                 </div>
             </div>
@@ -369,38 +370,15 @@
 
         <!-- Color Palette for Hooky -->
         <div class="animate-on-scroll mt-16">
-            <h3 class="text-xl font-semibold text-white mb-6 text-center">Hooky's Color Palette</h3>
+            <h3 class="text-xl font-semibold text-white mb-6 text-center"><%= t.hooky.paletteH3 %></h3>
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <div class="card text-center">
-                    <div class="h-16 rounded-lg mb-3" style="background-color: #00A3FF;"></div>
-                    <p class="text-white text-sm font-semibold">Electric Blue</p>
-                    <p class="text-gray-500 text-xs font-mono">#00A3FF</p>
-                </div>
-                <div class="card text-center">
-                    <div class="h-16 rounded-lg mb-3" style="background-color: #E0E0E0;"></div>
-                    <p class="text-white text-sm font-semibold">Titanium White</p>
-                    <p class="text-gray-500 text-xs font-mono">#E0E0E0</p>
-                </div>
-                <div class="card text-center">
-                    <div class="h-16 rounded-lg mb-3" style="background-color: #8C92AC;"></div>
-                    <p class="text-white text-sm font-semibold">Brushed Steel</p>
-                    <p class="text-gray-500 text-xs font-mono">#8C92AC</p>
-                </div>
-                <div class="card text-center">
-                    <div class="h-16 rounded-lg mb-3" style="background-color: #2D3748;"></div>
-                    <p class="text-white text-sm font-semibold">Carbon Black</p>
-                    <p class="text-gray-500 text-xs font-mono">#2D3748</p>
-                </div>
-                <div class="card text-center">
-                    <div class="h-16 rounded-lg mb-3" style="background-color: #48BB78;"></div>
-                    <p class="text-white text-sm font-semibold">Success Green</p>
-                    <p class="text-gray-500 text-xs font-mono">#48BB78</p>
-                </div>
-                <div class="card text-center">
-                    <div class="h-16 rounded-lg mb-3" style="background-color: #F56565;"></div>
-                    <p class="text-white text-sm font-semibold">Retry Red</p>
-                    <p class="text-gray-500 text-xs font-mono">#F56565</p>
-                </div>
+                <% t.hooky.palette.forEach(function(p) { %>
+                    <div class="card text-center">
+                        <div class="h-16 rounded-lg mb-3" style="background-color: <%= p.hex %>;"></div>
+                        <p class="text-white text-sm font-semibold"><%= p.name %></p>
+                        <p class="text-gray-500 text-xs font-mono"><%= p.hex %></p>
+                    </div>
+                <% }); %>
             </div>
         </div>
     </div>
@@ -412,55 +390,33 @@
 
     <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="animate-on-scroll text-center mb-12">
-            <span class="section__eyebrow">Press Information</span>
-            <h2 class="section__title">About Hook0</h2>
+            <span class="section__eyebrow"><%= t.about.eyebrow %></span>
+            <h2 class="section__title"><%= t.about.h2 %></h2>
         </div>
 
         <div class="animate-on-scroll glass rounded-3xl p-8 md:p-12">
             <div class="prose prose-lg prose-invert max-w-none">
-                <h3 class="text-xl font-semibold text-white mb-4">Company Overview</h3>
+                <h3 class="text-xl font-semibold text-white mb-4"><%= t.about.overviewH3 %></h3>
                 <p class="text-gray-400 mb-6">
-                    Hook0 is an open-source Webhooks-as-a-Service platform that helps developers send, receive, and manage webhooks at scale. Founded in Nantes, France, Hook0 is 100% bootstrapped with no venture capital funding.
+                    <%= t.about.overviewP %>
                 </p>
 
-                <h3 class="text-xl font-semibold text-white mb-4">Key Facts</h3>
+                <h3 class="text-xl font-semibold text-white mb-4"><%= t.about.keyFactsH3 %></h3>
                 <ul class="space-y-3 text-gray-400 mb-6">
-                    <li class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <span><strong class="text-white">Founded:</strong> Nantes, France</span>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <span><strong class="text-white">Funding:</strong> 100% Bootstrapped, no VC</span>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <span><strong class="text-white">Product:</strong> Open-Source Webhooks-as-a-Service</span>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <span><strong class="text-white">Mission:</strong> Build reliable webhook infrastructure that lasts</span>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <span><strong class="text-white">GDPR:</strong> Fully compliant, EU-based</span>
-                    </li>
+                    <% t.about.facts.forEach(function(f) { %>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span><strong class="text-white"><%- f.labelHtml %></strong> <%- f.valueHtml %></span>
+                        </li>
+                    <% }); %>
                 </ul>
 
-                <h3 class="text-xl font-semibold text-white mb-4">Boilerplate</h3>
+                <h3 class="text-xl font-semibold text-white mb-4"><%= t.about.boilerplateH3 %></h3>
                 <div class="bg-surface-tertiary rounded-xl p-6 border border-white/5">
                     <p class="text-gray-300 italic">
-                        "Hook0 is an open-source webhooks platform that enables developers to build reliable, scalable event-driven integrations. Based in France and 100% bootstrapped, Hook0 is committed to building software that stands the test of time."
+                        <%= t.about.boilerplateQuote %>
                     </p>
                 </div>
             </div>
@@ -474,8 +430,8 @@
 
     <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="animate-on-scroll text-center mb-12">
-            <span class="section__eyebrow">Guidelines</span>
-            <h2 class="section__title">Brand Usage</h2>
+            <span class="section__eyebrow"><%= t.usage.eyebrow %></span>
+            <h2 class="section__title"><%= t.usage.h2 %></h2>
         </div>
 
         <div class="grid md:grid-cols-2 gap-8 stagger-children">
@@ -485,29 +441,15 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    Do
+                    <%= t.usage.dos.title %>
                 </h3>
                 <ul class="space-y-3 text-gray-400">
-                    <li class="flex items-start gap-3">
-                        <span class="text-green-500">+</span>
-                        <span>Use the logo with adequate clear space</span>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span class="text-green-500">+</span>
-                        <span>Use the white logo on dark backgrounds</span>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span class="text-green-500">+</span>
-                        <span>Maintain the original aspect ratio</span>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span class="text-green-500">+</span>
-                        <span>Use high-resolution versions for print</span>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span class="text-green-500">+</span>
-                        <span>Reference Hook0 correctly in text</span>
-                    </li>
+                    <% t.usage.dos.items.forEach(function(item) { %>
+                        <li class="flex items-start gap-3">
+                            <span class="text-green-500">+</span>
+                            <span><%= item %></span>
+                        </li>
+                    <% }); %>
                 </ul>
             </div>
 
@@ -517,29 +459,15 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
-                    Don't
+                    <%= t.usage.donts.title %>
                 </h3>
                 <ul class="space-y-3 text-gray-400">
-                    <li class="flex items-start gap-3">
-                        <span class="text-red-500">-</span>
-                        <span>Alter the logo colors</span>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span class="text-red-500">-</span>
-                        <span>Stretch or distort the logo</span>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span class="text-red-500">-</span>
-                        <span>Add effects like shadows or gradients</span>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span class="text-red-500">-</span>
-                        <span>Use the logo as part of a sentence</span>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span class="text-red-500">-</span>
-                        <span>Place on busy or low-contrast backgrounds</span>
-                    </li>
+                    <% t.usage.donts.items.forEach(function(item) { %>
+                        <li class="flex items-start gap-3">
+                            <span class="text-red-500">-</span>
+                            <span><%= item %></span>
+                        </li>
+                    <% }); %>
                 </ul>
             </div>
         </div>
@@ -554,11 +482,11 @@
     <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="animate-on-scroll">
             <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-6">
-                Need More? <span class="text-gradient-green pb-1 leading-relaxed">Get in Touch</span>
+                <%= t.contact.titleBefore %> <span class="text-gradient-green pb-1 leading-relaxed"><%= t.contact.titleAccent %></span>
             </h2>
 
             <p class="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-                For press inquiries, interview requests, or additional assets, our team is here to help.
+                <%= t.contact.description %>
             </p>
 
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
@@ -566,10 +494,10 @@
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                     </svg>
-                    Contact Press Team
+                    <%= t.contact.ctaPress %>
                 </a>
                 <a href="mailto:support@hook0.com" class="btn btn--secondary btn--lg">
-                    General Inquiries
+                    <%= t.contact.ctaGeneral %>
                 </a>
             </div>
         </div>
