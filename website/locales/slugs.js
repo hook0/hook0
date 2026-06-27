@@ -8,4 +8,6 @@
 module.exports = {
   'webhook-platform': { fr: 'plateforme-webhook', de: 'webhook-plattform' },
   'pricing': { fr: 'tarifs', de: 'preise' },
+  'webhook-api': { fr: 'api-webhook', de: 'webhook-api' },
+  'oss-friends': { fr: 'amis-open-source', de: 'open-source-freunde' },
 };

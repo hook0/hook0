@@ -20,4 +20,8 @@ if (fs.existsSync(dir)) {
   }
 }
 
-module.exports = { lang: 'en', pages };
+let chrome = {};
+const chromePath = path.join(__dirname, 'en', '_chrome.js');
+if (fs.existsSync(chromePath)) chrome = require(chromePath);
+
+module.exports = { lang: 'en', pages, chrome };

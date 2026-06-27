@@ -90,6 +90,7 @@ function getPageLocals(enSlug, lang) {
     pageNoindex: page.pageNoindex || false,
     pageFAQSchema: (page.faq && page.faq.items) ? faqToSchema(page.faq.items, lang) : null,
     pageSchema: page.pageSchema || null,
+    chrome: loc.chrome || {},
     t: page,
   };
 }
