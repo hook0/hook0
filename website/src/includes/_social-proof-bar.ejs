@@ -1,8 +1,12 @@
 <!-- Social Proof Bar -->
 <section class="relative py-16 overflow-hidden">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <%
+        // Chrome strings: locale-aware via locals.chrome.socialProof; fall back to EN.
+        var __csp = (locals.chrome && locals.chrome.socialProof) ? locals.chrome.socialProof : null;
+        %>
         <div class="text-center mb-8">
-            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Trusted by teams at</p>
+            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider"><%= __csp ? __csp.label : 'Trusted by teams at' %></p>
         </div>
         <div class="flex flex-wrap items-center justify-center gap-8 lg:gap-12">
             <img class="h-7 w-auto object-contain opacity-40 hover:opacity-80 transition-opacity filter brightness-0 invert"

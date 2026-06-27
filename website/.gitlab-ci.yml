@@ -14,17 +14,37 @@ website.build:
       changes:
         - website/**/*
   image: node:$NODE_VERSION
-  timeout: 10 minutes
+  timeout: 15 minutes
+  variables:
+    CARGO_HOME: "$CI_PROJECT_DIR/.cargo"
+    RUSTUP_HOME: "$CI_PROJECT_DIR/.rustup"
+  before_script:
+    # Rust toolchain for the build-i18n orchestrator + i18n-gate (std-only,
+    # no transitive deps → first install ~30s, then cached). Skip if cached.
+    - |
+      if ! command -v cargo >/dev/null; then
+        export PATH="$CARGO_HOME/bin:$PATH"
+        if ! command -v cargo >/dev/null; then
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal --no-modify-path
+        fi
+      fi
+    - export PATH="$CARGO_HOME/bin:$PATH"
+    - cargo --version
   script:
     - cd website/
     - npm ci
-    - timeout --signal=KILL 300 npm run build || if [ $? -eq 137 ]; then echo "parcel build completed but process hung — killed after timeout (expected)"; else exit 1; fi
+    - npm run build
+    - npm run check:i18n
   cache:
     key: ${CI_COMMIT_REF_SLUG}-website
     paths:
       - .npm
+      - .cargo/
+      - .rustup/
       - website/node_modules/
       - website/.parcel-cache/
+      - website/scripts/build-i18n/target/
+      - website/scripts/i18n-gate/target/
   artifacts:
     paths:
       - website/dist

@@ -2,10 +2,12 @@
 
 ## Build
 
-- **Stack** : EJS templates + Parcel bundler
-- **Build** : `node_modules/.bin/parcel build 'src/*.ejs' --no-cache` (from `website/`)
-- **Static files** : `parcel-reporter-static-files-copy` copies `static/` to `dist/` at build time
+- **Stack** : EJS templates + Parcel bundler, orchestrated per-locale by a Rust binary (`scripts/build-i18n`). Locales declared in `locales/` (`slugs.js`, `en.js`, `fr.js`, `de.js`, `index.js`).
+- **Build** : `npm run build` (from `website/`) → compiles + runs `scripts/build-i18n` → mirrors `src/` into `temp/<lang>/`, regenerates `.ejsrc.js` per locale (injects `lang` + `i18nHelpers`), runs ONE Parcel build per locale into `dist/` (EN), `dist/fr/`, `dist/de/`. EN templates render byte-identically to the legacy direct-Parcel build (gated by `scripts/i18n-gate`).
+- **Gate** : `npm run check:i18n` → compiles + runs `scripts/i18n-gate` (Rust). Asserts on every page in `dist/`: canonical is a real https URL (never a Parcel bundle hash, R2 universal); on converted pages (those in `locales/slugs.js`): canonical matches own URL AND `<html lang>` matches locale (R1 strict); sitemap reciprocity (every localized URL listed with `<xhtml:link hreflang>` triples + `x-default`); llms.txt link integrity (internal links resolve to a file in `dist/`). **Blocking in CI**.
+- **Static files** : `parcel-reporter-static-files-copy` copies `static/` to each `dist/<dir>/` per Parcel invocation. The orchestrator then dedupes origin-scoped files (`robots.txt`, `llms.txt`, `sw.js`, `manifest.json`, `favicon.ico`, fonts/...) out of `dist/{fr,de}/` — they live only at the site root.
 - **Parcel path resolution** : Parcel tries to resolve `href="/path"` as imports. For files in `static/` (served at runtime, not bundled), use absolute URLs via EJS: `href="<%= locals.seo.siteUrl %>/path"`. Example: `/fonts/inter.css` fails, `<%= locals.seo.siteUrl %>/fonts/inter.css` works.
+- **Shared-locals bleed (KNOWN, PHASE-1)** : `parcel-transformer-ejs` shares one mutable `locals` object across every page in a Parcel run, so non-converted pages inherit the previous page's `pageX` keys (`pageCanonical`, `pageFAQSchema`, etc.). Phase 0 fixes this for `webhook-platform` only (its template runs `Object.assign(locals, i18nHelpers.getPageLocals(enSlug, lang))` BEFORE `<!DOCTYPE>` — full reset). Phase 1 extends the per-page reset to the other 27 templates. `_head.ejs` carries a hreflang bleed defense (skips emission when bled `pageHreflang` doesn't match own canonical) so non-converted pages don't ship Parcel-rewritten canonical hashes.
 
 ## Legal pages structure
 

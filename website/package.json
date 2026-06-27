@@ -8,9 +8,12 @@
     "preinstall": "rm -rf ./src/mediakit; cp -R -v $(pwd)/../mediakit ./src/mediakit && cp -v ./src/mediakit/logo/favicon.ico static/favicon.ico && rm -rf ./static/mediakit && cp -R $(pwd)/../mediakit ./static/mediakit && npm run --silent update:oss-friends",
     "postinstall": "node scripts/optimize-images.js || true",
     "update:oss-friends": "curl https://formbricks.com/api/oss-friends > ./oss-friends.json",
-    "serve": "npx nodemon -w ./data -w . -i dist/ -i src/ --ext .js,.json,.ejs --exec 'npm run build:dev && npx serve dist'",
-    "build:dev": "parcel build 'src/*.ejs' --no-cache",
-    "build": "parcel build 'src/*.ejs' --public-url=https://www.hook0.com && node scripts/fix-sitemap.js"
+    "serve": "npx nodemon -w ./data.js -w ./locales -w ./src -i dist/ -i temp/ --ext .js,.json,.ejs --exec 'npm run build:dev && npx serve dist'",
+    "build:i18n:compile": "cd scripts/build-i18n && cargo build --release",
+    "build:i18n-gate:compile": "cd scripts/i18n-gate && cargo build --release",
+    "build:dev": "npm run build:i18n:compile && ./scripts/build-i18n/target/release/build-i18n",
+    "build": "npm run build:i18n:compile && ./scripts/build-i18n/target/release/build-i18n",
+    "check:i18n": "npm run build:i18n-gate:compile && ./scripts/i18n-gate/target/release/i18n-gate"
   },
   "contributors": [
     "Francois-Guillaume Ribreau <npm@fgribreau.com> (http://fgribreau.com/)",
@@ -25,7 +28,6 @@
     "@tailwindcss/typography": "^0.5.0",
     "nodemon": "^3.0.1",
     "parcel": "^2.9.3",
-    "parcel-reporter-sitemap": "^1.0.1",
     "parcel-reporter-static-files-copy": "^1.4.0",
     "parcel-transformer-ejs": "^1.0.0",
     "postcss": "^8.3.11",

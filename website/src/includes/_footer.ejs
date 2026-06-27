@@ -1,6 +1,18 @@
+<%# Localized pages live one level deep (e.g. /de/...) and pass basePath via
+    include data. For them, rewrite the data.js "./slug" footer links to
+    root-absolute "/slug" so nav resolves from any depth. Root pages (no
+    basePath) stay byte-identical. %>
+<% var __nav = function(h){ return (h.charAt(0) === '.' && typeof basePath !== 'undefined' && basePath) ? h.slice(1) : h; }; %>
+<%
+// Chrome strings: locale-aware when the calling page set locals.chrome via
+// i18nHelpers.getPageLocals; otherwise fall back to EN hardcoded strings so
+// non-converted legacy pages keep their EN render byte-identical.
+var __cfoot = (locals.chrome && locals.chrome.footer) ? locals.chrome.footer : null;
+var __cftit = (__cfoot && __cfoot.titles) ? __cfoot.titles : null;
+%>
 <a name="footer" id="footer"></a>
 <footer class="bg-surface-primary border-t border-white/5" aria-labelledby="footer-heading">
-    <h2 id="footer-heading" class="sr-only">Footer</h2>
+    <h2 id="footer-heading" class="sr-only"><%= __cfoot ? __cfoot.srTitle : 'Footer' %></h2>
 
     <!-- Main Footer Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
@@ -9,28 +21,28 @@
             <div class="col-span-2 lg:col-span-1">
                 <a href="/" class="flex items-center gap-3 group">
                     <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center">
-                        <img src="<%= (locals.basePath || '.') %>/mediakit/logo/110x110-white.png" alt="Hook0" class="h-6 w-6 object-contain" />
+                        <img src="<%= (typeof basePath !== 'undefined' && basePath) ? basePath : '.' %>/mediakit/logo/110x110-white.png" alt="Hook0" class="h-6 w-6 object-contain" />
                     </div>
                     <span class="text-white font-semibold text-lg">Hook0</span>
                 </a>
                 <p class="mt-4 text-sm text-gray-400 max-w-xs">
-                    Open-Source Webhooks-as-a-Service. Built by developers for developers.
+                    <%= __cfoot ? __cfoot.tagline : 'Open-Source Webhooks-as-a-Service. Built by developers for developers.' %>
                 </p>
                 <div class="flex items-center gap-1 text-xs text-gray-500 mt-6">
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-tertiary border border-white/5">
                         <%- include('../svg/europe-flag.svg') %>
-                        Made in Europe
+                        <%= __cfoot ? __cfoot.madeInEurope : 'Made in Europe' %>
                     </span>
                 </div>
             </div>
 
             <!-- About Column -->
             <div>
-                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= locals.footerLinks.about.title %></h3>
+                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= __cftit ? __cftit.about : locals.footerLinks.about.title %></h3>
                 <ul role="list" class="space-y-3">
                     <% locals.footerLinks.about.items.forEach((item) => { %>
                     <li>
-                        <a href="<%= item.href %>" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors">
+                        <a href="<%= __nav(item.href) %>" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors">
                             <%= item.label %>
                         </a>
                     </li>
@@ -40,11 +52,11 @@
 
             <!-- Compare Column -->
             <div>
-                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= locals.footerLinks.compare.title %></h3>
+                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= __cftit ? __cftit.compare : locals.footerLinks.compare.title %></h3>
                 <ul role="list" class="space-y-3">
                     <% locals.footerLinks.compare.items.forEach((item) => { %>
                     <li>
-                        <a href="<%= item.href %>" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors">
+                        <a href="<%= __nav(item.href) %>" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors">
                             <%= item.label %>
                         </a>
                     </li>
@@ -54,11 +66,11 @@
 
             <!-- Guides Column -->
             <div>
-                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= locals.footerLinks.guides.title %></h3>
+                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= __cftit ? __cftit.guides : locals.footerLinks.guides.title %></h3>
                 <ul role="list" class="space-y-3">
                     <% locals.footerLinks.guides.items.forEach((item) => { %>
                     <li>
-                        <a href="<%= item.href %>" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
+                        <a href="<%= __nav(item.href) %>" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
                             <%- include('_icon-wrapper', { icon: item.icon }) %>
                             <%= item.label %>
                         </a>
@@ -69,11 +81,11 @@
 
             <!-- Developers Column -->
             <div>
-                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= locals.footerLinks.developers.title %></h3>
+                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= __cftit ? __cftit.developers : locals.footerLinks.developers.title %></h3>
                 <ul role="list" class="space-y-3">
                     <% locals.footerLinks.developers.items.forEach((item) => { %>
                     <li>
-                        <a href="<%= item.href %>" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
+                        <a href="<%= __nav(item.href) %>" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
                             <%- include('_icon-wrapper', { icon: item.icon }) %>
                             <%= item.label %>
                         </a>
@@ -84,11 +96,11 @@
 
             <!-- Community Column -->
             <div>
-                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= locals.footerLinks.community.title %></h3>
+                <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4"><%= __cftit ? __cftit.community : locals.footerLinks.community.title %></h3>
                 <ul role="list" class="space-y-3">
                     <% locals.footerLinks.community.items.forEach((item) => { %>
                     <li>
-                        <a href="<%= item.href %>" target="_blank" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
+                        <a href="<%= __nav(item.href) %>" target="_blank" class="text-sm leading-6 text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
                             <%- include('_icon-wrapper', { icon: item.icon }) %>
                             <%= item.label %>
                         </a>
@@ -105,15 +117,15 @@
             <div class="flex flex-col md:flex-row items-center justify-between gap-4">
                 <!-- Copyright -->
                 <div class="text-sm text-gray-500 text-center md:text-left">
-                    <p>&copy; <%= new Date().getFullYear() %> Hook0. All rights reserved.</p>
-                    <p class="mt-1">100% bootstrapped, no VCs. We are here to stay.</p>
+                    <p>&copy; <%= new Date().getFullYear() %> Hook0. <%= __cfoot ? __cfoot.copyright : 'All rights reserved.' %></p>
+                    <p class="mt-1"><%= __cfoot ? __cfoot.bootstrapped : '100% bootstrapped, no VCs. We are here to stay.' %></p>
                 </div>
 
                 <!-- Cookie Settings & Social Icons -->
                 <div class="flex items-center gap-4">
                     <% if (process.env.MATOMO_URL && process.env.MATOMO_SITE_ID) { %>
                     <button type="button" onclick="window.hook0Consent && window.hook0Consent.reset()" class="text-sm text-gray-500 hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0 underline">
-                        Cookie Settings
+                        <%= __cfoot ? __cfoot.cookieSettings : 'Cookie Settings' %>
                     </button>
                     <span class="text-gray-700">|</span>
                     <% } %>

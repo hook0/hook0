@@ -1,29 +1,49 @@
+<%
+// Chrome strings: locale-aware when the calling page set locals.chrome via
+// i18nHelpers.getPageLocals; otherwise fall back to EN hardcoded strings so
+// non-converted legacy pages keep their EN render byte-identical.
+var __cnav = (locals.chrome && locals.chrome.header && locals.chrome.header.nav) ? locals.chrome.header.nav : null;
+var __ca11y = (locals.chrome && locals.chrome.header && locals.chrome.header.a11y) ? locals.chrome.header.a11y : null;
+// Locale-aware path to /pricing when the page is converted AND the locale has
+// a localized pricing slug; falls back to EN root for everyone else.
+var __pricingHref = '/pricing';
+if (locals.i18nHelpers && locals.pageLang) {
+  var __p = locals.i18nHelpers.getPath('pricing', locals.pageLang);
+  if (__p) __pricingHref = __p;
+}
+// Same for the homepage root anchors.
+var __homeRoot = '/';
+if (locals.i18nHelpers && locals.pageLang) {
+  var __h = locals.i18nHelpers.getPath('index', locals.pageLang);
+  if (__h) __homeRoot = __h;
+}
+%>
 <!-- Header with glass morphism effect -->
 <header id="main-header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
     <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-20">
             <!-- Logo -->
-            <a href="/" class="flex items-center gap-3 group">
+            <a href="<%= __homeRoot %>" class="flex items-center gap-3 group">
                 <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center
                             transition-transform duration-300 group-hover:scale-110 group-hover:shadow-glow-indigo">
-                    <img src="<%= (locals.basePath || '.') %>/mediakit/logo/110x110-white.png" alt="Hook0" class="h-6 w-6 object-contain" />
+                    <img src="<%= (typeof basePath !== 'undefined' && basePath) ? basePath : '.' %>/mediakit/logo/110x110-white.png" alt="Hook0" class="h-6 w-6 object-contain" />
                 </div>
                 <span class="text-white font-semibold text-lg hidden sm:block">Hook0</span>
             </a>
 
             <!-- Desktop Navigation -->
             <div class="hidden md:flex items-center gap-1">
-                <a href="/#how-it-works" class="btn btn--ghost">How it works</a>
-                <a href="/#use_cases" class="btn btn--ghost">Use cases</a>
-                <a href="/pricing" class="btn btn--ghost">Pricing</a>
+                <a href="<%= __homeRoot %>#how-it-works" class="btn btn--ghost"><%= __cnav ? __cnav.howItWorks : 'How it works' %></a>
+                <a href="<%= __homeRoot %>#use_cases" class="btn btn--ghost"><%= __cnav ? __cnav.useCases : 'Use cases' %></a>
+                <a href="<%= __pricingHref %>" class="btn btn--ghost"><%= __cnav ? __cnav.pricing : 'Pricing' %></a>
                 <a href="https://documentation.hook0.com/" target="_blank" class="btn btn--ghost">
-                    Documentation
+                    <%= __cnav ? __cnav.documentation : 'Documentation' %>
                     <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                     </svg>
                 </a>
                 <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--ghost" onclick="trackEvent('Navigation', 'Click', 'Header Play')">
-                    Play
+                    <%= __cnav ? __cnav.play : 'Play' %>
                     <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
@@ -33,13 +53,13 @@
             <!-- Desktop Auth Buttons -->
             <div class="hidden md:flex items-center gap-3">
                 <a href="<%= locals.meta.contact %>" class="btn btn--ghost">
-                    Contact
+                    <%= __cnav ? __cnav.contact : 'Contact' %>
                 </a>
                 <a href="<%= locals.meta.login %>" class="btn btn--ghost">
-                    Login
+                    <%= __cnav ? __cnav.login : 'Login' %>
                 </a>
                 <a href="https://app.hook0.com/register" class="btn btn--primary btn--sm" onclick="trackEvent('CTA', 'Click', 'Start Free')">
-                    Start Free
+                    <%= __cnav ? __cnav.startFree : 'Start Free' %>
                     <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                     </svg>
@@ -50,7 +70,7 @@
             <button
                 id="mobile-menu-button"
                 class="md:hidden p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors touch-manipulation"
-                aria-label="Open menu"
+                aria-label="<%= __ca11y ? __ca11y.openMenu : 'Open menu' %>"
                 aria-expanded="false"
                 aria-controls="mobile-menu">
                 <svg class="w-6 h-6 mobile-menu-icon-open" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,29 +92,29 @@
         <div class="mobile-menu__panel">
             <!-- Mobile Nav Links -->
             <nav class="mobile-menu__nav">
-                <a href="/#how-it-works" class="mobile-menu__link" onclick="closeMobileMenu()">
+                <a href="<%= __homeRoot %>#how-it-works" class="mobile-menu__link" onclick="closeMobileMenu()">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
-                    How it works
+                    <%= __cnav ? __cnav.howItWorks : 'How it works' %>
                 </a>
-                <a href="/#use_cases" class="mobile-menu__link" onclick="closeMobileMenu()">
+                <a href="<%= __homeRoot %>#use_cases" class="mobile-menu__link" onclick="closeMobileMenu()">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                     </svg>
-                    Use cases
+                    <%= __cnav ? __cnav.useCases : 'Use cases' %>
                 </a>
-                <a href="/pricing" class="mobile-menu__link" onclick="closeMobileMenu()">
+                <a href="<%= __pricingHref %>" class="mobile-menu__link" onclick="closeMobileMenu()">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    Pricing
+                    <%= __cnav ? __cnav.pricing : 'Pricing' %>
                 </a>
                 <a href="https://documentation.hook0.com/" target="_blank" class="mobile-menu__link">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                     </svg>
-                    Documentation
+                    <%= __cnav ? __cnav.documentation : 'Documentation' %>
                     <svg class="w-4 h-4 ml-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                     </svg>
@@ -103,7 +123,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
-                    Play
+                    <%= __cnav ? __cnav.play : 'Play' %>
                     <svg class="w-4 h-4 ml-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                     </svg>
@@ -112,17 +132,17 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                     </svg>
-                    Contact
+                    <%= __cnav ? __cnav.contact : 'Contact' %>
                 </a>
             </nav>
 
             <!-- Mobile Auth Buttons -->
             <div class="mobile-menu__auth">
                 <a href="<%= locals.meta.login %>" class="mobile-menu__auth-btn mobile-menu__auth-btn--secondary" onclick="closeMobileMenu()">
-                    Login
+                    <%= __cnav ? __cnav.login : 'Login' %>
                 </a>
                 <a href="https://app.hook0.com/register" class="mobile-menu__auth-btn mobile-menu__auth-btn--primary" onclick="trackEvent('CTA', 'Click', 'Start Free'); closeMobileMenu()">
-                    Start Free
+                    <%= __cnav ? __cnav.startFree : 'Start Free' %>
                     <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                     </svg>

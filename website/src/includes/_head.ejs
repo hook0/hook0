@@ -22,6 +22,28 @@
 <link rel="canonical" href="<%= locals.seo.siteUrl %><%= locals.pageCanonical %>">
 <% } %>
 
+<!-- hreflang alternates (localized versions). Self-referential link is intentionally
+     omitted: it would duplicate the canonical URL and Parcel rewrites the colliding
+     canonical href into a bundle hash. Cross-language reciprocity + x-default are kept.
+     Bleed defense (Phase 0): pageHreflang from the previously-rendered page can leak
+     into a legacy non-converted page (one mutable `locals` across a Parcel run). If
+     pageCanonical doesn't appear in pageHreflang, the set must have bled — skip
+     emission entirely. Also skip any single entry whose href equals own canonical
+     (homepage x-default case, or future self-referent leak). -->
+<% if (locals.pageHreflang && locals.pageCanonical) {
+     var __curLang = locals.pageLang || 'en';
+     var __own = locals.pageCanonical;
+     var __belongs = locals.pageHreflang.some(function(alt){ return alt.href === __own; });
+     if (__belongs) {
+       locals.pageHreflang.forEach(function(alt){ if (alt.lang !== __curLang && alt.href !== __own) { %>
+<link rel="alternate" hreflang="<%= alt.lang %>" href="<%= locals.seo.siteUrl %><%= alt.href %>">
+<%     } });
+       if (__own !== '/') { %>
+<link rel="alternate" hreflang="x-default" href="<%= locals.seo.siteUrl %>/">
+<%     }
+     }
+} %>
+
 <!-- Open Graph / Facebook -->
 <meta property="og:type" content="<%= locals.pageType || 'website' %>">
 <meta property="og:site_name" content="<%= locals.seo.siteName %>">
@@ -43,7 +65,8 @@
 <% } else { %>
 <meta property="og:image" content="<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>">
 <% } %>
-<meta property="og:locale" content="<%= locals.seo.locale %>">
+<% var __localeByLang = { en: 'en_US', fr: 'fr_FR', de: 'de_DE' }; var __pageLang = locals.pageLang || 'en'; %>
+<meta property="og:locale" content="<%= __localeByLang[__pageLang] || locals.seo.locale %>">
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
@@ -72,7 +95,7 @@
 <link rel="dns-prefetch" href="https://api.producthunt.com">
 <link rel="dns-prefetch" href="https://ghbtns.com">
 
-<% var bp = locals.basePath || '.'; %>
+<% var bp = (typeof basePath !== 'undefined' && basePath) ? basePath : '.'; %>
 <!-- Stylesheet -->
 <link rel='stylesheet' href='<%= bp %>/style.scss'/>
 
@@ -375,7 +398,7 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
       "@type": "ContactPoint",
       "email": "support@hook0.com",
       "contactType": "customer support",
-      "availableLanguage": ["en", "fr"],
+      "availableLanguage": ["en", "fr", "de"],
       "telephone": "+33-2-52-43-10-53"
     },
     {

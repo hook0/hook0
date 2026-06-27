@@ -3,5 +3,5 @@
   "transformers": {
     "*.ejs": ["parcel-transformer-ejs"]
   },
-  "reporters": ["parcel-reporter-sitemap", "parcel-reporter-static-files-copy"]
+  "reporters": ["parcel-reporter-static-files-copy"]
 }
