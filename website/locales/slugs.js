@@ -26,4 +26,5 @@ module.exports = {
   'mediakit': { fr: 'kit-presse', de: 'pressekit' },
   'mentions-legales': { fr: 'mentions-legales', de: 'impressum' },
   'terms': { fr: 'conditions-utilisation', de: 'nutzungsbedingungen' },
+  'gdpr-subprocessors': { fr: 'sous-traitants-rgpd', de: 'dsgvo-unterauftragsverarbeiter' },
 };
