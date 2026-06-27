@@ -24,4 +24,5 @@ module.exports = {
   'hookdeck-alternatives': { fr: 'alternatives-a-hookdeck', de: 'hookdeck-alternativen' },
   'hook0-alternatives': { fr: 'alternatives-a-hook0', de: 'hook0-alternativen' },
   'mediakit': { fr: 'kit-presse', de: 'pressekit' },
+  'mentions-legales': { fr: 'mentions-legales', de: 'impressum' },
 };
