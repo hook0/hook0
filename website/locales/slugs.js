@@ -25,4 +25,5 @@ module.exports = {
   'hook0-alternatives': { fr: 'alternatives-a-hook0', de: 'hook0-alternativen' },
   'mediakit': { fr: 'kit-presse', de: 'pressekit' },
   'mentions-legales': { fr: 'mentions-legales', de: 'impressum' },
+  'terms': { fr: 'conditions-utilisation', de: 'nutzungsbedingungen' },
 };
