@@ -110,7 +110,7 @@ module.exports = {
       { labelHtml: 'Financement :', valueHtml: '100% bootstrappée, sans VC' },
       { labelHtml: 'Produit :', valueHtml: 'Webhooks-as-a-Service au code source ouvert (SSPL-1.0)' },
       { labelHtml: 'Mission :', valueHtml: 'Construire une infrastructure webhook fiable qui dure' },
-      { labelHtml: 'RGPD :', valueHtml: 'pleinement conforme, basé en UE' },
+      { labelHtml: 'RGPD :', valueHtml: 'conçu pour la conformité RGPD, plan de données en UE (Clever Cloud FR), CDN Cloudflare US divulgué dans le <a href="/fr/accord-traitement-donnees">DPA</a>' },
     ],
     boilerplateH3: 'Texte de présentation',
     boilerplateQuote: '« Hook0 est une plateforme webhook au code source ouvert (SSPL-1.0) qui permet aux développeurs de bâtir des intégrations event-driven fiables et passant à l\'échelle. Basée en France et 100% bootstrappée, Hook0 s\'engage à construire un logiciel qui dure. »',

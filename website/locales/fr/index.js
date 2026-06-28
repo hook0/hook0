@@ -15,7 +15,7 @@ module.exports = {
     trustFreePlan: 'Plan gratuit',
     trustNoCard: 'Sans carte bancaire',
     trustHostedEurope: 'Hébergé en Europe',
-    trustGdpr: 'Conforme RGPD',
+    trustGdpr: 'Conçu pour le RGPD',
     scrollLabel: 'Scroller',
     socialProductHuntAlt: 'Hook0 sur Product Hunt',
     socialGithubStars: 'Étoiles GitHub',

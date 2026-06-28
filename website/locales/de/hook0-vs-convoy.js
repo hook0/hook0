@@ -20,7 +20,7 @@ module.exports = {
       { title: 'Managed Cloud vs nur Selbst-Hosting', body: 'Convoy ist nur selbst-gehostet. Keine Managed Cloud, Punkt. Du betreibst es, du wartest es. Hook0 lässt dir die Wahl, entweder die Managed Cloud (in Europa gehostet) oder kostenloses Selbst-Hosting mit Docker oder Kubernetes.' },
       { title: 'Rust vs Go', body: 'Hook0 ist in Rust geschrieben. Kein Garbage Collector heißt keine GC-Pausen, weniger Speicherverbrauch und vorhersehbarere Latenz unter Last. Convoy ist in Go geschrieben, guter Durchsatz, aber mit Garbage Collection. Bei hohem Volumen zeigt sich der Unterschied in den Tail-Latenzen.' },
       { title: 'SSPL vs MPL-2.0', body: 'Convoy verwendet MPL-2.0. Sehr permissiv, keine Einschränkungen bei der Weitergabe. Hook0 verwendet SSPL-1.0, der gesamte Quellcode ist verfügbar, aber Cloud-Anbieter können ihn nicht als konkurrierenden Service weiterverkaufen. Beide sind quelloffen. Der Unterschied betrifft, was Dritte mit dem Code anstellen dürfen.' },
-      { title: 'Europäisches Hosting vs DIY-Infrastruktur', body: 'Die Hook0-Cloud läuft in Europa, auf DSGVO-Konformität ausgelegt. Bei Convoy wählst du deinen Hosting-Standort selbst, aber du übernimmst auch den gesamten Ops-Stack, Monitoring, Backups, Skalierung, Uptime. Es gibt keine Managed-Option, also liegt alles bei dir.' },
+      { title: 'Europäisches Hosting vs DIY-Infrastruktur', body: 'Die Hook0-Cloud fährt ihre Datenebene in Frankreich bei Clever Cloud (CDN Cloudflare USA im <a href="/de/auftragsverarbeitungsvertrag">DPA</a> offengelegt), auf DSGVO-Konformität ausgelegt. Bei Convoy wählst du deinen Hosting-Standort selbst, aber du übernimmst auch den gesamten Ops-Stack, Monitoring, Backups, Skalierung, Uptime. Es gibt keine Managed-Option, also liegt alles bei dir.' },
     ],
   },
   comparison: {
@@ -31,7 +31,7 @@ module.exports = {
       { feature: 'Lizenz', hook0Html: 'SSPL-1.0 (gesamter Quellcode verfügbar)', convoyHtml: 'MPL-2.0' },
       { feature: 'Sprache', hook0Html: 'Rust', convoyHtml: 'Go' },
       { feature: 'Datenbank', hook0Html: 'Nur PostgreSQL', convoyHtml: 'PostgreSQL + Redis' },
-      { feature: 'Managed Cloud', hook0Html: 'Ja (EU-gehostet)', convoyHtml: 'Nein' },
+      { feature: 'Managed Cloud', hook0Html: 'Ja (Clever Cloud FR, CDN Cloudflare USA)', convoyHtml: 'Nein' },
       { feature: 'Selbst-Hosting', hook0Html: 'Kostenlos (Docker / K8s)', convoyHtml: 'Ja (einzige Option)' },
       { feature: 'Kostenloser Tarif', hook0Html: 'Ja (Cloud)', convoyHtml: 'N/A (nur Selbst-Hosting)' },
       { feature: 'HMAC-Signaturen', hook0Html: 'Ja', convoyHtml: 'Ja' },
