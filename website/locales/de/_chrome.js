@@ -61,7 +61,7 @@ module.exports = {
       bottomCta: 'Was ist Hook0?',
     },
     features: {
-      eyebrow: 'Features',
+      eyebrow: 'Funktionen',
       h2: 'Webhooks von der Stange',
       sub: 'Alles, was du brauchst, um in wenigen Minuten eine Webhook-Lösung auf Produktionsniveau zu bauen',
       completeSolutionEyebrow: 'Komplettlösung',
@@ -170,7 +170,7 @@ module.exports = {
       toggleCloud: 'Cloud',
       toggleOnPremise: 'On-Premise',
       cloudH3: 'Cloud',
-      cloudSub: 'Hook0 as a Service, von unserem Team betrieben',
+      cloudSub: 'Verwaltetes Hook0, von unserem Team betrieben',
       onPremiseH3: 'On-Premise',
       onPremiseSub: 'Deine dedizierte Hook0-Instanz',
       mostPopular: 'Am beliebtesten',
@@ -278,8 +278,8 @@ module.exports = {
       wip: false,
     },
     {
-      title: 'DSGVO-konform',
-      description: 'Hook0 ist DSGVO-konform und kann bei Bedarf einen Auftragsverarbeitungsvertrag mit deinem Unternehmen abschließen.',
+      title: 'DSGVO-konform betrieben',
+      description: 'Hook0 ist auf DSGVO-Konformität ausgelegt und kann bei Bedarf einen Auftragsverarbeitungsvertrag mit deinem Unternehmen abschließen.',
       wip: false,
     },
     {

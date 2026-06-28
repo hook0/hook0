@@ -277,8 +277,8 @@ module.exports = {
       wip: false,
     },
     {
-      title: 'Conforme RGPD',
-      description: "Hook0 est conforme au RGPD et peut signer un accord de traitement des données avec ton entreprise si tu en as besoin.",
+      title: 'Exploité dans le respect du RGPD',
+      description: "Hook0 est conçu pour la conformité RGPD et peut signer un accord de traitement des données avec ton entreprise si tu en as besoin.",
       wip: false,
     },
     {

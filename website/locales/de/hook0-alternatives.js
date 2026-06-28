@@ -47,7 +47,7 @@ module.exports = {
     cards: [
       { title: 'Nicht nur ein Proxy', body: 'Anders als Hookdeck sendet Hook0 Webhooks für dich, mit Wiederholungen, Signaturen und Abonnenten-Verwaltung. Keine Middleware-Schicht.' },
       { title: 'Keine Enterprise-Paywall', body: 'Anders als Svix wird jedes Feature in jedem Tarif ausgeliefert. Selbst-Hosting steckt nicht hinter einem Verkaufsgespräch.' },
-      { title: 'Europäisch und DSGVO', body: 'Cloud in der EU gehostet. Datensouveränität eingebaut. Bootstrapped, kein US-VC-Board, das über deine Datenpolitik entscheidet.' },
+      { title: 'Europäisch, auf DSGVO ausgelegt', body: 'Datenebene in der EU bei Clever Cloud (Frankreich) gehostet. CDN über Cloudflare (USA), im <a href="/de/auftragsverarbeitungsvertrag">DPA</a> und in den <a href="/de/dsgvo-unterauftragsverarbeiter">Unterauftragsverarbeitern</a> offengelegt. Bootstrapped, kein US-VC-Board, das über deine Datenpolitik entscheidet.' },
     ],
   },
   faq: {
