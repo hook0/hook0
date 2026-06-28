@@ -31,6 +31,7 @@ module.exports = {
       compare: 'Vergleich',
       guides: 'Anleitungen',
       developers: 'Entwickler',
+      // 'Community' is an accepted DE loanword (DUDEN) and idiomatic in DE tech contexts.
       community: 'Community',
     },
   },
