@@ -3,16 +3,16 @@
 // SSPL = « quelloffen (SSPL-1.0) » falls erwähnt. Keine pauschalen Souveränitäts-Claims.
 module.exports = {
   pageTitle: 'Gebaut, um zu bleiben, das Hook0-Manifest | Hook0',
-  pageDescription: '100% bootstrapped, kein VC-Funding, keine Exit-Strategie. Hook0 ist gebaut, um dir heute, morgen und über Jahrzehnte zu dienen. Unser Bekenntnis zu nachhaltiger quelloffener Software.',
+  pageDescription: '100% bootstrappt, kein VC-Funding, keine Exit-Strategie. Hook0 ist gebaut, um dir heute, morgen und über Jahrzehnte zu dienen. Unser Bekenntnis zu nachhaltiger quelloffener Software.',
   hero: {
-    badge: '100% bootstrapped',
+    badge: '100% bootstrappt',
     badgeNote: 'Kein VC, keine Exit-Strategie, keine Kompromisse',
     titleBefore: 'Gebaut, um zu bleiben',
     titleAccent: 'Das Hook0-Manifest',
     subtitle: 'In einer Zeit, in der Software Wegwerfware ist und Startups über Nacht kollabieren, bauen wir etwas anderes. Hook0 ist so konzipiert, dass es dir heute, morgen und über Jahrzehnte dient.',
     scroll: 'Scroll',
     metrics: [
-      { value: '100%', label: 'Bootstrapped' },
+      { value: '100%', label: 'Bootstrappt' },
       { value: '0', label: 'VC-Funding' },
       { value: '∞', label: 'Jahre Verpflichtung' },
     ],

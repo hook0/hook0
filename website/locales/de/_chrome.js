@@ -24,7 +24,7 @@ module.exports = {
     tagline: 'Quelloffene Webhooks-as-a-Service. Von Entwicklern für Entwickler.',
     madeInEurope: 'In Europa entwickelt',
     copyright: 'Alle Rechte vorbehalten.',
-    bootstrapped: '100% bootstrapped, kein VC. Wir bleiben.',
+    bootstrapped: '100% bootstrappt, kein VC. Wir bleiben.',
     cookieSettings: 'Cookie-Einstellungen',
     titles: {
       about: 'Über uns',

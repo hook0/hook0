@@ -3,7 +3,7 @@
 // Hook0 = « code source ouvert (SSPL-1.0) ». Svix MIT (OSI) = « open source » OK pour Svix.
 module.exports = {
   pageTitle: 'Alternatives à Svix (2026), plateformes webhook comparées | Hook0',
-  pageDescription: 'Tu évalues Svix ? Compare Hook0, Hookdeck, Convoy et plus. Côte à côte sur le pricing, l\'auto-hébergement, les licences et ce que « open source » veut vraiment dire en pratique.',
+  pageDescription: 'Tu évalues Svix ? Compare Hook0, Hookdeck, Convoy et plus. Côte à côte sur la tarification, l\'auto-hébergement, les licences et ce que « open source » veut vraiment dire en pratique.',
   pageModified: '2026-06-27',
   hero: {
     eyebrow: 'Comparaison',
@@ -29,7 +29,7 @@ module.exports = {
     headers: { criteria: 'Critère', svix: 'Svix', hook0: 'Hook0', hookdeck: 'Hookdeck', convoy: 'Convoy', hostedhooks: 'HostedHooks' },
     rows: [
       { criteria: 'Licence', svixHtml: 'MIT (open core, entreprise fermé)', hook0Html: 'SSPL-1.0 (source intégrale disponible)', hookdeckHtml: 'Code fermé', convoyHtml: 'MPL-2.0', hostedhooksHtml: 'Code fermé' },
-      { criteria: 'Financement', svixHtml: '17 M$ VC-funded', hook0Html: '100% bootstrappé', hookdeckHtml: '3,5 M$ VC-funded', convoyHtml: 'VC-funded', hostedhooksHtml: 'Bootstrappé' },
+      { criteria: 'Financement', svixHtml: '17 M$ levés en VC', hook0Html: '100% bootstrappé', hookdeckHtml: '3,5 M$ levés en VC', convoyHtml: 'Financé en VC', hostedhooksHtml: 'Bootstrappé' },
       { criteria: 'Auto-hébergement', svixHtml: 'Plan entreprise uniquement (features complètes)', hook0Html: 'Gratuit (Docker / K8s)', hookdeckHtml: 'Non', convoyHtml: 'Oui (auto-géré)', hostedhooksHtml: 'Non' },
       { criteria: 'Tier gratuit', svixHtml: 'Oui', hook0Html: 'Oui, sans carte bancaire', hookdeckHtml: 'Oui (100k events/mois)', convoyHtml: 'Édition communauté uniquement', hostedhooksHtml: 'Oui (limité)' },
       { criteria: 'Signatures HMAC', svixHtml: 'Incluses', hook0Html: 'Incluses (tous les plans)', hookdeckHtml: 'Vérification seulement', convoyHtml: 'Incluses', hostedhooksHtml: 'Incluses' },
@@ -44,8 +44,8 @@ module.exports = {
     items: [
       { q: 'Svix est-il vraiment open source ?', a: 'Partiellement. La base de Svix est sous licence MIT, mais les features entreprise (SSO, analytics avancées, support prioritaire) sont propriétaires et fermées. Ça s\'appelle de l\'open core. Tu peux faire tourner l\'édition communauté, mais les features clés en prod demandent un plan payant. Hook0, à l\'inverse, livre tout sous SSPL-1.0 sans add-ons fermés.' },
       { q: 'Puis-je auto-héberger Svix gratuitement ?', a: 'Tu peux auto-héberger l\'édition communauté sous MIT, mais les features entreprise ne sont pas incluses. Un auto-hébergement complet avec toutes les features exige le plan entreprise de Svix. Hook0 et Convoy proposent tous les deux un auto-hébergement gratuit avec parité fonctionnelle complète.' },
-      { q: 'Quelle est la meilleure alternative à Svix pour les startups ?', a: 'Hook0 marche bien pour les startups. Tier gratuit, sans carte bancaire, pricing à l\'event à partir de 59 €/mois, et auto-hébergement gratuit via Docker ou Kubernetes. La société est 100% bootstrappée, donc pas de VC qui pousse à augmenter les prix au prochain trimestre. Convoy vaut le coup d\'œil aussi si la licence MPL-2.0 compte pour toi.' },
-      { q: 'Comment le pricing de Svix se compare-t-il aux alternatives ?', a: 'Svix propose un tier gratuit et des plans payants à l\'event, mais l\'auto-hébergement et les features entreprise demandent un pricing entreprise (contact sales). Hook0 Cloud démarre à 59 €/mois avec un pricing transparent et inclut l\'auto-hébergement gratuit sur tous les plans. Hookdeck est cloud uniquement avec un pricing à l\'event. Convoy est auto-hébergé uniquement, avec un pricing entreprise pour le support. HostedHooks propose des plans payants cloud uniquement.' },
+      { q: 'Quelle est la meilleure alternative à Svix pour les startups ?', a: 'Hook0 marche bien pour les startups. Tier gratuit, sans carte bancaire, tarification à l\'event à partir de 59 €/mois, et auto-hébergement gratuit via Docker ou Kubernetes. La société est 100% bootstrappée, donc pas de VC qui pousse à augmenter les prix au prochain trimestre. Convoy vaut le coup d\'œil aussi si la licence MPL-2.0 compte pour toi.' },
+      { q: 'Comment la tarification de Svix se compare-t-elle aux alternatives ?', a: 'Svix propose un tier gratuit et des plans payants à l\'event, mais l\'auto-hébergement et les features entreprise demandent une tarification entreprise (contact sales). Hook0 Cloud démarre à 59 €/mois avec une tarification transparente et inclut l\'auto-hébergement gratuit sur tous les plans. Hookdeck est cloud uniquement avec une tarification à l\'event. Convoy est auto-hébergé uniquement, avec une tarification entreprise pour le support. HostedHooks propose des plans payants cloud uniquement.' },
     ],
   },
   related: {

@@ -35,7 +35,7 @@ module.exports = {
       { criteria: 'Quellcode', hookdeckHtml: 'Nein (Closed Source)', hook0Html: 'Ja (SSPL-1.0, gesamter Quellcode)', svixHtml: 'Teilweise (Open Core, Enterprise geschlossen)', convoyHtml: 'Ja (MPL-2.0)', awsEventbridgeHtml: 'Nein (AWS-proprietär)' },
       { criteria: 'Kostenloser Tarif', hookdeckHtml: 'Ja (100k Events/Monat)', hook0Html: 'Ja, ohne Kreditkarte', svixHtml: 'Ja', convoyHtml: 'Nur Community-Edition', awsEventbridgeHtml: 'Pay-per-use (AWS-Abrechnung)' },
       { criteria: 'Datenhosting', hookdeckHtml: 'In den USA', hook0Html: 'Europa (Clever Cloud FR, CDN Cloudflare USA) oder Selbst-Hosting', svixHtml: 'In den USA', convoyHtml: 'Nur Selbst-Hosting', awsEventbridgeHtml: 'Multi-Region (AWS)' },
-      { criteria: 'Finanzierung', hookdeckHtml: '3,5 Mio. $ VC-finanziert', hook0Html: '100% bootstrapped', svixHtml: '17 Mio. $ VC-finanziert', convoyHtml: 'VC-finanziert', awsEventbridgeHtml: 'Amazon (börsennotiert)' },
+      { criteria: 'Finanzierung', hookdeckHtml: '3,5 Mio. $ VC-finanziert', hook0Html: '100% bootstrappt', svixHtml: '17 Mio. $ VC-finanziert', convoyHtml: 'VC-finanziert', awsEventbridgeHtml: 'Amazon (börsennotiert)' },
     ],
   },
   whyLookBeyond: {
@@ -56,7 +56,7 @@ module.exports = {
       { q: 'Ist Hookdeck quelloffen?', a: 'Nein. Hookdeck ist Closed Source und nur Cloud. Du kannst den Code nicht inspizieren, auditieren oder selbst hosten. Wenn dir quelloffen wichtig ist, sind Alternativen wie Hook0 (SSPL-1.0) oder Convoy (MPL-2.0) vollständig quelloffen.' },
       { q: 'Kann ich Hookdeck selbst hosten?', a: 'Nein. Hookdeck bietet keine Selbst-Hosting-Option. Es ist nur Cloud. Wenn du deine Webhook-Infrastruktur auf eigenen Servern betreiben musst aus Compliance-, Datenresidenz- oder Kostengründen, unterstützen Hook0 und Convoy beide Selbst-Hosting.' },
       { q: 'Was ist der Unterschied zwischen einem Webhook-Proxy und einer Webhook-Plattform?', a: 'Ein Webhook-Proxy (wie Hookdeck) sitzt zwischen einem Webhook-Sender und deiner Anwendung. Er empfängt, routet und wiederholt eingehende Webhooks. Eine Webhook-Plattform (wie Hook0 oder Svix) lässt dich Webhooks an deine Kunden senden. Sie kümmert sich um Zustellung, Wiederholungen, Signaturen und Abonnenten-Verwaltung. Wenn du Webhooks zu deinem Produkt hinzufügen willst, brauchst du eine Plattform, keinen Proxy.' },
-      { q: 'Was ist die beste Hookdeck-Alternative zum Senden von Webhooks?', a: 'Hook0, wenn du Webhooks senden musst. Du publizierst Events, Hook0 liefert sie an deine Abonnenten mit Wiederholungen, HMAC-Signaturen und einem Verwaltungs-Dashboard. Der Code ist quelloffen (SSPL-1.0), du kannst ihn selbst hosten, das Unternehmen ist bootstrapped und die Cloud läuft in Europa.' },
+      { q: 'Was ist die beste Hookdeck-Alternative zum Senden von Webhooks?', a: 'Hook0, wenn du Webhooks senden musst. Du publizierst Events, Hook0 liefert sie an deine Abonnenten mit Wiederholungen, HMAC-Signaturen und einem Verwaltungs-Dashboard. Der Code ist quelloffen (SSPL-1.0), du kannst ihn selbst hosten, das Unternehmen ist bootstrappt und die Cloud läuft in Europa.' },
     ],
   },
   related: {

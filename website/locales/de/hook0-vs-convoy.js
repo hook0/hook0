@@ -37,7 +37,7 @@ module.exports = {
       { feature: 'HMAC-Signaturen', hook0Html: 'Ja', convoyHtml: 'Ja' },
       { feature: 'Wiederholungslogik', hook0Html: 'Konfigurierbar 2-phasig (schnell + langsam, smarte Defaults)', convoyHtml: 'Konfigurierbar' },
       { feature: 'Primäres Repo', hook0Html: '<a href="https://github.com/hook0/hook0" class="underline">GitHub</a> + <a href="https://gitlab.com/hook0/hook0" class="underline">GitLab</a>', convoyHtml: '<a href="https://github.com/frain-dev/convoy" class="underline">GitHub</a> (~2,8k Stars)' },
-      { feature: 'Finanzierung', hook0Html: '100% bootstrapped', convoyHtml: 'VC-finanziert (Frain Technologies)' },
+      { feature: 'Finanzierung', hook0Html: '100% bootstrappt', convoyHtml: 'VC-finanziert (Frain Technologies)' },
     ],
   },
   faq: {
