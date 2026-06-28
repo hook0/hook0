@@ -10,6 +10,7 @@ module.exports = {
       pricing: 'Tarifs',
       documentation: 'Documentation',
       play: 'Tester',
+      // 'Contact' is the standard FR navigation label (loanword); see _chrome.js footer link.
       contact: 'Contact',
       login: 'Connexion',
       startFree: 'Démarrer gratuitement',
