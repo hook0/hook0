@@ -51,6 +51,9 @@ module.exports = {
     githubStarsTitle: 'Étoiles GitHub',
   },
   schema: {
+    organizationDescription: 'Hook0 est une plateforme de webhooks à code source ouvert. Tu envoies tes événements via une API REST, Hook0 gère les relances, les signatures HMAC et la gestion des abonnés. Hébergement UE ou auto-hébergement sous SSPL-1.0.',
+    applicationDescription: 'Hook0 est une plateforme de webhooks à code source ouvert. Tu envoies tes événements via une API REST, Hook0 gère les relances, les signatures HMAC et la gestion des abonnés. Hébergement UE ou auto-hébergement sous SSPL-1.0.',
+    applicationSubCategory: 'Plateforme de livraison de webhooks',
     offerFreeName: 'Gratuit',
     offerFreeDescription: 'Gratuit à vie, sans carte bancaire. Auto-hébergement ou Hook0 Cloud.',
     offerSelfHostedName: 'Auto-hébergé',

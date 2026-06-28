@@ -59,6 +59,9 @@ module.exports = {
     githubStarsTitle: 'GitHub Stars',
   },
   schema: {
+    organizationDescription: 'Hook0 is a free, source-available webhook platform. Send your events through a REST API, Hook0 handles delivery retries, HMAC signatures, and subscriber management. Hosted in the EU or self-hosted under SSPL-1.0.',
+    applicationDescription: 'Hook0 is a free, source-available webhook platform. Send your events through a REST API, Hook0 handles delivery retries, HMAC signatures, and subscriber management. Hosted in the EU or self-hosted under SSPL-1.0.',
+    applicationSubCategory: 'Webhook delivery platform',
     offerFreeName: 'Free',
     offerFreeDescription: 'Free forever, no credit card required. Self-host or use Hook0 Cloud.',
     offerSelfHostedName: 'Self-hosted',

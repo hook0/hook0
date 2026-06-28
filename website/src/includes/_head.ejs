@@ -333,7 +333,7 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
     "height": 256
   },
   "image": "<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>",
-  "description": "<%= locals.seo.defaultDescription %>",
+  "description": <%- JSON.stringify((locals.chrome && locals.chrome.schema && locals.chrome.schema.organizationDescription) ? locals.chrome.schema.organizationDescription : locals.seo.defaultDescription) %>,
   "foundingDate": "2021-01-01",
   "founders": [
     {
@@ -418,10 +418,10 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
   "name": "Hook0",
   "alternateName": ["hook0", "Hook Zero"],
   "applicationCategory": "DeveloperApplication",
-  "applicationSubCategory": "Webhook delivery platform",
+  "applicationSubCategory": <%- JSON.stringify((locals.chrome && locals.chrome.schema && locals.chrome.schema.applicationSubCategory) ? locals.chrome.schema.applicationSubCategory : 'Webhook delivery platform') %>,
   "operatingSystem": "Linux, macOS, Windows, Cross-platform (cloud)",
   "url": "<%= locals.seo.siteUrl %>",
-  "description": "<%= locals.seo.defaultDescription %>",
+  "description": <%- JSON.stringify((locals.chrome && locals.chrome.schema && locals.chrome.schema.applicationDescription) ? locals.chrome.schema.applicationDescription : locals.seo.defaultDescription) %>,
   "image": "<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>",
   "softwareVersion": "stable",
   "license": "https://spdx.org/licenses/SSPL-1.0.html",
