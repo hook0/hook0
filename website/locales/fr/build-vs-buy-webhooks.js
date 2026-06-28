@@ -3,12 +3,12 @@
 // Hook0 = « code source ouvert (SSPL-1.0) ».
 module.exports = {
   pageTitle: 'Build vs Buy webhooks, prod en 30 min | Hook0',
-  pageDescription: 'Construire un système webhook from scratch coûte 3 sprints ou plus. Relances, signatures, monitoring, dead letter queues. Ou tu prends Hook0 et tu livres en 30 minutes.',
+  pageDescription: 'Construire un système webhook de zéro coûte 3 sprints ou plus. Relances, signatures, monitoring, dead letter queues. Ou tu prends Hook0 et tu livres en 30 minutes.',
   pageModified: '2026-06-27',
   hero: {
     eyebrow: 'Build vs Buy',
     titleBefore: 'Arrête de construire des webhooks',
-    titleAccent: 'from scratch',
+    titleAccent: 'de zéro',
     subtitle: 'Ton backlog est plein de features que tes users veulent vraiment. Relances, signatures, monitoring, dead letter queues, c\'est 3 sprints ou plus de plomberie. Hook0 est un service webhook en code source ouvert (SSPL-1.0) qui gère tout ça. 100 events/jour gratuits, sans carte bancaire. Livre en 30 minutes.',
     ctaPrimary: 'Démarrer gratuitement',
     ctaSecondary: 'Essayer le Playground',
@@ -39,7 +39,7 @@ module.exports = {
       { aspect: 'Time-to-production', diyHtml: '3 sprints ou plus (6-12 semaines)', hook0Html: '30 minutes', diyDim: false },
       { aspect: 'Coût ingénierie', diyHtml: '2-3 FTE pendant des mois', hook0Html: 'Un dev, une après-midi', diyDim: false },
       { aspect: 'Maintenance continue', diyHtml: 'Continue (bugs, scaling, patches)', hook0Html: 'Gérée par Hook0', diyDim: false },
-      { aspect: 'Logique de relances', diyHtml: 'À construire from scratch', hook0Html: 'Intégrée avec relances 2-phases configurables (rapide + lent), customisable par abonnement', diyDim: false },
+      { aspect: 'Logique de relances', diyHtml: 'À construire de zéro', hook0Html: 'Intégrée avec relances 2-phases configurables (rapide + lent), customisable par abonnement', diyDim: false },
       { aspect: 'Sécurité (HMAC)', diyHtml: 'À implémenter et maintenir', hook0Html: 'Automatique sur chaque event', diyDim: false },
       { aspect: 'Monitoring et logs', diyHtml: 'Dashboards à construire', hook0Html: 'Inclus dès le départ', diyDim: false },
       { aspect: 'Gestion des abonnements', diyHtml: 'Toute une UI à construire', hook0Html: 'Portail embarquable inclus', diyDim: false },
@@ -57,7 +57,7 @@ module.exports = {
     eyebrow: 'FAQ',
     h2: 'Questions fréquentes',
     items: [
-      { q: 'Combien de temps pour construire des webhooks from scratch ?', a: 'Compte au minimum 3 sprints d\'ingénierie. Logique de relances, dead letter queues, signatures HMAC, monitoring de livraison, gestion des abonnés, health checking des endpoints. Et c\'est avant que ton premier client trouve un bug.' },
+      { q: 'Combien de temps pour construire des webhooks de zéro ?', a: 'Compte au minimum 3 sprints d\'ingénierie. Logique de relances, dead letter queues, signatures HMAC, monitoring de livraison, gestion des abonnés, health checking des endpoints. Et c\'est avant que ton premier client trouve un bug.' },
       { q: 'Quel est le coût caché de construire le tien ?', a: 'Maintenance de la queue de relances, gestion des edge cases (timeouts, redirects, erreurs de certificat), dashboards de monitoring, rate limiting, stockage des logs, onboarding des abonnés. Rien de tout ça ne s\'arrête après la v1. Ça s\'accumule.' },
       { q: 'En combien de temps puis-je intégrer Hook0 ?', a: 'Moins de 30 minutes. Un seul appel API pour déclencher un event. SDKs pour Python, Node.js et d\'autres si tu préfères.' },
       { q: 'Puis-je migrer depuis un système maison ?', a: 'Oui. API REST et SDKs, donc tu peux faire tourner les deux systèmes en parallèle pendant la migration. Pas besoin de bascule big bang.' },

@@ -41,7 +41,7 @@ module.exports = {
       { aspect: 'Laufende Wartung', diyHtml: 'Kontinuierlich (Bugs, Skalierung, Patches)', hook0Html: 'Von Hook0 verwaltet', diyDim: false },
       { aspect: 'Wiederholungslogik', diyHtml: 'Von Grund auf bauen', hook0Html: 'Eingebaut mit konfigurierbaren 2-phasigen Wiederholungen (schnell + langsam), pro Abonnement anpassbar', diyDim: false },
       { aspect: 'Sicherheit (HMAC)', diyHtml: 'Implementieren und warten', hook0Html: 'Automatisch bei jedem Event', diyDim: false },
-      { aspect: 'Monitoring und Logs', diyHtml: 'Dashboards bauen', hook0Html: 'Out of the box enthalten', diyDim: false },
+      { aspect: 'Monitoring und Logs', diyHtml: 'Dashboards bauen', hook0Html: 'Standardmäßig enthalten', diyDim: false },
       { aspect: 'Abonnement-Verwaltung', diyHtml: 'Komplettes UI bauen', hook0Html: 'Einbettbares Portal enthalten', diyDim: false },
       { aspect: 'Anbieter-Bindung', diyHtml: 'Keine (aber an deinen Code gebunden)', hook0Html: 'Keine (quelloffen, selbst-hostbar)', diyDim: true },
     ],
