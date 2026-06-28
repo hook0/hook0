@@ -101,7 +101,7 @@ module.exports = {
       h2: 'Was ist Hook0?',
       paragraphs: [
         'Hook0 ist ein unabhängiges europäisches Unternehmen, gegründet auf den Prinzipien nachhaltiger Software und einer ethischen Datenpraxis. Unser Code ist vollständig quelloffen.',
-        'Wir glauben fest an Transparenz und Datensouveränität. Anders als andere Lösungen sperrt Hook0 weder deine Daten noch deine Software ein. Wenn du die SaaS-Version von Hook0 wählst, bleiben alle deine Daten in Europa, im Einklang mit den lokalen Vorschriften.',
+        'Wir glauben fest an Transparenz und Datensouveränität. Anders als andere Lösungen sperrt Hook0 weder deine Daten noch deine Software ein. Wenn du die SaaS-Version von Hook0 wählst, läuft die Anwendungs-Datenebene in Frankreich bei Clever Cloud (CDN Cloudflare USA im DPA offengelegt), im Einklang mit den lokalen Vorschriften.',
         'Unser Geschäftsmodell stützt sich vollständig auf Umsatz zahlender Kunden, ohne Venture-Capital-Finanzierung. Seit unserem Start bedienen wir unsere Kunden mit Engagement, mit Fokus auf Qualität und Verlässlichkeit.',
       ],
       statRevenueValue: '100%',
@@ -240,7 +240,7 @@ module.exports = {
     {
       primary: true,
       title: 'Daten und Souveränität',
-      description: 'Hook0 sperrt weder deine Daten noch deine Software ein. Wenn du die SaaS-Version von Hook0 abonnierst, bleiben alle deine Daten in Europa. Keine GAFAM hier.',
+      description: 'Hook0 sperrt weder deine Daten noch deine Software ein. Wenn du die SaaS-Version von Hook0 abonnierst, läuft die Anwendungs-Datenebene in Frankreich bei Clever Cloud (CDN Cloudflare USA im DPA offengelegt). Keine GAFAM im Stack.',
     },
     {
       title: 'Granulare Subscriptions',

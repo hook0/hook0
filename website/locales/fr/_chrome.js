@@ -100,7 +100,7 @@ module.exports = {
       h2: "Qu'est-ce que Hook0 ?",
       paragraphs: [
         "Chez Hook0, on est une société européenne indépendante, fondée sur des principes de durabilité logicielle et de pratiques éthiques autour des données. Notre code est entièrement à code source ouvert.",
-        "On croit profondément à la transparence et à la souveraineté des données. Contrairement à d'autres solutions, Hook0 ne verrouille ni tes données ni ton logiciel. Si tu choisis la version SaaS de Hook0, toutes tes données restent en Europe, en cohérence avec la réglementation locale.",
+        "On croit profondément à la transparence et à la souveraineté des données. Contrairement à d'autres solutions, Hook0 ne verrouille ni tes données ni ton logiciel. Si tu choisis la version SaaS de Hook0, le plan de données applicatif reste en France chez Clever Cloud (CDN Cloudflare US divulgué dans le DPA), en cohérence avec la réglementation locale.",
         "Notre modèle économique repose entièrement sur le revenu de nos clients payants, sans levée de fonds. Depuis notre lancement, on sert nos clients avec engagement, en se concentrant sur la qualité et la fiabilité.",
       ],
       statRevenueValue: '100%',
@@ -239,7 +239,7 @@ module.exports = {
     {
       primary: true,
       title: 'Données et souveraineté',
-      description: "Hook0 ne verrouille ni tes données ni ton logiciel. Si tu choisis la version SaaS de Hook0, toutes tes données restent en Europe. Pas de GAFAM ici.",
+      description: "Hook0 ne verrouille ni tes données ni ton logiciel. Si tu choisis la version SaaS de Hook0, le plan de données applicatif reste en France chez Clever Cloud (CDN Cloudflare US divulgué dans le DPA). Pas de GAFAM dans le stack.",
     },
     {
       title: 'Abonnements granulaires',
