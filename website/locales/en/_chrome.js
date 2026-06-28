@@ -196,6 +196,13 @@ module.exports = {
       noteText: 'One <strong>event</strong> can trigger multiple webhook subscriptions which can in turn be retried multiple times. <strong class="text-green-400">Subscriptions and retries are free.</strong> On paid plans, events above your daily quota are never blocked — they are billed as overage. See',
       noteTermsLink: 'Terms of Sale',
       noteSuffix: '.',
+      developerDescription: 'Perfect way to try out Hook0, no need to setup your instance, free forever for side-projects.',
+      startupDescription: 'Enhance your webhook experience with our new features and grow your start-up!',
+      proDescription: 'Unleash your data connectivity along with enterprise features and better support.',
+      enterpriseDescription: 'You need more? You need different? Let us know and we will build a custom plan just for you.',
+      selfHostedDescription: 'Open-source, on your infrastructure. Complete control over your data. Security and privacy compliant.',
+      onPremiseProDescription: 'We deploy a dedicated Hook0 instance to your environment and help you maintain/update it.',
+      onPremiseEnterpriseDescription: 'We help you exactly the way you need to provide a great webhook experience to your users.',
     },
   },
   // Locale-aware mirror of data.js locals.features. Translated title +

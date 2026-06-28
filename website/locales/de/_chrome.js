@@ -189,6 +189,13 @@ module.exports = {
       noteText: 'Ein <strong>Event</strong> kann mehrere Webhook-Subscriptions auslösen, die wiederum mehrfach wiederholt werden können. <strong class="text-green-400">Subscriptions und Retries sind kostenlos.</strong> In den kostenpflichtigen Plänen werden Events über deinem Tageskontingent nie blockiert, sondern als Overage abgerechnet. Siehe',
       noteTermsLink: 'Verkaufsbedingungen',
       noteSuffix: '.',
+      developerDescription: 'Der beste Weg, Hook0 auszuprobieren. Keine Instanz aufzusetzen, für immer kostenlos für deine Nebenprojekte.',
+      startupDescription: 'Erweitere deine Webhook-Erfahrung mit neuen Funktionen und lass dein Start-up wachsen.',
+      proDescription: 'Entfessle die Konnektivität deiner Daten mit Enterprise-Funktionen und besserem Support.',
+      enterpriseDescription: 'Du brauchst mehr? Etwas Anderes? Sag uns Bescheid, wir bauen dir einen maßgeschneiderten Plan.',
+      selfHostedDescription: 'Quelloffen (SSPL-1.0), auf deiner Infrastruktur. Volle Kontrolle über deine Daten, Sicherheit und Datenschutz im Blick.',
+      onPremiseProDescription: 'Wir deployen eine dedizierte Hook0-Instanz in deine Umgebung und unterstützen dich bei Wartung und Updates.',
+      onPremiseEnterpriseDescription: 'Wir helfen dir genau so, wie du es brauchst, um deinen Nutzern eine erstklassige Webhook-Erfahrung zu bieten.',
     },
   },
   // Locale-aware Spiegel von data.js locals.features. title und description

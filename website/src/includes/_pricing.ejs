@@ -109,7 +109,7 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                 <div class="animate-on-scroll pricing-card flex flex-col">
                     <div class="pricing-card__header">
                         <h3 class="pricing-card__name">Developer</h3>
-                        <p class="pricing-card__description">Perfect way to try out Hook0, no need to setup your instance, free forever for side-projects.</p>
+                        <p class="pricing-card__description"><%= __cp ? __cp.developerDescription : 'Perfect way to try out Hook0, no need to setup your instance, free forever for side-projects.' %></p>
                         <div class="pricing-card__price">
                             <span class="amount">FREE</span>
                             <span class="period"><%= __cp ? __cp.periodForever : 'Forever' %></span>
@@ -166,7 +166,7 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                 <div class="animate-on-scroll pricing-card flex flex-col">
                     <div class="pricing-card__header">
                         <h3 class="pricing-card__name">Startup</h3>
-                        <p class="pricing-card__description">Enhance your webhook experience with our new features and grow your start-up!</p>
+                        <p class="pricing-card__description"><%= __cp ? __cp.startupDescription : 'Enhance your webhook experience with our new features and grow your start-up!' %></p>
                         <div class="pricing-card__price">
                             <span class="amount">€59</span>
                             <span class="period"><%= __cp ? __cp.periodMonthExclVat : '/mo excl. VAT' %></span>
@@ -222,7 +222,7 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                     </div>
                     <div class="pricing-card__header">
                         <h3 class="pricing-card__name">Pro</h3>
-                        <p class="pricing-card__description">Unleash your data connectivity along with enterprise features and better support.</p>
+                        <p class="pricing-card__description"><%= __cp ? __cp.proDescription : 'Unleash your data connectivity along with enterprise features and better support.' %></p>
                         <div class="pricing-card__price">
                             <span class="amount">€190</span>
                             <span class="period"><%= __cp ? __cp.periodMonthExclVat : '/mo excl. VAT' %></span>
@@ -282,7 +282,7 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                 <div class="animate-on-scroll pricing-card flex flex-col">
                     <div class="pricing-card__header">
                         <h3 class="pricing-card__name">Enterprise</h3>
-                        <p class="pricing-card__description">You need more? You need different? Let us know and we will build a custom plan just for you.</p>
+                        <p class="pricing-card__description"><%= __cp ? __cp.enterpriseDescription : 'You need more? You need different? Let us know and we will build a custom plan just for you.' %></p>
                         <div class="pricing-card__price">
                             <span class="amount">Custom</span>
                             <span class="period"><%= __cp ? __cp.periodYear : '/year' %></span>
@@ -346,7 +346,7 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                 <div class="animate-on-scroll pricing-card flex flex-col">
                     <div class="pricing-card__header">
                         <h3 class="pricing-card__name">Self-hosted</h3>
-                        <p class="pricing-card__description">Open-source, on your infrastructure. Complete control over your data. Security and privacy compliant.</p>
+                        <p class="pricing-card__description"><%= __cp ? __cp.selfHostedDescription : 'Open-source, on your infrastructure. Complete control over your data. Security and privacy compliant.' %></p>
                         <div class="pricing-card__price">
                             <span class="amount">FREE</span>
                             <span class="period"><%= __cp ? __cp.periodForever : 'Forever' %></span>
@@ -398,7 +398,7 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                     </div>
                     <div class="pricing-card__header">
                         <h3 class="pricing-card__name">Pro</h3>
-                        <p class="pricing-card__description">We deploy a dedicated Hook0 instance to your environment and help you maintain/update it.</p>
+                        <p class="pricing-card__description"><%= __cp ? __cp.onPremiseProDescription : 'We deploy a dedicated Hook0 instance to your environment and help you maintain/update it.' %></p>
                         <div class="pricing-card__price">
                             <span class="amount">€1,000</span>
                             <span class="period">setup + €500/mo excl. VAT</span>
@@ -439,7 +439,7 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                 <div class="animate-on-scroll pricing-card flex flex-col">
                     <div class="pricing-card__header">
                         <h3 class="pricing-card__name">Enterprise</h3>
-                        <p class="pricing-card__description">We help you exactly the way you need to provide a great webhook experience to your users.</p>
+                        <p class="pricing-card__description"><%= __cp ? __cp.onPremiseEnterpriseDescription : 'We help you exactly the way you need to provide a great webhook experience to your users.' %></p>
                         <div class="pricing-card__price">
                             <span class="amount">Custom</span>
                         </div>

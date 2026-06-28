@@ -188,6 +188,13 @@ module.exports = {
       noteText: 'Un <strong>événement</strong> peut déclencher plusieurs abonnements webhooks, qui peuvent eux-mêmes être relancés plusieurs fois. <strong class="text-green-400">Les abonnements et les relances sont gratuits.</strong> Sur les plans payants, les événements au-delà de ton quota quotidien ne sont jamais bloqués, ils sont facturés en overage. Voir',
       noteTermsLink: 'Conditions de vente',
       noteSuffix: '.',
+      developerDescription: 'La meilleure façon de tester Hook0, sans config ni instance à monter, gratuit à vie pour tes projets perso.',
+      startupDescription: 'Passe à la vitesse supérieure avec nos nouvelles fonctionnalités et fais grandir ta startup.',
+      proDescription: 'Libère la connectivité de tes données avec des fonctionnalités entreprise et un support renforcé.',
+      enterpriseDescription: 'Tu as besoin de plus ? De quelque chose de différent ? Dis-le nous, on te construit un plan sur mesure.',
+      selfHostedDescription: 'Code source ouvert (SSPL-1.0), sur ton infrastructure. Contrôle complet sur tes données, aligné sécurité et vie privée.',
+      onPremiseProDescription: 'On déploie une instance Hook0 dédiée dans ton environnement et on t\'aide à la maintenir et la mettre à jour.',
+      onPremiseEnterpriseDescription: 'On t\'aide exactement comme tu en as besoin pour offrir une expérience webhooks de qualité à tes utilisateurs.',
     },
   },
   // Miroir locale-aware de data.js locals.features. title et description
