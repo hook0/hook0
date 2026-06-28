@@ -6,6 +6,11 @@
 // ready (see locales/<lang>.js). No hardcoded page list lives anywhere else:
 // the build discovers templates from src/*.ejs and consults this map per locale.
 module.exports = {
+  // Homepage. Special-cased by getPath (lang root → `/`, `/fr/`, `/de/`) and
+  // by the orchestrator's URL/hreflang builders (stem === 'index'). The slug
+  // value stays 'index' for FR/DE so the orchestrator keeps the file name as
+  // `index.ejs` and Parcel emits `dist/<lang>/index.html`.
+  'index': { fr: 'index', de: 'index' },
   'webhook-platform': { fr: 'plateforme-webhook', de: 'webhook-plattform' },
   'pricing': { fr: 'tarifs', de: 'preise' },
   'webhook-api': { fr: 'api-webhook', de: 'webhook-api' },

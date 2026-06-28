@@ -74,11 +74,27 @@ function faqToSchema(faq, lang) {
 // COMPLETE page-meta object, every key defaulted. Each per-locale entry calls
 // Object.assign(locals, getPageLocals(enSlug, lang)) so no page key bleeds from
 // the previously-rendered page (parcel-transformer-ejs shares one mutable
-// `locals` across a build run). `t` carries the page's localized strings.
+// `locals` across a build run). `t` carries the page's localized strings AND
+// merges chrome.includes / chrome.features / chrome.footerLinks so converted
+// page templates and their includes can read `locals.t.includes.<name>`,
+// `locals.t.features`, `locals.t.footerLinks` uniformly. Page-scoped keys win
+// over chrome keys on name conflict.
 function getPageLocals(enSlug, lang) {
   const loc = getLocale(lang);
   const page = (loc.pages && loc.pages[enSlug]) ? loc.pages[enSlug] : {};
-  return {
+  const chrome = loc.chrome || {};
+  const t = Object.assign({}, page);
+  if (chrome.includes && !t.includes) t.includes = chrome.includes;
+  if (chrome.features && !t.features) t.features = chrome.features;
+  if (chrome.footerLinks && !t.footerLinks) t.footerLinks = chrome.footerLinks;
+  // Also flatten chrome.features / chrome.footerLinks onto locals so the
+  // existing `locals.features.filter(...)` / `locals.footerLinks.about.items`
+  // call sites work without rewriting — when the locale-aware copy is present,
+  // it shadows the EN base loaded from data.js.
+  const extra = {};
+  if (chrome.features) extra.features = chrome.features;
+  if (chrome.footerLinks) extra.footerLinks = chrome.footerLinks;
+  return Object.assign({
     pageLang: lang,
     pageCanonical: getPath(enSlug, lang),
     pageHreflang: getAlternates(enSlug),
@@ -90,9 +106,9 @@ function getPageLocals(enSlug, lang) {
     pageNoindex: page.pageNoindex || false,
     pageFAQSchema: (page.faq && page.faq.items) ? faqToSchema(page.faq.items, lang) : null,
     pageSchema: page.pageSchema || null,
-    chrome: loc.chrome || {},
-    t: page,
-  };
+    chrome,
+    t,
+  }, extra);
 }
 
 // Tab-separated locale config for the Rust orchestrator: lang\tdir\tpublicUrl.

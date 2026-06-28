@@ -1,3 +1,6 @@
+<%
+var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pricing) ? locals.chrome.includes.pricing : null;
+%>
 <script defer>
     (function() {
         const destination = {
@@ -64,10 +67,10 @@
         <!-- Section Header (hidden when included from dedicated pricing page) -->
         <% if (!locals.hidePricingHeader) { %>
         <div class="section__header animate-on-scroll">
-            <span class="section__eyebrow">Pricing</span>
-            <h2 class="section__title">Hook0 Pricing</h2>
+            <span class="section__eyebrow"><%= __cp ? __cp.eyebrow : 'Pricing' %></span>
+            <h2 class="section__title"><%= __cp ? __cp.h2 : 'Hook0 Pricing' %></h2>
             <p class="section__description">
-                Choose the plan that's right for you, and start sending webhooks now
+                <%= __cp ? __cp.sub : "Choose the plan that's right for you, and start sending webhooks now" %>
             </p>
         </div>
         <% } %>
@@ -81,7 +84,7 @@
                         <path fill-rule="evenodd" clip-rule="evenodd"
                               d="M21.9173 6.78008C21.1731 3.088 17.9111 0.307739 13.9998 0.307739C10.0884 0.307739 6.82638 3.08802 6.08221 6.78011C2.69016 6.97647 0 9.78942 0 13.2307C0 16.7993 2.89293 19.6922 6.46154 19.6922H21.5385C25.1071 19.6922 28 16.7993 28 13.2307C28 9.78925 25.3096 6.9762 21.9173 6.78008Z"></path>
                     </svg>
-                    Cloud
+                    <%= __cp ? __cp.toggleCloud : 'Cloud' %>
                 </button>
                 <button class="pricing-toggle-btn px-6 py-3 rounded-xl text-sm font-medium text-gray-400 border border-transparent
                                hover:text-white transition-all duration-300 flex items-center gap-2" data-target="onpremise" onclick="trackEvent('Pricing', 'Toggle', 'onpremise')">
@@ -89,7 +92,7 @@
                         <path fill-rule="evenodd" clip-rule="evenodd"
                               d="M0 3C0 1.34314 1.34315 0 3 0H23C24.6569 0 26 1.34315 26 3V18.4783C26 20.1351 24.6569 21.4783 23 21.4783H3C1.34315 21.4783 0 20.1351 0 18.4783V3ZM7.08947 13.5652L5.73774 12.2959L8.74929 9.044L5.65212 5.81452L6.98165 4.5217L11.1591 8.87765L11.3043 9.01395L11.1892 9.13821L7.08947 13.5652ZM19.5001 14.6957H10.4566V16.9565H19.5001V14.6957Z"></path>
                     </svg>
-                    On-Premise
+                    <%= __cp ? __cp.toggleOnPremise : 'On-Premise' %>
                 </button>
             </div>
         </div>
@@ -97,8 +100,8 @@
         <!-- Cloud Pricing -->
         <div class="pricing--cloud">
             <div class="text-center mb-12 animate-on-scroll">
-                <h3 class="text-heading-xl font-bold text-white">Cloud</h3>
-                <p class="mt-2 text-gray-400">Hook0 as a service, managed by our team</p>
+                <h3 class="text-heading-xl font-bold text-white"><%= __cp ? __cp.cloudH3 : 'Cloud' %></h3>
+                <p class="mt-2 text-gray-400"><%= __cp ? __cp.cloudSub : 'Hook0 as a service, managed by our team' %></p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 stagger-children items-stretch">
@@ -109,12 +112,12 @@
                         <p class="pricing-card__description">Perfect way to try out Hook0, no need to setup your instance, free forever for side-projects.</p>
                         <div class="pricing-card__price">
                             <span class="amount">FREE</span>
-                            <span class="period">Forever</span>
+                            <span class="period"><%= __cp ? __cp.periodForever : 'Forever' %></span>
                         </div>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="#top" class="btn btn--primary w-full mb-6" onclick="trackEvent('CTA', 'Click', 'Get Started')">Sign Up</a>
-                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <a href="#top" class="btn btn--primary w-full mb-6" onclick="trackEvent('CTA', 'Click', 'Get Started')"><%= __cp ? __cp.ctaSignUp : 'Sign Up' %></a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4"><%= __cp ? __cp.whatsIncluded : "What's included" %></h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -166,12 +169,12 @@
                         <p class="pricing-card__description">Enhance your webhook experience with our new features and grow your start-up!</p>
                         <div class="pricing-card__price">
                             <span class="amount">€59</span>
-                            <span class="period">/mo excl. VAT</span>
+                            <span class="period"><%= __cp ? __cp.periodMonthExclVat : '/mo excl. VAT' %></span>
                         </div>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="<%= locals.subscriptionLinks.cloud.startup %>" class="btn btn--primary w-full mb-6" onclick="trackEvent('CTA', 'Click', 'Get Started')">Subscribe</a>
-                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <a href="<%= locals.subscriptionLinks.cloud.startup %>" class="btn btn--primary w-full mb-6" onclick="trackEvent('CTA', 'Click', 'Get Started')"><%= __cp ? __cp.ctaSubscribe : 'Subscribe' %></a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4"><%= __cp ? __cp.whatsIncluded : "What's included" %></h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -215,22 +218,22 @@
                 <!-- Pro Plan (Featured) -->
                 <div class="animate-on-scroll pricing-card pricing-card--featured flex flex-col pt-6">
                     <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                        <span class="px-4 py-1.5 rounded-full bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap">Most Popular</span>
+                        <span class="px-4 py-1.5 rounded-full bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap"><%= __cp ? __cp.mostPopular : 'Most Popular' %></span>
                     </div>
                     <div class="pricing-card__header">
                         <h3 class="pricing-card__name">Pro</h3>
                         <p class="pricing-card__description">Unleash your data connectivity along with enterprise features and better support.</p>
                         <div class="pricing-card__price">
                             <span class="amount">€190</span>
-                            <span class="period">/mo excl. VAT</span>
+                            <span class="period"><%= __cp ? __cp.periodMonthExclVat : '/mo excl. VAT' %></span>
                         </div>
                         <p class="mt-2 text-sm text-gray-400 text-left">
                             €1,824/yr excl. VAT <span class="text-green-400">(20% off)</span>
                         </p>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="<%= locals.subscriptionLinks.cloud.pro %>" class="btn btn--primary w-full mb-6" onclick="trackEvent('CTA', 'Click', 'Get Started')">Subscribe</a>
-                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <a href="<%= locals.subscriptionLinks.cloud.pro %>" class="btn btn--primary w-full mb-6" onclick="trackEvent('CTA', 'Click', 'Get Started')"><%= __cp ? __cp.ctaSubscribe : 'Subscribe' %></a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4"><%= __cp ? __cp.whatsIncluded : "What's included" %></h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -282,12 +285,12 @@
                         <p class="pricing-card__description">You need more? You need different? Let us know and we will build a custom plan just for you.</p>
                         <div class="pricing-card__price">
                             <span class="amount">Custom</span>
-                            <span class="period">/year</span>
+                            <span class="period"><%= __cp ? __cp.periodYear : '/year' %></span>
                         </div>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="<%= locals.meta.contact %>" class="btn btn--secondary w-full mb-6" onclick="trackEvent('CTA', 'Click', 'Contact Support')">Contact us</a>
-                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <a href="<%= locals.meta.contact %>" class="btn btn--secondary w-full mb-6" onclick="trackEvent('CTA', 'Click', 'Contact Support')"><%= __cp ? __cp.ctaContact : 'Contact us' %></a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4"><%= __cp ? __cp.whatsIncluded : "What's included" %></h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -334,8 +337,8 @@
         <!-- On-Premise Pricing -->
         <div class="pricing--onpremise">
             <div class="text-center mb-12 animate-on-scroll">
-                <h3 class="text-heading-xl font-bold text-white">On-Premise</h3>
-                <p class="mt-2 text-gray-400">Your dedicated Hook0 instance</p>
+                <h3 class="text-heading-xl font-bold text-white"><%= __cp ? __cp.onPremiseH3 : 'On-Premise' %></h3>
+                <p class="mt-2 text-gray-400"><%= __cp ? __cp.onPremiseSub : 'Your dedicated Hook0 instance' %></p>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 stagger-children items-stretch">
@@ -346,12 +349,12 @@
                         <p class="pricing-card__description">Open-source, on your infrastructure. Complete control over your data. Security and privacy compliant.</p>
                         <div class="pricing-card__price">
                             <span class="amount">FREE</span>
-                            <span class="period">Forever</span>
+                            <span class="period"><%= __cp ? __cp.periodForever : 'Forever' %></span>
                         </div>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="https://documentation.hook0.com/docs/docker-compose" class="btn btn--secondary w-full mb-6" onclick="trackEvent('Pricing', 'Click', 'onprem-selfhosted-install')">Get installation instructions</a>
-                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <a href="https://documentation.hook0.com/docs/docker-compose" class="btn btn--secondary w-full mb-6" onclick="trackEvent('Pricing', 'Click', 'onprem-selfhosted-install')"><%= __cp ? __cp.ctaInstallInstructions : 'Get installation instructions' %></a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4"><%= __cp ? __cp.whatsIncluded : "What's included" %></h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -370,7 +373,7 @@
                                 <span>Community support on <a href="<%= locals.social.discord.href %>" target="_blank" class="text-indigo-400 hover:text-indigo-300">Discord</a></span>
                             </li>
                         </ul>
-                        <h4 class="text-xs font-semibold text-yellow-500/80 uppercase tracking-wider mb-4 mt-6">What's not included</h4>
+                        <h4 class="text-xs font-semibold text-yellow-500/80 uppercase tracking-wider mb-4 mt-6"><%= __cp ? __cp.whatsNotIncluded : "What's not included" %></h4>
                         <ul class="pricing-card__features">
                             <li class="pricing-card__feature text-gray-500">
                                 <svg class="text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
@@ -391,7 +394,7 @@
                 <!-- Pro On-Premise Plan -->
                 <div class="animate-on-scroll pricing-card pricing-card--featured flex flex-col pt-6">
                     <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                        <span class="px-4 py-1.5 rounded-full bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap">Recommended</span>
+                        <span class="px-4 py-1.5 rounded-full bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap"><%= __cp ? __cp.recommended : 'Recommended' %></span>
                     </div>
                     <div class="pricing-card__header">
                         <h3 class="pricing-card__name">Pro</h3>
@@ -405,8 +408,8 @@
                         </p>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="<%= locals.subscriptionLinks.onprem.pro %>" class="btn btn--primary w-full mb-6" onclick="trackEvent('CTA', 'Click', 'Get Started')">Subscribe</a>
-                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <a href="<%= locals.subscriptionLinks.onprem.pro %>" class="btn btn--primary w-full mb-6" onclick="trackEvent('CTA', 'Click', 'Get Started')"><%= __cp ? __cp.ctaSubscribe : 'Subscribe' %></a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4"><%= __cp ? __cp.whatsIncluded : "What's included" %></h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -442,8 +445,8 @@
                         </div>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
-                        <a href="<%= locals.meta.contact %>" class="btn btn--secondary w-full mb-6" onclick="trackEvent('CTA', 'Click', 'Contact Support')">Contact us</a>
-                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">What's included</h4>
+                        <a href="<%= locals.meta.contact %>" class="btn btn--secondary w-full mb-6" onclick="trackEvent('CTA', 'Click', 'Contact Support')"><%= __cp ? __cp.ctaContact : 'Contact us' %></a>
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4"><%= __cp ? __cp.whatsIncluded : "What's included" %></h4>
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>

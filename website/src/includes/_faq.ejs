@@ -1,3 +1,12 @@
+<%
+var __c = (locals.chrome && locals.chrome.includes && locals.chrome.includes.faq) ? locals.chrome.includes.faq : null;
+var __faqItems = __c ? __c.items : [
+  { q: 'What are Webhooks as a Service?', a: 'We took everything that goes into a webhook service (retries, fine-grained subscriptions management, etc) and packaged it up into a platform that you can easily integrate with using our API.' },
+  { q: 'How long does it take to integrate with Hook0?', a: 'Every setup is different, but a senior developer should be able to build out a working version within a day and be live in under a week.' },
+  { q: 'How is this different than Zapier, Make or n8n?', a: 'These services are automation tools that help connect online services together. Hook0 is a platform that gives your application the ability to send webhook events to your users (who may use these services).' },
+  { q: "We've already built webhooks, can we still use Hook0?", a: "That is a great use case for using Hook0 since you've already validated that your users want webhooks. There is a good chance that what Hook0 offers is much more robust than your solution. If that is the case, then migrating your custom solution to Hook0 will allow you to <strong>focus</strong> on other priorities while offering a top notch webhook solution." },
+];
+%>
 <section class="relative bg-surface-secondary py-24 sm:py-32 overflow-hidden">
     <!-- Background Effects -->
     <div class="absolute inset-0 gradient-mesh opacity-30"></div>
@@ -6,79 +15,41 @@
         <div class="lg:grid lg:grid-cols-12 lg:gap-16">
             <!-- Left Column - Header -->
             <div class="lg:col-span-4 animate-on-scroll animate-on-scroll--left">
-                <span class="section__eyebrow">FAQ</span>
+                <span class="section__eyebrow"><%= __c ? __c.eyebrow : 'FAQ' %></span>
                 <h2 class="text-display font-bold text-white mt-4">
-                    Frequently asked questions
+                    <%= __c ? __c.h2 : 'Frequently asked questions' %>
                 </h2>
                 <p class="mt-4 text-body-lg text-gray-400">
-                    Can't find the answer you're looking for? Reach out to our
-                    <a href="<%= locals.meta.contact %>" class="text-indigo-400 hover:text-indigo-300 transition-colors">customer support</a> team.
+                    <%= __c ? __c.sub : "Can't find the answer you're looking for? Reach out to our" %>
+                    <a href="<%= locals.meta.contact %>" class="text-indigo-400 hover:text-indigo-300 transition-colors"><%= __c ? __c.supportLinkLabel : 'customer support' %></a> team.
                 </p>
             </div>
 
             <!-- Right Column - FAQ Items -->
             <div class="lg:col-span-8 mt-12 lg:mt-0">
                 <div class="space-y-4 stagger-children">
-                    <!-- FAQ Item 1 -->
+                    <% __faqItems.forEach(function(item) { %>
                     <details class="faq-item animate-on-scroll group">
                         <summary class="text-white font-medium">
-                            <span>What are Webhooks as a Service?</span>
+                            <span><%= item.q %></span>
                             <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                             </svg>
                         </summary>
                         <div class="faq-item__content">
-                            We took everything that goes into a webhook service (retries, fine-grained subscriptions management, etc) and packaged it up into a platform that you can easily integrate with using our API.
+                            <%- item.a %>
                         </div>
                     </details>
-
-                    <!-- FAQ Item 2 -->
-                    <details class="faq-item animate-on-scroll group">
-                        <summary class="text-white font-medium">
-                            <span>How long does it take to integrate with Hook0?</span>
-                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </summary>
-                        <div class="faq-item__content">
-                            Every setup is different, but a senior developer should be able to build out a working version within a day and be live in under a week.
-                        </div>
-                    </details>
-
-                    <!-- FAQ Item 3 -->
-                    <details class="faq-item animate-on-scroll group">
-                        <summary class="text-white font-medium">
-                            <span>How is this different than Zapier, Make or n8n?</span>
-                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </summary>
-                        <div class="faq-item__content">
-                            These services are automation tools that help connect online services together. Hook0 is a platform that gives your application the ability to send webhook events to your users (who may use these services).
-                        </div>
-                    </details>
-
-                    <!-- FAQ Item 4 -->
-                    <details class="faq-item animate-on-scroll group">
-                        <summary class="text-white font-medium">
-                            <span>We've already built webhooks, can we still use Hook0?</span>
-                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </summary>
-                        <div class="faq-item__content">
-                            That is a great use case for using Hook0 since you've already validated that your users want webhooks. There is a good chance that what Hook0 offers is much more robust than your solution. If that is the case, then migrating your custom solution to Hook0 will allow you to <strong>focus</strong> on other priorities while offering a top notch webhook solution.
-                        </div>
-                    </details>
+                    <% }) %>
                 </div>
 
                 <!-- More Questions CTA -->
                 <div class="mt-12 p-8 rounded-2xl glass text-center animate-on-scroll">
                     <p class="text-gray-300">
-                        Have more questions? Check out our
-                        <a href="https://documentation.hook0.com/docs/getting-started" class="text-indigo-400 hover:text-indigo-300 transition-colors" target="_blank">product FAQ</a>
-                        or
-                        <a href="mailto:support@hook0.com" class="text-indigo-400 hover:text-indigo-300 transition-colors">contact us</a>.
+                        <%= __c ? __c.moreQuestionsPrefix : 'Have more questions? Check out our' %>
+                        <a href="https://documentation.hook0.com/docs/getting-started" class="text-indigo-400 hover:text-indigo-300 transition-colors" target="_blank"><%= __c ? __c.productFaqLink : 'product FAQ' %></a>
+                        <%= __c ? __c.moreQuestionsOr : 'or' %>
+                        <a href="mailto:support@hook0.com" class="text-indigo-400 hover:text-indigo-300 transition-colors"><%= __c ? __c.contactLink : 'contact us' %></a>.
                     </p>
                 </div>
             </div>

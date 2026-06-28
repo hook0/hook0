@@ -1,3 +1,6 @@
+<%
+var __c = (locals.chrome && locals.chrome.includes && locals.chrome.includes.customers) ? locals.chrome.includes.customers : null;
+%>
 <a name="customers" id="customers"></a>
 <section class="relative bg-surface-secondary py-24 sm:py-32 overflow-hidden">
     <!-- Background gradient -->
@@ -7,16 +10,16 @@
         <div class="grid grid-cols-1 items-center gap-x-16 gap-y-16 lg:grid-cols-2">
             <!-- Left Column - Text -->
             <div class="animate-on-scroll animate-on-scroll--left">
-                <span class="section__eyebrow">Social Proof</span>
+                <span class="section__eyebrow"><%= __c ? __c.eyebrow : 'Social Proof' %></span>
                 <h2 class="text-display font-bold text-white">
-                    Trusted by companies worldwide
+                    <%= __c ? __c.h2 : 'Trusted by companies worldwide' %>
                 </h2>
                 <p class="mt-6 text-body-lg text-gray-400 leading-relaxed">
-                    These teams chose Hook0 over competitors because Hook0 publishes its full server source (SSPL-1.0) and also offers production-ready SaaS support. They gain a competitive advantage by embracing extensibility, reversibility, and future-proofness in their integration strategies.
+                    <%= __c ? __c.lead : 'These teams chose Hook0 over competitors because Hook0 publishes its full server source (SSPL-1.0) and also offers production-ready SaaS support. They gain a competitive advantage by embracing extensibility, reversibility, and future-proofness in their integration strategies.' %>
                 </p>
                 <div class="mt-8">
                     <a href="/pricing" class="link link--arrow text-indigo-400 hover:text-indigo-300">
-                        Join them today
+                        <%= __c ? __c.joinThemCta : 'Join them today' %>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                         </svg>
@@ -71,20 +74,20 @@
         <div class="mt-16 pt-16 border-t border-white/10">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-8 stagger-children">
                 <div class="animate-on-scroll text-center">
-                    <div class="text-4xl sm:text-5xl font-extrabold text-gradient-green">99.9%</div>
-                    <div class="mt-2 text-sm font-medium text-gray-400">Uptime SLA</div>
+                    <div class="text-4xl sm:text-5xl font-extrabold text-gradient-green"><%= __c ? __c.statUptimeValue : '99.9%' %></div>
+                    <div class="mt-2 text-sm font-medium text-gray-400"><%= __c ? __c.statUptimeLabel : 'Uptime SLA' %></div>
                 </div>
                 <div class="animate-on-scroll text-center">
-                    <div class="text-4xl sm:text-5xl font-extrabold text-gradient-indigo">10M+</div>
-                    <div class="mt-2 text-sm font-medium text-gray-400">Webhooks Delivered</div>
+                    <div class="text-4xl sm:text-5xl font-extrabold text-gradient-indigo"><%= __c ? __c.statDeliveredValue : '10M+' %></div>
+                    <div class="mt-2 text-sm font-medium text-gray-400"><%= __c ? __c.statDeliveredLabel : 'Webhooks Delivered' %></div>
                 </div>
                 <div class="animate-on-scroll text-center">
-                    <div class="text-4xl sm:text-5xl font-extrabold text-gradient">&lt;100ms</div>
-                    <div class="mt-2 text-sm font-medium text-gray-400">Avg. Delivery Time</div>
+                    <div class="text-4xl sm:text-5xl font-extrabold text-gradient"><%- __c ? __c.statLatencyValue.replace('<', '&lt;') : '&lt;100ms' %></div>
+                    <div class="mt-2 text-sm font-medium text-gray-400"><%= __c ? __c.statLatencyLabel : 'Avg. Delivery Time' %></div>
                 </div>
                 <div class="animate-on-scroll text-center">
-                    <div class="text-4xl sm:text-5xl font-extrabold text-white">6</div>
-                    <div class="mt-2 text-sm font-medium text-gray-400">Continents Served</div>
+                    <div class="text-4xl sm:text-5xl font-extrabold text-white"><%= __c ? __c.statContinentsValue : '6' %></div>
+                    <div class="mt-2 text-sm font-medium text-gray-400"><%= __c ? __c.statContinentsLabel : 'Continents Served' %></div>
                 </div>
             </div>
         </div>

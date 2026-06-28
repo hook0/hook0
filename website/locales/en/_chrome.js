@@ -1,13 +1,16 @@
-// EN chrome strings (header, footer, CTA, social-proof). VERBATIM extraction
-// from src/includes/_header.ejs, _footer.ejs, _cta-inline.ejs,
-// _social-proof-bar.ejs — must stay byte-identical with the legacy includes
-// (EN identity gate).
+// EN chrome strings (header, footer, CTA, social-proof, includes, features,
+// footerLinks). VERBATIM extraction from src/includes/_*.ejs and data.js —
+// must stay byte-identical with the live English render (EN identity gate).
 //
-// SCOPE (MVP): translate only chrome strings that are language-independent
-// of page routing — column titles, tagline, copyright, cookie settings,
-// CTA copy, nav labels. Footer link LABELS (e.g. "Pricing", "Security")
-// stay EN for now; they will be re-translated in a second pass once more
-// target pages are localized (the link href routing depends on slugs.js).
+// Layout:
+//   header/footer/cta/socialProof: chrome strings shared across all pages.
+//   includes.<name>: per-include section copy (eyebrows, headings, items)
+//     consumed when a page calls i18nHelpers.getPageLocals (sets locals.chrome).
+//     Legacy non-converted pages still see the inline EN fallback in the
+//     templates, so EN output stays byte-stable.
+//   features / footerLinks: locale-aware copies of data.js arrays. Loaded onto
+//     locals via getPageLocals (shadowing the EN base from data.js) on
+//     converted pages only.
 module.exports = {
   header: {
     nav: {
@@ -52,5 +55,323 @@ module.exports = {
   },
   socialProof: {
     label: 'Trusted by teams at',
+  },
+  includes: {
+    howItWorks: {
+      eyebrow: 'How It Works',
+      h2: 'Set up webhooks in 10 minutes',
+      sub: 'From signup to production in three steps',
+      steps: [
+        { title: 'Register & Configure', body: 'Create an account, add your application, and list the event types your subscribers can receive.', linkLabel: 'Getting started guide' },
+        { title: 'Send Events via API', body: 'POST your event once. Hook0 delivers it, retries on failure, signs the payload, and encrypts over TLS.', linkLabel: 'Authentication docs' },
+        { title: 'Monitor & Debug', body: 'See every delivery attempt, inspect payloads, find out why a delivery failed, and replay events from the dashboard or API.', linkLabel: 'Monitoring guide' },
+      ],
+      bottomCta: 'What is Hook0?',
+    },
+    features: {
+      eyebrow: 'Features',
+      h2: 'Out-Of-The-Box Webhooks',
+      sub: 'Everything you need to build a state-of-the-art webhooks solution in minutes',
+      completeSolutionEyebrow: 'Complete Solution',
+      completeSolutionH3: 'All-in-one platform',
+      completeSolutionSub: 'Build a state-of-the-art webhooks solution in minutes using Hook0',
+      exploreAllFeaturesCta: 'Explore all features',
+      comingSoonBadge: '(Coming soon)',
+    },
+    faq: {
+      eyebrow: 'FAQ',
+      h2: 'Frequently asked questions',
+      sub: 'Reach out to our',
+      supportLinkLabel: 'customer support',
+      items: [
+        { q: 'What are Webhooks as a Service?', a: 'We took everything that goes into a webhook service (retries, fine-grained subscriptions management, etc) and packaged it up into a platform that you can easily integrate with using our API.' },
+        { q: 'How long does it take to integrate with Hook0?', a: 'Every setup is different, but a senior developer should be able to build out a working version within a day and be live in under a week.' },
+        { q: 'How is this different than Zapier, Make or n8n?', a: 'These services are automation tools that help connect online services together. Hook0 is a platform that gives your application the ability to send webhook events to your users (who may use these services).' },
+        { q: "We've already built webhooks, can we still use Hook0?", a: "That is a great use case for using Hook0 since you've already validated that your users want webhooks. There is a good chance that what Hook0 offers is much more robust than your solution. If that is the case, then migrating your custom solution to Hook0 will allow you to <strong>focus</strong> on other priorities while offering a top notch webhook solution." },
+      ],
+      moreQuestionsPrefix: 'Have more questions? Check out our',
+      productFaqLink: 'product FAQ',
+      moreQuestionsOr: 'or',
+      contactLink: 'contact us',
+    },
+    testimonials: {
+      eyebrow: 'Testimonials',
+      h2: 'What people are saying',
+      sub: 'Hear from developers and teams who trust Hook0 for their webhook infrastructure',
+      items: [
+        { quote: 'Give it enough time and open-Source always wins in the end!', author: 'François-Guillaume Ribreau', role: 'Hook0 co-founder' },
+        { quote: 'We are building it the way we would love to use it', author: 'David Sferruzza, PhD', role: 'Hook0 co-founder' },
+        { quote: 'This is by far the best webhook software out there', author: 'Kieron Wiltshire', role: 'Senior Software Engineer' },
+      ],
+    },
+    builtToLast: {
+      eyebrow: 'About Hook0',
+      h2: 'What is Hook0?',
+      paragraphs: [
+        'At Hook0, we are an independent European company founded on principles of software sustainability and ethical data practices. Our code is fully open-source.',
+        'We firmly believe in transparency and data sovereignty. Unlike other solutions, Hook0 does not lock your data or software. If you choose the SaaS version of Hook0, all your data will remain in Europe, ensuring compliance with local regulations.',
+        'Our business model is entirely supported by revenue from our paying users, with no venture capital funding. Since our launch, we have served our clients with dedication, focusing on quality and reliability.',
+      ],
+      statRevenueValue: '100%',
+      statRevenueLabel: 'Revenue from paying users',
+      statNoVcValue: '$0',
+      statNoVcLabel: 'In venture capital',
+      statYearsValue: '6 years',
+      statYearsLabel: 'In service',
+      ctaLongevity: 'Read our longevity statement',
+      ctaWhatIs: 'What is Hook0?',
+    },
+    useCase: {
+      eyebrow: 'Use Cases',
+      h2: 'Real-time notifications',
+      sub: 'When something happens on your system, let your users know immediately!',
+      ctaStart: 'Get Started',
+      cards: [
+        { title: 'No Code Solutions', summary: 'Integrate with platforms like Zapier and Integromat and offer your users webhooks without any code.', perfectFor: 'E-commerce, Marketing Automation, CRM Integration', howItWorks: 'Hook0 seamlessly connects with 3000+ apps through Zapier. Simply configure your webhook endpoint and let your users automate their workflows.', linkLabel: 'View integration guide' },
+        { title: 'Stop Polling', summary: 'We all know polling for data is inefficient. Use webhooks instead to push data to your users.', perfectFor: 'Real-time Apps, IoT Platforms, Data Sync Services', howItWorks: 'Replace inefficient polling with instant push notifications. Reduce API calls by up to 90% and get real-time data delivery.', linkLabel: 'Learn about webhooks' },
+        { title: 'No More Custom Reporting', summary: 'Have your users subscribe to your webhooks and give them a self serve integration.', perfectFor: 'SaaS Platforms, Analytics Tools, Business Intelligence', howItWorks: 'Let your customers build their own integrations. They subscribe to events they care about and receive data in their preferred format.', linkLabel: 'See self-service examples' },
+        { title: 'Asynchronous Notifications', summary: 'For time consuming tasks, use webhooks to asynchronously notify your users when they are done.', perfectFor: 'Video Processing, Data Pipelines, ML/AI Workloads', howItWorks: 'Start long-running jobs and get notified when they complete. No need to keep connections open or poll for status.', linkLabel: 'Async webhook patterns' },
+        { title: 'Internal Systems Communication', summary: 'An event bus solution can be heavy, start with internal webhooks to communicate between internal services.', perfectFor: 'Microservices, Event-Driven Architecture, Internal APIs', howItWorks: 'Use webhooks as a lightweight alternative to message queues. Perfect for decoupling services without infrastructure overhead.', linkLabel: 'Internal webhooks guide' },
+        { title: 'Platform Notifications', summary: 'Giving your platform users access to events occuring on your platform improves the experience for everyone.', perfectFor: 'Marketplaces, Social Platforms, Developer Tools', howItWorks: 'Empower your users to react to platform events in real-time. From new orders to user signups, keep everyone in sync.', linkLabel: 'Platform events setup' },
+        { title: 'Back Office Operations', summary: 'Let your subscribers know an order has been refunded or shipment has been delivered so they can take action.', perfectFor: 'E-commerce, Logistics, Order Management', howItWorks: 'Automate back-office workflows. Trigger actions on refunds, shipments, inventory changes, and more.', linkLabel: 'E-commerce webhooks' },
+        { title: 'Provide Updates On Progress', summary: 'As data in your system changes, update your subscribers with those changes.', perfectFor: 'Project Management, CRM Systems, Collaboration Tools', howItWorks: 'Keep all stakeholders informed as data evolves. From status updates to milestone completions, deliver real-time progress notifications.', linkLabel: 'Progress notifications' },
+      ],
+      perfectForLabel: 'Perfect for:',
+      howItWorksLabel: 'How it works:',
+    },
+    apiAndDoc: {
+      eyebrow: 'Developer Experience',
+      h2: 'API & Docs',
+      sub: 'Built by open-source developers around the world for everyone to use',
+      h3OneApiFullControl: 'One API, Full Control',
+      h3Lead: 'Hook0 is built by open-source developers around the world for everyone to use.',
+      quickLinks: { apiRef: 'API Reference', guides: 'Guides', mcp: 'MCP Server', sdks: 'SDKs' },
+      items: [
+        { title: 'Robust API Documentation', body: 'Fully documented RESTful JSON API with examples', linkLabel: 'Read the Docs' },
+        { title: 'Developer Resources', body: 'A fully documented set of resources to help guide you through your integration', linkLabel: 'Developer Resources' },
+        { title: 'MCP Server for AI Assistants', body: 'Control your webhooks using natural language with Claude, Cursor, Windsurf, or any MCP-compatible AI', linkLabel: 'Setup MCP Server' },
+      ],
+      codeFile: 'send-webhook.sh',
+      codeComment: '# Send a webhook event',
+      statApi: 'API',
+      statFormat: 'Format',
+      statUptime: 'Uptime',
+    },
+    customers: {
+      eyebrow: 'Social Proof',
+      h2: 'Trusted by companies worldwide',
+      lead: 'These teams chose Hook0 over competitors because Hook0 publishes its full server source (SSPL-1.0) and also offers production-ready SaaS support. They gain a competitive advantage by embracing extensibility, reversibility, and future-proofness in their integration strategies.',
+      joinThemCta: 'Join them today',
+      statUptimeValue: '99.9%',
+      statUptimeLabel: 'Uptime SLA',
+      statDeliveredValue: '10M+',
+      statDeliveredLabel: 'Webhooks Delivered',
+      statLatencyValue: '<100ms',
+      statLatencyLabel: 'Avg. Delivery Time',
+      statContinentsValue: '6',
+      statContinentsLabel: 'Continents Served',
+    },
+    pricing: {
+      eyebrow: 'Pricing',
+      h2: 'Hook0 Pricing',
+      sub: "Choose the plan that's right for you, and start sending webhooks now",
+      toggleCloud: 'Cloud',
+      toggleOnPremise: 'On-Premise',
+      cloudH3: 'Cloud',
+      cloudSub: 'Hook0 as a service, managed by our team',
+      onPremiseH3: 'On-Premise',
+      onPremiseSub: 'Your dedicated Hook0 instance',
+      mostPopular: 'Most Popular',
+      recommended: 'Recommended',
+      whatsIncluded: "What's included",
+      whatsNotIncluded: "What's not included",
+      ctaSignUp: 'Sign Up',
+      ctaSubscribe: 'Subscribe',
+      ctaContact: 'Contact us',
+      ctaInstallInstructions: 'Get installation instructions',
+      periodForever: 'Forever',
+      periodMonthExclVat: '/mo excl. VAT',
+      periodYear: '/year',
+      noteText: 'One <strong>event</strong> can trigger multiple webhook subscriptions which can in turn be retried multiple times. <strong class="text-green-400">Subscriptions and retries are free.</strong> On paid plans, events above your daily quota are never blocked — they are billed as overage. See',
+      noteTermsLink: 'Terms of Sale',
+      noteSuffix: '.',
+    },
+  },
+  // Locale-aware mirror of data.js locals.features. Translated title +
+  // description; primary/wip flags unchanged across locales.
+  features: [
+    {
+      primary: true,
+      title: 'Open-Source',
+      description: "Unlike alternatives, Hook0 is fully <a href='https://github.com/hook0' target='_blank'>open-source</a>. No vendor-locking, we are here to stay, no investors, we are fully sustainable since day 1.",
+    },
+    {
+      primary: true,
+      title: 'Easy Integration',
+      description: 'Our <a href="https://documentation.hook0.com/reference/">JSON REST API</a>, <a href="https://documentation.hook0.com/reference/sdk/">SDKs</a>, and <a href="https://documentation.hook0.com/reference/mcp">MCP Server for AI assistants</a> make it easy to trigger webhook events from your application and let your users connect to every available SaaS.',
+    },
+    {
+      primary: true,
+      title: 'Signed & Encrypted',
+      description: 'All webhooks are TLS secured and contain a cryptographic signature to prevent forgery, replay, man-in-the-middle attacks.',
+    },
+    {
+      primary: true,
+      title: 'Configurable Retries',
+      description: 'Two-phase retry schedules configurable per subscription: fast retries with increasing delays, then slow retries at fixed intervals. Smart defaults included, full control when you need it.',
+      wip: false,
+    },
+    {
+      primary: true,
+      title: 'Make Your Subscribers Happy',
+      description: 'Give your users a primo experience with our mock payloads, webhook logs and subscriber portal.',
+      wip: false,
+    },
+    {
+      primary: true,
+      title: 'Transparent Webhooks',
+      description: 'All webhook attempts are logged so you and your subscribers can easily search, debug and replay old events.',
+      wip: false,
+    },
+    {
+      primary: true,
+      title: 'Embeddable Portal',
+      description: 'Give your subscribers a branded experience with a custom subdomain and your logo uploaded on the subscriber portal.',
+      wip: false,
+    },
+    {
+      primary: true,
+      title: 'Precise Dispatch',
+      description: 'Your users only receive webhooks they subscribed to. You can filter each subscription by business info (user ID, …).',
+      wip: true,
+    },
+    {
+      primary: true,
+      title: 'Data & Sovereignty',
+      description: 'Hook0 does not lock your data nor your software. If you subscribe to Hook0 SaaS version, all your data will stay in Europe. No GAFAM there.',
+    },
+    {
+      title: 'Fine-grained subscriptions',
+      description: 'Enable your users to subscribe to your events by setting up a webhook. They can choose which event types they want to receive.',
+      wip: false,
+    },
+    {
+      title: 'Multi subscriptions',
+      description: 'Your users can register several webhook target URLs, we will send events to all of them!',
+      wip: false,
+    },
+    {
+      title: 'Event scoping',
+      description: 'Scope events to one or several levels of your application. Users, organizations, administrators, [insert your own], they can all handle subscriptions to their events.',
+      wip: false,
+    },
+    {
+      title: 'Dashboards',
+      description: 'Either use Hook0 out-of-the-box dashboards to let your users see events that went through their subscriptions, or build your own with the API.',
+      wip: true,
+    },
+    {
+      title: 'Failure notification',
+      description: "If after all retry attempts we still can't reach a webhook endpoint, your subscriber is notified by email.",
+      wip: true,
+    },
+    {
+      title: 'Events & responses persistence',
+      description: 'Hook0 keeps track of every event your application sent it and of every webhook call. This can help you debug your integration or act as an audit log!',
+      wip: false,
+    },
+    {
+      title: 'High availability',
+      description: "Hook0 won't miss the events you send it.",
+      wip: false,
+    },
+    {
+      title: 'GDPR Compliant',
+      description: 'Hook0 is GDPR compliant and can easily execute a data processor agreement with your company if needed.',
+      wip: false,
+    },
+    {
+      title: 'Data Security',
+      description: 'Hook0 utilizes best practices for data storage and encryption. We also offer single-tenant and on-premise deployment options.',
+      wip: false,
+    },
+    {
+      title: 'Designed for Enterprise Scale',
+      description: 'Hook0 automatically scales to handle thousands of requests per minute.',
+      wip: false,
+    },
+  ],
+  // Locale-aware mirror of data.js locals.footerLinks. Section titles and
+  // link labels translated; href values stay EN — the orchestrator does NOT
+  // route footer hrefs through locales/slugs.js (separate concern). Icons
+  // preserved so the _icon-wrapper include still renders the right glyph.
+  footerLinks: {
+    about: {
+      title: 'About',
+      items: [
+        { label: 'Contact', href: 'mailto:support@hook0.com' },
+        { label: 'Pricing', href: './pricing' },
+        { label: 'Resources', href: 'https://documentation.hook0.com/docs' },
+        { label: 'Security & Compliance', href: './security' },
+        { label: 'Built to Last', href: './built-to-last' },
+        { label: 'Media Kit', href: './mediakit/' },
+        { label: 'Privacy Policy', href: './privacy-policy' },
+        { label: 'Terms of Service', href: './terms' },
+        { label: 'Legal Notice', href: './mentions-legales' },
+        { label: 'Terms of Sale', href: './terms-of-sale' },
+      ],
+    },
+    compare: {
+      title: 'Compare',
+      items: [
+        { label: 'Hook0 vs Svix', href: './hook0-vs-svix' },
+        { label: 'Hook0 vs Hookdeck', href: './hook0-vs-hookdeck' },
+        { label: 'Hook0 vs Convoy', href: './hook0-vs-convoy' },
+        { label: 'Hook0 Alternatives', href: './hook0-alternatives' },
+        { label: 'Svix Alternatives', href: './svix-alternatives' },
+        { label: 'Hookdeck Alternatives', href: './hookdeck-alternatives' },
+        { label: 'Build vs Buy Webhooks', href: './build-vs-buy-webhooks' },
+        { label: 'Self-Hosted Webhooks', href: './self-hosted-webhooks' },
+        { label: 'Open-Source Webhooks', href: './open-source-webhooks' },
+      ],
+    },
+    guides: {
+      title: 'Guides',
+      items: [
+        { label: 'What is hook0?', href: 'https://documentation.hook0.com/explanation/what-is-hook0', docPath: '/explanation/what-is-hook0', icon: 'book' },
+        { label: 'Getting started', href: 'https://documentation.hook0.com/tutorials/getting-started', docPath: '/tutorials/getting-started', icon: 'bolt' },
+        { label: 'Your First Webhook', href: 'https://documentation.hook0.com/tutorials/first-webhook-integration', docPath: '/tutorials/first-webhook-integration', icon: 'code' },
+        { label: 'Events & Subscriptions', href: 'https://documentation.hook0.com/tutorials/event-types-subscriptions', docPath: '/tutorials/event-types-subscriptions', icon: 'api' },
+        { label: 'Authentication', href: 'https://documentation.hook0.com/tutorials/webhook-authentication', docPath: '/tutorials/webhook-authentication', icon: 'server' },
+        { label: 'Debugging Deliveries', href: 'https://documentation.hook0.com/how-to-guides/debug-failed-webhooks', docPath: '/how-to-guides/debug-failed-webhooks', icon: 'status' },
+        { label: 'Securing Endpoints', href: 'https://documentation.hook0.com/how-to-guides/secure-webhook-endpoints', docPath: '/how-to-guides/secure-webhook-endpoints', icon: 'conduct' },
+      ],
+    },
+    developers: {
+      title: 'Developers',
+      items: [
+        { label: 'Quick Start', href: 'https://documentation.hook0.com/docs/getting-started', docPath: '/tutorials/getting-started', icon: 'bolt' },
+        { label: 'Documentation', href: 'https://documentation.hook0.com/docs', docPath: '/', icon: 'book' },
+        { label: 'API Reference', href: 'https://documentation.hook0.com/reference/', docPath: '/api', icon: 'api' },
+        { label: 'MCP Server', href: 'https://documentation.hook0.com/reference/mcp', docPath: '/reference/mcp', icon: 'code' },
+        { label: 'SDK & Libraries', href: 'https://github.com/hook0', icon: 'code' },
+        { label: 'Source Code', href: 'https://github.com/hook0/hook0', icon: 'github' },
+        { label: 'Status Page', href: 'https://status.hook0.com', icon: 'status' },
+        { label: 'Self-hosting', href: 'https://documentation.hook0.com/self-hosting/docker-compose', docPath: '/self-hosting/docker-compose', icon: 'server' },
+        { label: 'Webhook Tester', href: 'https://play.hook0.com', icon: 'bolt' },
+      ],
+    },
+    community: {
+      title: 'Community',
+      items: [
+        { label: 'Code of Conduct', href: 'https://gitlab.com/hook0/hook0/-/blob/master/CODE_OF_CONDUCT.md', icon: 'conduct' },
+        { label: 'OSS Friends', href: './oss-friends', icon: 'globe' },
+        { label: 'Discord', href: 'https://www.hook0.com/community', icon: 'discord' },
+        { label: 'GitHub', href: 'https://github.com/hook0/hook0', icon: 'github' },
+        { label: 'LinkedIn', href: 'https://www.linkedin.com/company/hook0', icon: 'linkedin' },
+        { label: 'YouTube', href: 'https://www.youtube.com/channel/UCFGvNaoV6Ycdb6uh1rIvMcg', icon: 'youtube' },
+        { label: 'Twitter / X', href: 'https://twitter.com/hook0_', icon: 'twitter' },
+      ],
+    },
   },
 };
