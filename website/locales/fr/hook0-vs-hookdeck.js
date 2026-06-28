@@ -52,7 +52,7 @@ module.exports = {
       { feature: 'Signatures HMAC', hook0Html: 'Générées automatiquement', hookdeckHtml: 'Vérification uniquement' },
       { feature: 'Gestion des types d\'events', hook0Html: 'Registre complet des types d\'events', hookdeckHtml: 'Non' },
       { feature: 'Tier gratuit', hook0Html: '100 events/jour, hébergé en UE', hookdeckHtml: '100 000 events/mois' },
-      { feature: 'Hébergement des données', hook0Html: 'Europe (RGPD) ou auto-hébergement', hookdeckHtml: 'Basé aux États-Unis' },
+      { feature: 'Hébergement des données', hook0Html: 'Europe (Clever Cloud FR, CDN Cloudflare US) ou auto-hébergement', hookdeckHtml: 'Basé aux États-Unis' },
     ],
   },
   faq: {

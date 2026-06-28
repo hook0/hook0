@@ -26,7 +26,7 @@ module.exports = {
       { criteria: 'HMAC-Signaturen', hook0Html: 'Enthalten (alle Tarife)', svixHtml: 'Enthalten', hookdeckHtml: 'Nur Verifizierung', convoyHtml: 'Enthalten' },
       { criteria: 'Wiederholungslogik', hook0Html: 'Konfigurierbar pro Abonnement (schnelle + langsame Phasen)', svixHtml: 'Automatische Wiederholungen', hookdeckHtml: 'Automatische Wiederholungen', convoyHtml: 'Automatische Wiederholungen' },
       { criteria: 'Finanzierung', hook0Html: '100% bootstrapped', svixHtml: '17 Mio. $ VC-finanziert', hookdeckHtml: '3,5 Mio. $ VC-finanziert', convoyHtml: 'VC-finanziert' },
-      { criteria: 'Datenhosting', hook0Html: 'Europa (DSGVO) oder Selbst-Hosting', svixHtml: 'In den USA', hookdeckHtml: 'In den USA', convoyHtml: 'Nur Selbst-Hosting' },
+      { criteria: 'Datenhosting', hook0Html: 'Europa (Clever Cloud FR, CDN Cloudflare USA) oder Selbst-Hosting', svixHtml: 'In den USA', hookdeckHtml: 'In den USA', convoyHtml: 'Nur Selbst-Hosting' },
       { criteria: 'Typ', hook0Html: 'Vollständige Webhook-Plattform', svixHtml: 'Webhook-Plattform (Open Core)', hookdeckHtml: 'Webhook-Gateway / Proxy', convoyHtml: 'Webhook-Plattform' },
     ],
   },

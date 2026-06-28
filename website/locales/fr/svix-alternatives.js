@@ -34,7 +34,7 @@ module.exports = {
       { criteria: 'Tier gratuit', svixHtml: 'Oui', hook0Html: 'Oui, sans carte bancaire', hookdeckHtml: 'Oui (100k events/mois)', convoyHtml: 'Édition communauté uniquement', hostedhooksHtml: 'Oui (limité)' },
       { criteria: 'Signatures HMAC', svixHtml: 'Incluses', hook0Html: 'Incluses (tous les plans)', hookdeckHtml: 'Vérification seulement', convoyHtml: 'Incluses', hostedhooksHtml: 'Incluses' },
       { criteria: 'Logique de relances', svixHtml: 'Relances automatiques', hook0Html: 'Configurable par abonnement (phases rapide + lente)', hookdeckHtml: 'Relances automatiques', convoyHtml: 'Relances automatiques', hostedhooksHtml: 'Relances automatiques' },
-      { criteria: 'Hébergement des données', svixHtml: 'Aux États-Unis', hook0Html: 'Europe (RGPD) ou auto-hébergé', hookdeckHtml: 'Aux États-Unis', convoyHtml: 'Auto-hébergé uniquement', hostedhooksHtml: 'Aux États-Unis' },
+      { criteria: 'Hébergement des données', svixHtml: 'Aux États-Unis', hook0Html: 'Europe (Clever Cloud FR, CDN Cloudflare US) ou auto-hébergement', hookdeckHtml: 'Aux États-Unis', convoyHtml: 'Auto-hébergé uniquement', hostedhooksHtml: 'Aux États-Unis' },
       { criteria: 'Niveau open source', svixHtml: 'Partiel (open core)', hook0Html: 'Total (SSPL, sans add-ons fermés)', hookdeckHtml: 'Aucun', convoyHtml: 'Total (MPL-2.0)', hostedhooksHtml: 'Aucun' },
     ],
   },

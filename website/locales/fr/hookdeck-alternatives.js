@@ -34,7 +34,7 @@ module.exports = {
       { criteria: 'Auto-hébergement', hookdeckHtml: 'Non', hook0Html: 'Gratuit (Docker / K8s)', svixHtml: 'Plan entreprise uniquement', convoyHtml: 'Oui (auto-géré)', awsEventbridgeHtml: 'Non (AWS uniquement)' },
       { criteria: 'Open source', hookdeckHtml: 'Non (code fermé)', hook0Html: 'Oui (SSPL-1.0, source intégrale)', svixHtml: 'Partiel (open core, entreprise fermé)', convoyHtml: 'Oui (MPL-2.0)', awsEventbridgeHtml: 'Non (propriétaire AWS)' },
       { criteria: 'Tier gratuit', hookdeckHtml: 'Oui (100k events/mois)', hook0Html: 'Oui, sans carte bancaire', svixHtml: 'Oui', convoyHtml: 'Édition communauté uniquement', awsEventbridgeHtml: 'Pay-per-use (facturation AWS)' },
-      { criteria: 'Hébergement des données', hookdeckHtml: 'Aux États-Unis', hook0Html: 'Europe (RGPD) ou auto-hébergé', svixHtml: 'Aux États-Unis', convoyHtml: 'Auto-hébergé uniquement', awsEventbridgeHtml: 'Multi-régions (AWS)' },
+      { criteria: 'Hébergement des données', hookdeckHtml: 'Aux États-Unis', hook0Html: 'Europe (Clever Cloud FR, CDN Cloudflare US) ou auto-hébergement', svixHtml: 'Aux États-Unis', convoyHtml: 'Auto-hébergé uniquement', awsEventbridgeHtml: 'Multi-régions (AWS)' },
       { criteria: 'Financement', hookdeckHtml: '3,5 M$ VC-funded', hook0Html: '100% bootstrappé', svixHtml: '17 M$ VC-funded', convoyHtml: 'VC-funded', awsEventbridgeHtml: 'Amazon (entreprise cotée)' },
     ],
   },

@@ -36,7 +36,7 @@ module.exports = {
       { feature: 'Kostenloser Tarif', hook0Html: 'Ja, ohne Kreditkarte', svixHtml: 'Ja' },
       { feature: 'HMAC-Signaturen', hook0Html: 'Enthalten (alle Tarife)', svixHtml: 'Enthalten' },
       { feature: 'Wiederholungslogik', hook0Html: 'Konfigurierbar pro Subscription (schnelle + langsame Phasen, smarte Defaults)', svixHtml: 'Automatische Wiederholungen' },
-      { feature: 'Datenhosting', hook0Html: 'Europa (auf DSGVO-Konformität ausgelegt)', svixHtml: 'Sitz in den USA' },
+      { feature: 'Datenhosting', hook0Html: 'Europa (Clever Cloud FR, CDN Cloudflare USA)', svixHtml: 'Sitz in den USA' },
       { feature: 'Subscription-Management', hook0Html: 'Enthalten', svixHtml: 'App Portal (bezahlte Tarife)' },
       { feature: 'Risiko von Anbieter-Lock-in', hook0Html: 'Keines (gesamter Quellcode, selbst-hostbar)', svixHtml: 'Moderat (Enterprise-Funktionen geschlossen)' },
     ],

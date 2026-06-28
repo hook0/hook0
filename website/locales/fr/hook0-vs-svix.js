@@ -35,7 +35,7 @@ module.exports = {
       { feature: 'Tier gratuit', hook0Html: 'Oui, sans carte bancaire', svixHtml: 'Oui' },
       { feature: 'Signatures HMAC', hook0Html: 'Inclus (tous les plans)', svixHtml: 'Inclus' },
       { feature: 'Logique de relances', hook0Html: 'Configurable par souscription (phases rapide + lent, defaults intelligents)', svixHtml: 'Relances automatiques' },
-      { feature: 'Hébergement des données', hook0Html: 'Europe (RGPD)', svixHtml: 'Basé aux États-Unis' },
+      { feature: 'Hébergement des données', hook0Html: 'Europe (Clever Cloud FR, CDN Cloudflare US)', svixHtml: 'Basé aux États-Unis' },
       { feature: 'Gestion des souscriptions', hook0Html: 'Inclus', svixHtml: 'App Portal (plans payants)' },
       { feature: 'Risque de verrouillage fournisseur', hook0Html: 'Aucun (source intégrale, auto-hébergeable)', svixHtml: 'Modéré (fonctions enterprise fermées)' },
     ],
