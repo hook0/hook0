@@ -108,10 +108,10 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                 <!-- Developer Plan -->
                 <div class="animate-on-scroll pricing-card flex flex-col">
                     <div class="pricing-card__header">
-                        <h3 class="pricing-card__name">Developer</h3>
+                        <h3 class="pricing-card__name"><%= __cp ? __cp.planNameDeveloper : 'Developer' %></h3>
                         <p class="pricing-card__description"><%= __cp ? __cp.developerDescription : 'Perfect way to try out Hook0, no need to setup your instance, free forever for side-projects.' %></p>
                         <div class="pricing-card__price">
-                            <span class="amount">FREE</span>
+                            <span class="amount"><%= __cp ? __cp.amountFree : 'FREE' %></span>
                             <span class="period"><%= __cp ? __cp.periodForever : 'Forever' %></span>
                         </div>
                     </div>
@@ -121,42 +121,42 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Fully managed, no infra. to own</span>
+                                <span><%= __cp ? __cp.featFullyManaged : 'Fully managed, no infra. to own' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>1</strong> developer</span>
+                                <span><%- __cp ? __cp.featOneDeveloper : '<strong>1</strong> developer' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>1</strong> application</span>
+                                <span><%- __cp ? __cp.featOneApplication : '<strong>1</strong> application' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>10</strong> event types</span>
+                                <span><%- __cp ? __cp.feat10EventTypes : '<strong>10</strong> event types' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>10</strong> subscriptions</span>
+                                <span><%- __cp ? __cp.feat10Subscriptions : '<strong>10</strong> subscriptions' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Up to <strong>100</strong> events/day</span>
+                                <span><%- __cp ? __cp.featUpTo100EventsDay : 'Up to <strong>100</strong> events/day' %></span>
                             </li>
                             <li class="pricing-card__feature text-xs text-gray-500 -mt-2 ml-6">
-                                Extra events are blocked
+                                <%= __cp ? __cp.featExtraEventsBlocked : 'Extra events are blocked' %>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>7 days</strong> data retention</span>
+                                <span><%- __cp ? __cp.feat7DaysRetention : '<strong>7 days</strong> data retention' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Community support</span>
+                                <span><%= __cp ? __cp.featCommunitySupport : 'Community support' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>No credit card required</span>
+                                <span><%= __cp ? __cp.featNoCreditCard : 'No credit card required' %></span>
                             </li>
                         </ul>
                     </div>
@@ -165,7 +165,7 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                 <!-- Startup Plan -->
                 <div class="animate-on-scroll pricing-card flex flex-col">
                     <div class="pricing-card__header">
-                        <h3 class="pricing-card__name">Startup</h3>
+                        <h3 class="pricing-card__name"><%= __cp ? __cp.planNameStartup : 'Startup' %></h3>
                         <p class="pricing-card__description"><%= __cp ? __cp.startupDescription : 'Enhance your webhook experience with our new features and grow your start-up!' %></p>
                         <div class="pricing-card__price">
                             <span class="amount">€59</span>
@@ -178,38 +178,38 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Fully managed, no infra. to own</span>
+                                <span><%= __cp ? __cp.featFullyManaged : 'Fully managed, no infra. to own' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>25</strong> developers</span>
+                                <span><%- __cp ? __cp.feat25Developers : '<strong>25</strong> developers' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>1</strong> application</span>
+                                <span><%- __cp ? __cp.featOneApplication : '<strong>1</strong> application' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>50</strong> event types</span>
+                                <span><%- __cp ? __cp.feat50EventTypes : '<strong>50</strong> event types' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>300</strong> subscriptions</span>
+                                <span><%- __cp ? __cp.feat300Subscriptions : '<strong>300</strong> subscriptions' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Up to <strong>30,000</strong> events/day</span>
+                                <span><%- __cp ? __cp.featUpTo30kEventsDay : 'Up to <strong>30,000</strong> events/day' %></span>
                             </li>
                             <li class="pricing-card__feature text-xs text-gray-500 -mt-2 ml-6">
-                                Then €0.003/event (never blocked)
+                                <%= __cp ? __cp.featStartupOverage : 'Then €0.003/event (never blocked)' %>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <abbr title="Extended retention can be purchased, contact us!"><strong>14 days</strong> data retention</abbr>
+                                <abbr title="<%= __cp ? __cp.abbrExtendedRetention : 'Extended retention can be purchased, contact us!' %>"><%- __cp ? __cp.feat14DaysRetention : '<strong>14 days</strong> data retention' %></abbr>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Email support (3-day response)</span>
+                                <span><%= __cp ? __cp.featEmailSupport : 'Email support (3-day response)' %></span>
                             </li>
                         </ul>
                     </div>
@@ -221,14 +221,14 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                         <span class="px-4 py-1.5 rounded-full bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap"><%= __cp ? __cp.mostPopular : 'Most Popular' %></span>
                     </div>
                     <div class="pricing-card__header">
-                        <h3 class="pricing-card__name">Pro</h3>
+                        <h3 class="pricing-card__name"><%= __cp ? __cp.planNamePro : 'Pro' %></h3>
                         <p class="pricing-card__description"><%= __cp ? __cp.proDescription : 'Unleash your data connectivity along with enterprise features and better support.' %></p>
                         <div class="pricing-card__price">
                             <span class="amount">€190</span>
                             <span class="period"><%= __cp ? __cp.periodMonthExclVat : '/mo excl. VAT' %></span>
                         </div>
                         <p class="mt-2 text-sm text-gray-400 text-left">
-                            €1,824/yr excl. VAT <span class="text-green-400">(20% off)</span>
+                            <%= __cp ? __cp.proYearly : '€1,824/yr excl. VAT' %> <span class="text-green-400"><%= __cp ? __cp.proYearlyDiscount : '(20% off)' %></span>
                         </p>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
@@ -237,42 +237,42 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Fully managed, no infra. to own</span>
+                                <span><%= __cp ? __cp.featFullyManaged : 'Fully managed, no infra. to own' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>Unlimited</strong> developers</span>
+                                <span><%- __cp ? __cp.featUnlimitedDevelopers : '<strong>Unlimited</strong> developers' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>Unlimited</strong> applications</span>
+                                <span><%- __cp ? __cp.featUnlimitedApplications : '<strong>Unlimited</strong> applications' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>Unlimited</strong> event types</span>
+                                <span><%- __cp ? __cp.featUnlimitedEventTypes : '<strong>Unlimited</strong> event types' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>Unlimited</strong> subscriptions</span>
+                                <span><%- __cp ? __cp.featUnlimitedSubscriptions : '<strong>Unlimited</strong> subscriptions' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Up to <strong>100,000</strong> events/day</span>
+                                <span><%- __cp ? __cp.featUpTo100kEventsDay : 'Up to <strong>100,000</strong> events/day' %></span>
                             </li>
                             <li class="pricing-card__feature text-xs text-gray-500 -mt-2 ml-6">
-                                Then €0.0001/event (never blocked)
+                                <%= __cp ? __cp.featProOverage : 'Then €0.0001/event (never blocked)' %>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <abbr title="Extended retention can be purchased, contact us!"><strong>30 days</strong> data retention</abbr>
+                                <abbr title="<%= __cp ? __cp.abbrExtendedRetention : 'Extended retention can be purchased, contact us!' %>"><%- __cp ? __cp.feat30DaysRetention : '<strong>30 days</strong> data retention' %></abbr>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Priority email support (3-day response)</span>
+                                <span><%= __cp ? __cp.featPriorityEmail : 'Priority email support (3-day response)' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Static source IPs (on demand)</span>
+                                <span><%= __cp ? __cp.featStaticIPs : 'Static source IPs (on demand)' %></span>
                             </li>
                         </ul>
                     </div>
@@ -281,10 +281,10 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                 <!-- Enterprise Plan -->
                 <div class="animate-on-scroll pricing-card flex flex-col">
                     <div class="pricing-card__header">
-                        <h3 class="pricing-card__name">Enterprise</h3>
+                        <h3 class="pricing-card__name"><%= __cp ? __cp.planNameEnterprise : 'Enterprise' %></h3>
                         <p class="pricing-card__description"><%= __cp ? __cp.enterpriseDescription : 'You need more? You need different? Let us know and we will build a custom plan just for you.' %></p>
                         <div class="pricing-card__price">
-                            <span class="amount">Custom</span>
+                            <span class="amount"><%= __cp ? __cp.amountCustom : 'Custom' %></span>
                             <span class="period"><%= __cp ? __cp.periodYear : '/year' %></span>
                         </div>
                     </div>
@@ -294,31 +294,31 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Fully managed, no infra. to own</span>
+                                <span><%= __cp ? __cp.featFullyManaged : 'Fully managed, no infra. to own' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>Unlimited</strong> everything</span>
+                                <span><%- __cp ? __cp.featUnlimitedEverything : '<strong>Unlimited</strong> everything' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>Custom</strong> events per day</span>
+                                <span><%- __cp ? __cp.featCustomEventsPerDay : '<strong>Custom</strong> events per day' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>Custom</strong> data retention</span>
+                                <span><%- __cp ? __cp.featCustomRetention : '<strong>Custom</strong> data retention' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>Custom SLA</strong> & dedicated support</span>
+                                <span><%- __cp ? __cp.featCustomSLA : '<strong>Custom SLA</strong> & dedicated support' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Enterprise <strong>security</strong> & compliance</span>
+                                <span><%- __cp ? __cp.featEnterpriseSecurity : 'Enterprise <strong>security</strong> & compliance' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Static source IPs (on demand)</span>
+                                <span><%= __cp ? __cp.featStaticIPs : 'Static source IPs (on demand)' %></span>
                             </li>
                         </ul>
                     </div>
@@ -345,10 +345,10 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                 <!-- Self-hosted Plan -->
                 <div class="animate-on-scroll pricing-card flex flex-col">
                     <div class="pricing-card__header">
-                        <h3 class="pricing-card__name">Self-hosted</h3>
+                        <h3 class="pricing-card__name"><%= __cp ? __cp.planNameSelfHosted : 'Self-hosted' %></h3>
                         <p class="pricing-card__description"><%= __cp ? __cp.selfHostedDescription : 'Open-source, on your infrastructure. Complete control over your data. Security and privacy compliant.' %></p>
                         <div class="pricing-card__price">
-                            <span class="amount">FREE</span>
+                            <span class="amount"><%= __cp ? __cp.amountFree : 'FREE' %></span>
                             <span class="period"><%= __cp ? __cp.periodForever : 'Forever' %></span>
                         </div>
                     </div>
@@ -358,11 +358,11 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Host your own instance</span>
+                                <span><%= __cp ? __cp.featHostYourInstance : 'Host your own instance' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Your data, your rules</span>
+                                <span><%= __cp ? __cp.featYourDataRules : 'Your data, your rules' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -370,22 +370,22 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Community support on <a href="<%= locals.social.discord.href %>" target="_blank" class="text-indigo-400 hover:text-indigo-300">Discord</a></span>
+                                <span><%= __cp ? __cp.featCommunitySupportDiscordPrefix : 'Community support on ' %><a href="<%= locals.social.discord.href %>" target="_blank" class="text-indigo-400 hover:text-indigo-300">Discord</a></span>
                             </li>
                         </ul>
                         <h4 class="text-xs font-semibold text-yellow-500/80 uppercase tracking-wider mb-4 mt-6"><%= __cp ? __cp.whatsNotIncluded : "What's not included" %></h4>
                         <ul class="pricing-card__features">
                             <li class="pricing-card__feature text-gray-500">
                                 <svg class="text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                <span>Infrastructure scaling</span>
+                                <span><%= __cp ? __cp.featInfraScaling : 'Infrastructure scaling' %></span>
                             </li>
                             <li class="pricing-card__feature text-gray-500">
                                 <svg class="text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                <span>99.9% uptime</span>
+                                <span><%= __cp ? __cp.feat99Uptime : '99.9% uptime' %></span>
                             </li>
                             <li class="pricing-card__feature text-gray-500">
                                 <svg class="text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                <span>Managed updates</span>
+                                <span><%= __cp ? __cp.featManagedUpdatesPlain : 'Managed updates' %></span>
                             </li>
                         </ul>
                     </div>
@@ -397,14 +397,14 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                         <span class="px-4 py-1.5 rounded-full bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap"><%= __cp ? __cp.recommended : 'Recommended' %></span>
                     </div>
                     <div class="pricing-card__header">
-                        <h3 class="pricing-card__name">Pro</h3>
+                        <h3 class="pricing-card__name"><%= __cp ? __cp.planNamePro : 'Pro' %></h3>
                         <p class="pricing-card__description"><%= __cp ? __cp.onPremiseProDescription : 'We deploy a dedicated Hook0 instance to your environment and help you maintain/update it.' %></p>
                         <div class="pricing-card__price">
                             <span class="amount">€1,000</span>
-                            <span class="period">setup + €500/mo excl. VAT</span>
+                            <span class="period"><%= __cp ? __cp.onPremProSetupPeriod : 'setup + €500/mo excl. VAT' %></span>
                         </div>
                         <p class="mt-2 text-sm text-gray-400 text-left">
-                            Or €0 setup + €6,000/yr excl. VAT
+                            <%= __cp ? __cp.onPremProYearlyAlt : 'Or €0 setup + €6,000/yr excl. VAT' %>
                         </p>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
@@ -413,23 +413,23 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Your data, your rules</span>
+                                <span><%= __cp ? __cp.featYourDataRules : 'Your data, your rules' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <abbr title="Contact us if you need more!">Up to <strong>1,000,000</strong> events/day</abbr>
+                                <abbr title="<%= __cp ? __cp.abbrContactForMore : 'Contact us if you need more!' %>"><%- __cp ? __cp.featUpTo1MEventsDay : 'Up to <strong>1,000,000</strong> events/day' %></abbr>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>Compatible</strong> with most cloud providers</span>
+                                <span><%- __cp ? __cp.featCompatibleClouds : '<strong>Compatible</strong> with most cloud providers' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>Managed</strong> updates</span>
+                                <span><%- __cp ? __cp.featManagedUpdatesStrong : '<strong>Managed</strong> updates' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Priority email support (3-day response)</span>
+                                <span><%= __cp ? __cp.featPriorityEmail : 'Priority email support (3-day response)' %></span>
                             </li>
                         </ul>
                     </div>
@@ -438,10 +438,10 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                 <!-- Enterprise On-Premise Plan -->
                 <div class="animate-on-scroll pricing-card flex flex-col">
                     <div class="pricing-card__header">
-                        <h3 class="pricing-card__name">Enterprise</h3>
+                        <h3 class="pricing-card__name"><%= __cp ? __cp.planNameEnterprise : 'Enterprise' %></h3>
                         <p class="pricing-card__description"><%= __cp ? __cp.onPremiseEnterpriseDescription : 'We help you exactly the way you need to provide a great webhook experience to your users.' %></p>
                         <div class="pricing-card__price">
-                            <span class="amount">Custom</span>
+                            <span class="amount"><%= __cp ? __cp.amountCustom : 'Custom' %></span>
                         </div>
                     </div>
                     <div class="pricing-card__body flex-1 flex flex-col">
@@ -450,27 +450,27 @@ var __cp = (locals.chrome && locals.chrome.includes && locals.chrome.includes.pr
                         <ul class="pricing-card__features flex-1">
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Your data, your rules</span>
+                                <span><%= __cp ? __cp.featYourDataRules : 'Your data, your rules' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>Custom SLA</strong> & dedicated support</span>
+                                <span><%- __cp ? __cp.featCustomSLA : '<strong>Custom SLA</strong> & dedicated support' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span><strong>Custom</strong> events per day</span>
+                                <span><%- __cp ? __cp.featCustomEventsPerDay : '<strong>Custom</strong> events per day' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                <span>Study of your use cases</span>
+                                <span><%= __cp ? __cp.featStudyUseCases : 'Study of your use cases' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                <span>Custom developments</span>
+                                <span><%= __cp ? __cp.featCustomDevelopments : 'Custom developments' %></span>
                             </li>
                             <li class="pricing-card__feature">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                <span>Training</span>
+                                <span><%= __cp ? __cp.featTraining : 'Training' %></span>
                             </li>
                         </ul>
                     </div>
