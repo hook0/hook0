@@ -42,7 +42,7 @@ module.exports = {
       },
       {
         "title": "Hébergé en Europe",
-        "body": "Données applicatives en France, conçu pour la conformité RGPD. Important quand tes clients regardent où atterrissent leurs events."
+        "body": "Données applicatives en France chez Clever Cloud, conçu pour la conformité RGPD. CDN Cloudflare US divulgué dans le <a href=\"/fr/accord-traitement-donnees\">DPA</a>. Important quand tes clients regardent où atterrissent leurs events."
       }
     ]
   },

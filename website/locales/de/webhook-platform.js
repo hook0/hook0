@@ -42,7 +42,7 @@ module.exports = {
       },
       {
         "title": "In Europa gehostet",
-        "body": "Anwendungsdaten in Frankreich, auf DSGVO-Konformität ausgelegt. Wichtig, wenn deine Kunden Wert darauf legen, wo ihre Events landen."
+        "body": "Anwendungsdaten in Frankreich bei Clever Cloud, auf DSGVO-Konformität ausgelegt. CDN Cloudflare USA im <a href=\"/de/auftragsverarbeitungsvertrag\">DPA</a> offengelegt. Wichtig, wenn deine Kunden Wert darauf legen, wo ihre Events landen."
       }
     ]
   },
