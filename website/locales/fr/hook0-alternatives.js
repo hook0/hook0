@@ -22,7 +22,7 @@ module.exports = {
       { criteria: 'Code source', hook0Html: 'Oui (SSPL-1.0, source intégrale)', svixHtml: 'Partiel (open core, entreprise fermé)', hookdeckHtml: 'Non (code fermé)', convoyHtml: 'Oui (MPL-2.0, open source)' },
       { criteria: 'Auto-hébergement', hook0Html: 'Gratuit (Docker / K8s)', svixHtml: 'Plan entreprise uniquement', hookdeckHtml: 'Non', convoyHtml: 'Oui (auto-géré)' },
       { criteria: 'Tier gratuit', hook0Html: 'Oui, sans carte bancaire', svixHtml: 'Oui', hookdeckHtml: 'Oui (100k events/mois)', convoyHtml: 'Édition communauté uniquement' },
-      { criteria: 'Modèle de pricing', hook0Html: 'À l\'event, transparent', svixHtml: 'À l\'event + tarifs entreprise', hookdeckHtml: 'À l\'event, cloud uniquement', convoyHtml: 'Pricing entreprise' },
+      { criteria: 'Modèle de pricing', hook0Html: 'À l\'event, transparent', svixHtml: 'À l\'event + tarifs entreprise', hookdeckHtml: 'À l\'event, cloud uniquement', convoyHtml: 'Tarification entreprise' },
       { criteria: 'Signatures HMAC', hook0Html: 'Incluses (tous les plans)', svixHtml: 'Incluses', hookdeckHtml: 'Vérification seulement', convoyHtml: 'Incluses' },
       { criteria: 'Logique de relances', hook0Html: 'Configurable par abonnement (phases rapide + lente)', svixHtml: 'Relances automatiques', hookdeckHtml: 'Relances automatiques', convoyHtml: 'Relances automatiques' },
       { criteria: 'Financement', hook0Html: '100% bootstrappé', svixHtml: '17 M$ VC-funded', hookdeckHtml: '3,5 M$ VC-funded', convoyHtml: 'VC-funded' },
