@@ -47,6 +47,8 @@ module.exports = {
   },
   socialProof: {
     label: 'Ils livrent leurs webhooks avec Hook0',
+    productHuntAlt: 'Hook0 sur Product Hunt',
+    githubStarsTitle: 'Étoiles GitHub',
   },
   includes: {
     howItWorks: {

@@ -55,6 +55,8 @@ module.exports = {
   },
   socialProof: {
     label: 'Trusted by teams at',
+    productHuntAlt: 'Hook0 on Product Hunt',
+    githubStarsTitle: 'GitHub Stars',
   },
   includes: {
     howItWorks: {

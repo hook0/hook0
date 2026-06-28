@@ -48,6 +48,8 @@ module.exports = {
   },
   socialProof: {
     label: 'Team-Vertrauen',
+    productHuntAlt: 'Hook0 auf Product Hunt',
+    githubStarsTitle: 'GitHub-Sterne',
   },
   includes: {
     howItWorks: {
