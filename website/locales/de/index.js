@@ -4,14 +4,14 @@
 // Verbotene Claims: « 100% souverän », « kein US-Konzern im Stack »,
 // « keine Daten verlassen die EU », « CLOUD Act free ».
 module.exports = {
-  pageTitle: 'Hook0, quelloffene Webhook-Plattform | Webhooks as a Service',
+  pageTitle: 'Hook0, quelloffene Webhook-Plattform | Webhooks als Service',
   pageDescription: 'Kostenlose Webhook-Plattform, quelloffen. Du sendest deine Webhooks mit einem API-Aufruf, Hook0 übernimmt Retries, HMAC-Signaturen und Zustell-Monitoring. Für immer kostenlos, ohne Kreditkarte. Selbst hosten oder Cloud nutzen.',
   pageModified: '2026-06-28',
   hero: {
     badgePillBootstrapped: '100% bootstrappt',
     badgeOpenSource: 'Hook0 ist quelloffen',
     headlineLine1: 'Webhooks',
-    headlineLine2: 'As A Service',
+    headlineLine2: 'als Service',
     description: 'Hook0 ist eine quelloffene Webhooks-as-a-Service-Plattform, die Entwicklern das Senden von Webhooks leicht macht. Ein API-Aufruf, und Hook0 kümmert sich um Zustellbarkeit, Retries, Sicherheit und mehr.',
     ctaPrimary: 'Kostenlos starten',
     ctaSecondary: 'Schnellstart-Anleitung',
@@ -85,7 +85,7 @@ module.exports = {
   faq: {
     items: [
       { q: 'Bietet Hook0 einen kostenlosen Plan?', a: 'Ja. Hook0 hat einen kostenlosen Plan mit 100 Webhook-Events pro Tag, HMAC-Signaturen und Zustell-Monitoring. Keine Kreditkarte nötig. Hook0 ist außerdem quelloffen, du kannst es kostenlos selbst hosten.' },
-      { q: 'Was ist Webhooks as a Service?', a: 'Webhooks as a Service heißt, du sendest deine Events per REST-API an Hook0, und Hook0 stellt sie an die Endpoints deiner Nutzer zu. Die Plattform übernimmt Retries, kryptografische Signaturen, Zustell-Logs und Subscriber-Verwaltung. Du musst diese Infrastruktur nicht selbst bauen.' },
+      { q: 'Was bedeutet „Webhooks als Service"?', a: 'Eine Webhook-Plattform als Service (Webhooks-as-a-Service) heißt, du sendest deine Events per REST-API an Hook0, und Hook0 stellt sie an die Endpoints deiner Nutzer zu. Die Plattform übernimmt Retries, kryptografische Signaturen, Zustell-Logs und Subscriber-Verwaltung. Du musst diese Infrastruktur nicht selbst bauen.' },
       { q: 'Ist Hook0 quelloffen?', a: 'Ja. Der Quellcode ist auf GitHub und GitLab unter der SSPL-1.0-Lizenz verfügbar (die Client-SDKs unter MIT). Du kannst Hook0 mit Docker Compose oder Kubernetes selbst hosten oder den verwalteten Cloud-Service nutzen, der in Europa gehostet wird.' },
       { q: 'Ist SSPL wirklich Open Source?', a: 'Der vollständige Server-Quellcode von Hook0 wird unter SSPL-1.0 veröffentlicht, die Client-SDKs unter MIT. SSPL ist eine Source-Available-Copyleft-Lizenz, du kannst Hook0 lesen, modifizieren, selbst hosten und frei betreiben. Sie ist in einem einzigen Fall strenger als MIT. Wenn du Hook0 als verwalteten Service weiterverkaufst, musst du deine eigene Infrastruktur quelloffen veröffentlichen. Wenn du auf Hook0 baust oder es selbst hostest, fügt SSPL gegenüber MIT keine Pflicht hinzu.' },
       { q: 'Kann ich Hook0 selbst hosten?', a: 'Ja. Hook0 unterstützt Selbst-Hosting per Docker Compose oder Kubernetes. Die selbst gehostete Version hat dieselben Features wie die Cloud-Version. Die Dokumentation findest du unter documentation.hook0.com/self-hosting.' },

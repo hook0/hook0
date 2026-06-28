@@ -1,14 +1,14 @@
 // Page d'accueil FR. /humanizer pro + legal-reviewer appliqués.
 // SSPL = « code source ouvert (SSPL-1.0) », jamais « open source ».
 module.exports = {
-  pageTitle: 'Hook0, plateforme webhooks à code source ouvert | Webhooks as a Service',
+  pageTitle: 'Hook0, plateforme webhooks à code source ouvert | Webhooks en tant que service',
   pageDescription: "Plateforme webhooks gratuite, à code source ouvert. Tu envoies tes webhooks avec un appel API, Hook0 gère les relances, les signatures HMAC et le monitoring des livraisons. Gratuit pour toujours, sans carte bancaire. Auto-hébergement ou cloud.",
   pageModified: '2026-06-28',
   hero: {
     badgePillBootstrapped: '100% bootstrappé',
     badgeOpenSource: 'Hook0 est à code source ouvert',
     headlineLine1: 'Webhooks',
-    headlineLine2: 'As A Service',
+    headlineLine2: 'en tant que service',
     description: "Hook0 est une plateforme Webhooks-as-a-Service à code source ouvert qui rend l'envoi de webhooks simple pour les développeurs. Un appel API, et Hook0 prend en charge la délivrabilité, les relances, la sécurité et plus encore.",
     ctaPrimary: 'Démarrer gratuitement',
     ctaSecondary: 'Guide de démarrage rapide',
@@ -82,7 +82,7 @@ module.exports = {
   faq: {
     items: [
       { q: 'Hook0 propose-t-il un plan gratuit ?', a: "Oui. Hook0 dispose d'un plan gratuit incluant 100 événements webhook par jour, les signatures HMAC et le monitoring des livraisons. Sans carte bancaire. Hook0 est aussi à code source ouvert, tu peux donc l'auto-héberger sans coût." },
-      { q: "Qu'est-ce que webhooks as a service ?", a: "Webhooks as a service veut dire que tu envoies tes événements à Hook0 via une API REST, et Hook0 les livre aux endpoints de tes utilisateurs. La plateforme gère les relances, les signatures cryptographiques, les logs de livraison et la gestion des abonnés. Tu n'as pas à construire cette infrastructure toi-même." },
+      { q: "Que signifie « Webhooks en tant que service » ?", a: "Une plateforme de webhooks en tant que service (Webhooks-as-a-Service), ça veut dire que tu envoies tes événements à Hook0 via une API REST, et Hook0 les livre aux endpoints de tes utilisateurs. La plateforme gère les relances, les signatures cryptographiques, les logs de livraison et la gestion des abonnés. Tu n'as pas à construire cette infrastructure toi-même." },
       { q: 'Hook0 est-il à code source ouvert ?', a: "Oui. Le code source est disponible sur GitHub et GitLab sous licence SSPL-1.0 (les SDKs clients sont en MIT). Tu peux auto-héberger Hook0 avec Docker Compose ou Kubernetes, ou utiliser le service cloud managé hébergé en Europe." },
       { q: 'SSPL est-il vraiment open source ?', a: "L'intégralité du code source serveur de Hook0 est publiée sous SSPL-1.0, et les SDKs clients sous MIT. SSPL est une licence copyleft à source disponible, tu peux lire, modifier, auto-héberger et exécuter Hook0 librement. Elle est plus stricte que MIT dans un seul cas. Si tu revends Hook0 sous forme de service managé, tu dois publier ta propre infrastructure en open source. Si tu construis sur Hook0 ou si tu l'auto-héberges, SSPL n'ajoute aucune obligation par rapport à MIT." },
       { q: 'Puis-je auto-héberger Hook0 ?', a: "Oui. Hook0 supporte l'auto-hébergement via Docker Compose ou Kubernetes. La version auto-hébergée a les mêmes fonctionnalités que la version cloud. La documentation est sur documentation.hook0.com/self-hosting." },
