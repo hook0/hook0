@@ -21,7 +21,7 @@ var __faqItems = __c ? __c.items : [
                 </h2>
                 <p class="mt-4 text-body-lg text-gray-400">
                     <%= __c ? __c.sub : "Can't find the answer you're looking for? Reach out to our" %>
-                    <a href="<%= locals.meta.contact %>" class="text-indigo-400 hover:text-indigo-300 transition-colors"><%= __c ? __c.supportLinkLabel : 'customer support' %></a> team.
+                    <a href="<%= locals.meta.contact %>" class="text-indigo-400 hover:text-indigo-300 transition-colors"><%= __c ? __c.supportLinkLabel : 'customer support' %></a><%= __c && __c.supportLinkSuffix != null ? __c.supportLinkSuffix : ' team.' %>
                 </p>
             </div>
 

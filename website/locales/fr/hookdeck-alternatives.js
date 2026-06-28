@@ -45,7 +45,7 @@ module.exports = {
     cards: [
       { title: 'Tu dois envoyer des webhooks', body: 'Hookdeck n\'envoie pas de webhooks. Point. Si ton produit doit notifier ses clients via webhooks avec relances, signatures HMAC et logs de livraison, il te faut une plateforme webhook, Hook0, Svix ou Convoy.', color: 'green' },
       { title: 'Tu veux auto-héberger', body: 'Hookdeck est cloud uniquement. Pas d\'option auto-hébergement. Si la compliance ou les règles de souveraineté des données t\'imposent ton infrastructure, Hook0 et Convoy sont tous deux auto-hébergeables sans coût.', color: 'indigo' },
-      { title: 'Tu as besoin d\'un hébergement européen', body: 'Hookdeck est basé aux États-Unis. Le plan de données de Hook0 Cloud tourne en France chez Clever Cloud, conçu pour le RGPD dès le départ (CDN Cloudflare US divulgué dans le <a href="/fr/accord-traitement-donnees">DPA</a>). Si tu es une boîte UE qui manipule des données sensibles, le choix est limpide.', color: 'green' },
+      { title: 'Tu as besoin d\'un hébergement européen', body: 'Hookdeck est basé aux États-Unis. Le plan de données de Hook0 Cloud tourne en France chez Clever Cloud, conçu pour la conformité RGPD dès le départ (CDN Cloudflare US divulgué dans le <a href="/fr/accord-traitement-donnees">DPA</a>). Si tu es une boîte UE qui manipule des données sensibles, le choix est limpide.', color: 'green' },
       { title: 'Tu veux auditer le code source', body: 'Hookdeck est en code fermé. Tu ne peux pas voir comment tes données webhook sont traitées. Tout le code de Hook0 est ouvert sous SSPL-1.0, donc tu peux lire et auditer chaque ligne.', color: 'indigo' },
     ],
   },

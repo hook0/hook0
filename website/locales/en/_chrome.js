@@ -83,6 +83,7 @@ module.exports = {
       h2: 'Frequently asked questions',
       sub: 'Reach out to our',
       supportLinkLabel: 'customer support',
+      supportLinkSuffix: ' team.',
       items: [
         { q: 'What are Webhooks as a Service?', a: 'We took everything that goes into a webhook service (retries, fine-grained subscriptions management, etc) and packaged it up into a platform that you can easily integrate with using our API.' },
         { q: 'How long does it take to integrate with Hook0?', a: 'Every setup is different, but a senior developer should be able to build out a working version within a day and be live in under a week.' },

@@ -47,7 +47,7 @@ module.exports = {
     cards: [
       { title: 'Pas juste un proxy', body: 'Contrairement à Hookdeck, Hook0 envoie les webhooks à ta place, avec relances, signatures et gestion des abonnés. Pas une couche middleware.' },
       { title: 'Pas de paywall entreprise', body: 'Contrairement à Svix, chaque feature est livrée dans chaque plan. L\'auto-hébergement n\'est pas planqué derrière un appel commercial.' },
-      { title: 'Européen, conçu pour le RGPD', body: 'Plan de données hébergé en UE chez Clever Cloud (France). CDN via Cloudflare (USA), divulgué dans notre <a href="/fr/accord-traitement-donnees">DPA</a> et nos <a href="/fr/sous-traitants-rgpd">sous-traitants RGPD</a>. Bootstrappé, pas de board de VC américains qui décident de ta politique de données.' },
+      { title: 'Européen, conçu pour la conformité RGPD', body: 'Plan de données hébergé en UE chez Clever Cloud (France). CDN via Cloudflare (USA), divulgué dans notre <a href="/fr/accord-traitement-donnees">DPA</a> et nos <a href="/fr/sous-traitants-rgpd">sous-traitants RGPD</a>. Bootstrappé, pas de board de VC américains qui décident de ta politique de données.' },
     ],
   },
   faq: {

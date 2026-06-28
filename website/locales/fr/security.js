@@ -6,7 +6,7 @@
 // (pages pas encore traduites).
 module.exports = {
   "pageTitle": "Sécurité et conformité chez Hook0 | Hook0",
-  "pageDescription": "Pratiques de sécurité Hook0, conçu pour le RGPD, chiffrement TLS, signatures HMAC, sauvegardes chiffrées. Données applicatives hébergées en France chez Clever Cloud, CDN Cloudflare (USA).",
+  "pageDescription": "Pratiques de sécurité Hook0, conçu pour la conformité RGPD, chiffrement TLS, signatures HMAC, sauvegardes chiffrées. Données applicatives hébergées en France chez Clever Cloud, CDN Cloudflare (USA).",
   "pageModified": "2026-06-27",
   "hero": {
     "eyebrow": "Confiance et sécurité",
