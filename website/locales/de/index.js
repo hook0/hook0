@@ -8,7 +8,7 @@ module.exports = {
   pageDescription: 'Kostenlose Webhook-Plattform, quelloffen. Du sendest deine Webhooks mit einem API-Aufruf, Hook0 übernimmt Retries, HMAC-Signaturen und Zustell-Monitoring. Für immer kostenlos, ohne Kreditkarte. Selbst hosten oder Cloud nutzen.',
   pageModified: '2026-06-28',
   hero: {
-    badgePillBootstrapped: '100% bootstrapped',
+    badgePillBootstrapped: '100% bootstrappt',
     badgeOpenSource: 'Hook0 ist quelloffen',
     headlineLine1: 'Webhooks',
     headlineLine2: 'As A Service',
