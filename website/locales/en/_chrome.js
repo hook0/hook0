@@ -58,6 +58,12 @@ module.exports = {
     productHuntAlt: 'Hook0 on Product Hunt',
     githubStarsTitle: 'GitHub Stars',
   },
+  schema: {
+    offerFreeName: 'Free',
+    offerFreeDescription: 'Free forever, no credit card required. Self-host or use Hook0 Cloud.',
+    offerSelfHostedName: 'Self-hosted',
+    offerSelfHostedDescription: 'Source-available under SSPL-1.0. Run on your own infrastructure.',
+  },
   includes: {
     howItWorks: {
       eyebrow: 'How It Works',
