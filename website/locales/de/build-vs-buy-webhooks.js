@@ -58,7 +58,7 @@ module.exports = {
     h2: 'Häufige Fragen',
     items: [
       { q: 'Wie lange dauert es, Webhooks von Grund auf zu bauen?', a: 'Plan mindestens 3 Engineering-Sprints ein. Wiederholungslogik, Dead Letter Queues, HMAC-Signaturen, Zustell-Monitoring, Abonnenten-Verwaltung, Endpoint-Health-Checks. Und das ist, bevor dein erster Kunde einen Bug findet.' },
-      { q: 'Was sind die versteckten Kosten beim Selbstbau?', a: 'Pflege der Wiederholungs-Queue, Edge-Case-Handling (Timeouts, Weiterleitungen, Zertifikatsfehler), Monitoring-Dashboards, Rate-Limiting, Log-Speicherung, Abonnenten-Onboarding. Nichts davon hört nach v1 auf. Es summiert sich.' },
+      { q: 'Was sind die versteckten Kosten beim Selbstbau?', a: 'Pflege der Wiederholungs-Queue, Handhabung von Grenzfällen (Timeouts, Weiterleitungen, Zertifikatsfehler), Monitoring-Dashboards, Rate-Limiting, Log-Speicherung, Abonnenten-Onboarding. Nichts davon hört nach v1 auf. Es summiert sich.' },
       { q: 'Wie schnell kann ich Hook0 integrieren?', a: 'Unter 30 Minuten. Ein API-Aufruf, um ein Event zu triggern. SDKs für Python, Node.js und weitere, falls du das bevorzugst.' },
       { q: 'Kann ich von einem Eigenbau-System migrieren?', a: 'Ja. REST-API und SDKs, du kannst beide Systeme während der Migration parallel laufen lassen. Keine Big-Bang-Umstellung nötig.' },
     ],

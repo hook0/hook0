@@ -58,7 +58,7 @@ module.exports = {
     h2: 'Questions fréquentes',
     items: [
       { q: 'Combien de temps pour construire des webhooks de zéro ?', a: 'Compte au minimum 3 sprints d\'ingénierie. Logique de relances, dead letter queues, signatures HMAC, monitoring de livraison, gestion des abonnés, health checking des endpoints. Et c\'est avant que ton premier client trouve un bug.' },
-      { q: 'Quel est le coût caché de construire le tien ?', a: 'Maintenance de la queue de relances, gestion des edge cases (timeouts, redirects, erreurs de certificat), dashboards de monitoring, rate limiting, stockage des logs, onboarding des abonnés. Rien de tout ça ne s\'arrête après la v1. Ça s\'accumule.' },
+      { q: 'Quel est le coût caché de construire le tien ?', a: 'Maintenance de la queue de relances, gestion des cas limites (timeouts, redirections, erreurs de certificat), dashboards de monitoring, limitation de débit, stockage des logs, intégration des abonnés. Rien de tout ça ne s\'arrête après la v1. Ça s\'accumule.' },
       { q: 'En combien de temps puis-je intégrer Hook0 ?', a: 'Moins de 30 minutes. Un seul appel API pour déclencher un event. SDKs pour Python, Node.js et d\'autres si tu préfères.' },
       { q: 'Puis-je migrer depuis un système maison ?', a: 'Oui. API REST et SDKs, donc tu peux faire tourner les deux systèmes en parallèle pendant la migration. Pas besoin de bascule big bang.' },
     ],

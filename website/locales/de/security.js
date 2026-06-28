@@ -18,7 +18,7 @@ module.exports = {
       "h2": "DSGVO, Compliance und Zertifizierung",
       "cards": [
         {
-          "bodyHtml": "Sobald du Daten aus der Europäischen Union über einen Dienstleister wie Hook0 verarbeitest, brauchst du mit jedem Anbieter einen vertraglichen Rahmen. So weiß die EU, dass du nur mit Unternehmen arbeitest, die vollständig auf die Datenschutz-Grundverordnung (DSGVO) ausgerichtet sind."
+          "bodyHtml": "Sobald du Daten aus der Europäischen Union über einen Dienstleister wie Hook0 verarbeitest, brauchst du mit jedem Anbieter einen vertraglichen Rahmen. So weiß die EU, dass du nur mit Unternehmen arbeitest, deren Praktiken auf die Konformität mit der Datenschutz-Grundverordnung (DSGVO) ausgelegt sind."
         }
       ]
     },

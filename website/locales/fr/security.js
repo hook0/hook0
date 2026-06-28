@@ -18,7 +18,7 @@ module.exports = {
       "h2": "RGPD, conformité et certification",
       "cards": [
         {
-          "bodyHtml": "Dès que tu traites des données de l'Union européenne via un prestataire (comme Hook0), tu as besoin d'un cadre contractuel avec chaque prestataire. C'est ce qui permet à l'UE de savoir que tu travailles uniquement avec des entreprises pleinement alignées sur le Règlement général sur la protection des données (RGPD)."
+          "bodyHtml": "Dès que tu traites des données de l'Union européenne via un prestataire (comme Hook0), tu as besoin d'un cadre contractuel avec chaque prestataire. C'est ce qui permet à l'UE de savoir que tu travailles uniquement avec des entreprises dont les pratiques sont conçues pour la conformité au Règlement général sur la protection des données (RGPD)."
         }
       ]
     },
@@ -117,7 +117,7 @@ module.exports = {
         },
         {
           "h3": "Politiques de sécurité et formation",
-          "bodyHtml": "Hook0 maintient un wiki interne des politiques de sécurité, mis à jour en continu et revu chaque année pour combler les écarts. Tous les nouveaux employés reçoivent un onboarding et une formation aux systèmes, avec revue des politiques de sécurité."
+          "bodyHtml": "Hook0 maintient un wiki interne des politiques de sécurité, mis à jour en continu et revu chaque année pour combler les écarts. Tous les nouveaux employés reçoivent une intégration et une formation aux systèmes, avec revue des politiques de sécurité."
         },
         {
           "h3": "Politique de divulgation",
