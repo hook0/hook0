@@ -427,14 +427,14 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
   "license": "https://spdx.org/licenses/SSPL-1.0.html",
   "codeRepository": "<%= locals.social.github.repoHref %>",
   "programmingLanguage": ["Rust", "TypeScript"],
-<% var __schemaChrome = (locals.chrome && locals.chrome.schema) ? locals.chrome.schema : { offerFreeName: 'Free', offerFreeDescription: 'Free forever, no credit card required. Self-host or use Hook0 Cloud.', offerSelfHostedName: 'Self-hosted', offerSelfHostedDescription: 'Source-available under SSPL-1.0. Run on your own infrastructure.' }; %>
+<% var __schemaChrome = (locals.chrome && locals.chrome.schema) ? locals.chrome.schema : { offerFreeName: 'Free', offerFreeCategory: 'Free Tier', offerFreeDescription: 'Free forever, no credit card required. Self-host or use Hook0 Cloud.', offerSelfHostedName: 'Self-hosted', offerSelfHostedCategory: 'Source-available', offerSelfHostedDescription: 'Source-available under SSPL-1.0. Run on your own infrastructure.' }; %>
   "offers": [
     {
       "@type": "Offer",
       "name": <%- JSON.stringify(__schemaChrome.offerFreeName) %>,
       "price": "0",
       "priceCurrency": "EUR",
-      "category": "Free Tier",
+      "category": <%- JSON.stringify(__schemaChrome.offerFreeCategory) %>,
       "description": <%- JSON.stringify(__schemaChrome.offerFreeDescription) %>
     },
     {
@@ -442,7 +442,7 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
       "name": <%- JSON.stringify(__schemaChrome.offerSelfHostedName) %>,
       "price": "0",
       "priceCurrency": "EUR",
-      "category": "Source-available",
+      "category": <%- JSON.stringify(__schemaChrome.offerSelfHostedCategory) %>,
       "description": <%- JSON.stringify(__schemaChrome.offerSelfHostedDescription) %>
     }
   ],

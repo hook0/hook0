@@ -55,8 +55,10 @@ module.exports = {
     applicationDescription: 'Hook0 est une plateforme de webhooks à code source ouvert. Tu envoies tes événements via une API REST, Hook0 gère les relances, les signatures HMAC et la gestion des abonnés. Hébergement UE ou auto-hébergement sous SSPL-1.0.',
     applicationSubCategory: 'Plateforme de livraison de webhooks',
     offerFreeName: 'Gratuit',
+    offerFreeCategory: 'Plan gratuit',
     offerFreeDescription: 'Gratuit à vie, sans carte bancaire. Auto-hébergement ou Hook0 Cloud.',
     offerSelfHostedName: 'Auto-hébergé',
+    offerSelfHostedCategory: 'Code source ouvert',
     offerSelfHostedDescription: 'Code source ouvert sous SSPL-1.0. À déployer sur ta propre infrastructure.',
   },
   includes: {
