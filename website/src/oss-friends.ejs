@@ -34,7 +34,7 @@ var t = locals.t;
 
             <!-- OSS Friends Grid -->
             <div class="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
-                <% locals.ossFriends.forEach((friend) => { %>
+                <% locals.ossFriends.filter((friend) => friend.name !== 'Hook0').forEach((friend) => { %>
                     <div class="animate-on-scroll card card--glow group">
                         <h3 class="card__title">
                             <a href="<%= friend.href %>" target="_blank" class="text-green-400 hover:text-green-300 transition-colors">
