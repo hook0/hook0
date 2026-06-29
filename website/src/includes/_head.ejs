@@ -54,17 +54,17 @@ head body, and the default fallback would just create a duplicate tag. -->
 <% } %>
 <% if (locals.pageTitle) { %>
 <meta property="og:title" content="<%= locals.pageTitle %>">
-<% } else { %>
+<% } else if (!locals.pageNoindex) { %>
 <meta property="og:title" content="<%= locals.seo.defaultTitle %>">
 <% } %>
 <% if (locals.pageDescription) { %>
 <meta property="og:description" content="<%= locals.pageDescription %>">
-<% } else { %>
+<% } else if (!locals.pageNoindex) { %>
 <meta property="og:description" content="<%= locals.seo.defaultDescription %>">
 <% } %>
 <% if (locals.pageImage) { %>
 <meta property="og:image" content="<%= locals.seo.siteUrl %><%= locals.pageImage %>">
-<% } else { %>
+<% } else if (!locals.pageNoindex) { %>
 <meta property="og:image" content="<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>">
 <% } %>
 <% var __localeByLang = { en: 'en_US', fr: 'fr_FR', de: 'de_DE' }; var __pageLang = locals.pageLang || 'en'; %>
@@ -76,17 +76,17 @@ head body, and the default fallback would just create a duplicate tag. -->
 <meta name="twitter:creator" content="<%= locals.seo.twitterHandle %>">
 <% if (locals.pageTitle) { %>
 <meta name="twitter:title" content="<%= locals.pageTitle %>">
-<% } else { %>
+<% } else if (!locals.pageNoindex) { %>
 <meta name="twitter:title" content="<%= locals.seo.defaultTitle %>">
 <% } %>
 <% if (locals.pageDescription) { %>
 <meta name="twitter:description" content="<%= locals.pageDescription %>">
-<% } else { %>
+<% } else if (!locals.pageNoindex) { %>
 <meta name="twitter:description" content="<%= locals.seo.defaultDescription %>">
 <% } %>
 <% if (locals.pageImage) { %>
 <meta name="twitter:image" content="<%= locals.seo.siteUrl %><%= locals.pageImage %>">
-<% } else { %>
+<% } else if (!locals.pageNoindex) { %>
 <meta name="twitter:image" content="<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>">
 <% } %>
 
