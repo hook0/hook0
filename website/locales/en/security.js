@@ -3,6 +3,7 @@
 module.exports = {
   "pageTitle": "Hook0 - Security and Compliance",
   "pageDescription": "Learn about Hook0 security practices: GDPR compliance, TLS encryption, cryptographic signatures, and enterprise-grade data protection. Hosted in Europe.",
+  "pageModified": "2026-06-29",
   "hero": {
     "eyebrow": "Trust & Safety",
     "h1": "Security & Compliance",
