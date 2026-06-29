@@ -67,5 +67,23 @@ Disallow: /subscription-success
 Disallow: /subscription-error
 Disallow: /404
 
+User-agent: Bytespider
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
+User-agent: meta-externalagent
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
+User-agent: cohere-ai
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
 # Sitemap location
 Sitemap: https://www.hook0.com/sitemap.xml

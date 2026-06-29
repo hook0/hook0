@@ -27,11 +27,11 @@ head body, and the default fallback would just create a duplicate tag. -->
 <!-- hreflang alternates (localized versions). Self-referential link is intentionally
      omitted: it would duplicate the canonical URL and Parcel rewrites the colliding
      canonical href into a bundle hash. Cross-language reciprocity + x-default are kept.
-     Bleed defense (Phase 0): pageHreflang from the previously-rendered page can leak
-     into a legacy non-converted page (one mutable `locals` across a Parcel run). If
-     pageCanonical doesn't appear in pageHreflang, the set must have bled — skip
-     emission entirely. Also skip any single entry whose href equals own canonical
-     (homepage x-default case, or future self-referent leak). -->
+     Bleed defense: pageHreflang from the previously-rendered page can leak into a
+     non-converted page (one mutable `locals` across a Parcel run). If pageCanonical
+     doesn't appear in pageHreflang, the set must have bled — skip emission entirely.
+     Also skip any single entry whose href equals own canonical (homepage x-default
+     case, or future self-referent leak). -->
 <% if (locals.pageHreflang && locals.pageCanonical) {
      var __curLang = locals.pageLang || 'en';
      var __own = locals.pageCanonical;
@@ -324,6 +324,7 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
   "@context": "https://schema.org",
   "@type": "Organization",
   "@id": "<%= locals.seo.siteUrl %>/#organization",
+  "inLanguage": "<%= locals.pageLang || 'en' %>",
   "name": "Hook0",
   "alternateName": ["hook0", "Hook Zero"],
   "legalName": "FGRibreau SARL",
@@ -417,6 +418,7 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "@id": "<%= locals.seo.siteUrl %>/#software",
+  "inLanguage": "<%= locals.pageLang || 'en' %>",
   "name": "Hook0",
   "alternateName": ["hook0", "Hook Zero"],
   "applicationCategory": "DeveloperApplication",

@@ -522,7 +522,7 @@ fn rsync(src: &Path, dst: &Path) -> R<()> {
 // treat a clean exit (0) or SIGKILL-after-done (137) / timeout (124) as success.
 fn parcel_build(root: &Path, entries: &str, dist_dir: &Path, public_url: &str) -> R<()> {
     let cmd = format!(
-        "timeout --signal=KILL 300 npx parcel build '{}' --dist-dir '{}' --public-url='{}' --no-cache; \
+        "timeout --signal=KILL 300 npx parcel build '{}' --dist-dir '{}' --public-url='{}' --no-cache --no-source-maps; \
          ec=$?; if [ $ec -eq 0 ] || [ $ec -eq 137 ] || [ $ec -eq 124 ]; then exit 0; else exit $ec; fi",
         entries,
         dist_dir.display(),

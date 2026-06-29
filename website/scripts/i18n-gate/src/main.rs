@@ -1,8 +1,9 @@
-//! Phase-0 i18n gate.
+//! i18n gate.
 //!
-//! Catches the shared-locals bleed bug (the SEO regression the plan was built
-//! to fix) by asserting a one-page-one-canonical invariant over every rendered
-//! HTML in `dist/`:
+//! Catches the shared-locals bleed bug (the SEO regression in
+//! `parcel-transformer-ejs` that mutably shares one `locals` across every
+//! page in a run) by asserting a one-page-one-canonical invariant over every
+//! rendered HTML in `dist/`:
 //!
 //!   For every indexable page X, <link rel="canonical"> on dist/X.html MUST
 //!   point to X's own URL — never to another page's slug, never to a Parcel
@@ -54,12 +55,12 @@ fn main() {
         }
     };
 
-    // 1a. Strict canonical + html-lang gate for CONVERTED pages only (per plan
-    //     R1: only data-driven templates carry the per-page reset that
-    //     guarantees their own meta). Legacy non-converted pages still suffer
-    //     the pre-existing shared-locals bleed — Phase 1 fixes them.
-    // 1b. Universal R2 gate: every canonical that *is* present MUST be a real
-    //     URL (https://...), never a Parcel bundle hash. Applies to all pages.
+    // 1a. Strict canonical + html-lang gate for CONVERTED pages only (only
+    //     data-driven templates carry the per-page reset that guarantees
+    //     their own meta). Legacy non-converted pages still suffer the
+    //     pre-existing shared-locals bleed.
+    // 1b. Universal canonical gate: every canonical that *is* present MUST be
+    //     a real URL (https://...), never a Parcel bundle hash. All pages.
     for (lang, dir, _) in &locales {
         let ldir = if dir.is_empty() {
             dist.clone()

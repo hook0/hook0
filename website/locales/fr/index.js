@@ -36,7 +36,9 @@ module.exports = {
     '@graph': [
       {
         '@type': 'Organization',
+        inLanguage: 'fr',
         name: 'Hook0',
+        alternateName: ['hook0', 'Hook Zero'],
         url: 'https://www.hook0.com',
         logo: 'https://www.hook0.com/mediakit/logo/110x110-white.png',
         description: "Plateforme webhooks gratuite, à code source ouvert. Tu envoies tes webhooks avec un appel API, Hook0 gère les relances, les signatures HMAC et le monitoring des livraisons. Gratuit pour toujours, sans carte bancaire. Auto-hébergement ou cloud.",
@@ -60,7 +62,9 @@ module.exports = {
       },
       {
         '@type': 'SoftwareApplication',
+        inLanguage: 'fr',
         name: 'Hook0',
+        alternateName: ['hook0', 'Hook Zero'],
         applicationCategory: 'DeveloperApplication',
         operatingSystem: 'Any',
         url: 'https://www.hook0.com',
