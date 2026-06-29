@@ -371,22 +371,21 @@ module.exports = {
       wip: false,
     },
   ],
-  // footerLinks DE: Sektionstitel und Labels übersetzt, hrefs unverändert
-  // (lokalisiertes Slug-Routing wird vom Orchestrator separat behandelt).
+  // footerLinks DE: hrefs verweisen auf die DE-Slugs (siehe locales/slugs.js).
   footerLinks: {
     about: {
       title: 'Über uns',
       items: [
         { label: 'Kontakt', href: 'mailto:support@hook0.com' },
-        { label: 'Preise', href: './pricing' },
+        { label: 'Preise', href: './preise' },
         { label: 'Ressourcen', href: 'https://documentation.hook0.com/docs' },
-        { label: 'Sicherheit und Compliance', href: './security' },
-        { label: 'Gebaut um zu bleiben', href: './built-to-last' },
-        { label: 'Pressekit', href: './mediakit/' },
-        { label: 'Datenschutzerklärung', href: './privacy-policy' },
-        { label: 'Nutzungsbedingungen', href: './terms' },
-        { label: 'Impressum', href: './mentions-legales' },
-        { label: 'Verkaufsbedingungen', href: './terms-of-sale' },
+        { label: 'Sicherheit und Compliance', href: './sicherheit' },
+        { label: 'Gebaut um zu bleiben', href: './gebaut-um-zu-bleiben' },
+        { label: 'Pressekit', href: './pressekit/' },
+        { label: 'Datenschutzerklärung', href: './datenschutzerklaerung' },
+        { label: 'Nutzungsbedingungen', href: './nutzungsbedingungen' },
+        { label: 'Impressum', href: './impressum' },
+        { label: 'Verkaufsbedingungen', href: './verkaufsbedingungen' },
       ],
     },
     compare: {
@@ -395,12 +394,12 @@ module.exports = {
         { label: 'Hook0 vs Svix', href: './hook0-vs-svix' },
         { label: 'Hook0 vs Hookdeck', href: './hook0-vs-hookdeck' },
         { label: 'Hook0 vs Convoy', href: './hook0-vs-convoy' },
-        { label: 'Hook0-Alternativen', href: './hook0-alternatives' },
-        { label: 'Svix-Alternativen', href: './svix-alternatives' },
-        { label: 'Hookdeck-Alternativen', href: './hookdeck-alternatives' },
+        { label: 'Hook0-Alternativen', href: './hook0-alternativen' },
+        { label: 'Svix-Alternativen', href: './svix-alternativen' },
+        { label: 'Hookdeck-Alternativen', href: './hookdeck-alternativen' },
         { label: 'Build vs Buy Webhooks', href: './build-vs-buy-webhooks' },
-        { label: 'Selbst gehostete Webhooks', href: './self-hosted-webhooks' },
-        { label: 'Quelloffene Webhooks', href: './open-source-webhooks' },
+        { label: 'Selbst gehostete Webhooks', href: './selbst-gehostete-webhooks' },
+        { label: 'Quelloffene Webhooks', href: './quelloffene-webhooks' },
       ],
     },
     guides: {
@@ -433,7 +432,7 @@ module.exports = {
       title: 'Community',
       items: [
         { label: 'Verhaltenskodex', href: 'https://gitlab.com/hook0/hook0/-/blob/master/CODE_OF_CONDUCT.md', icon: 'conduct' },
-        { label: 'Quelloffene Freunde', href: './oss-friends', icon: 'globe' },
+        { label: 'Quelloffene Freunde', href: './open-source-freunde', icon: 'globe' },
         { label: 'Discord', href: 'https://www.hook0.com/community', icon: 'discord' },
         { label: 'GitHub', href: 'https://github.com/hook0/hook0', icon: 'github' },
         { label: 'LinkedIn', href: 'https://www.linkedin.com/company/hook0', icon: 'linkedin' },
