@@ -3,7 +3,7 @@
 <head>
     <title>Hook0 - Subscription Error</title>
     <meta name="description" content="An error occurred with your Hook0 subscription.">
-    <% locals.pageNoindex = true; %>
+    <% Object.assign(locals, { pageNoindex: true, pageCanonical: null, pageHreflang: null, pageFAQSchema: null, pageSchema: null, pageImage: null, pageModified: null, pageType: 'website', pageTitle: null, pageDescription: null, pageLang: 'en' }); %>
     <%- include('./includes/_head.ejs') %>
 </head>
 <body>
