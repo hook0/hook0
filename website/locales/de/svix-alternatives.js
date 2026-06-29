@@ -2,7 +2,7 @@
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Pivot-Doppelpunkt.
 // Hook0 = « quelloffen (SSPL-1.0) ». Svix MIT (OSI) = « Open Source » OK für Svix.
 module.exports = {
-  pageTitle: 'Svix-Alternativen (2026), Webhook-Plattformen im Vergleich | Hook0',
+  pageTitle: 'Svix-Alternativen 2026, Webhook-Plattformen | Hook0',
   pageDescription: 'Du evaluierst Svix? Vergleich Hook0, Hookdeck, Convoy und mehr. Seite an Seite zu Preis, Selbst-Hosting, Lizenzierung und was « Open Source » in der Praxis bedeutet.',
   pageModified: '2026-06-27',
   hero: {

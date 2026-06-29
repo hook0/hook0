@@ -2,7 +2,7 @@
 // /humanizer pro appliqué. Tutoiement. Pas d'em-dash, pas de pivot colon, pas de --.
 // Hook0 = « code source ouvert (SSPL-1.0) ». Convoy MPL-2.0 = OSI, donc « open source » OK pour Convoy.
 module.exports = {
-  pageTitle: 'Alternatives à Hookdeck (2026), plateformes webhook qui en font plus | Hook0',
+  pageTitle: 'Alternatives à Hookdeck 2026, plateformes webhook | Hook0',
   pageDescription: 'Hookdeck est un proxy webhook, pas une plateforme webhook. Compare les vraies alternatives, Hook0, Svix, Convoy pour envoyer, gérer et monitorer tes webhooks.',
   pageModified: '2026-06-27',
   hero: {
