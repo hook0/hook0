@@ -5,6 +5,7 @@ module.exports = {
   pageTitle: 'webhook.site-Alternative: in 30 Min zu Hook0 | Hook0',
   pageDescription: 'Production-Upgrade von webhook.site: HMAC-Signaturen, konfigurierbare Wiederholungen, Subscriber-Portal, quelloffen (SSPL-1.0).',
   pageModified: '2026-06-27',
+  breadcrumb: 'Von webhook.site migrieren',
   hero: {
     eyebrow: 'webhook.site-Alternative',
     titleBefore: 'Über webhook.site hinaus?',

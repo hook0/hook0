@@ -3,6 +3,7 @@
 module.exports = {
   pageTitle: 'Webhook.site Alternative: Switch to Hook0 in 30 Min',
   pageDescription: 'Looking for a webhook.site alternative? Hook0 is the production-grade upgrade: HMAC signatures, configurable retries, subscriber portal, open-source. Free forever.',
+  breadcrumb: 'Migrate from webhook.site',
   hero: {
     eyebrow: 'Webhook.site Alternative',
     titleBefore: 'Past webhook.site?',
