@@ -10,10 +10,12 @@
 <!-- Noindex -->
 <% if (locals.pageNoindex) { %><meta name="robots" content="noindex, follow"><% } %>
 
-<!-- SEO Meta Tags -->
+<!-- SEO Meta Tags. Skip the global default on noindex utility pages — those
+templates emit their own page-specific <meta name="description"> in their
+head body, and the default fallback would just create a duplicate tag. -->
 <% if (locals.pageDescription) { %>
 <meta name="description" content="<%= locals.pageDescription %>">
-<% } else { %>
+<% } else if (!locals.pageNoindex) { %>
 <meta name="description" content="<%= locals.seo.defaultDescription %>">
 <% } %>
 
