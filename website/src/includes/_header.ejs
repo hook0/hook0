@@ -48,6 +48,24 @@ if (locals.i18nHelpers && locals.pageLang) {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
                 </a>
+                <% if (Array.isArray(locals.pageHreflang) && locals.pageHreflang.length > 1) { %>
+                <div role="group" aria-label="Language" class="flex items-center gap-0.5 ml-2 pl-2 border-l border-white/10">
+                    <% locals.pageHreflang.forEach(function (alt) {
+                        var __isActive = alt.lang === (locals.pageLang || 'en');
+                        var __label = alt.lang === 'fr' ? 'FR' : alt.lang === 'de' ? 'DE' : 'EN';
+                        var __full = alt.lang === 'fr' ? 'Français' : alt.lang === 'de' ? 'Deutsch' : 'English';
+                    %>
+                    <a href="<%= alt.href %>"
+                       hreflang="<%= alt.lang %>"
+                       lang="<%= alt.lang %>"
+                       title="<%= __full %>"
+                       <% if (__isActive) { %>aria-current="page"<% } %>
+                       class="inline-flex items-center justify-center min-w-[44px] min-h-[44px] px-2 text-xs font-semibold rounded-md transition-colors <%= __isActive ? 'text-white bg-white/10' : 'text-gray-400 hover:text-white hover:bg-white/5' %>">
+                        <%= __label %>
+                    </a>
+                    <% }); %>
+                </div>
+                <% } %>
             </div>
 
             <!-- Desktop Auth Buttons -->
@@ -135,6 +153,24 @@ if (locals.i18nHelpers && locals.pageLang) {
                     <%= __cnav ? __cnav.contact : 'Contact' %>
                 </a>
             </nav>
+
+            <% if (Array.isArray(locals.pageHreflang) && locals.pageHreflang.length > 1) { %>
+            <div role="group" aria-label="Language" class="mobile-menu__lang flex items-center gap-2 px-4 py-3 border-t border-white/10">
+                <% locals.pageHreflang.forEach(function (alt) {
+                    var __isActive = alt.lang === (locals.pageLang || 'en');
+                    var __full = alt.lang === 'fr' ? 'Français' : alt.lang === 'de' ? 'Deutsch' : 'English';
+                %>
+                <a href="<%= alt.href %>"
+                   hreflang="<%= alt.lang %>"
+                   lang="<%= alt.lang %>"
+                   <% if (__isActive) { %>aria-current="page"<% } %>
+                   class="flex-1 inline-flex items-center justify-center min-h-[44px] px-3 py-2 text-sm font-medium rounded-md transition-colors <%= __isActive ? 'text-white bg-white/10' : 'text-gray-400 hover:text-white hover:bg-white/5' %>"
+                   onclick="closeMobileMenu()">
+                    <%= __full %>
+                </a>
+                <% }); %>
+            </div>
+            <% } %>
 
             <!-- Mobile Auth Buttons -->
             <div class="mobile-menu__auth">

@@ -4,7 +4,7 @@
 // partenaires (auto-désignation), pas Hook0 lui-même. Hook0 reste
 // « à code source ouvert (SSPL-1.0) » dans les contextes propres.
 module.exports = {
-  pageTitle: 'Nos amis open source | Communauté Webhook et outils dev — Hook0',
+  pageTitle: 'Nos amis open source | Communauté Webhook et outils dev | Hook0',
   pageDescription: 'Découvre les projets open source amis de Hook0. On bosse avec des projets qui partagent les valeurs de transparence, collaboration et communauté.',
   hero: {
     eyebrow: 'Communauté',
