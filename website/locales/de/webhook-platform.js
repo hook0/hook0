@@ -135,7 +135,7 @@ module.exports = {
         "a": "Ein produktionsreifes Webhook-System bedeutet mehr als drei Entwicklungs-Sprints für Retries, Dead-Letter-Queues, HMAC-Signaturen, Monitoring und eine Subscriber-Oberfläche, dazu die laufende Wartung. Mit einer Webhook-Plattform wie Hook0 bist du in 30 Minuten startklar und gewinnst diese Entwicklungszeit für dein Produkt zurück."
       },
       {
-        "q": "Wo werden meine Daten gehostet? Ist Hook0 DSGVO-konform?",
+        "q": "Wo werden meine Daten gehostet? Ist Hook0 auf DSGVO-Konformität ausgelegt?",
         "a": "Die Anwendungsdaten von Hook0 Cloud werden in Frankreich bei Clever Cloud verarbeitet. Herausgeber ist eine französische SARL ohne US-Mutterkonzern. Als CDN nutzen wir Cloudflare; das ist samt Rechtsgrundlage der Übermittlung in unserem Auftragsverarbeitungsvertrag (DPA) aufgeführt. Hook0 ist auf DSGVO-Konformität ausgelegt; ein DPA mit vollständiger Liste der Unterauftragsverarbeiter ist auf Anfrage verfügbar. Wer maximale Kontrolle braucht, hostet Hook0 selbst in der EU."
       },
       {

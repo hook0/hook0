@@ -471,6 +471,7 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
   "@id": "<%= locals.seo.siteUrl %><%= locals.pageCanonical %>#webpage",
   "url": "<%= locals.seo.siteUrl %><%= locals.pageCanonical %>",
   "name": "<%= locals.pageTitle || locals.seo.defaultTitle %>",
+  "inLanguage": "<%= locals.pageLang || 'en' %>",
   "dateModified": "<%= locals.pageModified %>",
   "isPartOf": { "@id": "<%= locals.seo.siteUrl %>/#organization" },
   "publisher": { "@id": "<%= locals.seo.siteUrl %>/#organization" }

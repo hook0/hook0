@@ -135,7 +135,7 @@ module.exports = {
         "a": "Un système de webhooks prêt pour la production, c'est plus de trois sprints d'ingénierie pour les relances, les dead-letter queues, les signatures HMAC, le monitoring et une interface abonnés, plus la maintenance permanente. Avec une plateforme comme Hook0, tu es en production en 30 minutes et tu récupères ce temps d'ingénierie pour ton produit."
       },
       {
-        "q": "Où sont hébergées mes données ? Hook0 est-il conforme RGPD ?",
+        "q": "Où sont hébergées mes données ? Hook0 est-il conçu pour la conformité RGPD ?",
         "a": "Les données applicatives de Hook0 Cloud sont traitées en France chez Clever Cloud. L'éditeur est une SARL française sans maison-mère américaine. Comme CDN, nous utilisons Cloudflare ; c'est précisé, avec la base juridique du transfert, dans notre accord de traitement (DPA). Hook0 est conçu pour la conformité RGPD ; un DPA avec la liste complète des sous-traitants est disponible sur demande. Pour un contrôle maximal, tu peux auto-héberger Hook0 dans l'UE."
       },
       {
