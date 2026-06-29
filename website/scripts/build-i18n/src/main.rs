@@ -164,8 +164,81 @@ fn run() -> R<()> {
     // (removed) parcel-reporter-sitemap and scripts/fix-sitemap.js.
     write_sitemap(&dist, SITE_URL, &locales, &localized)?;
 
+    // qdnld/ is a tree of Remotion-generated HTML that hotlinks Google Fonts
+    // — that's a transfer-out-of-EU privacy violation for any visitor that
+    // hits those files via the marketing site. Strip every fonts.googleapis.com
+    // / fonts.gstatic.com reference from the built artifacts. The source tree
+    // in static/mediakit/qdnld/ keeps its Remotion output untouched; the
+    // sanitized version only lives in dist/.
+    strip_google_fonts(&dist.join("mediakit").join("qdnld"))?;
+
     println!("build-i18n: done");
     Ok(())
+}
+
+// Walk a directory tree, strip every googleapis.com / gstatic.com font
+// reference from each .html file in-place. Idempotent.
+fn strip_google_fonts(root: &Path) -> R<()> {
+    if !root.is_dir() {
+        return Ok(());
+    }
+    let mut stripped: usize = 0;
+    walk_files(root, &mut |rel| {
+        if rel.extension().and_then(|x| x.to_str()) != Some("html") {
+            return;
+        }
+        let path = root.join(rel);
+        let Ok(s) = fs::read_to_string(&path) else { return };
+        let cleaned = strip_google_fonts_in_html(&s);
+        if cleaned != s {
+            if fs::write(&path, cleaned).is_ok() {
+                stripped += 1;
+            }
+        }
+    })?;
+    if stripped > 0 {
+        eprintln!("build-i18n: stripped Google Fonts from {stripped} qdnld HTML file(s)");
+    }
+    Ok(())
+}
+
+// Remove (a) `@import url('https://fonts.{googleapis,gstatic}.com/...')` whole
+// statements including the trailing `;`, and (b) `<link ... fonts.{googleapis,
+// gstatic}.com ...>` tags. UTF-8 safe, no regex dep, idempotent.
+fn strip_google_fonts_in_html(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut i = 0usize;
+    while i < html.len() {
+        let rest_bytes = &html.as_bytes()[i..];
+        // (a) @import …; → drop whole stmt if it points at Google Fonts
+        if rest_bytes.starts_with(b"@import") {
+            if let Some(semi_rel) = rest_bytes.iter().position(|&b| b == b';') {
+                let stmt = &html[i..=i + semi_rel];
+                if stmt.contains("fonts.googleapis.com") || stmt.contains("fonts.gstatic.com") {
+                    i += semi_rel + 1;
+                    continue;
+                }
+            }
+        }
+        // (b) <link …> → drop tag (case-insensitive on `link`)
+        if rest_bytes.len() >= 5
+            && rest_bytes[0] == b'<'
+            && rest_bytes[1..5].eq_ignore_ascii_case(b"link")
+        {
+            if let Some(gt_rel) = rest_bytes.iter().position(|&b| b == b'>') {
+                let tag = &html[i..=i + gt_rel];
+                if tag.contains("fonts.googleapis.com") || tag.contains("fonts.gstatic.com") {
+                    i += gt_rel + 1;
+                    continue;
+                }
+            }
+        }
+        // Otherwise copy the current UTF-8 char as-is.
+        let Some(ch) = html[i..].chars().next() else { break };
+        out.push(ch);
+        i += ch.len_utf8();
+    }
+    out
 }
 
 const SITE_URL: &str = "https://www.hook0.com";

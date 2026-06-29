@@ -3,6 +3,7 @@
 module.exports = {
   pageTitle: 'Hook0 Alternatives; Honest Comparison (2026)',
   pageDescription: 'Looking for Hook0 alternatives? Compare Hook0, Svix, Hookdeck, and Convoy side by side on licensing, self-hosting, pricing, and features.',
+  breadcrumb: 'Hook0 alternatives',
   hero: {
     eyebrow: 'Comparison',
     titleBefore: 'Hook0 Alternatives',

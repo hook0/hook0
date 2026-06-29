@@ -8,8 +8,8 @@
 // Souveraineté : CDN Cloudflare (USA) divulgué, data plane Clever Cloud (France).
 // JAMAIS « 100 % souverain / no data sharing / CLOUD Act free ».
 module.exports = {
-  "pageTitle": "Meilleur serveur webhook open source (2026) | Hook0",
-  "pageDescription": "Comparatif des serveurs webhook open source : Hook0 (SSPL, complet), Svix (open-core), Convoy (MIT). Cloud à partir de 59 €/mois, ou auto-hébergement pour la conformité.",
+  pageTitle: 'Webhooks à code source ouvert : Hook0 SSPL-1.0',
+  pageDescription: 'Hook0 est une plateforme webhooks à code source ouvert sous SSPL-1.0. Cloud UE managé ou auto-hébergement libre.',
   "pageModified": "2026-06-27",
   "track": "fr-oss-webhooks",
   "hero": {

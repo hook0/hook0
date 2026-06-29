@@ -2,9 +2,10 @@
 // /humanizer pro appliqué. Tutoiement. Pas d'em-dash, pas de pivot colon, pas de --.
 // Hook0 = « code source ouvert (SSPL-1.0) ». Convoy MPL-2.0 = OSI, donc « open source » OK pour Convoy.
 module.exports = {
-  pageTitle: 'Alternatives à Hook0 (2026), comparaison honnête | Hook0',
-  pageDescription: 'Tu cherches des alternatives à Hook0 ? Compare Hook0, Svix, Hookdeck et Convoy côte à côte sur les licences, l\'auto-hébergement, la tarification et les fonctionnalités.',
+  pageTitle: 'Alternatives à Hook0 2026 : comparaison honnête | Hook0',
+  pageDescription: 'Compare Hook0, Svix, Hookdeck et Convoy côte à côte : licences, auto-hébergement, tarification et fonctionnalités.',
   pageModified: '2026-06-27',
+  breadcrumb: 'Alternatives à Hook0',
   hero: {
     eyebrow: 'Comparaison',
     titleBefore: 'Alternatives à Hook0',

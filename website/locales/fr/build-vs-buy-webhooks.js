@@ -3,8 +3,9 @@
 // Hook0 = « code source ouvert (SSPL-1.0) ».
 module.exports = {
   pageTitle: 'Build vs Buy webhooks, prod en 30 min | Hook0',
-  pageDescription: 'Construire un système webhook de zéro coûte 3 sprints ou plus. Relances, signatures, monitoring, dead letter queues. Ou tu prends Hook0 et tu livres en 30 minutes.',
+  pageDescription: 'Construire un système webhook coûte 3 sprints. Relances, signatures, monitoring : prends Hook0 et livre en 30 minutes.',
   pageModified: '2026-06-27',
+  breadcrumb: 'Build vs Buy webhooks',
   hero: {
     eyebrow: 'Build vs Buy',
     titleBefore: 'Arrête de construire des webhooks',

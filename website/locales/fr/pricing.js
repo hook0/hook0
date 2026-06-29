@@ -2,8 +2,8 @@
 // /humanizer pro + legal-reviewer applied.
 // SSPL = «code source ouvert (SSPL-1.0)», jamais «open source» (L121-1).
 module.exports = {
-  "pageTitle": "Tarifs Hook0, offre gratuite et données en France | Webhooks",
-  "pageDescription": "Offre Developer gratuite à vie. Cloud dès 59 € HT/mois, à code source ouvert (SSPL-1.0) et auto-hébergeable. Compare events/jour, abonnements, rétention et support. Aucun frais caché.",
+  pageTitle: 'Tarifs Hook0 : offre gratuite, cloud UE | Webhooks',
+  pageDescription: 'Developer gratuit à vie. Cloud dès 59 € HT/mois, code source ouvert (SSPL-1.0), auto-hébergeable. Aucun frais caché.',
   "pageModified": "2026-06-27",
   "track": "fr-tarifs",
   "hero": {

@@ -5,8 +5,8 @@
 // Souveraineté : CDN Cloudflare (USA) divulgué, data plane Clever Cloud (France).
 // JAMAIS « 100 % souverain / no data sharing / CLOUD Act free ».
 module.exports = {
-  "pageTitle": "Webhooks auto-hébergés Docker et Kubernetes | Hook0",
-  "pageDescription": "Déploie Hook0 sur ton infrastructure avec Docker ou Kubernetes. Code source ouvert SSPL-1.0, même base que le Cloud. Tes payloads webhook restent sur ton réseau.",
+  pageTitle: 'Webhooks auto-hébergés : déploie Hook0 chez toi | Hook0',
+  pageDescription: 'Auto-héberge Hook0 sur ton infra. Code source ouvert (SSPL-1.0), Docker, Kubernetes, support Postgres et S3.',
   "pageModified": "2026-06-27",
   "track": "fr-self-hosted",
   "hero": {

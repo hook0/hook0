@@ -3,7 +3,7 @@
 // SSPL = « code source ouvert (SSPL-1.0) » si tu en parles dans la description.
 module.exports = {
   pageTitle: 'Construit pour durer, le manifeste Hook0 | Hook0',
-  pageDescription: '100% bootstrappé, zéro financement VC, zéro stratégie de sortie. Hook0 est construit pour te servir aujourd\'hui, demain, et pour les décennies à venir. Notre engagement pour un code source ouvert (SSPL-1.0) qui dure.',
+  pageDescription: '100% bootstrappé, zéro VC, zéro exit. Hook0 est bâti pour te servir pour les décennies à venir. Code source ouvert (SSPL-1.0).',
   hero: {
     badge: '100% bootstrappé',
     badgeNote: 'Pas de VC, pas d\'exit, pas de compromis',

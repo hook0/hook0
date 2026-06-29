@@ -3,8 +3,9 @@
 // Hook0 = « quelloffen (SSPL-1.0) ». Convoy MPL-2.0 = OSI, also « Open Source » OK für Convoy.
 module.exports = {
   pageTitle: 'Hookdeck-Alternativen 2026, Webhook-Plattformen | Hook0',
-  pageDescription: 'Hookdeck ist ein Webhook-Proxy, keine Webhook-Plattform. Vergleich der echten Alternativen, Hook0, Svix, Convoy zum Senden, Verwalten und Monitoren von Webhooks.',
+  pageDescription: 'Hookdeck ist ein Webhook-Proxy, keine Plattform. Echte Alternativen: Hook0, Svix, Convoy zum Senden und Monitoren von Webhooks.',
   pageModified: '2026-06-27',
+  breadcrumb: 'Hookdeck-Alternativen',
   hero: {
     eyebrow: 'Vergleich',
     titleBefore: 'Hookdeck-Alternativen',

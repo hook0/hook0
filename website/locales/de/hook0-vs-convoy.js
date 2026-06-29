@@ -2,9 +2,10 @@
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Pivot-Doppelpunkt.
 // SSPL für Hook0 = « quelloffen (SSPL-1.0) ». Convoy = MPL-2.0 (OSI), also « Open Source » OK für Convoy.
 module.exports = {
-  pageTitle: 'Hook0 vs Convoy, Webhook-Plattformen im Vergleich | Hook0',
-  pageDescription: 'Beide quelloffen, beide auf PostgreSQL. Vergleich Hook0 (Rust, SSPL-1.0, Managed Cloud) und Convoy (Go, MPL-2.0, nur Selbst-Hosting). Features und Kompromisse Seite an Seite.',
+  pageTitle: 'Hook0 vs Convoy: Webhook-Plattformen im Vergleich | Hook0',
+  pageDescription: 'Vergleich Hook0 (Rust, SSPL-1.0, Managed Cloud) und Convoy (Go, MPL-2.0, nur Selbst-Hosting): Features und Kompromisse Seite an Seite.',
   pageModified: '2026-06-27',
+  breadcrumb: 'Hook0 vs. Convoy',
   hero: {
     eyebrow: 'Vergleich',
     titleBefore: 'Hook0 vs Convoy',

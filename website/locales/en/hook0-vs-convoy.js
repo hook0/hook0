@@ -3,6 +3,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Convoy: Open-Source Webhook Platforms Compared (2026)',
   pageDescription: 'Both open-source, both on PostgreSQL. Compare Hook0 (Rust, SSPL, managed cloud) and Convoy (Go, MPL-2.0, self-host only). Side-by-side features and trade-offs.',
+  breadcrumb: 'Hook0 vs Convoy',
   hero: {
     eyebrow: 'Comparison',
     titleBefore: 'Hook0 vs Convoy',

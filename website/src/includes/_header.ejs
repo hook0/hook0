@@ -18,6 +18,11 @@ if (locals.i18nHelpers && locals.pageLang) {
   if (__h) __homeRoot = __h;
 }
 %>
+<!-- Accessibility: skip-to-main link. Visually hidden until focused, then
+     becomes a fixed pill at the top-left. Targets <main id="main"> which the
+     footer-paired wrapper at the end of this include opens. -->
+<a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded-md focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"><%= __ca11y ? __ca11y.skipToMain : 'Skip to main content' %></a>
+
 <!-- Header with glass morphism effect -->
 <header id="main-header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
     <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -238,3 +243,7 @@ if (locals.i18nHelpers && locals.pageLang) {
 
 <!-- Spacer for fixed header -->
 <div class="h-20"></div>
+
+<!-- Main landmark — paired with </main> opened at the top of _footer.ejs.
+     tabindex="-1" so the skip-link click moves keyboard focus here. -->
+<main id="main" tabindex="-1" class="outline-none">

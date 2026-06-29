@@ -1,8 +1,8 @@
 // Per-page strings for webhook-api (FR).
 // /humanizer pro + legal-reviewer applied. SSPL = code source ouvert (SSPL-1.0).
 module.exports = {
-  "pageTitle": "API Webhook, un POST suffit pour livrer un event | Hook0",
-  "pageDescription": "Hook0 expose une API REST sobre, un POST pour déclencher un event, signature HMAC automatique, relances configurables et SDK Python et Node.js. Gratuit, sans carte bancaire.",
+  pageTitle: 'API Webhook : un POST suffit pour livrer un event | Hook0',
+  pageDescription: 'API REST sobre Hook0 : un POST déclenche un event, signature HMAC auto, relances configurables, SDK Python et Node.js. Gratuit.',
   "pageModified": "2026-06-27",
   "track": "fr-api-webhook",
   "hero": {

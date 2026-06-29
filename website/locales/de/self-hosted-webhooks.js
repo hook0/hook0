@@ -8,8 +8,8 @@
 // DSGVO als Prozess-Claim («auf DSGVO-Konformität ausgelegt»),
 // keine absoluten Zertifizierungsaussagen.
 module.exports = {
-  "pageTitle": "Selbst gehostete Webhooks Docker und Kubernetes | Hook0",
-  "pageDescription": "Hoste Hook0 auf deiner Infrastruktur mit Docker oder Kubernetes. Quelloffen unter SSPL-1.0, gleiche Codebasis wie die Cloud. Deine Webhook-Payloads bleiben in deinem Netz.",
+  pageTitle: 'Selbst-gehostete Webhooks: Hook0 auf deiner Infra',
+  pageDescription: 'Hostet Hook0 selbst auf eurer Infrastruktur. Quelloffen (SSPL-1.0), Docker, Kubernetes, Postgres und S3 unterstützt.',
   "pageModified": "2026-06-27",
   "track": "de-self-hosted",
   "hero": {

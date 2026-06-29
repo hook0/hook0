@@ -1,0 +1,32 @@
+<%# Breadcrumb: visible 2-level nav (Home › current) + JSON-LD BreadcrumbList.
+    Renders only when locals.pageBreadcrumb is set (string = current page label).
+    Home URL is locale-aware via locals.i18nHelpers.getPath('index', lang). %>
+<% if (locals.pageBreadcrumb) {
+     var __bcCur = (typeof locals.pageBreadcrumb === 'string') ? locals.pageBreadcrumb : (locals.pageBreadcrumb.current || '');
+     var __bc = (locals.chrome && locals.chrome.breadcrumb) ? locals.chrome.breadcrumb : { ariaLabel: 'Breadcrumb', home: 'Home', separator: '›' };
+     var __homeHref = '/';
+     if (locals.i18nHelpers && locals.pageLang) {
+       var __h = locals.i18nHelpers.getPath('index', locals.pageLang);
+       if (__h) __homeHref = __h;
+     }
+     var __homeAbs = (locals.seo && locals.seo.siteUrl ? locals.seo.siteUrl : '') + __homeHref;
+     var __curAbs = (locals.seo && locals.seo.siteUrl ? locals.seo.siteUrl : '') + (locals.pageCanonical || '');
+%>
+<nav aria-label="<%= __bc.ariaLabel %>" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-sm">
+  <ol class="flex items-center gap-2 text-gray-400">
+    <li><a href="<%= __homeHref %>" class="hover:text-white transition-colors"><%= __bc.home %></a></li>
+    <li aria-hidden="true" class="text-gray-600"><%= __bc.separator %></li>
+    <li aria-current="page" class="text-white font-medium truncate"><%= __bcCur %></li>
+  </ol>
+</nav>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": <%- JSON.stringify(__bc.home) %>, "item": <%- JSON.stringify(__homeAbs) %> },
+    { "@type": "ListItem", "position": 2, "name": <%- JSON.stringify(__bcCur) %>, "item": <%- JSON.stringify(__curAbs) %> }
+  ]
+}
+</script>
+<% } %>

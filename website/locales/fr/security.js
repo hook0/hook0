@@ -5,8 +5,8 @@
 // Liens vers /data-processing-addendum et /gdpr-subprocessors gardent leur slug EN
 // (pages pas encore traduites).
 module.exports = {
-  "pageTitle": "Sécurité et conformité chez Hook0 | Hook0",
-  "pageDescription": "Pratiques de sécurité Hook0, conçu pour la conformité RGPD, chiffrement TLS, signatures HMAC, sauvegardes chiffrées. Données applicatives hébergées en France chez Clever Cloud, CDN Cloudflare (USA).",
+  pageTitle: 'Sécurité de Hook0 : HMAC, audits, isolation | Hook0',
+  pageDescription: 'Sécurité Hook0 : signatures HMAC, isolation des tenants, audits ISO 27001 inspirés, hébergement en France (Clever Cloud).',
   "pageModified": "2026-06-27",
   "hero": {
     "eyebrow": "Confiance et sécurité",

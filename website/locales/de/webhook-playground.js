@@ -2,8 +2,8 @@
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Pivot-Doppelpunkt.
 // SSPL = « quelloffen (SSPL-1.0) » in pageDescription.
 module.exports = {
-  pageTitle: 'Kostenloser Webhook-Tester online, sofort einsatzbereit | Hook0',
-  pageDescription: 'Kostenloser Webhook-Tester ohne Anmeldung. Sende Test-Events, prüfe Payloads, verifiziere HMAC-Signaturen, debugge die Zustellung. Funktioniert mit Stripe, GitHub, Shopify. Quelloffen (SSPL-1.0).',
+  pageTitle: 'Kostenloser Webhook-Tester online | Hook0',
+  pageDescription: 'Kostenloser Webhook-Tester ohne Anmeldung. Sende Test-Events, prüfe Payloads, verifiziere HMAC. Stripe, GitHub, Shopify. Quelloffen.',
   hero: {
     badge: 'Kostenlos, ohne Anmeldung',
     titleBefore: 'Teste deine Webhooks',

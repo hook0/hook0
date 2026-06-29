@@ -24,8 +24,8 @@
 //   - Pas de claim « 100 % souverain » ni « aucun partage de données »
 //     (L121-1 C. conso). RGPD = claim de processus, jamais absolu.
 module.exports = {
-  pageTitle: 'Hook0 - Accord de traitement des données (DPA)',
-  pageDescription: 'Accord de traitement des données Hook0 (DPA) couvrant la conformité RGPD, les opérations de traitement, les mesures de sécurité et la gestion des sous-traitants ultérieurs.',
+  pageTitle: 'Accord de traitement des données (DPA) | Hook0',
+  pageDescription: 'DPA Hook0 couvrant le RGPD : opérations de traitement, mesures de sécurité, gestion des sous-traitants ultérieurs.',
   pageModified: '2026-06-27',
   hero: {
     eyebrow: 'Mentions légales',

@@ -17,7 +17,13 @@ module.exports = {
     },
     a11y: {
       openMenu: 'Ouvrir le menu',
+      skipToMain: 'Aller au contenu principal',
     },
+  },
+  breadcrumb: {
+    ariaLabel: "Fil d'Ariane",
+    home: 'Accueil',
+    separator: '›',
   },
   footer: {
     srTitle: 'Pied de page',

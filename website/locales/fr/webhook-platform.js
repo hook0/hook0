@@ -1,8 +1,8 @@
 // Per-page strings for webhook-platform (FR).
 // /humanizer pro + legal-reviewer applied.
 module.exports = {
-  "pageTitle": "Plateforme de webhooks en Europe, exploitée selon le RGPD | Hook0",
-  "pageDescription": "Hook0 est une plateforme de webhooks à code source ouvert (SSPL-1.0) avec signatures HMAC, relances automatiques, file des échecs et portail abonnés intégré. Données applicatives en France (Clever Cloud), conçue pour la conformité RGPD. Gratuit, sans carte bancaire.",
+  pageTitle: 'Plateforme webhooks en Europe, alignée RGPD | Hook0',
+  pageDescription: 'Plateforme webhooks à code source ouvert (SSPL-1.0) : HMAC, relances, file des échecs, portail abonnés. Données en France (Clever Cloud).',
   "pageModified": "2026-06-25",
   "track": "fr-webhook-plateforme",
   "hero": {

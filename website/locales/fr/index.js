@@ -2,7 +2,7 @@
 // SSPL = « code source ouvert (SSPL-1.0) », jamais « open source ».
 module.exports = {
   pageTitle: 'Hook0 | Plateforme webhooks à code source ouvert (SSPL)',
-  pageDescription: "Plateforme webhooks gratuite, à code source ouvert. Tu envoies tes webhooks avec un appel API, Hook0 gère les relances, les signatures HMAC et le monitoring des livraisons. Gratuit pour toujours, sans carte bancaire. Auto-hébergement ou cloud.",
+  pageDescription: 'Plateforme webhooks gratuite, à code source ouvert. Un appel API, on gère relances, signatures HMAC et monitoring. Sans carte bancaire.',
   pageModified: '2026-06-28',
   hero: {
     badgePillBootstrapped: '100% bootstrappé',

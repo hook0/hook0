@@ -3,9 +3,10 @@
 // Hook0 = « code source ouvert (SSPL-1.0) », JAMAIS « open source » (SSPL hors OSI, risque L121-1).
 // Svix core MIT = OSI, donc « open source » OK pour Svix.
 module.exports = {
-  pageTitle: 'Hook0 vs Svix, comparaison des plateformes webhook | Hook0',
-  pageDescription: 'Compare Hook0 et Svix, code source ouvert SSPL-1.0 vs open-core, bootstrappé vs financement VC, hébergement UE vs US, auto-hébergement sur tous les plans. Une comparaison honnête côte à côte.',
+  pageTitle: 'Hook0 vs Svix : plateformes webhook comparées | Hook0',
+  pageDescription: 'Compare Hook0 et Svix : SSPL-1.0 vs open-core, bootstrappé vs VC, UE vs US, auto-hébergement sur tous les plans. Honnête.',
   pageModified: '2026-06-27',
+  breadcrumb: 'Hook0 vs Svix',
   hero: {
     eyebrow: 'Comparaison',
     titleBefore: 'Hook0 vs Svix',

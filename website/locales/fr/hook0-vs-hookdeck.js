@@ -6,6 +6,7 @@ module.exports = {
   pageTitle: 'Hook0 vs Hookdeck, plateforme webhook vs gateway | Hook0',
   pageDescription: 'Compare Hook0 et Hookdeck, plateforme webhook vs gateway, code source ouvert vs propriétaire, auto-hébergeable vs cloud uniquement. Vois les différences clés.',
   pageModified: '2026-06-27',
+  breadcrumb: 'Hook0 vs Hookdeck',
   hero: {
     eyebrow: 'Comparaison',
     titleBefore: 'Hook0 vs Hookdeck',

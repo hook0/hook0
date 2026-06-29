@@ -64,8 +64,14 @@ head body, and the default fallback would just create a duplicate tag. -->
 <% } %>
 <% if (locals.pageImage) { %>
 <meta property="og:image" content="<%= locals.seo.siteUrl %><%= locals.pageImage %>">
+<meta property="og:image:width" content="1920">
+<meta property="og:image:height" content="1920">
+<meta property="og:image:alt" content="<%= locals.pageTitle || locals.seo.defaultTitle %>">
 <% } else if (!locals.pageNoindex) { %>
 <meta property="og:image" content="<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>">
+<meta property="og:image:width" content="1920">
+<meta property="og:image:height" content="1920">
+<meta property="og:image:alt" content="<%= locals.pageTitle || locals.seo.defaultTitle %>">
 <% } %>
 <% var __localeByLang = { en: 'en_US', fr: 'fr_FR', de: 'de_DE' }; var __pageLang = locals.pageLang || 'en'; %>
 <meta property="og:locale" content="<%= __localeByLang[__pageLang] || locals.seo.locale %>">
@@ -86,11 +92,16 @@ head body, and the default fallback would just create a duplicate tag. -->
 <% } %>
 <% if (locals.pageImage) { %>
 <meta name="twitter:image" content="<%= locals.seo.siteUrl %><%= locals.pageImage %>">
+<meta name="twitter:image:alt" content="<%= locals.pageTitle || locals.seo.defaultTitle %>">
 <% } else if (!locals.pageNoindex) { %>
 <meta name="twitter:image" content="<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>">
+<meta name="twitter:image:alt" content="<%= locals.pageTitle || locals.seo.defaultTitle %>">
 <% } %>
 
-<!-- Self-hosted Inter font -->
+<!-- Self-hosted Inter font (preload the two woff2 subsets matched by inter.css's
+     unicode-range so the first paint of body text uses Inter, not the fallback. -->
+<link rel="preload" as="font" type="font/woff2" href="<%= locals.seo.siteUrl %>/fonts/Inter-latin.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="<%= locals.seo.siteUrl %>/fonts/Inter-latin-ext.woff2" crossorigin>
 <link rel="stylesheet" href="<%= locals.seo.siteUrl %>/fonts/inter.css">
 
 <!-- DNS Prefetch for external resources -->
@@ -125,10 +136,11 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
 .cookie-banner__text{flex:1;min-width:280px;color:#9ca3af;font-size:0.875rem}
 .cookie-banner__text a{color:#818cf8;text-decoration:underline}
 .cookie-banner__buttons{display:flex;align-items:center;gap:1rem}
-.cookie-banner__btn--decline{background:none;border:none;color:#6b7280;font-size:0.875rem;cursor:pointer;text-decoration:underline;padding:0.5rem}
-.cookie-banner__btn--decline:hover{color:#9ca3af}
-.cookie-banner__btn--accept{background:#22c55e;color:#fff;border:none;padding:0.75rem 1.5rem;border-radius:0.75rem;font-weight:600;font-size:0.875rem;cursor:pointer;box-shadow:0 0 20px rgba(34,197,94,0.4);transition:all 0.2s}
-.cookie-banner__btn--accept:hover{background:#16a34a;box-shadow:0 0 30px rgba(34,197,94,0.6);transform:scale(1.02)}
+.cookie-banner__btn--decline,.cookie-banner__btn--accept{padding:0.625rem 1.25rem;border-radius:0.5rem;font-weight:600;font-size:0.875rem;cursor:pointer;transition:all 0.2s;min-width:110px;background:transparent;border-style:solid;border-width:1px}
+.cookie-banner__btn--decline{border-color:#6b7280;color:#d1d5db}
+.cookie-banner__btn--decline:hover{background:rgba(107,114,128,0.15);border-color:#9ca3af;color:#fff}
+.cookie-banner__btn--accept{border-color:#22c55e;color:#4ade80}
+.cookie-banner__btn--accept:hover{background:rgba(34,197,94,0.15);border-color:#16a34a;color:#fff}
 </style>
 <% var __cb = (locals.chrome && locals.chrome.cookieBanner) || { ariaLabel: 'Cookie consent', text: 'We use cookies on Hook0.com and its subdomains (including app.hook0.com) to analyze site usage, measure advertising performance, and improve your experience.', privacyLink: 'Privacy Policy', privacyHref: '/privacy-policy', decline: 'Decline', accept: 'Accept' }; %>
 <div id="cookie-consent-banner" class="cookie-banner" role="dialog" aria-label="<%= __cb.ariaLabel %>">
@@ -478,6 +490,31 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
   "dateModified": "<%= locals.pageModified %>",
   "isPartOf": { "@id": "<%= locals.seo.siteUrl %>/#organization" },
   "publisher": { "@id": "<%= locals.seo.siteUrl %>/#organization" }
+}
+</script>
+<% } %>
+
+<!-- WebSite + SearchAction (locale homepages). The sitelinks search box
+     target is the docs search, which works for any locale visitor. -->
+<% if (locals.pageCanonical && (locals.pageCanonical === '/' || /^\/[a-z]{2}\/$/.test(locals.pageCanonical))) { %>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "<%= locals.seo.siteUrl %><%= locals.pageCanonical %>#website",
+  "url": "<%= locals.seo.siteUrl %><%= locals.pageCanonical %>",
+  "name": "Hook0",
+  "alternateName": ["hook0", "Hook Zero"],
+  "inLanguage": "<%= locals.pageLang || 'en' %>",
+  "publisher": { "@id": "<%= locals.seo.siteUrl %>/#organization" },
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "https://documentation.hook0.com/search?q={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  }
 }
 </script>
 <% } %>

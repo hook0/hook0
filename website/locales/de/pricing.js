@@ -4,8 +4,8 @@
 // Stack», «keine Daten verlassen die EU», «CLOUD Act free». NIS2/DORA nur als
 // Kunden-Kontext, niemals als Zertifizierung.
 module.exports = {
-  "pageTitle": "Hook0 Preise, kostenloser Tarif, Daten in Frankreich | Webhooks",
-  "pageDescription": "Developer-Tarif dauerhaft kostenlos. Cloud ab 59 € netto/Monat, quelloffen (SSPL-1.0) und selbst hostbar. Vergleiche Events/Tag, Subscriptions, Aufbewahrung und Support. Keine versteckten Kosten.",
+  pageTitle: 'Hook0 Preise: kostenloser Tarif, EU-Cloud | Webhooks',
+  pageDescription: 'Developer-Tarif dauerhaft kostenlos. Cloud ab 59 €/Monat, quelloffen (SSPL-1.0), selbst hostbar. Keine versteckten Kosten.',
   "pageModified": "2026-06-27",
   "track": "de-preise",
   "hero": {

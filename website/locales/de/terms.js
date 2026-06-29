@@ -19,7 +19,7 @@
 // Cloudflare Inc. (USA) offengelegt.
 module.exports = {
   pageTitle: 'Hook0 - Allgemeine Nutzungsbedingungen',
-  pageDescription: 'Allgemeine Nutzungsbedingungen für Hook0 Webhooks-as-a-Service. Lesen Sie sorgfältig die Regeln, die den Zugriff auf die Hook0-Plattform und deren Nutzung regeln.',
+  pageDescription: 'Nutzungsbedingungen für Hook0 Webhooks-as-a-Service. Regeln, die den Zugriff auf die Hook0-Plattform und ihre Nutzung regeln.',
   pageModified: '2026-06-27',
   hero: {
     eyebrow: 'Rechtliches',

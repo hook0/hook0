@@ -2,8 +2,8 @@
 // /humanizer pro appliqué. Tutoiement. Pas d'em-dash, pas de pivot colon.
 // SSPL pour Hook0 = « code source ouvert (SSPL-1.0) », JAMAIS « open source » seul.
 module.exports = {
-  pageTitle: 'Alternative à webhook.site, passe à Hook0 en 30 min | Hook0',
-  pageDescription: 'Tu cherches une alternative à webhook.site ? Hook0 est l\'upgrade prod-ready, avec signatures HMAC, relances configurables, portail abonné, code source ouvert (SSPL-1.0). Gratuit à vie.',
+  pageTitle: 'Alternative à webhook.site : passe à Hook0 en 30 min | Hook0',
+  pageDescription: 'Upgrade prod-ready de webhook.site : signatures HMAC, relances configurables, portail abonné, code source ouvert (SSPL-1.0).',
   pageModified: '2026-06-27',
   hero: {
     eyebrow: 'Alternative à webhook.site',

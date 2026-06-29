@@ -4,8 +4,8 @@
 // (Selbstbezeichnung), nicht Hook0 selbst. Für Hook0 selbst gilt
 // « quelloffen (SSPL-1.0) » in eigenen Kontexten.
 module.exports = {
-  pageTitle: 'Open-Source-Freunde | Webhook- und Dev-Tool-Community | Hook0',
-  pageDescription: 'Entdecke die Open-Source-Freunde und Partner von Hook0. Wir arbeiten mit Projekten zusammen, die Transparenz, Zusammenarbeit und Community-Werte fördern.',
+  pageTitle: 'Open-Source-Freunde | Webhook-Community | Hook0',
+  pageDescription: 'Entdecke die Open-Source-Freunde und Partner von Hook0. Wir arbeiten mit Projekten zusammen, die Transparenz und Community fördern.',
   hero: {
     eyebrow: 'Community',
     titleBefore: 'Unsere',

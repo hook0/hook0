@@ -2,8 +2,8 @@
 // /humanizer pro appliqué. Tutoiement. Pas d'em-dash, pas de pivot colon.
 // SSPL = « code source ouvert (SSPL-1.0) » dans la pageDescription.
 module.exports = {
-  pageTitle: 'Testeur de webhooks gratuit en ligne, instantané | Hook0',
-  pageDescription: 'Testeur de webhooks gratuit, sans inscription. Envoie des events de test, inspecte les payloads, vérifie les signatures HMAC, debug la livraison. Compatible Stripe, GitHub, Shopify. Code source ouvert (SSPL-1.0).',
+  pageTitle: 'Testeur webhook gratuit en ligne, instantané | Hook0',
+  pageDescription: 'Testeur webhook gratuit, sans inscription. Envoie des events, inspecte les payloads, vérifie HMAC. Stripe, GitHub, Shopify.',
   hero: {
     badge: 'Gratuit, sans inscription',
     titleBefore: 'Teste tes webhooks',

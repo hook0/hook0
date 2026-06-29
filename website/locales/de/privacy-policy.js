@@ -36,7 +36,7 @@
 //   - TTL Cookie-Einwilligung : 13 Monate maximal (CNIL-Leitlinie).
 module.exports = {
   pageTitle: 'Hook0 - Datenschutzerklärung',
-  pageDescription: 'Datenschutzerklärung von Hook0, auf DSGVO-Konformität ausgelegt (Art. 13 DSGVO). Rechtsgrundlagen, Aufbewahrungsfristen, Ihre Rechte, Unterauftragsverarbeiter und Drittstaatentransfers.',
+  pageDescription: 'Datenschutzerklärung Hook0 (Art. 13 DSGVO): Rechtsgrundlagen, Aufbewahrungsfristen, Rechte, Unterauftragsverarbeiter, Drittstaaten.',
   pageModified: '2026-06-27',
   hero: {
     eyebrow: 'Rechtliches',

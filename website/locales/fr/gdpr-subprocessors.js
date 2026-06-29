@@ -23,8 +23,8 @@
 //   - Pas de claim « 100% souverain » / « aucun partage de donnees » (L121-1
 //     C. conso). RGPD = claim de processus, jamais absolu.
 module.exports = {
-  pageTitle: 'Hook0 - Sous-traitants RGPD',
-  pageDescription: 'Conformité RGPD de Hook0 et liste des sous-traitants utilisés pour fournir nos services webhook. Transparence sur les traitements en Europe et sur les transferts vers les États-Unis.',
+  pageTitle: 'Sous-traitants RGPD | Hook0',
+  pageDescription: 'Liste des sous-traitants Hook0 et transparence sur les traitements en Europe et les transferts vers les États-Unis.',
   pageModified: '2026-06-27',
   hero: {
     eyebrow: 'Conformité',

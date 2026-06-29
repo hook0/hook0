@@ -3,8 +3,9 @@
 // Hook0 = « quelloffen (SSPL-1.0) ». Svix MIT (OSI) = « Open Source » OK für Svix.
 module.exports = {
   pageTitle: 'Svix-Alternativen 2026, Webhook-Plattformen | Hook0',
-  pageDescription: 'Du evaluierst Svix? Vergleich Hook0, Hookdeck, Convoy und mehr. Seite an Seite zu Preis, Selbst-Hosting, Lizenzierung und was « Open Source » in der Praxis bedeutet.',
+  pageDescription: 'Du evaluierst Svix? Vergleich Hook0, Hookdeck, Convoy: Preis, Selbst-Hosting, Lizenzierung und was « Open Source » bedeutet.',
   pageModified: '2026-06-27',
+  breadcrumb: 'Svix-Alternativen',
   hero: {
     eyebrow: 'Vergleich',
     titleBefore: 'Du suchst eine Svix-Alternative?',

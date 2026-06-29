@@ -4,9 +4,10 @@
 // Svix Kern MIT = OSI, also « Open Source » OK für Svix.
 // Keine absoluten DSGVO-Claims im Body. Keine Behauptung « kein US-Konzern im Stack ».
 module.exports = {
-  pageTitle: 'Hook0 vs Svix, Webhook-Plattformen im Vergleich | Hook0',
-  pageDescription: 'Vergleich Hook0 und Svix, quelloffen unter SSPL-1.0 vs Open-Core, bootstrappt vs VC-finanziert, EU-gehostet vs US, Selbst-Hosting in jedem Tarif. Ehrlich Seite an Seite.',
+  pageTitle: 'Hook0 vs Svix: Webhook-Plattformen im Vergleich | Hook0',
+  pageDescription: 'Vergleich Hook0 und Svix: SSPL-1.0 vs Open-Core, bootstrappt vs VC, EU vs US, Selbst-Hosting in jedem Tarif. Ehrlich vergleichen.',
   pageModified: '2026-06-27',
+  breadcrumb: 'Hook0 vs. Svix',
   hero: {
     eyebrow: 'Vergleich',
     titleBefore: 'Hook0 vs Svix',

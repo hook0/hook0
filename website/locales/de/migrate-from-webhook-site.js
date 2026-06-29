@@ -2,8 +2,8 @@
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Pivot-Doppelpunkt.
 // SSPL für Hook0 = « quelloffen (SSPL-1.0) », NIE « Open Source » allein.
 module.exports = {
-  pageTitle: 'webhook.site-Alternative, in 30 Min zu Hook0 wechseln | Hook0',
-  pageDescription: 'Du suchst eine Alternative zu webhook.site? Hook0 ist das Produktions-Upgrade: HMAC-Signaturen, konfigurierbare Wiederholungen, Abonnenten-Portal, quelloffen (SSPL-1.0). Dauerhaft kostenlos.',
+  pageTitle: 'webhook.site-Alternative: in 30 Min zu Hook0 | Hook0',
+  pageDescription: 'Production-Upgrade von webhook.site: HMAC-Signaturen, konfigurierbare Wiederholungen, Subscriber-Portal, quelloffen (SSPL-1.0).',
   pageModified: '2026-06-27',
   hero: {
     eyebrow: 'webhook.site-Alternative',

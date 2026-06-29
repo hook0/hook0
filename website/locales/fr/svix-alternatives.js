@@ -2,9 +2,10 @@
 // /humanizer pro appliqué. Tutoiement. Pas d'em-dash, pas de pivot colon.
 // Hook0 = « code source ouvert (SSPL-1.0) ». Svix MIT (OSI) = « open source » OK pour Svix.
 module.exports = {
-  pageTitle: 'Alternatives à Svix (2026), plateformes webhook comparées | Hook0',
-  pageDescription: 'Tu évalues Svix ? Compare Hook0, Hookdeck, Convoy et plus. Côte à côte sur la tarification, l\'auto-hébergement, les licences et ce que « open source » veut vraiment dire en pratique.',
+  pageTitle: 'Alternatives à Svix 2026 : webhooks comparés | Hook0',
+  pageDescription: 'Tu évalues Svix ? Compare Hook0, Hookdeck, Convoy : tarification, auto-hébergement, licences et ce qu\'« open source » veut dire.',
   pageModified: '2026-06-27',
+  breadcrumb: 'Alternatives à Svix',
   hero: {
     eyebrow: 'Comparaison',
     titleBefore: 'Tu cherches une alternative à Svix ?',

@@ -29,7 +29,7 @@
 //     Privacy Framework), wenn der Unterauftragsverarbeiter zertifiziert ist.
 module.exports = {
   pageTitle: 'Hook0 - DSGVO-Unterauftragsverarbeiter',
-  pageDescription: 'DSGVO-Konformität von Hook0 und Liste der Unterauftragsverarbeiter, die unsere Webhook-Dienste ermöglichen. Transparenz zur Verarbeitung in Europa und zu Transfers in die USA.',
+  pageDescription: 'Liste der Hook0-Unterauftragsverarbeiter. Transparenz zur Verarbeitung in Europa und zu Drittstaatentransfers.',
   pageModified: '2026-06-27',
   hero: {
     eyebrow: 'Compliance',

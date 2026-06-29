@@ -25,7 +25,13 @@ module.exports = {
     },
     a11y: {
       openMenu: 'Open menu',
+      skipToMain: 'Skip to main content',
     },
+  },
+  breadcrumb: {
+    ariaLabel: 'Breadcrumb',
+    home: 'Home',
+    separator: '›',
   },
   footer: {
     srTitle: 'Footer',

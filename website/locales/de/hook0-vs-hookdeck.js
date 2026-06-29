@@ -7,6 +7,7 @@ module.exports = {
   pageTitle: 'Hook0 vs Hookdeck, Webhook-Plattform vs Gateway | Hook0',
   pageDescription: 'Vergleich Hook0 und Hookdeck, Webhook-Plattform vs Gateway, quelloffen vs proprietär, selbst-hostbar vs cloudgebunden. Schau dir die wichtigen Unterschiede an.',
   pageModified: '2026-06-27',
+  breadcrumb: 'Hook0 vs. Hookdeck',
   hero: {
     eyebrow: 'Vergleich',
     titleBefore: 'Hook0 vs Hookdeck',

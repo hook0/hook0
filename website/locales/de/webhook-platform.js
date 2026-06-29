@@ -1,8 +1,8 @@
 // Per-page strings for webhook-platform (DE).
 // /humanizer pro + legal-reviewer applied. DSGVO claims as process; SSPL = quelloffen.
 module.exports = {
-  "pageTitle": "Webhook-Service mit EU-Hosting, DSGVO-konform betrieben | Hook0",
-  "pageDescription": "Hook0 ist eine quelloffene Webhook-Plattform mit automatischen Retries, HMAC-Signaturen und vollständigen Zustellprotokollen. Anwendungsdaten in Frankreich (Clever Cloud), auf DSGVO-Konformität ausgelegt. Kostenlos starten, ohne Kreditkarte.",
+  pageTitle: 'Webhook-Plattform in Europa, DSGVO-konform betrieben',
+  pageDescription: 'Quelloffene Webhook-Plattform (SSPL-1.0): HMAC, Retries, Failed-Queue, Subscriber-Portal. Daten in Frankreich (Clever Cloud).',
   "pageModified": "2026-06-25",
   "track": "de-webhook-plattform",
   "hero": {

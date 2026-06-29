@@ -5,6 +5,7 @@ module.exports = {
   pageTitle: 'Alternatives à Hookdeck 2026, plateformes webhook | Hook0',
   pageDescription: 'Hookdeck est un proxy webhook, pas une plateforme webhook. Compare les vraies alternatives, Hook0, Svix, Convoy pour envoyer, gérer et monitorer tes webhooks.',
   pageModified: '2026-06-27',
+  breadcrumb: 'Alternatives à Hookdeck',
   hero: {
     eyebrow: 'Comparaison',
     titleBefore: 'Alternatives à Hookdeck',

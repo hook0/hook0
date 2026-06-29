@@ -18,7 +18,7 @@
 // zuzueglich Pauschale 40 EUR (D441-5).
 module.exports = {
   pageTitle: 'Hook0 - Allgemeine Geschäftsbedingungen',
-  pageDescription: 'Allgemeine Geschäftsbedingungen für Hook0 Webhooks-as-a-Service. Preise, Zahlungskonditionen, Rechnungsstellung und Kündigungsrichtlinie für Cloud- und On-Premise-Pläne.',
+  pageDescription: 'AGB für Hook0 Webhooks-as-a-Service: Preise, Zahlungskonditionen, Rechnungsstellung und Kündigung für Cloud und On-Premise.',
   pageModified: '2026-06-27',
   hero: {
     eyebrow: 'Rechtliches',

@@ -29,7 +29,7 @@
 //     spätere Version.
 module.exports = {
   pageTitle: 'Hook0 - Auftragsverarbeitungsvertrag (DPA)',
-  pageDescription: 'Hook0 Auftragsverarbeitungsvertrag (DPA), der die DSGVO-Konformität, die Verarbeitungsvorgänge, die Sicherheitsmaßnahmen und die Verwaltung der Unterauftragsverarbeiter abdeckt.',
+  pageDescription: 'Hook0 DPA: DSGVO-Verarbeitungsvorgänge, Sicherheitsmaßnahmen und Verwaltung der Unterauftragsverarbeiter.',
   pageModified: '2026-06-27',
   hero: {
     eyebrow: 'Rechtliches',

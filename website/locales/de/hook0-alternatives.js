@@ -5,6 +5,7 @@ module.exports = {
   pageTitle: 'Hook0-Alternativen (2026), ehrlicher Vergleich | Hook0',
   pageDescription: 'Du suchst Hook0-Alternativen? Vergleich Hook0, Svix, Hookdeck und Convoy Seite an Seite zu Lizenzierung, Selbst-Hosting, Preis und Funktionen.',
   pageModified: '2026-06-27',
+  breadcrumb: 'Hook0-Alternativen',
   hero: {
     eyebrow: 'Vergleich',
     titleBefore: 'Hook0-Alternativen',

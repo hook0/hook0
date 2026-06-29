@@ -17,7 +17,13 @@ module.exports = {
     },
     a11y: {
       openMenu: 'Menü öffnen',
+      skipToMain: 'Zum Hauptinhalt springen',
     },
+  },
+  breadcrumb: {
+    ariaLabel: 'Brotkrümelnavigation',
+    home: 'Startseite',
+    separator: '›',
   },
   footer: {
     srTitle: 'Fußbereich',

@@ -2,9 +2,10 @@
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Pivot-Doppelpunkt.
 // Hook0 = « quelloffen (SSPL-1.0) ».
 module.exports = {
-  pageTitle: 'Build vs Buy Webhooks, Produktion in 30 Min | Hook0',
-  pageDescription: 'Webhooks von Grund auf zu bauen kostet 3 Sprints oder mehr. Wiederholungen, Signaturen, Monitoring, Dead Letter Queues. Oder du nimmst Hook0 und lieferst in 30 Minuten.',
+  pageTitle: 'Build vs Buy Webhooks: Produktion in 30 Min | Hook0',
+  pageDescription: 'Webhooks von Grund auf zu bauen kostet 3+ Sprints. Wiederholungen, Signaturen, Monitoring: nimm Hook0 und liefere in 30 Minuten.',
   pageModified: '2026-06-27',
+  breadcrumb: 'Build vs Buy: Webhooks',
   hero: {
     eyebrow: 'Build vs Buy',
     titleBefore: 'Hör auf, Webhooks',

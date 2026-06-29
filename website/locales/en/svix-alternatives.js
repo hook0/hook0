@@ -3,6 +3,7 @@
 module.exports = {
   pageTitle: 'Best Svix Alternatives (2026): Open-Source Webhook Platforms Compared',
   pageDescription: 'Evaluating Svix? Compare Hook0, Hookdeck, Convoy & more. Side-by-side on pricing, self-hosting, licensing, and what "open-source" means in practice.',
+  breadcrumb: 'Svix alternatives',
   hero: {
     eyebrow: 'Comparison',
     titleBefore: 'Looking for a Svix Alternative?',
