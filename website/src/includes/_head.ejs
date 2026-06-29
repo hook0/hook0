@@ -130,12 +130,13 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
 .cookie-banner__btn--accept{background:#22c55e;color:#fff;border:none;padding:0.75rem 1.5rem;border-radius:0.75rem;font-weight:600;font-size:0.875rem;cursor:pointer;box-shadow:0 0 20px rgba(34,197,94,0.4);transition:all 0.2s}
 .cookie-banner__btn--accept:hover{background:#16a34a;box-shadow:0 0 30px rgba(34,197,94,0.6);transform:scale(1.02)}
 </style>
-<div id="cookie-consent-banner" class="cookie-banner" role="dialog" aria-label="Cookie consent">
+<% var __cb = (locals.chrome && locals.chrome.cookieBanner) || { ariaLabel: 'Cookie consent', text: 'We use cookies on Hook0.com and its subdomains (including app.hook0.com) to analyze site usage, measure advertising performance, and improve your experience.', privacyLink: 'Privacy Policy', privacyHref: '/privacy-policy', decline: 'Decline', accept: 'Accept' }; %>
+<div id="cookie-consent-banner" class="cookie-banner" role="dialog" aria-label="<%= __cb.ariaLabel %>">
     <div class="cookie-banner__inner">
-        <div class="cookie-banner__text">We use cookies on Hook0.com and its subdomains (including app.hook0.com) to analyze site usage, measure advertising performance, and improve your experience. <a href="/privacy-policy">Privacy Policy</a></div>
+        <div class="cookie-banner__text"><%= __cb.text %> <a href="<%= __cb.privacyHref %>"><%= __cb.privacyLink %></a></div>
         <div class="cookie-banner__buttons">
-            <button type="button" class="cookie-banner__btn--decline" onclick="window.hook0Consent.deny()">Decline</button>
-            <button type="button" class="cookie-banner__btn--accept" onclick="window.hook0Consent.accept()">Accept</button>
+            <button type="button" class="cookie-banner__btn--decline" onclick="window.hook0Consent.deny()"><%= __cb.decline %></button>
+            <button type="button" class="cookie-banner__btn--accept" onclick="window.hook0Consent.accept()"><%= __cb.accept %></button>
         </div>
     </div>
 </div>
