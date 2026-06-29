@@ -3,7 +3,7 @@
 // The faq.items[].a text MUST match the visible card body byte-for-byte;
 // the FAQPage JSON-LD is auto-generated from this same array.
 module.exports = {
-  "pageTitle": "Webhook API — One REST Call to Deliver Events | Hook0",
+  "pageTitle": "Webhook API: One REST Call to Deliver Events | Hook0",
   "pageDescription": "Hook0 exposes a clean REST webhook API: one call to send an event, automatic HMAC signing, configurable retries and SDKs for Python, Node.js and more. Free forever.",
   "track": "webhook-api",
   "hero": {

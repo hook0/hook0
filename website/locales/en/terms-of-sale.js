@@ -56,7 +56,7 @@ module.exports = {
       paragraphs: [
         '<strong class="text-white">2.1.</strong> All prices are stated exclusive of taxes (excl. VAT, "HT"). Applicable VAT or equivalent taxes are added automatically at the time of invoicing in accordance with the applicable legislation, based on the customer\'s country of establishment.',
         '<strong class="text-white">2.2.</strong> Current prices for all plans are published at <a href="/pricing" class="text-green-400 hover:text-green-300 transition-colors">hook0.com/pricing</a> and are incorporated by reference into these Terms of Sale. Published prices are subject to change in accordance with Section 9 of these Terms of Sale.',
-        '<strong class="text-white">2.3. Cloud plans</strong> — indicative pricing at the date of last update:',
+        '<strong class="text-white">2.3. Cloud plans</strong>: indicative pricing at the date of last update:',
       ],
       cloudPlans: [
         '<strong class="text-white">Developer</strong>: Free, 100 events/day, 7-day retention.',
@@ -65,7 +65,7 @@ module.exports = {
         '<strong class="text-white">Enterprise</strong>: Custom quote.',
       ],
       paragraphsBeforeOnPremise: [
-        '<strong class="text-white">2.4. On-Premise plans</strong> — indicative pricing at the date of last update:',
+        '<strong class="text-white">2.4. On-Premise plans</strong>: indicative pricing at the date of last update:',
       ],
       onPremisePlans: [
         '<strong class="text-white">Self-hosted</strong>: Free, source-available under the Server Side Public License v1 (SSPL-1.0).',

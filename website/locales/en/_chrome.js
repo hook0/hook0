@@ -207,7 +207,7 @@ module.exports = {
       periodForever: 'Forever',
       periodMonthExclVat: '/mo excl. VAT',
       periodYear: '/year',
-      noteText: 'One <strong>event</strong> can trigger multiple webhook subscriptions which can in turn be retried multiple times. <strong class="text-green-400">Subscriptions and retries are free.</strong> On paid plans, events above your daily quota are never blocked — they are billed as overage. See',
+      noteText: 'One <strong>event</strong> can trigger multiple webhook subscriptions which can in turn be retried multiple times. <strong class="text-green-400">Subscriptions and retries are free.</strong> On paid plans, events above your daily quota are never blocked; they are billed as overage. See',
       noteTermsLink: 'Terms of Sale',
       noteSuffix: '.',
       developerDescription: 'Perfect way to try out Hook0, no need to setup your instance, free forever for side-projects.',

@@ -57,7 +57,7 @@ module.exports = {
   },
   ip: {
     h2: 'Intellectual Property',
-    p1: 'All content published on this website — including but not limited to text, graphics, logos, icons, images, and software — is the exclusive property of FGRibreau SARL or its content suppliers and is protected by applicable French and international intellectual property laws.',
+    p1: 'All content published on this website (including but not limited to text, graphics, logos, icons, images, and software) is the exclusive property of FGRibreau SARL or its content suppliers and is protected by applicable French and international intellectual property laws.',
     p2: 'Any reproduction, distribution, modification, or use of these materials without prior written consent from FGRibreau SARL is strictly prohibited.',
     p3: 'The Hook0 open-source software is distributed under its own license, available in the project repository.',
   },

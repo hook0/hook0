@@ -1,8 +1,8 @@
 // Per-page strings for webhook-platform (EN base).
 // VERBATIM extraction from the legacy inline template — do not humanize.
 module.exports = {
-  "pageTitle": "Webhook Platform — Send, Sign, Retry & Monitor Webhooks | Hook0",
-  "pageDescription": "Hook0 is an open-source webhook platform that delivers events with HMAC signatures, configurable retries, dead letter queues and a built-in subscriber portal. Free forever, no credit card.",
+  "pageTitle": "Webhook Platform: Send, Sign, Retry, Monitor | Hook0",
+  "pageDescription": "Open-source webhook platform delivering events with HMAC signatures, retries, dead letter queues and a subscriber portal. Free forever, no credit card.",
   "track": "webhook-platform",
   "hero": {
     "eyebrow": "Webhook Platform",
@@ -111,11 +111,11 @@ module.exports = {
       },
       {
         "q": "Why use a webhook platform instead of building your own?",
-        "a": "Building a production-grade webhook system means 3+ engineering sprints for retries, dead letter queues, HMAC signatures, monitoring, and a subscriber UI — plus ongoing maintenance forever. A webhook platform like Hook0 lets you ship in 30 minutes and reclaim that engineering time for product work."
+        "a": "Building a production-grade webhook system means 3+ engineering sprints for retries, dead letter queues, HMAC signatures, monitoring, and a subscriber UI, plus ongoing maintenance forever. A webhook platform like Hook0 lets you ship in 30 minutes and reclaim that engineering time for product work."
       },
       {
         "q": "Is Hook0's webhook platform free?",
-        "a": "Yes. Hook0 has a free forever tier with no credit card required. You also get the option to self-host the same codebase on your own infrastructure for free under SSPL-1.0. Paid plans only unlock higher volume and dedicated support — no feature gating."
+        "a": "Yes. Hook0 has a free forever tier with no credit card required. You also get the option to self-host the same codebase on your own infrastructure for free under SSPL-1.0. Paid plans only unlock higher volume and dedicated support; no feature gating."
       },
       {
         "q": "Can I self-host the Hook0 webhook platform?",

@@ -1,13 +1,13 @@
 // Per-page strings for hook0-alternatives (EN base).
-// VERBATIM extraction from the legacy inline template — do not humanize.
+// VERBATIM extraction from the legacy inline template; do not humanize.
 module.exports = {
-  pageTitle: 'Hook0 Alternatives — Honest Comparison (2026)',
+  pageTitle: 'Hook0 Alternatives; Honest Comparison (2026)',
   pageDescription: 'Looking for Hook0 alternatives? Compare Hook0, Svix, Hookdeck, and Convoy side by side on licensing, self-hosting, pricing, and features.',
   hero: {
     eyebrow: 'Comparison',
     titleBefore: 'Hook0 Alternatives',
     titleAccent: 'An Honest Comparison',
-    subtitle: 'Looking for a webhook platform? Someone published a "Hook0 Alternatives" page, so here is our side of the story. No spin — just facts, side by side.',
+    subtitle: 'Looking for a webhook platform? Someone published a "Hook0 Alternatives" page, so here is our side of the story. No spin; just facts, side by side.',
     ctaPrimary: 'Start Free',
     ctaSecondary: 'Try the Playground',
   },
@@ -33,9 +33,9 @@ module.exports = {
     h2: "What Their Comparison Page Doesn't Tell You",
     sub: 'Hookdeck published a "Hook0 Alternatives" page. We appreciate the attention. Here is what they left out.',
     cards: [
-      { title: '"Hook0 is HTTPS-only"', body: 'Yes — and that is a feature, not a limitation. Sending webhook payloads over plain HTTP means your customers\' data transits in clear text. Every serious production system uses HTTPS. We enforce it because security is not optional.', color: 'green' },
-      { title: '"No published SLA"', body: 'Hook0 Cloud Enterprise includes a custom SLA with dedicated support. If uptime guarantees matter, that is the fastest path — no infrastructure to manage, no ops team needed. Hook0 is also open-source, so you always have the option to self-host if your compliance requirements demand it.', color: 'indigo' },
-      { title: '"Pricing is unclear"', body: 'Our pricing is public and per-event. No sales call required. No "contact us" wall. Cloud starts at €59/month — 8x cheaper than Svix for comparable features. Try getting that transparency from a VC-funded, closed-source competitor.', color: 'green' },
+      { title: '"Hook0 is HTTPS-only"', body: 'Yes; and that is a feature, not a limitation. Sending webhook payloads over plain HTTP means your customers\' data transits in clear text. Every serious production system uses HTTPS. We enforce it because security is not optional.', color: 'green' },
+      { title: '"No published SLA"', body: 'Hook0 Cloud Enterprise includes a custom SLA with dedicated support. If uptime guarantees matter, that is the fastest path; no infrastructure to manage, no ops team needed. Hook0 is also open-source, so you always have the option to self-host if your compliance requirements demand it.', color: 'indigo' },
+      { title: '"Pricing is unclear"', body: 'Our pricing is public and per-event. No sales call required. No "contact us" wall. Cloud starts at €59/month; 8x cheaper than Svix for comparable features. Try getting that transparency from a VC-funded, closed-source competitor.', color: 'green' },
       { title: "What they won't mention: funding", body: 'Hookdeck raised $3.5M in VC. Svix raised $17M. Convoy is VC-funded too. Hook0 is 100% bootstrapped. When your webhook provider needs to 10x revenue to satisfy investors, guess whose prices go up? Not ours.', color: 'indigo' },
     ],
   },
@@ -43,9 +43,9 @@ module.exports = {
     eyebrow: 'Why Hook0',
     h2: 'The Hook0 Difference',
     cards: [
-      { title: 'Not Just a Proxy', body: 'Unlike Hookdeck, Hook0 sends webhooks on your behalf — retries, signatures, subscriber management. Not a middleware layer.' },
+      { title: 'Not Just a Proxy', body: 'Unlike Hookdeck, Hook0 sends webhooks on your behalf; retries, signatures, subscriber management. Not a middleware layer.' },
       { title: 'No Enterprise Paywall', body: "Unlike Svix, every feature ships in every plan. Self-hosting isn't locked behind a sales call." },
-      { title: 'European & GDPR', body: 'Cloud hosted in EU. Data sovereignty built in. Bootstrapped — no US VC board deciding your data policy.' },
+      { title: 'European & GDPR', body: 'Cloud hosted in EU. Data sovereignty built in. Bootstrapped; no US VC board deciding your data policy.' },
     ],
   },
   faq: {
@@ -53,7 +53,7 @@ module.exports = {
     h2: 'Common Questions',
     items: [
       { q: 'What are the best Hook0 alternatives?', a: 'The main alternatives to Hook0 are Svix (open-core, VC-funded), Hookdeck (closed-source webhook gateway), and Convoy (open-source, VC-funded). Each solves a different slice of the webhook problem. Hook0 is the only one that is fully open-source, bootstrapped, and self-hostable for free.' },
-      { q: 'Is Hookdeck better than Hook0?', a: 'Hookdeck is a webhook gateway — it proxies existing webhooks for reliability. Hook0 is a webhook platform — it sends webhooks on your behalf with retries, signatures, and subscriber management. They solve different problems. If you need to add webhooks to your product, Hook0 is the right tool.' },
+      { q: 'Is Hookdeck better than Hook0?', a: 'Hookdeck is a webhook gateway; it proxies existing webhooks for reliability. Hook0 is a webhook platform; it sends webhooks on your behalf with retries, signatures, and subscriber management. They solve different problems. If you need to add webhooks to your product, Hook0 is the right tool.' },
       { q: 'Should I use Svix or Hook0?', a: 'Both are webhook platforms, but they differ on licensing and funding. Svix is open-core (enterprise features are closed-source) and raised $17M in VC. Hook0 is fully open-source under SSPL, bootstrapped, and offers free self-hosting. If vendor independence and long-term pricing stability matter, Hook0 is the safer bet.' },
       { q: 'What does Hook0 cost?', a: 'Hook0 has a free tier with no credit card required. Hook0 is also open-source and self-hostable for compliance requirements. Hook0 Cloud adds managed infrastructure, EU hosting, automatic updates, and priority support. Paid plans start at €59/month with per-event pricing.' },
       { q: 'Does Hook0 work at scale?', a: "Yes. Hook0's architecture supports PostgreSQL-only for simplicity or Pulsar + S3 for high throughput. Cloud customers process millions of events per day. The same architecture runs identically when self-hosted." },

@@ -48,8 +48,8 @@ locals.meta = {
 locals.seo = {
   siteUrl: 'https://www.hook0.com',
   siteName: 'Hook0',
-  defaultTitle: 'Hook0 — Free Open-Source Webhook Platform | Webhooks as a Service',
-  defaultDescription: 'Free webhook platform, open-source. Send webhooks with one API call — Hook0 handles retries, HMAC signatures, and delivery monitoring. Free forever, no credit card. Self-host or use our cloud.',
+  defaultTitle: 'Hook0: Free Webhook Platform, HMAC Signatures, EU Hosting',
+  defaultDescription: 'Free webhook platform with HMAC signatures, configurable retries, and delivery monitoring. Self-host the SSPL code or use our EU-hosted cloud. No credit card.',
   defaultImage: '/mediakit/logo/1920x1920-banner.png',
   twitterHandle: '@hook0_',
   locale: 'en_US',

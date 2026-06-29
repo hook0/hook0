@@ -1,5 +1,5 @@
 // Per-page strings for open-source-webhooks (EN base).
-// VERBATIM extraction from the legacy inline template — do not humanize.
+// VERBATIM extraction from the legacy inline template; do not humanize.
 // The faq.items[].a text MUST match the visible card body byte-for-byte;
 // the FAQPage JSON-LD is auto-generated from this same array.
 module.exports = {
@@ -10,7 +10,7 @@ module.exports = {
     "eyebrow": "Open-Source",
     "titleLine1": "Best Open-Source",
     "titleLine2": "Webhook Server",
-    "subtitle": "Hook0 is fully open-source under SSPL — audit every line of code, self-host for compliance, or use Hook0 Cloud for managed infrastructure, automatic updates, and EU hosting. Bootstrapped, no open-core tricks.",
+    "subtitle": "Hook0 is fully open-source under SSPL; audit every line of code, self-host for compliance, or use Hook0 Cloud for managed infrastructure, automatic updates, and EU hosting. Bootstrapped, no open-core tricks.",
     "ctaPrimary": "Start Free on Cloud",
     "ctaPrimaryTrack": "oss-webhooks-hero-cloud-signup",
     "ctaSecondary": "Try the Playground",
@@ -90,10 +90,10 @@ module.exports = {
       },
       {
         "criteria": "Vendor lock-in risk",
-        "sspl": "Low — fork anytime, standard PostgreSQL",
-        "openCore": "Medium — enterprise features lost if you leave",
-        "mit": "Low — MIT allows forking",
-        "proprietary": "High — no source, no self-host"
+        "sspl": "Low; fork anytime, standard PostgreSQL",
+        "openCore": "Medium; enterprise features lost if you leave",
+        "mit": "Low; MIT allows forking",
+        "proprietary": "High; no source, no self-host"
       },
       {
         "criteria": "Data sovereignty",
@@ -125,7 +125,7 @@ module.exports = {
       {
         "icon": "audit",
         "title": "Audit Every Line",
-        "body": "Webhooks carry sensitive payloads. Your security and compliance teams can review the entire codebase — API, worker, database schema — before deploying to production. No closed-source black boxes."
+        "body": "Webhooks carry sensitive payloads. Your security and compliance teams can review the entire codebase; API, worker, database schema; before deploying to production. No closed-source black boxes."
       },
       {
         "icon": "lock",
@@ -135,7 +135,7 @@ module.exports = {
       {
         "icon": "cloud",
         "title": "Cloud When You Want It",
-        "body": "Start with Hook0 Cloud for the fastest path to production. Switch to self-host later for compliance or data sovereignty — or the other way around. Same codebase, zero migration effort."
+        "body": "Start with Hook0 Cloud for the fastest path to production. Switch to self-host later for compliance or data sovereignty; or the other way around. Same codebase, zero migration effort."
       }
     ]
   },
@@ -153,15 +153,15 @@ module.exports = {
       },
       {
         "q": "What does self-hosting Hook0 require?",
-        "a": "Self-hosting Hook0 requires Docker Compose or Kubernetes and a PostgreSQL database. You manage your own infrastructure, scaling, backups, updates, and monitoring. The self-hosted binary is built from the same codebase as Hook0 Cloud — no features are stripped out. Hook0 Cloud handles all of that for you if you prefer a managed path."
+        "a": "Self-hosting Hook0 requires Docker Compose or Kubernetes and a PostgreSQL database. You manage your own infrastructure, scaling, backups, updates, and monitoring. The self-hosted binary is built from the same codebase as Hook0 Cloud; no features are stripped out. Hook0 Cloud handles all of that for you if you prefer a managed path."
       },
       {
         "q": "What are the risks of open-core webhook tools?",
-        "a": "Open-core webhook tools split their codebase into a free community edition and a paid enterprise edition. The risk: features you rely on today (SSO, advanced monitoring, self-hosting support) can be moved behind the paywall at any time. You cannot audit the closed-source parts for security. And if you self-host, you run a stripped-down version. Hook0 avoids this — the full codebase is available under SSPL, with no enterprise edition."
+        "a": "Open-core webhook tools split their codebase into a free community edition and a paid enterprise edition. The risk: features you rely on today (SSO, advanced monitoring, self-hosting support) can be moved behind the paywall at any time. You cannot audit the closed-source parts for security. And if you self-host, you run a stripped-down version. Hook0 avoids this; the full codebase is available under SSPL, with no enterprise edition."
       },
       {
         "q": "Is Hook0 really free to self-host?",
-        "a": "Yes. Hook0 is open-source and self-hostable at no license cost. Hook0 Cloud adds managed infrastructure, automatic updates, EU hosting, priority support, and SLA — so you can focus on your product instead of operating webhook infrastructure. Start with the free cloud tier (100 events/day, no credit card)."
+        "a": "Yes. Hook0 is open-source and self-hostable at no license cost. Hook0 Cloud adds managed infrastructure, automatic updates, EU hosting, priority support, and SLA; so you can focus on your product instead of operating webhook infrastructure. Start with the free cloud tier (100 events/day, no credit card)."
       }
     ]
   },

@@ -1,9 +1,9 @@
 // Per-page strings for self-hosted-webhooks (EN base).
-// VERBATIM extraction from the legacy inline template — do not humanize.
+// VERBATIM extraction from the legacy inline template: do not humanize.
 // The faq.items[].a text MUST match the visible card body byte-for-byte;
 // the FAQPage JSON-LD is auto-generated from this same array.
 module.exports = {
-  "pageTitle": "Self-Hosted Webhooks — Docker & Kubernetes | Hook0",
+  "pageTitle": "Self-Hosted Webhooks: Docker & Kubernetes | Hook0",
   "pageDescription": "Deploy Hook0 on your infrastructure with Docker or Kubernetes. Fully open-source, same code as cloud. No data leaves your network.",
   "pageModified": "2026-06-22",
   "track": "self-hosted",

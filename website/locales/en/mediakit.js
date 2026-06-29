@@ -73,11 +73,11 @@ module.exports = {
     downloadJpg: 'Download JPG',
     downloadLargePng: 'Download Large PNG',
     characterEssenceH3: 'Character Essence',
-    characterEssenceP: 'Hooky is not a marketing gimmick. He is the visual manifestation of the Hook0 promise. While other mascots might be abstract shapes representing "synergy," Hooky is a machine with a purpose—ensuring message deliverability with precision and reliability.',
+    characterEssenceP: 'Hooky is not a marketing gimmick. He is the visual manifestation of the Hook0 promise. While other mascots might be abstract shapes representing "synergy," Hooky is a machine with a purpose: ensuring message deliverability with precision and reliability.',
     pillarsH4: 'The 3 Pillars of Personality',
     pillars: [
       { title: 'The Technical Expert', body: 'He speaks JSON, understands HTTP status codes natively, and prefers exact numbers over approximations.' },
-      { title: 'The European Guardian', body: 'Protective and vigilant. GDPR Native. He treats personal data like radioactive material—handled with extreme care.' },
+      { title: 'The European Guardian', body: 'Protective and vigilant. GDPR Native. He treats personal data like radioactive material: handled with extreme care.' },
       { title: 'The Independent', body: 'Built to last. Solid, made of high-grade metal, not disposable plastic. Scratches on his armor are badges of honor.' },
     ],
     voiceToneH4: 'Voice & Tone',

@@ -3,8 +3,8 @@
 // The faq.items[].a text MUST match the visible <details> body byte-for-byte;
 // the FAQPage JSON-LD is auto-generated from this same array.
 module.exports = {
-  "pageTitle": "Hook0 Pricing — Free Tier, No Credit Card | Webhook Infrastructure",
-  "pageDescription": "Free forever tier included. Cloud from €59/month, open-source and self-hostable. Compare plans: events/day, subscriptions, data retention, support. No hidden fees.",
+  "pageTitle": "Hook0 Pricing: Free Tier, No Credit Card | Webhook Plans",
+  "pageDescription": "Free forever tier. Cloud from €59/month, self-hostable SSPL code. Compare plans: events/day, subscriptions, retention, support. No hidden fees.",
   "track": "pricing",
   "hero": {
     "h1": "Hook0 Pricing",
@@ -32,7 +32,7 @@ module.exports = {
     "items": [
       {
         "q": "What happens if I exceed my daily event limit?",
-        "a": "On the free Developer plan, extra events are blocked (HTTP 429). On paid plans (Startup and Pro), extra events are <strong>never blocked</strong> — they are billed at a per-event rate (€0.003/event on Startup, €0.0001/event on Pro). We chose not to interrupt delivery to avoid causing issues to customers building products on top of Hook0."
+        "a": "On the free Developer plan, extra events are blocked (HTTP 429). On paid plans (Startup and Pro), extra events are <strong>never blocked</strong>; they are billed at a per-event rate (€0.003/event on Startup, €0.0001/event on Pro). We chose not to interrupt delivery to avoid causing issues to customers building products on top of Hook0."
       },
       {
         "q": "How can I monitor my usage?",

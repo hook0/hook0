@@ -1,19 +1,19 @@
 // Per-page strings for hookdeck-alternatives (EN base).
 // VERBATIM extraction from the legacy inline template — do not humanize.
 module.exports = {
-  pageTitle: 'Best Hookdeck Alternatives (2026) — Webhook Platforms That Do More',
+  pageTitle: 'Best Hookdeck Alternatives (2026): Webhook Platforms That Do More',
   pageDescription: 'Hookdeck is a webhook proxy, not a webhook platform. Compare real alternatives: Hook0, Svix, Convoy for sending, managing, and monitoring webhooks.',
   hero: {
     eyebrow: 'Comparison',
     titleBefore: 'Hookdeck Alternatives',
-    titleAccent: 'Hookdeck Is a Proxy — You Might Need a Platform',
+    titleAccent: 'Hookdeck Is a Proxy. You Might Need a Platform',
     subtitleHtml: 'Hookdeck is a webhook gateway: it receives and routes incoming webhooks. If you need to <strong class="text-white">send</strong> webhooks to your users -- with retries, signatures, and subscriber management -- Hookdeck doesn\'t do that. These alternatives do.',
     ctaPrimary: 'Start Free',
     ctaSecondary: 'Try the Playground',
   },
   gatewayVsPlatform: {
     eyebrow: 'Key Distinction',
-    h2: "Gateway vs Platform — What's the Difference?",
+    h2: "Gateway vs Platform: What's the Difference?",
     sub: "Pick the wrong category and you'll end up building the missing half yourself.",
     cards: [
       { title: 'Webhook Gateway (Hookdeck)', bodyHtml: "A gateway sits between a third-party webhook sender and your application. It receives incoming webhooks, buffers them, retries failed deliveries, and routes events to the right endpoint. It's basically a reverse proxy for webhooks. <strong class=\"text-white\">You are the consumer.</strong>", color: 'indigo' },

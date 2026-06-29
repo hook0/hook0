@@ -5,8 +5,8 @@
 // `locals.t.includes` by `getPageLocals`. EN identity gate enforces byte-for-
 // byte match with the live homepage.
 module.exports = {
-  pageTitle: 'Hook0 — Free Open-Source Webhook Platform | Webhooks as a Service',
-  pageDescription: 'Free webhook platform, open-source. Send webhooks with one API call — Hook0 handles retries, HMAC signatures, and delivery monitoring. Free forever, no credit card. Self-host or use our cloud.',
+  pageTitle: 'Hook0: Free Webhook Platform, HMAC Signatures, EU Hosting',
+  pageDescription: 'Free webhook platform with HMAC signatures, configurable retries, and delivery monitoring. Self-host the SSPL code or use our EU-hosted cloud. No credit card.',
   pageModified: '2026-06-28',
   hero: {
     badgePillBootstrapped: '100% Bootstrapped',
@@ -45,7 +45,7 @@ module.exports = {
         name: 'Hook0',
         url: 'https://www.hook0.com',
         logo: 'https://www.hook0.com/mediakit/logo/110x110-white.png',
-        description: 'Free webhook platform, open-source. Send webhooks with one API call — Hook0 handles retries, HMAC signatures, and delivery monitoring. Free forever, no credit card. Self-host or use our cloud.',
+        description: 'Free webhook platform, open-source. Send webhooks with one API call; Hook0 handles retries, HMAC signatures, and delivery monitoring. Free forever, no credit card. Self-host or use our cloud.',
         foundingDate: '2021',
         founders: [
           { '@type': 'Person', name: 'Francois-Guillaume Ribreau' },
@@ -70,7 +70,7 @@ module.exports = {
         applicationCategory: 'DeveloperApplication',
         operatingSystem: 'Any',
         url: 'https://www.hook0.com',
-        description: 'Open-source webhook infrastructure. Send webhooks with one API call — retries, HMAC signatures, and delivery monitoring included.',
+        description: 'Open-source webhook infrastructure. Send webhooks with one API call; retries, HMAC signatures, and delivery monitoring included.',
         offers: {
           '@type': 'Offer',
           price: '0',
@@ -88,7 +88,7 @@ module.exports = {
   // Homepage FAQ used both for visible <details> (currently rendered by
   // _faq.ejs from chrome.includes.faq) AND for the FAQPage JSON-LD schema.
   // Kept here separately because the homepage ships a richer schema than the
-  // visible 4-question include — these are the SEO-targeted answers.
+  // visible 4-question include; these are the SEO-targeted answers.
   faq: {
     items: [
       { q: 'Does Hook0 have a free tier?', a: 'Yes. Hook0 has a free tier that includes 100 webhook events per day, HMAC signatures, and delivery monitoring. No credit card required. Hook0 is also open-source: you can self-host it at no cost.' },

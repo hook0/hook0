@@ -1,7 +1,7 @@
 // Per-page strings for hook0-vs-svix (EN base).
-// VERBATIM extraction from the legacy inline template — do not humanize.
+// VERBATIM extraction from the legacy inline template: do not humanize.
 module.exports = {
-  pageTitle: 'Hook0 vs Svix — Open-Source Webhook Platform Comparison',
+  pageTitle: 'Hook0 vs Svix: Open-Source Webhook Platform Comparison',
   pageDescription: 'Compare Hook0 and Svix: open-source SSPL vs open-core, bootstrapped vs VC-funded, EU-hosted vs US, self-hostable on every plan. An honest side-by-side.',
   pageModified: '2026-06-22',
   hero: {

@@ -1,8 +1,8 @@
 // Per-page strings for build-vs-buy-webhooks (EN base).
-// VERBATIM extraction from the legacy inline template — do not humanize.
+// VERBATIM extraction from the legacy inline template: do not humanize.
 module.exports = {
-  pageTitle: 'Build vs Buy Webhooks — Ship in 30 Min | Hook0',
-  pageDescription: 'Building webhooks from scratch costs 3+ sprints. Retries, signatures, monitoring, dead letter queues — or use Hook0 and ship in 30 minutes.',
+  pageTitle: 'Build vs Buy Webhooks: Ship in 30 Min | Hook0',
+  pageDescription: 'Building webhooks from scratch costs 3+ sprints. Retries, signatures, monitoring, dead letter queues: or use Hook0 and ship in 30 minutes.',
   hero: {
     eyebrow: 'Build vs Buy',
     titleBefore: 'Stop Building Webhooks',

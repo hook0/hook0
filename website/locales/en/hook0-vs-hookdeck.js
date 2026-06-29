@@ -1,7 +1,7 @@
 // Per-page strings for hook0-vs-hookdeck (EN base).
 // VERBATIM extraction from the legacy inline template — do not humanize.
 module.exports = {
-  pageTitle: 'Hook0 vs Hookdeck — Webhook Platform vs Gateway',
+  pageTitle: 'Hook0 vs Hookdeck: Webhook Platform vs Gateway',
   pageDescription: 'Compare Hook0 and Hookdeck: webhook platform vs gateway, open-source vs closed-source, self-hostable vs cloud-only. See the key differences.',
   pageModified: '2026-06-22',
   hero: {
@@ -17,7 +17,7 @@ module.exports = {
     h2: 'Platform vs Gateway',
     intro: 'Hook0 and Hookdeck solve different problems. One sends webhooks, the other proxies them.',
     hook0: {
-      title: 'Hook0 — Webhook Platform',
+      title: 'Hook0: Webhook Platform',
       bullets: [
         "Send webhooks to your users' endpoints",
         'Manage subscriptions, event types, retries',
@@ -27,7 +27,7 @@ module.exports = {
       ],
     },
     hookdeck: {
-      title: 'Hookdeck — Webhook Gateway',
+      title: 'Hookdeck: Webhook Gateway',
       bullets: [
         'Proxy layer between senders and receivers',
         'Adds retries and queuing to existing webhooks',

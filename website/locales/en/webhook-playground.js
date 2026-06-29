@@ -1,15 +1,15 @@
 // Per-page strings for webhook-playground (EN base).
-// VERBATIM extraction from the legacy inline template — do not humanize.
+// VERBATIM extraction from the legacy inline template; do not humanize.
 module.exports = {
-  pageTitle: 'Free Webhook Tester Online — Test & Debug Webhooks Instantly | Hook0',
-  pageDescription: 'Free webhook tester — no signup. Send test events, inspect payloads, verify HMAC signatures, debug delivery. Works with Stripe, GitHub, Shopify webhooks. Open-source.',
+  pageTitle: 'Free Webhook Tester Online; Test & Debug Webhooks Instantly | Hook0',
+  pageDescription: 'Free webhook tester; no signup. Send test events, inspect payloads, verify HMAC signatures, debug delivery. Works with Stripe, GitHub, Shopify webhooks. Open-source.',
   hero: {
-    badge: 'Free — No signup required',
+    badge: 'Free; No signup required',
     titleBefore: 'Test webhooks',
     titleAccent: 'in seconds',
-    subtitle: 'Send events, inspect payloads, verify HMAC signatures, and debug delivery — all in your browser. The fastest way to test your webhook integration.',
+    subtitle: 'Send events, inspect payloads, verify HMAC signatures, and debug delivery; all in your browser. The fastest way to test your webhook integration.',
     ctaPrimary: 'Open the Playground',
-    ctaSecondary: 'See pricing — Free tier included',
+    ctaSecondary: 'See pricing; Free tier included',
   },
   features: {
     eyebrow: 'What you can do',
@@ -25,16 +25,16 @@ module.exports = {
   },
   toProduction: {
     h2: 'From testing to production in 5 minutes',
-    subtitle: "When you're ready to send webhooks in production, Hook0 handles retries, HMAC signatures, delivery monitoring, and multi-tenant routing. Start with the free tier — no credit card required.",
+    subtitle: "When you're ready to send webhooks in production, Hook0 handles retries, HMAC signatures, delivery monitoring, and multi-tenant routing. Start with the free tier; no credit card required.",
     ctaPrimary: 'Try the Playground',
     ctaSecondary: 'View pricing',
   },
   faq: {
     items: [
-      { q: 'Is Hook0 Playground free?', a: 'Yes. Hook0 Playground is completely free to use with no signup required. You can send webhook events, inspect payloads, verify HMAC signatures, and debug delivery issues — all in your browser.' },
+      { q: 'Is Hook0 Playground free?', a: 'Yes. Hook0 Playground is completely free to use with no signup required. You can send webhook events, inspect payloads, verify HMAC signatures, and debug delivery issues; all in your browser.' },
       { q: 'What can I test with the webhook playground?', a: 'You can send test webhook events with custom payloads, inspect HTTP headers and response codes, verify HMAC-SHA256 signatures, test retry behavior, and debug endpoint connectivity. It supports all standard webhook patterns used by Stripe, GitHub, Shopify, and other platforms.' },
       { q: 'Do I need to create an account?', a: 'No. The playground works instantly without signup. If you want to save your configurations or send more than 100 events/day, you can create a free Hook0 account.' },
-      { q: 'Is there a free webhook service I can use in production?', a: 'Yes. Hook0 Cloud scales from free to production — the Developer tier includes 100 events/day, HMAC signatures, delivery monitoring, and 7-day data retention. No credit card required. Self-hosting is also available for specific infrastructure requirements.' },
+      { q: 'Is there a free webhook service I can use in production?', a: 'Yes. Hook0 Cloud scales from free to production; the Developer tier includes 100 events/day, HMAC signatures, delivery monitoring, and 7-day data retention. No credit card required. Self-hosting is also available for specific infrastructure requirements.' },
     ],
   },
 };

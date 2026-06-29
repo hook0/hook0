@@ -1,7 +1,7 @@
 // Per-page strings for hook0-vs-convoy (EN base).
-// VERBATIM extraction from the legacy inline template — do not humanize.
+// VERBATIM extraction from the legacy inline template: do not humanize.
 module.exports = {
-  pageTitle: 'Hook0 vs Convoy — Open-Source Webhook Platforms Compared (2026)',
+  pageTitle: 'Hook0 vs Convoy: Open-Source Webhook Platforms Compared (2026)',
   pageDescription: 'Both open-source, both on PostgreSQL. Compare Hook0 (Rust, SSPL, managed cloud) and Convoy (Go, MPL-2.0, self-host only). Side-by-side features and trade-offs.',
   hero: {
     eyebrow: 'Comparison',
