@@ -37,13 +37,13 @@ var t = locals.t;
                 <% locals.ossFriends.filter((friend) => friend.name !== 'Hook0').forEach((friend) => { %>
                     <div class="animate-on-scroll card card--glow group">
                         <h3 class="card__title">
-                            <a href="<%= friend.href %>" target="_blank" class="text-green-400 hover:text-green-300 transition-colors">
+                            <a href="<%= friend.href %>" target="_blank" rel="noopener noreferrer" class="text-green-400 hover:text-green-300 transition-colors">
                                 <%= friend.name %>
                             </a>
                         </h3>
                         <p class="card__description"><%= friend.description %></p>
                         <div class="mt-6">
-                            <a target="_blank" href="<%= friend.href %>" class="inline-flex items-center text-sm font-medium text-green-400 hover:text-green-300 transition-colors group-hover:translate-x-1 transform duration-200">
+                            <a target="_blank" rel="noopener noreferrer" href="<%= friend.href %>" class="inline-flex items-center text-sm font-medium text-green-400 hover:text-green-300 transition-colors group-hover:translate-x-1 transform duration-200">
                                 <%= t.cardCta %>
                                 <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>

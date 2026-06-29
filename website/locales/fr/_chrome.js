@@ -273,7 +273,7 @@ module.exports = {
     {
       primary: true,
       title: 'Code source ouvert',
-      description: "Contrairement aux alternatives, Hook0 est entièrement <a href='https://github.com/hook0' target='_blank'>à code source ouvert</a>. Pas de verrouillage fournisseur, on est là pour durer, pas d'investisseurs, on est totalement viables depuis le jour 1.",
+      description: "Contrairement aux alternatives, Hook0 est entièrement <a href='https://github.com/hook0' target='_blank' rel='noopener noreferrer'>à code source ouvert</a>. Pas de verrouillage fournisseur, on est là pour durer, pas d'investisseurs, on est totalement viables depuis le jour 1.",
     },
     {
       primary: true,

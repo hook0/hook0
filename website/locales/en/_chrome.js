@@ -281,7 +281,7 @@ module.exports = {
     {
       primary: true,
       title: 'Open-Source',
-      description: "Unlike alternatives, Hook0 is fully <a href='https://github.com/hook0' target='_blank'>open-source</a>. No vendor-locking, we are here to stay, no investors, we are fully sustainable since day 1.",
+      description: "Unlike alternatives, Hook0 is fully <a href='https://github.com/hook0' target='_blank' rel='noopener noreferrer'>open-source</a>. No vendor-locking, we are here to stay, no investors, we are fully sustainable since day 1.",
     },
     {
       primary: true,

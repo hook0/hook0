@@ -273,7 +273,7 @@ module.exports = {
     {
       primary: true,
       title: 'Quelloffen',
-      description: "Anders als bei Alternativen ist Hook0 vollständig <a href='https://github.com/hook0' target='_blank'>quelloffen</a>. Kein Vendor-Lock-in, wir bleiben, keine Investoren, vom ersten Tag an tragen wir uns selbst.",
+      description: "Anders als bei Alternativen ist Hook0 vollständig <a href='https://github.com/hook0' target='_blank' rel='noopener noreferrer'>quelloffen</a>. Kein Vendor-Lock-in, wir bleiben, keine Investoren, vom ersten Tag an tragen wir uns selbst.",
     },
     {
       primary: true,
