@@ -40,7 +40,7 @@ module.exports = {
   },
   intro: {
     p1Html: 'Die Datenschutz-Grundverordnung (DSGVO / GDPR) ist das strengste Datenschutz- und Sicherheitsgesetz der Welt. Sie verpflichtet Organisationen weltweit, sobald diese Personen in der Europäischen Union ansprechen oder Daten von ihnen erheben. Die Verordnung wurde im April 2016 vom Europäischen Parlament verabschiedet und ist am 25. Mai 2018 in Kraft getreten.',
-    p2Html: 'Hook0 setzt bestimmte Unterauftragsverarbeiter ein, um die Anwendungsdienste für die Kunden bereitzustellen, wie im Rahmenvertrag oder in den Nutzungsbedingungen unter <a href="./terms" class="text-green-400 hover:text-green-300 transition-colors">Nutzungsbedingungen</a> oder unter einer anderen, jeweils gültigen Adresse beschrieben (der « Vertrag »). Begriffe mit Großbuchstaben haben hier dieselbe Bedeutung wie im Vertrag.',
+    p2Html: 'Hook0 setzt bestimmte Unterauftragsverarbeiter ein, um die Anwendungsdienste für die Kunden bereitzustellen, wie im Rahmenvertrag oder in den Nutzungsbedingungen unter <a href="./nutzungsbedingungen" class="text-green-400 hover:text-green-300 transition-colors">Nutzungsbedingungen</a> oder unter einer anderen, jeweils gültigen Adresse beschrieben (der « Vertrag »). Begriffe mit Großbuchstaben haben hier dieselbe Bedeutung wie im Vertrag.',
   },
   whatIsPersonalData: {
     title: 'Was sind personenbezogene Daten?',
@@ -48,7 +48,7 @@ module.exports = {
   },
   howWeProcess: {
     title: 'Wie wir personenbezogene Daten verarbeiten',
-    bodyHtml: 'Wenn Sie unsere Websites besuchen oder unsere Dienste nutzen, verarbeiten wir in der Regel Ihre personenbezogenen Daten in irgendeiner Form. Sämtliche relevanten Informationen zu den verarbeiteten Daten, unserer Rechtsgrundlage und Ihren Rechten finden Sie in unserer <a href="./privacy-policy" class="text-green-400 hover:text-green-300 transition-colors">Datenschutzerklärung</a>.',
+    bodyHtml: 'Wenn Sie unsere Websites besuchen oder unsere Dienste nutzen, verarbeiten wir in der Regel Ihre personenbezogenen Daten in irgendeiner Form. Sämtliche relevanten Informationen zu den verarbeiteten Daten, unserer Rechtsgrundlage und Ihren Rechten finden Sie in unserer <a href="./datenschutzerklaerung" class="text-green-400 hover:text-green-300 transition-colors">Datenschutzerklärung</a>.',
   },
   roles: {
     title: 'Unterauftragsverarbeiter und ihre Rolle',

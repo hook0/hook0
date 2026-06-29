@@ -23,11 +23,11 @@ module.exports = {
   goDeeper: {
     h2: 'Aller plus loin',
     cards: [
-      { label: 'Construit pour durer', href: './built-to-last', color: 'green' },
-      { label: 'Sécurité', href: './security', color: 'indigo' },
+      { label: 'Construit pour durer', href: './construit-pour-durer', color: 'green' },
+      { label: 'Sécurité', href: './securite', color: 'indigo' },
       { label: 'Démarrage rapide', href: 'https://documentation.hook0.com/tutorials/getting-started', color: 'yellow' },
       { label: 'Comparer les alternatives', href: 'https://documentation.hook0.com/comparisons', color: 'purple' },
-      { label: 'Amis open source', href: './oss-friends', color: 'pink' },
+      { label: 'Amis open source', href: './amis-open-source', color: 'pink' },
       { label: 'Testeur de webhooks', href: 'https://play.hook0.com', color: 'emerald', external: true },
     ],
   },

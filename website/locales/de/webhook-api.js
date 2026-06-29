@@ -85,12 +85,12 @@ module.exports = {
   "related": {
     "h2": "Weiterführend (auf Englisch)",
     "links": [
-      { "label": "Webhook Platform", "href": "./webhook-platform" },
-      { "label": "Hook0 vs Svix", "href": "./hook0-vs-svix" },
-      { "label": "Hook0 vs Hookdeck", "href": "./hook0-vs-hookdeck" },
-      { "label": "Build vs Buy Webhooks", "href": "./build-vs-buy-webhooks" },
-      { "label": "Self-Hosted Webhooks", "href": "./self-hosted-webhooks" },
-      { "label": "Open-Source Webhooks", "href": "./open-source-webhooks" }
+      { "label": "Webhook Platform", "href": "/webhook-platform" },
+      { "label": "Hook0 vs Svix", "href": "/hook0-vs-svix" },
+      { "label": "Hook0 vs Hookdeck", "href": "/hook0-vs-hookdeck" },
+      { "label": "Build vs Buy Webhooks", "href": "/build-vs-buy-webhooks" },
+      { "label": "Self-Hosted Webhooks", "href": "/self-hosted-webhooks" },
+      { "label": "Open-Source Webhooks", "href": "/open-source-webhooks" }
     ]
   }
 };

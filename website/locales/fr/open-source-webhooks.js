@@ -174,11 +174,11 @@ module.exports = {
   "related": {
     "h2": "Pour aller plus loin (en anglais)",
     "links": [
-      { "label": "Self-Hosted Webhooks", "href": "./self-hosted-webhooks" },
-      { "label": "Hook0 vs Svix", "href": "./hook0-vs-svix" },
-      { "label": "Hook0 vs Hookdeck", "href": "./hook0-vs-hookdeck" },
-      { "label": "Build vs Buy Webhooks", "href": "./build-vs-buy-webhooks" },
-      { "label": "Hook0 Alternatives", "href": "./hook0-alternatives" }
+      { "label": "Self-Hosted Webhooks", "href": "/self-hosted-webhooks" },
+      { "label": "Hook0 vs Svix", "href": "/hook0-vs-svix" },
+      { "label": "Hook0 vs Hookdeck", "href": "/hook0-vs-hookdeck" },
+      { "label": "Build vs Buy Webhooks", "href": "/build-vs-buy-webhooks" },
+      { "label": "Hook0 Alternatives", "href": "/hook0-alternatives" }
     ]
   }
 };

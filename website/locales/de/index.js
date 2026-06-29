@@ -26,11 +26,11 @@ module.exports = {
   goDeeper: {
     h2: 'Tiefer einsteigen',
     cards: [
-      { label: 'Gebaut um zu bleiben', href: './built-to-last', color: 'green' },
-      { label: 'Sicherheit', href: './security', color: 'indigo' },
+      { label: 'Gebaut um zu bleiben', href: './gebaut-um-zu-bleiben', color: 'green' },
+      { label: 'Sicherheit', href: './sicherheit', color: 'indigo' },
       { label: 'Schnellstart', href: 'https://documentation.hook0.com/tutorials/getting-started', color: 'yellow' },
       { label: 'Alternativen vergleichen', href: 'https://documentation.hook0.com/comparisons', color: 'purple' },
-      { label: 'Quelloffene Freunde', href: './oss-friends', color: 'pink' },
+      { label: 'Quelloffene Freunde', href: './open-source-freunde', color: 'pink' },
       { label: 'Webhook-Tester', href: 'https://play.hook0.com', color: 'emerald', external: true },
     ],
   },

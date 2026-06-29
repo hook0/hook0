@@ -133,6 +133,7 @@ module.exports = {
       statYearsValue: '6 years',
       statYearsLabel: 'In service',
       ctaLongevity: 'Read our longevity statement',
+      ctaLongevityHref: './built-to-last',
       ctaWhatIs: 'What is Hook0?',
     },
     useCase: {

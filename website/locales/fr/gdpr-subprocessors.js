@@ -35,7 +35,7 @@ module.exports = {
   },
   intro: {
     p1Html: 'Le Règlement général sur la protection des données (RGPD / DSGVO) est la législation la plus stricte au monde en matière de vie privée et de sécurité. Il impose des obligations aux organisations partout dans le monde, dès lors qu\'elles ciblent ou collectent des données relatives à des personnes situées dans l\'Union européenne. Le règlement a été adopté par le Parlement européen en avril 2016 et est entré en vigueur le 25 mai 2018.',
-    p2Html: 'Hook0 fait appel à certains sous-traitants ultérieurs pour fournir les Services applicatifs à ses clients, dans les conditions décrites par le contrat-cadre de services ou les conditions d\'utilisation publiées à l\'adresse <a href="./terms" class="text-green-400 hover:text-green-300 transition-colors">conditions d\'utilisation</a> ou à toute autre adresse à laquelle ces conditions seraient publiées ultérieurement (le « Contrat »). Les termes définis dans le présent document ont la signification qui leur est donnée dans le Contrat.',
+    p2Html: 'Hook0 fait appel à certains sous-traitants ultérieurs pour fournir les Services applicatifs à ses clients, dans les conditions décrites par le contrat-cadre de services ou les conditions d\'utilisation publiées à l\'adresse <a href="./conditions-utilisation" class="text-green-400 hover:text-green-300 transition-colors">conditions d\'utilisation</a> ou à toute autre adresse à laquelle ces conditions seraient publiées ultérieurement (le « Contrat »). Les termes définis dans le présent document ont la signification qui leur est donnée dans le Contrat.',
   },
   whatIsPersonalData: {
     title: 'Qu\'est-ce qu\'une donnée à caractère personnel ?',
@@ -43,7 +43,7 @@ module.exports = {
   },
   howWeProcess: {
     title: 'Comment nous traitons les données à caractère personnel',
-    bodyHtml: 'Lorsque vous consultez nos sites ou utilisez nos services, nous sommes amenés à traiter vos données à caractère personnel sous une forme ou une autre. Vous trouverez toutes les informations utiles sur les données traitées, les bases légales applicables et vos droits dans notre <a href="./privacy-policy" class="text-green-400 hover:text-green-300 transition-colors">politique de confidentialité</a>.',
+    bodyHtml: 'Lorsque vous consultez nos sites ou utilisez nos services, nous sommes amenés à traiter vos données à caractère personnel sous une forme ou une autre. Vous trouverez toutes les informations utiles sur les données traitées, les bases légales applicables et vos droits dans notre <a href="./politique-confidentialite" class="text-green-400 hover:text-green-300 transition-colors">politique de confidentialité</a>.',
   },
   roles: {
     title: 'Sous-traitants et leurs rôles',

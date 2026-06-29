@@ -125,6 +125,7 @@ module.exports = {
       statYearsValue: '6 ans',
       statYearsLabel: 'De service',
       ctaLongevity: 'Lis notre engagement de longévité',
+      ctaLongevityHref: './construit-pour-durer',
       ctaWhatIs: "Qu'est-ce que Hook0 ?",
     },
     useCase: {
