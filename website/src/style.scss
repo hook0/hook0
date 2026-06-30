@@ -396,7 +396,12 @@
       @apply p-8 border-b border-white/5 text-left;
       display: flex;
       flex-direction: column;
-      min-height: 16rem;
+      // Tall enough to fit the Pro plan's price block plus its optional
+      // annual-breakdown line wrapped to two lines (FR/DE longer text).
+      // Combined with `flex: 1` on the description below, every header in
+      // a row reaches this floor — so every body, every CTA button, and
+      // every "What's included" divider start at the same Y across cards.
+      min-height: 19rem;
 
       // Reduce padding on mobile
       @media (max-width: 640px) {
@@ -413,9 +418,14 @@
     &__description {
       @apply text-sm text-gray-400 mt-2 text-left;
       min-height: 4rem;
+      // Grow to absorb the height difference between cards (Pro carries an
+      // extra <p> annual line, others don't) — the price block then sticks
+      // to the bottom of the header on every card, anchoring the divider.
+      flex: 1;
 
       @media (max-width: 640px) {
         min-height: auto;
+        flex: initial;
       }
     }
 
