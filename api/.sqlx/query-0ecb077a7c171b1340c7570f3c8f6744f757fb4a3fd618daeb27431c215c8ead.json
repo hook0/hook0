@@ -6,7 +6,13 @@
       {
         "ordinal": 0,
         "name": "val",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "pricing.plan",
+            "name": "days_of_events_retention_limit"
+          }
+        }
       }
     ],
     "parameters": {

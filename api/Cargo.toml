@@ -21,10 +21,10 @@ actix-web = "4.13.0"
 anyhow = "1.0.102"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
-aws-sdk-s3 = { version = "1.132.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.137.0", features = ["behavior-version-latest"] }
 base64 = "0.22.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
-chrono = { version = "0.4.44", features = ["serde"] }
+chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.1", features = ["derive", "env", "cargo", "wrap_help"] }
 derive_more = { version = "2.1.1", features = ["into"] }
 futures-util = "0.3.32"
@@ -39,25 +39,25 @@ ipnetwork = "0.21.1"
 lazy_static = "1.5.0"
 lettre = { version = "0.11.22", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls", "aws-lc-rs", "rustls-platform-verifier"] }
 tracing = "0.1.44"
-tracing-actix-web = "0.7.21"
+tracing-actix-web = "0.7.22"
 mrml = "6.0.1"
 opentelemetry = { version = "0.32.0", default-features = false, features = ["trace", "metrics"] }
 opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls"] }
-opentelemetry_sdk = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "rt-tokio", "spec_unstable_metrics_views"] }
+opentelemetry_sdk = { version = "0.32.1", default-features = false, features = ["trace", "metrics", "rt-tokio", "spec_unstable_metrics_views"] }
 paperclip = { version = "0.9.7", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
-pulsar = { version = "6.7.2", default-features = false, features = ["tokio-rustls-runtime"] }
-regex = "1.12.3"
-reqwest = { version = "0.13.3", features = ["hickory-dns", "form", "json"] }
+pulsar = { version = "6.8.0", default-features = false, features = ["tokio-rustls-runtime"] }
+regex = "1.12.4"
+reqwest = { version = "0.13.4", features = ["hickory-dns", "form", "json"] }
 rustls = { version = "0.23.40", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
 sentry-actix = "0.48.2"
 serde = "1.0.228"
-serde_json = "1.0.149"
-sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
+serde_json = "1.0.150"
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
 strum = { version = "0.28.0", features = ["derive"] }
 thiserror = "2.0.18"
 tokio = { version = "1.52.3" }
 url = "2.5.8"
-uuid = { version = "1.23.1", features = ["serde", "v4", "v7"] }
+uuid = { version = "1.23.3", features = ["serde", "v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
@@ -66,8 +66,9 @@ pprof = { version = "0.15.0", features = ["protobuf-codec"], optional = true }
 tikv-jemallocator = { version = "0.6.1", optional = true }
 
 [dev-dependencies]
-insta = { version = "1.47", features = ["json"] }
-test-log = { version = "0.2.20", default-features = false, features = ["trace", "color", "unstable"] }
+insta = { version = "1.48", features = ["json"] }
+proptest = "1"
+test-log = { version = "0.2.21", default-features = false, features = ["trace", "color", "unstable"] }
 
 [features]
 default = ["application-secret-compatibility", "jemalloc"]

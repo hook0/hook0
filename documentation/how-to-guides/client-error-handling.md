@@ -25,7 +25,7 @@ Hook0 uses RFC 7807 Problem Details format. All errors include:
 Handle errors based on their `id` field for precise error handling:
 
 ```typescript
-async function handleApiResponse(response: Response) {
+async function handleApiResponse(response: Response, eventType?: string) {
   if (!response.ok) {
     const error = await response.json();
 

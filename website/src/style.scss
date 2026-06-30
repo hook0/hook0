@@ -658,6 +658,90 @@
     }
   }
 
+  // Tighter stagger for dense groups (FAQ lists, comparison table rows)
+  // — avoids the perceived lag when many items reveal at once.
+  .stagger-children--tight > * {
+    @for $i from 1 through 12 {
+      &:nth-child(#{$i}) {
+        transition-delay: #{($i - 1) * 0.05}s;
+      }
+    }
+  }
+
+  // --------------------------------------------
+  // ANIMATED LOGO WALL (homepage social proof)
+  // --------------------------------------------
+  // 2×3 grid whose logos crossfade in/out (rotation driven by the logo script in
+  // _head.ejs). Two stacked <img> layers per cell let a new logo fade in while the
+  // old fades out — no blank gap — so a "pinned" logo can move slots while staying
+  // continuously visible.
+  .logo-cell {
+    position: relative;
+    height: 5.5rem; // anchors the absolutely-positioned layers (matches old p-6 + max-h-10)
+  }
+
+  .logo-layer {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    max-height: 2.5rem;
+    max-width: 80%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    opacity: 0;
+    filter: brightness(0) invert(1);
+    transition: opacity 0.6s ease-in-out;
+    pointer-events: none;
+  }
+
+  .logo-layer--active {
+    opacity: 0.6;
+  }
+
+  .logo-cell:hover .logo-layer--active {
+    opacity: 1;
+  }
+
+  // --------------------------------------------
+  // ACCESSIBILITY — REDUCED MOTION
+  // --------------------------------------------
+  // WCAG 2.3.3 / 2.2.2: honour the user's "reduce motion" OS setting.
+  // Neutralise scroll-reveals (keep content visible) and stop every looping
+  // keyframe animation (decorative pulses, SVG flow dashes, etc.).
+  @media (prefers-reduced-motion: reduce) {
+    .animate-on-scroll,
+    .animate-on-scroll--left,
+    .animate-on-scroll--right,
+    .animate-on-scroll--scale {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+
+    .stagger-children > *,
+    .stagger-children--tight > * {
+      transition-delay: 0s !important;
+    }
+
+    // The logo wall keeps its gentle opacity crossfade even here: it's a pure fade
+    // with no movement, so it's deliberately exempt from reduced-motion. Re-assert the
+    // transition (higher specificity than the blanket `*` rule below) so swaps stay
+    // smooth instead of becoming hard cuts.
+    .logo-layer {
+      transition: opacity 0.6s ease-in-out !important;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   // --------------------------------------------
   // TEXT GRADIENTS
   // --------------------------------------------

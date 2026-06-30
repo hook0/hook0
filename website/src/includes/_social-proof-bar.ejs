@@ -9,18 +9,10 @@
             <p class="text-sm font-medium text-gray-500 uppercase tracking-wider"><%= __csp ? __csp.label : 'Trusted by teams at' %></p>
         </div>
         <div class="flex flex-wrap items-center justify-center gap-8 lg:gap-12">
+            <% locals.customers.forEach(c => { %>
             <img class="h-7 w-auto object-contain opacity-40 hover:opacity-80 transition-opacity filter brightness-0 invert"
-                 src="./customers/coinbase.svg" alt="Coinbase" width="120" height="28" loading="lazy" />
-            <img class="h-7 w-auto object-contain opacity-40 hover:opacity-80 transition-opacity filter brightness-0 invert"
-                 src="./customers/woodwing.svg" alt="WoodWing" width="120" height="28" loading="lazy" />
-            <img class="h-7 w-auto object-contain opacity-40 hover:opacity-80 transition-opacity filter brightness-0 invert"
-                 src="./customers/optery.svg" alt="Optery" width="120" height="28" loading="lazy" />
-            <img class="h-7 w-auto object-contain opacity-40 hover:opacity-80 transition-opacity filter brightness-0 invert"
-                 src="./customers/alteos.svg" alt="Alteos" width="120" height="28" loading="lazy" />
-            <img class="h-7 w-auto object-contain opacity-40 hover:opacity-80 transition-opacity filter brightness-0 invert"
-                 src="./customers/activeants.svg" alt="ActiveAnts" width="120" height="28" loading="lazy" />
-            <img class="h-7 w-auto object-contain opacity-40 hover:opacity-80 transition-opacity filter brightness-0 invert"
-                 src="./customers/apizee.svg" alt="Apizee" width="120" height="28" loading="lazy" />
+                 src="<%= c.logo %>" alt="<%= c.name %>" width="120" height="28" loading="lazy" />
+            <% }) %>
         </div>
         <div class="mt-8 flex items-center justify-center gap-6">
             <iframe src="https://ghbtns.com/github-btn.html?user=hook0&repo=hook0&type=star&count=true&size=large" frameborder="0" scrolling="0" width="170" height="30" title="<%= (locals.chrome && locals.chrome.socialProof && locals.chrome.socialProof.githubStarsTitle) ? locals.chrome.socialProof.githubStarsTitle : 'GitHub Stars' %>" loading="lazy"></iframe>

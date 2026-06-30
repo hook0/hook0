@@ -103,10 +103,10 @@ You can test Hook0's webhook delivery for free right now with our [webhook teste
 | **Inbound webhook proxy** | ❌ | ❌ | ✅ Core focus | ❌ |
 | **Multi-tenant filtering** | ✅ Label-based | ⚠️ Basic | ❌ | ❌ |
 | **HMAC signatures** | ✅ | ✅ | ✅ | ✅ |
-| **Automatic retries** | ✅ Configurable two-phase (fast + slow) + jitter | ✅ | ✅ | ✅ |
+| **Automatic retries** | ✅ Fixed escalating backoff, capped by max retries + window | ✅ | ✅ | ✅ |
 | **Dead letter queue** | ✅ | ✅ | ✅ | ❌ |
 | **Event type hierarchy** | ✅ Dot-notation | ✅ | ❌ | ⚠️ Flat |
-| **Custom retry schedules** | ✅ Configurable per subscription | ✅ | ✅ | ❌ |
+| **Custom retry schedules** | ⚠️ Global limits only (self-hosted) | ✅ | ✅ | ❌ |
 | **Delivery logs & replay** | ✅ | ✅ | ✅ | ⚠️ Logs only |
 | **REST API** | ✅ | ✅ | ✅ | ✅ |
 | **SDK support** | JS, Rust | JS, Python, Go, Ruby, Java | JS, Python, Go, Ruby | JS |

@@ -9,18 +9,18 @@ keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
 homepage = "https://www.hook0.com/"
 
 [dependencies]
-chrono = { version = "0.4.44", features = ["serde"] }
+chrono = { version = "0.4.45", features = ["serde"] }
 hex = { version = "0.4.3", optional = true }
 hmac = { version = "0.13.0", optional = true }
-http = { version = "1.4.0", optional = true }
+http = { version = "1.4.2", optional = true }
 lazy-regex = { version = "3.6.0", optional = true }
 tracing = { version = "0.1.44", features = ["log"] }
-reqwest = { version = "0.13.3", features = ["hickory-dns", "json", "query"], optional = true }
+reqwest = { version = "0.13.4", features = ["hickory-dns", "json", "query"], optional = true }
 serde = { version = "1.0.228", features = ["derive"], optional = true }
 sha2 = { version = "0.11.0", optional = true }
 thiserror = "2.0.18"
 url = { version = "2.5.8", optional = true }
-uuid = { version = "1.23.1", features = ["serde"], optional = true }
+uuid = { version = "1.23.3", features = ["serde"], optional = true }
 
 [dev-dependencies]
 actix-web = { version = "4.13.0", default-features = false, features = ["macros"] }

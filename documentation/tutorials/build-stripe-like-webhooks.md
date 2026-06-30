@@ -116,8 +116,8 @@ curl -X POST "$HOOK0_API/event_types" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"'"$APP_ID"'\",
-    \"service\": \"payments\",
+    \"application_id\": \"$APP_ID\",
+    \"service\": \"payment\",
     \"resource_type\": \"charge\",
     \"verb\": \"succeeded\"
   }"
@@ -127,8 +127,8 @@ curl -X POST "$HOOK0_API/event_types" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"'"$APP_ID"'\",
-    \"service\": \"payments\",
+    \"application_id\": \"$APP_ID\",
+    \"service\": \"payment\",
     \"resource_type\": \"charge\",
     \"verb\": \"failed\"
   }"
@@ -138,8 +138,8 @@ curl -X POST "$HOOK0_API/event_types" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"'"$APP_ID"'\",
-    \"service\": \"payments\",
+    \"application_id\": \"$APP_ID\",
+    \"service\": \"payment\",
     \"resource_type\": \"refund\",
     \"verb\": \"created\"
   }"
@@ -149,8 +149,8 @@ curl -X POST "$HOOK0_API/event_types" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"'"$APP_ID"'\",
-    \"service\": \"customers\",
+    \"application_id\": \"$APP_ID\",
+    \"service\": \"customer\",
     \"resource_type\": \"account\",
     \"verb\": \"created\"
   }"
@@ -300,10 +300,7 @@ node server.js
 
 Output:
 ```
-🚀 Webhook receiver running on http://localhost:3000
-📝 Configured tenants: acme_corp, globex_inc
-✓ Signature verification enabled
-✓ Idempotency protection enabled
+Webhook receiver on http://localhost:3000
 ```
 
 Test health endpoint:
@@ -324,7 +321,7 @@ SUB_ACME=$(curl -s -X POST "$HOOK0_API/subscriptions" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"'"$APP_ID"'\",
+    \"application_id\": \"$APP_ID\",
     \"is_enabled\": true,
     \"description\": \"ACME Corp payment webhooks\",
     \"event_types\": [
@@ -384,7 +381,7 @@ SUB_GLOBEX=$(curl -s -X POST "$HOOK0_API/subscriptions" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"'"$APP_ID"'\",
+    \"application_id\": \"$APP_ID\",
     \"is_enabled\": true,
     \"description\": \"Globex Inc payment webhooks\",
     \"event_types\": [
@@ -428,7 +425,7 @@ curl -X POST "$HOOK0_API/event" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"'"$APP_ID"'\",
+    \"application_id\": \"$APP_ID\",
     \"event_id\": \"$(uuidgen)\",
     \"event_type\": \"payment.charge.succeeded\",
     \"payload\": \"{\\\"charge_id\\\":\\\"ch_123\\\",\\\"amount\\\":4999,\\\"currency\\\":\\\"USD\\\",\\\"customer_id\\\":\\\"cus_acme_001\\\",\\\"description\\\":\\\"Pro plan subscription\\\"}\",
@@ -442,17 +439,15 @@ curl -X POST "$HOOK0_API/event" \
   }"
 ```
 
-**Check webhook receiver logs**:
+**Check webhook receiver logs** (the handler logs `[tenant] event_type:` followed by the parsed payload):
 ```
-[req_xxx] Received webhook for tenant: acme_corp
-[req_xxx] Signature verified ✓
-[req_xxx] 💰 Payment succeeded: {
+[acme_corp] payment.charge.succeeded: {
   charge_id: 'ch_123',
   amount: 4999,
   currency: 'USD',
-  customer: 'cus_acme_001'
+  customer_id: 'cus_acme_001',
+  description: 'Pro plan subscription'
 }
-[req_xxx] Event processed successfully in 15ms
 ```
 
 ### Step 5.2: Send payment failed event (ACME Corp)
@@ -462,7 +457,7 @@ curl -X POST "$HOOK0_API/event" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"'"$APP_ID"'\",
+    \"application_id\": \"$APP_ID\",
     \"event_id\": \"$(uuidgen)\",
     \"event_type\": \"payment.charge.failed\",
     \"payload\": \"{\\\"charge_id\\\":\\\"ch_124\\\",\\\"amount\\\":4999,\\\"currency\\\":\\\"USD\\\",\\\"customer_id\\\":\\\"cus_acme_001\\\",\\\"error_code\\\":\\\"card_declined\\\",\\\"error_message\\\":\\\"Insufficient funds\\\"}\",
@@ -483,7 +478,7 @@ curl -X POST "$HOOK0_API/event" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"'"$APP_ID"'\",
+    \"application_id\": \"$APP_ID\",
     \"event_id\": \"$(uuidgen)\",
     \"event_type\": \"customer.account.created\",
     \"payload\": \"{\\\"customer_id\\\":\\\"cus_globex_001\\\",\\\"email\\\":\\\"customer@globex.com\\\",\\\"name\\\":\\\"John Doe\\\",\\\"plan\\\":\\\"enterprise\\\"}\",
@@ -505,7 +500,7 @@ curl -X POST "$HOOK0_API/event" \
   -H "Authorization: Bearer $HOOK0_TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"application_id\": \"'"$APP_ID"'\",
+    \"application_id\": \"$APP_ID\",
     \"event_id\": \"$(uuidgen)\",
     \"event_type\": \"payment.charge.succeeded\",
     \"payload\": \"{\\\"charge_id\\\":\\\"ch_999\\\"}\",
@@ -564,7 +559,7 @@ Temporarily break signature verification to see failure:
 
 ```javascript
 // In server.js, comment out signature verification
-// if (!verifySignature(rawBody, signature, secret)) {
+// if (!verifySignature(rawBodyString, signature, req.headers, secret)) {
 //   return res.status(401).json({ error: 'Invalid signature' });
 // }
 ```
