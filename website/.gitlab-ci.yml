@@ -19,6 +19,10 @@ website.build:
     CARGO_HOME: "$CI_PROJECT_DIR/.cargo"
     RUSTUP_HOME: "$CI_PROJECT_DIR/.rustup"
   before_script:
+    # rsync is invoked by the build-i18n orchestrator to mirror src/ into
+    # temp/<lang>/ at flat depth. The node:NODE_VERSION image is Debian-based
+    # and ships without rsync; install it before the build runs.
+    - apt-get update && apt-get install -y --no-install-recommends rsync
     # Rust toolchain for the build-i18n orchestrator + i18n-gate (std-only,
     # no transitive deps → first install ~30s, then cached). Skip if cached.
     - |
