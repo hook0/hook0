@@ -99,10 +99,14 @@ head body, and the default fallback would just create a duplicate tag. -->
 <% } %>
 
 <!-- Self-hosted Inter font (preload the two woff2 subsets matched by inter.css's
-     unicode-range so the first paint of body text uses Inter, not the fallback. -->
-<link rel="preload" as="font" type="font/woff2" href="<%= locals.seo.siteUrl %>/fonts/Inter-latin.woff2" crossorigin>
-<link rel="preload" as="font" type="font/woff2" href="<%= locals.seo.siteUrl %>/fonts/Inter-latin-ext.woff2" crossorigin>
-<link rel="stylesheet" href="<%= locals.seo.siteUrl %>/fonts/inter.css">
+     unicode-range so the first paint of body text uses Inter, not the fallback.
+     Injected via inline JS at parse time so the URL is host-relative (resolves
+     from the deploy origin: www.hook0.com, Netlify preview, or localhost) —
+     Parcel would otherwise try to resolve `/fonts/...` against the project
+     source tree at build time and fail. The fonts themselves live in static/
+     and ship as-is via parcel-reporter-static-files-copy. Same pattern as the
+     PWA manifest injection below. -->
+<script>(function(){var h=document.head,f=['Inter-latin','Inter-latin-ext'];f.forEach(function(n){var l=document.createElement('link');l.rel='preload';l.as='font';l.type='font/woff2';l.crossOrigin='anonymous';l.href='/fonts/'+n+'.woff2';h.appendChild(l);});var s=document.createElement('link');s.rel='stylesheet';s.href='/fonts/inter.css';h.appendChild(s);})();</script>
 
 <!-- DNS Prefetch for external resources -->
 <link rel="dns-prefetch" href="https://api.producthunt.com">

@@ -10,17 +10,21 @@
 const slugs = require('./slugs');
 
 // Locale routing config. `dir` is the dist subdirectory ('' = site root for EN).
-// SITE_URL is overridable via LOCAL_PREVIEW_URL (e.g. http://localhost:4000) so
-// `npm run build:local` produces a dist/ that serves cleanly from a local static
-// server — every absolute URL the build emits (canonical, hreflang, Parcel
-// --public-url, fonts/inter.css preload + stylesheet, og:image, JSON-LD @id)
-// reroutes to the local origin, eliminating the CORS-blocked font fetch and the
-// 404 on the locally-hashed CSS bundle when the dist is served from localhost.
+// SITE_URL is absolute and drives only content URLs (canonical, hreflang,
+// og:url, JSON-LD @id, sitemap entries). It is overridable via LOCAL_PREVIEW_URL
+// (e.g. http://localhost:4000) for the local-preview workflow.
+//
+// publicUrl is host-relative on purpose: Parcel receives it as `--public-url`,
+// so every asset href Parcel emits (CSS bundle, hashed favicons, JS) resolves
+// from the host that serves the HTML — the same dist/ works on www.hook0.com,
+// on a Netlify preview origin (deploy-id--site.netlify.app), and on localhost.
+// Per-locale prefix keeps the FR/DE subdir asset paths correct (assets for FR
+// live under dist/fr/ → /fr/*.css).
 const SITE_URL = process.env.LOCAL_PREVIEW_URL || 'https://www.hook0.com';
 const LOCALES = [
-  { lang: 'en', dir: '',   publicUrl: SITE_URL,            ejsLocale: 'en_US' },
-  { lang: 'fr', dir: 'fr', publicUrl: SITE_URL + '/fr',    ejsLocale: 'fr_FR' },
-  { lang: 'de', dir: 'de', publicUrl: SITE_URL + '/de',    ejsLocale: 'de_DE' },
+  { lang: 'en', dir: '',   publicUrl: '/',    ejsLocale: 'en_US' },
+  { lang: 'fr', dir: 'fr', publicUrl: '/fr',  ejsLocale: 'fr_FR' },
+  { lang: 'de', dir: 'de', publicUrl: '/de',  ejsLocale: 'de_DE' },
 ];
 const BASE_LANG = 'en';
 
