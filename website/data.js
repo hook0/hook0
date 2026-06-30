@@ -46,7 +46,7 @@ locals.meta = {
 };
 
 locals.seo = {
-  siteUrl: 'https://www.hook0.com',
+  siteUrl: process.env.LOCAL_PREVIEW_URL || 'https://www.hook0.com',
   siteName: 'Hook0',
   defaultTitle: 'Hook0: Free Webhook Platform, HMAC Signatures, EU Hosting',
   defaultDescription: 'Free webhook platform with HMAC signatures, configurable retries, and delivery monitoring. Self-host the SSPL code or use our EU-hosted cloud. No credit card.',

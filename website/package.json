@@ -13,6 +13,8 @@
     "build:i18n-gate:compile": "cd scripts/i18n-gate && cargo build --release",
     "build:dev": "npm run build:i18n:compile && ./scripts/build-i18n/target/release/build-i18n",
     "build": "npm run build:i18n:compile && ./scripts/build-i18n/target/release/build-i18n",
+    "build:local": "LOCAL_PREVIEW_URL=http://localhost:4000 npm run build",
+    "serve:local": "npx serve dist -l 4000 --no-clipboard",
     "check:i18n": "npm run build:i18n-gate:compile && ./scripts/i18n-gate/target/release/i18n-gate"
   },
   "contributors": [

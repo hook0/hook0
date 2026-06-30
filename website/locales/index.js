@@ -10,13 +10,19 @@
 const slugs = require('./slugs');
 
 // Locale routing config. `dir` is the dist subdirectory ('' = site root for EN).
+// SITE_URL is overridable via LOCAL_PREVIEW_URL (e.g. http://localhost:4000) so
+// `npm run build:local` produces a dist/ that serves cleanly from a local static
+// server — every absolute URL the build emits (canonical, hreflang, Parcel
+// --public-url, fonts/inter.css preload + stylesheet, og:image, JSON-LD @id)
+// reroutes to the local origin, eliminating the CORS-blocked font fetch and the
+// 404 on the locally-hashed CSS bundle when the dist is served from localhost.
+const SITE_URL = process.env.LOCAL_PREVIEW_URL || 'https://www.hook0.com';
 const LOCALES = [
-  { lang: 'en', dir: '',   publicUrl: 'https://www.hook0.com',    ejsLocale: 'en_US' },
-  { lang: 'fr', dir: 'fr', publicUrl: 'https://www.hook0.com/fr', ejsLocale: 'fr_FR' },
-  { lang: 'de', dir: 'de', publicUrl: 'https://www.hook0.com/de', ejsLocale: 'de_DE' },
+  { lang: 'en', dir: '',   publicUrl: SITE_URL,            ejsLocale: 'en_US' },
+  { lang: 'fr', dir: 'fr', publicUrl: SITE_URL + '/fr',    ejsLocale: 'fr_FR' },
+  { lang: 'de', dir: 'de', publicUrl: SITE_URL + '/de',    ejsLocale: 'de_DE' },
 ];
 const BASE_LANG = 'en';
-const SITE_URL = 'https://www.hook0.com';
 
 // Locale string overlay. EN's prose lives in data.js + en.js; the base lang
 // returns an empty overlay so EN output stays byte-identical until extracted.

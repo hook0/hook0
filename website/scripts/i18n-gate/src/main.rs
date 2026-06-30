@@ -22,10 +22,21 @@ use std::fs;
 use std::path::Path;
 use std::process::{exit, Command};
 
-const SITE_URL: &str = "https://www.hook0.com";
+const SITE_URL_DEFAULT: &str = "https://www.hook0.com";
+
+// Mirror of build-i18n's site_url(): LOCAL_PREVIEW_URL overrides for
+// `npm run build:local` so the gate validates the same origin the orchestrator
+// actually emitted.
+fn site_url() -> String {
+    std::env::var("LOCAL_PREVIEW_URL")
+        .ok()
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| SITE_URL_DEFAULT.to_string())
+}
 
 fn main() {
     let mut failures: Vec<String> = Vec::new();
+    let site_url = site_url();
 
     let root = match std::env::current_dir() {
         Ok(p) => p,
@@ -122,7 +133,7 @@ fn main() {
             }
 
             // R1 strict (converted pages only): canonical + html-lang correct.
-            let expected = expected_url(SITE_URL, dir, &stem);
+            let expected = expected_url(&site_url, dir, &stem);
             match extract_canonical(&html) {
                 Some(c) if c == expected => {}
                 Some(c) => failures.push(format!(
@@ -151,7 +162,7 @@ fn main() {
     if llms_path.exists() {
         let llms = fs::read_to_string(&llms_path).unwrap_or_default();
         for url in extract_markdown_links(&llms) {
-            if let Some(rest) = url.strip_prefix(SITE_URL) {
+            if let Some(rest) = url.strip_prefix(site_url.as_str()) {
                 // Internal link → derive dist path and assert it exists.
                 let path = rest.trim_start_matches('/');
                 let candidate = if path.is_empty() {
@@ -266,7 +277,7 @@ fn main() {
                     } else {
                         m.get(lang).cloned()
                     };
-                    slug.map(|s| (lang.clone(), expected_url(SITE_URL, dir, &s)))
+                    slug.map(|s| (lang.clone(), expected_url(&site_url, dir, &s)))
                 })
                 .collect();
 
@@ -295,7 +306,7 @@ fn main() {
                     }
                 }
                 let x_default = format!(
-                    "hreflang=\"x-default\" href=\"{SITE_URL}/\""
+                    "hreflang=\"x-default\" href=\"{site_url}/\""
                 );
                 if !sitemap.contains(&x_default) {
                     failures.push(format!(

@@ -162,7 +162,7 @@ fn run() -> R<()> {
 
     // Unified multilingual sitemap at dist/sitemap.xml. Replaces both the
     // (removed) parcel-reporter-sitemap and scripts/fix-sitemap.js.
-    write_sitemap(&dist, SITE_URL, &locales, &localized)?;
+    write_sitemap(&dist, &site_url(), &locales, &localized)?;
 
     // qdnld/ is a tree of Remotion-generated HTML that hotlinks Google Fonts
     // — that's a transfer-out-of-EU privacy violation for any visitor that
@@ -241,7 +241,23 @@ fn strip_google_fonts_in_html(html: &str) -> String {
     out
 }
 
-const SITE_URL: &str = "https://www.hook0.com";
+const SITE_URL_DEFAULT: &str = "https://www.hook0.com";
+
+// Site URL override for `npm run build:local`. Matches the JS-side override in
+// data.js (locals.seo.siteUrl) and locales/index.js (LOCALES[].publicUrl) so a
+// local-preview build emits the same origin everywhere — EJS-rendered absolute
+// URLs, Parcel --public-url, and this sitemap.
+fn site_url() -> String {
+    let env = std::env::var("LOCAL_PREVIEW_URL").ok();
+    resolve_site_url(env.as_deref())
+}
+
+fn resolve_site_url(env_value: Option<&str>) -> String {
+    match env_value {
+        Some(v) if !v.is_empty() => v.to_string(),
+        _ => SITE_URL_DEFAULT.to_string(),
+    }
+}
 
 // Walk dist/, build one <url> entry per indexable HTML, attach <xhtml:link>
 // hreflang cross-references for every page that ships in multiple locales.
@@ -615,4 +631,27 @@ fn run_shell(root: &Path, script: &str) -> R<()> {
         return Err(format!("command failed ({:?}): {script}", status.code()));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn site_url_default_when_env_unset() {
+        assert_eq!(resolve_site_url(None), "https://www.hook0.com");
+    }
+
+    #[test]
+    fn site_url_default_when_env_empty() {
+        assert_eq!(resolve_site_url(Some("")), "https://www.hook0.com");
+    }
+
+    #[test]
+    fn site_url_override_local_preview() {
+        assert_eq!(
+            resolve_site_url(Some("http://localhost:4000")),
+            "http://localhost:4000"
+        );
+    }
 }
