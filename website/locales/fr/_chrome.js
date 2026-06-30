@@ -18,6 +18,7 @@ module.exports = {
     a11y: {
       openMenu: 'Ouvrir le menu',
       skipToMain: 'Aller au contenu principal',
+      changeLanguage: 'Changer de langue',
     },
   },
   breadcrumb: {

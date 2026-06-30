@@ -464,20 +464,24 @@
 
     &__feature {
       @apply flex items-start gap-0 text-sm text-gray-300;
+      // Allow this flex item to shrink below its content width so its <span>
+      // child can wrap. Without this, the FR/DE bullets ("Géré de bout en
+      // bout, aucune infra à porter") overflow the 4-column grid and get
+      // clipped by the .pricing section's overflow-hidden.
+      min-width: 0;
 
       svg {
         @apply w-5 h-5 text-green-500 flex-shrink-0 mt-0.5 mr-3;
       }
 
-      // Allow text wrapping on mobile for better readability
-      @media (max-width: 640px) {
-        white-space: normal;
-        @apply text-base leading-relaxed;
+      > span {
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
 
-      // Prevent text from wrapping on larger screens
-      @media (min-width: 641px) {
-        white-space: nowrap;
+      // Mobile: keep the more generous text size for readability.
+      @media (max-width: 640px) {
+        @apply text-base leading-relaxed;
       }
 
       // Ensure no extra spacing around strong elements
@@ -1263,4 +1267,88 @@ abbr {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+// --------------------------------------------
+// LANG SWITCHER (header dropdown)
+// Pattern ported from lagrangessartaise.fr — pure HTML <details>/<summary>
+// for graceful no-JS fallback. Dark-theme adaptation: bg-surface-tertiary
+// menu surface, white/10 borders, indigo accent on the active item.
+// --------------------------------------------
+.lang-switcher {
+  position: relative;
+  display: inline-block;
+}
+.lang-switcher__summary {
+  list-style: none;
+  // Hide the default <details> disclosure triangle on every engine.
+  &::-webkit-details-marker { display: none; }
+  &::marker { content: ''; }
+}
+.lang-switcher__chevron {
+  transition: transform 160ms ease;
+  transform: rotate(90deg);
+}
+.lang-switcher[open] .lang-switcher__chevron {
+  transform: rotate(-90deg);
+}
+.lang-switcher__menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  list-style: none;
+  padding: 0.375rem 0;
+  margin: 0;
+  min-width: 11rem;
+  z-index: 60;
+  @apply bg-surface-tertiary border border-white/10 rounded-xl shadow-lg;
+}
+.lang-switcher__item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  font-size: 0.875rem;
+  @apply text-gray-300 transition-colors;
+
+  &:hover {
+    @apply bg-white/5 text-white;
+  }
+}
+.lang-switcher__item--active {
+  @apply text-white font-medium bg-white/5;
+}
+.lang-switcher__name { line-height: 1; }
+
+// Mobile rail variant — same flag + name, full-width grid row.
+.lang-switcher__mobile-item {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  @apply text-gray-400 transition-colors;
+
+  &:hover {
+    @apply text-white bg-white/5;
+  }
+}
+.lang-switcher__mobile-item--active {
+  @apply text-white bg-white/10;
+}
+
+// Country flag svg — decorative, fixed aspect.
+.lang-switcher .flag,
+.lang-switcher__mobile-item .flag {
+  width: 18px;
+  height: 13px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  flex: 0 0 auto;
 }

@@ -17,6 +17,16 @@ if (locals.i18nHelpers && locals.pageLang) {
   var __h = locals.i18nHelpers.getPath('index', locals.pageLang);
   if (__h) __homeRoot = __h;
 }
+// Locale flags for the language switcher. Decorative (aria-hidden) — the
+// visible language name carries the accessible label.
+var __FLAGS = {
+  fr: '<svg class="flag" viewBox="0 0 3 2" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><rect width="3" height="2" fill="#fff"/><rect width="1" height="2" fill="#0055A4"/><rect x="2" width="1" height="2" fill="#EF4135"/></svg>',
+  en: '<svg class="flag" viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><rect width="60" height="30" fill="#012169"/><path d="M0,0 60,30 M60,0 0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 60,30 M60,0 0,30" stroke="#C8102E" stroke-width="2.5"/><path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/><path d="M30,0 V30 M0,15 H60" stroke="#C8102E" stroke-width="6"/></svg>',
+  de: '<svg class="flag" viewBox="0 0 5 3" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><rect width="5" height="1" fill="#000"/><rect y="1" width="5" height="1" fill="#DD0000"/><rect y="2" width="5" height="1" fill="#FFCE00"/></svg>',
+};
+var __flagFor = function (code) { return __FLAGS[code] || ''; };
+var __langShort = function (code) { return code === 'fr' ? 'FR' : code === 'de' ? 'DE' : 'EN'; };
+var __langFull = function (code) { return code === 'fr' ? 'Français' : code === 'de' ? 'Deutsch' : 'English'; };
 %>
 <!-- Accessibility: skip-to-main link. Visually hidden until focused, then
      becomes a fixed pill at the top-left. Targets <main id="main"> which the
@@ -54,22 +64,35 @@ if (locals.i18nHelpers && locals.pageLang) {
                     </svg>
                 </a>
                 <% if (!locals.pageNoindex && Array.isArray(locals.pageHreflang) && locals.pageHreflang.length > 1 && locals.pageCanonical && locals.pageHreflang.some(function(__a){ return __a.href === locals.pageCanonical; })) { %>
-                <div role="group" aria-label="Language" class="flex items-center gap-0.5 ml-2 pl-2 border-l border-white/10">
-                    <% locals.pageHreflang.forEach(function (alt) {
-                        var __isActive = alt.lang === (locals.pageLang || 'en');
-                        var __label = alt.lang === 'fr' ? 'FR' : alt.lang === 'de' ? 'DE' : 'EN';
-                        var __full = alt.lang === 'fr' ? 'Français' : alt.lang === 'de' ? 'Deutsch' : 'English';
-                    %>
-                    <a href="<%= alt.href %>"
-                       hreflang="<%= alt.lang %>"
-                       lang="<%= alt.lang %>"
-                       title="<%= __full %>"
-                       <% if (__isActive) { %>aria-current="page"<% } %>
-                       class="inline-flex items-center justify-center min-w-[44px] min-h-[44px] px-2 text-xs font-semibold rounded-md transition-colors <%= __isActive ? 'text-white bg-white/10' : 'text-gray-400 hover:text-white hover:bg-white/5' %>">
-                        <%= __label %>
-                    </a>
-                    <% }); %>
-                </div>
+                <%# Lang switcher: pure HTML <details>/<summary> for graceful no-JS fallback,
+                    pattern ported from lagrangessartaise.fr. Summary shows the active locale's
+                    flag + short label + chevron; menu lists every alternate with flag + full name. %>
+                <details class="lang-switcher ml-2 pl-2 border-l border-white/10">
+                    <summary class="lang-switcher__summary inline-flex items-center gap-2 min-h-[44px] px-2.5 text-xs font-semibold uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer" aria-label="<%= __ca11y ? __ca11y.changeLanguage : 'Change language' %>">
+                        <%- __flagFor(locals.pageLang || 'en') %>
+                        <%= __langShort(locals.pageLang || 'en') %>
+                        <svg class="lang-switcher__chevron w-2.5 h-2.5" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false">
+                            <path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="square" />
+                        </svg>
+                    </summary>
+                    <ul class="lang-switcher__menu" role="menu">
+                        <% locals.pageHreflang.forEach(function (alt) {
+                            var __isActive = alt.lang === (locals.pageLang || 'en');
+                        %>
+                        <li role="none">
+                            <a href="<%= alt.href %>"
+                               hreflang="<%= alt.lang %>"
+                               lang="<%= alt.lang %>"
+                               role="menuitem"
+                               <% if (__isActive) { %>aria-current="page"<% } %>
+                               class="lang-switcher__item <%= __isActive ? 'lang-switcher__item--active' : '' %>">
+                                <%- __flagFor(alt.lang) %>
+                                <span class="lang-switcher__name"><%= __langFull(alt.lang) %></span>
+                            </a>
+                        </li>
+                        <% }); %>
+                    </ul>
+                </details>
                 <% } %>
             </div>
 
@@ -160,18 +183,18 @@ if (locals.i18nHelpers && locals.pageLang) {
             </nav>
 
             <% if (!locals.pageNoindex && Array.isArray(locals.pageHreflang) && locals.pageHreflang.length > 1 && locals.pageCanonical && locals.pageHreflang.some(function(__a){ return __a.href === locals.pageCanonical; })) { %>
-            <div role="group" aria-label="Language" class="mobile-menu__lang flex items-center gap-2 px-4 py-3 border-t border-white/10">
+            <div role="group" aria-label="<%= __ca11y ? __ca11y.changeLanguage : 'Change language' %>" class="mobile-menu__lang flex items-center gap-2 px-4 py-3 border-t border-white/10">
                 <% locals.pageHreflang.forEach(function (alt) {
                     var __isActive = alt.lang === (locals.pageLang || 'en');
-                    var __full = alt.lang === 'fr' ? 'Français' : alt.lang === 'de' ? 'Deutsch' : 'English';
                 %>
                 <a href="<%= alt.href %>"
                    hreflang="<%= alt.lang %>"
                    lang="<%= alt.lang %>"
                    <% if (__isActive) { %>aria-current="page"<% } %>
-                   class="flex-1 inline-flex items-center justify-center min-h-[44px] px-3 py-2 text-sm font-medium rounded-md transition-colors <%= __isActive ? 'text-white bg-white/10' : 'text-gray-400 hover:text-white hover:bg-white/5' %>"
+                   class="lang-switcher__mobile-item <%= __isActive ? 'lang-switcher__mobile-item--active' : '' %>"
                    onclick="closeMobileMenu()">
-                    <%= __full %>
+                    <%- __flagFor(alt.lang) %>
+                    <span><%= __langFull(alt.lang) %></span>
                 </a>
                 <% }); %>
             </div>
