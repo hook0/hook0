@@ -11,6 +11,10 @@ var __tVisuals = [
   { img: './mediakit/founders/francois-guillaume-ribreau.jpg?width=400', alt: 'François-Guillaume Ribreau' },
   { img: 'mediakit/founders/david-sferruzza.jpg?width=400', alt: 'David Sferruzza' },
   { img: 'customers/kieron-wiltshire.webp', alt: 'Kieron Wiltshire' },
+  { initials: 'PS', alt: 'Platon Samuel' },
+  { img: 'customers/coinbase.svg', alt: 'Coinbase', contain: true },
+  { initials: 'DN', alt: 'Diego Nespoli' },
+  { initials: 'DL', alt: 'Dean Lofts' },
 ];
 %>
 <section class="relative py-24 sm:py-32 overflow-hidden">
@@ -46,8 +50,14 @@ var __tVisuals = [
                     <!-- Author -->
                     <div class="testimonial__author">
                         <div class="testimonial__avatar ring-2 ring-indigo-500/50">
+                            <% if (v && v.img) { %>
                             <img src="<%= v.img %>"
-                                 alt="<%= v.alt %>" width="48" height="48" loading="lazy" decoding="async" />
+                                 alt="<%= v.alt %>" width="48" height="48" loading="lazy" decoding="async"<% if (v.contain) { %> class="object-contain bg-white p-1"<% } %> />
+                            <% } else if (v && v.initials) { %>
+                            <span class="flex items-center justify-center w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold text-sm" aria-label="<%= v.alt %>">
+                                <%= v.initials %>
+                            </span>
+                            <% } %>
                         </div>
                         <div>
                             <div class="testimonial__name"><%= t.author %></div>

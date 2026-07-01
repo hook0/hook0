@@ -146,6 +146,10 @@ module.exports = {
         { quote: 'Give it enough time and open-Source always wins in the end!', author: 'François-Guillaume Ribreau', role: 'Hook0 co-founder' },
         { quote: 'We are building it the way we would love to use it', author: 'David Sferruzza, PhD', role: 'Hook0 co-founder' },
         { quote: 'This is by far the best webhook software out there', author: 'Kieron Wiltshire', role: 'Senior Software Engineer' },
+        { quote: 'Hook0 is a game-changer for developers who need a reliable webhook solution. One simple API call handles everything: deliverability, retries, and security. Reliable, efficient, and worth a solid 5/5.', author: 'Platon Samuel', role: '★★★★★ review on Product Hunt' },
+        { quote: 'Thank you for all of your help, we appreciate your partnership.', author: 'Ian Mukherjee', role: 'Coinbase' },
+        { quote: 'Thank you very much for the explanation, we were confused on the cause and now it is very clear. Thank you so much!', author: 'Diego Nespoli', role: 'Onboarding Specialist, Icona / ServiceQube' },
+        { quote: 'The project looks great, and I love the concept of using webhooks.', author: 'Dean Lofts', role: 'Senior DevOps Engineer' },
       ],
     },
     builtToLast: {
