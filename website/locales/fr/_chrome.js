@@ -14,6 +14,37 @@ module.exports = {
       contact: 'Contact',
       login: 'Connexion',
       startFree: 'Démarrer gratuitement',
+      groups: {
+        platform: {
+          label: 'Plateforme',
+          items: [
+            { enSlug: 'webhook-platform', icon: 'bolt',   label: 'Plateforme Webhook', description: 'Livraison, relances, signatures' },
+            { enSlug: 'webhook-api',      icon: 'api',    label: 'API Webhook',        description: 'REST, SDKs, MCP natif' },
+            { enSlug: 'security',         icon: 'shield', label: 'Sécurité',           description: 'HMAC, anti-rejeu, hébergé en UE' },
+            { enSlug: 'built-to-last',    icon: 'anchor', label: 'Construit pour durer', description: 'Bootstrapé, sans VC, transparent' },
+          ],
+        },
+        compare: {
+          label: 'Comparer',
+          items: [
+            { enSlug: 'hook0-vs-svix',         icon: 'compare', label: 'Hook0 vs Svix',              description: 'Fonctionnalité par fonctionnalité' },
+            { enSlug: 'hook0-vs-hookdeck',     icon: 'compare', label: 'Hook0 vs Hookdeck',          description: 'Comparaison EU-native' },
+            { enSlug: 'hook0-vs-convoy',       icon: 'compare', label: 'Hook0 vs Convoy',            description: 'Géré vs auto-hébergé' },
+            { enSlug: 'hook0-alternatives',    icon: 'swap',    label: 'Alternatives à Hook0',       description: 'Options du marché' },
+            { enSlug: 'svix-alternatives',     icon: 'swap',    label: 'Alternatives à Svix',        description: 'Options au-delà de Svix' },
+            { enSlug: 'hookdeck-alternatives', icon: 'swap',    label: 'Alternatives à Hookdeck',    description: 'Options au-delà de Hookdeck' },
+            { enSlug: 'build-vs-buy-webhooks', icon: 'scale',   label: 'Build vs Buy',               description: 'Construire ou acheter ton infra' },
+          ],
+        },
+        solutions: {
+          label: 'Solutions',
+          items: [
+            { enSlug: 'open-source-webhooks',      icon: 'code',   label: 'Webhooks code source ouvert', description: 'Code source ouvert (SSPL-1.0)' },
+            { enSlug: 'self-hosted-webhooks',      icon: 'server', label: 'Webhooks auto-hébergés',      description: 'Ton infra, tes données' },
+            { enSlug: 'migrate-from-webhook-site', icon: 'move',   label: 'Migrer depuis webhook.site',  description: 'Passe ton trafic en production' },
+          ],
+        },
+      },
     },
     a11y: {
       openMenu: 'Ouvrir le menu',

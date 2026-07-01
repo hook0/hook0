@@ -14,6 +14,37 @@ module.exports = {
       contact: 'Kontakt',
       login: 'Anmelden',
       startFree: 'Kostenlos starten',
+      groups: {
+        platform: {
+          label: 'Plattform',
+          items: [
+            { enSlug: 'webhook-platform', icon: 'bolt',   label: 'Webhook-Plattform', description: 'Zustellung, Retries, Signaturen' },
+            { enSlug: 'webhook-api',      icon: 'api',    label: 'Webhook-API',       description: 'REST, SDKs, MCP-nativ' },
+            { enSlug: 'security',         icon: 'shield', label: 'Sicherheit',        description: 'HMAC, Replay-Schutz, EU-gehostet' },
+            { enSlug: 'built-to-last',    icon: 'anchor', label: 'Gebaut, um zu bleiben', description: 'Bootstrapped, kein VC, transparent' },
+          ],
+        },
+        compare: {
+          label: 'Vergleichen',
+          items: [
+            { enSlug: 'hook0-vs-svix',         icon: 'compare', label: 'Hook0 vs Svix',           description: 'Feature-für-Feature' },
+            { enSlug: 'hook0-vs-hookdeck',     icon: 'compare', label: 'Hook0 vs Hookdeck',       description: 'EU-nativer Vergleich' },
+            { enSlug: 'hook0-vs-convoy',       icon: 'compare', label: 'Hook0 vs Convoy',         description: 'Verwaltet vs. selbst-gehostet' },
+            { enSlug: 'hook0-alternatives',    icon: 'swap',    label: 'Hook0-Alternativen',      description: 'Optionen am Markt' },
+            { enSlug: 'svix-alternatives',     icon: 'swap',    label: 'Svix-Alternativen',       description: 'Optionen jenseits von Svix' },
+            { enSlug: 'hookdeck-alternatives', icon: 'swap',    label: 'Hookdeck-Alternativen',   description: 'Optionen jenseits von Hookdeck' },
+            { enSlug: 'build-vs-buy-webhooks', icon: 'scale',   label: 'Build vs Buy',            description: 'Selbst bauen oder kaufen' },
+          ],
+        },
+        solutions: {
+          label: 'Lösungen',
+          items: [
+            { enSlug: 'open-source-webhooks',      icon: 'code',   label: 'Quelloffene Webhooks',       description: 'Quelloffen (SSPL-1.0)' },
+            { enSlug: 'self-hosted-webhooks',      icon: 'server', label: 'Selbst-gehostete Webhooks',  description: 'Deine Infrastruktur, deine Daten' },
+            { enSlug: 'migrate-from-webhook-site', icon: 'move',   label: 'Von webhook.site migrieren', description: 'Produktions-Traffic verschieben' },
+          ],
+        },
+      },
     },
     a11y: {
       openMenu: 'Menü öffnen',

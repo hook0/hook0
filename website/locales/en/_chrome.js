@@ -22,11 +22,48 @@ module.exports = {
       contact: 'Contact',
       login: 'Login',
       startFree: 'Start Free',
+      // NEW — dropdown groups. Each item's `enSlug` is resolved to a locale
+      // URL at render time via i18nHelpers.getPath(); items without a slug
+      // translation for the current locale are silently skipped. Adding an
+      // entry here surfaces the corresponding orphan page in the top-nav.
+      groups: {
+        platform: {
+          label: 'Platform',
+          items: [
+            { enSlug: 'webhook-platform', icon: 'bolt',   label: 'Webhook Platform', description: 'Full delivery, retries, signatures' },
+            { enSlug: 'webhook-api',      icon: 'api',    label: 'Webhook API',      description: 'REST, SDKs, MCP-native' },
+            { enSlug: 'security',         icon: 'shield', label: 'Security',         description: 'HMAC, replay defense, EU-hosted' },
+            { enSlug: 'built-to-last',    icon: 'anchor', label: 'Built to Last',    description: 'Bootstrapped, no VC, transparent' },
+          ],
+        },
+        compare: {
+          label: 'Compare',
+          items: [
+            { enSlug: 'hook0-vs-svix',         icon: 'compare', label: 'Hook0 vs Svix',         description: 'Feature-by-feature' },
+            { enSlug: 'hook0-vs-hookdeck',     icon: 'compare', label: 'Hook0 vs Hookdeck',     description: 'EU-native comparison' },
+            { enSlug: 'hook0-vs-convoy',       icon: 'compare', label: 'Hook0 vs Convoy',       description: 'Managed vs self-host' },
+            { enSlug: 'hook0-alternatives',    icon: 'swap',    label: 'Hook0 alternatives',    description: 'Options in this space' },
+            { enSlug: 'svix-alternatives',     icon: 'swap',    label: 'Svix alternatives',     description: 'Options beyond Svix' },
+            { enSlug: 'hookdeck-alternatives', icon: 'swap',    label: 'Hookdeck alternatives', description: 'Options beyond Hookdeck' },
+            { enSlug: 'build-vs-buy-webhooks', icon: 'scale',   label: 'Build vs Buy',          description: 'Make or buy webhook infra' },
+          ],
+        },
+        solutions: {
+          label: 'Solutions',
+          items: [
+            { enSlug: 'open-source-webhooks',      icon: 'code',   label: 'Open-source webhooks',      description: 'Source-available (SSPL-1.0)' },
+            { enSlug: 'self-hosted-webhooks',      icon: 'server', label: 'Self-hosted webhooks',      description: 'Your infra, your data' },
+            { enSlug: 'migrate-from-webhook-site', icon: 'move',   label: 'Migrate from webhook.site', description: 'Move production traffic' },
+            { enSlug: 'webhook-free',              icon: 'gift',   label: 'Free webhook tools',        description: 'Test and play with webhooks' },
+          ],
+        },
+      },
     },
     a11y: {
       openMenu: 'Open menu',
       skipToMain: 'Skip to main content',
       changeLanguage: 'Change language',
+      closeMenu: 'Close menu',
     },
   },
   breadcrumb: {

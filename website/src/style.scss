@@ -999,6 +999,120 @@ abbr {
 }
 
 // ============================================
+// DESKTOP NAV DROPDOWNS (natalia pattern, disclosure widget)
+// ============================================
+// Hover-CSS opens the panel + focus-within keeps it open; JS toggles
+// aria-expanded and handles Escape / outside-click. Legacy nav is preserved
+// as the fallback when locales don't inject chrome.header.nav.groups.
+.nav-link {
+  @apply inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium
+         text-gray-300 hover:text-white hover:bg-white/5 transition-colors
+         min-h-[44px];
+}
+
+.nav-link--icon {
+  @apply px-2.5;
+}
+
+.nav-dropdown {
+  @apply relative;
+
+  &__trigger {
+    @apply inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium
+           text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer
+           min-h-[44px];
+    background: transparent;
+    border: 0;
+  }
+
+  &__chevron {
+    @apply w-3 h-3 opacity-60;
+    transition: transform 0.2s ease;
+  }
+
+  &__panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    padding-top: 0.5rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0s linear 0.15s;
+    z-index: 60;
+  }
+
+  &__bridge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0.5rem;
+  }
+
+  &__panel-inner {
+    @apply bg-surface-secondary/95 backdrop-blur-xl
+           border border-white/10 rounded-xl shadow-2xl
+           p-2 flex flex-col gap-0.5;
+    min-width: 17rem;
+
+    &--two-cols {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.25rem;
+      min-width: 34rem;
+    }
+  }
+
+  &__item {
+    @apply flex items-start gap-3 p-3 rounded-lg
+           text-gray-300 hover:text-white hover:bg-white/5
+           transition-colors;
+    text-decoration: none;
+  }
+
+  &__item-icon {
+    @apply flex items-center justify-center w-8 h-8 rounded-md
+           bg-indigo-500/10 text-indigo-400 flex-shrink-0 mt-0.5;
+  }
+
+  &__item-text {
+    @apply flex flex-col min-w-0 flex-1;
+  }
+
+  &__item-title {
+    @apply text-sm font-medium text-white leading-tight;
+  }
+
+  &__item-desc {
+    @apply text-xs text-gray-400 mt-1 leading-snug;
+  }
+
+  // Open state (hover, focus-within, or JS-added .is-open)
+  &:hover &__panel,
+  &:focus-within &__panel,
+  &.is-open &__panel {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition-delay: 0s;
+  }
+
+  &:hover &__chevron,
+  &:focus-within &__chevron,
+  &.is-open &__chevron {
+    transform: rotate(180deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-dropdown__chevron,
+  .nav-dropdown__panel {
+    transition: none !important;
+  }
+}
+
+// ============================================
 // MOBILE NAVIGATION
 // ============================================
 .mobile-menu {
@@ -1076,6 +1190,77 @@ abbr {
              hover:bg-white/20;
     }
   }
+
+  // ---- Dropdowns nav (natalia pattern) ----
+  // Primary CTA + Login pinned at the top of the panel (Baymard: TOP-of-panel
+  // CTAs convert +23% vs bottom-sticky on B2B SaaS).
+  &__cta {
+    @apply px-4 pt-4 pb-3 border-b border-white/10 space-y-2;
+  }
+
+  &__login-link {
+    @apply block text-center text-sm font-medium text-gray-400 hover:text-white
+           py-2 transition-colors;
+  }
+
+  &__group {
+    @apply mb-1;
+  }
+
+  &__group-toggle {
+    @apply w-full flex items-center justify-between px-4 py-3 rounded-xl
+           text-base font-medium text-gray-300 hover:text-white hover:bg-white/5
+           transition-colors cursor-pointer;
+    min-height: 56px;
+    background: transparent;
+    border: 0;
+
+    &[aria-expanded="true"] {
+      @apply text-white bg-white/5;
+    }
+  }
+
+  &__group-chevron {
+    @apply w-3 h-3 opacity-60;
+    transition: transform 0.2s ease;
+  }
+
+  &__group-toggle[aria-expanded="true"] &__group-chevron {
+    transform: rotate(180deg);
+  }
+
+  &__group-body {
+    @apply pl-3 mt-1 space-y-0.5 border-l-2 border-white/10 ml-4;
+  }
+
+  &__group-link {
+    @apply flex items-start gap-3 px-3 py-3 rounded-lg
+           text-gray-300 hover:text-white hover:bg-white/5 transition-colors;
+    min-height: 48px;
+    text-decoration: none;
+  }
+
+  &__group-link-icon {
+    @apply flex items-center justify-center w-8 h-8 rounded-md
+           bg-indigo-500/10 text-indigo-400 flex-shrink-0 mt-0.5;
+  }
+
+  &__group-link-text {
+    @apply flex flex-col min-w-0 flex-1;
+  }
+
+  &__group-link-title {
+    @apply text-sm font-medium text-white leading-tight;
+  }
+
+  &__group-link-desc {
+    @apply text-xs text-gray-400 mt-0.5 leading-snug;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-menu__group-chevron { transition: none !important; }
+  .mobile-menu__panel { transition: none !important; }
 }
 
 // Touch-friendly utilities

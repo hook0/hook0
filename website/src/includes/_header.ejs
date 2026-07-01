@@ -17,6 +17,36 @@ if (locals.i18nHelpers && locals.pageLang) {
   var __h = locals.i18nHelpers.getPath('index', locals.pageLang);
   if (__h) __homeRoot = __h;
 }
+// Dropdown groups. When present, render the new 5-slot dropdown nav; when
+// absent (legacy pages that haven't set locals.chrome), fall back to the
+// flat nav path further down. Setting `chrome.header.nav.groups = null` in
+// any locale is a functional kill-switch back to the legacy layout.
+var __groups = __cnav && __cnav.groups ? __cnav.groups : null;
+var __lang = locals.pageLang || 'en';
+// Resolve each dropdown item's href; skip items whose slug isn't translated.
+var __resolveHref = function (enSlug) {
+  if (!locals.i18nHelpers) return '/' + enSlug;
+  var p = locals.i18nHelpers.getPath(enSlug, __lang);
+  return p || null;
+};
+// Icon library — outline SVGs keyed by name string used in _chrome.js.
+// currentColor + w-5 h-5 assumed at the call site (item template applies it).
+var __ICONS = {
+  bolt:    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M13 3L4 14h7v7l9-11h-7V3z"/>',
+  api:     '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 3H5a2 2 0 00-2 2v3m6-5h3a2 2 0 012 2v3M8 21H5a2 2 0 01-2-2v-3m6 5h3a2 2 0 002-2v-3M9 12h6"/>',
+  shield:  '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M12 3l8 3v6c0 4.5-3.5 8.5-8 9-4.5-.5-8-4.5-8-9V6l8-3z"/>',
+  anchor:  '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M12 8v13m-6-4a6 6 0 0012 0M9 5a3 3 0 016 0 3 3 0 01-6 0zM4 17H2m20 0h-2"/>',
+  compare: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M9 3v18M3 8h6M3 14h6m6-11l6 6m-6 12l6-6m-6-6h6"/>',
+  swap:    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M7 3L3 7l4 4M3 7h13m-3 14l4-4-4-4m4 4H8"/>',
+  scale:   '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M12 3v18M5 21h14M8 8L4 16h8L8 8zm8 0l-4 8h8l-4-8z"/>',
+  code:    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M8 8l-5 4 5 4m8-8l5 4-5 4m-6 3l4-14"/>',
+  server:  '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M4 5h16v6H4V5zm0 8h16v6H4v-6zm3-5h.01M7 16h.01"/>',
+  move:    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M9 20l-5-5 5-5m-5 5h13a4 4 0 004-4V4"/>',
+  gift:    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M12 8v13M4 8h16v3H4V8zm2 3v10h12V11M9 8V6a2 2 0 114 0v2m-2 0h4a2 2 0 100-4"/>',
+};
+var __icon = function (name) {
+  return '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" focusable="false">' + (__ICONS[name] || '') + '</svg>';
+};
 // Locale flags for the language switcher. Decorative (aria-hidden) — the
 // visible language name carries the accessible label.
 var __FLAGS = {
@@ -35,7 +65,7 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
 
 <!-- Header with glass morphism effect -->
 <header id="main-header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
-    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Primary">
         <div class="flex items-center justify-between h-20">
             <!-- Logo -->
             <a href="<%= __homeRoot %>" class="flex items-center gap-3 group">
@@ -46,71 +76,110 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
                 <span class="text-white font-semibold text-lg hidden sm:block">Hook0</span>
             </a>
 
-            <!-- Desktop Navigation -->
+            <% if (__groups) { %>
+            <!-- Desktop Nav — 5 slots: Platform ▾ · Compare ▾ · Solutions ▾ · Pricing · Docs↗ -->
+            <div class="hidden md:flex items-center gap-1">
+                <% ['platform','compare','solutions'].forEach(function(gkey) {
+                     var g = __groups[gkey]; if (!g) return;
+                     var itemsResolved = g.items.map(function(it){ var h = __resolveHref(it.enSlug); return h ? Object.assign({href:h}, it) : null; }).filter(Boolean);
+                     if (!itemsResolved.length) return;
+                     var isTwoCols = itemsResolved.length > 4;
+                     var panelId = 'nav-dropdown-' + gkey; %>
+                <div class="nav-dropdown" data-nav-dropdown>
+                    <button type="button" class="nav-dropdown__trigger" aria-expanded="false" aria-haspopup="true" aria-controls="<%= panelId %>">
+                        <span><%= g.label %></span>
+                        <svg class="nav-dropdown__chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false">
+                            <path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="nav-dropdown__panel" id="<%= panelId %>" role="region" aria-label="<%= g.label %>">
+                        <!-- Invisible hover bridge so cursor can travel from trigger to panel -->
+                        <div class="nav-dropdown__bridge" aria-hidden="true"></div>
+                        <div class="nav-dropdown__panel-inner <%= isTwoCols ? 'nav-dropdown__panel-inner--two-cols' : '' %>">
+                            <% itemsResolved.forEach(function(it) { %>
+                            <a href="<%= it.href %>" class="nav-dropdown__item">
+                                <span class="nav-dropdown__item-icon"><%- __icon(it.icon) %></span>
+                                <span class="nav-dropdown__item-text">
+                                    <span class="nav-dropdown__item-title"><%= it.label %></span>
+                                    <% if (it.description) { %><span class="nav-dropdown__item-desc"><%= it.description %></span><% } %>
+                                </span>
+                            </a>
+                            <% }); %>
+                        </div>
+                    </div>
+                </div>
+                <% }); %>
+                <a href="<%= __pricingHref %>" class="nav-link"><%= __cnav.pricing %></a>
+                <a href="https://documentation.hook0.com/" target="_blank" rel="noopener noreferrer" class="nav-link">
+                    <%= __cnav.documentation %>
+                    <svg class="w-3 h-3 ml-0.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>
+            </div>
+
+            <!-- Desktop right zone: Play · GitHub · Login · Start Free · Lang -->
+            <div class="hidden md:flex items-center gap-2">
+                <a href="https://play.hook0.com" target="_blank" rel="noopener" class="nav-link nav-link--icon" title="Try Hook0 live" aria-label="Try Hook0 live at play.hook0.com" onclick="trackEvent('Navigation', 'Click', 'Header Play')">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span class="hidden lg:inline"><%= __cnav.play %></span>
+                </a>
+                <a href="https://gitlab.com/hook0/hook0" target="_blank" rel="noopener" class="nav-link nav-link--icon" title="View source on GitLab" aria-label="View source on GitLab">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.6 9.6L23.6 9.5 20.2 0.7c-0.1-0.2-0.2-0.3-0.4-0.4-0.2-0.1-0.4-0.1-0.6-0.1s-0.4 0.1-0.5 0.3c-0.1 0.2-0.2 0.3-0.3 0.5L15.9 8H8.1L5.7 0.9c-0.1-0.2-0.2-0.4-0.3-0.5-0.1-0.1-0.3-0.2-0.5-0.3s-0.4 0-0.6 0.1c-0.2 0.1-0.3 0.2-0.4 0.4L0.5 9.5v0.1L0.4 9.7c-0.5 1.3-0.1 2.7 1 3.5l0.1 0 8.7 6.3 4.3 3.3 2.6 2c0.3 0.2 0.7 0.2 1 0l2.6-2 4.3-3.3 8.7-6.3 0 0c1.1-0.8 1.5-2.2 1-3.5z"/></svg>
+                </a>
+                <a href="<%= locals.meta.login %>" class="nav-link"><%= __cnav.login %></a>
+                <a href="https://app.hook0.com/register" class="btn btn--primary btn--sm" onclick="trackEvent('CTA', 'Click', 'Start Free')">
+                    <%= __cnav.startFree %>
+                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                </a>
+                <% if (!locals.pageNoindex && Array.isArray(locals.pageHreflang) && locals.pageHreflang.length > 1 && locals.pageCanonical && locals.pageHreflang.some(function(__a){ return __a.href === locals.pageCanonical; })) { %>
+                <details class="lang-switcher ml-1 pl-2 border-l border-white/10">
+                    <summary class="lang-switcher__summary inline-flex items-center gap-2 min-h-[44px] px-2.5 text-xs font-semibold uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer" aria-label="<%= __ca11y ? __ca11y.changeLanguage : 'Change language' %>">
+                        <%- __flagFor(__lang) %>
+                        <%= __langShort(__lang) %>
+                        <svg class="lang-switcher__chevron w-2.5 h-2.5" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false"><path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="square"/></svg>
+                    </summary>
+                    <ul class="lang-switcher__menu" role="menu">
+                        <% locals.pageHreflang.forEach(function (alt) { var __isActive = alt.lang === __lang; %>
+                        <li role="none"><a href="<%= alt.href %>" hreflang="<%= alt.lang %>" lang="<%= alt.lang %>" role="menuitem"<% if (__isActive) { %> aria-current="page"<% } %> class="lang-switcher__item <%= __isActive ? 'lang-switcher__item--active' : '' %>"><%- __flagFor(alt.lang) %><span class="lang-switcher__name"><%= __langFull(alt.lang) %></span></a></li>
+                        <% }); %>
+                    </ul>
+                </details>
+                <% } %>
+            </div>
+            <% } else { %>
+            <!-- Legacy flat nav (kept for pages that don't inject chrome.header.nav.groups). -->
             <div class="hidden md:flex items-center gap-1">
                 <a href="<%= __homeRoot %>#how-it-works" class="btn btn--ghost"><%= __cnav ? __cnav.howItWorks : 'How it works' %></a>
                 <a href="<%= __homeRoot %>#use_cases" class="btn btn--ghost"><%= __cnav ? __cnav.useCases : 'Use cases' %></a>
                 <a href="<%= __pricingHref %>" class="btn btn--ghost"><%= __cnav ? __cnav.pricing : 'Pricing' %></a>
                 <a href="https://documentation.hook0.com/" target="_blank" rel="noopener noreferrer" class="btn btn--ghost">
                     <%= __cnav ? __cnav.documentation : 'Documentation' %>
-                    <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                    </svg>
+                    <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                 </a>
                 <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--ghost" onclick="trackEvent('Navigation', 'Click', 'Header Play')">
                     <%= __cnav ? __cnav.play : 'Play' %>
-                    <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
+                    <svg class="w-3.5 h-3.5 ml-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </a>
                 <% if (!locals.pageNoindex && Array.isArray(locals.pageHreflang) && locals.pageHreflang.length > 1 && locals.pageCanonical && locals.pageHreflang.some(function(__a){ return __a.href === locals.pageCanonical; })) { %>
-                <%# Lang switcher: pure HTML <details>/<summary> for graceful no-JS fallback,
-                    pattern ported from lagrangessartaise.fr. Summary shows the active locale's
-                    flag + short label + chevron; menu lists every alternate with flag + full name. %>
                 <details class="lang-switcher ml-2 pl-2 border-l border-white/10">
                     <summary class="lang-switcher__summary inline-flex items-center gap-2 min-h-[44px] px-2.5 text-xs font-semibold uppercase tracking-wider text-gray-400 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer" aria-label="<%= __ca11y ? __ca11y.changeLanguage : 'Change language' %>">
-                        <%- __flagFor(locals.pageLang || 'en') %>
-                        <%= __langShort(locals.pageLang || 'en') %>
-                        <svg class="lang-switcher__chevron w-2.5 h-2.5" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false">
-                            <path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="square" />
-                        </svg>
+                        <%- __flagFor(__lang) %>
+                        <%= __langShort(__lang) %>
+                        <svg class="lang-switcher__chevron w-2.5 h-2.5" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false"><path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="square"/></svg>
                     </summary>
                     <ul class="lang-switcher__menu" role="menu">
-                        <% locals.pageHreflang.forEach(function (alt) {
-                            var __isActive = alt.lang === (locals.pageLang || 'en');
-                        %>
-                        <li role="none">
-                            <a href="<%= alt.href %>"
-                               hreflang="<%= alt.lang %>"
-                               lang="<%= alt.lang %>"
-                               role="menuitem"
-                               <% if (__isActive) { %>aria-current="page"<% } %>
-                               class="lang-switcher__item <%= __isActive ? 'lang-switcher__item--active' : '' %>">
-                                <%- __flagFor(alt.lang) %>
-                                <span class="lang-switcher__name"><%= __langFull(alt.lang) %></span>
-                            </a>
-                        </li>
+                        <% locals.pageHreflang.forEach(function (alt) { var __isActive = alt.lang === __lang; %>
+                        <li role="none"><a href="<%= alt.href %>" hreflang="<%= alt.lang %>" lang="<%= alt.lang %>" role="menuitem"<% if (__isActive) { %> aria-current="page"<% } %> class="lang-switcher__item <%= __isActive ? 'lang-switcher__item--active' : '' %>"><%- __flagFor(alt.lang) %><span class="lang-switcher__name"><%= __langFull(alt.lang) %></span></a></li>
                         <% }); %>
                     </ul>
                 </details>
                 <% } %>
             </div>
-
-            <!-- Desktop Auth Buttons -->
             <div class="hidden md:flex items-center gap-3">
-                <a href="<%= locals.meta.contact %>" class="btn btn--ghost">
-                    <%= __cnav ? __cnav.contact : 'Contact' %>
-                </a>
-                <a href="<%= locals.meta.login %>" class="btn btn--ghost">
-                    <%= __cnav ? __cnav.login : 'Login' %>
-                </a>
-                <a href="https://app.hook0.com/register" class="btn btn--primary btn--sm" onclick="trackEvent('CTA', 'Click', 'Start Free')">
-                    <%= __cnav ? __cnav.startFree : 'Start Free' %>
-                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                    </svg>
-                </a>
+                <a href="<%= locals.meta.contact %>" class="btn btn--ghost"><%= __cnav ? __cnav.contact : 'Contact' %></a>
+                <a href="<%= locals.meta.login %>" class="btn btn--ghost"><%= __cnav ? __cnav.login : 'Login' %></a>
+                <a href="https://app.hook0.com/register" class="btn btn--primary btn--sm" onclick="trackEvent('CTA', 'Click', 'Start Free')"><%= __cnav ? __cnav.startFree : 'Start Free' %><svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg></a>
             </div>
+            <% } %>
 
             <!-- Mobile Menu Button -->
             <button
@@ -119,80 +188,100 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
                 aria-label="<%= __ca11y ? __ca11y.openMenu : 'Open menu' %>"
                 aria-expanded="false"
                 aria-controls="mobile-menu">
-                <svg class="w-6 h-6 mobile-menu-icon-open" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                </svg>
-                <svg class="w-6 h-6 mobile-menu-icon-close hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
+                <svg class="w-6 h-6 mobile-menu-icon-open" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                <svg class="w-6 h-6 mobile-menu-icon-close hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
     </nav>
 
     <!-- Mobile Navigation Panel -->
-    <div
-        id="mobile-menu"
-        class="mobile-menu md:hidden"
-        aria-hidden="true">
+    <div id="mobile-menu" class="mobile-menu md:hidden" aria-hidden="true">
         <div class="mobile-menu__backdrop"></div>
         <div class="mobile-menu__panel">
-            <!-- Mobile Nav Links -->
+            <% if (__groups) { %>
+            <!-- Primary CTA at top of panel (Baymard: TOP converts +23% vs bottom) -->
+            <div class="mobile-menu__cta">
+                <a href="https://app.hook0.com/register" class="mobile-menu__auth-btn mobile-menu__auth-btn--primary" onclick="trackEvent('CTA', 'Click', 'Start Free'); closeMobileMenu()">
+                    <%= __cnav.startFree %>
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                </a>
+                <a href="<%= locals.meta.login %>" class="mobile-menu__login-link" onclick="closeMobileMenu()"><%= __cnav.login %></a>
+            </div>
+            <nav class="mobile-menu__nav" aria-label="Primary mobile">
+                <% ['platform','compare','solutions'].forEach(function(gkey) {
+                     var g = __groups[gkey]; if (!g) return;
+                     var itemsResolved = g.items.map(function(it){ var h = __resolveHref(it.enSlug); return h ? Object.assign({href:h}, it) : null; }).filter(Boolean);
+                     if (!itemsResolved.length) return;
+                     var panelId = 'mnav-dropdown-' + gkey; %>
+                <div class="mobile-menu__group">
+                    <button type="button" class="mobile-menu__group-toggle" aria-expanded="false" aria-controls="<%= panelId %>" data-mobile-dropdown-toggle>
+                        <span><%= g.label %></span>
+                        <svg class="mobile-menu__group-chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="mobile-menu__group-body" id="<%= panelId %>" hidden data-mobile-dropdown>
+                        <% itemsResolved.forEach(function(it) { %>
+                        <a href="<%= it.href %>" class="mobile-menu__group-link" onclick="closeMobileMenu()">
+                            <span class="mobile-menu__group-link-icon"><%- __icon(it.icon) %></span>
+                            <span class="mobile-menu__group-link-text">
+                                <span class="mobile-menu__group-link-title"><%= it.label %></span>
+                                <% if (it.description) { %><span class="mobile-menu__group-link-desc"><%= it.description %></span><% } %>
+                            </span>
+                        </a>
+                        <% }); %>
+                    </div>
+                </div>
+                <% }); %>
+                <a href="<%= __pricingHref %>" class="mobile-menu__link" onclick="closeMobileMenu()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <%= __cnav.pricing %>
+                </a>
+                <a href="https://documentation.hook0.com/" target="_blank" rel="noopener noreferrer" class="mobile-menu__link">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                    <%= __cnav.documentation %>
+                    <svg class="w-4 h-4 ml-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>
+                <a href="https://play.hook0.com" target="_blank" rel="noopener" class="mobile-menu__link" onclick="trackEvent('Navigation', 'Click', 'Mobile Play'); closeMobileMenu()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <%= __cnav.play %>
+                    <svg class="w-4 h-4 ml-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>
+            </nav>
+            <% } else { %>
+            <!-- Legacy flat mobile nav -->
             <nav class="mobile-menu__nav">
                 <a href="<%= __homeRoot %>#how-it-works" class="mobile-menu__link" onclick="closeMobileMenu()">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     <%= __cnav ? __cnav.howItWorks : 'How it works' %>
                 </a>
                 <a href="<%= __homeRoot %>#use_cases" class="mobile-menu__link" onclick="closeMobileMenu()">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                    </svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                     <%= __cnav ? __cnav.useCases : 'Use cases' %>
                 </a>
                 <a href="<%= __pricingHref %>" class="mobile-menu__link" onclick="closeMobileMenu()">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <%= __cnav ? __cnav.pricing : 'Pricing' %>
                 </a>
                 <a href="https://documentation.hook0.com/" target="_blank" rel="noopener noreferrer" class="mobile-menu__link">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                    </svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                     <%= __cnav ? __cnav.documentation : 'Documentation' %>
-                    <svg class="w-4 h-4 ml-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                    </svg>
+                    <svg class="w-4 h-4 ml-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                 </a>
                 <a href="https://play.hook0.com" target="_blank" rel="noopener" class="mobile-menu__link" onclick="trackEvent('Navigation', 'Click', 'Mobile Play'); closeMobileMenu()">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     <%= __cnav ? __cnav.play : 'Play' %>
-                    <svg class="w-4 h-4 ml-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                    </svg>
+                    <svg class="w-4 h-4 ml-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                 </a>
                 <a href="<%= locals.meta.contact %>" class="mobile-menu__link" onclick="closeMobileMenu()">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                    </svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                     <%= __cnav ? __cnav.contact : 'Contact' %>
                 </a>
             </nav>
+            <% } %>
 
             <% if (!locals.pageNoindex && Array.isArray(locals.pageHreflang) && locals.pageHreflang.length > 1 && locals.pageCanonical && locals.pageHreflang.some(function(__a){ return __a.href === locals.pageCanonical; })) { %>
             <div role="group" aria-label="<%= __ca11y ? __ca11y.changeLanguage : 'Change language' %>" class="mobile-menu__lang flex items-center gap-2 px-4 py-3 border-t border-white/10">
-                <% locals.pageHreflang.forEach(function (alt) {
-                    var __isActive = alt.lang === (locals.pageLang || 'en');
-                %>
-                <a href="<%= alt.href %>"
-                   hreflang="<%= alt.lang %>"
-                   lang="<%= alt.lang %>"
-                   <% if (__isActive) { %>aria-current="page"<% } %>
-                   class="lang-switcher__mobile-item <%= __isActive ? 'lang-switcher__mobile-item--active' : '' %>"
-                   onclick="closeMobileMenu()">
+                <% locals.pageHreflang.forEach(function (alt) { var __isActive = alt.lang === __lang; %>
+                <a href="<%= alt.href %>" hreflang="<%= alt.lang %>" lang="<%= alt.lang %>"<% if (__isActive) { %> aria-current="page"<% } %> class="lang-switcher__mobile-item <%= __isActive ? 'lang-switcher__mobile-item--active' : '' %>" onclick="closeMobileMenu()">
                     <%- __flagFor(alt.lang) %>
                     <span><%= __langFull(alt.lang) %></span>
                 </a>
@@ -200,23 +289,18 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
             </div>
             <% } %>
 
-            <!-- Mobile Auth Buttons -->
+            <% if (!__groups) { %>
+            <!-- Legacy auth buttons (only when no groups — dropdowns already put CTA at top of panel) -->
             <div class="mobile-menu__auth">
-                <a href="<%= locals.meta.login %>" class="mobile-menu__auth-btn mobile-menu__auth-btn--secondary" onclick="closeMobileMenu()">
-                    <%= __cnav ? __cnav.login : 'Login' %>
-                </a>
-                <a href="https://app.hook0.com/register" class="mobile-menu__auth-btn mobile-menu__auth-btn--primary" onclick="trackEvent('CTA', 'Click', 'Start Free'); closeMobileMenu()">
-                    <%= __cnav ? __cnav.startFree : 'Start Free' %>
-                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                    </svg>
-                </a>
+                <a href="<%= locals.meta.login %>" class="mobile-menu__auth-btn mobile-menu__auth-btn--secondary" onclick="closeMobileMenu()"><%= __cnav ? __cnav.login : 'Login' %></a>
+                <a href="https://app.hook0.com/register" class="mobile-menu__auth-btn mobile-menu__auth-btn--primary" onclick="trackEvent('CTA', 'Click', 'Start Free'); closeMobileMenu()"><%= __cnav ? __cnav.startFree : 'Start Free' %><svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg></a>
             </div>
+            <% } %>
         </div>
     </div>
 </header>
 
-<!-- Mobile Menu Script -->
+<!-- Mobile Menu + Dropdown Script -->
 <script>
 (function() {
     var menuButton = document.getElementById('mobile-menu-button');
@@ -246,20 +330,81 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
     window.closeMobileMenu = closeMobileMenu;
 
     menuButton.addEventListener('click', function() {
-        var isOpen = mobileMenu.classList.contains('is-open');
-        if (isOpen) {
-            closeMobileMenu();
-        } else {
-            openMobileMenu();
-        }
+        if (mobileMenu.classList.contains('is-open')) closeMobileMenu();
+        else openMobileMenu();
     });
 
     backdrop.addEventListener('click', closeMobileMenu);
 
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && mobileMenu.classList.contains('is-open')) {
-            closeMobileMenu();
+        if (e.key === 'Escape' && mobileMenu.classList.contains('is-open')) closeMobileMenu();
+    });
+
+    // ---- Desktop dropdown: click toggle + hover keep-open + Escape + outside-click ----
+    var dropdowns = document.querySelectorAll('[data-nav-dropdown]');
+    var openDropdown = null;
+
+    function closeDropdown(dd) {
+        var trigger = dd.querySelector('[aria-expanded]');
+        dd.classList.remove('is-open');
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        if (openDropdown === dd) openDropdown = null;
+    }
+    function openOnly(dd) {
+        dropdowns.forEach(function(other) { if (other !== dd) closeDropdown(other); });
+        var trigger = dd.querySelector('[aria-expanded]');
+        dd.classList.add('is-open');
+        if (trigger) trigger.setAttribute('aria-expanded', 'true');
+        openDropdown = dd;
+    }
+
+    dropdowns.forEach(function(dd) {
+        var trigger = dd.querySelector('[data-nav-dropdown] > .nav-dropdown__trigger, .nav-dropdown__trigger');
+        if (!trigger) return;
+
+        trigger.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (dd.classList.contains('is-open')) closeDropdown(dd);
+            else openOnly(dd);
+        });
+        // Hover on the container also opens (mirrors the CSS but keeps aria-expanded truthful)
+        dd.addEventListener('mouseenter', function() { openOnly(dd); });
+        dd.addEventListener('mouseleave', function() { closeDropdown(dd); });
+    });
+
+    // Escape closes any open dropdown and returns focus to its trigger.
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && openDropdown) {
+            var t = openDropdown.querySelector('.nav-dropdown__trigger');
+            closeDropdown(openDropdown);
+            if (t) t.focus();
         }
+    });
+    // Click outside any dropdown closes the open one.
+    document.addEventListener('click', function(e) {
+        if (!openDropdown) return;
+        if (!openDropdown.contains(e.target)) closeDropdown(openDropdown);
+    });
+
+    // ---- Mobile accordion: single-open per group ----
+    var mDrops = document.querySelectorAll('[data-mobile-dropdown-toggle]');
+    mDrops.forEach(function(toggle) {
+        var targetId = toggle.getAttribute('aria-controls');
+        var target = document.getElementById(targetId);
+        if (!target) return;
+        toggle.addEventListener('click', function() {
+            var isOpen = toggle.getAttribute('aria-expanded') === 'true';
+            // Close every sibling first (single-open).
+            mDrops.forEach(function(other) {
+                if (other !== toggle) {
+                    other.setAttribute('aria-expanded', 'false');
+                    var otherTarget = document.getElementById(other.getAttribute('aria-controls'));
+                    if (otherTarget) otherTarget.hidden = true;
+                }
+            });
+            toggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+            target.hidden = isOpen;
+        });
     });
 })();
 </script>
