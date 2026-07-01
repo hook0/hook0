@@ -363,6 +363,144 @@
   }
 
   // --------------------------------------------
+  // TESTIMONIAL MARQUEE (single-row auto-scroll)
+  // --------------------------------------------
+  // Items are rendered twice in the template; the track translates 0 → -50%,
+  // so the second half aligns pixel-perfect with the first at wrap time.
+  @keyframes testimonial-marquee-scroll {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-50%, 0, 0); }
+  }
+
+  .testimonial-marquee {
+    position: relative;
+    width: 100%;
+    overflow-x: clip;
+    overflow-y: visible;
+    // Edge fade masks so cards enter/exit gracefully off-screen.
+    mask-image: linear-gradient(to right,
+                  transparent 0,
+                  black 6%,
+                  black 94%,
+                  transparent 100%);
+    -webkit-mask-image: linear-gradient(to right,
+                  transparent 0,
+                  black 6%,
+                  black 94%,
+                  transparent 100%);
+
+    &:hover .testimonial-marquee__track,
+    &:focus-within .testimonial-marquee__track {
+      animation-play-state: paused;
+    }
+  }
+
+  .testimonial-marquee__track {
+    display: flex;
+    gap: 1.25rem;
+    width: max-content;
+    padding: 0.75rem 0;
+    animation: testimonial-marquee-scroll 90s linear infinite;
+    will-change: transform;
+  }
+
+  .testimonial-marquee__card {
+    @apply glass card--glow rounded-2xl;
+    flex: 0 0 auto;
+    width: 22rem;         // 352px
+    min-height: 14rem;    // 224px — accommodates 4-line Platon quote without clamping
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3),
+                  0 0 0 1px rgba(99, 102, 241, 0.3);
+    }
+  }
+
+  .testimonial-marquee__quote-icon {
+    @apply text-indigo-500/30 w-8 h-8 mb-3;
+    flex-shrink: 0;
+  }
+
+  .testimonial-marquee__text {
+    @apply text-sm text-white font-medium;
+    line-height: 1.55;
+    flex-grow: 1;
+    // Keep long quotes from stretching the card unboundedly.
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .testimonial-marquee__footer {
+    @apply flex items-center gap-3 mt-4;
+    flex-shrink: 0;
+  }
+
+  .testimonial-marquee__avatar {
+    @apply rounded-full overflow-hidden;
+    width: 2.5rem;   // 40px
+    height: 2.5rem;
+    flex-shrink: 0;
+
+    img { @apply w-full h-full object-cover; }
+  }
+
+  .testimonial-marquee__author {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .testimonial-marquee__name {
+    @apply text-white text-sm font-medium truncate;
+  }
+
+  .testimonial-marquee__role {
+    @apply text-gray-400 text-xs truncate;
+  }
+
+  // Mobile fallback: no animation, native horizontal scroll (finger swipe).
+  @media (max-width: 640px) {
+    .testimonial-marquee {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      mask-image: none;
+      -webkit-mask-image: none;
+    }
+    .testimonial-marquee__track {
+      animation: none;
+      padding: 0.75rem 1rem;
+    }
+    .testimonial-marquee__card {
+      width: 18rem;         // 288px, thumb-friendly
+      min-height: 12rem;
+    }
+  }
+
+  // Accessibility: kill motion entirely for users who ask.
+  @media (prefers-reduced-motion: reduce) {
+    .testimonial-marquee {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      mask-image: none;
+      -webkit-mask-image: none;
+    }
+    .testimonial-marquee__track {
+      animation: none;
+    }
+    .testimonial-marquee__card {
+      transition: none;
+      &:hover { transform: none; box-shadow: none; }
+    }
+  }
+
+  // --------------------------------------------
   // PRICING CARDS
   // --------------------------------------------
   .pricing-card {
