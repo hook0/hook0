@@ -363,20 +363,22 @@
   }
 
   // --------------------------------------------
-  // TESTIMONIAL MARQUEE (single-row auto-scroll)
+  // TESTIMONIAL WALL (fgribreau.github.io pattern)
   // --------------------------------------------
-  // Items are rendered twice in the template; the track translates 0 → -50%,
-  // so the second half aligns pixel-perfect with the first at wrap time.
-  @keyframes testimonial-marquee-scroll {
+  // Fixed-size .wall-quote slots hold absolutely-positioned .wall-quote__card
+  // that can lift + scale + unclamp on hover without pushing neighbours.
+  // Items are rendered twice; track translates 0 → -50% for seamless loop.
+  @keyframes wall-scroll-left {
     from { transform: translate3d(0, 0, 0); }
     to   { transform: translate3d(-50%, 0, 0); }
   }
 
-  .testimonial-marquee {
+  .testimonial-wall {
     position: relative;
     width: 100%;
     overflow-x: clip;
     overflow-y: visible;
+    padding: 0.75rem 0;
     // Edge fade masks so cards enter/exit gracefully off-screen.
     mask-image: linear-gradient(to right,
                   transparent 0,
@@ -389,114 +391,151 @@
                   black 94%,
                   transparent 100%);
 
-    &:hover .testimonial-marquee__track,
-    &:focus-within .testimonial-marquee__track {
+    &:hover { z-index: 30; }
+
+    &:hover .testimonial-wall__track,
+    &:focus-within .testimonial-wall__track {
       animation-play-state: paused;
     }
   }
 
-  .testimonial-marquee__track {
+  .testimonial-wall__track {
     display: flex;
     gap: 1.25rem;
     width: max-content;
-    padding: 0.75rem 0;
-    animation: testimonial-marquee-scroll 90s linear infinite;
     will-change: transform;
   }
 
-  .testimonial-marquee__card {
-    @apply glass card--glow rounded-2xl;
-    flex: 0 0 auto;
-    width: 22rem;         // 352px
-    min-height: 14rem;    // 224px — accommodates 4-line Platon quote without clamping
+  .testimonial-wall__track--left {
+    animation: wall-scroll-left 90s linear infinite;
+  }
+
+  .wall-quote {
+    flex-shrink: 0;
+    width: 22rem;        // 352px slot
+    height: 13rem;       // 208px slot — card sits absolutely inside
+    position: relative;
+  }
+
+  .wall-quote__card {
+    @apply glass rounded-2xl;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    min-height: 100%;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-
-    &:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3),
-                  0 0 0 1px rgba(99, 102, 241, 0.3);
-    }
+    overflow: hidden;
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 0.35s ease,
+                border-color 0.35s ease,
+                background 0.35s ease;
   }
 
-  .testimonial-marquee__quote-icon {
+  .wall-quote:hover { z-index: 40; }
+
+  .wall-quote:hover .wall-quote__card,
+  .wall-quote:focus-within .wall-quote__card {
+    overflow: visible;
+    transform: scale(1.06) translateY(-6px);
+    box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.7),
+                0 0 0 1px rgba(99, 102, 241, 0.35);
+    border-color: rgba(99, 102, 241, 0.5);
+  }
+
+  .wall-quote__icon {
     @apply text-indigo-500/30 w-8 h-8 mb-3;
     flex-shrink: 0;
   }
 
-  .testimonial-marquee__text {
+  .wall-quote__text {
     @apply text-sm text-white font-medium;
+    margin: 0 0 1rem;
     line-height: 1.55;
     flex-grow: 1;
-    // Keep long quotes from stretching the card unboundedly.
     display: -webkit-box;
-    -webkit-line-clamp: 5;
+    -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
-  .testimonial-marquee__footer {
-    @apply flex items-center gap-3 mt-4;
-    flex-shrink: 0;
+  .wall-quote:hover .wall-quote__text,
+  .wall-quote:focus-within .wall-quote__text {
+    -webkit-line-clamp: unset;
+    display: block;
+    overflow: visible;
   }
 
-  .testimonial-marquee__avatar {
+  .wall-quote__footer {
+    @apply flex items-center gap-3;
+    flex-shrink: 0;
+    margin-top: auto;
+  }
+
+  .wall-quote__avatar {
     @apply rounded-full overflow-hidden;
-    width: 2.5rem;   // 40px
-    height: 2.5rem;
+    width: 2rem;
+    height: 2rem;
     flex-shrink: 0;
 
     img { @apply w-full h-full object-cover; }
   }
 
-  .testimonial-marquee__author {
+  .wall-quote__author {
     min-width: 0;
     flex: 1;
   }
 
-  .testimonial-marquee__name {
+  .wall-quote__name {
     @apply text-white text-sm font-medium truncate;
   }
 
-  .testimonial-marquee__role {
+  .wall-quote__role {
     @apply text-gray-400 text-xs truncate;
   }
 
   // Mobile fallback: no animation, native horizontal scroll (finger swipe).
   @media (max-width: 640px) {
-    .testimonial-marquee {
+    .testimonial-wall {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       mask-image: none;
       -webkit-mask-image: none;
     }
-    .testimonial-marquee__track {
+    .testimonial-wall__track {
       animation: none;
-      padding: 0.75rem 1rem;
+      padding: 0 1rem;
     }
-    .testimonial-marquee__card {
-      width: 18rem;         // 288px, thumb-friendly
-      min-height: 12rem;
+    .wall-quote {
+      width: 18rem;
+      height: auto;
+      min-height: 11rem;
+    }
+    .wall-quote__card {
+      position: relative;
     }
   }
 
   // Accessibility: kill motion entirely for users who ask.
   @media (prefers-reduced-motion: reduce) {
-    .testimonial-marquee {
+    .testimonial-wall {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       mask-image: none;
       -webkit-mask-image: none;
     }
-    .testimonial-marquee__track {
+    .testimonial-wall__track {
       animation: none;
     }
-    .testimonial-marquee__card {
+    .wall-quote__card {
       transition: none;
-      &:hover { transform: none; box-shadow: none; }
+    }
+    .wall-quote:hover .wall-quote__card,
+    .wall-quote:focus-within .wall-quote__card {
+      transform: none;
+      box-shadow: none;
     }
   }
 
