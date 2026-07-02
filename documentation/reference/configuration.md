@@ -184,6 +184,7 @@ This documentation may not cover all options or reflect recent changes.
 | `OBJECT_STORAGE_OPERATION_ATTEMPT_TIMEOUT` | Operation attempt timeout for object storage operations | `10s` |  |
 | `OBJECT_STORAGE_OPERATION_TIMEOUT` | Operation timeout for object storage operations | `30s` |  |
 | `OBJECT_STORAGE_READ_TIMEOUT` | Read timeout for object storage operations (time to first byte) | `5s` |  |
+| `STORE_EVENT_PAYLOADS_DB_FALLBACK` | If true (default), event payloads that cannot be written to object storage are stored in the database instead of failing ingestion; set to false to fail the request and keep payloads out of the database | `true` |  |
 | `STORE_EVENT_PAYLOADS_IN_OBJECT_STORAGE` | If true, new event payloads will be stored in object storage instead of database | `false` |  |
 | `STORE_EVENT_PAYLOADS_IN_OBJECT_STORAGE_ONLY_FOR` | A comma-separated list of applications ID whose event payloads should be stored in object storage; if empty (default), all event payloads will be stored in object storage regardless of application ID | - |  |
 
@@ -201,13 +202,14 @@ This documentation may not cover all options or reflect recent changes.
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `GOOGLE_ADS_CONVERSION_ACTION_ID` | Numeric ID of the signup conversion action (e.g. 7576442588) | - |  |
+| `GOOGLE_ADS_ACTIVATION_CONVERSION_ACTION_ID` | Numeric ID of the ACTIVATION conversion action (optional). When unset, signup conversion still works and activation upload is skipped | - |  |
 | `GOOGLE_ADS_CUSTOMER_ID` | Customer ID (e.g. 629-941-8464) | - |  |
 | `GOOGLE_ADS_DEVELOPER_TOKEN` | Developer token (enables server-side conversion upload). All Google Ads fields must be provided together; if any is missing, the conversion upload is silently disabled (build_google_ads_client emits a warn log when partially configured) | - |  |
 | `GOOGLE_ADS_LOGIN_CUSTOMER_ID` | MCC login customer ID (optional) | - |  |
 | `GOOGLE_ADS_OAUTH_CLIENT_ID` | OAuth client ID (Desktop App credentials) | - |  |
 | `GOOGLE_ADS_OAUTH_CLIENT_SECRET` | OAuth client secret | - |  |
 | `GOOGLE_ADS_OAUTH_REFRESH_TOKEN` | OAuth refresh token | - |  |
+| `GOOGLE_ADS_SIGNUP_CONVERSION_ACTION_ID` | Numeric ID of the signup conversion action (e.g. 7576442588) | - |  |
 
 ### Deprecated
 

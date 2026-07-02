@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE webhook.request_attempt SET delay_until = statement_timestamp() + interval '1 hour' WHERE request_attempt__id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ed7b9090e619b5673ffcf45adb34c55f22d42b331fdc0386b532ebf95d335a71"
+}

@@ -548,20 +548,21 @@ async fn main() -> anyhow::Result<()> {
             } else {
                 error!("Could not connect to object storage: {e}");
             }
-            warn!("Continuing without object storage support (restart to try again)");
-            None
+            warn!(
+                "Object storage connection test failed; reads/writes will still be attempted (restart to re-run the connection test)"
+            );
         } else {
             info!("Object storage support is enabled");
-            Some(ObjectStorageConfig {
-                client,
-                bucket: object_storage_bucket_name.to_owned(),
-                store_response_body_and_headers: config
-                    .store_response_body_and_headers_in_object_storage,
-                store_response_body_and_headers_only_for: config
-                    .store_response_body_and_headers_in_object_storage_only_for
-                    .to_owned(),
-            })
         }
+        Some(ObjectStorageConfig {
+            client,
+            bucket: object_storage_bucket_name.to_owned(),
+            store_response_body_and_headers: config
+                .store_response_body_and_headers_in_object_storage,
+            store_response_body_and_headers_only_for: config
+                .store_response_body_and_headers_in_object_storage_only_for
+                .to_owned(),
+        })
     } else {
         None
     };

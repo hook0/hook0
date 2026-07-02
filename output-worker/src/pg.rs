@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use aws_sdk_s3::error::DisplayErrorContext;
+use aws_sdk_s3::operation::get_object::GetObjectError;
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::Utc;
 use sqlx::postgres::types::PgInterval;
@@ -12,7 +13,7 @@ use tracing::{debug, info, trace, warn};
 
 use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span};
 use crate::throughput_log::ThroughputStats;
-use crate::work::work;
+use crate::work::{ResponseError, work};
 use crate::{
     Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, SlotRole, Worker,
     compute_next_retry,
@@ -132,8 +133,11 @@ pub async fn look_for_work(
             .await?;
             debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Picked request attempt");
 
-            let payload = if let Some(p) = attempt.payload {
-                Some(p)
+            // Fetch the payload. `give_up` distinguishes a payload object that is
+            // permanently missing (S3 NoSuchKey) from a transient/unavailable read (or
+            // object storage not being configured), which we retry later instead.
+            let (payload, give_up): (Option<Vec<u8>>, bool) = if let Some(p) = attempt.payload {
+                (Some(p), false)
             } else if let Some(os) = &object_storage {
                 let key = format!(
                     "{}/event/{}/{}",
@@ -150,27 +154,40 @@ pub async fn look_for_work(
                     .await
                 {
                     Ok(obj) => match obj.body.collect().await {
-                        Ok(ab) => Some(ab.to_vec()),
+                        Ok(ab) => (Some(ab.to_vec()), false),
                         Err(e) => {
                             log_object_storage_error_with_context!(
                                 "S3 GET OBJECT body collect failed",
                                 error_chain = format!("{e}"),
                                 object_key = &key,
                             );
-                            None
+                            (None, false)
                         }
                     },
+                    Err(e)
+                        if matches!(e.as_service_error(), Some(GetObjectError::NoSuchKey(_))) =>
+                    {
+                        log_object_storage_error_with_context!(
+                            "S3 GET OBJECT failed: payload object is missing",
+                            error_chain = DisplayErrorContext(&e).to_string(),
+                            object_key = &key,
+                        );
+                        (None, true)
+                    }
                     Err(e) => {
                         log_object_storage_error_with_context!(
                             "S3 GET OBJECT failed",
                             error_chain = DisplayErrorContext(&e).to_string(),
                             object_key = &key,
                         );
-                        None
+                        (None, false)
                     }
                 }
             } else {
-                None
+                // Object storage is not configured but the payload is not in the DB
+                // either. Treat as recoverable (an operator can fix the config and
+                // restart) rather than dropping the event.
+                (None, false)
             };
 
             if let Some(p) = payload {
@@ -344,9 +361,61 @@ pub async fn look_for_work(
 
                 // End OpenTelemetry span
                 end_request_attempt_span(span, &response);
+            } else if give_up {
+                warn!(
+                    unit_id,
+                    event_id = %attempt.event_id,
+                    request_attempt_id = %attempt.request_attempt_id,
+                    "Payload object is missing from object storage; giving up on this request attempt"
+                );
+
+                // Record a synthetic failed response (reusing the generic E_UNKNOWN
+                // error) so the abandoned attempt keeps the usual response association,
+                // then mark it failed. No retry is created and retry_count is untouched.
+                let response_id = query!(
+                    "
+                        INSERT INTO webhook.response (response_error__name, http_code, headers, body, elapsed_time_ms)
+                        VALUES ($1, $2, $3, $4, $5)
+                        RETURNING response__id
+                    ",
+                    Some(ResponseError::Unknown.to_string()),
+                    None::<i16>,
+                    None::<serde_json::Value>,
+                    None::<Vec<u8>>,
+                    0_i32,
+                )
+                .fetch_one(&mut *tx)
+                .await?
+                .response__id;
+
+                query!(
+                    "UPDATE webhook.request_attempt SET response__id = $1, failed_at = statement_timestamp() WHERE request_attempt__id = $2",
+                    response_id,
+                    attempt.request_attempt_id,
+                )
+                .execute(&mut *tx)
+                .await?;
+
+                tx.commit().await?;
             } else {
-                warn!(event_id = %attempt.event_id, "Could not get payload for event");
-                tx.rollback().await?;
+                warn!(
+                    unit_id,
+                    event_id = %attempt.event_id,
+                    request_attempt_id = %attempt.request_attempt_id,
+                    "Could not get payload for event; delaying request attempt by 1 hour without incrementing retry count"
+                );
+
+                // Delay the existing attempt instead of rolling back (which would re-pick
+                // it immediately in a hot loop). retry_count / failed_at / succeeded_at
+                // stay untouched so it becomes eligible again once the delay elapses.
+                query!(
+                    "UPDATE webhook.request_attempt SET delay_until = statement_timestamp() + interval '1 hour' WHERE request_attempt__id = $1",
+                    attempt.request_attempt_id,
+                )
+                .execute(&mut *tx)
+                .await?;
+
+                tx.commit().await?;
             }
         } else {
             trace!(unit_id, "No unprocessed attempt found");
