@@ -376,20 +376,40 @@
   .testimonial-wall {
     position: relative;
     width: 100%;
-    overflow-x: clip;
-    overflow-y: visible;
+    // Horizontal clipping stays on the enclosing <section> (`overflow-x-clip`).
+    // Here we keep `overflow: visible` so hovered cards can lift + expand
+    // above/below the wall's own box. We can NOT use `mask-image` for the edge
+    // fade: a mask is applied to the element's bounding-box, so anything a
+    // hovered card renders outside that box (extra height when text unclamps)
+    // falls in the mask's alpha-0 area and gets clipped vertically. The fade
+    // is done via two absolutely-positioned gradient overlays below.
+    overflow: visible;
     padding: 0.75rem 0;
-    // Edge fade masks so cards enter/exit gracefully off-screen.
-    mask-image: linear-gradient(to right,
-                  transparent 0,
-                  black 6%,
-                  black 94%,
-                  transparent 100%);
-    -webkit-mask-image: linear-gradient(to right,
-                  transparent 0,
-                  black 6%,
-                  black 94%,
-                  transparent 100%);
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 6%;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    &::before {
+      left: 0;
+      background: linear-gradient(to right,
+                    var(--color-surface-primary) 0%,
+                    rgba(10, 10, 15, 0) 100%);
+    }
+
+    &::after {
+      right: 0;
+      background: linear-gradient(to left,
+                    var(--color-surface-primary) 0%,
+                    rgba(10, 10, 15, 0) 100%);
+    }
 
     &:hover { z-index: 30; }
 
@@ -439,6 +459,12 @@
   .wall-quote:hover .wall-quote__card,
   .wall-quote:focus-within .wall-quote__card {
     overflow: visible;
+    // Force the card to grow with its unclamped content — without this, the
+    // absolutely-positioned card keeps its idle height and the footer
+    // (author + role) spills onto the section background. `max-content`
+    // makes the card take exactly as much vertical space as its intrinsic
+    // content needs, so the tinted panel keeps covering everything on hover.
+    height: max-content;
     transform: scale(1.06) translateY(-6px);
     box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.7),
                 0 0 0 1px rgba(99, 102, 241, 0.35);
@@ -518,26 +544,13 @@
     }
   }
 
-  // Accessibility: kill motion entirely for users who ask.
-  @media (prefers-reduced-motion: reduce) {
-    .testimonial-wall {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      mask-image: none;
-      -webkit-mask-image: none;
-    }
-    .testimonial-wall__track {
-      animation: none;
-    }
-    .wall-quote__card {
-      transition: none;
-    }
-    .wall-quote:hover .wall-quote__card,
-    .wall-quote:focus-within .wall-quote__card {
-      transform: none;
-      box-shadow: none;
-    }
-  }
+  // NOTE: pas de @media (prefers-reduced-motion: reduce) sur le mur de testimonials.
+  // Décision explicite du propriétaire du site (voir mirror sur ~/www/fgribreau.github.io/
+  // src/scss/layout/_site.scss) : les animations du mur doivent TOUJOURS tourner,
+  // même quand l'utilisateur a activé Reduce Motion. Le marquee est le signal
+  // visuel principal de la section — le désactiver la fait ressembler à une pile
+  // statique cassée. Choix design assumé. La règle est enforced par la garde
+  // `check_wall_survives_reduced_motion` dans scripts/i18n-gate/src/main.rs.
 
   // --------------------------------------------
   // PRICING CARDS
@@ -926,6 +939,16 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.001ms !important;
       scroll-behavior: auto !important;
+    }
+
+    // EXCEPTION — testimonial wall keeps animating even under reduced-motion.
+    // Explicit owner decision (mirror of ~/www/fgribreau.github.io/src/scss/
+    // layout/_site.scss). The marquee IS the section's visual signal; killing
+    // it collapses the section to a static column. `!important` + class
+    // specificity beats the `*` blanket above. Enforced by
+    // `check_wall_survives_reduced_motion` in scripts/i18n-gate/src/main.rs.
+    .testimonial-wall__track--left {
+      animation: wall-scroll-left 90s linear infinite !important;
     }
   }
 

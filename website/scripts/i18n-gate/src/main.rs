@@ -19,7 +19,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 
 const SITE_URL_DEFAULT: &str = "https://www.hook0.com";
@@ -317,6 +317,21 @@ fn main() {
         }
     }
 
+    // Testimonial wall MUST animate under prefers-reduced-motion (explicit
+    // owner decision, matching fgribreau.github.io — cf. commented note in
+    // `src/style.scss`). The nuclear `*{animation-duration:0.001ms!important}`
+    // in the reduced-motion @media would otherwise kill the marquee, so an
+    // explicit `!important` override that RESTORES the animation is required.
+    // Guard fails on either signal:
+    //   (a) a rule inside `@media (prefers-reduced-motion...)` KILLS the
+    //       testimonial animation (contains `animation:none` or a zero-ish
+    //       `animation-duration:0*ms` while targeting `.testimonial-wall*` /
+    //       `.wall-quote*`);
+    //   (b) no restore override — no reduced-motion rule sets
+    //       `.testimonial-wall__track--left { animation:...!important }`
+    //       to beat the universal `*` blanket.
+    check_wall_survives_reduced_motion(&dist, &mut failures);
+
     if failures.is_empty() {
         println!("i18n-gate: PASS");
         exit(0);
@@ -566,4 +581,167 @@ fn read_localized(root: &Path) -> Result<HashMap<String, HashMap<String, String>
         m.insert(k, langs);
     }
     Ok(m)
+}
+
+// Testimonial wall must keep animating even when the user has enabled
+// prefers-reduced-motion. Rationale (see /Users/.../fgribreau.github.io/src/scss/layout/_site.scss):
+// the marquee is the whole visual signal of the section — killing it collapses
+// the section to a static column that looks broken. Trades W3C-purity for a
+// design decision the owner has already documented on fgribreau.github.io.
+//
+// The bundle carries a nuclear `*{animation-duration:0.001ms!important}` inside
+// its reduced-motion @media (WCAG 2.3.3 blanket). That blanket would kill the
+// marquee unless a class-specific `!important` rule restores it. This check
+// enforces BOTH:
+//   (a) no rule inside a reduced-motion @media KILLS the wall/quote animation
+//       (patterns: `animation:none`, `animation-duration:0`, `0ms`, `0.001ms`
+//        while targeting `.testimonial-wall*` / `.wall-quote*`);
+//   (b) at least one restore rule exists — a reduced-motion selector matching
+//       `.testimonial-wall__track--left` sets an animation with `!important`.
+fn check_wall_survives_reduced_motion(dist: &Path, failures: &mut Vec<String>) {
+    let mut css_paths: Vec<PathBuf> = Vec::new();
+    collect_css_bundles(dist, &mut css_paths);
+    for p in &css_paths {
+        let css = match fs::read_to_string(p) {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
+        let name = p
+            .strip_prefix(dist)
+            .map(|r| r.to_string_lossy().into_owned())
+            .unwrap_or_else(|_| p.display().to_string());
+        let (kills, has_restore) = scan_reduced_motion_offenses(&css);
+        for offense in kills {
+            failures.push(format!(
+                "REDUCED_MOTION: {name} — @media (prefers-reduced-motion) rule `{offense}` cancels the testimonial-wall animation (must survive reduced-motion, cf. explicit note in src/style.scss)"
+            ));
+        }
+        if !has_restore {
+            failures.push(format!(
+                "REDUCED_MOTION: {name} — missing restore override. The universal `*{{animation-duration:0.001ms!important}}` in @media (prefers-reduced-motion) kills the marquee. Add a class-specific rule that sets `animation:wall-scroll-left ...!important` on `.testimonial-wall__track--left` inside the same @media block (cf. src/style.scss)."
+            ));
+        }
+    }
+}
+
+fn collect_css_bundles(dir: &Path, out: &mut Vec<PathBuf>) {
+    let entries = match fs::read_dir(dir) {
+        Ok(it) => it,
+        Err(_) => return,
+    };
+    for e in entries.flatten() {
+        let p = e.path();
+        if p.is_dir() {
+            // Skip vendored font dir — third-party CSS we can't rewrite.
+            if p.file_name().and_then(|x| x.to_str()) == Some("fonts") {
+                continue;
+            }
+            collect_css_bundles(&p, out);
+        } else if p.extension().and_then(|x| x.to_str()) == Some("css") {
+            // Same skip at file level (fonts/inter.css lives at dist root too).
+            if p.parent()
+                .and_then(|d| d.file_name())
+                .and_then(|x| x.to_str())
+                == Some("fonts")
+            {
+                continue;
+            }
+            out.push(p);
+        }
+    }
+}
+
+// Scan the compiled CSS for testimonial-wall regressions inside every
+// `@media (prefers-reduced-motion...)` block.
+//
+// Returns `(kills, has_restore)`:
+//   - `kills`  — selectors of any rule that cancels the wall/quote animation
+//                (contains `animation:none` or `animation-duration:0*` while
+//                targeting `.testimonial-wall*` or `.wall-quote*`).
+//   - `has_restore` — true when at least one reduced-motion rule targets
+//                     `.testimonial-wall__track--left` and sets an
+//                     `animation:...!important` (the class-specific override
+//                     that beats the universal `*` blanket).
+fn scan_reduced_motion_offenses(css: &str) -> (Vec<String>, bool) {
+    const WALL_SELECTORS: &[&str] = &[".testimonial-wall", ".wall-quote"];
+    const KILL_PATTERNS: &[&str] = &[
+        "animation:none",
+        "animation-duration:0;",
+        "animation-duration:0ms",
+        "animation-duration:0s",
+        "animation-duration:0.001ms",
+    ];
+    let mut kills: Vec<String> = Vec::new();
+    let mut has_restore = false;
+    let bytes = css.as_bytes();
+    let mut cursor = 0;
+    while let Some(pos) = css[cursor..].find("@media") {
+        let start = cursor + pos;
+        let brace_open = match css[start..].find('{') {
+            Some(b) => start + b,
+            None => break,
+        };
+        let condition = &css[start..brace_open];
+        if !condition.contains("prefers-reduced-motion") {
+            cursor = brace_open + 1;
+            continue;
+        }
+        // Match the enclosing braces of this @media block.
+        let mut depth: i32 = 1;
+        let mut i = brace_open + 1;
+        while i < bytes.len() && depth > 0 {
+            match bytes[i] {
+                b'{' => depth += 1,
+                b'}' => depth -= 1,
+                _ => {}
+            }
+            i += 1;
+        }
+        let body_end = i.saturating_sub(1);
+        let body = &css[brace_open + 1..body_end];
+
+        // Walk individual rules inside this @media (naive split: each `}`
+        // terminates a rule at depth 1, so we scan char-by-char). Rules that
+        // themselves open a nested `{` (unlikely in minified reduced-motion
+        // blocks but handled defensively) are treated as opaque.
+        let rb = body.as_bytes();
+        let mut ri = 0;
+        while ri < rb.len() {
+            // Find next rule opening brace.
+            let open = match body[ri..].find('{') {
+                Some(o) => ri + o,
+                None => break,
+            };
+            let selector = body[ri..open].trim().trim_start_matches(',').trim();
+            // Match rule body (balance braces).
+            let mut d: i32 = 1;
+            let mut j = open + 1;
+            while j < rb.len() && d > 0 {
+                match rb[j] {
+                    b'{' => d += 1,
+                    b'}' => d -= 1,
+                    _ => {}
+                }
+                j += 1;
+            }
+            let decls = &body[open + 1..j - 1];
+            let targets_wall = WALL_SELECTORS
+                .iter()
+                .any(|needle| selector.contains(needle));
+            if targets_wall {
+                if KILL_PATTERNS.iter().any(|pat| decls.contains(pat)) {
+                    kills.push(selector.to_string());
+                }
+                let restores_animation = decls.contains("animation:")
+                    && decls.contains("wall-scroll")
+                    && decls.contains("!important");
+                if restores_animation && selector.contains(".testimonial-wall__track--left") {
+                    has_restore = true;
+                }
+            }
+            ri = j;
+        }
+        cursor = i;
+    }
+    (kills, has_restore)
 }
