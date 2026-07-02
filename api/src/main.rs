@@ -228,6 +228,10 @@ struct Config {
     #[clap(long, env, use_value_delimiter = true)]
     store_event_payloads_in_object_storage_only_for: Vec<Uuid>,
 
+    /// [Object Storage] If true (default), event payloads that cannot be written to object storage are stored in the database instead of failing ingestion; set to false to fail the request and keep payloads out of the database
+    #[clap(long, env, default_value_t = true)]
+    store_event_payloads_db_fallback: bool,
+
     /// [Frontend] Path to the directory containing the web app to serve
     #[clap(long, env, default_value = "../frontend/dist/")]
     webapp_path: String,
@@ -747,6 +751,7 @@ struct ObjectStorageConfig {
     bucket: String,
     store_event_payloads: bool,
     store_event_only_for: Vec<Uuid>,
+    db_fallback_on_write_failure: bool,
 }
 
 // A Debug implementation that gets around Pulsar<TokioExecutor> not implementing Debug
@@ -966,6 +971,7 @@ async fn main() -> anyhow::Result<()> {
         };
 
         // Create object storage client
+        let mut object_storage_connection_ok = false;
         let object_storage_config = if let (
             Some(object_storage_host),
             Some(object_storage_key_id),
@@ -1015,28 +1021,35 @@ async fn main() -> anyhow::Result<()> {
                 )
                 .build();
             let client = Client::from_conf(s3_config);
-            if let Err(e) = client
+            object_storage_connection_ok = match client
                 .head_bucket()
                 .bucket(&object_storage_bucket_name)
                 .send()
                 .await
             {
-                if let Some(se) = e.as_service_error() {
-                    error!("Could not connect to object storage: (service error) {se}");
-                } else {
-                    error!("Could not connect to object storage: {e}");
+                Ok(_) => {
+                    info!("Object storage support is enabled");
+                    true
                 }
-                warn!("Continuing without object storage support (restart to try again)");
-                None
-            } else {
-                info!("Object storage support is enabled");
-                Some(ObjectStorageConfig {
-                    client,
-                    bucket: object_storage_bucket_name,
-                    store_event_payloads: config.store_event_payloads_in_object_storage,
-                    store_event_only_for: config.store_event_payloads_in_object_storage_only_for,
-                })
-            }
+                Err(e) => {
+                    if let Some(se) = e.as_service_error() {
+                        error!("Could not connect to object storage: (service error) {se}");
+                    } else {
+                        error!("Could not connect to object storage: {e}");
+                    }
+                    warn!(
+                        "Object storage connection test failed; reads/writes will still be attempted, but the cleanup task is disabled (restart to re-run the connection test)"
+                    );
+                    false
+                }
+            };
+            Some(ObjectStorageConfig {
+                client,
+                bucket: object_storage_bucket_name,
+                store_event_payloads: config.store_event_payloads_in_object_storage,
+                store_event_only_for: config.store_event_payloads_in_object_storage_only_for,
+                db_fallback_on_write_failure: config.store_event_payloads_db_fallback,
+            })
         } else {
             None
         };
@@ -1175,7 +1188,9 @@ async fn main() -> anyhow::Result<()> {
 
         // Spawn task to clean up object storage
         // No housekeeping semaphore here because this task is not database-intensive and should be able to run for a long time without keeping other tasks from running
-        if let Some(os) = &object_storage_config {
+        if let Some(os) = &object_storage_config
+            && object_storage_connection_ok
+        {
             let cleanup_db = housekeeping_pool.clone();
             let cleanup_object_storage = os.clone();
             actix_web::rt::spawn(async move {

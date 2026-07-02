@@ -185,6 +185,16 @@ pub fn report_event_payloads_stored_in_object_storage(amount: u64) {
     EVENT_PAYLOADS_STORED_IN_OBJECT_STORAGE.add(amount, &[]);
 }
 
+static EVENT_PAYLOADS_STORED_IN_DB_FALLBACK: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("events.payloads_stored_in_db_fallback")
+        .build()
+});
+
+pub fn report_event_payloads_stored_in_db_fallback(amount: u64) {
+    EVENT_PAYLOADS_STORED_IN_DB_FALLBACK.add(amount, &[]);
+}
+
 static REQUEST_ATTEMPTS_SENT_TO_PULSAR: LazyLock<Counter<u64>> = LazyLock::new(|| {
     global::meter(crate_name!())
         .u64_counter("events.request_attempts_sent_to_pulsar")

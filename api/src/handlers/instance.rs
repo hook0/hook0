@@ -226,7 +226,11 @@ pub async fn health(
                     check_pulsar(state.pulsar.clone()),
                 ));
 
-                let object_storage_configured = state.object_storage.is_some();
+                // Only report object storage health when we actively store payloads there.
+                let object_storage_configured = state
+                    .object_storage
+                    .as_ref()
+                    .is_some_and(|os| os.store_event_payloads);
                 let object_storage_task = spawn(timeout(
                     timeout_duration,
                     check_object_storage(state.object_storage.clone()),
@@ -343,17 +347,16 @@ async fn check_object_storage(
     object_storage: Option<ObjectStorageConfig>,
 ) -> (Option<bool>, Duration) {
     let start = Instant::now();
-    let result = if let Some(os) = object_storage {
-        Some(
+    let result = match object_storage {
+        Some(os) if os.store_event_payloads => Some(
             os.client
                 .head_bucket()
                 .bucket(&os.bucket)
                 .send()
                 .await
                 .is_ok(),
-        )
-    } else {
-        None
+        ),
+        _ => None,
     };
     (result, start.elapsed())
 }

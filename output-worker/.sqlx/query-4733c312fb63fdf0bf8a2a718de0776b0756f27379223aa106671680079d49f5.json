@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE webhook.request_attempt SET response__id = $1, failed_at = statement_timestamp() WHERE request_attempt__id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4733c312fb63fdf0bf8a2a718de0776b0756f27379223aa106671680079d49f5"
+}

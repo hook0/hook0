@@ -13,7 +13,7 @@ use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::types::ipnetwork::IpNetwork;
-use sqlx::{query_as, query_scalar};
+use sqlx::{query, query_as, query_scalar};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -32,8 +32,8 @@ use crate::iam::{Action, authorize_for_application};
 use crate::mailer::Mail;
 use crate::openapi::OaBiscuit;
 use crate::opentelemetry::{
-    report_event_payloads_stored_in_object_storage, report_ingested_events, report_replayed_events,
-    report_request_attempts_sent_to_pulsar,
+    report_event_payloads_stored_in_db_fallback, report_event_payloads_stored_in_object_storage,
+    report_ingested_events, report_replayed_events, report_request_attempts_sent_to_pulsar,
 };
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaNotificationType};
@@ -535,7 +535,7 @@ pub async fn ingest(
                 event.received_at.naive_utc().date(),
                 event.event_id
             );
-            object_storage
+            match object_storage
                 .client
                 .put_object()
                 .bucket(&object_storage.bucket)
@@ -544,15 +544,42 @@ pub async fn ingest(
                 .body(ByteStream::from(payload.clone()))
                 .send()
                 .await
-                .map_err(|e| {
+            {
+                Ok(_) => {
+                    report_event_payloads_stored_in_object_storage(1);
+                }
+                Err(e) if object_storage.db_fallback_on_write_failure => {
+                    // The row was inserted with a NULL payload (destined for object
+                    // storage). Since the write failed and the DB fallback is enabled,
+                    // backfill the payload into the DB column so the event is still
+                    // deliverable — the output-worker reads the DB payload first.
+                    log_object_storage_error_with_context!(
+                        "S3 PUT OBJECT failed; falling back to storing the payload in the database",
+                        error_chain = DisplayErrorContext(&e).to_string(),
+                        object_key = &key,
+                    );
+                    query!(
+                        "UPDATE event.event SET payload = $1 WHERE application__id = $2 AND event__id = $3",
+                        &payload,
+                        application_id,
+                        event.event_id,
+                    )
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(Hook0Problem::from)?;
+                    report_event_payloads_stored_in_db_fallback(1);
+                }
+                Err(e) => {
+                    // DB fallback disabled: fail the request (and roll back the tx) so
+                    // the payload is never stored in the database.
                     log_object_storage_error_with_context!(
                         "S3 PUT OBJECT failed",
                         error_chain = DisplayErrorContext(&e).to_string(),
                         object_key = &key,
                     );
-                    Hook0Problem::InternalServerError
-                })?;
-            report_event_payloads_stored_in_object_storage(1);
+                    return Err(Hook0Problem::InternalServerError);
+                }
+            }
         }
 
         tx.commit().await?;
