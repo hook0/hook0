@@ -1,5 +1,8 @@
 # Hook0 use Netlify for its website
+# Build + deploy are driven entirely by GitLab CI (.gitlab-ci.yml).
+# The [build] command is intentionally absent so `netlify deploy --dir=...`
+# from CI never triggers Netlify's framework build (which would re-run our
+# Rust orchestrator without the toolchain installed).
 
 [build]
-command = "cd website && npm i && npm run build"
 publish = "website/dist"

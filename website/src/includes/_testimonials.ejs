@@ -1,4 +1,24 @@
-<section class="relative py-24 sm:py-32 overflow-hidden">
+<%
+var __c = (locals.chrome && locals.chrome.includes && locals.chrome.includes.testimonials) ? locals.chrome.includes.testimonials : null;
+var __tItems = __c ? __c.items : [
+  { quote: 'Give it enough time and open-Source always wins in the end!', author: 'François-Guillaume Ribreau', role: 'Hook0 co-founder' },
+  { quote: 'We are building it the way we would love to use it', author: 'David Sferruzza, PhD', role: 'Hook0 co-founder' },
+  { quote: 'This is by far the best webhook software out there', author: 'Kieron Wiltshire', role: 'Senior Software Engineer' },
+];
+// Avatars stay tied to position so visuals stay consistent across locales.
+var __tVisuals = [
+  { img: './mediakit/founders/francois-guillaume-ribreau.jpg?width=400', alt: 'François-Guillaume Ribreau' },
+  { img: 'mediakit/founders/david-sferruzza.jpg?width=400', alt: 'David Sferruzza' },
+  { img: 'customers/kieron-wiltshire.webp', alt: 'Kieron Wiltshire' },
+  { img: 'customers/platon-samuel.webp', alt: 'Platon Samuel' },
+  { img: 'customers/ian-mukherjee.webp', alt: 'Ian Mukherjee' },
+  { initials: 'DN', alt: 'Diego Nespoli' },
+  { img: 'customers/dean-lofts.webp', alt: 'Dean Lofts' },
+];
+// Double the items so the CSS marquee loops seamlessly (0 → -50%).
+var __tDoubled = __tItems.concat(__tItems);
+%>
+<section class="relative py-24 sm:py-32 overflow-x-clip">
     <!-- Gradient Background -->
     <div class="absolute inset-0 bg-gradient-to-b from-indigo-950/80 via-surface-primary to-surface-primary"></div>
     <div class="blur-circle blur-circle--indigo w-[600px] h-[600px] top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-30"></div>
@@ -6,94 +26,49 @@
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Section Header -->
         <div class="section__header animate-on-scroll">
-            <span class="section__eyebrow">Testimonials</span>
-            <h2 class="section__title">What people are saying</h2>
+            <span class="section__eyebrow"><%= __c ? __c.eyebrow : 'Testimonials' %></span>
+            <h2 class="section__title"><%= __c ? __c.h2 : 'What people are saying' %></h2>
             <p class="section__description">
-                Hear from developers and teams who trust Hook0 for their webhook infrastructure
+                <%= __c ? __c.sub : 'Hear from developers and teams who trust Hook0 for their webhook infrastructure' %>
             </p>
         </div>
+    </div>
 
-        <!-- Testimonials Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 stagger-children">
-            <!-- Testimonial 1 -->
-            <div class="animate-on-scroll">
-                <div class="glass card--glow testimonial-card rounded-2xl p-8 h-full flex flex-col">
-                    <!-- Quote Icon -->
-                    <svg class="testimonial__quote-icon animate-pulse-subtle" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
-                        <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z"/>
-                    </svg>
-
-                    <!-- Quote Text -->
-                    <p class="testimonial__text flex-grow">
-                        Give it enough time and open-Source always wins in the end!
-                    </p>
-
-                    <!-- Author -->
-                    <div class="testimonial__author">
-                        <div class="testimonial__avatar ring-2 ring-indigo-500/50">
-                            <img src="./mediakit/founders/francois-guillaume-ribreau.jpg?width=400"
-                                 alt="François-Guillaume Ribreau" width="48" height="48" loading="lazy" decoding="async" />
-                        </div>
-                        <div>
-                            <div class="testimonial__name">François-Guillaume Ribreau</div>
-                            <div class="testimonial__role">Hook0 co-founder</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Testimonial 2 -->
-            <div class="animate-on-scroll">
-                <div class="glass card--glow testimonial-card rounded-2xl p-8 h-full flex flex-col">
-                    <!-- Quote Icon -->
-                    <svg class="testimonial__quote-icon animate-pulse-subtle" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
-                        <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z"/>
-                    </svg>
-
-                    <!-- Quote Text -->
-                    <p class="testimonial__text flex-grow">
-                        We are building it the way we would love to use it
-                    </p>
-
-                    <!-- Author -->
-                    <div class="testimonial__author">
-                        <div class="testimonial__avatar ring-2 ring-indigo-500/50">
-                            <img src="mediakit/founders/david-sferruzza.jpg?width=400"
-                                 alt="David Sferruzza" width="48" height="48" loading="lazy" decoding="async" />
-                        </div>
-                        <div>
-                            <div class="testimonial__name">David Sferruzza, PhD</div>
-                            <div class="testimonial__role">Hook0 co-founder</div>
+    <!-- Single-row animated wall (fgribreau.github.io pattern).
+         Each card sits in a fixed-size .wall-quote slot; the inner .wall-quote__card
+         is absolutely positioned so it can scale + lift + unclamp text on hover
+         without pushing neighbours. Pauses on hover/focus, mobile falls back to
+         native swipe, respects prefers-reduced-motion. -->
+    <div class="relative z-10 mt-12 sm:mt-16">
+        <div class="testimonial-wall" role="region" aria-label="<%= __c ? __c.h2 : 'What people are saying' %>">
+            <div class="testimonial-wall__track testimonial-wall__track--left">
+                <% __tDoubled.forEach(function(t, i) {
+                     var v = __tVisuals[i % __tItems.length];
+                     var isClone = i >= __tItems.length; %>
+                <div class="wall-quote"<% if (isClone) { %> aria-hidden="true"<% } %>>
+                    <div class="wall-quote__card">
+                        <svg class="wall-quote__icon" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
+                            <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z"/>
+                        </svg>
+                        <blockquote class="wall-quote__text"><%= t.quote %></blockquote>
+                        <div class="wall-quote__footer">
+                            <div class="wall-quote__avatar ring-2 ring-indigo-500/50">
+                                <% if (v && v.img) { %>
+                                <img src="<%= v.img %>" alt="<%= v.alt %>" width="32" height="32" loading="lazy" decoding="async" />
+                                <% } else if (v && v.initials) { %>
+                                <span class="flex items-center justify-center w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold text-xs" aria-label="<%= v.alt %>">
+                                    <%= v.initials %>
+                                </span>
+                                <% } %>
+                            </div>
+                            <div class="wall-quote__author">
+                                <div class="wall-quote__name"><%= t.author %></div>
+                                <div class="wall-quote__role"><%= t.role %></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Testimonial 3 -->
-            <div class="animate-on-scroll">
-                <div class="glass card--glow testimonial-card rounded-2xl p-8 h-full flex flex-col">
-                    <!-- Quote Icon -->
-                    <svg class="testimonial__quote-icon animate-pulse-subtle" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
-                        <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z"/>
-                    </svg>
-
-                    <!-- Quote Text -->
-                    <p class="testimonial__text flex-grow">
-                        This is by far the best webhook software out there
-                    </p>
-
-                    <!-- Author -->
-                    <div class="testimonial__author">
-                        <div class="testimonial__avatar ring-2 ring-indigo-500/50">
-                            <img src="customers/kieron-wiltshire.webp"
-                                 alt="Kieron Wiltshire" width="48" height="48" loading="lazy" decoding="async" />
-                        </div>
-                        <div>
-                            <div class="testimonial__name">Kieron Wiltshire</div>
-                            <div class="testimonial__role">Senior Software Engineer</div>
-                        </div>
-                    </div>
-                </div>
+                <% }) %>
             </div>
         </div>
     </div>

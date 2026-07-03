@@ -1,0 +1,14 @@
+# Standalone crate (escapes the repo-root workspace).
+[workspace]
+
+[package]
+name = "i18n-gate"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "i18n-gate"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 2

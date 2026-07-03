@@ -1,87 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
+<%
+if (locals.i18nHelpers) { Object.assign(locals, locals.i18nHelpers.getPageLocals('hook0-vs-svix', locals.lang || 'en')); }
+var t = locals.t;
+var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHelpers.getPath : function (s) { return './' + s; };
+%><!DOCTYPE html>
+<html lang="<%= locals.pageLang %>">
 <head>
-    <title>Hook0 vs Svix — Open-Source Webhook Platform Comparison</title>
-    <%
-    locals.pageTitle = 'Hook0 vs Svix — Open-Source Webhook Platform Comparison';
-    locals.pageDescription = 'Compare Hook0 and Svix: open-source SSPL vs open-core, bootstrapped vs VC-funded, EU-hosted vs US, self-hostable on every plan. An honest side-by-side.';
-    locals.pageCanonical = '/hook0-vs-svix';
-    locals.pageModified = '2026-06-22';
-    locals.pageFAQSchema = {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "Is Hook0 open-source like Svix?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Hook0's server is published under SSPL-1.0 and the client SDKs under MIT, with no proprietary enterprise tier. SSPL is a source-available copyleft license: you can read, modify, and self-host the whole platform freely. Svix's core is MIT, but several enterprise features are closed-source and only available on paid plans."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "How does Hook0's free tier compare to Svix's?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Hook0's free tier is free forever with no credit card: 100 events per day, HMAC signatures, and delivery monitoring, hosted in the EU. Paid plans scale with your volume on the same managed infrastructure, with every feature included and no enterprise paywall. Svix reserves several features for paid plans."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Does Hook0 support Standard Webhooks?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Standard Webhooks is a specification authored by Svix. Hook0 signs every payload with HMAC-SHA256 and documents the scheme. Standard Webhooks support is planned."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Can I use Hook0 for regulated or compliance-sensitive workloads?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Yes. Hook0 Cloud keeps your webhook data in the EU, on French infrastructure operated by a French company, outside US CLOUD Act jurisdiction, which is what most compliance-sensitive teams need first. Because the full server source is open (SSPL-1.0), you can audit exactly how data is handled and you are never locked in. Formal third-party attestations such as SOC 2, HIPAA and PCI-DSS are planned."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Is Hook0 hosted in the EU and outside the US CLOUD Act?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Hook0 Cloud is operated by a French company (FGRibreau SARL) on French infrastructure (Clever Cloud), so it falls outside US CLOUD Act jurisdiction. Your webhook payloads, which often carry customer data, stay in the EU. Svix and Hookdeck are US companies. You can also self-host Hook0 so no webhook data leaves your network."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Can I self-host Hook0 for free?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Yes. The same open-source code runs free on Docker Compose or Kubernetes, which is what keeps you from ever being locked in. Most teams start on Hook0 Cloud (managed, EU-hosted, free tier) and keep self-hosting as their exit option. Svix offers self-hosting only on its enterprise plan."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Is Hook0 bootstrapped?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Yes. Hook0 is 100% bootstrapped with zero VC funding. Svix is venture-funded. Bootstrapped means Hook0 answers to its users, not to investors looking for an exit."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Do Svix and Hookdeck consider Hook0 a competitor?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Svix and Hookdeck each publish comparison pages that include Hook0. You can read their own assessments alongside ours."
-          }
-        }
-      ]
-    };
-    %>
+    <title><%= locals.pageTitle %></title>
     <%- include('./includes/_head.ejs') %>
 </head>
 <body>
 <%- include('./includes/_header.ejs') %>
+<%- include('./includes/_breadcrumb.ejs') %>
+
 
 <!-- Hero Section -->
 <section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
@@ -90,25 +20,25 @@
     <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
 
     <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <span class="section__eyebrow">Comparison</span>
+        <span class="section__eyebrow"><%= t.hero.eyebrow %></span>
         <h1 class="mt-4 text-display-xl text-white">
-            Hook0 vs Svix
-            <span class="block text-gradient-green">Open-Source Webhook Platform Comparison</span>
+            <%= t.hero.titleBefore %>
+            <span class="block text-gradient-green"><%= t.hero.titleAccent %></span>
         </h1>
         <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
-            Looking for a Svix alternative? Both are webhook platforms, but they differ on licensing, funding model, hosting, and what "open-source" actually means in practice. Hook0 is 100% open-source, bootstrapped, and EU-hosted, with no vendor lock-in.
+            <%= t.hero.subtitle %>
         </p>
 
         <!-- CTA Buttons -->
         <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', 'vs-svix-hero-register')">
-                Start Free
+                <%= t.hero.ctaPrimary %>
                 <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                 </svg>
             </a>
             <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'vs-svix-hero-playground')">
-                Try the Playground
+                <%= t.hero.ctaSecondary %>
             </a>
         </div>
     </div>
@@ -123,62 +53,34 @@
 
     <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 animate-on-scroll">
-            <span class="section__eyebrow">Why Hook0</span>
-            <h2 class="mt-4 text-display font-bold text-white">Key Differences</h2>
+            <span class="section__eyebrow"><%= t.differentiators.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.differentiators.h2 %></h2>
         </div>
 
         <div class="grid md:grid-cols-2 gap-8 stagger-children">
-            <!-- Fully Open-Source -->
+            <% var __diffIcons = [
+              { color: 'green', path: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' },
+              { color: 'indigo', path: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+              { color: 'green', path: 'M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z' },
+              { color: 'indigo', path: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+            ]; %>
+            <% t.differentiators.cards.forEach(function (c, i) { var icon = __diffIcons[i] || __diffIcons[0]; %>
             <div class="animate-on-scroll card card--glow p-8">
-                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
-                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                <div class="w-12 h-12 rounded-xl bg-<%= icon.color %>-500/10 border border-<%= icon.color %>-500/20 flex items-center justify-center mb-6">
+                    <svg class="w-6 h-6 text-<%= icon.color %>-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <% if (i === 2) { %>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="<%= icon.path %>"></path>
+                        <% } else { %>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="<%= icon.path %>"></path>
+                        <% } %>
                     </svg>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-3">Source-Available, No Closed Add-Ons</h3>
+                <h3 class="text-xl font-bold text-white mb-3"><%= c.title %></h3>
                 <p class="text-gray-400">
-                    Hook0's server ships under SSPL-1.0 and the SDKs under MIT. You get the whole platform: read it, modify it, self-host it. Svix's core is MIT, but enterprise features (SSO, advanced analytics, dedicated support) stay closed-source on paid plans.
+                    <%= c.body %>
                 </p>
             </div>
-
-            <!-- Bootstrapped -->
-            <div class="animate-on-scroll card card--glow p-8">
-                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
-                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-bold text-white mb-3">Bootstrapped From Day One</h3>
-                <p class="text-gray-400">
-                    Svix is venture-funded. Investors expect a return, which means pressure to raise prices or get acquired. Hook0 is 100% bootstrapped. No board to please, no growth-at-all-costs mandate.
-                </p>
-            </div>
-
-            <!-- Self-Hosting -->
-            <div class="animate-on-scroll card card--glow p-8">
-                <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6">
-                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z"></path>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-bold text-white mb-3">No Vendor Lock-In</h3>
-                <p class="text-gray-400">
-                    Hook0 Cloud runs the same open-source code you can read and audit. If you ever need to, you can export and run it yourself (free, Docker or Kubernetes), so you are never trapped in a proprietary platform. Svix restricts self-hosting to enterprise customers.
-                </p>
-            </div>
-
-            <!-- European Data -->
-            <div class="animate-on-scroll card card--glow p-8">
-                <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
-                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-bold text-white mb-3">EU Hosting, Outside the CLOUD Act</h3>
-                <p class="text-gray-400">
-                    Hook0 Cloud runs on French infrastructure (Clever Cloud) and is operated by a French company, so it falls outside US CLOUD Act jurisdiction. Your webhook payloads stay in the EU. Svix is US-based. You can also self-host so no webhook data leaves your network.
-                </p>
-            </div>
+            <% }); %>
         </div>
     </div>
 </section>
@@ -188,65 +90,27 @@
     <div class="absolute inset-0 grid-pattern opacity-20"></div>
     <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 animate-on-scroll">
-            <span class="section__eyebrow">Feature Comparison</span>
-            <h2 class="mt-4 text-display font-bold text-white">Side by Side</h2>
+            <span class="section__eyebrow"><%= t.comparison.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.comparison.h2 %></h2>
         </div>
 
         <div class="animate-on-scroll overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="border-b border-white/10">
-                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Feature</th>
-                        <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider">Hook0</th>
-                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider">Svix</th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.comparison.headers.feature %></th>
+                        <th class="py-4 px-6 text-sm font-semibold text-green-400 uppercase tracking-wider"><%= t.comparison.headers.hook0 %></th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.comparison.headers.svix %></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/5">
+                    <% t.comparison.rows.forEach(function (r) { %>
                     <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">License</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">SSPL-1.0 (full source available)</td>
-                        <td class="py-4 px-6 text-gray-400">MIT (open-core, enterprise closed)</td>
+                        <td class="py-4 px-6 text-gray-300"><%= r.feature %></td>
+                        <td class="py-4 px-6 text-green-400 font-medium"><%- r.hook0Html %></td>
+                        <td class="py-4 px-6 text-gray-400"><%- r.svixHtml %></td>
                     </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Funding</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">100% Bootstrapped</td>
-                        <td class="py-4 px-6 text-gray-400">VC-funded</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Self-Hosting</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">Free (Docker / K8s)</td>
-                        <td class="py-4 px-6 text-gray-400">Enterprise plan only</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Free Tier</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">Yes, no credit card</td>
-                        <td class="py-4 px-6 text-gray-400">Yes</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">HMAC Signatures</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">Included (all plans)</td>
-                        <td class="py-4 px-6 text-gray-400">Included</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Retry Logic</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">Configurable per subscription (fast + slow phases, smart defaults)</td>
-                        <td class="py-4 px-6 text-gray-400">Automatic retries</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Data Hosting</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">Europe (GDPR)</td>
-                        <td class="py-4 px-6 text-gray-400">US-based</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Subscription Management</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">Included</td>
-                        <td class="py-4 px-6 text-gray-400">App Portal (paid plans)</td>
-                    </tr>
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="py-4 px-6 text-gray-300">Vendor Lock-in Risk</td>
-                        <td class="py-4 px-6 text-green-400 font-medium">None (full source, self-hostable)</td>
-                        <td class="py-4 px-6 text-gray-400">Moderate (enterprise features closed)</td>
-                    </tr>
+                    <% }); %>
                 </tbody>
             </table>
         </div>
@@ -258,64 +122,37 @@
     <div class="absolute inset-0 grid-pattern opacity-20"></div>
     <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 animate-on-scroll">
-            <span class="section__eyebrow">FAQ</span>
-            <h2 class="mt-4 text-display font-bold text-white">Common Questions</h2>
+            <span class="section__eyebrow"><%= t.faq.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.faq.h2 %></h2>
         </div>
 
         <div class="space-y-6 stagger-children">
+            <% t.faq.items.forEach(function (item) { %>
             <div class="animate-on-scroll card card--glow p-6">
-                <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 open-source like Svix?</h3>
-                <p class="text-gray-400">Hook0's server is published under SSPL-1.0 and the client SDKs under MIT, with no proprietary enterprise tier. SSPL is a source-available copyleft license: you can read, modify, and self-host the whole platform freely. Svix's core is MIT, but several enterprise features are closed-source and only available on paid plans.</p>
+                <h3 class="text-lg font-semibold text-white mb-2"><%= item.q %></h3>
+                <p class="text-gray-400"><%= item.a %></p>
             </div>
-            <div class="animate-on-scroll card card--glow p-6">
-                <h3 class="text-lg font-semibold text-white mb-2">How does Hook0's free tier compare to Svix's?</h3>
-                <p class="text-gray-400">Hook0's free tier is free forever with no credit card: 100 events per day, HMAC signatures, and delivery monitoring, hosted in the EU. Paid plans scale with your volume on the same managed infrastructure, with every feature included and no enterprise paywall. Svix reserves several features for paid plans.</p>
-            </div>
-            <div class="animate-on-scroll card card--glow p-6">
-                <h3 class="text-lg font-semibold text-white mb-2">Does Hook0 support Standard Webhooks?</h3>
-                <p class="text-gray-400">Standard Webhooks is a specification authored by Svix. Hook0 signs every payload with HMAC-SHA256 and documents the scheme. Standard Webhooks support is planned.</p>
-            </div>
-            <div class="animate-on-scroll card card--glow p-6">
-                <h3 class="text-lg font-semibold text-white mb-2">Can I use Hook0 for regulated or compliance-sensitive workloads?</h3>
-                <p class="text-gray-400">Yes. Hook0 Cloud keeps your webhook data in the EU, on French infrastructure operated by a French company, outside US CLOUD Act jurisdiction, which is what most compliance-sensitive teams need first. Because the full server source is open (SSPL-1.0), you can audit exactly how data is handled and you are never locked in. Formal third-party attestations such as SOC 2, HIPAA and PCI-DSS are planned.</p>
-            </div>
-            <div class="animate-on-scroll card card--glow p-6">
-                <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 hosted in the EU and outside the US CLOUD Act?</h3>
-                <p class="text-gray-400">Hook0 Cloud is operated by a French company (FGRibreau SARL) on French infrastructure (Clever Cloud), so it falls outside US CLOUD Act jurisdiction. Your webhook payloads, which often carry customer data, stay in the EU. Svix and Hookdeck are US companies. You can also self-host Hook0 so no webhook data leaves your network.</p>
-            </div>
-            <div class="animate-on-scroll card card--glow p-6">
-                <h3 class="text-lg font-semibold text-white mb-2">Can I self-host Hook0 for free?</h3>
-                <p class="text-gray-400">Yes. The same open-source code runs free on Docker Compose or Kubernetes, which is what keeps you from ever being locked in. Most teams start on Hook0 Cloud (managed, EU-hosted, free tier) and keep self-hosting as their exit option. Svix offers self-hosting only on its enterprise plan.</p>
-            </div>
-            <div class="animate-on-scroll card card--glow p-6">
-                <h3 class="text-lg font-semibold text-white mb-2">Is Hook0 bootstrapped?</h3>
-                <p class="text-gray-400">Yes. Hook0 is 100% bootstrapped with zero VC funding. Svix is venture-funded. Bootstrapped means Hook0 answers to its users, not to investors looking for an exit.</p>
-            </div>
-            <div class="animate-on-scroll card card--glow p-6">
-                <h3 class="text-lg font-semibold text-white mb-2">Do Svix and Hookdeck consider Hook0 a competitor?</h3>
-                <p class="text-gray-400">Svix and Hookdeck each publish comparison pages that include Hook0. You can read their own assessments alongside ours.</p>
-            </div>
+            <% }); %>
         </div>
-        <p class="mt-8 text-center text-sm text-gray-500">Last reviewed June 2026.</p>
+        <p class="mt-8 text-center text-sm text-gray-500"><%= t.faq.lastReviewed %></p>
     </div>
 </section>
 
 <!-- Deep Dive Link -->
 <section class="py-12 relative">
     <div class="container mx-auto px-6 text-center">
-        <p class="text-gray-400">Want more detail? <a href="https://documentation.hook0.com/comparisons/svix-vs-hook0" class="text-indigo-400 hover:text-indigo-300 underline">Read the feature-by-feature comparison in our docs</a>.</p>
+        <p class="text-gray-400"><%= t.deepDive.prefix %> <a href="<%= t.deepDive.linkHref %>" class="text-indigo-400 hover:text-indigo-300 underline"><%= t.deepDive.linkText %></a>.</p>
     </div>
 </section>
 
 <!-- Related Pages -->
 <section class="py-12 relative">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center">Related</h2>
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center"><%= t.related.h2 %></h2>
         <div class="flex flex-wrap justify-center gap-4 text-sm">
-            <a href="./hook0-vs-hookdeck" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Hookdeck</a>
-            <a href="./hook0-vs-convoy" class="text-indigo-400 hover:text-indigo-300 underline">Hook0 vs Convoy</a>
-            <a href="./svix-alternatives" class="text-indigo-400 hover:text-indigo-300 underline">Svix Alternatives</a>
-            <a href="./build-vs-buy-webhooks" class="text-indigo-400 hover:text-indigo-300 underline">Build vs Buy Webhooks</a>
+            <% t.related.links.forEach(function (link) { %>
+            <a href="<%= getPath(link.enSlug, locals.pageLang) %>" class="text-indigo-400 hover:text-indigo-300 underline"><%= link.label %></a>
+            <% }); %>
         </div>
     </div>
 </section>

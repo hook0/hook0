@@ -72,3 +72,4 @@ typings/
 
 # oss-friends is downloaded at npm install time
 oss-friends.json
+temp/
