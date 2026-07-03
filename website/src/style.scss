@@ -363,6 +363,196 @@
   }
 
   // --------------------------------------------
+  // TESTIMONIAL WALL (fgribreau.github.io pattern)
+  // --------------------------------------------
+  // Fixed-size .wall-quote slots hold absolutely-positioned .wall-quote__card
+  // that can lift + scale + unclamp on hover without pushing neighbours.
+  // Items are rendered twice; track translates 0 → -50% for seamless loop.
+  @keyframes wall-scroll-left {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-50%, 0, 0); }
+  }
+
+  .testimonial-wall {
+    position: relative;
+    width: 100%;
+    // Horizontal clipping stays on the enclosing <section> (`overflow-x-clip`).
+    // Here we keep `overflow: visible` so hovered cards can lift + expand
+    // above/below the wall's own box. We can NOT use `mask-image` for the edge
+    // fade: a mask is applied to the element's bounding-box, so anything a
+    // hovered card renders outside that box (extra height when text unclamps)
+    // falls in the mask's alpha-0 area and gets clipped vertically. The fade
+    // is done via two absolutely-positioned gradient overlays below.
+    overflow: visible;
+    padding: 0.75rem 0;
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 6%;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    &::before {
+      left: 0;
+      background: linear-gradient(to right,
+                    var(--color-surface-primary) 0%,
+                    rgba(10, 10, 15, 0) 100%);
+    }
+
+    &::after {
+      right: 0;
+      background: linear-gradient(to left,
+                    var(--color-surface-primary) 0%,
+                    rgba(10, 10, 15, 0) 100%);
+    }
+
+    &:hover { z-index: 30; }
+
+    &:hover .testimonial-wall__track,
+    &:focus-within .testimonial-wall__track {
+      animation-play-state: paused;
+    }
+  }
+
+  .testimonial-wall__track {
+    display: flex;
+    gap: 1.25rem;
+    width: max-content;
+    will-change: transform;
+  }
+
+  .testimonial-wall__track--left {
+    animation: wall-scroll-left 90s linear infinite;
+  }
+
+  .wall-quote {
+    flex-shrink: 0;
+    width: 22rem;        // 352px slot
+    height: 13rem;       // 208px slot — card sits absolutely inside
+    position: relative;
+  }
+
+  .wall-quote__card {
+    @apply glass rounded-2xl;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    min-height: 100%;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 0.35s ease,
+                border-color 0.35s ease,
+                background 0.35s ease;
+  }
+
+  .wall-quote:hover { z-index: 40; }
+
+  .wall-quote:hover .wall-quote__card,
+  .wall-quote:focus-within .wall-quote__card {
+    overflow: visible;
+    // Force the card to grow with its unclamped content — without this, the
+    // absolutely-positioned card keeps its idle height and the footer
+    // (author + role) spills onto the section background. `max-content`
+    // makes the card take exactly as much vertical space as its intrinsic
+    // content needs, so the tinted panel keeps covering everything on hover.
+    height: max-content;
+    transform: scale(1.06) translateY(-6px);
+    box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.7),
+                0 0 0 1px rgba(99, 102, 241, 0.35);
+    border-color: rgba(99, 102, 241, 0.5);
+  }
+
+  .wall-quote__icon {
+    @apply text-indigo-500/30 w-8 h-8 mb-3;
+    flex-shrink: 0;
+  }
+
+  .wall-quote__text {
+    @apply text-sm text-white font-medium;
+    margin: 0 0 1rem;
+    line-height: 1.55;
+    flex-grow: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .wall-quote:hover .wall-quote__text,
+  .wall-quote:focus-within .wall-quote__text {
+    -webkit-line-clamp: unset;
+    display: block;
+    overflow: visible;
+  }
+
+  .wall-quote__footer {
+    @apply flex items-center gap-3;
+    flex-shrink: 0;
+    margin-top: auto;
+  }
+
+  .wall-quote__avatar {
+    @apply rounded-full overflow-hidden;
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+
+    img { @apply w-full h-full object-cover; }
+  }
+
+  .wall-quote__author {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .wall-quote__name {
+    @apply text-white text-sm font-medium truncate;
+  }
+
+  .wall-quote__role {
+    @apply text-gray-400 text-xs truncate;
+  }
+
+  // Mobile fallback: no animation, native horizontal scroll (finger swipe).
+  @media (max-width: 640px) {
+    .testimonial-wall {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      mask-image: none;
+      -webkit-mask-image: none;
+    }
+    .testimonial-wall__track {
+      animation: none;
+      padding: 0 1rem;
+    }
+    .wall-quote {
+      width: 18rem;
+      height: auto;
+      min-height: 11rem;
+    }
+    .wall-quote__card {
+      position: relative;
+    }
+  }
+
+  // NOTE: pas de @media (prefers-reduced-motion: reduce) sur le mur de testimonials.
+  // Décision explicite du propriétaire du site (voir mirror sur ~/www/fgribreau.github.io/
+  // src/scss/layout/_site.scss) : les animations du mur doivent TOUJOURS tourner,
+  // même quand l'utilisateur a activé Reduce Motion. Le marquee est le signal
+  // visuel principal de la section — le désactiver la fait ressembler à une pile
+  // statique cassée. Choix design assumé. La règle est enforced par la garde
+  // `check_wall_survives_reduced_motion` dans scripts/i18n-gate/src/main.rs.
+
+  // --------------------------------------------
   // PRICING CARDS
   // --------------------------------------------
   .pricing-card {
@@ -396,7 +586,12 @@
       @apply p-8 border-b border-white/5 text-left;
       display: flex;
       flex-direction: column;
-      min-height: 16rem;
+      // Tall enough to fit the Pro plan's price block plus its optional
+      // annual-breakdown line wrapped to two lines (FR/DE longer text).
+      // Combined with `flex: 1` on the description below, every header in
+      // a row reaches this floor — so every body, every CTA button, and
+      // every "What's included" divider start at the same Y across cards.
+      min-height: 19rem;
 
       // Reduce padding on mobile
       @media (max-width: 640px) {
@@ -413,9 +608,14 @@
     &__description {
       @apply text-sm text-gray-400 mt-2 text-left;
       min-height: 4rem;
+      // Grow to absorb the height difference between cards (Pro carries an
+      // extra <p> annual line, others don't) — the price block then sticks
+      // to the bottom of the header on every card, anchoring the divider.
+      flex: 1;
 
       @media (max-width: 640px) {
         min-height: auto;
+        flex: initial;
       }
     }
 
@@ -464,20 +664,24 @@
 
     &__feature {
       @apply flex items-start gap-0 text-sm text-gray-300;
+      // Allow this flex item to shrink below its content width so its <span>
+      // child can wrap. Without this, the FR/DE bullets ("Géré de bout en
+      // bout, aucune infra à porter") overflow the 4-column grid and get
+      // clipped by the .pricing section's overflow-hidden.
+      min-width: 0;
 
       svg {
         @apply w-5 h-5 text-green-500 flex-shrink-0 mt-0.5 mr-3;
       }
 
-      // Allow text wrapping on mobile for better readability
-      @media (max-width: 640px) {
-        white-space: normal;
-        @apply text-base leading-relaxed;
+      > span {
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
 
-      // Prevent text from wrapping on larger screens
-      @media (min-width: 641px) {
-        white-space: nowrap;
+      // Mobile: keep the more generous text size for readability.
+      @media (max-width: 640px) {
+        @apply text-base leading-relaxed;
       }
 
       // Ensure no extra spacing around strong elements
@@ -736,6 +940,16 @@
       transition-duration: 0.001ms !important;
       scroll-behavior: auto !important;
     }
+
+    // EXCEPTION — testimonial wall keeps animating even under reduced-motion.
+    // Explicit owner decision (mirror of ~/www/fgribreau.github.io/src/scss/
+    // layout/_site.scss). The marquee IS the section's visual signal; killing
+    // it collapses the section to a static column. `!important` + class
+    // specificity beats the `*` blanket above. Enforced by
+    // `check_wall_survives_reduced_motion` in scripts/i18n-gate/src/main.rs.
+    .testimonial-wall__track--left {
+      animation: wall-scroll-left 90s linear infinite !important;
+    }
   }
 
   // --------------------------------------------
@@ -847,6 +1061,120 @@ abbr {
 }
 
 // ============================================
+// DESKTOP NAV DROPDOWNS (natalia pattern, disclosure widget)
+// ============================================
+// Hover-CSS opens the panel + focus-within keeps it open; JS toggles
+// aria-expanded and handles Escape / outside-click. Legacy nav is preserved
+// as the fallback when locales don't inject chrome.header.nav.groups.
+.nav-link {
+  @apply inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium
+         text-gray-300 hover:text-white hover:bg-white/5 transition-colors
+         min-h-[44px];
+}
+
+.nav-link--icon {
+  @apply px-2.5;
+}
+
+.nav-dropdown {
+  @apply relative;
+
+  &__trigger {
+    @apply inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium
+           text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer
+           min-h-[44px];
+    background: transparent;
+    border: 0;
+  }
+
+  &__chevron {
+    @apply w-3 h-3 opacity-60;
+    transition: transform 0.2s ease;
+  }
+
+  &__panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    padding-top: 0.5rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0s linear 0.15s;
+    z-index: 60;
+  }
+
+  &__bridge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0.5rem;
+  }
+
+  &__panel-inner {
+    @apply bg-surface-secondary/95 backdrop-blur-xl
+           border border-white/10 rounded-xl shadow-2xl
+           p-2 flex flex-col gap-0.5;
+    min-width: 17rem;
+
+    &--two-cols {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.25rem;
+      min-width: 34rem;
+    }
+  }
+
+  &__item {
+    @apply flex items-start gap-3 p-3 rounded-lg
+           text-gray-300 hover:text-white hover:bg-white/5
+           transition-colors;
+    text-decoration: none;
+  }
+
+  &__item-icon {
+    @apply flex items-center justify-center w-8 h-8 rounded-md
+           bg-indigo-500/10 text-indigo-400 flex-shrink-0 mt-0.5;
+  }
+
+  &__item-text {
+    @apply flex flex-col min-w-0 flex-1;
+  }
+
+  &__item-title {
+    @apply text-sm font-medium text-white leading-tight;
+  }
+
+  &__item-desc {
+    @apply text-xs text-gray-400 mt-1 leading-snug;
+  }
+
+  // Open state (hover, focus-within, or JS-added .is-open)
+  &:hover &__panel,
+  &:focus-within &__panel,
+  &.is-open &__panel {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition-delay: 0s;
+  }
+
+  &:hover &__chevron,
+  &:focus-within &__chevron,
+  &.is-open &__chevron {
+    transform: rotate(180deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-dropdown__chevron,
+  .nav-dropdown__panel {
+    transition: none !important;
+  }
+}
+
+// ============================================
 // MOBILE NAVIGATION
 // ============================================
 .mobile-menu {
@@ -924,6 +1252,77 @@ abbr {
              hover:bg-white/20;
     }
   }
+
+  // ---- Dropdowns nav (natalia pattern) ----
+  // Primary CTA + Login pinned at the top of the panel (Baymard: TOP-of-panel
+  // CTAs convert +23% vs bottom-sticky on B2B SaaS).
+  &__cta {
+    @apply px-4 pt-4 pb-3 border-b border-white/10 space-y-2;
+  }
+
+  &__login-link {
+    @apply block text-center text-sm font-medium text-gray-400 hover:text-white
+           py-2 transition-colors;
+  }
+
+  &__group {
+    @apply mb-1;
+  }
+
+  &__group-toggle {
+    @apply w-full flex items-center justify-between px-4 py-3 rounded-xl
+           text-base font-medium text-gray-300 hover:text-white hover:bg-white/5
+           transition-colors cursor-pointer;
+    min-height: 56px;
+    background: transparent;
+    border: 0;
+
+    &[aria-expanded="true"] {
+      @apply text-white bg-white/5;
+    }
+  }
+
+  &__group-chevron {
+    @apply w-3 h-3 opacity-60;
+    transition: transform 0.2s ease;
+  }
+
+  &__group-toggle[aria-expanded="true"] &__group-chevron {
+    transform: rotate(180deg);
+  }
+
+  &__group-body {
+    @apply pl-3 mt-1 space-y-0.5 border-l-2 border-white/10 ml-4;
+  }
+
+  &__group-link {
+    @apply flex items-start gap-3 px-3 py-3 rounded-lg
+           text-gray-300 hover:text-white hover:bg-white/5 transition-colors;
+    min-height: 48px;
+    text-decoration: none;
+  }
+
+  &__group-link-icon {
+    @apply flex items-center justify-center w-8 h-8 rounded-md
+           bg-indigo-500/10 text-indigo-400 flex-shrink-0 mt-0.5;
+  }
+
+  &__group-link-text {
+    @apply flex flex-col min-w-0 flex-1;
+  }
+
+  &__group-link-title {
+    @apply text-sm font-medium text-white leading-tight;
+  }
+
+  &__group-link-desc {
+    @apply text-xs text-gray-400 mt-0.5 leading-snug;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-menu__group-chevron { transition: none !important; }
+  .mobile-menu__panel { transition: none !important; }
 }
 
 // Touch-friendly utilities
@@ -1347,4 +1746,88 @@ abbr {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+// --------------------------------------------
+// LANG SWITCHER (header dropdown)
+// Pattern ported from lagrangessartaise.fr — pure HTML <details>/<summary>
+// for graceful no-JS fallback. Dark-theme adaptation: bg-surface-tertiary
+// menu surface, white/10 borders, indigo accent on the active item.
+// --------------------------------------------
+.lang-switcher {
+  position: relative;
+  display: inline-block;
+}
+.lang-switcher__summary {
+  list-style: none;
+  // Hide the default <details> disclosure triangle on every engine.
+  &::-webkit-details-marker { display: none; }
+  &::marker { content: ''; }
+}
+.lang-switcher__chevron {
+  transition: transform 160ms ease;
+  transform: rotate(90deg);
+}
+.lang-switcher[open] .lang-switcher__chevron {
+  transform: rotate(-90deg);
+}
+.lang-switcher__menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  list-style: none;
+  padding: 0.375rem 0;
+  margin: 0;
+  min-width: 11rem;
+  z-index: 60;
+  @apply bg-surface-tertiary border border-white/10 rounded-xl shadow-lg;
+}
+.lang-switcher__item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  font-size: 0.875rem;
+  @apply text-gray-300 transition-colors;
+
+  &:hover {
+    @apply bg-white/5 text-white;
+  }
+}
+.lang-switcher__item--active {
+  @apply text-white font-medium bg-white/5;
+}
+.lang-switcher__name { line-height: 1; }
+
+// Mobile rail variant — same flag + name, full-width grid row.
+.lang-switcher__mobile-item {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  @apply text-gray-400 transition-colors;
+
+  &:hover {
+    @apply text-white bg-white/5;
+  }
+}
+.lang-switcher__mobile-item--active {
+  @apply text-white bg-white/10;
+}
+
+// Country flag svg — decorative, fixed aspect.
+.lang-switcher .flag,
+.lang-switcher__mobile-item .flag {
+  width: 18px;
+  height: 13px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  flex: 0 0 auto;
 }

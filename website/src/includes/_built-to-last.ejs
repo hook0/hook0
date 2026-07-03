@@ -1,3 +1,11 @@
+<%
+var __c = (locals.chrome && locals.chrome.includes && locals.chrome.includes.builtToLast) ? locals.chrome.includes.builtToLast : null;
+var __btlParagraphs = __c ? __c.paragraphs : [
+  'At Hook0, we are an independent European company founded on principles of software sustainability and ethical data practices. Our code is fully open-source.',
+  'We firmly believe in transparency and data sovereignty. Unlike other solutions, Hook0 does not lock your data or software. If you choose the SaaS version of Hook0, all your data will remain in Europe, ensuring compliance with local regulations.',
+  'Our business model is entirely supported by revenue from our paying users, with no venture capital funding. Since our launch, we have served our clients with dedication, focusing on quality and reliability.',
+];
+%>
 <section class="relative bg-surface-secondary py-24 sm:py-32 overflow-hidden">
     <!-- Background Effects -->
     <div class="absolute inset-0 gradient-mesh opacity-40"></div>
@@ -7,55 +15,49 @@
         <div class="lg:grid lg:grid-cols-12 lg:gap-16 items-center">
             <!-- Left Column - Content -->
             <div class="lg:col-span-8 animate-on-scroll">
-                <span class="section__eyebrow">About Hook0</span>
+                <span class="section__eyebrow"><%= __c ? __c.eyebrow : 'About Hook0' %></span>
                 <h2 class="text-display font-bold text-white mt-4">
-                    What is Hook0?
+                    <%= __c ? __c.h2 : 'What is Hook0?' %>
                 </h2>
 
                 <div class="mt-6 space-y-4 text-body-lg text-gray-400">
-                    <p>
-                        At Hook0, we are an independent European company founded on principles of software sustainability and ethical data practices. Our code is fully open-source.
-                    </p>
-                    <p>
-                        We firmly believe in transparency and data sovereignty. Unlike other solutions, Hook0 does not lock your data or software. If you choose the SaaS version of Hook0, all your data will remain in Europe, ensuring compliance with local regulations.
-                    </p>
-                    <p>
-                        Our business model is entirely supported by revenue from our paying users, with no venture capital funding. Since our launch, we have served our clients with dedication, focusing on quality and reliability.
-                    </p>
+                    <% __btlParagraphs.forEach(function(p) { %>
+                    <p><%= p %></p>
+                    <% }) %>
                 </div>
 
                 <!-- Stats Grid -->
                 <div class="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-8">
                     <div class="animate-on-scroll group">
-                        <div class="text-4xl sm:text-5xl font-extrabold text-gradient-indigo pb-1 leading-relaxed">100%</div>
+                        <div class="text-4xl sm:text-5xl font-extrabold text-gradient-indigo pb-1 leading-relaxed"><%= __c ? __c.statRevenueValue : '100%' %></div>
                         <div class="mt-2 text-sm font-medium text-gray-400 group-hover:text-gray-300 transition-colors">
-                            Revenue from paying users
+                            <%= __c ? __c.statRevenueLabel : 'Revenue from paying users' %>
                         </div>
                     </div>
                     <div class="animate-on-scroll group">
-                        <div class="text-4xl sm:text-5xl font-extrabold text-gradient-green pb-1 leading-relaxed">$0</div>
+                        <div class="text-4xl sm:text-5xl font-extrabold text-gradient-green pb-1 leading-relaxed"><%= __c ? __c.statNoVcValue : '$0' %></div>
                         <div class="mt-2 text-sm font-medium text-gray-400 group-hover:text-gray-300 transition-colors">
-                            In venture capital
+                            <%= __c ? __c.statNoVcLabel : 'In venture capital' %>
                         </div>
                     </div>
                     <div class="animate-on-scroll group">
-                        <div class="text-4xl sm:text-5xl font-extrabold text-gradient pb-1 leading-relaxed">6 years</div>
+                        <div class="text-4xl sm:text-5xl font-extrabold text-gradient pb-1 leading-relaxed"><%= __c ? __c.statYearsValue : '6 years' %></div>
                         <div class="mt-2 text-sm font-medium text-gray-400 group-hover:text-gray-300 transition-colors">
-                            In service
+                            <%= __c ? __c.statYearsLabel : 'In service' %>
                         </div>
                     </div>
                 </div>
 
                 <!-- CTA -->
                 <div class="mt-10">
-                    <a href="./built-to-last" class="link link--arrow text-indigo-400 hover:text-indigo-300">
-                        Read our longevity statement
+                    <a href="<%= __c ? __c.ctaLongevityHref : './built-to-last' %>" class="link link--arrow text-indigo-400 hover:text-indigo-300">
+                        <%= __c ? __c.ctaLongevity : 'Read our longevity statement' %>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                         </svg>
                     </a>
                     <a href="https://documentation.hook0.com/explanation/what-is-hook0" class="ml-6 link link--arrow text-green-400 hover:text-green-300">
-                        What is Hook0?
+                        <%= __c ? __c.ctaWhatIs : 'What is Hook0?' %>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                         </svg>

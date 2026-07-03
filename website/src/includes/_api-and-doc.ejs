@@ -1,3 +1,17 @@
+<%
+var __c = (locals.chrome && locals.chrome.includes && locals.chrome.includes.apiAndDoc) ? locals.chrome.includes.apiAndDoc : null;
+var __apiItems = __c ? __c.items : [
+  { title: 'Robust API Documentation', body: 'Fully documented RESTful JSON API with examples', linkLabel: 'Read the Docs' },
+  { title: 'Developer Resources', body: 'A fully documented set of resources to help guide you through your integration', linkLabel: 'Developer Resources' },
+  { title: 'MCP Server for AI Assistants', body: 'Control your webhooks using natural language with Claude, Cursor, Windsurf, or any MCP-compatible AI', linkLabel: 'Setup MCP Server' },
+];
+var __apiVisuals = [
+  { iconBg: 'bg-indigo-500 shadow-glow-indigo', iconColor: 'text-white', linkColor: 'text-indigo-400 hover:text-indigo-300', titleHover: 'group-hover:text-indigo-300', href: 'https://documentation.hook0.com/reference/', iconPath: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+  { iconBg: 'bg-indigo-500 shadow-glow-indigo', iconColor: 'text-white', linkColor: 'text-indigo-400 hover:text-indigo-300', titleHover: 'group-hover:text-indigo-300', href: 'https://documentation.hook0.com/docs', iconPath: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
+  { iconBg: 'bg-green-500 shadow-glow-green', iconColor: 'text-white', linkColor: 'text-green-400 hover:text-green-300', titleHover: 'group-hover:text-green-300', href: 'https://documentation.hook0.com/reference/mcp', iconPath: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+];
+var __qLinks = (__c && __c.quickLinks) ? __c.quickLinks : { apiRef: 'API Reference', guides: 'Guides', mcp: 'MCP Server', sdks: 'SDKs' };
+%>
 <section class="relative bg-surface-secondary py-24 sm:py-32 overflow-hidden">
     <!-- Background Effects -->
     <div class="absolute inset-0 gradient-mesh opacity-30"></div>
@@ -6,10 +20,10 @@
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Section Header -->
         <div class="section__header animate-on-scroll">
-            <span class="section__eyebrow">Developer Experience</span>
-            <h2 class="section__title">API & Docs</h2>
+            <span class="section__eyebrow"><%= __c ? __c.eyebrow : 'Developer Experience' %></span>
+            <h2 class="section__title"><%= __c ? __c.h2 : 'API & Docs' %></h2>
             <p class="section__description">
-                Built by open-source developers around the world for everyone to use
+                <%= __c ? __c.sub : 'Built by open-source developers around the world for everyone to use' %>
             </p>
         </div>
 
@@ -17,95 +31,46 @@
             <!-- Left Column - Features -->
             <div class="animate-on-scroll animate-on-scroll--left">
                 <h3 class="text-heading-xl font-bold text-white">
-                    One API, Full Control
+                    <%= __c ? __c.h3OneApiFullControl : 'One API, Full Control' %>
                 </h3>
                 <p class="mt-4 text-body-lg text-gray-400">
-                    Hook0 is built by open-source developers around the world for everyone to use.
+                    <%= __c ? __c.h3Lead : 'Hook0 is built by open-source developers around the world for everyone to use.' %>
                 </p>
 
                 <!-- Developer Quick Links -->
                 <div class="mt-6 flex flex-wrap gap-2">
-                    <a href="<%= locals.meta.doc_api_reference %>" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all">API Reference</a>
-                    <a href="<%= locals.meta.doc_guides %>" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all">Guides</a>
-                    <a href="https://documentation.hook0.com/reference/mcp" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all">MCP Server</a>
-                    <a href="<%= locals.social.github.href %>" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all">SDKs</a>
+                    <a href="<%= locals.meta.doc_api_reference %>" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all"><%= __qLinks.apiRef %></a>
+                    <a href="<%= locals.meta.doc_guides %>" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all"><%= __qLinks.guides %></a>
+                    <a href="https://documentation.hook0.com/reference/mcp" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all"><%= __qLinks.mcp %></a>
+                    <a href="<%= locals.social.github.href %>" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-all"><%= __qLinks.sdks %></a>
                 </div>
 
                 <div class="mt-10 space-y-8">
-                    <!-- Feature 1 -->
+                    <% __apiItems.forEach(function(item, i) { var v = __apiVisuals[i]; %>
                     <div class="flex gap-6 group">
                         <div class="flex-shrink-0">
-                            <div class="w-12 h-12 rounded-xl bg-indigo-500 flex items-center justify-center text-white shadow-glow-indigo">
+                            <div class="w-12 h-12 rounded-xl <%= v.iconBg %> flex items-center justify-center <%= v.iconColor %>">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="<%= v.iconPath %>"></path>
                                 </svg>
                             </div>
                         </div>
                         <div>
-                            <h4 class="text-lg font-semibold text-white group-hover:text-indigo-300 transition-colors">
-                                Robust API Documentation
+                            <h4 class="text-lg font-semibold text-white <%= v.titleHover %> transition-colors">
+                                <%= item.title %>
                             </h4>
                             <p class="mt-2 text-gray-400">
-                                Fully documented RESTful JSON API with examples
+                                <%= item.body %>
                             </p>
-                            <a href="<%= locals.meta.doc_api_reference %>" class="mt-4 link link--arrow text-indigo-400 hover:text-indigo-300">
-                                Read the Docs
+                            <a href="<%= v.href %>" class="mt-4 link link--arrow <%= v.linkColor %>">
+                                <%= item.linkLabel %>
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                                 </svg>
                             </a>
                         </div>
                     </div>
-
-                    <!-- Feature 2 -->
-                    <div class="flex gap-6 group">
-                        <div class="flex-shrink-0">
-                            <div class="w-12 h-12 rounded-xl bg-indigo-500 flex items-center justify-center text-white shadow-glow-indigo">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="text-lg font-semibold text-white group-hover:text-indigo-300 transition-colors">
-                                Developer Resources
-                            </h4>
-                            <p class="mt-2 text-gray-400">
-                                A fully documented set of resources to help guide you through your integration
-                            </p>
-                            <a href="<%= locals.meta.doc_guides %>" class="mt-4 link link--arrow text-indigo-400 hover:text-indigo-300">
-                                Developer Resources
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Feature 3 - MCP Server -->
-                    <div class="flex gap-6 group">
-                        <div class="flex-shrink-0">
-                            <div class="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white shadow-glow-green">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="text-lg font-semibold text-white group-hover:text-green-300 transition-colors">
-                                MCP Server for AI Assistants
-                            </h4>
-                            <p class="mt-2 text-gray-400">
-                                Control your webhooks using natural language with Claude, Cursor, Windsurf, or any MCP-compatible AI
-                            </p>
-                            <a href="https://documentation.hook0.com/reference/mcp" class="mt-4 link link--arrow text-green-400 hover:text-green-300">
-                                Setup MCP Server
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
+                    <% }) %>
                 </div>
             </div>
 
@@ -116,10 +81,10 @@
                         <span class="dot dot--red"></span>
                         <span class="dot dot--yellow"></span>
                         <span class="dot dot--green"></span>
-                        <span class="ml-4 text-sm text-gray-400">send-webhook.sh</span>
+                        <span class="ml-4 text-sm text-gray-400"><%= __c ? __c.codeFile : 'send-webhook.sh' %></span>
                     </div>
                     <div class="code-preview__body">
-                        <pre><code class="text-gray-300"><span class="text-gray-500"># Send a webhook event</span>
+                        <pre><code class="text-gray-300"><span class="text-gray-500"><%= __c ? __c.codeComment : '# Send a webhook event' %></span>
 <span class="text-green-400">curl</span> -X POST \
   https://app.hook0.com/api/v1/event \
   -H <span class="text-yellow-300">"Authorization: Bearer $API_KEY"</span> \
@@ -139,15 +104,15 @@
                 <div class="mt-8 grid grid-cols-3 gap-4">
                     <div class="text-center p-4 rounded-xl bg-white/5 border border-white/5">
                         <div class="text-2xl font-bold text-white">REST</div>
-                        <div class="text-xs text-gray-500">API</div>
+                        <div class="text-xs text-gray-500"><%= __c ? __c.statApi : 'API' %></div>
                     </div>
                     <div class="text-center p-4 rounded-xl bg-white/5 border border-white/5">
                         <div class="text-2xl font-bold text-white">JSON</div>
-                        <div class="text-xs text-gray-500">Format</div>
+                        <div class="text-xs text-gray-500"><%= __c ? __c.statFormat : 'Format' %></div>
                     </div>
                     <div class="text-center p-4 rounded-xl bg-white/5 border border-white/5">
                         <div class="text-2xl font-bold text-white">99.9%</div>
-                        <div class="text-xs text-gray-500">Uptime</div>
+                        <div class="text-xs text-gray-500"><%= __c ? __c.statUptime : 'Uptime' %></div>
                     </div>
                 </div>
             </div>

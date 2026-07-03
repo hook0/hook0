@@ -1,0 +1,233 @@
+// Per-page strings for terms (EN base — Terms of Service / CGU).
+//
+// Source: src/terms.ejs (v2026-04-24). Inline legal-reviewer audit applied
+// before extraction; each correction is flagged inline below with
+// [LEGAL-CORRECTION L#] referencing the audit memo. The original
+// "Last Updated" date is bumped to 2026-06-27 to reflect those corrections.
+//
+// Hard legal facts (CLAUDE.md / CLAUDE.local.md) kept verbatim:
+//   - Entity: FGRibreau SARL (capital EUR 2,000, RCS La Roche-sur-Yon 850 824 350,
+//     VAT FR27850824350, registered office 3 rue de l'Aubepine, 85110 Chantonnay)
+//   - Hosting: Clever Cloud SAS (France) + CDN Cloudflare Inc. (USA) — disclosed
+//   - B2B only (no consumer right of withdrawal)
+//   - Prices HT (excl. VAT); late-payment penalties = 3x ECB legal rate + EUR 40
+//   - Custom SLA only (no implicit guaranteed SLA)
+//   - SSPL framing: "source-available (SSPL-1.0)" — NEVER "open-source"
+//
+// EN prose stays close to the live template; the /humanizer pro pass applies
+// to FR/DE only. HTML markup inside body fields is preserved and emitted via
+// <%- t.section.field %> in the template.
+module.exports = {
+  pageTitle: 'Hook0 - Terms of Service',
+  pageDescription: 'Terms of Service for Hook0 Webhooks-as-a-Service. Read our terms and conditions governing access to and use of the Hook0 platform and services.',
+  pageModified: '2026-06-27',
+  hero: {
+    eyebrow: 'Legal',
+    title: 'Terms of Service',
+    subtitle: 'Please read these terms carefully before using Hook0\'s services',
+    lastUpdatedLabel: 'Last Updated:',
+    lastUpdatedDate: 'June 27, 2026',
+  },
+  intro: {
+    // [LEGAL-CORRECTION L6] HT framing inherited via Section 5.
+    p1Html: 'These Terms of Service (the "Terms") govern your access to and use of the Hook0 platform and related services (collectively, the "Service") operated by FGRibreau SARL, a French limited liability company (societe a responsabilite limitee) with a share capital of EUR 2,000, registered at the Registre du commerce et des societes de La Roche-sur-Yon under number 850 824 350, with registered office at 3 rue de l\'Aubepine, 85110 Chantonnay, France, VAT number FR27850824350 ("Hook0", "we", "us", or "our"). The director of publication is David Sferruzza.',
+    p2Html: 'The Service is intended exclusively for businesses and professional entities (B2B). By registering for, accessing or using the Service, you confirm that you are acting in a professional capacity on behalf of a legal entity, and that you have the authority to bind that entity to these Terms.',
+    p3Html: 'BY REGISTERING FOR, ACCESSING OR USING THE SERVICE, YOU AGREE TO BE BOUND BY THESE TERMS. IF YOU DO NOT AGREE, YOU MUST NOT ACCESS OR USE THE SERVICE.',
+    p4Html: 'Commercial and billing conditions (pricing, invoicing, payment terms) are set out in the <a href="/terms-of-sale" class="text-green-400 hover:text-green-300 transition-colors">Terms of Sale</a>, which form a separate document incorporated by reference into this agreement.',
+  },
+  sections: [
+    // Section 1
+    {
+      id: 'definitions',
+      title: '1. Definitions',
+      lead: 'As used in these Terms, the following terms have the meanings set out below:',
+      // [LEGAL-CORRECTION L8] Subprocessor definition added.
+      items: [
+        '<strong class="text-white">"Account"</strong> means the account created by you to access and use the Service.',
+        '<strong class="text-white">"Content"</strong> means any data, information, or material that you transmit through or store in the Service, including webhook payloads, configurations, and API credentials.',
+        '<strong class="text-white">"Documentation"</strong> means the technical documentation and user guides made available by Hook0 at <a href="https://documentation.hook0.com" class="text-green-400 hover:text-green-300 transition-colors">documentation.hook0.com</a>.',
+        '<strong class="text-white">"Service"</strong> means the Hook0 webhook management platform, including all associated APIs, interfaces, and ancillary services provided by Hook0.',
+        '<strong class="text-white">"Subprocessor"</strong> means any third-party processor engaged by Hook0 to process Content on your behalf in connection with the Service. The current list of Subprocessors is published at <a href="/gdpr-subprocessors" class="text-green-400 hover:text-green-300 transition-colors">hook0.com/gdpr-subprocessors</a>.',
+        '<strong class="text-white">"Subscription Plan"</strong> means the tier of service you select (Developer, Startup, Pro, or Enterprise), as described on the pricing page at hook0.com.',
+        '<strong class="text-white">"User"</strong> means any individual who accesses or uses the Service through your Account on your behalf.',
+        '<strong class="text-white">"you" / "your"</strong> means the legal entity that has registered for or is using the Service, and any User acting on its behalf.',
+      ],
+    },
+    // Section 2
+    {
+      id: 'acceptance',
+      title: '2. Acceptance and Scope',
+      paragraphs: [
+        '<strong class="text-white">2.1. Professional use only.</strong> The Service is designed exclusively for professional and business use. These Terms do not apply to consumers (individuals acting outside of any trade, business, or profession). As the Service is offered exclusively in a B2B context, no consumer right of withdrawal applies. By accepting these Terms, you represent and warrant that you are acting in a professional capacity.',
+        '<strong class="text-white">2.2. Authority to bind.</strong> If you are accepting these Terms on behalf of a company or other legal entity, you represent and warrant that you have the legal authority to bind that entity. In such case, "you" refers to that entity.',
+        '<strong class="text-white">2.3. Entire agreement.</strong> These Terms, together with the <a href="/privacy-policy" class="text-green-400 hover:text-green-300 transition-colors">Privacy Policy</a>, the <a href="/data-processing-addendum" class="text-green-400 hover:text-green-300 transition-colors">Data Processing Addendum</a>, and the <a href="/terms-of-sale" class="text-green-400 hover:text-green-300 transition-colors">Terms of Sale</a>, constitute the entire agreement between the parties regarding the Service and supersede all prior or contemporaneous understandings, representations, or agreements.',
+      ],
+    },
+    // Section 3
+    {
+      id: 'description',
+      title: '3. Description of the Service',
+      // [LEGAL-CORRECTION L4] No implicit SLA — explicit Custom-SLA-only clause moved to §10.
+      paragraphs: [
+        '<strong class="text-white">3.1. Platform overview.</strong> Hook0 is a webhook management platform that enables businesses to send, receive, manage, and monitor webhook events. The Service includes webhook delivery infrastructure, retry logic, event logging, and related developer tooling.',
+        '<strong class="text-white">3.2. Subscription Plans.</strong> The Service is available under the following Subscription Plans: Developer (free), Startup, Pro, and Enterprise. The features, usage limits, and pricing applicable to each plan are described on the pricing page at hook0.com. Hook0 reserves the right to modify the features associated with any Subscription Plan, including discontinuing features available on the free Developer plan, upon notice as set out in Section 13.',
+        '<strong class="text-white">3.3. Updates.</strong> Hook0 may update, modify, or discontinue features of the Service at any time. Where a change is material, Hook0 will provide reasonable prior notice. Continued use of the Service after such changes constitutes acceptance of the updated Service.',
+        '<strong class="text-white">3.4. Third-party services and infrastructure.</strong> The Service relies on third-party infrastructure providers, including hosting provided by Clever Cloud SAS (France) and content delivery and edge security provided by Cloudflare Inc. (United States). The current list of Subprocessors and their locations is published at <a href="/gdpr-subprocessors" class="text-green-400 hover:text-green-300 transition-colors">hook0.com/gdpr-subprocessors</a>. The Service may also integrate with or link to other third-party services that Hook0 does not control. Your use of such services is governed solely by the applicable third-party terms.',
+      ],
+    },
+    // Section 4
+    {
+      id: 'account',
+      title: '4. Account Registration',
+      paragraphs: [
+        '<strong class="text-white">4.1. Accurate information.</strong> You agree to provide accurate, current, and complete information when registering for an Account and to keep that information up to date. Hook0 may suspend or terminate your Account if it discovers that information provided is false or misleading.',
+        '<strong class="text-white">4.2. Account security.</strong> You are responsible for maintaining the confidentiality of your Account credentials and for all activities that occur under your Account. You agree to notify Hook0 immediately at <a href="mailto:support@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">support@hook0.com</a> if you become aware of any unauthorized access to or use of your Account.',
+        '<strong class="text-white">4.3. One account per entity.</strong> Each legal entity may maintain only one Account unless expressly agreed otherwise by Hook0 in writing. Multiple Accounts created to circumvent usage limits or billing obligations are prohibited.',
+        '<strong class="text-white">4.4. Users.</strong> You are responsible for ensuring that all Users accessing the Service through your Account comply with these Terms. You remain fully liable for their acts and omissions.',
+      ],
+    },
+    // Section 5
+    {
+      id: 'pricing',
+      title: '5. Subscription Plans and Pricing',
+      // [LEGAL-CORRECTION L6 + L7] HT explicit + late-payment 5.5 added.
+      paragraphs: [
+        '<strong class="text-white">5.1. Pricing.</strong> Current pricing for each Subscription Plan is published at hook0.com. All prices are stated exclusive of VAT and any other applicable taxes (HT).',
+        '<strong class="text-white">5.2. Commercial conditions.</strong> Billing cycles, payment methods, invoicing, and other commercial conditions are governed by the <a href="/terms-of-sale" class="text-green-400 hover:text-green-300 transition-colors">Terms of Sale</a>.',
+        '<strong class="text-white">5.3. Price changes.</strong> Hook0 reserves the right to modify the pricing of any Subscription Plan. Any price increase will be notified at least 30 days in advance by email to the address associated with your Account. If you do not agree to the new pricing, you may cancel your subscription before the new pricing takes effect. Continued use of the Service after the effective date of a price change constitutes acceptance of the new pricing.',
+        '<strong class="text-white">5.4. Cancellation and upgrades.</strong> You may cancel, upgrade, or downgrade your Subscription Plan at any time by contacting <a href="mailto:support@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">support@hook0.com</a>. The effects of cancellation on billing are described in the Terms of Sale.',
+        '<strong class="text-white">5.5. Late payment.</strong> In accordance with article L441-10 of the French Code de commerce, any invoice unpaid by its due date will automatically incur late-payment interest at three times the legal interest rate published by the European Central Bank, plus a flat collection indemnity of EUR 40 per invoice, without any reminder being required. Recovery costs exceeding that flat indemnity may be invoiced on supporting evidence.',
+      ],
+    },
+    // Section 6
+    {
+      id: 'ip',
+      title: '6. Intellectual Property',
+      // [LEGAL-CORRECTION L1] SSPL framing: source-available, never "open-source".
+      paragraphs: [
+        '<strong class="text-white">6.1. Hook0 intellectual property.</strong> Hook0 and its licensors own all intellectual property rights in and to the Service, including the software, source code, interfaces, Documentation, trademarks, logos, and trade dress. Nothing in these Terms grants you any rights in the Service other than the limited right to use it in accordance with these Terms.',
+        '<strong class="text-white">6.2. License to use the Service.</strong> Subject to your compliance with these Terms and payment of applicable fees, Hook0 grants you a limited, non-exclusive, non-transferable, non-sublicensable right to access and use the Service for your internal business purposes during the term of your subscription.',
+        '<strong class="text-white">6.3. Your Content.</strong> You retain all ownership rights in and to your Content. By submitting Content through the Service, you grant Hook0 a limited, worldwide license to process and store your Content solely to the extent necessary to provide the Service. Hook0 will not use your Content for any other purpose.',
+        '<strong class="text-white">6.4. Feedback.</strong> If you provide suggestions, comments, or other feedback about the Service ("Feedback"), you grant Hook0 a worldwide, perpetual, irrevocable, royalty-free license to use and incorporate such Feedback into the Service or any other Hook0 product or service, without any obligation of compensation or attribution to you.',
+        '<strong class="text-white">6.5. Source-available components.</strong> The Hook0 server software is published under the Server Side Public License v1 (SSPL-1.0), a source-available license. Certain other components of the Service are licensed under separate third-party open-source or source-available licenses. Nothing in these Terms limits any rights you may have under those licenses, which prevail to the extent of any conflict.',
+      ],
+    },
+    // Section 7
+    {
+      id: 'obligations',
+      title: '7. User Obligations',
+      paragraphs: [
+        '<strong class="text-white">7.1. Permitted use.</strong> You agree to use the Service only for lawful business purposes and in accordance with these Terms, applicable law, and any guidelines published by Hook0.',
+        '<strong class="text-white">7.2. Prohibited use.</strong> Without limiting the foregoing, you agree not to:',
+      ],
+      prohibitedList: [
+        '(a) use the Service to send unsolicited commercial communications (spam) or to facilitate phishing, fraud, or any other illegal activity;',
+        '(b) use the Service in a manner that violates any applicable law or regulation, including data protection and privacy laws;',
+        '(c) attempt to reverse engineer, decompile, disassemble, or otherwise derive the source code of any part of the Service, except to the extent expressly permitted by mandatory applicable law or by an applicable source-available licence;',
+        '(d) circumvent, disable, or interfere with any security feature, usage limit, or access control of the Service;',
+        '(e) use the Service to transmit malware, viruses, or any other harmful or disruptive code;',
+        '(f) resell, sublicense, or otherwise make the Service available to third parties without Hook0\'s prior written consent;',
+        '(g) use automated means to access or scrape the Service except through the official API and in accordance with the Documentation;',
+        '(h) take any action that imposes an unreasonable or disproportionate load on the Service\'s infrastructure.',
+      ],
+      paragraphsAfter: [
+        '<strong class="text-white">7.3. Responsibility for Content.</strong> You are solely responsible for all Content that you transmit through or store in the Service. You represent and warrant that you have all rights necessary to use such Content in connection with the Service and that your Content does not infringe any third-party rights.',
+        '<strong class="text-white">7.4. Suspension.</strong> Hook0 reserves the right to suspend your access to the Service immediately and without prior notice if it reasonably believes that your use violates these Terms or poses a risk to the Service or to third parties. Hook0 will notify you of any such suspension as soon as practicable.',
+      ],
+    },
+    // Section 8
+    {
+      id: 'privacy',
+      title: '8. Privacy and Data Protection',
+      // [LEGAL-CORRECTION L5] Subprocessor list referenced explicitly.
+      paragraphs: [
+        '<strong class="text-white">8.1. Privacy Policy.</strong> Hook0\'s collection and use of personal data in connection with the Service is governed by the <a href="/privacy-policy" class="text-green-400 hover:text-green-300 transition-colors">Privacy Policy</a>, which is incorporated by reference into these Terms. Please read it carefully.',
+        '<strong class="text-white">8.2. Data Processing Addendum and Subprocessors.</strong> Where Hook0 processes personal data on your behalf as a data processor within the meaning of Regulation (EU) 2016/679 (GDPR), the <a href="/data-processing-addendum" class="text-green-400 hover:text-green-300 transition-colors">Data Processing Addendum</a> applies and is incorporated by reference into these Terms. The current list of Subprocessors, including hosting (Clever Cloud SAS, France) and content delivery and edge security (Cloudflare Inc., United States), is published at <a href="/gdpr-subprocessors" class="text-green-400 hover:text-green-300 transition-colors">hook0.com/gdpr-subprocessors</a>. Transfers of personal data outside the European Economic Area are framed by the appropriate safeguards described in the Data Processing Addendum. You are responsible for ensuring that your use of the Service is compliant with applicable data protection laws, including obtaining any necessary consents from data subjects.',
+        '<strong class="text-white">8.3. Your obligations.</strong> You are the data controller with respect to any personal data contained in your Content. You are responsible for ensuring that you have an appropriate legal basis for processing such personal data through the Service and for providing any required notices to data subjects.',
+      ],
+    },
+    // Section 9
+    {
+      id: 'confidentiality',
+      title: '9. Confidentiality',
+      paragraphs: [
+        '<strong class="text-white">9.1. Definition.</strong> "Confidential Information" means any non-public information disclosed by one party (the "Disclosing Party") to the other party (the "Receiving Party") that is designated as confidential or that should reasonably be understood to be confidential given the nature of the information and the circumstances of disclosure. For Hook0, Confidential Information includes the Service\'s source code (other than components published under a source-available licence), architecture, pricing structures, and business strategies. For you, Confidential Information includes your Content and business data.',
+        '<strong class="text-white">9.2. Obligations.</strong> Each party agrees to: (a) hold the other party\'s Confidential Information in strict confidence; (b) use the Confidential Information solely for the purposes of performing its obligations or exercising its rights under these Terms; and (c) not disclose the Confidential Information to any third party without the prior written consent of the Disclosing Party, except to employees, contractors, or advisors who have a need to know and are bound by confidentiality obligations at least as protective as those in these Terms.',
+        '<strong class="text-white">9.3. Exceptions.</strong> The confidentiality obligations in Section 9.2 do not apply to information that: (a) is or becomes publicly available through no fault of the Receiving Party; (b) was already known to the Receiving Party prior to disclosure; (c) is received from a third party without restriction; or (d) is required to be disclosed by law or court order, provided that the Receiving Party gives the Disclosing Party prompt written notice (where legally permitted) and cooperates with any effort to seek a protective order.',
+      ],
+    },
+    // Section 10
+    {
+      id: 'warranties',
+      title: '10. Disclaimer of Warranties',
+      // [LEGAL-CORRECTION L4] "Custom SLA only" made explicit at 10.2.
+      paragraphs: [
+        '<strong class="text-white">10.1. "As is" basis.</strong> The Service is provided on an "as is" and "as available" basis. To the maximum extent permitted by applicable law, Hook0 disclaims all express or implied warranties, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement.',
+        '<strong class="text-white">10.2. No service-level guarantee by default.</strong> Hook0 does not warrant that the Service will be uninterrupted, error-free, or free from vulnerabilities. No uptime, availability, latency, or support response guarantee is provided by default. Service-level commitments, if any, are exclusively set out in a separate written Enterprise agreement signed by Hook0. Planned and unplanned maintenance may result in temporary unavailability. Hook0 will make commercially reasonable efforts to provide advance notice of planned maintenance where practicable.',
+        '<strong class="text-white">10.3. No warranty on results.</strong> Hook0 does not warrant that the Service will meet your specific requirements or that any results obtained through the Service will be accurate, complete, or reliable.',
+        '<strong class="text-white">10.4. Scope.</strong> Nothing in these Terms excludes or limits any warranty that cannot be excluded or limited under mandatory applicable law, including French law.',
+      ],
+    },
+    // Section 11
+    {
+      id: 'liability',
+      title: '11. Limitation of Liability',
+      // [LEGAL-CORRECTION L2] Cap stated as "amounts paid in the 12 months", with explicit exception for willful misconduct / gross negligence kept in 11.3.
+      paragraphs: [
+        '<strong class="text-white">11.1. Cap on liability.</strong> To the maximum extent permitted by applicable law, Hook0\'s total aggregate liability to you arising out of or in connection with these Terms or the Service, whether in contract, tort (including negligence), or otherwise, shall not exceed the total fees paid by you to Hook0 during the twelve (12) months immediately preceding the event giving rise to the claim. This limitation applies even if Hook0 has been advised of the possibility of such damages and reflects a fundamental element of the basis of the bargain between the parties.',
+        '<strong class="text-white">11.2. Exclusion of indirect damages.</strong> To the maximum extent permitted by applicable law, Hook0 shall not be liable for any indirect, incidental, special, consequential, or exemplary damages, including but not limited to loss of profits, loss of revenue, loss of data, loss of goodwill, or business interruption, arising out of or in connection with the Service or these Terms, regardless of the theory of liability. In accordance with article 1231-3 of the French Civil Code (Code civil), Hook0\'s liability for damages not directly and immediately caused by Hook0\'s breach is excluded to the fullest extent permitted by law.',
+        '<strong class="text-white">11.3. Mandatory law.</strong> Nothing in these Terms limits or excludes liability that cannot be excluded or limited under mandatory applicable law, including liability for death or personal injury caused by negligence, fraud, gross negligence (faute lourde), or willful misconduct (dol).',
+      ],
+    },
+    // Section 12
+    {
+      id: 'term',
+      title: '12. Term and Termination',
+      paragraphs: [
+        '<strong class="text-white">12.1. Term.</strong> These Terms commence on the date you first register for or access the Service and continue for an indefinite period until terminated in accordance with this Section 12.',
+        '<strong class="text-white">12.2. Termination by you.</strong> You may terminate your subscription and close your Account at any time by contacting <a href="mailto:support@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">support@hook0.com</a>. Termination takes effect at the end of the current billing period unless otherwise agreed. Any fees paid are non-refundable except as set out in the Terms of Sale.',
+        '<strong class="text-white">12.3. Termination by Hook0 for cause.</strong> Hook0 may terminate your access to the Service upon 15 days\' written notice if you materially breach these Terms and fail to cure that breach within the notice period. Hook0 may terminate immediately and without prior notice in cases of serious breach, including but not limited to: use of the Service for illegal purposes, conduct that poses an immediate security risk to the Service or third parties, or non-payment of fees after a reminder.',
+        '<strong class="text-white">12.4. Termination by Hook0 without cause.</strong> Hook0 may terminate these Terms for any reason upon 30 days\' written notice. In such case, you will receive a pro-rata refund of any prepaid fees covering the period after the effective date of termination.',
+        '<strong class="text-white">12.5. Effects of termination.</strong> Upon termination of these Terms for any reason: (a) all rights and licenses granted to you under these Terms immediately terminate; (b) you must cease using the Service; (c) Hook0 will retain your Content for 30 days after the effective date of termination, during which period you may request an export of your data by contacting <a href="mailto:support@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">support@hook0.com</a>; (d) after such 30-day period, Hook0 may permanently delete your Content without further notice.',
+        '<strong class="text-white">12.6. Survival.</strong> Sections 1, 6.1, 6.4, 9, 10, 11, 12.5, 12.6, and 14 shall survive termination of these Terms.',
+      ],
+    },
+    // Section 13
+    {
+      id: 'modifications',
+      title: '13. Modifications to These Terms',
+      paragraphs: [
+        '<strong class="text-white">13.1. Notice of changes.</strong> Hook0 may modify these Terms at any time. Where modifications are material, Hook0 will provide at least 30 days\' prior notice by email to the address associated with your Account and by posting the updated Terms on the Site, indicating the new effective date.',
+        '<strong class="text-white">13.2. Acceptance.</strong> Your continued use of the Service after the effective date of the modified Terms constitutes your acceptance of the changes. If you do not agree to the modified Terms, you must stop using the Service and cancel your subscription before the effective date.',
+        '<strong class="text-white">13.3. Minor changes.</strong> Hook0 may modify these Terms without prior notice for changes that are purely administrative (such as corrections of typographical errors or updated contact information) or that are required by law. Such changes will be indicated by an updated "Last Updated" date at the top of the Terms.',
+      ],
+    },
+    // Section 14
+    {
+      id: 'general',
+      title: '14. General Provisions',
+      // [LEGAL-CORRECTION L3] Jurisdiction corrected: tribunaux de La Roche-sur-Yon (siege de Chantonnay, ressort 85), not Nantes (44).
+      paragraphs: [
+        '<strong class="text-white">14.1. Governing law.</strong> These Terms and any dispute or claim arising out of or in connection with them (including non-contractual disputes) are governed by French law (droit francais). The United Nations Convention on Contracts for the International Sale of Goods (CISG) does not apply.',
+        '<strong class="text-white">14.2. Jurisdiction.</strong> In accordance with article 48 of the French Code of Civil Procedure, applicable between merchants, the parties agree to submit any dispute arising out of or in connection with these Terms to the exclusive jurisdiction of the competent courts of La Roche-sur-Yon (tribunaux de La Roche-sur-Yon), France, where Hook0 has its registered jurisdiction, subject to any mandatory jurisdiction rules applicable to the subject matter of the dispute.',
+        '<strong class="text-white">14.3. Force majeure.</strong> Neither party shall be liable for any failure or delay in performance resulting from causes beyond its reasonable control, including but not limited to acts of God, war, terrorism, riot, fire, flood, natural disaster, government action, strikes, lockouts, or failures of third-party telecommunications networks or infrastructure. The affected party shall promptly notify the other party and use commercially reasonable efforts to resume performance as soon as practicable.',
+        '<strong class="text-white">14.4. Assignment.</strong> You may not assign or transfer any of your rights or obligations under these Terms without Hook0\'s prior written consent. Hook0 may assign these Terms in whole or in part, including in connection with a merger, acquisition, or sale of all or substantially all of its assets, upon written notice to you.',
+        '<strong class="text-white">14.5. Severability.</strong> If any provision of these Terms is found to be invalid, unlawful, or unenforceable by a court of competent jurisdiction, that provision shall be limited or eliminated to the minimum extent necessary, and the remaining provisions shall continue in full force and effect.',
+        '<strong class="text-white">14.6. Waiver.</strong> The failure of either party to enforce any right or provision of these Terms shall not constitute a waiver of that right or provision for the future.',
+        '<strong class="text-white">14.7. Relationship of the parties.</strong> Nothing in these Terms creates or shall be deemed to create any partnership, joint venture, agency, or employment relationship between the parties. Each party acts as an independent contractor.',
+        '<strong class="text-white">14.8. Notices.</strong> Legal notices to Hook0 must be sent in writing by email to <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a> or by post to FGRibreau SARL, 3 rue de l\'Aubepine, 85110 Chantonnay, France. Hook0 may send notices to you by email to the address associated with your Account. Electronic notices are deemed received on the day of transmission unless a delivery failure notification is received.',
+      ],
+    },
+    // Section 15
+    {
+      id: 'contact',
+      title: '15. Contact',
+      lead: 'For any questions, comments, or concerns regarding these Terms or the Service, please contact us:',
+      contactItems: [
+        '<strong class="text-white">Legal matters:</strong> <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>',
+        '<strong class="text-white">Support:</strong> <a href="mailto:support@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">support@hook0.com</a>',
+        '<strong class="text-white">Postal address:</strong> FGRibreau SARL, 3 rue de l\'Aubepine, 85110 Chantonnay, France',
+      ],
+    },
+  ],
+};

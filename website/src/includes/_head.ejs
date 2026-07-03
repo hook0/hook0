@@ -10,10 +10,12 @@
 <!-- Noindex -->
 <% if (locals.pageNoindex) { %><meta name="robots" content="noindex, follow"><% } %>
 
-<!-- SEO Meta Tags -->
+<!-- SEO Meta Tags. Skip the global default on noindex utility pages — those
+templates emit their own page-specific <meta name="description"> in their
+head body, and the default fallback would just create a duplicate tag. -->
 <% if (locals.pageDescription) { %>
 <meta name="description" content="<%= locals.pageDescription %>">
-<% } else { %>
+<% } else if (!locals.pageNoindex) { %>
 <meta name="description" content="<%= locals.seo.defaultDescription %>">
 <% } %>
 
@@ -21,6 +23,28 @@
 <% if (locals.pageCanonical) { %>
 <link rel="canonical" href="<%= locals.seo.siteUrl %><%= locals.pageCanonical %>">
 <% } %>
+
+<!-- hreflang alternates (localized versions). Self-referential link is intentionally
+     omitted: it would duplicate the canonical URL and Parcel rewrites the colliding
+     canonical href into a bundle hash. Cross-language reciprocity + x-default are kept.
+     Bleed defense: pageHreflang from the previously-rendered page can leak into a
+     non-converted page (one mutable `locals` across a Parcel run). If pageCanonical
+     doesn't appear in pageHreflang, the set must have bled — skip emission entirely.
+     Also skip any single entry whose href equals own canonical (homepage x-default
+     case, or future self-referent leak). -->
+<% if (locals.pageHreflang && locals.pageCanonical) {
+     var __curLang = locals.pageLang || 'en';
+     var __own = locals.pageCanonical;
+     var __belongs = locals.pageHreflang.some(function(alt){ return alt.href === __own; });
+     if (__belongs) {
+       locals.pageHreflang.forEach(function(alt){ if (alt.lang !== __curLang && alt.href !== __own) { %>
+<link rel="alternate" hreflang="<%= alt.lang %>" href="<%= locals.seo.siteUrl %><%= alt.href %>">
+<%     } });
+       if (__own !== '/') { %>
+<link rel="alternate" hreflang="x-default" href="<%= locals.seo.siteUrl %>/">
+<%     }
+     }
+} %>
 
 <!-- Open Graph / Facebook -->
 <meta property="og:type" content="<%= locals.pageType || 'website' %>">
@@ -30,20 +54,27 @@
 <% } %>
 <% if (locals.pageTitle) { %>
 <meta property="og:title" content="<%= locals.pageTitle %>">
-<% } else { %>
+<% } else if (!locals.pageNoindex) { %>
 <meta property="og:title" content="<%= locals.seo.defaultTitle %>">
 <% } %>
 <% if (locals.pageDescription) { %>
 <meta property="og:description" content="<%= locals.pageDescription %>">
-<% } else { %>
+<% } else if (!locals.pageNoindex) { %>
 <meta property="og:description" content="<%= locals.seo.defaultDescription %>">
 <% } %>
 <% if (locals.pageImage) { %>
 <meta property="og:image" content="<%= locals.seo.siteUrl %><%= locals.pageImage %>">
-<% } else { %>
+<meta property="og:image:width" content="1920">
+<meta property="og:image:height" content="1920">
+<meta property="og:image:alt" content="<%= locals.pageTitle || locals.seo.defaultTitle %>">
+<% } else if (!locals.pageNoindex) { %>
 <meta property="og:image" content="<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>">
+<meta property="og:image:width" content="1920">
+<meta property="og:image:height" content="1920">
+<meta property="og:image:alt" content="<%= locals.pageTitle || locals.seo.defaultTitle %>">
 <% } %>
-<meta property="og:locale" content="<%= locals.seo.locale %>">
+<% var __localeByLang = { en: 'en_US', fr: 'fr_FR', de: 'de_DE' }; var __pageLang = locals.pageLang || 'en'; %>
+<meta property="og:locale" content="<%= __localeByLang[__pageLang] || locals.seo.locale %>">
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
@@ -51,28 +82,37 @@
 <meta name="twitter:creator" content="<%= locals.seo.twitterHandle %>">
 <% if (locals.pageTitle) { %>
 <meta name="twitter:title" content="<%= locals.pageTitle %>">
-<% } else { %>
+<% } else if (!locals.pageNoindex) { %>
 <meta name="twitter:title" content="<%= locals.seo.defaultTitle %>">
 <% } %>
 <% if (locals.pageDescription) { %>
 <meta name="twitter:description" content="<%= locals.pageDescription %>">
-<% } else { %>
+<% } else if (!locals.pageNoindex) { %>
 <meta name="twitter:description" content="<%= locals.seo.defaultDescription %>">
 <% } %>
 <% if (locals.pageImage) { %>
 <meta name="twitter:image" content="<%= locals.seo.siteUrl %><%= locals.pageImage %>">
-<% } else { %>
+<meta name="twitter:image:alt" content="<%= locals.pageTitle || locals.seo.defaultTitle %>">
+<% } else if (!locals.pageNoindex) { %>
 <meta name="twitter:image" content="<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>">
+<meta name="twitter:image:alt" content="<%= locals.pageTitle || locals.seo.defaultTitle %>">
 <% } %>
 
-<!-- Self-hosted Inter font -->
-<link rel="stylesheet" href="<%= locals.seo.siteUrl %>/fonts/inter.css">
+<!-- Self-hosted Inter font (preload the two woff2 subsets matched by inter.css's
+     unicode-range so the first paint of body text uses Inter, not the fallback.
+     Injected via inline JS at parse time so the URL is host-relative (resolves
+     from the deploy origin: www.hook0.com, Netlify preview, or localhost) —
+     Parcel would otherwise try to resolve `/fonts/...` against the project
+     source tree at build time and fail. The fonts themselves live in static/
+     and ship as-is via parcel-reporter-static-files-copy. Same pattern as the
+     PWA manifest injection below. -->
+<script>(function(){var h=document.head,f=['Inter-latin','Inter-latin-ext'];f.forEach(function(n){var l=document.createElement('link');l.rel='preload';l.as='font';l.type='font/woff2';l.crossOrigin='anonymous';l.href='/fonts/'+n+'.woff2';h.appendChild(l);});var s=document.createElement('link');s.rel='stylesheet';s.href='/fonts/inter.css';h.appendChild(s);})();</script>
 
 <!-- DNS Prefetch for external resources -->
 <link rel="dns-prefetch" href="https://api.producthunt.com">
 <link rel="dns-prefetch" href="https://ghbtns.com">
 
-<% var bp = locals.basePath || '.'; %>
+<% var bp = (typeof basePath !== 'undefined' && basePath) ? basePath : '.'; %>
 <!-- Stylesheet -->
 <link rel='stylesheet' href='<%= bp %>/style.scss'/>
 
@@ -100,17 +140,19 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
 .cookie-banner__text{flex:1;min-width:280px;color:#9ca3af;font-size:0.875rem}
 .cookie-banner__text a{color:#818cf8;text-decoration:underline}
 .cookie-banner__buttons{display:flex;align-items:center;gap:1rem}
-.cookie-banner__btn--decline{background:none;border:none;color:#6b7280;font-size:0.875rem;cursor:pointer;text-decoration:underline;padding:0.5rem}
-.cookie-banner__btn--decline:hover{color:#9ca3af}
-.cookie-banner__btn--accept{background:#22c55e;color:#fff;border:none;padding:0.75rem 1.5rem;border-radius:0.75rem;font-weight:600;font-size:0.875rem;cursor:pointer;box-shadow:0 0 20px rgba(34,197,94,0.4);transition:all 0.2s}
-.cookie-banner__btn--accept:hover{background:#16a34a;box-shadow:0 0 30px rgba(34,197,94,0.6);transform:scale(1.02)}
+.cookie-banner__btn--decline,.cookie-banner__btn--accept{padding:0.625rem 1.25rem;border-radius:0.5rem;font-weight:600;font-size:0.875rem;cursor:pointer;transition:all 0.2s;min-width:110px;background:transparent;border-style:solid;border-width:1px}
+.cookie-banner__btn--decline{border-color:#6b7280;color:#d1d5db}
+.cookie-banner__btn--decline:hover{background:rgba(107,114,128,0.15);border-color:#9ca3af;color:#fff}
+.cookie-banner__btn--accept{border-color:#22c55e;color:#4ade80}
+.cookie-banner__btn--accept:hover{background:rgba(34,197,94,0.15);border-color:#16a34a;color:#fff}
 </style>
-<div id="cookie-consent-banner" class="cookie-banner" role="dialog" aria-label="Cookie consent">
+<% var __cb = (locals.chrome && locals.chrome.cookieBanner) || { ariaLabel: 'Cookie consent', text: 'We use cookies on Hook0.com and its subdomains (including app.hook0.com) to analyze site usage, measure advertising performance, and improve your experience.', privacyLink: 'Privacy Policy', privacyHref: '/privacy-policy', decline: 'Decline', accept: 'Accept' }; %>
+<div id="cookie-consent-banner" class="cookie-banner" role="dialog" aria-label="<%= __cb.ariaLabel %>">
     <div class="cookie-banner__inner">
-        <div class="cookie-banner__text">We use cookies on Hook0.com and its subdomains (including app.hook0.com) to analyze site usage, measure advertising performance, and improve your experience. <a href="/privacy-policy">Privacy Policy</a></div>
+        <div class="cookie-banner__text"><%= __cb.text %> <a href="<%= __cb.privacyHref %>"><%= __cb.privacyLink %></a></div>
         <div class="cookie-banner__buttons">
-            <button type="button" class="cookie-banner__btn--decline" onclick="window.hook0Consent.deny()">Decline</button>
-            <button type="button" class="cookie-banner__btn--accept" onclick="window.hook0Consent.accept()">Accept</button>
+            <button type="button" class="cookie-banner__btn--decline" onclick="window.hook0Consent.deny()"><%= __cb.decline %></button>
+            <button type="button" class="cookie-banner__btn--accept" onclick="window.hook0Consent.accept()"><%= __cb.accept %></button>
         </div>
     </div>
 </div>
@@ -299,6 +341,7 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
   "@context": "https://schema.org",
   "@type": "Organization",
   "@id": "<%= locals.seo.siteUrl %>/#organization",
+  "inLanguage": "<%= locals.pageLang || 'en' %>",
   "name": "Hook0",
   "alternateName": ["hook0", "Hook Zero"],
   "legalName": "FGRibreau SARL",
@@ -310,7 +353,7 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
     "height": 256
   },
   "image": "<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>",
-  "description": "<%= locals.seo.defaultDescription %>",
+  "description": <%- JSON.stringify((locals.chrome && locals.chrome.schema && locals.chrome.schema.organizationDescription) ? locals.chrome.schema.organizationDescription : locals.seo.defaultDescription) %>,
   "foundingDate": "2021-01-01",
   "founders": [
     {
@@ -375,7 +418,7 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
       "@type": "ContactPoint",
       "email": "support@hook0.com",
       "contactType": "customer support",
-      "availableLanguage": ["en", "fr"],
+      "availableLanguage": ["en", "fr", "de"],
       "telephone": "+33-2-52-43-10-53"
     },
     {
@@ -392,34 +435,36 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "@id": "<%= locals.seo.siteUrl %>/#software",
+  "inLanguage": "<%= locals.pageLang || 'en' %>",
   "name": "Hook0",
   "alternateName": ["hook0", "Hook Zero"],
   "applicationCategory": "DeveloperApplication",
-  "applicationSubCategory": "Webhook delivery platform",
+  "applicationSubCategory": <%- JSON.stringify((locals.chrome && locals.chrome.schema && locals.chrome.schema.applicationSubCategory) ? locals.chrome.schema.applicationSubCategory : 'Webhook delivery platform') %>,
   "operatingSystem": "Linux, macOS, Windows, Cross-platform (cloud)",
   "url": "<%= locals.seo.siteUrl %>",
-  "description": "<%= locals.seo.defaultDescription %>",
+  "description": <%- JSON.stringify((locals.chrome && locals.chrome.schema && locals.chrome.schema.applicationDescription) ? locals.chrome.schema.applicationDescription : locals.seo.defaultDescription) %>,
   "image": "<%= locals.seo.siteUrl %><%= locals.seo.defaultImage %>",
   "softwareVersion": "stable",
   "license": "https://spdx.org/licenses/SSPL-1.0.html",
   "codeRepository": "<%= locals.social.github.repoHref %>",
   "programmingLanguage": ["Rust", "TypeScript"],
+<% var __schemaChrome = (locals.chrome && locals.chrome.schema) ? locals.chrome.schema : { offerFreeName: 'Free', offerFreeCategory: 'Free Tier', offerFreeDescription: 'Free forever, no credit card required. Self-host or use Hook0 Cloud.', offerSelfHostedName: 'Self-hosted', offerSelfHostedCategory: 'Source-available', offerSelfHostedDescription: 'Source-available under SSPL-1.0. Run on your own infrastructure.' }; %>
   "offers": [
     {
       "@type": "Offer",
-      "name": "Free",
+      "name": <%- JSON.stringify(__schemaChrome.offerFreeName) %>,
       "price": "0",
       "priceCurrency": "EUR",
-      "category": "Free Tier",
-      "description": "Free forever, no credit card required. Self-host or use Hook0 Cloud."
+      "category": <%- JSON.stringify(__schemaChrome.offerFreeCategory) %>,
+      "description": <%- JSON.stringify(__schemaChrome.offerFreeDescription) %>
     },
     {
       "@type": "Offer",
-      "name": "Self-hosted",
+      "name": <%- JSON.stringify(__schemaChrome.offerSelfHostedName) %>,
       "price": "0",
       "priceCurrency": "EUR",
-      "category": "Open Source",
-      "description": "Source-available under SSPL-1.0. Run on your own infrastructure."
+      "category": <%- JSON.stringify(__schemaChrome.offerSelfHostedCategory) %>,
+      "description": <%- JSON.stringify(__schemaChrome.offerSelfHostedDescription) %>
     }
   ],
   "publisher": {
@@ -445,9 +490,35 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
   "@id": "<%= locals.seo.siteUrl %><%= locals.pageCanonical %>#webpage",
   "url": "<%= locals.seo.siteUrl %><%= locals.pageCanonical %>",
   "name": "<%= locals.pageTitle || locals.seo.defaultTitle %>",
+  "inLanguage": "<%= locals.pageLang || 'en' %>",
   "dateModified": "<%= locals.pageModified %>",
   "isPartOf": { "@id": "<%= locals.seo.siteUrl %>/#organization" },
   "publisher": { "@id": "<%= locals.seo.siteUrl %>/#organization" }
+}
+</script>
+<% } %>
+
+<!-- WebSite + SearchAction (locale homepages). The sitelinks search box
+     target is the docs search, which works for any locale visitor. -->
+<% if (locals.pageCanonical && (locals.pageCanonical === '/' || /^\/[a-z]{2}\/$/.test(locals.pageCanonical))) { %>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "<%= locals.seo.siteUrl %><%= locals.pageCanonical %>#website",
+  "url": "<%= locals.seo.siteUrl %><%= locals.pageCanonical %>",
+  "name": "Hook0",
+  "alternateName": ["hook0", "Hook Zero"],
+  "inLanguage": "<%= locals.pageLang || 'en' %>",
+  "publisher": { "@id": "<%= locals.seo.siteUrl %>/#organization" },
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "https://documentation.hook0.com/search?q={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  }
 }
 </script>
 <% } %>
@@ -480,25 +551,24 @@ function loadCrisp(){if(window.CRISP_WEBSITE_ID)return;var id=document.querySele
 <!-- Scroll Animation Script -->
 <script defer>
 document.addEventListener('DOMContentLoaded', function() {
-    // Scroll-triggered animations — respect the user's reduced-motion setting.
-    var animatedEls = document.querySelectorAll('.animate-on-scroll');
-    var prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Intersection Observer for scroll-triggered animations
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
 
-    if (prefersReducedMotion) {
-        // No motion: reveal everything immediately so nothing stays hidden.
-        animatedEls.forEach(function(el) { el.classList.add('is-visible'); });
-    } else {
-        var observer = new IntersectionObserver(function(entries) {
-            entries.forEach(function(entry) {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('is-visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
 
-        animatedEls.forEach(function(el) { observer.observe(el); });
-    }
+    document.querySelectorAll('.animate-on-scroll').forEach(function(el) {
+        observer.observe(el);
+    });
 
     // Header scroll effect
     const header = document.getElementById('main-header');
