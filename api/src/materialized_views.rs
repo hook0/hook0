@@ -7,6 +7,8 @@ use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
 use tracing::{debug, error, trace};
 
+use crate::humanize::humanize_duration;
+
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(10);
 
 pub async fn periodically_refresh_materialized_views(
@@ -53,8 +55,8 @@ async fn refresh_materialized_views(db: &PgPool, timeout: Duration) -> Result<()
             cx.span().add_event("events_per_day.vacuumed", Vec::new());
 
             debug!(
-                "Materialized view event.events_per_day was refreshed in {:?}",
-                start.elapsed()
+                "Materialized view event.events_per_day was refreshed in {}",
+                humanize_duration(start.elapsed())
             );
             Ok(())
         })

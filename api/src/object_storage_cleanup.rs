@@ -12,10 +12,12 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
+use thousands::Separable;
 use tracing::{error, info, trace, warn};
 use uuid::Uuid;
 
 use crate::ObjectStorageConfig;
+use crate::humanize::humanize_duration;
 use crate::opentelemetry::report_cleaned_up_objects;
 use hook0_sentry_integration::log_object_storage_error_with_context;
 
@@ -138,10 +140,13 @@ async fn delete_dangling_objects_from_object_storage(
                         error_chain = DisplayErrorContext(e).to_string(),
                     );
                 })?;
-            let prefixes_count = applications_list.common_prefixes().len();
             trace!(
-                "Listed applications page {page}: {prefixes_count} prefixes in {:?}",
-                page_start.elapsed()
+                "Listed applications page {page}: {} prefixes in {}",
+                applications_list
+                    .common_prefixes()
+                    .len()
+                    .separate_with_commas(),
+                humanize_duration(page_start.elapsed()),
             );
             page += 1;
             applications.append(
@@ -245,7 +250,10 @@ async fn delete_dangling_objects_from_object_storage(
 
     let failed_applications = failed_applications.load(Ordering::Relaxed);
     if failed_applications > 0 {
-        warn!("Skipped {failed_applications} applications due to errors");
+        warn!(
+            "Skipped {} applications due to errors",
+            failed_applications.separate_with_commas(),
+        );
     }
 
     if !prefixes_to_delete.is_empty() {
@@ -279,15 +287,16 @@ async fn delete_dangling_objects_from_object_storage(
 
         let total_deleted_objects = total_deleted_objects.load(Ordering::Relaxed);
         info!(
-            "Cleaned up {total_deleted_objects} dangling objects from {} object storage prefixes in {:?}",
-            prefixes_to_delete.len(),
-            start.elapsed()
+            "Cleaned up {} dangling objects from {} object storage prefixes in {}",
+            total_deleted_objects.separate_with_commas(),
+            prefixes_to_delete.len().separate_with_commas(),
+            humanize_duration(start.elapsed()),
         );
     } else {
         info!(
-            "Could clean up dangling objects from {} object storage prefixes but actual cleaning is not enabled (scan done in {:?})",
-            prefixes_to_delete.len(),
-            start.elapsed()
+            "Could clean up dangling objects from {} object storage prefixes but actual cleaning is not enabled (scan done in {})",
+            prefixes_to_delete.len().separate_with_commas(),
+            humanize_duration(start.elapsed()),
         )
     }
 
@@ -336,10 +345,10 @@ async fn list_prefixes_for_kind(
             .set_continuation_token(if ct.is_empty() { None } else { Some(ct) })
             .send()
             .await?;
-        let prefixes_count = dates_list.common_prefixes().len();
         trace!(
-            "Listed {kind} date prefixes for {application_id} page {page}: {prefixes_count} prefixes in {:?}",
-            page_start.elapsed()
+            "Listed {kind} date prefixes for {application_id} page {page}: {} prefixes in {}",
+            dates_list.common_prefixes().len().separate_with_commas(),
+            humanize_duration(page_start.elapsed()),
         );
         page += 1;
         dates.append(
@@ -373,6 +382,7 @@ async fn delete_prefix_objects(client: &Client, bucket: &str, prefix: &str) -> a
 
     while let Some(ct) = continuation_token {
         let page_start = Instant::now();
+        let mut page_deleted = 0u64;
         let objects = client
             .list_objects_v2()
             .bucket(bucket)
@@ -388,12 +398,6 @@ async fn delete_prefix_objects(client: &Client, bucket: &str, prefix: &str) -> a
                     prefix = prefix,
                 );
             })?;
-        let contents_count = objects.contents().len();
-        trace!(
-            "Listed objects to delete for prefix '{prefix}' page {page}: {contents_count} objects in {:?}",
-            page_start.elapsed()
-        );
-        page += 1;
         let delete = {
             let mut d = Delete::builder();
             for oi in objects
@@ -422,6 +426,7 @@ async fn delete_prefix_objects(client: &Client, bucket: &str, prefix: &str) -> a
                 })?;
 
             let actual_deleted: u64 = resp.deleted().len().try_into().unwrap_or(0);
+            page_deleted = actual_deleted;
             deleted_objects_for_current_prefix += actual_deleted;
             report_cleaned_up_objects(actual_deleted);
 
@@ -441,11 +446,21 @@ async fn delete_prefix_objects(client: &Client, bucket: &str, prefix: &str) -> a
                 }
             }
         };
+        trace!(
+            "Deleted {}/{} objects for prefix '{prefix}' page {page} in {}",
+            page_deleted.separate_with_commas(),
+            objects.contents().len().separate_with_commas(),
+            humanize_duration(page_start.elapsed()),
+        );
+        page += 1;
         continuation_token = objects.next_continuation_token().map(|ct| ct.to_owned());
     }
 
     if deleted_objects_for_current_prefix > 0 {
-        trace!("Deleted {deleted_objects_for_current_prefix} objects for prefix '{prefix}'");
+        trace!(
+            "Deleted {} objects for prefix '{prefix}'",
+            deleted_objects_for_current_prefix.separate_with_commas(),
+        );
     }
 
     Ok(deleted_objects_for_current_prefix)

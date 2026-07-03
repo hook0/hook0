@@ -22,6 +22,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use strum::{EnumString, VariantNames};
+use thousands::Separable;
 use tokio::signal::unix::{SignalKind, signal};
 use tokio::sync::mpsc::channel;
 use tokio::task::JoinSet;
@@ -722,12 +723,11 @@ async fn main() -> anyhow::Result<()> {
                     )
                     .await
                     {
-                        Ok(c) => {
-                            info!(
-                                ?mode,
-                                "Loaded {c} waiting request attempts from database into Pulsar"
-                            )
-                        }
+                        Ok(c) => info!(
+                            ?mode,
+                            "Loaded {} waiting request attempts from database into Pulsar",
+                            c.separate_with_commas(),
+                        ),
                         Err(e) => error!(
                             ?mode,
                             "Error while loading waiting request attempts from database into Pulsar: {e}"

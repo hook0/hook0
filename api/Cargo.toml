@@ -38,6 +38,7 @@ humantime = "2.4.0"
 ipnetwork = "0.21.1"
 lazy_static = "1.5.0"
 lettre = { version = "0.11.22", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls", "aws-lc-rs", "rustls-platform-verifier"] }
+thousands = "0.2.0"
 tracing = "0.1.44"
 tracing-actix-web = "0.7.22"
 mrml = "6.0.1"
