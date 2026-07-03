@@ -25,6 +25,7 @@ hook0-protobuf = { path = "../protobuf" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 humantime = "2.4.0"
 itertools = "0.15.0"
+thousands = "0.2.0"
 tracing = "0.1.44"
 opentelemetry = { version = "0.32.0", default-features = false, features = ["trace", "metrics"] }
 opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls"] }

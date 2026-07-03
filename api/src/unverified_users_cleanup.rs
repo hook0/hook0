@@ -3,8 +3,11 @@ use chrono::TimeDelta;
 use sqlx::postgres::types::PgInterval;
 use sqlx::{Acquire, PgPool, Postgres, query};
 use std::time::{Duration, Instant};
+use thousands::Separable;
 use tokio::sync::Semaphore;
 use tracing::{debug, error, info, trace};
+
+use crate::humanize::humanize_duration;
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(40);
 
@@ -58,14 +61,18 @@ async fn clean_up_unverified_users(
         }
 
         info!(
-            "Cleaned up {total_deleted_unverified_users} unverified users and {total_deleted_unreachable_organizations} unreachable organizations in {:?}",
-            start.elapsed()
+            "Cleaned up {} unverified users and {} unreachable organizations in {}",
+            total_deleted_unverified_users.separate_with_commas(),
+            total_deleted_unreachable_organizations.separate_with_commas(),
+            humanize_duration(start.elapsed()),
         );
     } else {
         tx.rollback().await?;
         info!(
-            "Could clean up {total_deleted_unverified_users} unverified users and {total_deleted_unreachable_organizations} unreachable organizations in {:?} (but transaction was rolled back)",
-            start.elapsed()
+            "Could clean up {} unverified users and {} unreachable organizations in {} (but transaction was rolled back)",
+            total_deleted_unverified_users.separate_with_commas(),
+            total_deleted_unreachable_organizations.separate_with_commas(),
+            humanize_duration(start.elapsed()),
         );
     }
     Ok(())

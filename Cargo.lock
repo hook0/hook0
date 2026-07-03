@@ -2877,6 +2877,7 @@ dependencies = [
  "strum 0.28.0",
  "test-log",
  "thiserror 2.0.18",
+ "thousands",
  "tikv-jemallocator",
  "tokio",
  "tracing",
@@ -2993,6 +2994,7 @@ dependencies = [
  "sha2 0.11.0",
  "sqlx",
  "strum 0.28.0",
+ "thousands",
  "tokio",
  "tokio-util",
  "tracing",
@@ -7313,6 +7315,12 @@ dependencies = [
  "quote",
  "syn 2.0.118",
 ]
+
+[[package]]
+name = "thousands"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bf63baf9f5039dadc247375c29eb13706706cfde997d0330d05aa63a77d8820"
 
 [[package]]
 name = "thread_local"

@@ -2,8 +2,11 @@ use actix_web::rt::time::sleep;
 use sqlx::postgres::types::PgInterval;
 use sqlx::{Acquire, PgPool, Postgres, query};
 use std::time::{Duration, Instant};
+use thousands::Separable;
 use tokio::sync::Semaphore;
 use tracing::{debug, error, info, trace};
+
+use crate::humanize::humanize_duration;
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(20);
 
@@ -52,8 +55,9 @@ async fn clean_up_soft_deleted_applications(
     }
 
     info!(
-        "Cleaned up {total_deleted_soft_deleted_applications} deleted applications in {:?}",
-        start.elapsed()
+        "Cleaned up {} deleted applications in {}",
+        total_deleted_soft_deleted_applications.separate_with_commas(),
+        humanize_duration(start.elapsed()),
     );
     Ok(())
 }

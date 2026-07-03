@@ -1,8 +1,11 @@
 use actix_web::rt::time::sleep;
 use sqlx::{Acquire, PgPool, Postgres, query};
 use std::time::{Duration, Instant};
+use thousands::Separable;
 use tokio::sync::Semaphore;
 use tracing::{debug, error, info, trace};
+
+use crate::humanize::humanize_duration;
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(30);
 
@@ -67,14 +70,18 @@ async fn clean_up_old_events_and_responses(
         }
 
         info!(
-            "Cleaned up {total_deleted_events} old events and {total_dangling_responses} dangling responses in {:?}",
-            start.elapsed()
+            "Cleaned up {} old events and {} dangling responses in {}",
+            total_deleted_events.separate_with_commas(),
+            total_dangling_responses.separate_with_commas(),
+            humanize_duration(start.elapsed()),
         );
     } else {
         tx.rollback().await?;
         info!(
-            "Could clean up {total_deleted_events} old events and {total_dangling_responses} dangling responses in {:?} (but transaction was rolled back)",
-            start.elapsed()
+            "Could clean up {} old events and {} dangling responses in {} (but transaction was rolled back)",
+            total_deleted_events.separate_with_commas(),
+            total_dangling_responses.separate_with_commas(),
+            humanize_duration(start.elapsed()),
         );
     }
 
