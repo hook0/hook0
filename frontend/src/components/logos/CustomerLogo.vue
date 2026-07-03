@@ -9,12 +9,7 @@
  * - Extracting to separate files would add 6 components with no reuse benefit
  */
 export type CustomerLogoVariant =
-  | 'france-nuage'
-  | 'woodwing'
-  | 'optery'
-  | 'okoora'
-  | 'icona'
-  | 'active-ants';
+  'france-nuage' | 'woodwing' | 'optery' | 'okoora' | 'icona' | 'active-ants';
 
 defineProps<{
   variant: CustomerLogoVariant;
