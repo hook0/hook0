@@ -100,11 +100,10 @@ pub fn get_prompt(
                  then use `create_subscription` to create the webhook.",
             );
 
-            Ok(GetPromptResult::new(vec![PromptMessage::new_text(
-                Role::User,
-                content,
-            )])
-            .with_description("Create a webhook subscription step by step"))
+            Ok(
+                GetPromptResult::new(vec![PromptMessage::new_text(Role::User, content)])
+                    .with_description("Create a webhook subscription step by step"),
+            )
         }
 
         "debug_event_delivery" => {
@@ -150,11 +149,10 @@ pub fn get_prompt(
                  Use `retry_delivery` with a request_attempt_id to retry a failed delivery.",
             );
 
-            Ok(GetPromptResult::new(vec![PromptMessage::new_text(
-                Role::User,
-                content,
-            )])
-            .with_description("Debug webhook delivery issues"))
+            Ok(
+                GetPromptResult::new(vec![PromptMessage::new_text(Role::User, content)])
+                    .with_description("Debug webhook delivery issues"),
+            )
         }
 
         "setup_application" => {
@@ -207,11 +205,10 @@ pub fn get_prompt(
                  Use `ingest_event` to send a test event and verify delivery.",
             );
 
-            Ok(GetPromptResult::new(vec![PromptMessage::new_text(
-                Role::User,
-                content,
-            )])
-            .with_description("Set up a new Hook0 application"))
+            Ok(
+                GetPromptResult::new(vec![PromptMessage::new_text(Role::User, content)])
+                    .with_description("Set up a new Hook0 application"),
+            )
         }
 
         _ => Err(McpError::invalid_params(
