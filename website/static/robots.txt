@@ -9,5 +9,81 @@ Disallow: /subscription-success
 Disallow: /subscription-error
 Disallow: /404
 
+# Explicit allow for AI answer engines (AEO).
+# Hook0 wants to be discoverable in ChatGPT, Claude, Perplexity, Gemini,
+# Copilot answers. Listed explicitly so future restrictive defaults don't
+# silently exclude these crawlers. See also /llms.txt.
+User-agent: GPTBot
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
+User-agent: CCBot
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
+User-agent: Bytespider
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
+User-agent: meta-externalagent
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
+User-agent: cohere-ai
+Allow: /
+Disallow: /subscription-success
+Disallow: /subscription-error
+Disallow: /404
+
 # Sitemap location
 Sitemap: https://www.hook0.com/sitemap.xml

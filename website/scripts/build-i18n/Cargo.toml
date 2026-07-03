@@ -1,0 +1,14 @@
+# Standalone crate — not part of the repo-root Rust workspace.
+[workspace]
+
+[package]
+name = "build-i18n"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "build-i18n"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 2

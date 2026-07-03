@@ -1,3 +1,8 @@
+<%
+var __c = (locals.chrome && locals.chrome.includes && locals.chrome.includes.features) ? locals.chrome.includes.features : null;
+// locals.features is shadowed by chrome.features when getPageLocals runs;
+// data.js EN base remains the fallback for legacy non-converted pages.
+%>
 <a name="features" id="features"></a>
 <section class="relative bg-surface-primary py-24 sm:py-32 overflow-hidden">
     <!-- Background Effects -->
@@ -8,10 +13,10 @@
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Section Header -->
         <div class="section__header animate-on-scroll">
-            <span class="section__eyebrow">Features</span>
-            <h2 class="section__title">Out-Of-The-Box Webhooks</h2>
+            <span class="section__eyebrow"><%= __c ? __c.eyebrow : 'Features' %></span>
+            <h2 class="section__title"><%= __c ? __c.h2 : 'Out-Of-The-Box Webhooks' %></h2>
             <p class="section__description">
-                Everything you need to build a state-of-the-art webhooks solution in minutes
+                <%= __c ? __c.sub : 'Everything you need to build a state-of-the-art webhooks solution in minutes' %>
             </p>
         </div>
 
@@ -38,16 +43,16 @@
             <div class="lg:grid lg:grid-cols-12 lg:gap-16 items-start">
                 <!-- Left Column - Header -->
                 <div class="lg:col-span-4 animate-on-scroll animate-on-scroll--left">
-                    <span class="section__eyebrow">Complete Solution</span>
+                    <span class="section__eyebrow"><%= __c ? __c.completeSolutionEyebrow : 'Complete Solution' %></span>
                     <h3 class="text-display font-bold text-white mt-4">
-                        All-in-one platform
+                        <%= __c ? __c.completeSolutionH3 : 'All-in-one platform' %>
                     </h3>
                     <p class="mt-4 text-body-lg text-gray-400">
-                        Build a state-of-the-art webhooks solution in minutes using Hook0
+                        <%= __c ? __c.completeSolutionSub : 'Build a state-of-the-art webhooks solution in minutes using Hook0' %>
                     </p>
                     <div class="mt-8">
                         <a href="<%= locals.meta.doc_guides %>" class="btn btn--secondary">
-                            Explore all features
+                            <%= __c ? __c.exploreAllFeaturesCta : 'Explore all features' %>
                             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                             </svg>
@@ -79,7 +84,7 @@
                                     <h4 class="text-base font-medium text-white group-hover:text-indigo-300 transition-colors">
                                         <%= title %>
                                         <% if (wip) { %>
-                                            <span class="ml-2 text-xs font-normal text-yellow-500">(Coming soon)</span>
+                                            <span class="ml-2 text-xs font-normal text-yellow-500"><%= __c ? __c.comingSoonBadge : '(Coming soon)' %></span>
                                         <% } %>
                                     </h4>
                                     <p class="mt-1 text-sm text-gray-500">

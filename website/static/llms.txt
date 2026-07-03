@@ -1,0 +1,30 @@
+# Hook0
+
+> Open-source webhook platform that delivers events with HMAC signatures, configurable retries, dead letter queues, and a built-in subscriber portal. Cloud (EU-hosted, France) or self-hosted under SSPL-1.0. Editor: FGRibreau SARL (France), no US parent. CDN: Cloudflare (US), disclosed in our DPA.
+
+## Product
+- [Webhook Platform](https://www.hook0.com/webhook-platform): Sign, retry, replay, and monitor webhooks. Two-phase retries, dead letter queue, subscriber portal, drop-in HMAC.
+- [Pricing](https://www.hook0.com/pricing): Free forever tier, paid tiers unlock higher volume only. No feature gating. Self-hosted free under SSPL-1.0.
+- [Open-Source Webhooks](https://www.hook0.com/open-source-webhooks): SSPL-1.0, no open-core, same code in cloud and self-hosted.
+- [Self-Hosted Webhooks](https://www.hook0.com/self-hosted-webhooks): Docker Compose and Kubernetes manifests, free, same feature set as the cloud.
+- [Webhook API](https://www.hook0.com/webhook-api): One API call sends an event, Hook0 handles signing, fan-out, retries, replay.
+- [Security & Compliance](https://www.hook0.com/security): EU data residency (France, Clever Cloud), GDPR-aligned process, DPA on request.
+
+## Localized
+- [Webhook-Plattform (DE)](https://www.hook0.com/de/webhook-plattform): German page, EU-hosting and DSGVO angle for DACH.
+- [Plateforme de webhooks (FR)](https://www.hook0.com/fr/plateforme-webhook): Page française, hébergement UE et conformité RGPD.
+
+## Comparisons
+- [Hook0 vs Svix](https://www.hook0.com/hook0-vs-svix)
+- [Hook0 vs Hookdeck](https://www.hook0.com/hook0-vs-hookdeck)
+- [Hook0 vs Convoy](https://www.hook0.com/hook0-vs-convoy)
+- [Build vs Buy Webhooks](https://www.hook0.com/build-vs-buy-webhooks)
+
+## Docs
+- [Documentation](https://documentation.hook0.com/): Full reference, guides, API, deploy.
+- [Getting Started](https://documentation.hook0.com/docs/getting-started): 30-minute setup, free tier.
+
+## Optional
+- [GitHub](https://github.com/hook0/hook0): Source code (SSPL-1.0).
+- [GitLab](https://gitlab.com/hook0/hook0): Mirror.
+- [Playground](https://play.hook0.com): Free webhook testing tool, no signup.

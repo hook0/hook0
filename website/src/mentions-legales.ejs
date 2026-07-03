@@ -1,12 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
+<%
+if (locals.i18nHelpers) { Object.assign(locals, locals.i18nHelpers.getPageLocals('mentions-legales', locals.lang || 'en')); }
+var t = locals.t;
+%><!DOCTYPE html>
+<html lang="<%= locals.pageLang %>">
 <head>
-    <title>Hook0 - Legal Notice</title>
-    <%
-    locals.pageTitle = 'Hook0 - Legal Notice';
-    locals.pageDescription = 'Legal notice for Hook0 - Publisher information, hosting provider, and legal information required under French law (LCEN Article 6).';
-    locals.pageCanonical = '/mentions-legales';
-    %>
+    <title><%= locals.pageTitle %></title>
     <%- include('./includes/_head.ejs') %>
 </head>
 <body>
@@ -20,12 +18,12 @@
     <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
 
     <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <span class="section__eyebrow">Legal</span>
+        <span class="section__eyebrow"><%= t.hero.eyebrow %></span>
         <h1 class="mt-4 text-display-xl text-white">
-            Legal Notice
+            <%= t.hero.h1 %>
         </h1>
         <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
-            Legal information required under Article 6 of the French Law on Confidence in the Digital Economy (LCEN).
+            <%= t.hero.subtitle %>
         </p>
     </div>
 </section>
@@ -44,100 +42,97 @@
 
                 <!-- Publisher Information -->
                 <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white mb-4">Publisher Information</h2>
+                    <h2 class="text-2xl font-bold text-white mb-4"><%= t.publisher.h2 %></h2>
                     <p class="text-gray-300 leading-relaxed">
-                        This website is published by:
+                        <%= t.publisher.intro %>
                     </p>
                     <ul class="text-gray-300 space-y-1 mt-4">
-                        <li><strong class="text-white">Company name:</strong> FGRibreau SARL</li>
-                        <li><strong class="text-white">Legal form:</strong> Société à Responsabilité Limitée (SARL)</li>
-                        <li><strong class="text-white">Share capital:</strong> 2,000 EUR</li>
-                        <li><strong class="text-white">Registered office:</strong> 3 rue de l'Aubépine, 85110 Chantonnay, France</li>
-                        <li><strong class="text-white">RCS:</strong> La Roche-sur-Yon 850 824 350</li>
-                        <li><strong class="text-white">SIRET:</strong> 850 824 350 00019</li>
-                        <li><strong class="text-white">SIREN:</strong> 850 824 350</li>
-                        <li><strong class="text-white">EU VAT number:</strong> FR27850824350</li>
-                        <li><strong class="text-white">Phone:</strong> +33 2 52 43 10 53</li>
+                        <% t.publisher.rows.forEach(function (row) { %>
+                            <li><strong class="text-white"><%= row.label %>:</strong> <%= row.value %></li>
+                        <% }) %>
                     </ul>
                 </div>
 
                 <!-- Publication Director -->
                 <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white mb-4">Publication Director</h2>
+                    <h2 class="text-2xl font-bold text-white mb-4"><%= t.director.h2 %></h2>
                     <p class="text-gray-300 leading-relaxed">
-                        The publication director of this website is <strong class="text-white">David Sferruzza</strong>.
+                        <%- t.director.bodyHtml %>
                     </p>
                 </div>
 
                 <!-- Hosting Provider -->
                 <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white mb-4">Hosting Provider</h2>
+                    <h2 class="text-2xl font-bold text-white mb-4"><%= t.hosting.h2 %></h2>
                     <p class="text-gray-300 leading-relaxed">
-                        The Hook0 application and its data are hosted by:
+                        <%= t.hosting.intro %>
                     </p>
                     <ul class="text-gray-300 space-y-1 mt-4">
-                        <li><strong class="text-white">Company name:</strong> Clever Cloud SAS</li>
-                        <li><strong class="text-white">Address:</strong> 3 rue de l'Allier, 44000 Nantes, France</li>
+                        <% t.hosting.rows.forEach(function (row) { %>
+                            <li><strong class="text-white"><%= row.label %>:</strong> <%= row.value %></li>
+                        <% }) %>
                     </ul>
                 </div>
 
                 <!-- CDN Provider -->
                 <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white mb-4">CDN and DNS Provider</h2>
+                    <h2 class="text-2xl font-bold text-white mb-4"><%= t.cdn.h2 %></h2>
                     <p class="text-gray-300 leading-relaxed">
-                        DNS resolution and content delivery are provided by:
+                        <%= t.cdn.intro %>
                     </p>
                     <ul class="text-gray-300 space-y-1 mt-4">
-                        <li><strong class="text-white">Company name:</strong> Cloudflare, Inc.</li>
-                        <li><strong class="text-white">Address:</strong> 101 Townsend St, San Francisco, CA 94107, USA</li>
+                        <% t.cdn.rows.forEach(function (row) { %>
+                            <li><strong class="text-white"><%= row.label %>:</strong> <%= row.value %></li>
+                        <% }) %>
                     </ul>
                 </div>
 
                 <!-- Contact -->
                 <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white mb-4">Contact</h2>
+                    <h2 class="text-2xl font-bold text-white mb-4"><%= t.contact.h2 %></h2>
                     <p class="text-gray-300 leading-relaxed">
-                        For any inquiry regarding this website or its content:
+                        <%= t.contact.intro %>
                     </p>
                     <ul class="text-gray-300 space-y-1 mt-4">
-                        <li><strong class="text-white">General support:</strong> <a href="mailto:support@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">support@hook0.com</a></li>
-                        <li><strong class="text-white">Legal inquiries:</strong> <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a></li>
+                        <% t.contact.rows.forEach(function (row) { %>
+                            <li><strong class="text-white"><%= row.label %>:</strong> <a href="mailto:<%= row.email %>" class="text-green-400 hover:text-green-300 transition-colors"><%= row.emailLabel %></a></li>
+                        <% }) %>
                     </ul>
                 </div>
 
                 <!-- Intellectual Property -->
                 <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white mb-4">Intellectual Property</h2>
+                    <h2 class="text-2xl font-bold text-white mb-4"><%= t.ip.h2 %></h2>
                     <p class="text-gray-300 leading-relaxed">
-                        All content published on this website — including but not limited to text, graphics, logos, icons, images, and software — is the exclusive property of FGRibreau SARL or its content suppliers and is protected by applicable French and international intellectual property laws.
+                        <%= t.ip.p1 %>
                     </p>
                     <p class="text-gray-300 leading-relaxed mt-4">
-                        Any reproduction, distribution, modification, or use of these materials without prior written consent from FGRibreau SARL is strictly prohibited.
+                        <%= t.ip.p2 %>
                     </p>
                     <p class="text-gray-300 leading-relaxed mt-4">
-                        The Hook0 open-source software is distributed under its own license, available in the project repository.
+                        <%= t.ip.p3 %>
                     </p>
                 </div>
 
                 <!-- Personal Data -->
                 <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white mb-4">Personal Data</h2>
+                    <h2 class="text-2xl font-bold text-white mb-4"><%= t.personalData.h2 %></h2>
                     <p class="text-gray-300 leading-relaxed">
-                        FGRibreau SARL processes personal data in accordance with applicable French and European regulations, including Regulation (EU) 2016/679 (GDPR).
+                        <%= t.personalData.p1 %>
                     </p>
                     <p class="text-gray-300 leading-relaxed mt-4">
-                        For full details on how your personal data is collected, processed, and protected, please consult our <a href="/privacy-policy" class="text-green-400 hover:text-green-300 transition-colors">Privacy Policy</a>.
+                        <%- t.personalData.p2Html %>
                     </p>
                 </div>
 
                 <!-- Applicable Law -->
                 <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white mb-4">Applicable Law and Jurisdiction</h2>
+                    <h2 class="text-2xl font-bold text-white mb-4"><%= t.law.h2 %></h2>
                     <p class="text-gray-300 leading-relaxed">
-                        This legal notice and any dispute arising from use of this website are governed by French law.
+                        <%= t.law.p1 %>
                     </p>
                     <p class="text-gray-300 leading-relaxed mt-4">
-                        In the absence of an amicable resolution, any dispute shall be submitted to the exclusive jurisdiction of the courts of Nantes, France.
+                        <%= t.law.p2 %>
                     </p>
                 </div>
 
