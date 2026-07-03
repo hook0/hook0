@@ -9,9 +9,9 @@ use crate::error::{McpError, McpErrorExt};
 use crate::prompts;
 use rmcp::model::{
     CallToolRequestParams, CallToolResult, ContentBlock, GetPromptRequestParams, GetPromptResult,
-    Implementation, ListPromptsResult, ListResourcesResult, ListToolsResult, PaginatedRequestParams,
-    ProtocolVersion, ReadResourceRequestParams, ReadResourceResult, Resource, ResourceContents,
-    ServerCapabilities, ServerInfo, Tool,
+    Implementation, ListPromptsResult, ListResourcesResult, ListToolsResult,
+    PaginatedRequestParams, ProtocolVersion, ReadResourceRequestParams, ReadResourceResult,
+    Resource, ResourceContents, ServerCapabilities, ServerInfo, Tool,
 };
 use rmcp::service::RequestContext;
 use rmcp::{RoleServer, ServerHandler};
