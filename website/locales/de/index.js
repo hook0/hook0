@@ -1,0 +1,99 @@
+// Startseite DE. /humanizer pro + legal-reviewer angewendet.
+// SSPL = « quelloffen », NIE « Open Source ». DSGVO als Prozess-Claim
+// (« auf DSGVO-Konformität ausgelegt » / « DSGVO-konform betrieben »).
+// Verbotene Claims: « 100% souverän », « kein US-Konzern im Stack »,
+// « keine Daten verlassen die EU », « CLOUD Act free ».
+module.exports = {
+  pageTitle: 'Hook0 | Quelloffene Webhook-Plattform (SSPL)',
+  pageDescription: 'Kostenlose, quelloffene Webhook-Plattform. Ein API-Aufruf, Hook0 übernimmt Retries, HMAC-Signaturen, Zustell-Monitoring. Ohne Kreditkarte.',
+  pageModified: '2026-06-28',
+  hero: {
+    badgePillBootstrapped: '100% bootstrappt',
+    badgeOpenSource: 'Hook0 ist quelloffen',
+    headlineLine1: 'Webhooks',
+    headlineLine2: 'als Service',
+    description: 'Hook0 ist eine quelloffene Webhooks-as-a-Service-Plattform, die Entwicklern das Senden von Webhooks leicht macht. Ein API-Aufruf, und Hook0 kümmert sich um Zustellbarkeit, Retries, Sicherheit und mehr.',
+    ctaPrimary: 'Kostenlos starten',
+    ctaSecondary: 'Schnellstart-Anleitung',
+    trustFreePlan: 'Kostenloser Plan',
+    trustNoCard: 'Keine Kreditkarte',
+    trustHostedEurope: 'In Europa gehostet',
+    trustGdpr: 'DSGVO-konform betrieben',
+    scrollLabel: 'Scrollen',
+    socialProductHuntAlt: 'Hook0 auf Product Hunt',
+    socialGithubStars: 'GitHub-Sterne',
+  },
+  goDeeper: {
+    h2: 'Tiefer einsteigen',
+    cards: [
+      { label: 'Gebaut um zu bleiben', href: './gebaut-um-zu-bleiben', color: 'green' },
+      { label: 'Sicherheit', href: './sicherheit', color: 'indigo' },
+      { label: 'Schnellstart', href: 'https://documentation.hook0.com/tutorials/getting-started', color: 'yellow' },
+      { label: 'Alternativen vergleichen', href: 'https://documentation.hook0.com/comparisons', color: 'purple' },
+      { label: 'Quelloffene Freunde', href: './open-source-freunde', color: 'pink' },
+      { label: 'Webhook-Tester', href: 'https://play.hook0.com', color: 'emerald', external: true },
+    ],
+  },
+  pageSchema: {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        inLanguage: 'de',
+        name: 'Hook0',
+        alternateName: ['hook0', 'Hook Zero'],
+        url: 'https://www.hook0.com',
+        logo: 'https://www.hook0.com/mediakit/logo/110x110-white.png',
+        description: 'Kostenlose Webhook-Plattform, quelloffen. Du sendest deine Webhooks mit einem API-Aufruf, Hook0 übernimmt Retries, HMAC-Signaturen und Zustell-Monitoring. Für immer kostenlos, ohne Kreditkarte. Selbst hosten oder Cloud nutzen.',
+        foundingDate: '2021',
+        founders: [
+          { '@type': 'Person', name: 'Francois-Guillaume Ribreau' },
+          { '@type': 'Person', name: 'David Sferruzza' },
+        ],
+        sameAs: [
+          'https://twitter.com/hook0_',
+          'https://github.com/hook0',
+          'https://www.linkedin.com/company/hook0',
+          'https://www.youtube.com/channel/UCFGvNaoV6Ycdb6uh1rIvMcg',
+          'https://www.hook0.com/community',
+        ],
+        contactPoint: {
+          '@type': 'ContactPoint',
+          email: 'support@hook0.com',
+          contactType: 'customer service',
+        },
+      },
+      {
+        '@type': 'SoftwareApplication',
+        inLanguage: 'de',
+        name: 'Hook0',
+        alternateName: ['hook0', 'Hook Zero'],
+        applicationCategory: 'DeveloperApplication',
+        operatingSystem: 'Any',
+        url: 'https://www.hook0.com',
+        description: 'Quelloffene Webhook-Infrastruktur. Du sendest deine Webhooks mit einem API-Aufruf, Retries, HMAC-Signaturen und Zustell-Monitoring inklusive.',
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'EUR',
+          description: 'Kostenloser Plan, 100 Webhook-Events pro Tag, HMAC-Signaturen, Zustell-Monitoring. Keine Kreditkarte nötig.',
+        },
+        author: { '@type': 'Organization', name: 'Hook0' },
+        license: 'https://spdx.org/licenses/SSPL-1.0.html',
+        downloadUrl: 'https://github.com/hook0/hook0',
+        softwareVersion: '2026',
+        featureList: 'Webhook-Zustellung, HMAC-Signaturen, konfigurierbare Retries, Zustell-Monitoring, Subscriber-Portal, Selbst-Hosting, REST-API, SDKs',
+      },
+    ],
+  },
+  faq: {
+    items: [
+      { q: 'Bietet Hook0 einen kostenlosen Plan?', a: 'Ja. Hook0 hat einen kostenlosen Plan mit 100 Webhook-Events pro Tag, HMAC-Signaturen und Zustell-Monitoring. Keine Kreditkarte nötig. Hook0 ist außerdem quelloffen, du kannst es kostenlos selbst hosten.' },
+      { q: 'Was bedeutet „Webhooks als Service"?', a: 'Eine Webhook-Plattform als Service (Webhooks-as-a-Service) heißt, du sendest deine Events per REST-API an Hook0, und Hook0 stellt sie an die Endpoints deiner Nutzer zu. Die Plattform übernimmt Retries, kryptografische Signaturen, Zustell-Logs und Subscriber-Verwaltung. Du musst diese Infrastruktur nicht selbst bauen.' },
+      { q: 'Ist Hook0 quelloffen?', a: 'Ja. Der Quellcode ist auf GitHub und GitLab unter der SSPL-1.0-Lizenz verfügbar (die Client-SDKs unter MIT). Du kannst Hook0 mit Docker Compose oder Kubernetes selbst hosten oder den verwalteten Cloud-Service nutzen, der in Europa gehostet wird.' },
+      { q: 'Ist SSPL wirklich Open Source?', a: 'Der vollständige Server-Quellcode von Hook0 wird unter SSPL-1.0 veröffentlicht, die Client-SDKs unter MIT. SSPL ist eine Source-Available-Copyleft-Lizenz, du kannst Hook0 lesen, modifizieren, selbst hosten und frei betreiben. Sie ist in einem einzigen Fall strenger als MIT. Wenn du Hook0 als verwalteten Service weiterverkaufst, musst du deine eigene Infrastruktur quelloffen veröffentlichen. Wenn du auf Hook0 baust oder es selbst hostest, fügt SSPL gegenüber MIT keine Pflicht hinzu.' },
+      { q: 'Kann ich Hook0 selbst hosten?', a: 'Ja. Hook0 unterstützt Selbst-Hosting per Docker Compose oder Kubernetes. Die selbst gehostete Version hat dieselben Features wie die Cloud-Version. Die Dokumentation findest du unter documentation.hook0.com/self-hosting.' },
+      { q: 'Wie vergleicht sich Hook0 mit Svix, Hookdeck oder HostedHooks?', a: 'Hook0 veröffentlicht den vollständigen Server-Quellcode unter SSPL-1.0 ohne proprietären Enterprise-Tier, und Selbst-Hosting ist in jedem Plan kostenlos. Der Kern von Svix ist MIT, aber mehrere Features sind kostenpflichtigen Plänen vorbehalten. Hookdeck ist ein Webhook-Gateway und HostedHooks ist closed-source. Hook0 ist bootstrappt, ohne VC-Finanzierung, und läuft sowohl in der Cloud (in der EU gehostet) als auch on-premise.' },
+    ],
+  },
+};
