@@ -8,10 +8,10 @@ use crate::client::Hook0Client;
 use crate::error::{McpError, McpErrorExt};
 use crate::prompts;
 use rmcp::model::{
-    Annotated, CallToolRequestParams, CallToolResult, Content, GetPromptRequestParams,
-    GetPromptResult, Implementation, ListPromptsResult, ListResourcesResult, ListToolsResult,
-    PaginatedRequestParams, ProtocolVersion, RawResource, ReadResourceRequestParams,
-    ReadResourceResult, ResourceContents, ServerCapabilities, ServerInfo, Tool,
+    CallToolRequestParams, CallToolResult, ContentBlock, GetPromptRequestParams, GetPromptResult,
+    Implementation, ListPromptsResult, ListResourcesResult, ListToolsResult, PaginatedRequestParams,
+    ProtocolVersion, ReadResourceRequestParams, ReadResourceResult, Resource, ResourceContents,
+    ServerCapabilities, ServerInfo, Tool,
 };
 use rmcp::service::RequestContext;
 use rmcp::{RoleServer, ServerHandler};
@@ -119,7 +119,7 @@ impl Hook0McpServer {
 
         // Convert result to CallToolResult
         let content = serde_json::to_string_pretty(&result).unwrap_or_else(|_| result.to_string());
-        Ok(CallToolResult::success(vec![Content::text(content)]))
+        Ok(CallToolResult::success(vec![ContentBlock::text(content)]))
     }
 
     /// Build request body from arguments, excluding path parameters
@@ -221,17 +221,13 @@ impl ServerHandler for Hook0McpServer {
     ) -> Result<ListResourcesResult, McpError> {
         info!("Listing resources");
 
-        let mut org_resource = RawResource::new("hook0://organizations", "Organizations");
-        org_resource.description = Some("List all accessible organizations".into());
-        org_resource.mime_type = Some("application/json".into());
-
-        let mut app_resource = RawResource::new("hook0://applications", "Applications");
-        app_resource.description = Some("List all applications".into());
-        app_resource.mime_type = Some("application/json".into());
-
         let resources = vec![
-            Annotated::new(org_resource, None),
-            Annotated::new(app_resource, None),
+            Resource::new("hook0://organizations", "Organizations")
+                .with_description("List all accessible organizations")
+                .with_mime_type("application/json"),
+            Resource::new("hook0://applications", "Applications")
+                .with_description("List all applications")
+                .with_mime_type("application/json"),
         ];
 
         Ok(ListResourcesResult {

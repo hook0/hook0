@@ -113,21 +113,17 @@ impl StorageEncryption {
 
     /// Generate a random encryption key
     pub fn generate_key() -> [u8; 32] {
-        use aes_gcm::aead::rand_core::RngCore;
-        use aes_gcm::aead::OsRng;
-        let mut key = [0u8; 32];
-        OsRng.fill_bytes(&mut key);
-        key
+        use aes_gcm::aead::Generate;
+        <[u8; 32]>::generate()
     }
 
     /// Encrypt data using AES-256-GCM
     pub fn encrypt(&self, plaintext: &[u8]) -> Vec<u8> {
-        use aes_gcm::aead::Aead;
-        use aes_gcm::aead::OsRng;
-        use aes_gcm::{AeadCore, Aes256Gcm, KeyInit};
+        use aes_gcm::aead::{Aead, Generate};
+        use aes_gcm::{Aes256Gcm, KeyInit, Nonce};
 
         let cipher = Aes256Gcm::new_from_slice(&self.key).expect("valid 32-byte key");
-        let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+        let nonce = Nonce::generate();
 
         let ciphertext = cipher
             .encrypt(&nonce, plaintext)

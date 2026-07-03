@@ -101,7 +101,7 @@ pub fn get_prompt(
             );
 
             Ok(GetPromptResult::new(vec![PromptMessage::new_text(
-                PromptMessageRole::User,
+                Role::User,
                 content,
             )])
             .with_description("Create a webhook subscription step by step"))
@@ -151,7 +151,7 @@ pub fn get_prompt(
             );
 
             Ok(GetPromptResult::new(vec![PromptMessage::new_text(
-                PromptMessageRole::User,
+                Role::User,
                 content,
             )])
             .with_description("Debug webhook delivery issues"))
@@ -208,7 +208,7 @@ pub fn get_prompt(
             );
 
             Ok(GetPromptResult::new(vec![PromptMessage::new_text(
-                PromptMessageRole::User,
+                Role::User,
                 content,
             )])
             .with_description("Set up a new Hook0 application"))

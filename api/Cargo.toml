@@ -17,8 +17,8 @@ publish = false
 actix-cors = "0.7.1"
 actix-files = "0.6.10"
 actix-governor = "0.10.0"
-actix-web = "4.13.0"
-anyhow = "1.0.102"
+actix-web = "4.14.0"
+anyhow = "1.0.103"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
 aws-sdk-s3 = { version = "1.137.0", features = ["behavior-version-latest"] }
@@ -34,7 +34,7 @@ hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 html2text = "0.17.1"
 http-api-problem = { version = "0.57.0", features = ["actix-web"] }
 http-serde = "2.1.1"
-humantime = "2.3.0"
+humantime = "2.4.0"
 ipnetwork = "0.21.1"
 lazy_static = "1.5.0"
 lettre = { version = "0.11.22", default-features = false, features = ["builder", "smtp-transport", "pool", "tokio1-rustls", "aws-lc-rs", "rustls-platform-verifier"] }
@@ -48,8 +48,8 @@ paperclip = { version = "0.9.7", default-features = false, features = ["actix4",
 pulsar = { version = "6.8.0", default-features = false, features = ["tokio-rustls-runtime"] }
 regex = "1.12.4"
 reqwest = { version = "0.13.4", features = ["hickory-dns", "form", "json"] }
-rustls = { version = "0.23.40", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
-sentry-actix = "0.48.2"
+rustls = { version = "0.23.41", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
+sentry-actix = "0.48.3"
 serde = "1.0.228"
 serde_json = "1.0.150"
 sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "chrono", "json", "ipnetwork", "migrate"] }
@@ -57,13 +57,13 @@ strum = { version = "0.28.0", features = ["derive"] }
 thiserror = "2.0.18"
 tokio = { version = "1.52.3" }
 url = "2.5.8"
-uuid = { version = "1.23.3", features = ["serde", "v4", "v7"] }
+uuid = { version = "1.23.4", features = ["serde", "v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive", "unic"] }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
-jemalloc_pprof = { version = "0.8.2", features = ["symbolize"], optional = true }
+jemalloc_pprof = { version = "0.9.0", features = ["symbolize"], optional = true }
 pprof = { version = "0.15.0", features = ["protobuf-codec"], optional = true }
-tikv-jemallocator = { version = "0.6.1", optional = true }
+tikv-jemallocator = { version = "0.7.0", optional = true }
 
 [dev-dependencies]
 insta = { version = "1.48", features = ["json"] }
