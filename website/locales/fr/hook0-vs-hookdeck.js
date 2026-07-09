@@ -81,6 +81,8 @@ module.exports = {
       { enSlug: 'hook0-vs-convoy', label: 'Hook0 vs Convoy' },
       { enSlug: 'hookdeck-alternatives', label: 'Alternatives à Hookdeck' },
       { enSlug: 'build-vs-buy-webhooks', label: 'Construire vs acheter ses webhooks' },
+      { enSlug: 'webhook-cost-comparison', label: 'Comparatif de coût webhook' },
+      { enSlug: 'eu-webhook-infrastructure', label: 'Infrastructure webhook européenne' },
     ],
   },
 };

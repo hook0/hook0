@@ -1,16 +1,19 @@
 // Per-page strings for hook0-vs-convoy (FR).
 // /humanizer pro appliqué. Tutoiement. Pas d'em-dash, pas de pivot colon.
-// SSPL pour Hook0 = « code source ouvert (SSPL-1.0) ». Convoy = MPL-2.0 (OSI), donc « open source » OK pour Convoy.
+// SSPL pour Hook0 = « code source ouvert (SSPL-1.0) ». Convoy = Elastic License v2.0 (non OSI),
+// donc « code source disponible », jamais « open source » nu.
+// Faits rafraîchis 2026-07-08 (snapshot concurrent) : Convoy ACTIF (v26.6.2 du 08/07/2026),
+// cloud sans pricing public ni résidence UE managée, tarifs 0 $ -> 999 $/mois flat.
 module.exports = {
   pageTitle: 'Hook0 vs Convoy : plateformes webhook comparées | Hook0',
-  pageDescription: 'Compare Hook0 (Rust, SSPL-1.0, cloud managé) et Convoy (Go, MPL-2.0, auto-hébergé). Features, licences et compromis côte à côte.',
-  pageModified: '2026-06-27',
+  pageDescription: 'Compare Hook0 (Rust, SSPL-1.0, cloud hébergé en UE dès 59 €/mois) et Convoy (Go, Elastic License v2.0, de 0 à 999 $/mois). Features, licences et prix côte à côte.',
+  pageModified: '2026-07-08',
   breadcrumb: 'Hook0 vs Convoy',
   hero: {
     eyebrow: 'Comparaison',
     titleBefore: 'Hook0 vs Convoy',
     titleAccent: 'Même problème, compromis différents',
-    subtitle: 'Tous deux en code source ouvert. Tous deux sur PostgreSQL. Mais les ressemblances s\'arrêtent là, Rust vs Go, cloud managé vs auto-hébergé uniquement, SSPL-1.0 vs MPL-2.0. Cette page décortique ce qui compte vraiment quand tu choisis pour la prod.',
+    subtitle: 'Tous deux publient leur code source intégral. Tous deux sur PostgreSQL. Les vraies différences sont ailleurs, Rust vs Go, SSPL-1.0 vs Elastic License v2.0, et une grille tarifaire progressive face à un forfait à 999 $ par mois. Cette page décortique ce qui compte vraiment quand tu choisis pour la prod.',
     ctaPrimary: 'Démarrer gratuitement',
     ctaSecondary: 'Essayer le Playground',
   },
@@ -18,10 +21,10 @@ module.exports = {
     eyebrow: 'Pourquoi Hook0',
     h2: 'Différences clés',
     cards: [
-      { title: 'Cloud managé vs auto-hébergé uniquement', body: 'Convoy est auto-hébergé uniquement. Pas de cloud managé, point. Tu l\'exécutes, tu le maintiens. Hook0 te laisse choisir, soit le cloud managé (hébergé en Europe), soit l\'auto-hébergement gratuit via Docker ou Kubernetes.' },
+      { title: 'Un tarif intermédiaire vs un saut de 0 à 999 $', body: 'La grille payante de Convoy n\'a qu\'une marche, le tier Community est gratuit, puis Premium arrive à 999 $/mois flat (transformations JS, RBAC et white-label inclus). Rien entre les deux. Hook0 Cloud démarre gratuit, puis passe à Startup à 59 €/mois et Pro à 190 €/mois, une équipe qui grandit n\'affronte jamais une falaise tarifaire sans palier intermédiaire.' },
+      { title: 'Cloud managé UE vs auto-hébergement pour la résidence des données', body: 'Le cloud managé de Hook0 fait tourner son plan de données applicatif en France chez Clever Cloud (CDN Cloudflare US divulgué dans notre <a href="/fr/accord-traitement-donnees" class="underline">DPA</a>), conçu pour la conformité RGPD. Convoy a aussi une offre cloud, mais aucune option de résidence UE managée, choisir la région où vivent tes données webhook impose l\'auto-hébergement, donc le monitoring, les backups, le scaling et l\'uptime sont pour toi.' },
       { title: 'Rust vs Go', body: 'Hook0 est écrit en Rust. Pas de garbage collector, donc pas de pauses GC, moins de mémoire utilisée et une latence plus prévisible sous charge. Convoy est écrit en Go, débit correct mais avec garbage collection. À haut volume, l\'écart se voit sur les latences en queue.' },
-      { title: 'SSPL vs MPL-2.0', body: 'Convoy utilise MPL-2.0. Très permissive, aucune restriction sur la redistribution. Hook0 utilise SSPL-1.0, la totalité du code source est disponible, mais les fournisseurs cloud ne peuvent pas la revendre comme service concurrent. Les deux sont en code source ouvert. La différence porte sur ce que les tiers peuvent faire avec le code.' },
-      { title: 'Hébergement européen vs infra DIY', body: 'Le cloud Hook0 fait tourner son plan de données en France chez Clever Cloud (CDN Cloudflare US divulgué dans le <a href="/fr/accord-traitement-donnees">DPA</a>), conçu pour la conformité RGPD dès le départ. Avec Convoy, tu choisis ta localisation d\'hébergement, mais tu prends aussi tout le stack ops, monitoring, backups, scaling, uptime. Pas d\'option managée, tout est sur ton dos.' },
+      { title: 'SSPL-1.0 vs Elastic License v2.0', body: 'Convoy utilise la licence Elastic v2.0, code source intégral disponible, mais proposer Convoy en service managé exige un accord commercial. Hook0 utilise SSPL-1.0, code source intégral disponible, mais les fournisseurs cloud ne peuvent pas le revendre comme service concurrent. Les deux sont des licences à code source disponible et aucune n\'est approuvée par l\'OSI. La différence pratique porte sur l\'activité restreinte, pas sur la quantité de code que tu peux lire.' },
     ],
   },
   comparison: {
@@ -29,26 +32,30 @@ module.exports = {
     h2: 'Côte à côte',
     headers: { feature: 'Fonctionnalité', hook0: 'Hook0', convoy: 'Convoy' },
     rows: [
-      { feature: 'Licence', hook0Html: 'SSPL-1.0 (source intégrale disponible)', convoyHtml: 'MPL-2.0' },
+      { feature: 'Licence', hook0Html: 'SSPL-1.0 (source intégrale disponible, non approuvée OSI)', convoyHtml: 'Elastic License v2.0 (source intégrale disponible, non approuvée OSI)' },
       { feature: 'Langage', hook0Html: 'Rust', convoyHtml: 'Go' },
       { feature: 'Base de données', hook0Html: 'PostgreSQL seulement', convoyHtml: 'PostgreSQL + Redis' },
-      { feature: 'Cloud managé', hook0Html: 'Oui (Clever Cloud FR, CDN Cloudflare US)', convoyHtml: 'Non' },
-      { feature: 'Auto-hébergement', hook0Html: 'Gratuit (Docker / K8s)', convoyHtml: 'Oui (seule option)' },
-      { feature: 'Tier gratuit', hook0Html: 'Oui (cloud)', convoyHtml: 'N/A (auto-hébergé uniquement)' },
+      { feature: 'Sens des webhooks', hook0Html: 'Sortants (envoi)', convoyHtml: 'Sortants + entrants' },
+      { feature: 'Cloud managé', hook0Html: 'Oui (Clever Cloud FR, CDN Cloudflare US divulgué)', convoyHtml: 'Oui (pas de pricing public, pas de résidence UE managée)' },
+      { feature: 'Auto-hébergement', hook0Html: 'Gratuit (Docker / K8s)', convoyHtml: 'Gratuit (tier Community)' },
+      { feature: 'Plans payants', hook0Html: 'Startup 59 €/mois, Pro 190 €/mois', convoyHtml: 'Premium 999 $/mois (flat), Enterprise sur devis' },
+      { feature: 'SOC 2', hook0Html: 'Prévu', convoyHtml: 'SOC 2 Type 1' },
       { feature: 'Signatures HMAC', hook0Html: 'Oui', convoyHtml: 'Oui' },
       { feature: 'Logique de relances', hook0Html: 'Configurable 2-phases (rapide + lent, defaults intelligents)', convoyHtml: 'Configurable' },
       { feature: 'Dépôt principal', hook0Html: '<a href="https://github.com/hook0/hook0" class="underline">GitHub</a> + <a href="https://gitlab.com/hook0/hook0" class="underline">GitLab</a>', convoyHtml: '<a href="https://github.com/frain-dev/convoy" class="underline">GitHub</a> (~2,8k stars)' },
-      { feature: 'Financement', hook0Html: '100% bootstrappé', convoyHtml: 'VC-backed (Frain Technologies)' },
+      { feature: 'Financement', hook0Html: '100% bootstrappé', convoyHtml: 'VC-backed (YC W22, Frain Technologies)' },
     ],
   },
   faq: {
     eyebrow: 'FAQ',
     h2: 'Questions fréquentes',
     items: [
-      { q: 'Convoy est-il entièrement en code source ouvert ?', a: 'Oui. Convoy utilise la licence MPL-2.0, Hook0 utilise SSPL-1.0. Les deux publient leur code source intégral. La différence pratique tient à la redistribution, MPL-2.0 a moins de restrictions, alors que SSPL-1.0 empêche les fournisseurs cloud de proposer le logiciel comme service managé concurrent.' },
-      { q: 'Convoy propose-t-il un cloud managé ?', a: 'Non. Convoy est auto-hébergé uniquement, tu fais tourner et tu maintiens tout toi-même. Hook0 propose un cloud managé (hébergé en Europe) et permet aussi l\'auto-hébergement gratuit avec Docker ou Kubernetes.' },
+      { q: 'Convoy est-il open source ?', a: 'Convoy publie son code source intégral sous licence Elastic v2.0, qui n\'est pas une licence open source approuvée par l\'OSI, elle interdit de proposer Convoy en service managé sans accord commercial. Hook0 est dans la même famille, code source intégral sous SSPL-1.0, non approuvée par l\'OSI elle aussi, avec une restriction visant les fournisseurs cloud qui le revendraient. Si ta politique d\'achat exige strictement une licence OSI, aucun des deux ne qualifie.' },
+      { q: 'Convoy propose-t-il un cloud managé ?', a: 'Oui. Convoy propose une version cloud (le trial donne 1 projet et 100 événements par jour) mais ne publie pas de pricing cloud, et il n\'y a pas d\'option de résidence UE managée, choisir où vivent tes données webhook impose l\'auto-hébergement. Le cloud managé de Hook0 est hébergé en UE dès le tier gratuit, avec des plans payants à 59 € et 190 € par mois.' },
+      { q: 'Comment Hook0 et Convoy se comparent-ils sur les prix ?', a: 'En auto-hébergement, les deux sont gratuits. Pour les fonctions payantes, Convoy passe directement du tier Community gratuit à Premium à 999 $/mois flat, rien entre les deux. Hook0 Cloud a un tier gratuit, puis Startup à 59 €/mois et Pro à 190 €/mois. Si une facture flat tout inclus convient à ton équipe, le Premium de Convoy est prévisible. Si tu veux démarrer petit et monter en charge, Hook0 couvre le milieu de marché que Convoy saute.' },
       { q: 'Comment Hook0 et Convoy se comparent-ils en performances ?', a: 'Hook0 est écrit en Rust, donc pas de pauses garbage collection. Latence plus prévisible et moins de mémoire sous charge. Convoy est écrit en Go, qui tourne bien mais a un overhead GC. Côté infra, tous deux ont besoin de PostgreSQL, mais Convoy demande aussi Redis.' },
-      { q: 'Lequel est meilleur pour l\'auto-hébergement ?', a: 'Les deux peuvent être auto-hébergés, mais avec Convoy c\'est ta seule option. Hook0 supporte Docker Compose et Kubernetes pour de l\'auto-hébergement gratuit, et a aussi un cloud managé si tu préfères éviter le boulot ops. Une différence pratique, Hook0 n\'a besoin que de PostgreSQL. Convoy demande PostgreSQL et Redis.' },
+      { q: 'Que fait Convoy mieux que Hook0 ?', a: 'Convoy gère les webhooks entrants et sortants dans un seul produit, alors que Hook0 se concentre sur la livraison sortante. Convoy a aussi une attestation SOC 2 Type 1, plus d\'étoiles GitHub (~2 800), des clients fintech de référence comme Xendit et PiggyVest, et un tier Premium flat à 999 $/mois que certaines équipes préfèrent pour la prévisibilité de facturation.' },
+      { q: 'Convoy est-il toujours maintenu ?', a: 'Oui. Convoy publie 2 à 3 releases par mois (la v26.6.2 est sortie en juillet 2026), son blog est actif et le dépôt GitHub compte plusieurs contributeurs réguliers. Toute affirmation « Convoy est mort » trouvée en ligne est périmée.' },
     ],
   },
   related: {
@@ -58,6 +65,8 @@ module.exports = {
       { enSlug: 'hook0-vs-hookdeck', label: 'Hook0 vs Hookdeck' },
       { enSlug: 'hook0-alternatives', label: 'Alternatives à Hook0' },
       { enSlug: 'self-hosted-webhooks', label: 'Webhooks auto-hébergés' },
+      { enSlug: 'webhook-cost-comparison', label: 'Comparatif de coût webhook' },
+      { enSlug: 'eu-webhook-infrastructure', label: 'Infrastructure webhook européenne' },
     ],
   },
 };

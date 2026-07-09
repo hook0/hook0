@@ -68,6 +68,8 @@ module.exports = {
       { enSlug: 'hook0-vs-convoy', label: 'Hook0 vs Convoy' },
       { enSlug: 'svix-alternatives', label: 'Alternatives à Svix' },
       { enSlug: 'build-vs-buy-webhooks', label: 'Construire vs acheter ses webhooks' },
+      { enSlug: 'webhook-cost-comparison', label: 'Comparatif de coût webhook' },
+      { enSlug: 'eu-webhook-infrastructure', label: 'Infrastructure webhook européenne' },
     ],
   },
 };
