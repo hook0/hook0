@@ -40,7 +40,7 @@ module.exports = {
       },
       {
         "q": "Hook0 est-il gratuit ?",
-        "a": "Oui. Hook0 a une offre Developer gratuite qui inclut 100 webhook events par jour, les signatures HMAC, et le monitoring de livraison. Aucune carte bancaire requise. Hook0 est aussi à code source ouvert et auto-hébergeable quand tu as besoin de souveraineté des données ou de contraintes d'infrastructure spécifiques."
+        "a": "Oui. Hook0 a une offre Developer gratuite qui inclut 100 webhook events par jour, les signatures HMAC, et le monitoring de livraison. Aucune carte bancaire requise. Hook0 est aussi à code source ouvert et auto-hébergeable quand tu as besoin de souveraineté des données ou de contraintes d'infrastructure spécifiques. Hook0 Cloud tourne sur une <a href=\"/fr/infrastructure-webhook-europeenne\">infrastructure webhook européenne</a>, hébergée en France par défaut."
       },
       {
         "q": "Puis-je auto-héberger Hook0 gratuitement ?",
@@ -48,7 +48,7 @@ module.exports = {
       },
       {
         "q": "Comment se compare le tarif Hook0 à Svix et Hookdeck ?",
-        "a": "Hook0 Cloud démarre à 59 € HT/mois face à Svix à 490 $/mois pour des fonctions comparables. Svix verrouille l'auto-hébergement derrière un tarif entreprise. Hookdeck n'a pas d'option auto-hébergée. Hook0 est aussi à code source ouvert sous SSPL, donc tu peux auto-héberger quand tu as besoin de souveraineté des données."
+        "a": "Hook0 Cloud démarre à 59 € HT/mois face à Svix à 490 $/mois pour des fonctions comparables. Svix verrouille l'auto-hébergement derrière un tarif entreprise. Hookdeck n'a pas d'option auto-hébergée. Hook0 est aussi à code source ouvert sous SSPL, donc tu peux auto-héberger quand tu as besoin de souveraineté des données. Pour les chiffres détaillés de 100k à 10M d'events par mois, consulte le <a href=\"/fr/comparatif-cout-webhook\">comparatif de coût webhook</a>."
       }
     ]
   }

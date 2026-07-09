@@ -47,7 +47,7 @@ module.exports = {
   },
   "howItWorks": {
     "eyebrow": "Code",
-    "h2": "One API call to deliver an event",
+    "h2": "One webhook API call to deliver an event",
     "code": "// Trigger an event from anywhere in your backend.\nawait hook0.message.create(\"&lt;application_id&gt;\", {\n  event_type: \"invoice.paid\",\n  event_id:   \"evt_Wqb1k73rXprtTm7Qdlr38G\",\n  payload: {\n    invoice_id: \"in_8X9aBcDeFgHiJk\",\n    status:     \"paid\",\n    amount_eur: 4990\n  }\n});\n\n// What Hook0 does after this call:\n// signs the payload with HMAC, fans out to every matching\n// subscriber, retries failed deliveries on a two-phase schedule,\n// and stores the request/response for replay.\n",
     "docsLabel": "Read the getting-started guide →",
     "docsHref": "https://documentation.hook0.com/docs/getting-started",
@@ -55,7 +55,7 @@ module.exports = {
   },
   "buildVsBuy": {
     "eyebrow": "Build vs Buy",
-    "h2": "What rolling your own actually costs",
+    "h2": "What rolling your own webhook service actually costs",
     "head": [
       "Concern",
       "Build it yourself",
@@ -124,6 +124,14 @@ module.exports = {
       {
         "q": "How does Hook0 compare to Svix, Hookdeck or Convoy?",
         "a": "Hook0 is fully open-source (not open-core), 100% bootstrapped (no VC pressure on pricing), and self-hostable on any plan. Svix is open-core with an enterprise tier; Hookdeck is closed-source and US-only; Convoy is open-source but community-maintained. See the side-by-side comparisons for the details."
+      },
+      {
+        "q": "Does Hook0 come with a full webhook API?",
+        "a": "Yes. Everything the dashboard does is available through a REST webhook API: create events, manage applications and subscriptions, query delivery logs and trigger replays. The API is documented with an OpenAPI specification, so you can generate clients or plug it into your existing tooling."
+      },
+      {
+        "q": "Is Hook0 a managed webhook service?",
+        "a": "Yes. Hook0 Cloud is a managed webhook service: we run the delivery infrastructure, retries, HMAC signing and monitoring for you, with application data hosted in Europe. If you would rather operate it yourself, the same codebase is open-source (SSPL-1.0) and self-hostable."
       }
     ]
   },
