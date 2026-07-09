@@ -40,7 +40,7 @@ module.exports = {
       },
       {
         "q": "Is Hook0 free?",
-        "a": "Yes. Hook0 has a free Developer tier that includes 100 webhook events per day, HMAC signatures, and delivery monitoring. No credit card required. Hook0 is also open-source and self-hostable if you need data sovereignty or specific infrastructure requirements."
+        "a": "Yes. Hook0 has a free Developer tier that includes 100 webhook events per day, HMAC signatures, and delivery monitoring. No credit card required. Hook0 is also open-source and self-hostable if you need data sovereignty or specific infrastructure requirements. Hook0 Cloud itself runs on <a href=\"/eu-webhook-infrastructure\">EU webhook infrastructure</a>, hosted in France by default."
       },
       {
         "q": "Can I self-host Hook0 for free?",
@@ -48,7 +48,7 @@ module.exports = {
       },
       {
         "q": "How does Hook0 pricing compare to Svix and Hookdeck?",
-        "a": "Hook0 Cloud starts at €59/month vs Svix at $490/month for comparable features. Svix locks self-hosting behind enterprise pricing. Hookdeck has no self-hosted option. Hook0 is also fully open-source under SSPL, so you can self-host if you need data sovereignty."
+        "a": "Hook0 Cloud starts at €59/month vs Svix at $490/month for comparable features. Svix locks self-hosting behind enterprise pricing. Hookdeck has no self-hosted option. Hook0 is also fully open-source under SSPL, so you can self-host if you need data sovereignty. For detailed numbers from 100k to 10M events per month, see the <a href=\"/webhook-cost-comparison\">webhook cost comparison</a>."
       }
     ]
   }

@@ -48,7 +48,7 @@ module.exports = {
   },
   "howItWorks": {
     "eyebrow": "Code",
-    "h2": "Un appel API pour livrer un event",
+    "h2": "Un appel à la webhook API pour livrer un event",
     "code": "// Déclenche un event depuis n'importe où dans ton backend.\nawait hook0.message.create(\"&lt;application_id&gt;\", {\n  event_type: \"invoice.paid\",\n  event_id:   \"evt_Wqb1k73rXprtTm7Qdlr38G\",\n  payload: {\n    invoice_id: \"in_8X9aBcDeFgHiJk\",\n    status:     \"paid\",\n    amount_eur: 4990\n  }\n});\n\n// Ce que Hook0 fait après cet appel :\n// signe le payload en HMAC, diffuse à chaque subscriber\n// concerné, relance les livraisons en échec selon un plan\n// en deux phases, et conserve requête et réponse pour le rejeu.\n",
     "docsLabel": "Lire le guide de démarrage (en anglais) →",
     "docsHref": "https://documentation.hook0.com/docs/getting-started",
@@ -77,7 +77,7 @@ module.exports = {
   },
   "buildVsBuy": {
     "eyebrow": "Faire soi-même vs Hook0",
-    "h2": "Ce que coûte vraiment le fait-maison",
+    "h2": "Ce que coûte vraiment un webhook service fait maison",
     "head": [
       "Critère",
       "Le faire soi-même",
@@ -145,6 +145,14 @@ module.exports = {
       {
         "q": "Puis-je auto-héberger Hook0 ?",
         "a": "Oui. Toute la plateforme est à code source ouvert sous SSPL-1.0 et fournie avec Docker Compose et des manifestes Kubernetes. L'auto-hébergement est gratuit, sans édition entreprise, et l'édition auto-hébergée a les mêmes fonctionnalités que le cloud."
+      },
+      {
+        "q": "Hook0 fournit-il une webhook API complète ?",
+        "a": "Oui. Tout ce que permet le dashboard passe par une webhook API REST : création d'events, gestion des applications et des souscriptions, lecture des journaux de livraison et rejeu. L'API est documentée avec une spécification OpenAPI, pour générer des clients ou l'intégrer à ton outillage existant."
+      },
+      {
+        "q": "Hook0 est-il un webhook service managé ?",
+        "a": "Oui. Hook0 Cloud est un webhook service managé : nous opérons pour toi l'infrastructure de livraison, les relances, les signatures HMAC et le monitoring, avec des données applicatives traitées en France (Clever Cloud). Si tu préfères l'opérer toi-même, le même code est à code source ouvert (SSPL-1.0) et auto-hébergeable."
       }
     ]
   },

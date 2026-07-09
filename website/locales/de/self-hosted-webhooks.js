@@ -137,7 +137,9 @@ module.exports = {
     "links": [
       { "enSlug": "hook0-vs-svix", "label": "Hook0 vs Svix" },
       { "enSlug": "hook0-vs-hookdeck", "label": "Hook0 vs Hookdeck" },
-      { "enSlug": "build-vs-buy-webhooks", "label": "Build vs Buy Webhooks" }
+      { "enSlug": "build-vs-buy-webhooks", "label": "Build vs Buy Webhooks" },
+      { "enSlug": "webhook-cost-comparison", "label": "Webhook Cost Comparison" },
+      { "enSlug": "eu-webhook-infrastructure", "label": "EU Webhook Infrastructure" }
     ]
   }
 };
