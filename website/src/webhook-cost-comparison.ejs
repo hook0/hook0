@@ -1,0 +1,189 @@
+<%
+// Data-driven page: see scripts/build-i18n + locales/index.js for the engine.
+// Object.assign at the very top resets every page-meta key from locale strings,
+// killing the shared-locals bleed, and binds `t` to this page's strings.
+// Runs BEFORE any output so <html lang> sees pageLang.
+if (locals.i18nHelpers) { Object.assign(locals, locals.i18nHelpers.getPageLocals('webhook-cost-comparison', locals.lang || 'en')); }
+var t = locals.t;
+var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHelpers.getPath : function (s) { return './' + s; };
+%><!DOCTYPE html>
+<html lang="<%= locals.pageLang %>">
+<head>
+    <title><%= locals.pageTitle %></title>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+<%- include('./includes/_breadcrumb.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow"><%= t.hero.eyebrow %></span>
+        <h1 class="mt-4 text-display-xl text-white">
+            <%= t.hero.titleBefore %>
+            <span class="block text-gradient-green"><%= t.hero.titleAccent %></span>
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            <%= t.hero.subtitle %>
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', '<%= t.track %>-hero-register')">
+                <%= t.hero.ctaPrimary %>
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="<%= getPath('pricing', locals.pageLang) %>" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', '<%= t.track %>-hero-pricing')">
+                <%= t.hero.ctaSecondary %>
+            </a>
+        </div>
+        <p class="mt-4 text-sm text-gray-500"><%= t.hero.microcopy %></p>
+    </div>
+</section>
+
+<% if (t.socialProof) { %>
+<%- include('./includes/_social-proof-bar.ejs') %>
+<% } %>
+
+<!-- Cloud Cost Comparison Table -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.costTable.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.costTable.h2 %></h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto"><%= t.costTable.subtitle %></p>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.costTable.headers.provider %></th>
+                        <% t.costTable.headers.volumes.forEach(function (v) { %>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap"><%= v %></th>
+                        <% }); %>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.costTable.headers.eu %></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <% t.costTable.rows.forEach(function (r) { %>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6 font-medium <%= r.highlight ? 'text-green-400' : 'text-gray-300' %>"><%= r.provider %></td>
+                        <% r.cells.forEach(function (c) { %>
+                        <td class="py-4 px-6 whitespace-nowrap <%= r.highlight ? 'text-green-400 font-medium' : 'text-gray-400' %>"><%= c %></td>
+                        <% }); %>
+                        <td class="py-4 px-6 text-sm <%= r.highlight ? 'text-green-400' : 'text-gray-400' %>"><%= r.eu %></td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <ol class="mt-8 space-y-2 text-sm text-gray-500 max-w-4xl mx-auto animate-on-scroll">
+            <% t.costTable.footnotes.forEach(function (f) { %>
+            <li><%= f %></li>
+            <% }); %>
+        </ol>
+        <p class="mt-6 text-center text-sm text-gray-500 animate-on-scroll"><%= t.costTable.pricesChecked %></p>
+    </div>
+</section>
+
+<!-- Methodology -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.methodology.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.methodology.h2 %></h2>
+        </div>
+
+        <div class="animate-on-scroll card card--glow p-8">
+            <ul class="space-y-4">
+                <% t.methodology.items.forEach(function (m) { %>
+                <li class="flex items-start gap-3 text-gray-400">
+                    <svg class="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span><%= m %></span>
+                </li>
+                <% }); %>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- Self-Hosted TCO -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.selfHost.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.selfHost.h2 %></h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto"><%= t.selfHost.intro %></p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <% t.selfHost.cards.forEach(function (c) { %>
+            <div class="animate-on-scroll card card--glow p-8">
+                <h3 class="text-xl font-bold text-white mb-3"><%= c.title %></h3>
+                <p class="text-gray-400"><%= c.body %></p>
+            </div>
+            <% }); %>
+        </div>
+
+        <div class="animate-on-scroll card card--glow p-8 mt-8">
+            <h3 class="text-xl font-bold text-white mb-3"><%= t.selfHost.opsCard.title %></h3>
+            <p class="text-gray-400"><%= t.selfHost.opsCard.body %></p>
+            <p class="text-gray-400 mt-4"><%= t.selfHost.opsCard.close %></p>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.faq.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.faq.h2 %></h2>
+        </div>
+
+        <div class="space-y-6 stagger-children">
+            <% t.faq.items.forEach(function (f) { %>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2"><%= f.q %></h3>
+                <p class="text-gray-400"><%= f.a %></p>
+            </div>
+            <% }); %>
+        </div>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center"><%= t.related.h2 %></h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <% t.related.links.forEach(function (l) { %>
+            <a href="<%= getPath(l.enSlug, locals.pageLang) %>" class="text-indigo-400 hover:text-indigo-300 underline"><%= l.label %></a>
+            <% }); %>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<%- include('./includes/_cta-inline.ejs') %>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>

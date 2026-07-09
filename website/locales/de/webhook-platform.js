@@ -48,7 +48,7 @@ module.exports = {
   },
   "howItWorks": {
     "eyebrow": "Code",
-    "h2": "Ein API-Aufruf, um ein Event zuzustellen",
+    "h2": "Ein Aufruf der Webhook API, um ein Event zuzustellen",
     "code": "// Löse ein Event aus, von überall in deinem Backend.\nawait hook0.message.create(\"&lt;application_id&gt;\", {\n  event_type: \"invoice.paid\",\n  event_id:   \"evt_Wqb1k73rXprtTm7Qdlr38G\",\n  payload: {\n    invoice_id: \"in_8X9aBcDeFgHiJk\",\n    status:     \"paid\",\n    amount_eur: 4990\n  }\n});\n\n// Was Hook0 nach diesem Aufruf tut:\n// signiert den Payload per HMAC, verteilt an jeden passenden\n// Subscriber, wiederholt fehlgeschlagene Zustellungen nach einem\n// Zwei-Phasen-Plan und speichert Anfrage und Antwort für den erneuten Versand.\n",
     "docsLabel": "Zum Schnellstart-Guide (auf Englisch) →",
     "docsHref": "https://documentation.hook0.com/docs/getting-started",
@@ -77,7 +77,7 @@ module.exports = {
   },
   "buildVsBuy": {
     "eyebrow": "Selbst bauen vs. Hook0",
-    "h2": "Was der Eigenbau wirklich kostet",
+    "h2": "Was ein selbst gebauter Webhook Service wirklich kostet",
     "head": [
       "Aspekt",
       "Selbst bauen",
@@ -145,6 +145,14 @@ module.exports = {
       {
         "q": "Kann ich Hook0 selbst hosten?",
         "a": "Ja. Die gesamte Webhook-Plattform ist quelloffen unter der SSPL-1.0 und kommt mit Docker Compose und Kubernetes-Manifesten. Self-Hosting ist kostenlos, ohne Enterprise-Stufe, und die selbst gehostete Edition hat denselben Funktionsumfang wie die Cloud."
+      },
+      {
+        "q": "Bietet Hook0 eine vollständige Webhook API?",
+        "a": "Ja. Alles, was das Dashboard kann, läuft über eine Webhook API (REST): Events erzeugen, Applikationen und Subscriptions verwalten, Zustellprotokolle abfragen und Replays auslösen. Die API ist mit einer OpenAPI-Spezifikation dokumentiert, sodass du Clients generieren oder sie in dein bestehendes Tooling einbinden kannst."
+      },
+      {
+        "q": "Ist Hook0 ein Managed Webhook Service?",
+        "a": "Ja. Hook0 Cloud ist ein Managed Webhook Service: Wir betreiben Zustell-Infrastruktur, Retries, HMAC-Signaturen und Monitoring für dich, mit Anwendungsdaten in Frankreich (Clever Cloud). Wenn du lieber selbst betreibst: Derselbe Code ist quelloffen (SSPL-1.0) und selbst hostbar."
       }
     ]
   },
