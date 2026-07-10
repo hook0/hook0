@@ -408,7 +408,7 @@ struct Config {
     #[clap(long, env, default_value = "60")]
     materialized_views_refresh_period_in_s: u64,
 
-    /// [Housekeeping] Duration (in second) to wait between old events cleanups
+    /// [Housekeeping] Duration (in second) to wait between old events cleanups; set to 0 to disable the task
     #[clap(long, env, default_value = "3600")]
     old_events_cleanup_period_in_s: u64,
 
@@ -1142,20 +1142,24 @@ async fn main() -> anyhow::Result<()> {
             });
         }
 
-        // Spawn task to clean up old events
-        let cleanup_db = housekeeping_pool.clone();
-        let cleanup_semaphore = housekeeping_semaphore.clone();
-        actix_web::rt::spawn(async move {
-            old_events_cleanup::periodically_clean_up_old_events(
-                &cleanup_semaphore,
-                &cleanup_db,
-                Duration::from_secs(config.old_events_cleanup_period_in_s),
-                config.quota_global_days_of_events_retention_limit,
-                config.old_events_cleanup_grace_period_in_day,
-                config.old_events_cleanup_report_and_delete,
-            )
-            .await;
-        });
+        // Spawn task to clean up old events (disabled when the period is 0)
+        if config.old_events_cleanup_period_in_s > 0 {
+            let cleanup_db = housekeeping_pool.clone();
+            let cleanup_semaphore = housekeeping_semaphore.clone();
+            actix_web::rt::spawn(async move {
+                old_events_cleanup::periodically_clean_up_old_events(
+                    &cleanup_semaphore,
+                    &cleanup_db,
+                    Duration::from_secs(config.old_events_cleanup_period_in_s),
+                    config.quota_global_days_of_events_retention_limit,
+                    config.old_events_cleanup_grace_period_in_day,
+                    config.old_events_cleanup_report_and_delete,
+                )
+                .await;
+            });
+        } else {
+            info!("Old events cleanup is disabled (OLD_EVENTS_CLEANUP_PERIOD_IN_S = 0)");
+        }
 
         // Spawn task to clean up expired tokens
         let cleanup_db = housekeeping_pool.clone();
