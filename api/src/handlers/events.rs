@@ -32,7 +32,8 @@ use crate::mailer::Mail;
 use crate::openapi::OaBiscuit;
 use crate::opentelemetry::{
     report_event_payloads_stored_in_db_fallback, report_event_payloads_stored_in_object_storage,
-    report_ingested_events, report_replayed_events, report_request_attempts_sent_to_pulsar,
+    report_ingested_events, report_ingestion_duration, report_ingestion_phase_durations,
+    report_replayed_events, report_request_attempts_sent_to_pulsar,
 };
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaNotificationType};
@@ -385,8 +386,13 @@ pub async fn ingest(
     ip: UserIp,
     body: Json<EventPost>,
 ) -> Result<CreatedJson<IngestedEvent>, Hook0Problem> {
+    let started_at = Instant::now();
+    // Phase durations are accumulated here and only reported once the event has actually been ingested, so a request that fails halfway reports nothing.
+    let mut phases: Vec<(&'static str, Duration)> = Vec::with_capacity(10);
+
     let application_id = body.application_id;
 
+    let phase_started_at = Instant::now();
     authorize_for_application(
         &state.db,
         &biscuit,
@@ -397,10 +403,12 @@ pub async fn ingest(
         state.debug_authorizer,
     )
     .await?;
+    phases.push(("authorization", phase_started_at.elapsed()));
+
+    let phase_started_at = Instant::now();
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
     }
-
     let metadata = match body.metadata.as_ref() {
         Some(m) => serde_json::to_value(m.clone())
             .expect("could not serialize subscription metadata into JSON"),
@@ -408,6 +416,9 @@ pub async fn ingest(
     };
     let labels = serde_json::to_value(body.labels.clone())
         .expect("could not serialize event labels into JSON");
+    phases.push(("validation", phase_started_at.elapsed()));
+
+    let phase_started_at = Instant::now();
 
     let can_exceed_events_per_day_quota = query_scalar!(
         "
@@ -445,6 +456,8 @@ pub async fn ingest(
         .unwrap_or(0)
     };
 
+    phases.push(("quota_checks", phase_started_at.elapsed()));
+
     let can_ingest = if can_exceed_events_per_day_quota {
         true
     } else {
@@ -458,6 +471,8 @@ pub async fn ingest(
             if actual_consumption_percent
                 > i32::from(state.quota_notification_events_per_day_threshold)
             {
+                let phase_started_at = Instant::now();
+
                 // Template Mail — `recipient_first_name` is intentionally None
                 // here and hydrated per-admin inside the send loop
                 // (`quotas.rs::send_organization_email_notification`). A render
@@ -481,14 +496,21 @@ pub async fn ingest(
                         mail,
                     )
                     .await?;
+
+                phases.push(("quota_notification", phase_started_at.elapsed()));
             }
         }
 
+        let phase_started_at = Instant::now();
         let content_type = PayloadContentType::from_str(&body.payload_content_type)?;
         let payload = content_type.validate_and_decode(&body.payload)?;
+        phases.push(("payload_decode", phase_started_at.elapsed()));
 
+        let phase_started_at = Instant::now();
         let mut tx = state.db.begin().await?;
+        phases.push(("db_begin", phase_started_at.elapsed()));
 
+        let phase_started_at = Instant::now();
         let payload_to_insert = if let Some(true) =
             state.object_storage.as_ref().map(|object_storage| {
                 object_storage.store_event_payloads
@@ -522,6 +544,8 @@ pub async fn ingest(
             .await
             .map_err(Hook0Problem::from)?;
 
+        phases.push(("db_insert", phase_started_at.elapsed()));
+
         if let Some(object_storage) = &state.object_storage
             && object_storage.store_event_payloads
             && (object_storage.store_event_only_for.is_empty()
@@ -529,6 +553,8 @@ pub async fn ingest(
                     .store_event_only_for
                     .contains(&application_id))
         {
+            let phase_started_at = Instant::now();
+
             let key = format!(
                 "{application_id}/event/{}/{}",
                 event.received_at.naive_utc().date(),
@@ -546,6 +572,7 @@ pub async fn ingest(
             {
                 Ok(_) => {
                     report_event_payloads_stored_in_object_storage(1);
+                    phases.push(("object_storage_put", phase_started_at.elapsed()));
                 }
                 Err(e) if object_storage.db_fallback_on_write_failure => {
                     // The row was inserted with a NULL payload (destined for object
@@ -567,6 +594,10 @@ pub async fn ingest(
                     .await
                     .map_err(Hook0Problem::from)?;
                     report_event_payloads_stored_in_db_fallback(1);
+                    // Kept apart from `object_storage_put` so that the cost of a failed
+                    // PUT (usually a timeout) plus its recovery does not pollute the
+                    // distribution of healthy writes.
+                    phases.push(("object_storage_put_fallback", phase_started_at.elapsed()));
                 }
                 Err(e) => {
                     // DB fallback disabled: fail the request (and roll back the tx) so
@@ -581,10 +612,14 @@ pub async fn ingest(
             }
         }
 
+        let phase_started_at = Instant::now();
         tx.commit().await?;
+        phases.push(("commit", phase_started_at.elapsed()));
 
-        if let Some(pulsar) = &state.pulsar
-            && let Err(e) = send_request_attempts_to_pulsar(
+        if let Some(pulsar) = &state.pulsar {
+            let phase_started_at = Instant::now();
+
+            match send_request_attempts_to_pulsar(
                 &state.db,
                 pulsar,
                 application_id,
@@ -596,16 +631,32 @@ pub async fn ingest(
                 false,
             )
             .await
-        {
-            error!(
-                application_id = %application_id,
-                event_id = %event.event_id,
-                error = ?e,
-                "Some/all request attempts may not have been enqueued to Pulsar after commit; output-worker will need to reconcile"
-            );
+            {
+                Ok(()) => {
+                    phases.push(("request_attempts_enqueue", phase_started_at.elapsed()));
+                }
+                Err(e) => {
+                    error!(
+                        application_id = %application_id,
+                        event_id = %event.event_id,
+                        error = ?e,
+                        "Some/all request attempts may not have been enqueued to Pulsar after commit; output-worker will need to reconcile"
+                    );
+                    // Kept apart from the success phase so the cost of a failed enqueue (usually
+                    // the producer lock timing out) does not pollute the distribution of healthy
+                    // sends — same rationale as `object_storage_put_fallback`.
+                    phases.push((
+                        "request_attempts_enqueue_failed",
+                        phase_started_at.elapsed(),
+                    ));
+                }
+            }
         }
 
         report_ingested_events(1);
+        report_ingestion_duration(started_at.elapsed());
+        report_ingestion_phase_durations(&phases);
+
         Ok(CreatedJson(event))
     } else {
         if state.enable_quota_based_email_notifications {
