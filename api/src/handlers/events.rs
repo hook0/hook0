@@ -6,7 +6,6 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD as Base64;
 use biscuit_auth::Biscuit;
 use chrono::{DateTime, Utc};
-use futures_util::TryStreamExt;
 use futures_util::future::try_join_all;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
@@ -793,7 +792,9 @@ where
         worker_queue_type: Option<String>,
     }
 
-    let mut request_attempts_stream = query_as!(
+    // Rows are materialized (rather than streamed) so that when `executor` is the pool the connection
+    // goes back to the pool before the Pulsar sends below, which can block on the shared producer lock.
+    let request_attempts = query_as!(
         RawRequestAttempt,
         "
             SELECT
@@ -820,11 +821,12 @@ where
         ",
         &event_id,
     )
-    .fetch(executor);
+    .fetch_all(executor)
+    .await?;
 
     let mut receipt_futures = Vec::new();
 
-    while let Some(ra) = request_attempts_stream.try_next().await? {
+    for ra in request_attempts {
         if let Some(worker_id) = ra.worker_id
             && ra.worker_queue_type.as_deref() == Some("pulsar")
         {
