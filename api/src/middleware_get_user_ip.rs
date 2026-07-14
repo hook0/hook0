@@ -108,7 +108,7 @@ where
                 Box::pin(self.service.call(req))
             }
             Err(err) => {
-                let e = format!("GetUserIpMiddleware cannot find the user IP: {}", &err);
+                let e = format!("GetUserIpMiddleware cannot find the user IP: {}", err);
                 error!("{}", &e);
                 Box::pin(ready(Ok(
                     req.into_response(HttpResponse::InternalServerError().body(e))

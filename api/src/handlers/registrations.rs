@@ -122,7 +122,7 @@ pub async fn register(
             let organization_id = Uuid::new_v4();
             let organization_name = format!(
                 "{} {}'s personal organization",
-                &body.first_name, &body.last_name
+                body.first_name, body.last_name
             );
             query!(
                 "

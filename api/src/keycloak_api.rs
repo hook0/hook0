@@ -93,7 +93,7 @@ impl KeycloakApi {
                 Hook0Problem::InternalServerError
             })?;
 
-        let authenticated_client = HeaderValue::from_str(&format!("Bearer {}", &res.access_token))
+        let authenticated_client = HeaderValue::from_str(&format!("Bearer {}", res.access_token))
             .map_err(|e| {
                 error!("Could not build auth header: {}", &e);
                 Hook0Problem::InternalServerError

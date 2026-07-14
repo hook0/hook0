@@ -359,7 +359,7 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
         (_, _, _, _, Err(_)) => {
             let msg = format!(
                 "Event type has an invalid header value: {}",
-                &attempt.event_type_name
+                attempt.event_type_name
             );
             warn!("{msg}");
             Response {

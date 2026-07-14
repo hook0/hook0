@@ -194,7 +194,7 @@ async fn import_user_from_keycloak(
     reqwest::Client::new()
         .post(format!(
             "{}/realms/{}/protocol/openid-connect/token",
-            &state.keycloak_url, &state.keycloak_realm
+            state.keycloak_url, state.keycloak_realm
         ))
         .form(&[
             ("grant_type", "password"),

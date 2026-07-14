@@ -4,7 +4,7 @@
 [package]
 name = "build-i18n"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [[bin]]
 name = "build-i18n"

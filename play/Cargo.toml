@@ -36,4 +36,4 @@ zeroize = { version = "1.9", features = ["derive"] }
 [dev-dependencies]
 portpicker = "0.1"
 reqwest = { version = "0.13", features = ["json", "hickory-dns"], default-features = false }
-tokio-tungstenite = { version = "0.29", features = ["rustls-tls-webpki-roots"] }
+tokio-tungstenite = { version = "0.30", features = ["rustls-tls-webpki-roots"] }

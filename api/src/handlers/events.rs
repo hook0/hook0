@@ -910,7 +910,7 @@ where
             .send_non_blocking(
                 format!(
                     "persistent://{}/{}/{}.request_attempt",
-                    &pulsar.tenant, &pulsar.namespace, worker_id,
+                    pulsar.tenant, pulsar.namespace, worker_id,
                 ),
                 request_attempt,
             )
