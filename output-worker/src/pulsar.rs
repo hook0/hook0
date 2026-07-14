@@ -91,11 +91,11 @@ pub async fn load_waiting_request_attempts_from_db(
 
     let hp_topic = format!(
         "persistent://{}/{}/{}.request_attempt",
-        &pulsar.tenant, &pulsar.namespace, worker_id,
+        pulsar.tenant, pulsar.namespace, worker_id,
     );
     let lp_topic = format!(
         "persistent://{}/{}/{}.request_attempt.lp",
-        &pulsar.tenant, &pulsar.namespace, worker_id,
+        pulsar.tenant, pulsar.namespace, worker_id,
     );
     let mut hp_producer = pulsar
         .pulsar
@@ -299,12 +299,12 @@ pub async fn look_for_work(
     // HP topic = existing topic (API sends initial attempts here)
     let hp_topic = format!(
         "persistent://{}/{}/{worker_id}.request_attempt",
-        &pulsar.tenant, &pulsar.namespace,
+        pulsar.tenant, pulsar.namespace,
     );
     // LP topic = new topic for retries past the cutoff
     let lp_topic = format!(
         "persistent://{}/{}/{worker_id}.request_attempt.lp",
-        &pulsar.tenant, &pulsar.namespace,
+        pulsar.tenant, pulsar.namespace,
     );
 
     let mut hp_consumer = pulsar

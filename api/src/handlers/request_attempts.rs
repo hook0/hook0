@@ -481,7 +481,7 @@ pub async fn list(
         if state.app_url.as_str().ends_with('/') {
             Ok(state.app_url.clone())
         } else {
-            Url::parse(&format!("{}/", &state.app_url))
+            Url::parse(&format!("{}/", state.app_url))
         }
         .inspect_err(|e| {
             error!("Error that should never happen while building app URL for pagination: {e}");

@@ -24,6 +24,17 @@ const ORGA_GROUP_PREFIX: &str = "orga_";
 #[cfg(feature = "migrate-users-from-keycloak")]
 const ROLE_GROUP_PREFIX: &str = "role_";
 
+#[cfg(feature = "migrate-users-from-keycloak")]
+static KC_GROUP_PATH_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(&format!(
+        "^{}{}([0-9a-f-]+)(?:{}([0-9a-zA-Z_]+))?$",
+        regex::escape(GROUP_SEP),
+        regex::escape(ORGA_GROUP_PREFIX),
+        regex::escape(GROUP_SEP)
+    ))
+    .unwrap()
+});
+
 /// Look up the organization owning an application, surfacing DB errors to the
 /// caller. A transient DB failure (e.g. pool exhaustion under load) must NOT be
 /// confused with "application not found": `Ok(None)` means the application is
@@ -101,20 +112,10 @@ impl Role {
 
 #[cfg(feature = "migrate-users-from-keycloak")]
 pub fn kc_group_paths_to_roles(groups: &[String]) -> std::collections::HashMap<Uuid, Role> {
-    lazy_static::lazy_static! {
-        static ref RE: regex::Regex = regex::Regex::new(&format!(
-            "^{}{}([0-9a-f-]+)(?:{}([0-9a-zA-Z_]+))?$",
-            regex::escape(GROUP_SEP),
-            regex::escape(ORGA_GROUP_PREFIX),
-            regex::escape(GROUP_SEP)
-        ))
-        .unwrap();
-    }
-
     let mut organizations = std::collections::HashMap::new();
 
     for str in groups {
-        let matches = RE.captures(str);
+        let matches = KC_GROUP_PATH_RE.captures(str);
         if let Some(m) = matches {
             let org_id_str = m.get(1).unwrap().as_str();
             let role = m

@@ -1638,7 +1638,7 @@ async fn main() -> anyhow::Result<()> {
                     Files::new("/", webapp_path.as_str())
                         .index_file(WEBAPP_INDEX_FILE)
                         .default_handler(
-                            NamedFile::open(format!("{}/{}", &webapp_path, WEBAPP_INDEX_FILE))
+                            NamedFile::open(format!("{}/{}", webapp_path, WEBAPP_INDEX_FILE))
                                 .expect("Cannot open SPA main file"),
                         ),
                 );

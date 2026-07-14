@@ -4,7 +4,7 @@
 [package]
 name = "i18n-gate"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [[bin]]
 name = "i18n-gate"
