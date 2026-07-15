@@ -3,7 +3,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Svix: Open-Source Webhook Platform Comparison',
   pageDescription: 'Compare Hook0 and Svix: open-source SSPL vs open-core, bootstrapped vs VC-funded, EU-hosted vs US, self-hostable on every plan. An honest side-by-side.',
-  pageModified: '2026-06-22',
+  pageModified: '2026-07-16',
   breadcrumb: 'Hook0 vs Svix',
   hero: {
     eyebrow: 'Comparison',
@@ -20,7 +20,7 @@ module.exports = {
       { title: 'Source-Available, No Closed Add-Ons', body: "Hook0's server ships under SSPL-1.0 and the SDKs under MIT. You get the whole platform: read it, modify it, self-host it. Svix's core is MIT, but enterprise features (SSO, advanced analytics, dedicated support) stay closed-source on paid plans." },
       { title: 'Bootstrapped From Day One', body: 'Svix is venture-funded. Investors expect a return, which means pressure to raise prices or get acquired. Hook0 is 100% bootstrapped. No board to please, no growth-at-all-costs mandate.' },
       { title: 'No Vendor Lock-In', body: 'Hook0 Cloud runs the same open-source code you can read and audit. If you ever need to, you can export and run it yourself (free, Docker or Kubernetes), so you are never trapped in a proprietary platform. Svix restricts self-hosting to enterprise customers.' },
-      { title: 'EU Hosting, Outside the CLOUD Act', body: 'Hook0 Cloud runs on French infrastructure (Clever Cloud) and is operated by a French company, so it falls outside US CLOUD Act jurisdiction. Your webhook payloads stay in the EU. Svix is US-based. You can also self-host so no webhook data leaves your network.' },
+      { title: 'EU Data Plane, US Edge Disclosed', body: "Hook0's data plane runs on Clever Cloud in France, operated by a French company. The CDN in front is Cloudflare (US), disclosed in our public sub-processor list with its transfer mechanism. Svix is US-based. And because the same code self-hosts, you can run Hook0 in your own network, where no webhook data leaves it." },
     ],
   },
   comparison: {
@@ -42,13 +42,13 @@ module.exports = {
   faq: {
     eyebrow: 'FAQ',
     h2: 'Common Questions',
-    lastReviewed: 'Last reviewed June 2026.',
+    lastReviewed: 'Last reviewed July 2026.',
     items: [
       { q: 'Is Hook0 open-source like Svix?', a: "Hook0's server is published under SSPL-1.0 and the client SDKs under MIT, with no proprietary enterprise tier. SSPL is a source-available copyleft license: you can read, modify, and self-host the whole platform freely. Svix's core is MIT, but several enterprise features are closed-source and only available on paid plans." },
       { q: "How does Hook0's free tier compare to Svix's?", a: "Hook0's free tier is free forever with no credit card: 100 events per day, HMAC signatures, and delivery monitoring, hosted in the EU. Paid plans scale with your volume on the same managed infrastructure, with every feature included and no enterprise paywall. Svix reserves several features for paid plans." },
       { q: 'Does Hook0 support Standard Webhooks?', a: 'Standard Webhooks is a specification authored by Svix. Hook0 signs every payload with HMAC-SHA256 and documents the scheme. Standard Webhooks support is planned.' },
-      { q: 'Can I use Hook0 for regulated or compliance-sensitive workloads?', a: 'Yes. Hook0 Cloud keeps your webhook data in the EU, on French infrastructure operated by a French company, outside US CLOUD Act jurisdiction, which is what most compliance-sensitive teams need first. Because the full server source is open (SSPL-1.0), you can audit exactly how data is handled and you are never locked in. Formal third-party attestations such as SOC 2, HIPAA and PCI-DSS are planned.' },
-      { q: 'Is Hook0 hosted in the EU and outside the US CLOUD Act?', a: 'Hook0 Cloud is operated by a French company (FGRibreau SARL) on French infrastructure (Clever Cloud), so it falls outside US CLOUD Act jurisdiction. Your webhook payloads, which often carry customer data, stay in the EU. Svix and Hookdeck are US companies. You can also self-host Hook0 so no webhook data leaves your network.' },
+      { q: 'Can I use Hook0 for regulated or compliance-sensitive workloads?', a: 'Yes, though formal attestations are still on the roadmap. Hook0 Cloud runs its data plane on Clever Cloud in France, operated by a French company, with the Cloudflare (US) CDN disclosed in a public sub-processor list and its transfer mechanism. Because the full server source is open (SSPL-1.0), you can audit exactly how data is handled, and you can self-host so no webhook data leaves your own network. Third-party attestations such as SOC 2, HIPAA and PCI-DSS are planned.' },
+      { q: 'Where is Hook0 hosted, and how does it handle US data-transfer exposure?', a: 'Hook0 Cloud is operated by a French company (FGRibreau SARL), with its data plane on Clever Cloud in France. The CDN and DDoS layer in front is Cloudflare (US), which we disclose in a public sub-processor list, framed by the 2021 Standard Contractual Clauses and a Transfer Impact Assessment, rather than claiming zero US exposure. Svix and Hookdeck are US companies. If you need webhook data to stay entirely inside your own network, self-host Hook0 on the same code.' },
       { q: 'Can I self-host Hook0 for free?', a: 'Yes. The same open-source code runs free on Docker Compose or Kubernetes, which is what keeps you from ever being locked in. Most teams start on Hook0 Cloud (managed, EU-hosted, free tier) and keep self-hosting as their exit option. Svix offers self-hosting only on its enterprise plan.' },
       { q: 'Is Hook0 bootstrapped?', a: 'Yes. Hook0 is 100% bootstrapped with zero VC funding. Svix is venture-funded. Bootstrapped means Hook0 answers to its users, not to investors looking for an exit.' },
       { q: 'Do Svix and Hookdeck consider Hook0 a competitor?', a: 'Svix and Hookdeck each publish comparison pages that include Hook0. You can read their own assessments alongside ours.' },
