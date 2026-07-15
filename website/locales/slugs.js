@@ -26,6 +26,12 @@ module.exports = {
   'hook0-vs-svix': { fr: 'hook0-vs-svix', de: 'hook0-vs-svix' },
   'svix-alternatives': { fr: 'alternatives-a-svix', de: 'svix-alternativen' },
   'hook0-vs-hookdeck': { fr: 'hook0-vs-hookdeck', de: 'hook0-vs-hookdeck' },
+  // EN-only pilot: per-provider "<Provider> Webhook Tester" pages (WR2). No fr/de
+  // variants — the empty map renders only the English page. Localize only if these
+  // rank (test-and-scale).
+  'stripe-webhook-tester': {},
+  'github-webhook-tester': {},
+  'shopify-webhook-tester': {},
   // EN + FR only (DE gate: no second DE cluster until paid DE proves demand).
   'webhook-cost-comparison': { fr: 'comparatif-cout-webhook' },
   'eu-webhook-infrastructure': { fr: 'infrastructure-webhook-europeenne' },
