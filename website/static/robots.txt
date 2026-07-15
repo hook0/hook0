@@ -87,3 +87,6 @@ Disallow: /404
 
 # Sitemap location
 Sitemap: https://www.hook0.com/sitemap.xml
+
+# EntityMap: brand knowledge graph for AI answer engines (GEO/AEO)
+EntityMap: https://www.hook0.com/entitymap.json
