@@ -95,3 +95,42 @@ e2e-playwright.test:
     key: playwright-${CI_COMMIT_REF_SLUG}
     paths:
       - tests-e2e/node_modules/
+
+# Documentation (Docusaurus) E2E: reuses the immutable documentation.build artifact
+# and serves it statically, then checks the client-rendered /api reference actually
+# renders (regression guard for the shared website-data `process.env` leak).
+documentation-e2e-playwright.test:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.59.1-noble
+  needs:
+    - job: documentation.build
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - documentation/**/*
+        - website/data.js
+        - tests-e2e/**/*
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - documentation/**/*
+        - website/data.js
+        - tests-e2e/**/*
+  before_script:
+    - cd tests-e2e
+    - npm ci
+  script:
+    # Playwright's webServer serves ../documentation/build (documentation.build artifact)
+    - npm run test:documentation -- --project=chromium
+  artifacts:
+    when: always
+    paths:
+      - tests-e2e/playwright-report-documentation/
+      - tests-e2e/test-results/
+    reports:
+      junit: tests-e2e/test-results/documentation-junit.xml
+    expire_in: 30 days
+  cache:
+    key: playwright-${CI_COMMIT_REF_SLUG}
+    paths:
+      - tests-e2e/node_modules/
