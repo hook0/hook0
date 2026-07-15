@@ -1,0 +1,471 @@
+{
+  "version": "1.0",
+  "schema": "https://entitymap.org/spec/v1.0",
+  "publisher": {
+    "name": "Hook0",
+    "url": "https://www.hook0.com",
+    "sameAs": [
+      "https://github.com/hook0",
+      "https://www.linkedin.com/company/hook0",
+      "https://twitter.com/hook0_"
+    ]
+  },
+  "generated": "2026-07-15T21:24:20Z",
+  "profile": "core",
+  "verificationStatus": "generator-draft",
+  "entities": [
+    {
+      "entityId": "e_hook0",
+      "@type": "Platform",
+      "name": "Hook0",
+      "alternateName": [
+        "hook0",
+        "Hook Zero"
+      ],
+      "audienceType": "technical",
+      "status": "active",
+      "description": "Hook0 is an open-source webhooks-as-a-service platform. Developers send a webhook with one API call, and Hook0 handles delivery, retries, HMAC signatures and delivery monitoring. It runs as a managed cloud service on an EU data plane, or self-hosted from the same SSPL-1.0 codebase.",
+      "relations": [
+        {
+          "predicate": "INSTANCE_OF",
+          "targetId": "e_waas",
+          "targetName": "Webhooks as a Service"
+        },
+        {
+          "predicate": "INCLUDES",
+          "targetId": "e_cloud",
+          "targetName": "Hook0 Cloud"
+        },
+        {
+          "predicate": "INCLUDES",
+          "targetId": "e_api",
+          "targetName": "Hook0 Webhook API"
+        },
+        {
+          "predicate": "INCLUDES",
+          "targetId": "e_portal",
+          "targetName": "Subscriber portal"
+        },
+        {
+          "predicate": "INCLUDES",
+          "targetId": "e_logs",
+          "targetName": "Delivery logs and replay"
+        },
+        {
+          "predicate": "ENABLES",
+          "targetId": "e_selfhost",
+          "targetName": "Self-hosted webhooks",
+          "confidence": "declared"
+        },
+        {
+          "predicate": "REGULATED_BY",
+          "targetId": "e_gdpr",
+          "targetName": "GDPR"
+        },
+        {
+          "predicate": "RELATES_TO",
+          "targetId": "e_sspl",
+          "targetName": "SSPL-1.0"
+        }
+      ],
+      "hasChunks": [
+        {
+          "chunkId": "c_hook0_1",
+          "text": "Hook0 is an Open-Source Webhooks-as-a-service (WaaS) that makes it easy for developers to send webhooks. Developers make one API call, and Hook0 takes care of deliverability, retries, security, and more.",
+          "sourceUrl": "https://www.hook0.com/",
+          "pageTitle": "Hook0: Free Webhook Platform, HMAC Signatures, EU Hosting",
+          "publisher": "Hook0",
+          "contentType": "definition",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.97
+        },
+        {
+          "chunkId": "c_hook0_2",
+          "text": "Yes. The source code is available on GitHub and GitLab under the SSPL-1.0 license (client SDKs are MIT). You can self-host it with Docker Compose or Kubernetes, or use the managed cloud service hosted in Europe.",
+          "sourceUrl": "https://www.hook0.com/",
+          "pageTitle": "Hook0: Free Webhook Platform, HMAC Signatures, EU Hosting",
+          "publisher": "Hook0",
+          "contentType": "evidence",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.9
+        }
+      ]
+    },
+    {
+      "entityId": "e_cloud",
+      "@type": "Service",
+      "name": "Hook0 Cloud",
+      "audienceType": "executive",
+      "status": "active",
+      "description": "Hook0 Cloud is the managed edition of Hook0. Its webhook data plane runs on Clever Cloud infrastructure in France, on the free tier and every paid plan, operated by a company incorporated under French law.",
+      "hasChunks": [
+        {
+          "chunkId": "c_cloud_1",
+          "text": "Hook0's webhook data plane runs on Clever Cloud, in France, from the free tier up. The company behind it is incorporated under French law, with no US parent. And if you ever want out, the same codebase self-hosts — open-source (SSPL-1.0).",
+          "sourceUrl": "https://www.hook0.com/eu-webhook-infrastructure",
+          "pageTitle": "EU Webhook Infrastructure: Hosted in France by Default | Hook0",
+          "publisher": "Hook0",
+          "contentType": "definition",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.95
+        },
+        {
+          "chunkId": "c_cloud_2",
+          "text": "Yes. Hook0 Cloud is a managed webhook service: we run the delivery infrastructure, retries, HMAC signing and monitoring for you, with application data hosted in Europe. If you would rather operate it yourself, the same codebase is open-source (SSPL-1.0) and self-hostable.",
+          "sourceUrl": "https://www.hook0.com/webhook-platform",
+          "pageTitle": "Webhook Platform: Send, Sign, Retry, Monitor | Hook0",
+          "publisher": "Hook0",
+          "contentType": "evidence",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.88
+        }
+      ]
+    },
+    {
+      "entityId": "e_api",
+      "@type": "Service",
+      "name": "Hook0 Webhook API",
+      "audienceType": "technical",
+      "status": "active",
+      "description": "The Hook0 webhook API is a REST interface that triggers an event with a single HTTP call. Hook0 signs the payload with HMAC, delivers it to matching subscribers, retries failures with a two-phase backoff and logs each attempt. Official SDKs cover Python and Node.js.",
+      "relations": [
+        {
+          "predicate": "INCLUDES",
+          "targetId": "e_hmac",
+          "targetName": "HMAC-SHA256 signing"
+        },
+        {
+          "predicate": "INCLUDES",
+          "targetId": "e_retries",
+          "targetName": "Two-phase retries"
+        }
+      ],
+      "hasChunks": [
+        {
+          "chunkId": "c_api_1",
+          "text": "The Hook0 webhook API is a REST interface that lets your backend trigger an event with a single HTTP call. Hook0 then signs the payload with HMAC, delivers it to every matching subscriber, retries on failure with a configurable two-phase backoff, and logs every attempt. SDKs are available for Python, Node.js and other languages.",
+          "sourceUrl": "https://www.hook0.com/webhook-api",
+          "pageTitle": "Webhook API: One REST Call to Deliver Events | Hook0",
+          "publisher": "Hook0",
+          "contentType": "definition",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.96
+        },
+        {
+          "chunkId": "c_api_2",
+          "text": "One POST from your backend. Hook0 does the HMAC, the retries, the DLQ and the delivery logs. SDKs in Python and Node.js. Open-source, free tier, no credit card.",
+          "sourceUrl": "https://www.hook0.com/webhook-api",
+          "pageTitle": "Webhook API: One REST Call to Deliver Events | Hook0",
+          "publisher": "Hook0",
+          "contentType": "example",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.85
+        }
+      ]
+    },
+    {
+      "entityId": "e_fgr",
+      "@type": "Person",
+      "name": "François-Guillaume Ribreau",
+      "audienceType": "general",
+      "status": "active",
+      "description": "François-Guillaume Ribreau is a co-founder of Hook0.",
+      "relations": [
+        {
+          "predicate": "AFFILIATED_WITH",
+          "targetId": "e_hook0",
+          "targetName": "Hook0"
+        }
+      ],
+      "hasChunks": [
+        {
+          "chunkId": "c_fgr_1",
+          "text": "\"Give it enough time and open-Source always wins in the end!\" — François-Guillaume Ribreau, Hook0 co-founder",
+          "sourceUrl": "https://www.hook0.com/",
+          "pageTitle": "Hook0: Free Webhook Platform, HMAC Signatures, EU Hosting",
+          "publisher": "Hook0",
+          "contentType": "example",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.6
+        }
+      ]
+    },
+    {
+      "entityId": "e_ds",
+      "@type": "Person",
+      "name": "David Sferruzza",
+      "audienceType": "general",
+      "status": "active",
+      "description": "David Sferruzza is a co-founder of Hook0.",
+      "relations": [
+        {
+          "predicate": "AFFILIATED_WITH",
+          "targetId": "e_hook0",
+          "targetName": "Hook0"
+        }
+      ],
+      "hasChunks": [
+        {
+          "chunkId": "c_ds_1",
+          "text": "\"We are building it the way we would love to use it\" — David Sferruzza, PhD, Hook0 co-founder",
+          "sourceUrl": "https://www.hook0.com/",
+          "pageTitle": "Hook0: Free Webhook Platform, HMAC Signatures, EU Hosting",
+          "publisher": "Hook0",
+          "contentType": "example",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.6
+        }
+      ]
+    },
+    {
+      "entityId": "e_waas",
+      "@type": "Concept",
+      "name": "Webhooks as a Service",
+      "alternateName": [
+        "WaaS"
+      ],
+      "audienceType": "technical",
+      "status": "active",
+      "description": "Webhooks as a service (WaaS) is a model where an application sends events to a provider over a REST API and the provider delivers them to subscriber endpoints, handling retries, signatures, delivery logging and subscriber management.",
+      "hasChunks": [
+        {
+          "chunkId": "c_waas_1",
+          "text": "Webhooks as a service means you send events to Hook0 via a REST API, and Hook0 delivers them to your users' endpoints. It handles retries, cryptographic signatures, delivery logging, and subscriber management so you don't have to build that infrastructure yourself.",
+          "sourceUrl": "https://www.hook0.com/",
+          "pageTitle": "Hook0: Free Webhook Platform, HMAC Signatures, EU Hosting",
+          "publisher": "Hook0",
+          "contentType": "definition",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.95
+        }
+      ]
+    },
+    {
+      "entityId": "e_hmac",
+      "@type": "Concept",
+      "name": "HMAC-SHA256 signing",
+      "audienceType": "technical",
+      "status": "active",
+      "description": "HMAC-SHA256 signing attaches a cryptographic signature and a timestamp to each webhook payload so the subscriber can verify the request came from the sender. The timestamp lets subscribers reject replayed requests.",
+      "hasChunks": [
+        {
+          "chunkId": "c_hmac_1",
+          "text": "Payloads carry a signature and a timestamp. Subscribers verify both. Replay attacks fail the timestamp check.",
+          "sourceUrl": "https://www.hook0.com/webhook-api",
+          "pageTitle": "Webhook API: One REST Call to Deliver Events | Hook0",
+          "publisher": "Hook0",
+          "contentType": "definition",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.9
+        },
+        {
+          "chunkId": "c_hmac_2",
+          "text": "Payloads are signed so subscribers can verify the request came from you. Timestamps cover replay attacks.",
+          "sourceUrl": "https://www.hook0.com/webhook-platform",
+          "pageTitle": "Webhook Platform: Send, Sign, Retry, Monitor | Hook0",
+          "publisher": "Hook0",
+          "contentType": "evidence",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.85
+        }
+      ]
+    },
+    {
+      "entityId": "e_retries",
+      "@type": "Methodology",
+      "name": "Two-phase retries",
+      "audienceType": "technical",
+      "status": "active",
+      "description": "Two-phase retries are Hook0's delivery-retry strategy. Fast retries handle transient endpoint failures in the first minutes; slower retries cover longer outages over hours and days, ending in a dead letter queue once the retry budget is exhausted.",
+      "hasChunks": [
+        {
+          "chunkId": "c_retries_1",
+          "text": "Fast retries within the first few minutes for flaky endpoints. Slow retries over hours and days for real outages. DLQ when the budget runs out.",
+          "sourceUrl": "https://www.hook0.com/webhook-api",
+          "pageTitle": "Webhook API: One REST Call to Deliver Events | Hook0",
+          "publisher": "Hook0",
+          "contentType": "definition",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.9
+        },
+        {
+          "chunkId": "c_retries_2",
+          "text": "Fast retries for flaky endpoints, slow retries over days for real outages. Tunable per subscription, with a DLQ at the end.",
+          "sourceUrl": "https://www.hook0.com/webhook-platform",
+          "pageTitle": "Webhook Platform: Send, Sign, Retry, Monitor | Hook0",
+          "publisher": "Hook0",
+          "contentType": "evidence",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.85
+        }
+      ]
+    },
+    {
+      "entityId": "e_portal",
+      "@type": "ProprietaryTerm",
+      "name": "Subscriber portal",
+      "audienceType": "technical",
+      "status": "active",
+      "description": "The subscriber portal is a drop-in interface where a Hook0 customer's own users manage their endpoints, secrets and event filters without opening support tickets.",
+      "hasChunks": [
+        {
+          "chunkId": "c_portal_1",
+          "text": "A drop-in UI where your users manage their endpoints, secrets and event filters. No more support tickets to rotate a key.",
+          "sourceUrl": "https://www.hook0.com/webhook-platform",
+          "pageTitle": "Webhook Platform: Send, Sign, Retry, Monitor | Hook0",
+          "publisher": "Hook0",
+          "contentType": "definition",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.9
+        }
+      ]
+    },
+    {
+      "entityId": "e_selfhost",
+      "@type": "Concept",
+      "name": "Self-hosted webhooks",
+      "audienceType": "technical",
+      "status": "active",
+      "description": "Self-hosted webhooks means running Hook0 on your own infrastructure with Docker Compose or Kubernetes, from the same codebase as the cloud edition, so webhook payloads stay inside your network.",
+      "hasChunks": [
+        {
+          "chunkId": "c_selfhost_1",
+          "text": "Deploy webhooks on-premise with the same codebase as our cloud version. Your webhook payloads never leave your network. Docker Compose or Kubernetes. Open-source under SSPL v1, no vendor lock-in.",
+          "sourceUrl": "https://www.hook0.com/self-hosted-webhooks",
+          "pageTitle": "Self-Hosted Webhooks: Docker & Kubernetes | Hook0",
+          "publisher": "Hook0",
+          "contentType": "definition",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.93
+        },
+        {
+          "chunkId": "c_selfhost_2",
+          "text": "One codebase. The binary you deploy is built from the same repo as our cloud. Retries, signatures, monitoring, subscription management: nothing is stripped out.",
+          "sourceUrl": "https://www.hook0.com/self-hosted-webhooks",
+          "pageTitle": "Self-Hosted Webhooks: Docker & Kubernetes | Hook0",
+          "publisher": "Hook0",
+          "contentType": "evidence",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.85
+        }
+      ]
+    },
+    {
+      "entityId": "e_eu",
+      "@type": "Concept",
+      "name": "EU webhook data residency",
+      "audienceType": "regulatory",
+      "status": "active",
+      "description": "EU webhook data residency means processing and storing webhook payloads within the European Economic Area. Hook0 runs its data plane on Clever Cloud in France; its Cloudflare CDN edge is disclosed and framed by standard contractual clauses.",
+      "hasChunks": [
+        {
+          "chunkId": "c_eu_1",
+          "text": "Webhook payloads, database and backups run on Clever Cloud SAS infrastructure in France, inside the European Economic Area. This is not an enterprise add-on: the free tier and every paid plan use the same EU data plane.",
+          "sourceUrl": "https://www.hook0.com/eu-webhook-infrastructure",
+          "pageTitle": "EU Webhook Infrastructure: Hosted in France by Default | Hook0",
+          "publisher": "Hook0",
+          "contentType": "definition",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.94
+        },
+        {
+          "chunkId": "c_eu_2",
+          "text": "Our CDN and DDoS protection layer is Cloudflare, Inc. (USA). We disclose it instead of burying it: those transfers are framed by the 2021 Standard Contractual Clauses, a documented Transfer Impact Assessment and, where applicable, the EU-US Data Privacy Framework.",
+          "sourceUrl": "https://www.hook0.com/eu-webhook-infrastructure",
+          "pageTitle": "EU Webhook Infrastructure: Hosted in France by Default | Hook0",
+          "publisher": "Hook0",
+          "contentType": "evidence",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.9
+        }
+      ]
+    },
+    {
+      "entityId": "e_sspl",
+      "@type": "Concept",
+      "name": "SSPL-1.0",
+      "alternateName": [
+        "Server Side Public License"
+      ],
+      "audienceType": "technical",
+      "status": "active",
+      "description": "SSPL-1.0 is the source-available copyleft license under which Hook0's server is published, with the client SDKs under MIT. It permits reading, modifying, self-hosting and running the software, adding an obligation only when the software is resold as a managed service.",
+      "hasChunks": [
+        {
+          "chunkId": "c_sspl_1",
+          "text": "Hook0's full server source is published under SSPL-1.0, and the client SDKs under MIT. SSPL is a source-available copyleft license: you can read, modify, self-host, and run Hook0 freely. It's stricter than MIT in one case. If you resell Hook0 as a managed service, you have to open-source your own infrastructure stack. If you're building on Hook0 or self-hosting it, SSPL adds no obligation over MIT.",
+          "sourceUrl": "https://www.hook0.com/",
+          "pageTitle": "Hook0: Free Webhook Platform, HMAC Signatures, EU Hosting",
+          "publisher": "Hook0",
+          "contentType": "definition",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.92
+        }
+      ]
+    },
+    {
+      "entityId": "e_gdpr",
+      "@type": "Regulation",
+      "name": "General Data Protection Regulation",
+      "alternateName": [
+        "GDPR"
+      ],
+      "sameAs": "https://www.wikidata.org/wiki/Q1172506",
+      "audienceType": "regulatory",
+      "status": "active",
+      "description": "The General Data Protection Regulation (GDPR) is the European Union regulation on the processing of personal data. Hook0 is designed to operate in line with it and publishes a data processing addendum and a sub-processor list.",
+      "hasChunks": [
+        {
+          "chunkId": "c_gdpr_1",
+          "text": "If you are dealing with any European Union data through a vendor (like Hook0), then you need a contractual agreement in place with each vendor so the EU knows you're only doing business with companies that fully comply with the General Data Protection Regulation (GDPR).",
+          "sourceUrl": "https://www.hook0.com/security",
+          "pageTitle": "Hook0 - Security and Compliance",
+          "publisher": "Hook0",
+          "contentType": "definition",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.88
+        },
+        {
+          "chunkId": "c_gdpr_2",
+          "text": "Hook0 is built and operated by a company incorporated under French law, with no US parent company. Your contract, your DPA and your data protection questions are handled under EU jurisdiction.",
+          "sourceUrl": "https://www.hook0.com/eu-webhook-infrastructure",
+          "pageTitle": "EU Webhook Infrastructure: Hosted in France by Default | Hook0",
+          "publisher": "Hook0",
+          "contentType": "evidence",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.86
+        }
+      ]
+    },
+    {
+      "entityId": "e_logs",
+      "@type": "Concept",
+      "name": "Delivery logs and replay",
+      "audienceType": "technical",
+      "status": "active",
+      "description": "Delivery logs record each webhook attempt with its request, response, status code and latency. Any event can be replayed by ID from the dashboard or the API.",
+      "hasChunks": [
+        {
+          "chunkId": "c_logs_1",
+          "text": "Headers, body, response code, latency. Stored per attempt. Replay any event by ID, from the dashboard or the API.",
+          "sourceUrl": "https://www.hook0.com/webhook-api",
+          "pageTitle": "Webhook API: One REST Call to Deliver Events | Hook0",
+          "publisher": "Hook0",
+          "contentType": "definition",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.9
+        },
+        {
+          "chunkId": "c_logs_2",
+          "text": "Request, response, status code, latency. Replay any event from the dashboard. Support stops guessing.",
+          "sourceUrl": "https://www.hook0.com/webhook-platform",
+          "pageTitle": "Webhook Platform: Send, Sign, Retry, Monitor | Hook0",
+          "publisher": "Hook0",
+          "contentType": "evidence",
+          "retrieved": "2026-07-15T21:24:20Z",
+          "relevanceScore": 0.85
+        }
+      ]
+    }
+  ]
+}

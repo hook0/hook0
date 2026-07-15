@@ -22,6 +22,7 @@ head body, and the default fallback would just create a duplicate tag. -->
 <!-- Canonical URL -->
 <% if (locals.pageCanonical) { %>
 <link rel="canonical" href="<%= locals.seo.siteUrl %><%= locals.pageCanonical %>">
+<link rel="entitymap" type="application/json" href="https://www.hook0.com/entitymap.json" />
 <% } %>
 
 <!-- hreflang alternates (localized versions). Self-referential link is intentionally
