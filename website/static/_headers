@@ -1,7 +1,7 @@
 # Hook0 — Netlify security headers
 # Applied to every response served from www.hook0.com.
 # CSP allowlist tracks the third parties actually referenced from _head.ejs
-# (Matomo, Crisp chat, Google Ads gtag, Product Hunt badge, GitHub buttons).
+# (Matomo, Crisp chat, Google Ads gtag, Product Hunt badge).
 # fonts.googleapis.com / fonts.gstatic.com stay forbidden — Inter is self-hosted.
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -16,7 +16,7 @@
   # shipped scripts use eval/new Function, and Matomo/Crisp/gtag don't
   # require it in our usage. If Google Ads conversion tracking ever needs
   # GTM custom templates, re-add 'unsafe-eval' with a referenced ticket.
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self' https://app.hook0.com; upgrade-insecure-requests; script-src 'self' 'unsafe-inline' https://matomo.hook0.com https://*.crisp.chat https://www.googletagmanager.com https://api.producthunt.com https://ghbtns.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://matomo.hook0.com https://*.crisp.chat wss://*.crisp.chat https://www.googletagmanager.com https://www.google-analytics.com https://googleads.g.doubleclick.net https://api.producthunt.com; frame-src 'self' https://*.crisp.chat https://api.producthunt.com https://ghbtns.com; manifest-src 'self'; worker-src 'self'
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self' https://app.hook0.com; upgrade-insecure-requests; script-src 'self' 'unsafe-inline' https://matomo.hook0.com https://*.crisp.chat https://www.googletagmanager.com https://api.producthunt.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://matomo.hook0.com https://*.crisp.chat wss://*.crisp.chat https://www.googletagmanager.com https://www.google-analytics.com https://googleads.g.doubleclick.net https://api.producthunt.com; frame-src 'self' https://*.crisp.chat https://api.producthunt.com; manifest-src 'self'; worker-src 'self'
 
 # Self-hosted Inter font files — 1 year immutable cache (the filename is the
 # version; if we change Inter, we change the filename).
