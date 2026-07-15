@@ -266,7 +266,7 @@ where
                                                     }
                                                     Err(e) => {
                                                         error!(
-                                                            "Error while searching for an application scret: {e}"
+                                                            "Error while searching for an application secret: {e}"
                                                         );
                                                         let res = Hook0Problem::InternalServerError;
                                                         Ok(req.error_response(res))
