@@ -235,6 +235,15 @@ try {
   locals.ossFriends = [];
 }
 
+// GitHub stargazers count — fetched at build time (scripts/fetch-github-stars.js),
+// same pattern as oss-friends. Absent on a failed fetch: the social-proof bar
+// then falls back to a plain GitHub link with no count.
+try {
+  locals.social.github.stars = require('./github-stars.json').stars;
+} catch {
+  // no cached star count
+}
+
 // Footer icons - SVG paths for footer link icons
 // Shared with documentation via webpack alias
 locals.footerIcons = {

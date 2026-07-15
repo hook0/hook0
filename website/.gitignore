@@ -72,4 +72,7 @@ typings/
 
 # oss-friends is downloaded at npm install time
 oss-friends.json
+# github-stars is fetched at build time (scripts/fetch-github-stars.js)
+github-stars.json
 temp/
+.screenshots/
