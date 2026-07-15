@@ -1,0 +1,17 @@
+<%
+if (locals.i18nHelpers) { Object.assign(locals, locals.i18nHelpers.getPageLocals('stripe-webhook-tester', locals.lang || 'en')); }
+var t = locals.t;
+%><!DOCTYPE html>
+<html lang="<%= locals.pageLang %>">
+<head>
+    <title><%= locals.pageTitle %></title>
+    <% if (t.keywords) { %><meta name="keywords" content="<%= t.keywords %>"><% } %>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+<%- include('./includes/_webhook-tester.ejs') %>
+<%- include('./includes/_cta-inline.ejs') %>
+<%- include('./includes/_footer.ejs') %>
+</body>
+</html>

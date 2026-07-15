@@ -1,0 +1,123 @@
+<%
+// Shared body for the per-provider "<Provider> Webhook Tester" landing pages
+// (Stripe, GitHub, Shopify). Every provider-specific string comes from locals.t,
+// populated by getPageLocals in the page template. play.hook0.com is the
+// receive-and-inspect tool every CTA points to.
+var t = locals.t;
+var __providers = [
+  { slug: 'stripe-webhook-tester', label: 'Stripe Webhook Tester' },
+  { slug: 'github-webhook-tester', label: 'GitHub Webhook Tester' },
+  { slug: 'shopify-webhook-tester', label: 'Shopify Webhook Tester' },
+];
+%>
+<!-- Hero -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow"><%= t.hero.eyebrow %></span>
+        <h1 class="mt-4 text-display-xl text-white">
+            <%= t.hero.h1Before %>
+            <span class="block text-gradient-green"><%= t.hero.h1Accent %></span>
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto"><%- t.hero.subtitle %></p>
+
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', '<%= t.track %>-hero-play')">
+                <%= t.hero.ctaPrimary %>
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="./webhook-playground" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', '<%= t.track %>-hero-generic')">
+                <%= t.hero.ctaSecondary %>
+            </a>
+        </div>
+        <p class="mt-4 text-sm text-gray-500"><%= t.hero.trust %></p>
+    </div>
+</section>
+
+<%- include('./_social-proof-bar.ejs') %>
+
+<!-- How to test <Provider> webhooks -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.steps.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.steps.h2 %></h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto"><%- t.steps.intro %></p>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 stagger-children">
+            <% t.steps.items.forEach(function (s, i) { %>
+            <div class="animate-on-scroll card card--glow p-6 flex flex-col">
+                <div class="text-sm font-semibold text-indigo-400 mb-2">Step <%= i + 1 %></div>
+                <h3 class="text-lg font-semibold text-white mb-2"><%= s.title %></h3>
+                <p class="text-gray-400 text-sm flex-1"><%- s.body %></p>
+            </div>
+            <% }); %>
+        </div>
+    </div>
+</section>
+
+<!-- Signature / verification facts (provider-accurate) -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 right-0 opacity-10"></div>
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-8 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.signature.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.signature.h2 %></h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto"><%- t.signature.intro %></p>
+        </div>
+        <div class="animate-on-scroll card card--glow p-8">
+            <dl class="grid sm:grid-cols-2 gap-x-8 gap-y-6">
+                <% t.signature.facts.forEach(function (f) { %>
+                <div>
+                    <dt class="text-sm text-gray-500"><%= f.label %></dt>
+                    <dd class="mt-1 text-gray-200"><%- f.value %></dd>
+                </div>
+                <% }); %>
+            </dl>
+            <p class="mt-6 text-sm text-gray-400"><%- t.signature.note %></p>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow">FAQ</span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.faqHeading %></h2>
+        </div>
+
+        <div class="space-y-6 stagger-children--tight">
+            <% t.faq.items.forEach(function (item) { %>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2"><%= item.q %></h3>
+                <p class="text-gray-400"><%- item.a %></p>
+            </div>
+            <% }); %>
+        </div>
+    </div>
+</section>
+
+<!-- Related -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center">Related</h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <a href="https://play.hook0.com" target="_blank" rel="noopener" class="text-indigo-400 hover:text-indigo-300 underline">Webhook Tester Tool</a>
+            <a href="./webhook-playground" class="text-indigo-400 hover:text-indigo-300 underline">Webhook Playground</a>
+            <% __providers.filter(function (p) { return p.slug !== t.slug; }).forEach(function (p) { %>
+            <a href="./<%= p.slug %>" class="text-indigo-400 hover:text-indigo-300 underline"><%= p.label %></a>
+            <% }); %>
+            <a href="./webhook-free" class="text-indigo-400 hover:text-indigo-300 underline">Free Webhooks</a>
+        </div>
+    </div>
+</section>
