@@ -81,6 +81,23 @@ const config = {
   ],
 
   plugins: [
+    // Inline build-time env vars pulled in via @shared/website-data (website/data.js)
+    // so they don't leak `process.env.*` into the browser bundle. Without this, the
+    // literal `process.env.LOCAL_PREVIEW_URL` reaches the client and throws
+    // "ReferenceError: process is not defined" (most visibly on the client-rendered /api page).
+    // `currentBundler.instance` resolves to the active bundler (Rspack under `future.faster`).
+    () => ({
+      name: "define-shared-env",
+      configureWebpack: (_config, _isServer, utils) => ({
+        plugins: [
+          new utils.currentBundler.instance.DefinePlugin({
+            "process.env.LOCAL_PREVIEW_URL": JSON.stringify(
+              process.env.LOCAL_PREVIEW_URL || ""
+            ),
+          }),
+        ],
+      }),
+    }),
     // Module alias plugin to import shared data from website/
     // Without this, importing via relative path (../../../../website/...) causes Webpack
     // to watch the entire parent directory, leading to EMFILE "too many open files" errors
