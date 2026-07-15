@@ -23,12 +23,18 @@ documentation.build:
       - documentation/build/
     expire_in: 1 week
   rules:
+    # website/data.js is imported into the doc client bundle (@shared/website-data),
+    # and tests-e2e drives the built output — rebuild so both stay in sync.
     - if: $CI_COMMIT_BRANCH == "master"
       changes:
         - documentation/**/*
+        - website/data.js
+        - tests-e2e/**/*
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - documentation/**/*
+        - website/data.js
+        - tests-e2e/**/*
 
 # Production deployment to Netlify (master branch)
 documentation.deploy:

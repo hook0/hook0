@@ -95,3 +95,62 @@ e2e-playwright.test:
     key: playwright-${CI_COMMIT_REF_SLUG}
     paths:
       - tests-e2e/node_modules/
+
+# Documentation (Docusaurus) E2E: reuses the immutable documentation.build artifact
+# and serves it statically, then checks the client-rendered /api reference actually
+# renders (regression guard for the shared website-data `process.env` leak).
+documentation-e2e-playwright.test:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.59.1-noble
+  needs:
+    - job: documentation.build
+      artifacts: true
+  variables:
+    CI: "true"
+    DOCUMENTATION_BASE_URL: "http://localhost:3999"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - documentation/**/*
+        - website/data.js
+        - tests-e2e/**/*
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - documentation/**/*
+        - website/data.js
+        - tests-e2e/**/*
+  before_script:
+    - cd tests-e2e
+    - npm ci
+  script:
+    # Serve the built documentation static files (produced by documentation.build)
+    - npx serve ../documentation/build -l 3999 --no-port-switching &
+    # Wait for the documentation server to be ready
+    - |
+      echo "Waiting for documentation to be ready..."
+      for i in $(seq 1 15); do
+        if curl -s http://localhost:3999/api > /dev/null 2>&1; then
+          echo "Documentation is ready!"
+          break
+        fi
+        echo "Waiting for documentation... ($i/15)"
+        sleep 1
+        if [ $i -eq 15 ]; then
+          echo "ERROR: documentation failed to start within timeout"
+          exit 1
+        fi
+      done
+    # Run tests
+    - npm run test:documentation -- --project=chromium
+  artifacts:
+    when: always
+    paths:
+      - tests-e2e/playwright-report-documentation/
+      - tests-e2e/test-results/
+    reports:
+      junit: tests-e2e/test-results/documentation-junit.xml
+    expire_in: 30 days
+  cache:
+    key: playwright-${CI_COMMIT_REF_SLUG}
+    paths:
+      - tests-e2e/node_modules/
