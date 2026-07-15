@@ -3,11 +3,13 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * Playwright configuration for Hook0 documentation (Docusaurus) E2E tests.
  *
- * Runs against a static server serving the documentation `build/` output.
- * Locally, the webServer below serves ../documentation/build (run
- * `npm run build` in ../documentation first). In CI the server is started by
- * the pipeline script and DOCUMENTATION_BASE_URL is provided.
+ * Serves the documentation `build/` output (produced by `npm run build` in
+ * ../documentation locally, or the documentation.build CI artifact) via a
+ * static server. The same webServer path is used locally and in CI so what is
+ * validated locally is exactly what runs in CI.
  */
+const BASE_URL = "http://localhost:3999";
+
 export default defineConfig({
   testDir: "./tests/documentation",
   fullyParallel: true,
@@ -23,7 +25,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: process.env.DOCUMENTATION_BASE_URL || "http://localhost:3999",
+    baseURL: BASE_URL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "on-first-retry",
@@ -43,14 +45,10 @@ export default defineConfig({
     },
   ],
 
-  ...(process.env.CI
-    ? {}
-    : {
-        webServer: {
-          command: "npx serve ../documentation/build -l 3999 --no-port-switching",
-          url: process.env.DOCUMENTATION_BASE_URL || "http://localhost:3999",
-          reuseExistingServer: true,
-          timeout: 60000,
-        },
-      }),
+  webServer: {
+    command: "npx serve ../documentation/build -l 3999 --no-port-switching",
+    url: BASE_URL,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120000,
+  },
 });

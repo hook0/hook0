@@ -105,9 +105,6 @@ documentation-e2e-playwright.test:
   needs:
     - job: documentation.build
       artifacts: true
-  variables:
-    CI: "true"
-    DOCUMENTATION_BASE_URL: "http://localhost:3999"
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
       changes:
@@ -123,24 +120,7 @@ documentation-e2e-playwright.test:
     - cd tests-e2e
     - npm ci
   script:
-    # Serve the built documentation static files (produced by documentation.build)
-    - npx serve ../documentation/build -l 3999 --no-port-switching &
-    # Wait for the documentation server to be ready
-    - |
-      echo "Waiting for documentation to be ready..."
-      for i in $(seq 1 15); do
-        if curl -s http://localhost:3999/api > /dev/null 2>&1; then
-          echo "Documentation is ready!"
-          break
-        fi
-        echo "Waiting for documentation... ($i/15)"
-        sleep 1
-        if [ $i -eq 15 ]; then
-          echo "ERROR: documentation failed to start within timeout"
-          exit 1
-        fi
-      done
-    # Run tests
+    # Playwright's webServer serves ../documentation/build (documentation.build artifact)
     - npm run test:documentation -- --project=chromium
   artifacts:
     when: always
