@@ -53,6 +53,7 @@ module.exports = {
           'https://www.linkedin.com/company/hook0',
           'https://www.youtube.com/channel/UCFGvNaoV6Ycdb6uh1rIvMcg',
           'https://www.hook0.com/community',
+          'https://www.wikidata.org/wiki/Q140568836',
         ],
         contactPoint: {
           '@type': 'ContactPoint',
