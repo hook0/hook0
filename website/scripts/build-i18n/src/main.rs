@@ -164,6 +164,12 @@ fn run() -> R<()> {
     // (removed) parcel-reporter-sitemap and scripts/fix-sitemap.js.
     write_sitemap(&dist, &site_url(), &locales, &localized)?;
 
+    // Stamp the EntityMap's `generated` timestamp to the build date so AI answer
+    // engines see current freshness. Best-effort (only if the file ships). The
+    // HTML companion embeds no timestamp, so it needs no rewrite here; its
+    // structural sync with the JSON is enforced by the i18n-gate.
+    stamp_entitymap_generated(&dist);
+
     // qdnld/ is a tree of Remotion-generated HTML that hotlinks Google Fonts
     // — that's a transfer-out-of-EU privacy violation for any visitor that
     // hits those files via the marketing site. Strip every fonts.googleapis.com
@@ -458,6 +464,49 @@ fn today_iso(dist: &Path) -> String {
     let y = if m <= 2 { y + 1 } else { y };
     let _ = SystemTime::now(); // (kept to keep std::time::SystemTime imported)
     format!("{y:04}-{m:02}-{d:02}")
+}
+
+// Stamp `entitymap.json`'s root `generated` field to the build date (freshness
+// signal for AI answer engines). Best-effort: no-op if the site ships no
+// EntityMap. Only the single root `generated` value is touched; chunk
+// `retrieved` timestamps and every other field are left intact.
+fn stamp_entitymap_generated(dist: &Path) {
+    let path = dist.join("entitymap.json");
+    let content = match fs::read_to_string(&path) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+    let stamped = format!("{}T00:00:00Z", today_iso(dist));
+    let out = replace_json_string_field(&content, "generated", &stamped);
+    let _ = fs::write(&path, out);
+}
+
+// Replace the string value of the first `"<key>": "..."` in a JSON document.
+// Conservative, no JSON parser: relies on the key being unique (checked by the
+// caller). Values here contain no escaped quotes.
+fn replace_json_string_field(src: &str, key: &str, new_val: &str) -> String {
+    let needle = format!("\"{key}\"");
+    let Some(kpos) = src.find(&needle) else {
+        return src.to_string();
+    };
+    let after_key = kpos + needle.len();
+    let Some(colon_rel) = src[after_key..].find(':') else {
+        return src.to_string();
+    };
+    let val_search = after_key + colon_rel + 1;
+    let Some(q1_rel) = src[val_search..].find('"') else {
+        return src.to_string();
+    };
+    let q1 = val_search + q1_rel;
+    let Some(q2_rel) = src[q1 + 1..].find('"') else {
+        return src.to_string();
+    };
+    let q2 = q1 + 1 + q2_rel;
+    let mut out = String::with_capacity(src.len());
+    out.push_str(&src[..=q1]);
+    out.push_str(new_val);
+    out.push_str(&src[q2..]);
+    out
 }
 
 fn read_locales(root: &Path) -> R<Vec<(String, String, String)>> {

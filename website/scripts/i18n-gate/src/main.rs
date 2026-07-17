@@ -332,6 +332,11 @@ fn main() {
     //       to beat the universal `*` blanket.
     check_wall_survives_reduced_motion(&dist, &mut failures);
 
+    // EntityMap (brand knowledge graph) must ship valid and its HTML companion
+    // must stay in sync with the JSON — the companion is generator-emitted, never
+    // hand-edited, so a mismatch means someone edited one without the other.
+    check_entitymap(&dist, &mut failures);
+
     if failures.is_empty() {
         println!("i18n-gate: PASS");
         exit(0);
@@ -598,6 +603,43 @@ fn read_localized(root: &Path) -> Result<HashMap<String, HashMap<String, String>
 //        while targeting `.testimonial-wall*` / `.wall-quote*`);
 //   (b) at least one restore rule exists — a reduced-motion selector matching
 //       `.testimonial-wall__track--left` sets an animation with `!important`.
+// EntityMap conformance-lite + drift guard (no JSON parser; uses stable markers).
+// No-op if the site ships no EntityMap. Fails on: missing version 1.0, zero
+// entities, or an HTML companion whose per-entity JSON-LD block count diverges
+// from the JSON entity count (== hand-edited or stale — regenerate the companion).
+fn check_entitymap(dist: &Path, failures: &mut Vec<String>) {
+    let json = match fs::read_to_string(dist.join("entitymap.json")) {
+        Ok(s) => s,
+        Err(_) => return, // no EntityMap on this site
+    };
+    if !(json.contains("\"version\": \"1.0\"") || json.contains("\"version\":\"1.0\"")) {
+        failures.push("entitymap.json: missing version \"1.0\"".to_string());
+    }
+    let entities = json.matches("\"entityId\"").count();
+    if entities == 0 {
+        failures.push("entitymap.json: no entities".to_string());
+    }
+    match fs::read_to_string(dist.join("entitymap.html")) {
+        Ok(html) => {
+            let blocks = html.matches("application/ld+json").count();
+            if blocks != entities {
+                failures.push(format!(
+                    "entitymap.html out of sync with entitymap.json: {blocks} JSON-LD block(s) vs {entities} entit(y/ies) — regenerate via `validate-entitymap --emit-html`"
+                ));
+            }
+            if !html.contains("entitymap.json") {
+                failures.push(
+                    "entitymap.html: missing rel=alternate link to entitymap.json".to_string(),
+                );
+            }
+        }
+        Err(_) => failures.push(
+            "entitymap.json ships but entitymap.html is missing — regenerate the companion"
+                .to_string(),
+        ),
+    }
+}
+
 fn check_wall_survives_reduced_motion(dist: &Path, failures: &mut Vec<String>) {
     let mut css_paths: Vec<PathBuf> = Vec::new();
     collect_css_bundles(dist, &mut css_paths);
