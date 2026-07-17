@@ -4,7 +4,7 @@
 module.exports = {
   pageTitle: 'Hookdeck-Alternativen 2026, Webhook-Plattformen | Hook0',
   pageDescription: 'Hookdeck ist ein Webhook-Proxy, keine Plattform. Echte Alternativen: Hook0, Svix, Convoy zum Senden und Monitoren von Webhooks.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-07-16',
   breadcrumb: 'Hookdeck-Alternativen',
   hero: {
     eyebrow: 'Vergleich',
@@ -58,6 +58,7 @@ module.exports = {
       { q: 'Kann ich Hookdeck selbst hosten?', a: 'Nein. Hookdeck bietet keine Selbst-Hosting-Option. Es ist nur Cloud. Wenn du deine Webhook-Infrastruktur auf eigenen Servern betreiben musst aus Compliance-, Datenresidenz- oder Kostengründen, unterstützen Hook0 und Convoy beide Selbst-Hosting.' },
       { q: 'Was ist der Unterschied zwischen einem Webhook-Proxy und einer Webhook-Plattform?', a: 'Ein Webhook-Proxy (wie Hookdeck) sitzt zwischen einem Webhook-Sender und deiner Anwendung. Er empfängt, routet und wiederholt eingehende Webhooks. Eine Webhook-Plattform (wie Hook0 oder Svix) lässt dich Webhooks an deine Kunden senden. Sie kümmert sich um Zustellung, Wiederholungen, Signaturen und Abonnenten-Verwaltung. Wenn du Webhooks zu deinem Produkt hinzufügen willst, brauchst du eine Plattform, keinen Proxy.' },
       { q: 'Was ist die beste Hookdeck-Alternative zum Senden von Webhooks?', a: 'Hook0, wenn du Webhooks senden musst. Du publizierst Events, Hook0 liefert sie an deine Abonnenten mit Wiederholungen, HMAC-Signaturen und einem Verwaltungs-Dashboard. Der Code ist quelloffen (SSPL-1.0), du kannst ihn selbst hosten, das Unternehmen ist bootstrappt und die Cloud läuft in Europa.' },
+      { q: "Welche Hookdeck-Alternative ist EU-gehostet und quelloffen?", a: "Hook0. Hookdeck ist proprietär und rein cloudbasiert, sodass Sie den Code weder lesen noch selbst hosten können. Hook0 betreibt seine Datenebene auf Clever Cloud in Frankreich (innerhalb der EU), ist quelloffen (SSPL-1.0) und läuft selbst gehostet auf Docker oder Kubernetes, sodass Sie den Code lesen oder Webhook-Daten in Ihrem eigenen Netzwerk behalten können. Das vorgelagerte CDN von Hook0 Cloud ist Cloudflare (US), offengelegt in der öffentlichen Unterauftragsverarbeiter-Liste." },
     ],
   },
   related: {

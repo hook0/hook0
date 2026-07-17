@@ -5,7 +5,7 @@
 module.exports = {
   pageTitle: 'Hook0 vs Hookdeck, plateforme webhook vs gateway | Hook0',
   pageDescription: 'Compare Hook0 et Hookdeck, plateforme webhook vs gateway, code source ouvert vs propriétaire, auto-hébergeable vs cloud uniquement. Vois les différences clés.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-07-16',
   breadcrumb: 'Hook0 vs Hookdeck',
   hero: {
     eyebrow: 'Comparaison',
@@ -59,13 +59,13 @@ module.exports = {
   faq: {
     eyebrow: 'FAQ',
     h2: 'Questions fréquentes',
-    lastReviewed: 'Dernière revue, juin 2026.',
+    lastReviewed: 'Dernière revue, juillet 2026.',
     items: [
       { q: 'Quelle est la différence entre Hook0 et Hookdeck ?', a: 'Hook0 est une plateforme webhook, tu envoies des events via API, Hook0 les livre à tes souscripteurs avec relances, signatures et monitoring. Hookdeck est une gateway qui se place entre des émetteurs et des récepteurs de webhooks existants pour ajouter de la fiabilité. Elle n\'émet pas elle-même de webhooks.' },
       { q: 'Hook0 est-il à code source ouvert ?', a: 'Le serveur Hook0 est publié sous SSPL-1.0 et les SDK sous MIT. SSPL est une licence copyleft à source disponible, tu peux inspecter, modifier et auto-héberger toute la plateforme librement. Hookdeck est en code fermé et disponible uniquement en SaaS managé.' },
       { q: 'Puis-je auto-héberger Hook0 ?', a: 'Oui. Hook0 supporte l\'auto-hébergement via Docker Compose ou Kubernetes sans coût. Hookdeck ne propose pas d\'auto-hébergement, c\'est un service cloud uniquement.' },
       { q: 'Lequel choisir ?', a: 'Si tu dois ajouter des webhooks à ton produit (envoyer des events vers les endpoints de tes utilisateurs), prends Hook0. Si tu reçois déjà des webhooks de tiers et qu\'il te faut juste un proxy de fiabilité, Hookdeck peut convenir. Ce sont deux outils pour deux problèmes différents.' },
-      { q: 'Hook0 est-il hébergé en UE, contrairement à Hookdeck ?', a: 'Hook0 Cloud est opéré par une société française (FGRibreau SARL), avec le plan de données applicatif hébergé en France chez Clever Cloud. Le CDN Cloudflare (USA) reste exposé au CLOUD Act et est divulgué dans nos <a href="/fr/sous-traitants-rgpd">sous-traitants RGPD</a> et notre <a href="/fr/accord-traitement-donnees">DPA</a> (transfert encadré par SCC 2021 + TIA, EU-US DPF quand applicable). Hookdeck est une société américaine. Tu peux aussi auto-héberger Hook0 pour qu\'aucune donnée webhook ne quitte ton réseau.' },
+      { q: 'Hook0 est-il hébergé en UE, contrairement à Hookdeck ?', a: "Hook0 Cloud est exploité par une société française (FGRibreau SARL), avec son plan de données sur Clever Cloud en France. Le CDN et la protection anti-DDoS en frontal sont assurés par Cloudflare (US), divulgué dans une liste publique de sous-traitants avec son mécanisme de transfert. Hookdeck est une société américaine. Et comme Hook0 s'auto-héberge sur le même code, vous pouvez garder les données de webhook entièrement dans votre propre réseau." },
       { q: 'Hookdeck considère-t-il Hook0 comme une alternative ?', a: 'Hookdeck publie des pages de comparaison qui incluent Hook0, et Svix aussi. Tu peux lire leurs propres évaluations à côté des nôtres.' },
     ],
   },

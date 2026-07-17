@@ -3,6 +3,7 @@
 module.exports = {
   pageTitle: 'Best Hookdeck Alternatives (2026): Webhook Platforms That Do More',
   pageDescription: 'Hookdeck is a webhook proxy, not a webhook platform. Compare real alternatives: Hook0, Svix, Convoy for sending, managing, and monitoring webhooks.',
+  pageModified: '2026-07-16',
   breadcrumb: 'Hookdeck alternatives',
   hero: {
     eyebrow: 'Comparison',
@@ -56,6 +57,7 @@ module.exports = {
       { q: 'Can I self-host Hookdeck?', a: 'No. Hookdeck does not offer a self-hosted option. It is cloud-only. If you need to run your webhook infrastructure on your own servers for compliance, data sovereignty, or cost reasons, Hook0 and Convoy both support self-hosting.' },
       { q: "What's the difference between a webhook proxy and a webhook platform?", a: 'A webhook proxy (like Hookdeck) sits between a webhook sender and your application. It receives, routes, and retries incoming webhooks. A webhook platform (like Hook0 or Svix) lets you send webhooks to your users. It handles delivery, retries, signatures, and subscriber management for you. If you want to add webhooks to your product, you need a platform, not a proxy.' },
       { q: "What's the best Hookdeck alternative for sending webhooks?", a: 'Hook0, if you need to send webhooks. You publish events, Hook0 delivers them to your subscribers with retries, HMAC signatures, and a management dashboard. The code is open-source (SSPL-1.0), you can self-host it, the company is bootstrapped, and the cloud runs in Europe.' },
+      { q: 'Which Hookdeck alternative is EU-hosted and open-source?', a: 'Hook0. Hookdeck is closed-source and cloud-only, so you cannot read its code or self-host it. Hook0 runs its data plane on Clever Cloud in France (inside the EU), is open-source under SSPL-1.0, and self-hosts on Docker or Kubernetes, so you can read the code or keep webhook data inside your own network. The CDN in front of Hook0 Cloud is Cloudflare (US), disclosed in the public sub-processor list.' },
     ],
   },
   related: {

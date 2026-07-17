@@ -4,7 +4,7 @@
 module.exports = {
   pageTitle: 'Alternatives à Svix 2026 : webhooks comparés | Hook0',
   pageDescription: 'Tu évalues Svix ? Compare Hook0, Hookdeck, Convoy : tarification, auto-hébergement, licences et ce qu\'« open source » veut dire.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-07-16',
   breadcrumb: 'Alternatives à Svix',
   hero: {
     eyebrow: 'Comparaison',
@@ -47,6 +47,7 @@ module.exports = {
       { q: 'Puis-je auto-héberger Svix gratuitement ?', a: 'Tu peux auto-héberger l\'édition communauté sous MIT, mais les features entreprise ne sont pas incluses. Un auto-hébergement complet avec toutes les features exige le plan entreprise de Svix. Hook0 et Convoy proposent tous les deux un auto-hébergement gratuit avec parité fonctionnelle complète.' },
       { q: 'Quelle est la meilleure alternative à Svix pour les startups ?', a: 'Hook0 marche bien pour les startups. Tier gratuit, sans carte bancaire, tarification à l\'event à partir de 59 €/mois, et auto-hébergement gratuit via Docker ou Kubernetes. La société est 100% bootstrappée, donc pas de VC qui pousse à augmenter les prix au prochain trimestre. Convoy vaut le coup d\'œil aussi si la licence MPL-2.0 compte pour toi.' },
       { q: 'Comment la tarification de Svix se compare-t-elle aux alternatives ?', a: 'Svix propose un tier gratuit et des plans payants à l\'event, mais l\'auto-hébergement et les features entreprise demandent une tarification entreprise (contact sales). Hook0 Cloud démarre à 59 €/mois avec une tarification transparente et inclut l\'auto-hébergement gratuit sur tous les plans. Hookdeck est cloud uniquement avec une tarification à l\'event. Convoy est auto-hébergé uniquement, avec une tarification entreprise pour le support. HostedHooks propose des plans payants cloud uniquement.' },
+      { q: "Quelle alternative à Svix est à la fois hébergée dans l'UE et à code source ouvert ?", a: "Hook0. Son plan de données tourne sur Clever Cloud en France (dans l'UE) sur chaque offre, et l'intégralité du serveur est à code source ouvert (SSPL-1.0), donc vous pouvez l'auditer ou l'auto-héberger. Svix est hébergé aux États-Unis et en open-core ; beaucoup de services de webhooks hébergés dans l'UE sont fermés et cloud-only. Le CDN en frontal de Hook0 Cloud est Cloudflare (US), divulgué dans la liste publique de sous-traitants." },
     ],
   },
   related: {
