@@ -10,7 +10,7 @@
 module.exports = {
   pageTitle: 'Selbst-gehostete Webhooks: Hook0 auf deiner Infra',
   pageDescription: 'Hostet Hook0 selbst auf eurer Infrastruktur. Quelloffen (SSPL-1.0), Docker, Kubernetes, Postgres und S3 unterstützt.',
-  "pageModified": "2026-06-27",
+  "pageModified": "2026-07-16",
   "track": "de-self-hosted",
   "hero": {
     "eyebrow": "Selbst gehostet",
@@ -114,7 +114,7 @@ module.exports = {
       },
       {
         "q": "Verlassen meine Daten mein Netz?",
-        "a": "Nein. Alles bleibt auf deiner Infrastruktur. Keine Telemetrie, kein Phone-Home, keine externen Calls. Wenn du den gemanagten Weg bevorzugst, läuft Hook0 Cloud auf französischer Infrastruktur (Clever Cloud), deine Daten bleiben in der EU und ausserhalb des US-CLOUD-Acts."
+        "a": "Nein. Beim Selbst-Hosting bleibt alles auf Ihrer eigenen Infrastruktur, ohne Telemetrie, ohne Phone-Home und ohne externe Aufrufe. Das ist der einzige Fall, in dem Webhook-Daten Ihr Netzwerk nie verlassen. Wenn Sie einen verwalteten Dienst bevorzugen, hält Hook0 Cloud seine Datenebene in Frankreich auf Clever Cloud (EU); die vorgelagerte CDN- und DDoS-Schicht stellt Cloudflare (US), offengelegt in unserer öffentlichen Unterauftragsverarbeiter-Liste."
       },
       {
         "q": "Gibt es Support für selbst gehostete Deployments?",

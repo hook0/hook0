@@ -7,7 +7,7 @@
 module.exports = {
   pageTitle: 'Webhooks auto-hébergés : déploie Hook0 chez toi | Hook0',
   pageDescription: 'Auto-héberge Hook0 sur ton infra. Code source ouvert (SSPL-1.0), Docker, Kubernetes, support Postgres et S3.',
-  "pageModified": "2026-06-27",
+  "pageModified": "2026-07-16",
   "track": "fr-self-hosted",
   "hero": {
     "eyebrow": "Auto-hébergé",
@@ -111,7 +111,7 @@ module.exports = {
       },
       {
         "q": "Mes données quittent-elles mon réseau ?",
-        "a": "Non. Tout reste sur ton infrastructure. Aucune télémétrie, aucun phone-home, aucun appel externe. Si tu préfères un service managé, Hook0 Cloud tourne sur de l'infra française (Clever Cloud), donc tes données restent dans l'UE et hors juridiction du CLOUD Act US."
+        "a": "Non. En auto-hébergement, tout reste sur votre propre infrastructure, sans télémétrie, sans phone-home et sans appel externe. C'est le seul cas où les données de webhook ne quittent jamais votre réseau. Si vous préférez un service géré, Hook0 Cloud garde son plan de données en France sur Clever Cloud (UE) ; le CDN et la protection anti-DDoS en frontal sont assurés par Cloudflare (US), divulgué dans notre liste publique de sous-traitants."
       },
       {
         "q": "Du support pour les déploiements auto-hébergés ?",

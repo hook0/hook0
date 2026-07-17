@@ -4,7 +4,7 @@
 module.exports = {
   pageTitle: 'Svix-Alternativen 2026, Webhook-Plattformen | Hook0',
   pageDescription: 'Du evaluierst Svix? Vergleich Hook0, Hookdeck, Convoy: Preis, Selbst-Hosting, Lizenzierung und was « Open Source » bedeutet.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-07-16',
   breadcrumb: 'Svix-Alternativen',
   hero: {
     eyebrow: 'Vergleich',
@@ -47,6 +47,7 @@ module.exports = {
       { q: 'Kann ich Svix kostenlos selbst hosten?', a: 'Du kannst die MIT-lizenzierte Community-Edition selbst hosten, aber Enterprise-Features sind nicht enthalten. Vollständiges Selbst-Hosting mit allen Features erfordert den Enterprise-Plan von Svix. Hook0 und Convoy bieten beide kostenloses Selbst-Hosting mit voller Feature-Parität.' },
       { q: 'Was ist die beste Svix-Alternative für Startups?', a: 'Hook0 funktioniert gut für Startups. Kostenloser Tarif, ohne Kreditkarte, Event-basierter Preis ab 59 €/Monat und kostenloses Selbst-Hosting via Docker oder Kubernetes. Das Unternehmen ist zu 100% bootstrappt, also kein VC, der nächstes Quartal auf höhere Preise drängt. Convoy ist auch einen Blick wert, falls dir die MPL-2.0-Lizenz wichtig ist.' },
       { q: 'Wie schneiden die Preise von Svix gegen die Alternativen ab?', a: 'Svix bietet einen kostenlosen Tarif und Event-basierte Bezahlpläne, aber Selbst-Hosting und Enterprise-Features erfordern Enterprise-Pricing (Kontakt zum Vertrieb). Hook0 Cloud startet bei 59 €/Monat mit transparenten Preisen und enthält Selbst-Hosting kostenlos in jedem Tarif. Hookdeck ist nur Cloud mit Event-basiertem Pricing. Convoy ist nur selbst-gehostet, mit Enterprise-Pricing für Support. HostedHooks bietet nur kostenpflichtige Cloud-Pläne.' },
+      { q: "Welche Svix-Alternative ist zugleich EU-gehostet und quelloffen?", a: "Hook0. Seine Datenebene läuft in jedem Tarif auf Clever Cloud in Frankreich (innerhalb der EU), und der vollständige Server ist quelloffen (SSPL-1.0), sodass Sie ihn prüfen oder selbst hosten können. Svix ist in den USA gehostet und open-core; viele in der EU gehostete Webhook-Dienste sind proprietär und rein cloudbasiert. Das vorgelagerte CDN von Hook0 Cloud ist Cloudflare (US), offengelegt in der öffentlichen Unterauftragsverarbeiter-Liste." },
     ],
   },
   related: {

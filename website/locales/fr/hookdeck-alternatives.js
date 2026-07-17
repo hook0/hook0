@@ -4,7 +4,7 @@
 module.exports = {
   pageTitle: 'Alternatives à Hookdeck 2026, plateformes webhook | Hook0',
   pageDescription: 'Hookdeck est un proxy webhook, pas une plateforme webhook. Compare les vraies alternatives, Hook0, Svix, Convoy pour envoyer, gérer et monitorer tes webhooks.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-07-16',
   breadcrumb: 'Alternatives à Hookdeck',
   hero: {
     eyebrow: 'Comparaison',
@@ -58,6 +58,7 @@ module.exports = {
       { q: 'Puis-je auto-héberger Hookdeck ?', a: 'Non. Hookdeck ne propose pas d\'option auto-hébergée. C\'est cloud uniquement. Si tu dois faire tourner ton infrastructure webhook sur tes propres serveurs pour la compliance, la souveraineté des données ou des raisons de coût, Hook0 et Convoy supportent tous deux l\'auto-hébergement.' },
       { q: 'Quelle est la différence entre un proxy webhook et une plateforme webhook ?', a: 'Un proxy webhook (comme Hookdeck) se place entre un émetteur webhook et ton application. Il reçoit, route et relance les webhooks entrants. Une plateforme webhook (comme Hook0 ou Svix) te permet d\'envoyer des webhooks à tes clients. Elle gère la livraison, les relances, les signatures et la gestion des abonnés à ta place. Si tu veux ajouter des webhooks à ton produit, il te faut une plateforme, pas un proxy.' },
       { q: 'Quelle est la meilleure alternative à Hookdeck pour envoyer des webhooks ?', a: 'Hook0, si tu as besoin d\'envoyer des webhooks. Tu publies des events, Hook0 les livre à tes abonnés avec relances, signatures HMAC et un dashboard de gestion. Le code est en code source ouvert (SSPL-1.0), tu peux l\'auto-héberger, l\'entreprise est bootstrappée et le cloud tourne en Europe.' },
+      { q: "Quelle alternative à Hookdeck est hébergée dans l'UE et à code source ouvert ?", a: "Hook0. Hookdeck est fermé et cloud-only, donc vous ne pouvez ni lire son code ni l'auto-héberger. Hook0 fait tourner son plan de données sur Clever Cloud en France (dans l'UE), est à code source ouvert (SSPL-1.0) et s'auto-héberge sur Docker ou Kubernetes, donc vous pouvez lire le code ou garder les données de webhook dans votre propre réseau. Le CDN en frontal de Hook0 Cloud est Cloudflare (US), divulgué dans la liste publique de sous-traitants." },
     ],
   },
   related: {

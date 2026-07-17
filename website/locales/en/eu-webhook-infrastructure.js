@@ -18,7 +18,7 @@
 module.exports = {
   "pageTitle": "EU Webhook Infrastructure: Hosted in France by Default | Hook0",
   "pageDescription": "Hook0 runs its webhook data plane on Clever Cloud (France) from the free tier up. French-law company, public sub-processor list, self-host or on-prem anytime.",
-  "pageModified": "2026-07-08",
+  "pageModified": "2026-07-16",
   "track": "eu-webhook-infrastructure",
   "hero": {
     "eyebrow": "EU Webhook Infrastructure",
@@ -88,12 +88,12 @@ module.exports = {
         "priceHtml": "Self-hosted Community is free (Elastic License v2); the managed Premium plan is $999/month"
       }
     ],
-    "footnote": "Sources: each provider's public pricing and documentation pages, last checked on 2026-07-08. Spotted something out of date? Tell us and we will fix it."
+    "footnote": "Sources: each provider's public pricing and documentation pages, last checked on 2026-07-16. Spotted something out of date? Tell us and we will fix it."
   },
   "reversibility": {
     "eyebrow": "Reversibility",
     "h2": "Reversibility is the other half of sovereignty",
-    "intro": "EU hosting matters less if leaving is impossible. Hook0's cloud, self-hosted and on-premise deployments share a single codebase.",
+    "intro": "EU hosting matters less if leaving is impossible. Some EU-hosted webhook services are closed-source and cloud-only, so your only way out is an export and a rebuild. Hook0's cloud, self-hosted and on-premise deployments share one codebase, so leaving means running the same software somewhere else.",
     "cards": [
       {
         "title": "Self-host it yourself",

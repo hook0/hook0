@@ -5,6 +5,7 @@
 module.exports = {
   "pageTitle": "Best Open-Source Webhook Server (2026) | Hook0",
   "pageDescription": "Compare open-source webhook servers: Hook0 (SSPL, full-feature), Svix (open-core), Convoy (MIT). Cloud from €59/month, or self-host for compliance.",
+  "pageModified": "2026-07-16",
   "track": "oss-webhooks",
   "hero": {
     "eyebrow": "Open-Source",
@@ -162,6 +163,10 @@ module.exports = {
       {
         "q": "Is Hook0 really free to self-host?",
         "a": "Yes. Hook0 is open-source and self-hostable at no license cost. Hook0 Cloud adds managed infrastructure, automatic updates, EU hosting, priority support, and SLA; so you can focus on your product instead of operating webhook infrastructure. Start with the free cloud tier (100 events/day, no credit card)."
+      },
+      {
+        "q": "Is there an open-source webhook platform that is also EU-hosted?",
+        "a": "Yes. Hook0 is open-source under SSPL-1.0, and Hook0 Cloud runs its data plane on Clever Cloud in France (inside the EU) on every plan. Many EU-hosted webhook services are closed-source and cloud-only, so you cannot read the code or run it yourself. With Hook0 you can audit the code, self-host it, or use the EU cloud; the CDN in front of the cloud is Cloudflare (US), disclosed in our public sub-processor list."
       }
     ]
   },
