@@ -5,6 +5,7 @@
     "name": "Hook0",
     "url": "https://www.hook0.com",
     "sameAs": [
+      "https://www.wikidata.org/wiki/Q140568836",
       "https://github.com/hook0",
       "https://www.linkedin.com/company/hook0",
       "https://twitter.com/hook0_"
@@ -89,7 +90,8 @@
           "retrieved": "2026-07-15T21:24:20Z",
           "relevanceScore": 0.9
         }
-      ]
+      ],
+      "sameAs": "https://www.wikidata.org/wiki/Q140568836"
     },
     {
       "entityId": "e_cloud",
