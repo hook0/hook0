@@ -94,7 +94,11 @@ For implementation details and code examples in JavaScript, Python, and Go, see 
 - HTTPS required for production webhooks
 - Private IP ranges blocked by default
 - URL validation and sanitization
-- DNS rebinding protection
+- DNS rebinding protection: the address vetted by the IP check is pinned for the actual request, so the hostname cannot be re-resolved to a different IP between check and connect
+- Redirects are not followed: a target returning a 3xx cannot redirect the worker to an internal address
+
+> **Note:** if you configure an egress HTTP proxy for the output worker (`HTTP_PROXY`/`HTTPS_PROXY`/`ALL_PROXY`), the proxy performs its own DNS resolution and connection, which bypasses the target-IP guard and DNS pinning.
+> Only point the worker at a proxy you trust.
 
 ### Data protection
 
