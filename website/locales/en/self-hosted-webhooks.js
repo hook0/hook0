@@ -5,7 +5,7 @@
 module.exports = {
   "pageTitle": "Self-Hosted Webhooks: Docker & Kubernetes | Hook0",
   "pageDescription": "Deploy Hook0 on your infrastructure with Docker or Kubernetes. Fully open-source, same code as cloud. No data leaves your network.",
-  "pageModified": "2026-06-22",
+  "pageModified": "2026-07-16",
   "track": "self-hosted",
   "hero": {
     "eyebrow": "Self-Hosted",
@@ -109,7 +109,7 @@ module.exports = {
       },
       {
         "q": "Does my data leave my network?",
-        "a": "No. Everything stays on your infrastructure. No telemetry, no phone-home, no external calls. If you prefer a managed service, Hook0 Cloud runs on French infrastructure (Clever Cloud), so your data stays in the EU and outside the US CLOUD Act."
+        "a": "No. With self-hosting, everything stays on your own infrastructure, with no telemetry, no phone-home, and no external calls. That is the one setup where webhook data never leaves your network. If you prefer a managed service, Hook0 Cloud keeps its data plane in France on Clever Cloud (EU); the CDN and DDoS layer in front is Cloudflare (US), disclosed in our public sub-processor list."
       },
       {
         "q": "Can I get support for self-hosted deployments?",

@@ -12,7 +12,7 @@
 module.exports = {
   "pageTitle": "Infrastructure webhook européenne : hébergée en France | Hook0",
   "pageDescription": "Le data plane webhook de Hook0 tourne chez Clever Cloud, en France, dès le tier gratuit. Éditeur de droit français, sous-traitants publics, self-host possible.",
-  "pageModified": "2026-07-08",
+  "pageModified": "2026-07-16",
   "track": "fr-infrastructure-webhook-eu",
   "hero": {
     "eyebrow": "Infrastructure webhook européenne",
@@ -82,12 +82,12 @@ module.exports = {
         "priceHtml": "La version Community auto-hébergée est gratuite (licence Elastic v2) ; l'offre managée Premium est à 999 $/mois"
       }
     ],
-    "footnote": "Sources : pages de tarifs et documentations publiques de chaque fournisseur, vérifiées le 8 juillet 2026. Un chiffre a bougé ? Dis-le-nous, on corrige."
+    "footnote": "Sources : pages de tarifs et documentations publiques de chaque fournisseur, vérifiées le 16 juillet 2026. Un chiffre a bougé ? Dis-le-nous, on corrige."
   },
   "reversibility": {
     "eyebrow": "Réversibilité",
     "h2": "La réversibilité, l'autre moitié de la souveraineté",
-    "intro": "Héberger en Europe compte moins si partir est impossible. Le cloud, le self-host et l'on-premise de Hook0 partagent un seul et même code.",
+    "intro": "L'hébergement dans l'UE compte moins si partir est impossible. Certains services de webhooks hébergés dans l'UE sont fermés et cloud-only, et la seule sortie possible est un export suivi d'une reconstruction. Les déploiements cloud, auto-hébergé et on-premise de Hook0 partagent une seule base de code, donc partir revient à faire tourner le même logiciel ailleurs.",
     "cards": [
       {
         "title": "Auto-héberge-le toi-même",
