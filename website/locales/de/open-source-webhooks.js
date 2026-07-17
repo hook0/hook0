@@ -12,7 +12,7 @@
 module.exports = {
   "pageTitle": "Bester quelloffener Webhook-Server (2026) | Hook0",
   "pageDescription": "Quelloffene Webhook-Server im Vergleich: Hook0 (SSPL, voll funktional), Svix (Open Core), Convoy (MIT). Cloud ab 59 €/Monat oder selbst gehostet für Compliance.",
-  "pageModified": "2026-06-27",
+  "pageModified": "2026-07-16",
   "track": "de-oss-webhooks",
   "hero": {
     "eyebrow": "Quelloffen",
@@ -170,7 +170,8 @@ module.exports = {
       {
         "q": "Ist Hook0 wirklich kostenlos selbst hostbar?",
         "a": "Ja. Hook0 ist quelloffen und ohne Lizenzkosten selbst hostbar. Hook0 Cloud ergänzt gemanagte Infrastruktur, automatische Updates, EU-Hosting, vorrangigen Support und ein SLA, damit du dich auf dein Produkt konzentrierst statt auf den Betrieb einer Webhook-Infrastruktur. Starte im kostenlosen Cloud-Tarif (100 Events/Tag, keine Kreditkarte)."
-      }
+      },
+      { "q": "Gibt es eine quelloffene Webhook-Plattform, die auch in der EU gehostet wird?", "a": "Ja. Hook0 ist quelloffen (SSPL-1.0), und Hook0 Cloud betreibt seine Datenebene in jedem Tarif auf Clever Cloud in Frankreich (innerhalb der EU). Viele in der EU gehostete Webhook-Dienste sind proprietär und rein cloudbasiert, sodass Sie den Code weder lesen noch selbst betreiben können. Mit Hook0 können Sie den Code prüfen, ihn selbst hosten oder die EU-Cloud nutzen; das vorgelagerte CDN der Cloud ist Cloudflare (US), offengelegt in unserer öffentlichen Unterauftragsverarbeiter-Liste." }
     ]
   },
   "related": {

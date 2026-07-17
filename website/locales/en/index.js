@@ -7,7 +7,7 @@
 module.exports = {
   pageTitle: 'Hook0: Free Webhook Platform, HMAC Signatures, EU Hosting',
   pageDescription: 'Free webhook platform with HMAC signatures, configurable retries, and delivery monitoring. Self-host the SSPL code or use our EU-hosted cloud. No credit card.',
-  pageModified: '2026-06-28',
+  pageModified: '2026-07-16',
   hero: {
     badgePillBootstrapped: '100% Bootstrapped',
     badgeOpenSource: 'Hook0 is Open-Source',
@@ -18,8 +18,8 @@ module.exports = {
     ctaSecondary: 'Quick Start Guide',
     trustFreePlan: 'Free Plan',
     trustNoCard: 'No Credit Card',
-    trustHostedEurope: 'Hosted in Europe',
-    trustGdpr: 'GDPR Compliant',
+    trustHostedEurope: 'Hosted in France (EU)',
+    trustGdpr: 'Built for GDPR',
     scrollLabel: 'Scroll',
     socialProductHuntAlt: 'Hook0 on Product Hunt',
     socialGithubStars: 'GitHub Stars',
@@ -101,6 +101,7 @@ module.exports = {
       { q: 'Is SSPL really open source?', a: "Hook0's full server source is published under SSPL-1.0, and the client SDKs under MIT. SSPL is a source-available copyleft license: you can read, modify, self-host, and run Hook0 freely. It's stricter than MIT in one case. If you resell Hook0 as a managed service, you have to open-source your own infrastructure stack. If you're building on Hook0 or self-hosting it, SSPL adds no obligation over MIT." },
       { q: 'Can I self-host Hook0?', a: 'Yes. Hook0 supports self-hosting via Docker Compose or Kubernetes. The self-hosted version has the same features as the cloud version. Documentation is at documentation.hook0.com/self-hosting.' },
       { q: 'How does Hook0 compare to Svix, Hookdeck, or HostedHooks?', a: "Hook0 ships its full server source under SSPL-1.0 with no proprietary enterprise tier, and self-hosting is free on every plan. Svix's core is MIT but reserves several features for paid plans. Hookdeck is a webhook gateway and HostedHooks is closed-source. Hook0 is bootstrapped with no VC funding and runs both in the cloud (hosted in the EU) and on-premise." },
+      { q: 'Where does Hook0 host webhook data, and does it name its sub-processors?', a: "Hook0's webhook data plane runs on Clever Cloud in France, inside the EU, on the free tier and every paid plan; optional dedicated workers run on Scaleway, also in France. The CDN and DDoS layer in front is Cloudflare (a US company), which we disclose rather than hide. Every sub-processor and its data-transfer mechanism is listed publicly on our GDPR sub-processors page. Hook0 is open-source under SSPL-1.0, so you can also read the code or self-host it, which many EU-hosted webhook services do not let you do." },
     ],
   },
 };

@@ -6,7 +6,7 @@
 module.exports = {
   pageTitle: 'Hook0 | Quelloffene Webhook-Plattform (SSPL)',
   pageDescription: 'Kostenlose, quelloffene Webhook-Plattform. Ein API-Aufruf, Hook0 übernimmt Retries, HMAC-Signaturen, Zustell-Monitoring. Ohne Kreditkarte.',
-  pageModified: '2026-06-28',
+  pageModified: '2026-07-16',
   hero: {
     badgePillBootstrapped: '100% bootstrappt',
     badgeOpenSource: 'Hook0 ist quelloffen',
@@ -17,7 +17,7 @@ module.exports = {
     ctaSecondary: 'Schnellstart-Anleitung',
     trustFreePlan: 'Kostenloser Plan',
     trustNoCard: 'Keine Kreditkarte',
-    trustHostedEurope: 'In Europa gehostet',
+    trustHostedEurope: 'In Frankreich (EU) gehostet',
     trustGdpr: 'DSGVO-konform betrieben',
     scrollLabel: 'Scrollen',
     socialProductHuntAlt: 'Hook0 auf Product Hunt',
@@ -94,6 +94,7 @@ module.exports = {
       { q: 'Ist SSPL wirklich Open Source?', a: 'Der vollständige Server-Quellcode von Hook0 wird unter SSPL-1.0 veröffentlicht, die Client-SDKs unter MIT. SSPL ist eine Source-Available-Copyleft-Lizenz, du kannst Hook0 lesen, modifizieren, selbst hosten und frei betreiben. Sie ist in einem einzigen Fall strenger als MIT. Wenn du Hook0 als verwalteten Service weiterverkaufst, musst du deine eigene Infrastruktur quelloffen veröffentlichen. Wenn du auf Hook0 baust oder es selbst hostest, fügt SSPL gegenüber MIT keine Pflicht hinzu.' },
       { q: 'Kann ich Hook0 selbst hosten?', a: 'Ja. Hook0 unterstützt Selbst-Hosting per Docker Compose oder Kubernetes. Die selbst gehostete Version hat dieselben Features wie die Cloud-Version. Die Dokumentation findest du unter documentation.hook0.com/self-hosting.' },
       { q: 'Wie vergleicht sich Hook0 mit Svix, Hookdeck oder HostedHooks?', a: 'Hook0 veröffentlicht den vollständigen Server-Quellcode unter SSPL-1.0 ohne proprietären Enterprise-Tier, und Selbst-Hosting ist in jedem Plan kostenlos. Der Kern von Svix ist MIT, aber mehrere Features sind kostenpflichtigen Plänen vorbehalten. Hookdeck ist ein Webhook-Gateway und HostedHooks ist closed-source. Hook0 ist bootstrappt, ohne VC-Finanzierung, und läuft sowohl in der Cloud (in der EU gehostet) als auch on-premise.' },
+      { q: 'Wo hostet Hook0 Webhook-Daten, und werden die Unterauftragsverarbeiter genannt?', a: "Die Webhook-Datenebene von Hook0 läuft auf Clever Cloud in Frankreich, innerhalb der EU, im Gratis-Tarif und in jedem kostenpflichtigen Tarif; optionale dedizierte Worker laufen auf Scaleway, ebenfalls in Frankreich. Die vorgelagerte CDN- und DDoS-Schicht stellt Cloudflare (ein US-Unternehmen), was wir offenlegen statt es zu verbergen. Jeder Unterauftragsverarbeiter und sein Datenübermittlungsmechanismus sind öffentlich auf unserer DSGVO-Unterauftragsverarbeiter-Seite aufgeführt. Hook0 ist quelloffen (SSPL-1.0), sodass Sie den Code auch lesen oder selbst hosten können, was viele in der EU gehostete Webhook-Dienste nicht erlauben." },
     ],
   },
 };
