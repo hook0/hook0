@@ -93,13 +93,20 @@ async fn backup_events_per_day<'a, A: Acquire<'a, Database = Postgres>>(
 ) -> Result<(), sqlx::Error> {
     let mut db = db.acquire().await?;
 
+    // A day is only counted an hour after it ends, so ingest transactions still open at midnight
+    // have committed before we snapshot. Rows here are never updated, so an undercount is permanent.
     query!(
         "
             INSERT INTO event.all_time_events_per_day (application__id, date, amount)
-            SELECT application__id, date, amount
-            FROM event.events_per_day
-            WHERE date < CURRENT_DATE
-            ON CONFLICT DO NOTHING
+            SELECT application__id, received_at::date AS date, COUNT(event__id)::integer AS amount
+            FROM event.event
+            WHERE received_at >= COALESCE(
+                    ((SELECT MAX(date) FROM event.all_time_events_per_day) + 1)::timestamptz,
+                    '-infinity'::timestamptz
+                )
+                AND received_at < date_trunc('day', statement_timestamp() - interval '1 hour')
+            GROUP BY application__id, received_at::date
+            ON CONFLICT (application__id, date) DO NOTHING
         ",
     )
     .execute(&mut *db)
