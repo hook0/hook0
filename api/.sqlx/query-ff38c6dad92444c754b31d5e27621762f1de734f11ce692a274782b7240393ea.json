@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO event.all_time_events_per_day (application__id, date, amount)\n            SELECT application__id, received_at::date AS date, COUNT(event__id)::integer AS amount\n            FROM event.event\n            WHERE received_at >= COALESCE(\n                    ((SELECT MAX(date) FROM event.all_time_events_per_day) + 1)::timestamptz,\n                    '-infinity'::timestamptz\n                )\n                AND received_at < date_trunc('day', statement_timestamp() - interval '1 hour')\n            GROUP BY application__id, received_at::date\n            ON CONFLICT (application__id, date) DO NOTHING\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "ff38c6dad92444c754b31d5e27621762f1de734f11ce692a274782b7240393ea"
+}

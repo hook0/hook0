@@ -93,13 +93,20 @@ async fn backup_events_per_day<'a, A: Acquire<'a, Database = Postgres>>(
 ) -> Result<(), sqlx::Error> {
     let mut db = db.acquire().await?;
 
+    // A day is only counted an hour after it ends, so ingest transactions still open at midnight
+    // have committed before we snapshot. Rows here are never updated, so an undercount is permanent.
     query!(
         "
             INSERT INTO event.all_time_events_per_day (application__id, date, amount)
-            SELECT application__id, date, amount
-            FROM event.events_per_day
-            WHERE date < CURRENT_DATE
-            ON CONFLICT DO NOTHING
+            SELECT application__id, received_at::date AS date, COUNT(event__id)::integer AS amount
+            FROM event.event
+            WHERE received_at >= COALESCE(
+                    ((SELECT MAX(date) FROM event.all_time_events_per_day) + 1)::timestamptz,
+                    '-infinity'::timestamptz
+                )
+                AND received_at < date_trunc('day', statement_timestamp() - interval '1 hour')
+            GROUP BY application__id, received_at::date
+            ON CONFLICT (application__id, date) DO NOTHING
         ",
     )
     .execute(&mut *db)
@@ -117,20 +124,27 @@ async fn delete_old_events<'a, A: Acquire<'a, Database = Postgres>>(
 
     let res = query!(
         "
-            WITH retention AS (
-                SELECT a.application__id, MAKE_INTERVAL(days => COALESCE(LEAST(a.days_of_events_retention_limit, p.days_of_events_retention_limit), $1) + $2) AS events_retention_limit
+            WITH retention AS MATERIALIZED (
+                SELECT a.application__id, statement_timestamp() - MAKE_INTERVAL(days => COALESCE(LEAST(a.days_of_events_retention_limit, p.days_of_events_retention_limit), $1) + $2) AS cutoff
                 FROM event.application AS a
                 INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id
                 LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id
                 LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id
             )
-            DELETE FROM event.event
-            WHERE event__id IN (
-                SELECT e.event__id
-                FROM event.event AS e
-                INNER JOIN retention AS r ON r.application__id = e.application__id
-                WHERE e.received_at + r.events_retention_limit < statement_timestamp()
-            );
+            -- Performance-critical query shape; do NOT simplify. event.event can contain millions of rows.
+            -- The per-application retention cutoff is precomputed as a timestamp in the CTE so `received_at < cutoff` is sargable, and `MATERIALIZED` stops the CTE from being inlined.
+            -- The `OFFSET 0` below is an intentional optimizer fence: without it Postgres de-correlates the LATERAL into a hash join over a full seq scan of event.event.
+            -- With it, the subquery runs once per application and uses event_application__id_received_at_idx for a per-app index range scan.
+            DELETE FROM event.event AS e
+            USING retention AS r,
+            LATERAL (
+                SELECT e2.event__id
+                FROM event.event AS e2
+                WHERE e2.application__id = r.application__id
+                  AND e2.received_at < r.cutoff
+                OFFSET 0
+            ) AS old
+            WHERE e.event__id = old.event__id;
         ",
         global_days_of_events_retention_limit,
         grace_period_in_day,
