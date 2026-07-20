@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH retention AS MATERIALIZED (\n                SELECT a.application__id, statement_timestamp() - MAKE_INTERVAL(days => COALESCE(LEAST(a.days_of_events_retention_limit, p.days_of_events_retention_limit), $1) + $2) AS cutoff\n                FROM event.application AS a\n                INNER JOIN iam.organization AS o ON o.organization__id = a.organization__id\n                LEFT JOIN pricing.price AS pr ON pr.price__id = o.price__id\n                LEFT JOIN pricing.plan AS p ON p.plan__id = pr.plan__id\n            )\n            -- Performance-critical query shape; do NOT simplify. event.event can contain millions of rows.\n            -- The per-application retention cutoff is precomputed as a timestamp in the CTE so `received_at < cutoff` is sargable, and `MATERIALIZED` stops the CTE from being inlined.\n            -- The `OFFSET 0` below is an intentional optimizer fence: without it Postgres de-correlates the LATERAL into a hash join over a full seq scan of event.event.\n            -- With it, the subquery runs once per application and uses event_application__id_received_at_idx for a per-app index range scan.\n            DELETE FROM event.event AS e\n            USING retention AS r,\n            LATERAL (\n                SELECT e2.event__id\n                FROM event.event AS e2\n                WHERE e2.application__id = r.application__id\n                  AND e2.received_at < r.cutoff\n                OFFSET 0\n            ) AS old\n            WHERE e.event__id = old.event__id;\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "47bd96036a7ee7af1ecad05aa180cf2ed40c6050b59776c7e1ae308008bb11e4"
+}

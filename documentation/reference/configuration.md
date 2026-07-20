@@ -138,7 +138,7 @@ This documentation may not cover all options or reflect recent changes.
 | `OBJECT_STORAGE_CLEANUP_PERIOD` | Duration to wait between object storage cleanups | `1d` |  |
 | `OBJECT_STORAGE_CLEANUP_REPORT_AND_DELETE` | If true, allow to delete outdated objects from object storage; if false (default), they will only be reported | `false` |  |
 | `OLD_EVENTS_CLEANUP_GRACE_PERIOD_IN_DAY` | Duration (in day) to wait before actually deleting events that are passed retention period | `30` |  |
-| `OLD_EVENTS_CLEANUP_PERIOD_IN_S` | Duration (in second) to wait between old events cleanups | `3600` |  |
+| `OLD_EVENTS_CLEANUP_PERIOD_IN_S` | Duration (in second) to wait between old events cleanups; set to 0 to disable the task | `3600` |  |
 | `OLD_EVENTS_CLEANUP_REPORT_AND_DELETE` | If true, old events will be reported and cleaned up; if false (default), they will only be reported | `false` |  |
 | `SOFT_DELETED_APPLICATIONS_CLEANUP_GRACE_PERIOD` | Duration to wait before removing a soft-deleted application | `30d` |  |
 | `SOFT_DELETED_APPLICATIONS_CLEANUP_PERIOD` | Duration to wait between soft-deleted applications cleanups | `1d` |  |
