@@ -427,7 +427,7 @@ module.exports = {
     },
     {
       title: 'Datensicherheit',
-      description: 'Hook0 wendet bewährte Verfahren für Datenspeicherung und Verschlüsselung an. Wir bieten zusätzlich Single-Tenant- und On-Premise-Deployment-Optionen.',
+      description: 'Hook0 wendet bewährte Verfahren für die Datenspeicherung an, verschlüsselt Daten bei der Übertragung mit TLS und signiert jede Payload. Wir bieten zusätzlich Single-Tenant- und On-Premise-Deployment-Optionen.',
       wip: false,
     },
     {

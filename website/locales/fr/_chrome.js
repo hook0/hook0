@@ -427,7 +427,7 @@ module.exports = {
     },
     {
       title: 'Sécurité des données',
-      description: 'Hook0 applique les bonnes pratiques de stockage et de chiffrement. On propose aussi des options de déploiement single-tenant et on-premise.',
+      description: 'Hook0 applique les bonnes pratiques de stockage, chiffre les données en transit via TLS et signe chaque payload. On propose aussi des options de déploiement single-tenant et on-premise.',
       wip: false,
     },
     {
