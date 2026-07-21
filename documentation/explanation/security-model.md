@@ -261,11 +261,11 @@ def handle_webhook(event_id, payload):
 
 ## Compliance and standards
 
-### Standards compliance
-- **SOC 2 Type II**: Security controls and monitoring
-- **ISO 27001**: Information security management
-- **General Data Protection Regulation (GDPR)**: Data protection and privacy rights
-- **CCPA**: California consumer privacy requirements
+### Standards and frameworks
+- **GDPR**: Hook0 is operated in compliance with the General Data Protection Regulation. See the [Privacy policy](/hook0-cloud/privacy-policy) and [Information retention policy](/hook0-cloud/information-retention-policy).
+- **ISO 27001**: our security practices align with the ISO 27001 framework and are managed through an information security management system (ISMS).
+
+Hook0 runs on Clever Cloud, an infrastructure provider that maintains its own independent third-party security certifications.
 
 ### Security headers
 ```http
