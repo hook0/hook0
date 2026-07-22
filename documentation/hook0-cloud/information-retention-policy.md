@@ -78,8 +78,8 @@ Refer to the table below for relevant retention periods and disposal instruction
 ### Webhook event data
 
 - Retention period: Per customer plan — Developer: 7 days, Startup: 14 days, Pro: 30 days, Enterprise: custom
-- Location: Digitally in production database
-- Disposal instructions: Automatic purge after retention window
+- Location: Digitally in production database and object storage
+- Disposal instructions: Automatic purge after the retention window. Once the retention window has elapsed, a 10-day grace period is applied. After the grace period, events and their related request attempts and responses are deleted from the database; within 24 hours (at worst), the corresponding event and response payloads are deleted from object storage.
 
 ### Website analytics (Matomo)
 
