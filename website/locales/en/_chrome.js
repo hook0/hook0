@@ -441,7 +441,7 @@ module.exports = {
     },
     {
       title: 'Data Security',
-      description: 'Hook0 utilizes best practices for data storage and encryption. We also offer single-tenant and on-premise deployment options.',
+      description: 'Hook0 follows security best practices for data storage, encrypts data in transit with TLS, and signs every payload. We also offer single-tenant and on-premise deployment options.',
       wip: false,
     },
     {
