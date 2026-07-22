@@ -103,9 +103,12 @@ For implementation details and code examples in JavaScript, Python, and Go, see 
 ### Data protection
 
 #### Encryption at rest
-- Database encryption using PostgreSQL TDE
-- Secrets encrypted with application keys
-- Backup encryption with separate keys
+Hook0 Cloud application data is stored in a [Clever Cloud](https://www.clever-cloud.com/) managed PostgreSQL database and in object storage. **This data is not encrypted at rest by default** — Clever Cloud does not encrypt disk contents unless disk-level encryption is explicitly requested, and it is not currently enabled for Hook0 Cloud. If encryption at rest is a requirement for your organization, contact [security@hook0.com](mailto:security@hook0.com) to discuss dedicated deployment options.
+
+These protections still apply regardless:
+- Passwords are hashed and never stored in a reversible form (see [Password policy](/hook0-cloud/password-policy)).
+- [Subscription](/concepts/subscriptions) secrets are cryptographically random and are never logged or returned in API responses.
+- Access to the database and object storage is restricted, with access lists reviewed periodically (see [Access control policy](/hook0-cloud/access-control-policy)).
 
 #### Encryption in transit
 - TLS for all external communication
@@ -113,14 +116,13 @@ For implementation details and code examples in JavaScript, Python, and Go, see 
 - Database connections encrypted
 
 #### Data retention
-```sql
--- Automatic cleanup of old events
-DELETE FROM events 
-WHERE created_at < NOW() - INTERVAL '90 days';
+Webhook event data is retained per plan — Developer: 7 days, Startup: 14 days, Pro: 30 days, Enterprise: custom. Deletion is automatic:
 
--- Secure deletion with overwriting
-VACUUM FULL events;
-```
+1. Once the retention window has elapsed, a 10-day grace period is applied.
+2. After the grace period, events and their related request attempts and responses are deleted from the database.
+3. Within 24 hours (at worst), the corresponding event and response payloads are deleted from object storage.
+
+See the [Information retention policy](/hook0-cloud/information-retention-policy) for the retention periods that apply to every other data type.
 
 ### Secret management
 
@@ -263,11 +265,11 @@ def handle_webhook(event_id, payload):
 
 ## Compliance and standards
 
-### Standards compliance
-- **SOC 2 Type II**: Security controls and monitoring
-- **ISO 27001**: Information security management
-- **General Data Protection Regulation (GDPR)**: Data protection and privacy rights
-- **CCPA**: California consumer privacy requirements
+### Standards and frameworks
+- **GDPR**: Hook0 is operated in compliance with the General Data Protection Regulation. See the [Privacy policy](/hook0-cloud/privacy-policy) and [Information retention policy](/hook0-cloud/information-retention-policy).
+- **ISO 27001**: our security practices align with the ISO 27001 framework and are managed through an information security management system (ISMS).
+
+Hook0 runs on Clever Cloud, an infrastructure provider that maintains its own independent third-party security certifications.
 
 ### Security headers
 ```http
