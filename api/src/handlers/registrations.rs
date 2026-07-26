@@ -207,16 +207,20 @@ pub async fn register(
 
             tx.commit().await?;
 
-            // Lazy cleanup: drop attributions older than 30 days. Runs in a
+            // Lazy cleanup: drop attributions older than the retention window
+            // (the gclid safety net — long enough for a B2B first event to
+            // arrive, see SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS). Runs in a
             // separate connection (not in tx) so it never blocks signup.
             // Errors are logged but never surfaced.
             let pool = state.db.clone();
+            let retention_in_days = state.signup_attribution_retention_in_days;
             tokio::spawn(async move {
                 let result = query!(
                     "
                         DELETE FROM iam.signup_attribution
-                        WHERE created_at < statement_timestamp() - INTERVAL '30 days'
-                    "
+                        WHERE created_at < statement_timestamp() - MAKE_INTERVAL(days => $1)
+                    ",
+                    retention_in_days,
                 )
                 .execute(&pool)
                 .await;

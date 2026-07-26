@@ -177,6 +177,27 @@ pub fn report_ingested_events(amount: u64) {
     INGESTED_EVENTS.add(amount, &[]);
 }
 
+static CONVERSIONS_UPLOADED: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("conversions.uploaded")
+        .with_description("Google Ads click conversions uploaded, by kind and terminal outcome")
+        .build()
+});
+
+/// Count one terminal conversion-upload outcome. `kind` is the conversion kind
+/// (`signup` / `activation` / `first_event`); `outcome` is `success`,
+/// `partial_failure` (Google rejected the operation, e.g. unknown gclid) or
+/// `failed` (transport/API error after exhausting retries).
+pub fn report_conversion_uploaded(kind: &'static str, outcome: &'static str) {
+    CONVERSIONS_UPLOADED.add(
+        1,
+        &[
+            KeyValue::new("kind", kind),
+            KeyValue::new("outcome", outcome),
+        ],
+    );
+}
+
 static EVENT_PAYLOADS_STORED_IN_OBJECT_STORAGE: LazyLock<Counter<u64>> = LazyLock::new(|| {
     global::meter(crate_name!())
         .u64_counter("events.payloads_stored_in_object_storage")
