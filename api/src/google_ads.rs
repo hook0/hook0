@@ -13,23 +13,58 @@
 //! - <https://developers.google.com/google-ads/api/docs/conversions/upload-clicks>
 //!
 //! This module also owns the `iam.signup_attribution` gclid lifecycle shared by
-//! the registration / email-verification flow (signup conversion) and the
-//! application-secret creation flow (activation conversion): the gclid is
-//! retained until BOTH conversions have been uploaded, then cleared (data
-//! minimisation). The 30-day cleanup in `handlers::registrations` is the safety
-//! net for rows that never reach that state. See
+//! the registration / email-verification flow (signup conversion), the
+//! application-secret / service-token creation flow (activation conversion) and
+//! the background job that uploads the first-event conversion. The gclid is
+//! retained until every ENABLED conversion has been uploaded, then cleared (data
+//! minimisation): signup and activation always count; the first-event conversion
+//! counts only when it is configured. The retention-window cleanup in
+//! `handlers::registrations` (see `SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS`) is the
+//! safety net for rows that never reach that state. See
 //! `documentation/hook0-cloud/legitimate-interest-balance-test-google-ads.md`.
 
 use chrono::{DateTime, Utc};
+use clap::crate_name;
+use opentelemetry::metrics::Counter;
+use opentelemetry::{KeyValue, global};
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::Deserialize;
 use sqlx::PgPool;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::time::{Duration, Instant};
 use thiserror::Error;
 use tokio::sync::Mutex;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
+
+/// Background uploader for the "first event sent" conversion (periodic scan;
+/// never on the event-ingestion hot path).
+pub mod first_event_conversion;
+
+// The counter is built once on first use and stays bound to the global meter
+// provider that exists at that moment. `opentelemetry::init()` sets that
+// provider during startup, before any conversion upload can happen, so this is
+// safe. A caller running before `init()` would bind to the no-op provider.
+static CONVERSIONS_UPLOADED: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("conversions.uploaded")
+        .with_description("Google Ads click conversions uploaded, by kind and terminal outcome")
+        .build()
+});
+
+/// Count one terminal conversion-upload outcome. `kind` is the conversion kind
+/// (`signup` / `activation` / `first_event`); `outcome` is `success`,
+/// `partial_failure` (Google rejected the operation, e.g. unknown gclid) or
+/// `failed` (transport/API error after exhausting retries).
+pub(crate) fn report_conversion_uploaded(kind: &'static str, outcome: &'static str) {
+    CONVERSIONS_UPLOADED.add(
+        1,
+        &[
+            KeyValue::new("kind", kind),
+            KeyValue::new("outcome", outcome),
+        ],
+    );
+}
 
 const GOOGLE_OAUTH_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const GOOGLE_ADS_BASE_URL: &str = "https://googleads.googleapis.com/v23";
@@ -61,6 +96,9 @@ pub struct GoogleAdsConfig {
     /// Numeric ID of the "activation" conversion action (optional). When
     /// `None`, activation uploads are skipped and only signup is tracked.
     pub activation_conversion_action_id: Option<String>,
+    /// Numeric ID of the "first event sent" conversion action (optional). When
+    /// `None`, the first-event conversion (and its background job) is disabled.
+    pub first_event_conversion_action_id: Option<String>,
     pub oauth_client_id: String,
     pub oauth_client_secret: String,
     pub oauth_refresh_token: String,
@@ -71,8 +109,37 @@ pub struct GoogleAdsConfig {
 pub enum ConversionKind {
     /// User verified their email after signing up.
     Signup,
-    /// Organization created its first API key (first real product use).
+    /// Organization created its first API key or service token (first real
+    /// product integration).
     Activation,
+    /// Organization ingested its first event (an earlier, lighter funnel step
+    /// than activation).
+    FirstEvent,
+}
+
+impl ConversionKind {
+    /// Stable label used for the `conversions.uploaded` metric dimension.
+    fn metric_label(self) -> &'static str {
+        match self {
+            ConversionKind::Signup => "signup",
+            ConversionKind::Activation => "activation",
+            ConversionKind::FirstEvent => "first_event",
+        }
+    }
+}
+
+/// Outcome of a single click-conversion upload, so callers can tell a clean
+/// success from a per-operation rejection (`partialFailureError`) and never
+/// count the latter as a success.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UploadOutcome {
+    /// No conversion action configured for this kind; nothing was sent.
+    Skipped,
+    /// HTTP 2xx with no per-operation error.
+    Success,
+    /// HTTP 2xx but the response carried a `partialFailureError` (e.g. an
+    /// unknown or expired gclid). Terminal: retrying will not help.
+    PartialFailure,
 }
 
 impl GoogleAdsConfig {
@@ -93,6 +160,7 @@ impl GoogleAdsConfig {
         let conversion_action_id = match kind {
             ConversionKind::Signup => self.signup_conversion_action_id.clone(),
             ConversionKind::Activation => self.activation_conversion_action_id.clone()?,
+            ConversionKind::FirstEvent => self.first_event_conversion_action_id.clone()?,
         };
         Some(format!(
             "customers/{}/conversionActions/{}",
@@ -226,23 +294,28 @@ impl GoogleAdsClient {
         self.config.activation_conversion_action_id.is_some()
     }
 
+    /// Returns `true` if a first-event conversion action is configured.
+    pub fn has_first_event_conversion(&self) -> bool {
+        self.config.first_event_conversion_action_id.is_some()
+    }
+
     /// Upload a click conversion using only the gclid (no PII).
     ///
-    /// For [`ConversionKind::Activation`] when no activation conversion action
-    /// is configured, this is a silent no-op (returns `Ok(())`).
+    /// When no conversion action is configured for `kind`, this is a silent
+    /// no-op returning [`UploadOutcome::Skipped`].
     pub async fn upload_click_conversion(
         &self,
         gclid: &str,
         kind: ConversionKind,
         conversion_date_time: DateTime<Utc>,
-    ) -> Result<(), GoogleAdsError> {
+    ) -> Result<UploadOutcome, GoogleAdsError> {
         let Some(conversion_action) = self.config.conversion_action_resource(kind) else {
             debug!(
                 target: "api::google_ads",
                 ?kind,
                 "conversion action not configured; skipping upload"
             );
-            return Ok(());
+            return Ok(UploadOutcome::Skipped);
         };
 
         let access_token = self.get_access_token().await?;
@@ -289,11 +362,13 @@ impl GoogleAdsClient {
         // partialFailure: true means HTTP 200 may still contain per-operation
         // errors. Surface them via warn but treat them as non-fatal — Google
         // already has the conversion or it was rejected for a non-retryable
-        // reason (e.g. unknown gclid).
+        // reason (e.g. unknown gclid). Reported as its own outcome so callers
+        // never count it as a success.
         if response_body.contains("partialFailureError") {
             warn!(target: "api::google_ads", body = %response_body, "Google Ads partial failure");
+            return Ok(UploadOutcome::PartialFailure);
         }
-        Ok(())
+        Ok(UploadOutcome::Success)
     }
 }
 
@@ -323,90 +398,123 @@ const RETRY_DELAYS: [Duration; 3] = [
 /// (30s / 2min / 10min) on retryable errors (5xx, 429, network).
 pub fn spawn_upload(client: Arc<GoogleAdsClient>, gclid: String, kind: ConversionKind) {
     tokio::spawn(async move {
-        let started = Instant::now();
-        let gclid_prefix: String = gclid.chars().take(8).collect();
-        let max_attempts = RETRY_DELAYS.len() + 1;
+        // Capture the conversion timestamp ONCE, before the retry loop. Google
+        // Ads deduplicates a re-uploaded conversion by (gclid, conversionAction,
+        // conversionDateTime); recomputing the time on each retry would defeat
+        // that dedup and let a retried-then-actually-succeeded upload be
+        // counted twice.
+        let conversion_date_time = Utc::now();
+        upload_with_retries(&client, &gclid, kind, &RETRY_DELAYS, conversion_date_time).await;
+    });
+}
 
-        for attempt in 1..=max_attempts {
-            match client
-                .upload_click_conversion(&gclid, kind, Utc::now())
-                .await
-            {
-                Ok(()) => {
-                    debug!(
-                        target: "api::google_ads",
-                        gclid = %gclid,
-                        attempt = attempt,
-                        "click conversion uploaded (full gclid)"
-                    );
-                    info!(
+/// Upload a conversion, retrying retryable failures with the given inter-attempt
+/// `delays` (so `delays.len() + 1` attempts total). Factored out of
+/// [`spawn_upload`] so tests can drive the real retry loop with short delays.
+///
+/// `conversion_date_time` is captured once by the caller and reused for every
+/// attempt — see [`spawn_upload`]. Records the `conversions.uploaded` metric
+/// exactly once, with the terminal outcome (`success` / `partial_failure` /
+/// `failed`); a skipped no-op is not counted.
+async fn upload_with_retries(
+    client: &GoogleAdsClient,
+    gclid: &str,
+    kind: ConversionKind,
+    delays: &[Duration],
+    conversion_date_time: DateTime<Utc>,
+) {
+    let started = Instant::now();
+    let gclid_prefix: String = gclid.chars().take(8).collect();
+    let max_attempts = delays.len() + 1;
+
+    for attempt in 1..=max_attempts {
+        match client
+            .upload_click_conversion(gclid, kind, conversion_date_time)
+            .await
+        {
+            Ok(UploadOutcome::Skipped) => return,
+            Ok(outcome) => {
+                let metric_outcome = match outcome {
+                    UploadOutcome::PartialFailure => "partial_failure",
+                    _ => "success",
+                };
+                report_conversion_uploaded(kind.metric_label(), metric_outcome);
+                debug!(
+                    target: "api::google_ads",
+                    gclid = %gclid,
+                    attempt = attempt,
+                    "click conversion uploaded (full gclid)"
+                );
+                info!(
+                    target: "api::google_ads",
+                    gclid_prefix = %gclid_prefix,
+                    conversion = ?kind,
+                    outcome = metric_outcome,
+                    attempt = attempt,
+                    duration_ms = started.elapsed().as_millis() as u64,
+                    "click conversion uploaded"
+                );
+                return;
+            }
+            Err(e) => {
+                if !is_retryable(&e) {
+                    report_conversion_uploaded(kind.metric_label(), "failed");
+                    // error! emits a Sentry event via sentry-tracing
+                    // layer (configured by hook0-sentry-integration).
+                    // Non-retryable errors usually indicate a config
+                    // issue (4xx) that needs manual review.
+                    error!(
                         target: "api::google_ads",
                         gclid_prefix = %gclid_prefix,
                         conversion = ?kind,
                         attempt = attempt,
-                        duration_ms = started.elapsed().as_millis() as u64,
-                        "click conversion uploaded"
+                        error = %e,
+                        "click conversion upload failed (non-retryable)"
+                    );
+                    debug!(
+                        target: "api::google_ads",
+                        gclid = %gclid,
+                        error = %e,
+                        "click conversion upload failed (full gclid)"
                     );
                     return;
                 }
-                Err(e) => {
-                    if !is_retryable(&e) {
-                        // error! emits a Sentry event via sentry-tracing
-                        // layer (configured by hook0-sentry-integration).
-                        // Non-retryable errors usually indicate a config
-                        // issue (4xx) that needs manual review.
-                        error!(
-                            target: "api::google_ads",
-                            gclid_prefix = %gclid_prefix,
-                            conversion = ?kind,
-                            attempt = attempt,
-                            error = %e,
-                            "click conversion upload failed (non-retryable)"
-                        );
-                        debug!(
-                            target: "api::google_ads",
-                            gclid = %gclid,
-                            error = %e,
-                            "click conversion upload failed (full gclid)"
-                        );
-                        return;
-                    }
 
-                    if attempt == max_attempts {
-                        // error! emits a Sentry event via sentry-tracing
-                        // layer. A lost conversion after exhausted retries
-                        // is operationally significant.
-                        error!(
-                            target: "api::google_ads",
-                            gclid_prefix = %gclid_prefix,
-                            conversion = ?kind,
-                            attempts = attempt,
-                            error = %e,
-                            "click conversion upload abandoned after retries"
-                        );
-                        debug!(
-                            target: "api::google_ads",
-                            gclid = %gclid,
-                            error = %e,
-                            "click conversion upload abandoned (full gclid)"
-                        );
-                        return;
-                    }
-
-                    let delay = RETRY_DELAYS[attempt - 1];
-                    warn!(
+                if attempt == max_attempts {
+                    report_conversion_uploaded(kind.metric_label(), "failed");
+                    // error! emits a Sentry event via sentry-tracing
+                    // layer. A lost conversion after exhausted retries
+                    // is operationally significant.
+                    error!(
                         target: "api::google_ads",
                         gclid_prefix = %gclid_prefix,
-                        attempt = attempt,
-                        next_retry_in_ms = delay.as_millis() as u64,
+                        conversion = ?kind,
+                        attempts = attempt,
                         error = %e,
-                        "click conversion upload failed, will retry"
+                        "click conversion upload abandoned after retries"
                     );
-                    tokio::time::sleep(delay).await;
+                    debug!(
+                        target: "api::google_ads",
+                        gclid = %gclid,
+                        error = %e,
+                        "click conversion upload abandoned (full gclid)"
+                    );
+                    return;
                 }
+
+                let delay = delays[attempt - 1];
+                warn!(
+                    target: "api::google_ads",
+                    gclid_prefix = %gclid_prefix,
+                    attempt = attempt,
+                    next_retry_in_ms = delay.as_millis() as u64,
+                    error = %e,
+                    "click conversion upload failed, will retry"
+                );
+                tokio::time::sleep(delay).await;
             }
         }
-    });
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -456,10 +564,20 @@ pub async fn claim_activation_gclid(
     Ok(row.and_then(|r| r.gclid))
 }
 
-/// Clear the gclid (data minimisation) once BOTH conversions are uploaded, for
-/// the attribution row of `user_id`. Best-effort: errors are logged, never
-/// surfaced (the conversion has already been queued).
-pub async fn clear_gclid_if_fully_uploaded_by_user(db: &PgPool, user_id: &Uuid) {
+/// Clear the gclid (data minimisation) once every ENABLED conversion has been
+/// uploaded, for the attribution row of `user_id`. Signup and activation are
+/// always required; the first-event conversion is required only when
+/// `first_event_tracking_enabled` is `true` (otherwise there is no first-event
+/// conversion to wait for, and holding the gclid past signup + activation would
+/// needlessly weaken data minimisation).
+///
+/// Best-effort: errors are logged, never surfaced (the conversion has already
+/// been queued).
+pub async fn clear_gclid_if_fully_uploaded_by_user(
+    db: &PgPool,
+    user_id: &Uuid,
+    first_event_tracking_enabled: bool,
+) {
     let result = sqlx::query!(
         "
             UPDATE iam.signup_attribution
@@ -468,8 +586,10 @@ pub async fn clear_gclid_if_fully_uploaded_by_user(db: &PgPool, user_id: &Uuid) 
               AND gclid IS NOT NULL
               AND signup_uploaded_at IS NOT NULL
               AND activation_uploaded_at IS NOT NULL
+              AND (first_event_uploaded_at IS NOT NULL OR NOT $2)
         ",
         user_id,
+        first_event_tracking_enabled,
     )
     .execute(db)
     .await;
@@ -484,7 +604,11 @@ pub async fn clear_gclid_if_fully_uploaded_by_user(db: &PgPool, user_id: &Uuid) 
 }
 
 /// Same as [`clear_gclid_if_fully_uploaded_by_user`], keyed by organization.
-pub async fn clear_gclid_if_fully_uploaded_by_org(db: &PgPool, organization_id: &Uuid) {
+pub async fn clear_gclid_if_fully_uploaded_by_org(
+    db: &PgPool,
+    organization_id: &Uuid,
+    first_event_tracking_enabled: bool,
+) {
     let result = sqlx::query!(
         "
             UPDATE iam.signup_attribution
@@ -493,8 +617,10 @@ pub async fn clear_gclid_if_fully_uploaded_by_org(db: &PgPool, organization_id: 
               AND gclid IS NOT NULL
               AND signup_uploaded_at IS NOT NULL
               AND activation_uploaded_at IS NOT NULL
+              AND (first_event_uploaded_at IS NOT NULL OR NOT $2)
         ",
         organization_id,
+        first_event_tracking_enabled,
     )
     .execute(db)
     .await;
@@ -506,6 +632,34 @@ pub async fn clear_gclid_if_fully_uploaded_by_org(db: &PgPool, organization_id: 
             "failed to clear minimised gclid (by org)"
         );
     }
+}
+
+/// Atomically mark the first-event conversion as uploaded for an organization,
+/// but only if not already marked. Returns `true` when this call is the one
+/// that flipped `first_event_uploaded_at` from NULL.
+///
+/// This is the claim-on-success counterpart used by the background job AFTER a
+/// confirmed upload: keeping the flag NULL until the upload is confirmed lets a
+/// crashed pass auto-recover (the org is picked up again on the next scan).
+/// Idempotent: a second call returns `false`.
+pub async fn mark_first_event_uploaded(
+    db: &PgPool,
+    organization_id: &Uuid,
+) -> Result<bool, sqlx::Error> {
+    let row = sqlx::query!(
+        "
+            UPDATE iam.signup_attribution
+            SET first_event_uploaded_at = statement_timestamp()
+            WHERE organization__id = $1
+              AND first_event_uploaded_at IS NULL
+            RETURNING user__id
+        ",
+        organization_id,
+    )
+    .fetch_optional(db)
+    .await?;
+
+    Ok(row.is_some())
 }
 
 /// Test-only helpers shared by this module's tests and the handler integration
@@ -763,6 +917,77 @@ pub(crate) mod test_support {
         row
     }
 
+    /// Whether the first-event conversion has been marked uploaded for an org.
+    pub(crate) async fn first_event_uploaded(pool: &PgPool, org: Uuid) -> bool {
+        let row: (bool,) = sqlx::query_as(
+            "SELECT first_event_uploaded_at IS NOT NULL FROM iam.signup_attribution WHERE organization__id = $1",
+        )
+        .bind(org)
+        .fetch_one(pool)
+        .await
+        .expect("read first-event state");
+        row.0
+    }
+
+    /// Give an org a real ingested event (application + event type + event) so
+    /// the first-event `EXISTS` predicate matches it. Mirrors the minimal set of
+    /// NOT NULL columns and the (application, event_type) foreign key.
+    pub(crate) async fn seed_event(pool: &PgPool, org: Uuid) {
+        let application_id = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO event.application (application__id, organization__id, name) VALUES ($1, $2, 'E2E app')",
+        )
+        .bind(application_id)
+        .bind(org)
+        .execute(pool)
+        .await
+        .expect("seed application");
+
+        // An event_type references service / verb / resource_type, so those must
+        // exist first. event_type__name is a generated column (service.resource.
+        // verb), so it is not inserted; here it resolves to 'test.resource.created'.
+        sqlx::query(
+            "INSERT INTO event.service (application__id, service__name) VALUES ($1, 'test')",
+        )
+        .bind(application_id)
+        .execute(pool)
+        .await
+        .expect("seed service");
+        sqlx::query("INSERT INTO event.verb (application__id, verb__name) VALUES ($1, 'created')")
+            .bind(application_id)
+            .execute(pool)
+            .await
+            .expect("seed verb");
+        sqlx::query(
+            "INSERT INTO event.resource_type (application__id, service__name, resource_type__name) VALUES ($1, 'test', 'resource')",
+        )
+        .bind(application_id)
+        .execute(pool)
+        .await
+        .expect("seed resource type");
+        sqlx::query(
+            r#"
+                INSERT INTO event.event_type (application__id, service__name, resource_type__name, verb__name)
+                VALUES ($1, 'test', 'resource', 'created')
+            "#,
+        )
+        .bind(application_id)
+        .execute(pool)
+        .await
+        .expect("seed event type");
+
+        sqlx::query(
+            r#"
+                INSERT INTO event.event (application__id, event_type__name, payload_content_type, ip, occurred_at)
+                VALUES ($1, 'test.resource.created', 'application/json', '127.0.0.1'::inet, statement_timestamp())
+            "#,
+        )
+        .bind(application_id)
+        .execute(pool)
+        .await
+        .expect("seed event");
+    }
+
     /// Mint a user access token for `user` (carrying `role` on `org`) AND persist
     /// it in `iam.token`, exactly like `do_login` does, so the auth middleware
     /// (which verifies the token's revocation id exists and is unexpired)
@@ -886,6 +1111,7 @@ pub(crate) mod test_support {
             cloudflare_turnstile_site_key: None,
             cloudflare_turnstile_secret_key: None,
             google_ads,
+            signup_attribution_retention_in_days: 90,
         }
     }
 }
@@ -898,6 +1124,7 @@ pub(crate) mod test_support {
 pub(crate) fn test_client_with_base_url(
     base_url: String,
     activation_conversion_action_id: Option<&str>,
+    first_event_conversion_action_id: Option<&str>,
 ) -> Arc<GoogleAdsClient> {
     let config = GoogleAdsConfig {
         developer_token: "t".into(),
@@ -905,6 +1132,7 @@ pub(crate) fn test_client_with_base_url(
         login_customer_id: Some("987-654-3210".into()),
         signup_conversion_action_id: "42".into(),
         activation_conversion_action_id: activation_conversion_action_id.map(str::to_string),
+        first_event_conversion_action_id: first_event_conversion_action_id.map(str::to_string),
         oauth_client_id: "c".into(),
         oauth_client_secret: "s".into(),
         oauth_refresh_token: "r".into(),
@@ -928,7 +1156,8 @@ pub(crate) fn test_client_with_base_url(
 #[cfg(test)]
 mod tests {
     use super::test_support::{
-        FakeGoogleAds, attribution_state, seed_attribution, seed_org, seed_user,
+        FakeGoogleAds, attribution_state, first_event_uploaded, seed_attribution, seed_org,
+        seed_user,
     };
     use super::*;
     use proptest::prelude::*;
@@ -940,6 +1169,7 @@ mod tests {
             login_customer_id: Some("987-654-3210".into()),
             signup_conversion_action_id: "42".into(),
             activation_conversion_action_id: activation.map(|s| s.to_string()),
+            first_event_conversion_action_id: None,
             oauth_client_id: "c".into(),
             oauth_client_secret: "s".into(),
             oauth_refresh_token: "r".into(),
@@ -1096,7 +1326,7 @@ mod tests {
     #[actix_web::test]
     async fn activation_upload_targets_activation_conversion_action() {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"));
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None);
 
         client
             .upload_click_conversion("gclid-activation", ConversionKind::Activation, Utc::now())
@@ -1119,7 +1349,7 @@ mod tests {
     #[actix_web::test]
     async fn signup_and_activation_use_distinct_conversion_actions() {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"));
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None);
 
         client
             .upload_click_conversion("g1", ConversionKind::Signup, Utc::now())
@@ -1146,13 +1376,14 @@ mod tests {
     #[actix_web::test]
     async fn upload_is_noop_when_activation_action_unconfigured() {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client = test_client_with_base_url(fake.base_url.clone(), None);
+        let client = test_client_with_base_url(fake.base_url.clone(), None, None);
 
-        client
+        let outcome = client
             .upload_click_conversion("g", ConversionKind::Activation, Utc::now())
             .await
             .expect("noop upload returns Ok");
 
+        assert_eq!(outcome, UploadOutcome::Skipped);
         assert!(
             fake.requests().is_empty(),
             "no request is sent when the activation action is not configured"
@@ -1165,20 +1396,22 @@ mod tests {
             200,
             r#"{"partialFailureError":{"code":3,"message":"gclid invalid"}}"#,
         );
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"));
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None);
 
         // A 200 carrying a per-operation partialFailureError (e.g. unknown
-        // gclid) is treated as Ok — the conversion is not worth retrying.
-        client
+        // gclid) is reported as PartialFailure (not a success, not an error) —
+        // the conversion is not worth retrying.
+        let outcome = client
             .upload_click_conversion("bad-gclid", ConversionKind::Activation, Utc::now())
             .await
             .expect("partial failure is non-fatal");
+        assert_eq!(outcome, UploadOutcome::PartialFailure);
     }
 
     #[actix_web::test]
     async fn api_4xx_is_a_non_retryable_error() {
         let fake = FakeGoogleAds::start(400, r#"{"error":"bad request"}"#);
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"));
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None);
 
         let err = client
             .upload_click_conversion("g", ConversionKind::Activation, Utc::now())
@@ -1220,27 +1453,63 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn gclid_cleared_only_after_both_conversions(pool: PgPool) {
+    async fn gclid_cleared_after_signup_and_activation_when_first_event_disabled(pool: PgPool) {
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
         // Signup already uploaded, activation still pending.
         seed_attribution(&pool, user, org, "gclid-clear", true).await;
 
-        // Activation not yet claimed → clearing is a no-op.
-        clear_gclid_if_fully_uploaded_by_org(&pool, &org).await;
+        // Activation not yet claimed → clearing is a no-op. `false`: this
+        // instance does not track the first event, so signup + activation is
+        // "fully uploaded".
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org, false).await;
         let (gclid, _) = attribution_state(&pool, org).await;
         assert_eq!(
             gclid.as_deref(),
             Some("gclid-clear"),
-            "gclid kept until both conversions are uploaded"
+            "gclid kept until both enabled conversions are uploaded"
         );
 
         // Claim activation, then clearing nulls the gclid (data minimisation).
         claim_activation_gclid(&pool, &org).await.expect("claim");
-        clear_gclid_if_fully_uploaded_by_org(&pool, &org).await;
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org, false).await;
         let (gclid, activation_uploaded) = attribution_state(&pool, org).await;
-        assert_eq!(gclid, None, "gclid nulled once both conversions uploaded");
+        assert_eq!(
+            gclid, None,
+            "gclid nulled once both enabled conversions uploaded"
+        );
         assert!(activation_uploaded);
+    }
+
+    #[sqlx::test]
+    async fn gclid_retained_until_first_event_when_first_event_enabled(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        // Signup uploaded; activation claimed. First-event tracking is ON.
+        seed_attribution(&pool, user, org, "gclid-3way", true).await;
+        claim_activation_gclid(&pool, &org).await.expect("claim");
+
+        // With first-event tracking enabled, signup + activation is NOT enough:
+        // clearing now would purge the gclid before the first-event conversion
+        // could ever be uploaded (the hazard this guards against).
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org, true).await;
+        let (gclid, _) = attribution_state(&pool, org).await;
+        assert_eq!(
+            gclid.as_deref(),
+            Some("gclid-3way"),
+            "gclid retained until the first-event conversion is uploaded too"
+        );
+
+        // Mark the first-event conversion uploaded → now all three are done.
+        mark_first_event_uploaded(&pool, &org)
+            .await
+            .expect("mark first event");
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org, true).await;
+        let (gclid, _) = attribution_state(&pool, org).await;
+        assert_eq!(
+            gclid, None,
+            "gclid nulled once all three conversions uploaded"
+        );
     }
 
     #[sqlx::test]
@@ -1251,12 +1520,88 @@ mod tests {
         seed_attribution(&pool, user, org, "gclid-keep", false).await;
 
         claim_activation_gclid(&pool, &org).await.expect("claim");
-        clear_gclid_if_fully_uploaded_by_org(&pool, &org).await;
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org, false).await;
         let (gclid, _) = attribution_state(&pool, org).await;
         assert_eq!(
             gclid.as_deref(),
             Some("gclid-keep"),
             "signup still pending → gclid retained"
         );
+    }
+
+    #[sqlx::test]
+    async fn mark_first_event_uploaded_is_at_most_once(pool: PgPool) {
+        // Property: however many times the mark is attempted for an org, exactly
+        // one attempt claims it (returns true); every later attempt returns
+        // false. Checked exhaustively over the small, meaningful call-count
+        // domain (1..=6).
+        for attempts in 1u32..=6 {
+            let user = seed_user(&pool).await;
+            let org = seed_org(&pool, user).await;
+            seed_attribution(&pool, user, org, "gclid-mark", true).await;
+
+            let mut claims = 0u32;
+            for _ in 0..attempts {
+                if mark_first_event_uploaded(&pool, &org)
+                    .await
+                    .expect("mark ok")
+                {
+                    claims += 1;
+                }
+            }
+
+            assert_eq!(claims, 1, "exactly one claim across {attempts} attempts");
+            assert!(first_event_uploaded(&pool, org).await);
+        }
+    }
+
+    // ----- Retry loop: conversionDateTime is stable across attempts -----
+
+    proptest! {
+        // The (gclid, conversionAction, conversionDateTime) triple is Google
+        // Ads' dedup key. If a retry recomputed the timestamp, a retried-then-
+        // succeeded upload would be counted twice. Property: across every
+        // attempt of a single upload, the conversionDateTime sent is identical.
+        #![proptest_config(ProptestConfig::with_cases(12))]
+        #[test]
+        fn conversion_date_time_is_stable_across_retries(epoch_secs in 1_600_000_000i64..2_000_000_000i64) {
+            let runtime = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("tokio runtime");
+            runtime.block_on(async move {
+                // 503 is retryable → all attempts run (delays are zero here).
+                let fake = FakeGoogleAds::start(503, "{}");
+                let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None);
+                let captured = DateTime::from_timestamp(epoch_secs, 0).expect("valid timestamp");
+
+                upload_with_retries(
+                    &client,
+                    "gclid-retry",
+                    ConversionKind::Activation,
+                    &[Duration::ZERO, Duration::ZERO, Duration::ZERO],
+                    captured,
+                )
+                .await;
+
+                let reqs = fake.wait_for(4, Duration::from_secs(5)).await;
+                prop_assert_eq!(reqs.len(), 4, "one request per attempt");
+                let date_times: Vec<String> = reqs
+                    .iter()
+                    .map(|r| {
+                        let v: serde_json::Value =
+                            serde_json::from_str(&r.body).expect("json body");
+                        v["conversions"][0]["conversionDateTime"]
+                            .as_str()
+                            .expect("conversionDateTime")
+                            .to_string()
+                    })
+                    .collect();
+                for dt in &date_times {
+                    prop_assert_eq!(dt, &date_times[0], "conversionDateTime stable across retries");
+                }
+                Ok(())
+            })?;
+        }
     }
 }
