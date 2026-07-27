@@ -58,7 +58,7 @@ module.exports = {
     title: 'Privacy Policy',
     subtitle: 'How Hook0 collects, uses, and protects your personal data, in compliance with GDPR Article 13.',
     lastUpdatedLabel: 'Last updated:',
-    lastUpdatedDate: 'June 27, 2026',
+    lastUpdatedDate: 'July 27, 2026',
   },
   controller: {
     title: '1. Data Controller',
@@ -196,6 +196,7 @@ module.exports = {
       ['Website analytics (Matomo)', '25 months', 'CNIL recommendation for analytics data'],
       ['Support communications', '3 years from the last exchange', 'Legitimate interests; statutory limitation period for contractual claims'],
       ['Consent records', '5 years from the date of consent', 'Ability to demonstrate compliance (Art. 7(1) GDPR)'],
+      ['Advertising attribution (Google Ads gclid)', '30 days maximum (usually much less)', 'Server-side conversion measurement; gclid erased as soon as the applicable conversions are uploaded; cap aligned with the Google Ads attribution window (legitimate interest, Art. 6(1)(f))'],
       // [ISMS-SYNC] Add server logs row to mirror DPA Appendix 2.
       ['Server logs', '30 days minimum, then automatic rotation and deletion', 'Service operation, security and incident response'],
     ],
@@ -239,8 +240,8 @@ module.exports = {
       '<strong class="text-white">Legal basis</strong>: Art. 6(1)(f) GDPR, legitimate interests. Documented balance test available on request.',
       '<strong class="text-white">Data transmitted to Google</strong>: gclid, conversion type, conversion date/time. <strong>No email, IP address, or User-Agent</strong> is transmitted to Google in this context.',
       '<strong class="text-white">Joint Controller</strong>: Google LLC, under the Customer Data Processing Terms (Art. 26 GDPR). Transfer to the USA is governed by Standard Contractual Clauses (Decision 2021/914) and, where applicable, the EU-US Data Privacy Framework (Google LLC is DPF-certified).',
-      '<strong class="text-white">Retention</strong>: the gclid is processed in memory during the registration HTTP request and is not persisted in our databases after transmission to Google Ads.',
-      '<strong class="text-white">Right to object</strong> (Art. 21(2) GDPR): you may object to this processing at any time by emailing <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. We will mark your account so the gclid is not transmitted to Google Ads. Your registration is not affected.',
+      '<strong class="text-white">Retention</strong>: the gclid is stored in an attribution table only for as long as needed to measure the applicable conversions, then erased as soon as those conversions have been transmitted to Google Ads. The maximum retention period is 30 days (the attribution window beyond which Google no longer accepts the conversion); in practice it is usually much shorter.',
+      '<strong class="text-white">Right to object</strong> (Art. 21(2) GDPR): you may object to this processing at any time by emailing <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. On request we delete your attribution row (which erases the gclid before any not-yet-sent transmission) and ask Google to delete data already transmitted. Your registration is not affected.',
     ],
     footnoteHtml: 'Note: this server-side measurement does <strong>not</strong> rely on cookies, gtag.js, or any client-side tracker. Article 82 of the French Data Protection Act (transposing Article 5(3) of the e-Privacy Directive) does not apply to this processing.',
   },

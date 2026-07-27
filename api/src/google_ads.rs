@@ -1111,7 +1111,7 @@ pub(crate) mod test_support {
             cloudflare_turnstile_site_key: None,
             cloudflare_turnstile_secret_key: None,
             google_ads,
-            signup_attribution_retention_in_days: 90,
+            signup_attribution_retention_in_days: 30,
         }
     }
 }
