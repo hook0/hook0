@@ -85,3 +85,15 @@ reason = "rustls-webpki 0.101.7 → 0.103.x deferred to follow-up MR (needs aws-
 id = "RUSTSEC-2026-0104"
 ignoreUntil = "2026-08-31T00:00:00Z"
 reason = "rustls-webpki 0.101.7 → 0.103.x deferred to follow-up MR (needs aws-sdk-s3 → rustls 0.23). Tracked."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0173"
+ignoreUntil = "2026-12-31T00:00:00Z"
+reason = """
+proc-macro-error2 2.0.1 is an "unmaintained" informational advisory (no code
+vulnerability, patched = []). It is a compile-time proc-macro dependency only,
+pulled transitively by biscuit-quote (biscuit-auth) and paperclip-macros
+(paperclip); no proc-macro-error2 code ships in the running binary. No fix
+version exists; removal depends on biscuit-auth and paperclip upstreams
+migrating off it. Tracked.
+"""
