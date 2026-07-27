@@ -31,7 +31,6 @@ use uuid::Uuid;
 mod cloudflare_turnstile;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
-mod first_event_conversion;
 mod google_ads;
 mod handlers;
 mod hook0_client;
@@ -1234,7 +1233,7 @@ async fn main() -> anyhow::Result<()> {
                 let first_event_db = housekeeping_pool.clone();
                 let first_event_semaphore = housekeeping_semaphore.clone();
                 actix_web::rt::spawn(async move {
-                    first_event_conversion::periodically_upload_first_event_conversions(
+                    google_ads::first_event_conversion::periodically_upload_first_event_conversions(
                         &first_event_semaphore,
                         &first_event_db,
                         first_event_google_ads,

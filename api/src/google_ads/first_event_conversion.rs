@@ -26,7 +26,7 @@ use tokio::sync::Semaphore;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
-use crate::google_ads::{ConversionKind, GoogleAdsClient, UploadOutcome};
+use super::{ConversionKind, GoogleAdsClient, UploadOutcome};
 
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(50);
 
@@ -105,7 +105,7 @@ async fn upload_pending_first_event_conversions(
             .await
         {
             Ok(UploadOutcome::Success) => {
-                crate::opentelemetry::report_conversion_uploaded("first_event", "success");
+                super::report_conversion_uploaded("first_event", "success");
                 if mark_and_minimise(db, &organization_id).await {
                     uploaded += 1;
                 }
@@ -115,7 +115,7 @@ async fn upload_pending_first_event_conversions(
                 // gclid). Retrying will not help, so mark it done to stop
                 // re-uploading a gclid Google will never accept. Counted as its
                 // own outcome, never as a success.
-                crate::opentelemetry::report_conversion_uploaded("first_event", "partial_failure");
+                super::report_conversion_uploaded("first_event", "partial_failure");
                 if mark_and_minimise(db, &organization_id).await {
                     uploaded += 1;
                 }
@@ -127,7 +127,7 @@ async fn upload_pending_first_event_conversions(
             Err(e) => {
                 // Transport/API error (transient 5xx/network, or a config 4xx).
                 // Leave first_event_uploaded_at NULL so the next pass retries.
-                crate::opentelemetry::report_conversion_uploaded("first_event", "failed");
+                super::report_conversion_uploaded("first_event", "failed");
                 warn!(
                     target: "api::google_ads",
                     error = %e,
@@ -144,12 +144,11 @@ async fn upload_pending_first_event_conversions(
 /// this call is the one that claimed it, minimise the gclid when every enabled
 /// conversion is now done. Returns whether this call performed the claim.
 async fn mark_and_minimise(db: &PgPool, organization_id: &Uuid) -> bool {
-    match crate::google_ads::mark_first_event_uploaded(db, organization_id).await {
+    match super::mark_first_event_uploaded(db, organization_id).await {
         Ok(true) => {
             // First-event tracking is necessarily enabled here (the job only
             // runs when it is), so pass `true`.
-            crate::google_ads::clear_gclid_if_fully_uploaded_by_org(db, organization_id, true)
-                .await;
+            super::clear_gclid_if_fully_uploaded_by_org(db, organization_id, true).await;
             true
         }
         Ok(false) => false,

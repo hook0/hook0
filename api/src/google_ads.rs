@@ -24,15 +24,47 @@
 //! `documentation/hook0-cloud/legitimate-interest-balance-test-google-ads.md`.
 
 use chrono::{DateTime, Utc};
+use clap::crate_name;
+use opentelemetry::metrics::Counter;
+use opentelemetry::{KeyValue, global};
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::Deserialize;
 use sqlx::PgPool;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::time::{Duration, Instant};
 use thiserror::Error;
 use tokio::sync::Mutex;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
+
+/// Background uploader for the "first event sent" conversion (periodic scan;
+/// never on the event-ingestion hot path).
+pub mod first_event_conversion;
+
+// The counter is built once on first use and stays bound to the global meter
+// provider that exists at that moment. `opentelemetry::init()` sets that
+// provider during startup, before any conversion upload can happen, so this is
+// safe. A caller running before `init()` would bind to the no-op provider.
+static CONVERSIONS_UPLOADED: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("conversions.uploaded")
+        .with_description("Google Ads click conversions uploaded, by kind and terminal outcome")
+        .build()
+});
+
+/// Count one terminal conversion-upload outcome. `kind` is the conversion kind
+/// (`signup` / `activation` / `first_event`); `outcome` is `success`,
+/// `partial_failure` (Google rejected the operation, e.g. unknown gclid) or
+/// `failed` (transport/API error after exhausting retries).
+pub(crate) fn report_conversion_uploaded(kind: &'static str, outcome: &'static str) {
+    CONVERSIONS_UPLOADED.add(
+        1,
+        &[
+            KeyValue::new("kind", kind),
+            KeyValue::new("outcome", outcome),
+        ],
+    );
+}
 
 const GOOGLE_OAUTH_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const GOOGLE_ADS_BASE_URL: &str = "https://googleads.googleapis.com/v23";
@@ -406,10 +438,7 @@ async fn upload_with_retries(
                     UploadOutcome::PartialFailure => "partial_failure",
                     _ => "success",
                 };
-                crate::opentelemetry::report_conversion_uploaded(
-                    kind.metric_label(),
-                    metric_outcome,
-                );
+                report_conversion_uploaded(kind.metric_label(), metric_outcome);
                 debug!(
                     target: "api::google_ads",
                     gclid = %gclid,
@@ -429,7 +458,7 @@ async fn upload_with_retries(
             }
             Err(e) => {
                 if !is_retryable(&e) {
-                    crate::opentelemetry::report_conversion_uploaded(kind.metric_label(), "failed");
+                    report_conversion_uploaded(kind.metric_label(), "failed");
                     // error! emits a Sentry event via sentry-tracing
                     // layer (configured by hook0-sentry-integration).
                     // Non-retryable errors usually indicate a config
@@ -452,7 +481,7 @@ async fn upload_with_retries(
                 }
 
                 if attempt == max_attempts {
-                    crate::opentelemetry::report_conversion_uploaded(kind.metric_label(), "failed");
+                    report_conversion_uploaded(kind.metric_label(), "failed");
                     // error! emits a Sentry event via sentry-tracing
                     // layer. A lost conversion after exhausted retries
                     // is operationally significant.
