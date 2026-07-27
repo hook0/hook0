@@ -65,9 +65,9 @@ Refer to the table below for relevant retention periods and disposal instruction
 
 ### Advertising attribution data (gclid)
 
-- Retention period: until both conversion events ("Signup" and "Activation") have been uploaded to Google Ads, at which point the gclid is set to NULL. Maximum retention: 30 days from registration (aligned with the Google Ads attribution window). Rows in `iam.signup_attribution` are automatically deleted after 30 days as a safety net.
+- Retention period: until the applicable conversion events have been uploaded to Google Ads — the three of them ("Signup", "Activation", "First event sent") when the optional first-event conversion is enabled, otherwise the two ("Signup", "Activation") — at which point the gclid is set to NULL. Maximum retention: 30 days from registration (configurable via `SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS`, default 30, aligned with the Google Ads click-through attribution window beyond which the upload is rejected). Rows in `iam.signup_attribution` are automatically deleted after that window as a safety net.
 - Location: Digitally in production database (table `iam.signup_attribution`)
-- Disposal instructions: Set gclid to NULL after both conversions are uploaded; automatic deletion of the row after 30 days
+- Disposal instructions: Set gclid to NULL once the applicable conversions are uploaded; automatic deletion of the row after the retention window (default 30 days)
 
 ### Billing and invoicing records
 
