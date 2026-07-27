@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "preinstall": "rm -rf ./src/mediakit; cp -R -v $(pwd)/../mediakit ./src/mediakit && cp -v ./src/mediakit/logo/favicon.ico static/favicon.ico && rm -rf ./static/mediakit && cp -R $(pwd)/../mediakit ./static/mediakit && npm run --silent update:oss-friends",
-    "postinstall": "node scripts/optimize-images.js || true",
+    "postinstall": "patch-package && (node scripts/optimize-images.js || true)",
     "update:oss-friends": "curl https://formbricks.com/api/oss-friends > ./oss-friends.json",
     "update:github-stars": "node scripts/fetch-github-stars.js",
     "serve": "npx nodemon -w ./data.js -w ./locales -w ./src -i dist/ -i temp/ --ext .js,.json,.ejs --exec 'npm run build:dev && npx serve dist'",
@@ -33,15 +33,16 @@
     "parcel": "^2.9.3",
     "parcel-reporter-static-files-copy": "^1.4.0",
     "parcel-transformer-ejs": "^1.0.0",
+    "patch-package": "^8.0.1",
     "postcss": "^8.3.11",
     "postcss-100vh-fix": "^2.0.0",
     "postcss-import": "^16.0.0",
     "prettier": "^3.0.0",
-    "sharp": "^0.33.5",
+    "sharp": "^0.35.0",
     "tailwindcss": "^3.0.1"
   },
   "volta": {
-    "node": "18.17.1"
+    "node": "24.18.0"
   },
   "dependencies": {
     "@parcel/reporter-dev-server": "^2.16.4",
@@ -49,6 +50,7 @@
   },
   "overrides": {
     "msgpackr": "^1.11.12",
-    "@parcel/reporter-dev-server": "^2.16.4"
+    "@parcel/reporter-dev-server": "^2.16.4",
+    "brace-expansion": "5.0.8"
   }
 }

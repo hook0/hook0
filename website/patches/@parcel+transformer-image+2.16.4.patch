@@ -1,0 +1,12 @@
+diff --git a/node_modules/@parcel/transformer-image/lib/loadSharp.js b/node_modules/@parcel/transformer-image/lib/loadSharp.js
+index 1917738..29bc42f 100644
+--- a/node_modules/@parcel/transformer-image/lib/loadSharp.js
++++ b/node_modules/@parcel/transformer-image/lib/loadSharp.js
+@@ -1,6 +1,6 @@
+ "use strict";
+ 
+-const SHARP_RANGE = '^0.33.5';
++const SHARP_RANGE = '>=0.33.5 <0.36.0';
+ 
+ // This is used to load sharp on the main thread, which prevents errors when worker threads exit
+ // See https://sharp.pixelplumbing.com/install#worker-threads and https://github.com/lovell/sharp/issues/2263
