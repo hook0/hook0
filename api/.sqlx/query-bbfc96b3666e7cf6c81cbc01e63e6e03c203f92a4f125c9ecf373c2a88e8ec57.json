@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        DELETE FROM iam.signup_attribution\n                        WHERE created_at < statement_timestamp() - MAKE_INTERVAL(days => $1)\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bbfc96b3666e7cf6c81cbc01e63e6e03c203f92a4f125c9ecf373c2a88e8ec57"
+}

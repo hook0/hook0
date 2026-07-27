@@ -569,16 +569,18 @@ pub async fn verify_email(
                 if let Some(row) = attribution
                     && let Some(gclid) = row.gclid
                 {
+                    let first_event_tracking_enabled = client.has_first_event_conversion();
                     crate::google_ads::spawn_upload(
                         client,
                         gclid,
                         crate::google_ads::ConversionKind::Signup,
                     );
-                    // If activation already happened before verification, both
-                    // conversions are now uploaded → minimise the gclid.
+                    // If every other enabled conversion already happened before
+                    // verification, all are now uploaded → minimise the gclid.
                     crate::google_ads::clear_gclid_if_fully_uploaded_by_user(
                         &state.db,
                         &token.user_id,
+                        first_event_tracking_enabled,
                     )
                     .await;
                 }

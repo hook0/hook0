@@ -110,15 +110,18 @@ pub async fn create(
     {
         match crate::google_ads::claim_activation_gclid(&state.db, &organization_id).await {
             Ok(Some(gclid)) => {
+                let first_event_tracking_enabled = client.has_first_event_conversion();
                 crate::google_ads::spawn_upload(
                     client,
                     gclid,
                     crate::google_ads::ConversionKind::Activation,
                 );
-                // Both conversions are now uploaded for this org → minimise.
+                // Minimise the gclid once every enabled conversion is uploaded.
+                // When first-event tracking is on, this waits for it too.
                 crate::google_ads::clear_gclid_if_fully_uploaded_by_org(
                     &state.db,
                     &organization_id,
+                    first_event_tracking_enabled,
                 )
                 .await;
             }
@@ -341,7 +344,7 @@ mod activation_conversion_tests {
     async fn creating_first_api_key_fires_activation_conversion(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
         let google_ads =
-            crate::google_ads::test_client_with_base_url(fake.base_url.clone(), Some("777"));
+            crate::google_ads::test_client_with_base_url(fake.base_url.clone(), Some("777"), None);
 
         let keypair = biscuit_auth::KeyPair::new();
         let private_key = keypair.private();

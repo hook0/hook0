@@ -608,6 +608,18 @@ struct Config {
     #[clap(long, env)]
     google_ads_activation_conversion_action_id: Option<String>,
 
+    /// [Google Ads] Numeric ID of the FIRST-EVENT conversion action (optional).
+    /// When unset, first-event conversion tracking (and its background job) is
+    /// disabled; signup and activation are unaffected.
+    #[clap(long, env)]
+    google_ads_first_event_conversion_action_id: Option<String>,
+
+    /// [Google Ads] Duration (in second) between first-event conversion upload
+    /// passes; set to 0 to disable the task. Only runs when a first-event
+    /// conversion action is configured.
+    #[clap(long, env, default_value = "300")]
+    google_ads_first_event_conversion_period_in_s: u64,
+
     /// [Google Ads] OAuth client ID (Desktop App credentials)
     #[clap(long, env)]
     google_ads_oauth_client_id: Option<String>,
@@ -619,6 +631,14 @@ struct Config {
     /// [Google Ads] OAuth refresh token
     #[clap(long, env)]
     google_ads_oauth_refresh_token: Option<String>,
+
+    /// [Google Ads] Days a signup-attribution row (its gclid) is retained before
+    /// the lazy purge deletes it — the safety net for rows whose conversions
+    /// never complete. Defaults to 90 to give B2B users time to send a first
+    /// event; lower it to tighten data minimisation. Should not exceed the
+    /// Google Ads conversion attribution window. Bounded to [1, 3650] days.
+    #[clap(long, env, value_parser = clap::value_parser!(u32).range(1..=3650), default_value = "90")]
+    signup_attribution_retention_in_days: u32,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -679,6 +699,11 @@ fn build_google_ads_client(config: &Config) -> Option<Arc<google_ads::GoogleAdsC
         // is NOT part of the required-vars check above (keeps signup tracking
         // working on deploys before the new env var is provisioned).
         activation_conversion_action_id: config.google_ads_activation_conversion_action_id.clone(),
+        // Optional too: when unset, the first-event conversion and its
+        // background job are disabled (same rationale as activation).
+        first_event_conversion_action_id: config
+            .google_ads_first_event_conversion_action_id
+            .clone(),
         oauth_client_id,
         oauth_client_secret,
         oauth_refresh_token,
@@ -735,6 +760,10 @@ pub struct State {
     cloudflare_turnstile_site_key: Option<String>,
     cloudflare_turnstile_secret_key: Option<String>,
     google_ads: Option<Arc<google_ads::GoogleAdsClient>>,
+    /// Days before the lazy signup-attribution purge deletes a row (the gclid
+    /// safety net). Kept in range [1, 3650] by the CLI parser, so it always fits
+    /// `i32` for the `MAKE_INTERVAL(days => …)` argument.
+    signup_attribution_retention_in_days: i32,
 }
 
 #[derive(Clone)]
@@ -1191,6 +1220,34 @@ async fn main() -> anyhow::Result<()> {
             });
         }
 
+        // Spawn task to upload the Google Ads "first event sent" conversion.
+        // Opt-in: only when a Google Ads client with a first-event conversion
+        // action is configured and the period is non-zero. Uses a background
+        // scan (never the event-ingestion hot path).
+        if let Some(first_event_google_ads) = google_ads_client
+            .as_ref()
+            .filter(|client| client.has_first_event_conversion())
+            .cloned()
+        {
+            if config.google_ads_first_event_conversion_period_in_s > 0 {
+                let first_event_db = housekeeping_pool.clone();
+                let first_event_semaphore = housekeeping_semaphore.clone();
+                actix_web::rt::spawn(async move {
+                    google_ads::first_event_conversion::periodically_upload_first_event_conversions(
+                        &first_event_semaphore,
+                        &first_event_db,
+                        first_event_google_ads,
+                        Duration::from_secs(config.google_ads_first_event_conversion_period_in_s),
+                    )
+                    .await;
+                });
+            } else {
+                info!(
+                    "First-event conversion upload is disabled (GOOGLE_ADS_FIRST_EVENT_CONVERSION_PERIOD_IN_S = 0)"
+                );
+            }
+        }
+
         // Spawn task to clean up object storage
         // No housekeeping semaphore here because this task is not database-intensive and should be able to run for a long time without keeping other tasks from running
         if let Some(os) = &object_storage_config
@@ -1284,6 +1341,10 @@ async fn main() -> anyhow::Result<()> {
             cloudflare_turnstile_site_key: config.cloudflare_turnstile_site_key,
             cloudflare_turnstile_secret_key: config.cloudflare_turnstile_secret_key,
             google_ads: google_ads_client,
+            signup_attribution_retention_in_days: i32::try_from(
+                config.signup_attribution_retention_in_days,
+            )
+            .unwrap_or(90),
         };
 
         // Run web server
