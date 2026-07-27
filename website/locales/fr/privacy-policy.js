@@ -41,7 +41,7 @@ module.exports = {
     title: 'Politique de confidentialité',
     subtitle: 'Comment Hook0 collecte, utilise et protège vos données personnelles, conformément à l\'article 13 du RGPD.',
     lastUpdatedLabel: 'Dernière mise à jour :',
-    lastUpdatedDate: '27 juin 2026',
+    lastUpdatedDate: '27 juillet 2026',
   },
   controller: {
     title: '1. Responsable du traitement',
@@ -180,6 +180,7 @@ module.exports = {
       ['Données analytiques (Matomo)', '25 mois', 'Recommandation CNIL pour les données d\'analyse d\'audience'],
       ['Communications de support', '3 ans après le dernier échange', 'Intérêt légitime ; prescription de droit commun des actions contractuelles'],
       ['Preuves de consentement', '5 ans à compter de la date du consentement', 'Capacité à démontrer la conformité (art. 7(1) RGPD)'],
+      ['Attribution publicitaire (gclid Google Ads)', '30 jours maximum (souvent bien moins)', 'Mesure de conversion server-side ; gclid effacé dès l\'upload des conversions applicables ; borne alignée sur la fenêtre d\'attribution Google Ads (intérêt légitime, art. 6(1)(f))'],
       // [ISMS-SYNC] Ajout des journaux serveur pour alignement avec l'Annexe 2
       // du DPA.
       ['Journaux serveur', '30 jours minimum, puis rotation et suppression automatiques', 'Exploitation du service, sécurité et gestion des incidents'],
@@ -224,8 +225,8 @@ module.exports = {
       '<strong class="text-white">Base légale</strong> : art. 6(1)(f) RGPD, intérêt légitime. Test de proportionnalité documenté disponible sur demande.',
       '<strong class="text-white">Données transmises à Google</strong>, à savoir le gclid, le type de conversion et la date/heure de conversion. <strong>Aucun e-mail, aucune adresse IP, aucun User-Agent</strong> n\'est transmis à Google dans ce cadre.',
       '<strong class="text-white">Co-responsable de traitement</strong> : Google LLC, dans le cadre des Customer Data Processing Terms (art. 26 RGPD). Le transfert vers les États-Unis est encadré par les clauses contractuelles types (décision 2021/914) et, le cas échéant, par le EU-US Data Privacy Framework (Google LLC y est certifié).',
-      '<strong class="text-white">Conservation</strong> : le gclid est traité en mémoire vive lors de la requête HTTP d\'inscription et n\'est pas conservé dans nos bases de données après transmission à Google Ads.',
-      '<strong class="text-white">Droit d\'opposition</strong> au titre de l\'art. 21(2) RGPD. Vous pouvez vous opposer à ce traitement à tout moment en écrivant à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. Nous noterons cette opposition sur votre compte afin que votre gclid ne soit pas transmis à Google Ads. Votre inscription n\'en est pas affectée.',
+      '<strong class="text-white">Conservation</strong> : le gclid est conservé dans une table d\'attribution le temps de mesurer les conversions applicables, puis effacé dès que ces conversions ont été transmises à Google Ads. La durée de conservation maximale est de 30 jours (fenêtre d\'attribution au-delà de laquelle Google n\'accepte plus la conversion) ; en pratique, elle est généralement bien plus courte.',
+      '<strong class="text-white">Droit d\'opposition</strong> au titre de l\'art. 21(2) RGPD. Vous pouvez vous opposer à ce traitement à tout moment en écrivant à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. Sur demande, nous supprimons votre ligne d\'attribution (ce qui efface le gclid avant toute transmission non encore réalisée) et demandons à Google la suppression des données déjà transmises. Votre inscription n\'en est pas affectée.',
     ],
     footnoteHtml: 'Note : cette mesure côté serveur ne repose <strong>pas</strong> sur des cookies, gtag.js, ni aucun traceur côté client. L\'article 82 de la loi Informatique et Libertés (transposition de l\'article 5(3) de la Directive e-Privacy) ne s\'applique pas à ce traitement.',
   },

@@ -533,15 +533,15 @@ Collectées automatiquement lors de la navigation sur www.hook0.com, après cons
 
 ### 2. Finalité(s) du traitement
 
-**Finalité unique :** Mesurer le coût par acquisition (CPA) et le retour sur investissement (ROI) des campagnes publicitaires Google Ads opérées par FGRibreau SARL pour le SaaS Hook0, en transmettant côté serveur l'identifiant de clic (gclid) à Google Ads lors d'une inscription validée.
+**Finalités :** Mesurer le coût par acquisition (CPA) et le retour sur investissement (ROI) des campagnes publicitaires Google Ads opérées par FGRibreau SARL pour le SaaS Hook0, en transmettant côté serveur l'identifiant de clic (gclid) à Google Ads pour trois signaux d'engagement : (1) « Signup » à la vérification de l'adresse email ; (2) « Activation » à la création du premier jeton d'accès de l'organisation (clé API ou jeton de service) ; (3) « First event sent » (optionnelle, activable) au premier événement ingéré par l'organisation.
 
 Aucune finalité de profilage, de retargeting ou d'enrichissement de profil utilisateur.
 
 ### 3. Base légale (art. 6 RGPD)
 
-**Art. 6.1.f — Intérêt légitime :** la mesure de l'efficacité des campagnes publicitaires constitue un intérêt légitime au sens du considérant 47 du RGPD. Une balance test complète (test tripartite WP29/EDPB Guidelines 06/2014) a été réalisée et documentée dans le fichier `legitimate-interest-balance-test-google-ads.md` (ISMS FGRibreau SARL, version du 4 mai 2026).
+**Art. 6.1.f — Intérêt légitime :** la mesure de l'efficacité des campagnes publicitaires constitue un intérêt légitime au sens du considérant 47 du RGPD. Une balance test complète (test tripartite WP29/EDPB Guidelines 06/2014) a été réalisée et documentée dans le fichier `legitimate-interest-balance-test-google-ads.md` (ISMS FGRibreau SARL, révision 1.3 du 27 juillet 2026).
 
-**Droit d'opposition (art. 21.2 RGPD) :** exercice via email à legal@hook0.com. Traitement de l'opposition sous 30 jours. L'opposition est persistée en base (`iam.user.marketing_opt_out_at`) pour bloquer tout upload futur.
+**Droit d'opposition (art. 21.2 RGPD) :** exercice via email à legal@hook0.com. Sur demande, la ligne d'attribution de l'utilisateur dans `iam.signup_attribution` est supprimée (ce qui efface le gclid avant tout upload non encore déclenché) et la suppression des données déjà transmises est demandée à Google. Il n'existe pas de drapeau d'opposition persistant par utilisateur (procédure manuelle) ; un tel mécanisme serait implémenté si le volume d'oppositions le justifiait.
 
 ### 4. Catégories de personnes concernées
 
@@ -555,7 +555,7 @@ Utilisateurs professionnels ayant créé un compte Hook0 après avoir cliqué su
 
 **Données transmises à Google :** gclid + identifiant de l'action de conversion (resource ID statique) + horodatage de conversion (ISO 8601).
 
-**Persistance côté Hook0 :** le gclid n'est pas stocké en base de données. Il est traité exclusivement en mémoire vive le temps de l'upload à l'API Google Ads (`uploadClickConversions`). Les logs applicatifs peuvent contenir le gclid tronqué (8 premiers caractères, niveau info) pendant 30 jours.
+**Persistance côté Hook0 :** le gclid est stocké dans la table `iam.signup_attribution` (créée à l'inscription) le temps de mesurer les conversions applicables, puis mis à `NULL` dès que ces conversions ont été uploadées à l'API Google Ads (`uploadClickConversions`) — les trois (Signup, Activation, First event sent) lorsque cette dernière est active, les deux Signup et Activation sinon. La borne maximale de rétention est de 30 jours (variable `SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS`, défaut 30, alignée sur la fenêtre d'attribution au clic des actions de conversion) : au-delà, Google refuse l'upload. Les logs applicatifs peuvent contenir le gclid tronqué (8 premiers caractères, niveau info) pendant 30 jours.
 
 ### 6. Catégories de destinataires
 
@@ -581,7 +581,7 @@ Lien CDPT : https://business.safety.google/adscontrollerterms/
 ### 9. Mesures de sécurité (description générale)
 
 - Aucun stockage persistant du gclid en base de données.
-- Vérification du flag `marketing_opt_out_at IS NULL` avant tout upload (opposabilité du droit d'opposition).
+- Exclusion des lignes sans gclid (nullifié après upload ou supprimé sur opposition) : seules les organisations disposant encore d'un gclid attribué font l'objet d'un upload, ce qui rend effective toute opposition traitée par suppression de la ligne d'attribution.
 - Accès à l'API Google Ads via OAuth2 service account, credentials stockés en variable d'environnement chiffrée.
 - Référence : `legitimate-interest-balance-test-google-ads.md`, section 4 (mesures de sécurité).
 
