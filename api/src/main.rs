@@ -634,10 +634,12 @@ struct Config {
 
     /// [Google Ads] Days a signup-attribution row (its gclid) is retained before
     /// the lazy purge deletes it — the safety net for rows whose conversions
-    /// never complete. Defaults to 90 to give B2B users time to send a first
-    /// event; lower it to tighten data minimisation. Should not exceed the
-    /// Google Ads conversion attribution window. Bounded to [1, 3650] days.
-    #[clap(long, env, value_parser = clap::value_parser!(u32).range(1..=3650), default_value = "90")]
+    /// never complete. Defaults to 30 to match the click-through attribution
+    /// window configured on the server-side conversion actions (30 days): past
+    /// that window Google rejects the upload, so retaining the gclid longer
+    /// would serve no purpose (data-minimisation, art. 5.1.e GDPR). Must not
+    /// exceed the Google Ads conversion attribution window. Bounded to [1, 3650] days.
+    #[clap(long, env, value_parser = clap::value_parser!(u32).range(1..=3650), default_value = "30")]
     signup_attribution_retention_in_days: u32,
 }
 
@@ -1344,7 +1346,7 @@ async fn main() -> anyhow::Result<()> {
             signup_attribution_retention_in_days: i32::try_from(
                 config.signup_attribution_retention_in_days,
             )
-            .unwrap_or(90),
+            .unwrap_or(30),
         };
 
         // Run web server
