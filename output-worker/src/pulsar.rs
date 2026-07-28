@@ -23,6 +23,7 @@ use tokio_util::task::TaskTracker;
 use tracing::{debug, error, info, trace, warn};
 use uuid::Uuid;
 
+use crate::dns::DnsResolver;
 use crate::opentelemetry::{
     end_request_attempt_span, gather_pulsar_consumer_metrics, start_request_attempt_span,
 };
@@ -349,6 +350,7 @@ pub async fn look_for_work(
     heartbeat_tx: Option<Sender<u16>>,
     task_tracker: &TaskTracker,
     stats: &Arc<ThroughputStats>,
+    resolver: &Arc<DnsResolver>,
 ) -> anyhow::Result<()> {
     info!("Begin looking for work");
 
@@ -558,11 +560,12 @@ pub async fn look_for_work(
                         let lp_rp = lp_retry_producer.clone();
                         let st = stats.clone();
                         let infl = in_flight.clone();
+                        let dr = resolver.clone();
 
                         // We handle the request attempt in a new Tokio task
                         task_tracker.spawn(async move {
                             if let Err(e) = handle_message(
-                                &c, &po, &os, &wi, &wn, &wv, &hp_rp, &lp_rp, msg, permit, ack_tx, &st, is_lp, infl,
+                                &c, &po, &os, &wi, &wn, &wv, &hp_rp, &lp_rp, msg, permit, ack_tx, &st, is_lp, infl, &dr,
                             )
                             .await
                             {
@@ -598,25 +601,30 @@ pub async fn look_for_work(
         Ok(())
     } else {
         // Drain in-flight tasks before returning, so their ACK/NACKs are attempted.
-        // The timeout is bounded by the HTTP timeout + 5s to allow the slowest request to finish.
-        // If no tasks are in-flight, this returns immediately.
+        // The timeout must outlast the slowest possible request attempt, which is DNS resolution
+        // (bounded by the DNS timeout) followed by the HTTP call (bounded by the HTTP timeout,
+        // which already covers the connect phase), plus a margin. If no tasks are in-flight, this
+        // returns immediately.
         drop(ack_tx);
-        match timeout(config.timeout + DRAIN_TIMEOUT_MARGIN, async {
-            while let Some(msg_ack) = ack_rx.recv().await {
-                if let Err(e) = dispatch_ack(
-                    &mut hp_consumer,
-                    &hp_topic,
-                    &mut lp_consumer,
-                    &lp_topic,
-                    &heartbeat_tx,
-                    msg_ack,
-                )
-                .await
-                {
-                    error!("Failed to ACK/NACK message during drain: {e}");
+        match timeout(
+            config.timeout + config.dns_timeout + DRAIN_TIMEOUT_MARGIN,
+            async {
+                while let Some(msg_ack) = ack_rx.recv().await {
+                    if let Err(e) = dispatch_ack(
+                        &mut hp_consumer,
+                        &hp_topic,
+                        &mut lp_consumer,
+                        &lp_topic,
+                        &heartbeat_tx,
+                        msg_ack,
+                    )
+                    .await
+                    {
+                        error!("Failed to ACK/NACK message during drain: {e}");
+                    }
                 }
-            }
-        })
+            },
+        )
         .await
         {
             Ok(()) => debug!("All in-flight tasks drained"),
@@ -658,6 +666,7 @@ async fn handle_message(
     stats: &ThroughputStats,
     is_lp: bool,
     in_flight: Arc<papaya::HashSet<Uuid>>,
+    resolver: &DnsResolver,
 ) -> anyhow::Result<()> {
     let picked_at = Utc::now();
     let attempt_is_hp = !is_lp;
@@ -783,7 +792,7 @@ async fn handle_message(
                         let span = start_request_attempt_span(&attempt);
 
                         // Work
-                        let response = work(config, &attempt).await;
+                        let response = work(config, resolver, &attempt).await;
                         trace!(request_attempt_id = %attempt.request_attempt_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
 
                         // Open DB transaction

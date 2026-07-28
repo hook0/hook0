@@ -2952,6 +2952,7 @@ dependencies = [
  "clap",
  "futures",
  "hex",
+ "hickory-resolver",
  "hmac 0.13.0",
  "hook0-protobuf",
  "hook0-sentry-integration",
@@ -2969,10 +2970,12 @@ dependencies = [
  "sha2 0.11.0",
  "sqlx",
  "strum 0.28.0",
+ "thiserror 2.0.19",
  "thousands",
  "tokio",
  "tokio-util",
  "tracing",
+ "url",
  "uuid 1.24.0",
 ]
 
