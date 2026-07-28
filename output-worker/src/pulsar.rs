@@ -17,7 +17,7 @@ use std::time::Duration;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Sender, channel};
 use tokio::sync::{Mutex, OwnedSemaphorePermit, Semaphore};
-use tokio::time::{Instant, interval_at, sleep, timeout};
+use tokio::time::{Instant, MissedTickBehavior, interval_at, sleep, timeout};
 use tokio::{select, spawn};
 use tokio_util::task::TaskTracker;
 use tracing::{debug, error, info, trace, warn};
@@ -25,7 +25,8 @@ use uuid::Uuid;
 
 use crate::dns::DnsResolver;
 use crate::opentelemetry::{
-    end_request_attempt_span, gather_pulsar_consumer_metrics, start_request_attempt_span,
+    end_request_attempt_span, gather_pulsar_consumer_metrics, gather_slot_metrics,
+    start_request_attempt_span,
 };
 use crate::throughput_log::ThroughputStats;
 use crate::work::work;
@@ -475,6 +476,15 @@ pub async fn look_for_work(
         ))
     };
 
+    let mut slot_metrics_interval = if config.slot_metrics_interval.is_zero() {
+        None
+    } else {
+        let period = config.slot_metrics_interval;
+        let mut ticker = interval_at(Instant::now() + period, period);
+        ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
+        Some(ticker)
+    };
+
     // Tracks consecutive errors from the Pulsar consumer to detect a dead connection
     let mut consecutive_errors: u32 = 0;
 
@@ -527,6 +537,13 @@ pub async fn look_for_work(
                 while let Ok(msg_ack) = ack_rx.try_recv() {
                     dispatch_ack(&mut hp_consumer, &hp_topic, &mut lp_consumer, &lp_topic, &heartbeat_tx, msg_ack).await?;
                 }
+            },
+            _ = async { slot_metrics_interval.as_mut().unwrap().tick().await }, if slot_metrics_interval.is_some() => {
+                let hp_free = hp_sem.available_permits() as u64;
+                let lp_free = lp_sem.available_permits() as u64;
+                let dynamic_free = dynamic_sem.available_permits() as u64;
+                stats.record_free_slots(hp_free, lp_free, dynamic_free);
+                gather_slot_metrics(hp_free, lp_free, dynamic_free);
             },
             _ = async { stats_interval.as_mut().unwrap().tick().await }, if stats_interval.is_some() => {
                 // Note: get_stats() blocks the select loop, but it's a lightweight

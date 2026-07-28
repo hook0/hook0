@@ -168,6 +168,7 @@ The output-worker is a separate binary with its own configuration. Run \`hook0-o
 | \`PULSAR_CONSUMER_STATS_INTERVAL\` | Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers) [this feature is unstable/unreliable] | \`0\` |  |
 | \`PULSAR_SEND_RECEIPT_TIMEOUT\` | Maximum time to wait for the Pulsar broker to acknowledge a sent message (only for Pulsar workers) | \`10s\` |  |
 | \`THROUGHPUT_LOG_INTERVAL\` | Interval between periodic throughput log lines (set to "0s" to disable) | \`60s\` |  |
+| \`SLOT_METRICS_INTERVAL\` | Period at which free concurrency slots are sampled for the throughput log and OTel gauges (set to "0s" to disable) (only for Pulsar workers) | \`15s\` |  |
 
 `;
 

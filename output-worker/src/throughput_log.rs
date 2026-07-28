@@ -1,7 +1,16 @@
-use std::sync::atomic::{AtomicU64, Ordering::Relaxed};
+use std::sync::atomic::AtomicU64;
+use std::sync::atomic::Ordering::Relaxed;
 use std::time::{Duration, Instant};
 use tokio_util::task::TaskTracker;
 use tracing::info;
+
+/// Marks a free-slot counter that has not been sampled since the last snapshot. Free counts are
+/// bounded by `CONCURRENT` (a `u16`), so this value can never be a real reading.
+const UNSAMPLED: u64 = u64::MAX;
+
+fn unsampled_to_none(value: u64) -> Option<u64> {
+    (value != UNSAMPLED).then_some(value)
+}
 
 pub struct ThroughputStats {
     processed: AtomicU64,
@@ -21,6 +30,9 @@ pub struct ThroughputStats {
     hp_lag_max_ms: AtomicU64,
     lp_lag_max_ms: AtomicU64,
     not_ready: AtomicU64,
+    hp_free: AtomicU64,
+    lp_free: AtomicU64,
+    dynamic_free: AtomicU64,
     total_slots: u16,
     hp_slots: u16,
     lp_slots: u16,
@@ -47,11 +59,20 @@ impl ThroughputStats {
             hp_lag_max_ms: AtomicU64::new(0),
             lp_lag_max_ms: AtomicU64::new(0),
             not_ready: AtomicU64::new(0),
+            hp_free: AtomicU64::new(UNSAMPLED),
+            lp_free: AtomicU64::new(UNSAMPLED),
+            dynamic_free: AtomicU64::new(UNSAMPLED),
             total_slots,
             hp_slots,
             lp_slots,
             dynamic_slots: total_slots - hp_slots - lp_slots,
         }
+    }
+
+    pub fn record_free_slots(&self, hp_free: u64, lp_free: u64, dynamic_free: u64) {
+        self.hp_free.fetch_min(hp_free, Relaxed);
+        self.lp_free.fetch_min(lp_free, Relaxed);
+        self.dynamic_free.fetch_min(dynamic_free, Relaxed);
     }
 
     pub fn record_attempt(
@@ -129,6 +150,9 @@ impl ThroughputStats {
             hp_lag_max_ms: self.hp_lag_max_ms.swap(0, Relaxed),
             lp_lag_max_ms: self.lp_lag_max_ms.swap(0, Relaxed),
             not_ready: self.not_ready.swap(0, Relaxed),
+            hp_min_free: unsampled_to_none(self.hp_free.swap(UNSAMPLED, Relaxed)),
+            lp_min_free: unsampled_to_none(self.lp_free.swap(UNSAMPLED, Relaxed)),
+            dynamic_min_free: unsampled_to_none(self.dynamic_free.swap(UNSAMPLED, Relaxed)),
             total_slots: self.total_slots,
             hp_slots: self.hp_slots,
             lp_slots: self.lp_slots,
@@ -173,10 +197,25 @@ struct Snapshot {
     hp_lag_max_ms: u64,
     lp_lag_max_ms: u64,
     not_ready: u64,
+    hp_min_free: Option<u64>,
+    lp_min_free: Option<u64>,
+    dynamic_min_free: Option<u64>,
     total_slots: u16,
     hp_slots: u16,
     lp_slots: u16,
     dynamic_slots: u16,
+}
+
+/// Renders a minimum free-slot count, or `?` when the sampler did not run in this window.
+struct MaybeCount(Option<u64>);
+
+impl std::fmt::Display for MaybeCount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            Some(n) => write!(f, "{n}"),
+            None => f.write_str("?"),
+        }
+    }
 }
 
 impl Snapshot {
@@ -270,7 +309,7 @@ fn emit_snapshot(stats: &ThroughputStats, window: Duration) {
     let snap = stats.snapshot_and_reset();
 
     info!(
-        "throughput: not_ready={} processed={} hp_processed={} lp_processed={} succeeded={} failed={} first_attempts={} retries={} rate={:.2}/s avg_db_fetch_ms={:.0} hp_max_lag_s={:.1} lp_max_lag_s={:.1} avg_latency_ms={:.0} max_latency_ms={} avg_busy={:.1} hp_avg_busy={:.1} lp_avg_busy={:.1} total_slots={} hp_slots={} lp_slots={} dynamic_slots={}",
+        "throughput: not_ready={} processed={} hp_processed={} lp_processed={} succeeded={} failed={} first_attempts={} retries={} rate={:.2}/s avg_db_fetch_ms={:.0} hp_max_lag_s={:.1} lp_max_lag_s={:.1} avg_latency_ms={:.0} max_latency_ms={} avg_busy={:.1} hp_avg_busy={:.1} lp_avg_busy={:.1} total_slots={} hp_min_free={}/{} lp_min_free={}/{} dynamic_min_free={}/{}",
         snap.not_ready,
         snap.processed,
         snap.hp_processed,
@@ -289,8 +328,11 @@ fn emit_snapshot(stats: &ThroughputStats, window: Duration) {
         snap.hp_avg_busy(window),
         snap.lp_avg_busy(window),
         snap.total_slots,
+        MaybeCount(snap.hp_min_free),
         snap.hp_slots,
+        MaybeCount(snap.lp_min_free),
         snap.lp_slots,
+        MaybeCount(snap.dynamic_min_free),
         snap.dynamic_slots,
     );
 }
@@ -474,5 +516,66 @@ mod tests {
         stats.record_not_ready();
 
         assert_eq!(stats.not_ready.load(Relaxed), 3);
+    }
+
+    #[test]
+    fn test_free_slots_unsampled_is_none() {
+        let stats = ThroughputStats::new(5, 2, 1);
+        let snap = stats.snapshot_and_reset();
+
+        assert!(snap.hp_min_free.is_none());
+        assert!(snap.lp_min_free.is_none());
+        assert!(snap.dynamic_min_free.is_none());
+    }
+
+    #[test]
+    fn test_free_slots_is_window_scoped() {
+        let stats = ThroughputStats::new(5, 2, 1);
+
+        stats.record_free_slots(2, 1, 0);
+        let snap = stats.snapshot_and_reset();
+        assert_eq!(snap.hp_min_free, Some(2));
+        assert_eq!(snap.lp_min_free, Some(1));
+        assert_eq!(snap.dynamic_min_free, Some(0));
+
+        // Second window had no sample: unknown, not a stale repeat of (2, 1, 0)
+        let snap = stats.snapshot_and_reset();
+        assert!(snap.hp_min_free.is_none());
+        assert!(snap.lp_min_free.is_none());
+        assert!(snap.dynamic_min_free.is_none());
+    }
+
+    #[test]
+    fn test_free_slots_keeps_window_minimum() {
+        let stats = ThroughputStats::new(8, 4, 2);
+
+        stats.record_free_slots(4, 2, 2);
+        stats.record_free_slots(1, 2, 1); // hp bottoms out here
+        stats.record_free_slots(3, 0, 2); // lp bottoms out here
+
+        // Componentwise minimum (the window's peak pressure), not the last sample and not the
+        // lowest single sample: each pool's minimum comes from a different tick.
+        let snap = stats.snapshot_and_reset();
+        assert_eq!(snap.hp_min_free, Some(1));
+        assert_eq!(snap.lp_min_free, Some(0));
+        assert_eq!(snap.dynamic_min_free, Some(1));
+    }
+
+    #[test]
+    fn test_free_slots_min_does_not_leak_across_windows() {
+        let stats = ThroughputStats::new(8, 4, 2);
+
+        stats.record_free_slots(0, 0, 0);
+        let snap = stats.snapshot_and_reset();
+        assert_eq!(snap.hp_min_free, Some(0));
+        assert_eq!(snap.lp_min_free, Some(0));
+        assert_eq!(snap.dynamic_min_free, Some(0));
+
+        // The next window starts fresh: the previous minimum must not stick.
+        stats.record_free_slots(3, 2, 1);
+        let snap = stats.snapshot_and_reset();
+        assert_eq!(snap.hp_min_free, Some(3));
+        assert_eq!(snap.lp_min_free, Some(2));
+        assert_eq!(snap.dynamic_min_free, Some(1));
     }
 }

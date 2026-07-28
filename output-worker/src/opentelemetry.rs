@@ -225,6 +225,28 @@ pub fn gather_pulsar_consumer_metrics(stats: &[CommandConsumerStatsResponse]) {
     }
 }
 
+static SLOTS_HP_AVAILABLE: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("slots.hp_available")
+        .build()
+});
+static SLOTS_LP_AVAILABLE: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("slots.lp_available")
+        .build()
+});
+static SLOTS_DYNAMIC_AVAILABLE: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("slots.dynamic_available")
+        .build()
+});
+
+pub fn gather_slot_metrics(hp_available: u64, lp_available: u64, dynamic_available: u64) {
+    SLOTS_HP_AVAILABLE.record(hp_available, &[]);
+    SLOTS_LP_AVAILABLE.record(lp_available, &[]);
+    SLOTS_DYNAMIC_AVAILABLE.record(dynamic_available, &[]);
+}
+
 pub fn start_request_attempt_span(attempt: &RequestAttempt) -> BoxedSpan {
     let tracer = global::tracer(crate_name!());
     let mut span = tracer.start("request_attempt");
