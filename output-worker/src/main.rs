@@ -279,6 +279,10 @@ struct Config {
     /// Interval between periodic throughput log lines (set to "0s" to disable)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "60s")]
     throughput_log_interval: Duration,
+
+    /// Period at which free concurrency slots are sampled for the throughput log and OTel gauges (set to "0s" to disable) (only for Pulsar workers)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "15s")]
+    slot_metrics_interval: Duration,
 }
 
 #[derive(Debug, Clone)]
