@@ -63,60 +63,62 @@ function getAxios(
 }
 
 export default {
-  get<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
-    return getAxios().then((client) => client.get(url, config));
+  get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return getAxios().then((client) => client.get<T, AxiosResponse<T>>(url, config));
   },
-  delete<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
-    return getAxios().then((client) => client.delete(url, config));
+  delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return getAxios().then((client) => client.delete<T, AxiosResponse<T>>(url, config));
   },
-  head<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
-    return getAxios().then((client) => client.head(url, config));
+  head<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return getAxios().then((client) => client.head<T, AxiosResponse<T>>(url, config));
   },
-  options<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
-    return getAxios().then((client) => client.options(url, config));
+  options<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return getAxios().then((client) => client.options<T, AxiosResponse<T>>(url, config));
   },
-  post<T = unknown, R = AxiosResponse<T>>(
+  post<T = unknown>(
     url: string,
     data?: unknown,
     config?: AxiosRequestConfig
-  ): Promise<R> {
-    return getAxios().then((client) => client.post(url, data, config));
+  ): Promise<AxiosResponse<T>> {
+    return getAxios().then((client) => client.post<T, AxiosResponse<T>>(url, data, config));
   },
-  put<T = unknown, R = AxiosResponse<T>>(
+  put<T = unknown>(
     url: string,
     data?: unknown,
     config?: AxiosRequestConfig
-  ): Promise<R> {
-    return getAxios().then((client) => client.put(url, data, config));
+  ): Promise<AxiosResponse<T>> {
+    return getAxios().then((client) => client.put<T, AxiosResponse<T>>(url, data, config));
   },
-  patch<T = unknown, R = AxiosResponse<T>>(
+  patch<T = unknown>(
     url: string,
     data?: unknown,
     config?: AxiosRequestConfig
-  ): Promise<R> {
-    return getAxios().then((client) => client.patch(url, data, config));
+  ): Promise<AxiosResponse<T>> {
+    return getAxios().then((client) => client.patch<T, AxiosResponse<T>>(url, data, config));
   },
 
   unauthenticated: {
-    get<T = unknown, R = AxiosResponse<T>>(url: string, config?: AxiosRequestConfig): Promise<R> {
-      return getAxios(false).then((client) => client.get(url, config));
+    get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+      return getAxios(false).then((client) => client.get<T, AxiosResponse<T>>(url, config));
     },
-    post<T = unknown, R = AxiosResponse<T>>(
+    post<T = unknown>(
       url: string,
       data?: unknown,
       config?: AxiosRequestConfig
-    ): Promise<R> {
-      return getAxios(false).then((client) => client.post(url, data, config));
+    ): Promise<AxiosResponse<T>> {
+      return getAxios(false).then((client) => client.post<T, AxiosResponse<T>>(url, data, config));
     },
   },
 
   withRefreshToken: {
-    post<T = unknown, R = AxiosResponse<T>>(
+    post<T = unknown>(
       url: string,
       data?: unknown,
       config?: AxiosRequestConfig
-    ): Promise<R> {
-      return getAxios(true, true).then((client) => client.post(url, data, config));
+    ): Promise<AxiosResponse<T>> {
+      return getAxios(true, true).then((client) =>
+        client.post<T, AxiosResponse<T>>(url, data, config)
+      );
     },
   },
 };

@@ -181,14 +181,16 @@ export const useAuthStore = defineStore('auth', () => {
     turnstile_token?: string,
     gclid?: string
   ): Promise<void> {
-    return http.unauthenticated.post('/register', {
-      email,
-      first_name: firstName,
-      last_name: lastName,
-      password,
-      turnstile_token,
-      gclid,
-    });
+    return http.unauthenticated
+      .post<void>('/register', {
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        password,
+        turnstile_token,
+        gclid,
+      })
+      .then(() => {});
   }
 
   function refresh(): Promise<void> {

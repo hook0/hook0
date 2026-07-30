@@ -21,17 +21,21 @@ pub fn init(
 ) -> Option<ClientInitGuard> {
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
+    // `ClientOptions::traces_sample_rate` panics outside of [0.0, 1.0], so we clamp the user-provided value
+    let clamped_traces_sample_rate = traces_sample_rate.map(|rate| rate.clamp(0.0, 1.0));
+
     let client = sentry_dsn.as_deref().map(|dsn| {
-        sentry::init((
-            dsn,
-            sentry::ClientOptions {
-                send_default_pii,
-                attach_stacktrace: true,
-                debug,
-                traces_sample_rate: traces_sample_rate.unwrap_or(0.0),
-                ..Default::default()
-            },
-        ))
+        let mut options = sentry::ClientOptions::new()
+            .send_default_pii(send_default_pii)
+            .attach_stacktrace(true)
+            .debug(debug);
+
+        // Leaving the traces sampling strategy unset disables tracing altogether.
+        if let Some(rate) = clamped_traces_sample_rate {
+            options = options.traces_sample_rate(rate);
+        }
+
+        sentry::init((dsn, options))
     });
 
     let sentry_layer = client
