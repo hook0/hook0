@@ -41,6 +41,10 @@ use uuid::Uuid;
 /// never on the event-ingestion hot path).
 pub mod first_event_conversion;
 
+/// Background uploader for the "first webhook delivered" conversion (periodic
+/// scan; never on the webhook-delivery hot path).
+pub mod first_webhook_delivered_conversion;
+
 // The counter is built once on first use and stays bound to the global meter
 // provider that exists at that moment. `opentelemetry::init()` sets that
 // provider during startup, before any conversion upload can happen, so this is
@@ -99,6 +103,11 @@ pub struct GoogleAdsConfig {
     /// Numeric ID of the "first event sent" conversion action (optional). When
     /// `None`, the first-event conversion (and its background job) is disabled.
     pub first_event_conversion_action_id: Option<String>,
+    /// Numeric ID of the "first webhook delivered" conversion action (optional).
+    /// When `None`, the first-webhook-delivered conversion (and its background
+    /// job) is disabled. This is the north-star activation signal: the org's
+    /// first successful webhook delivery (a request attempt with `succeeded_at`).
+    pub first_webhook_delivered_conversion_action_id: Option<String>,
     pub oauth_client_id: String,
     pub oauth_client_secret: String,
     pub oauth_refresh_token: String,
@@ -115,6 +124,10 @@ pub enum ConversionKind {
     /// Organization ingested its first event (an earlier, lighter funnel step
     /// than activation).
     FirstEvent,
+    /// Organization delivered its first webhook successfully (its first request
+    /// attempt with `succeeded_at` set) — the north-star activation signal,
+    /// deeper in the funnel than a merely-ingested event.
+    FirstWebhookDelivered,
 }
 
 impl ConversionKind {
@@ -124,6 +137,7 @@ impl ConversionKind {
             ConversionKind::Signup => "signup",
             ConversionKind::Activation => "activation",
             ConversionKind::FirstEvent => "first_event",
+            ConversionKind::FirstWebhookDelivered => "first_webhook_delivered",
         }
     }
 }
@@ -161,6 +175,9 @@ impl GoogleAdsConfig {
             ConversionKind::Signup => self.signup_conversion_action_id.clone(),
             ConversionKind::Activation => self.activation_conversion_action_id.clone()?,
             ConversionKind::FirstEvent => self.first_event_conversion_action_id.clone()?,
+            ConversionKind::FirstWebhookDelivered => {
+                self.first_webhook_delivered_conversion_action_id.clone()?
+            }
         };
         Some(format!(
             "customers/{}/conversionActions/{}",
@@ -297,6 +314,13 @@ impl GoogleAdsClient {
     /// Returns `true` if a first-event conversion action is configured.
     pub fn has_first_event_conversion(&self) -> bool {
         self.config.first_event_conversion_action_id.is_some()
+    }
+
+    /// Returns `true` if a first-webhook-delivered conversion action is configured.
+    pub fn has_first_webhook_delivered_conversion(&self) -> bool {
+        self.config
+            .first_webhook_delivered_conversion_action_id
+            .is_some()
     }
 
     /// Upload a click conversion using only the gclid (no PII).
@@ -571,6 +595,13 @@ pub async fn claim_activation_gclid(
 /// conversion to wait for, and holding the gclid past signup + activation would
 /// needlessly weaken data minimisation).
 ///
+/// Unlike [`clear_gclid_if_fully_uploaded_by_org`], this user-keyed variant does
+/// not gate on the first-webhook-delivered conversion. It is only invoked from
+/// the signup step (email verification), where activation and every later funnel
+/// stage are still pending, so it never clears the gclid early there; the org-
+/// keyed variant, invoked from the activation and background-job paths, carries
+/// the full first-webhook-delivered gating.
+///
 /// Best-effort: errors are logged, never surfaced (the conversion has already
 /// been queued).
 pub async fn clear_gclid_if_fully_uploaded_by_user(
@@ -604,10 +635,19 @@ pub async fn clear_gclid_if_fully_uploaded_by_user(
 }
 
 /// Same as [`clear_gclid_if_fully_uploaded_by_user`], keyed by organization.
+///
+/// This organization-keyed variant additionally waits on the first-webhook-
+/// delivered conversion: when `first_webhook_delivered_tracking_enabled` is
+/// `true`, the gclid is kept until that conversion has been uploaded too.
+/// The webhook-delivery signal is the deepest funnel step (it only fires after
+/// an event has been ingested AND delivered), so clearing on signup + activation
+/// (+ first-event) alone would drop the gclid before the first-webhook-delivered
+/// job could ever upload it.
 pub async fn clear_gclid_if_fully_uploaded_by_org(
     db: &PgPool,
     organization_id: &Uuid,
     first_event_tracking_enabled: bool,
+    first_webhook_delivered_tracking_enabled: bool,
 ) {
     let result = sqlx::query!(
         "
@@ -618,9 +658,11 @@ pub async fn clear_gclid_if_fully_uploaded_by_org(
               AND signup_uploaded_at IS NOT NULL
               AND activation_uploaded_at IS NOT NULL
               AND (first_event_uploaded_at IS NOT NULL OR NOT $2)
+              AND (first_webhook_delivered_uploaded_at IS NOT NULL OR NOT $3)
         ",
         organization_id,
         first_event_tracking_enabled,
+        first_webhook_delivered_tracking_enabled,
     )
     .execute(db)
     .await;
@@ -652,6 +694,35 @@ pub async fn mark_first_event_uploaded(
             SET first_event_uploaded_at = statement_timestamp()
             WHERE organization__id = $1
               AND first_event_uploaded_at IS NULL
+            RETURNING user__id
+        ",
+        organization_id,
+    )
+    .fetch_optional(db)
+    .await?;
+
+    Ok(row.is_some())
+}
+
+/// Atomically mark the first-webhook-delivered conversion as uploaded for an
+/// organization, but only if not already marked. Returns `true` when this call
+/// is the one that flipped `first_webhook_delivered_uploaded_at` from NULL.
+///
+/// This is the claim-on-success counterpart used by the background job AFTER a
+/// confirmed upload — same rationale as [`mark_first_event_uploaded`]: keeping
+/// the flag NULL until the upload is confirmed lets a crashed pass auto-recover
+/// (the org is picked up again on the next scan). Idempotent: a second call
+/// returns `false`.
+pub async fn mark_first_webhook_delivered_uploaded(
+    db: &PgPool,
+    organization_id: &Uuid,
+) -> Result<bool, sqlx::Error> {
+    let row = sqlx::query!(
+        "
+            UPDATE iam.signup_attribution
+            SET first_webhook_delivered_uploaded_at = statement_timestamp()
+            WHERE organization__id = $1
+              AND first_webhook_delivered_uploaded_at IS NULL
             RETURNING user__id
         ",
         organization_id,
@@ -929,10 +1000,24 @@ pub(crate) mod test_support {
         row.0
     }
 
+    /// Whether the first-webhook-delivered conversion has been marked uploaded
+    /// for an org.
+    pub(crate) async fn first_webhook_delivered_uploaded(pool: &PgPool, org: Uuid) -> bool {
+        let row: (bool,) = sqlx::query_as(
+            "SELECT first_webhook_delivered_uploaded_at IS NOT NULL FROM iam.signup_attribution WHERE organization__id = $1",
+        )
+        .bind(org)
+        .fetch_one(pool)
+        .await
+        .expect("read first-webhook-delivered state");
+        row.0
+    }
+
     /// Give an org a real ingested event (application + event type + event) so
     /// the first-event `EXISTS` predicate matches it. Mirrors the minimal set of
-    /// NOT NULL columns and the (application, event_type) foreign key.
-    pub(crate) async fn seed_event(pool: &PgPool, org: Uuid) {
+    /// NOT NULL columns and the (application, event_type) foreign key. Returns
+    /// `(application_id, event_id)` so callers can also seed a request attempt.
+    pub(crate) async fn seed_event(pool: &PgPool, org: Uuid) -> (Uuid, Uuid) {
         let application_id = Uuid::new_v4();
         sqlx::query(
             "INSERT INTO event.application (application__id, organization__id, name) VALUES ($1, $2, 'E2E app')",
@@ -976,16 +1061,61 @@ pub(crate) mod test_support {
         .await
         .expect("seed event type");
 
-        sqlx::query(
+        let event_id: Uuid = sqlx::query_scalar(
             r#"
                 INSERT INTO event.event (application__id, event_type__name, payload_content_type, ip, occurred_at)
                 VALUES ($1, 'test.resource.created', 'application/json', '127.0.0.1'::inet, statement_timestamp())
+                RETURNING event__id
             "#,
         )
         .bind(application_id)
-        .execute(pool)
+        .fetch_one(pool)
         .await
         .expect("seed event");
+
+        (application_id, event_id)
+    }
+
+    /// Seed a webhook delivery attempt for `application_id` / `event_id`. When
+    /// `succeeded` is `true` its `succeeded_at` is set, which is exactly what the
+    /// first-webhook-delivered `EXISTS` predicate matches; otherwise it is left
+    /// pending (`succeeded_at` NULL) to model a delivery that has not succeeded
+    /// yet. Creates the required subscription so the request attempt's NOT NULL
+    /// `subscription__id` foreign key is satisfied.
+    pub(crate) async fn seed_request_attempt(
+        pool: &PgPool,
+        application_id: Uuid,
+        event_id: Uuid,
+        succeeded: bool,
+    ) {
+        let subscription_id = Uuid::new_v4();
+        sqlx::query(
+            r#"
+                INSERT INTO webhook.subscription
+                    (subscription__id, application__id, is_enabled, secret, metadata, labels, target__id, created_at, updated_at)
+                VALUES ($1, $2, true, public.gen_random_uuid(), '{}'::jsonb, '{"e2e":"1"}'::jsonb, public.gen_random_uuid(), statement_timestamp(), statement_timestamp())
+            "#,
+        )
+        .bind(subscription_id)
+        .bind(application_id)
+        .execute(pool)
+        .await
+        .expect("seed subscription");
+
+        sqlx::query(
+            r#"
+                INSERT INTO webhook.request_attempt
+                    (event__id, subscription__id, application__id, succeeded_at)
+                VALUES ($1, $2, $3, CASE WHEN $4 THEN statement_timestamp() ELSE NULL END)
+            "#,
+        )
+        .bind(event_id)
+        .bind(subscription_id)
+        .bind(application_id)
+        .bind(succeeded)
+        .execute(pool)
+        .await
+        .expect("seed request attempt");
     }
 
     /// Mint a user access token for `user` (carrying `role` on `org`) AND persist
@@ -1125,6 +1255,7 @@ pub(crate) fn test_client_with_base_url(
     base_url: String,
     activation_conversion_action_id: Option<&str>,
     first_event_conversion_action_id: Option<&str>,
+    first_webhook_delivered_conversion_action_id: Option<&str>,
 ) -> Arc<GoogleAdsClient> {
     let config = GoogleAdsConfig {
         developer_token: "t".into(),
@@ -1133,6 +1264,8 @@ pub(crate) fn test_client_with_base_url(
         signup_conversion_action_id: "42".into(),
         activation_conversion_action_id: activation_conversion_action_id.map(str::to_string),
         first_event_conversion_action_id: first_event_conversion_action_id.map(str::to_string),
+        first_webhook_delivered_conversion_action_id: first_webhook_delivered_conversion_action_id
+            .map(str::to_string),
         oauth_client_id: "c".into(),
         oauth_client_secret: "s".into(),
         oauth_refresh_token: "r".into(),
@@ -1170,6 +1303,7 @@ mod tests {
             signup_conversion_action_id: "42".into(),
             activation_conversion_action_id: activation.map(|s| s.to_string()),
             first_event_conversion_action_id: None,
+            first_webhook_delivered_conversion_action_id: None,
             oauth_client_id: "c".into(),
             oauth_client_secret: "s".into(),
             oauth_refresh_token: "r".into(),
@@ -1326,7 +1460,7 @@ mod tests {
     #[actix_web::test]
     async fn activation_upload_targets_activation_conversion_action() {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None);
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None, None);
 
         client
             .upload_click_conversion("gclid-activation", ConversionKind::Activation, Utc::now())
@@ -1349,7 +1483,7 @@ mod tests {
     #[actix_web::test]
     async fn signup_and_activation_use_distinct_conversion_actions() {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None);
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None, None);
 
         client
             .upload_click_conversion("g1", ConversionKind::Signup, Utc::now())
@@ -1376,7 +1510,7 @@ mod tests {
     #[actix_web::test]
     async fn upload_is_noop_when_activation_action_unconfigured() {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client = test_client_with_base_url(fake.base_url.clone(), None, None);
+        let client = test_client_with_base_url(fake.base_url.clone(), None, None, None);
 
         let outcome = client
             .upload_click_conversion("g", ConversionKind::Activation, Utc::now())
@@ -1396,7 +1530,7 @@ mod tests {
             200,
             r#"{"partialFailureError":{"code":3,"message":"gclid invalid"}}"#,
         );
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None);
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None, None);
 
         // A 200 carrying a per-operation partialFailureError (e.g. unknown
         // gclid) is reported as PartialFailure (not a success, not an error) —
@@ -1411,7 +1545,7 @@ mod tests {
     #[actix_web::test]
     async fn api_4xx_is_a_non_retryable_error() {
         let fake = FakeGoogleAds::start(400, r#"{"error":"bad request"}"#);
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None);
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None, None);
 
         let err = client
             .upload_click_conversion("g", ConversionKind::Activation, Utc::now())
@@ -1462,7 +1596,7 @@ mod tests {
         // Activation not yet claimed → clearing is a no-op. `false`: this
         // instance does not track the first event, so signup + activation is
         // "fully uploaded".
-        clear_gclid_if_fully_uploaded_by_org(&pool, &org, false).await;
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org, false, false).await;
         let (gclid, _) = attribution_state(&pool, org).await;
         assert_eq!(
             gclid.as_deref(),
@@ -1472,7 +1606,7 @@ mod tests {
 
         // Claim activation, then clearing nulls the gclid (data minimisation).
         claim_activation_gclid(&pool, &org).await.expect("claim");
-        clear_gclid_if_fully_uploaded_by_org(&pool, &org, false).await;
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org, false, false).await;
         let (gclid, activation_uploaded) = attribution_state(&pool, org).await;
         assert_eq!(
             gclid, None,
@@ -1492,7 +1626,7 @@ mod tests {
         // With first-event tracking enabled, signup + activation is NOT enough:
         // clearing now would purge the gclid before the first-event conversion
         // could ever be uploaded (the hazard this guards against).
-        clear_gclid_if_fully_uploaded_by_org(&pool, &org, true).await;
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org, true, false).await;
         let (gclid, _) = attribution_state(&pool, org).await;
         assert_eq!(
             gclid.as_deref(),
@@ -1504,11 +1638,44 @@ mod tests {
         mark_first_event_uploaded(&pool, &org)
             .await
             .expect("mark first event");
-        clear_gclid_if_fully_uploaded_by_org(&pool, &org, true).await;
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org, true, false).await;
         let (gclid, _) = attribution_state(&pool, org).await;
         assert_eq!(
             gclid, None,
             "gclid nulled once all three conversions uploaded"
+        );
+    }
+
+    #[sqlx::test]
+    async fn gclid_retained_until_first_webhook_delivered_when_enabled(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        // Signup uploaded; activation claimed. First-webhook-delivered tracking
+        // is ON, first-event tracking is OFF.
+        seed_attribution(&pool, user, org, "gclid-webhook", true).await;
+        claim_activation_gclid(&pool, &org).await.expect("claim");
+
+        // With first-webhook-delivered tracking enabled, signup + activation is
+        // NOT enough: clearing now would purge the gclid before the north-star
+        // conversion could ever be uploaded (the hazard this guards against).
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org, false, true).await;
+        let (gclid, _) = attribution_state(&pool, org).await;
+        assert_eq!(
+            gclid.as_deref(),
+            Some("gclid-webhook"),
+            "gclid retained until the first-webhook-delivered conversion is uploaded too"
+        );
+
+        // Mark the first-webhook-delivered conversion uploaded → now every
+        // enabled conversion is done.
+        mark_first_webhook_delivered_uploaded(&pool, &org)
+            .await
+            .expect("mark first webhook delivered");
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org, false, true).await;
+        let (gclid, _) = attribution_state(&pool, org).await;
+        assert_eq!(
+            gclid, None,
+            "gclid nulled once signup + activation + first-webhook-delivered uploaded"
         );
     }
 
@@ -1520,7 +1687,7 @@ mod tests {
         seed_attribution(&pool, user, org, "gclid-keep", false).await;
 
         claim_activation_gclid(&pool, &org).await.expect("claim");
-        clear_gclid_if_fully_uploaded_by_org(&pool, &org, false).await;
+        clear_gclid_if_fully_uploaded_by_org(&pool, &org, false, false).await;
         let (gclid, _) = attribution_state(&pool, org).await;
         assert_eq!(
             gclid.as_deref(),
@@ -1572,7 +1739,7 @@ mod tests {
             runtime.block_on(async move {
                 // 503 is retryable → all attempts run (delays are zero here).
                 let fake = FakeGoogleAds::start(503, "{}");
-                let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None);
+                let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None, None);
                 let captured = DateTime::from_timestamp(epoch_secs, 0).expect("valid timestamp");
 
                 upload_with_retries(

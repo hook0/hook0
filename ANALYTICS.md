@@ -40,6 +40,53 @@ Goals are configured in the Matomo admin interface. Below are the Goals and the 
 | 4 | First Application | Event Name | `step-complete` + `application` | `TutorialCreateApplication.vue` |
 | 5 | First Event Sent | Event Name | `step-complete` + `send-event` | `TutorialSendEvent.vue` |
 
+## North-Star Metric — First Webhook Delivered
+
+The north-star activation metric is **time-to-first-webhook-received**: how long it takes a new
+organization to go from sign-up to actually **receiving** its first webhook at an endpoint. This is
+strictly deeper in the funnel than "First Event Sent" (Frontend Goal 5): sending an event only proves
+the org called our ingestion API, while a *delivered* webhook proves their integration works end to
+end — a request attempt that completed with `succeeded_at` set.
+
+### Server-side event (`first_webhook_delivered`)
+
+Delivery happens inside the webhook-delivery worker, not in the browser, so this signal is emitted
+**server-side** by a periodic background job (`api/src/google_ads/first_webhook_delivered_conversion.rs`),
+never on the delivery hot path. Per pass it finds gclid-attributed organizations that have at least one
+successful request attempt and whose conversion is still pending, uploads a Google Ads click conversion,
+and marks the org idempotently (`iam.signup_attribution.first_webhook_delivered_uploaded_at`).
+
+| Aspect | Value |
+|--------|-------|
+| Event / conversion name | `first_webhook_delivered` |
+| Emission | Server-side periodic job (background scan; never the delivery hot path) |
+| OpenTelemetry metric | `conversions.uploaded{kind="first_webhook_delivered", outcome="success\|partial_failure\|failed"}` |
+| Enable (dark by default) | Set `GOOGLE_ADS_FIRST_WEBHOOK_DELIVERED_CONVERSION_ACTION_ID` |
+| Scan period | `GOOGLE_ADS_FIRST_WEBHOOK_DELIVERED_CONVERSION_PERIOD_IN_S` (default `300`, `0` disables) |
+
+> **Dark by default:** when `GOOGLE_ADS_FIRST_WEBHOOK_DELIVERED_CONVERSION_ACTION_ID` is unset (the
+> typical self-hosting case), the job is not spawned and nothing is emitted — zero impact on
+> deliverability. Only the pseudonymous `gclid` (already issued by Google at ad click) is sent back; no
+> Hook0 PII leaves the system.
+
+### Matomo Goal to create (recipe, no code)
+
+The dedicated Matomo Goal is configured **in the Matomo admin UI**, not in code. On the **Frontend
+property (app.hook0.com)**, create:
+
+| Field | Value |
+|-------|-------|
+| Goal name | `First Webhook Delivered` |
+| Trigger | Manually (via the tracking API) |
+| Match | Event — Event Category `activation`, Event Action `first-webhook-delivered` |
+| Allow multiple conversions per visit | No (first delivery only) |
+| Revenue | none |
+
+Steps: Matomo → **Administration → Websites → Manage Goals** (app.hook0.com) → **Add a new goal** →
+fill the table above → **Add Goal**. The event that feeds this Goal (`trackEvent('activation',
+'first-webhook-delivered')`) is emitted separately from this server-side conversion and is out of scope
+here; creating the Goal ahead of time lets it start recording as soon as that event is wired.
+
 ## Event Naming Conventions
 
 ### Frontend (app.hook0.com)

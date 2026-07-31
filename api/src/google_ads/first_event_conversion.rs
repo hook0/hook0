@@ -106,7 +106,13 @@ async fn upload_pending_first_event_conversions(
         {
             Ok(UploadOutcome::Success) => {
                 super::report_conversion_uploaded("first_event", "success");
-                if mark_and_minimise(db, &organization_id).await {
+                if mark_and_minimise(
+                    db,
+                    &organization_id,
+                    google_ads.has_first_webhook_delivered_conversion(),
+                )
+                .await
+                {
                     uploaded += 1;
                 }
             }
@@ -116,7 +122,13 @@ async fn upload_pending_first_event_conversions(
                 // re-uploading a gclid Google will never accept. Counted as its
                 // own outcome, never as a success.
                 super::report_conversion_uploaded("first_event", "partial_failure");
-                if mark_and_minimise(db, &organization_id).await {
+                if mark_and_minimise(
+                    db,
+                    &organization_id,
+                    google_ads.has_first_webhook_delivered_conversion(),
+                )
+                .await
+                {
                     uploaded += 1;
                 }
             }
@@ -143,12 +155,24 @@ async fn upload_pending_first_event_conversions(
 /// Mark the org's first-event conversion as uploaded (claim-on-success) and, if
 /// this call is the one that claimed it, minimise the gclid when every enabled
 /// conversion is now done. Returns whether this call performed the claim.
-async fn mark_and_minimise(db: &PgPool, organization_id: &Uuid) -> bool {
+/// `first_webhook_delivered_enabled` is threaded through so the gclid is not
+/// cleared while a still-pending first-webhook-delivered conversion needs it.
+async fn mark_and_minimise(
+    db: &PgPool,
+    organization_id: &Uuid,
+    first_webhook_delivered_enabled: bool,
+) -> bool {
     match super::mark_first_event_uploaded(db, organization_id).await {
         Ok(true) => {
             // First-event tracking is necessarily enabled here (the job only
-            // runs when it is), so pass `true`.
-            super::clear_gclid_if_fully_uploaded_by_org(db, organization_id, true).await;
+            // runs when it is), so pass `true` for it.
+            super::clear_gclid_if_fully_uploaded_by_org(
+                db,
+                organization_id,
+                true,
+                first_webhook_delivered_enabled,
+            )
+            .await;
             true
         }
         Ok(false) => false,
@@ -176,7 +200,8 @@ mod tests {
     #[sqlx::test]
     async fn uploads_and_marks_first_event_for_eligible_org(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"));
+        let client =
+            test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"), None);
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -203,7 +228,8 @@ mod tests {
     #[sqlx::test]
     async fn second_pass_is_a_noop(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"));
+        let client =
+            test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"), None);
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -226,7 +252,8 @@ mod tests {
     #[sqlx::test]
     async fn org_without_gclid_is_excluded(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"));
+        let client =
+            test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"), None);
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -248,7 +275,8 @@ mod tests {
     #[sqlx::test]
     async fn org_without_event_is_excluded(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"));
+        let client =
+            test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"), None);
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -268,7 +296,8 @@ mod tests {
     #[sqlx::test]
     async fn transient_failure_leaves_org_pending(pool: PgPool) {
         let fake = FakeGoogleAds::start(503, "{}");
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"));
+        let client =
+            test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"), None);
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;

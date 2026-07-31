@@ -620,6 +620,19 @@ struct Config {
     #[clap(long, env, default_value = "300")]
     google_ads_first_event_conversion_period_in_s: u64,
 
+    /// [Google Ads] Numeric ID of the FIRST-WEBHOOK-DELIVERED conversion action
+    /// (optional, north-star activation signal). When unset, first-webhook-
+    /// delivered conversion tracking (and its background job) is disabled; the
+    /// other conversions are unaffected.
+    #[clap(long, env)]
+    google_ads_first_webhook_delivered_conversion_action_id: Option<String>,
+
+    /// [Google Ads] Duration (in second) between first-webhook-delivered
+    /// conversion upload passes; set to 0 to disable the task. Only runs when a
+    /// first-webhook-delivered conversion action is configured.
+    #[clap(long, env, default_value = "300")]
+    google_ads_first_webhook_delivered_conversion_period_in_s: u64,
+
     /// [Google Ads] OAuth client ID (Desktop App credentials)
     #[clap(long, env)]
     google_ads_oauth_client_id: Option<String>,
@@ -705,6 +718,11 @@ fn build_google_ads_client(config: &Config) -> Option<Arc<google_ads::GoogleAdsC
         // background job are disabled (same rationale as activation).
         first_event_conversion_action_id: config
             .google_ads_first_event_conversion_action_id
+            .clone(),
+        // Optional too: when unset, the first-webhook-delivered conversion and
+        // its background job are disabled (same rationale as activation).
+        first_webhook_delivered_conversion_action_id: config
+            .google_ads_first_webhook_delivered_conversion_action_id
             .clone(),
         oauth_client_id,
         oauth_client_secret,
@@ -1246,6 +1264,37 @@ async fn main() -> anyhow::Result<()> {
             } else {
                 info!(
                     "First-event conversion upload is disabled (GOOGLE_ADS_FIRST_EVENT_CONVERSION_PERIOD_IN_S = 0)"
+                );
+            }
+        }
+
+        // Spawn task to upload the Google Ads "first webhook delivered"
+        // conversion (north-star activation). Opt-in: only when a Google Ads
+        // client with a first-webhook-delivered conversion action is configured
+        // and the period is non-zero. Uses a background scan (never the
+        // webhook-delivery hot path).
+        if let Some(first_webhook_delivered_google_ads) = google_ads_client
+            .as_ref()
+            .filter(|client| client.has_first_webhook_delivered_conversion())
+            .cloned()
+        {
+            if config.google_ads_first_webhook_delivered_conversion_period_in_s > 0 {
+                let first_webhook_delivered_db = housekeeping_pool.clone();
+                let first_webhook_delivered_semaphore = housekeeping_semaphore.clone();
+                actix_web::rt::spawn(async move {
+                    google_ads::first_webhook_delivered_conversion::periodically_upload_first_webhook_delivered_conversions(
+                        &first_webhook_delivered_semaphore,
+                        &first_webhook_delivered_db,
+                        first_webhook_delivered_google_ads,
+                        Duration::from_secs(
+                            config.google_ads_first_webhook_delivered_conversion_period_in_s,
+                        ),
+                    )
+                    .await;
+                });
+            } else {
+                info!(
+                    "First-webhook-delivered conversion upload is disabled (GOOGLE_ADS_FIRST_WEBHOOK_DELIVERED_CONVERSION_PERIOD_IN_S = 0)"
                 );
             }
         }

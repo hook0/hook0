@@ -121,6 +121,8 @@ pub async fn create(
                 match crate::google_ads::claim_activation_gclid(&state.db, &organization_id).await {
                     Ok(Some(gclid)) => {
                         let first_event_tracking_enabled = client.has_first_event_conversion();
+                        let first_webhook_delivered_tracking_enabled =
+                            client.has_first_webhook_delivered_conversion();
                         crate::google_ads::spawn_upload(
                             client,
                             gclid,
@@ -130,6 +132,7 @@ pub async fn create(
                             &state.db,
                             &organization_id,
                             first_event_tracking_enabled,
+                            first_webhook_delivered_tracking_enabled,
                         )
                         .await;
                     }
