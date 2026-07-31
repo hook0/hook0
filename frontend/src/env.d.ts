@@ -3,6 +3,7 @@ interface ImportMetaEnv {
   readonly VITE_API_ENDPOINT: string;
   readonly VITE_ALLOWED_API_ORIGINS?: string;
   readonly VITE_CRISP_WEBSITE_ID?: string;
+  readonly VITE_PLAY_ENDPOINT?: string;
 }
 
 interface ImportMeta {

@@ -9,6 +9,7 @@ import type { UUID } from '@/http';
 import { useTracking } from '@/composables/useTracking';
 import { useCelebration } from '@/composables/useCelebration';
 import { useFocusTrap } from '@/composables/useFocusTrap';
+import { useOrganizationList } from '@/pages/organizations/useOrganizationQueries';
 
 import {
   Rocket,
@@ -42,6 +43,10 @@ const router = useRouter();
 const route = useRoute();
 const { trackEvent } = useTracking();
 const { celebrate } = useCelebration();
+
+// Fetched as soon as the wizard mounts (at the intro), so the org list is ready by the
+// time the user clicks "Start" and the intro can decide whether to skip the org step.
+const { refetch: refetchOrganizations } = useOrganizationList();
 
 const TOAST_DURATION_MS = 5000;
 
@@ -108,7 +113,26 @@ function advanceStep(config: AdvanceConfig) {
 
 function handleIntroStart() {
   trackEvent('tutorial', 'start');
-  void router.push({ name: routes.TutorialCreateOrganization });
+  // A fresh account already owns exactly one (personal) organization created at signup,
+  // so the org step is redundant. Resolve the org list deterministically — await the
+  // refetch instead of racing the initial load — and skip straight to the application
+  // step when there is a single organization. Any resolution failure (or 0/multiple orgs)
+  // falls back to the organization step.
+  refetchOrganizations()
+    .then((result) => {
+      const orgs = result.data ?? [];
+      if (orgs.length === 1) {
+        void router.push({
+          name: routes.TutorialCreateApplication,
+          params: { organization_id: orgs[0].organization_id },
+        });
+        return;
+      }
+      void router.push({ name: routes.TutorialCreateOrganization });
+    })
+    .catch(() => {
+      void router.push({ name: routes.TutorialCreateOrganization });
+    });
 }
 
 function handleOrgAdvance(organizationId: UUID) {

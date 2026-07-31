@@ -76,7 +76,7 @@ test.describe("Tutorial Wizard Flow", () => {
     await page.goto("/tutorial");
     await expect(page).toHaveURL(/\/tutorial/, { timeout: 10000 });
 
-    await test.step('Intro: Click Start', async () => {
+    await test.step("Intro: Click Start", async () => {
       await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
         timeout: 10000,
       });
@@ -86,57 +86,24 @@ test.describe("Tutorial Wizard Flow", () => {
       await page.locator('[data-test="tutorial-start-button"]').click();
     });
 
-    await test.step('Step 1: Create Organization', async () => {
-      await expect(page).toHaveURL(/\/tutorial\/organization/, { timeout: 15000 });
+    await test.step("Step 1: Organization auto-skipped (personal org already exists)", async () => {
+      // A fresh account already owns exactly one personal organization (created at
+      // signup), so the intro skips the redundant org step and jumps straight to the
+      // application step.
+      await expect(page).toHaveURL(/\/tutorial\/application/, { timeout: 15000 });
       await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
         timeout: 10000,
       });
-
-      // The "Create a new organization" card may be auto-selected when no orgs exist.
-      // Click it if the selectable card is visible, otherwise the form is already shown.
-      const createOrgRadio = page.locator('[data-test="tutorial-create-org-radio"]');
-      if (await createOrgRadio.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await createOrgRadio.click();
-      }
-
-      // Fill organization name
-      const orgNameInput = page.locator('[data-test="organization-name-input"]');
-      await expect(orgNameInput).toBeVisible({ timeout: 10000 });
-      await orgNameInput.fill(`Wizard Org ${env.timestamp}`);
-
-      // Submit org creation and wait for API response
-      const orgResponsePromise = page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/v1/organizations") &&
-          response.request().method() === "POST",
-        { timeout: 15000 }
-      );
-
-      // Also wait for the token refresh that happens after org creation (new org permissions in JWT)
-      const refreshResponsePromise = page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/v1/auth/refresh") &&
-          response.request().method() === "POST",
-        { timeout: 15000 }
-      );
-
-      await page.locator('[data-test="organization-submit-button"]').click();
-      const orgResponse = await orgResponsePromise;
-
-      // Verify response
-      expect(orgResponse.status()).toBeLessThan(400);
-
-      // Wait for token refresh to complete (needed for subsequent API calls with new org permissions)
-      await refreshResponsePromise;
     });
 
-    await test.step('Step 2: Create Application', async () => {
-      // After org creation, the wizard auto-advances to step 2
+    await test.step("Step 2: Create Application", async () => {
       await expect(page).toHaveURL(/\/tutorial\/application/, { timeout: 15000 });
 
       // Reload page to ensure fresh state with the updated JWT token
       await page.reload();
-      await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
+        timeout: 10000,
+      });
 
       // When no apps exist and requireOptions=true, the entity step auto-selects "Create"
       // and hides the selectable cards. The ApplicationsEdit form is shown directly.
@@ -154,7 +121,7 @@ test.describe("Tutorial Wizard Flow", () => {
       await page.locator('[data-test="application-submit-button"]').click();
     });
 
-    await test.step('Step 3: Create Event Type', async () => {
+    await test.step("Step 3: Create Event Type", async () => {
       // After app creation, the wizard auto-advances to step 3
       await expect(page).toHaveURL(/\/tutorial\/event_type/, { timeout: 15000 });
       await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
@@ -183,7 +150,7 @@ test.describe("Tutorial Wizard Flow", () => {
       expect(eventTypeResponse.status()).toBeLessThan(400);
     });
 
-    await test.step('Step 4: Create Subscription', async () => {
+    await test.step("Step 4: Create Subscription", async () => {
       // Steps auto-advance via TutorialWizardStepForm -> emit('advance')
       await expect(page).toHaveURL(/\/tutorial\/subscription/, { timeout: 15000 });
       await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
@@ -196,7 +163,9 @@ test.describe("Tutorial Wizard Flow", () => {
       await descriptionInput.fill("Test webhook subscription");
 
       // Fill URL (required)
-      await page.locator('[data-test="subscription-url-input"]').fill("https://example.com/webhook");
+      await page
+        .locator('[data-test="subscription-url-input"]')
+        .fill("https://example.com/webhook");
 
       // Add a label key-value pair (required: hasRequiredLabels needs at least one)
       // Scope to the subscription-labels container to avoid matching the headers KV section
@@ -230,7 +199,7 @@ test.describe("Tutorial Wizard Flow", () => {
       expect(subscriptionResponse.status()).toBeLessThan(400);
     });
 
-    await test.step('Step 5: Send Event', async () => {
+    await test.step("Step 5: Send Event", async () => {
       await expect(page).toHaveURL(/\/tutorial\/event/, { timeout: 15000 });
       await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
         timeout: 10000,
@@ -246,8 +215,7 @@ test.describe("Tutorial Wizard Flow", () => {
 
       // Submit and wait for API response (endpoint is /event singular)
       const sendEventResponsePromise = page.waitForResponse(
-        (response) =>
-          response.url().includes("/event") && response.request().method() === "POST",
+        (response) => response.url().includes("/event") && response.request().method() === "POST",
         { timeout: 15000 }
       );
 
@@ -261,7 +229,7 @@ test.describe("Tutorial Wizard Flow", () => {
       expect(sendEventResponse.status()).toBeLessThan(400);
     });
 
-    await test.step('Success: Verify completion', async () => {
+    await test.step("Success: Verify completion", async () => {
       await expect(page).toHaveURL(/\/tutorial\/success/, { timeout: 15000 });
 
       // Verify success page content via the dashboard button
@@ -292,8 +260,8 @@ test.describe("Tutorial Wizard Flow", () => {
     });
     await page.locator('[data-test="tutorial-start-button"]').click();
 
-    // Wait for step 1 (create organization)
-    await expect(page).toHaveURL(/\/tutorial\/organization/, { timeout: 15000 });
+    // Wait for the application step (org auto-skipped because the personal org already exists)
+    await expect(page).toHaveURL(/\/tutorial\/application/, { timeout: 15000 });
     await expect(page.locator('[data-test="tutorial-wizard-modal"]')).toBeVisible({
       timeout: 10000,
     });
