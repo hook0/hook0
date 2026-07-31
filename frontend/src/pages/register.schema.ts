@@ -7,7 +7,7 @@ export function createRegisterSchema() {
     email: z.email(t('validation.validEmail')),
     firstName: z.string().min(1, t('validation.required', { field: t('fields.firstName') })),
     lastName: z.string().min(1, t('validation.required', { field: t('fields.lastName') })),
-    password: z.string().min(8, t('validation.passwordMinLength')),
+    password: z.string().min(10, t('validation.passwordMinLength')),
   });
 }
 
