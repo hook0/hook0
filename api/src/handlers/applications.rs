@@ -20,6 +20,11 @@ use crate::opentelemetry::report_cancelled_request_attempts;
 use crate::problems::Hook0Problem;
 use crate::quotas::{Quota, QuotaValue};
 
+/// Name given to the application secret that is automatically provisioned when
+/// an application is created, so the application is immediately usable without a
+/// separate manual step.
+const DEFAULT_APPLICATION_SECRET_NAME: &str = "Default";
+
 /// A Hook0 application.
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct Application {
@@ -129,6 +134,8 @@ pub async fn create(
         ));
     }
 
+    let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
     let application = query_as!(
             Application,
             "
@@ -137,9 +144,29 @@ pub async fn create(
             ",
             body.organization_id, body.name,
         )
-        .fetch_one(&state.db)
+        .fetch_one(&mut *tx)
         .await
         .map_err(Hook0Problem::from)?;
+
+    // Provision a default application secret (API token) in the same
+    // transaction so a freshly created application can send its first event
+    // without a separate manual step. Reuses the standard secret generation:
+    // the `token` column defaults to a random UUID. If this insert fails, the
+    // whole transaction rolls back, so an application is never persisted without
+    // its default secret.
+    query!(
+        "
+            INSERT INTO event.application_secret (application__id, name)
+            VALUES ($1, $2)
+        ",
+        application.application_id,
+        DEFAULT_APPLICATION_SECRET_NAME,
+    )
+    .execute(&mut *tx)
+    .await
+    .map_err(Hook0Problem::from)?;
+
+    tx.commit().await.map_err(Hook0Problem::from)?;
 
     if let Some(hook0_client) = state.hook0_client.as_ref() {
         let hook0_client_event: Hook0ClientEvent = EventApplicationCreated {
@@ -449,5 +476,129 @@ pub async fn delete(
             Ok(NoContent)
         }
         None => Err(Hook0Problem::NotFound),
+    }
+}
+
+#[cfg(test)]
+mod default_secret_tests {
+    use crate::google_ads::test_support::{
+        issue_user_token, seed_membership, seed_org, seed_user, test_state,
+    };
+    use actix_web::{App, test, web};
+    use sqlx::PgPool;
+
+    /// Creating an application must provision a default application secret in the
+    /// same request, and that secret must be immediately usable to authenticate a
+    /// real API call. Drives the real handlers + biscuit auth middleware against a
+    /// real Postgres, with no mocking.
+    #[sqlx::test]
+    async fn creating_an_application_provisions_a_usable_default_secret(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let state = test_state(pool.clone(), private_key.clone(), None).await;
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        seed_membership(&pool, user, org, "editor").await;
+        let user_token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+
+        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+            db: pool.clone(),
+            biscuit_private_key: private_key.clone(),
+            master_api_key: None,
+            enable_application_secret_compatibility: true,
+        };
+
+        let app = test::init_service(
+            App::new().app_data(web::Data::new(state)).service(
+                web::scope("/api/v1")
+                    .service(
+                        web::scope("/applications")
+                            .wrap(biscuit_auth.clone())
+                            .route("", web::post().to(super::create)),
+                    )
+                    .service(
+                        web::scope("/application_secrets")
+                            .wrap(biscuit_auth.clone())
+                            .route(
+                                "",
+                                web::get().to(crate::handlers::application_secrets::list),
+                            ),
+                    ),
+            ),
+        )
+        .await;
+
+        // 1) Create an application via the real handler.
+        let create_app = test::TestRequest::post()
+            .uri("/api/v1/applications")
+            .insert_header(("Authorization", format!("Bearer {user_token}")))
+            .set_json(serde_json::json!({"organization_id": org, "name": "default-secret-app"}))
+            .to_request();
+        let resp = test::call_service(&app, create_app).await;
+        assert!(
+            resp.status().is_success(),
+            "application creation failed: {}",
+            resp.status()
+        );
+        let app_body: serde_json::Value = test::read_body_json(resp).await;
+        let application_id = app_body["application_id"]
+            .as_str()
+            .expect("application_id in response")
+            .to_string();
+
+        // 2) A default secret must exist right after creation, with no manual
+        //    step. List the application's secrets with the user token.
+        let list_secrets = test::TestRequest::get()
+            .uri(&format!(
+                "/api/v1/application_secrets?application_id={application_id}"
+            ))
+            .insert_header(("Authorization", format!("Bearer {user_token}")))
+            .to_request();
+        let resp = test::call_service(&app, list_secrets).await;
+        assert!(
+            resp.status().is_success(),
+            "listing secrets failed: {}",
+            resp.status()
+        );
+        let secrets: serde_json::Value = test::read_body_json(resp).await;
+        let secrets = secrets.as_array().expect("secrets array");
+        assert_eq!(
+            secrets.len(),
+            1,
+            "exactly one default secret is provisioned at creation"
+        );
+        assert_eq!(
+            secrets[0]["name"], "Default",
+            "the default secret is labelled Default"
+        );
+        let default_secret_token = secrets[0]["token"]
+            .as_str()
+            .expect("default secret token")
+            .to_string();
+
+        // 3) The default secret must authenticate a real API call: use it as a
+        //    Bearer token (application secret compatibility) to list this
+        //    application's secrets. A 2xx proves the token is valid and scoped to
+        //    the application.
+        let authed_call = test::TestRequest::get()
+            .uri(&format!(
+                "/api/v1/application_secrets?application_id={application_id}"
+            ))
+            .insert_header(("Authorization", format!("Bearer {default_secret_token}")))
+            .to_request();
+        let resp = test::call_service(&app, authed_call).await;
+        assert!(
+            resp.status().is_success(),
+            "default secret failed to authenticate an API call: {}",
+            resp.status()
+        );
+        let authed_body: serde_json::Value = test::read_body_json(resp).await;
+        assert_eq!(
+            authed_body.as_array().expect("secrets array").len(),
+            1,
+            "the authenticated call returns the application's secrets"
+        );
     }
 }
