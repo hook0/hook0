@@ -594,16 +594,20 @@ pub async fn claim_activation_gclid(
 /// Clear the gclid (data minimisation) once every ENABLED conversion has been
 /// uploaded, for the attribution row of `user_id`. Signup and activation are
 /// always required; the first-event conversion is required only when
-/// `first_event_tracking_enabled` is `true` (otherwise there is no first-event
-/// conversion to wait for, and holding the gclid past signup + activation would
-/// needlessly weaken data minimisation).
+/// `first_event_tracking_enabled` is `true`, and the first-webhook-delivered
+/// conversion only when `first_webhook_delivered_tracking_enabled` is `true`
+/// (otherwise there is no such conversion to wait for, and holding the gclid
+/// past the earlier stages would needlessly weaken data minimisation).
 ///
-/// Unlike [`clear_gclid_if_fully_uploaded_by_org`], this user-keyed variant does
-/// not gate on the first-webhook-delivered conversion. It is only invoked from
-/// the signup step (email verification), where activation and every later funnel
-/// stage are still pending, so it never clears the gclid early there; the org-
-/// keyed variant, invoked from the activation and background-job paths, carries
-/// the full first-webhook-delivered gating.
+/// This user-keyed variant carries the same first-webhook-delivered gating as
+/// [`clear_gclid_if_fully_uploaded_by_org`]. It is invoked from the email-
+/// verification step, but activation (and even the first event) can precede
+/// email verification — nothing forces a user to verify before using the API —
+/// so a later funnel stage may already be uploaded here. Gating on every enabled
+/// conversion, first-webhook-delivered included, ensures the gclid is never
+/// cleared while any enabled conversion is still pending, which would otherwise
+/// exclude the org from the periodic first-webhook-delivered scan
+/// (`WHERE gclid IS NOT NULL`) and permanently lose that conversion.
 ///
 /// Best-effort: errors are logged, never surfaced (the conversion has already
 /// been queued).
@@ -611,6 +615,7 @@ pub async fn clear_gclid_if_fully_uploaded_by_user(
     db: &PgPool,
     user_id: &Uuid,
     first_event_tracking_enabled: bool,
+    first_webhook_delivered_tracking_enabled: bool,
 ) {
     let result = sqlx::query!(
         "
@@ -621,9 +626,11 @@ pub async fn clear_gclid_if_fully_uploaded_by_user(
               AND signup_uploaded_at IS NOT NULL
               AND activation_uploaded_at IS NOT NULL
               AND (first_event_uploaded_at IS NOT NULL OR NOT $2)
+              AND (first_webhook_delivered_uploaded_at IS NOT NULL OR NOT $3)
         ",
         user_id,
         first_event_tracking_enabled,
+        first_webhook_delivered_tracking_enabled,
     )
     .execute(db)
     .await;
@@ -1675,6 +1682,43 @@ mod tests {
             .await
             .expect("mark first webhook delivered");
         clear_gclid_if_fully_uploaded_by_org(&pool, &org, false, true).await;
+        let (gclid, _) = attribution_state(&pool, org).await;
+        assert_eq!(
+            gclid, None,
+            "gclid nulled once signup + activation + first-webhook-delivered uploaded"
+        );
+    }
+
+    #[sqlx::test]
+    async fn user_keyed_gclid_retained_until_first_webhook_delivered_when_enabled(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        // Activate-before-verify: an org can create its first API key (and even
+        // send its first event) BEFORE the user verifies their email, since API
+        // usage is not gated on email verification. Here signup + activation are
+        // already uploaded when the user-keyed clear runs at verification time.
+        // First-webhook-delivered tracking is ON, first-event tracking OFF.
+        seed_attribution(&pool, user, org, "gclid-user-webhook", true).await;
+        claim_activation_gclid(&pool, &org).await.expect("claim");
+
+        // With first-webhook-delivered tracking enabled, signup + activation is
+        // NOT enough: clearing now would purge the gclid before the north-star
+        // conversion could ever be uploaded, and the periodic scan
+        // (`WHERE gclid IS NOT NULL`) would then exclude this org forever.
+        clear_gclid_if_fully_uploaded_by_user(&pool, &user, false, true).await;
+        let (gclid, _) = attribution_state(&pool, org).await;
+        assert_eq!(
+            gclid.as_deref(),
+            Some("gclid-user-webhook"),
+            "user-keyed clear retains gclid until first-webhook-delivered is uploaded too"
+        );
+
+        // Mark the first-webhook-delivered conversion uploaded → now every
+        // enabled conversion is done and the user-keyed clear nulls the gclid.
+        mark_first_webhook_delivered_uploaded(&pool, &org)
+            .await
+            .expect("mark first webhook delivered");
+        clear_gclid_if_fully_uploaded_by_user(&pool, &user, false, true).await;
         let (gclid, _) = attribution_state(&pool, org).await;
         assert_eq!(
             gclid, None,
