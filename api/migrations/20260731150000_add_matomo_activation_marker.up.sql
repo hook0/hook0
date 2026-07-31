@@ -14,6 +14,13 @@
 -- NULL) when the send fails so the organization stays eligible on the next
 -- pass. No PII is sent: the Matomo visitor id is a pseudonymous value derived
 -- from the organization id.
+--
+-- The claim is exactly-once, but the emission is at-most-once: the marker is
+-- committed before the send, so a process crash between claim and send leaves
+-- the marker stamped and that organization's activation event is lost for good
+-- (no reconciliation re-claims it). This is a deliberate trade-off — the
+-- inverse of the at-least-once Google Ads conversion job — to avoid
+-- over-counting a Goal that already de-dupes within a visit.
 ALTER TABLE iam.organization
     ADD COLUMN matomo_activation_emitted_at TIMESTAMPTZ;
 

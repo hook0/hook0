@@ -83,6 +83,14 @@ its genuine first successful webhook delivery, once each. The per-org one-shot c
 send fails so the org is retried next pass). The event uses category `activation`, action
 `first-webhook-delivered`, and dates the event at the org's first delivery (`cdt`).
 
+The **claim** is exactly-once across replicas, but the **emission** is at-most-once / best-effort:
+because the marker is committed before the send, a process crash between the claim and a completed send
+leaves the marker stamped, so that org is never re-claimed and its activation event is lost permanently —
+there is no reconciliation. This is the deliberate inverse of the at-least-once Google Ads conversion job
+above (which retries a crashed pass at the cost of a rare double-count): an explicit send failure retries,
+but a crash mid-emission under-counts rather than risk over-counting a Goal that already de-dupes within a
+visit.
+
 | Aspect | Value |
 |--------|-------|
 | Event Category / Action | `activation` / `first-webhook-delivered` |

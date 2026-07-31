@@ -19,6 +19,15 @@
 //! stamped first (so the claim is exclusive across instances and passes), the
 //! event is sent, and the claim is released (marker back to `NULL`) if the send
 //! fails so the organization stays eligible on the next pass.
+//!
+//! Claim-before-send makes the *claim* exactly-once across replicas, but the
+//! *emission* is at-most-once / best-effort: because the marker commits before
+//! the send, a process crash between the claim and a completed send leaves the
+//! marker stamped, so that organization is never re-claimed and its activation
+//! event is dropped permanently — there is no reconciliation. This is the
+//! deliberate inverse of the at-least-once Google Ads conversion job: an
+//! explicit send failure retries, but a crash mid-emission under-counts rather
+//! than risk over-counting a Goal that already de-dupes within a visit.
 
 use actix_web::rt::time::sleep;
 use chrono::{DateTime, Utc};
