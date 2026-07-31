@@ -74,14 +74,19 @@ test.describe("Tutorial", () => {
     await expect(page.locator('[data-test="tutorial-skip-button"]')).toBeVisible();
   });
 
-  test("should skip tutorial and redirect to organizations dashboard", async ({ page, request }) => {
+  test("should skip tutorial and redirect to organizations dashboard", async ({
+    page,
+    request,
+  }) => {
     await setupTestEnvironment(page, request, "skip");
 
     // Navigate directly to tutorial page
     await page.goto("/tutorial");
 
     // Wait for tutorial page to load
-    await expect(page.locator('[data-test="tutorial-skip-button"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="tutorial-skip-button"]')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Click skip button
     await page.locator('[data-test="tutorial-skip-button"]').click();
@@ -94,24 +99,23 @@ test.describe("Tutorial", () => {
     });
   });
 
-  test("should start tutorial and navigate to create organization step", async ({
-    page,
-    request,
-  }) => {
+  test("should start tutorial and auto-skip the organization step", async ({ page, request }) => {
     await setupTestEnvironment(page, request, "start");
 
     // Navigate directly to tutorial page
     await page.goto("/tutorial");
 
     // Wait for tutorial page to load
-    await expect(page.locator('[data-test="tutorial-start-button"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-test="tutorial-start-button"]')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Click start button
     await page.locator('[data-test="tutorial-start-button"]').click();
 
-    // Should be redirected to the first tutorial step (create organization)
-    // The actual route is /tutorial/organization
-    await expect(page).toHaveURL(/\/tutorial\/organization/, {
+    // A fresh account already owns exactly one personal organization (created at signup),
+    // so the intro skips the redundant org step and lands directly on the application step.
+    await expect(page).toHaveURL(/\/tutorial\/application/, {
       timeout: 15000,
     });
   });
