@@ -550,7 +550,7 @@ pub async fn verify_email(
             // later "activation" conversion (first API key) can reuse the gclid.
             // The `signup_uploaded_at IS NULL` guard makes this fire at most once
             // per user. The row is cleaned up by the 30-day job, or its gclid is
-            // nulled once both conversions are uploaded (data minimisation).
+            // nulled once every enabled conversion is uploaded (data minimisation).
             if let Some(client) = state.google_ads.as_ref().cloned() {
                 let attribution = query!(
                     "
