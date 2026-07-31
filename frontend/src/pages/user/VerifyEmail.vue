@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import * as UserService from './UserService.ts';
+import { completeVerifiedSession } from './verifiedSessionFlow.ts';
 import { Problem } from '@/http.ts';
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -78,18 +79,17 @@ function _onLoad() {
     .then((session) => {
       displaySuccess();
       // Verification returns a real session: log the user in and drop them
-      // straight onto the wizard/dashboard instead of the login form.
-      return authStore.setSession(session).then(() =>
-        // The session is now established — the user is authenticated. If the
-        // post-auth navigation probe (organization/application listing) fails,
-        // keep treating the user as logged in and fall back to Home rather than
-        // showing the "Back to login" error card. Only a failure BEFORE the
-        // session exists (invalid/expired token) should send them to login.
-        navigateAfterAuth().catch((navErr) => {
-          console.error(navErr);
-          return router.push({ name: routes.Home });
-        })
-      );
+      // straight onto the wizard/dashboard instead of the login form. Once the
+      // session exists the user is authenticated, so a failed post-auth
+      // navigation probe falls back to Home rather than the "Back to login"
+      // error card. Only a failure BEFORE the session exists (invalid/expired
+      // token) reaches the .catch below and sends them to login.
+      return completeVerifiedSession({
+        session,
+        setSession: (s) => authStore.setSession(s),
+        navigateAfterAuth,
+        goHome: () => router.push({ name: routes.Home }),
+      });
     })
     .catch((err) => {
       displayError(err as Problem);
