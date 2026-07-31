@@ -769,42 +769,58 @@ pub async fn resend_verification_email(
     .await?;
 
     if let Some(user) = recipient {
-        let verification_token =
-            crate::iam::create_email_verification_token(&state.biscuit_private_key, user.user_id)
-                .map_err(|e| {
-                error!("Error trying to create email verification token: {e}");
-                Hook0Problem::InternalServerError
-            })?;
-
-        let url = {
-            let mut url = state
-                .app_url
-                .join("verify-email")
-                .map_err(|_| Hook0Problem::InternalServerError)?;
-            url.query_pairs_mut()
-                .append_pair("token", &verification_token.serialized_biscuit);
-            url
-        };
-
-        // A send failure must neither change the response (anti-enumeration is
-        // preserved) nor surface an error: it is logged and swallowed, exactly
-        // like the post-verification welcome email.
-        match Address::from_str(&user.email) {
-            Ok(address) => {
-                let mailbox = Mailbox::new(
-                    Some(format!("{} {}", user.first_name, user.last_name)),
-                    address,
-                );
-                let mail = Mail::VerifyUserEmail {
-                    recipient_first_name: Some(user.first_name.clone()),
-                    url,
+        // Decouple token creation and the mail send from the request path so the
+        // response latency is identical whether or not the address matches an
+        // account. Awaiting the send inline only for real accounts would leak
+        // their existence through timing; running it in a detached task (like
+        // the signup-attribution cleanup job) keeps the response constant-time.
+        // Every failure is logged (never with PII) and swallowed — the
+        // anti-enumeration response is always NoContent.
+        let private_key = state.biscuit_private_key.clone();
+        let app_url = state.app_url.clone();
+        let mailer = state.mailer.clone();
+        tokio::spawn(async move {
+            let verification_token =
+                match crate::iam::create_email_verification_token(&private_key, user.user_id) {
+                    Ok(token) => token,
+                    Err(e) => {
+                        error!("Error trying to create email verification token: {e}");
+                        return;
+                    }
                 };
-                if let Err(e) = state.mailer.send_mail(mail, mailbox).await {
-                    warn!("Could not resend verification email to {}: {e}", user.email);
+
+            let url = match app_url.join("verify-email") {
+                Ok(mut url) => {
+                    url.query_pairs_mut()
+                        .append_pair("token", &verification_token.serialized_biscuit);
+                    url
                 }
+                Err(e) => {
+                    error!("Could not build verify-email URL to resend verification message: {e}");
+                    return;
+                }
+            };
+
+            match Address::from_str(&user.email) {
+                Ok(address) => {
+                    let mailbox = Mailbox::new(
+                        Some(format!("{} {}", user.first_name, user.last_name)),
+                        address,
+                    );
+                    let mail = Mail::VerifyUserEmail {
+                        recipient_first_name: Some(user.first_name.clone()),
+                        url,
+                    };
+                    if let Err(e) = mailer.send_mail(mail, mailbox).await {
+                        warn!(
+                            "Could not resend verification email to user {}: {e}",
+                            user.user_id
+                        );
+                    }
+                }
+                Err(e) => warn!("Could not parse user email to resend verification message: {e}"),
             }
-            Err(e) => warn!("Could not parse user email to resend verification message: {e}"),
-        }
+        });
     }
 
     Ok(NoContent)
