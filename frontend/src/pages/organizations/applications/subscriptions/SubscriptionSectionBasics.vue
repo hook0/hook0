@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
 
+import { buildPlayReceiveUrl, generatePlayToken } from '@/utils/playEndpoint';
 import SubscriptionTestEndpoint from './SubscriptionTestEndpoint.vue';
+import PlayInspector from '@/components/PlayInspector.vue';
 import Hook0Input from '@/components/Hook0Input.vue';
 import Hook0Select from '@/components/Hook0Select.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
@@ -33,6 +36,17 @@ const emit = defineEmits<{
   'update:targetMethod': [value: string];
   'update:targetUrl': [value: string];
 }>();
+
+// Hook0 Play (play.hook0.com) — free, no-signup webhook test inbox.
+const PLAY_BASE = (import.meta.env.VITE_PLAY_ENDPOINT ?? '') || 'https://play.hook0.com';
+
+const playToken = ref('');
+
+function generateTestUrl() {
+  const token = generatePlayToken();
+  playToken.value = token;
+  emit('update:targetUrl', buildPlayReceiveUrl(PLAY_BASE, token));
+}
 </script>
 
 <template>
@@ -61,15 +75,16 @@ const emit = defineEmits<{
     <div class="sub-row">
       <div class="sub-row__label">
         <span class="sub-row__title">{{ t('subscriptions.httpEndpoint') }}</span>
-        <span class="sub-row__hint">
-          <i18n-t keypath="subscriptions.webhookSiteHint" tag="span">
-            <template #link>
-              <Hook0Button variant="link" href="https://webhook.site" target="_blank"
-                >webhook.site</Hook0Button
-              >
-            </template>
-          </i18n-t>
-        </span>
+        <span class="sub-row__hint">{{ t('subscriptions.testUrlHint') }}</span>
+        <Hook0Button
+          variant="secondary"
+          size="sm"
+          class="sub-row__generate"
+          data-test="subscription-generate-test-url"
+          @click="generateTestUrl"
+        >
+          {{ t('subscriptions.generateTestUrl') }}
+        </Hook0Button>
       </div>
       <div class="sub-row__content">
         <div class="sub-row__endpoint">
@@ -92,6 +107,11 @@ const emit = defineEmits<{
           />
           <SubscriptionTestEndpoint :target-url="targetUrl || ''" />
         </div>
+        <PlayInspector
+          v-if="playToken && targetUrl === buildPlayReceiveUrl(PLAY_BASE, playToken)"
+          :base="PLAY_BASE"
+          :token="playToken"
+        />
       </div>
     </div>
   </div>
@@ -139,6 +159,11 @@ const emit = defineEmits<{
 .sub-row__hint :deep(.hook0-button) {
   padding-top: 0;
   padding-bottom: 0;
+}
+
+.sub-row__generate {
+  align-self: flex-start;
+  margin-top: 0.375rem;
 }
 
 .sub-row__content {
