@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO iam.reactivation_email (organization__id, step)\n            VALUES ($1, $2)\n            ON CONFLICT (organization__id, step) DO NOTHING\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "93b77c5b8f133d303d9eba7fac77c357ca9cc1ca7bb35849709ed4bc6c9a83a0"
+}

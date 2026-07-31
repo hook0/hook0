@@ -66,6 +66,23 @@ pub enum Mail {
         events_per_days_limit: i32,
         extra_variables: Vec<(String, String)>,
     },
+    /// Reactivation drip, step 1 (J+1): the account is verified but no event has
+    /// been sent yet. CTA to the dashboard wizard (+ an inline curl snippet).
+    ReactivationNoEventDay1 {
+        recipient_first_name: Option<String>,
+    },
+    /// Reactivation drip, step 2 (J+3): lift the most common blocker — no public
+    /// URL to receive the webhook — by pointing at play.hook0.com.
+    ReactivationNoEventDay3 {
+        recipient_first_name: Option<String>,
+        play_url: Url,
+    },
+    /// Reactivation drip, step 3 (J+7): last nudge, routing to the community
+    /// (Discord) and to human support.
+    ReactivationNoEventDay7 {
+        recipient_first_name: Option<String>,
+        discord_url: Url,
+    },
 }
 
 // Design tokens — sourced from www.hook0.com brand:
@@ -164,6 +181,32 @@ const MJML_FOOTER_COMMERCIAL: &str = r##"      </mj-column>
 </mjml>
 "##;
 
+// Footer for the reactivation drip. These are lifecycle nudges tied to an
+// account the recipient created, but because they form a repeated series we
+// carry an explicit opt-out (délivrabilité + CPCE L34-5 al.3 spirit) so a user
+// who does not want the reminders can stop them.
+const MJML_FOOTER_ONBOARDING: &str = r##"      </mj-column>
+    </mj-section>
+    <mj-section padding="20px 24px 32px 24px">
+      <mj-column>
+        <mj-text align="left" font-size="11px" color="#94a3b8" line-height="1.7">
+          Hook0 &middot; Open-Source Webhooks-as-a-Service &middot; Made in Europe
+        </mj-text>
+        <mj-text align="left" font-size="12px" color="#94a3b8" line-height="1.7" padding="6px 0 0 0">
+          Need a hand? <a href="mailto:{ $support_email_address }" style="color:#475569;">{ $support_email_address }</a> &middot; <a href="{ $app_url_tracked }" style="color:#475569;">Open dashboard</a> &middot; <a href="{ $privacy_policy_url_tracked }" style="color:#475569;">Privacy &amp; data rights</a>
+        </mj-text>
+        <mj-text align="left" font-size="11px" color="#94a3b8" line-height="1.7" padding="10px 0 0 0">
+          You created a Hook0 account but no event has come through yet, so we send a short series of first-steps reminders. To stop them, email <a href="mailto:{ $support_email_address }?subject=Unsubscribe%20onboarding%20reminders" style="color:#475569;">{ $support_email_address }</a> with subject &laquo;&nbsp;Unsubscribe onboarding reminders&nbsp;&raquo;. You have rights over your personal data (access, correction, deletion, portability, objection).
+        </mj-text>
+        <mj-text align="left" font-size="11px" color="#cbd5e1" line-height="1.7" padding="10px 0 0 0">
+          &copy; { $current_year } { $company_legal_name } &middot; { $company_postal_address } &middot; { $company_rcs }
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
+"##;
+
 /// Append Matomo tracking parameters to a URL while preserving existing
 /// query string and fragment. Used to tag every clickable link in
 /// transactional emails so analytics can attribute downstream activity.
@@ -188,6 +231,15 @@ impl Mail {
             Mail::QuotaEventsPerDayReached { .. } => {
                 include_str!("mail_templates/quotas/events_per_day_reached.mjml")
             }
+            Mail::ReactivationNoEventDay1 { .. } => {
+                include_str!("mail_templates/reactivation/no_event_day1.mjml")
+            }
+            Mail::ReactivationNoEventDay3 { .. } => {
+                include_str!("mail_templates/reactivation/no_event_day3.mjml")
+            }
+            Mail::ReactivationNoEventDay7 { .. } => {
+                include_str!("mail_templates/reactivation/no_event_day7.mjml")
+            }
         }
     }
 
@@ -202,6 +254,15 @@ impl Mail {
             } => format!("You're at {actual_consumption_percent}% of your daily events"),
             Mail::QuotaEventsPerDayReached { .. } => {
                 "Daily event limit reached. Events paused.".to_owned()
+            }
+            Mail::ReactivationNoEventDay1 { .. } => {
+                "Your first webhook is 5 minutes away".to_owned()
+            }
+            Mail::ReactivationNoEventDay3 { .. } => {
+                "The missing piece: a URL to receive your webhook".to_owned()
+            }
+            Mail::ReactivationNoEventDay7 { .. } => {
+                "Last nudge: still no event on your Hook0 account".to_owned()
             }
         }
     }
@@ -223,6 +284,15 @@ impl Mail {
             Mail::QuotaEventsPerDayReached { .. } => {
                 "Hook0 will resume at the next daily reset, or as soon as you upgrade."
             }
+            Mail::ReactivationNoEventDay1 { .. } => {
+                "Create an application and send one test event — the dashboard walks you through it."
+            }
+            Mail::ReactivationNoEventDay3 { .. } => {
+                "Grab a throwaway endpoint on play.hook0.com and watch an event arrive live."
+            }
+            Mail::ReactivationNoEventDay7 { .. } => {
+                "One event is all it takes. Ask the community or reply and a human will help."
+            }
         }
     }
 
@@ -235,7 +305,21 @@ impl Mail {
             Mail::Welcome { .. } => "welcome",
             Mail::QuotaEventsPerDayWarning { .. } => "quota_warning",
             Mail::QuotaEventsPerDayReached { .. } => "quota_reached",
+            Mail::ReactivationNoEventDay1 { .. } => "reactivation_no_event_d1",
+            Mail::ReactivationNoEventDay3 { .. } => "reactivation_no_event_d3",
+            Mail::ReactivationNoEventDay7 { .. } => "reactivation_no_event_d7",
         }
+    }
+
+    /// Whether this mail belongs to the "0 event sent" reactivation drip.
+    /// Drives footer selection so the series carries an explicit opt-out.
+    pub fn is_lifecycle_reactivation(&self) -> bool {
+        matches!(
+            self,
+            Mail::ReactivationNoEventDay1 { .. }
+                | Mail::ReactivationNoEventDay3 { .. }
+                | Mail::ReactivationNoEventDay7 { .. }
+        )
     }
 
     /// Whether this mail contains a commercial component (upgrade CTA).
@@ -272,6 +356,17 @@ impl Mail {
             | Mail::QuotaEventsPerDayReached {
                 recipient_first_name,
                 ..
+            }
+            | Mail::ReactivationNoEventDay1 {
+                recipient_first_name,
+            }
+            | Mail::ReactivationNoEventDay3 {
+                recipient_first_name,
+                ..
+            }
+            | Mail::ReactivationNoEventDay7 {
+                recipient_first_name,
+                ..
             } => recipient_first_name.as_deref(),
         }
     }
@@ -284,6 +379,9 @@ impl Mail {
             Mail::VerifyUserEmail { .. } => vec![],
             Mail::ResetPassword { .. } => vec![],
             Mail::Welcome { .. } => vec![],
+            Mail::ReactivationNoEventDay1 { .. } => vec![],
+            Mail::ReactivationNoEventDay3 { .. } => vec![],
+            Mail::ReactivationNoEventDay7 { .. } => vec![],
             Mail::QuotaEventsPerDayWarning {
                 actual_consumption_percent,
                 current_events_per_day,
@@ -338,6 +436,13 @@ impl Mail {
             Mail::Welcome { .. } => vec![],
             Mail::QuotaEventsPerDayWarning { .. } => vec![],
             Mail::QuotaEventsPerDayReached { .. } => vec![],
+            Mail::ReactivationNoEventDay1 { .. } => vec![],
+            Mail::ReactivationNoEventDay3 { play_url, .. } => {
+                vec![("play_url_tracked".to_owned(), play_url.clone())]
+            }
+            Mail::ReactivationNoEventDay7 { discord_url, .. } => {
+                vec![("discord_url_tracked".to_owned(), discord_url.clone())]
+            }
         }
     }
 
@@ -382,7 +487,9 @@ impl Mail {
         // not depend on the name structurally.
         let recipient_first_name = self.recipient_first_name().unwrap_or("there");
 
-        let footer = if self.has_commercial_component() {
+        let footer = if self.is_lifecycle_reactivation() {
+            MJML_FOOTER_ONBOARDING
+        } else if self.has_commercial_component() {
             MJML_FOOTER_COMMERCIAL
         } else {
             MJML_FOOTER_TRANSACTIONAL
@@ -593,6 +700,17 @@ mod tests {
             },
             quota_warning,
             quota_reached,
+            Mail::ReactivationNoEventDay1 {
+                recipient_first_name: Some("Sarah".to_owned()),
+            },
+            Mail::ReactivationNoEventDay3 {
+                recipient_first_name: Some("Sarah".to_owned()),
+                play_url: Url::from_str("https://play.hook0.com/").unwrap(),
+            },
+            Mail::ReactivationNoEventDay7 {
+                recipient_first_name: Some("Sarah".to_owned()),
+                discord_url: Url::from_str("https://www.hook0.com/community").unwrap(),
+            },
         ]
     }
 
@@ -920,6 +1038,88 @@ mod tests {
                 !html.contains("Hi ,") && !html.contains("Hi  "),
                 "Greeting must not have an empty name placeholder in {:?}",
                 mail.matomo_campaign()
+            );
+        }
+    }
+
+    /// Test #16 — reactivation J+1 carries the primary "first webhook" CTA to
+    /// the app wizard, a curl snippet, and a link to the docs.
+    #[test]
+    fn reactivation_day1_has_wizard_cta_and_snippet() {
+        let mail = Mail::ReactivationNoEventDay1 {
+            recipient_first_name: Some("Sarah".to_owned()),
+        };
+        let html = render(&mail);
+        assert!(
+            html.contains("app.hook0.com"),
+            "J+1 must link to the app wizard"
+        );
+        assert!(
+            html.contains("documentation.hook0.com"),
+            "J+1 must link to the documentation"
+        );
+        assert!(
+            html.contains("Send your first webhook"),
+            "J+1 must carry the primary CTA label"
+        );
+        assert!(html.contains("curl"), "J+1 must include a curl snippet");
+    }
+
+    /// Test #17 — reactivation J+3 routes to play.hook0.com and J+7 to the
+    /// community (Discord) + human support, each via a Matomo-tracked link.
+    #[test]
+    fn reactivation_day3_and_day7_route_to_their_ctas() {
+        let day3 = Mail::ReactivationNoEventDay3 {
+            recipient_first_name: Some("Sarah".to_owned()),
+            play_url: Url::from_str("https://play.hook0.com/").unwrap(),
+        };
+        let html3 = render(&day3);
+        assert!(
+            html3.contains("play.hook0.com"),
+            "J+3 must route to play.hook0.com"
+        );
+        assert!(
+            html3.contains("mtm_campaign=reactivation_no_event_d3"),
+            "J+3 play link must be Matomo-tracked for its campaign"
+        );
+
+        let day7 = Mail::ReactivationNoEventDay7 {
+            recipient_first_name: Some("Sarah".to_owned()),
+            discord_url: Url::from_str("https://www.hook0.com/community").unwrap(),
+        };
+        let html7 = render(&day7);
+        assert!(
+            html7.contains("hook0.com/community"),
+            "J+7 must route to the community/Discord link"
+        );
+        assert!(
+            html7.contains("support@hook0.com"),
+            "J+7 must offer human support"
+        );
+        assert!(
+            html7.contains("mtm_campaign=reactivation_no_event_d7"),
+            "J+7 community link must be Matomo-tracked for its campaign"
+        );
+    }
+
+    /// Test #18 — every reactivation email carries the onboarding opt-out footer
+    /// so the recipient can stop the series (deliverability + CPCE spirit).
+    #[test]
+    fn reactivation_emails_carry_optout_footer() {
+        for m in all_variants() {
+            if !m.is_lifecycle_reactivation() {
+                continue;
+            }
+            let html = render(&m);
+            assert!(
+                html.contains("Unsubscribe onboarding reminders"),
+                "Reactivation email {:?} must carry the opt-out mention",
+                m.matomo_campaign()
+            );
+            assert!(
+                html.contains("FGRibreau SARL"),
+                "Reactivation email {:?} must carry the legal footer",
+                m.matomo_campaign()
             );
         }
     }

@@ -50,6 +50,7 @@ mod pagination;
 mod problems;
 mod quotas;
 mod rate_limiting;
+mod reactivation_emails;
 mod soft_deleted_applications_cleanup;
 mod unverified_users_cleanup;
 mod validators;
@@ -471,6 +472,26 @@ struct Config {
     /// [Housekeeping] If true, unverified users will be reported and cleaned up; if false (default), they will only be reported
     #[clap(long, env, default_value = "false")]
     unverified_users_cleanup_report_and_delete: bool,
+
+    /// [Reactivation] If true, verified accounts that never sent an event get a bounded "0 event sent" reactivation email sequence (J+1 / J+3 / J+7)
+    #[clap(long, env, default_value = "false")]
+    enable_reactivation_emails: bool,
+
+    /// [Reactivation] Duration to wait between reactivation email passes
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "6h")]
+    reactivation_emails_period: Duration,
+
+    /// [Reactivation] Upper bound on how many recipients a single pass processes per step (bounds work per pass)
+    #[clap(long, env, default_value = "500")]
+    reactivation_emails_max_per_step_per_run: i64,
+
+    /// [Reactivation] URL of the Hook0 webhook tester used as the J+3 CTA (lift the "no public URL" blocker)
+    #[clap(long, env, default_value = "https://play.hook0.com/")]
+    reactivation_play_url: Url,
+
+    /// [Reactivation] URL of the Hook0 community/Discord used as the J+7 CTA
+    #[clap(long, env, default_value = "https://www.hook0.com/community")]
+    reactivation_discord_url: Url,
 
     /// [Housekeeping] If true, soft-deleted applications will be removed from database after a while; otherwise they will be kept in database forever
     #[clap(long, env, default_value = "false")]
@@ -1293,6 +1314,31 @@ async fn main() -> anyhow::Result<()> {
         )
         .await
         .expect("Could not initialize mailer; check SMTP configuration");
+
+        // Spawn task to send the "0 event sent" reactivation email sequence.
+        // Opt-in (default off). Bounded background scan of the same "event"
+        // onboarding signal; never touches the event-ingestion hot path.
+        if config.enable_reactivation_emails {
+            let reactivation_db = housekeeping_pool.clone();
+            let reactivation_semaphore = housekeeping_semaphore.clone();
+            let reactivation_mailer = mailer.clone();
+            let reactivation_config = reactivation_emails::ReactivationConfig {
+                play_url: config.reactivation_play_url.clone(),
+                discord_url: config.reactivation_discord_url.clone(),
+                max_per_step_per_run: config.reactivation_emails_max_per_step_per_run,
+            };
+            let reactivation_period = config.reactivation_emails_period;
+            actix_web::rt::spawn(async move {
+                reactivation_emails::periodically_send_reactivation_emails(
+                    &reactivation_semaphore,
+                    &reactivation_db,
+                    reactivation_mailer,
+                    reactivation_config,
+                    reactivation_period,
+                )
+                .await;
+            });
+        }
 
         // Initialize state
         let initial_state = State {

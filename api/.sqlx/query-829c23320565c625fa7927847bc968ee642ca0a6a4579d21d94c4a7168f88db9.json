@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM iam.reactivation_email WHERE organization__id = $1 AND step = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "829c23320565c625fa7927847bc968ee642ca0a6a4579d21d94c4a7168f88db9"
+}

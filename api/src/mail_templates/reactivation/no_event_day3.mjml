@@ -1,0 +1,13 @@
+        <mj-text>
+          <h1>Missing a URL to receive your webhook?</h1>
+        </mj-text>
+        <mj-text padding="14px 0 0 0">
+          Hi { $recipient_first_name }, the most common reason a first event never gets sent is not having a public endpoint to receive it. You do not need to build one to try Hook0.
+        </mj-text>
+        <mj-text padding="8px 0 0 0" font-size="14px" color="#475569" line-height="1.6">
+          play.hook0.com gives you a throwaway endpoint in one click. Point a Hook0 subscription at it, send a test event, and watch it arrive live.
+        </mj-text>
+        <mj-button href="{ $play_url_tracked }" align="left" padding="20px 0 16px 0">Grab a test URL on play.hook0.com</mj-button>
+        <mj-text padding="16px 0 0 0" font-size="13px" color="#475569" line-height="1.6">
+          Once you have seen one event flow end to end, wiring your real endpoint takes minutes. The <a href="{ $doc_url_tracked }" style="font-weight:600;">documentation</a> covers the rest.
+        </mj-text>
