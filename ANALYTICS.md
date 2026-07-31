@@ -116,6 +116,119 @@ fill the table above → **Add Goal**. The event that feeds this Goal (category 
 `first-webhook-delivered`) is emitted **server-side** by the job described above (see *Server-side Matomo
 activation event*); once the Goal exists it records every emission automatically.
 
+## Correlation: activation × retention × paid
+
+This is a **read-only SQL analytics recipe** run directly against Hook0's Postgres — it correlates, per
+weekly activation cohort, how many organizations activated, how many were still active 7 and 30 days
+later, and how many are on a paid plan. It answers "does activating (receiving a first webhook) predict
+retention and conversion to paid?".
+
+Each signal maps to a real table/column:
+
+| Signal | Source | Definition |
+|--------|--------|------------|
+| **Activation** | `webhook.request_attempt.succeeded_at` → `event.application.organization__id` | Per org, `MIN(succeeded_at)` over successful deliveries — the org's first webhook received end to end |
+| **Retention J7 / J30** | `event.event.occurred_at` → `event.application.organization__id` | The org produced at least one event in the 7-day / 30-day window *after* activation |
+| **Paid** | `iam.organization.price__id` → `pricing.price.amount` | The org is on a priced plan (`amount > 0`) |
+
+The query is **parameterized** (activation date range), **read-only** (`SELECT` only) and **bounded**
+(date window + `LIMIT` on cohort rows). Run it in `psql` (the `\set` preamble binds the parameters) or
+via any client using `$1`/`$2`/`$3` for `from_date` / `to_date` / `max_weeks`:
+
+```sql
+\set from_date '2026-01-01'
+\set to_date   '2026-08-01'
+\set max_weeks 52
+
+WITH activation AS (
+    -- Activation = the moment of an org's FIRST successful webhook delivery.
+    SELECT
+        a.organization__id AS organization_id,
+        MIN(ra.succeeded_at) AS activated_at
+    FROM webhook.request_attempt AS ra
+    INNER JOIN event.application AS a ON a.application__id = ra.application__id
+    WHERE ra.succeeded_at IS NOT NULL
+    GROUP BY a.organization__id
+),
+cohort AS (
+    SELECT
+        organization_id,
+        activated_at,
+        date_trunc('week', activated_at)::date AS activation_week
+    FROM activation
+    WHERE activated_at >= :'from_date'::timestamptz
+      AND activated_at <  :'to_date'::timestamptz
+),
+scored AS (
+    SELECT
+        c.activation_week,
+        -- Retained = at least one event in the window AFTER activation.
+        EXISTS (
+            SELECT 1
+            FROM event.event AS e
+            INNER JOIN event.application AS ap ON ap.application__id = e.application__id
+            WHERE ap.organization__id = c.organization_id
+              AND e.occurred_at >  c.activated_at
+              AND e.occurred_at <= c.activated_at + INTERVAL '7 days'
+        ) AS retained_j7,
+        EXISTS (
+            SELECT 1
+            FROM event.event AS e
+            INNER JOIN event.application AS ap ON ap.application__id = e.application__id
+            WHERE ap.organization__id = c.organization_id
+              AND e.occurred_at >  c.activated_at
+              AND e.occurred_at <= c.activated_at + INTERVAL '30 days'
+        ) AS retained_j30,
+        -- Paid = the org is currently on a priced plan (amount > 0). Postgres
+        -- stores only the CURRENT plan assignment (iam.organization.price__id);
+        -- there is no "became paid at" timestamp (see caveats).
+        EXISTS (
+            SELECT 1
+            FROM iam.organization AS o
+            INNER JOIN pricing.price AS pr ON pr.price__id = o.price__id
+            WHERE o.organization__id = c.organization_id
+              AND pr.amount > 0
+        ) AS is_paid
+    FROM cohort AS c
+)
+SELECT
+    activation_week,
+    COUNT(*)                                                          AS activated,
+    ROUND(100.0 * COUNT(*) FILTER (WHERE retained_j7)  / COUNT(*), 1) AS retained_j7_pct,
+    ROUND(100.0 * COUNT(*) FILTER (WHERE retained_j30) / COUNT(*), 1) AS retained_j30_pct,
+    ROUND(100.0 * COUNT(*) FILTER (WHERE is_paid)      / COUNT(*), 1) AS paid_pct
+FROM scored
+GROUP BY activation_week
+ORDER BY activation_week DESC
+LIMIT :max_weeks;
+```
+
+Output — one row per activation week:
+
+| Column | Meaning |
+|--------|---------|
+| `activation_week` | Monday of the week the cohort's orgs first received a webhook |
+| `activated` | Number of orgs that activated that week |
+| `retained_j7_pct` | Share of the cohort with event activity within 7 days of activation |
+| `retained_j30_pct` | Share of the cohort with event activity within 30 days of activation |
+| `paid_pct` | Share of the cohort currently on a paid plan |
+
+**Caveats (be honest about the data):**
+
+- **Paid is a current-state signal, not time-to-paid.** Postgres records only the org's *current* plan
+  (`iam.organization.price__id`); there is no "became paid at" timestamp. `paid_pct` therefore reflects
+  who is paid *now*, not who converted within the cohort window. The billing/subscription timing (when an
+  org started paying, MRR) lives in **Stripe**. To measure time-to-paid, export Stripe subscriptions
+  keyed by the Hook0 organization id (stored in the Stripe customer/subscription metadata) and join that
+  export to the `activation` CTE above on `organization_id` — the Postgres side of the recipe stays as-is.
+- **Retention can be undercounted for old cohorts.** Events are pruned per plan by the retention-limit
+  cleanup, so events older than an org's retention window may no longer exist in `event.event`. Recent
+  cohorts (within the shortest retention window) are unaffected; treat far-back weeks as a lower bound.
+- **Activation is org-level** (first successful delivery across all of the org's applications).
+
+A graphical dashboard on top of this query (e.g. a Metabase cohort chart) is a follow-up; the recipe
+above is the source of truth for the numbers.
+
 ## Event Naming Conventions
 
 ### Frontend (app.hook0.com)
