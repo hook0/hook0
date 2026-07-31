@@ -3,9 +3,10 @@ import * as UserService from './UserService.ts';
 import { Problem } from '@/http.ts';
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import router from '@/router.ts';
 import { routes } from '@/routes.ts';
 import { toast } from 'vue-sonner';
+import { useAuthStore } from '@/stores/auth';
+import { usePostAuthNavigation } from '@/composables/usePostAuthNavigation';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
 import { ArrowLeft } from 'lucide-vue-next';
@@ -22,6 +23,8 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 const { t } = useI18n();
 
 const route = useRoute();
+const authStore = useAuthStore();
+const { navigateAfterAuth } = usePostAuthNavigation();
 
 // Analytics tracking
 const { trackEvent, trackPageWithDimensions } = useTracking();
@@ -71,9 +74,11 @@ function _onLoad() {
   }
 
   UserService.verifyEmail(token)
-    .then(() => {
+    .then((session) => {
       displaySuccess();
-      return router.push({ name: routes.Login });
+      // Verification returns a real session: log the user in and drop them
+      // straight onto the wizard/dashboard instead of the login form.
+      return authStore.setSession(session).then(() => navigateAfterAuth());
     })
     .catch((err) => {
       displayError(err as Problem);
