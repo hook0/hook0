@@ -21,10 +21,14 @@
 //! `google_ads::first_event_conversion` already accepts).
 //!
 //! Sequencing. Candidates for every step are snapshotted at the START of a pass,
-//! before any send. A step's predecessor row can only exist from a PREVIOUS
-//! pass, so within one pass an org qualifies for at most one step — the series
-//! drips one email per pass instead of blasting all three at once (matters for
-//! the initial backlog of long-dormant accounts).
+//! before any send, so within one pass an org qualifies for at most one step.
+//! That alone does not pace the dormant backlog: an account already older than
+//! every sign-up-age threshold would otherwise pick up the next step on each
+//! (sub-daily) pass and receive all three within hours. So each step past the
+//! first also requires its predecessor's `sent_at` to be at least the gap
+//! between consecutive day-offsets in the past (J+3 ≥ 2 days after J+1, J+7 ≥ 4
+//! days after J+3). This holds the real J+1/J+3/J+7 cadence for brand-new
+//! sign-ups AND the long-dormant backlog.
 //!
 //! Opt-in: the job is only spawned when `ENABLE_REACTIVATION_EMAILS` is set.
 
@@ -76,6 +80,23 @@ const STEPS: [StepSpec; 3] = [
         predecessor: Some(STEP_DAY3),
     },
 ];
+
+/// Minimum days that must elapse after the predecessor step was sent before this
+/// step may fire, derived from the gap between consecutive sign-up-age thresholds
+/// (J+3 is 2 days after J+1, J+7 is 4 days after J+3). Without it, an account
+/// already past every threshold — the dormant backlog — would pick up the next
+/// step on the very next pass and get all three within hours. The first step has
+/// no predecessor, hence no spacing constraint.
+fn min_days_since_predecessor(spec: &StepSpec) -> i32 {
+    match spec.predecessor {
+        None => 0,
+        Some(pred_step) => STEPS
+            .iter()
+            .find(|s| s.step == pred_step)
+            .map(|pred| spec.min_age_days - pred.min_age_days)
+            .unwrap_or(0),
+    }
+}
 
 /// Runtime configuration for the drip: the per-step CTA URLs and the per-step
 /// per-pass row cap (bounds the work of a single pass).
@@ -175,6 +196,7 @@ async fn collect_pass(
             spec.step,
             spec.min_age_days,
             spec.predecessor,
+            min_days_since_predecessor(spec),
             config.max_per_step_per_run,
         )
         .await?;
@@ -184,13 +206,17 @@ async fn collect_pass(
 }
 
 /// Verified registrants whose organization has never ingested an event, are old
-/// enough for this step, have this step's predecessor recorded (if any), and
-/// have not already been sent this step. Bounded by `LIMIT`.
+/// enough for this step, have this step's predecessor recorded at least
+/// `min_days_since_predecessor` days ago (if any), and have not already been sent
+/// this step. The spacing on the predecessor's `sent_at` is what keeps the
+/// J+1/J+3/J+7 cadence from collapsing for accounts already past every age
+/// threshold (the dormant backlog). Bounded by `LIMIT`.
 async fn select_candidates(
     db: &PgPool,
     step: i16,
     min_age_days: i32,
     predecessor: Option<i16>,
+    min_days_since_predecessor: i32,
     limit: i64,
 ) -> Result<Vec<Candidate>, sqlx::Error> {
     let rows = sqlx::query!(
@@ -217,7 +243,9 @@ async fn select_candidates(
                   $3::smallint IS NULL
                   OR EXISTS (
                       SELECT 1 FROM iam.reactivation_email AS rp
-                      WHERE rp.organization__id = o.organization__id AND rp.step = $3
+                      WHERE rp.organization__id = o.organization__id
+                        AND rp.step = $3
+                        AND rp.sent_at <= statement_timestamp() - MAKE_INTERVAL(days => $5)
                   )
               )
             ORDER BY u.created_at
@@ -227,6 +255,7 @@ async fn select_candidates(
         step,
         predecessor,
         limit,
+        min_days_since_predecessor,
     )
     .fetch_all(db)
     .await?;
@@ -329,6 +358,20 @@ mod tests {
         .expect("backdate signup");
     }
 
+    /// Push a recorded step's send time `days` into the past so the minimum
+    /// spacing before the next step is satisfied.
+    async fn backdate_step_sent(pool: &PgPool, org: Uuid, step: i16, days: i32) {
+        sqlx::query(
+            r#"UPDATE iam.reactivation_email SET sent_at = statement_timestamp() - MAKE_INTERVAL(days => $1) WHERE organization__id = $2 AND step = $3"#,
+        )
+        .bind(days)
+        .bind(org)
+        .bind(step)
+        .execute(pool)
+        .await
+        .expect("backdate step sent_at");
+    }
+
     /// Clear a user's verification so they no longer look activable.
     async fn unverify(pool: &PgPool, user: Uuid) {
         sqlx::query(r#"UPDATE iam."user" SET email_verified_at = NULL WHERE user__id = $1"#)
@@ -360,7 +403,7 @@ mod tests {
         let org = seed_org(&pool, user).await;
         backdate_signup(&pool, user, 2).await;
 
-        let candidates = select_candidates(&pool, STEP_DAY1, 1, None, NO_LIMIT)
+        let candidates = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
             .await
             .expect("select");
 
@@ -377,7 +420,7 @@ mod tests {
         backdate_signup(&pool, user, 2).await;
         unverify(&pool, user).await;
 
-        let candidates = select_candidates(&pool, STEP_DAY1, 1, None, NO_LIMIT)
+        let candidates = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
             .await
             .expect("select");
 
@@ -391,7 +434,7 @@ mod tests {
         let _org = seed_org(&pool, user).await;
         // created_at defaults to now → age 0 < 1.
 
-        let candidates = select_candidates(&pool, STEP_DAY1, 1, None, NO_LIMIT)
+        let candidates = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
             .await
             .expect("select");
 
@@ -406,13 +449,14 @@ mod tests {
         let org = seed_org(&pool, user).await;
         backdate_signup(&pool, user, 5).await;
 
-        // J+1 was already sent…
+        // J+1 was already sent, long enough ago to clear the min spacing…
         assert!(claim_step(&pool, &org, STEP_DAY1).await.expect("claim d1"));
+        backdate_step_sent(&pool, org, STEP_DAY1, 2).await;
         // …then the org sends its first event.
         seed_event(&pool, org).await;
 
         // No further step is offered, despite the predecessor being present.
-        let day3 = select_candidates(&pool, STEP_DAY3, 3, Some(STEP_DAY1), NO_LIMIT)
+        let day3 = select_candidates(&pool, STEP_DAY3, 3, Some(STEP_DAY1), 2, NO_LIMIT)
             .await
             .expect("select d3");
         assert!(day3.is_empty(), "activation must stop the series");
@@ -426,18 +470,58 @@ mod tests {
         backdate_signup(&pool, user, 5).await;
 
         // Without J+1 recorded, J+3 is not offered.
-        let before = select_candidates(&pool, STEP_DAY3, 3, Some(STEP_DAY1), NO_LIMIT)
+        let before = select_candidates(&pool, STEP_DAY3, 3, Some(STEP_DAY1), 2, NO_LIMIT)
             .await
             .expect("select before");
         assert!(before.is_empty());
 
-        // Record J+1, then J+3 becomes eligible.
+        // Record J+1 far enough in the past to clear the min spacing, then J+3
+        // becomes eligible.
         assert!(claim_step(&pool, &org, STEP_DAY1).await.expect("claim d1"));
-        let after = select_candidates(&pool, STEP_DAY3, 3, Some(STEP_DAY1), NO_LIMIT)
+        backdate_step_sent(&pool, org, STEP_DAY1, 2).await;
+        let after = select_candidates(&pool, STEP_DAY3, 3, Some(STEP_DAY1), 2, NO_LIMIT)
             .await
             .expect("select after");
         assert_eq!(after.len(), 1);
         assert_eq!(after[0].organization_id, org);
+    }
+
+    /// A dormant backlog account (old enough for every threshold) does NOT get
+    /// the next step on the very next pass: the step waits until the minimum
+    /// spacing since the predecessor's send has elapsed, so the J+1/J+3/J+7
+    /// cadence holds even for accounts created long ago.
+    #[sqlx::test]
+    async fn next_step_waits_for_min_spacing_since_predecessor(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        // 30 days old: past every sign-up-age threshold — the dormant backlog case.
+        backdate_signup(&pool, user, 30).await;
+
+        let config = ReactivationConfig {
+            play_url: Url::parse("https://play.hook0.com/").unwrap(),
+            discord_url: Url::parse("https://www.hook0.com/community").unwrap(),
+            max_per_step_per_run: NO_LIMIT,
+        };
+
+        // J+1 recorded just now.
+        assert!(claim_step(&pool, &org, STEP_DAY1).await.expect("claim d1"));
+
+        // J+3 needs 2 days (3 - 1) since J+1 was sent → nothing offered yet, even
+        // though the account is old enough for every threshold.
+        let too_soon = collect_pass(&pool, &config)
+            .await
+            .expect("collect too soon");
+        assert!(
+            too_soon.is_empty(),
+            "next step must wait for the min spacing since its predecessor, not fire on the next pass"
+        );
+
+        // Once J+1 is 2 days old, J+3 unlocks (and only J+3).
+        backdate_step_sent(&pool, org, STEP_DAY1, 2).await;
+        let ready = collect_pass(&pool, &config).await.expect("collect ready");
+        assert_eq!(ready.len(), 1);
+        assert_eq!(ready[0].step, STEP_DAY3);
+        assert_eq!(ready[0].organization_id, org);
     }
 
     /// Claiming a step is idempotent: the second attempt reports "not claimed".
@@ -463,14 +547,14 @@ mod tests {
 
         // Claimed → excluded from selection.
         assert!(claim_step(&pool, &org, STEP_DAY1).await.expect("claim"));
-        let claimed = select_candidates(&pool, STEP_DAY1, 1, None, NO_LIMIT)
+        let claimed = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
             .await
             .expect("select claimed");
         assert!(claimed.is_empty());
 
         // Released → selectable again.
         release_step(&pool, &org, STEP_DAY1).await.expect("release");
-        let released = select_candidates(&pool, STEP_DAY1, 1, None, NO_LIMIT)
+        let released = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
             .await
             .expect("select released");
         assert_eq!(released.len(), 1);
@@ -510,8 +594,19 @@ mod tests {
         };
 
         // Simulate a pass by collecting then claiming (the SMTP send is covered
-        // by the mailer's own rendering tests).
-        for expected_step in [STEP_DAY1, STEP_DAY3, STEP_DAY7] {
+        // by the mailer's own rendering tests). Each successive step only unlocks
+        // once the minimum spacing since its predecessor's send has elapsed (J+3
+        // = 2 days after J+1, J+7 = 4 days after J+3), so age the predecessor
+        // before collecting the next pass.
+        let walk = [
+            (STEP_DAY1, None, 0),
+            (STEP_DAY3, Some(STEP_DAY1), 2),
+            (STEP_DAY7, Some(STEP_DAY3), 4),
+        ];
+        for (expected_step, predecessor, gap_days) in walk {
+            if let Some(pred) = predecessor {
+                backdate_step_sent(&pool, org, pred, gap_days).await;
+            }
             let planned = collect_pass(&pool, &config).await.expect("collect");
             assert_eq!(planned.len(), 1);
             assert_eq!(planned[0].step, expected_step);
@@ -541,7 +636,7 @@ mod tests {
             backdate_signup(&pool, user, 2).await;
         }
 
-        let candidates = select_candidates(&pool, STEP_DAY1, 1, None, 2)
+        let candidates = select_candidates(&pool, STEP_DAY1, 1, None, 0, 2)
             .await
             .expect("select");
 
