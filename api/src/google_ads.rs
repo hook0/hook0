@@ -60,7 +60,7 @@ static CONVERSIONS_UPLOADED: LazyLock<Counter<u64>> = LazyLock::new(|| {
 });
 
 /// Count one terminal conversion-upload outcome. `kind` is the conversion kind
-/// (`signup` / `activation` / `first_event`); `outcome` is `success`,
+/// (`signup` / `activation` / `first_event` / `first_webhook_delivered`); `outcome` is `success`,
 /// `partial_failure` (Google rejected the operation, e.g. unknown gclid) or
 /// `failed` (transport/API error after exhausting retries).
 pub(crate) fn report_conversion_uploaded(kind: &'static str, outcome: &'static str) {
