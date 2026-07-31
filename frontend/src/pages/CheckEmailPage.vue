@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
 import { routes } from '@/routes';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
@@ -19,7 +18,6 @@ import Hook0EmptyState from '@/components/Hook0EmptyState.vue';
 import Hook0Logo from '@/components/Hook0Logo.vue';
 
 const { t } = useI18n();
-const route = useRoute();
 
 // Analytics tracking
 const { trackEvent, trackPageWithDimensions } = useTracking();
@@ -29,11 +27,16 @@ const { trackEvent, trackPageWithDimensions } = useTracking();
 // actually be sent again.
 const RESEND_COOLDOWN_SECONDS = 60;
 
-// Address to resend to, carried over from the signup redirect. Empty when the
-// page is opened without it (e.g. a bookmarked /check-email): the resend action
-// is simply hidden in that case.
-const emailParam = route.query.email;
-const email = typeof emailParam === 'string' ? emailParam : '';
+// Address to resend to, carried over from the signup redirect via History API
+// state (window.history.state), never the URL. This keeps the email out of
+// analytics: vue-matomo auto-tracks the SPA URL — query string included — as the
+// Matomo page/referrer URL, so an `?email=` query would leak it. State survives
+// a page refresh, so the resend flow stays refresh-safe. Empty when the page is
+// opened without it (e.g. a bookmarked /check-email): the resend action is
+// simply hidden in that case.
+const historyState = window.history.state as { email?: unknown } | null;
+const stateEmail = historyState ? historyState.email : undefined;
+const email = typeof stateEmail === 'string' ? stateEmail : '';
 const canResend = email.length > 0;
 
 const isResending = ref<boolean>(false);

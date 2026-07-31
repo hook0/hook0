@@ -111,7 +111,12 @@ const onSubmit = handleSubmit((values) => {
     )
     .then(() => {
       trackEvent('signup', 'form-success', 'register');
-      return router.push({ name: routes.CheckEmail, query: { email: values.email } });
+      // Carry the address to the check-email page via History API state, never
+      // the URL: vue-matomo auto-tracks the SPA URL (query string included) as
+      // the Matomo page/referrer URL, so an `?email=` query would ship the
+      // user's email to analytics. State survives a refresh, keeping the resend
+      // flow refresh-safe.
+      return router.push({ name: routes.CheckEmail, state: { email: values.email } });
     })
     .catch((err) => {
       const problem = handleAuthError(err);

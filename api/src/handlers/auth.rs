@@ -735,6 +735,13 @@ pub async fn resend_verification_email(
 
     let body = body.into_inner();
 
+    // SECURITY: the dominant enumeration timing channel — the mail send — is
+    // decoupled below via `tokio::spawn`, so response latency is independent of
+    // whether the address matches an account. A residual sub-cooldown,
+    // microsecond-scale asymmetry remains because the atomic `UPDATE ... RETURNING`
+    // only writes a row on a match; this DB-write timing difference is an accepted
+    // limitation (closing it with dummy writes adds risk for no practical gain).
+
     // Atomically claim the right to send: only an unverified account past its
     // cooldown matches, and the very same statement stamps the new send time.
     // Everything else (unknown email, already verified, still within cooldown)
@@ -1151,6 +1158,119 @@ mod resend_verification_email_tests {
         assert_eq!(
             first_sent, second_sent,
             "a resend within the cooldown must not send again"
+        );
+    }
+}
+
+#[cfg(test)]
+mod verify_email_single_use_tests {
+    use crate::google_ads::test_support::test_state;
+    use crate::iam::create_email_verification_token;
+    use actix_web::{App, http::StatusCode, test, web};
+    use chrono::{DateTime, Utc};
+    use sqlx::PgPool;
+    use uuid::Uuid;
+
+    /// Insert a user whose email is NOT verified yet, returning its id.
+    async fn seed_unverified_user(pool: &PgPool, email: &str) -> Uuid {
+        let user_id = Uuid::new_v4();
+        sqlx::query(
+            r#"
+                INSERT INTO iam."user" (user__id, email, password, first_name, last_name)
+                VALUES ($1, $2, 'unused-hash', 'Test', 'User')
+            "#,
+        )
+        .bind(user_id)
+        .bind(email)
+        .execute(pool)
+        .await
+        .expect("seed unverified user");
+        user_id
+    }
+
+    /// Read back when the account was marked verified (NULL until it is).
+    async fn email_verified_at(pool: &PgPool, user_id: Uuid) -> Option<DateTime<Utc>> {
+        let row: (Option<DateTime<Utc>>,) =
+            sqlx::query_as(r#"SELECT email_verified_at FROM iam."user" WHERE user__id = $1"#)
+                .bind(user_id)
+                .fetch_one(pool)
+                .await
+                .expect("read email_verified_at");
+        row.0
+    }
+
+    /// Build a test service exposing only the verify-email endpoint against
+    /// `pool`, and POST `token` to it. The SMTP transport in `test_state` points
+    /// at a dead port, so the post-verification welcome mail fails fast and is
+    /// swallowed — verification itself still answers, which is the behaviour under
+    /// test.
+    async fn verify(
+        pool: &PgPool,
+        private_key: &biscuit_auth::PrivateKey,
+        token: &str,
+    ) -> actix_web::dev::ServiceResponse {
+        let state = test_state(pool.clone(), private_key.clone(), None).await;
+        let app = test::init_service(App::new().app_data(web::Data::new(state)).service(
+            web::scope("/api/v1").service(web::scope("/auth").service(
+                web::resource("/verify-email").route(web::post().to(super::verify_email)),
+            )),
+        ))
+        .await;
+
+        let req = test::TestRequest::post()
+            .uri("/api/v1/auth/verify-email")
+            .set_json(serde_json::json!({ "token": token }))
+            .to_request();
+        test::call_service(&app, req).await
+    }
+
+    /// After the verification-token TTL was extended to 24h, the token is still
+    /// single-use. A freshly minted token is well within its 24h validity window,
+    /// so authorization succeeds on BOTH calls — yet the second call must be a
+    /// no-op: single use is enforced by the `email_verified_at IS NULL` guard in
+    /// the handler, not by token expiry. The replayed call neither verifies a
+    /// second time (no second NoContent, no new session) nor re-stamps
+    /// `email_verified_at`.
+    #[sqlx::test]
+    async fn verification_token_stays_single_use_within_its_24h_ttl(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let email = format!("verify-once-{}@example.com", Uuid::new_v4());
+        let user_id = seed_unverified_user(&pool, &email).await;
+
+        let token = create_email_verification_token(&keypair.private(), user_id)
+            .expect("create verification token")
+            .serialized_biscuit;
+
+        assert!(
+            email_verified_at(&pool, user_id).await.is_none(),
+            "precondition: the account is not verified yet"
+        );
+
+        // First use: verifies the account.
+        let first = verify(&pool, &keypair.private(), &token).await;
+        assert_eq!(
+            first.status(),
+            StatusCode::NO_CONTENT,
+            "the first use of a valid token verifies the account"
+        );
+        let verified_at = email_verified_at(&pool, user_id)
+            .await
+            .expect("first verification stamps email_verified_at");
+
+        // Second use of the SAME, still-valid token: must be rejected and change
+        // nothing.
+        let second = verify(&pool, &keypair.private(), &token).await;
+        assert_ne!(
+            second.status(),
+            StatusCode::NO_CONTENT,
+            "a replayed verification token must not verify a second time"
+        );
+        let verified_at_after = email_verified_at(&pool, user_id)
+            .await
+            .expect("email_verified_at is still set after the replayed attempt");
+        assert_eq!(
+            verified_at, verified_at_after,
+            "the replayed token must not re-stamp email_verified_at (no second mutation)"
         );
     }
 }
