@@ -229,6 +229,13 @@ async fn select_candidates(
             INNER JOIN iam.user AS u ON u.user__id = o.created_by
             WHERE u.email_verified_at IS NOT NULL
               AND u.created_at <= statement_timestamp() - MAKE_INTERVAL(days => $1)
+              -- "Org has never ingested an event": this NOT EXISTS is the
+              -- canonical "event sent" signal, intentionally mirrored inline
+              -- here for a set-based batch job rather than calling per-org into
+              -- onboarding.rs. It must stay in sync with the `event` projection
+              -- of `get_organization_onboarding_steps` in api/src/onboarding.rs
+              -- (same event.event ⋈ event.application on organization__id); a
+              -- change to that definition is a known sync point for this query.
               AND NOT EXISTS (
                   SELECT 1
                   FROM event.event AS e
@@ -344,7 +351,7 @@ fn mail_for_step(candidate: &Candidate, config: &ReactivationConfig) -> Result<M
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::google_ads::test_support::{seed_event, seed_org, seed_user};
+    use crate::google_ads::test_support::{failing_mailer, seed_event, seed_org, seed_user};
 
     /// Move a user's sign-up date `days` into the past so age thresholds unlock.
     async fn backdate_signup(pool: &PgPool, user: Uuid, days: i32) {
@@ -641,5 +648,53 @@ mod tests {
             .expect("select");
 
         assert_eq!(candidates.len(), 2, "LIMIT must cap the selection");
+    }
+
+    /// A send failure inside the real pass loop must release the claim so the
+    /// org stays eligible on the next pass — the send-failure→release
+    /// orchestration, not `release_step` in isolation. The mailer is a real
+    /// `Mailer` whose SMTP transport points at an unreachable endpoint, so the
+    /// send fails at the boundary (a real failure, not a mock of the code under
+    /// test). One eligible org is seeded; after the pass we assert nothing was
+    /// counted as sent, no `reactivation_email` row survives (claim released),
+    /// and the org is offered the same step again next pass.
+    #[sqlx::test]
+    async fn send_failure_releases_claim_so_org_stays_eligible(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        backdate_signup(&pool, user, 2).await;
+
+        let config = ReactivationConfig {
+            play_url: Url::parse("https://play.hook0.com/").unwrap(),
+            discord_url: Url::parse("https://www.hook0.com/community").unwrap(),
+            max_per_step_per_run: NO_LIMIT,
+        };
+        let mailer = failing_mailer().await;
+
+        // Drive the REAL pass. The SMTP endpoint is unreachable, so the send
+        // fails at the boundary and the loop must release the claim.
+        let sent = run_reactivation_pass(&pool, &mailer, &config)
+            .await
+            .expect("pass runs despite send failure");
+        assert_eq!(sent, 0, "a failed send must not be counted as sent");
+
+        // Claim released: no row persisted for the org, so it is not marked as
+        // already-sent for any step.
+        assert!(
+            steps_sent(&pool, org).await.is_empty(),
+            "the claim must be released on send failure, leaving no persisted step"
+        );
+
+        // Org remains eligible for the same step on the next pass.
+        let next = collect_pass(&pool, &config)
+            .await
+            .expect("collect next pass");
+        assert_eq!(
+            next.len(),
+            1,
+            "org must remain eligible after a failed send"
+        );
+        assert_eq!(next[0].organization_id, org);
+        assert_eq!(next[0].step, STEP_DAY1);
     }
 }
