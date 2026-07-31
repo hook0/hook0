@@ -1,0 +1,54 @@
+import { test, expect } from "@playwright/test";
+import { getVerificationTokenFromMailpit, API_BASE_URL } from "../fixtures/email-verification";
+
+/**
+ * Auto-login-after-email-verification E2E guard.
+ *
+ * The headline UX of the auto-login feature: a freshly registered (unverified)
+ * user opens the verification link and lands authenticated on the onboarding
+ * wizard / dashboard WITHOUT ever touching the login form. This exercises the
+ * real browser path VerifyEmail.vue -> authStore.setSession -> navigateAfterAuth.
+ *
+ * The verification token is pulled straight from the email in Mailpit (the same
+ * mechanism the shared fixtures use, available both locally and in CI) and is
+ * consumed by the BROWSER — no API-side shortcut, no mocks — so the assertion
+ * proves the end-to-end auto-login redirect.
+ */
+test.describe("Email verification auto-login", () => {
+  test("verifies email in the browser and lands authenticated without a manual login", async ({
+    page,
+    request,
+  }) => {
+    // Register a brand-new, unverified user via API.
+    const timestamp = Date.now();
+    const email = `test-verify-autologin-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+
+    // Pull the verification token from the email (Mailpit) WITHOUT consuming it,
+    // so the BROWSER is the one that verifies + auto-logs-in.
+    const token = await getVerificationTokenFromMailpit(request, email);
+    expect(token.length).toBeGreaterThan(0);
+
+    // Open the verification link in the browser — the real user path. We never
+    // visit /login and never fill a login form.
+    await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
+
+    // Auto-login lands the user straight on the wizard/dashboard, NOT the login
+    // form and NOT the verify-email "Back to login" error card.
+    await expect(page).toHaveURL(/\/tutorial|\/organizations|\/dashboard/, {
+      timeout: 15000,
+    });
+    await expect(page.locator('[data-test="verify-email-error"]')).toHaveCount(0);
+    await expect(page.locator('[data-test="login-form"]')).toHaveCount(0);
+
+    // Prove the session actually authenticates protected navigation: reloading
+    // the protected landing stays put instead of bouncing to /login.
+    await page.reload();
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 10000 });
+  });
+});

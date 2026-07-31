@@ -2,7 +2,7 @@
 import * as UserService from './UserService.ts';
 import { Problem } from '@/http.ts';
 import { onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { routes } from '@/routes.ts';
 import { toast } from 'vue-sonner';
 import { useAuthStore } from '@/stores/auth';
@@ -23,6 +23,7 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 const { t } = useI18n();
 
 const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
 const { navigateAfterAuth } = usePostAuthNavigation();
 
@@ -78,7 +79,17 @@ function _onLoad() {
       displaySuccess();
       // Verification returns a real session: log the user in and drop them
       // straight onto the wizard/dashboard instead of the login form.
-      return authStore.setSession(session).then(() => navigateAfterAuth());
+      return authStore.setSession(session).then(() =>
+        // The session is now established — the user is authenticated. If the
+        // post-auth navigation probe (organization/application listing) fails,
+        // keep treating the user as logged in and fall back to Home rather than
+        // showing the "Back to login" error card. Only a failure BEFORE the
+        // session exists (invalid/expired token) should send them to login.
+        navigateAfterAuth().catch((navErr) => {
+          console.error(navErr);
+          return router.push({ name: routes.Home });
+        })
+      );
     })
     .catch((err) => {
       displayError(err as Problem);
