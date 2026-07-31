@@ -19,6 +19,8 @@ import { routes } from '@/routes';
 import { handleMutationError } from '@/utils/handleMutationError';
 import { useAuthStore } from '@/stores/auth';
 import { useClipboardCopy } from '@/composables/useClipboardCopy';
+import { useOnboardingStore } from '@/stores/onboarding';
+import { getUseCasePreset, formatEventTypeName } from '@/utils/usecasePreset';
 
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
@@ -139,13 +141,19 @@ function formatDateTimeLocal(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+// In the onboarding tutorial, pre-select the event type created a step earlier and
+// seed matching labels + payload from the use-case chosen at intro. Outside the
+// tutorial (or when "Other"/skipped), keep the generic defaults.
+const onboarding = useOnboardingStore();
+const preset = props.tutorialMode ? getUseCasePreset(onboarding.useCase) : undefined;
+
 const { meta, values, setFieldValue } = useForm<SendEventForm>({
   validationSchema: toTypedSchema(sendEventSchema),
   initialValues: {
-    eventType: '',
-    labels: [{ key: 'user_id', value: '1' }],
+    eventType: preset ? formatEventTypeName(preset.eventType) : '',
+    labels: preset ? preset.labels : [{ key: 'user_id', value: '1' }],
     occurredAt: formatDateTimeLocal(new Date()),
-    payload: '{"test": true}',
+    payload: preset ? preset.payload : '{"test": true}',
   },
 });
 
