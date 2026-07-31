@@ -329,4 +329,39 @@ mod tests {
             "org stays pending for the next pass"
         );
     }
+
+    /// Dark by construction: with the first-webhook-delivered conversion action
+    /// unset (the default until it is provisioned in the Google Ads console), a
+    /// pass is fully inert even for an otherwise-eligible org — it uploads
+    /// nothing and leaves the tracking column NULL. In production the job is not
+    /// even spawned while the action id is absent (main.rs gates on the same
+    /// `Option`); the client short-circuits to `Skipped` before any HTTP call,
+    /// so nothing reaches Google and nothing is marked.
+    #[sqlx::test]
+    async fn dark_when_conversion_action_unset(pool: PgPool) {
+        let fake = FakeGoogleAds::start(200, "{}");
+        // Last arg None → no first-webhook-delivered conversion action configured.
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None, None);
+
+        // Same setup as the eligible-org test: only the unset action makes it dark.
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        seed_attribution(&pool, user, org, "gclid-dark", true).await;
+        let (application_id, event_id) = seed_event(&pool, org).await;
+        seed_request_attempt(&pool, application_id, event_id, true).await;
+
+        let uploaded = upload_pending_first_webhook_delivered_conversions(&pool, &client)
+            .await
+            .expect("pass ok");
+
+        assert_eq!(uploaded, 0, "nothing is uploaded while the feature is dark");
+        assert!(
+            fake.requests().is_empty(),
+            "no HTTP request reaches Google — the client returns Skipped first"
+        );
+        assert!(
+            !first_webhook_delivered_uploaded(&pool, org).await,
+            "the tracking column stays NULL — nothing is marked"
+        );
+    }
 }

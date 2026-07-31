@@ -15,12 +15,15 @@
 //! This module also owns the `iam.signup_attribution` gclid lifecycle shared by
 //! the registration / email-verification flow (signup conversion), the
 //! application-secret / service-token creation flow (activation conversion) and
-//! the background job that uploads the first-event conversion. The gclid is
-//! retained until every ENABLED conversion has been uploaded, then cleared (data
-//! minimisation): signup and activation always count; the first-event conversion
-//! counts only when it is configured. The retention-window cleanup in
-//! `handlers::registrations` (see `SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS`) is the
-//! safety net for rows that never reach that state. See
+//! the two background jobs that upload the first-event conversion and the
+//! first-webhook-delivered conversion (the deepest funnel step: an org's first
+//! successful webhook delivery). The gclid is retained until every ENABLED
+//! conversion has been uploaded, then cleared (data minimisation): signup and
+//! activation always count; the first-event and first-webhook-delivered
+//! conversions each gate gclid nullification only when they are configured. The
+//! retention-window cleanup in `handlers::registrations` (see
+//! `SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS`) is the safety net for rows that never
+//! reach that state. See
 //! `documentation/hook0-cloud/legitimate-interest-balance-test-google-ads.md`.
 
 use chrono::{DateTime, Utc};
