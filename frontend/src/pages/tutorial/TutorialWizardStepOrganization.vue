@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Building2 } from 'lucide-vue-next';
 
@@ -18,6 +18,25 @@ const options = computed(() => [
   { label: t('tutorial.selectOrganization'), value: '' },
   ...(rawOrgs.value ?? []).map((o) => ({ label: o.name, value: o.organization_id })),
 ]);
+
+// Signup already provisions a personal organization for every new user, so when the
+// user owns exactly one organization this step is redundant: auto-advance with it
+// (once) instead of asking them to pick again.
+const hasAutoAdvanced = ref(false);
+watch(
+  [isLoading, rawOrgs],
+  () => {
+    if (hasAutoAdvanced.value || isLoading.value || error.value) {
+      return;
+    }
+    const orgs = rawOrgs.value ?? [];
+    if (orgs.length === 1) {
+      hasAutoAdvanced.value = true;
+      emit('advance', orgs[0].organization_id);
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
