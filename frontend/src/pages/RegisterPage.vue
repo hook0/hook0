@@ -111,7 +111,7 @@ const onSubmit = handleSubmit((values) => {
     )
     .then(() => {
       trackEvent('signup', 'form-success', 'register');
-      return router.push({ name: routes.CheckEmail });
+      return router.push({ name: routes.CheckEmail, query: { email: values.email } });
     })
     .catch((err) => {
       const problem = handleAuthError(err);

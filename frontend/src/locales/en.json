@@ -71,6 +71,10 @@
       "backToLogin": "Back to sign in",
       "contactSupport": "Contact support",
       "description": "We've sent a verification email to your address. Please check your inbox and confirm your email to get started.",
+      "resend": "Resend verification email",
+      "resendCooldown": "Resend available in {seconds}s",
+      "resendError": "Could not resend the email. Please try again in a moment.",
+      "resendSuccess": "If that address needs verifying, a new email is on its way.",
       "spamNote": "Didn't receive the email? Check your spam folder or contact support.",
       "title": "Check your email"
     },

@@ -704,6 +704,112 @@ pub async fn begin_reset_password(
     }
 }
 
+/// Cooldown between two verification emails for the same account. Enforced in
+/// the database (a single timestamp column) so it holds across API replicas and
+/// cannot be bypassed by rotating the source IP. Short enough to stay friendly
+/// (a user who missed the first email retries quickly), long enough to make the
+/// endpoint useless for mailbox flooding.
+const RESEND_VERIFICATION_EMAIL_COOLDOWN_SECS: f64 = 60.0;
+
+#[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
+pub struct ResendVerificationEmailPost {
+    #[validate(non_control_character, email, length(max = 100))]
+    email: String,
+}
+
+#[api_v2_operation(
+    summary = "Resend the email verification message",
+    description = "Send a fresh verification link to a user whose email is not verified yet. Always answers the same way whether or not the email matches an account, so it never discloses which addresses are registered.",
+    operation_id = "auth.resend_verification_email",
+    consumes = "application/json",
+    produces = "application/json",
+    tags("User Authentication")
+)]
+pub async fn resend_verification_email(
+    state: Data<crate::State>,
+    body: Json<ResendVerificationEmailPost>,
+) -> Result<NoContent, Hook0Problem> {
+    if let Err(e) = body.validate() {
+        return Err(Hook0Problem::Validation(e));
+    }
+
+    let body = body.into_inner();
+
+    // Atomically claim the right to send: only an unverified account past its
+    // cooldown matches, and the very same statement stamps the new send time.
+    // Everything else (unknown email, already verified, still within cooldown)
+    // matches no row and silently falls through to the identical response below.
+    struct Recipient {
+        user_id: Uuid,
+        email: String,
+        first_name: String,
+        last_name: String,
+    }
+    let recipient = query_as!(
+        Recipient,
+        r#"
+            UPDATE iam."user"
+            SET email_verification_sent_at = statement_timestamp()
+            WHERE email = $1
+              AND email_verified_at IS NULL
+              AND (
+                  email_verification_sent_at IS NULL
+                  OR email_verification_sent_at < statement_timestamp() - MAKE_INTERVAL(secs => $2)
+              )
+            RETURNING
+                user__id AS "user_id!",
+                email AS "email!",
+                first_name AS "first_name!",
+                last_name AS "last_name!"
+        "#,
+        &body.email,
+        RESEND_VERIFICATION_EMAIL_COOLDOWN_SECS,
+    )
+    .fetch_optional(&state.db)
+    .await?;
+
+    if let Some(user) = recipient {
+        let verification_token =
+            crate::iam::create_email_verification_token(&state.biscuit_private_key, user.user_id)
+                .map_err(|e| {
+                error!("Error trying to create email verification token: {e}");
+                Hook0Problem::InternalServerError
+            })?;
+
+        let url = {
+            let mut url = state
+                .app_url
+                .join("verify-email")
+                .map_err(|_| Hook0Problem::InternalServerError)?;
+            url.query_pairs_mut()
+                .append_pair("token", &verification_token.serialized_biscuit);
+            url
+        };
+
+        // A send failure must neither change the response (anti-enumeration is
+        // preserved) nor surface an error: it is logged and swallowed, exactly
+        // like the post-verification welcome email.
+        match Address::from_str(&user.email) {
+            Ok(address) => {
+                let mailbox = Mailbox::new(
+                    Some(format!("{} {}", user.first_name, user.last_name)),
+                    address,
+                );
+                let mail = Mail::VerifyUserEmail {
+                    recipient_first_name: Some(user.first_name.clone()),
+                    url,
+                };
+                if let Err(e) = state.mailer.send_mail(mail, mailbox).await {
+                    warn!("Could not resend verification email to {}: {e}", user.email);
+                }
+            }
+            Err(e) => warn!("Could not parse user email to resend verification message: {e}"),
+        }
+    }
+
+    Ok(NoContent)
+}
+
 #[api_v2_operation(
     summary = "Reset password",
     description = "Reset the password of a user.",
@@ -877,4 +983,158 @@ async fn generate_hashed_password(password: &str) -> Result<PasswordHashString, 
         error!("Failed to run password hashing task: {e}");
         Hook0Problem::InternalServerError
     })?
+}
+
+#[cfg(test)]
+mod resend_verification_email_tests {
+    use crate::google_ads::test_support::{seed_user, test_state};
+    use actix_web::{App, http::StatusCode, test, web};
+    use chrono::{DateTime, Utc};
+    use sqlx::PgPool;
+    use uuid::Uuid;
+
+    /// Insert a user whose email is NOT verified yet (the default: the column is
+    /// nullable and left NULL), returning its id.
+    async fn seed_unverified_user(pool: &PgPool, email: &str) -> Uuid {
+        let user_id = Uuid::new_v4();
+        sqlx::query(
+            r#"
+                INSERT INTO iam."user" (user__id, email, password, first_name, last_name)
+                VALUES ($1, $2, 'unused-hash', 'Test', 'User')
+            "#,
+        )
+        .bind(user_id)
+        .bind(email)
+        .execute(pool)
+        .await
+        .expect("seed unverified user");
+        user_id
+    }
+
+    /// Read back when the verification email was last (re)sent for a user.
+    async fn verification_sent_at(pool: &PgPool, user_id: Uuid) -> Option<DateTime<Utc>> {
+        let row: (Option<DateTime<Utc>>,) = sqlx::query_as(
+            r#"SELECT email_verification_sent_at FROM iam."user" WHERE user__id = $1"#,
+        )
+        .bind(user_id)
+        .fetch_one(pool)
+        .await
+        .expect("read email_verification_sent_at");
+        row.0
+    }
+
+    /// Build a test service exposing only the resend endpoint against `pool`.
+    /// The SMTP transport in `test_state` points at a dead port, so the send
+    /// fails fast and is swallowed by the handler — every path still answers
+    /// NoContent, which is exactly the behaviour under test.
+    async fn resend(pool: &PgPool, email: &str) -> actix_web::dev::ServiceResponse {
+        let keypair = biscuit_auth::KeyPair::new();
+        let state = test_state(pool.clone(), keypair.private().clone(), None).await;
+        let app = test::init_service(
+            App::new().app_data(web::Data::new(state)).service(
+                web::scope("/api/v1").service(
+                    web::scope("/auth").service(
+                        web::resource("/resend-verification-email")
+                            .route(web::post().to(super::resend_verification_email)),
+                    ),
+                ),
+            ),
+        )
+        .await;
+
+        let req = test::TestRequest::post()
+            .uri("/api/v1/auth/resend-verification-email")
+            .set_json(serde_json::json!({ "email": email }))
+            .to_request();
+        test::call_service(&app, req).await
+    }
+
+    /// A resend for an unverified account answers NoContent and stamps the send
+    /// time (so the cooldown starts ticking).
+    #[sqlx::test]
+    async fn resend_for_unverified_user_sends_and_stamps(pool: PgPool) {
+        let email = format!("unverified-{}@example.com", Uuid::new_v4());
+        let user_id = seed_unverified_user(&pool, &email).await;
+
+        assert!(
+            verification_sent_at(&pool, user_id).await.is_none(),
+            "precondition: no verification email recorded yet"
+        );
+
+        let resp = resend(&pool, &email).await;
+        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+
+        assert!(
+            verification_sent_at(&pool, user_id).await.is_some(),
+            "a verification email was (attempted to be) sent, so the send time is stamped"
+        );
+    }
+
+    /// The response for an address that matches no account is byte-for-byte
+    /// identical to the response for a real unverified account: the endpoint
+    /// never reveals which emails are registered.
+    #[sqlx::test]
+    async fn resend_response_is_identical_for_unknown_and_known_email(pool: PgPool) {
+        let known = format!("known-{}@example.com", Uuid::new_v4());
+        seed_unverified_user(&pool, &known).await;
+        let unknown = format!("nobody-{}@example.com", Uuid::new_v4());
+
+        let known_resp = resend(&pool, &known).await;
+        let known_status = known_resp.status();
+        let known_body = test::read_body(known_resp).await;
+
+        let unknown_resp = resend(&pool, &unknown).await;
+        let unknown_status = unknown_resp.status();
+        let unknown_body = test::read_body(unknown_resp).await;
+
+        assert_eq!(known_status, StatusCode::NO_CONTENT);
+        assert_eq!(
+            unknown_status, known_status,
+            "status must not leak existence"
+        );
+        assert_eq!(unknown_body, known_body, "body must not leak existence");
+    }
+
+    /// An already-verified account is never (re)sent a verification email: the
+    /// response is still NoContent, but nothing is stamped.
+    #[sqlx::test]
+    async fn resend_is_a_noop_for_a_verified_user(pool: PgPool) {
+        // `seed_user` creates a *verified* user with a deterministic email.
+        let user_id = seed_user(&pool).await;
+        let email = format!("e2e-{user_id}@example.com");
+
+        let resp = resend(&pool, &email).await;
+        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+
+        assert!(
+            verification_sent_at(&pool, user_id).await.is_none(),
+            "verified users are never sent a verification email"
+        );
+    }
+
+    /// A second resend within the cooldown window is throttled: it answers the
+    /// same NoContent but does not send again (the stamped send time is
+    /// unchanged).
+    #[sqlx::test]
+    async fn resend_is_rate_limited_per_email(pool: PgPool) {
+        let email = format!("throttled-{}@example.com", Uuid::new_v4());
+        let user_id = seed_unverified_user(&pool, &email).await;
+
+        let first = resend(&pool, &email).await;
+        assert_eq!(first.status(), StatusCode::NO_CONTENT);
+        let first_sent = verification_sent_at(&pool, user_id)
+            .await
+            .expect("first resend stamps the send time");
+
+        let second = resend(&pool, &email).await;
+        assert_eq!(second.status(), StatusCode::NO_CONTENT);
+        let second_sent = verification_sent_at(&pool, user_id)
+            .await
+            .expect("send time is still present after the throttled attempt");
+
+        assert_eq!(
+            first_sent, second_sent,
+            "a resend within the cooldown must not send again"
+        );
+    }
 }

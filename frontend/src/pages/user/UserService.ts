@@ -23,6 +23,12 @@ export async function verifyEmail(token: string): Promise<void> {
   return unwrapResponse(http.unauthenticated.post<void>(`/auth/verify-email`, { token }));
 }
 
+export async function resendVerificationEmail(email: string): Promise<void> {
+  return unwrapResponse(
+    http.unauthenticated.post<void>(`/auth/resend-verification-email`, { email })
+  );
+}
+
 export async function beginResetPassword(email: string): Promise<void> {
   return unwrapResponse(http.unauthenticated.post<void>(`/auth/begin-reset-password`, { email }));
 }
