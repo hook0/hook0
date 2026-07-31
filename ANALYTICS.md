@@ -14,7 +14,10 @@ Hook0 uses Matomo for web analytics across three properties:
 | Variable | Description |
 |----------|-------------|
 | `MATOMO_URL` | Matomo instance URL (e.g., `https://matomo.hook0.com/`) |
-| `MATOMO_SITE_ID` | Site ID in Matomo (each property has its own ID) |
+| `MATOMO_SITE_ID` | Site ID in Matomo (each property has its own ID; the app site is `2`) |
+| `MATOMO_TOKEN_AUTH` | Server-side Tracking API `token_auth` secret. Enables the server-side activation event (see North-Star Metric). Dark by default: unset means no server-side emission. |
+| `MATOMO_ACTIVATION_PERIOD_IN_S` | Seconds between server-side activation-event scan passes (default `300`, `0` disables) |
+| `MATOMO_ACTIVATION_SCAN_LIMIT` | Max organizations claimed per activation scan pass (default `500`, range `[1, 10000]`) |
 
 ## Matomo Goals Configuration
 
@@ -69,6 +72,32 @@ and marks the org idempotently (`iam.signup_attribution.first_webhook_delivered_
 > deliverability. Only the pseudonymous `gclid` (already issued by Google at ad click) is sent back; no
 > Hook0 PII leaves the system.
 
+### Server-side Matomo activation event (`activation` / `first-webhook-delivered`)
+
+The **product-activation Goal** (distinct from the Google Ads conversion above, and not gated on any ad
+attribution) is fed by a Matomo event emitted **server-side** — activation happens in the delivery
+worker, so it cannot be a browser `trackEvent`. A periodic background job (`api/src/matomo.rs`) sends the
+event through Matomo's **HTTP Tracking API** (`POST {MATOMO_URL}matomo.php`) for **every** organization on
+its genuine first successful webhook delivery, once each. The per-org one-shot claim lives in
+`iam.organization.matomo_activation_emitted_at` (stamped before sending, released back to `NULL` if the
+send fails so the org is retried next pass). The event uses category `activation`, action
+`first-webhook-delivered`, and dates the event at the org's first delivery (`cdt`).
+
+| Aspect | Value |
+|--------|-------|
+| Event Category / Action | `activation` / `first-webhook-delivered` |
+| Target site | `MATOMO_SITE_ID` (the app site, `2`) |
+| Emission | Server-side periodic job (background scan; never the delivery hot path) |
+| Visitor id (`_id`) | 16-hex pseudonymous value derived from the organization id — **no PII**, no email, no user id |
+| Enable (dark by default) | Set `MATOMO_URL` + `MATOMO_SITE_ID` + `MATOMO_TOKEN_AUTH` |
+| Scan period | `MATOMO_ACTIVATION_PERIOD_IN_S` (default `300`, `0` disables) |
+| Scan limit | `MATOMO_ACTIVATION_SCAN_LIMIT` (default `500`) |
+
+> **Dark by default:** when any of `MATOMO_URL` / `MATOMO_SITE_ID` / `MATOMO_TOKEN_AUTH` is unset, the job
+> is not spawned and nothing is emitted. `MATOMO_TOKEN_AUTH` is the server-side switch, so front-end
+> Matomo tracking (URL + site id alone) is unaffected. No PII is sent to Matomo: the visitor id is a
+> pseudonymous value derived from the (already opaque) organization id — no email, name, or user id.
+
 ### Matomo Goal to create (recipe, no code)
 
 The dedicated Matomo Goal is configured **in the Matomo admin UI**, not in code. On the **Frontend
@@ -83,9 +112,9 @@ property (app.hook0.com)**, create:
 | Revenue | none |
 
 Steps: Matomo → **Administration → Websites → Manage Goals** (app.hook0.com) → **Add a new goal** →
-fill the table above → **Add Goal**. The event that feeds this Goal (`trackEvent('activation',
-'first-webhook-delivered')`) is emitted separately from this server-side conversion and is out of scope
-here; creating the Goal ahead of time lets it start recording as soon as that event is wired.
+fill the table above → **Add Goal**. The event that feeds this Goal (category `activation`, action
+`first-webhook-delivered`) is emitted **server-side** by the job described above (see *Server-side Matomo
+activation event*); once the Goal exists it records every emission automatically.
 
 ## Event Naming Conventions
 
@@ -214,6 +243,12 @@ window.hook0Consent.deny();    // Deny consent
 window.hook0Consent.reset();   // Reset (re-show banner)
 window.hook0Consent.getStatus(); // Get current status
 ```
+
+### Server-side activation event
+
+The server-side activation event (see *North-Star Metric*) is sent to the self-hosted Matomo instance
+with a pseudonymous visitor id derived from the organization id — no email, name, user id, or other PII.
+It carries no new personal-data flow beyond the existing first-party Matomo analytics.
 
 ## Adding New Events
 

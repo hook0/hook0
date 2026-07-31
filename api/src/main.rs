@@ -38,6 +38,7 @@ mod humanize;
 mod iam;
 mod mailer;
 mod materialized_views;
+mod matomo;
 mod middleware_biscuit;
 mod middleware_get_user_ip;
 mod object_storage_cleanup;
@@ -552,13 +553,34 @@ struct Config {
     #[clap(long, env, default_value_t = false)]
     debug_authorizer: bool,
 
-    /// [Frontend] Matomo URL
+    /// [Frontend] Matomo URL (also the base URL of the server-side activation
+    /// event tracker when MATOMO_TOKEN_AUTH is set)
     #[clap(long, env)]
     matomo_url: Option<Url>,
 
-    /// [Frontend] Matomo site ID
+    /// [Frontend] Matomo site ID (also the target site of the server-side
+    /// activation event; the Hook0 app site)
     #[clap(long, env)]
     matomo_site_id: Option<u16>,
+
+    /// [Matomo] Server-side Tracking API token_auth secret. Enables the
+    /// server-side product-activation event (category=activation,
+    /// action=first-webhook-delivered) emitted once per organization on its
+    /// first successful webhook delivery. Dark by default: the event is emitted
+    /// only when MATOMO_URL, MATOMO_SITE_ID and this token are all set.
+    #[clap(long, env)]
+    matomo_token_auth: Option<String>,
+
+    /// [Matomo] Duration (in second) between server-side activation-event scan
+    /// passes; set to 0 to disable the task. Only runs when Matomo tracking is
+    /// fully configured (URL + site id + token_auth).
+    #[clap(long, env, default_value = "300")]
+    matomo_activation_period_in_s: u64,
+
+    /// [Matomo] Maximum number of organizations claimed per activation scan
+    /// pass (bounds the work per pass). Bounded to [1, 10000].
+    #[clap(long, env, value_parser = clap::value_parser!(u32).range(1..=10000), default_value = "500")]
+    matomo_activation_scan_limit: u32,
 
     /// [Frontend] Formbricks API host
     #[clap(long, env, default_value = "https://app.formbricks.com")]
@@ -740,6 +762,46 @@ fn build_google_ads_client(config: &Config) -> Option<Arc<google_ads::GoogleAdsC
     }
 }
 
+/// Build the server-side Matomo activation-event tracker. Returns `None`
+/// (feature dark) unless the Matomo URL, site id and `token_auth` are all set;
+/// `token_auth` is the server-side switch, so front-end Matomo tracking (URL +
+/// site id alone) is unaffected. Warns when a token is provided but the URL or
+/// site id is missing.
+fn build_matomo_tracking_client(config: &Config) -> Option<Arc<matomo::MatomoTrackingClient>> {
+    let tracking_config = match (
+        config.matomo_url.clone(),
+        config.matomo_site_id,
+        config.matomo_token_auth.clone(),
+    ) {
+        (Some(base_url), Some(site_id), Some(token_auth)) => matomo::MatomoTrackingConfig {
+            base_url,
+            site_id,
+            token_auth,
+        },
+        // No token_auth: server-side tracking off (front-end tracking, if any,
+        // is unaffected).
+        (_, _, None) => return None,
+        // Token provided but URL and/or site id missing: partial config.
+        _ => {
+            tracing::warn!(
+                "MATOMO_TOKEN_AUTH is set but MATOMO_URL and/or MATOMO_SITE_ID are missing; server-side Matomo activation tracking is disabled"
+            );
+            return None;
+        }
+    };
+
+    match matomo::MatomoTrackingClient::new(Some(tracking_config)) {
+        Ok(client) => {
+            tracing::info!("Server-side Matomo activation tracker configured");
+            Some(client)
+        }
+        Err(e) => {
+            tracing::warn!("Failed to build Matomo tracking client: {e}");
+            None
+        }
+    }
+}
+
 /// The app state
 #[derive(Debug, Clone)]
 pub struct State {
@@ -835,6 +897,7 @@ async fn main() -> anyhow::Result<()> {
     // Built here so it doesn't fight with the partial moves out of `config`
     // happening downstream.
     let google_ads_client = build_google_ads_client(&config);
+    let matomo_tracking_client = build_matomo_tracking_client(&config);
 
     if let Some(biscuit_private_key) = config.biscuit_private_key {
         // Initialize app logger as well as Sentry integration
@@ -1295,6 +1358,33 @@ async fn main() -> anyhow::Result<()> {
             } else {
                 info!(
                     "First-webhook-delivered conversion upload is disabled (GOOGLE_ADS_FIRST_WEBHOOK_DELIVERED_CONVERSION_PERIOD_IN_S = 0)"
+                );
+            }
+        }
+
+        // Spawn task to emit the server-side Matomo "activation" event (product
+        // activation Goal) once per organization on its first successful webhook
+        // delivery. Opt-in: only when Matomo tracking is fully configured (URL +
+        // site id + token_auth) and the period is non-zero. Background scan;
+        // never on the webhook-delivery hot path.
+        if let Some(matomo_client) = matomo_tracking_client {
+            if config.matomo_activation_period_in_s > 0 {
+                let matomo_db = housekeeping_pool.clone();
+                let matomo_semaphore = housekeeping_semaphore.clone();
+                let matomo_scan_limit = config.matomo_activation_scan_limit;
+                actix_web::rt::spawn(async move {
+                    matomo::periodically_emit_activation_events(
+                        &matomo_semaphore,
+                        &matomo_db,
+                        matomo_client,
+                        Duration::from_secs(config.matomo_activation_period_in_s),
+                        matomo_scan_limit,
+                    )
+                    .await;
+                });
+            } else {
+                info!(
+                    "Server-side Matomo activation tracking is disabled (MATOMO_ACTIVATION_PERIOD_IN_S = 0)"
                 );
             }
         }
