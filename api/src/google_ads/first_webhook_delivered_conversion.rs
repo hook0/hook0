@@ -217,8 +217,7 @@ mod tests {
     #[sqlx::test]
     async fn uploads_and_marks_first_webhook_delivered_for_eligible_org(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client =
-            test_client_with_base_url(fake.base_url.clone(), Some("777"), None, Some("999"));
+        let client = test_client_with_base_url(fake.base_url.clone(), None, Some("999"));
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -246,8 +245,7 @@ mod tests {
     #[sqlx::test]
     async fn second_pass_is_a_noop(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client =
-            test_client_with_base_url(fake.base_url.clone(), Some("777"), None, Some("999"));
+        let client = test_client_with_base_url(fake.base_url.clone(), None, Some("999"));
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -271,8 +269,7 @@ mod tests {
     #[sqlx::test]
     async fn org_without_successful_delivery_is_excluded(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client =
-            test_client_with_base_url(fake.base_url.clone(), Some("777"), None, Some("999"));
+        let client = test_client_with_base_url(fake.base_url.clone(), None, Some("999"));
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -297,8 +294,7 @@ mod tests {
     #[sqlx::test]
     async fn org_without_gclid_is_excluded(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client =
-            test_client_with_base_url(fake.base_url.clone(), Some("777"), None, Some("999"));
+        let client = test_client_with_base_url(fake.base_url.clone(), None, Some("999"));
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -322,8 +318,7 @@ mod tests {
     #[sqlx::test]
     async fn server_error_does_not_mark_org(pool: PgPool) {
         let fake = FakeGoogleAds::start(500, "{}");
-        let client =
-            test_client_with_base_url(fake.base_url.clone(), Some("777"), None, Some("999"));
+        let client = test_client_with_base_url(fake.base_url.clone(), None, Some("999"));
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -353,7 +348,7 @@ mod tests {
     async fn dark_when_conversion_action_unset(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
         // Last arg None → no first-webhook-delivered conversion action configured.
-        let client = test_client_with_base_url(fake.base_url.clone(), Some("777"), None, None);
+        let client = test_client_with_base_url(fake.base_url.clone(), None, None);
 
         // Same setup as the eligible-org test: only the unset action makes it dark.
         let user = seed_user(&pool).await;
@@ -383,8 +378,7 @@ mod tests {
     #[sqlx::test]
     async fn does_not_upload_over_retention_gclid(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client =
-            test_client_with_base_url(fake.base_url.clone(), Some("777"), None, Some("999"));
+        let client = test_client_with_base_url(fake.base_url.clone(), None, Some("999"));
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;

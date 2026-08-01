@@ -626,14 +626,9 @@ struct Config {
     #[clap(long, env)]
     google_ads_signup_conversion_action_id: Option<String>,
 
-    /// [Google Ads] Numeric ID of the ACTIVATION conversion action (optional).
-    /// When unset, signup conversion still works and activation upload is skipped.
-    #[clap(long, env)]
-    google_ads_activation_conversion_action_id: Option<String>,
-
     /// [Google Ads] Numeric ID of the FIRST-EVENT conversion action (optional).
     /// When unset, first-event conversion tracking (and its background job) is
-    /// disabled; signup and activation are unaffected.
+    /// disabled; signup is unaffected.
     #[clap(long, env)]
     google_ads_first_event_conversion_action_id: Option<String>,
 
@@ -741,17 +736,14 @@ fn build_google_ads_client(config: &Config) -> Option<Arc<google_ads::GoogleAdsC
         customer_id,
         login_customer_id: config.google_ads_login_customer_id.clone(),
         signup_conversion_action_id,
-        // Optional: activation conversion is skipped when this is unset, so it
-        // is NOT part of the required-vars check above (keeps signup tracking
-        // working on deploys before the new env var is provisioned).
-        activation_conversion_action_id: config.google_ads_activation_conversion_action_id.clone(),
-        // Optional too: when unset, the first-event conversion and its
-        // background job are disabled (same rationale as activation).
+        // Optional: when unset, the first-event conversion and its background job
+        // are disabled, so it is NOT part of the required-vars check above (keeps
+        // signup tracking working before the env var is provisioned).
         first_event_conversion_action_id: config
             .google_ads_first_event_conversion_action_id
             .clone(),
         // Optional too: when unset, the first-webhook-delivered conversion and
-        // its background job are disabled (same rationale as activation).
+        // its background job are disabled (same rationale as first-event).
         first_webhook_delivered_conversion_action_id: config
             .google_ads_first_webhook_delivered_conversion_action_id
             .clone(),

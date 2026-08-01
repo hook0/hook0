@@ -1,9 +1,9 @@
 //! Background uploader for the Google Ads "first event sent" conversion.
 //!
-//! Unlike signup (email verification) and activation (first API key / service
-//! token), which are attached to a user-facing HTTP handler, "first event sent"
-//! has no natural single handler to hook into — and the event-ingestion path is
-//! a hot path we must not touch. So this signal is uploaded by a periodic
+//! Unlike signup (email verification), which is attached to a user-facing HTTP
+//! handler, "first event sent" — the mid-funnel activation signal — has no
+//! natural single handler to hook into, and the event-ingestion path is a hot
+//! path we must not touch. So this signal is uploaded by a periodic
 //! set-based scan instead: it finds organizations that are gclid-attributed, have
 //! ingested at least one event, and have not had their first-event conversion
 //! uploaded yet, then uploads each and records success.
@@ -210,8 +210,7 @@ mod tests {
     #[sqlx::test]
     async fn uploads_and_marks_first_event_for_eligible_org(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client =
-            test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"), None);
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("888"), None);
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -238,8 +237,7 @@ mod tests {
     #[sqlx::test]
     async fn second_pass_is_a_noop(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client =
-            test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"), None);
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("888"), None);
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -262,8 +260,7 @@ mod tests {
     #[sqlx::test]
     async fn org_without_gclid_is_excluded(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client =
-            test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"), None);
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("888"), None);
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -285,8 +282,7 @@ mod tests {
     #[sqlx::test]
     async fn org_without_event_is_excluded(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client =
-            test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"), None);
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("888"), None);
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -306,8 +302,7 @@ mod tests {
     #[sqlx::test]
     async fn transient_failure_leaves_org_pending(pool: PgPool) {
         let fake = FakeGoogleAds::start(503, "{}");
-        let client =
-            test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"), None);
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("888"), None);
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
@@ -331,8 +326,7 @@ mod tests {
     #[sqlx::test]
     async fn does_not_upload_over_retention_gclid(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
-        let client =
-            test_client_with_base_url(fake.base_url.clone(), Some("777"), Some("888"), None);
+        let client = test_client_with_base_url(fake.base_url.clone(), Some("888"), None);
 
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
