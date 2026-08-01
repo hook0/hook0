@@ -202,7 +202,6 @@ This documentation may not cover all options or reflect recent changes.
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `GOOGLE_ADS_ACTIVATION_CONVERSION_ACTION_ID` | Numeric ID of the ACTIVATION conversion action (optional). When unset, signup conversion still works and activation upload is skipped | - |  |
 | `GOOGLE_ADS_CUSTOMER_ID` | Customer ID (e.g. 629-941-8464) | - |  |
 | `GOOGLE_ADS_DEVELOPER_TOKEN` | Developer token (enables server-side conversion upload). All Google Ads fields must be provided together; if any is missing, the conversion upload is silently disabled (build_google_ads_client emits a warn log when partially configured) | - |  |
 | `GOOGLE_ADS_LOGIN_CUSTOMER_ID` | MCC login customer ID (optional) | - |  |
