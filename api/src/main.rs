@@ -51,6 +51,7 @@ mod pagination;
 mod problems;
 mod quotas;
 mod rate_limiting;
+mod signup_attribution_cleanup;
 mod soft_deleted_applications_cleanup;
 mod unverified_users_cleanup;
 mod validators;
@@ -676,6 +677,14 @@ struct Config {
     /// exceed the Google Ads conversion attribution window. Bounded to [1, 3650] days.
     #[clap(long, env, value_parser = clap::value_parser!(u32).range(1..=3650), default_value = "30")]
     signup_attribution_retention_in_days: u32,
+
+    /// [Google Ads] Duration (in second) between periodic passes that delete
+    /// signup-attribution rows (gclids) older than SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS;
+    /// set to 0 to disable the task. This enforces the retention maximum on a
+    /// timer, independent of registration traffic (registrations also prune
+    /// lazily). Runs regardless of Google Ads / Matomo configuration.
+    #[clap(long, env, default_value = "3600")]
+    signup_attribution_cleanup_period_in_s: u64,
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -1340,6 +1349,7 @@ async fn main() -> anyhow::Result<()> {
                         &first_event_db,
                         first_event_google_ads,
                         Duration::from_secs(config.google_ads_first_event_conversion_period_in_s),
+                        i32::try_from(config.signup_attribution_retention_in_days).unwrap_or(30),
                     )
                     .await;
                 });
@@ -1371,6 +1381,7 @@ async fn main() -> anyhow::Result<()> {
                         Duration::from_secs(
                             config.google_ads_first_webhook_delivered_conversion_period_in_s,
                         ),
+                        i32::try_from(config.signup_attribution_retention_in_days).unwrap_or(30),
                     )
                     .await;
                 });
@@ -1406,6 +1417,28 @@ async fn main() -> anyhow::Result<()> {
                     "Server-side Matomo activation tracking is disabled (MATOMO_ACTIVATION_PERIOD_IN_S = 0)"
                 );
             }
+        }
+
+        // Spawn task to enforce the signup-attribution (gclid) retention window on
+        // a timer, independent of registration traffic. Registrations also prune
+        // lazily, but if signups pause this guarantees the documented retention
+        // maximum still holds. Runs regardless of Google Ads / Matomo config.
+        if config.signup_attribution_cleanup_period_in_s > 0 {
+            let signup_attribution_cleanup_db = housekeeping_pool.clone();
+            let signup_attribution_cleanup_semaphore = housekeeping_semaphore.clone();
+            actix_web::rt::spawn(async move {
+                signup_attribution_cleanup::periodically_prune_signup_attribution(
+                    &signup_attribution_cleanup_semaphore,
+                    &signup_attribution_cleanup_db,
+                    Duration::from_secs(config.signup_attribution_cleanup_period_in_s),
+                    i32::try_from(config.signup_attribution_retention_in_days).unwrap_or(30),
+                )
+                .await;
+            });
+        } else {
+            info!(
+                "Signup-attribution retention cleanup is disabled (SIGNUP_ATTRIBUTION_CLEANUP_PERIOD_IN_S = 0)"
+            );
         }
 
         // Spawn task to clean up object storage

@@ -50,11 +50,14 @@ pub async fn periodically_upload_first_webhook_delivered_conversions(
     db: &PgPool,
     google_ads: Arc<GoogleAdsClient>,
     period: Duration,
+    retention_in_days: i32,
 ) {
     sleep(STARTUP_GRACE_PERIOD).await;
 
     while let Ok(permit) = housekeeping_semaphore.acquire().await {
-        match upload_pending_first_webhook_delivered_conversions(db, &google_ads).await {
+        match upload_pending_first_webhook_delivered_conversions(db, &google_ads, retention_in_days)
+            .await
+        {
             Ok(0) => {}
             Ok(uploaded) => info!(
                 target: "api::google_ads",
@@ -75,6 +78,7 @@ pub async fn periodically_upload_first_webhook_delivered_conversions(
 async fn upload_pending_first_webhook_delivered_conversions(
     db: &PgPool,
     google_ads: &GoogleAdsClient,
+    retention_in_days: i32,
 ) -> Result<u64, sqlx::Error> {
     // Organizations that are attributed (gclid kept), have delivered at least
     // one webhook successfully (a request attempt with succeeded_at set), and
@@ -85,12 +89,19 @@ async fn upload_pending_first_webhook_delivered_conversions(
     // `signup_attribution_first_webhook_delivered_pending_idx`; the EXISTS probe
     // uses the existing request_attempt (application__id) index (no index is
     // added on that hot table).
+    //
+    // The `created_at` bound caps egress at the retention window: a gclid older
+    // than SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS is never uploaded to Google, even
+    // on a late first delivery (Google rejects it past the attribution window
+    // anyway, and retaining/egressing it longer would breach data minimisation,
+    // GDPR art. 5.1.e). Rows past the window are pruned by the retention cleanup.
     let pending = sqlx::query!(
         r#"
             SELECT sa.organization__id AS "organization_id!", sa.gclid AS "gclid!"
             FROM iam.signup_attribution AS sa
             WHERE sa.gclid IS NOT NULL
               AND sa.first_webhook_delivered_uploaded_at IS NULL
+              AND sa.created_at > statement_timestamp() - MAKE_INTERVAL(days => $2)
               AND EXISTS (
                   SELECT 1
                   FROM webhook.request_attempt AS ra
@@ -101,6 +112,7 @@ async fn upload_pending_first_webhook_delivered_conversions(
             LIMIT $1
         "#,
         MAX_ORGS_PER_RUN,
+        retention_in_days,
     )
     .fetch_all(db)
     .await?;
@@ -214,7 +226,7 @@ mod tests {
         let (application_id, event_id) = seed_event(&pool, org).await;
         seed_request_attempt(&pool, application_id, event_id, true).await;
 
-        let uploaded = upload_pending_first_webhook_delivered_conversions(&pool, &client)
+        let uploaded = upload_pending_first_webhook_delivered_conversions(&pool, &client, 30)
             .await
             .expect("pass ok");
         assert_eq!(uploaded, 1);
@@ -243,10 +255,10 @@ mod tests {
         let (application_id, event_id) = seed_event(&pool, org).await;
         seed_request_attempt(&pool, application_id, event_id, true).await;
 
-        upload_pending_first_webhook_delivered_conversions(&pool, &client)
+        upload_pending_first_webhook_delivered_conversions(&pool, &client, 30)
             .await
             .expect("first pass");
-        let second = upload_pending_first_webhook_delivered_conversions(&pool, &client)
+        let second = upload_pending_first_webhook_delivered_conversions(&pool, &client, 30)
             .await
             .expect("second pass");
 
@@ -269,7 +281,7 @@ mod tests {
         // A request attempt that has NOT succeeded yet.
         seed_request_attempt(&pool, application_id, event_id, false).await;
 
-        let uploaded = upload_pending_first_webhook_delivered_conversions(&pool, &client)
+        let uploaded = upload_pending_first_webhook_delivered_conversions(&pool, &client, 30)
             .await
             .expect("pass ok");
 
@@ -294,7 +306,7 @@ mod tests {
         let (application_id, event_id) = seed_event(&pool, org).await;
         seed_request_attempt(&pool, application_id, event_id, true).await;
 
-        let uploaded = upload_pending_first_webhook_delivered_conversions(&pool, &client)
+        let uploaded = upload_pending_first_webhook_delivered_conversions(&pool, &client, 30)
             .await
             .expect("pass ok");
 
@@ -319,7 +331,7 @@ mod tests {
         let (application_id, event_id) = seed_event(&pool, org).await;
         seed_request_attempt(&pool, application_id, event_id, true).await;
 
-        let uploaded = upload_pending_first_webhook_delivered_conversions(&pool, &client)
+        let uploaded = upload_pending_first_webhook_delivered_conversions(&pool, &client, 30)
             .await
             .expect("pass ok");
 
@@ -350,7 +362,7 @@ mod tests {
         let (application_id, event_id) = seed_event(&pool, org).await;
         seed_request_attempt(&pool, application_id, event_id, true).await;
 
-        let uploaded = upload_pending_first_webhook_delivered_conversions(&pool, &client)
+        let uploaded = upload_pending_first_webhook_delivered_conversions(&pool, &client, 30)
             .await
             .expect("pass ok");
 
@@ -362,6 +374,45 @@ mod tests {
         assert!(
             !first_webhook_delivered_uploaded(&pool, org).await,
             "the tracking column stays NULL — nothing is marked"
+        );
+    }
+
+    /// A gclid attributed longer ago than the retention window is never egressed
+    /// to Google, even though the org has delivered a webhook successfully: the
+    /// age bound excludes it (data minimisation).
+    #[sqlx::test]
+    async fn does_not_upload_over_retention_gclid(pool: PgPool) {
+        let fake = FakeGoogleAds::start(200, "{}");
+        let client =
+            test_client_with_base_url(fake.base_url.clone(), Some("777"), None, Some("999"));
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        seed_attribution(&pool, user, org, "gclid-stale", true).await;
+        let (application_id, event_id) = seed_event(&pool, org).await;
+        seed_request_attempt(&pool, application_id, event_id, true).await;
+
+        // Backdate the attribution well beyond the 30-day retention window.
+        sqlx::query(
+            "UPDATE iam.signup_attribution SET created_at = statement_timestamp() - INTERVAL '60 days' WHERE organization__id = $1",
+        )
+        .bind(org)
+        .execute(&pool)
+        .await
+        .expect("backdate attribution");
+
+        let uploaded = upload_pending_first_webhook_delivered_conversions(&pool, &client, 30)
+            .await
+            .expect("pass ok");
+
+        assert_eq!(uploaded, 0, "an over-retention gclid is not uploaded");
+        assert!(
+            fake.requests().is_empty(),
+            "no gclid older than the retention window reaches Google"
+        );
+        assert!(
+            !first_webhook_delivered_uploaded(&pool, org).await,
+            "the over-retention org stays unmarked"
         );
     }
 }
