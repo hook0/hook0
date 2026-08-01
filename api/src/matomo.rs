@@ -99,6 +99,10 @@ impl MatomoTrackingClient {
     pub fn new(config: Option<MatomoTrackingConfig>) -> Result<Arc<Self>, MatomoError> {
         let http = reqwest::Client::builder()
             .timeout(MATOMO_TRACKING_TIMEOUT)
+            // Never follow redirects: the tracking endpoint does not legitimately
+            // redirect, and a 307/308 would replay this token_auth-bearing POST
+            // body to an attacker-chosen `Location`.
+            .redirect(reqwest::redirect::Policy::none())
             .build()?;
         Ok(Arc::new(Self { http, config }))
     }

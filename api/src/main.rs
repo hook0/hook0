@@ -767,17 +767,32 @@ fn build_google_ads_client(config: &Config) -> Option<Arc<google_ads::GoogleAdsC
 /// `token_auth` is the server-side switch, so front-end Matomo tracking (URL +
 /// site id alone) is unaffected. Warns when a token is provided but the URL or
 /// site id is missing.
-fn build_matomo_tracking_client(config: &Config) -> Option<Arc<matomo::MatomoTrackingClient>> {
-    let tracking_config = match (
-        config.matomo_url.clone(),
-        config.matomo_site_id,
-        config.matomo_token_auth.clone(),
-    ) {
-        (Some(base_url), Some(site_id), Some(token_auth)) => matomo::MatomoTrackingConfig {
-            base_url,
-            site_id,
-            token_auth,
-        },
+///
+/// TLS-only: the `token_auth` secret is never sent over cleartext, so a non-https
+/// `MATOMO_URL` keeps the feature dark (a warning is logged) rather than leak the
+/// credential.
+fn build_matomo_tracking_client(
+    matomo_url: Option<Url>,
+    matomo_site_id: Option<u16>,
+    matomo_token_auth: Option<String>,
+) -> Option<Arc<matomo::MatomoTrackingClient>> {
+    let tracking_config = match (matomo_url, matomo_site_id, matomo_token_auth) {
+        (Some(base_url), Some(site_id), Some(token_auth)) => {
+            // Refuse to send token_auth over cleartext: if the URL is not https,
+            // stay dark instead of leaking the credential on the wire.
+            if base_url.scheme() != "https" {
+                tracing::warn!(
+                    "MATOMO_URL scheme is '{}', not https; server-side Matomo activation tracking is disabled to avoid sending token_auth over cleartext",
+                    base_url.scheme()
+                );
+                return None;
+            }
+            matomo::MatomoTrackingConfig {
+                base_url,
+                site_id,
+                token_auth,
+            }
+        }
         // No token_auth: server-side tracking off (front-end tracking, if any,
         // is unaffected).
         (_, _, None) => return None,
@@ -897,7 +912,11 @@ async fn main() -> anyhow::Result<()> {
     // Built here so it doesn't fight with the partial moves out of `config`
     // happening downstream.
     let google_ads_client = build_google_ads_client(&config);
-    let matomo_tracking_client = build_matomo_tracking_client(&config);
+    let matomo_tracking_client = build_matomo_tracking_client(
+        config.matomo_url.clone(),
+        config.matomo_site_id,
+        config.matomo_token_auth.clone(),
+    );
 
     if let Some(biscuit_private_key) = config.biscuit_private_key {
         // Initialize app logger as well as Sentry integration
@@ -1862,5 +1881,51 @@ async fn main() -> anyhow::Result<()> {
             keypair.private().to_bytes_hex()
         );
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The Matomo tracker stays dark over cleartext http: the token_auth secret
+    /// must never travel unencrypted, so a non-https MATOMO_URL yields no client.
+    #[test]
+    fn matomo_tracker_is_dark_over_http() {
+        let client = build_matomo_tracking_client(
+            Some(Url::parse("http://matomo.example.test/").expect("parse http url")),
+            Some(2),
+            Some("secret-token".to_string()),
+        );
+        assert!(
+            client.is_none(),
+            "no client is built when MATOMO_URL is cleartext http"
+        );
+    }
+
+    /// Over https the tracker is built and enabled (token_auth is safe on the wire).
+    #[test]
+    fn matomo_tracker_is_built_over_https() {
+        let client = build_matomo_tracking_client(
+            Some(Url::parse("https://matomo.example.test/").expect("parse https url")),
+            Some(2),
+            Some("secret-token".to_string()),
+        );
+        let client = client.expect("a client is built when MATOMO_URL is https");
+        assert!(
+            client.is_enabled(),
+            "the https-configured client is enabled"
+        );
+    }
+
+    /// Without a token_auth the server-side tracker stays dark regardless of scheme.
+    #[test]
+    fn matomo_tracker_is_dark_without_token() {
+        let client = build_matomo_tracking_client(
+            Some(Url::parse("https://matomo.example.test/").expect("parse https url")),
+            Some(2),
+            None,
+        );
+        assert!(client.is_none(), "no client is built without a token_auth");
     }
 }

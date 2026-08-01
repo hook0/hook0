@@ -19,6 +19,12 @@ Hook0 uses Matomo for web analytics across three properties:
 | `MATOMO_ACTIVATION_PERIOD_IN_S` | Seconds between server-side activation-event scan passes (default `300`, `0` disables) |
 | `MATOMO_ACTIVATION_SCAN_LIMIT` | Max organizations claimed per activation scan pass (default `500`, range `[1, 10000]`) |
 
+> **Deployment (least privilege):** `MATOMO_TOKEN_AUTH` must be a dedicated **write-only** Matomo user
+> (a user granted only the *write* permission on the app site), **never** an admin or reporting/`view`
+> token. The server only ever *writes* tracking requests; a leaked write-only token cannot read analytics
+> or change configuration. The tracker is also **TLS-only**: if `MATOMO_URL` is not `https://`, server-side
+> tracking stays dark (the token is never sent over cleartext).
+
 ## Matomo Goals Configuration
 
 Goals are configured in the Matomo admin interface. Below are the Goals and the events that trigger them.

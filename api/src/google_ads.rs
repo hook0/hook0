@@ -238,6 +238,11 @@ impl GoogleAdsClient {
     pub fn new(config: GoogleAdsConfig) -> Result<Arc<Self>, GoogleAdsError> {
         let http = reqwest::Client::builder()
             .timeout(Duration::from_secs(15))
+            // Never follow redirects: neither the Google Ads REST endpoint nor
+            // the OAuth token endpoint legitimately redirects, and a 307/308
+            // would replay this OAuth-bearing POST body to an attacker-chosen
+            // `Location`.
+            .redirect(reqwest::redirect::Policy::none())
             .build()?;
         Ok(Arc::new(Self {
             http,
