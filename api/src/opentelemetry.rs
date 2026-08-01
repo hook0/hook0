@@ -1,12 +1,13 @@
 use clap::crate_name;
 use opentelemetry::metrics::{Counter, Gauge, Histogram};
-use opentelemetry::{KeyValue, global};
+use opentelemetry::{Key, KeyValue, global};
 use opentelemetry_otlp::{
     Compression, ExporterBuildError, MetricExporter, Protocol, SpanExporter, WithExportConfig,
     WithHttpConfig,
 };
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::metrics::{Aggregation, Instrument, SdkMeterProvider, Stream};
+use opentelemetry_sdk::resource::EnvResourceDetector;
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -14,6 +15,26 @@ use std::sync::LazyLock;
 use std::time::Duration;
 use tracing::{info, warn};
 use url::Url;
+use uuid::Uuid;
+
+const SERVICE_INSTANCE_ID: &str = "service.instance.id";
+
+fn service_instance_id() -> String {
+    let detected = Resource::builder_empty()
+        .with_detector(Box::new(EnvResourceDetector::new()))
+        .build()
+        .get(&Key::from_static_str(SERVICE_INSTANCE_ID))
+        .map(|value| value.as_str().into_owned());
+
+    pick_service_instance_id(detected.as_deref())
+}
+
+fn pick_service_instance_id(detected: Option<&str>) -> String {
+    match detected.map(str::trim) {
+        Some(id) if !id.is_empty() => id.to_owned(),
+        _ => Uuid::now_v7().to_string(),
+    }
+}
 
 pub fn init(
     version: &str,
@@ -21,11 +42,13 @@ pub fn init(
     otlp_metrics_endpoint: &Option<Url>,
     otlp_traces_endpoint: &Option<Url>,
 ) -> Result<(), ExporterBuildError> {
+    let service_instance_id = service_instance_id();
     let resource = Resource::builder()
         .with_attributes([
             KeyValue::new("service.namespace", "hook0"),
             KeyValue::new("service.name", "api"),
             KeyValue::new("service.version", version.to_owned()),
+            KeyValue::new(SERVICE_INSTANCE_ID, service_instance_id.clone()),
         ])
         .build();
     let auth_header = otlp_authorization
@@ -53,7 +76,9 @@ pub fn init(
             .build();
         global::set_meter_provider(metrics_provider.clone());
 
-        info!("OpenTelemetry metrics will be exported to {metrics_endpoint}");
+        info!(
+            "OpenTelemetry metrics will be exported to {metrics_endpoint} (service.instance.id={service_instance_id})"
+        );
     };
 
     if let Some(traces_endpoint) = &otlp_traces_endpoint {
@@ -73,7 +98,9 @@ pub fn init(
             .build();
         global::set_tracer_provider(tracer_provider.clone());
 
-        info!("OpenTelemetry traces will be exported to {traces_endpoint}");
+        info!(
+            "OpenTelemetry traces will be exported to {traces_endpoint} (service.instance.id={service_instance_id})"
+        );
     };
 
     Ok(())
@@ -341,5 +368,32 @@ fn ingestion_phase_duration_view(instrument: &Instrument) -> Option<Stream> {
             .ok()
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detected_instance_id_wins() {
+        assert_eq!(pick_service_instance_id(Some("api-7")), "api-7");
+    }
+
+    #[test]
+    fn blank_detected_instance_id_falls_back_to_a_uuid() {
+        // `OTEL_RESOURCE_ATTRIBUTES=service.instance.id=` yields an empty value.
+        // Honouring it would give every process the same empty `instance` label,
+        // which is exactly the collision this attribute exists to prevent.
+        assert!(Uuid::parse_str(&pick_service_instance_id(Some("  "))).is_ok());
+    }
+
+    #[test]
+    fn generated_instance_ids_are_unique() {
+        let first = pick_service_instance_id(None);
+        let second = pick_service_instance_id(None);
+
+        assert!(Uuid::parse_str(&first).is_ok());
+        assert_ne!(first, second);
     }
 }
