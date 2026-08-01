@@ -207,6 +207,26 @@ const MJML_FOOTER_ONBOARDING: &str = r##"      </mj-column>
 </mjml>
 "##;
 
+/// HTML-escape a user-controlled free-text value before it is substituted
+/// into the MJML/HTML template source. Names come straight from user input
+/// (`user.first_name`), so without escaping a recipient named
+/// `<script>…</script>` or `"><img src=x onerror=…>` would inject raw markup
+/// into the rendered email. Escaping the five significant characters neutralizes
+/// both text-content and attribute-value break-outs; the entities render back as
+/// the literal characters, which is the intended behavior for a display name.
+/// `&` is replaced first so the entities emitted below are not double-escaped.
+/// Apply only to human free-text — never to the template's trusted URLs
+/// (Matomo-tagged links, logo/app/website URLs), where escaping would corrupt
+/// the link.
+fn html_escape_text(input: &str) -> String {
+    input
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
+}
+
 /// Append Matomo tracking parameters to a URL while preserving existing
 /// query string and fragment. Used to tag every clickable link in
 /// transactional emails so analytics can attribute downstream activity.
@@ -485,7 +505,9 @@ impl Mail {
         // shipped templates greet via a body-level "Hi {name}," so the
         // fallback reads naturally; the welcome H1 was restructured to
         // not depend on the name structurally.
-        let recipient_first_name = self.recipient_first_name().unwrap_or("there");
+        // User-controlled free-text: HTML-escape before interpolation so a name
+        // containing markup cannot inject nodes into the rendered email.
+        let recipient_first_name = html_escape_text(self.recipient_first_name().unwrap_or("there"));
 
         let footer = if self.is_lifecycle_reactivation() {
             MJML_FOOTER_ONBOARDING
@@ -502,7 +524,7 @@ impl Mail {
 
         // Recipient greeting — substituted unconditionally; the fallback
         // above ensures the placeholder is never left empty.
-        mjml = mjml.replace("{ $recipient_first_name }", recipient_first_name);
+        mjml = mjml.replace("{ $recipient_first_name }", &recipient_first_name);
 
         // Untracked globals
         mjml = mjml.replace("{ $logo_url }", logo_url.as_str());
@@ -907,6 +929,43 @@ mod tests {
                 m.matomo_campaign()
             );
         }
+    }
+
+    /// A recipient-controlled first name carrying HTML is escaped before it is
+    /// interpolated into the template, so no raw markup reaches the rendered
+    /// email. Covers both a text-content break-out (`<script>`) and an
+    /// attribute-value break-out (`"><img …>`).
+    #[test]
+    fn recipient_first_name_html_is_escaped() {
+        let payload = r#"<script>alert(1)</script>"><img src=x onerror=alert(2)>"#;
+        let m = Mail::Welcome {
+            recipient_first_name: Some(payload.to_owned()),
+        };
+        let html = render(&m);
+
+        // Raw, executable markup from the name must never survive rendering.
+        assert!(
+            !html.contains("<script>"),
+            "raw <script> from recipient name leaked into rendered email"
+        );
+        assert!(
+            !html.contains("<img src=x"),
+            "raw <img> from recipient name leaked into rendered email"
+        );
+        assert!(
+            !html.contains(payload),
+            "unescaped recipient-name payload leaked into rendered email"
+        );
+
+        // The characters still render, but as inert escaped entities.
+        assert!(
+            html.contains("&lt;script&gt;alert(1)&lt;/script&gt;"),
+            "escaped form of the recipient name missing from rendered email"
+        );
+        assert!(
+            html.contains("&gt;&lt;img src=x"),
+            "attribute-breaking payload was not escaped in rendered email"
+        );
     }
 
     /// Test #12 — extra_variables injected by handlers (e.g. dashboard_url_tracked)
