@@ -96,7 +96,7 @@ visit.
 | Event Category / Action | `activation` / `first-webhook-delivered` |
 | Target site | `MATOMO_SITE_ID` (the app site, `2`) |
 | Emission | Server-side periodic job (background scan; never the delivery hot path) |
-| Visitor id (`_id`) | 16-hex pseudonymous value derived from the organization id — **no PII**, no email, no user id |
+| Visitor id (`_id`) | Fresh random 16-hex value generated per emission — never derived from nor stored against the org/user, so events can't be linked back — **no PII**, no email, no user id |
 | Enable (dark by default) | Set `MATOMO_URL` + `MATOMO_SITE_ID` + `MATOMO_TOKEN_AUTH` |
 | Scan period | `MATOMO_ACTIVATION_PERIOD_IN_S` (default `300`, `0` disables) |
 | Scan limit | `MATOMO_ACTIVATION_SCAN_LIMIT` (default `500`) |
@@ -104,7 +104,8 @@ visit.
 > **Dark by default:** when any of `MATOMO_URL` / `MATOMO_SITE_ID` / `MATOMO_TOKEN_AUTH` is unset, the job
 > is not spawned and nothing is emitted. `MATOMO_TOKEN_AUTH` is the server-side switch, so front-end
 > Matomo tracking (URL + site id alone) is unaffected. No PII is sent to Matomo: the visitor id is a
-> pseudonymous value derived from the (already opaque) organization id — no email, name, or user id.
+> fresh random value generated per emission — never derived from nor stored against the org/user, so an
+> event cannot be linked back to a Hook0 org or user — no email, name, or user id.
 
 ### Matomo Goal to create (recipe, no code)
 
@@ -368,8 +369,9 @@ window.hook0Consent.getStatus(); // Get current status
 ### Server-side activation event
 
 The server-side activation event (see *North-Star Metric*) is sent to the self-hosted Matomo instance
-with a pseudonymous visitor id derived from the organization id — no email, name, user id, or other PII.
-It carries no new personal-data flow beyond the existing first-party Matomo analytics.
+with a fresh random visitor id generated per emission — never derived from nor stored against the
+org/user, so an event cannot be linked back to a Hook0 org or user — no email, name, user id, or other
+PII. It carries no new personal-data flow beyond the existing first-party Matomo analytics.
 
 ## Adding New Events
 

@@ -12,8 +12,8 @@
 -- exclusive across instances and passes), emits the event server-side through
 -- Matomo's HTTP Tracking API, and releases the claim (sets the marker back to
 -- NULL) when the send fails so the organization stays eligible on the next
--- pass. No PII is sent: the Matomo visitor id is a pseudonymous value derived
--- from the organization id.
+-- pass. No PII is sent: the Matomo visitor id is a fresh random value generated
+-- per emission, never derived from nor stored against the organization or user.
 --
 -- The claim is exactly-once, but the emission is at-most-once: the marker is
 -- committed before the send, so a process crash between claim and send leaves

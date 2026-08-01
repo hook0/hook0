@@ -8,8 +8,10 @@
 //! the browser), so it cannot be a front-end `trackEvent`.
 //!
 //! RGPD posture: no PII ever leaves Hook0. The Matomo visitor id (`_id`) is a
-//! pseudonymous 16-hex value deterministically derived from the (already
-//! opaque) organization id; no email, name, IP or user identifier is sent.
+//! fresh, random 16-hex value generated per emission — it is never derived from
+//! nor stored against the organization or user, so no Matomo event can be linked
+//! back to a Hook0 org or user after the fact; no email, name, IP or user
+//! identifier is sent.
 //!
 //! Everything ships dark: the event is emitted only when the Matomo URL, site
 //! id and tracking `token_auth` are all configured. Detection runs as a
@@ -106,24 +108,28 @@ impl MatomoTrackingClient {
         self.config.is_some()
     }
 
-    /// Deterministic 16-hex pseudonymous Matomo visitor id derived from the
-    /// organization id. XOR-folds the two 64-bit halves of the (already opaque)
-    /// organization UUID into a stable 64-bit value; carries no PII.
-    fn visitor_id(organization_id: &Uuid) -> String {
-        let n = organization_id.as_u128();
-        let folded = ((n >> 64) as u64) ^ (n as u64);
-        format!("{folded:016x}")
+    /// A fresh, random 16-hex Matomo visitor id, generated anew on every send.
+    ///
+    /// It is never derived from nor stored against the organization or user, so
+    /// a Matomo event can never be linked back to a Hook0 org/user after the
+    /// fact. Correctness is unaffected: each org still emits exactly once (the
+    /// `matomo_activation_emitted_at` DB marker guarantees that), so one random
+    /// visitor id per org = one distinct Matomo visitor = one Goal conversion.
+    /// Carries no PII.
+    fn random_visitor_id() -> String {
+        // Low 64 bits of a fresh v4 UUID → 16 hex chars of randomness.
+        format!("{:016x}", Uuid::new_v4().as_u128() as u64)
     }
 
-    /// Emit the activation event for `organization_id`, dated at the moment of
-    /// its first successful webhook delivery (`occurred_at`, a server-time
-    /// override that requires `token_auth`).
+    /// Emit the activation event, dated at the moment of the organization's
+    /// first successful webhook delivery (`occurred_at`, a server-time override
+    /// that requires `token_auth`). The visitor id is random per emission, so
+    /// the event carries no organization or user identifier.
     ///
     /// When no tracking config is set, this is a silent no-op returning
     /// [`TrackOutcome::Skipped`].
     pub async fn track_first_webhook_delivered(
         &self,
-        organization_id: &Uuid,
         occurred_at: DateTime<Utc>,
     ) -> Result<TrackOutcome, MatomoError> {
         let Some(config) = &self.config else {
@@ -135,7 +141,7 @@ impl MatomoTrackingClient {
         };
 
         let endpoint = config.base_url.join("matomo.php")?;
-        let visitor_id = Self::visitor_id(organization_id);
+        let visitor_id = Self::random_visitor_id();
         let site_id = config.site_id.to_string();
         // UTC datetime override; requires token_auth. No PII, just the moment of
         // the org's first successful delivery.
@@ -265,7 +271,7 @@ async fn emit_pending_activation_events(
         let first_delivered_at = row.first_delivered_at;
 
         match matomo
-            .track_first_webhook_delivered(&organization_id, first_delivered_at)
+            .track_first_webhook_delivered(first_delivered_at)
             .await
         {
             Ok(TrackOutcome::Sent) => {
@@ -453,8 +459,8 @@ mod tests {
         );
     }
 
-    /// The tracking request carries the correct event and a pseudonymous, org-
-    /// derived visitor id — and no PII (no email).
+    /// The tracking request carries the correct event and a random,
+    /// non-org-derived visitor id — and no PII (no email).
     #[sqlx::test]
     async fn builds_tracking_request_without_pii(pool: PgPool) {
         let fake = FakeGoogleAds::start(200, "{}");
@@ -479,10 +485,25 @@ mod tests {
             body.contains(&format!("e_a={ACTIVATION_EVENT_ACTION}")),
             "carries the first-webhook-delivered event action"
         );
-        let expected_visitor_id = MatomoTrackingClient::visitor_id(&org);
+        // The visitor id must be present, exactly 16 hex chars, random (NOT
+        // derived from the org UUID), and free of any PII.
+        let visitor_id = body
+            .split('&')
+            .find_map(|kv| kv.strip_prefix("_id="))
+            .expect("tracking request carries a _id visitor id");
+        assert_eq!(visitor_id.len(), 16, "_id is a 16-hex visitor id");
         assert!(
-            body.contains(&format!("_id={expected_visitor_id}")),
-            "carries the org-derived pseudonymous visitor id"
+            visitor_id.chars().all(|c| c.is_ascii_hexdigit()),
+            "_id is hexadecimal"
+        );
+        // Not derived from the org id: the previous scheme XOR-folded the two
+        // 64-bit halves of the org UUID into the id. A random id must not equal
+        // that org-computable value, proving the id is not linkable to the org.
+        let n = org.as_u128();
+        let org_derived = format!("{:016x}", ((n >> 64) as u64) ^ (n as u64));
+        assert_ne!(
+            visitor_id, org_derived,
+            "the visitor id is random, not derived from the organization UUID"
         );
         assert!(
             body.contains("token_auth="),
