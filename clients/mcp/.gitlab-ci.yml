@@ -9,6 +9,11 @@ client.mcp.check:
         - clients/mcp/**/*
         - api/**/*
         - Cargo.*
+  variables:
+    # This job only lints and compiles, so it does not need the real tool list.
+    # Skipping the fetch keeps it from depending on production being reachable —
+    # build.rs now fails hard rather than silently emitting an empty tool list.
+    SKIP_OPENAPI_FETCH: '1'
   before_script:
     - rustc --version && cargo --version
     - rustup component add clippy
@@ -17,8 +22,9 @@ client.mcp.check:
     - pushd clients/mcp
     - cargo fmt --all -- --check
     - cargo clippy --all-targets --all-features -- -D warnings
-    # Only run library unit tests here (not integration tests which require a running API)
-    - cargo test --lib --all-features
+    # Runs unit tests plus the protocol negotiation tests, which need no API.
+    # The API-dependent integration tests are #[ignore]d and run in client.mcp.integration.
+    - cargo test --all-features
     - cargo build --release
     - popd
 
@@ -32,6 +38,13 @@ mcp.build:
         - clients/mcp/**/*
         - api/**/*
         - Cargo.*
+  variables:
+    # This job only ships target/release/hook0-api, but the root Cargo.toml has no
+    # default-members, so building the workspace also builds hook0-mcp, whose
+    # build.rs fetches the OpenAPI spec. Skipping the fetch keeps this job from
+    # depending on production being reachable — build.rs now fails hard rather
+    # than silently emitting an empty tool list.
+    SKIP_OPENAPI_FETCH: '1'
   before_script:
     - rustc --version && cargo --version
     - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
@@ -91,6 +104,9 @@ client.mcp.semver-checks:
       - script_failure
   variables:
     BINSTALL_DISABLE_TELEMETRY: "true"
+    # Public API does not depend on the generated tool list, and build.rs now fails
+    # hard on an unreachable spec, so skip the fetch rather than depend on production.
+    SKIP_OPENAPI_FETCH: '1'
   rules:
     - changes:
         - clients/mcp/**/*

@@ -41,6 +41,14 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that l
 cargo install hook0-mcp
 ```
 
+The tool list is generated at build time from the Hook0 OpenAPI spec, so building
+from source needs network access to `https://app.hook0.com/api/v1/swagger.json`.
+The build fails with an explanatory error if that spec cannot be fetched:
+
+- Self-hosted Hook0: point the build at your own instance with
+  `HOOK0_OPENAPI_URL=https://hook0.example.com/api/v1/swagger.json`
+- No network access: `SKIP_OPENAPI_FETCH=1` builds a server that exposes no tools
+
 ### 2. Get your API token
 
 Create a **Service Token** from the Hook0 dashboard:
@@ -81,8 +89,8 @@ Create a **Service Token** from the Hook0 dashboard:
 | `HOOK0_API_TOKEN` | *required* | Your Hook0 API token |
 | `HOOK0_API_URL` | `https://app.hook0.com` | Hook0 API base URL |
 | `HOOK0_READ_ONLY` | `false` | Enable read-only mode |
-| `MCP_TRANSPORT` | `stdio` | Transport: `stdio` or `sse` |
-| `MCP_SSE_PORT` | `3000` | Port for SSE transport |
+| `MCP_TRANSPORT` | `stdio` | Transport. Only `stdio` is supported; `sse` is reserved and not implemented |
+| `MCP_SSE_PORT` | `3000` | Reserved for SSE transport, which is not implemented |
 
 ### Read-Only Mode
 

@@ -3,7 +3,9 @@
 //! These tests are BLACKBOX tests - they test the MCP server by spawning it as a
 //! subprocess and communicating via the MCP protocol (JSON-RPC over stdio).
 //!
-//! Tests run against the production Hook0 API using MCP_SERVICE_TOKEN.
+//! Most tests run against a Hook0 API using MCP_SERVICE_TOKEN and are `#[ignore]`d
+//! so they only run where one is available. The `protocol` module is the exception:
+//! it covers the MCP handshake, which never reaches the API, and always runs.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -55,7 +57,7 @@ struct McpServerProcess {
 }
 
 impl McpServerProcess {
-    /// Start the MCP server process
+    /// Start the MCP server process using credentials from the environment
     fn start() -> Self {
         // Get the token from environment
         let token = env::var("MCP_SERVICE_TOKEN")
@@ -65,6 +67,19 @@ impl McpServerProcess {
         let api_url =
             env::var("HOOK0_API_URL").unwrap_or_else(|_| "https://app.hook0.com".to_string());
 
+        Self::spawn(&token, &api_url)
+    }
+
+    /// Start the MCP server with a placeholder token.
+    ///
+    /// Protocol-level requests (`initialize`, `tools/list`) never reach the Hook0
+    /// API, and the server only checks at startup that the token is non-empty, so
+    /// these tests need neither credentials nor a reachable API.
+    fn start_without_credentials() -> Self {
+        Self::spawn("placeholder-token-never-used", "https://app.hook0.com")
+    }
+
+    fn spawn(token: &str, api_url: &str) -> Self {
         // Find the binary - it's in the workspace target directory
         let binary = env::var("CARGO_BIN_EXE_hook0-mcp")
             .unwrap_or_else(|_| "../../target/debug/hook0-mcp".to_string());
@@ -135,10 +150,15 @@ impl McpServerProcess {
 
     /// Send initialize request (required by MCP protocol)
     fn initialize(&mut self) -> JsonRpcResponse {
+        self.initialize_with_version("2024-11-05")
+    }
+
+    /// Send initialize request requesting a specific protocol version
+    fn initialize_with_version(&mut self, protocol_version: &str) -> JsonRpcResponse {
         let response = self.send_request(
             "initialize",
             json!({
-                "protocolVersion": "2024-11-05",
+                "protocolVersion": protocol_version,
                 "capabilities": {},
                 "clientInfo": {
                     "name": "test-client",
@@ -173,6 +193,99 @@ impl Drop for McpServerProcess {
     fn drop(&mut self) {
         let _ = self.child.kill();
         let _ = self.child.wait();
+    }
+}
+
+// =============================================================================
+// Protocol Negotiation Tests
+// =============================================================================
+
+/// These tests exercise the MCP protocol handshake only, so unlike the rest of
+/// this file they need no credentials and no reachable Hook0 API, and are
+/// therefore not `#[ignore]`d.
+mod protocol {
+    use super::*;
+
+    /// Must stay in sync with `SUPPORTED_PROTOCOL_VERSIONS` in `src/server.rs`.
+    const SUPPORTED_VERSIONS: &[&str] = &["2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25"];
+
+    /// The version advertised by `get_info()`, returned when a client requests a
+    /// version the server does not support.
+    const FALLBACK_VERSION: &str = "2025-11-25";
+
+    fn negotiated_version(response: &JsonRpcResponse) -> String {
+        response
+            .result
+            .as_ref()
+            .expect("Initialize should return a result")
+            .get("protocolVersion")
+            .expect("Result should have protocolVersion")
+            .as_str()
+            .expect("protocolVersion should be a string")
+            .to_string()
+    }
+
+    #[test]
+    fn test_supported_versions_are_echoed() {
+        for version in SUPPORTED_VERSIONS {
+            let mut server = McpServerProcess::start_without_credentials();
+            let response = server.initialize_with_version(version);
+
+            assert_eq!(
+                negotiated_version(&response),
+                *version,
+                "server should negotiate the requested version {}",
+                version
+            );
+        }
+    }
+
+    /// 2026-07-28 requires the stateless lifecycle, `subscriptions/listen`, and
+    /// MRTR handling this server does not implement, so `supported_protocol_versions`
+    /// excludes it and the handshake must fall back instead of echoing it.
+    ///
+    /// This asserts the `initialize` path. The other entry point needs no test of
+    /// ours: rmcp validates a request's inline `_meta` version against the same
+    /// list and answers `-32022 Unsupported protocol version` when it is absent
+    /// from it.
+    #[test]
+    fn test_initialize_does_not_negotiate_2026_07_28() {
+        let mut server = McpServerProcess::start_without_credentials();
+        let response = server.initialize_with_version("2026-07-28");
+
+        let negotiated = negotiated_version(&response);
+        assert_ne!(
+            negotiated, "2026-07-28",
+            "server must not negotiate a protocol version it does not implement"
+        );
+        assert_eq!(
+            negotiated, FALLBACK_VERSION,
+            "unsupported version should fall back to the advertised version"
+        );
+    }
+
+    /// `resultType` (SEP-2322) exists only from 2026-07-28. rmcp strips it for
+    /// older peers, and every version this server supports is older, so it must
+    /// never appear on the wire. Guards the `with_all_items` constructors, which
+    /// set `result_type: Some(ResultType::COMPLETE)` before stripping.
+    #[test]
+    fn test_results_carry_no_result_type() {
+        for version in SUPPORTED_VERSIONS {
+            let mut server = McpServerProcess::start_without_credentials();
+            server.initialize_with_version(version);
+
+            let response = server.send_request("tools/list", json!({}));
+            let result = response
+                .result
+                .expect("tools/list should return a result even with no tools");
+
+            assert!(
+                result.get("resultType").is_none(),
+                "tools/list must not carry resultType at protocol version {}, got: {}",
+                version,
+                result
+            );
+        }
     }
 }
 

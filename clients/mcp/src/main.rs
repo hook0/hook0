@@ -42,8 +42,10 @@ async fn main() {
             eprintln!(
                 "  HOOK0_READ_ONLY  - Set to 'true' to only expose read operations (default: false)"
             );
-            eprintln!("  MCP_TRANSPORT    - Transport type: stdio or sse (default: stdio)");
-            eprintln!("  MCP_SSE_PORT     - Port for SSE server (default: 3000)");
+            eprintln!(
+                "  MCP_TRANSPORT    - Transport type: stdio (default; sse is not implemented)"
+            );
+            eprintln!("  MCP_SSE_PORT     - Port for SSE server (reserved, not implemented)");
             std::process::exit(1);
         }
     };
@@ -89,22 +91,13 @@ async fn main() {
             }
         }
         Transport::Sse { port } => {
-            info!("SSE transport requested on port {}", port);
-            eprintln!("SSE transport is not yet implemented. Using stdio instead.");
-            // For now, fall back to stdio
-            // TODO: Implement SSE transport when rmcp supports it properly
-            match server.serve(stdio()).await {
-                Ok(service) => {
-                    if let Err(e) = service.waiting().await {
-                        error!("Server error: {}", e);
-                        std::process::exit(1);
-                    }
-                }
-                Err(e) => {
-                    error!("Failed to start server: {}", e);
-                    std::process::exit(1);
-                }
-            }
+            // Silently serving stdio here would give a server that works, but not on
+            // the transport that was asked for. Refuse instead of pretending.
+            error!(
+                "SSE transport (requested on port {}) is not implemented; only MCP_TRANSPORT=stdio is supported",
+                port
+            );
+            std::process::exit(1);
         }
     }
 }

@@ -41,14 +41,29 @@ struct ParameterMeta {
 fn main() {
     println!("cargo:rerun-if-env-changed=HOOK0_OPENAPI_URL");
     println!("cargo:rerun-if-env-changed=SKIP_OPENAPI_FETCH");
+    println!("cargo:rerun-if-env-changed=DOCS_RS");
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
 
-    // Skip fetching in CI or when explicitly requested
-    let skip_fetch = env::var("SKIP_OPENAPI_FETCH").is_ok();
+    // The only two ways to build without the spec, both deliberate:
+    // - SKIP_OPENAPI_FETCH: CI jobs that merely compile, and firewalled machines.
+    // - DOCS_RS: docs.rs builds are sandboxed without network access, so panicking
+    //   there would break the documentation of an otherwise fine release.
+    // Any *other* missing spec is a hard error below. Checked before the URL is
+    // read so that skipping wins even when HOOK0_OPENAPI_URL is unreachable.
+    let skip_reason = if env::var_os("SKIP_OPENAPI_FETCH").is_some() {
+        Some("SKIP_OPENAPI_FETCH is set")
+    } else if env::var_os("DOCS_RS").is_some() {
+        Some("DOCS_RS is set, and docs.rs builds have no network access")
+    } else {
+        None
+    };
 
-    if skip_fetch {
-        println!("cargo:warning=Skipping OpenAPI fetch (SKIP_OPENAPI_FETCH is set)");
+    if let Some(reason) = skip_reason {
+        println!(
+            "cargo:warning=Skipping OpenAPI fetch ({}); hook0-mcp will expose no tools.",
+            reason
+        );
         write_fallback_code(&out_dir);
         return;
     }
@@ -58,23 +73,26 @@ fn main() {
 
     let spec = match fetch_openapi_spec(&openapi_url) {
         Ok(spec) => spec,
-        Err(e) => {
-            println!(
-                "cargo:warning=Failed to fetch OpenAPI spec: {}. Using fallback.",
-                e
-            );
-            write_fallback_code(&out_dir);
-            return;
-        }
+        Err(e) => panic!(
+            "Failed to fetch the Hook0 OpenAPI spec from {}: {}.\n\
+             hook0-mcp derives its entire tool list from that spec at build time, so it cannot be built without it.\n\
+             - Offline or firewalled machine: allow HTTPS access to that URL, or set SKIP_OPENAPI_FETCH=1 to build a server that exposes no tools.\n\
+             - Self-hosted Hook0: point HOOK0_OPENAPI_URL at your own instance, e.g. HOOK0_OPENAPI_URL=https://hook0.example.com/api/v1/swagger.json.",
+            openapi_url, e
+        ),
     };
 
     // Extract operation metadata (only operations tagged with "mcp")
     let operations = extract_mcp_operations(&spec);
 
     if operations.is_empty() {
-        println!("cargo:warning=No MCP-tagged operations found. Using fallback.");
-        write_fallback_code(&out_dir);
-        return;
+        panic!(
+            "The OpenAPI spec fetched from {} parsed correctly (\"{}\", version {}) but contains no operation tagged \"mcp\".\n\
+             hook0-mcp would expose zero tools, which is never a usable build, so this is an error rather than a warning.\n\
+             - Self-hosted Hook0: check HOOK0_OPENAPI_URL and upgrade the instance so its MCP endpoints carry the \"mcp\" tag.\n\
+             - If an empty tool list is genuinely what you want, set SKIP_OPENAPI_FETCH=1.",
+            openapi_url, spec.info.title, spec.info.version
+        );
     }
 
     // Generate Rust code
@@ -495,10 +513,14 @@ fn escape_string(s: &str) -> String {
         .replace('\t', "\\t")
 }
 
+/// Write a compilable stub whose tool list is empty.
+///
+/// Only reachable when the fetch was deliberately skipped (`SKIP_OPENAPI_FETCH`
+/// or `DOCS_RS`). A failed fetch, or a spec with no `mcp`-tagged operation, is a
+/// hard error instead — this is never a silent degradation.
 fn write_fallback_code(out_dir: &std::path::Path) {
-    // Fallback with hardcoded tools when OpenAPI is not available
-    let fallback = r#"// Fallback MCP tool definitions (OpenAPI spec unavailable)
-// Regenerate by running `cargo build` with network access
+    let fallback = r#"// MCP tool definitions for a build that skipped the OpenAPI fetch
+// Rebuild with network access (and without SKIP_OPENAPI_FETCH) to get the real tools
 
 /// Information about an MCP tool
 #[derive(Debug, Clone)]
@@ -517,7 +539,10 @@ impl GeneratedToolInfo {
     }
 }
 
-/// Fallback tools - these are placeholders until OpenAPI spec is fetched
+/// All available MCP tools generated from OpenAPI.
+///
+/// Empty: this build skipped the OpenAPI fetch (`SKIP_OPENAPI_FETCH`, or a
+/// docs.rs build, which has no network access).
 pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[];
 
 /// Check if a tool name corresponds to a write operation

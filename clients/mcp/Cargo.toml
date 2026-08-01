@@ -20,7 +20,7 @@ path = "src/main.rs"
 
 [dependencies]
 # MCP SDK
-rmcp = { version = "2.2", features = ["server", "transport-io", "macros"] }
+rmcp = { version = "3.1", default-features = false, features = ["server", "transport-io"] }
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }
