@@ -186,13 +186,13 @@ pub async fn register(
             // Persist the gclid alongside the user (and their personal
             // organization) so the enabled Google Ads conversions can be uploaded
             // server-side: "signup" once the email is verified (filters out
-            // throwaway / bot signups) and "activation" when the org creates its
-            // first API key, plus the optional "first event" and "first webhook
-            // delivered" conversions when those conversion actions are configured.
-            // The gclid is kept until every enabled conversion is uploaded, then
-            // nulled (data minimisation); stale rows are pruned both lazily here
-            // and by a periodic timer job (signup_attribution_cleanup) so the
-            // retention window holds even when signups pause.
+            // throwaway / bot signups), plus the optional "first event" and
+            // "first webhook delivered" conversions when those conversion actions
+            // are configured. The gclid is kept until every enabled conversion is
+            // uploaded, then nulled (data minimisation); stale rows are pruned
+            // both lazily here and by a periodic timer job
+            // (signup_attribution_cleanup) so the retention window holds even
+            // when signups pause.
             let normalized_gclid = crate::google_ads::normalize_gclid(body.gclid.as_deref());
             if let Some(gclid) = normalized_gclid {
                 query!(
