@@ -214,18 +214,13 @@ This documentation may not cover all options or reflect recent changes.
 | `GOOGLE_ADS_OAUTH_REFRESH_TOKEN` | OAuth refresh token | - |  |
 | `GOOGLE_ADS_SIGNUP_CONVERSION_ACTION_ID` | Numeric ID of the signup conversion action (e.g. 7576442588) | - |  |
 | `SIGNUP_ATTRIBUTION_CLEANUP_PERIOD_IN_S` | Duration (in second) between periodic passes that delete signup-attribution rows (gclids) older than SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS; set to 0 to disable the task. This enforces the retention maximum on a timer, independent of registration traffic (registrations also prune lazily). Runs regardless of Google Ads / Matomo configuration | `3600` |  |
+| `SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS` | Days a signup-attribution row (its gclid) is retained before the lazy purge deletes it — the safety net for rows whose conversions never complete. Defaults to 30 to match the click-through attribution window configured on the server-side conversion actions (30 days): past that window Google rejects the upload, so retaining the gclid longer would serve no purpose (data-minimisation, art. 5.1.e GDPR). Must not exceed the Google Ads conversion attribution window. Bounded to [1, 3650] days | `30` |  |
 
 ### Deprecated
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `ENABLE_APPLICATION_SECRET_COMPATIBILITY` | Enable application secret compatibility mode | `true` |  |
-
-### Google Ads] Days a signup-attribution row (its gclid) is retained before the lazy purge deletes it — the safety net for rows whose conversions never complete. Defaults to 30 to match the click-through attribution window configured on the server-side conversion actions (30 days): past that window Google rejects the upload, so retaining the gclid longer would serve no purpose (data-minimisation, art. 5.1.e GDPR). Must not exceed the Google Ads conversion attribution window. Bounded to [1, 3650
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS` | days | `30` |  |
 
 ### Matomo
 
