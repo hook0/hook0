@@ -85,8 +85,8 @@ This documentation may not cover all options or reflect recent changes.
 | `EMAIL_LOGO_URL` | URL of the Hook0 logo (must be a publicly fetchable transparent PNG; do NOT use app.hook0.com — that path serves a Git LFS pointer instead of the image). The default points to the banner-transparent variant which renders cleanly on any background | `https://www.hook0.com/mediakit/logo/512x512-banner-transparent.png` |  |
 | `FORMBRICKS_API_HOST` | Formbricks API host | `https://app.formbricks.com` |  |
 | `FORMBRICKS_ENVIRONMENT_ID` | Formbricks API environment ID | - |  |
-| `MATOMO_SITE_ID` | Matomo site ID | - |  |
-| `MATOMO_URL` | Matomo URL | - |  |
+| `MATOMO_SITE_ID` | Matomo site ID (also the target site of the server-side activation event; the Hook0 app site) | - |  |
+| `MATOMO_URL` | Matomo URL (also the base URL of the server-side activation event tracker when MATOMO_TOKEN_AUTH is set) | - |  |
 | `SUPPORT_EMAIL_ADDRESS` | Support email address | `support@hook0.com` |  |
 | `WEBAPP_PATH` | Path to the directory containing the web app to serve | `../frontend/dist/` |  |
 | `WEBSITE_URL` | Website URL | `https://hook0.com` |  |
@@ -202,20 +202,33 @@ This documentation may not cover all options or reflect recent changes.
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `GOOGLE_ADS_ACTIVATION_CONVERSION_ACTION_ID` | Numeric ID of the ACTIVATION conversion action (optional). When unset, signup conversion still works and activation upload is skipped | - |  |
 | `GOOGLE_ADS_CUSTOMER_ID` | Customer ID (e.g. 629-941-8464) | - |  |
 | `GOOGLE_ADS_DEVELOPER_TOKEN` | Developer token (enables server-side conversion upload). All Google Ads fields must be provided together; if any is missing, the conversion upload is silently disabled (build_google_ads_client emits a warn log when partially configured) | - |  |
+| `GOOGLE_ADS_FIRST_EVENT_CONVERSION_ACTION_ID` | Numeric ID of the FIRST-EVENT conversion action (optional). When unset, first-event conversion tracking (and its background job) is disabled; signup is unaffected | - |  |
+| `GOOGLE_ADS_FIRST_EVENT_CONVERSION_PERIOD_IN_S` | Duration (in second) between first-event conversion upload passes; set to 0 to disable the task. Only runs when a first-event conversion action is configured | `300` |  |
+| `GOOGLE_ADS_FIRST_WEBHOOK_DELIVERED_CONVERSION_ACTION_ID` | Numeric ID of the FIRST-WEBHOOK-DELIVERED conversion action (optional, north-star activation signal). When unset, first-webhook- delivered conversion tracking (and its background job) is disabled; the other conversions are unaffected | - |  |
+| `GOOGLE_ADS_FIRST_WEBHOOK_DELIVERED_CONVERSION_PERIOD_IN_S` | Duration (in second) between first-webhook-delivered conversion upload passes; set to 0 to disable the task. Only runs when a first-webhook-delivered conversion action is configured | `300` |  |
 | `GOOGLE_ADS_LOGIN_CUSTOMER_ID` | MCC login customer ID (optional) | - |  |
 | `GOOGLE_ADS_OAUTH_CLIENT_ID` | OAuth client ID (Desktop App credentials) | - |  |
 | `GOOGLE_ADS_OAUTH_CLIENT_SECRET` | OAuth client secret | - |  |
 | `GOOGLE_ADS_OAUTH_REFRESH_TOKEN` | OAuth refresh token | - |  |
 | `GOOGLE_ADS_SIGNUP_CONVERSION_ACTION_ID` | Numeric ID of the signup conversion action (e.g. 7576442588) | - |  |
+| `SIGNUP_ATTRIBUTION_CLEANUP_PERIOD_IN_S` | Duration (in second) between periodic passes that delete signup-attribution rows (gclids) older than SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS; set to 0 to disable the task. This enforces the retention maximum on a timer, independent of registration traffic (registrations also prune lazily). Runs regardless of Google Ads / Matomo configuration | `3600` |  |
+| `SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS` | Days a signup-attribution row (its gclid) is retained before the lazy purge deletes it — the safety net for rows whose conversions never complete. Defaults to 30 to match the click-through attribution window configured on the server-side conversion actions (30 days): past that window Google rejects the upload, so retaining the gclid longer would serve no purpose (data-minimisation, art. 5.1.e GDPR). Must not exceed the Google Ads conversion attribution window. Bounded to [1, 3650] days | `30` |  |
 
 ### Deprecated
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `ENABLE_APPLICATION_SECRET_COMPATIBILITY` | Enable application secret compatibility mode | `true` |  |
+
+### Matomo
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `MATOMO_ACTIVATION_PERIOD_IN_S` | Duration (in second) between server-side activation-event scan passes; set to 0 to disable the task. Only runs when Matomo tracking is fully configured (URL + site id + token_auth) | `300` |  |
+| `MATOMO_ACTIVATION_SCAN_LIMIT` | Maximum number of organizations claimed per activation scan pass (bounds the work per pass). Bounded to [1, 10000] | `500` |  |
+| `MATOMO_TOKEN_AUTH` | Server-side Tracking API token_auth secret. Enables the server-side product-activation event (category=activation, action=first-webhook-delivered) emitted once per organization on its first successful webhook delivery. Dark by default: the event is emitted only when MATOMO_URL, MATOMO_SITE_ID and this token are all set | - |  |
 
 ## Output Worker
 

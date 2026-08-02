@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE iam.signup_attribution\n            SET first_webhook_delivered_uploaded_at = statement_timestamp()\n            WHERE organization__id = $1\n              AND first_webhook_delivered_uploaded_at IS NULL\n            RETURNING user__id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user__id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "iam.signup_attribution",
+            "name": "user__id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "837246fdd09dc8af5b8c49b2431552a481df63511c3aba4bf63529867a42a37a"
+}
