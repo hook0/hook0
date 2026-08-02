@@ -34,16 +34,37 @@
 //     art. L102 B Livre des procédures fiscales).
 //   - Meldung von Datenschutzverletzungen : 72 Stunden (Art. 33/34 DSGVO).
 //   - TTL Cookie-Einwilligung : 13 Monate maximal (CNIL-Leitlinie).
+//
+// [ISMS-SYNC 2026-08-01] Revision 1.5 von legitimate-interest-balance-test-
+// google-ads.md hat den Google-Ads-Conversion-Trichter von vier auf drei
+// Signale reduziert: die Conversion „Activation" (erster API-Schlüssel) wurde
+// entfernt, da ihr Auslöser durch die automatische Erstellung eines API-
+// Schlüssels bei der Organisationseinrichtung praktisch immer erfüllt war
+// (Signal ohne Aussagekraft); ihre Rolle als Aktivierungssignal in der
+// Trichtermitte wird nun von „First event sent" übernommen. Die Zweck-Zeile
+// „Conversion-Tracking" und Abschnitt 9b unten benennen jetzt explizit die
+// drei Post-1.5-Conversions (Signup / First event sent / First webhook
+// delivered) anstelle der bisherigen generischen Formulierung; das Datum der
+// letzten Aktualisierung wurde entsprechend auf den 2026-08-01 angehoben.
+//
+// [NATIVE-REVIEW-REQUIRED] Diese Anpassung wurde von einem Agenten so nah wie
+// möglich am validierten EN-Text (en/privacy-policy.js) erstellt, ohne
+// unsichere deutsche Rechtsterminologie zu erfinden. Die drei Conversion-
+// Namen wurden bewusst als englische Produktbegriffe in Anführungszeichen
+// belassen statt übersetzt, um keine unpräzise juristische Neuprägung zu
+// riskieren. Vor Veröffentlichung ist eine Prüfung durch eine/n
+// muttersprachliche/n Jurist/in (DE) zwingend erforderlich, um Tonfall,
+// Terminologie und Rechtsförmlichkeit dieser Passagen zu bestätigen.
 module.exports = {
   pageTitle: 'Hook0 - Datenschutzerklärung',
   pageDescription: 'Datenschutzerklärung Hook0 (Art. 13 DSGVO): Rechtsgrundlagen, Aufbewahrungsfristen, Rechte, Unterauftragsverarbeiter, Drittstaaten.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-08-01',
   hero: {
     eyebrow: 'Rechtliches',
     title: 'Datenschutzerklärung',
     subtitle: 'Wie Hook0 Ihre personenbezogenen Daten erhebt, verwendet und schützt, im Einklang mit Art. 13 DSGVO.',
     lastUpdatedLabel: 'Letzte Aktualisierung:',
-    lastUpdatedDate: '27. Juli 2026',
+    lastUpdatedDate: '1. August 2026',
   },
   controller: {
     title: '1. Verantwortlicher',
@@ -72,7 +93,7 @@ module.exports = {
         basisHtml: 'Art. 6 Abs. 1 lit. a, Einwilligung (Cookie-Banner)',
       },
       {
-        purposeHtml: '<strong class="text-white">Conversion-Tracking (serverseitig)</strong><br><span class="text-gray-400 text-sm">Konversionsmessung für Google Ads, ausschließlich serverseitig über die Klick-Kennung (gclid). Es werden keine E-Mail-Adresse, keine IP-Adresse und kein User-Agent an Google übermittelt. Widerspruchsrecht an <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span>',
+        purposeHtml: '<strong class="text-white">Conversion-Tracking (serverseitig)</strong><br><span class="text-gray-400 text-sm">Konversionsmessung für Google Ads für drei Signale („Signup", „First event sent", „First webhook delivered"), ausschließlich serverseitig über die Klick-Kennung (gclid). Es werden keine E-Mail-Adresse, keine IP-Adresse und kein User-Agent an Google übermittelt. Widerspruchsrecht an <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span>',
         data: 'Klick-Kennung (gclid), pseudonyme Kennung, die Google beim Anzeigenklick erzeugt',
         basisHtml: 'Art. 6 Abs. 1 lit. f, berechtigte Interessen (Messung des Werbeerfolgs)<br><span class="text-gray-400 text-sm">Widerspruchsrecht nach Art. 21 Abs. 2 DSGVO</span>',
       },
@@ -169,7 +190,7 @@ module.exports = {
       ['Website-Analytik (Matomo)', '25 Monate', 'CNIL-Empfehlung für Analytik-Daten'],
       ['Support-Korrespondenz', '3 Jahre nach dem letzten Austausch', 'Berechtigte Interessen; allgemeine Verjährungsfrist für vertragliche Ansprüche'],
       ['Einwilligungs-Nachweise', '5 Jahre ab Erteilung der Einwilligung', 'Nachweisfähigkeit der Konformität (Art. 7 Abs. 1 DSGVO)'],
-      ['Werbe-Attribution (Google Ads gclid)', 'Maximal 30 Tage (meist deutlich kürzer)', 'Serverseitige Conversion-Messung; gclid wird gelöscht, sobald die einschlägigen Conversions übertragen wurden; Obergrenze am Google-Ads-Attributionsfenster ausgerichtet (berechtigtes Interesse, Art. 6 Abs. 1 lit. f)'],
+      ['Werbe-Attribution (Google Ads gclid)', 'Maximal 30 Tage (meist deutlich kürzer)', 'Serverseitige Conversion-Messung („Signup", „First event sent", „First webhook delivered"); gclid wird gelöscht, sobald die einschlägigen Conversions übertragen wurden; Obergrenze am Google-Ads-Attributionsfenster ausgerichtet (berechtigtes Interesse, Art. 6 Abs. 1 lit. f)'],
       ['Server-Protokolle', 'mindestens 30 Tage, danach automatische Rotation und Löschung', 'Betrieb des Dienstes, Sicherheit und Incident-Response'],
     ],
   },
@@ -206,13 +227,13 @@ module.exports = {
   },
   serverSideTracking: {
     title: '9b. Serverseitige Konversionsmessung (Google Ads)',
-    intro: 'Wenn Sie unseren Dienst über einen Klick auf eine Google-Ads-Anzeige erreichen, fügt Google Ads automatisch eine Klick-Kennung («gclid») an die Ziel-URL an. Diese gclid wird im Rahmen Ihrer Kontoerstellung an unser Backend übermittelt und serverseitig an Google Ads übertragen, um die Wirksamkeit unserer Werbekampagnen zu messen.',
+    intro: 'Wenn Sie unseren Dienst über einen Klick auf eine Google-Ads-Anzeige erreichen, fügt Google Ads automatisch eine Klick-Kennung («gclid») an die Ziel-URL an. Diese gclid wird im Rahmen Ihrer Kontoerstellung an unser Backend übermittelt und serverseitig an Google Ads übertragen, um die Wirksamkeit unserer Werbekampagnen zu messen. Anhand dieser gclid messen wir drei Konversionssignale: (1) <strong class="text-white">„Signup"</strong>, bei der Bestätigung Ihrer E-Mail-Adresse; (2) <strong class="text-white">„First event sent"</strong>, wenn Ihre Organisation ihr erstes Ereignis empfängt, ein Signal für echte Produktnutzung und Aktivierung; und (3) <strong class="text-white">„First webhook delivered"</strong>, wenn Ihre Organisation ihren ersten Webhook erfolgreich zustellt, das tiefste Aktivierungssignal im Trichter. Die letzten beiden Signale sind optional und nur aktiv, wenn sie auf unserer Seite konfiguriert sind.',
     items: [
-      '<strong class="text-white">Zweck</strong>, Messung der Akquisitionskosten unserer bezahlten Kampagnen, um das Marketing-Budget zuzuweisen.',
+      '<strong class="text-white">Zweck</strong>, Messung der Akquisitionskosten unserer bezahlten Kampagnen über diese drei Konversionsstufen hinweg, um das Marketing-Budget zuzuweisen.',
       '<strong class="text-white">Rechtsgrundlage</strong>, Art. 6 Abs. 1 lit. f DSGVO, berechtigte Interessen. Dokumentierte Interessenabwägung auf Anfrage verfügbar.',
-      '<strong class="text-white">An Google übermittelte Daten</strong>, namentlich gclid, Konversionstyp sowie Datum und Uhrzeit der Konversion. <strong>Es werden keine E-Mail-Adresse, keine IP-Adresse und kein User-Agent</strong> in diesem Rahmen an Google übermittelt.',
+      '<strong class="text-white">An Google übermittelte Daten</strong>, namentlich gclid, Konversionstyp („Signup", „First event sent" oder „First webhook delivered") sowie Datum und Uhrzeit der Konversion. <strong>Es werden keine E-Mail-Adresse, keine IP-Adresse und kein User-Agent</strong> in diesem Rahmen an Google übermittelt.',
       '<strong class="text-white">Gemeinsam Verantwortlicher</strong>, Google LLC, im Rahmen der Customer Data Processing Terms (Art. 26 DSGVO). Der Transfer in die USA ist durch die Standardvertragsklauseln (Beschluss 2021/914) und, soweit anwendbar, durch das EU-US Data Privacy Framework abgesichert (Google LLC ist DPF-zertifiziert).',
-      '<strong class="text-white">Aufbewahrung</strong>, die gclid wird in einer Attributionstabelle nur so lange gespeichert, wie es zur Messung der einschlägigen Conversions erforderlich ist, und anschließend gelöscht, sobald diese Conversions an Google Ads übertragen wurden. Die maximale Aufbewahrungsdauer beträgt 30 Tage (das Attributionsfenster, nach dessen Ablauf Google die Conversion nicht mehr annimmt); in der Praxis ist sie in der Regel deutlich kürzer.',
+      '<strong class="text-white">Aufbewahrung</strong>, die gclid wird in einer Attributionstabelle nur so lange gespeichert, wie es zur Messung der einschlägigen Conversions erforderlich ist („Signup" immer, zusätzlich „First event sent" und „First webhook delivered", sofern aktiviert), und anschließend gelöscht, sobald diese Conversions an Google Ads übertragen wurden. Die maximale Aufbewahrungsdauer beträgt 30 Tage (das Attributionsfenster, nach dessen Ablauf Google die Conversion nicht mehr annimmt); in der Praxis ist sie in der Regel deutlich kürzer.',
       '<strong class="text-white">Widerspruchsrecht</strong> nach Art. 21 Abs. 2 DSGVO. Sie können dieser Verarbeitung jederzeit widersprechen, indem Sie an <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a> schreiben. Auf Anfrage löschen wir Ihre Attributionszeile (wodurch die gclid vor jeder noch nicht erfolgten Übertragung gelöscht wird) und ersuchen Google um Löschung bereits übertragener Daten. Ihre Anmeldung wird dadurch nicht beeinträchtigt.',
     ],
     footnoteHtml: 'Hinweis: Diese serverseitige Messung beruht <strong>nicht</strong> auf Cookies, gtag.js oder einem clientseitigen Tracker. Art. 82 des französischen Datenschutzgesetzes (Umsetzung von Art. 5 Abs. 3 der ePrivacy-Richtlinie) findet auf diese Verarbeitung keine Anwendung.',

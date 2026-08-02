@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM iam.signup_attribution\n            WHERE ctid IN (\n                SELECT ctid\n                FROM iam.signup_attribution\n                WHERE created_at < statement_timestamp() - MAKE_INTERVAL(days => $1)\n                LIMIT $2\n            )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2e351c9a19154d2109c5c24cacbad5071a2e0d814c4d194c94fd2299cd1b4cf0"
+}

@@ -7,8 +7,8 @@ Ce document est établi conformément à l'article 30 du Règlement (UE) 2016/67
 
 | Métadonnée | Valeur |
 |---|---|
-| **Version** | 1.1 |
-| **Date d'établissement** | 4 mai 2026 |
+| **Version** | 1.2 |
+| **Date d'établissement** | 1er août 2026 |
 | **Prochain réexamen** | 4 mai 2027 |
 | **Responsable de la tenue** | Direction FGRibreau SARL |
 | **Contact RGPD** | legal@hook0.com |
@@ -533,13 +533,13 @@ Collectées automatiquement lors de la navigation sur www.hook0.com, après cons
 
 ### 2. Finalité(s) du traitement
 
-**Finalités :** Mesurer le coût par acquisition (CPA) et le retour sur investissement (ROI) des campagnes publicitaires Google Ads opérées par FGRibreau SARL pour le SaaS Hook0, en transmettant côté serveur l'identifiant de clic (gclid) à Google Ads pour trois signaux d'engagement : (1) « Signup » à la vérification de l'adresse email ; (2) « Activation » à la création du premier jeton d'accès de l'organisation (clé API ou jeton de service) ; (3) « First event sent » (optionnelle, activable) au premier événement ingéré par l'organisation.
+**Finalités :** Mesurer le coût par acquisition (CPA) et le retour sur investissement (ROI) des campagnes publicitaires Google Ads opérées par FGRibreau SARL pour le SaaS Hook0, en transmettant côté serveur l'identifiant de clic (gclid) à Google Ads pour trois signaux d'engagement : (1) « Signup » à la vérification de l'adresse email ; (2) « First event sent » (optionnelle, activable) au premier événement ingéré par l'organisation — signal d'usage réel / d'activation du produit ; (3) « First webhook delivered » (optionnelle, activable) au premier webhook effectivement délivré avec succès par l'organisation, étape d'activation la plus profonde du tunnel.
 
 Aucune finalité de profilage, de retargeting ou d'enrichissement de profil utilisateur.
 
 ### 3. Base légale (art. 6 RGPD)
 
-**Art. 6.1.f — Intérêt légitime :** la mesure de l'efficacité des campagnes publicitaires constitue un intérêt légitime au sens du considérant 47 du RGPD. Une balance test complète (test tripartite WP29/EDPB Guidelines 06/2014) a été réalisée et documentée dans le fichier `legitimate-interest-balance-test-google-ads.md` (ISMS FGRibreau SARL, révision 1.3 du 27 juillet 2026).
+**Art. 6.1.f — Intérêt légitime :** la mesure de l'efficacité des campagnes publicitaires constitue un intérêt légitime au sens du considérant 47 du RGPD. Une balance test complète (test tripartite WP29/EDPB Guidelines 06/2014) a été réalisée et documentée dans le fichier `legitimate-interest-balance-test-google-ads.md` (ISMS FGRibreau SARL, révision 1.5 du 1er août 2026).
 
 **Droit d'opposition (art. 21.2 RGPD) :** exercice via email à legal@hook0.com. Sur demande, la ligne d'attribution de l'utilisateur dans `iam.signup_attribution` est supprimée (ce qui efface le gclid avant tout upload non encore déclenché) et la suppression des données déjà transmises est demandée à Google. Il n'existe pas de drapeau d'opposition persistant par utilisateur (procédure manuelle) ; un tel mécanisme serait implémenté si le volume d'oppositions le justifiait.
 
@@ -555,7 +555,7 @@ Utilisateurs professionnels ayant créé un compte Hook0 après avoir cliqué su
 
 **Données transmises à Google :** gclid + identifiant de l'action de conversion (resource ID statique) + horodatage de conversion (ISO 8601).
 
-**Persistance côté Hook0 :** le gclid est stocké dans la table `iam.signup_attribution` (créée à l'inscription) le temps de mesurer les conversions applicables, puis mis à `NULL` dès que ces conversions ont été uploadées à l'API Google Ads (`uploadClickConversions`) — les trois (Signup, Activation, First event sent) lorsque cette dernière est active, les deux Signup et Activation sinon. La borne maximale de rétention est de 30 jours (variable `SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS`, défaut 30, alignée sur la fenêtre d'attribution au clic des actions de conversion) : au-delà, Google refuse l'upload. Les logs applicatifs peuvent contenir le gclid tronqué (8 premiers caractères, niveau info) pendant 30 jours.
+**Persistance côté Hook0 :** le gclid est stocké dans la table `iam.signup_attribution` (créée à l'inscription) le temps de mesurer les conversions applicables, puis mis à `NULL` dès que ces conversions ont été uploadées à l'API Google Ads (`uploadClickConversions`) — Signup toujours, plus First event sent et First webhook delivered chacune lorsqu'elle est active (de un à trois uploads selon la configuration). La borne maximale de rétention est de 30 jours (variable `SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS`, défaut 30, alignée sur la fenêtre d'attribution au clic des actions de conversion) : au-delà, Google refuse l'upload. Les logs applicatifs peuvent contenir le gclid tronqué (8 premiers caractères, niveau info) pendant 30 jours.
 
 ### 6. Catégories de destinataires
 
@@ -574,13 +574,12 @@ Lien CDPT : https://business.safety.google/adscontrollerterms/
 
 | Données | Durée | Justification |
 |---|---|---|
-| gclid en mémoire vive | Quelques centaines de millisecondes (lifetime de la requête HTTP d'inscription) | Minimisation — le gclid disparaît dès l'upload terminé |
+| gclid dans `iam.signup_attribution` | Stockage temporaire, jusqu'à nullification (`gclid = NULL`) dès que les uploads applicables sont réalisés — un à trois selon la configuration (Signup toujours, First event sent et First webhook delivered chacune lorsqu'elle est active). Borne maximale de 30 jours (`SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS`, défaut 30) : purge automatique de la ligne au-delà si les uploads applicables n'ont pas tous abouti. | Minimisation (art. 5.1.c et 5.1.e RGPD) ; borne alignée sur la fenêtre d'attribution au clic des actions de conversion (30 jours), au-delà de laquelle Google refuse l'upload |
 | Logs applicatifs contenant le gclid tronqué | 30 jours | Cohérent avec la politique de rétention des logs (logging-policy.md) |
-| Rows orphelines `iam.signup_attribution` (utilisateurs non vérifiés) | 30 jours (cleanup automatique) | Minimisation ; nettoyage automatique des données non consolidées |
 
 ### 9. Mesures de sécurité (description générale)
 
-- Aucun stockage persistant du gclid en base de données.
+- Stockage temporaire du gclid en base de données (table `iam.signup_attribution`), borné à 30 jours maximum et nullifié dès l'upload des conversions applicables (minimisation, art. 5.1.e RGPD) — cf. § 5 et § 8 ci-dessus.
 - Exclusion des lignes sans gclid (nullifié après upload ou supprimé sur opposition) : seules les organisations disposant encore d'un gclid attribué font l'objet d'un upload, ce qui rend effective toute opposition traitée par suppression de la ligne d'attribution.
 - Accès à l'API Google Ads via OAuth2 service account, credentials stockés en variable d'environnement chiffrée.
 - Référence : `legitimate-interest-balance-test-google-ads.md`, section 4 (mesures de sécurité).
@@ -972,5 +971,5 @@ Si la violation est **susceptible d'engendrer un risque élevé** pour les droit
 
 ---
 
-*Document public FGRibreau SARL — Version 1.1 — Établi le 4 mai 2026 — Prochain réexamen : 4 mai 2027.*
+*Document public FGRibreau SARL — Version 1.2 — Établi le 1er août 2026 — Prochain réexamen : 4 mai 2027.*
 *Publié dans le dépôt open-source Hook0 par souci de transparence. Disponible sur demande de la CNIL conformément à l'article 30.4 du Règlement (UE) 2016/679.*
