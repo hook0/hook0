@@ -3093,13 +3093,13 @@ dependencies = [
 
 [[package]]
 name = "http-api-problem"
-version = "0.57.0"
+version = "0.60.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bce650a2c63171c9d92f95887c8d81154b77385301c8a581b9af96491f52d765"
+checksum = "000bed434eb9b5dfb8ea5ed904f02ffc63aa0ac7ac034d480dc24fbb97b748d8"
 dependencies = [
  "actix",
  "actix-web",
- "http 0.2.12",
+ "http 1.5.0",
  "serde",
  "serde_json",
 ]
