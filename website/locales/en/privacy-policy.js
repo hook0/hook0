@@ -12,6 +12,16 @@
 // those corrections and to track the same audit date as the just-shipped DPA +
 // gdpr-subprocessors files (ISMS-synced source of truth).
 //
+// [ISMS-SYNC 2026-08-01] legitimate-interest-balance-test-google-ads.md rev 1.5
+// narrowed the Google Ads conversion funnel from four to three signals: the
+// "Activation" conversion (first API key) was removed as its trigger had become
+// an ~100% no-op (API keys are now auto-created at org setup), and its mid-funnel
+// activation role is now carried by "First event sent". The conversion-tracking
+// purpose row and section 9b below now name the three post-1.5 conversions
+// explicitly (Signup / First event sent / First webhook delivered) instead of
+// the prior generic wording, and the "Last updated" date is bumped to
+// 2026-08-01 accordingly.
+//
 // Hard legal facts (CLAUDE.md / CLAUDE.local.md) verbatim across locales:
 //   - Data controller: FGRibreau SARL, capital 2 000 EUR, RCS La Roche-sur-Yon
 //     850 824 350, VAT FR27850824350, registered office 3 rue de l'Aubepine,
@@ -52,13 +62,13 @@
 module.exports = {
   pageTitle: 'Hook0 - Privacy Policy',
   pageDescription: 'Hook0 Privacy Policy - GDPR Article 13 compliant. Legal basis, data retention, your rights, subprocessors, and transfers outside the EU.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-08-01',
   hero: {
     eyebrow: 'Legal',
     title: 'Privacy Policy',
     subtitle: 'How Hook0 collects, uses, and protects your personal data, in compliance with GDPR Article 13.',
     lastUpdatedLabel: 'Last updated:',
-    lastUpdatedDate: 'July 27, 2026',
+    lastUpdatedDate: 'August 1, 2026',
   },
   controller: {
     title: '1. Data Controller',
@@ -91,7 +101,7 @@ module.exports = {
         basisHtml: 'Art. 6(1)(a) - Consent (cookie banner)',
       },
       {
-        purposeHtml: '<strong class="text-white">Conversion tracking (server-side)</strong><br><span class="text-gray-400 text-sm">Google Ads conversion measurement, server-side via the click identifier (gclid) only. No email, no IP, no User-Agent transmitted to Google. Right to object at <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span>',
+        purposeHtml: '<strong class="text-white">Conversion tracking (server-side)</strong><br><span class="text-gray-400 text-sm">Google Ads conversion measurement for three signals (signup, first event sent, first webhook delivered), server-side via the click identifier (gclid) only. No email, no IP, no User-Agent transmitted to Google. Right to object at <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span>',
         data: 'Click identifier (gclid), pseudonymous identifier issued by Google during the ad click',
         basisHtml: 'Art. 6(1)(f) - Legitimate interests (measuring advertising ROI)<br><span class="text-gray-400 text-sm">Right to object: Art. 21(2) GDPR</span>',
       },
@@ -196,7 +206,7 @@ module.exports = {
       ['Website analytics (Matomo)', '25 months', 'CNIL recommendation for analytics data'],
       ['Support communications', '3 years from the last exchange', 'Legitimate interests; statutory limitation period for contractual claims'],
       ['Consent records', '5 years from the date of consent', 'Ability to demonstrate compliance (Art. 7(1) GDPR)'],
-      ['Advertising attribution (Google Ads gclid)', '30 days maximum (usually much less)', 'Server-side conversion measurement; gclid erased as soon as the applicable conversions are uploaded; cap aligned with the Google Ads attribution window (legitimate interest, Art. 6(1)(f))'],
+      ['Advertising attribution (Google Ads gclid)', '30 days maximum (usually much less)', 'Server-side conversion measurement (signup, first event sent, first webhook delivered); gclid erased as soon as the applicable conversions are uploaded; cap aligned with the Google Ads attribution window (legitimate interest, Art. 6(1)(f))'],
       // [ISMS-SYNC] Add server logs row to mirror DPA Appendix 2.
       ['Server logs', '30 days minimum, then automatic rotation and deletion', 'Service operation, security and incident response'],
     ],
@@ -234,13 +244,13 @@ module.exports = {
   },
   serverSideTracking: {
     title: '9b. Server-Side Conversion Measurement (Google Ads)',
-    intro: 'When you reach our service by clicking on a Google Ads advertisement, Google Ads automatically appends a click identifier ("gclid") to the destination URL. This gclid is forwarded to our backend during your account creation and uploaded server-side to Google Ads to measure the effectiveness of our advertising campaigns.',
+    intro: 'When you reach our service by clicking on a Google Ads advertisement, Google Ads automatically appends a click identifier ("gclid") to the destination URL. This gclid is forwarded to our backend during your account creation and uploaded server-side to Google Ads to measure the effectiveness of our advertising campaigns. We measure three conversion signals from this gclid: (1) <strong class="text-white">Signup</strong>, when you verify your email address; (2) <strong class="text-white">First event sent</strong>, when your organization ingests its first event, a real product-usage / activation signal; and (3) <strong class="text-white">First webhook delivered</strong>, when your organization successfully delivers its first webhook, the deepest activation signal in the funnel. The last two are optional and only active when configured on our end.',
     items: [
-      '<strong class="text-white">Purpose</strong>: measure cost-per-acquisition of our paid campaigns to allocate marketing budget.',
+      '<strong class="text-white">Purpose</strong>: measure cost-per-acquisition of our paid campaigns across these three conversion stages, to allocate marketing budget.',
       '<strong class="text-white">Legal basis</strong>: Art. 6(1)(f) GDPR, legitimate interests. Documented balance test available on request.',
-      '<strong class="text-white">Data transmitted to Google</strong>: gclid, conversion type, conversion date/time. <strong>No email, IP address, or User-Agent</strong> is transmitted to Google in this context.',
+      '<strong class="text-white">Data transmitted to Google</strong>: gclid, conversion type (signup, first event sent, or first webhook delivered), conversion date/time. <strong>No email, IP address, or User-Agent</strong> is transmitted to Google in this context.',
       '<strong class="text-white">Joint Controller</strong>: Google LLC, under the Customer Data Processing Terms (Art. 26 GDPR). Transfer to the USA is governed by Standard Contractual Clauses (Decision 2021/914) and, where applicable, the EU-US Data Privacy Framework (Google LLC is DPF-certified).',
-      '<strong class="text-white">Retention</strong>: the gclid is stored in an attribution table only for as long as needed to measure the applicable conversions, then erased as soon as those conversions have been transmitted to Google Ads. The maximum retention period is 30 days (the attribution window beyond which Google no longer accepts the conversion); in practice it is usually much shorter.',
+      '<strong class="text-white">Retention</strong>: the gclid is stored in an attribution table only for as long as needed to measure the applicable conversions (signup always, plus first event sent and first webhook delivered when enabled), then erased as soon as those conversions have been transmitted to Google Ads. The maximum retention period is 30 days (the attribution window beyond which Google no longer accepts the conversion); in practice it is usually much shorter.',
       '<strong class="text-white">Right to object</strong> (Art. 21(2) GDPR): you may object to this processing at any time by emailing <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. On request we delete your attribution row (which erases the gclid before any not-yet-sent transmission) and ask Google to delete data already transmitted. Your registration is not affected.',
     ],
     footnoteHtml: 'Note: this server-side measurement does <strong>not</strong> rely on cookies, gtag.js, or any client-side tracker. Article 82 of the French Data Protection Act (transposing Article 5(3) of the e-Privacy Directive) does not apply to this processing.',
