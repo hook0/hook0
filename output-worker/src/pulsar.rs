@@ -34,7 +34,7 @@ use crate::{
 use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;
 
-const DELAY_TOLERANCE: Duration = Duration::from_secs(1);
+const DELAY_TOLERANCE: Duration = Duration::from_secs(3);
 
 #[derive(Debug, Clone, Copy)]
 pub enum LoadMode {
@@ -973,7 +973,7 @@ async fn handle_message(
                     // This process is there to make sure delayed request attempts will not be processed immediately if the Pulsar producer made a mistake
                     RequestAttemptStatus::Delayed { delay_until, lead } => {
                         stats.record_not_ready();
-                        warn!(request_attempt_id = %attempt.request_attempt_id, lead = ?lead, "Request attempt was scheduled for later");
+                        warn!(request_attempt_id = %attempt.request_attempt_id, lead = lead.as_seconds_f64(), "Request attempt was scheduled for later");
                         // Re-send to the same topic (HP or LP) it came from
                         let retry_producer = if is_lp {
                             lp_retry_producer
