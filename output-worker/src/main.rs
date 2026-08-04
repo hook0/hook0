@@ -1,3 +1,4 @@
+mod dns;
 mod monitoring;
 mod opentelemetry;
 mod pg;
@@ -13,6 +14,7 @@ use aws_sdk_s3::config::timeout::TimeoutConfig;
 use aws_sdk_s3::config::{AppName, Credentials, Region};
 use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser, ValueEnum, crate_name, crate_version};
+use hickory_resolver::config::LookupIpStrategy;
 use humantime::format_duration;
 use reqwest::Url;
 use reqwest::header::HeaderName;
@@ -32,6 +34,7 @@ use tokio_util::task::TaskTracker;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
+use crate::dns::{DnsResolver, DnsResolverOptions};
 use crate::pulsar::LoadMode;
 use crate::work::*;
 use hook0_protobuf::RequestAttempt;
@@ -40,6 +43,27 @@ use hook0_protobuf::RequestAttempt;
 enum SignatureVersion {
     V0,
     V1,
+}
+
+/// Which address families to ask for when resolving a webhook target.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+#[clap(rename_all = "kebab-case")]
+enum DnsIpStrategy {
+    Ipv4Only,
+    Ipv6Only,
+    Ipv4AndIpv6,
+    Ipv6AndIpv4,
+}
+
+impl From<DnsIpStrategy> for LookupIpStrategy {
+    fn from(strategy: DnsIpStrategy) -> Self {
+        match strategy {
+            DnsIpStrategy::Ipv4Only => Self::Ipv4Only,
+            DnsIpStrategy::Ipv6Only => Self::Ipv6Only,
+            DnsIpStrategy::Ipv4AndIpv6 => Self::Ipv4AndIpv6,
+            DnsIpStrategy::Ipv6AndIpv4 => Self::Ipv6AndIpv4,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -208,6 +232,26 @@ struct Config {
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "15s")]
     timeout: Duration,
 
+    /// Total wall-clock budget for resolving the target's hostname, across every name server query it takes (if exceeded, request attempt will fail); must be at least "3ms"
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5s")]
+    dns_timeout: Duration,
+
+    /// Maximum duration a successful DNS answer is kept in the worker's in-process DNS cache (shorter record TTLs are still honored)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5m")]
+    dns_cache_max_ttl: Duration,
+
+    /// Maximum duration a negative DNS answer (for example NXDOMAIN) is kept in the worker's in-process DNS cache
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "30s")]
+    dns_negative_cache_max_ttl: Duration,
+
+    /// Which IP address families to query when resolving a webhook target's hostname; `ipv4-only` ignores AAAA records entirely, which is useful when a target's IPv6 address is not globally reachable
+    #[clap(long, env, default_value = "ipv4-and-ipv6")]
+    dns_ip_strategy: DnsIpStrategy,
+
+    /// If set to false (default), a webhook target's hostname is resolved exactly as written; if true, the worker host's resolv.conf search domains are appended to it
+    #[clap(long, env, default_value_t = false)]
+    dns_append_search_domains: bool,
+
     /// Name of the header containing webhook's signature
     #[clap(long, env, default_value = "X-Hook0-Signature")]
     signature_header_name: HeaderName,
@@ -235,6 +279,10 @@ struct Config {
     /// Interval between periodic throughput log lines (set to "0s" to disable)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "60s")]
     throughput_log_interval: Duration,
+
+    /// Period at which free concurrency slots are sampled for the throughput log and OTel gauges (set to "0s" to disable) (only for Pulsar workers)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "15s")]
+    slot_metrics_interval: Duration,
 }
 
 #[derive(Debug, Clone)]
@@ -387,11 +435,26 @@ async fn main() -> anyhow::Result<()> {
         config.connect_timeout
     );
     debug!("Webhook total timeout is set to {:?}", config.timeout);
+
     let retry_policy = evaluate_retry_policy(config.max_retries, config.max_retry_window);
     info!(
         "Configured retry policy allows a maximum of {} retries in a {} window",
         retry_policy.0,
         format_duration(retry_policy.1)
+    );
+
+    // Built once and shared by every request attempt, so its cache is shared too.
+    let resolver = Arc::new(DnsResolver::new(DnsResolverOptions {
+        budget: config.dns_timeout,
+        positive_max_ttl: config.dns_cache_max_ttl,
+        negative_max_ttl: config.dns_negative_cache_max_ttl,
+        ip_strategy: config.dns_ip_strategy.into(),
+        append_search_domains: config.dns_append_search_domains,
+    })?);
+    debug!(
+        "DNS budget is set to {:?} (per name server pool round: {:?})",
+        config.dns_timeout,
+        dns::pool_deadline(config.dns_timeout)
     );
 
     debug!("Connecting to database...");
@@ -574,6 +637,12 @@ async fn main() -> anyhow::Result<()> {
         )
     }
 
+    if config.dns_append_search_domains {
+        warn!(
+            "Webhook target hostnames will be expanded using this host's resolv.conf search domains: each resolution can then cost one DNS round trip per search domain, so DNS_TIMEOUT is no longer enforced per name server query and only bounds the resolution as a whole"
+        )
+    }
+
     info!("Upserting response error names");
     let mut tx = pool.begin().await?;
     for error_name in ResponseError::VARIANTS {
@@ -737,6 +806,7 @@ async fn main() -> anyhow::Result<()> {
             }
 
             let stats_pulsar = stats.clone();
+            let dr = resolver.clone();
             tasks.spawn(async move {
                 loop {
                     let result = pulsar::look_for_work(
@@ -750,6 +820,7 @@ async fn main() -> anyhow::Result<()> {
                         heartbeat_tx.clone(),
                         &task_tracker_main,
                         &stats_pulsar,
+                        &dr,
                     )
                     .await;
                     if let Err(ref e) = result {
@@ -783,6 +854,7 @@ async fn main() -> anyhow::Result<()> {
             let cfg = config.to_owned();
             let tt = task_tracker_main.clone();
             let stats_pg = stats.clone();
+            let dr = resolver.clone();
             task_tracker_main.spawn(async move {
                 // Start units progressively
                 sleep(Duration::from_millis(u64::from(unit_id) * 100)).await;
@@ -799,6 +871,7 @@ async fn main() -> anyhow::Result<()> {
                         tx.clone(),
                         &tt,
                         &stats_pg,
+                        &dr,
                     )
                     .await;
                     if let Err(ref e) = t {
@@ -903,7 +976,6 @@ async fn compute_next_retry(
             Ok(None)
         }
         _ => {
-            // Temporary warning message; this will be replaced by actual actions at some point
             if let Some(ResponseError::InvalidTarget) = response.response_error {
                 let msg = response
                     .body
