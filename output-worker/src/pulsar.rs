@@ -23,7 +23,9 @@ use tracing::{debug, error, info, trace, warn};
 use uuid::Uuid;
 
 use crate::opentelemetry::{
-    end_request_attempt_span, gather_pulsar_consumer_metrics, start_request_attempt_span,
+    classify_outcome, compute_delivery_lag_seconds, end_request_attempt_span,
+    gather_pulsar_consumer_metrics, report_delivery_outcome, report_worker_delivery_lag,
+    start_request_attempt_span,
 };
 use crate::throughput_log::ThroughputStats;
 use crate::work::work;
@@ -722,6 +724,11 @@ async fn handle_message(
                         if let Ok(lag) = (picked_at - eligible_at).to_std() {
                             stats.record_lag(lag, attempt_is_hp);
                         }
+                        report_worker_delivery_lag(compute_delivery_lag_seconds(
+                            picked_at,
+                            attempt.created_at,
+                            delay_until,
+                        ));
 
                         // Start OpenTelemetry span
                         let span = start_request_attempt_span(&attempt);
@@ -955,7 +962,8 @@ async fn handle_message(
                             );
                         }
 
-                        // End OpenTelemetry span
+                        // Record the bounded delivery outcome, then end the OpenTelemetry span
+                        report_delivery_outcome(classify_outcome(&response));
                         end_request_attempt_span(span, &response);
 
                         ack_tx

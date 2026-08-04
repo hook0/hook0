@@ -11,7 +11,10 @@ use tokio::time::sleep;
 use tokio_util::task::TaskTracker;
 use tracing::{debug, info, trace, warn};
 
-use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span};
+use crate::opentelemetry::{
+    classify_outcome, compute_delivery_lag_seconds, end_request_attempt_span,
+    report_delivery_outcome, report_worker_delivery_lag, start_request_attempt_span,
+};
 use crate::throughput_log::ThroughputStats;
 use crate::work::{ResponseError, work};
 use crate::{
@@ -116,6 +119,11 @@ pub async fn look_for_work(
             if let Ok(lag) = (Utc::now() - eligible_at).to_std() {
                 stats.record_lag(lag, attempt_is_hp);
             }
+            report_worker_delivery_lag(compute_delivery_lag_seconds(
+                Utc::now(),
+                attempt.created_at,
+                attempt.delay_until,
+            ));
 
             // Set picked_at
             trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Picking request attempt");
@@ -359,7 +367,8 @@ pub async fn look_for_work(
                     config.hp_retry_cutoff,
                 );
 
-                // End OpenTelemetry span
+                // Record the bounded delivery outcome, then end the OpenTelemetry span
+                report_delivery_outcome(classify_outcome(&response));
                 end_request_attempt_span(span, &response);
             } else if give_up {
                 warn!(
