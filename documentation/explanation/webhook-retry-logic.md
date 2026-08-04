@@ -180,8 +180,9 @@ When a delivery fails, Hook0 records one of these error codes:
 |------------|---------|
 | `E_TIMEOUT` | The HTTP request timed out |
 | `E_CONNECTION` | Could not establish a connection to the target |
+| `E_DNS` | The target's hostname could not be resolved: either no name server could be reached, or one answered with an error (for example SERVFAIL or REFUSED). This does not mean the target URL is wrong |
 | `E_HTTP` | The server responded with a non-2xx status code |
-| `E_INVALID_TARGET` | The target URL is invalid or resolves to a forbidden IP |
+| `E_INVALID_TARGET` | The target URL is invalid, does not exist (NXDOMAIN), or resolves to a forbidden IP |
 | `E_INVALID_HEADER` | A required header value could not be constructed (non-retryable) |
 | `E_UNKNOWN` | An unexpected error occurred |
 

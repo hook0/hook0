@@ -8,12 +8,13 @@ use serde_json::Value;
 use sha2::Sha256;
 use std::collections::HashMap;
 use std::fmt;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
+use std::net::SocketAddr;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 use strum::VariantNames;
 use tracing::{debug, error, instrument, trace, warn};
 
+use crate::dns::DnsResolver;
 use crate::{Config, RequestAttempt, SignatureVersion};
 
 const USER_AGENT: &str = concat!(crate_name!(), "/", crate_version!());
@@ -26,12 +27,25 @@ pub enum ResponseError {
     InvalidHeader,
     #[strum(serialize = "E_INVALID_TARGET")]
     InvalidTarget,
+    #[strum(serialize = "E_DNS")]
+    Dns,
     #[strum(serialize = "E_CONNECTION")]
     Connection,
     #[strum(serialize = "E_TIMEOUT")]
     Timeout,
     #[strum(serialize = "E_HTTP")]
     Http,
+}
+
+/// A failure that happened before any HTTP request was made: the stored URL could not be
+/// parsed, or it could not be resolved. Carries its own code, because a resolver failure is not
+/// necessarily the target's fault.
+struct TargetFailure {
+    /// Customer-visible; stored as the response body.
+    message: String,
+    response_error: ResponseError,
+    /// Operators only — deliberately absent from `message`.
+    detail: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -80,33 +94,29 @@ impl Response {
 }
 
 #[instrument(skip_all, fields(request_attempt_id = %attempt.request_attempt_id))]
-pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
+pub async fn work(config: &Config, resolver: &DnsResolver, attempt: &RequestAttempt) -> Response {
     debug!("Processing request attempt");
     let start = Instant::now();
 
     let m = Method::from_str(attempt.http_method.as_str());
-    let u = Url::parse(attempt.http_url.as_str())
-        .map_err(|e| e.to_string())
-        .and_then(|url| {
-            let addrs = url.socket_addrs(|| None).map_err(|e| e.to_string())?;
-            if addrs.is_empty() {
-                Err("URL did not resolve to any IP address".to_string())
-            } else {
-                // Reject if *any* resolved address is forbidden: a hostname that resolves to a mix of public and internal addresses must not pass.
-                let has_forbidden_ip = addrs.iter().any(|addr| is_forbidden_ip(addr.ip()));
-
-                if has_forbidden_ip {
-                    if config.disable_target_ip_check {
-                        debug!("Target URL resolves to a forbidden IP but this is allowed in the worker's configuration");
-                        Ok((url, addrs))
-                    } else {
-                        Err("URL resolves to a forbidden IP".to_string())
-                    }
-                } else {
-                    Ok((url, addrs))
-                }
-            }
-        });
+    let u = match Url::parse(attempt.http_url.as_str()) {
+        Err(e) => Err(TargetFailure {
+            message: e.to_string(),
+            response_error: ResponseError::InvalidTarget,
+            detail: None,
+        }),
+        Ok(url) => match resolver
+            .resolve_target(&url, config.disable_target_ip_check)
+            .await
+        {
+            Ok(addrs) => Ok((url, addrs)),
+            Err(e) => Err(TargetFailure {
+                response_error: e.response_error(),
+                detail: e.detail().map(str::to_owned),
+                message: e.to_string(),
+            }),
+        },
+    };
     let hs = parse_headers(attempt.http_headers.clone());
     let et = HeaderValue::from_str(&attempt.event_type_name);
     let event_id = HeaderValue::from_str(attempt.event_id.to_string().as_str())
@@ -277,16 +287,18 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                 elapsed_time: start.elapsed(),
             }
         }
-        (_, Err(e), _, _) => {
+        (_, Err(f), _, _) => {
             warn!(
                 target_http_url = attempt.http_url,
-                "Target has an invalid URL: {e}"
+                response_error = %f.response_error,
+                detail = f.detail.as_deref(),
+                "Could not use target URL: {}", f.message
             );
             Response {
-                response_error: Some(ResponseError::InvalidTarget),
+                response_error: Some(f.response_error),
                 http_code: None,
                 headers: None,
-                body: Some(e.to_string().into_bytes()),
+                body: Some(f.message.into_bytes()),
                 elapsed_time: start.elapsed(),
             }
         }
@@ -313,76 +325,6 @@ pub async fn work(config: &Config, attempt: &RequestAttempt) -> Response {
                 body: Some(msg.into_bytes()),
                 elapsed_time: start.elapsed(),
             }
-        }
-    }
-}
-
-/// Returns `true` when the given IP address must not be targeted by a webhook (loopback, private, link-local, shared, cloud-metadata, and other non-globally-reachable ranges).
-fn is_forbidden_ip(ip: IpAddr) -> bool {
-    // This should be replaced by https://doc.rust-lang.org/nightly/core/net/enum.IpAddr.html#method.is_global when it becomes stable
-
-    // v4
-    fn is_shared(ip: &Ipv4Addr) -> bool {
-        ip.octets()[0] == 100 && (ip.octets()[1] & 0b1100_0000 == 0b0100_0000)
-    }
-    fn is_benchmarking(ip: &Ipv4Addr) -> bool {
-        ip.octets()[0] == 198 && (ip.octets()[1] & 0xfe) == 18
-    }
-    fn is_reserved(ip: &Ipv4Addr) -> bool {
-        ip.octets()[0] & 240 == 240 && !ip.is_broadcast()
-    }
-
-    // v6
-    fn is_documentation(ip: &Ipv6Addr) -> bool {
-        (ip.segments()[0] == 0x2001) && (ip.segments()[1] == 0xdb8)
-    }
-    fn is_unique_local(ip: &Ipv6Addr) -> bool {
-        (ip.segments()[0] & 0xfe00) == 0xfc00
-    }
-    fn is_unicast_link_local(ip: &Ipv6Addr) -> bool {
-        (ip.segments()[0] & 0xffc0) == 0xfe80
-    }
-
-    match ip {
-        IpAddr::V4(ip) => {
-            ip.octets()[0] == 0 // "This network"
-                || ip.is_private()
-                || is_shared(&ip)
-                || ip.is_loopback()
-                || ip.is_link_local()
-                // addresses reserved for future protocols (`192.0.0.0/24`)
-                ||(ip.octets()[0] == 192 && ip.octets()[1] == 0 && ip.octets()[2] == 0)
-                || ip.is_documentation()
-                || is_benchmarking(&ip)
-                || is_reserved(&ip)
-                || ip.is_broadcast()
-        }
-        IpAddr::V6(ip) => {
-            ip.is_unspecified()
-                || ip.is_loopback()
-                // IPv4-mapped Address (`::ffff:0:0/96`)
-                || matches!(ip.segments(), [0, 0, 0, 0, 0, 0xffff, _, _])
-                // IPv4-IPv6 Translat. (`64:ff9b:1::/48`)
-                || matches!(ip.segments(), [0x64, 0xff9b, 1, _, _, _, _, _])
-                // Discard-Only Address Block (`100::/64`)
-                || matches!(ip.segments(), [0x100, 0, 0, 0, _, _, _, _])
-                // IETF Protocol Assignments (`2001::/23`)
-                || (matches!(ip.segments(), [0x2001, b, _, _, _, _, _, _] if b < 0x200)
-                    && !(
-                        // Port Control Protocol Anycast (`2001:1::1`)
-                        u128::from_be_bytes(ip.octets()) == 0x2001_0001_0000_0000_0000_0000_0000_0001
-                        // Traversal Using Relays around NAT Anycast (`2001:1::2`)
-                        || u128::from_be_bytes(ip.octets()) == 0x2001_0001_0000_0000_0000_0000_0000_0002
-                        // AMT (`2001:3::/32`)
-                        || matches!(ip.segments(), [0x2001, 3, _, _, _, _, _, _])
-                        // AS112-v6 (`2001:4:112::/48`)
-                        || matches!(ip.segments(), [0x2001, 4, 0x112, _, _, _, _, _])
-                        // ORCHIDv2 (`2001:20::/28`)
-                        || matches!(ip.segments(), [0x2001, b, _, _, _, _, _, _] if (0x20..=0x2F).contains(&b))
-                    ))
-                || is_documentation(&ip)
-                || is_unique_local(&ip)
-                || is_unicast_link_local(&ip)
         }
     }
 }
@@ -630,54 +572,5 @@ mod tests {
 
         let sig = Signature::new(secret, payload.as_bytes(), signed_at, &headers);
         assert!(matches!(sig, Err(h) if h == HeaderName::from_static("x-event-type")));
-    }
-
-    fn ip(s: &str) -> IpAddr {
-        s.parse().expect("invalid test IP")
-    }
-
-    #[test]
-    fn forbids_non_globally_reachable_ips() {
-        // IPv4
-        assert!(is_forbidden_ip(ip("0.0.0.0")));
-        assert!(is_forbidden_ip(ip("127.0.0.1")));
-        assert!(is_forbidden_ip(ip("10.0.0.1")));
-        assert!(is_forbidden_ip(ip("172.16.5.4")));
-        assert!(is_forbidden_ip(ip("192.168.1.1")));
-        assert!(is_forbidden_ip(ip("100.64.0.1"))); // shared (CGNAT)
-        assert!(is_forbidden_ip(ip("169.254.1.1"))); // link-local
-        assert!(is_forbidden_ip(ip("169.254.169.254"))); // cloud metadata
-        assert!(is_forbidden_ip(ip("255.255.255.255"))); // broadcast
-        // IPv6
-        assert!(is_forbidden_ip(ip("::1"))); // loopback
-        assert!(is_forbidden_ip(ip("::"))); // unspecified
-        assert!(is_forbidden_ip(ip("fc00::1"))); // unique local
-        assert!(is_forbidden_ip(ip("fe80::1"))); // link-local
-        assert!(is_forbidden_ip(ip("::ffff:127.0.0.1"))); // IPv4-mapped loopback
-        assert!(is_forbidden_ip(ip("::ffff:169.254.169.254"))); // IPv4-mapped metadata
-        assert!(is_forbidden_ip(ip("64:ff9b:1::1"))); // IPv4/IPv6 translation
-        assert!(is_forbidden_ip(ip("100::1"))); // discard-only block
-        // IETF Protocol Assignments (`2001::/23`), excluding the globally-reachable carve-outs
-        assert!(is_forbidden_ip(ip("2001::1"))); // generic 2001::/23 (Teredo region)
-        assert!(is_forbidden_ip(ip("2001:1ff::1"))); // top of the /23 (b == 0x1ff)
-        assert!(is_forbidden_ip(ip("2001:db8::1"))); // documentation
-    }
-
-    #[test]
-    fn allows_public_ips() {
-        assert!(!is_forbidden_ip(ip("1.1.1.1")));
-        assert!(!is_forbidden_ip(ip("8.8.8.8")));
-        assert!(!is_forbidden_ip(ip("93.184.216.34"))); // example.com
-        assert!(!is_forbidden_ip(ip("2606:4700:4700::1111"))); // Cloudflare DNS
-        assert!(!is_forbidden_ip(ip("2001:4860:4860::8888"))); // Google DNS
-        // Globally-reachable carve-outs inside `2001::/23`
-        assert!(!is_forbidden_ip(ip("2001:1::1"))); // Port Control Protocol Anycast
-        assert!(!is_forbidden_ip(ip("2001:1::2"))); // TURN Anycast
-        assert!(!is_forbidden_ip(ip("2001:3::1"))); // AMT
-        assert!(!is_forbidden_ip(ip("2001:4:112::1"))); // AS112-v6
-        assert!(!is_forbidden_ip(ip("2001:20::1"))); // ORCHIDv2 (low)
-        assert!(!is_forbidden_ip(ip("2001:2f::1"))); // ORCHIDv2 (high)
-        // First block just above `2001::/23` (b == 0x200) is globally reachable
-        assert!(!is_forbidden_ip(ip("2001:200::1")));
     }
 }

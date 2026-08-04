@@ -11,6 +11,7 @@ use tokio::time::sleep;
 use tokio_util::task::TaskTracker;
 use tracing::{debug, info, trace, warn};
 
+use crate::dns::DnsResolver;
 use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span};
 use crate::throughput_log::ThroughputStats;
 use crate::work::{ResponseError, work};
@@ -39,6 +40,7 @@ pub async fn look_for_work(
     heartbeat_tx: Option<Sender<u16>>,
     task_tracker: &TaskTracker,
     stats: &ThroughputStats,
+    resolver: &DnsResolver,
 ) -> anyhow::Result<()> {
     let (retry_count_lt, retry_count_gte): (Option<i16>, Option<i16>) = match slot_role {
         SlotRole::HpReserved => (Some(config.hp_retry_cutoff), None),
@@ -212,7 +214,7 @@ pub async fn look_for_work(
                 let span = start_request_attempt_span(&attempt_with_payload);
 
                 // Work
-                let response = work(config, &attempt_with_payload).await;
+                let response = work(config, resolver, &attempt_with_payload).await;
                 trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
 
                 // Store response
