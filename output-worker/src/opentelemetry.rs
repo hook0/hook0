@@ -392,8 +392,13 @@ mod tests {
     use std::collections::BTreeSet;
 
     /// The complete, closed set of labels the `outcome` attribute may ever take.
-    const OUTCOME_LABELS: [&str; 5] =
-        ["success", "timeout", "http_4xx", "http_5xx", "connection_error"];
+    const OUTCOME_LABELS: [&str; 5] = [
+        "success",
+        "timeout",
+        "http_4xx",
+        "http_5xx",
+        "connection_error",
+    ];
 
     fn response(response_error: Option<ResponseError>, http_code: Option<u16>) -> Response {
         Response {
