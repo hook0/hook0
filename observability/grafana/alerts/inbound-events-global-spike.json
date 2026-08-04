@@ -1,0 +1,73 @@
+{
+  "uid": "hook0-ingest-spike",
+  "orgID": 1,
+  "folderUID": "ff485ab4jp6gwc",
+  "ruleGroup": "Every minute",
+  "title": "Inbound events — global ingestion spike",
+  "condition": "C",
+  "for": "10m",
+  "noDataState": "OK",
+  "execErrState": "Error",
+  "isPaused": false,
+  "labels": { "severity": "warning", "team": "hook0" },
+  "annotations": {
+    "summary": "Global inbound event ingestion rate is abnormally high (possible upstream duplication / runaway producer). Normal P99 is ~16 events/s; this fires above 50 events/s sustained 10m. The Aug 2026 incident peaked at ~3500 events/s and triggered NO alert. Drill down per-application via the event.events_per_day view."
+  },
+  "notification_settings": { "receiver": "Better Uptime" },
+  "data": [
+    {
+      "refId": "A",
+      "queryType": "",
+      "relativeTimeRange": { "from": 600, "to": 0 },
+      "datasourceUid": "mimir",
+      "model": {
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "editorMode": "code",
+        "expr": "sum(rate(events_ingested_total[10m]))",
+        "instant": true,
+        "range": false,
+        "intervalMs": 1000,
+        "maxDataPoints": 43200,
+        "refId": "A"
+      }
+    },
+    {
+      "refId": "B",
+      "queryType": "",
+      "relativeTimeRange": { "from": 0, "to": 0 },
+      "datasourceUid": "__expr__",
+      "model": {
+        "datasource": { "type": "__expr__", "uid": "__expr__" },
+        "expression": "A",
+        "reducer": "last",
+        "type": "reduce",
+        "refId": "B",
+        "intervalMs": 1000,
+        "maxDataPoints": 43200
+      }
+    },
+    {
+      "refId": "C",
+      "queryType": "",
+      "relativeTimeRange": { "from": 0, "to": 0 },
+      "datasourceUid": "__expr__",
+      "model": {
+        "datasource": { "type": "__expr__", "uid": "__expr__" },
+        "expression": "B",
+        "type": "threshold",
+        "conditions": [
+          {
+            "evaluator": { "params": [50], "type": "gt" },
+            "operator": { "type": "and" },
+            "query": { "params": ["C"] },
+            "reducer": { "params": [], "type": "last" },
+            "type": "query"
+          }
+        ],
+        "refId": "C",
+        "intervalMs": 1000,
+        "maxDataPoints": 43200
+      }
+    }
+  ]
+}
