@@ -2992,6 +2992,7 @@ dependencies = [
  "papaya",
  "proptest",
  "pulsar",
+ "rand 0.10.2",
  "reqwest",
  "rustls 0.23.43",
  "serde",

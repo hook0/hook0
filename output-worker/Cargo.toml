@@ -33,6 +33,7 @@ opentelemetry-otlp = { version = "0.32.0", default-features = false, features = 
 opentelemetry_sdk = { version = "0.32.1", default-features = false, features = ["trace", "metrics", "rt-tokio"] }
 papaya = "0.2.4"
 pulsar = { version = "6.8.0", default-features = false, features = ["tokio-rustls-runtime"] }
+rand = "0.10"
 reqwest = { version = "0.13.4", features = ["hickory-dns", "json"] }
 rustls = { version = "0.23.43", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
 serde = { version = "1.0.229", features = ["derive"] }
