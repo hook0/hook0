@@ -210,8 +210,11 @@ ORDER BY error_count DESC;
 **Common Error Types:**
 - `E_CONNECTION`: Network connectivity issues
 - `E_TIMEOUT`: Request exceeded timeout
+- `E_DNS`: The target's hostname could not be resolved
 - `E_HTTP`: Non-2xx HTTP response
 - `E_INVALID_TARGET`: Invalid URL or configuration
+- `E_INVALID_HEADER`: A required header value could not be constructed
+- `E_UNKNOWN`: An unexpected error occurred
 
 ### 5. Delivery Latency
 
@@ -353,10 +356,13 @@ Look for:
 ### Step 3: Check Error Category
 
 The `response_error_name` field categorizes the failure:
-- **`E_CONNECTION`**: Target unreachable, DNS failure, network issue
+- **`E_CONNECTION`**: Target unreachable once resolved, network issue
 - **`E_TIMEOUT`**: Request exceeded configured timeout (default 15s)
+- **`E_DNS`**: The target's hostname could not be resolved — no name server could be reached, or one answered with an error such as SERVFAIL or REFUSED. The URL itself may be perfectly valid, so this is not necessarily something the subscription owner can fix
 - **`E_HTTP`**: Non-2xx response (check response body for details)
-- **`E_INVALID_TARGET`**: Malformed URL or forbidden IP address
+- **`E_INVALID_TARGET`**: Malformed URL, a hostname that does not exist (NXDOMAIN), or a forbidden IP address
+- **`E_INVALID_HEADER`**: A required header value could not be constructed (not retried)
+- **`E_UNKNOWN`**: An unexpected error occurred
 
 ### Step 4: Review Event Payload
 

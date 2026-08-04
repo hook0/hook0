@@ -5,6 +5,7 @@ use chrono::{DateTime, TimeDelta, Utc};
 use futures::TryStreamExt;
 use futures::future::try_join_all;
 use pulsar::consumer::{InitialPosition, Message};
+use pulsar::producer::SendFuture;
 use pulsar::proto::MessageIdData;
 use pulsar::{
     Consumer, ConsumerOptions, DeserializeMessage, Executor, Producer, ProducerOptions, SubType,
@@ -16,16 +17,17 @@ use std::time::Duration;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Sender, channel};
 use tokio::sync::{Mutex, OwnedSemaphorePermit, Semaphore};
-use tokio::time::{Instant, interval_at, sleep, timeout};
+use tokio::time::{Instant, MissedTickBehavior, interval_at, sleep, timeout};
 use tokio::{select, spawn};
 use tokio_util::task::TaskTracker;
 use tracing::{debug, error, info, trace, warn};
 use uuid::Uuid;
 
+use crate::dns::DnsResolver;
 use crate::opentelemetry::{
     classify_outcome, compute_delivery_lag_seconds, end_request_attempt_span,
-    gather_pulsar_consumer_metrics, report_delivery_outcome, report_worker_delivery_lag,
-    start_request_attempt_span,
+    gather_pulsar_consumer_metrics, gather_slot_metrics, report_delivery_outcome,
+    report_worker_delivery_lag, start_request_attempt_span,
 };
 use crate::throughput_log::ThroughputStats;
 use crate::work::work;
@@ -36,7 +38,7 @@ use crate::{
 use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;
 
-const DELAY_TOLERANCE: Duration = Duration::from_secs(1);
+const DELAY_TOLERANCE: Duration = Duration::from_secs(3);
 
 #[derive(Debug, Clone, Copy)]
 pub enum LoadMode {
@@ -49,6 +51,61 @@ const MAX_CONSECUTIVE_CONSUMER_ERRORS: u32 = 10;
 
 /// Extra time added to the HTTP timeout when draining in-flight tasks after consumer crash
 const DRAIN_TIMEOUT_MARGIN: Duration = Duration::from_secs(5);
+
+/// Push a request attempt into a Pulsar producer's queue, bounding the whole operation.
+///
+/// Note that this only bounds handing the message over to the client; the returned future
+/// resolves when the broker acknowledges it, and must be bounded separately by the caller.
+async fn enqueue(
+    producer: &Mutex<Producer<TokioExecutor>>,
+    request_attempt: RequestAttempt,
+    event_time: DateTime<Utc>,
+    deliver_at: Option<DateTime<Utc>>,
+    enqueue_timeout: Duration,
+) -> anyhow::Result<SendFuture> {
+    let request_attempt_id = request_attempt.request_attempt_id;
+
+    // The message builder borrows the producer, so the guard has to live inside this block; that
+    // also means both are dropped if the timeout elapses.
+    timeout(enqueue_timeout, async {
+        let mut producer = producer.lock().await;
+        let mut msg_builder = producer
+            .create_message()
+            .event_time(event_time.timestamp_micros() as u64);
+        if let Some(delay_until) = deliver_at {
+            msg_builder = msg_builder.deliver_at(delay_until.into())?;
+        }
+        let send_future = msg_builder
+            .with_content(request_attempt)
+            .send_non_blocking()
+            .await?;
+        Ok::<_, anyhow::Error>(send_future)
+    })
+    .await
+    .map_err(|_| {
+        error!(%request_attempt_id, "Timed out enqueuing Pulsar message");
+        anyhow!("Timed out enqueuing Pulsar message")
+    })?
+}
+
+/// Wait for the Pulsar broker to acknowledge a message that was previously enqueued.
+async fn await_receipt(
+    send_future: SendFuture,
+    receipt_timeout: Duration,
+    request_attempt_id: Uuid,
+) -> anyhow::Result<()> {
+    timeout(receipt_timeout, send_future)
+        .await
+        .map_err(|_| {
+            error!(%request_attempt_id, "Pulsar broker receipt timed out");
+            anyhow!("Pulsar broker receipt timed out")
+        })?
+        .map_err(|e| {
+            error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
+            anyhow::Error::from(e)
+        })?;
+    Ok(())
+}
 
 /// Wraps an OwnedSemaphorePermit so that dropping it returns the permit to the correct pool.
 /// The inner permit is held for its Drop semantics, not read directly.
@@ -245,23 +302,23 @@ pub async fn load_waiting_request_attempts_from_db(
             }
 
             let request_attempt_id = ra.request_attempt_id;
-            let send_future = msg_builder
-                .with_content(request_attempt)
-                .send_non_blocking()
-                .await?;
-            receipt_futures.push(async move {
-                timeout(pulsar_send_receipt_timeout, send_future)
-                    .await
-                    .map_err(|_| {
-                        error!(%request_attempt_id, "Pulsar broker receipt timed out");
-                        anyhow!("Pulsar broker receipt timed out")
-                    })?
-                    .map_err(|e| {
-                        error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
-                        anyhow::Error::from(e)
-                    })?;
-                Ok::<(), anyhow::Error>(())
-            });
+            let send_future = timeout(
+                pulsar_send_receipt_timeout,
+                msg_builder.with_content(request_attempt).send_non_blocking(),
+            )
+            .await
+            .map_err(|_| {
+                error!(%request_attempt_id, loaded = counter, "Timed out enqueuing Pulsar message while loading request attempts");
+                anyhow!("Timed out enqueuing Pulsar message")
+            })?
+            .inspect_err(|e| {
+                error!(%request_attempt_id, loaded = counter, error = %e, "Could not enqueue Pulsar message while loading request attempts");
+            })?;
+            receipt_futures.push(await_receipt(
+                send_future,
+                pulsar_send_receipt_timeout,
+                request_attempt_id,
+            ));
 
             counter += 1;
         } else {
@@ -295,6 +352,7 @@ pub async fn look_for_work(
     heartbeat_tx: Option<Sender<u16>>,
     task_tracker: &TaskTracker,
     stats: &Arc<ThroughputStats>,
+    resolver: &Arc<DnsResolver>,
 ) -> anyhow::Result<()> {
     info!("Begin looking for work");
 
@@ -419,6 +477,15 @@ pub async fn look_for_work(
         ))
     };
 
+    let mut slot_metrics_interval = if config.slot_metrics_interval.is_zero() {
+        None
+    } else {
+        let period = config.slot_metrics_interval;
+        let mut ticker = interval_at(Instant::now() + period, period);
+        ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
+        Some(ticker)
+    };
+
     // Tracks consecutive errors from the Pulsar consumer to detect a dead connection
     let mut consecutive_errors: u32 = 0;
 
@@ -472,6 +539,13 @@ pub async fn look_for_work(
                     dispatch_ack(&mut hp_consumer, &hp_topic, &mut lp_consumer, &lp_topic, &heartbeat_tx, msg_ack).await?;
                 }
             },
+            _ = async { slot_metrics_interval.as_mut().unwrap().tick().await }, if slot_metrics_interval.is_some() => {
+                let hp_free = hp_sem.available_permits() as u64;
+                let lp_free = lp_sem.available_permits() as u64;
+                let dynamic_free = dynamic_sem.available_permits() as u64;
+                stats.record_free_slots(hp_free, lp_free, dynamic_free);
+                gather_slot_metrics(hp_free, lp_free, dynamic_free);
+            },
             _ = async { stats_interval.as_mut().unwrap().tick().await }, if stats_interval.is_some() => {
                 // Note: get_stats() blocks the select loop, but it's a lightweight
                 // binary protocol call over the existing connection.
@@ -504,11 +578,12 @@ pub async fn look_for_work(
                         let lp_rp = lp_retry_producer.clone();
                         let st = stats.clone();
                         let infl = in_flight.clone();
+                        let dr = resolver.clone();
 
                         // We handle the request attempt in a new Tokio task
                         task_tracker.spawn(async move {
                             if let Err(e) = handle_message(
-                                &c, &po, &os, &wi, &wn, &wv, &hp_rp, &lp_rp, msg, permit, ack_tx, &st, is_lp, infl,
+                                &c, &po, &os, &wi, &wn, &wv, &hp_rp, &lp_rp, msg, permit, ack_tx, &st, is_lp, infl, &dr,
                             )
                             .await
                             {
@@ -544,25 +619,30 @@ pub async fn look_for_work(
         Ok(())
     } else {
         // Drain in-flight tasks before returning, so their ACK/NACKs are attempted.
-        // The timeout is bounded by the HTTP timeout + 5s to allow the slowest request to finish.
-        // If no tasks are in-flight, this returns immediately.
+        // The timeout must outlast the slowest possible request attempt, which is DNS resolution
+        // (bounded by the DNS timeout) followed by the HTTP call (bounded by the HTTP timeout,
+        // which already covers the connect phase), plus a margin. If no tasks are in-flight, this
+        // returns immediately.
         drop(ack_tx);
-        match timeout(config.timeout + DRAIN_TIMEOUT_MARGIN, async {
-            while let Some(msg_ack) = ack_rx.recv().await {
-                if let Err(e) = dispatch_ack(
-                    &mut hp_consumer,
-                    &hp_topic,
-                    &mut lp_consumer,
-                    &lp_topic,
-                    &heartbeat_tx,
-                    msg_ack,
-                )
-                .await
-                {
-                    error!("Failed to ACK/NACK message during drain: {e}");
+        match timeout(
+            config.timeout + config.dns_timeout + DRAIN_TIMEOUT_MARGIN,
+            async {
+                while let Some(msg_ack) = ack_rx.recv().await {
+                    if let Err(e) = dispatch_ack(
+                        &mut hp_consumer,
+                        &hp_topic,
+                        &mut lp_consumer,
+                        &lp_topic,
+                        &heartbeat_tx,
+                        msg_ack,
+                    )
+                    .await
+                    {
+                        error!("Failed to ACK/NACK message during drain: {e}");
+                    }
                 }
-            }
-        })
+            },
+        )
         .await
         {
             Ok(()) => debug!("All in-flight tasks drained"),
@@ -604,6 +684,7 @@ async fn handle_message(
     stats: &ThroughputStats,
     is_lp: bool,
     in_flight: Arc<papaya::HashSet<Uuid>>,
+    resolver: &DnsResolver,
 ) -> anyhow::Result<()> {
     let picked_at = Utc::now();
     let attempt_is_hp = !is_lp;
@@ -734,7 +815,7 @@ async fn handle_message(
                         let span = start_request_attempt_span(&attempt);
 
                         // Work
-                        let response = work(config, &attempt).await;
+                        let response = work(config, resolver, &attempt).await;
                         trace!(request_attempt_id = %attempt.request_attempt_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
 
                         // Open DB transaction
@@ -918,30 +999,31 @@ async fn handle_message(
                                         lp_retry_producer
                                     };
                                     let request_attempt_id = retry.request_attempt__id;
-                                    let send_future = retry_producer
-                                        .lock()
-                                        .await
-                                        .create_message()
-                                        .event_time(retry.created_at.timestamp_micros() as u64)
-                                        .deliver_at(delay_until.into())?
-                                        .with_content(RequestAttempt {
+                                    // If either of these fails, `tx` is rolled back and the
+                                    // original message is NACKed, so the whole attempt (including
+                                    // the webhook call) is replayed on redelivery. That is the
+                                    // deliberate tradeoff: a visible duplicate delivery rather
+                                    // than a retry row that exists in database but was never
+                                    // published, which would never be delivered at all.
+                                    let send_future = enqueue(
+                                        retry_producer,
+                                        RequestAttempt {
                                             request_attempt_id,
                                             created_at: retry.created_at,
                                             retry_count: next_retry_count,
                                             ..attempt
-                                        })
-                                        .send_non_blocking()
-                                        .await?;
-                                    timeout(config.pulsar_send_receipt_timeout, send_future)
-                                        .await
-                                        .map_err(|_| {
-                                            error!(%request_attempt_id, "Pulsar broker receipt timed out");
-                                            anyhow!("Pulsar broker receipt timed out")
-                                        })?
-                                        .map_err(|e| {
-                                            error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
-                                            anyhow::Error::from(e)
-                                        })?;
+                                        },
+                                        retry.created_at,
+                                        Some(delay_until),
+                                        config.pulsar_send_receipt_timeout,
+                                    )
+                                    .await?;
+                                    await_receipt(
+                                        send_future,
+                                        config.pulsar_send_receipt_timeout,
+                                        request_attempt_id,
+                                    )
+                                    .await?;
                                 } else {
                                     debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
                                 }
@@ -981,7 +1063,7 @@ async fn handle_message(
                     // This process is there to make sure delayed request attempts will not be processed immediately if the Pulsar producer made a mistake
                     RequestAttemptStatus::Delayed { delay_until, lead } => {
                         stats.record_not_ready();
-                        warn!(request_attempt_id = %attempt.request_attempt_id, lead = ?lead, "Request attempt was scheduled for later");
+                        warn!(request_attempt_id = %attempt.request_attempt_id, lead = lead.as_seconds_f64(), "Request attempt was scheduled for later");
                         // Re-send to the same topic (HP or LP) it came from
                         let retry_producer = if is_lp {
                             lp_retry_producer
@@ -989,25 +1071,21 @@ async fn handle_message(
                             hp_retry_producer
                         };
                         let request_attempt_id = attempt.request_attempt_id;
-                        let send_future = retry_producer
-                            .lock()
-                            .await
-                            .create_message()
-                            .event_time(attempt.created_at.timestamp_micros() as u64)
-                            .deliver_at(delay_until.into())?
-                            .with_content(attempt)
-                            .send_non_blocking()
-                            .await?;
-                        timeout(config.pulsar_send_receipt_timeout, send_future)
-                            .await
-                            .map_err(|_| {
-                                error!(%request_attempt_id, "Pulsar broker receipt timed out");
-                                anyhow!("Pulsar broker receipt timed out")
-                            })?
-                            .map_err(|e| {
-                                error!(%request_attempt_id, error = %e, "Pulsar broker rejected message");
-                                anyhow::Error::from(e)
-                            })?;
+                        let created_at = attempt.created_at;
+                        let send_future = enqueue(
+                            retry_producer,
+                            attempt,
+                            created_at,
+                            Some(delay_until),
+                            config.pulsar_send_receipt_timeout,
+                        )
+                        .await?;
+                        await_receipt(
+                            send_future,
+                            config.pulsar_send_receipt_timeout,
+                            request_attempt_id,
+                        )
+                        .await?;
                         ack_tx
                             .send(AckMessage {
                                 msg_id: msg.message_id().clone(),
