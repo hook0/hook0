@@ -365,6 +365,7 @@ static DELIVERY_OUTCOMES: LazyLock<Counter<u64>> = LazyLock::new(|| {
 pub enum DeliveryOutcome {
     Success,
     Timeout,
+    Dns,
     Http4xx,
     Http5xx,
     ConnectionError,
@@ -375,6 +376,7 @@ impl DeliveryOutcome {
         match self {
             DeliveryOutcome::Success => "success",
             DeliveryOutcome::Timeout => "timeout",
+            DeliveryOutcome::Dns => "dns",
             DeliveryOutcome::Http4xx => "http_4xx",
             DeliveryOutcome::Http5xx => "http_5xx",
             DeliveryOutcome::ConnectionError => "connection_error",
@@ -389,7 +391,7 @@ pub fn report_delivery_outcome(outcome: DeliveryOutcome) {
 /// Total mapping from a delivery `Response` to exactly one bounded `DeliveryOutcome`.
 /// A success maps to `Success`; an HTTP error with a 4xx/5xx code maps to the
 /// matching class; anything else falls back to the transport error (`Timeout` for a
-/// timeout, `ConnectionError` otherwise).
+/// timeout, `Dns` for a resolution failure, `ConnectionError` otherwise).
 pub fn classify_outcome(response: &Response) -> DeliveryOutcome {
     if response.is_success() {
         return DeliveryOutcome::Success;
@@ -403,6 +405,7 @@ pub fn classify_outcome(response: &Response) -> DeliveryOutcome {
     }
     match response.response_error {
         Some(ResponseError::Timeout) => DeliveryOutcome::Timeout,
+        Some(ResponseError::Dns) => DeliveryOutcome::Dns,
         _ => DeliveryOutcome::ConnectionError,
     }
 }
@@ -414,9 +417,10 @@ mod tests {
     use std::collections::BTreeSet;
 
     /// The complete, closed set of labels the `outcome` attribute may ever take.
-    const OUTCOME_LABELS: [&str; 5] = [
+    const OUTCOME_LABELS: [&str; 6] = [
         "success",
         "timeout",
+        "dns",
         "http_4xx",
         "http_5xx",
         "connection_error",
@@ -433,13 +437,14 @@ mod tests {
     }
 
     fn error_variant(sel: u8) -> Option<ResponseError> {
-        match sel % 7 {
+        match sel % 8 {
             0 => None,
             1 => Some(ResponseError::Unknown),
             2 => Some(ResponseError::InvalidHeader),
             3 => Some(ResponseError::InvalidTarget),
-            4 => Some(ResponseError::Connection),
-            5 => Some(ResponseError::Timeout),
+            4 => Some(ResponseError::Dns),
+            5 => Some(ResponseError::Connection),
+            6 => Some(ResponseError::Timeout),
             _ => Some(ResponseError::Http),
         }
     }
@@ -463,6 +468,10 @@ mod tests {
             DeliveryOutcome::Timeout
         );
         assert_eq!(
+            classify_outcome(&response(Some(ResponseError::Dns), None)),
+            DeliveryOutcome::Dns
+        );
+        assert_eq!(
             classify_outcome(&response(Some(ResponseError::Connection), None)),
             DeliveryOutcome::ConnectionError
         );
@@ -473,6 +482,7 @@ mod tests {
         let labels: BTreeSet<&str> = [
             DeliveryOutcome::Success,
             DeliveryOutcome::Timeout,
+            DeliveryOutcome::Dns,
             DeliveryOutcome::Http4xx,
             DeliveryOutcome::Http5xx,
             DeliveryOutcome::ConnectionError,
@@ -483,7 +493,7 @@ mod tests {
         let expected: BTreeSet<&str> = OUTCOME_LABELS.into_iter().collect();
         assert_eq!(labels, expected);
         // Each variant maps to a distinct label (no collisions).
-        assert_eq!(labels.len(), 5);
+        assert_eq!(labels.len(), 6);
     }
 
     #[test]

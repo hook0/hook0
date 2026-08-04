@@ -9,17 +9,18 @@ Grafana alert rules for Hook0, kept as-code so they are reviewable and reproduci
 
 ## Why these rules exist
 
-On 2 Aug 2026 a production incident saw a large inbound-event spike for one customer (~134k events in a day,
-~1000 duplicate webhooks) with ~40 min worker lag and a ~2k delivery backlog. **No alert fired**: the only
-rule (`Unfinished request attempts`) only watches attempts on *disabled/deleted* subscriptions, and it was
-silent on NoData. These rules close that gap.
+A production inbound-event spike went undetected. The only alert rule that existed
+(`Unfinished request attempts`) watches attempts on *disabled/deleted* subscriptions only, and it was
+silent on NoData — so a live ingestion spike, a delivery backlog, and a broken query all passed unnoticed.
+These rules close that gap: spike detection, past-due backlog, and making a failing query page instead of
+going quiet.
 
 ## Rules
 
 | File | Datasource | Fires when | Notes |
 |------|-----------|-----------|-------|
-| `inbound-events-global-spike.json` | Mimir | `sum(rate(events_ingested_total[10m])) > 50` for 10m | Normal P99 ≈ 16 ev/s; incident peaked ~3500 ev/s. Per-tenant drill-down is manual (view `event.events_per_day`) to avoid metric cardinality. |
-| `delivery-backlog-pastdue.json` | Postgres | past-due pending attempts (`delay_until <= now()-10min`) `> 100` for 10m | Filters on `delay_until` (real lag), NOT `created_at` (would count ~78k healthy scheduled retries). `noData`/`execErr` = Alerting. |
+| `inbound-events-global-spike.json` | Mimir | `sum(rate(events_ingested_total[10m])) > 50` for 10m | 50 ev/s sits well above normal steady-state, so it catches a real spike with headroom. Per-tenant drill-down is manual (view `event.events_per_day`) to avoid metric cardinality. |
+| `delivery-backlog-pastdue.json` | Postgres | past-due pending attempts (`delay_until <= now()-10min`) `> 100` for 10m | Filters on `delay_until` (real lag), NOT `created_at` (which would count the healthy pool of scheduled retries). `noData`/`execErr` = Alerting. |
 | `unfinished-request-attempts.json` | Postgres | orphaned attempts on disabled/deleted subs `> 1000` | Pre-existing rule; **change vs prod: `noDataState`/`execErrState` NoData/Error → Alerting** so a broken query pages instead of going silent. |
 
 ## Apply (requires the Grafana service-account token)
