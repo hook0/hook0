@@ -32,7 +32,7 @@ hook0-client = { path = "../clients/rust", version = "1.1.0", default-features =
 hook0-protobuf = { path = "../protobuf" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 html2text = "0.17.1"
-http-api-problem = { version = "0.57.0", features = ["actix-web"] }
+http-api-problem = { version = "0.60.0", features = ["actix-web"] }
 http-serde = "2.1.1"
 humantime = "2.4.0"
 ipnetwork = "0.21.1"
