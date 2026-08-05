@@ -100,34 +100,12 @@ pub async fn create(
         return Err(Hook0Problem::Validation(e));
     }
 
-    let quota_limit = state
+    let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
+    state
         .quotas
-        .get_limit_for_organization(
-            &state.db,
-            Quota::ApplicationsPerOrganization,
-            &body.organization_id,
-        )
+        .enforce_applications_per_organization(&mut tx, &body.organization_id)
         .await?;
-    struct QueryResult {
-        val: i64,
-    }
-    let quota_current = query_as!(
-        QueryResult,
-        r#"
-            SELECT COUNT(application__id) AS "val!"
-            FROM event.application
-            WHERE organization__id = $1
-            AND deleted_at IS NULL
-        "#,
-        &body.organization_id,
-    )
-    .fetch_one(&state.db)
-    .await?;
-    if quota_current.val >= quota_limit as i64 {
-        return Err(Hook0Problem::TooManyApplicationsPerOrganization(
-            quota_limit,
-        ));
-    }
 
     let application = query_as!(
             Application,
@@ -137,9 +115,11 @@ pub async fn create(
             ",
             body.organization_id, body.name,
         )
-        .fetch_one(&state.db)
+        .fetch_one(&mut *tx)
         .await
         .map_err(Hook0Problem::from)?;
+
+    tx.commit().await.map_err(Hook0Problem::from)?;
 
     if let Some(hook0_client) = state.hook0_client.as_ref() {
         let hook0_client_event: Hook0ClientEvent = EventApplicationCreated {

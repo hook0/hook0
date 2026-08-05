@@ -4,7 +4,7 @@ use chrono::Utc;
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as, query_scalar};
+use sqlx::{query, query_as};
 use tracing::error;
 use uuid::Uuid;
 use validator::Validate;
@@ -13,7 +13,6 @@ use crate::hook0_client::{EventEventTypeCreated, EventEventTypeRemoved, Hook0Cli
 use crate::iam::{Action, authorize_for_application, get_owner_organization};
 use crate::openapi::OaBiscuit;
 use crate::problems::Hook0Problem;
-use crate::quotas::Quota;
 
 #[derive(Debug, Serialize, Apiv2Schema)]
 pub struct EventType {
@@ -69,32 +68,12 @@ pub async fn create(
         return Err(Hook0Problem::Validation(e));
     }
 
-    let quota_limit = state
-        .quotas
-        .get_limit_for_application(
-            &state.db,
-            Quota::EventTypesPerApplication,
-            &body.application_id,
-        )
-        .await?;
-
-    let quota_current = query_scalar!(
-        r#"
-            SELECT COUNT(*) AS "val!"
-            FROM event.event_type
-            WHERE application__id = $1
-                AND deactivated_at IS NULL
-        "#,
-        &body.application_id,
-    )
-    .fetch_one(&state.db)
-    .await?;
-
-    if quota_current >= i64::from(quota_limit) {
-        return Err(Hook0Problem::TooManyEventTypesPerApplication(quota_limit));
-    }
-
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
+    state
+        .quotas
+        .enforce_event_types_per_application(&mut tx, &body.application_id)
+        .await?;
 
     query!(
         "
