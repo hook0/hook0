@@ -1070,6 +1070,96 @@ pub(crate) mod test_support {
         .await
         .expect("seed request attempt");
     }
+
+    /// Build a `State` suitable for handler tests: real DB pool + real Google
+    /// Ads client (pointed at the fake server by the caller), everything else
+    /// inert (no Pulsar, no object storage, no Hook0 self-eventing, quotas
+    /// disabled). The SMTP transport points at a dead port, so mail sends fail
+    /// at the transport boundary instead of reaching a real server — a genuine
+    /// failure, not a mock of any code under test.
+    pub(crate) async fn test_state(
+        pool: PgPool,
+        biscuit_private_key: biscuit_auth::PrivateKey,
+        google_ads: Option<Arc<super::GoogleAdsClient>>,
+    ) -> crate::State {
+        use lettre::Address;
+        use std::str::FromStr;
+        use url::Url;
+
+        let url = Url::parse("http://localhost").expect("localhost url");
+        let support = Address::from_str("support@hook0.com").expect("support address");
+
+        let smtp = crate::mailer::MailerSmtpConfig {
+            smtp_connection_url: "smtp://127.0.0.1:2".to_string(),
+            smtp_timeout: Duration::from_millis(200),
+            sender_name: "Hook0 Test".to_string(),
+            sender_address: Address::from_str("noreply@hook0.com").expect("sender address"),
+        };
+        let mailer = crate::mailer::Mailer::new(
+            smtp,
+            url.clone(),
+            url.clone(),
+            url.clone(),
+            url.clone(),
+            url.clone(),
+            support.clone(),
+            "Hook0 Test".to_string(),
+            "test".to_string(),
+            "test".to_string(),
+        )
+        .await
+        .expect("build test mailer");
+
+        let quota_limits = crate::quotas::QuotaLimits {
+            global_members_per_organization_limit: i32::MAX,
+            global_applications_per_organization_limit: i32::MAX,
+            global_events_per_day_limit: i32::MAX,
+            global_days_of_events_retention_limit: i32::MAX,
+            global_subscriptions_per_application_limit: i32::MAX,
+            global_event_types_per_application_limit: i32::MAX,
+        };
+
+        crate::State {
+            db: pool,
+            pulsar: None,
+            object_storage: None,
+            biscuit_private_key,
+            mailer,
+            app_url: url.clone(),
+            #[cfg(feature = "migrate-users-from-keycloak")]
+            enable_keycloak_migration: false,
+            #[cfg(feature = "migrate-users-from-keycloak")]
+            keycloak_url: url.clone(),
+            #[cfg(feature = "migrate-users-from-keycloak")]
+            keycloak_realm: "test".to_string(),
+            #[cfg(feature = "migrate-users-from-keycloak")]
+            keycloak_client_id: "test".to_string(),
+            #[cfg(feature = "migrate-users-from-keycloak")]
+            keycloak_client_secret: "test".to_string(),
+            application_secret_compatibility: true,
+            registration_disabled: false,
+            password_minimum_length: 12,
+            auto_db_migration: false,
+            hook0_client: None,
+            quotas: crate::quotas::Quotas::new(false, quota_limits),
+            health_check_key: None,
+            health_check_timeout: Duration::from_secs(5),
+            max_authorization_time: Duration::from_secs(10),
+            debug_authorizer: false,
+            enable_quota_enforcement: false,
+            matomo_url: None,
+            matomo_site_id: None,
+            formbricks_api_host: "https://app.formbricks.com".to_string(),
+            formbricks_environment_id: None,
+            quota_notification_events_per_day_threshold: 80,
+            enable_quota_based_email_notifications: false,
+            support_email_address: support,
+            cloudflare_turnstile_site_key: None,
+            cloudflare_turnstile_secret_key: None,
+            google_ads,
+            signup_attribution_retention_in_days: 30,
+        }
+    }
 }
 
 /// Build a client whose Google Ads base URL is overridden (to point at a local

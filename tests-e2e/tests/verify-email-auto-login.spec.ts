@@ -51,4 +51,54 @@ test.describe("Email verification auto-login", () => {
     await page.reload();
     await expect(page).not.toHaveURL(/\/login/, { timeout: 10000 });
   });
+
+  test("a verification link that was already used never opens a second session", async ({
+    page,
+    request,
+  }) => {
+    // This is the security boundary of the feature: the link is what mints the
+    // session, so replaying one that has already been consumed — a forwarded
+    // email, a prefetching mail client, a shared inbox — must not hand anybody
+    // an account. The token stays cryptographically valid here (24h TTL), so
+    // what is under test is the single unverified→verified transition, not
+    // expiry.
+    const timestamp = Date.now();
+    const email = `test-verify-replay-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+
+    const token = await getVerificationTokenFromMailpit(request, email);
+
+    // First use consumes the link and signs the user in.
+    await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
+    await expect(page).toHaveURL(/\/tutorial|\/organizations|\/dashboard/, { timeout: 15000 });
+
+    // Drop the session so the replay is judged on the link alone, exactly as it
+    // would be for someone else opening a forwarded email.
+    await page.context().clearCookies();
+    await page.evaluate(() => {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    });
+
+    // Replay the very same link: the page must refuse it and must not land on
+    // an authenticated area.
+    await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
+    await expect(page.locator('[data-test="verify-email-error"]')).toBeVisible({ timeout: 15000 });
+    await expect(page).not.toHaveURL(/\/tutorial|\/organizations|\/dashboard/);
+
+    // And the API itself refuses to mint a second session for that token, which
+    // is the guarantee the UI is relying on.
+    const replay = await request.post(`${API_BASE_URL}/auth/verify-email`, {
+      data: { token },
+      failOnStatusCode: false,
+    });
+    expect(replay.status(), "a consumed verification token must never return a session").not.toBe(
+      201
+    );
+  });
 });
