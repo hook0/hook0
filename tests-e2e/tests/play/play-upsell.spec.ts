@@ -79,8 +79,12 @@ test.describe("Play Upsell Banner", () => {
     await expect(page.locator("#webhookUrl")).toBeVisible({ timeout: 10000 });
 
     const upsellLink = page.locator("#upsell a");
-    await expect(upsellLink).toHaveAttribute("href", "https://www.hook0.com");
-    await expect(upsellLink).toHaveText("Try Hook0 free");
+    // Points at hook0.com AND carries the play acquisition attribution.
+    await expect(upsellLink).toHaveAttribute(
+      "href",
+      /^https:\/\/www\.hook0\.com\?.*utm_source=play/,
+    );
+    await expect(upsellLink).toHaveText("Start a Hook0 project");
 
     await context.close();
   });
