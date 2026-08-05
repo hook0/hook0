@@ -87,6 +87,48 @@ async function advanceToEventTypeStep(page: Page, appName: string): Promise<void
   });
 }
 
+/**
+ * Continue from the event-type form through the subscription step, landing on
+ * the send-event form — the second place the chosen use case is supposed to
+ * show up (event type, labels and payload).
+ */
+async function advanceToSendEventStep(page: Page): Promise<void> {
+  const eventTypeResponse = page.waitForResponse(
+    (response) => response.url().includes("/event_types") && response.request().method() === "POST",
+    { timeout: 15000 }
+  );
+  await page.locator('[data-test="event-type-submit-button"]').click();
+  expect((await eventTypeResponse).status()).toBeLessThan(400);
+
+  await expect(page).toHaveURL(/\/tutorial\/subscription/, { timeout: 20000 });
+  const description = page.locator('[data-test="subscription-description-input"]');
+  await expect(description).toBeVisible({ timeout: 15000 });
+  await description.fill("Use-case personalization check");
+  await page.locator('[data-test="subscription-url-input"]').fill("https://example.com/webhook");
+
+  const labels = page.locator('[data-test="subscription-labels"]');
+  await expect(labels.locator('[data-test="kv-key-input-0"]')).toBeVisible({ timeout: 15000 });
+  await labels.locator('[data-test="kv-key-input-0"]').fill("env");
+  await labels.locator('[data-test="kv-value-input-0"]').fill("test");
+
+  const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
+  await expect(eventTypeCheckbox).toBeVisible({ timeout: 15000 });
+  if (!(await eventTypeCheckbox.isChecked())) {
+    await eventTypeCheckbox.click();
+  }
+
+  const subscriptionResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/subscriptions") && response.request().method() === "POST",
+    { timeout: 30000 }
+  );
+  await page.locator('[data-test="subscription-submit-button"]').click();
+  expect((await subscriptionResponse).status()).toBeLessThan(400);
+
+  await expect(page).toHaveURL(/\/tutorial\/event/, { timeout: 20000 });
+  await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 15000 });
+}
+
 test.describe("Onboarding use-case personalization", () => {
   test("shows the question and records the choice", async ({ page, request }) => {
     await registerAndLogin(page, request, "intro");
@@ -151,7 +193,34 @@ test.describe("Onboarding use-case personalization", () => {
     await expect(page.locator('[data-test="event-type-verb-input"]')).toHaveValue(ECOMMERCE.verb);
 
     // Submitting the seeded values must be enough — the point of the feature is
-    // that the user does not have to invent an event type.
+    // that the user does not have to invent an event type. Walking on to the
+    // send-event step also proves the choice survives the whole wizard, which is
+    // the second place the preset is supposed to land.
+    await advanceToSendEventStep(page);
+
+    // The send-event form is seeded from the same use case: the event type it
+    // just created, a domain-relevant label, and a matching payload.
+    await expect(page.locator('[data-test="send-event-type-select"]')).toContainText(
+      `${ECOMMERCE.service}.${ECOMMERCE.resource}.${ECOMMERCE.verb}`
+    );
+
+    const sendLabels = page.locator('[data-test="send-event-labels"]');
+    await expect(sendLabels.locator('[data-test="kv-key-input-0"]')).toHaveValue(
+      ECOMMERCE.labelKey
+    );
+
+    await expect(page.locator('[data-test="send-event-payload-input"]')).toContainText(
+      ECOMMERCE.payloadMarker
+    );
+  });
+
+  test("submits the seeded event type as-is", async ({ page, request }) => {
+    await registerAndLogin(page, request, "submit");
+    await openTutorialIntro(page);
+
+    await page.locator('[data-test="tutorial-usecase-ecommerce"]').click();
+    await advanceToEventTypeStep(page, `Usecase Submit ${Date.now()}`);
+
     const eventTypeResponse = page.waitForResponse(
       (response) =>
         response.url().includes("/event_types") && response.request().method() === "POST",
