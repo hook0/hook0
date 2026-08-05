@@ -156,6 +156,11 @@ The output-worker is a separate binary with its own configuration. Run \`hook0-o
 | \`DISABLE_TARGET_IP_CHECK\` | If set to false (default), webhooks that target IPs that are not globally reachable (like "127.0.0.1" for example) will fail | \`false\` |  |
 | \`CONNECT_TIMEOUT\` | Timeout for establishing a connection to the target (if exceeded, request attempt will fail) | \`5s\` |  |
 | \`TIMEOUT\` | Timeout for obtaining a HTTP response from the target, including connect phase (if exceeded, request attempt will fail) | \`15s\` |  |
+| \`DNS_TIMEOUT\` | Total wall-clock budget for resolving the target's hostname, across every name server query it takes (if exceeded, request attempt will fail); must be at least "3ms" | \`5s\` |  |
+| \`DNS_CACHE_MAX_TTL\` | Maximum duration a successful DNS answer is kept in the worker's in-process DNS cache (shorter record TTLs are still honored) | \`5m\` |  |
+| \`DNS_NEGATIVE_CACHE_MAX_TTL\` | Maximum duration a negative DNS answer (for example NXDOMAIN) is kept in the worker's in-process DNS cache | \`30s\` |  |
+| \`DNS_IP_STRATEGY\` | Which IP address families to query when resolving a webhook target's hostname; \`ipv4-only\` ignores AAAA records entirely, which is useful when a target's IPv6 address is not globally reachable | \`ipv4-and-ipv6\` |  |
+| \`DNS_APPEND_SEARCH_DOMAINS\` | If set to false (default), a webhook target's hostname is resolved exactly as written; if true, the worker host's resolv.conf search domains are appended to it | \`false\` |  |
 | \`SIGNATURE_HEADER_NAME\` | Name of the header containing webhook's signature | \`X-Hook0-Signature\` |  |
 | \`ENABLED_SIGNATURE_VERSIONS\` | A comma-separated list of enabled signature versions | \`v1\` |  |
 | \`LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR\` | Loads request attempts that haven't been delivered yet from the DB into Pulsar before starting work; \`all\` loads everything; \`due-now\` skips request attempts scheduled more than ~10 s in the future; this is useful when migrating to a Pulsar worker (only for Pulsar workers) | \`off\` |  |
@@ -163,6 +168,7 @@ The output-worker is a separate binary with its own configuration. Run \`hook0-o
 | \`PULSAR_CONSUMER_STATS_INTERVAL\` | Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers) [this feature is unstable/unreliable] | \`0\` |  |
 | \`PULSAR_SEND_RECEIPT_TIMEOUT\` | Maximum time to wait for the Pulsar broker to acknowledge a sent message (only for Pulsar workers) | \`10s\` |  |
 | \`THROUGHPUT_LOG_INTERVAL\` | Interval between periodic throughput log lines (set to "0s" to disable) | \`60s\` |  |
+| \`SLOT_METRICS_INTERVAL\` | Period at which free concurrency slots are sampled for the throughput log and OTel gauges (set to "0s" to disable) (only for Pulsar workers) | \`15s\` |  |
 
 `;
 
