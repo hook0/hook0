@@ -3,7 +3,7 @@ use clap::crate_name;
 use opentelemetry::global::BoxedSpan;
 use opentelemetry::metrics::{Counter, Gauge, Histogram};
 use opentelemetry::trace::noop::NoopTracerProvider;
-use opentelemetry::trace::{Span, Tracer};
+use opentelemetry::trace::{Span, SpanId, TraceId, Tracer};
 use opentelemetry::{Key, KeyValue, global};
 use opentelemetry_otlp::{
     Compression, ExporterBuildError, MetricExporter, Protocol, SpanExporter, WithExportConfig,
@@ -303,6 +303,26 @@ pub fn end_request_attempt_span(mut span: BoxedSpan, response: &Response) {
     span.end();
 }
 
+/// Trace and span identifiers of a request-attempt span, stamped onto the delivery
+/// log lines so Loki can extract `trace_id` and a Grafana derived field can jump
+/// from a log line straight to its Tempo trace. Best-effort: a no-op or otherwise
+/// invalid span context yields all-zero identifiers and never prevents a log line
+/// from being emitted.
+#[derive(Clone, Copy)]
+pub struct DeliveryTraceIds {
+    pub trace_id: TraceId,
+    pub span_id: SpanId,
+}
+
+/// Read the trace and span ids from a request-attempt span for log correlation.
+pub fn delivery_trace_ids(span: &BoxedSpan) -> DeliveryTraceIds {
+    let ctx = span.span_context();
+    DeliveryTraceIds {
+        trace_id: ctx.trace_id(),
+        span_id: ctx.span_id(),
+    }
+}
+
 // Delivery lag: seconds between when an attempt was scheduled to be delivered and
 // when a worker actually picked it up. This is emitted on the real delivery path
 // (both the Postgres-polling and the Pulsar consumer), unlike the Pulsar consumer
@@ -596,5 +616,128 @@ mod tests {
 
         assert!(Uuid::parse_str(&first).is_ok());
         assert_ne!(first, second);
+    }
+}
+
+#[cfg(test)]
+mod trace_id_logging_tests {
+    use super::{DeliveryTraceIds, delivery_trace_ids};
+    use opentelemetry::global;
+    use opentelemetry::trace::{SpanId, TraceId, Tracer};
+    use opentelemetry_sdk::trace::SdkTracerProvider;
+    use proptest::prelude::*;
+    use std::io::Write;
+    use std::sync::{Arc, Mutex};
+    use tracing::info;
+    use tracing_subscriber::fmt::MakeWriter;
+    use tracing_subscriber::layer::SubscriberExt;
+
+    /// A `MakeWriter` that appends every formatted log line to a shared buffer so a
+    /// test can assert on the exact bytes the fmt layer produced (what lands on
+    /// stdout and then in Loki).
+    #[derive(Clone)]
+    struct SharedBuffer(Arc<Mutex<Vec<u8>>>);
+
+    impl Write for SharedBuffer {
+        fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
+            self.0
+                .lock()
+                .expect("buffer lock poisoned")
+                .extend_from_slice(data);
+            Ok(data.len())
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl<'a> MakeWriter<'a> for SharedBuffer {
+        type Writer = SharedBuffer;
+
+        fn make_writer(&'a self) -> Self::Writer {
+            self.clone()
+        }
+    }
+
+    /// Emit a single delivery-style log line stamped with the given identifiers,
+    /// exactly as the delivery loops do, and return whatever the plain-text fmt
+    /// layer wrote.
+    fn capture_delivery_log(ids: DeliveryTraceIds) -> String {
+        let buffer = Arc::new(Mutex::new(Vec::new()));
+        let writer = SharedBuffer(Arc::clone(&buffer));
+        let subscriber = tracing_subscriber::registry().with(
+            tracing_subscriber::fmt::layer()
+                .with_ansi(false)
+                .with_writer(writer),
+        );
+        tracing::subscriber::with_default(subscriber, || {
+            info!(trace_id = %ids.trace_id, span_id = %ids.span_id, "Request attempt delivered");
+        });
+        let bytes = buffer.lock().expect("buffer lock poisoned").clone();
+        String::from_utf8(bytes).expect("log output is valid UTF-8")
+    }
+
+    #[test]
+    fn delivery_log_line_carries_the_span_trace_id() {
+        // A real SDK tracer provider makes the request-attempt span sampled, so its
+        // span context exposes a valid, non-zero trace id, as in production once the
+        // OTLP traces endpoint is configured.
+        global::set_tracer_provider(SdkTracerProvider::builder().build());
+        let span = global::tracer("test").start("request_attempt");
+
+        let ids = delivery_trace_ids(&span);
+        let trace_id = ids.trace_id.to_string();
+        let span_id = ids.span_id.to_string();
+
+        assert_eq!(trace_id.len(), 32, "OTEL trace id must be 32 hex chars");
+        assert!(
+            trace_id
+                .chars()
+                .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
+        );
+        assert_ne!(
+            trace_id,
+            "0".repeat(32),
+            "a sampled span must have a non-zero trace id"
+        );
+
+        let output = capture_delivery_log(ids);
+        assert!(
+            output.contains(&format!("trace_id={trace_id}")),
+            "log line {output:?} did not carry trace_id={trace_id}"
+        );
+        assert!(
+            output.contains(&format!("span_id={span_id}")),
+            "log line {output:?} did not carry span_id={span_id}"
+        );
+    }
+
+    proptest! {
+        /// Whatever trace id an OpenTelemetry span carries, the delivery log line
+        /// carries it verbatim as a 32-lowercase-hex `trace_id` field that a Loki
+        /// pattern / Grafana derived field can extract to reach Tempo.
+        #[test]
+        fn any_span_trace_id_is_logged_as_32_lowercase_hex(
+            bytes in any::<[u8; 16]>().prop_filter("non-zero trace id", |b| b.iter().any(|&x| x != 0)),
+            span_bytes in any::<[u8; 8]>(),
+        ) {
+            let ids = DeliveryTraceIds {
+                trace_id: TraceId::from_bytes(bytes),
+                span_id: SpanId::from_bytes(span_bytes),
+            };
+            let expected = ids.trace_id.to_string();
+
+            prop_assert_eq!(expected.len(), 32);
+            prop_assert!(expected.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
+
+            let output = capture_delivery_log(ids);
+            prop_assert!(
+                output.contains(&format!("trace_id={expected}")),
+                "log line {:?} did not carry trace_id={}",
+                output,
+                expected
+            );
+        }
     }
 }

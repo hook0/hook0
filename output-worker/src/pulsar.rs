@@ -25,7 +25,7 @@ use uuid::Uuid;
 
 use crate::dns::DnsResolver;
 use crate::opentelemetry::{
-    classify_outcome, compute_delivery_lag_seconds, end_request_attempt_span,
+    classify_outcome, compute_delivery_lag_seconds, delivery_trace_ids, end_request_attempt_span,
     gather_pulsar_consumer_metrics, gather_slot_metrics, report_delivery_outcome,
     report_worker_delivery_lag, start_request_attempt_span,
 };
@@ -813,16 +813,19 @@ async fn handle_message(
 
                         // Start OpenTelemetry span
                         let span = start_request_attempt_span(&attempt);
+                        // Stamp the delivery log lines with the span's trace/span ids so
+                        // Loki can correlate them to the Tempo trace.
+                        let ids = delivery_trace_ids(&span);
 
                         // Work
                         let response = work(config, resolver, &attempt).await;
-                        trace!(request_attempt_id = %attempt.request_attempt_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
+                        trace!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
 
                         // Open DB transaction
                         let mut tx = pool.begin().await?;
 
                         // Store response
-                        trace!(request_attempt_id = %attempt.request_attempt_id, "Storing response");
+                        trace!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, "Storing response");
                         let response_headers = response.headers();
                         let response_contents_to_insert = if let Some(true) =
                             object_storage.as_ref().as_ref().map(|object_storage| {
@@ -897,7 +900,7 @@ async fn handle_message(
                         // The UPDATE guards against this by requiring succeeded_at/failed_at to still be NULL.
                         let race_detected = if response.is_success() {
                             // Mark attempt as completed
-                            trace!(request_attempt_id = %attempt.request_attempt_id, "Completing request attempt");
+                            trace!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, "Completing request attempt");
                             let update_result = query!(
                                 "
                                     UPDATE webhook.request_attempt
@@ -920,15 +923,15 @@ async fn handle_message(
                             .await?;
 
                             if update_result.rows_affected() == 0 {
-                                warn!(request_attempt_id = %attempt.request_attempt_id, "Race detected: request attempt was already finalized by another process; skipping");
+                                warn!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, "Race detected: request attempt was already finalized by another process; skipping");
                                 true
                             } else {
-                                debug!(request_attempt_id = %attempt.request_attempt_id, "Request attempt completed successfully");
+                                debug!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, "Request attempt completed successfully");
                                 false
                             }
                         } else {
                             // Mark attempt as failed
-                            trace!(request_attempt_id = %attempt.request_attempt_id, "Failing request attempt");
+                            trace!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, "Failing request attempt");
                             let update_result = query!(
                                 "
                                     UPDATE webhook.request_attempt
@@ -951,7 +954,7 @@ async fn handle_message(
                             .await?;
 
                             if update_result.rows_affected() == 0 {
-                                warn!(request_attempt_id = %attempt.request_attempt_id, "Race detected: request attempt was already finalized by another process; skipping retry");
+                                warn!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, "Race detected: request attempt was already finalized by another process; skipping retry");
                                 true
                             } else {
                                 // Creating a retry request or giving up
@@ -987,7 +990,7 @@ async fn handle_message(
                                     .fetch_one(&mut *tx)
                                     .await?;
 
-                                    debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = next_retry_count, retry_id = %retry.request_attempt__id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
+                                    debug!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, retry_count = next_retry_count, retry_id = %retry.request_attempt__id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
 
                                     // Route retry to HP or LP topic based on priority cutoff
                                     let retry_producer = if SlotRole::is_hp(
@@ -1025,7 +1028,7 @@ async fn handle_message(
                                     )
                                     .await?;
                                 } else {
-                                    debug!(request_attempt_id = %attempt.request_attempt_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
+                                    debug!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
                                 }
                                 false
                             }
