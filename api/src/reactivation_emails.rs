@@ -30,6 +30,10 @@
 //! days after J+3). This holds the real J+1/J+3/J+7 cadence for brand-new
 //! sign-ups AND the long-dormant backlog.
 //!
+//! Blast radius. Only sign-ups younger than `MAX_SIGNUP_AGE_DAYS` are ever
+//! selected, so switching the job on nudges recent registrations rather than
+//! mailing every dormant account ever created.
+//!
 //! On by default: the job is spawned unless `ENABLE_REACTIVATION_EMAILS` is set
 //! to false, which is the escape hatch for self-hosted instances that do not
 //! want Hook0 to email their users.
@@ -50,6 +54,18 @@ use crate::problems::Hook0Problem;
 
 /// Let the API settle (SMTP connection test, migrations) before the first pass.
 const STARTUP_GRACE_PERIOD: Duration = Duration::from_secs(55);
+
+/// Upper bound on how old a sign-up may be to still enter the sequence.
+///
+/// This is an onboarding nudge, not a win-back campaign: "your account is ready
+/// but no event has come through yet" only makes sense while the sign-up is
+/// still fresh in the reader's mind. Without this bound, switching the job on
+/// treats every dormant account ever created as if it had just registered, so a
+/// years-old address receives a J+1 "5 minutes away" email. Beyond the bad
+/// experience, mailing a large backlog of stale addresses earns bounces and spam
+/// complaints on the very domain that carries verification and password-reset
+/// mail, so the blast radius of enabling this job is capped here by design.
+const MAX_SIGNUP_AGE_DAYS: i32 = 30;
 
 const STEP_DAY1: i16 = 1;
 const STEP_DAY3: i16 = 2;
@@ -208,11 +224,11 @@ async fn collect_pass(
 }
 
 /// Verified registrants whose organization has never ingested an event, are old
-/// enough for this step, have this step's predecessor recorded at least
-/// `min_days_since_predecessor` days ago (if any), and have not already been sent
-/// this step. The spacing on the predecessor's `sent_at` is what keeps the
-/// J+1/J+3/J+7 cadence from collapsing for accounts already past every age
-/// threshold (the dormant backlog). Bounded by `LIMIT`.
+/// enough for this step but still within `MAX_SIGNUP_AGE_DAYS`, have this step's
+/// predecessor recorded at least `min_days_since_predecessor` days ago (if any),
+/// and have not already been sent this step. The spacing on the predecessor's
+/// `sent_at` is what keeps the J+1/J+3/J+7 cadence from collapsing for accounts
+/// already past every age threshold (the dormant backlog). Bounded by `LIMIT`.
 async fn select_candidates(
     db: &PgPool,
     step: i16,
@@ -231,6 +247,9 @@ async fn select_candidates(
             INNER JOIN iam.user AS u ON u.user__id = o.created_by
             WHERE u.email_verified_at IS NOT NULL
               AND u.created_at <= statement_timestamp() - MAKE_INTERVAL(days => $1)
+              -- Onboarding nudge, not win-back: past this age the sign-up is no
+              -- longer fresh and the account is left alone for good.
+              AND u.created_at > statement_timestamp() - MAKE_INTERVAL(days => $6)
               -- "Org has never ingested an event": this NOT EXISTS is the
               -- canonical "event sent" signal, intentionally mirrored inline
               -- here for a set-based batch job rather than calling per-org into
@@ -265,6 +284,7 @@ async fn select_candidates(
         predecessor,
         limit,
         min_days_since_predecessor,
+        MAX_SIGNUP_AGE_DAYS,
     )
     .fetch_all(db)
     .await?;
@@ -450,6 +470,56 @@ mod tests {
         assert!(candidates.is_empty());
     }
 
+    /// Sign-ups older than the upper bound are never contacted. Without this,
+    /// enabling the job would treat the whole historical backlog of dormant
+    /// accounts as fresh registrations and mail every one of them a "your account
+    /// is ready" nudge — years after the fact, on the same domain that carries
+    /// verification and password-reset mail.
+    #[sqlx::test]
+    async fn sign_ups_older_than_the_upper_bound_are_left_alone(pool: PgPool) {
+        let stale_user = seed_user(&pool).await;
+        let stale_org = seed_org(&pool, stale_user).await;
+        backdate_signup(&pool, stale_user, MAX_SIGNUP_AGE_DAYS + 1).await;
+
+        // A recent sign-up in the same state, to prove the query is selecting at
+        // all and the emptiness below is really the age bound.
+        let fresh_user = seed_user(&pool).await;
+        let fresh_org = seed_org(&pool, fresh_user).await;
+        backdate_signup(&pool, fresh_user, 2).await;
+
+        let candidates = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
+            .await
+            .expect("select d1");
+
+        let selected: Vec<_> = candidates.iter().map(|c| c.organization_id).collect();
+        assert!(
+            selected.contains(&fresh_org),
+            "a recent dormant sign-up is still nudged"
+        );
+        assert!(
+            !selected.contains(&stale_org),
+            "a sign-up past the upper bound must never enter the sequence"
+        );
+    }
+
+    /// Right at the bound the account is already too old: the comparison is
+    /// strict, so `MAX_SIGNUP_AGE_DAYS` is the first age that is excluded.
+    #[sqlx::test]
+    async fn the_upper_bound_itself_is_excluded(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        backdate_signup(&pool, user, MAX_SIGNUP_AGE_DAYS).await;
+
+        let candidates = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
+            .await
+            .expect("select d1");
+
+        assert!(
+            !candidates.iter().any(|c| c.organization_id == org),
+            "the bound is exclusive"
+        );
+    }
+
     /// An org that has ingested an event has activated: it drops out of the
     /// series entirely (even a step whose predecessor was already sent).
     #[sqlx::test]
@@ -503,8 +573,8 @@ mod tests {
     async fn next_step_waits_for_min_spacing_since_predecessor(pool: PgPool) {
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
-        // 30 days old: past every sign-up-age threshold — the dormant backlog case.
-        backdate_signup(&pool, user, 30).await;
+        // Past every sign-up-age threshold, still within MAX_SIGNUP_AGE_DAYS.
+        backdate_signup(&pool, user, 10).await;
 
         let config = ReactivationConfig {
             play_url: Url::parse("https://play.hook0.com/").unwrap(),
@@ -575,7 +645,7 @@ mod tests {
     async fn collect_pass_offers_one_step_per_org(pool: PgPool) {
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
-        backdate_signup(&pool, user, 30).await;
+        backdate_signup(&pool, user, 10).await;
 
         let config = ReactivationConfig {
             play_url: Url::parse("https://play.hook0.com/").unwrap(),
@@ -594,7 +664,7 @@ mod tests {
     async fn drip_walks_all_three_steps_then_stops(pool: PgPool) {
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
-        backdate_signup(&pool, user, 30).await;
+        backdate_signup(&pool, user, 10).await;
 
         let config = ReactivationConfig {
             play_url: Url::parse("https://play.hook0.com/").unwrap(),
