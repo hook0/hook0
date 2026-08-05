@@ -62,7 +62,9 @@ Access the dashboard at http://localhost:8001 and create your first organization
 For self-hosted instances, after registering you need to verify your email:
 1. Check Mailpit at **http://localhost:8025** for the verification email
 2. Click the verification link in the email
-3. Return to the dashboard and log in
+
+The link signs you in and takes you straight to the dashboard — there is no need
+to log in again.
 
 Without email verification, you'll see an `AuthEmailNotVerified` error when trying to access the API.
 :::

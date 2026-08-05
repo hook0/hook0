@@ -59,7 +59,7 @@ test.describe("Email verification auto-login", () => {
     // This is the security boundary of the feature: the link is what mints the
     // session, so replaying one that has already been consumed — a forwarded
     // email, a prefetching mail client, a shared inbox — must not hand anybody
-    // an account. The token stays cryptographically valid here (24h TTL), so
+    // an account. The token is still well within its lifetime here, so
     // what is under test is the single unverified→verified transition, not
     // expiry.
     const timestamp = Date.now();
