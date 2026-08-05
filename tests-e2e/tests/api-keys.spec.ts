@@ -106,6 +106,74 @@ test.describe("API Keys", () => {
     };
   }
 
+  test("provisions a usable Default key as soon as an application is created", async ({
+    page,
+    request,
+  }) => {
+    // The whole point of auto-provisioning: a brand-new application is ready to
+    // receive its first event with no "now create a key" detour. Nothing is
+    // created by this test beyond the application itself.
+    const env = await setupTestEnvironment(page, request, "default");
+
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/application_secrets`
+    );
+    await expect(page.locator('[data-test="api-keys-card"]')).toBeVisible({ timeout: 10000 });
+
+    const defaultRow = page.locator('[data-test="api-keys-table"] [row-id]', {
+      hasText: "Default",
+    });
+    await expect(defaultRow, "a Default key exists without any manual step").toBeVisible({
+      timeout: 15000,
+    });
+
+    // Read the provisioned token from the API and prove it actually
+    // authenticates — a key that exists but cannot send an event would defeat
+    // the purpose.
+    const loginResponse = await request.post(`${API_BASE_URL}/auth/login`, {
+      data: { email: env.email, password: env.password },
+    });
+    expect(loginResponse.status()).toBeLessThan(400);
+    const accessToken = (await loginResponse.json()).access_token;
+
+    const secretsResponse = await request.get(
+      `${API_BASE_URL}/application_secrets?application_id=${env.applicationId}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    expect(secretsResponse.status()).toBeLessThan(400);
+    const secrets = (await secretsResponse.json()) as Array<{ name?: string; token: string }>;
+    expect(secrets.length, "exactly one key is provisioned at creation").toBe(1);
+    expect(secrets[0].name).toBe("Default");
+
+    // An event references a registered event type (foreign key), so declare one
+    // first — still using only the provisioned key for the ingestion itself.
+    const eventTypeResponse = await request.post(`${API_BASE_URL}/event_types`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: {
+        application_id: env.applicationId,
+        service: "test",
+        resource_type: "entity",
+        verb: "created",
+      },
+    });
+    expect(eventTypeResponse.status()).toBeLessThan(400);
+
+    const eventResponse = await request.post(`${API_BASE_URL}/event/`, {
+      headers: { Authorization: `Bearer ${secrets[0].token}` },
+      data: {
+        application_id: env.applicationId,
+        event_type: "test.entity.created",
+        labels: { all: "yes" },
+        occurred_at: new Date().toISOString(),
+        payload_content_type: "application/json",
+        payload: '{"provisioned": true}',
+      },
+    });
+    expect(eventResponse.status(), "the provisioned key must be able to send the first event").toBe(
+      201
+    );
+  });
+
   test("should display API keys list with created key", async ({ page, request }) => {
     const env = await setupTestEnvironment(page, request, "list");
     const keyName = `Test API Key ${env.timestamp}`;
