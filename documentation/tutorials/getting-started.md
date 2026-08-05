@@ -87,13 +87,19 @@ In the header will be displayed an application ID (**App ID**) that looks like `
 
 ## Step 3: Get Your API Token
 
-To send events to Hook0, you need an API token.
+To send events to Hook0, you need an API token. Creating an application already
+provisions one for you, named **Default**, so there is nothing to create here.
 
-1. **Go to API keys** the sidebar of your application.
-2. **Click "Create new API Key"**
-3. **Give it a name**
-4. **Copy the token** - it looks like this: `49757726-4107-45d4-a262-e438d4f17ab4`
-   
+1. **Go to API keys** in the sidebar of your application.
+2. **Copy the token** of the **Default** key - it looks like this: `49757726-4107-45d4-a262-e438d4f17ab4`
+
+The ready-to-run snippets on the **Send an event** page are already filled in with
+that token, so you can copy one and run it as is.
+
+Need more than one key (for example one per environment), or want to rotate the
+first one? **Click "Create new API Key"**, give it a name, and copy the new token.
+
+
 ## Step 4: Create an Event Type
 
 [Event types](/concepts/event-types) define the structure of events your application can send.
