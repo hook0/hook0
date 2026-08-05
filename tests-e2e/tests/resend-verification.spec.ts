@@ -1,5 +1,63 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
 import { API_BASE_URL } from "../fixtures/email-verification";
+
+const MAILPIT_URL = process.env.MAILPIT_URL || "http://localhost:8025";
+
+/**
+ * Every verification email currently sitting in Mailpit for an address, newest
+ * first. Used to tell "a fresh link was really sent" from "the endpoint merely
+ * answered 204" — the resend endpoint answers identically either way, so the
+ * mailbox is the only place the difference is observable.
+ */
+async function verificationEmails(
+  request: APIRequestContext,
+  email: string
+): Promise<Array<{ html: string }>> {
+  const search = await request.get(
+    `${MAILPIT_URL}/api/v1/search?query=to:${encodeURIComponent(email)}`,
+    { timeout: 5000 }
+  );
+  if (!search.ok()) return [];
+  const messages = ((await search.json()).messages ?? []) as Array<{ ID: string }>;
+
+  const found: Array<{ html: string }> = [];
+  for (const message of messages) {
+    const detail = await request.get(`${MAILPIT_URL}/api/v1/message/${message.ID}`, {
+      timeout: 5000,
+    });
+    if (!detail.ok()) continue;
+    const full = (await detail.json()) as { HTML?: string; Text?: string };
+    const html = `${full.HTML ?? ""}${full.Text ?? ""}`;
+    if (html.includes("verify-email")) found.push({ html });
+  }
+  return found;
+}
+
+/** Wait until at least `count` verification emails reached `email`. */
+async function waitForVerificationEmails(
+  request: APIRequestContext,
+  email: string,
+  count: number,
+  maxWaitMs = 20000
+): Promise<Array<{ html: string }>> {
+  const startedAt = Date.now();
+  let latest: Array<{ html: string }> = [];
+  while (Date.now() - startedAt < maxWaitMs) {
+    latest = await verificationEmails(request, email);
+    if (latest.length >= count) return latest;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error(
+    `expected at least ${count} verification email(s) for ${email}, saw ${latest.length}`
+  );
+}
+
+/** Pull the verification token out of a rendered email body. */
+function tokenFrom(html: string): string {
+  const match = html.replace(/[\r\n]+/g, "").match(/verify-email\?token=([A-Za-z0-9_\-+/=%]+)/i);
+  expect(match, "the email must carry a verification link").toBeTruthy();
+  return decodeURIComponent(match![1]);
+}
 
 /**
  * Resend-verification-email E2E tests for Hook0.
@@ -155,5 +213,82 @@ test.describe("Resend verification email", () => {
     // Still disabled and still counting down: the throttle holds.
     await expect(resendButton).toBeDisabled();
     await expect(resendButton).toContainText(COOLDOWN_LABEL);
+  });
+
+  test("the resent link actually arrives and verifies the account", async ({ request }) => {
+    // The reason the feature exists: someone lost the first email. A 204 proves
+    // nothing on its own — what matters is that a second, working link lands in
+    // the mailbox and completes the account.
+    const timestamp = Date.now();
+    const email = `test-resend-delivers-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+
+    // The signup email itself is the first one; wait for it so the resend is
+    // measured against a known baseline.
+    await waitForVerificationEmails(request, email, 1);
+
+    const resendResponse = await request.post(`${API_BASE_URL}/auth/resend-verification-email`, {
+      data: { email },
+    });
+    expect(resendResponse.status()).toBe(204);
+
+    const emails = await waitForVerificationEmails(request, email, 2);
+
+    // The freshly delivered link must verify the account for real.
+    const verifyResponse = await request.post(`${API_BASE_URL}/auth/verify-email`, {
+      data: { token: tokenFrom(emails[0].html) },
+      failOnStatusCode: false,
+    });
+    expect(verifyResponse.status(), "the resent link must complete verification").toBeLessThan(400);
+
+    // And the account is genuinely usable afterwards — the point of recovering.
+    const loginResponse = await request.post(`${API_BASE_URL}/auth/login`, {
+      data: { email, password },
+      failOnStatusCode: false,
+    });
+    expect(loginResponse.status(), "the recovered account must be able to log in").toBeLessThan(
+      400
+    );
+  });
+
+  test("the cooldown is enforced server-side, not just by the disabled button", async ({
+    request,
+  }) => {
+    // The countdown in the UI is a courtesy; anyone can call the endpoint
+    // directly. The control that actually prevents mailbox flooding lives in the
+    // database, so drive the API straight past the UI and check the mailbox.
+    const timestamp = Date.now();
+    const email = `test-resend-server-cooldown-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+    await waitForVerificationEmails(request, email, 1);
+
+    // Five back-to-back calls, no UI involved.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const response = await request.post(`${API_BASE_URL}/auth/resend-verification-email`, {
+        data: { email },
+      });
+      // Always the same answer — the endpoint never discloses whether it sent.
+      expect(response.status()).toBe(204);
+    }
+
+    await waitForVerificationEmails(request, email, 2);
+    // Give any wrongly-permitted extra send time to land before counting.
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    const delivered = await verificationEmails(request, email);
+    expect(
+      delivered.length,
+      "within one cooldown window only a single resend may actually be sent"
+    ).toBe(2);
   });
 });
