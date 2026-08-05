@@ -68,12 +68,8 @@ var __langFull = function (code) { return code === 'fr' ? 'Français' : code ===
     <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Primary">
         <div class="flex items-center justify-between h-20">
             <!-- Logo -->
-            <a href="<%= __homeRoot %>" class="flex items-center gap-3 group">
-                <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center
-                            transition-transform duration-300 group-hover:scale-110 group-hover:shadow-glow-indigo">
-                    <img src="<%= (typeof basePath !== 'undefined' && basePath) ? basePath : '.' %>/mediakit/logo/110x110-white.png" alt="Hook0" class="h-6 w-6 object-contain" />
-                </div>
-                <span class="text-white font-semibold text-lg hidden sm:block">Hook0</span>
+            <a href="<%= __homeRoot %>" class="flex items-center group">
+                <img src="<%= (typeof basePath !== 'undefined' && basePath) ? basePath : '.' %>/mediakit/logo/logo-banner-white.svg" alt="Hook0" class="h-8 transition-transform duration-300 group-hover:scale-105" />
             </a>
 
             <% if (__groups) { %>
