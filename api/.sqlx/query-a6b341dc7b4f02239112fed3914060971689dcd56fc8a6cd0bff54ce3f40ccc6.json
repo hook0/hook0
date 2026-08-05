@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE iam.signup_attribution\n            SET gclid = NULL\n            WHERE user__id = $1\n              AND gclid IS NOT NULL\n              AND signup_uploaded_at IS NOT NULL\n              AND (first_event_uploaded_at IS NOT NULL OR NOT $2)\n              AND (first_webhook_delivered_uploaded_at IS NOT NULL OR NOT $3)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a6b341dc7b4f02239112fed3914060971689dcd56fc8a6cd0bff54ce3f40ccc6"
+}

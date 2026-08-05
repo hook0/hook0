@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE iam.organization SET matomo_activation_emitted_at = NULL WHERE organization__id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7525cfb2ee30e944b0168b110d4ac00504246cfa168ad4986a17fd3f951e69da"
+}

@@ -108,36 +108,6 @@ pub async fn create(
                 };
             }
 
-            // Activation conversion (Google Ads): creating an organization's
-            // first service token is a valid "I'm integrating Hook0 into my
-            // backend" signal, exactly like creating its first application
-            // secret. The atomic claim is shared with the application-secret
-            // handler, so whichever happens first fires activation at most once
-            // per organization. Strictly fire-and-forget — it must NEVER block
-            // or fail service token creation, so every error here is logged.
-            if let Some(client) = state.google_ads.as_ref().cloned()
-                && client.has_activation_conversion()
-            {
-                match crate::google_ads::claim_activation_gclid(&state.db, &organization_id).await {
-                    Ok(Some(gclid)) => {
-                        let first_event_tracking_enabled = client.has_first_event_conversion();
-                        crate::google_ads::spawn_upload(
-                            client,
-                            gclid,
-                            crate::google_ads::ConversionKind::Activation,
-                        );
-                        crate::google_ads::clear_gclid_if_fully_uploaded_by_org(
-                            &state.db,
-                            &organization_id,
-                            first_event_tracking_enabled,
-                        )
-                        .await;
-                    }
-                    Ok(None) => {}
-                    Err(e) => error!("activation conversion claim failed: {e}"),
-                }
-            }
-
             Ok(CreatedJson(service_token))
         }
         Err(e) => {

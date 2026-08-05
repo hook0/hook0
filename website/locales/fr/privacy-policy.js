@@ -32,16 +32,28 @@
 //   - Pas de claim absolu (« 100 % souverain », « aucun partage »,
 //     « aucun prestataire US ») : risque L121-1 C. conso. RGPD = claim
 //     de processus.
+//
+// [ISMS-SYNC 2026-08-01] La révision 1.5 de legitimate-interest-balance-test-
+// google-ads.md a resserré le tunnel de conversion Google Ads de quatre à
+// trois signaux : la conversion « Activation » (première clé API) a été
+// supprimée, son fait générateur étant devenu un signal creux (les clés API
+// sont désormais créées automatiquement à la configuration de l'organisation),
+// et son rôle d'activation mi-tunnel est désormais porté par « First event
+// sent ». La ligne de finalité « Suivi des conversions publicitaires » et la
+// section 9b ci-dessous nomment désormais explicitement les trois conversions
+// post-1.5 (inscription / premier événement envoyé / premier webhook délivré)
+// à la place du texte générique précédent, et la date de dernière mise à jour
+// est portée au 2026-08-01 en conséquence.
 module.exports = {
   pageTitle: 'Hook0 - Politique de confidentialité',
   pageDescription: 'Politique de confidentialité Hook0, conforme à l\'article 13 du RGPD. Bases légales, durées de conservation, vos droits, sous-traitants et transferts hors UE.',
-  pageModified: '2026-06-27',
+  pageModified: '2026-08-01',
   hero: {
     eyebrow: 'Mentions légales',
     title: 'Politique de confidentialité',
     subtitle: 'Comment Hook0 collecte, utilise et protège vos données personnelles, conformément à l\'article 13 du RGPD.',
     lastUpdatedLabel: 'Dernière mise à jour :',
-    lastUpdatedDate: '27 juillet 2026',
+    lastUpdatedDate: '1er août 2026',
   },
   controller: {
     title: '1. Responsable du traitement',
@@ -75,7 +87,7 @@ module.exports = {
         basisHtml: 'Art. 6(1)(a), consentement (bandeau cookies)',
       },
       {
-        purposeHtml: '<strong class="text-white">Suivi des conversions publicitaires (server-side)</strong><br><span class="text-gray-400 text-sm">Mesure des conversions Google Ads, exclusivement côté serveur via l\'identifiant de clic (gclid). Aucun e-mail, aucune adresse IP, aucun User-Agent n\'est transmis à Google. Droit d\'opposition à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span>',
+        purposeHtml: '<strong class="text-white">Suivi des conversions publicitaires (server-side)</strong><br><span class="text-gray-400 text-sm">Mesure des conversions Google Ads pour trois signaux (inscription, premier événement envoyé, premier webhook délivré), exclusivement côté serveur via l\'identifiant de clic (gclid). Aucun e-mail, aucune adresse IP, aucun User-Agent n\'est transmis à Google. Droit d\'opposition à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>.</span>',
         data: 'Identifiant de clic (gclid), identifiant pseudonyme généré par Google lors du clic publicitaire',
         basisHtml: 'Art. 6(1)(f), intérêt légitime (mesure de la performance publicitaire)<br><span class="text-gray-400 text-sm">Droit d\'opposition au titre de l\'art. 21(2) RGPD</span>',
       },
@@ -180,7 +192,7 @@ module.exports = {
       ['Données analytiques (Matomo)', '25 mois', 'Recommandation CNIL pour les données d\'analyse d\'audience'],
       ['Communications de support', '3 ans après le dernier échange', 'Intérêt légitime ; prescription de droit commun des actions contractuelles'],
       ['Preuves de consentement', '5 ans à compter de la date du consentement', 'Capacité à démontrer la conformité (art. 7(1) RGPD)'],
-      ['Attribution publicitaire (gclid Google Ads)', '30 jours maximum (souvent bien moins)', 'Mesure de conversion server-side ; gclid effacé dès l\'upload des conversions applicables ; borne alignée sur la fenêtre d\'attribution Google Ads (intérêt légitime, art. 6(1)(f))'],
+      ['Attribution publicitaire (gclid Google Ads)', '30 jours maximum (souvent bien moins)', 'Mesure de conversion server-side (inscription, premier événement envoyé, premier webhook délivré) ; gclid effacé dès l\'upload des conversions applicables ; borne alignée sur la fenêtre d\'attribution Google Ads (intérêt légitime, art. 6(1)(f))'],
       // [ISMS-SYNC] Ajout des journaux serveur pour alignement avec l'Annexe 2
       // du DPA.
       ['Journaux serveur', '30 jours minimum, puis rotation et suppression automatiques', 'Exploitation du service, sécurité et gestion des incidents'],
@@ -219,13 +231,13 @@ module.exports = {
   },
   serverSideTracking: {
     title: '9b. Mesure des conversions publicitaires (Google Ads, server-side)',
-    intro: 'Lorsque vous accédez à notre service en cliquant sur une annonce Google Ads, Google Ads ajoute automatiquement un identifiant de clic publicitaire (« gclid ») à l\'URL de destination. Ce gclid est transmis à notre backend lors de la création de votre compte et envoyé côté serveur à Google Ads pour mesurer l\'efficacité de nos campagnes publicitaires.',
+    intro: 'Lorsque vous accédez à notre service en cliquant sur une annonce Google Ads, Google Ads ajoute automatiquement un identifiant de clic publicitaire (« gclid ») à l\'URL de destination. Ce gclid est transmis à notre backend lors de la création de votre compte et envoyé côté serveur à Google Ads pour mesurer l\'efficacité de nos campagnes publicitaires. Nous mesurons trois signaux de conversion à partir de ce gclid : (1) <strong class="text-white">Inscription</strong>, lors de la vérification de votre adresse e-mail ; (2) <strong class="text-white">Premier événement envoyé</strong>, lorsque votre organisation ingère son premier événement, signal d\'usage réel du produit et d\'activation ; et (3) <strong class="text-white">Premier webhook délivré</strong>, lorsque votre organisation délivre avec succès son premier webhook, le signal d\'activation le plus profond du tunnel. Les deux derniers signaux sont optionnels et actifs uniquement lorsqu\'ils sont configurés de notre côté.',
     items: [
-      '<strong class="text-white">Finalité</strong> : mesurer le coût par acquisition de nos campagnes payantes afin d\'allouer notre budget marketing.',
+      '<strong class="text-white">Finalité</strong> : mesurer le coût par acquisition de nos campagnes payantes à travers ces trois étapes de conversion, afin d\'allouer notre budget marketing.',
       '<strong class="text-white">Base légale</strong> : art. 6(1)(f) RGPD, intérêt légitime. Test de proportionnalité documenté disponible sur demande.',
-      '<strong class="text-white">Données transmises à Google</strong>, à savoir le gclid, le type de conversion et la date/heure de conversion. <strong>Aucun e-mail, aucune adresse IP, aucun User-Agent</strong> n\'est transmis à Google dans ce cadre.',
+      '<strong class="text-white">Données transmises à Google</strong>, à savoir le gclid, le type de conversion (inscription, premier événement envoyé ou premier webhook délivré) et la date/heure de conversion. <strong>Aucun e-mail, aucune adresse IP, aucun User-Agent</strong> n\'est transmis à Google dans ce cadre.',
       '<strong class="text-white">Co-responsable de traitement</strong> : Google LLC, dans le cadre des Customer Data Processing Terms (art. 26 RGPD). Le transfert vers les États-Unis est encadré par les clauses contractuelles types (décision 2021/914) et, le cas échéant, par le EU-US Data Privacy Framework (Google LLC y est certifié).',
-      '<strong class="text-white">Conservation</strong> : le gclid est conservé dans une table d\'attribution le temps de mesurer les conversions applicables, puis effacé dès que ces conversions ont été transmises à Google Ads. La durée de conservation maximale est de 30 jours (fenêtre d\'attribution au-delà de laquelle Google n\'accepte plus la conversion) ; en pratique, elle est généralement bien plus courte.',
+      '<strong class="text-white">Conservation</strong> : le gclid est conservé dans une table d\'attribution le temps de mesurer les conversions applicables (inscription toujours, plus premier événement envoyé et premier webhook délivré lorsqu\'ils sont activés), puis effacé dès que ces conversions ont été transmises à Google Ads. La durée de conservation maximale est de 30 jours (fenêtre d\'attribution au-delà de laquelle Google n\'accepte plus la conversion) ; en pratique, elle est généralement bien plus courte.',
       '<strong class="text-white">Droit d\'opposition</strong> au titre de l\'art. 21(2) RGPD. Vous pouvez vous opposer à ce traitement à tout moment en écrivant à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a>. Sur demande, nous supprimons votre ligne d\'attribution (ce qui efface le gclid avant toute transmission non encore réalisée) et demandons à Google la suppression des données déjà transmises. Votre inscription n\'en est pas affectée.',
     ],
     footnoteHtml: 'Note : cette mesure côté serveur ne repose <strong>pas</strong> sur des cookies, gtag.js, ni aucun traceur côté client. L\'article 82 de la loi Informatique et Libertés (transposition de l\'article 5(3) de la Directive e-Privacy) ne s\'applique pas à ce traitement.',
