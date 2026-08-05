@@ -546,11 +546,12 @@ pub async fn verify_email(
         if let Some(user) = verified_user {
             // Fire the Google Ads "signup" conversion. Done after the email is
             // confirmed so unverified / bot signups never reach Google Ads.
-            // Unlike before, the attribution row is KEPT (gclid retained) so the
-            // later "activation" conversion (first API key) can reuse the gclid.
-            // The `signup_uploaded_at IS NULL` guard makes this fire at most once
-            // per user. The row is cleaned up by the 30-day job, or its gclid is
-            // nulled once both conversions are uploaded (data minimisation).
+            // The attribution row is KEPT (gclid retained) so the later
+            // first-event / first-webhook-delivered conversions can reuse the
+            // gclid. The `signup_uploaded_at IS NULL` guard makes this fire at
+            // most once per user. The row is cleaned up by the 30-day job, or its
+            // gclid is nulled once every enabled conversion is uploaded (data
+            // minimisation).
             if let Some(client) = state.google_ads.as_ref().cloned() {
                 let attribution = query!(
                     "
@@ -570,17 +571,21 @@ pub async fn verify_email(
                     && let Some(gclid) = row.gclid
                 {
                     let first_event_tracking_enabled = client.has_first_event_conversion();
+                    let first_webhook_delivered_tracking_enabled =
+                        client.has_first_webhook_delivered_conversion();
                     crate::google_ads::spawn_upload(
                         client,
                         gclid,
                         crate::google_ads::ConversionKind::Signup,
                     );
-                    // If every other enabled conversion already happened before
-                    // verification, all are now uploaded → minimise the gclid.
+                    // The first event (and even the first webhook delivery) can
+                    // happen before email verification, so gate on every enabled
+                    // conversion before minimising the gclid.
                     crate::google_ads::clear_gclid_if_fully_uploaded_by_user(
                         &state.db,
                         &token.user_id,
                         first_event_tracking_enabled,
+                        first_webhook_delivered_tracking_enabled,
                     )
                     .await;
                 }

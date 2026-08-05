@@ -1,6 +1,7 @@
 use actix_web::error::JsonPayloadError;
+use actix_web::http::{StatusCode, header};
 use actix_web::{HttpResponse, ResponseError};
-use http_api_problem::*;
+use http_api_problem::{HttpApiProblem, PROBLEM_JSON_MEDIA_TYPE};
 use paperclip::actix::api_v2_errors;
 use serde_json::{Value, to_value};
 use sqlx::Error;
@@ -155,10 +156,17 @@ impl From<html2text::Error> for Hook0Problem {
     }
 }
 
+/// actix-web 4 is pinned to `http` 0.2 while `http-api-problem` 0.60+ uses `http` 1.x, so their
+/// `StatusCode` types are distinct and must be converted through their numeric value.
+fn to_problem_status(status: StatusCode) -> http_api_problem::StatusCode {
+    http_api_problem::StatusCode::from_u16(status.as_u16())
+        .unwrap_or(http_api_problem::StatusCode::INTERNAL_SERVER_ERROR)
+}
+
 impl From<Hook0Problem> for HttpApiProblem {
     fn from(hook0_problem: Hook0Problem) -> Self {
         let problem: Problem = hook0_problem.to_owned().into();
-        HttpApiProblem::new(problem.status)
+        HttpApiProblem::new(to_problem_status(problem.status))
             .type_url(format!(
                 "https://hook0.com/documentation/errors/{hook0_problem}",
             )) // rely on Display trait of Hook0Problem
@@ -176,27 +184,17 @@ impl ResponseError for Hook0Problem {
     }
 
     fn error_response(&self) -> HttpResponse {
+        let status = self.status_code();
         let problem: HttpApiProblem = self.to_owned().into();
 
-        let effective_status = problem
-            .status
-            .unwrap_or(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR);
-        let actix_status = actix_web::http::StatusCode::from_u16(effective_status.as_u16())
-            .unwrap_or(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR);
-
-        let json = problem.json_bytes();
-
-        let mut builder = actix_web::HttpResponse::build(actix_status);
-        builder.append_header((
-            actix_web::http::header::CONTENT_TYPE,
-            PROBLEM_JSON_MEDIA_TYPE,
-        ));
-        if actix_status == actix_web::http::StatusCode::SERVICE_UNAVAILABLE {
+        let mut builder = HttpResponse::build(status);
+        builder.append_header((header::CONTENT_TYPE, PROBLEM_JSON_MEDIA_TYPE));
+        if status == StatusCode::SERVICE_UNAVAILABLE {
             // Tell well-behaved clients (e.g. Business Central, SDKs) to back off
             // and retry rather than treating this transient saturation as permanent.
-            builder.append_header((actix_web::http::header::RETRY_AFTER, "5"));
+            builder.append_header((header::RETRY_AFTER, "5"));
         }
-        builder.body(json)
+        builder.body(problem.json_bytes())
     }
 }
 
@@ -503,10 +501,17 @@ impl From<Hook0Problem> for Problem {
             },
             Hook0Problem::Validation(e) => {
                 let errors_str = e.to_string();
+                // `ValidationErrors` renders as an empty string when it holds no error, which only
+                // happens for the value `EnumIter` fabricates to build the public error catalogue.
+                let detail = if errors_str.is_empty() {
+                    "Provided input did not pass validation.".to_owned()
+                } else {
+                    errors_str
+                };
                 Problem {
                     id: Hook0Problem::Validation(e.to_owned()),
                     title: "Provided input is malformed",
-                    detail: errors_str.into(),
+                    detail: detail.into(),
                     validation: to_value(e).ok(),
                     status: StatusCode::UNPROCESSABLE_ENTITY,
                 }
@@ -556,7 +561,7 @@ pub enum JsonPayloadProblem {
 
 impl Default for JsonPayloadProblem {
     fn default() -> Self {
-        Self::Other("".to_owned())
+        Self::Other("Unknown JSON payload error".to_owned())
     }
 }
 
@@ -585,6 +590,74 @@ impl From<JsonPayloadError> for JsonPayloadProblem {
             JsonPayloadError::Serialize(e) => Self::Serialize(e.to_string()),
             JsonPayloadError::Payload(e) => Self::Payload(e.to_string()),
             e => Self::Other(e.to_string()),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use actix_web::body::to_bytes;
+    use strum::IntoEnumIterator;
+
+    /// Check the response contract of every error Hook0 can return.
+    #[actix_web::test]
+    async fn every_problem_response_matches_its_contract() {
+        for hook0_problem in Hook0Problem::iter() {
+            let expected_status = Problem::from(hook0_problem.to_owned()).status;
+            // Only 503 tells well-behaved clients to back off; see `error_response`.
+            let expected_retry_after = if expected_status == StatusCode::SERVICE_UNAVAILABLE {
+                Some("5")
+            } else {
+                None
+            };
+
+            let response = hook0_problem.error_response();
+
+            assert_eq!(
+                response.status(),
+                expected_status,
+                "unexpected HTTP status for {hook0_problem}"
+            );
+            assert_eq!(
+                response
+                    .headers()
+                    .get(header::CONTENT_TYPE)
+                    .and_then(|value| value.to_str().ok()),
+                Some(PROBLEM_JSON_MEDIA_TYPE),
+                "unexpected content type for {hook0_problem}"
+            );
+            assert_eq!(
+                response
+                    .headers()
+                    .get(header::RETRY_AFTER)
+                    .and_then(|value| value.to_str().ok()),
+                expected_retry_after,
+                "unexpected `Retry-After` header for {hook0_problem}"
+            );
+
+            let body = to_bytes(response.into_body())
+                .await
+                .expect("error response body should be readable");
+            let problem = serde_json::from_slice::<Value>(&body)
+                .expect("error response body should be valid JSON");
+
+            // `status` travels through `to_problem_status` while the response status does not,
+            // so this catches the `http` 0.2 / `http` 1.x bridge falling back to 500.
+            assert_eq!(
+                problem["status"].as_u64(),
+                Some(u64::from(expected_status.as_u16())),
+                "serialized status does not match response status for {hook0_problem}"
+            );
+            assert!(
+                problem["title"].as_str().is_some_and(|t| !t.is_empty()),
+                "missing title for {hook0_problem}"
+            );
+            assert!(
+                problem["detail"].as_str().is_some_and(|d| !d.is_empty()),
+                "missing detail for {hook0_problem}"
+            );
         }
     }
 }

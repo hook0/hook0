@@ -19,7 +19,7 @@ pub struct EnvVarMetadata {
 }
 
 static ENV_VAR_METADATA: LazyLock<Vec<EnvVarMetadata>> = LazyLock::new(|| {
-    let group_regex = Regex::new(r"^\[(.+)\] (.+)$").unwrap();
+    let group_regex = Regex::new(r"^\[(.+?)\] (.+)$").unwrap();
     let cmd = crate::Config::command();
 
     cmd.get_arguments()
@@ -67,4 +67,37 @@ static ENV_VAR_METADATA: LazyLock<Vec<EnvVarMetadata>> = LazyLock::new(|| {
 )]
 pub async fn get() -> Result<Json<Vec<EnvVarMetadata>>, Hook0Problem> {
     Ok(Json(ENV_VAR_METADATA.clone()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ENV_VAR_METADATA;
+
+    #[test]
+    fn bracketed_help_groups_on_first_bracket() {
+        let entry = ENV_VAR_METADATA
+            .iter()
+            .find(|m| m.env_var == "SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS")
+            .expect("SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS must be present in env var metadata");
+
+        // This var's help text is "[Google Ads] … Bounded to [1, 3650]": a greedy first capture
+        // group swallows up to the last `]`, yielding a malformed group and a description
+        // truncated to "days". The group must be just the leading bracketed category.
+        assert_eq!(
+            entry.group.as_deref(),
+            Some("Google Ads"),
+            "group should be the leading bracketed category, not the greedy-captured help text",
+        );
+
+        // The full description must be preserved (the upper bound "3650" lives near the end),
+        // proving the split kept everything after the first `]` rather than the last one.
+        let description = entry
+            .description
+            .as_deref()
+            .expect("description should be present");
+        assert!(
+            description.contains("3650"),
+            "description should retain the full help text including the upper bound, got: {description}",
+        );
+    }
 }
