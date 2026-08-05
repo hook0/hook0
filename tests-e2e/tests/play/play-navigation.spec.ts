@@ -47,9 +47,10 @@ test.describe("Play Navigation - Header Links (desktop)", () => {
 
     const registerBtn = page.locator('[data-test="register-btn"]');
     await expect(registerBtn).toBeVisible({ timeout: 10000 });
+    // Points at the register app AND carries the play acquisition attribution.
     await expect(registerBtn).toHaveAttribute(
       "href",
-      "https://app.hook0.com/register",
+      /^https:\/\/app\.hook0\.com\/register\?.*utm_source=play/,
     );
     await expect(registerBtn).toContainText("Get Started");
   });
