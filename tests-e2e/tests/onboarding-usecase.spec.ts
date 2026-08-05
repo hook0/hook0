@@ -63,6 +63,17 @@ async function openTutorialIntro(page: Page): Promise<void> {
 }
 
 /**
+ * Stand in for the Matomo snippet, which is not loaded in this environment.
+ * `trackEvent` only pushes when `window._paq` exists, so creating the queue is
+ * what makes the tracking call observable — the call itself is the real one.
+ */
+async function captureTrackingQueue(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    (window as unknown as { _paq: unknown[] })._paq = [];
+  });
+}
+
+/**
  * Walk the wizard from the intro to the event-type step, creating the
  * application the wizard requires on the way. Leaves the page on the event-type
  * form.
@@ -131,6 +142,7 @@ async function advanceToSendEventStep(page: Page): Promise<void> {
 
 test.describe("Onboarding use-case personalization", () => {
   test("shows the question and records the choice", async ({ page, request }) => {
+    await captureTrackingQueue(page);
     await registerAndLogin(page, request, "intro");
     await openTutorialIntro(page);
 
@@ -168,6 +180,18 @@ test.describe("Onboarding use-case personalization", () => {
       "aria-pressed",
       "false"
     );
+
+    // Segmenting activation per persona is the reason the question is asked at
+    // all, so the choice has to actually reach analytics — not merely land in a
+    // store. A refactor that drops the tracking call fails here.
+    const trackedUseCase = await page.evaluate(() => {
+      const queue = (window as unknown as { _paq?: unknown[][] })._paq ?? [];
+      return queue.find(
+        (entry) => entry[0] === "trackEvent" && entry[1] === "signup" && entry[2] === "usecase"
+      );
+    });
+    expect(trackedUseCase, "selecting a use case must be tracked").toBeTruthy();
+    expect(trackedUseCase![3]).toBe("ecommerce");
 
     // The question never blocks: the wizard can still be started.
     await expect(page.locator('[data-test="tutorial-start-button"]')).toBeEnabled();
