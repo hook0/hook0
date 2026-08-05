@@ -96,6 +96,52 @@ async function landOnCheckEmailWith(page: Page, email: string): Promise<void> {
 }
 
 test.describe("Resend verification email", () => {
+  test("is reachable straight after a real signup, not just from seeded state", async ({
+    page,
+  }) => {
+    // The other cases seed the address into history state directly. That proves
+    // the page works, not that signup actually hands the address over. Here the
+    // registration form is filled for real, so a change to the router push, the
+    // history mode, or the page's read of it would fail this test.
+    const timestamp = Date.now();
+    const email = `test-resend-fromsignup-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    await page.goto("/register");
+    await expect(page.locator('[data-test="register-form"]')).toBeVisible({ timeout: 10000 });
+    await page.locator('[data-test="register-email-input"]').fill(email);
+    await page.locator('[data-test="register-firstname-input"]').fill("Test");
+    await page.locator('[data-test="register-lastname-input"]').fill("User");
+    await page.locator('[data-test="register-password-input"]').fill(password);
+
+    const registerResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/register") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="register-submit-button"]').click();
+    expect((await registerResponse).status()).toBeLessThan(400);
+
+    await expect(page).toHaveURL(/\/check-email/, { timeout: 15000 });
+    await expect(page.locator('[data-test="check-email-page"]')).toBeVisible({ timeout: 10000 });
+
+    // The address made it across: the button is present AND enabled. If the
+    // hand-off broke, the page would render without a usable resend action.
+    const resendButton = page.locator('[data-test="resend-verification-email-button"]');
+    await expect(resendButton).toBeVisible({ timeout: 10000 });
+    await expect(resendButton).toBeEnabled();
+
+    // And it really resends for this account, end to end.
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes(RESEND_ENDPOINT) && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await resendButton.click();
+    expect((await responsePromise).status()).toBe(204);
+    await expect(resendButton).toBeDisabled({ timeout: 10000 });
+  });
+
   test("resends from the check-email page and enters cooldown", async ({ page, request }) => {
     // Register a user via the API and leave the email unverified, so the resend
     // endpoint has a real unverified account to act on.

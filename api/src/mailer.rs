@@ -209,7 +209,7 @@ impl Mail {
     pub fn preheader(&self) -> &'static str {
         match self {
             Mail::VerifyUserEmail { .. } => {
-                "One click to activate your account. Link expires in 5 minutes."
+                "One click to activate your account. Link expires in 24 hours."
             }
             Mail::ResetPassword { .. } => {
                 "Link expires in 5 minutes. All sessions will be signed out."

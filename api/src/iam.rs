@@ -1831,4 +1831,32 @@ mod tests {
         let authorized = authorize_email_verification(&token.biscuit).unwrap();
         assert_eq!(authorized.user_id, user_id);
     }
+
+    #[test]
+    fn email_verification_token_authorization_expiration() {
+        // A longer TTL only makes sense if expiry is still enforced: past its
+        // lifetime the token must stop authorizing, so it can never mint a
+        // session. Covers actual expiry, as opposed to replaying a token that is
+        // still within its window.
+        let keypair = KeyPair::new();
+        let user_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_email_verification_token(&keypair.private(), user_id).unwrap();
+
+        let not_yet_expired_biscuit = biscuit
+            .append(
+                BlockBuilder::new()
+                    .check_expiration_date(SystemTime::now() + Duration::from_secs(1)),
+            )
+            .unwrap();
+        let expired_biscuit = biscuit
+            .append(
+                BlockBuilder::new()
+                    .check_expiration_date(SystemTime::now() - Duration::from_secs(1)),
+            )
+            .unwrap();
+
+        assert!(authorize_email_verification(&not_yet_expired_biscuit).is_ok());
+        assert!(authorize_email_verification(&expired_biscuit).is_err());
+    }
 }
