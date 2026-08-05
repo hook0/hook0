@@ -32,13 +32,30 @@ Goals are configured in the Matomo admin interface. Below are the Goals and the 
 
 ### Frontend Goals (app.hook0.com)
 
-| Goal ID | Goal Name | Match Type | Event Name Pattern | Code Location |
-|---------|-----------|------------|-------------------|---------------|
-| 1 | Registration | Event Name | `complete` | `RegisterPage.vue` |
-| 2 | Login | Event Name | `complete` | `LoginPage.vue` |
-| 3 | Tutorial Complete | Event Name | `tutorial-complete` | `TutorialSuccess.vue` |
-| 4 | First Application | Event Name | `step-complete` + `application` | `TutorialCreateApplication.vue` |
-| 5 | First Event Sent | Event Name | `step-complete` + `send-event` | `TutorialSendEvent.vue` |
+The five app-onboarding Goals live on **idSite 2** ("Hook0 UI", app.hook0.com). Each matches a
+Matomo custom-event attribute with pattern type **exact**.
+
+| Goal ID | Goal Name | Match Attribute | Pattern (exact) | Feeding event + code location |
+|---------|-----------|-----------------|-----------------|-------------------------------|
+| 1 | Registration | Event Action | `email-verified` | `trackEvent('signup', 'email-verified')` — `frontend/src/pages/user/VerifyEmail.vue:54` |
+| 2 | Login | Event Action | `login` | `trackEvent('auth', 'login', 'success')` — `frontend/src/pages/LoginPage.vue:76` |
+| 3 | Tutorial Complete | Event Action | `complete` | `trackEvent('tutorial', 'complete')` — `frontend/src/pages/tutorial/TutorialWizardStepSuccess.vue:47` |
+| 4 | First Application | Event Name | `application` | `trackEvent('tutorial', 'step-complete', 'application')` — `frontend/src/pages/tutorial/TutorialWizard.vue:105` (trackLabel set at `:157`) |
+| 5 | First Event | Event Name | `send-event` | `trackEvent('tutorial', 'step-complete', 'send-event')` — `frontend/src/pages/tutorial/TutorialWizard.vue:105` (trackLabel set at `:186`) |
+
+> **Goal 2 (Login)** matches on Event Action `login`, so it counts every `login` action — including
+> the rare `error` outcome. If success-only conversions are required, refine the match to Event
+> Name `success`.
+
+> **Conversions are forward-looking.** These Goals were created via `Goals.addGoal` on idSite 2.
+> Matomo does not backfill past conversions, so they accrue only from creation onward. The feeding
+> events are already live — over the last 30 days: `email-verified` ≈ 66, `login` ≈ 227,
+> `complete` ≈ 18, `application` ≈ 42, `send-event` ≈ 18 visits — so the Goals convert going forward.
+
+> **Deferred — "time-to-first-webhook" (planned 6th Goal).** It depends on the server-side
+> `activation` / `first-webhook-delivered` Matomo event shipped on the still-unmerged
+> `feat/first-webhook-delivered-metric` branch, which only records once that branch is merged and
+> deployed with `MATOMO_TOKEN_AUTH` set. Pending / next, not yet in place.
 
 ## Event Naming Conventions
 
@@ -79,7 +96,7 @@ trackEvent(category: string, action: string, name?: string, value?: number)
 **Examples:**
 ```typescript
 // Authentication
-trackEvent('auth', 'login', 'complete');
+trackEvent('auth', 'login', 'success');
 trackEvent('signup', 'form-start');
 trackEvent('signup', 'email-verified');
 
