@@ -1499,8 +1499,9 @@ async fn main() -> anyhow::Result<()> {
         .expect("Could not initialize mailer; check SMTP configuration");
 
         // Spawn task to send the "0 event sent" reactivation email sequence.
-        // Opt-in (default off). Bounded background scan of the same "event"
-        // onboarding signal; never touches the event-ingestion hot path.
+        // On by default; set ENABLE_REACTIVATION_EMAILS=false to opt out. Bounded
+        // background scan of the same "event" onboarding signal; never touches
+        // the event-ingestion hot path.
         if config.enable_reactivation_emails {
             let reactivation_db = housekeeping_pool.clone();
             let reactivation_semaphore = housekeeping_semaphore.clone();

@@ -146,6 +146,16 @@ This documentation may not cover all options or reflect recent changes.
 | `UNVERIFIED_USERS_CLEANUP_PERIOD_IN_S` | Duration (in second) to wait between unverified users cleanups | `3600` |  |
 | `UNVERIFIED_USERS_CLEANUP_REPORT_AND_DELETE` | If true, unverified users will be reported and cleaned up; if false (default), they will only be reported | `false` |  |
 
+### Reactivation
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `ENABLE_REACTIVATION_EMAILS` | If true (default), verified accounts that never sent an event get a bounded "0 event sent" reactivation email sequence (J+1 / J+3 / J+7); set to false to opt out | `true` |  |
+| `REACTIVATION_DISCORD_URL` | URL of the Hook0 community/Discord used as the J+7 CTA | `https://www.hook0.com/community` |  |
+| `REACTIVATION_EMAILS_MAX_PER_STEP_PER_RUN` | Upper bound on how many recipients a single pass processes per step (bounds work per pass) | `500` |  |
+| `REACTIVATION_EMAILS_PERIOD` | Duration to wait between reactivation email passes | `6h` |  |
+| `REACTIVATION_PLAY_URL` | URL of the Hook0 webhook tester used as the J+3 CTA (lift the "no public URL" blocker) | `https://play.hook0.com/` |  |
+
 ### Monitoring
 
 | Variable | Description | Default | Required |

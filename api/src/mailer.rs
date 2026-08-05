@@ -931,6 +931,42 @@ mod tests {
         }
     }
 
+    fn html_escape_leaves_no_active_markup_characters(raw: &str) -> bool {
+        // Every character that could re-open markup or break out of an attribute
+        // must be gone from the output; what remains is inert text.
+        let escaped = html_escape_text(raw);
+        !escaped.contains('<')
+            && !escaped.contains('>')
+            && !escaped.contains('"')
+            && !escaped.contains('\'')
+    }
+
+    proptest::proptest! {
+        // The one hand-picked XSS payload below closes a single case. This closes
+        // the class: for ANY free text a user can put in their name, escaping must
+        // leave nothing that can re-open markup. `&` is deliberately excluded from
+        // the assertion — it legitimately survives as the first character of the
+        // entity sequences (`&amp;`, `&lt;`, …) escaping produces.
+        #[test]
+        fn escaping_neutralizes_arbitrary_free_text(raw in ".*") {
+            proptest::prop_assert!(html_escape_leaves_no_active_markup_characters(&raw));
+        }
+
+        // Ampersands are escaped first, so no entity is ever double-built from a
+        // character that was itself introduced by escaping.
+        #[test]
+        fn escaping_produces_well_formed_entities(raw in ".*") {
+            let escaped = html_escape_text(&raw);
+            let ampersands = escaped.matches('&').count();
+            let entities = escaped.matches("&amp;").count()
+                + escaped.matches("&lt;").count()
+                + escaped.matches("&gt;").count()
+                + escaped.matches("&quot;").count()
+                + escaped.matches("&#39;").count();
+            proptest::prop_assert_eq!(ampersands, entities);
+        }
+    }
+
     /// A recipient-controlled first name carrying HTML is escaped before it is
     /// interpolated into the template, so no raw markup reaches the rendered
     /// email. Covers both a text-content break-out (`<script>`) and an
