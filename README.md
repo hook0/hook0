@@ -1,7 +1,7 @@
 <!-- PROJECT LOGO -->
 <p align="center">
   <a href="https://github.com/hook0/hook0">
-   <img src="./mediakit/logo/1024x1024.png" alt="Hook0 Logo banner">
+   <img width="256" height="256" src="./mediakit/logo/512x512.png" alt="Hook0 Logo banner">
   </a>
 
 <h3 align="center">Hook0</h3>
