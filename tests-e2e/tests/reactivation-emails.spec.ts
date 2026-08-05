@@ -35,7 +35,9 @@ const DRIP_WAIT_MS = 90_000;
  */
 const NEGATIVE_WINDOW_MS = 45_000;
 
-test.describe.configure({ mode: "serial", timeout: 180_000 });
+// Each case uses its own freshly registered address, so they are independent;
+// only the generous timeout is shared, to cover a missed job pass.
+test.describe.configure({ timeout: 180_000 });
 
 async function withDb<T>(fn: (client: Client) => Promise<T>): Promise<T> {
   const client = new Client({ connectionString: DATABASE_URL });
@@ -167,6 +169,18 @@ async function ingestFirstEvent(request: APIRequestContext, user: ReactivationUs
   });
   expect(secret.status(), await secret.text()).toBeLessThan(400);
   const applicationSecret = (await secret.json()).token as string;
+
+  // Events reference a registered event type (foreign key), so declare it first.
+  const eventType = await request.post(`${API_BASE_URL}/event_types`, {
+    headers: auth,
+    data: {
+      application_id: applicationId,
+      service: "test",
+      resource_type: "entity",
+      verb: "created",
+    },
+  });
+  expect(eventType.status(), await eventType.text()).toBeLessThan(400);
 
   const event = await request.post(`${API_BASE_URL}/event/`, {
     headers: { Authorization: `Bearer ${applicationSecret}` },
