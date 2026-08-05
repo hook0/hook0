@@ -1,10 +1,13 @@
 // Per-page strings for pricing (EN base).
-// VERBATIM extraction from the legacy inline template — do not humanize.
-// The faq.items[].a text MUST match the visible <details> body byte-for-byte;
-// the FAQPage JSON-LD is auto-generated from this same array.
+// Body strings (hero, differentiators, faq) are verbatim extractions from the
+// legacy inline template — do not humanize; the faq.items[].a text MUST match
+// the visible <details> body byte-for-byte, and the FAQPage JSON-LD is
+// auto-generated from this same array.
+// pageTitle/pageDescription are intentionally AEO-optimized (curiosity-gap, to
+// compete with AI Overviews) and are NOT bound to the legacy template.
 module.exports = {
-  "pageTitle": "Hook0 Pricing: Free Tier, No Credit Card | Webhook Plans",
-  "pageDescription": "Free forever tier. Cloud from €59/month, self-hostable SSPL code. Compare plans: events/day, subscriptions, retention, support. No hidden fees.",
+  "pageTitle": "Hook0 Pricing: Free Tier, and What Happens When You Go Over",
+  "pageDescription": "Free forever tier, no credit card. Paid plans never block overage; they bill a fraction of a cent per event. Cloud from €59/month, or self-host the SSPL code.",
   "track": "pricing",
   "hero": {
     "h1": "Hook0 Pricing",
