@@ -32,6 +32,9 @@ e2e-playwright.test:
     DISABLE_TARGET_IP_CHECK: "true"
     DISABLE_SERVING_WEBAPP: "false"
     MEMBERS_FEATURE_ENABLED: "true"
+    ## Reactivation drip: on by default, but its production cadence (6h) would
+    ## never fire inside a CI run, so passes are sped up for the e2e suite.
+    REACTIVATION_EMAILS_PERIOD: "5s"
     ## Playwright configuration
     BASE_URL: "http://localhost:8001"
     MAILPIT_URL: "http://mailpit:8025"

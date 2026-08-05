@@ -30,7 +30,9 @@
 //! days after J+3). This holds the real J+1/J+3/J+7 cadence for brand-new
 //! sign-ups AND the long-dormant backlog.
 //!
-//! Opt-in: the job is only spawned when `ENABLE_REACTIVATION_EMAILS` is set.
+//! On by default: the job is spawned unless `ENABLE_REACTIVATION_EMAILS` is set
+//! to false, which is the escape hatch for self-hosted instances that do not
+//! want Hook0 to email their users.
 
 use actix_web::rt::time::sleep;
 use lettre::Address;

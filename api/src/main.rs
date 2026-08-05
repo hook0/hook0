@@ -475,8 +475,8 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     unverified_users_cleanup_report_and_delete: bool,
 
-    /// [Reactivation] If true, verified accounts that never sent an event get a bounded "0 event sent" reactivation email sequence (J+1 / J+3 / J+7)
-    #[clap(long, env, default_value = "false")]
+    /// [Reactivation] If true (default), verified accounts that never sent an event get a bounded "0 event sent" reactivation email sequence (J+1 / J+3 / J+7); set to false to opt out
+    #[clap(long, env, default_value = "true")]
     enable_reactivation_emails: bool,
 
     /// [Reactivation] Duration to wait between reactivation email passes
