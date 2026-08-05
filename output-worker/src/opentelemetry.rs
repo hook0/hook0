@@ -3,7 +3,7 @@ use opentelemetry::global::BoxedSpan;
 use opentelemetry::metrics::Gauge;
 use opentelemetry::trace::noop::NoopTracerProvider;
 use opentelemetry::trace::{Span, Tracer};
-use opentelemetry::{KeyValue, global};
+use opentelemetry::{Key, KeyValue, global};
 use opentelemetry_otlp::{
     Compression, ExporterBuildError, MetricExporter, Protocol, SpanExporter, WithExportConfig,
     WithHttpConfig,
@@ -11,6 +11,7 @@ use opentelemetry_otlp::{
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::error::OTelSdkResult;
 use opentelemetry_sdk::metrics::SdkMeterProvider;
+use opentelemetry_sdk::resource::EnvResourceDetector;
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use pulsar::proto::CommandConsumerStatsResponse;
 use sqlx::PgPool;
@@ -18,6 +19,7 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 use std::time::Duration;
 use tracing::{info, warn};
+use uuid::Uuid;
 
 use crate::work::Response;
 use crate::{Config, RequestAttempt};
@@ -51,13 +53,34 @@ enum TracesExporter {
     Noop,
 }
 
+const SERVICE_INSTANCE_ID: &str = "service.instance.id";
+
+fn service_instance_id() -> String {
+    let detected = Resource::builder_empty()
+        .with_detector(Box::new(EnvResourceDetector::new()))
+        .build()
+        .get(&Key::from_static_str(SERVICE_INSTANCE_ID))
+        .map(|value| value.as_str().into_owned());
+
+    pick_service_instance_id(detected.as_deref())
+}
+
+fn pick_service_instance_id(detected: Option<&str>) -> String {
+    match detected.map(str::trim) {
+        Some(id) if !id.is_empty() => id.to_owned(),
+        _ => Uuid::now_v7().to_string(),
+    }
+}
+
 pub fn init(config: &Config, version: &str) -> Result<OtlpExporters, ExporterBuildError> {
+    let service_instance_id = service_instance_id();
     let resource = Resource::builder()
         .with_attributes([
             KeyValue::new("service.namespace", "hook0"),
             KeyValue::new("service.name", "output-worker"),
             KeyValue::new("service.version", version.to_owned()),
             KeyValue::new("worker.name", config.worker_name.clone()),
+            KeyValue::new(SERVICE_INSTANCE_ID, service_instance_id.clone()),
         ])
         .build();
     let auth_header = config
@@ -82,7 +105,9 @@ pub fn init(config: &Config, version: &str) -> Result<OtlpExporters, ExporterBui
             .build();
         global::set_meter_provider(metrics_provider.clone());
 
-        info!("OpenTelemetry metrics will be exported to {metrics_endpoint}");
+        info!(
+            "OpenTelemetry metrics will be exported to {metrics_endpoint} (service.instance.id={service_instance_id})"
+        );
         MetricsExporter::Actual(metrics_provider)
     } else {
         MetricsExporter::Noop
@@ -105,7 +130,9 @@ pub fn init(config: &Config, version: &str) -> Result<OtlpExporters, ExporterBui
             .build();
         global::set_tracer_provider(tracer_provider.clone());
 
-        info!("OpenTelemetry traces will be exported to {traces_endpoint}");
+        info!(
+            "OpenTelemetry traces will be exported to {traces_endpoint} (service.instance.id={service_instance_id})"
+        );
         TracesExporter::Actual(tracer_provider)
     } else {
         let tracer_provider = NoopTracerProvider::new();
@@ -225,6 +252,28 @@ pub fn gather_pulsar_consumer_metrics(stats: &[CommandConsumerStatsResponse]) {
     }
 }
 
+static SLOTS_HP_AVAILABLE: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("slots.hp_available")
+        .build()
+});
+static SLOTS_LP_AVAILABLE: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("slots.lp_available")
+        .build()
+});
+static SLOTS_DYNAMIC_AVAILABLE: LazyLock<Gauge<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_gauge("slots.dynamic_available")
+        .build()
+});
+
+pub fn gather_slot_metrics(hp_available: u64, lp_available: u64, dynamic_available: u64) {
+    SLOTS_HP_AVAILABLE.record(hp_available, &[]);
+    SLOTS_LP_AVAILABLE.record(lp_available, &[]);
+    SLOTS_DYNAMIC_AVAILABLE.record(dynamic_available, &[]);
+}
+
 pub fn start_request_attempt_span(attempt: &RequestAttempt) -> BoxedSpan {
     let tracer = global::tracer(crate_name!());
     let mut span = tracer.start("request_attempt");
@@ -250,4 +299,34 @@ pub fn end_request_attempt_span(mut span: BoxedSpan, response: &Response) {
         ),
     ]);
     span.end();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detected_instance_id_wins() {
+        assert_eq!(
+            pick_service_instance_id(Some("worker-pulsar-2")),
+            "worker-pulsar-2"
+        );
+    }
+
+    #[test]
+    fn blank_detected_instance_id_falls_back_to_a_uuid() {
+        // `OTEL_RESOURCE_ATTRIBUTES=service.instance.id=` yields an empty value.
+        // Honouring it would give every process the same empty `instance` label,
+        // which is exactly the collision this attribute exists to prevent.
+        assert!(Uuid::parse_str(&pick_service_instance_id(Some("  "))).is_ok());
+    }
+
+    #[test]
+    fn generated_instance_ids_are_unique() {
+        let first = pick_service_instance_id(None);
+        let second = pick_service_instance_id(None);
+
+        assert!(Uuid::parse_str(&first).is_ok());
+        assert_ne!(first, second);
+    }
 }
