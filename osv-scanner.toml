@@ -97,3 +97,27 @@ pulled transitively by biscuit-quote (biscuit-auth) and paperclip-macros
 version exists; removal depends on biscuit-auth and paperclip upstreams
 migrating off it. Tracked.
 """
+
+# npm transitive dependency. Unlike the Rust entries above, this is not a
+# deferral for convenience: npm resolution will not move it.
+
+[[IgnoredVulns]]
+id = "GHSA-rgw5-rvv9-x895"
+ignoreUntil = "2026-09-30T00:00:00Z"
+reason = """
+brace-expansion 5.0.8 -> 5.0.9, reported against documentation/, frontend/ and
+website/ package-lock.json. Dev-only in all three (build tooling: minimatch via
+eslint / rimraf / test-exclude / @redocly/openapi-core); no brace-expansion code
+ships in any runtime artifact.
+
+The bump is not reachable by normal means: the package is transitive and the
+locked 5.0.8 already satisfies every declared range, so both
+`npm update brace-expansion --package-lock-only` and a full
+`npm install --package-lock-only` leave the lock byte-identical under the CI
+toolchain (node 24 / npm 11). Forcing it needs per-consumer `overrides` in three
+package.json files, and frontend's lock is separately inconsistent there (it
+hoists 5.0.8 while its only consumers declare ^1.1.7 / ^2.0.x). That belongs in a
+dedicated dependency MR that can be built and tested on its own instead of riding
+along with feature work. The companion advisory on fast-uri (GHSA-7p8r-x3mc-p8w7)
+did bump cleanly and is fixed rather than ignored. Tracked.
+"""
