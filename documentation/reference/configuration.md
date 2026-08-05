@@ -85,8 +85,8 @@ This documentation may not cover all options or reflect recent changes.
 | `EMAIL_LOGO_URL` | URL of the Hook0 logo (must be a publicly fetchable transparent PNG; do NOT use app.hook0.com — that path serves a Git LFS pointer instead of the image). The default points to the banner-transparent variant which renders cleanly on any background | `https://www.hook0.com/mediakit/logo/512x512-banner-transparent.png` |  |
 | `FORMBRICKS_API_HOST` | Formbricks API host | `https://app.formbricks.com` |  |
 | `FORMBRICKS_ENVIRONMENT_ID` | Formbricks API environment ID | - |  |
-| `MATOMO_SITE_ID` | Matomo site ID | - |  |
-| `MATOMO_URL` | Matomo URL | - |  |
+| `MATOMO_SITE_ID` | Matomo site ID (also the target site of the server-side activation event; the Hook0 app site) | - |  |
+| `MATOMO_URL` | Matomo URL (also the base URL of the server-side activation event tracker when MATOMO_TOKEN_AUTH is set) | - |  |
 | `SUPPORT_EMAIL_ADDRESS` | Support email address | `support@hook0.com` |  |
 | `WEBAPP_PATH` | Path to the directory containing the web app to serve | `../frontend/dist/` |  |
 | `WEBSITE_URL` | Website URL | `https://hook0.com` |  |
@@ -202,20 +202,33 @@ This documentation may not cover all options or reflect recent changes.
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `GOOGLE_ADS_ACTIVATION_CONVERSION_ACTION_ID` | Numeric ID of the ACTIVATION conversion action (optional). When unset, signup conversion still works and activation upload is skipped | - |  |
 | `GOOGLE_ADS_CUSTOMER_ID` | Customer ID (e.g. 629-941-8464) | - |  |
 | `GOOGLE_ADS_DEVELOPER_TOKEN` | Developer token (enables server-side conversion upload). All Google Ads fields must be provided together; if any is missing, the conversion upload is silently disabled (build_google_ads_client emits a warn log when partially configured) | - |  |
+| `GOOGLE_ADS_FIRST_EVENT_CONVERSION_ACTION_ID` | Numeric ID of the FIRST-EVENT conversion action (optional). When unset, first-event conversion tracking (and its background job) is disabled; signup is unaffected | - |  |
+| `GOOGLE_ADS_FIRST_EVENT_CONVERSION_PERIOD_IN_S` | Duration (in second) between first-event conversion upload passes; set to 0 to disable the task. Only runs when a first-event conversion action is configured | `300` |  |
+| `GOOGLE_ADS_FIRST_WEBHOOK_DELIVERED_CONVERSION_ACTION_ID` | Numeric ID of the FIRST-WEBHOOK-DELIVERED conversion action (optional, north-star activation signal). When unset, first-webhook- delivered conversion tracking (and its background job) is disabled; the other conversions are unaffected | - |  |
+| `GOOGLE_ADS_FIRST_WEBHOOK_DELIVERED_CONVERSION_PERIOD_IN_S` | Duration (in second) between first-webhook-delivered conversion upload passes; set to 0 to disable the task. Only runs when a first-webhook-delivered conversion action is configured | `300` |  |
 | `GOOGLE_ADS_LOGIN_CUSTOMER_ID` | MCC login customer ID (optional) | - |  |
 | `GOOGLE_ADS_OAUTH_CLIENT_ID` | OAuth client ID (Desktop App credentials) | - |  |
 | `GOOGLE_ADS_OAUTH_CLIENT_SECRET` | OAuth client secret | - |  |
 | `GOOGLE_ADS_OAUTH_REFRESH_TOKEN` | OAuth refresh token | - |  |
 | `GOOGLE_ADS_SIGNUP_CONVERSION_ACTION_ID` | Numeric ID of the signup conversion action (e.g. 7576442588) | - |  |
+| `SIGNUP_ATTRIBUTION_CLEANUP_PERIOD_IN_S` | Duration (in second) between periodic passes that delete signup-attribution rows (gclids) older than SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS; set to 0 to disable the task. This enforces the retention maximum on a timer, independent of registration traffic (registrations also prune lazily). Runs regardless of Google Ads / Matomo configuration | `3600` |  |
+| `SIGNUP_ATTRIBUTION_RETENTION_IN_DAYS` | Days a signup-attribution row (its gclid) is retained before the lazy purge deletes it — the safety net for rows whose conversions never complete. Defaults to 30 to match the click-through attribution window configured on the server-side conversion actions (30 days): past that window Google rejects the upload, so retaining the gclid longer would serve no purpose (data-minimisation, art. 5.1.e GDPR). Must not exceed the Google Ads conversion attribution window. Bounded to [1, 3650] days | `30` |  |
 
 ### Deprecated
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `ENABLE_APPLICATION_SECRET_COMPATIBILITY` | Enable application secret compatibility mode | `true` |  |
+
+### Matomo
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `MATOMO_ACTIVATION_PERIOD_IN_S` | Duration (in second) between server-side activation-event scan passes; set to 0 to disable the task. Only runs when Matomo tracking is fully configured (URL + site id + token_auth) | `300` |  |
+| `MATOMO_ACTIVATION_SCAN_LIMIT` | Maximum number of organizations claimed per activation scan pass (bounds the work per pass). Bounded to [1, 10000] | `500` |  |
+| `MATOMO_TOKEN_AUTH` | Server-side Tracking API token_auth secret. Enables the server-side product-activation event (category=activation, action=first-webhook-delivered) emitted once per organization on its first successful webhook delivery. Dark by default: the event is emitted only when MATOMO_URL, MATOMO_SITE_ID and this token are all set | - |  |
 
 ## Output Worker
 
@@ -260,6 +273,11 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | `DISABLE_TARGET_IP_CHECK` | If set to false (default), webhooks that target IPs that are not globally reachable (like "127.0.0.1" for example) will fail | `false` |  |
 | `CONNECT_TIMEOUT` | Timeout for establishing a connection to the target (if exceeded, request attempt will fail) | `5s` |  |
 | `TIMEOUT` | Timeout for obtaining a HTTP response from the target, including connect phase (if exceeded, request attempt will fail) | `15s` |  |
+| `DNS_TIMEOUT` | Total wall-clock budget for resolving the target's hostname, across every name server query it takes (if exceeded, request attempt will fail); must be at least "3ms" | `5s` |  |
+| `DNS_CACHE_MAX_TTL` | Maximum duration a successful DNS answer is kept in the worker's in-process DNS cache (shorter record TTLs are still honored) | `5m` |  |
+| `DNS_NEGATIVE_CACHE_MAX_TTL` | Maximum duration a negative DNS answer (for example NXDOMAIN) is kept in the worker's in-process DNS cache | `30s` |  |
+| `DNS_IP_STRATEGY` | Which IP address families to query when resolving a webhook target's hostname; `ipv4-only` ignores AAAA records entirely, which is useful when a target's IPv6 address is not globally reachable | `ipv4-and-ipv6` |  |
+| `DNS_APPEND_SEARCH_DOMAINS` | If set to false (default), a webhook target's hostname is resolved exactly as written; if true, the worker host's resolv.conf search domains are appended to it | `false` |  |
 | `SIGNATURE_HEADER_NAME` | Name of the header containing webhook's signature | `X-Hook0-Signature` |  |
 | `ENABLED_SIGNATURE_VERSIONS` | A comma-separated list of enabled signature versions | `v1` |  |
 | `LOAD_WAITING_REQUEST_ATTEMPTS_INTO_PULSAR` | Loads request attempts that haven't been delivered yet from the DB into Pulsar before starting work; `all` loads everything; `due-now` skips request attempts scheduled more than ~10 s in the future; this is useful when migrating to a Pulsar worker (only for Pulsar workers) | `off` |  |
@@ -267,6 +285,7 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | `PULSAR_CONSUMER_STATS_INTERVAL` | Period of Pulsar consumer stats collection (set to "0s" to disable) (only for Pulsar workers) [this feature is unstable/unreliable] | `0` |  |
 | `PULSAR_SEND_RECEIPT_TIMEOUT` | Maximum time to wait for the Pulsar broker to acknowledge a sent message (only for Pulsar workers) | `10s` |  |
 | `THROUGHPUT_LOG_INTERVAL` | Interval between periodic throughput log lines (set to "0s" to disable) | `60s` |  |
+| `SLOT_METRICS_INTERVAL` | Period at which free concurrency slots are sampled for the throughput log and OTel gauges (set to "0s" to disable) (only for Pulsar workers) | `15s` |  |
 
 ## Notes
 
