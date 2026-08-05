@@ -92,19 +92,35 @@ test.describe("Onboarding use-case personalization", () => {
     await registerAndLogin(page, request, "intro");
     await openTutorialIntro(page);
 
-    // Every option is offered, and none is pre-selected: the question is neutral
-    // until the user answers, and skipping it stays possible.
+    // Every option is offered.
     for (const id of ["saas-b2b", "ecommerce", "microservices", "other"]) {
-      const option = page.locator(`[data-test="tutorial-usecase-${id}"]`);
-      await expect(option).toBeVisible();
-      await expect(option).toHaveAttribute("aria-pressed", "false");
+      await expect(page.locator(`[data-test="tutorial-usecase-${id}"]`)).toBeVisible();
     }
 
-    // Selecting one marks it pressed — the accessible state, not just a colour.
+    // The neutral answer ("other") is the starting state, so a user who never
+    // touches the question gets the untouched generic examples. None of the
+    // personalizing answers may be pre-selected on their behalf.
+    await expect(page.locator('[data-test="tutorial-usecase-other"]')).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    for (const id of ["saas-b2b", "ecommerce", "microservices"]) {
+      await expect(page.locator(`[data-test="tutorial-usecase-${id}"]`)).toHaveAttribute(
+        "aria-pressed",
+        "false"
+      );
+    }
+
+    // Selecting one marks it pressed — the accessible state, not just a colour —
+    // and moves the selection off the neutral default.
     await page.locator('[data-test="tutorial-usecase-ecommerce"]').click();
     await expect(page.locator('[data-test="tutorial-usecase-ecommerce"]')).toHaveAttribute(
       "aria-pressed",
       "true"
+    );
+    await expect(page.locator('[data-test="tutorial-usecase-other"]')).toHaveAttribute(
+      "aria-pressed",
+      "false"
     );
     await expect(page.locator('[data-test="tutorial-usecase-saas-b2b"]')).toHaveAttribute(
       "aria-pressed",
