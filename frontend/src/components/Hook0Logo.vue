@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { Webhook } from 'lucide-vue-next';
 
-type LogoVariant = 'icon' | 'image' | 'image-white';
+type LogoVariant = 'icon' | 'image' | 'image-white' | 'banner' | 'banner-white';
 type LogoSize = 'sm' | 'md' | 'lg' | 'xl';
 
 type Props = {
@@ -38,11 +38,23 @@ const imageSizeMap: Record<LogoSize, string> = {
 const iconSize = computed(() => iconSizeMap[props.size]);
 const imageHeight = computed(() => imageSizeMap[props.size]);
 
-const imageSrc = computed(() => {
-  return props.variant === 'image-white' ? '/logo-white.svg' : '/logo.svg';
-});
+const imageVariantSrc: Record<LogoVariant, string> = {
+  icon: '/logo.svg',
+  image: '/logo.svg',
+  'image-white': '/logo-white.svg',
+  banner: '/logo-banner.svg',
+  'banner-white': '/logo-banner-white.svg',
+};
 
-const isImageVariant = computed(() => props.variant === 'image' || props.variant === 'image-white');
+const imageSrc = computed(() => imageVariantSrc[props.variant]);
+
+const isImageVariant = computed(
+  () =>
+    props.variant === 'image' ||
+    props.variant === 'image-white' ||
+    props.variant === 'banner' ||
+    props.variant === 'banner-white'
+);
 </script>
 
 <template>

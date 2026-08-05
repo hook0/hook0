@@ -96,7 +96,7 @@ onMounted(() => {
 <template>
   <Hook0PageLayout variant="fullscreen">
     <template #logo>
-      <Hook0Logo variant="image" size="lg" />
+      <Hook0Logo variant="banner-white" size="lg" />
     </template>
 
     <!-- Error Card -->
