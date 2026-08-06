@@ -5,13 +5,26 @@ import { Rocket, ArrowRight } from 'lucide-vue-next';
 import Hook0IconBadge from '@/components/Hook0IconBadge.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
 import WizardStepLayout from '@/pages/tutorial/WizardStepLayout.vue';
+import { useTracking } from '@/composables/useTracking';
+import { useOnboardingStore } from '@/stores/onboarding';
+import { USE_CASE_OPTIONS, type UseCaseId } from '@/utils/usecasePreset';
 
 const { t } = useI18n();
+const { trackEvent } = useTracking();
+const onboarding = useOnboardingStore();
 
 const emit = defineEmits<{
   start: [];
   skip: [];
 }>();
+
+// Optional, skippable use-case question. The answer personalizes the example
+// event type + payload in the later wizard steps; leaving it untouched keeps the
+// generic defaults.
+function selectUseCase(id: UseCaseId): void {
+  onboarding.setUseCase(id);
+  trackEvent('signup', 'usecase', id);
+}
 
 type TutorialStepItem = {
   label: string;
@@ -42,6 +55,26 @@ const tutorialSteps: TutorialStepItem[] = [
           {{ t('tutorial.intro.splitHeading') }}
         </h2>
         <p class="intro-split__desc">{{ t('tutorial.intro.splitDesc') }}</p>
+
+        <fieldset class="intro-usecase" data-test="tutorial-usecase">
+          <legend class="intro-usecase__label">{{ t('tutorial.intro.useCaseTitle') }}</legend>
+          <div class="intro-usecase__options">
+            <Hook0Button
+              v-for="option in USE_CASE_OPTIONS"
+              :key="option.id"
+              type="button"
+              size="sm"
+              :variant="onboarding.useCase === option.id ? 'primary' : 'secondary'"
+              :aria-pressed="onboarding.useCase === option.id"
+              :data-test="`tutorial-usecase-${option.id}`"
+              @click="selectUseCase(option.id)"
+            >
+              {{ t(option.labelKey) }}
+            </Hook0Button>
+          </div>
+          <span class="intro-usecase__hint">{{ t('tutorial.intro.useCaseHint') }}</span>
+        </fieldset>
+
         <p class="intro-split__note">
           <i18n-t keypath="tutorial.intro.skipNote" tag="span">
             <template #link>
@@ -118,6 +151,35 @@ const tutorialSteps: TutorialStepItem[] = [
   font-size: 0.8125rem;
   color: var(--color-text-muted);
   line-height: 0;
+}
+
+.intro-usecase {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.intro-usecase__label {
+  padding: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.intro-usecase__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.intro-usecase__hint {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
 }
 
 .intro-split__cta {
