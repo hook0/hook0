@@ -1,8 +1,9 @@
+use chrono::{DateTime, Utc};
 use clap::crate_name;
 use opentelemetry::global::BoxedSpan;
-use opentelemetry::metrics::Gauge;
+use opentelemetry::metrics::{Counter, Gauge, Histogram};
 use opentelemetry::trace::noop::NoopTracerProvider;
-use opentelemetry::trace::{Span, Tracer};
+use opentelemetry::trace::{Span, SpanId, TraceId, Tracer};
 use opentelemetry::{Key, KeyValue, global};
 use opentelemetry_otlp::{
     Compression, ExporterBuildError, MetricExporter, Protocol, SpanExporter, WithExportConfig,
@@ -10,7 +11,7 @@ use opentelemetry_otlp::{
 };
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::error::OTelSdkResult;
-use opentelemetry_sdk::metrics::SdkMeterProvider;
+use opentelemetry_sdk::metrics::{Aggregation, Instrument, SdkMeterProvider, Stream};
 use opentelemetry_sdk::resource::EnvResourceDetector;
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use pulsar::proto::CommandConsumerStatsResponse;
@@ -21,7 +22,7 @@ use std::time::Duration;
 use tracing::{info, warn};
 use uuid::Uuid;
 
-use crate::work::Response;
+use crate::work::{Response, ResponseError};
 use crate::{Config, RequestAttempt};
 
 pub struct OtlpExporters {
@@ -101,6 +102,7 @@ pub fn init(config: &Config, version: &str) -> Result<OtlpExporters, ExporterBui
         let otlp_exporter = builder.build()?;
         let metrics_provider = SdkMeterProvider::builder()
             .with_periodic_exporter(otlp_exporter)
+            .with_view(worker_delivery_lag_seconds_view)
             .with_resource(resource.clone())
             .build();
         global::set_meter_provider(metrics_provider.clone());
@@ -301,9 +303,295 @@ pub fn end_request_attempt_span(mut span: BoxedSpan, response: &Response) {
     span.end();
 }
 
+/// Trace and span identifiers of a request-attempt span, stamped onto the delivery
+/// log lines so Loki can extract `trace_id` and a Grafana derived field can jump
+/// from a log line straight to its Tempo trace. Best-effort: a no-op or otherwise
+/// invalid span context yields all-zero identifiers and never prevents a log line
+/// from being emitted.
+#[derive(Clone, Copy)]
+pub struct DeliveryTraceIds {
+    pub trace_id: TraceId,
+    pub span_id: SpanId,
+}
+
+/// Read the trace and span ids from a request-attempt span for log correlation.
+pub fn delivery_trace_ids(span: &BoxedSpan) -> DeliveryTraceIds {
+    let ctx = span.span_context();
+    DeliveryTraceIds {
+        trace_id: ctx.trace_id(),
+        span_id: ctx.span_id(),
+    }
+}
+
+// Delivery lag: seconds between when an attempt was scheduled to be delivered and
+// when a worker actually picked it up. This is emitted on the real delivery path
+// (both the Postgres-polling and the Pulsar consumer), unlike the Pulsar consumer
+// stats gauges which are gated behind an interval and only exist in Pulsar mode.
+static WORKER_DELIVERY_LAG_SECONDS: LazyLock<Histogram<f64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .f64_histogram("worker.delivery_lag_seconds")
+        .with_unit("s")
+        .with_description("Time between an attempt's scheduled delivery and its pickup by a worker")
+        .build()
+});
+
+pub fn report_worker_delivery_lag(lag_seconds: f64) {
+    WORKER_DELIVERY_LAG_SECONDS.record(lag_seconds, &[]);
+}
+
+// SDK default boundaries are tuned for milliseconds; this metric is in seconds and
+// ranges from sub-second up to the multi-minute backlogs we need to catch.
+fn worker_delivery_lag_seconds_view(instrument: &Instrument) -> Option<Stream> {
+    if instrument.name() == "worker.delivery_lag_seconds" {
+        Stream::builder()
+            .with_aggregation(Aggregation::ExplicitBucketHistogram {
+                boundaries: vec![
+                    0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0, 600.0, 1800.0, 3600.0,
+                ],
+                record_min_max: true,
+            })
+            .build()
+            .ok()
+    } else {
+        None
+    }
+}
+
+/// Fractional seconds between an attempt's scheduled delivery time and `now`,
+/// clamped to be non-negative. The scheduled time is `delay_until` when set,
+/// otherwise `created_at`. Clamping guards against clock skew and attempts whose
+/// delivery is scheduled in the future relative to the picking worker's clock.
+pub fn compute_delivery_lag_seconds(
+    now: DateTime<Utc>,
+    created_at: DateTime<Utc>,
+    delay_until: Option<DateTime<Utc>>,
+) -> f64 {
+    let scheduled = delay_until.unwrap_or(created_at);
+    let lag_seconds = (now - scheduled).num_milliseconds() as f64 / 1000.0;
+    lag_seconds.max(0.0)
+}
+
+static DELIVERY_OUTCOMES: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("webhook.delivery.outcomes")
+        .with_description("Count of webhook delivery attempts by bounded outcome")
+        .build()
+});
+
+/// Bounded set of delivery outcomes. The metric attribute is derived exclusively
+/// from this enum so the `outcome` label can never take an unbounded value (raw
+/// status codes or error strings would blow up cardinality).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeliveryOutcome {
+    Success,
+    Timeout,
+    Dns,
+    Http4xx,
+    Http5xx,
+    ConnectionError,
+}
+
+impl DeliveryOutcome {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            DeliveryOutcome::Success => "success",
+            DeliveryOutcome::Timeout => "timeout",
+            DeliveryOutcome::Dns => "dns",
+            DeliveryOutcome::Http4xx => "http_4xx",
+            DeliveryOutcome::Http5xx => "http_5xx",
+            DeliveryOutcome::ConnectionError => "connection_error",
+        }
+    }
+}
+
+pub fn report_delivery_outcome(outcome: DeliveryOutcome) {
+    DELIVERY_OUTCOMES.add(1, &[KeyValue::new("outcome", outcome.as_str())]);
+}
+
+/// Total mapping from a delivery `Response` to exactly one bounded `DeliveryOutcome`.
+/// A success maps to `Success`; an HTTP error with a 4xx/5xx code maps to the
+/// matching class; anything else falls back to the transport error (`Timeout` for a
+/// timeout, `Dns` for a resolution failure, `ConnectionError` otherwise).
+pub fn classify_outcome(response: &Response) -> DeliveryOutcome {
+    if response.is_success() {
+        return DeliveryOutcome::Success;
+    }
+    if let Some(code) = response.http_code {
+        match code {
+            400..=499 => return DeliveryOutcome::Http4xx,
+            500..=599 => return DeliveryOutcome::Http5xx,
+            _ => {}
+        }
+    }
+    match response.response_error {
+        Some(ResponseError::Timeout) => DeliveryOutcome::Timeout,
+        Some(ResponseError::Dns) => DeliveryOutcome::Dns,
+        _ => DeliveryOutcome::ConnectionError,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
+    use std::collections::BTreeSet;
+
+    /// The complete, closed set of labels the `outcome` attribute may ever take.
+    const OUTCOME_LABELS: [&str; 6] = [
+        "success",
+        "timeout",
+        "dns",
+        "http_4xx",
+        "http_5xx",
+        "connection_error",
+    ];
+
+    fn response(response_error: Option<ResponseError>, http_code: Option<u16>) -> Response {
+        Response {
+            response_error,
+            http_code,
+            headers: None,
+            body: None,
+            elapsed_time: Duration::from_secs(0),
+        }
+    }
+
+    fn error_variant(sel: u8) -> Option<ResponseError> {
+        match sel % 8 {
+            0 => None,
+            1 => Some(ResponseError::Unknown),
+            2 => Some(ResponseError::InvalidHeader),
+            3 => Some(ResponseError::InvalidTarget),
+            4 => Some(ResponseError::Dns),
+            5 => Some(ResponseError::Connection),
+            6 => Some(ResponseError::Timeout),
+            _ => Some(ResponseError::Http),
+        }
+    }
+
+    #[test]
+    fn classifies_common_statuses() {
+        assert_eq!(
+            classify_outcome(&response(Some(ResponseError::Http), Some(404))),
+            DeliveryOutcome::Http4xx
+        );
+        assert_eq!(
+            classify_outcome(&response(Some(ResponseError::Http), Some(503))),
+            DeliveryOutcome::Http5xx
+        );
+        assert_eq!(
+            classify_outcome(&response(None, Some(200))),
+            DeliveryOutcome::Success
+        );
+        assert_eq!(
+            classify_outcome(&response(Some(ResponseError::Timeout), None)),
+            DeliveryOutcome::Timeout
+        );
+        assert_eq!(
+            classify_outcome(&response(Some(ResponseError::Dns), None)),
+            DeliveryOutcome::Dns
+        );
+        assert_eq!(
+            classify_outcome(&response(Some(ResponseError::Connection), None)),
+            DeliveryOutcome::ConnectionError
+        );
+    }
+
+    #[test]
+    fn delivery_outcome_labels_are_the_closed_bounded_set() {
+        let labels: BTreeSet<&str> = [
+            DeliveryOutcome::Success,
+            DeliveryOutcome::Timeout,
+            DeliveryOutcome::Dns,
+            DeliveryOutcome::Http4xx,
+            DeliveryOutcome::Http5xx,
+            DeliveryOutcome::ConnectionError,
+        ]
+        .iter()
+        .map(DeliveryOutcome::as_str)
+        .collect();
+        let expected: BTreeSet<&str> = OUTCOME_LABELS.into_iter().collect();
+        assert_eq!(labels, expected);
+        // Each variant maps to a distinct label (no collisions).
+        assert_eq!(labels.len(), 6);
+    }
+
+    #[test]
+    fn future_scheduled_delivery_lag_clamps_to_zero() {
+        let now = DateTime::from_timestamp(1_700_000_000, 0).expect("valid timestamp");
+        let future = now + chrono::TimeDelta::seconds(120);
+        assert_eq!(compute_delivery_lag_seconds(now, future, None), 0.0);
+        assert_eq!(compute_delivery_lag_seconds(now, now, Some(future)), 0.0);
+    }
+
+    #[test]
+    fn past_scheduled_delivery_lag_is_the_delta() {
+        let now = DateTime::from_timestamp(1_700_000_000, 0).expect("valid timestamp");
+        let past = now - chrono::TimeDelta::seconds(30);
+        assert_eq!(compute_delivery_lag_seconds(now, past, None), 30.0);
+        // `delay_until` wins over `created_at` when set.
+        assert_eq!(
+            compute_delivery_lag_seconds(now, now - chrono::TimeDelta::seconds(9999), Some(past)),
+            30.0
+        );
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(512))]
+
+        // M1: an attempt scheduled in the future relative to `now` yields exactly
+        // zero lag (never negative); a past-scheduled attempt yields the true
+        // non-negative delta. `delay_until` (when set) is the scheduled time,
+        // otherwise `created_at`.
+        #[test]
+        fn delivery_lag_clamps_future_and_matches_past(
+            base_secs in 1_600_000_000i64..2_000_000_000i64,
+            offset_ms in -10_000_000i64..10_000_000i64,
+            use_delay in any::<bool>(),
+        ) {
+            let now = DateTime::from_timestamp(base_secs, 0).expect("valid timestamp");
+            // Positive offset => scheduled in the past; negative => in the future.
+            let scheduled = now - chrono::TimeDelta::milliseconds(offset_ms);
+
+            let (created_at, delay_until) = if use_delay {
+                // An arbitrary (unrelated) creation time must be ignored in favour of delay_until.
+                (now - chrono::TimeDelta::seconds(9_999), Some(scheduled))
+            } else {
+                (scheduled, None)
+            };
+
+            let lag = compute_delivery_lag_seconds(now, created_at, delay_until);
+
+            prop_assert!(lag >= 0.0, "lag must never be negative, got {lag}");
+            if offset_ms <= 0 {
+                prop_assert_eq!(lag, 0.0, "future/now scheduling must clamp to zero");
+            } else {
+                let expected = offset_ms as f64 / 1000.0;
+                prop_assert!(
+                    (lag - expected).abs() < 1e-6,
+                    "past scheduling lag {lag} != expected {expected}"
+                );
+            }
+        }
+
+        // M2: for every possible HTTP status and every transport-error case,
+        // `classify_outcome` returns a variant whose label is inside the fixed
+        // bounded set — the attribute can never take an unbounded value.
+        #[test]
+        fn classify_outcome_label_is_always_bounded(
+            code in any::<u16>(),
+            err_sel in any::<u8>(),
+            has_code in any::<bool>(),
+        ) {
+            let http_code = if has_code { Some(code) } else { None };
+            let outcome = classify_outcome(&response(error_variant(err_sel), http_code));
+            prop_assert!(
+                OUTCOME_LABELS.contains(&outcome.as_str()),
+                "outcome label {} escaped the bounded set",
+                outcome.as_str()
+            );
+        }
+    }
 
     #[test]
     fn detected_instance_id_wins() {
@@ -328,5 +616,128 @@ mod tests {
 
         assert!(Uuid::parse_str(&first).is_ok());
         assert_ne!(first, second);
+    }
+}
+
+#[cfg(test)]
+mod trace_id_logging_tests {
+    use super::{DeliveryTraceIds, delivery_trace_ids};
+    use opentelemetry::global;
+    use opentelemetry::trace::{SpanId, TraceId, Tracer};
+    use opentelemetry_sdk::trace::SdkTracerProvider;
+    use proptest::prelude::*;
+    use std::io::Write;
+    use std::sync::{Arc, Mutex};
+    use tracing::info;
+    use tracing_subscriber::fmt::MakeWriter;
+    use tracing_subscriber::layer::SubscriberExt;
+
+    /// A `MakeWriter` that appends every formatted log line to a shared buffer so a
+    /// test can assert on the exact bytes the fmt layer produced (what lands on
+    /// stdout and then in Loki).
+    #[derive(Clone)]
+    struct SharedBuffer(Arc<Mutex<Vec<u8>>>);
+
+    impl Write for SharedBuffer {
+        fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
+            self.0
+                .lock()
+                .expect("buffer lock poisoned")
+                .extend_from_slice(data);
+            Ok(data.len())
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl<'a> MakeWriter<'a> for SharedBuffer {
+        type Writer = SharedBuffer;
+
+        fn make_writer(&'a self) -> Self::Writer {
+            self.clone()
+        }
+    }
+
+    /// Emit a single delivery-style log line stamped with the given identifiers,
+    /// exactly as the delivery loops do, and return whatever the plain-text fmt
+    /// layer wrote.
+    fn capture_delivery_log(ids: DeliveryTraceIds) -> String {
+        let buffer = Arc::new(Mutex::new(Vec::new()));
+        let writer = SharedBuffer(Arc::clone(&buffer));
+        let subscriber = tracing_subscriber::registry().with(
+            tracing_subscriber::fmt::layer()
+                .with_ansi(false)
+                .with_writer(writer),
+        );
+        tracing::subscriber::with_default(subscriber, || {
+            info!(trace_id = %ids.trace_id, span_id = %ids.span_id, "Request attempt delivered");
+        });
+        let bytes = buffer.lock().expect("buffer lock poisoned").clone();
+        String::from_utf8(bytes).expect("log output is valid UTF-8")
+    }
+
+    #[test]
+    fn delivery_log_line_carries_the_span_trace_id() {
+        // A real SDK tracer provider makes the request-attempt span sampled, so its
+        // span context exposes a valid, non-zero trace id, as in production once the
+        // OTLP traces endpoint is configured.
+        global::set_tracer_provider(SdkTracerProvider::builder().build());
+        let span = global::tracer("test").start("request_attempt");
+
+        let ids = delivery_trace_ids(&span);
+        let trace_id = ids.trace_id.to_string();
+        let span_id = ids.span_id.to_string();
+
+        assert_eq!(trace_id.len(), 32, "OTEL trace id must be 32 hex chars");
+        assert!(
+            trace_id
+                .chars()
+                .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
+        );
+        assert_ne!(
+            trace_id,
+            "0".repeat(32),
+            "a sampled span must have a non-zero trace id"
+        );
+
+        let output = capture_delivery_log(ids);
+        assert!(
+            output.contains(&format!("trace_id={trace_id}")),
+            "log line {output:?} did not carry trace_id={trace_id}"
+        );
+        assert!(
+            output.contains(&format!("span_id={span_id}")),
+            "log line {output:?} did not carry span_id={span_id}"
+        );
+    }
+
+    proptest! {
+        /// Whatever trace id an OpenTelemetry span carries, the delivery log line
+        /// carries it verbatim as a 32-lowercase-hex `trace_id` field that a Loki
+        /// pattern / Grafana derived field can extract to reach Tempo.
+        #[test]
+        fn any_span_trace_id_is_logged_as_32_lowercase_hex(
+            bytes in any::<[u8; 16]>().prop_filter("non-zero trace id", |b| b.iter().any(|&x| x != 0)),
+            span_bytes in any::<[u8; 8]>(),
+        ) {
+            let ids = DeliveryTraceIds {
+                trace_id: TraceId::from_bytes(bytes),
+                span_id: SpanId::from_bytes(span_bytes),
+            };
+            let expected = ids.trace_id.to_string();
+
+            prop_assert_eq!(expected.len(), 32);
+            prop_assert!(expected.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
+
+            let output = capture_delivery_log(ids);
+            prop_assert!(
+                output.contains(&format!("trace_id={expected}")),
+                "log line {:?} did not carry trace_id={}",
+                output,
+                expected
+            );
+        }
     }
 }

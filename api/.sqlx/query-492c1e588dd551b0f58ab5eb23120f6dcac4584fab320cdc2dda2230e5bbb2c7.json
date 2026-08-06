@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT application__id\n                FROM event.application\n                WHERE application__id = $1\n                FOR NO KEY UPDATE\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "application__id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "event.application",
+            "name": "application__id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "492c1e588dd551b0f58ab5eb23120f6dcac4584fab320cdc2dda2230e5bbb2c7"
+}

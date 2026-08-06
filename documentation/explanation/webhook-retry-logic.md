@@ -16,9 +16,9 @@ Without retries, every transient failure becomes a lost event. With naive retrie
 
 ## The retry schedule
 
-Hook0 retries on a fixed schedule of increasing delays. The delay before each attempt depends only on how many times the delivery has already failed:
+Hook0 retries on a fixed schedule of increasing delays. The delay before each attempt depends on how many times the delivery has already failed, plus a small random amount ([see below](#why-delays-are-not-exact)):
 
-| Failed attempts so far | Delay before next attempt |
+| Failed attempts so far | Base delay before next attempt |
 |---|---|
 | 1 | 3 seconds |
 | 2 | 10 seconds |
@@ -50,14 +50,24 @@ flowchart LR
 
 This schedule is the same for every [application](/concepts/applications) and [subscription](/concepts/subscriptions). It is not tuned per subscription; the two limits that bound it are set on the output worker (see [Configuration](#configuration)).
 
+## Why delays are not exact
+
+Hook0 adds a small random amount on top of each delay. It is only ever added, never subtracted, so a retry never fires earlier than the base delay in the table above.
+
+This matters because failures arrive in groups. When one endpoint goes down, every subscription pointing at it fails at almost the same instant. Without randomness they would all retry at exactly the same instant too, and keep doing so at every step of the schedule -- a wave that stresses the queue and keeps the same deliveries locked together for as long as the outage lasts. Spreading them out breaks that lockstep and keeps one struggling endpoint from delaying deliveries for everyone else.
+
+By default the random amount is up to 10% of the base delay, with a minimum of 2 seconds and a maximum of 15 minutes. A first retry therefore fires between 3 and 5 seconds after the failure, and a 10-hour retry between 10h00 and 10h15. Self-hosted deployments can tune this with `RETRY_JITTER_RATIO` and `RETRY_JITTER_MAX_SPREAD` (see [Configuration](/reference/configuration)); setting either to `0` restores strictly deterministic delays.
+
+The 2-second minimum is not configurable on its own: lowering `RETRY_JITTER_RATIO` never takes the random amount below it.
+
 ## How far retries go
 
 Two limits decide when Hook0 stops retrying, whichever is reached first:
 
-- `MAX_RETRIES` (default 25): the maximum number of retry attempts.
+- `MAX_RETRIES` (default 24): the maximum number of retry attempts.
 - `MAX_RETRY_WINDOW` (default 8 days): the maximum total time spent retrying. Hook0 schedules the next attempt only if it still fits inside this window.
 
-With the defaults, a failing delivery is retried up to 25 times over roughly 8 days before Hook0 gives up.
+With the defaults, a failing delivery is retried up to 24 times over roughly 8 days before Hook0 gives up.
 
 ## What happens on failure
 
@@ -166,7 +176,7 @@ The output worker's retry and delivery behavior is configured via environment va
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `MAX_RETRIES` | 25 | Maximum delivery attempts before giving up |
+| `MAX_RETRIES` | 24 | Maximum delivery attempts before giving up |
 | `MAX_RETRY_WINDOW` | 8 days | Maximum time window for retries |
 | `CONNECT_TIMEOUT` | 5 seconds | Timeout for establishing a TCP connection |
 | `TIMEOUT` | 15 seconds | Total HTTP request timeout (including connect) |
