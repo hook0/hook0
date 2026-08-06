@@ -64,6 +64,7 @@
     "mermaid": "^11.16.1",
     "brace-expansion": "5.0.9",
     "fast-uri": "3.1.5",
-    "uuid": "11.1.1"
+    "uuid": "11.1.1",
+    "js-yaml": "^4.3.1"
   }
 }
