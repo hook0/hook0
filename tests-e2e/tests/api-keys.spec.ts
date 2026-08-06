@@ -65,7 +65,10 @@ test.describe("API Keys", () => {
     let applicationId: string = "";
     const createAppResponse = page.waitForResponse(
       async (response) => {
-        if (response.url().includes("/api/v1/applications") && response.request().method() === "POST") {
+        if (
+          response.url().includes("/api/v1/applications") &&
+          response.request().method() === "POST"
+        ) {
           if (response.status() < 400) {
             try {
               const app = await response.json();
@@ -86,7 +89,8 @@ test.describe("API Keys", () => {
 
     // Wait for redirect to complete - URL should contain a UUID application ID, not "new"
     // UUID pattern: 8-4-4-4-12 hex characters
-    const uuidPattern = /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+    const uuidPattern =
+      /\/applications\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
     await expect(page).toHaveURL(uuidPattern, { timeout: 15000 });
     const url = page.url();
     const match = url.match(uuidPattern);
@@ -101,6 +105,119 @@ test.describe("API Keys", () => {
       timestamp,
     };
   }
+
+  test("provisions a usable Default key as soon as an application is created", async ({
+    page,
+    request,
+  }) => {
+    // The whole point of auto-provisioning: a brand-new application is ready to
+    // receive its first event with no "now create a key" detour. Nothing is
+    // created by this test beyond the application itself.
+    const env = await setupTestEnvironment(page, request, "default");
+
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/application_secrets`
+    );
+    await expect(page.locator('[data-test="api-keys-card"]')).toBeVisible({ timeout: 10000 });
+
+    const defaultRow = page.locator('[data-test="api-keys-table"] [row-id]', {
+      hasText: "Default",
+    });
+    await expect(defaultRow, "a Default key exists without any manual step").toBeVisible({
+      timeout: 15000,
+    });
+
+    // Read the provisioned token from the API and prove it actually
+    // authenticates — a key that exists but cannot send an event would defeat
+    // the purpose.
+    const loginResponse = await request.post(`${API_BASE_URL}/auth/login`, {
+      data: { email: env.email, password: env.password },
+    });
+    expect(loginResponse.status()).toBeLessThan(400);
+    const accessToken = (await loginResponse.json()).access_token;
+
+    const secretsResponse = await request.get(
+      `${API_BASE_URL}/application_secrets?application_id=${env.applicationId}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    expect(secretsResponse.status()).toBeLessThan(400);
+    const secrets = (await secretsResponse.json()) as Array<{ name?: string; token: string }>;
+    expect(secrets.length, "exactly one key is provisioned at creation").toBe(1);
+    expect(secrets[0].name).toBe("Default");
+
+    // An event references a registered event type (foreign key), so declare one
+    // first — still using only the provisioned key for the ingestion itself.
+    const eventTypeResponse = await request.post(`${API_BASE_URL}/event_types`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: {
+        application_id: env.applicationId,
+        service: "test",
+        resource_type: "entity",
+        verb: "created",
+      },
+    });
+    expect(eventTypeResponse.status()).toBeLessThan(400);
+
+    const eventResponse = await request.post(`${API_BASE_URL}/event/`, {
+      headers: { Authorization: `Bearer ${secrets[0].token}` },
+      data: {
+        application_id: env.applicationId,
+        event_type: "test.entity.created",
+        labels: { all: "yes" },
+        occurred_at: new Date().toISOString(),
+        payload_content_type: "application/json",
+        payload: '{"provisioned": true}',
+      },
+    });
+    expect(eventResponse.status(), "the provisioned key must be able to send the first event").toBe(
+      201
+    );
+  });
+
+  test("pre-fills the copyable curl snippet with the provisioned key", async ({
+    page,
+    request,
+  }) => {
+    // The point of provisioning a key is that the copy-paste path to the first
+    // API call works with no detour. Reading the code shows the snippet is built
+    // from the application's first secret; this pins that behaviour so a change
+    // to the secrets query, its ordering, or the token lookup cannot silently
+    // turn the snippet back into a placeholder.
+    const env = await setupTestEnvironment(page, request, "curl");
+
+    const loginResponse = await request.post(`${API_BASE_URL}/auth/login`, {
+      data: { email: env.email, password: env.password },
+    });
+    expect(loginResponse.status()).toBeLessThan(400);
+    const accessToken = (await loginResponse.json()).access_token;
+
+    const secretsResponse = await request.get(
+      `${API_BASE_URL}/application_secrets?application_id=${env.applicationId}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    expect(secretsResponse.status()).toBeLessThan(400);
+    const provisionedToken = ((await secretsResponse.json()) as Array<{ token: string }>)[0].token;
+    expect(provisionedToken).toBeTruthy();
+
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/events/send`
+    );
+    await expect(page.locator('[data-test="send-event-card"]')).toBeVisible({ timeout: 15000 });
+
+    await page.locator('[data-test="send-event-tab-curl"]').click();
+    const curlPanel = page.locator('[data-test="send-event-curl-panel"]');
+    await expect(curlPanel).toBeVisible({ timeout: 10000 });
+
+    // The Authorization header must carry the provisioned token itself. When no
+    // secret can be found the snippet still renders, with an empty credential
+    // (`Bearer '`), which is the regression this pins: asserting on the whole
+    // header fails both on an empty value and on a placeholder.
+    await expect(curlPanel).toContainText(`Authorization: Bearer ${provisionedToken}`, {
+      timeout: 10000,
+    });
+    await expect(curlPanel).not.toContainText("Authorization: Bearer '");
+    await expect(curlPanel).toContainText("curl");
+  });
 
   test("should display API keys list with created key", async ({ page, request }) => {
     const env = await setupTestEnvironment(page, request, "list");
@@ -130,7 +247,7 @@ test.describe("API Keys", () => {
     );
 
     // Click confirm button in the dialog
-    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
+    await page.locator(".hook0-dialog .hook0-dialog__actions button:last-child").click();
 
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
@@ -142,9 +259,11 @@ test.describe("API Keys", () => {
       expect(rowCount).toBeGreaterThanOrEqual(1);
     }).toPass({ timeout: 10000 });
 
-    // Step 3: Verify first row contains expected key name
-    const firstRow = rows.first();
-    await expect(firstRow).toContainText(keyName);
+    // Step 3: Verify the created key appears in the list.
+    // An application also has an auto-provisioned "Default" key, so don't assume position.
+    await expect(
+      page.locator('[data-test="api-keys-table"] [row-id]', { hasText: keyName })
+    ).toBeVisible();
   });
 
   test("should display create button and API keys card", async ({ page, request }) => {
@@ -184,7 +303,10 @@ test.describe("API Keys", () => {
     let responseBody: { token?: string; name?: string } = {};
     const responsePromise = page.waitForResponse(
       async (response) => {
-        if (response.url().includes("/api/v1/application_secrets") && response.request().method() === "POST") {
+        if (
+          response.url().includes("/api/v1/application_secrets") &&
+          response.request().method() === "POST"
+        ) {
           if (response.status() < 400) {
             responseBody = await response.json();
           }
@@ -196,7 +318,7 @@ test.describe("API Keys", () => {
     );
 
     // Click confirm button in the dialog
-    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
+    await page.locator(".hook0-dialog .hook0-dialog__actions button:last-child").click();
 
     const response = await responsePromise;
 
@@ -257,7 +379,7 @@ test.describe("API Keys", () => {
       { timeout: 15000 }
     );
 
-    await page.locator('.hook0-dialog .hook0-dialog__actions button:last-child').click();
+    await page.locator(".hook0-dialog .hook0-dialog__actions button:last-child").click();
     const createResponse = await createResponsePromise;
     expect(createResponse.status()).toBeLessThan(400);
 
@@ -268,12 +390,17 @@ test.describe("API Keys", () => {
       expect(rowCount).toBeGreaterThanOrEqual(1);
     }).toPass({ timeout: 10000 });
 
-    // Click delete on the first row - opens Hook0Dialog confirmation
-    const deleteLink = rows.first().locator('[data-test="api-key-delete-button"]');
+    // Click delete on the key we just created. An application also has a "Default" key,
+    // so target our row by name rather than the first row.
+    const deleteLink = page
+      .locator('[data-test="api-keys-table"] [row-id]', { hasText: keyName })
+      .locator('[data-test="api-key-delete-button"]');
     await deleteLink.click();
 
     // Wait for delete confirmation dialog and click confirm
-    const deleteConfirmButton = page.locator('.hook0-dialog--danger .hook0-dialog__actions button:last-child');
+    const deleteConfirmButton = page.locator(
+      ".hook0-dialog--danger .hook0-dialog__actions button:last-child"
+    );
     await expect(deleteConfirmButton).toBeVisible({ timeout: 5000 });
 
     const deleteResponsePromise = page.waitForResponse(

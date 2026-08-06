@@ -24,16 +24,17 @@ use hook0_play::{AppState, create_app};
 /// Start the hooks server on a random available port.
 /// Returns (address, shared state for polling).
 pub async fn start_hooks_server() -> (SocketAddr, Arc<AppState>) {
-    let port = portpicker::pick_unused_port().expect("No free port available");
-    let addr: SocketAddr = format!("127.0.0.1:{}", port).parse().unwrap();
-
-    let state = Arc::new(AppState::new(format!("http://{}", addr)));
-    let app = create_app(state.clone());
-
-    let listener = TcpListener::bind(addr)
+    // Port 0: the OS assigns a free port as part of the bind itself. Picking a
+    // port first and binding it afterwards leaves a window in which another
+    // test — or another job on the same runner — takes it, which is exactly how
+    // this suite used to fail under load with "Address already in use".
+    let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("Failed to bind hooks server");
     let local_addr = listener.local_addr().unwrap();
+
+    let state = Arc::new(AppState::new(format!("http://{}", local_addr)));
+    let app = create_app(state.clone());
 
     tokio::spawn(async move {
         axum::serve(
@@ -68,10 +69,7 @@ pub async fn start_echo_server(config: EchoConfig) -> SocketAddr {
         .route("/", any(echo_handler))
         .with_state(shared);
 
-    let port = portpicker::pick_unused_port().expect("No free port available");
-    let addr: SocketAddr = format!("127.0.0.1:{}", port).parse().unwrap();
-
-    let listener = TcpListener::bind(addr)
+    let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("Failed to bind echo server");
     let local_addr = listener.local_addr().unwrap();
@@ -116,9 +114,7 @@ pub struct TcpProxy {
 impl TcpProxy {
     /// Start a TCP proxy that forwards connections to `target_addr`.
     pub async fn start(target_addr: SocketAddr) -> Self {
-        let port = portpicker::pick_unused_port().expect("No free port available");
-        let addr: SocketAddr = format!("127.0.0.1:{}", port).parse().unwrap();
-        let listener = TcpListener::bind(addr)
+        let listener = TcpListener::bind("127.0.0.1:0")
             .await
             .expect("Failed to bind TCP proxy");
         let local_addr = listener.local_addr().unwrap();

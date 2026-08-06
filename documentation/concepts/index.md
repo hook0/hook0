@@ -68,7 +68,7 @@ Hook0 connects your applications to external systems through a hierarchical stru
 
 ### Delivery & Security
 
-- **[Subscriptions](subscriptions.md)** - Configure where and how to receive notifications
+- **[Subscriptions](subscriptions.md)** - Configure where and how to receive notifications, and hold the secret that signs their deliveries
 - **[Request Attempts](request-attempts.md)** - Track webhook delivery status and retries
-- **[Application Secrets](application-secrets.md)** - Sign webhooks for verification
+- **[Application Secrets](application-secrets.md)** - API tokens for calling the Hook0 API on an application's behalf
 - **[Service Tokens](service-tokens.md)** - API authentication for automated systems
