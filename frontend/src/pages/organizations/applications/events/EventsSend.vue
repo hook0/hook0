@@ -451,6 +451,7 @@ function handleCancel() {
           :tabindex="activeTab === tab ? 0 : -1"
           class="send-event__tab"
           :class="{ 'send-event__tab--active': activeTab === tab }"
+          :data-test="`send-event-tab-${tab}`"
           @click="activateTab(tab, index)"
           @keydown="handleTabKeydown($event, index)"
         >
@@ -566,7 +567,11 @@ function handleCancel() {
       </Hook0Form>
 
       <!-- Code snippet panels -->
-      <Hook0CardContent v-else-if="activeTab === 'curl'" role="tabpanel">
+      <Hook0CardContent
+        v-else-if="activeTab === 'curl'"
+        role="tabpanel"
+        data-test="send-event-curl-panel"
+      >
         <Hook0Code :code="curlSnippet" language="bash" :editable="false" />
       </Hook0CardContent>
       <Hook0CardContent v-else-if="activeTab === 'javascript'" role="tabpanel">

@@ -13,7 +13,7 @@ A subscription tells Hook0 where to deliver [events](events.md) and which events
 - Each subscription specifies a target URL and filtering criteria
 - Filtering uses [Event Types](event-types.md) and [Labels](labels.md)
 - Subscriptions can be enabled or disabled without deletion
-- Each subscription has a [secret](application-secrets.md) for signature verification
+- Each subscription has its own [secret](#subscription-secrets) for signature verification
 
 ## How subscriptions work
 
@@ -62,7 +62,7 @@ Subscriptions support HTTP targets where webhooks are delivered via POST (or oth
 
 ## Subscription secrets
 
-Each subscription has an associated [secret](application-secrets.md) used to sign webhook payloads. Recipients use this [secret](application-secrets.md) to verify:
+Each subscription has its own secret, used to sign the payloads Hook0 delivers to it. It is a different value from the [application secret](application-secrets.md), which is an API token and never signs anything. Recipients use the subscription secret to verify:
 
 - The webhook came from Hook0
 - The payload wasn't modified in transit
@@ -73,5 +73,5 @@ Each subscription has an associated [secret](application-secrets.md) used to sig
 - [Events](events.md) - Understanding event structure
 - [Labels](labels.md) - Filtering events with labels
 - [Request Attempts](request-attempts.md) - Track delivery status and retries
-- [Application Secrets](application-secrets.md) - Understanding webhook signatures
+- [Application Secrets](application-secrets.md) - API tokens for calling the Hook0 API
 - [Secure Webhook Endpoints](/how-to-guides/secure-webhook-endpoints) - Complete security guide
