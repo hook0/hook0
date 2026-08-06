@@ -60,6 +60,7 @@ pub enum Hook0Problem {
     AuthInvalidBiscuit,
     AuthFailedLogin,
     AuthEmailNotVerified,
+    AuthEmailAlreadyVerified,
     AuthFailedRefresh,
     AuthEmailExpired,
 
@@ -425,6 +426,13 @@ impl From<Hook0Problem> for Problem {
                 detail: "The provided refresh token is probably invalid or expired.".into(),
                 validation: None,
                 status: StatusCode::UNAUTHORIZED,
+            },
+            Hook0Problem::AuthEmailAlreadyVerified => Problem {
+                id: Hook0Problem::AuthEmailAlreadyVerified,
+                title: "Email already verified",
+                detail: "This address has already been verified, so this link has nothing left to do. Sign in to continue.".into(),
+                validation: None,
+                status: StatusCode::CONFLICT,
             },
             Hook0Problem::AuthEmailExpired => {
                 Problem {

@@ -629,11 +629,28 @@ pub async fn verify_email(
             };
             do_login(&state.db, &state.biscuit_private_key, session_user, None).await
         } else {
-            debug!(
-                "User {} tried to verify its email whereas it is already verified",
-                &token.user_id
-            );
-            Err(Hook0Problem::AuthEmailExpired)
+            // Nothing to update: the link was already used, or the account is
+            // gone. Telling the two apart is the difference between "sign in"
+            // and "start over", and it leaks nothing — a valid signature already
+            // proves the caller holds a link we issued for that very user.
+            let already_verified = query_scalar!(
+                "SELECT email_verified_at IS NOT NULL FROM iam.user WHERE user__id = $1",
+                &token.user_id,
+            )
+            .fetch_optional(&state.db)
+            .await?
+            .flatten()
+            .unwrap_or(false);
+
+            if already_verified {
+                debug!(
+                    "User {} tried to verify its email whereas it is already verified",
+                    &token.user_id
+                );
+                Err(Hook0Problem::AuthEmailAlreadyVerified)
+            } else {
+                Err(Hook0Problem::AuthEmailExpired)
+            }
         }
     } else {
         Err(Hook0Problem::AuthEmailExpired)
@@ -1015,6 +1032,18 @@ mod auto_login_after_verify_tests {
             resp.status().as_u16(),
             201,
             "a consumed verification token must never open a second session"
+        );
+
+        // 4) ...and it says why. Every second open of the link — double click,
+        //    back button, a forwarded copy — lands here, and by then the address
+        //    IS verified, so "the link might be expired, retry the whole
+        //    process" would send the user round a loop they have already
+        //    completed.
+        let problem: serde_json::Value = test::read_body_json(resp).await;
+        assert_eq!(
+            problem["id"].as_str(),
+            Some("AuthEmailAlreadyVerified"),
+            "a replay must be reported as already verified, not as an expired link"
         );
     }
 }

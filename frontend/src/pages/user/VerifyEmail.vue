@@ -9,6 +9,7 @@ import { toast } from 'vue-sonner';
 import { useAuthStore } from '@/stores/auth';
 import { usePostAuthNavigation } from '@/composables/usePostAuthNavigation';
 import { useTracking } from '@/composables/useTracking';
+import { stripTokenFromUrl } from '@/utils/stripTokenFromUrl';
 import { useI18n } from 'vue-i18n';
 import { ArrowLeft } from 'lucide-vue-next';
 
@@ -65,6 +66,9 @@ function displaySuccess() {
 
 function _onLoad() {
   const token = route.query.token as string;
+  // This token now opens a session, so it leaves the address bar the moment it
+  // has been read — before anything that observes URLs can record it.
+  stripTokenFromUrl(router);
   if (!token) {
     displayError({
       id: 'InvalidToken',

@@ -122,7 +122,9 @@ export default [
     name: routes.VerifyEmail,
     path: '/verify-email',
     component: () => import('@/pages/user/VerifyEmail.vue'),
-    meta: { requiresAuth: false, fullScreen: true, title: 'Verify Email' },
+    // analyticsIgnore: this URL carries a single-use credential in its query
+    // string; it must never reach the analytics backend as a tracked page.
+    meta: { requiresAuth: false, fullScreen: true, title: 'Verify Email', analyticsIgnore: true },
   },
   {
     name: routes.CheckEmail,
@@ -156,6 +158,8 @@ export default [
       redirectIfLoggedIn: false,
       fullScreen: true,
       title: 'Reset Password',
+      // Same reason as Verify Email: the token travels in the query string.
+      analyticsIgnore: true,
     },
   },
   {

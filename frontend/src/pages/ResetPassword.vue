@@ -5,6 +5,7 @@ import { Problem } from '@/http';
 import { resetPassword } from '@/pages/user/UserService';
 import { routes } from '@/routes';
 import router from '@/router';
+import { stripTokenFromUrl } from '@/utils/stripTokenFromUrl';
 import { useI18n } from 'vue-i18n';
 import { ArrowLeft } from 'lucide-vue-next';
 
@@ -78,6 +79,7 @@ function displayError(err: Problem) {
 
 function _onLoad() {
   token = router.currentRoute.value.query.token as string;
+  stripTokenFromUrl(router);
   if (!token) {
     displayError({
       id: 'InvalidToken',

@@ -52,6 +52,35 @@ test.describe("Email verification auto-login", () => {
     await expect(page).not.toHaveURL(/\/login/, { timeout: 10000 });
   });
 
+  test("drops the token from the address bar so it is never observed as a URL", async ({
+    page,
+    request,
+  }) => {
+    // The token in this URL now mints a session, and anything that watches URLs
+    // watches it too: the analytics plugin tracks the full path of every
+    // navigation and reports the previous one as the referrer of the next.
+    // Whoever can read those URLs could replay the link, so it must not survive
+    // in the address bar past the moment the page reads it.
+    const timestamp = Date.now();
+    const email = `test-verify-nourl-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+
+    const token = await getVerificationTokenFromMailpit(request, email);
+    await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
+    await expect(page).toHaveURL(/\/tutorial|\/organizations|\/dashboard/, { timeout: 15000 });
+
+    // Neither the page the user landed on nor any entry left behind in session
+    // history may still carry it.
+    expect(page.url(), "the landing URL must not carry the token").not.toContain(token);
+    await page.goBack();
+    expect(page.url(), "no history entry may keep the token in its URL").not.toContain(token);
+  });
+
   test("a verification link that was already used never opens a second session", async ({
     page,
     request,
@@ -100,5 +129,9 @@ test.describe("Email verification auto-login", () => {
     expect(replay.status(), "a consumed verification token must never return a session").not.toBe(
       201
     );
+    expect(
+      (await replay.json()).id,
+      "the account is verified by then, so the user must be told to sign in rather than start over"
+    ).toBe("AuthEmailAlreadyVerified");
   });
 });
