@@ -69,7 +69,11 @@ osv_dependency_scan:
   before_script:
     - go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.3.0
   script:
-    - osv-scanner --recursive .
+    # --config is explicit on purpose: osv-scanner otherwise looks for a config
+    # next to each manifest it finds, so the root osv-scanner.toml only governed
+    # Cargo.lock and every documented ignore was silently skipped for the npm
+    # lockfiles living in subdirectories.
+    - osv-scanner --recursive --config=osv-scanner.toml .
 
 # Container scanning using Trivy (no Docker required, works on Kubernetes runners)
 container_scanning:
