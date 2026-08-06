@@ -15,6 +15,7 @@ use strum::VariantNames;
 use tracing::{debug, error, instrument, trace, warn};
 
 use crate::dns::DnsResolver;
+use crate::opentelemetry::DeliveryTraceIds;
 use crate::{Config, RequestAttempt, SignatureVersion};
 
 const USER_AGENT: &str = concat!(crate_name!(), "/", crate_version!());
@@ -93,8 +94,13 @@ impl Response {
     }
 }
 
-#[instrument(skip_all, fields(request_attempt_id = %attempt.request_attempt_id))]
-pub async fn work(config: &Config, resolver: &DnsResolver, attempt: &RequestAttempt) -> Response {
+#[instrument(skip_all, fields(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id))]
+pub async fn work(
+    config: &Config,
+    resolver: &DnsResolver,
+    attempt: &RequestAttempt,
+    ids: &DeliveryTraceIds,
+) -> Response {
     debug!("Processing request attempt");
     let start = Instant::now();
 
