@@ -260,10 +260,20 @@ mod password_policy_tests {
             let keypair = biscuit_auth::KeyPair::new();
             let state = test_state($pool.clone(), keypair.private(), None).await;
 
+            // The real IP middleware, because the handler extracts `UserIp` and
+            // would answer 500 in plain text without it. No reverse proxy in
+            // front here, so the peer address of the request is the user's.
+            let get_user_ip = crate::middleware_get_user_ip::GetUserIp {
+                reverse_proxy_cidrs: vec![],
+                behind_cloudflare: false,
+            };
+
             test::init_service(
                 App::new().app_data(web::Data::new(state)).service(
                     web::scope("/api/v1").service(
-                        web::scope("/register").route("", web::post().to(super::register)),
+                        web::scope("/register")
+                            .wrap(get_user_ip)
+                            .route("", web::post().to(super::register)),
                     ),
                 ),
             )
@@ -277,6 +287,8 @@ mod password_policy_tests {
         ($app:expr, $email:expr, $password:expr) => {{
             let request = test::TestRequest::post()
                 .uri("/api/v1/register")
+                // TEST-NET-1: the IP middleware needs a peer to call the user.
+                .peer_addr("192.0.2.10:54321".parse().expect("test peer address"))
                 .set_json(serde_json::json!({
                     "first_name": "Jordan",
                     "last_name": "Rivera",
