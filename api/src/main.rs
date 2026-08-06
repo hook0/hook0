@@ -928,7 +928,6 @@ async fn main() -> anyhow::Result<()> {
             config.sentry_debug,
             config.sentry_send_default_pii,
             config.sentry_enable_spans,
-            None,
         );
 
         // Init OpenTelemetry
