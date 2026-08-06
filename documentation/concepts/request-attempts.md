@@ -56,7 +56,7 @@ Request attempts go through these states:
 
 When a delivery fails, Hook0 schedules retries with increasing backoff delays:
 
-| Retry | Delay |
+| Retry | Base delay |
 |-------|-------|
 | 1 | 3 seconds |
 | 2 | 10 seconds |
@@ -66,6 +66,8 @@ When a delivery fails, Hook0 schedules retries with increasing backoff delays:
 | 6 | 3 hours |
 | 7 | 5 hours |
 | 8+ | 10 hours |
+
+A small random amount is added on top of each delay -- never subtracted, so a retry never fires earlier than its base delay -- so that deliveries that failed together do not retry together. See [Why delays are not exact](/explanation/webhook-retry-logic#why-delays-are-not-exact).
 
 Retries are bounded by both `MAX_RETRIES` and `MAX_RETRY_WINDOW` (whichever limit is reached first) at the Output Worker level. After all retries are exhausted, the attempt is marked as permanently failed.
 

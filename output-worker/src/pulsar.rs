@@ -33,7 +33,7 @@ use crate::throughput_log::ThroughputStats;
 use crate::work::work;
 use crate::{
     Config, ObjectStorageConfig, PulsarConfig, RequestAttempt, RequestAttemptWithOptionalPayload,
-    SlotRole, compute_next_retry,
+    RetryPolicy, SlotRole, compute_next_retry,
 };
 use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;
@@ -343,6 +343,7 @@ pub async fn load_waiting_request_attempts_from_db(
 #[allow(clippy::too_many_arguments)]
 pub async fn look_for_work(
     config: &Arc<Config>,
+    retry_policy: RetryPolicy,
     pool: &PgPool,
     object_storage: &Arc<Option<ObjectStorageConfig>>,
     worker_id: &Arc<Uuid>,
@@ -583,7 +584,7 @@ pub async fn look_for_work(
                         // We handle the request attempt in a new Tokio task
                         task_tracker.spawn(async move {
                             if let Err(e) = handle_message(
-                                &c, &po, &os, &wi, &wn, &wv, &hp_rp, &lp_rp, msg, permit, ack_tx, &st, is_lp, infl, &dr,
+                                &c, retry_policy, &po, &os, &wi, &wn, &wv, &hp_rp, &lp_rp, msg, permit, ack_tx, &st, is_lp, infl, &dr,
                             )
                             .await
                             {
@@ -671,6 +672,7 @@ enum RequestAttemptStatus {
 #[allow(clippy::too_many_arguments)]
 async fn handle_message(
     config: &Config,
+    retry_policy: RetryPolicy,
     pool: &PgPool,
     object_storage: &Arc<Option<ObjectStorageConfig>>,
     worker_id: &Uuid,
@@ -958,13 +960,9 @@ async fn handle_message(
                                 true
                             } else {
                                 // Creating a retry request or giving up
-                                if let Some(retry_in) = compute_next_retry(
-                                    &mut tx,
-                                    &attempt,
-                                    &response,
-                                    config.max_retries,
-                                )
-                                .await?
+                                if let Some(retry_in) =
+                                    compute_next_retry(&mut tx, &attempt, &response, retry_policy)
+                                        .await?
                                 {
                                     let next_retry_count = attempt.retry_count + 1;
                                     let delay_until = Utc::now() + retry_in;
@@ -990,7 +988,7 @@ async fn handle_message(
                                     .fetch_one(&mut *tx)
                                     .await?;
 
-                                    debug!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, retry_count = next_retry_count, retry_id = %retry.request_attempt__id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
+                                    debug!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, retry_count = next_retry_count, retry_id = %retry.request_attempt__id, retry_in_secs = retry_in.as_secs_f64(), "Request attempt failed; retry created");
 
                                     // Route retry to HP or LP topic based on priority cutoff
                                     let retry_producer = if SlotRole::is_hp(
