@@ -226,7 +226,7 @@ pub async fn look_for_work(
                 let ids = delivery_trace_ids(&span);
 
                 // Work
-                let response = work(config, resolver, &attempt_with_payload).await;
+                let response = work(config, resolver, &attempt_with_payload, &ids).await;
                 trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
 
                 // Store response

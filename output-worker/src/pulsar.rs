@@ -820,7 +820,7 @@ async fn handle_message(
                         let ids = delivery_trace_ids(&span);
 
                         // Work
-                        let response = work(config, resolver, &attempt).await;
+                        let response = work(config, resolver, &attempt, &ids).await;
                         trace!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
 
                         // Open DB transaction
