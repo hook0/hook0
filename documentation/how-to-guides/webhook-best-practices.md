@@ -20,7 +20,7 @@ X-Hook0-Signature: sha256=<hex-encoded-hmac>
 
 Generate the signature from the raw request body using the shared secret. Never sign a re-serialized version of the payload; byte differences will break verification.
 
-For a step-by-step implementation with code examples, see [Webhook authentication tutorial](/tutorials/webhook-authentication). Hook0 generates HMAC signatures automatically for every delivery -- see [Application secrets](/concepts/application-secrets) for how to manage signing keys.
+For a step-by-step implementation with code examples, see [Webhook authentication tutorial](/tutorials/webhook-authentication). Hook0 generates HMAC signatures automatically for every delivery -- see [Subscription secrets](/concepts/subscriptions#subscription-secrets) for where the signing key comes from.
 
 ### Include an idempotency key
 
