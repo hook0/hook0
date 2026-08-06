@@ -18,6 +18,8 @@ import { useEventTypeList } from '../event_types/useEventTypeQueries';
 import type { EventType } from '../event_types/EventTypeService';
 import { intersectWith } from '@/utils/fp';
 import { useTracking } from '@/composables/useTracking';
+import { useOnboardingStore } from '@/stores/onboarding';
+import { getUseCasePreset } from '@/utils/usecasePreset';
 import { usePermissions } from '@/composables/usePermissions';
 import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
 import {
@@ -137,11 +139,23 @@ const createdAt = ref('');
 const isEnabled = ref(true);
 const dedicatedWorkers = ref<string[]>([]);
 const eventTypes = ref<SelectableEventType[]>([]);
-const labels = ref<Hook0KeyValueKeyValuePair[]>([{ key: 'user_id', value: '1' }]);
+// In the onboarding tutorial, the subscription is seeded from the use case picked
+// at the intro. Delivery requires the event's labels to be a superset of the
+// subscription's, and this subscription is what the next step reads back to seed
+// the event it sends — so whatever lands here, generic or personalized, the two
+// sides match. Copied, not aliased — the form mutates these and the presets are
+// shared module state.
+const onboarding = useOnboardingStore();
+const preset = props.tutorialMode ? getUseCasePreset(onboarding.useCase) : undefined;
+const initialLabels: Hook0KeyValueKeyValuePair[] = preset
+  ? preset.labels.map((label) => ({ ...label }))
+  : [{ key: 'user_id', value: '1' }];
+
+const labels = ref<Hook0KeyValueKeyValuePair[]>(initialLabels);
 const metadata = ref<Hook0KeyValueKeyValuePair[]>([]);
 const headersKv = ref<Hook0KeyValueKeyValuePair[]>([]);
 const headersMap = ref<Record<string, string>>({});
-const labelsMap = ref<Record<string, string>>({ user_id: '1' });
+const labelsMap = ref<Record<string, string>>(kvPairsToRecord(initialLabels));
 const metadataMap = ref<Record<string, string>>({});
 
 const httpMethods = 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption);

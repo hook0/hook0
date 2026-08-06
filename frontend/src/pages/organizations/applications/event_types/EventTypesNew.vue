@@ -11,6 +11,8 @@ import { handleMutationError } from '@/utils/handleMutationError';
 import type { UUID } from '@/http';
 import { useTracking } from '@/composables/useTracking';
 import { usePermissions } from '@/composables/usePermissions';
+import { useOnboardingStore } from '@/stores/onboarding';
+import { getUseCasePreset } from '@/utils/usecasePreset';
 import { DOCS_EVENT_TYPES_URL, API_DOCS_EVENT_TYPES_URL } from '@/constants/externalLinks';
 
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -42,9 +44,25 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits(['tutorial-event-type-created']);
 
+// In the onboarding tutorial, seed the form with an example that matches the
+// use-case picked at the intro. Outside the tutorial (or when "Other"/skipped),
+// no initial values are handed to the form at all, so the standalone page keeps
+// the untouched-field state it had before the personalization existed.
+const onboarding = useOnboardingStore();
+const preset = props.tutorialMode ? getUseCasePreset(onboarding.useCase) : undefined;
+
 // VeeValidate form with Zod schema
 const { errors, defineField, handleSubmit } = useForm({
   validationSchema: toTypedSchema(createEventTypeSchema()),
+  ...(preset
+    ? {
+        initialValues: {
+          service: preset.eventType.service,
+          resource_type: preset.eventType.resourceType,
+          verb: preset.eventType.verb,
+        },
+      }
+    : {}),
 });
 
 const [service, serviceAttrs] = defineField('service');
