@@ -16,7 +16,6 @@ use chrono::{DateTime, Utc};
 use clap::{ArgGroup, Parser, ValueEnum, crate_name, crate_version};
 use hickory_resolver::config::LookupIpStrategy;
 use humantime::format_duration;
-use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use reqwest::Url;
 use reqwest::header::HeaderName;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
@@ -33,7 +32,6 @@ use tokio::time::sleep;
 use tokio::{select, spawn};
 use tokio_util::task::TaskTracker;
 use tracing::{debug, error, info, warn};
-use tracing_subscriber::Layer;
 use uuid::Uuid;
 
 use crate::dns::{DnsResolver, DnsResolverOptions};
@@ -105,10 +103,6 @@ struct Config {
     /// Optional OTLP endpoint that will receive traces
     #[clap(long, env)]
     otlp_traces_endpoint: Option<Url>,
-
-    /// Optional OTLP endpoint that will receive logs
-    #[clap(long, env = "OTLP_LOGS_ENDPOINT")]
-    otlp_logs_endpoint: Option<Url>,
 
     /// Optional value for OTLP `Authorization` header (for example: `Bearer mytoken`)
     #[clap(long, env, hide_env_values = true)]
@@ -419,14 +413,6 @@ async fn main() -> anyhow::Result<()> {
         .to_owned()
         .unwrap_or_else(|| crate_version!().to_owned());
 
-    // Build the OTLP logs provider before installing the subscriber: the appender
-    // bridge that feeds it must be part of the subscriber, which Sentry init installs
-    // and cannot be extended afterwards.
-    let logger_provider = opentelemetry::build_logger_provider(&config, &worker_version)?;
-    let otel_log_layer = logger_provider
-        .as_ref()
-        .map(|provider| OpenTelemetryTracingBridge::new(provider).boxed());
-
     // Initialize app logger as well as Sentry integration
     // Return value *must* be kept in a variable or else it will be dropped and Sentry integration won't work
     let _sentry = hook0_sentry_integration::init(
@@ -435,11 +421,10 @@ async fn main() -> anyhow::Result<()> {
         config.sentry_debug,
         config.sentry_send_default_pii,
         false,
-        otel_log_layer,
     );
 
-    // Init OpenTelemetry (the logs provider is handed over so its shutdown is centralized)
-    let otlp_exporters = opentelemetry::init(&config, &worker_version, logger_provider)?;
+    // Init OpenTelemetry
+    let otlp_exporters = opentelemetry::init(&config, &worker_version)?;
 
     info!(
         "Starting {} {worker_version} [{worker_name}]",
