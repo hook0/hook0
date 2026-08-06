@@ -151,7 +151,9 @@ export async function verifyEmailViaMailpit(
             if (verifyResponse.ok()) {
               return { organizationId: organizationId ?? null };
             }
-            console.log(`[Mailpit] verify-email API returned ${verifyResponse.status()}: ${await verifyResponse.text()}`);
+            console.log(
+              `[Mailpit] verify-email API returned ${verifyResponse.status()}: ${await verifyResponse.text()}`
+            );
           } else {
             console.log(`[Mailpit] No token found in email content (length=${content.length})`);
           }
@@ -228,6 +230,30 @@ export async function getEmailFromMailpit(
 }
 
 /**
+ * Extract the email-verification token from Mailpit WITHOUT consuming it.
+ *
+ * Unlike verifyEmailViaMailpit — which calls the verify-email API itself and so
+ * burns the token — this hands the raw token back so a browser flow can consume
+ * it by visiting /verify-email?token=..., exercising the real VerifyEmail.vue
+ * auto-login path end to end. Reuses getEmailFromMailpit's polling and the
+ * shared token regex; no bespoke Mailpit handling. Mailpit runs both locally and
+ * in CI, so this works in both.
+ */
+export async function getVerificationTokenFromMailpit(
+  request: APIRequestContext,
+  email: string,
+  maxWaitMs = 15000
+): Promise<string> {
+  const message = await getEmailFromMailpit(request, email, "Verify your Hook0 email", maxWaitMs);
+  const content = message.HTML || message.Text || "";
+  const token = extractVerificationToken(content);
+  if (!token) {
+    throw new Error(`No verification token found in verification email for ${email}`);
+  }
+  return token;
+}
+
+/**
  * Extract password reset token from email sent to Mailpit.
  * Password reset tokens are Biscuit cryptographic tokens sent via email,
  * not stored in the database, so we must extract them from the email content.
@@ -274,9 +300,7 @@ export async function getPasswordResetTokenFromMailpit(
             // Remove line breaks to handle multi-line tokens
             const cleanedContent = content.replace(/[\r\n]+/g, "");
 
-            const tokenMatch = cleanedContent.match(
-              /reset-password\?token=([A-Za-z0-9_\-+/=]+)/i
-            );
+            const tokenMatch = cleanedContent.match(/reset-password\?token=([A-Za-z0-9_\-+/=]+)/i);
             if (tokenMatch) {
               return tokenMatch[1];
             }

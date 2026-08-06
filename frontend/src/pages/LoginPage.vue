@@ -4,9 +4,8 @@ import { useAuthStore } from '@/stores/auth';
 import { useRoute, useRouter } from 'vue-router';
 import { routes } from '@/routes';
 import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler';
+import { usePostAuthNavigation } from '@/composables/usePostAuthNavigation';
 import { useForm } from 'vee-validate';
-import * as OrganizationService from './organizations/OrganizationService';
-import * as ApplicationService from './organizations/applications/ApplicationService';
 import { createLoginSchema } from './login.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
@@ -50,21 +49,7 @@ function isValidRedirectPath(path: string): boolean {
   return path.startsWith('/') && !path.startsWith('//');
 }
 
-/** Navigate to the appropriate page after successful login based on org/app count. */
-function handlePostLoginNavigation(
-  organizations: Array<{ organization_id: string }>
-): Promise<unknown> {
-  if (organizations.length === 0) {
-    return router.push({ name: routes.Tutorial });
-  }
-  if (organizations.length === 1) {
-    return ApplicationService.list(organizations[0].organization_id).then((applications) => {
-      const destination = applications.length === 0 ? routes.Tutorial : routes.Home;
-      return router.push({ name: destination });
-    });
-  }
-  return router.push({ name: routes.Home });
-}
+const { navigateAfterAuth } = usePostAuthNavigation();
 
 const onSubmit = handleSubmit((values) => {
   if (isLoading.value) return;
@@ -86,7 +71,7 @@ const onSubmit = handleSubmit((values) => {
         return;
       }
 
-      return OrganizationService.list().then(handlePostLoginNavigation);
+      return navigateAfterAuth();
     })
     .catch((err) => {
       handleAuthError(err);

@@ -511,7 +511,7 @@ pub async fn logout(
 pub async fn verify_email(
     state: Data<crate::State>,
     body: Json<EmailVerificationPost>,
-) -> Result<NoContent, Hook0Problem> {
+) -> Result<CreatedJson<LoginResponse>, Hook0Problem> {
     if let Err(e) = body.validate() {
         return Err(Hook0Problem::Validation(e));
     }
@@ -612,13 +612,45 @@ pub async fn verify_email(
                 Err(e) => warn!("Could not parse verified user email for welcome message: {e}"),
             }
 
-            Ok(NoContent)
+            // Open a session right away so the user lands authenticated on the
+            // wizard instead of being bounced to the login form. This is safe:
+            // the `email_verified_at IS NULL` guard on the UPDATE above means
+            // this branch runs at most once per user, on the single
+            // unverified→verified transition, so a replayed (still valid)
+            // verification token can never mint a second session. `password_hash`
+            // is required by `UserLookup` but never read by `do_login`.
+            let session_user = UserLookup {
+                user_id: token.user_id,
+                password_hash: String::new(),
+                email: user.email,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                email_verified_at: Some(Utc::now()),
+            };
+            do_login(&state.db, &state.biscuit_private_key, session_user, None).await
         } else {
-            debug!(
-                "User {} tried to verify its email whereas it is already verified",
-                &token.user_id
-            );
-            Err(Hook0Problem::AuthEmailExpired)
+            // Nothing to update: the link was already used, or the account is
+            // gone. Telling the two apart is the difference between "sign in"
+            // and "start over", and it leaks nothing — a valid signature already
+            // proves the caller holds a link we issued for that very user.
+            let already_verified = query_scalar!(
+                "SELECT email_verified_at IS NOT NULL FROM iam.user WHERE user__id = $1",
+                &token.user_id,
+            )
+            .fetch_optional(&state.db)
+            .await?
+            .flatten()
+            .unwrap_or(false);
+
+            if already_verified {
+                debug!(
+                    "User {} tried to verify its email whereas it is already verified",
+                    &token.user_id
+                );
+                Err(Hook0Problem::AuthEmailAlreadyVerified)
+            } else {
+                Err(Hook0Problem::AuthEmailExpired)
+            }
         }
     } else {
         Err(Hook0Problem::AuthEmailExpired)
@@ -882,4 +914,136 @@ async fn generate_hashed_password(password: &str) -> Result<PasswordHashString, 
         error!("Failed to run password hashing task: {e}");
         Hook0Problem::InternalServerError
     })?
+}
+
+#[cfg(test)]
+mod auto_login_after_verify_tests {
+    use super::*;
+    use crate::google_ads::test_support::test_state;
+    use actix_web::{App, test, web};
+    use sqlx::PgPool;
+
+    /// Insert an unverified user (`email_verified_at IS NULL`) and return its id.
+    async fn seed_unverified_user(pool: &PgPool) -> Uuid {
+        let user_id = Uuid::new_v4();
+        sqlx::query(
+            r#"
+                INSERT INTO iam."user" (user__id, email, password, first_name, last_name, email_verified_at)
+                VALUES ($1, $2, 'unused-hash', 'Nina', 'Verify', NULL)
+            "#,
+        )
+        .bind(user_id)
+        .bind(format!("verify-{user_id}@example.com"))
+        .execute(pool)
+        .await
+        .expect("seed unverified user");
+        user_id
+    }
+
+    /// Full HTTP path: clicking the verification link (POST /auth/verify-email)
+    /// returns a real session, and that session is immediately accepted by an
+    /// authenticated endpoint — the user never re-enters credentials. Replaying
+    /// the still-valid verification token yields no second session, proving the
+    /// one-time guarantee is preserved. Drives the real handlers + biscuit auth
+    /// middleware against real Postgres.
+    #[sqlx::test]
+    async fn verifying_email_opens_a_session_and_authorizes_api_without_relogin(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+        let state = test_state(pool.clone(), private_key.clone(), None).await;
+
+        let user_id = seed_unverified_user(&pool).await;
+        let verification_token = crate::iam::create_email_verification_token(&private_key, user_id)
+            .expect("create verification token")
+            .serialized_biscuit;
+
+        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+            db: pool.clone(),
+            biscuit_private_key: private_key.clone(),
+            master_api_key: None,
+            enable_application_secret_compatibility: true,
+        };
+
+        let app = test::init_service(
+            App::new().app_data(web::Data::new(state)).service(
+                web::scope("/api/v1")
+                    .service(
+                        web::scope("/auth")
+                            .route("/verify-email", web::post().to(super::verify_email)),
+                    )
+                    .service(
+                        web::scope("/organizations")
+                            .wrap(biscuit_auth.clone())
+                            .route("", web::get().to(crate::handlers::organizations::list)),
+                    ),
+            ),
+        )
+        .await;
+
+        // 1) Click the verification link → a session is returned (201 + tokens).
+        let verify = test::TestRequest::post()
+            .uri("/api/v1/auth/verify-email")
+            .set_json(serde_json::json!({ "token": verification_token }))
+            .to_request();
+        let resp = test::call_service(&app, verify).await;
+        assert_eq!(
+            resp.status().as_u16(),
+            201,
+            "verification must open a session"
+        );
+        let session: serde_json::Value = test::read_body_json(resp).await;
+        let access_token = session["access_token"]
+            .as_str()
+            .expect("access_token in verification response");
+        assert!(!access_token.is_empty(), "access token must be non-empty");
+        assert_eq!(
+            session["user_id"].as_str(),
+            Some(user_id.to_string().as_str()),
+            "session belongs to the verified user"
+        );
+
+        // 2) The returned session is accepted by an authenticated endpoint right
+        //    away — no re-login.
+        let list = test::TestRequest::get()
+            .uri("/api/v1/organizations")
+            .insert_header(("Authorization", format!("Bearer {access_token}")))
+            .to_request();
+        let resp = test::call_service(&app, list).await;
+        assert!(
+            resp.status().is_success(),
+            "auto-login session must authorize API calls, got {}",
+            resp.status()
+        );
+        let orgs: serde_json::Value = test::read_body_json(resp).await;
+        assert_eq!(
+            orgs.as_array().map(Vec::len),
+            Some(0),
+            "a freshly verified account has no organization yet"
+        );
+
+        // 3) Replaying the still-valid verification token must NOT mint a second
+        //    session: the one-time email_verified_at transition already happened.
+        let replay = test::TestRequest::post()
+            .uri("/api/v1/auth/verify-email")
+            .set_json(serde_json::json!({ "token": verification_token }))
+            .to_request();
+        let resp = test::call_service(&app, replay).await;
+        assert_ne!(
+            resp.status().as_u16(),
+            201,
+            "a consumed verification token must never open a second session"
+        );
+
+        // 4) ...and it says why. Every second open of the link — double click,
+        //    back button, a forwarded copy — lands here, and by then the address
+        //    IS verified, so "the link might be expired, retry the whole
+        //    process" would send the user round a loop they have already
+        //    completed.
+        let problem: serde_json::Value = test::read_body_json(resp).await;
+        assert_eq!(
+            problem["id"].as_str(),
+            Some("AuthEmailAlreadyVerified"),
+            "a replay must be reported as already verified, not as an expired link"
+        );
+    }
 }
