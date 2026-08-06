@@ -7,7 +7,8 @@ import { User, Lock, AlertTriangle, Trash2, Palette } from 'lucide-vue-next';
 
 import * as UserService from '@/pages/user/UserService';
 import { createPasswordChangeSchema } from '@/pages/user/passwordChange.schema';
-import type { UserIdentity } from '@/utils/passwordPolicy';
+import { DEFAULT_PASSWORD_MINIMUM_LENGTH, type UserIdentity } from '@/utils/passwordPolicy';
+import { useInstanceConfig } from '@/composables/useInstanceConfig';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
@@ -58,10 +59,20 @@ const passwordIdentity = computed<UserIdentity>(() => {
   return { email: user.email, firstName: user.firstName, lastName: user.lastName };
 });
 
+// The length floor is operator configuration; read it rather than guess it.
+const { data: instanceConfig } = useInstanceConfig();
+const passwordMinimumLength = computed(() => {
+  const config = instanceConfig.value;
+  if (config === undefined) {
+    return DEFAULT_PASSWORD_MINIMUM_LENGTH;
+  }
+  return config.password_minimum_length;
+});
+
 // VeeValidate form with Zod schema for password change
 const { errors, meta, defineField, handleSubmit, resetForm } = useForm({
   validationSchema: computed(() =>
-    toTypedSchema(createPasswordChangeSchema(passwordIdentity.value))
+    toTypedSchema(createPasswordChangeSchema(passwordIdentity.value, passwordMinimumLength.value))
   ),
 });
 

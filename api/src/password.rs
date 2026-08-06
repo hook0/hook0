@@ -116,7 +116,9 @@ impl<'a> Checked<'a> {
             return Err(Rejection::TooLong);
         }
 
-        if password.chars().collect::<HashSet<_>>().len() < MINIMUM_DISTINCT_CHARACTERS {
+        if password.chars().collect::<HashSet<_>>().len() < MINIMUM_DISTINCT_CHARACTERS
+            || is_repetition(password)
+        {
             return Err(Rejection::NotEnoughDistinctCharacters);
         }
 
@@ -171,9 +173,9 @@ impl UserIdentity<'_> {
             return None;
         }
 
-        let local_part = match self.email.split_once('@') {
-            Some((local_part, _domain)) => local_part,
-            None => self.email,
+        let (local_part, domain) = match self.email.split_once('@') {
+            Some((local_part, domain)) => (local_part, domain),
+            None => (self.email, ""),
         };
 
         // Being *equal* to the address (or to its local part) is refused
@@ -187,10 +189,20 @@ impl UserIdentity<'_> {
         // Then containment: a password is refused for carrying an identity
         // fragment only when what surrounds the fragment is too little to be a
         // secret of its own.
+        //
+        // The whole address is a fragment in its own right, not just its local
+        // part. Otherwise the domain — public, and often the longest half —
+        // counts as leftover secret, and `someone@example.com!` walks past a
+        // rule written to refuse `someone@example.com`.
+        //
+        // Keep this list in the same order as `checkPassword` in the frontend
+        // (frontend/src/utils/passwordPolicy.ts): the first match decides which
+        // reason the user is shown, so a different order means the two halves
+        // blame different things for the same password.
         let mut fragments = vec![
+            (Rejection::SimilarToEmail, self.email),
             (Rejection::SimilarToEmail, local_part),
-            (Rejection::SimilarToName, self.first_name),
-            (Rejection::SimilarToName, self.last_name),
+            (Rejection::SimilarToEmail, domain),
         ];
         // A local part is usually "first.last" or "first_last"; each half is as
         // guessable as the whole.
@@ -199,6 +211,8 @@ impl UserIdentity<'_> {
                 .split(['.', '_', '-', '+'])
                 .map(|part| (Rejection::SimilarToEmail, part)),
         );
+        fragments.push((Rejection::SimilarToName, self.first_name));
+        fragments.push((Rejection::SimilarToName, self.last_name));
 
         let password_length = folded_password.chars().count();
 
@@ -217,14 +231,37 @@ impl UserIdentity<'_> {
     }
 }
 
+/// Is the password a shorter unit typed several times? Counting distinct
+/// characters only catches a unit of one or two ("aaaa", "abab"); `abcdabcdabcd`
+/// clears both the length floor and the character count while carrying the
+/// entropy of four characters.
+fn is_repetition(password: &str) -> bool {
+    let characters = password.chars().collect::<Vec<_>>();
+    let length = characters.len();
+
+    (1..=length / 2).any(|unit| {
+        length % unit == 0
+            && characters
+                .chunks(unit)
+                .all(|chunk| chunk == &characters[..unit])
+    })
+}
+
+/// What the digit `1` can be standing for: itself, or either of the two letters
+/// people write as `1`. It is the one ambiguous glyph of the set, and the
+/// reading changes where the word ends — in "baseba112026" the ones are letters
+/// and the rest is padding, in "password1234" the one is padding. Every reading
+/// is tried rather than guessed.
+const ONE_READINGS: [char; 3] = ['1', 'i', 'l'];
+
 /// Fold the digit and symbol substitutions people use to disguise a word
 /// ("P@ssw0rd" becomes "password"), so a disguise is recognised as the word.
-fn fold_lookalikes(lowercased: &str) -> String {
+fn fold_lookalikes_reading_one_as(lowercased: &str, one: char) -> String {
     lowercased
         .chars()
         .map(|c| match c {
             '0' => 'o',
-            '1' => 'i',
+            '1' => one,
             '3' => 'e',
             '4' => 'a',
             '5' => 's',
@@ -236,6 +273,12 @@ fn fold_lookalikes(lowercased: &str) -> String {
             other => other,
         })
         .collect()
+}
+
+/// The fold used wherever a single reading is enough — comparing a password to
+/// the user's own identity, where both sides are folded the same way.
+fn fold_lookalikes(lowercased: &str) -> String {
+    fold_lookalikes_reading_one_as(lowercased, 'i')
 }
 
 /// Reduce a value to the letters a human would recognise in it, so that
@@ -253,30 +296,50 @@ fn fold_identity(value: &str) -> String {
 fn is_common(password: &str) -> bool {
     let lowercased = password.to_lowercase();
 
-    // The password as typed, and with its padding removed. Padding is stripped
-    // *before* folding, never after: folding turns the padding digits into
-    // letters ("2026" into "2o26") and there would be nothing left to strip.
-    let mut candidates = vec![lowercased.clone()];
-    candidates.extend(strip_padding(&lowercased));
+    ONE_READINGS.iter().any(|one| {
+        // Read the ambiguous `1` first, because it decides where the word ends:
+        // trimming "baseba112026!" before reading its ones as letters eats them
+        // along with the padding.
+        let read = lowercased
+            .chars()
+            .map(|c| if c == '1' { *one } else { c })
+            .collect::<String>();
 
-    candidates.iter().any(|candidate| {
-        COMMON_PASSWORDS.contains(candidate.as_str())
-            || COMMON_PASSWORDS.contains(&fold_lookalikes(candidate))
+        // Padding is then trimmed before the remaining glyphs are folded, never
+        // after: folding turns the padding digits into letters ("2026" into
+        // "2o26") and there would be nothing left to trim. Which end carries it
+        // is ambiguous too, so both ends and each end alone are tried.
+        [
+            read.clone(),
+            trim_padding(&read, true, true),
+            trim_padding(&read, false, true),
+            trim_padding(&read, true, false),
+        ]
+        .iter()
+        .filter(|candidate| candidate.chars().count() >= MINIMUM_FRAGMENT_LENGTH)
+        .any(|candidate| {
+            COMMON_PASSWORDS.contains(candidate.as_str())
+                || COMMON_PASSWORDS.contains(&fold_lookalikes(candidate))
+        })
     })
 }
 
-/// Drop the digits and punctuation appended to a word ("letmein2026!" becomes
+/// Drop the digits and punctuation padding a word ("letmein2026!" becomes
 /// "letmein"): the cheapest way to stretch a common password to the required
-/// length, and therefore the most popular. `None` when nothing was dropped, or
-/// when too little is left for the remainder to mean anything.
-fn strip_padding(candidate: &str) -> Option<String> {
-    let stripped =
-        candidate.trim_end_matches(|c: char| c.is_ascii_digit() || c.is_ascii_punctuation());
+/// length, and therefore the most popular.
+fn trim_padding(candidate: &str, start: bool, end: bool) -> String {
+    let is_padding = |c: char| c.is_ascii_digit() || c.is_ascii_punctuation();
 
-    if stripped.len() == candidate.len() || stripped.chars().count() < MINIMUM_FRAGMENT_LENGTH {
-        None
+    let trimmed = if start {
+        candidate.trim_start_matches(is_padding)
     } else {
-        Some(stripped.to_owned())
+        candidate
+    };
+
+    if end {
+        trimmed.trim_end_matches(is_padding).to_owned()
+    } else {
+        trimmed.to_owned()
     }
 }
 
@@ -318,6 +381,99 @@ mod tests {
         let reported = "jordanrivera801@example.com";
         assert!(reported.chars().count() >= usize::from(MINIMUM_LENGTH));
         assert!(check(reported).is_err());
+    }
+
+    /// Decorating the address with a character or two must not walk past a rule
+    /// written to refuse the address. The domain is public: it is not the part
+    /// that makes a password a secret.
+    #[test]
+    fn padding_the_email_address_does_not_get_it_past_the_rule() {
+        for password in [
+            "jordanrivera801@example.com!",
+            "jordanrivera801@example.com1",
+            "xjordanrivera801@example.com",
+            "JORDANRIVERA801@EXAMPLE.COM!",
+            "..jordanrivera801@example.com..",
+        ] {
+            assert_eq!(
+                check(password),
+                Err(Rejection::SimilarToEmail),
+                "accepted a decorated email address: {password}"
+            );
+        }
+    }
+
+    /// The domain on its own is guessable from the address, so a password that
+    /// is mostly the domain is no better than one that is mostly the local part.
+    #[test]
+    fn a_password_that_is_mostly_the_domain_is_refused() {
+        let identity = UserIdentity {
+            email: "bob@acmecorporation.com",
+            first_name: "Bob",
+            last_name: "Smith",
+        };
+        assert_eq!(
+            Checked::new("acmecorporation.com2026", MINIMUM_LENGTH, &identity).map(|_| ()),
+            Err(Rejection::SimilarToEmail)
+        );
+    }
+
+    /// Counting distinct characters only catches a unit of one or two. A longer
+    /// unit typed several times is just as guessable.
+    #[test]
+    fn a_repeated_unit_is_refused_however_long_the_unit() {
+        for password in [
+            "abcdabcdabcd",
+            "123412341234",
+            "12341234123412341234",
+            "abcdefabcdefabcdef",
+            "hook0hook0hook0hook0",
+        ] {
+            assert_eq!(
+                check(password),
+                Err(Rejection::NotEnoughDistinctCharacters),
+                "accepted a repeated unit: {password}"
+            );
+        }
+    }
+
+    /// Prefixing a year is as common as suffixing one, so padding is stripped
+    /// from both ends before the blocklist is consulted.
+    #[test]
+    fn padding_a_common_password_at_either_end_does_not_help() {
+        for password in [
+            "letmein2026!",
+            "2026letmein!",
+            "2026password",
+            "!!!password!!",
+            "..qwerty12345",
+        ] {
+            assert_eq!(
+                check(password),
+                Err(Rejection::TooCommon),
+                "accepted a padded common password: {password}"
+            );
+        }
+    }
+
+    /// `1` stands in for both "l" and "i". Reading it only as "i" let every
+    /// common password containing an "l" through — a third of the blocklist.
+    #[test]
+    fn writing_l_as_one_does_not_hide_a_common_password() {
+        for password in [
+            "1etmein2026!",
+            "baseba112026!",
+            "f00tba112026!",
+            "michae12026!",
+            "char1ie2026!",
+            "miche11e2026!",
+        ] {
+            assert_eq!(
+                check(password),
+                Err(Rejection::TooCommon),
+                "accepted a common password written with ones: {password}"
+            );
+        }
     }
 
     #[test]
@@ -487,6 +643,46 @@ mod tests {
     fn an_already_established_credential_skips_the_policy() {
         // The Keycloak import must never lock a user out of their own account.
         assert_eq!(Checked::already_established("123456").0, "123456");
+    }
+
+    /// The shared contract with the frontend. Pinning the *fold* was not enough:
+    /// two implementations can fold identically and still reach different
+    /// verdicts, which is exactly how the form and the server drifted apart on
+    /// astral characters, on Other_Alphabetic marks, and on which rule to blame.
+    /// These vectors pin the decision itself, and the same file drives
+    /// `passwordPolicy.test.ts`.
+    #[test]
+    fn the_identity_rules_match_the_vectors_shared_with_the_frontend() {
+        let shared = include_str!("../../password-policy-vectors.json");
+        let parsed = serde_json::from_str::<serde_json::Value>(shared).expect("shared vectors");
+        let vectors = parsed["vectors"].as_array().expect("vectors array");
+        assert!(!vectors.is_empty());
+
+        for vector in vectors {
+            let text = |key: &str| vector[key].as_str().unwrap_or_default().to_owned();
+            let (password, expected) = (text("password"), text("verdict"));
+            let (email, first_name, last_name) =
+                (text("email"), text("firstName"), text("lastName"));
+
+            let identity = UserIdentity {
+                email: &email,
+                first_name: &first_name,
+                last_name: &last_name,
+            };
+            let verdict = match identity.rejection_for(&password) {
+                Some(Rejection::SimilarToEmail) => "similarToEmail",
+                Some(Rejection::SimilarToName) => "similarToName",
+                Some(other) => panic!("identity rules returned {other:?} for {password:?}"),
+                None => "acceptable",
+            };
+
+            assert_eq!(
+                verdict,
+                expected,
+                "verdict for {password:?}: {}",
+                text("why")
+            );
+        }
     }
 
     /// These vectors are the contract with `foldIdentity` in the frontend: the

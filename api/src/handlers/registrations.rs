@@ -29,14 +29,12 @@ pub struct RegistrationPost {
     last_name: String,
     #[validate(non_control_character, email, length(max = 100))]
     email: String,
-    #[validate(
-        non_control_character,
-        length(
-            min = 10,
-            max = 100,
-            message = "Password must be at least 10 characters long and at most 100 characters long"
-        )
-    )]
+    // Length is deliberately not validated here: the policy owns both bounds
+    // (`password::Checked::new`), so the user is told the instance's real
+    // minimum instead of a number hardcoded next to the field. It also keeps
+    // the rejected password out of the response body, which the `length`
+    // validator echoes back as an error parameter.
+    #[validate(non_control_character)]
     password: String,
     turnstile_token: Option<String>,
     /// Optional Google Ads click identifier captured during the user's

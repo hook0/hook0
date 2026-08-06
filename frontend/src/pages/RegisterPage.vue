@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { useInstanceConfig } from '@/composables/useInstanceConfig';
+import { DEFAULT_PASSWORD_MINIMUM_LENGTH } from '@/utils/passwordPolicy';
 import { routes } from '@/routes';
 import router from '@/router';
 import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler';
@@ -33,9 +35,23 @@ const { t } = useI18n();
 
 const authStore = useAuthStore();
 
+// The length floor is operator configuration; read it rather than guess it.
+// Until /instance answers, the form falls back to the shipped default so it is
+// never more permissive than the API by accident.
+const { data: instanceConfig } = useInstanceConfig();
+const passwordMinimumLength = computed(() => {
+  const config = instanceConfig.value;
+  if (config === undefined) {
+    return DEFAULT_PASSWORD_MINIMUM_LENGTH;
+  }
+  return config.password_minimum_length;
+});
+
 // VeeValidate form with Zod schema
 const { errors, defineField, handleSubmit } = useForm({
-  validationSchema: toTypedSchema(createRegisterSchema()),
+  validationSchema: computed(() =>
+    toTypedSchema(createRegisterSchema(passwordMinimumLength.value))
+  ),
 });
 
 const [email, emailAttrs] = defineField('email');

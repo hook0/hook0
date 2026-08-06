@@ -50,6 +50,13 @@ const MINIMUM_FRAGMENT_LENGTH = 4;
  */
 const MINIMUM_REMAINDER = 8;
 
+/**
+ * What to assume until GET /instance answers with the operator's own floor.
+ * Mirrors the API's shipped default (PASSWORD_MINIMUM_LENGTH), so a form shown
+ * before the config lands is never more permissive than the server.
+ */
+export const DEFAULT_PASSWORD_MINIMUM_LENGTH = 12;
+
 /** The digit and symbol substitutions people use to disguise a word. */
 const LOOKALIKES: Readonly<Record<string, string>> = {
   '0': 'o',
@@ -76,13 +83,29 @@ export function foldIdentity(value: string): string {
       // The class lists exactly the keys of LOOKALIKES, so the replacer always
       // finds one: no character reaches it without a substitution to return.
       .replace(/[0134578@$!]/g, (character) => LOOKALIKES[character])
-      .replace(/[^\p{L}\p{N}]/gu, '')
+      // `\p{Alphabetic}`, not `\p{L}`: Rust's `char::is_alphanumeric` is
+      // Alphabetic ∪ N, which also covers the Other_Alphabetic marks used to
+      // write Devanagari, Thai, Arabic and Hebrew. With `\p{L}` this form
+      // refused passwords the API accepts, for those users only.
+      .replace(/[^\p{Alphabetic}\p{N}]/gu, '')
   );
 }
 
-function localPartOf(email: string): string {
+/**
+ * Count characters the way Rust's `chars().count()` does — code points, not
+ * UTF-16 code units. `.length` counts an astral character twice, which moved
+ * the remainder threshold and made this form accept what the API refuses.
+ */
+function codePointLength(value: string): number {
+  return [...value].length;
+}
+
+function splitEmail(email: string): { localPart: string; domain: string } {
   const separator = email.indexOf('@');
-  return separator === -1 ? email : email.slice(0, separator);
+  if (separator === -1) {
+    return { localPart: email, domain: '' };
+  }
+  return { localPart: email.slice(0, separator), domain: email.slice(separator + 1) };
 }
 
 /**
@@ -95,7 +118,7 @@ export function checkPassword(password: string, identity: UserIdentity): Passwor
     return ACCEPTABLE;
   }
 
-  const localPart = localPartOf(identity.email);
+  const { localPart, domain } = splitEmail(identity.email);
 
   // Being *equal* to the address (or to its local part) is refused whatever the
   // length: this is the "my password is my email" case.
@@ -109,23 +132,36 @@ export function checkPassword(password: string, identity: UserIdentity): Passwor
   // Then containment: a password is refused for carrying an identity fragment
   // only when what surrounds the fragment is too little to be a secret of its
   // own.
+  //
+  // The whole address is a fragment in its own right, not just its local part.
+  // Otherwise the domain — public, and often the longest half — counts as
+  // leftover secret, and `someone@example.com!` walks past a rule written to
+  // refuse `someone@example.com`.
+  //
+  // Keep this list in the same order as `rejection_for` in the API
+  // (api/src/password.rs): the first match decides which reason the user is
+  // shown, so a different order means the two halves blame different things.
   const fragments: ReadonlyArray<readonly [PasswordWeakness, string]> = [
+    ['similarToEmail', identity.email],
     ['similarToEmail', localPart],
+    ['similarToEmail', domain],
     ...localPart.split(/[._+-]/).map((part) => ['similarToEmail', part] as const),
     ['similarToName', identity.firstName],
     ['similarToName', identity.lastName],
   ];
 
+  const passwordLength = codePointLength(foldedPassword);
+
   for (const [weakness, value] of fragments) {
     const folded = foldIdentity(value);
-    if (folded.length < MINIMUM_FRAGMENT_LENGTH) {
+    const fragmentLength = codePointLength(folded);
+    if (fragmentLength < MINIMUM_FRAGMENT_LENGTH) {
       continue;
     }
 
     const isSimilar =
       folded.includes(foldedPassword) ||
-      (foldedPassword.includes(folded) &&
-        foldedPassword.length - folded.length < MINIMUM_REMAINDER);
+      (foldedPassword.includes(folded) && passwordLength - fragmentLength < MINIMUM_REMAINDER);
     if (isSimilar) {
       return { acceptable: false, weakness };
     }

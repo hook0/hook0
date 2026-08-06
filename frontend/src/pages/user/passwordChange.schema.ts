@@ -2,12 +2,15 @@ import { z } from 'zod';
 import i18n from '@/plugins/i18n';
 import { WEAKNESS_MESSAGE_KEYS, checkPassword, type UserIdentity } from '@/utils/passwordPolicy';
 
-export function createPasswordChangeSchema(identity: UserIdentity) {
+/** See `createRegisterSchema`: the floor is instance configuration, not a literal. */
+export function createPasswordChangeSchema(identity: UserIdentity, minimumLength: number) {
   const t = i18n.global.t;
   return (
     z
       .object({
-        new_password: z.string().min(8, t('validation.passwordMinLength')),
+        new_password: z
+          .string()
+          .min(minimumLength, t('validation.passwordMinLength', { count: minimumLength })),
         confirm_new_password: z.string().min(1, t('validation.passwordConfirm')),
       })
       .refine((data) => data.new_password === data.confirm_new_password, {

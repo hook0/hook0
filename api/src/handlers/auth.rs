@@ -1,5 +1,6 @@
 use actix_web::rt::task::spawn_blocking;
 use actix_web::web::ReqData;
+use argon2::password_hash::PasswordHashString;
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use biscuit_auth::{Biscuit, PrivateKey};
 use chrono::{DateTime, Utc};
@@ -28,14 +29,10 @@ use crate::problems::Hook0Problem;
 pub struct LoginPost {
     #[validate(non_control_character, length(min = 1, max = 100))]
     email: String,
-    #[validate(
-        non_control_character,
-        length(
-            min = 1,
-            max = 100,
-            message = "Password must be at least 10 characters long and at most 100 characters long"
-        )
-    )]
+    // Bounded, but with no policy of its own: logging in must accept whatever
+    // the account's password happens to be, including one set before the policy
+    // existed.
+    #[validate(non_control_character, length(min = 1, max = 100))]
     password: String,
 }
 
@@ -67,27 +64,19 @@ pub struct BeginResetPasswordPost {
 pub struct ResetPasswordPost {
     #[validate(non_control_character, length(min = 1, max = 1000))]
     token: String,
-    #[validate(
-        non_control_character,
-        length(
-            min = 10,
-            max = 100,
-            message = "Password must be at least 10 characters long and at most 100 characters long"
-        )
-    )]
+    // Length is deliberately not validated here: the policy owns both bounds
+    // (`password::Checked::new`), so the user is told the instance's real
+    // minimum instead of a number hardcoded next to the field. It also keeps
+    // the rejected password out of the response body, which the `length`
+    // validator echoes back as an error parameter.
+    #[validate(non_control_character)]
     new_password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct ChangePasswordPost {
-    #[validate(
-        non_control_character,
-        length(
-            min = 10,
-            max = 100,
-            message = "Password must be at least 10 characters long and at most 100 characters long"
-        )
-    )]
+    // See `ResetPasswordPost::new_password`: the policy owns the bounds.
+    #[validate(non_control_character)]
     new_password: String,
 }
 
@@ -750,13 +739,14 @@ pub async fn reset_password(
         if let Some(user_id) = uid {
             let mut tx = state.db.begin().await?;
 
-            do_change_password(
-                &mut tx,
+            let password_hash = check_and_hash_new_password(
+                &mut *tx,
                 state.password_minimum_length,
                 &body.new_password,
                 user_id,
             )
             .await?;
+            store_new_password(&mut *tx, password_hash.as_str(), user_id).await?;
 
             query!(
                 "
@@ -808,28 +798,34 @@ pub async fn change_password(
         state.debug_authorizer,
     )?;
 
-    do_change_password(
+    let password_hash = check_and_hash_new_password(
         &state.db,
         state.password_minimum_length,
         &body.new_password,
         token.user_id,
     )
     .await?;
+    store_new_password(&state.db, password_hash.as_str(), token.user_id).await?;
 
     Ok(NoContent)
 }
 
-async fn do_change_password<'a, A: Acquire<'a, Database = Postgres>>(
+/// Run the policy against who the account belongs to, then hash.
+///
+/// Split from the write below so no connection is held for the ~100ms Argon2
+/// deliberately costs: on the change-password path the connection comes from
+/// the pool, and holding it across the hash would starve the pool one request
+/// at a time.
+async fn check_and_hash_new_password<'a, A: Acquire<'a, Database = Postgres>>(
     db: A,
     password_minimum_length: u8,
     new_password: &str,
     user_id: Uuid,
-) -> Result<(), Hook0Problem> {
+) -> Result<PasswordHashString, Hook0Problem> {
     let mut db = db.acquire().await?;
 
-    // The policy compares the new password against who the user is, and only
-    // the database knows that here: neither the reset link nor the biscuit
-    // carries the email address or the name.
+    // Only the database knows who this account belongs to: neither the reset
+    // link nor the biscuit carries the email address or the name.
     let identity = query!(
         "
             SELECT email, first_name, last_name
@@ -853,8 +849,19 @@ async fn do_change_password<'a, A: Acquire<'a, Database = Postgres>>(
     )
     .map_err(|rejection| rejection.into_problem(password_minimum_length))?;
 
-    let password_hash = password::hash(checked_password).await?;
+    drop(db);
 
+    password::hash(checked_password).await
+}
+
+/// Store an already checked and hashed password, and expire every token the
+/// account had, so a stolen session does not survive the change.
+async fn store_new_password<'a, A: Acquire<'a, Database = Postgres>>(
+    db: A,
+    password_hash: &str,
+    user_id: Uuid,
+) -> Result<(), Hook0Problem> {
+    let mut db = db.acquire().await?;
     let mut tx = db.begin().await?;
 
     query!(
@@ -863,7 +870,7 @@ async fn do_change_password<'a, A: Acquire<'a, Database = Postgres>>(
                 SET password = $1
                 WHERE user__id = $2
             ",
-        password_hash.as_str(),
+        password_hash,
         &user_id,
     )
     .execute(&mut *tx)

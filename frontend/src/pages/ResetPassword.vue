@@ -42,6 +42,10 @@ const alert = ref<{
 function submit() {
   if (isLoading.value) return;
 
+  // A retry starts clean: leaving the previous rejection on screen while the
+  // user types a new password reads as if it had been refused again.
+  alert.value.visible = false;
+
   if (new_password.value !== confirm_new_password.value) {
     toast.warning(t('common.warning'), {
       description: t('auth.resetPassword.passwordsMismatch'),
@@ -113,8 +117,11 @@ onMounted(() => {
       </Hook0CardContent>
     </Hook0Card>
 
-    <!-- Form Card -->
-    <Hook0Card v-else variant="glow">
+    <!-- Form Card. Deliberately not the `v-else` of the card above: most
+         rejections here are now "pick another password", and unmounting the
+         form would cost the user their reset link for a mistake they can fix
+         in place. -->
+    <Hook0Card variant="glow">
       <Hook0CardHeader
         variant="centered"
         :title="t('auth.resetPassword.title')"
