@@ -635,13 +635,13 @@ mod tests {
     #[sqlx::test]
     async fn sign_ups_older_than_the_upper_bound_are_left_alone(pool: PgPool) {
         let stale_user = seed_user(&pool).await;
-        let stale_org = seed_org(&pool, stale_user).await;
+        let _stale_org = seed_org(&pool, stale_user).await;
         backdate_signup(&pool, stale_user, MAX_SIGNUP_AGE_DAYS + 1).await;
 
         // A recent sign-up in the same state, to prove the query is selecting at
         // all and the emptiness below is really the age bound.
         let fresh_user = seed_user(&pool).await;
-        let fresh_org = seed_org(&pool, fresh_user).await;
+        let _fresh_org = seed_org(&pool, fresh_user).await;
         backdate_signup(&pool, fresh_user, 2).await;
 
         let candidates = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
@@ -650,11 +650,11 @@ mod tests {
 
         let selected: Vec<_> = candidates.iter().map(|c| c.user_id).collect();
         assert!(
-            selected.contains(&fresh_org),
+            selected.contains(&fresh_user),
             "a recent dormant sign-up is still nudged"
         );
         assert!(
-            !selected.contains(&stale_org),
+            !selected.contains(&stale_user),
             "a sign-up past the upper bound must never enter the sequence"
         );
     }
@@ -686,8 +686,8 @@ mod tests {
         backdate_signup(&pool, user, 5).await;
 
         // J+1 was already sent, long enough ago to clear the min spacing…
-        assert!(claim_step(&pool, &org, STEP_DAY1).await.expect("claim d1"));
-        backdate_step_sent(&pool, org, STEP_DAY1, 2).await;
+        assert!(claim_step(&pool, &user, STEP_DAY1).await.expect("claim d1"));
+        backdate_step_sent(&pool, user, STEP_DAY1, 2).await;
         // …then the org sends its first event.
         seed_event(&pool, org).await;
 
@@ -702,7 +702,7 @@ mod tests {
     #[sqlx::test]
     async fn step_requires_its_predecessor(pool: PgPool) {
         let user = seed_user(&pool).await;
-        let org = seed_org(&pool, user).await;
+        let _org = seed_org(&pool, user).await;
         backdate_signup(&pool, user, 5).await;
 
         // Without J+1 recorded, J+3 is not offered.
@@ -713,8 +713,8 @@ mod tests {
 
         // Record J+1 far enough in the past to clear the min spacing, then J+3
         // becomes eligible.
-        assert!(claim_step(&pool, &org, STEP_DAY1).await.expect("claim d1"));
-        backdate_step_sent(&pool, org, STEP_DAY1, 2).await;
+        assert!(claim_step(&pool, &user, STEP_DAY1).await.expect("claim d1"));
+        backdate_step_sent(&pool, user, STEP_DAY1, 2).await;
         let after = select_candidates(&pool, STEP_DAY3, 3, Some(STEP_DAY1), 2, NO_LIMIT)
             .await
             .expect("select after");
@@ -729,14 +729,14 @@ mod tests {
     #[sqlx::test]
     async fn next_step_waits_for_min_spacing_since_predecessor(pool: PgPool) {
         let user = seed_user(&pool).await;
-        let org = seed_org(&pool, user).await;
+        let _org = seed_org(&pool, user).await;
         // Past every sign-up-age threshold, still within MAX_SIGNUP_AGE_DAYS.
         backdate_signup(&pool, user, 10).await;
 
         let config = test_config(NO_LIMIT);
 
         // J+1 recorded just now.
-        assert!(claim_step(&pool, &org, STEP_DAY1).await.expect("claim d1"));
+        assert!(claim_step(&pool, &user, STEP_DAY1).await.expect("claim d1"));
 
         // J+3 needs 2 days (3 - 1) since J+1 was sent → nothing offered yet, even
         // though the account is old enough for every threshold.
@@ -749,7 +749,7 @@ mod tests {
         );
 
         // Once J+1 is 2 days old, J+3 unlocks (and only J+3).
-        backdate_step_sent(&pool, org, STEP_DAY1, 2).await;
+        backdate_step_sent(&pool, user, STEP_DAY1, 2).await;
         let ready = collect_pass(&pool, &config).await.expect("collect ready");
         assert_eq!(ready.len(), 1);
         assert_eq!(ready[0].step, STEP_DAY3);
@@ -760,32 +760,34 @@ mod tests {
     #[sqlx::test]
     async fn claim_is_idempotent(pool: PgPool) {
         let user = seed_user(&pool).await;
-        let org = seed_org(&pool, user).await;
+        let _org = seed_org(&pool, user).await;
 
-        assert!(claim_step(&pool, &org, STEP_DAY1).await.expect("claim 1"));
+        assert!(claim_step(&pool, &user, STEP_DAY1).await.expect("claim 1"));
         assert!(
-            !claim_step(&pool, &org, STEP_DAY1).await.expect("claim 2"),
+            !claim_step(&pool, &user, STEP_DAY1).await.expect("claim 2"),
             "second claim of the same step must be a no-op"
         );
-        assert_eq!(steps_sent(&pool, org).await, vec![STEP_DAY1]);
+        assert_eq!(steps_sent(&pool, user).await, vec![STEP_DAY1]);
     }
 
     /// Releasing a claim (after a failed send) lets a later pass retry the step.
     #[sqlx::test]
     async fn release_allows_reselection(pool: PgPool) {
         let user = seed_user(&pool).await;
-        let org = seed_org(&pool, user).await;
+        let _org = seed_org(&pool, user).await;
         backdate_signup(&pool, user, 2).await;
 
         // Claimed → excluded from selection.
-        assert!(claim_step(&pool, &org, STEP_DAY1).await.expect("claim"));
+        assert!(claim_step(&pool, &user, STEP_DAY1).await.expect("claim"));
         let claimed = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
             .await
             .expect("select claimed");
         assert!(claimed.is_empty());
 
         // Released → selectable again.
-        release_step(&pool, &org, STEP_DAY1).await.expect("release");
+        release_step(&pool, &user, STEP_DAY1)
+            .await
+            .expect("release");
         let released = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
             .await
             .expect("select released");
@@ -865,7 +867,7 @@ mod tests {
     #[sqlx::test]
     async fn drip_walks_all_three_steps_then_stops(pool: PgPool) {
         let user = seed_user(&pool).await;
-        let org = seed_org(&pool, user).await;
+        let _org = seed_org(&pool, user).await;
         backdate_signup(&pool, user, 10).await;
 
         let config = test_config(NO_LIMIT);
@@ -882,7 +884,7 @@ mod tests {
         ];
         for (expected_step, predecessor, gap_days) in walk {
             if let Some(pred) = predecessor {
-                backdate_step_sent(&pool, org, pred, gap_days).await;
+                backdate_step_sent(&pool, user, pred, gap_days).await;
             }
             let planned = collect_pass(&pool, &config).await.expect("collect");
             assert_eq!(planned.len(), 1);
@@ -895,7 +897,7 @@ mod tests {
         }
 
         assert_eq!(
-            steps_sent(&pool, org).await,
+            steps_sent(&pool, user).await,
             vec![STEP_DAY1, STEP_DAY3, STEP_DAY7]
         );
 
@@ -931,7 +933,7 @@ mod tests {
     #[sqlx::test]
     async fn send_failure_releases_claim_so_org_stays_eligible(pool: PgPool) {
         let user = seed_user(&pool).await;
-        let org = seed_org(&pool, user).await;
+        let _org = seed_org(&pool, user).await;
         backdate_signup(&pool, user, 2).await;
 
         let config = test_config(NO_LIMIT);
@@ -947,7 +949,7 @@ mod tests {
         // Claim released: no row persisted for the org, so it is not marked as
         // already-sent for any step.
         assert!(
-            steps_sent(&pool, org).await.is_empty(),
+            steps_sent(&pool, user).await.is_empty(),
             "the claim must be released on send failure, leaving no persisted step"
         );
 
