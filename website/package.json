@@ -51,6 +51,6 @@
   "overrides": {
     "msgpackr": "^1.11.12",
     "@parcel/reporter-dev-server": "^2.16.4",
-    "brace-expansion": "5.0.8"
+    "brace-expansion": "5.0.9"
   }
 }
