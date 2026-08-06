@@ -110,6 +110,16 @@ output-worker.container:
         --local dockerfile=build-context \
         --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-output-worker:$VERSION,$CI_REGISTRY_IMAGE/hook0-output-worker:latest,${DOCKERHUB_PREFIX}/hook0-output-worker:$VERSION,${DOCKERHUB_PREFIX}/hook0-output-worker:latest,${GHCR_PREFIX}/hook0-output-worker:$VERSION,${GHCR_PREFIX}/hook0-output-worker:latest\",push=true"
 
+output-worker.container-scan:
+  extends:
+    - .output-worker-release-rules
+    - .release-container-scan
+  needs:
+    - job: output-worker.container
+  variables:
+    IMAGE_REPO: hook0-output-worker
+    TAG_PREFIX: output-worker/v
+
 output-worker.github:
   extends: .output-worker-release-rules
   stage: release
