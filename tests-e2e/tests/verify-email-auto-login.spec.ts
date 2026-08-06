@@ -106,6 +106,12 @@ test.describe("Email verification auto-login", () => {
     await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
     await expect(page).toHaveURL(/\/tutorial|\/organizations|\/dashboard/, { timeout: 15000 });
 
+    // Before dropping the session, prove the page is even reachable while
+    // signed in: a guard that bounces an authenticated visitor Home would leave
+    // the link unconsumed and show them nothing at all.
+    await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
+    await expect(page.locator('[data-test="verify-email-error"]')).toBeVisible({ timeout: 15000 });
+
     // Drop the session so the replay is judged on the link alone, exactly as it
     // would be for someone else opening a forwarded email.
     await page.context().clearCookies();
