@@ -11,9 +11,12 @@ import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verificat
  * later steps in a real browser. That is what these tests do: pick an option at
  * the intro, walk the wizard, and read the values the forms are seeded with.
  *
- * No page reload happens mid-wizard on purpose. The choice lives in the SPA
- * session (by design — a reload falls back to the generic examples), so
- * reloading would assert the fallback rather than the feature.
+ * One of them reloads between the subscription step and the send-event step. The
+ * choice itself lives in the SPA session and does not survive that, which is why
+ * the send-event form seeds its labels and event type from the subscription that
+ * was persisted rather than from the choice. Delivery depends on those two sides
+ * agreeing, so the reload is the case worth pinning: it is how a restored tab, a
+ * refresh, or a bookmarked step URL reaches the last step.
  */
 
 /** Preset expected for the e-commerce use case, mirroring usecasePreset.ts. */
@@ -158,6 +161,20 @@ test.describe("Onboarding use-case personalization", () => {
       await expect(page.locator(`[data-test="tutorial-usecase-${id}"]`)).toBeVisible();
     }
 
+    // Every option shows a translated label, not the raw i18n key it is built
+    // from. Read off the rendered buttons rather than a restated list, so an
+    // option added later is covered without touching this test.
+    const optionLabels = await page
+      .locator('[data-test="tutorial-usecase"] [data-test^="tutorial-usecase-"]')
+      .allInnerTexts();
+    expect(optionLabels.length).toBeGreaterThan(0);
+    for (const label of optionLabels) {
+      expect(label.trim().length, "a use-case option must be labelled").toBeGreaterThan(0);
+      expect(label, "a use-case option must not render its raw i18n key").not.toContain(
+        "tutorial.intro."
+      );
+    }
+
     // The neutral answer ("other") is the starting state, so a user who never
     // touches the question gets the untouched generic examples. None of the
     // personalizing answers may be pre-selected on their behalf.
@@ -255,6 +272,52 @@ test.describe("Onboarding use-case personalization", () => {
       key: ECOMMERCE.labelKey,
       value: await sendLabels.locator('[data-test="kv-value-input-0"]').inputValue(),
     });
+  });
+
+  test("keeps the event in step with the subscription across a reload", async ({
+    page,
+    request,
+  }) => {
+    await registerAndLogin(page, request, "reload");
+    await openTutorialIntro(page);
+
+    await page.locator('[data-test="tutorial-usecase-ecommerce"]').click();
+    await advanceToEventTypeStep(page, `Usecase Reload ${Date.now()}`);
+    const subscriptionLabel = await advanceToSendEventStep(page);
+    expect(subscriptionLabel.key).toBe(ECOMMERCE.labelKey);
+
+    // The chosen use case only ever lived in the SPA session, and this is what a
+    // refresh, a restored tab, or a step URL opened later does to it. What must
+    // not change is the routing contract: the subscription was already persisted
+    // filtering on `customer_id`, so an event seeded back to the generic
+    // `user_id` would match nothing and the wizard would still congratulate the
+    // user on a pipeline that delivers nothing.
+    await page.reload();
+    await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 20000 });
+
+    const sendLabels = page.locator('[data-test="send-event-labels"]');
+    await expect(sendLabels.locator('[data-test="kv-key-input-0"]')).toHaveValue(
+      subscriptionLabel.key,
+      { timeout: 15000 }
+    );
+    await expect(sendLabels.locator('[data-test="kv-value-input-0"]')).toHaveValue(
+      subscriptionLabel.value
+    );
+
+    // The event type is the other half of the routing decision, and it is gone
+    // from the session too — it has to come back from the subscription as well.
+    await expect(page.locator('[data-test="send-event-type-select"]')).toHaveValue(
+      `${ECOMMERCE.service}.${ECOMMERCE.resource}.${ECOMMERCE.verb}`
+    );
+
+    // Sending it is the proof the seeded values are actually usable, not just
+    // displayed.
+    const eventResponse = page.waitForResponse(
+      (response) => response.url().includes("/event") && response.request().method() === "POST",
+      { timeout: 20000 }
+    );
+    await page.locator('[data-test="send-event-submit-button"]').click();
+    expect((await eventResponse).status()).toBeLessThan(400);
   });
 
   test("submits the seeded event type as-is", async ({ page, request }) => {

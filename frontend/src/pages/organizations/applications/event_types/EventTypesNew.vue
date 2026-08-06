@@ -46,18 +46,23 @@ const emit = defineEmits(['tutorial-event-type-created']);
 
 // In the onboarding tutorial, seed the form with an example that matches the
 // use-case picked at the intro. Outside the tutorial (or when "Other"/skipped),
-// the fields stay empty.
+// no initial values are handed to the form at all, so the standalone page keeps
+// the untouched-field state it had before the personalization existed.
 const onboarding = useOnboardingStore();
 const preset = props.tutorialMode ? getUseCasePreset(onboarding.useCase) : undefined;
 
 // VeeValidate form with Zod schema
 const { errors, defineField, handleSubmit } = useForm({
   validationSchema: toTypedSchema(createEventTypeSchema()),
-  initialValues: {
-    service: preset?.eventType.service ?? '',
-    resource_type: preset?.eventType.resourceType ?? '',
-    verb: preset?.eventType.verb ?? '',
-  },
+  ...(preset
+    ? {
+        initialValues: {
+          service: preset.eventType.service,
+          resource_type: preset.eventType.resourceType,
+          verb: preset.eventType.verb,
+        },
+      }
+    : {}),
 });
 
 const [service, serviceAttrs] = defineField('service');

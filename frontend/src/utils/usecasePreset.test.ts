@@ -1,4 +1,27 @@
 import { USE_CASE_OPTIONS, getUseCasePreset, formatEventTypeName } from './usecasePreset';
+import * as en from '../locales/en.json';
+
+/**
+ * Flattens the message catalog into the dotted keys `t()` is called with, so a
+ * label key can be looked up exactly the way the component looks it up.
+ */
+function collectMessages(
+  node: Record<string, unknown>,
+  prefix: string,
+  out: Map<string, string>
+): void {
+  for (const [key, value] of Object.entries(node)) {
+    const path = prefix.length > 0 ? `${prefix}.${key}` : key;
+    if (typeof value === 'string') {
+      out.set(path, value);
+    } else {
+      collectMessages(value as Record<string, unknown>, path, out);
+    }
+  }
+}
+
+const MESSAGES = new Map<string, string>();
+collectMessages(en, '', MESSAGES);
 
 describe('usecasePreset', () => {
   describe('USE_CASE_OPTIONS', () => {
@@ -7,6 +30,16 @@ describe('usecasePreset', () => {
       expect(new Set(keys).size).toBe(keys.length);
       for (const key of keys) {
         expect(key.startsWith('tutorial.intro.useCase')).toBe(true);
+      }
+    });
+
+    it('translates every advertised option to real text', () => {
+      // Derived from the options themselves: a key renamed on one side only, or a
+      // fifth option added without its message, would otherwise ship as the raw
+      // `tutorial.intro.useCaseXxx` string on the button with every test green.
+      for (const option of USE_CASE_OPTIONS) {
+        expect(MESSAGES.has(option.labelKey)).toBe(true);
+        expect(MESSAGES.get(option.labelKey)).toMatch(/\S/);
       }
     });
 

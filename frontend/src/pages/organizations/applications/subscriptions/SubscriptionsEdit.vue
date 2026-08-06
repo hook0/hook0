@@ -139,13 +139,12 @@ const createdAt = ref('');
 const isEnabled = ref(true);
 const dedicatedWorkers = ref<string[]>([]);
 const eventTypes = ref<SelectableEventType[]>([]);
-// In the onboarding tutorial, the subscription is seeded from the same use case
-// as the event the user will send at the next step. This has to stay in step
-// with EventsSend.vue: delivery requires the event's labels to be a superset of
-// the subscription's, so a subscription left on the generic `user_id` while the
-// event goes out with `customer_id` matches nothing and the tutorial ends on a
-// webhook that never arrives. Copied, not aliased — the form mutates these and
-// the presets are shared module state.
+// In the onboarding tutorial, the subscription is seeded from the use case picked
+// at the intro. Delivery requires the event's labels to be a superset of the
+// subscription's, and this subscription is what the next step reads back to seed
+// the event it sends — so whatever lands here, generic or personalized, the two
+// sides match. Copied, not aliased — the form mutates these and the presets are
+// shared module state.
 const onboarding = useOnboardingStore();
 const preset = props.tutorialMode ? getUseCasePreset(onboarding.useCase) : undefined;
 const initialLabels: Hook0KeyValueKeyValuePair[] = preset
