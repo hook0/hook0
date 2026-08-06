@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT COUNT(subscription__id) AS \"val!\"\n            FROM webhook.subscription\n            WHERE application__id = $1\n                and deleted_at IS NULL\n        ",
+  "query": "\n                SELECT COUNT(application__id) AS \"val!\"\n                FROM event.application\n                WHERE organization__id = $1\n                AND deleted_at IS NULL\n            ",
   "describe": {
     "columns": [
       {
@@ -19,5 +19,5 @@
       null
     ]
   },
-  "hash": "8414f6dd0bfa13fd0d6faae1c7eec94dcdb1ca7876ce6b8a12fb8343b821a757"
+  "hash": "e0a67ea493ea0282ccb26a210d7753f9c3b9c6c9cab349b46ebbbf1c95bedf3d"
 }

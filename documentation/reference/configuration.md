@@ -276,8 +276,10 @@ The output-worker is a separate binary with its own configuration. Run `hook0-ou
 | `HP_RETRY_CUTOFF` | Retry count cutoff for queue priority classification: if retry_count >= cutoff, item is placed in low priority queue | `2` |  |
 | `CONCURRENT_HP_RESERVED` | Number of concurrent slots reserved exclusively for high-priority jobs (first attempts and early retries) | `0` |  |
 | `CONCURRENT_LP_RESERVED` | Number of concurrent slots reserved exclusively for low-priority jobs (later retries) | `0` |  |
-| `MAX_RETRIES` | Maximum number of delivery retries before giving up (the effective number of retries is limited by `MAX_RETRIES`, `MAX_RETRY_WINDOW` and the retry policy) | `25` |  |
+| `MAX_RETRIES` | Maximum number of delivery retries before giving up (the effective number of retries is limited by `MAX_RETRIES`, `MAX_RETRY_WINDOW` and the retry policy) | `24` |  |
 | `MAX_RETRY_WINDOW` | Maximum time window for delivery retries before giving up (the effective number of retries is limited by `MAX_RETRIES`, `MAX_RETRY_WINDOW` and the retry policy) | `8d` |  |
+| `RETRY_JITTER_RATIO` | Ratio of a retry's base delay used as the width of the random jitter window added on top of it, bounded by an internal minimum and by `RETRY_JITTER_MAX_SPREAD` (set to 0 to disable jitter and get strictly deterministic retry delays) | `0.1` |  |
+| `RETRY_JITTER_MAX_SPREAD` | Maximum width of the random jitter window added on top of a retry's base delay; takes precedence over the internal minimum (set to "0s" to disable jitter) | `15m` |  |
 | `MONITORING_HEARTBEAT_URL` | Heartbeat URL that should be called regularly | - |  |
 | `MONITORING_HEARTBEAT_MIN_PERIOD_IN_S` | Minimal duration (in second) to wait between sending two heartbeats | `60` |  |
 | `DISABLE_TARGET_IP_CHECK` | If set to false (default), webhooks that target IPs that are not globally reachable (like "127.0.0.1" for example) will fail | `false` |  |

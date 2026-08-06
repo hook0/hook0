@@ -66,9 +66,9 @@ stateDiagram-v2
 
 ## How Hook0 retries
 
-Hook0 does not expose per-phase or per-subscription retry tuning. It applies one fixed schedule of increasing delays to every failed delivery:
+Hook0 does not expose per-phase or per-subscription retry tuning. It applies one schedule of increasing delays to every failed delivery:
 
-| Failed attempts so far | Delay before next attempt |
+| Failed attempts so far | Base delay before next attempt |
 |---|---|
 | 1 | 3 seconds |
 | 2 | 10 seconds |
@@ -81,7 +81,9 @@ Hook0 does not expose per-phase or per-subscription retry tuning. It applies one
 
 The seconds-apart attempts at the start catch the transient failures that resolve in moments, like container restarts, deploy rollouts, or brief network partitions. The hours-apart attempts later cover longer outages, such as provider downtime or DNS propagation, without hammering an endpoint that is coming back. From the eighth retry on, the delay holds at 10 hours.
 
-Two limits bound the schedule, whichever is reached first: `MAX_RETRIES` (default 25) and `MAX_RETRY_WINDOW` (default 8 days). Both are set on the output worker, not per subscription. With the defaults, a failing delivery is retried up to 25 times across roughly 8 days. The full reference is in [Webhook retry logic](/explanation/webhook-retry-logic).
+Hook0 also applies **jitter** on top of this schedule, for the reason described above: a small random amount is added to every delay, so deliveries that failed together do not retry together. The amount is only ever added, never subtracted, so a retry never fires earlier than its base delay -- see [Why delays are not exact](/explanation/webhook-retry-logic#why-delays-are-not-exact).
+
+Two limits bound the schedule, whichever is reached first: `MAX_RETRIES` (default 24) and `MAX_RETRY_WINDOW` (default 8 days). Both are set on the output worker, not per subscription. With the defaults, a failing delivery is retried up to 24 times across roughly 8 days. The full reference is in [Webhook retry logic](/explanation/webhook-retry-logic).
 
 ## Further reading
 

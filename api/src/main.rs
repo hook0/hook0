@@ -1029,6 +1029,13 @@ async fn main() -> anyhow::Result<()> {
 
         // Create a DB connection pool for API
         let statement_timeout = config.db_statement_timeout;
+        if !statement_timeout.is_zero() && quotas::LOCK_TIMEOUT >= statement_timeout {
+            warn!(
+                "DB_STATEMENT_TIMEOUT ({}) should be greater than the quota lock timeout ({})",
+                humanize::humanize_duration(statement_timeout),
+                humanize::humanize_duration(quotas::LOCK_TIMEOUT),
+            );
+        }
         let pool = PgPoolOptions::new()
             .max_connections(config.max_db_connections)
             .after_connect(move |conn, _meta| {

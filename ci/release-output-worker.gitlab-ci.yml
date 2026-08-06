@@ -157,3 +157,88 @@ output-worker.gitlab:
         - name: "hook0-output-worker-linux-amd64"
           url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hook0-output-worker/${CI_COMMIT_TAG}/hook0-output-worker-linux-amd64"
           link_type: "package"
+
+# --- Deploy (tag pipeline, manual, serialized) ---
+# All deploy jobs push the released tag, run only on manual click, and share one
+# resource_group so at most one deploy touches prod at a time. allow_failure is
+# forced false (GitLab defaults manual jobs to true) so a bad deploy blocks RED.
+
+# DRY home for the Clever Cloud git-build deploy loop. clever-tools authenticates
+# from CLEVER_TOKEN / CLEVER_SECRET. Subclasses set DEPLOY_APP_IDS (space-separated
+# Clever app ids) — no hardcoded app ids here.
+.clever-deploy:
+  extends: .output-worker-release-rules
+  stage: release
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:${NODE_VERSION}
+  allow_failure: false
+  when: manual
+  resource_group: output-worker-prod-deploy
+  needs: []
+  variables:
+    GIT_DEPTH: "0"
+  before_script:
+    - curl -sO https://clever-tools.clever-cloud.com/releases/latest/clever-tools-latest_linux.tar.gz
+    - tar -xf clever-tools-latest_linux.tar.gz
+    - export PATH="$PATH:$(pwd)/clever-tools-latest_linux"
+  script:
+    - |
+      for app_id in $DEPLOY_APP_IDS; do
+        echo "Deploying released commit to Clever app $app_id"
+        clever link "$app_id" --alias target
+        clever deploy --alias target --force
+        clever unlink target
+      done
+
+# Canary: the primary worker. Clicked first; watch Grafana before the fleet.
+output-worker.deploy-canary:
+  extends: .clever-deploy
+  variables:
+    DEPLOY_APP_IDS: "$CLEVERCLOUD_OW_CANARY_ID"
+
+# Fleet: the remaining workers (space-separated ids). Clicked only after the
+# canary is confirmed healthy on Grafana.
+output-worker.deploy-fleet:
+  extends: .clever-deploy
+  variables:
+    DEPLOY_APP_IDS: "$CLEVERCLOUD_OW_FLEET_IDS"
+
+# Scaleway scw.ams.1: no Docker. scp the CI-built binary, atomically swap it in,
+# restart the systemd unit, then assert it is active AND reports the tag version —
+# rolling back to the previous binary and failing RED on any verification failure.
+output-worker.deploy-scw:
+  extends: .output-worker-release-rules
+  stage: release
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/alpine:$ALPINE_VERSION
+  allow_failure: false
+  when: manual
+  resource_group: output-worker-prod-deploy
+  needs:
+    - job: output-worker.build-amd64
+      artifacts: true
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - printf '%s\n' "$SCW_WORKER_SSH_KEY" > ~/.ssh/id && chmod 600 ~/.ssh/id
+    - printf '%s\n' "$SCW_WORKER_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+  script:
+    - VERSION="${CI_COMMIT_TAG#output-worker/v}"
+    - timeout 120 scp -i ~/.ssh/id artifacts/hook0-output-worker-linux-amd64 "$SCW_WORKER_SSH_USER@$SCW_WORKER_SSH_HOST:/usr/local/bin/hook0-output-worker.new"
+    - |
+      timeout 90 ssh -i ~/.ssh/id "$SCW_WORKER_SSH_USER@$SCW_WORKER_SSH_HOST" 'bash -s' "$VERSION" <<'REMOTE'
+      set -eu
+      VERSION="$1"
+      BIN=/usr/local/bin/hook0-output-worker
+      cp -a "$BIN" "$BIN.bak"
+      chmod 755 "$BIN.new"
+      mv "$BIN.new" "$BIN"
+      systemctl restart hook0-output-worker
+      sleep 3
+      if systemctl is-active --quiet hook0-output-worker && "$BIN" --version | grep -qF "$VERSION"; then
+        echo "Deploy OK: hook0-output-worker $VERSION is active on scw.ams.1"
+      else
+        echo "Deploy verification failed; restoring previous binary" >&2
+        mv "$BIN.bak" "$BIN"
+        systemctl restart hook0-output-worker
+        exit 1
+      fi
+      REMOTE

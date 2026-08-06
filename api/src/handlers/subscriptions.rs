@@ -22,7 +22,6 @@ use crate::iam::{Action, authorize_for_application, get_owner_organization};
 use crate::openapi::OaBiscuit;
 use crate::opentelemetry::report_cancelled_request_attempts;
 use crate::problems::Hook0Problem;
-use crate::quotas::Quota;
 use crate::validators::{
     subscription_target_http_method, subscription_target_http_method_headers,
     subscription_target_http_url,
@@ -498,33 +497,6 @@ pub async fn create(
         .await
         .unwrap_or(Uuid::nil());
 
-    let quota_limit = state
-        .quotas
-        .get_limit_for_application(
-            &state.db,
-            Quota::SubscriptionsPerApplication,
-            &body.application_id,
-        )
-        .await?;
-
-    let quota_current = query_scalar!(
-        r#"
-            SELECT COUNT(subscription__id) AS "val!"
-            FROM webhook.subscription
-            WHERE application__id = $1
-                and deleted_at IS NULL
-        "#,
-        &body.application_id,
-    )
-    .fetch_one(&state.db)
-    .await?;
-
-    if quota_current >= i64::from(quota_limit) {
-        return Err(Hook0Problem::TooManySubscriptionsPerApplication(
-            quota_limit,
-        ));
-    }
-
     let labels = serde_json::to_value(&labels).unwrap_or_else(|_| Value::Object(Map::new()));
 
     let metadata = match body.metadata.as_ref() {
@@ -534,6 +506,11 @@ pub async fn create(
     };
 
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
+    state
+        .quotas
+        .enforce_subscriptions_per_application(&mut tx, &body.application_id)
+        .await?;
 
     #[allow(non_snake_case)]
     struct RawSubscription {

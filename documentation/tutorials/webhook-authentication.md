@@ -2,6 +2,31 @@
 title: "Webhook HMAC Verification — The Step Most Skip"
 description: "Working code for Python, Node.js & Rust. Covers HMAC-SHA256 signatures, timestamp validation to block replay attacks, and the IP allowlisting gotcha that breaks production."
 keywords: [webhook authentication, HMAC signature verification, webhook security, secure webhooks, replay attack prevention, webhook signature Python, webhook signature Node.js]
+faqItems:
+  - question: "How do I verify a Hook0 webhook signature?"
+    answer: >-
+      Hook0 signs every request with HMAC-SHA256 and sends the result in the
+      X-Hook0-Signature header (t=timestamp, h=header names, v1=signature). To
+      verify, recompute the HMAC over the timestamp, header names, header
+      values, and payload joined by dots, using your signing secret, then
+      compare it to the v1 value and reject anything that does not match.
+  - question: "How do I protect a webhook endpoint against replay attacks?"
+    answer: >-
+      The signature carries a Unix timestamp in its t field. Before checking the
+      HMAC, reject any request whose timestamp falls outside a tolerance window;
+      300 seconds is a sensible default. That way a captured but still-valid
+      delivery cannot be replayed hours later.
+  - question: "Should I allowlist Hook0's delivery IP addresses?"
+    answer: >-
+      No. Hook0 does not guarantee a fixed set of delivery IPs and they can
+      change without notice, so an allowlist will silently drop real webhooks.
+      Rely on HMAC signature verification instead, which is cryptographically
+      secure and does not depend on network configuration.
+  - question: "How do I rotate a webhook signing secret without downtime?"
+    answer: >-
+      Accept both secrets during the overlap. Keep the old and the new secret in
+      your verifier and pass the request if either one matches, then remove the
+      old secret once every active subscription has moved over.
 ---
 
 # Implementing Webhook Authentication
