@@ -1,0 +1,6 @@
+# RFC 9116 puts security.txt at /.well-known/security.txt. The file ships from
+# website/static/ and lands at the site root, so serve it at the canonical path
+# with a rewrite rather than shipping two copies that can drift apart.
+# Netlify reads this file from the published directory, which is what the CI
+# `netlify deploy --dir=website/dist` uses.
+/.well-known/security.txt   /security.txt   200
