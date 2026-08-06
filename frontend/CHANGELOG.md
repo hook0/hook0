@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [frontend/v1.0.2] - 2026-08-05
+
+### Added
+
+- Server-side Google Ads conversion via gclid only (api,frontend)
+- Google Ads activation conversion on first API key (api)
+- Smoother onboarding to first webhook (frontend)
+- Spike/backlog alerts + worker lag & outcome metrics (observability)
+- New gradient logo & favicon across all surfaces (brand)
+
+### Breaking Changes
+
+- /webhook-free SEO landing page + reduced-motion a11y (!281) (website)
+
+### Fixed
+
+- Resolve osv dependency vulnerabilities and enforce the scan (ci)
+- Tighten logo icon margin (golden-ratio framing) (brand)
+
+### Other
+
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+
 ## [frontend/v1.0.1] - 2026-05-09
 
 ### Added

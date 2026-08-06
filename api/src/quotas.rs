@@ -3,14 +3,22 @@ use lettre::{Address, message::Mailbox};
 use paperclip::actix::web::Json;
 use paperclip::actix::{Apiv2Schema, api_v2_operation};
 use serde::Serialize;
-use sqlx::{Acquire, Postgres, query, query_as, query_scalar};
+use sqlx::{Acquire, AssertSqlSafe, Postgres, Transaction, query, query_as, query_scalar};
 use std::str::FromStr;
+use std::time::Duration;
 use strum::Display;
 use tracing::error;
 use uuid::Uuid;
 
 use crate::mailer::Mail;
 use crate::problems::Hook0Problem;
+
+/// Bounds how long a quota-enforcing transaction waits for the row lock it needs.
+///
+/// Must stay strictly below `DB_STATEMENT_TIMEOUT` when that one is set, otherwise the
+/// statement timeout fires first and the wait surfaces as a `500` instead of a retryable
+/// `503`. `main` warns at startup when that is the case.
+pub const LOCK_TIMEOUT: Duration = Duration::from_secs(3);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Quota {
@@ -333,6 +341,248 @@ impl Quotas {
             }))
         } else {
             Ok(QuotaValue::MAX)
+        }
+    }
+
+    /// Bounds how long the current transaction may wait for the row locks it is about
+    /// to take.
+    ///
+    /// `SET LOCAL` is reverted at COMMIT and at ROLLBACK, so this cannot leak to the
+    /// next request that reuses the pooled connection.
+    ///
+    /// The setting stays in effect for the rest of the transaction, so it also bounds
+    /// the lock waits of the insert that follows. That is intentional.
+    async fn set_lock_timeout(tx: &mut Transaction<'_, Postgres>) -> Result<(), Hook0Problem> {
+        // GUC values cannot be bound as `$1` parameters, so the value is interpolated. It is a
+        // compile-time constant rendered as an integer number of milliseconds, never user input.
+        query(AssertSqlSafe(format!(
+            "SET LOCAL lock_timeout = {}",
+            LOCK_TIMEOUT.as_millis()
+        )))
+        .execute(&mut **tx)
+        .await?;
+        Ok(())
+    }
+
+    /// Serializes concurrent quota checks that target the same organization.
+    ///
+    /// `FOR NO KEY UPDATE` conflicts with itself, so two transactions running this
+    /// against the same organization cannot proceed at the same time. It does not
+    /// conflict with the `FOR KEY SHARE` lock that foreign key checks take, so
+    /// unrelated inserts referencing this organization are not blocked.
+    ///
+    /// It does conflict with a plain `UPDATE` of that row.
+    ///
+    /// The lock is released at COMMIT/ROLLBACK, so this only means anything inside
+    /// the transaction that also performs the insert.
+    async fn lock_organization(
+        tx: &mut Transaction<'_, Postgres>,
+        organization_id: &Uuid,
+    ) -> Result<(), Hook0Problem> {
+        Self::set_lock_timeout(&mut *tx).await?;
+
+        query_scalar!(
+            "
+                SELECT organization__id
+                FROM iam.organization
+                WHERE organization__id = $1
+                FOR NO KEY UPDATE
+            ",
+            organization_id,
+        )
+        .fetch_optional(&mut **tx)
+        .await?
+        .ok_or(Hook0Problem::NotFound)?;
+        Ok(())
+    }
+
+    /// Serializes concurrent quota checks that target the same application.
+    ///
+    /// See [`Quotas::lock_organization`] for why `FOR NO KEY UPDATE` is used. Soft
+    /// deleted applications are deliberately not filtered out: the lock exists only
+    /// to serialize, never to decide whether the application is usable.
+    ///
+    /// As with organizations, this conflicts with a plain `UPDATE` of that row.
+    async fn lock_application(
+        tx: &mut Transaction<'_, Postgres>,
+        application_id: &Uuid,
+    ) -> Result<(), Hook0Problem> {
+        Self::set_lock_timeout(&mut *tx).await?;
+
+        query_scalar!(
+            "
+                SELECT application__id
+                FROM event.application
+                WHERE application__id = $1
+                FOR NO KEY UPDATE
+            ",
+            application_id,
+        )
+        .fetch_optional(&mut **tx)
+        .await?
+        .ok_or(Hook0Problem::NotFound)?;
+        Ok(())
+    }
+
+    /// Rejects the call if the organization already reached its applications limit.
+    ///
+    /// Must be called inside the transaction that performs the insert, and must be
+    /// the first statement of it: the row lock it takes only lives as long as that
+    /// transaction, and taking it first is what keeps lock ordering consistent.
+    ///
+    /// Taking a [`Transaction`] rather than a connection is what makes that contract a
+    /// compile error to violate: outside a transaction the row lock would be released
+    /// immediately and the `SET LOCAL` of [`Quotas::set_lock_timeout`] would be a silent
+    /// no-op, so both guarantees would vanish without a trace.
+    pub async fn enforce_applications_per_organization(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        organization_id: &Uuid,
+    ) -> Result<(), Hook0Problem> {
+        if !self.enabled {
+            return Ok(());
+        }
+
+        Self::lock_organization(&mut *tx, organization_id).await?;
+
+        let limit = self
+            .get_limit_for_organization(
+                &mut **tx,
+                Quota::ApplicationsPerOrganization,
+                organization_id,
+            )
+            .await?;
+
+        let current = query_scalar!(
+            r#"
+                SELECT COUNT(application__id) AS "val!"
+                FROM event.application
+                WHERE organization__id = $1
+                AND deleted_at IS NULL
+            "#,
+            organization_id,
+        )
+        .fetch_one(&mut **tx)
+        .await?;
+
+        if current >= i64::from(limit) {
+            Err(Hook0Problem::TooManyApplicationsPerOrganization(limit))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Rejects the call if the organization already reached its members limit.
+    ///
+    /// Same transactional contract as [`Quotas::enforce_applications_per_organization`].
+    pub async fn enforce_members_per_organization(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        organization_id: &Uuid,
+    ) -> Result<(), Hook0Problem> {
+        if !self.enabled {
+            return Ok(());
+        }
+
+        Self::lock_organization(&mut *tx, organization_id).await?;
+
+        let limit = self
+            .get_limit_for_organization(&mut **tx, Quota::MembersPerOrganization, organization_id)
+            .await?;
+
+        let current = query_scalar!(
+            r#"
+                SELECT COUNT(user__id) AS "val!"
+                FROM iam.user__organization
+                WHERE organization__id = $1
+            "#,
+            organization_id,
+        )
+        .fetch_one(&mut **tx)
+        .await?;
+
+        if current >= i64::from(limit) {
+            Err(Hook0Problem::TooManyMembersPerOrganization(limit))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Rejects the call if the application already reached its subscriptions limit.
+    ///
+    /// Same transactional contract as [`Quotas::enforce_applications_per_organization`].
+    pub async fn enforce_subscriptions_per_application(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        application_id: &Uuid,
+    ) -> Result<(), Hook0Problem> {
+        if !self.enabled {
+            return Ok(());
+        }
+
+        Self::lock_application(&mut *tx, application_id).await?;
+
+        let limit = self
+            .get_limit_for_application(
+                &mut **tx,
+                Quota::SubscriptionsPerApplication,
+                application_id,
+            )
+            .await?;
+
+        let current = query_scalar!(
+            r#"
+                SELECT COUNT(subscription__id) AS "val!"
+                FROM webhook.subscription
+                WHERE application__id = $1
+                    and deleted_at IS NULL
+            "#,
+            application_id,
+        )
+        .fetch_one(&mut **tx)
+        .await?;
+
+        if current >= i64::from(limit) {
+            Err(Hook0Problem::TooManySubscriptionsPerApplication(limit))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Rejects the call if the application already reached its event types limit.
+    ///
+    /// Same transactional contract as [`Quotas::enforce_applications_per_organization`].
+    pub async fn enforce_event_types_per_application(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        application_id: &Uuid,
+    ) -> Result<(), Hook0Problem> {
+        if !self.enabled {
+            return Ok(());
+        }
+
+        Self::lock_application(&mut *tx, application_id).await?;
+
+        let limit = self
+            .get_limit_for_application(&mut **tx, Quota::EventTypesPerApplication, application_id)
+            .await?;
+
+        let current = query_scalar!(
+            r#"
+                SELECT COUNT(*) AS "val!"
+                FROM event.event_type
+                WHERE application__id = $1
+                    AND deactivated_at IS NULL
+            "#,
+            application_id,
+        )
+        .fetch_one(&mut **tx)
+        .await?;
+
+        if current >= i64::from(limit) {
+            Err(Hook0Problem::TooManyEventTypesPerApplication(limit))
+        } else {
+            Ok(())
         }
     }
 

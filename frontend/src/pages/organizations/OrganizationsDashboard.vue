@@ -1,15 +1,27 @@
 <script setup lang="ts">
-import { computed, markRaw, ref } from 'vue';
+import { computed, markRaw, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import type { Component } from 'vue';
 import type { RouteLocationRaw } from 'vue-router';
-import { CreditCard, Users, FolderOpen, FileText, Database, Settings, Box } from 'lucide-vue-next';
+import {
+  CreditCard,
+  Users,
+  FolderOpen,
+  FileText,
+  Database,
+  Settings,
+  Box,
+  TrendingUp,
+  X,
+} from 'lucide-vue-next';
 
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useOrganizationDetail } from './useOrganizationQueries';
 import { useInstanceConfig } from '@/composables/useInstanceConfig';
 import { useEventsPerDay } from '@/pages/organizations/applications/useEventsPerDayQuery';
+import { useTracking } from '@/composables/useTracking';
+import { MONETIZATION_CATEGORY, quotaWarningNames } from '@/utils/monetizationTracking';
 import { routes } from '@/routes';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
@@ -32,6 +44,7 @@ import ApplicationsList from '@/pages/organizations/applications/ApplicationsLis
 const { t } = useI18n();
 const router = useRouter();
 const { organizationId } = useRouteIds();
+const { trackEvent } = useTracking();
 
 const {
   data: organization,
@@ -114,6 +127,8 @@ const consumptions = computed<ConsumptionQuota[]>(() => {
 
 /** Quota cards shown in the developer-plan notice section. */
 interface QuotaCard {
+  /** Stable, PII-free identifier used for analytics (never a UUID/label). */
+  id: string;
   icon: Component;
   value: number | undefined;
   label: string;
@@ -126,24 +141,28 @@ const quotaCards = computed<QuotaCard[]>(() => {
   const q = organization.value.quotas;
   return [
     {
+      id: 'members',
       icon: markRaw(Users),
       value: q.members_per_organization_limit,
       label: t('organizations.quotaMembers', q.members_per_organization_limit ?? 0),
       to: { name: routes.OrganizationsTeam, params: { organization_id: organizationId.value } },
     },
     {
+      id: 'applications',
       icon: markRaw(FolderOpen),
       value: q.applications_per_organization_limit,
       label: t('organizations.quotaApplications', q.applications_per_organization_limit ?? 0),
       onClick: scrollToApps,
     },
     {
+      id: 'events-per-day',
       icon: markRaw(FileText),
       value: q.events_per_day_limit,
       label: t('organizations.quotaEventsPerDay', q.events_per_day_limit ?? 0),
       onClick: scrollToChart,
     },
     {
+      id: 'retention',
       icon: markRaw(Database),
       value: q.days_of_events_retention_limit,
       label: t('organizations.quotaRetention', q.days_of_events_retention_limit ?? 0),
@@ -153,11 +172,60 @@ const quotaCards = computed<QuotaCard[]>(() => {
 });
 
 function onQuotaCardActivate(card: QuotaCard) {
+  trackEvent(MONETIZATION_CATEGORY, 'quota-card', card.id);
   if (card.to) {
     void router.push(card.to);
   } else if (card.onClick) {
     card.onClick();
   }
+}
+
+/** Upgrade-card CTAs (View plans / Upgrade). `placement` says which one fired. */
+function trackUpgradeCta(placement: string) {
+  trackEvent(MONETIZATION_CATEGORY, 'upgrade-cta', placement);
+}
+
+// Quotas the gauge currently draws in warning/danger colours. Reused for both
+// the one-shot "quota-warning" view event and the inline Pro teaser below, so
+// what we track always matches what the user sees.
+const nearLimitQuotaNames = computed(() => quotaWarningNames(consumptions.value));
+
+// Fire "quota-warning" once per quota per mount, even as the org query refetches
+// in the background (the Set survives re-renders but resets on a fresh mount).
+const firedQuotaWarnings = new Set<string>();
+watch(
+  nearLimitQuotaNames,
+  (names) => {
+    for (const name of names) {
+      if (!firedQuotaWarnings.has(name)) {
+        firedQuotaWarnings.add(name);
+        trackEvent(MONETIZATION_CATEGORY, 'quota-warning', name);
+      }
+    }
+  },
+  { immediate: true }
+);
+
+// Second, non-blocking Pro touchpoint: a dismissible inline hint next to the
+// quota that is running low. Same free-plan gating as the upgrade card, so paid
+// orgs never see it.
+const proTeaserDismissed = ref(false);
+const proTeaserQuota = computed(() => nearLimitQuotaNames.value[0] ?? '');
+const showProTeaser = computed(
+  () =>
+    pricingEnabled.value &&
+    !!organization.value &&
+    !organization.value.plan &&
+    !proTeaserDismissed.value &&
+    proTeaserQuota.value !== ''
+);
+
+function trackProTeaser() {
+  trackEvent(MONETIZATION_CATEGORY, 'pro-teaser', proTeaserQuota.value);
+}
+
+function dismissProTeaser() {
+  proTeaserDismissed.value = true;
 }
 
 function onQuotaCardKeydown(event: KeyboardEvent, card: QuotaCard) {
@@ -264,6 +332,46 @@ function onQuotaCardKeydown(event: KeyboardEvent, card: QuotaCard) {
         :consumptions="consumptions"
       />
 
+      <!-- Pro teaser: dismissible hint shown next to a quota that is running low -->
+      <div
+        v-if="showProTeaser"
+        class="pro-teaser"
+        role="note"
+        :aria-label="t('organizations.proTeaserTitle', { quota: proTeaserQuota.toLowerCase() })"
+        data-test="org-dashboard-pro-teaser"
+      >
+        <div class="pro-teaser__icon" aria-hidden="true">
+          <TrendingUp :size="18" />
+        </div>
+        <div class="pro-teaser__body">
+          <p class="pro-teaser__title">
+            {{ t('organizations.proTeaserTitle', { quota: proTeaserQuota.toLowerCase() }) }}
+          </p>
+          <p class="pro-teaser__text">
+            {{ t('organizations.proTeaserBody', { quota: proTeaserQuota.toLowerCase() }) }}
+          </p>
+        </div>
+        <a
+          class="pro-teaser__cta"
+          href="https://www.hook0.com/#pricing"
+          target="_blank"
+          rel="noopener"
+          data-test="org-dashboard-pro-teaser-cta"
+          @click="trackProTeaser"
+        >
+          {{ t('organizations.proTeaserCta') }}
+        </a>
+        <button
+          type="button"
+          class="pro-teaser__dismiss"
+          :aria-label="t('organizations.proTeaserDismiss')"
+          data-test="org-dashboard-pro-teaser-dismiss"
+          @click="dismissProTeaser"
+        >
+          <X :size="16" aria-hidden="true" />
+        </button>
+      </div>
+
       <!-- Developer plan notice (shown only when on free plan) -->
       <Hook0Card v-if="pricingEnabled && !organization.plan">
         <Hook0CardHeader>
@@ -307,16 +415,20 @@ function onQuotaCardKeydown(event: KeyboardEvent, card: QuotaCard) {
         </Hook0CardContent>
 
         <Hook0CardFooter>
-          <Hook0Button type="button" href="https://www.hook0.com/#pricing" target="_blank">{{
-            t('organizations.availablePlans')
-          }}</Hook0Button>
-          <Hook0Button
+          <span class="cta-track" @click="trackUpgradeCta('org-dashboard-view-plans')">
+            <Hook0Button type="button" href="https://www.hook0.com/#pricing" target="_blank">{{
+              t('organizations.availablePlans')
+            }}</Hook0Button>
+          </span>
+          <span
             v-if="supportEmailAddress"
-            variant="primary"
-            type="button"
-            :href="`mailto:${supportEmailAddress}`"
-            >{{ t('organizations.subscribeBetterPlan') }}</Hook0Button
+            class="cta-track"
+            @click="trackUpgradeCta('org-dashboard-upgrade-card')"
           >
+            <Hook0Button variant="primary" type="button" :href="`mailto:${supportEmailAddress}`">{{
+              t('organizations.subscribeBetterPlan')
+            }}</Hook0Button>
+          </span>
         </Hook0CardFooter>
       </Hook0Card>
     </template>
@@ -423,5 +535,101 @@ function onQuotaCardKeydown(event: KeyboardEvent, card: QuotaCard) {
 .org-dashboard__quota-card--clickable:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* ---- Upgrade CTA click wrapper (keeps footer layout, captures native click) ---- */
+.cta-track {
+  display: contents;
+}
+
+/* ---- Pro teaser (inline, dismissible near-limit hint) ---- */
+.pro-teaser {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 25%, transparent);
+  background-color: color-mix(in srgb, var(--color-warning) 8%, var(--color-bg-primary));
+}
+
+.pro-teaser__icon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  color: var(--color-warning);
+}
+
+.pro-teaser__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.pro-teaser__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+}
+
+.pro-teaser__text {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.pro-teaser__cta {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  border-radius: var(--radius-sm);
+}
+
+.pro-teaser__cta:hover {
+  text-decoration: underline;
+}
+
+.pro-teaser__cta:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.pro-teaser__dismiss {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease;
+}
+
+.pro-teaser__dismiss:hover {
+  color: var(--color-text-primary);
+}
+
+.pro-teaser__dismiss:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 639px) {
+  .pro-teaser {
+    flex-wrap: wrap;
+  }
+
+  .pro-teaser__cta {
+    align-self: flex-start;
+  }
 }
 </style>

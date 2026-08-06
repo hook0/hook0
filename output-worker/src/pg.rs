@@ -12,11 +12,14 @@ use tokio_util::task::TaskTracker;
 use tracing::{debug, info, trace, warn};
 
 use crate::dns::DnsResolver;
-use crate::opentelemetry::{end_request_attempt_span, start_request_attempt_span};
+use crate::opentelemetry::{
+    classify_outcome, compute_delivery_lag_seconds, delivery_trace_ids, end_request_attempt_span,
+    report_delivery_outcome, report_worker_delivery_lag, start_request_attempt_span,
+};
 use crate::throughput_log::ThroughputStats;
 use crate::work::{ResponseError, work};
 use crate::{
-    Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, SlotRole, Worker,
+    Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, RetryPolicy, SlotRole, Worker,
     compute_next_retry,
 };
 use hook0_protobuf::{ObjectStorageResponse, RequestAttempt};
@@ -31,6 +34,7 @@ const MAX_POLLING_SLEEP: Duration = Duration::from_secs(10);
 #[allow(clippy::too_many_arguments)]
 pub async fn look_for_work(
     config: &Config,
+    retry_policy: RetryPolicy,
     unit_id: u16,
     slot_role: SlotRole,
     pool: &PgPool,
@@ -118,6 +122,11 @@ pub async fn look_for_work(
             if let Ok(lag) = (Utc::now() - eligible_at).to_std() {
                 stats.record_lag(lag, attempt_is_hp);
             }
+            report_worker_delivery_lag(compute_delivery_lag_seconds(
+                Utc::now(),
+                attempt.created_at,
+                attempt.delay_until,
+            ));
 
             // Set picked_at
             trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Picking request attempt");
@@ -212,13 +221,16 @@ pub async fn look_for_work(
 
                 // Start OpenTelemetry span
                 let span = start_request_attempt_span(&attempt_with_payload);
+                // Stamp the delivery log lines with the span's trace/span ids so Loki
+                // can correlate them to the Tempo trace.
+                let ids = delivery_trace_ids(&span);
 
                 // Work
-                let response = work(config, resolver, &attempt_with_payload).await;
-                trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
+                let response = work(config, resolver, &attempt_with_payload, &ids).await;
+                trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
 
                 // Store response
-                trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Storing response");
+                trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, "Storing response");
                 let response_headers = response.headers();
                 let response_contents_to_insert = if let Some(true) =
                     object_storage.as_ref().map(|object_storage| {
@@ -290,7 +302,7 @@ pub async fn look_for_work(
                 }
 
                 // Associate response and request attempt
-                trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, %response_id, "Associating response with request attempt");
+                trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, %response_id, "Associating response with request attempt");
                 query!(
                     "UPDATE webhook.request_attempt SET response__id = $1 WHERE request_attempt__id = $2",
                     response_id, attempt.request_attempt_id
@@ -300,7 +312,7 @@ pub async fn look_for_work(
 
                 if response.is_success() {
                     // Mark attempt as completed
-                    trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Completing request attempt");
+                    trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, "Completing request attempt");
                     query!(
                         "UPDATE webhook.request_attempt SET succeeded_at = statement_timestamp() WHERE request_attempt__id = $1",
                         attempt.request_attempt_id
@@ -308,10 +320,10 @@ pub async fn look_for_work(
                     .execute(&mut *tx)
                     .await?;
 
-                    debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Request attempt completed successfully");
+                    debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, "Request attempt completed successfully");
                 } else {
                     // Mark attempt as failed
-                    trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, "Failing request attempt");
+                    trace!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, "Failing request attempt");
                     query!(
                         "UPDATE webhook.request_attempt SET failed_at = statement_timestamp() WHERE request_attempt__id = $1",
                         attempt.request_attempt_id
@@ -320,15 +332,16 @@ pub async fn look_for_work(
                     .await?;
 
                     // Creating a retry request or giving up
-                    if let Some(retry_in) = compute_next_retry(
-                        &mut tx,
-                        &attempt_with_payload,
-                        &response,
-                        config.max_retries,
-                    )
-                    .await?
+                    if let Some(retry_in) =
+                        compute_next_retry(&mut tx, &attempt_with_payload, &response, retry_policy)
+                            .await?
                     {
                         let next_retry_count = attempt.retry_count + 1;
+                        let retry_interval = PgInterval::try_from(retry_in).map_err(|e| {
+                            anyhow!(
+                                "Could not convert retry delay ({retry_in:?}) to a PG interval: {e}"
+                            )
+                        })?;
                         let retry_id = query!(
                             "
                                 INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count)
@@ -338,16 +351,16 @@ pub async fn look_for_work(
                             attempt.application_id,
                             attempt.event_id,
                             attempt.subscription_id,
-                            PgInterval::try_from(retry_in).unwrap(),
+                            retry_interval,
                             next_retry_count,
                         )
                         .fetch_one(&mut *tx)
                         .await?
                         .request_attempt__id;
 
-                        debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, retry_count = next_retry_count, %retry_id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
+                        debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, retry_count = next_retry_count, %retry_id, retry_in_secs = retry_in.as_secs_f64(), "Request attempt failed; retry created");
                     } else {
-                        info!(unit_id, request_attempt_id = %attempt.request_attempt_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
+                        info!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
                     }
                 }
 
@@ -361,7 +374,8 @@ pub async fn look_for_work(
                     config.hp_retry_cutoff,
                 );
 
-                // End OpenTelemetry span
+                // Record the bounded delivery outcome, then end the OpenTelemetry span
+                report_delivery_outcome(classify_outcome(&response));
                 end_request_attempt_span(span, &response);
             } else if give_up {
                 warn!(

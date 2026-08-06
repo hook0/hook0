@@ -2972,7 +2972,7 @@ dependencies = [
 
 [[package]]
 name = "hook0-output-worker"
-version = "1.0.2"
+version = "1.0.7"
 dependencies = [
  "anyhow",
  "aws-sdk-s3",
@@ -2990,7 +2990,9 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "papaya",
+ "proptest",
  "pulsar",
+ "rand 0.10.2",
  "reqwest",
  "rustls 0.23.43",
  "serde",
@@ -3003,6 +3005,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "tracing-subscriber",
  "url",
  "uuid 1.24.0",
 ]
