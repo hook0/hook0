@@ -125,6 +125,16 @@ frontend.container:
         --local dockerfile=build-context \
         --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-frontend:$VERSION,$CI_REGISTRY_IMAGE/hook0-frontend:latest,${DOCKERHUB_PREFIX}/hook0-frontend:$VERSION,${DOCKERHUB_PREFIX}/hook0-frontend:latest,${GHCR_PREFIX}/hook0-frontend:$VERSION,${GHCR_PREFIX}/hook0-frontend:latest\",push=true"
 
+frontend.container-scan:
+  extends:
+    - .frontend-release-rules
+    - .release-container-scan
+  needs:
+    - job: frontend.container
+  variables:
+    IMAGE_REPO: hook0-frontend
+    TAG_PREFIX: frontend/v
+
 frontend.github:
   extends: .frontend-release-rules
   stage: release
