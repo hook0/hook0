@@ -892,7 +892,7 @@ Aucun transfert supplémentaire par rapport au traitement n°4.
 
 | Données | Durée | Justification |
 |---|---|---|
-| Étapes envoyées et horodatage (`iam.reactivation_email`) | Jusqu'à la suppression de l'organisation (`ON DELETE CASCADE`) | Registre d'idempotence : sans lui, un même message pourrait être réenvoyé |
+| Étapes envoyées et horodatage (`iam.reactivation_email`) | Jusqu'à la suppression du compte (`ON DELETE CASCADE`) | Registre d'idempotence : sans lui, un même message pourrait être réenvoyé |
 | Date d'opposition (`reactivation_opted_out_at`) | Jusqu'à la suppression du compte | Art. 21 RGPD — l'opposition doit continuer d'être respectée tant que le compte existe |
 | Adresse email et prénom | Cf. traitement n°1 | Aucune copie distincte n'est constituée : les données sont lues dans le compte utilisateur |
 

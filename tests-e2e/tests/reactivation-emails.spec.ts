@@ -56,6 +56,7 @@ interface ReactivationUser {
   email: string;
   password: string;
   organizationId: string;
+  userId: string;
 }
 
 /**
@@ -85,7 +86,13 @@ async function registerVerifiedUser(
     )
   );
 
-  return { email, password, organizationId };
+  const userId = await withDb(async (client) => {
+    const result = await client.query(`SELECT user__id FROM iam.user WHERE email = $1`, [email]);
+    expect(result.rowCount, `user ${email} should exist`).toBe(1);
+    return String(result.rows[0].user__id);
+  });
+
+  return { email, password, organizationId, userId };
 }
 
 /**
@@ -103,13 +110,12 @@ async function ageSignupByDays(email: string, days: number): Promise<void> {
   expect(result.rowCount, `signup date of ${email} should have been aged`).toBe(1);
 }
 
-/** Count reactivation steps recorded for an organization. */
-async function recordedSteps(organizationId: string): Promise<number[]> {
+/** Reactivation steps recorded for a reader. */
+async function recordedSteps(userId: string): Promise<number[]> {
   const result = await withDb((client) =>
-    client.query(
-      "SELECT step FROM iam.reactivation_email WHERE organization__id = $1 ORDER BY step",
-      [organizationId]
-    )
+    client.query("SELECT step FROM iam.reactivation_email WHERE user__id = $1 ORDER BY step", [
+      userId,
+    ])
   );
   return result.rows.map((row: { step: number }) => Number(row.step));
 }
@@ -118,14 +124,14 @@ async function recordedSteps(organizationId: string): Promise<number[]> {
  * Push a recorded step's send time into the past so the minimum spacing before
  * the next step of the sequence is satisfied.
  */
-async function backdateStepSent(organizationId: string, step: number, days: number): Promise<void> {
+async function backdateStepSent(userId: string, step: number, days: number): Promise<void> {
   const result = await withDb((client) =>
     client.query(
-      `UPDATE iam.reactivation_email SET sent_at = NOW() - MAKE_INTERVAL(days => $3) WHERE organization__id = $1 AND step = $2`,
-      [organizationId, step, days]
+      `UPDATE iam.reactivation_email SET sent_at = NOW() - MAKE_INTERVAL(days => $3) WHERE user__id = $1 AND step = $2`,
+      [userId, step, days]
     )
   );
-  expect(result.rowCount, `step ${step} of ${organizationId} should have been aged`).toBe(1);
+  expect(result.rowCount, `step ${step} of ${userId} should have been aged`).toBe(1);
 }
 
 /** Whether the account asked to stop receiving the drip. */
@@ -283,7 +289,7 @@ test.describe("Reactivation drip for accounts that never sent an event", () => {
     expect(html, "the greeting must carry the recipient's name at all").toContain("&lt;script&gt;");
     expect(html).not.toContain("<script");
 
-    expect(await recordedSteps(user.organizationId), "step 1 is recorded as sent").toContain(1);
+    expect(await recordedSteps(user.userId), "step 1 is recorded as sent").toContain(1);
   });
 
   test("never sends twice for the same step", async ({ request }) => {
@@ -342,7 +348,7 @@ test.describe("Reactivation drip for accounts that never sent an event", () => {
     // Only the one that stayed subscribed may hear from us again.
     for (const account of [control, leaver]) {
       await ageSignupByDays(account.email, 4);
-      await backdateStepSent(account.organizationId, 1, 3);
+      await backdateStepSent(account.userId, 1, 3);
     }
 
     await getEmailFromMailpit(request, control.email, DAY3_SUBJECT, DRIP_WAIT_MS);
@@ -352,7 +358,7 @@ test.describe("Reactivation drip for accounts that never sent an event", () => {
       "an account that opted out must never receive the next step"
     ).toBe(0);
     expect(
-      await recordedSteps(leaver.organizationId),
+      await recordedSteps(leaver.userId),
       "no further step may be claimed after an opt-out"
     ).toEqual([1]);
   });
@@ -431,7 +437,7 @@ test.describe("Reactivation drip for accounts that never sent an event", () => {
       "an account that already ingested an event must be left alone"
     ).toBe(0);
     expect(
-      await recordedSteps(activated.organizationId),
+      await recordedSteps(activated.userId),
       "no step may be claimed for an activated organization"
     ).toEqual([]);
   });

@@ -135,7 +135,6 @@ pub struct ReactivationConfig {
 /// One recipient selected for a given step (the org's registrant).
 #[derive(Debug)]
 struct Candidate {
-    organization_id: Uuid,
     user_id: Uuid,
     step: i16,
     email: String,
@@ -180,7 +179,7 @@ async fn run_reactivation_pass(
     for candidate in planned {
         // Exclusive claim BEFORE sending. A lost race (another instance) or an
         // already-recorded step yields false → skip, so no step is sent twice.
-        if !claim_step(db, &candidate.organization_id, candidate.step).await? {
+        if !claim_step(db, &candidate.user_id, candidate.step).await? {
             continue;
         }
 
@@ -193,8 +192,7 @@ async fn run_reactivation_pass(
                     error = %e,
                     "reactivation email send failed; releasing claim for retry"
                 );
-                if let Err(release_err) =
-                    release_step(db, &candidate.organization_id, candidate.step).await
+                if let Err(release_err) = release_step(db, &candidate.user_id, candidate.step).await
                 {
                     error!(
                         target: "api::reactivation",
@@ -258,12 +256,10 @@ async fn select_candidates(
     let rows = sqlx::query!(
         r#"
             SELECT
-                o.organization__id AS "organization_id!",
                 u.user__id AS "user_id!",
                 u.email AS "email!",
                 u.first_name AS "first_name!"
-            FROM iam.organization AS o
-            INNER JOIN iam.user AS u ON u.user__id = o.created_by
+            FROM iam.user AS u
             WHERE u.email_verified_at IS NOT NULL
               -- Honour the opt-out offered in every reactivation email.
               AND u.reactivation_opted_out_at IS NULL
@@ -271,40 +267,36 @@ async fn select_candidates(
               -- Onboarding nudge, not win-back: past this age the sign-up is no
               -- longer fresh and the account is left alone for good.
               AND u.created_at > statement_timestamp() - MAKE_INTERVAL(days => $6)
-              -- "Org has never ingested an event": this NOT EXISTS is the
-              -- canonical "event sent" signal, intentionally mirrored inline
-              -- here for a set-based batch job rather than calling per-org into
+              -- Registered at least one organization: the mail talks about
+              -- sending a first event, which needs somewhere to send it from.
+              AND EXISTS (
+                  SELECT 1 FROM iam.organization AS o
+                  WHERE o.created_by = u.user__id
+              )
+              -- "This reader has never ingested an event", across every
+              -- organization they registered. This NOT EXISTS is the canonical
+              -- "event sent" signal, intentionally mirrored inline here for a
+              -- set-based batch job rather than calling per-org into
               -- onboarding.rs. It must stay in sync with the `event` projection
               -- of `get_organization_onboarding_steps` in api/src/onboarding.rs
               -- (same event.event ⋈ event.application on organization__id); a
               -- change to that definition is a known sync point for this query.
               AND NOT EXISTS (
                   SELECT 1
-                  FROM event.event AS e
-                  INNER JOIN event.application AS a ON e.application__id = a.application__id
-                  WHERE a.organization__id = o.organization__id
+                  FROM iam.organization AS o
+                  INNER JOIN event.application AS a ON a.organization__id = o.organization__id
+                  INNER JOIN event.event AS e ON e.application__id = a.application__id
+                  WHERE o.created_by = u.user__id
               )
-              -- Already sent this step to this reader, for ANY of their
-              -- organizations. Claims are per organization (that is what makes
-              -- them an exclusive lock across instances), but the mail lands in
-              -- a person's inbox and the messages never name an organization —
-              -- so a reader with two dormant orgs would otherwise receive the
-              -- same text once per org, one pass apart.
               AND NOT EXISTS (
-                  SELECT 1
-                  FROM iam.reactivation_email AS re
-                  INNER JOIN iam.organization AS ro
-                      ON ro.organization__id = re.organization__id
-                  WHERE ro.created_by = u.user__id AND re.step = $2
+                  SELECT 1 FROM iam.reactivation_email AS re
+                  WHERE re.user__id = u.user__id AND re.step = $2
               )
               AND (
                   $3::smallint IS NULL
                   OR EXISTS (
-                      SELECT 1
-                      FROM iam.reactivation_email AS rp
-                      INNER JOIN iam.organization AS rpo
-                          ON rpo.organization__id = rp.organization__id
-                      WHERE rpo.created_by = u.user__id
+                      SELECT 1 FROM iam.reactivation_email AS rp
+                      WHERE rp.user__id = u.user__id
                         AND rp.step = $3
                         AND rp.sent_at <= statement_timestamp() - MAKE_INTERVAL(days => $5)
                   )
@@ -325,7 +317,6 @@ async fn select_candidates(
     Ok(rows
         .into_iter()
         .map(|r| Candidate {
-            organization_id: r.organization_id,
             user_id: r.user_id,
             step,
             email: r.email,
@@ -336,14 +327,14 @@ async fn select_candidates(
 
 /// Atomically claim (organization, step). Returns true only if THIS call
 /// inserted the row, i.e. it now owns the send. Concurrent callers get false.
-async fn claim_step(db: &PgPool, organization_id: &Uuid, step: i16) -> Result<bool, sqlx::Error> {
+async fn claim_step(db: &PgPool, user_id: &Uuid, step: i16) -> Result<bool, sqlx::Error> {
     let res = sqlx::query!(
         r#"
-            INSERT INTO iam.reactivation_email (organization__id, step)
+            INSERT INTO iam.reactivation_email (user__id, step)
             VALUES ($1, $2)
-            ON CONFLICT (organization__id, step) DO NOTHING
+            ON CONFLICT (user__id, step) DO NOTHING
         "#,
-        organization_id,
+        user_id,
         step,
     )
     .execute(db)
@@ -353,10 +344,10 @@ async fn claim_step(db: &PgPool, organization_id: &Uuid, step: i16) -> Result<bo
 }
 
 /// Undo a claim after a failed send so a later pass retries the step.
-async fn release_step(db: &PgPool, organization_id: &Uuid, step: i16) -> Result<(), sqlx::Error> {
+async fn release_step(db: &PgPool, user_id: &Uuid, step: i16) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        "DELETE FROM iam.reactivation_email WHERE organization__id = $1 AND step = $2",
-        organization_id,
+        "DELETE FROM iam.reactivation_email WHERE user__id = $1 AND step = $2",
+        user_id,
         step,
     )
     .execute(db)
@@ -453,12 +444,12 @@ mod tests {
 
     /// Push a recorded step's send time `days` into the past so the minimum
     /// spacing before the next step is satisfied.
-    async fn backdate_step_sent(pool: &PgPool, org: Uuid, step: i16, days: i32) {
+    async fn backdate_step_sent(pool: &PgPool, user: Uuid, step: i16, days: i32) {
         sqlx::query(
-            r#"UPDATE iam.reactivation_email SET sent_at = statement_timestamp() - MAKE_INTERVAL(days => $1) WHERE organization__id = $2 AND step = $3"#,
+            r#"UPDATE iam.reactivation_email SET sent_at = statement_timestamp() - MAKE_INTERVAL(days => $1) WHERE user__id = $2 AND step = $3"#,
         )
         .bind(days)
-        .bind(org)
+        .bind(user)
         .bind(step)
         .execute(pool)
         .await
@@ -487,11 +478,11 @@ mod tests {
     }
 
     /// The steps recorded for an org, ascending.
-    async fn steps_sent(pool: &PgPool, org: Uuid) -> Vec<i16> {
+    async fn steps_sent(pool: &PgPool, user: Uuid) -> Vec<i16> {
         let rows: Vec<(i16,)> = sqlx::query_as(
-            "SELECT step FROM iam.reactivation_email WHERE organization__id = $1 ORDER BY step",
+            "SELECT step FROM iam.reactivation_email WHERE user__id = $1 ORDER BY step",
         )
-        .bind(org)
+        .bind(user)
         .fetch_all(pool)
         .await
         .expect("read steps");
@@ -518,7 +509,7 @@ mod tests {
     #[sqlx::test]
     async fn eligible_verified_dormant_org_is_selected(pool: PgPool) {
         let user = seed_user(&pool).await;
-        let org = seed_org(&pool, user).await;
+        let _org = seed_org(&pool, user).await;
         backdate_signup(&pool, user, 2).await;
 
         let candidates = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
@@ -526,7 +517,7 @@ mod tests {
             .expect("select");
 
         assert_eq!(candidates.len(), 1);
-        assert_eq!(candidates[0].organization_id, org);
+        assert_eq!(candidates[0].user_id, user);
         assert_eq!(candidates[0].step, STEP_DAY1);
     }
 
@@ -607,7 +598,6 @@ mod tests {
 
         for spec in STEPS.iter() {
             let candidate = Candidate {
-                organization_id: Uuid::new_v4(),
                 user_id: Uuid::new_v4(),
                 step: spec.step,
                 email: "reader@example.com".to_owned(),
@@ -658,7 +648,7 @@ mod tests {
             .await
             .expect("select d1");
 
-        let selected: Vec<_> = candidates.iter().map(|c| c.organization_id).collect();
+        let selected: Vec<_> = candidates.iter().map(|c| c.user_id).collect();
         assert!(
             selected.contains(&fresh_org),
             "a recent dormant sign-up is still nudged"
@@ -674,7 +664,7 @@ mod tests {
     #[sqlx::test]
     async fn the_upper_bound_itself_is_excluded(pool: PgPool) {
         let user = seed_user(&pool).await;
-        let org = seed_org(&pool, user).await;
+        let _org = seed_org(&pool, user).await;
         backdate_signup(&pool, user, MAX_SIGNUP_AGE_DAYS).await;
 
         let candidates = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
@@ -682,7 +672,7 @@ mod tests {
             .expect("select d1");
 
         assert!(
-            !candidates.iter().any(|c| c.organization_id == org),
+            !candidates.iter().any(|c| c.user_id == user),
             "the bound is exclusive"
         );
     }
@@ -729,7 +719,7 @@ mod tests {
             .await
             .expect("select after");
         assert_eq!(after.len(), 1);
-        assert_eq!(after[0].organization_id, org);
+        assert_eq!(after[0].user_id, user);
     }
 
     /// A dormant backlog account (old enough for every threshold) does NOT get
@@ -763,7 +753,7 @@ mod tests {
         let ready = collect_pass(&pool, &config).await.expect("collect ready");
         assert_eq!(ready.len(), 1);
         assert_eq!(ready[0].step, STEP_DAY3);
-        assert_eq!(ready[0].organization_id, org);
+        assert_eq!(ready[0].user_id, user);
     }
 
     /// Claiming a step is idempotent: the second attempt reports "not claimed".
@@ -802,39 +792,43 @@ mod tests {
         assert_eq!(released.len(), 1);
     }
 
-    /// One pass offers at most one step per org, even when the account is old
+    /// One pass offers at most one step per reader, even when the account is old
     /// enough for every threshold (no predecessor rows exist yet).
     #[sqlx::test]
-    async fn collect_pass_offers_one_step_per_org(pool: PgPool) {
+    async fn collect_pass_offers_one_step_per_reader(pool: PgPool) {
         let user = seed_user(&pool).await;
-        let org = seed_org(&pool, user).await;
+        let _org = seed_org(&pool, user).await;
         backdate_signup(&pool, user, 10).await;
 
         let config = test_config(NO_LIMIT);
         let planned = collect_pass(&pool, &config).await.expect("collect");
 
-        assert_eq!(planned.len(), 1, "at most one step per org per pass");
+        assert_eq!(planned.len(), 1, "at most one step per reader per pass");
         assert_eq!(planned[0].step, STEP_DAY1);
-        assert_eq!(planned[0].organization_id, org);
+        assert_eq!(planned[0].user_id, user);
     }
 
-    /// One reader, several organizations: the claim table is keyed per
-    /// organization, but the mail lands in one inbox. Nothing caps how many
-    /// organizations an account may create, so without a per-recipient guard a
-    /// single pass would send the same message once per dormant organization.
+    /// One reader, several organizations: the mail lands in one inbox and never
+    /// names an organization, and nothing caps how many an account may create.
+    /// The step is claimed for the reader, so the second organization can never
+    /// produce a second copy — not in this pass, not in the next one, and not
+    /// from another API instance racing this one.
     #[sqlx::test]
-    async fn a_reader_with_several_organizations_is_mailed_once_per_pass(pool: PgPool) {
+    async fn a_reader_with_several_organizations_is_mailed_once(pool: PgPool) {
         let user = seed_user(&pool).await;
-        let first_org = seed_org(&pool, user).await;
-        let second_org = seed_org(&pool, user).await;
+        let _first_org = seed_org(&pool, user).await;
+        let _second_org = seed_org(&pool, user).await;
         backdate_signup(&pool, user, 2).await;
 
-        // Both organizations qualify on their own.
+        // The reader is offered once, not once per organization.
         let selected = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
             .await
             .expect("select");
-        let orgs: Vec<_> = selected.iter().map(|c| c.organization_id).collect();
-        assert!(orgs.contains(&first_org) && orgs.contains(&second_org));
+        assert_eq!(
+            selected.len(),
+            1,
+            "the selection is per reader, whatever they registered"
+        );
 
         let config = test_config(NO_LIMIT);
         let planned = collect_pass(&pool, &config).await.expect("collect");
@@ -846,14 +840,19 @@ mod tests {
         );
         assert_eq!(planned[0].user_id, user);
 
-        // ...and the pass after it, once the first organization has claimed the
-        // step. Deduplicating inside a pass alone would only postpone the
-        // duplicate: the second organization is still unclaimed, so the same
-        // reader would get the identical message on the very next run.
+        // The claim is the reader's, so a second attempt at the same step —
+        // the next pass, or another API instance mid-pass — is refused rather
+        // than landing on the reader's other organization.
         assert!(
-            claim_step(&pool, &planned[0].organization_id, planned[0].step)
+            claim_step(&pool, &planned[0].user_id, planned[0].step)
                 .await
                 .expect("claim")
+        );
+        assert!(
+            !claim_step(&pool, &user, STEP_DAY1)
+                .await
+                .expect("second claim"),
+            "a concurrent instance must not be able to claim the same step again"
         );
         let next = collect_pass(&pool, &config).await.expect("collect next");
         assert!(
@@ -889,7 +888,7 @@ mod tests {
             assert_eq!(planned.len(), 1);
             assert_eq!(planned[0].step, expected_step);
             assert!(
-                claim_step(&pool, &planned[0].organization_id, planned[0].step)
+                claim_step(&pool, &planned[0].user_id, planned[0].step)
                     .await
                     .expect("claim")
             );
@@ -961,7 +960,7 @@ mod tests {
             1,
             "org must remain eligible after a failed send"
         );
-        assert_eq!(next[0].organization_id, org);
+        assert_eq!(next[0].user_id, user);
         assert_eq!(next[0].step, STEP_DAY1);
     }
 }
