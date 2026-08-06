@@ -2,7 +2,10 @@ use chrono::Datelike;
 use html2text::from_read;
 use lettre::message::{Mailbox, MultiPart};
 use lettre::{Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
+use regex::{Captures, Regex};
+use std::collections::HashMap;
 use std::string::String;
+use std::sync::LazyLock;
 use std::time::Duration;
 use tracing::{info, warn};
 use url::Url;
@@ -163,6 +166,37 @@ const MJML_FOOTER_COMMERCIAL: &str = r##"      </mj-column>
   </mj-body>
 </mjml>
 "##;
+
+/// Matches the `{ $name }` placeholders of the MJML templates.
+static PLACEHOLDER: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\{ \$(\w+) \}").expect("placeholder regex must compile"));
+
+/// Escape a value before it is substituted into the MJML source.
+///
+/// MRML parses the MJML as XML, so a substituted value IS markup unless it is
+/// escaped. Some of these values are attacker-controlled: `recipient_first_name`
+/// comes straight from the `first_name` field of the public registration
+/// endpoint, and the recipient is whatever address the registration was made
+/// with. Unescaped, a well-formed `<a href="…">Verify</a>` (well within the
+/// 50-char limit of the field) ships a clickable attacker link inside a
+/// DKIM-signed Hook0 email, and a malformed one (`Bob</b>`, `A & B`) fails the
+/// XML parse and turns signup into a 500.
+fn xml_escape(value: &str) -> String {
+    let mut escaped = String::with_capacity(value.len());
+    for c in value.chars() {
+        match c {
+            '&' => escaped.push_str("&amp;"),
+            '<' => escaped.push_str("&lt;"),
+            '>' => escaped.push_str("&gt;"),
+            '"' => escaped.push_str("&quot;"),
+            // Numeric reference rather than `&apos;`, which predates HTML5 and
+            // is not understood by every mail client.
+            '\'' => escaped.push_str("&#39;"),
+            _ => escaped.push(c),
+        }
+    }
+    escaped
+}
 
 /// Append Matomo tracking parameters to a URL while preserving existing
 /// query string and fragment. Used to tag every clickable link in
@@ -388,34 +422,43 @@ impl Mail {
             MJML_FOOTER_TRANSACTIONAL
         };
 
-        let mut mjml = format!("{}{}{}", MJML_HEADER, self.template(), footer);
+        let mjml = format!("{}{}{}", MJML_HEADER, self.template(), footer);
+
+        // Every value is escaped on the way in — see `xml_escape`. Escaping the
+        // URLs too is not cosmetic: the Matomo tagging turns each one into a
+        // `…?token=x&mtm_source=email` which needs its `&` escaped to be valid
+        // XML for the MRML parser.
+        let mut variables = HashMap::<String, String>::new();
+        let mut set = |key: &str, value: &str| {
+            variables.insert(key.to_owned(), xml_escape(value));
+        };
 
         // Preheader (per-mail static text)
-        mjml = mjml.replace("{ $preheader }", self.preheader());
+        set("preheader", self.preheader());
 
         // Recipient greeting — substituted unconditionally; the fallback
         // above ensures the placeholder is never left empty.
-        mjml = mjml.replace("{ $recipient_first_name }", recipient_first_name);
+        set("recipient_first_name", recipient_first_name);
 
         // Untracked globals
-        mjml = mjml.replace("{ $logo_url }", logo_url.as_str());
-        mjml = mjml.replace("{ $website_url }", website_url.as_str());
-        mjml = mjml.replace("{ $app_url }", app_url.as_str());
-        mjml = mjml.replace("{ $support_email_address }", support_email_address.as_ref());
+        set("logo_url", logo_url.as_str());
+        set("website_url", website_url.as_str());
+        set("app_url", app_url.as_str());
+        set("support_email_address", support_email_address.as_ref());
 
         // Tracked globals
-        mjml = mjml.replace("{ $app_url_tracked }", &with_matomo(app_url, campaign));
-        mjml = mjml.replace("{ $doc_url_tracked }", &with_matomo(doc_url, campaign));
-        mjml = mjml.replace(
-            "{ $privacy_policy_url_tracked }",
+        set("app_url_tracked", &with_matomo(app_url, campaign));
+        set("doc_url_tracked", &with_matomo(doc_url, campaign));
+        set(
+            "privacy_policy_url_tracked",
             &with_matomo(privacy_policy_url, campaign),
         );
 
         // Text globals
-        mjml = mjml.replace("{ $company_legal_name }", company_legal_name);
-        mjml = mjml.replace("{ $company_postal_address }", company_postal_address);
-        mjml = mjml.replace("{ $company_rcs }", company_rcs);
-        mjml = mjml.replace("{ $current_year }", &chrono::Utc::now().year().to_string());
+        set("company_legal_name", company_legal_name);
+        set("company_postal_address", company_postal_address);
+        set("company_rcs", company_rcs);
+        set("current_year", &chrono::Utc::now().year().to_string());
 
         // Per-mail composite tracked URL: pricing_url_tracked = website_url + pricing_url_hash
         if let Some(pricing_hash) = match self {
@@ -432,19 +475,33 @@ impl Mail {
                 Ok(parsed) => with_matomo(&parsed, campaign),
                 Err(_) => composite,
             };
-            mjml = mjml.replace("{ $pricing_url_tracked }", &pricing_tracked);
+            set("pricing_url_tracked", &pricing_tracked);
         }
 
         // Per-mail tracked URLs
         for (key, url) in self.tracked_urls() {
-            mjml = mjml.replace(&format!("{{ ${key} }}"), &with_matomo(&url, campaign));
+            set(&key, &with_matomo(&url, campaign));
         }
 
         // Per-mail text variables (including extra_variables which may already
         // contain pre-tracked URLs computed by handlers, e.g. quotas dashboard).
         for (key, value) in self.variables() {
-            mjml = mjml.replace(&format!("{{ ${key} }}"), &value);
+            set(&key, &value);
         }
+
+        // One single pass over the template: a substituted value is never
+        // rescanned, so a value that happens to contain `{ $url }` cannot pull
+        // in another variable. Unknown placeholders are left as-is so a
+        // template/variable mismatch surfaces in the rendered output instead of
+        // silently vanishing.
+        let mjml = PLACEHOLDER
+            .replace_all(&mjml, |caps: &Captures| {
+                variables
+                    .get(&caps[1])
+                    .cloned()
+                    .unwrap_or_else(|| caps[0].to_owned())
+            })
+            .into_owned();
 
         let parsed = mrml::parse(mjml)?;
         let rendered = parsed.element.render(&Default::default())?;
@@ -532,6 +589,7 @@ impl Mailer {
 
 #[cfg(test)]
 mod tests {
+    use proptest::prelude::*;
     use std::str::FromStr;
 
     use super::*;
@@ -920,6 +978,150 @@ mod tests {
                 !html.contains("Hi ,") && !html.contains("Hi  "),
                 "Greeting must not have an empty name placeholder in {:?}",
                 mail.matomo_campaign()
+            );
+        }
+    }
+
+    /// Test #16 — a recipient name carrying well-formed markup must not
+    /// become markup. `first_name` is free text on the public registration
+    /// endpoint and the mail is delivered to whichever address the
+    /// registration used, so an unescaped `<a href>` would put an
+    /// attacker-chosen clickable link inside a DKIM-signed Hook0 email sent
+    /// to a third party. The payload staying visible as *text* is fine and
+    /// expected — what must not happen is it becoming a link, in either the
+    /// HTML part or the text/plain one derived from it.
+    #[test]
+    fn markup_in_recipient_name_is_never_rendered_as_markup() {
+        let verify_url = || Url::from_str("https://app.hook0.com/verify-email?token=abc").unwrap();
+        let baseline = render(&Mail::VerifyUserEmail {
+            recipient_first_name: Some("Sarah".to_owned()),
+            url: verify_url(),
+        });
+
+        // All within the 50-char cap the registration endpoint enforces.
+        let payloads = [
+            r#"<a href="https://evil.tld">Verify</a>"#,
+            r#"<a href="//evil.tld">Click</a>"#,
+            r#"Sarah<style>*{display:none}</style>"#,
+            r#"<b>Sarah</b>"#,
+        ];
+        for payload in payloads {
+            let mail = Mail::VerifyUserEmail {
+                recipient_first_name: Some(payload.to_owned()),
+                url: verify_url(),
+            };
+            let html = render(&mail);
+            assert!(
+                !html.contains("href=\"https://evil.tld") && !html.contains("href=\"//evil.tld"),
+                "Attacker host became a link target in the HTML part for {payload:?}"
+            );
+            assert_eq!(
+                html.matches("<a ").count(),
+                baseline.matches("<a ").count(),
+                "Recipient name {payload:?} changed the number of links in the mail"
+            );
+            assert!(
+                html.contains(&xml_escape(payload)),
+                "Recipient name must appear escaped, verbatim, for {payload:?}"
+            );
+
+            // html2text renders a link as `[label][n]` plus a `[n]: <url>`
+            // reference block, so an attacker link would surface there.
+            let plain = from_read(html.as_bytes(), 80).expect("plain text rendering");
+            assert!(
+                !plain.contains("]: https://evil.tld") && !plain.contains("]: //evil.tld"),
+                "Attacker host became a link reference in the text/plain part for {payload:?}"
+            );
+        }
+    }
+
+    /// Test #17 — a recipient name carrying *malformed* markup must still
+    /// render. MRML parses the MJML as XML, so before escaping a legitimate
+    /// name such as `A & B` or an unbalanced tag aborted the render, and
+    /// signup answered 500 with no account created.
+    #[test]
+    fn malformed_markup_in_recipient_name_still_renders() {
+        for payload in ["A & B", "Sarah</b>", "<3 Sarah", r#"Sa"rah"#, "O'Brien"] {
+            let mail = Mail::VerifyUserEmail {
+                recipient_first_name: Some(payload.to_owned()),
+                url: Url::from_str("https://app.hook0.com/verify-email?token=abc").unwrap(),
+            };
+            let (logo, website, app, doc, privacy, support, legal_name, postal, rcs) = fixture();
+            let rendered = mail.render(
+                &logo,
+                &website,
+                &app,
+                &doc,
+                &privacy,
+                &support,
+                &legal_name,
+                &postal,
+                &rcs,
+            );
+            assert!(
+                rendered.is_ok(),
+                "Render must succeed for the legitimate name {payload:?}"
+            );
+        }
+    }
+
+    /// Test #18 — a substituted value is never rescanned for placeholders,
+    /// so a recipient name that looks like a placeholder stays literal
+    /// instead of pulling in another variable's value.
+    #[test]
+    fn placeholder_shaped_recipient_name_is_not_substituted() {
+        let mail = Mail::VerifyUserEmail {
+            recipient_first_name: Some("{ $url }".to_owned()),
+            url: Url::from_str("https://app.hook0.com/verify-email?token=SECRET").unwrap(),
+        };
+        let html = render(&mail);
+        let greeting_start = html.find("Hi ").expect("greeting must be present");
+        let greeting_end = html[greeting_start..]
+            .find("confirm this address")
+            .map(|offset| greeting_start + offset)
+            .expect("greeting must be present");
+        let greeting = &html[greeting_start..greeting_end];
+        assert!(
+            !greeting.contains("SECRET"),
+            "Placeholder-shaped name pulled in another variable: {greeting}"
+        );
+        assert!(
+            greeting.contains("{ $url }"),
+            "Placeholder-shaped name must stay literal: {greeting}"
+        );
+    }
+
+    proptest! {
+        // Any name the registration endpoint accepts (1..=50 chars, no control
+        // character — see `RegistrationPost`) renders, and renders without
+        // adding a single link to the mail. Anchors are counted rather than
+        // pattern-matched so any escaping hole shows up whatever markup it
+        // was smuggled through.
+        #[test]
+        fn any_accepted_first_name_renders_without_adding_links(
+            name in "[^\\u{0}-\\u{1f}\\u{7f}]{1,50}"
+        ) {
+            let mail = |first_name: &str| Mail::VerifyUserEmail {
+                recipient_first_name: Some(first_name.to_owned()),
+                url: Url::from_str("https://app.hook0.com/verify-email?token=abc").unwrap(),
+            };
+            let (logo, website, app, doc, privacy, support, legal_name, postal, rcs) = fixture();
+            let render_html = |mail: Mail| {
+                mail.render(
+                    &logo, &website, &app, &doc, &privacy, &support, &legal_name, &postal, &rcs,
+                )
+            };
+
+            let baseline = render_html(mail("Sarah")).expect("baseline render must succeed");
+            let rendered = render_html(mail(&name));
+            prop_assert!(rendered.is_ok(), "Render must succeed for {name:?}");
+
+            let html = rendered.expect("checked above");
+            prop_assert_eq!(
+                html.matches("<a ").count(),
+                baseline.matches("<a ").count(),
+                "Recipient name {:?} changed the number of links in the mail",
+                name
             );
         }
     }
