@@ -1075,6 +1075,60 @@ pub(crate) mod test_support {
     /// not a mock of any code under test.
     pub(crate) const DEAD_SMTP_CONNECTION_URL: &str = "smtp://127.0.0.1:2";
 
+    /// Attach a user to an organization with a role, so authorization passes.
+    pub(crate) async fn seed_membership(pool: &PgPool, user: Uuid, org: Uuid, role: &str) {
+        sqlx::query(
+            "INSERT INTO iam.user__organization (user__id, organization__id, role) VALUES ($1, $2, $3)",
+        )
+        .bind(user)
+        .bind(org)
+        .bind(role)
+        .execute(pool)
+        .await
+        .expect("seed membership");
+    }
+
+    /// Mint a user access token for (user, org, role) and persist the matching
+    /// `iam.token` row, so the biscuit middleware accepts it like a real login.
+    pub(crate) async fn issue_user_token(
+        pool: &PgPool,
+        private_key: &biscuit_auth::PrivateKey,
+        user: Uuid,
+        org: Uuid,
+        role: &str,
+    ) -> String {
+        let token_id = Uuid::new_v4();
+        let session_id = Uuid::new_v4();
+        let token = crate::iam::create_user_access_token(
+            private_key,
+            token_id,
+            session_id,
+            user,
+            "e2e@example.com",
+            "E2E",
+            "User",
+            vec![(org, role.to_string())],
+        )
+        .expect("mint user access token");
+
+        sqlx::query(
+            r#"
+                INSERT INTO iam.token (token__id, type, revocation_id, expired_at, user__id, session_id)
+                VALUES ($1, 'user_access', $2, $3, $4, $5)
+            "#,
+        )
+        .bind(token_id)
+        .bind(&token.revocation_id)
+        .bind(token.expired_at)
+        .bind(user)
+        .bind(session_id)
+        .execute(pool)
+        .await
+        .expect("persist token");
+
+        token.serialized_biscuit
+    }
+
     /// Build a `State` suitable for handler tests: real DB pool + real Google
     /// Ads client (pointed at the fake server by the caller), everything else
     /// inert (no Pulsar, no object storage, no Hook0 self-eventing, quotas

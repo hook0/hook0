@@ -121,7 +121,7 @@ Subscriptions define:
 - Target HTTP endpoint (URL, method, headers)
 - [Labels](/concepts/labels) for [multi-tenant routing](/how-to-guides/multi-tenant-architecture)
 - [Metadata](/concepts/metadata) (key-value pairs for custom context)
-- An auto-generated [secret](/concepts/application-secrets) for [HMAC signature verification](/tutorials/webhook-authentication)
+- An auto-generated [secret](/concepts/subscriptions#subscription-secrets) for [HMAC signature verification](/tutorials/webhook-authentication)
 
 ## Design decisions
 

@@ -6,7 +6,7 @@ keywords: [secure webhook endpoints, webhook endpoint security, webhook replay a
 
 # Securing webhook endpoints
 
-Security practices for webhook endpoints, from signature verification to attack detection. Covers protecting your webhook receivers against common attacks using [application secrets](/concepts/application-secrets) and [subscription](/concepts/subscriptions) configuration.
+Security practices for webhook endpoints, from signature verification to attack detection. Covers protecting your webhook receivers against common attacks using [subscription signing secrets](/concepts/subscriptions#subscription-secrets) and [subscription](/concepts/subscriptions) configuration.
 
 ## Quick Start (5 minutes)
 

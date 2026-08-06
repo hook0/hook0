@@ -961,7 +961,13 @@
       "startStep1": "Start setup",
       "subDesc": "Delivery target",
       "subtitle": "This tutorial will help you get started quickly with Hook0.",
-      "title": "Welcome to Hook0"
+      "title": "Welcome to Hook0",
+      "useCaseEcommerce": "E-commerce",
+      "useCaseHint": "Optional — we'll tailor the example event to your use case. You can skip this.",
+      "useCaseMicroservices": "Internal microservices",
+      "useCaseOther": "Other",
+      "useCaseSaasB2b": "SaaS B2B (multi-tenant)",
+      "useCaseTitle": "What are you building?"
     },
     "orgAppIdRequired": "Organization ID and Application ID are required",
     "organizationCreated": "Organization created",
