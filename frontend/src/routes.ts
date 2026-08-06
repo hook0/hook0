@@ -12,6 +12,7 @@ export const routes = {
   Login: 'Login',
   Register: 'Register',
   VerifyEmail: 'VerifyEmail',
+  UnsubscribeReactivation: 'UnsubscribeReactivation',
   UserSettings: 'UserSettings',
   BeginResetPassword: 'BeginResetPassword',
   ResetPassword: 'ResetPassword',
@@ -123,6 +124,22 @@ export default [
     path: '/verify-email',
     component: () => import('@/pages/user/VerifyEmail.vue'),
     meta: { requiresAuth: false, fullScreen: true, title: 'Verify Email' },
+  },
+  {
+    name: routes.UnsubscribeReactivation,
+    path: '/unsubscribe',
+    component: () => import('@/pages/user/UnsubscribeReactivation.vue'),
+    meta: {
+      requiresAuth: false,
+      // A reader who is signed in is still entitled to stop the reminders;
+      // bouncing them Home would silently drop the opt-out they just asked for.
+      redirectIfLoggedIn: false,
+      fullScreen: true,
+      title: 'Unsubscribe',
+      // analyticsIgnore: this URL carries the opt-out token in its query string;
+      // it must never reach the analytics backend as a tracked page.
+      analyticsIgnore: true,
+    },
   },
   {
     name: routes.CheckEmail,

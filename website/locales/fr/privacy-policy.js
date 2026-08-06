@@ -47,13 +47,13 @@
 module.exports = {
   pageTitle: 'Hook0 - Politique de confidentialité',
   pageDescription: 'Politique de confidentialité Hook0, conforme à l\'article 13 du RGPD. Bases légales, durées de conservation, vos droits, sous-traitants et transferts hors UE.',
-  pageModified: '2026-08-01',
+  pageModified: '2026-08-06',
   hero: {
     eyebrow: 'Mentions légales',
     title: 'Politique de confidentialité',
     subtitle: 'Comment Hook0 collecte, utilise et protège vos données personnelles, conformément à l\'article 13 du RGPD.',
     lastUpdatedLabel: 'Dernière mise à jour :',
-    lastUpdatedDate: '1er août 2026',
+    lastUpdatedDate: '6 août 2026',
   },
   controller: {
     title: '1. Responsable du traitement',
@@ -105,6 +105,11 @@ module.exports = {
         purposeHtml: '<strong class="text-white">Sécurité et supervision</strong><br><span class="text-gray-400 text-sm">Suivi des erreurs, monitoring de disponibilité, protection DDoS, gestion des incidents</span>',
         data: 'Adresse IP, traces d\'erreurs, métadonnées des requêtes, résultats de sondes de disponibilité',
         basisHtml: 'Art. 6(1)(f), intérêt légitime (garantir l\'intégrité et la sécurité du service)',
+      },
+      {
+        purposeHtml: '<strong class="text-white">Accompagnement à la prise en main</strong><br><span class="text-gray-400 text-sm">Séquence courte et bornée de trois e-mails aidant les comptes ayant vérifié leur adresse mais n\'ayant encore envoyé aucun événement à terminer leur mise en service. Il ne s\'agit pas de prospection commerciale : aucune offre n\'y est promue. La séquence s\'arrête dès le premier événement envoyé, ne concerne que les inscriptions de moins de 30 jours, et chaque message comporte un lien de désinscription en un clic qui interrompt la totalité de la séquence.</span>',
+        data: 'Adresse e-mail, prénom, dates d\'inscription et de vérification, existence ou non d\'un événement envoyé, étapes déjà envoyées, date d\'opposition',
+        basisHtml: 'Art. 6(1)(f), intérêt légitime (aider un utilisateur inscrit à mettre le service en service)<br><span class="text-gray-400 text-sm">Droit d\'opposition : art. 21 RGPD, exercé en un clic depuis chacun de ces e-mails</span>',
       },
       {
         purposeHtml: '<strong class="text-white">Communications commerciales</strong><br><span class="text-gray-400 text-sm">Mises à jour produit, notes de version, newsletters</span>',

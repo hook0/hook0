@@ -23,6 +23,17 @@ export async function verifyEmail(token: string): Promise<void> {
   return unwrapResponse(http.unauthenticated.post<void>(`/auth/verify-email`, { token }));
 }
 
+/**
+ * Stop the onboarding reactivation reminders for the account the token belongs
+ * to. Unauthenticated on purpose: the link comes from an email and must work
+ * without a session.
+ */
+export async function unsubscribeReactivation(token: string): Promise<void> {
+  return unwrapResponse(
+    http.unauthenticated.post<void>(`/email-preferences/unsubscribe-reactivation`, { token })
+  );
+}
+
 export async function beginResetPassword(email: string): Promise<void> {
   return unwrapResponse(http.unauthenticated.post<void>(`/auth/begin-reset-password`, { email }));
 }

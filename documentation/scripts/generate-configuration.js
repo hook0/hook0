@@ -49,6 +49,7 @@ function generateMarkdown(envVars) {
     'Rate Limiting',
     'Quotas',
     'Housekeeping',
+    'Reactivation',
     'Monitoring',
     'Hook0 Client',
     'Object Storage',

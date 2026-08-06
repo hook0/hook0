@@ -1,0 +1,19 @@
+        <mj-text>
+          <h1>Your first webhook is 5 minutes away</h1>
+        </mj-text>
+        <mj-text padding="14px 0 0 0">
+          Hi { $recipient_first_name }, your Hook0 account is ready but no event has come through yet. The quickest way to see it work: create an application and send one test event to a subscriber.
+        </mj-text>
+        <mj-text padding="8px 0 0 0" font-size="13px" color="#64748b">
+          Most teams have a working webhook in under five minutes. The dashboard walks you through every step.
+        </mj-text>
+        <mj-button href="{ $app_url_tracked }" align="left" padding="20px 0 16px 0">Send your first webhook</mj-button>
+        <mj-text padding="8px 0 0 0" font-size="13px" color="#475569" line-height="1.6">
+          Prefer the command line? Once you have an application secret, a single call sends an event:
+        </mj-text>
+        <mj-text padding="10px 0 0 0">
+          <span class="codelink">curl -X POST "$HOOK0_API_URL/api/v1/event" -H "Authorization: Bearer $HOOK0_APPLICATION_SECRET" -d @event.json</span>
+        </mj-text>
+        <mj-text padding="16px 0 0 0" font-size="13px" color="#475569" line-height="1.6">
+          The <a href="{ $doc_url_tracked }" style="font-weight:600;">5-minute Getting Started guide</a> covers it end to end, including self-hosting if you run Hook0 on your own servers.
+        </mj-text>

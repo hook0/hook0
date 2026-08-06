@@ -1,5 +1,6 @@
 pub mod applications;
 pub mod auth;
+pub mod email_preferences;
 pub mod environment_variables;
 pub mod errors;
 pub mod event_types;
