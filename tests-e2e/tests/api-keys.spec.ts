@@ -208,10 +208,15 @@ test.describe("API Keys", () => {
     const curlPanel = page.locator('[data-test="send-event-curl-panel"]');
     await expect(curlPanel).toBeVisible({ timeout: 10000 });
 
-    // The real token, not a placeholder the user still has to replace.
-    await expect(curlPanel).toContainText(provisionedToken, { timeout: 10000 });
+    // The Authorization header must carry the provisioned token itself. When no
+    // secret can be found the snippet still renders, with an empty credential
+    // (`Bearer '`), which is the regression this pins: asserting on the whole
+    // header fails both on an empty value and on a placeholder.
+    await expect(curlPanel).toContainText(`Authorization: Bearer ${provisionedToken}`, {
+      timeout: 10000,
+    });
+    await expect(curlPanel).not.toContainText("Authorization: Bearer '");
     await expect(curlPanel).toContainText("curl");
-    await expect(curlPanel).not.toContainText("YOUR_APPLICATION_SECRET");
   });
 
   test("should display API keys list with created key", async ({ page, request }) => {

@@ -1,5 +1,6 @@
 use actix_web::web::ReqData;
 use biscuit_auth::Biscuit;
+use chrono::{DateTime, Utc};
 use paperclip::actix::web::{Data, Json, Path, Query};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
@@ -9,7 +10,8 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::hook0_client::{
-    EventApplicationCreated, EventApplicationRemoved, EventApplicationUpdated, Hook0ClientEvent,
+    EventApplicationCreated, EventApplicationRemoved, EventApplicationSecretCreated,
+    EventApplicationUpdated, Hook0ClientEvent,
 };
 use crate::iam::{
     Action, authorize_for_application, authorize_for_organization, get_owner_organization,
@@ -81,7 +83,7 @@ pub struct ApplicationPost {
 
 #[api_v2_operation(
     summary = "Create a new application",
-    description = "Creates a new Hook0 application within an organization. An application is the container for event types, subscriptions, and events. Use this when setting up a new service that will emit or receive webhook events.",
+    description = "Creates a new Hook0 application within an organization. An application is the container for event types, subscriptions, and events. Use this when setting up a new service that will emit or receive webhook events. Creation also provisions an application secret named 'Default', so there is no need to create a first API key afterwards: read it with applicationSecrets.read. That secret is scoped to this application alone, but within it grants full control (sending events, and managing event types, subscriptions and secrets), so it must be handled as a credential.",
     operation_id = "applications.create",
     consumes = "application/json",
     produces = "application/json",
@@ -153,16 +155,22 @@ pub async fn create(
     // without a separate manual step. Reuses the standard secret generation:
     // the `token` column defaults to a random UUID. If this insert fails, the
     // whole transaction rolls back, so an application is never persisted without
-    // its default secret.
-    query!(
+    // its default secret. The token itself is deliberately not returned here:
+    // callers read it back from the application secrets endpoint.
+    struct ProvisionedSecret {
+        created_at: DateTime<Utc>,
+    }
+    let provisioned_secret = query_as!(
+        ProvisionedSecret,
         "
             INSERT INTO event.application_secret (application__id, name)
             VALUES ($1, $2)
+            RETURNING created_at
         ",
         application.application_id,
         DEFAULT_APPLICATION_SECRET_NAME,
     )
-    .execute(&mut *tx)
+    .fetch_one(&mut *tx)
     .await
     .map_err(Hook0Problem::from)?;
 
@@ -173,6 +181,23 @@ pub async fn create(
             organization_id: body.organization_id,
             application_id: application.application_id,
             name: application.name.to_owned(),
+        }
+        .into();
+        if let Err(e) = hook0_client
+            .send_event(&hook0_client_event.mk_hook0_event())
+            .await
+        {
+            error!("Hook0ClientError: {e}");
+        };
+
+        // The provisioned secret is a secret like any other: announce it on the
+        // same feed as the ones created by hand, so subscribers of
+        // `api.application_secret.created` see every secret that exists.
+        let hook0_client_event: Hook0ClientEvent = EventApplicationSecretCreated {
+            organization_id: body.organization_id,
+            application_id: application.application_id,
+            name: Some(DEFAULT_APPLICATION_SECRET_NAME.to_owned()),
+            created_at: provisioned_secret.created_at,
         }
         .into();
         if let Err(e) = hook0_client
@@ -486,6 +511,67 @@ mod default_secret_tests {
     };
     use actix_web::{App, test, web};
     use sqlx::PgPool;
+    use uuid::Uuid;
+
+    /// Spin up the real application-creation and application-secrets endpoints,
+    /// wrapped in the real biscuit auth middleware, over the test database.
+    /// A macro rather than a function because the type of an initialized actix
+    /// test service is not nameable here.
+    macro_rules! init_api {
+        ($pool:expr, $private_key:expr) => {{
+            let state = test_state($pool.clone(), $private_key.clone(), None).await;
+            let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+                db: $pool.clone(),
+                biscuit_private_key: $private_key.clone(),
+                master_api_key: None,
+                enable_application_secret_compatibility: true,
+            };
+
+            test::init_service(
+                App::new().app_data(web::Data::new(state)).service(
+                    web::scope("/api/v1")
+                        .service(
+                            web::scope("/applications")
+                                .wrap(biscuit_auth.clone())
+                                .route("", web::post().to(super::create)),
+                        )
+                        .service(
+                            web::scope("/application_secrets")
+                                .wrap(biscuit_auth.clone())
+                                .route(
+                                    "",
+                                    web::get().to(crate::handlers::application_secrets::list),
+                                ),
+                        ),
+                ),
+            )
+            .await
+        }};
+    }
+
+    /// Create an application through the real endpoint and return its id.
+    /// A macro for the same reason as [`init_api`]: the initialized test service
+    /// cannot be named in a helper signature.
+    macro_rules! create_application {
+        ($app:expr, $user_token:expr, $organization_id:expr, $name:expr) => {{
+            let request = test::TestRequest::post()
+                .uri("/api/v1/applications")
+                .insert_header(("Authorization", format!("Bearer {}", $user_token)))
+                .set_json(serde_json::json!({"organization_id": $organization_id, "name": $name}))
+                .to_request();
+            let resp = test::call_service(&$app, request).await;
+            assert!(
+                resp.status().is_success(),
+                "application creation failed: {}",
+                resp.status()
+            );
+            let body: serde_json::Value = test::read_body_json(resp).await;
+            body["application_id"]
+                .as_str()
+                .and_then(|id| Uuid::parse_str(id).ok())
+                .expect("application_id in response")
+        }};
+    }
 
     /// Creating an application must provision a default application secret in the
     /// same request, and that secret must be immediately usable to authenticate a
@@ -496,39 +582,12 @@ mod default_secret_tests {
         let keypair = biscuit_auth::KeyPair::new();
         let private_key = keypair.private();
 
-        let state = test_state(pool.clone(), private_key.clone(), None).await;
-
         let user = seed_user(&pool).await;
         let org = seed_org(&pool, user).await;
         seed_membership(&pool, user, org, "editor").await;
         let user_token = issue_user_token(&pool, &private_key, user, org, "editor").await;
 
-        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
-            db: pool.clone(),
-            biscuit_private_key: private_key.clone(),
-            master_api_key: None,
-            enable_application_secret_compatibility: true,
-        };
-
-        let app = test::init_service(
-            App::new().app_data(web::Data::new(state)).service(
-                web::scope("/api/v1")
-                    .service(
-                        web::scope("/applications")
-                            .wrap(biscuit_auth.clone())
-                            .route("", web::post().to(super::create)),
-                    )
-                    .service(
-                        web::scope("/application_secrets")
-                            .wrap(biscuit_auth.clone())
-                            .route(
-                                "",
-                                web::get().to(crate::handlers::application_secrets::list),
-                            ),
-                    ),
-            ),
-        )
-        .await;
+        let app = init_api!(pool, private_key);
 
         // 1) Create an application via the real handler.
         let create_app = test::TestRequest::post()
@@ -600,5 +659,122 @@ mod default_secret_tests {
             1,
             "the authenticated call returns the application's secrets"
         );
+    }
+
+    /// An application and its default secret are created in one transaction: if
+    /// the secret cannot be inserted, the application must not exist either — a
+    /// half-created application would be invisible in the UI's "ready to send"
+    /// path yet still consume the organization's application quota.
+    ///
+    /// The failure is forced at the database level (a CHECK constraint that
+    /// rejects the provisioned name), so the real handler runs its real
+    /// transaction and hits a real constraint violation.
+    #[sqlx::test]
+    async fn a_failed_secret_insert_leaves_no_application_behind(pool: PgPool) {
+        sqlx::query(
+            "
+                ALTER TABLE event.application_secret
+                ADD CONSTRAINT reject_provisioned_secret CHECK (name IS DISTINCT FROM 'Default')
+            ",
+        )
+        .execute(&pool)
+        .await
+        .expect("make the provisioned secret impossible to insert");
+
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        seed_membership(&pool, user, org, "editor").await;
+        let user_token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+
+        let app = init_api!(pool, private_key);
+
+        let create_app = test::TestRequest::post()
+            .uri("/api/v1/applications")
+            .insert_header(("Authorization", format!("Bearer {user_token}")))
+            .set_json(serde_json::json!({"organization_id": org, "name": "rolled-back-app"}))
+            .to_request();
+        let resp = test::call_service(&app, create_app).await;
+        assert!(
+            !resp.status().is_success(),
+            "creation must fail when the default secret cannot be inserted, got {}",
+            resp.status()
+        );
+
+        let applications: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM event.application WHERE organization__id = $1",
+        )
+        .bind(org)
+        .fetch_one(&pool)
+        .await
+        .expect("count applications");
+        assert_eq!(
+            applications, 0,
+            "the application row must be rolled back with its secret"
+        );
+    }
+
+    /// Every application now ships with a secret, so the blast radius of one
+    /// leaking is exactly what confines it: the default secret of application A
+    /// must be refused on application B (same organization) and on an
+    /// application of another organization.
+    #[sqlx::test]
+    async fn the_default_secret_is_confined_to_its_own_application(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        seed_membership(&pool, user, org, "editor").await;
+        let user_token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+
+        let other_org = seed_org(&pool, user).await;
+        seed_membership(&pool, user, other_org, "editor").await;
+        let other_org_token =
+            issue_user_token(&pool, &private_key, user, other_org, "editor").await;
+
+        let app = init_api!(pool, private_key);
+
+        let application_a = create_application!(app, user_token, org, "app-a");
+        let application_b = create_application!(app, user_token, org, "app-b");
+        let application_c = create_application!(app, other_org_token, other_org, "app-c");
+
+        // Read A's provisioned secret through the API, as a user would.
+        let list_secrets = test::TestRequest::get()
+            .uri(&format!(
+                "/api/v1/application_secrets?application_id={application_a}"
+            ))
+            .insert_header(("Authorization", format!("Bearer {user_token}")))
+            .to_request();
+        let resp = test::call_service(&app, list_secrets).await;
+        assert!(resp.status().is_success(), "listing A's secrets failed");
+        let secrets: serde_json::Value = test::read_body_json(resp).await;
+        let secret_of_a = secrets.as_array().expect("secrets array")[0]["token"]
+            .as_str()
+            .expect("default secret token")
+            .to_string();
+
+        for (application_id, description) in [
+            (
+                application_b,
+                "another application of the same organization",
+            ),
+            (application_c, "an application of another organization"),
+        ] {
+            let cross_application_call = test::TestRequest::get()
+                .uri(&format!(
+                    "/api/v1/application_secrets?application_id={application_id}"
+                ))
+                .insert_header(("Authorization", format!("Bearer {secret_of_a}")))
+                .to_request();
+            let resp = test::call_service(&app, cross_application_call).await;
+            assert_eq!(
+                resp.status(),
+                actix_web::http::StatusCode::FORBIDDEN,
+                "the default secret of application A must be refused on {description}"
+            );
+        }
     }
 }

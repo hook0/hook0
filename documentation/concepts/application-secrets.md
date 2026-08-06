@@ -1,20 +1,42 @@
 ---
 title: Application secrets
-description: Cryptographic tokens for signing webhook payloads in Hook0
+description: The API token of a Hook0 application, what it can do, and how it is provisioned
 ---
 
 # Application secrets
 
-An application secret is a cryptographic token used to sign webhook payloads. When Hook0 delivers a webhook, it uses the secret to generate an HMAC signature so recipients can verify the payload is authentic and unmodified.
+An application secret is the API token of one [application](applications.md). You send it as `Authorization: Bearer <secret>` to call the Hook0 API on that application's behalf — starting with sending events.
+
+## What an application secret can do
+
+An application secret is not limited to sending events. It carries the full set of permissions on the application it belongs to:
+
+- Send events, and read events and delivery attempts
+- Create and delete event types
+- Create, update and delete subscriptions (including reading their signing secrets)
+- List, create and revoke that application's secrets — including itself
+- Rename or delete the application
+
+It cannot reach anything outside that application: another application, even in the same organization, is refused, and so is everything at the organization level (members, billing, service tokens).
+
+Treat it as you would a password: whoever holds it controls the application.
+
+**Every application is created with one secret already provisioned, named `Default`**, so a new application can send its first event with no extra step. It is an ordinary secret: rename it, revoke it, or replace it with one of your own at any time. Applications created before this behaviour shipped do not have one — create a key from the **API keys** page of the application.
+
+An application secret cannot be narrowed down: its permissions are fixed. When you need a credential that may send events but must not administer the application — a CI job, an AI assistant, a third party — create a [service token](/how-to-guides/manage-service-tokens) and attenuate it (single application, read-only, expiration date) instead.
 
 ## Key points
 
 - Each [application](applications.md) can have multiple secrets for key rotation
-- Secrets sign webhook payloads with HMAC-SHA256
-- Consumers verify signatures to confirm payload integrity
-- Revoking a secret immediately invalidates all webhooks signed with it
+- Every new application starts with a secret named `Default`
+- A secret is scoped to a single application and grants full control over it
+- Revoking a secret immediately invalidates every call made with it
 
 ## Why signatures matter
+
+:::note
+Everything below is about the signature Hook0 puts on the webhooks it delivers. That signature is computed with the [subscription](subscriptions.md)'s own secret, which is a different value from the API token described above.
+:::
 
 Without signature verification, webhook endpoints are open to:
 

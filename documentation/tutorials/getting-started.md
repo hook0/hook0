@@ -96,8 +96,18 @@ provisions one for you, named **Default**, so there is nothing to create here.
 The ready-to-run snippets on the **Send an event** page are already filled in with
 that token, so you can copy one and run it as is.
 
-Need more than one key (for example one per environment), or want to rotate the
-first one? **Click "Create new API Key"**, give it a name, and copy the new token.
+If your application was created before this behaviour shipped, it has no **Default**
+key: **Click "Create new API Key"** on that same page, give it a name, and copy the
+new token. That is also how you add more keys (for example one per environment) or
+rotate the first one.
+
+:::info Treat this token as a credential
+An [application secret](/concepts/application-secrets) is not limited to sending
+events: it can also read and manage everything in this application, including its
+own list of keys. It is confined to this application, and cannot touch another one
+or your organization. Keep it server-side and out of source control, and revoke it
+from the **API keys** page if it ever leaks.
+:::
 
 
 ## Step 4: Create an Event Type
@@ -290,7 +300,7 @@ See [Implementing Webhook Authentication](./webhook-authentication.md) for compl
 ### What You've Learned
 
 ✅ Created a Hook0 organization and application  
-✅ Generated API tokens for authentication  
+✅ Used the API token that came with your application  
 ✅ Defined event types for your application  
 ✅ Set up webhook subscriptions  
 ✅ Sent events through the Hook0 API  
