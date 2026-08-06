@@ -1,15 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query';
-import { computed, type Ref } from 'vue';
+import { computed, ref, type Ref } from 'vue';
 import * as SubscriptionService from './SubscriptionService';
 import type { SubscriptionPost, Subscription } from './SubscriptionService';
 import { subscriptionKeys } from '@/queries/keys';
 import { useInvalidatingMutation } from '@/composables/queryHelpers';
 
-export function useSubscriptionList(applicationId: Ref<string>) {
+// `isEnabled` lets a caller that only needs the list under some condition (the
+// tutorial's send-event step) avoid the request everywhere else.
+export function useSubscriptionList(
+  applicationId: Ref<string>,
+  isEnabled: Ref<boolean> = ref(true)
+) {
   return useQuery({
     queryKey: computed(() => subscriptionKeys.list(applicationId.value)),
     queryFn: () => SubscriptionService.list(applicationId.value),
-    enabled: computed(() => !!applicationId.value),
+    enabled: computed(() => isEnabled.value && !!applicationId.value),
   });
 }
 
