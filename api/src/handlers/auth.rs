@@ -1725,7 +1725,7 @@ mod verify_email_single_use_tests {
     /// so authorization succeeds on BOTH calls — yet the second call must be a
     /// no-op: single use is enforced by the `email_verified_at IS NULL` guard in
     /// the handler, not by token expiry. The replayed call neither verifies a
-    /// second time (no second NoContent, no new session) nor re-stamps
+    /// second time (no second Created, so no second session) nor re-stamps
     /// `email_verified_at`.
     #[sqlx::test]
     async fn verification_token_stays_single_use_within_its_24h_ttl(pool: PgPool) {
@@ -1742,11 +1742,11 @@ mod verify_email_single_use_tests {
             "precondition: the account is not verified yet"
         );
 
-        // First use: verifies the account.
+        // First use: verifies the account and opens a session.
         let first = verify(&pool, &keypair.private(), &token).await;
         assert_eq!(
             first.status(),
-            StatusCode::NO_CONTENT,
+            StatusCode::CREATED,
             "the first use of a valid token verifies the account"
         );
         let verified_at = email_verified_at(&pool, user_id)
@@ -1758,7 +1758,7 @@ mod verify_email_single_use_tests {
         let second = verify(&pool, &keypair.private(), &token).await;
         assert_ne!(
             second.status(),
-            StatusCode::NO_CONTENT,
+            StatusCode::CREATED,
             "a replayed verification token must not verify a second time"
         );
         let verified_at_after = email_verified_at(&pool, user_id)
