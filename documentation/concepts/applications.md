@@ -83,6 +83,6 @@ Deleting an application cannot be undone. All pending webhook deliveries will be
 
 - [Organizations](organizations.md) - Managing the parent container
 - [Event Types](event-types.md) - Categorizing your events
-- [Application Secrets](application-secrets.md) - Securing webhook signatures
+- [Application Secrets](application-secrets.md) - API tokens for calling the Hook0 API
 - [Events](events.md) - Sending notifications
 - [Getting Started](/tutorials/getting-started) - Create your first application

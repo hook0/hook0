@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, nextTick } from 'vue';
+import { computed, ref, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useRouteIds } from '@/composables/useRouteIds';
 import { useI18n } from 'vue-i18n';
@@ -14,11 +14,18 @@ import { sendEventSchema, type SendEventForm } from './sendEvent.schema';
 import { useSendEvent } from './useEventQueries';
 import { useEventTypeList } from '../event_types/useEventTypeQueries';
 import { useSecretList } from '../application_secrets/useSecretQueries';
-import { kvPairsToRecord, type Hook0KeyValueKeyValuePair } from '@/components/Hook0KeyValue';
+import { useSubscriptionList } from '../subscriptions/useSubscriptionQueries';
+import {
+  kvPairsToRecord,
+  recordToKvPairs,
+  type Hook0KeyValueKeyValuePair,
+} from '@/components/Hook0KeyValue';
 import { routes } from '@/routes';
 import { handleMutationError } from '@/utils/handleMutationError';
 import { useAuthStore } from '@/stores/auth';
 import { useClipboardCopy } from '@/composables/useClipboardCopy';
+import { useOnboardingStore } from '@/stores/onboarding';
+import { getUseCasePreset, formatEventTypeName } from '@/utils/usecasePreset';
 
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardHeader from '@/components/Hook0CardHeader.vue';
@@ -139,15 +146,61 @@ function formatDateTimeLocal(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+// In the onboarding tutorial, pre-select the event type created a step earlier and
+// seed matching labels + payload from the use-case chosen at intro. Outside the
+// tutorial (or when "Other"/skipped), keep the generic defaults.
+const onboarding = useOnboardingStore();
+const preset = props.tutorialMode ? getUseCasePreset(onboarding.useCase) : undefined;
+
 const { meta, values, setFieldValue } = useForm<SendEventForm>({
   validationSchema: toTypedSchema(sendEventSchema),
   initialValues: {
-    eventType: '',
-    labels: [{ key: 'user_id', value: '1' }],
+    eventType: preset ? formatEventTypeName(preset.eventType) : '',
+    labels: preset
+      ? preset.labels.map((label) => ({ ...label }))
+      : [{ key: 'user_id', value: '1' }],
     occurredAt: formatDateTimeLocal(new Date()),
-    payload: '{"test": true}',
+    payload: preset ? preset.payload : '{"test": true}',
   },
 });
+
+// The subscription created at the previous tutorial step is the contract this event
+// has to satisfy: Hook0 routes an event to a subscription only when the subscription
+// listens to the event's type and the event's labels contain all of the
+// subscription's. The use case picked at the intro lives in the SPA session alone, so
+// a reload — or a tab restored straight on this step — would seed a generic `user_id`
+// label against a subscription filtering on `customer_id`, and the wizard would end on
+// "your webhook pipeline is live" with nothing ever delivered. Reading the persisted
+// subscription instead makes both sides agree whatever the session state, so the
+// preset above is only ever an optimistic first paint.
+const isTutorial = computed(() => props.tutorialMode);
+const { data: tutorialSubscriptions } = useSubscriptionList(applicationId, isTutorial);
+const seededFromSubscription = ref(false);
+
+watch(
+  tutorialSubscriptions,
+  (subscriptions) => {
+    if (seededFromSubscription.value || !subscriptions || subscriptions.length === 0) {
+      return;
+    }
+    // The most recent one: the tutorial just created it, and a subscription that
+    // already existed on the application must not win over it.
+    const target = subscriptions.reduce((newest, candidate) =>
+      candidate.created_at > newest.created_at ? candidate : newest
+    );
+    const targetLabels = recordToKvPairs(target.labels);
+    // A subscription without labels accepts every event, so the generic default
+    // already satisfies it — and the form requires at least one label to submit.
+    if (targetLabels.length > 0) {
+      void setFieldValue('labels', targetLabels);
+    }
+    if (target.event_types.length > 0) {
+      void setFieldValue('eventType', target.event_types[0]);
+    }
+    seededFromSubscription.value = true;
+  },
+  { immediate: true }
+);
 
 // Bind form fields to refs for template v-model
 const selectedEventType = computed({
@@ -398,6 +451,7 @@ function handleCancel() {
           :tabindex="activeTab === tab ? 0 : -1"
           class="send-event__tab"
           :class="{ 'send-event__tab--active': activeTab === tab }"
+          :data-test="`send-event-tab-${tab}`"
           @click="activateTab(tab, index)"
           @keydown="handleTabKeydown($event, index)"
         >
@@ -513,7 +567,11 @@ function handleCancel() {
       </Hook0Form>
 
       <!-- Code snippet panels -->
-      <Hook0CardContent v-else-if="activeTab === 'curl'" role="tabpanel">
+      <Hook0CardContent
+        v-else-if="activeTab === 'curl'"
+        role="tabpanel"
+        data-test="send-event-curl-panel"
+      >
         <Hook0Code :code="curlSnippet" language="bash" :editable="false" />
       </Hook0CardContent>
       <Hook0CardContent v-else-if="activeTab === 'javascript'" role="tabpanel">
