@@ -129,9 +129,17 @@ export default [
     name: routes.UnsubscribeReactivation,
     path: '/unsubscribe',
     component: () => import('@/pages/user/UnsubscribeReactivation.vue'),
-    // analyticsIgnore: this URL carries the opt-out token in its query string;
-    // it must never reach the analytics backend as a tracked page.
-    meta: { requiresAuth: false, fullScreen: true, title: 'Unsubscribe', analyticsIgnore: true },
+    meta: {
+      requiresAuth: false,
+      // A reader who is signed in is still entitled to stop the reminders;
+      // bouncing them Home would silently drop the opt-out they just asked for.
+      redirectIfLoggedIn: false,
+      fullScreen: true,
+      title: 'Unsubscribe',
+      // analyticsIgnore: this URL carries the opt-out token in its query string;
+      // it must never reach the analytics backend as a tracked page.
+      analyticsIgnore: true,
+    },
   },
   {
     name: routes.CheckEmail,
