@@ -62,13 +62,13 @@
 module.exports = {
   pageTitle: 'Hook0 - Privacy Policy',
   pageDescription: 'Hook0 Privacy Policy - GDPR Article 13 compliant. Legal basis, data retention, your rights, subprocessors, and transfers outside the EU.',
-  pageModified: '2026-08-01',
+  pageModified: '2026-08-06',
   hero: {
     eyebrow: 'Legal',
     title: 'Privacy Policy',
     subtitle: 'How Hook0 collects, uses, and protects your personal data, in compliance with GDPR Article 13.',
     lastUpdatedLabel: 'Last updated:',
-    lastUpdatedDate: 'August 1, 2026',
+    lastUpdatedDate: 'August 6, 2026',
   },
   controller: {
     title: '1. Data Controller',
@@ -119,6 +119,11 @@ module.exports = {
         purposeHtml: '<strong class="text-white">Security and monitoring</strong><br><span class="text-gray-400 text-sm">Error tracking, uptime monitoring, DDoS protection, incident response</span>',
         data: 'IP address, error stack traces, request metadata, uptime check results',
         basisHtml: 'Art. 6(1)(f) - Legitimate interests (ensuring service integrity and security)',
+      },
+      {
+        purposeHtml: '<strong class="text-white">Onboarding assistance</strong><br><span class="text-gray-400 text-sm">A short, bounded sequence of three emails helping accounts that have verified their address but not yet sent an event to complete setup. Not commercial prospecting: no offer is promoted. It stops as soon as a first event is sent, only ever reaches sign-ups under 30 days old, and every message carries a one-click opt-out that ends the whole sequence.</span>',
+        data: 'Email address, first name, sign-up and verification dates, whether an event has been sent, steps already sent, opt-out date',
+        basisHtml: 'Art. 6(1)(f) - Legitimate interests (helping a registered user get the service working)<br><span class="text-gray-400 text-sm">Right to object: Art. 21 GDPR, exercised in one click from any of these emails</span>',
       },
       {
         purposeHtml: '<strong class="text-white">Commercial communications</strong><br><span class="text-gray-400 text-sm">Product updates, release notes, newsletters</span>',

@@ -34,6 +34,12 @@ There can be multiple instances of Hook0 Output Worker, work would be shared bet
 
 :::
 
+## Email your instance sends on its own
+
+Besides the transactional messages a user's own action triggers (address verification, password reset), a self-hosted instance sends one automated sequence: a short onboarding drip to accounts that verified their address but never ingested an event, at J+1, J+3 and J+7 after sign-up. It stops as soon as the account sends its first event, only ever targets sign-ups younger than 30 days, and every message carries a one-click opt-out link.
+
+It is on by default because an instance that never nudges a stuck user is the more common failure. If you would rather Hook0 never emailed your users, set `ENABLE_REACTIVATION_EMAILS=false` — see [Configuration](../reference/configuration.md#reactivation) for that and the other knobs (cadence, per-pass cap, CTA URLs).
+
 ## What's Next?
 
 - [Bare Metal](bare-metal.md)
