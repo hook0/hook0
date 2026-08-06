@@ -312,6 +312,49 @@ pub fn create_email_verification_token(
     })
 }
 
+const REACTIVATION_UNSUBSCRIBE_TOKEN_VERSION: i64 = 1;
+/// Long-lived on purpose: this token only ever turns reminders OFF, and it has
+/// to keep working whenever the recipient gets round to reading the email. A
+/// short window would be the one failure mode that matters here — an opt-out
+/// link that no longer opts out.
+const REACTIVATION_UNSUBSCRIBE_TOKEN_EXPIRATION: Duration = Duration::from_secs(60 * 60 * 24 * 365);
+
+/// Mint the token carried by the unsubscribe link in reactivation emails. It
+/// grants exactly one thing: stopping this user's onboarding reminders. It is
+/// not a session and cannot authorize anything else.
+pub fn create_reactivation_unsubscribe_token(
+    private_key: &PrivateKey,
+    user_id: Uuid,
+) -> Result<RootToken, biscuit_auth::error::Token> {
+    let keypair = KeyPair::from(private_key);
+    let created_at = SystemTime::now();
+    let expired_at = created_at + REACTIVATION_UNSUBSCRIBE_TOKEN_EXPIRATION;
+
+    let biscuit = biscuit!(
+        r#"
+            type("reactivation_unsubscribe");
+            version({REACTIVATION_UNSUBSCRIBE_TOKEN_VERSION});
+            user_id({user_id});
+            created_at({created_at});
+            expired_at({expired_at});
+        "#,
+    )
+    .build(&keypair)?;
+    let serialized_biscuit = biscuit.to_base64()?;
+    let revocation_id = biscuit
+        .revocation_identifiers()
+        .first()
+        .map(|rid| rid.to_owned())
+        .ok_or(biscuit_auth::error::Token::InternalError)?;
+
+    Ok(RootToken {
+        biscuit,
+        serialized_biscuit,
+        revocation_id,
+        expired_at: Some(DateTime::from(expired_at)),
+    })
+}
+
 const RESET_PASSWORD_TOKEN_VERSION: i64 = 1;
 const RESET_PASSWORD_TOKEN_EXPIRATION: Duration = Duration::from_secs(60 * 30);
 
@@ -867,6 +910,11 @@ pub struct AuthorizedEmailVerificationToken {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AuthorizedReactivationUnsubscribeToken {
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthorizedResetPasswordToken {
     pub user_id: Uuid,
 }
@@ -1097,6 +1145,40 @@ pub fn authorize_email_verification(
         .ok_or(biscuit_auth::error::Token::InternalError)?;
 
     Ok(AuthorizedEmailVerificationToken { user_id })
+}
+
+pub fn authorize_reactivation_unsubscribe(
+    biscuit: &Biscuit,
+) -> Result<AuthorizedReactivationUnsubscribeToken, biscuit_auth::error::Token> {
+    let mut authorizer = authorizer!(
+        r#"
+            supported_version("reactivation_unsubscribe", 1);
+            valid_version($t, $v) <- type($t), version($v), supported_version($t, $v);
+            check if valid_version($t, $v);
+
+            expired($t) <- expired_at($exp), time($t), $exp < $t;
+            deny if expired($t);
+        "#
+    );
+    authorizer = authorizer.time();
+    authorizer = authorizer.allow_all();
+
+    authorizer = authorizer.set_limits(AuthorizerLimits {
+        max_time: Duration::from_secs(1800),
+        ..Default::default()
+    });
+    let mut authorizer = authorizer.build(biscuit)?;
+    let result = authorizer.authorize();
+    trace!("Authorizer state:\n{}", authorizer.print_world());
+    result?;
+
+    let raw_user_id: Vec<(Vec<u8>,)> = authorizer.query(rule!("data($id) <- user_id($id)"))?;
+    let user_id = raw_user_id
+        .first()
+        .and_then(|(str,)| Uuid::from_slice(str).ok())
+        .ok_or(biscuit_auth::error::Token::InternalError)?;
+
+    Ok(AuthorizedReactivationUnsubscribeToken { user_id })
 }
 
 pub fn authorize_reset_password(
@@ -1858,5 +1940,71 @@ mod tests {
 
         assert!(authorize_email_verification(&not_yet_expired_biscuit).is_ok());
         assert!(authorize_email_verification(&expired_biscuit).is_err());
+    }
+
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn reactivation_unsubscribe_token_authorization() {
+        let keypair = KeyPair::new();
+        let user_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_reactivation_unsubscribe_token(&keypair.private(), user_id).unwrap();
+
+        assert_eq!(
+            dbg!(authorize_reactivation_unsubscribe(&biscuit)),
+            Ok(AuthorizedReactivationUnsubscribeToken { user_id })
+        );
+    }
+
+    /// This token travels in an email, is valid for a year, and needs no
+    /// session to be used — so the whole safety of that trade rests on it
+    /// buying nothing but silence. Every other authorizer must refuse it.
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn reactivation_unsubscribe_token_grants_nothing_else() {
+        let keypair = KeyPair::new();
+        let user_id = Uuid::new_v4();
+        let organization_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_reactivation_unsubscribe_token(&keypair.private(), user_id).unwrap();
+
+        assert!(dbg!(authorize_reset_password(&biscuit)).is_err());
+        assert!(dbg!(authorize_email_verification(&biscuit)).is_err());
+        assert!(dbg!(authorize_refresh_token(&biscuit)).is_err());
+        assert!(
+            dbg!(authorize(
+                &biscuit,
+                Some(organization_id),
+                Action::TestSimple,
+                MAX_DURATION_TIME,
+                true,
+            ))
+            .is_err()
+        );
+    }
+
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn reactivation_unsubscribe_token_authorization_expiration() {
+        let keypair = KeyPair::new();
+        let user_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_reactivation_unsubscribe_token(&keypair.private(), user_id).unwrap();
+
+        let not_yet_expired_biscuit = biscuit
+            .append(
+                BlockBuilder::new()
+                    .check_expiration_date(SystemTime::now() + Duration::from_secs(1)),
+            )
+            .unwrap();
+        let expired_biscuit = biscuit
+            .append(
+                BlockBuilder::new()
+                    .check_expiration_date(SystemTime::now() - Duration::from_secs(1)),
+            )
+            .unwrap();
+
+        assert!(dbg!(authorize_reactivation_unsubscribe(&not_yet_expired_biscuit)).is_ok());
+        assert!(dbg!(authorize_reactivation_unsubscribe(&expired_biscuit)).is_err());
     }
 }

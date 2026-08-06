@@ -46,7 +46,7 @@ The following tools are integrated into the CI/CD pipeline and enforced on every
 
 - **Static Application Security Testing (SAST)**: GitLab SAST template, run automatically on each pipeline
 - **Dynamic Application Security Testing (DAST)**: GitLab DAST template, run automatically on each pipeline
-- **Container scanning**: Trivy for filesystem and container image vulnerability scanning
+- **Container scanning**: Trivy, run on every released image right after it is pushed — a HIGH or CRITICAL vulnerability that has an upstream fix fails the release
 - **Dependency vulnerability scanning**: osv-scanner for detecting known vulnerabilities in dependencies
 - **Secret detection**: GitLab secret detection template to prevent credentials from being committed
 - **Code linting**: Clippy with warnings treated as errors (`-D warnings`), enforced in CI

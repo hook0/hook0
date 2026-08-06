@@ -51,6 +51,7 @@ mod pagination;
 mod problems;
 mod quotas;
 mod rate_limiting;
+mod reactivation_emails;
 mod signup_attribution_cleanup;
 mod soft_deleted_applications_cleanup;
 mod unverified_users_cleanup;
@@ -474,6 +475,26 @@ struct Config {
     #[clap(long, env, default_value = "false")]
     unverified_users_cleanup_report_and_delete: bool,
 
+    /// [Reactivation] If true (default), verified accounts that never sent an event get a bounded "0 event sent" reactivation email sequence (J+1 / J+3 / J+7); set to false to opt out
+    #[clap(long, env, default_value = "true")]
+    enable_reactivation_emails: bool,
+
+    /// [Reactivation] Duration to wait between reactivation email passes (at least 1s)
+    #[clap(long, env, value_parser = parse_reactivation_period, default_value = "6h")]
+    reactivation_emails_period: Duration,
+
+    /// [Reactivation] Upper bound on how many recipients a single pass processes per step (bounds work per pass)
+    #[clap(long, env, value_parser = clap::value_parser!(i64).range(1..=10_000), default_value = "500")]
+    reactivation_emails_max_per_step_per_run: i64,
+
+    /// [Reactivation] URL of the Hook0 webhook tester used as the J+3 CTA (lift the "no public URL" blocker)
+    #[clap(long, env, default_value = "https://play.hook0.com/")]
+    reactivation_play_url: Url,
+
+    /// [Reactivation] URL of the Hook0 community/Discord used as the J+7 CTA
+    #[clap(long, env, default_value = "https://www.hook0.com/community")]
+    reactivation_discord_url: Url,
+
     /// [Housekeeping] If true, soft-deleted applications will be removed from database after a while; otherwise they will be kept in database forever
     #[clap(long, env, default_value = "false")]
     enable_soft_deleted_applications_cleanup: bool,
@@ -680,6 +701,19 @@ struct Config {
     /// lazily). Runs regardless of Google Ads / Matomo configuration.
     #[clap(long, env, default_value = "3600")]
     signup_attribution_cleanup_period_in_s: u64,
+}
+
+/// Parse the delay between reactivation passes, refusing values that would turn
+/// the job into a tight loop. A zero period makes every pass re-acquire the
+/// housekeeping semaphore immediately, starving the other background jobs that
+/// share it; the floor is deliberately low (1s) so test environments can still
+/// drive several passes inside a run.
+fn parse_reactivation_period(input: &str) -> Result<Duration, String> {
+    let period = humantime::parse_duration(input).map_err(|e| e.to_string())?;
+    if period < Duration::from_secs(1) {
+        return Err("must be at least 1s".to_owned());
+    }
+    Ok(period)
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
@@ -1484,6 +1518,34 @@ async fn main() -> anyhow::Result<()> {
         .await
         .expect("Could not initialize mailer; check SMTP configuration");
 
+        // Spawn task to send the "0 event sent" reactivation email sequence.
+        // On by default; set ENABLE_REACTIVATION_EMAILS=false to opt out. Bounded
+        // background scan of the same "event" onboarding signal; never touches
+        // the event-ingestion hot path.
+        if config.enable_reactivation_emails {
+            let reactivation_db = housekeeping_pool.clone();
+            let reactivation_semaphore = housekeeping_semaphore.clone();
+            let reactivation_mailer = mailer.clone();
+            let reactivation_config = reactivation_emails::ReactivationConfig {
+                play_url: config.reactivation_play_url.clone(),
+                discord_url: config.reactivation_discord_url.clone(),
+                max_per_step_per_run: config.reactivation_emails_max_per_step_per_run,
+                app_url: config.app_url.clone(),
+                biscuit_private_key: biscuit_private_key.clone(),
+            };
+            let reactivation_period = config.reactivation_emails_period;
+            actix_web::rt::spawn(async move {
+                reactivation_emails::periodically_send_reactivation_emails(
+                    &reactivation_semaphore,
+                    &reactivation_db,
+                    reactivation_mailer,
+                    reactivation_config,
+                    reactivation_period,
+                )
+                .await;
+            });
+        }
+
         // Initialize state
         let initial_state = State {
             db: pool,
@@ -1657,6 +1719,16 @@ async fn main() -> anyhow::Result<()> {
                                         .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                         .route(web::post().to(handlers::auth::change_password)),
                                 ),
+                        )
+                        // no auth: authenticated by the signed token carried by the
+                        // unsubscribe link of a reactivation email
+                        .service(
+                            web::scope("/email-preferences").service(
+                                web::resource("/unsubscribe-reactivation").route(
+                                    web::post()
+                                        .to(handlers::email_preferences::unsubscribe_reactivation),
+                                ),
+                            ),
                         )
                         // no auth
                         .service(web::scope("/instance").service(
@@ -1922,6 +1994,26 @@ async fn main() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A zero (or sub-second) reactivation period would make every pass
+    /// re-acquire the housekeeping semaphore immediately, starving the other
+    /// background jobs that share it. The floor is low enough that test
+    /// environments can still drive several passes inside a run.
+    #[test]
+    fn reactivation_period_refuses_a_tight_loop() {
+        assert!(parse_reactivation_period("0s").is_err());
+        assert!(parse_reactivation_period("999ms").is_err());
+        assert_eq!(
+            parse_reactivation_period("1s"),
+            Ok(Duration::from_secs(1)),
+            "the floor itself is accepted, so short periods stay usable in tests"
+        );
+        assert_eq!(
+            parse_reactivation_period("6h"),
+            Ok(Duration::from_secs(6 * 60 * 60))
+        );
+        assert!(parse_reactivation_period("not-a-duration").is_err());
+    }
 
     /// The Matomo tracker stays dark over cleartext http: the token_auth secret
     /// must never travel unencrypted, so a non-https MATOMO_URL yields no client.

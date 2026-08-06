@@ -1,5 +1,8 @@
 import http from '@/http.ts';
+import type { components } from '@/types';
 import { unwrapResponse } from '@/utils/unwrapResponse';
+
+type LoginResponse = components['schemas']['LoginResponse'];
 
 export async function deleteUser(): Promise<void> {
   return Promise.reject({
@@ -19,8 +22,19 @@ export async function changePassword(new_password: string): Promise<void> {
   );
 }
 
-export async function verifyEmail(token: string): Promise<void> {
-  return unwrapResponse(http.unauthenticated.post<void>(`/auth/verify-email`, { token }));
+export async function verifyEmail(token: string): Promise<LoginResponse> {
+  return unwrapResponse(http.unauthenticated.post<LoginResponse>(`/auth/verify-email`, { token }));
+}
+
+/**
+ * Stop the onboarding reactivation reminders for the account the token belongs
+ * to. Unauthenticated on purpose: the link comes from an email and must work
+ * without a session.
+ */
+export async function unsubscribeReactivation(token: string): Promise<void> {
+  return unwrapResponse(
+    http.unauthenticated.post<void>(`/email-preferences/unsubscribe-reactivation`, { token })
+  );
 }
 
 export async function resendVerificationEmail(email: string): Promise<void> {

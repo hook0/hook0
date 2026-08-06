@@ -156,21 +156,28 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Establish an authenticated session from a LoginResponse. Used both by the
+   * login endpoint and by the email-verification endpoint (which auto-logs the
+   * user in on the first successful verification). Persists the tokens,
+   * schedules the silent refresh and links the Formbricks identity.
+   */
+  function setSession(data: LoginResponse): Promise<void> {
+    setAuthState(data);
+    return scheduleAutoRefresh().then(() => {
+      if (state.value) {
+        return formbricks.setUserId(state.value.userId).catch((e) => {
+          console.warn(`Formbricks setUserId failed: ${e}`);
+        });
+      }
+    });
+  }
+
   // Actions
   function login(email: string, password: string): Promise<void> {
     return http.unauthenticated
       .post<LoginResponse>('/auth/login', { email, password })
-      .then((res) => {
-        setAuthState(res.data);
-        return scheduleAutoRefresh();
-      })
-      .then(() => {
-        if (state.value) {
-          return formbricks.setUserId(state.value.userId).catch((e) => {
-            console.warn(`Formbricks setUserId failed: ${e}`);
-          });
-        }
-      });
+      .then((res) => setSession(res.data));
   }
 
   function register(
@@ -339,6 +346,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     userInfo,
     // Actions
+    setSession,
     login,
     register,
     refresh,

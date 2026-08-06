@@ -1070,7 +1070,15 @@
     "themeDark": "Dark",
     "themeLight": "Light",
     "themeSystem": "System",
-    "title": "User Settings"
+    "title": "User Settings",
+    "unsubscribe": {
+      "backToLogin": "Back to sign in",
+      "doneDescription": "You will not receive the onboarding reminders any more. Account emails such as verification and password resets are unaffected.",
+      "doneTitle": "Reminders stopped",
+      "invalidToken": "Invalid link",
+      "tokenRequired": "This unsubscribe link is incomplete. Use the link from the email as-is, or contact support.",
+      "working": "Stopping these reminders..."
+    }
   },
   "validation": {
     "passwordConfirm": "Confirm your password",
