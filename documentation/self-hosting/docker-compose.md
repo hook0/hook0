@@ -54,7 +54,8 @@ Hook0 sends a verification email before you can log in. In local development, em
 
 ## Access
 
-After verifying your email, login at `http://localhost:8001`.
+Clicking the verification link signs you in and lands you on the dashboard at
+`http://localhost:8001`. Later on, log in there directly.
 
 ## Data Storage
 

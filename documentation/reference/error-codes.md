@@ -293,6 +293,18 @@ All API errors follow this structure (RFC 7807):
 
 ## 409 Conflict
 
+### AuthEmailAlreadyVerified
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/AuthEmailAlreadyVerified",
+  "id": "AuthEmailAlreadyVerified",
+  "title": "Email already verified",
+  "detail": "This address has already been verified, so this link has nothing left to do. Sign in to continue.",
+  "status": 409
+}
+```
+
 ### EventAlreadyIngested
 
 ```json
