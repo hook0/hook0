@@ -1070,6 +1070,7 @@ pub(crate) mod test_support {
         .await
         .expect("seed request attempt");
     }
+
     /// Attach a user to an organization with a role, so authorization passes.
     pub(crate) async fn seed_membership(pool: &PgPool, user: Uuid, org: Uuid, role: &str) {
         sqlx::query(
@@ -1212,6 +1213,41 @@ pub(crate) mod test_support {
             google_ads,
             signup_attribution_retention_in_days: 30,
         }
+    }
+
+    /// Build a real `Mailer` whose SMTP transport points at an unreachable
+    /// endpoint (`smtp://127.0.0.1:2` — nothing listens on port 2) with a short
+    /// timeout. `Mailer::new` still succeeds because the startup connection test
+    /// only warns, but any actual `send_mail` fails at the transport boundary.
+    /// This is a genuine send failure at the SMTP boundary — NOT a mock of any
+    /// code under test — so tests can exercise real send-failure paths.
+    pub(crate) async fn failing_mailer() -> crate::mailer::Mailer {
+        use lettre::Address;
+        use std::str::FromStr;
+        use url::Url;
+
+        let url = Url::parse("http://localhost").expect("localhost url");
+        let support = Address::from_str("support@hook0.com").expect("support address");
+        let smtp = crate::mailer::MailerSmtpConfig {
+            smtp_connection_url: "smtp://127.0.0.1:2".to_string(),
+            smtp_timeout: Duration::from_millis(200),
+            sender_name: "Hook0 Test".to_string(),
+            sender_address: Address::from_str("noreply@hook0.com").expect("sender address"),
+        };
+        crate::mailer::Mailer::new(
+            smtp,
+            url.clone(),
+            url.clone(),
+            url.clone(),
+            url.clone(),
+            url.clone(),
+            support,
+            "Hook0 Test".to_string(),
+            "test".to_string(),
+            "test".to_string(),
+        )
+        .await
+        .expect("build failing test mailer")
     }
 }
 

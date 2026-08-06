@@ -7,8 +7,8 @@ Ce document est établi conformément à l'article 30 du Règlement (UE) 2016/67
 
 | Métadonnée | Valeur |
 |---|---|
-| **Version** | 1.2 |
-| **Date d'établissement** | 1er août 2026 |
+| **Version** | 1.3 |
+| **Date d'établissement** | 6 août 2026 |
 | **Prochain réexamen** | 4 mai 2027 |
 | **Responsable de la tenue** | Direction FGRibreau SARL |
 | **Contact RGPD** | legal@hook0.com |
@@ -31,6 +31,7 @@ Ce document est établi conformément à l'article 30 du Règlement (UE) 2016/67
 10. [Journaux HTTP — tracking par requête utilisateur](#traitement-10)
 11. [Outil gratuit play.hook0.com — webhook playground](#traitement-11)
 12. [Feedback produit in-app via Formbricks](#traitement-12)
+13. [Emails de réactivation onboarding (comptes sans événement)](#traitement-13)
 
 **Annexes**
 
@@ -844,6 +845,67 @@ Si Formbricks Cloud transfère des données aux USA, la base de transfert applic
 ### 10. Source des données
 
 Collectées directement auprès de la personne concernée lors de sa participation à un sondage in-app sur app.hook0.com, et indirectement via les attributs utilisateur transmis par l'API Hook0 à Formbricks lors de l'initialisation de la session.
+
+---
+
+## Traitement n°13 — Emails de réactivation onboarding (comptes sans événement) {#traitement-13}
+
+### 1. Identité du responsable de traitement
+
+**FGRibreau SARL** — cf. traitement n°1.
+
+### 2. Finalité(s) du traitement
+
+**Finalité principale :** Accompagner la prise en main du service par les utilisateurs qui ont créé et vérifié un compte Hook0 mais dont l'organisation n'a encore ingéré aucun événement, au moyen d'une séquence courte et bornée de trois emails d'aide (J+1, J+3, J+7 après l'inscription) proposant chacun une étape concrète pour envoyer un premier webhook.
+
+**Ce que ce traitement n'est pas :** il ne s'agit pas de prospection commerciale. Les messages ne promeuvent aucune offre et ne visent aucune vente : ils portent exclusivement sur la mise en service du produit pour lequel la personne s'est déjà inscrite. Les communications commerciales relèvent du traitement n°9, soumis au consentement.
+
+### 3. Base légale (art. 6 RGPD)
+
+**Art. 6.1.f — Intérêt légitime :** aider un utilisateur inscrit à réussir la mise en service du produit qu'il a choisi. La mise en balance retient que la personne a délibérément créé un compte et vérifié son adresse, que le contenu est strictement fonctionnel, que la séquence est bornée à trois messages et s'arrête dès le premier événement envoyé, et que seules les inscriptions de moins de 30 jours y entrent — ce qui exclut toute reprise de contact avec des comptes anciens.
+
+Le droit d'opposition (art. 21 RGPD) est exercé en un clic depuis un lien présent dans **chacun** de ces emails, sans authentification préalable ; il interrompt immédiatement la totalité de la séquence. Les emails transactionnels (vérification d'adresse, réinitialisation de mot de passe — traitement n°4) ne sont pas affectés par cette opposition.
+
+### 4. Catégories de personnes concernées
+
+Utilisateurs professionnels ayant créé un compte Hook0 et vérifié leur adresse email, inscrits depuis moins de 30 jours, dont aucune organisation n'a encore ingéré d'événement, et qui ne se sont pas opposés à ces envois.
+
+### 5. Catégories de données personnelles
+
+- Adresse email professionnelle et prénom (destinataire et personnalisation)
+- Date d'inscription et date de vérification de l'adresse (conditions d'éligibilité)
+- Signal d'activation : existence ou non d'un événement ingéré par l'organisation
+- Étapes déjà envoyées et leur horodatage (`iam.reactivation_email`) — évite tout doublon
+- Date d'opposition (`iam.user.reactivation_opted_out_at`) — trace de l'exercice du droit d'opposition
+
+### 6. Catégories de destinataires
+
+**Interne :** équipe produit FGRibreau SARL (supervision du service).
+
+**Sous-traitants :** le prestataire d'acheminement email utilisé pour les emails transactionnels (cf. traitement n°4 et annexe 1) ; aucun destinataire supplémentaire.
+
+### 7. Transferts hors UE
+
+Aucun transfert supplémentaire par rapport au traitement n°4.
+
+### 8. Durée de conservation
+
+| Données | Durée | Justification |
+|---|---|---|
+| Étapes envoyées et horodatage (`iam.reactivation_email`) | Jusqu'à la suppression du compte (`ON DELETE CASCADE`) | Registre d'idempotence : sans lui, un même message pourrait être réenvoyé |
+| Date d'opposition (`reactivation_opted_out_at`) | Jusqu'à la suppression du compte | Art. 21 RGPD — l'opposition doit continuer d'être respectée tant que le compte existe |
+| Adresse email et prénom | Cf. traitement n°1 | Aucune copie distincte n'est constituée : les données sont lues dans le compte utilisateur |
+
+### 9. Mesures de sécurité (description générale)
+
+- Lien d'opposition fonctionnel en un clic dans chaque message, sans authentification, porté par un jeton signé qui ne confère aucun autre droit que l'arrêt des envois (propriété vérifiée par test automatisé).
+- Sélection bornée par passe et arrêt automatique de la séquence dès l'activation du compte.
+- Aucune donnée personnelle supplémentaire n'est collectée : le traitement lit le compte existant et le signal d'activation déjà calculé par le service.
+- Les liens d'opposition ne sont pas suivis par la mesure d'audience (traitement n°7).
+
+### 10. Source des données
+
+Aucune collecte nouvelle : données issues du compte utilisateur (traitement n°1) et du service de webhooks (traitement n°2).
 
 ---
 

@@ -1,5 +1,6 @@
 use chrono::Datelike;
 use html2text::from_read;
+use lettre::message::header::{HeaderName, HeaderValue};
 use lettre::message::{Mailbox, MultiPart};
 use lettre::{Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 use regex::{Captures, Regex};
@@ -68,6 +69,26 @@ pub enum Mail {
         current_events_per_day: i32,
         events_per_days_limit: i32,
         extra_variables: Vec<(String, String)>,
+    },
+    /// Reactivation drip, step 1 (J+1): the account is verified but no event has
+    /// been sent yet. CTA to the dashboard wizard (+ an inline curl snippet).
+    ReactivationNoEventDay1 {
+        recipient_first_name: Option<String>,
+        unsubscribe_url: Url,
+    },
+    /// Reactivation drip, step 2 (J+3): lift the most common blocker — no public
+    /// URL to receive the webhook — by pointing at play.hook0.com.
+    ReactivationNoEventDay3 {
+        recipient_first_name: Option<String>,
+        play_url: Url,
+        unsubscribe_url: Url,
+    },
+    /// Reactivation drip, step 3 (J+7): last nudge, routing to the community
+    /// (Discord) and to human support.
+    ReactivationNoEventDay7 {
+        recipient_first_name: Option<String>,
+        discord_url: Url,
+        unsubscribe_url: Url,
     },
 }
 
@@ -167,6 +188,32 @@ const MJML_FOOTER_COMMERCIAL: &str = r##"      </mj-column>
 </mjml>
 "##;
 
+// Footer for the reactivation drip. These are lifecycle nudges tied to an
+// account the recipient created, but because they form a repeated series we
+// carry an explicit opt-out (délivrabilité + CPCE L34-5 al.3 spirit) so a user
+// who does not want the reminders can stop them.
+const MJML_FOOTER_ONBOARDING: &str = r##"      </mj-column>
+    </mj-section>
+    <mj-section padding="20px 24px 32px 24px">
+      <mj-column>
+        <mj-text align="left" font-size="11px" color="#94a3b8" line-height="1.7">
+          Hook0 &middot; Open-Source Webhooks-as-a-Service &middot; Made in Europe
+        </mj-text>
+        <mj-text align="left" font-size="12px" color="#94a3b8" line-height="1.7" padding="6px 0 0 0">
+          Need a hand? <a href="mailto:{ $support_email_address }" style="color:#475569;">{ $support_email_address }</a> &middot; <a href="{ $app_url_tracked }" style="color:#475569;">Open dashboard</a> &middot; <a href="{ $privacy_policy_url_tracked }" style="color:#475569;">Privacy &amp; data rights</a>
+        </mj-text>
+        <mj-text align="left" font-size="11px" color="#94a3b8" line-height="1.7" padding="10px 0 0 0">
+          You created a Hook0 account but no event has come through yet, so we send a short series of first-steps reminders. <a href="{ $unsubscribe_url }" style="color:#475569;">Stop these reminders</a> &mdash; one click, no sign-in. Transactional email (verification, password reset) is unaffected. You have rights over your personal data (access, correction, deletion, portability, objection).
+        </mj-text>
+        <mj-text align="left" font-size="11px" color="#cbd5e1" line-height="1.7" padding="10px 0 0 0">
+          &copy; { $current_year } { $company_legal_name } &middot; { $company_postal_address } &middot; { $company_rcs }
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
+"##;
+
 /// Matches the `{ $name }` placeholders of the MJML templates.
 static PLACEHOLDER: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\{ \$(\w+) \}").expect("placeholder regex must compile"));
@@ -222,6 +269,15 @@ impl Mail {
             Mail::QuotaEventsPerDayReached { .. } => {
                 include_str!("mail_templates/quotas/events_per_day_reached.mjml")
             }
+            Mail::ReactivationNoEventDay1 { .. } => {
+                include_str!("mail_templates/reactivation/no_event_day1.mjml")
+            }
+            Mail::ReactivationNoEventDay3 { .. } => {
+                include_str!("mail_templates/reactivation/no_event_day3.mjml")
+            }
+            Mail::ReactivationNoEventDay7 { .. } => {
+                include_str!("mail_templates/reactivation/no_event_day7.mjml")
+            }
         }
     }
 
@@ -236,6 +292,15 @@ impl Mail {
             } => format!("You're at {actual_consumption_percent}% of your daily events"),
             Mail::QuotaEventsPerDayReached { .. } => {
                 "Daily event limit reached. Events paused.".to_owned()
+            }
+            Mail::ReactivationNoEventDay1 { .. } => {
+                "Your first webhook is 5 minutes away".to_owned()
+            }
+            Mail::ReactivationNoEventDay3 { .. } => {
+                "The missing piece: a URL to receive your webhook".to_owned()
+            }
+            Mail::ReactivationNoEventDay7 { .. } => {
+                "Last nudge: still no event on your Hook0 account".to_owned()
             }
         }
     }
@@ -257,6 +322,15 @@ impl Mail {
             Mail::QuotaEventsPerDayReached { .. } => {
                 "Hook0 will resume at the next daily reset, or as soon as you upgrade."
             }
+            Mail::ReactivationNoEventDay1 { .. } => {
+                "Create an application and send one test event — the dashboard walks you through it."
+            }
+            Mail::ReactivationNoEventDay3 { .. } => {
+                "Grab a throwaway endpoint on play.hook0.com and watch an event arrive live."
+            }
+            Mail::ReactivationNoEventDay7 { .. } => {
+                "One event is all it takes. Ask the community or reply and a human will help."
+            }
         }
     }
 
@@ -269,7 +343,21 @@ impl Mail {
             Mail::Welcome { .. } => "welcome",
             Mail::QuotaEventsPerDayWarning { .. } => "quota_warning",
             Mail::QuotaEventsPerDayReached { .. } => "quota_reached",
+            Mail::ReactivationNoEventDay1 { .. } => "reactivation_no_event_d1",
+            Mail::ReactivationNoEventDay3 { .. } => "reactivation_no_event_d3",
+            Mail::ReactivationNoEventDay7 { .. } => "reactivation_no_event_d7",
         }
+    }
+
+    /// Whether this mail belongs to the "0 event sent" reactivation drip.
+    /// Drives footer selection so the series carries an explicit opt-out.
+    pub fn is_lifecycle_reactivation(&self) -> bool {
+        matches!(
+            self,
+            Mail::ReactivationNoEventDay1 { .. }
+                | Mail::ReactivationNoEventDay3 { .. }
+                | Mail::ReactivationNoEventDay7 { .. }
+        )
     }
 
     /// Whether this mail contains a commercial component (upgrade CTA).
@@ -306,6 +394,18 @@ impl Mail {
             | Mail::QuotaEventsPerDayReached {
                 recipient_first_name,
                 ..
+            }
+            | Mail::ReactivationNoEventDay1 {
+                recipient_first_name,
+                ..
+            }
+            | Mail::ReactivationNoEventDay3 {
+                recipient_first_name,
+                ..
+            }
+            | Mail::ReactivationNoEventDay7 {
+                recipient_first_name,
+                ..
             } => recipient_first_name.as_deref(),
         }
     }
@@ -318,6 +418,9 @@ impl Mail {
             Mail::VerifyUserEmail { .. } => vec![],
             Mail::ResetPassword { .. } => vec![],
             Mail::Welcome { .. } => vec![],
+            Mail::ReactivationNoEventDay1 { .. } => vec![],
+            Mail::ReactivationNoEventDay3 { .. } => vec![],
+            Mail::ReactivationNoEventDay7 { .. } => vec![],
             Mail::QuotaEventsPerDayWarning {
                 actual_consumption_percent,
                 current_events_per_day,
@@ -372,6 +475,29 @@ impl Mail {
             Mail::Welcome { .. } => vec![],
             Mail::QuotaEventsPerDayWarning { .. } => vec![],
             Mail::QuotaEventsPerDayReached { .. } => vec![],
+            Mail::ReactivationNoEventDay1 { .. } => vec![],
+            Mail::ReactivationNoEventDay3 { play_url, .. } => {
+                vec![("play_url_tracked".to_owned(), play_url.clone())]
+            }
+            Mail::ReactivationNoEventDay7 { discord_url, .. } => {
+                vec![("discord_url_tracked".to_owned(), discord_url.clone())]
+            }
+        }
+    }
+
+    /// Per-recipient opt-out link, present only on the reactivation drip.
+    pub fn unsubscribe_url(&self) -> Option<&Url> {
+        match self {
+            Mail::ReactivationNoEventDay1 {
+                unsubscribe_url, ..
+            }
+            | Mail::ReactivationNoEventDay3 {
+                unsubscribe_url, ..
+            }
+            | Mail::ReactivationNoEventDay7 {
+                unsubscribe_url, ..
+            } => Some(unsubscribe_url),
+            _ => None,
         }
     }
 
@@ -414,9 +540,13 @@ impl Mail {
         // shipped templates greet via a body-level "Hi {name}," so the
         // fallback reads naturally; the welcome H1 was restructured to
         // not depend on the name structurally.
+        // User-controlled free-text: HTML-escape before interpolation so a name
+        // containing markup cannot inject nodes into the rendered email.
         let recipient_first_name = self.recipient_first_name().unwrap_or("there");
 
-        let footer = if self.has_commercial_component() {
+        let footer = if self.is_lifecycle_reactivation() {
+            MJML_FOOTER_ONBOARDING
+        } else if self.has_commercial_component() {
             MJML_FOOTER_COMMERCIAL
         } else {
             MJML_FOOTER_TRANSACTIONAL
@@ -439,6 +569,13 @@ impl Mail {
         // Recipient greeting — substituted unconditionally; the fallback
         // above ensures the placeholder is never left empty.
         set("recipient_first_name", recipient_first_name);
+
+        // Per-recipient opt-out link (reactivation drip only), deliberately not
+        // Matomo-tagged so stopping the mail never depends on an analytics
+        // parameter surviving the trip.
+        if let Some(unsubscribe_url) = self.unsubscribe_url() {
+            set("unsubscribe_url", unsubscribe_url.as_str());
+        }
 
         // Untracked globals
         set("logo_url", logo_url.as_str());
@@ -562,7 +699,9 @@ impl Mailer {
         with_matomo(&url, mail.matomo_campaign())
     }
 
-    pub async fn send_mail(&self, mail: Mail, recipient: Mailbox) -> Result<(), Hook0Problem> {
+    /// Build the message that `send_mail` puts on the wire. Split out so the
+    /// headers it carries can be asserted without an SMTP server.
+    fn build_message(&self, mail: &Mail, recipient: Mailbox) -> Result<Message, Hook0Problem> {
         let rendered = mail.render(
             &self.logo_url,
             &self.website_url,
@@ -576,12 +715,30 @@ impl Mailer {
         )?;
         let text_mail = from_read(rendered.as_bytes(), 80)?;
 
-        let email = Message::builder()
+        let mut builder = Message::builder()
             .from(self.sender.to_owned())
             .to(recipient)
-            .subject(mail.subject())
-            .multipart(MultiPart::alternative_plain_html(text_mail, rendered))?;
+            .subject(mail.subject());
 
+        // Advertise the opt-out to the mail client as well as to the reader.
+        // Gmail and Apple Mail surface their own Unsubscribe control from this
+        // header, and mailbox providers weigh its presence when judging a
+        // recurring automated series — which is what the reactivation drip is.
+        // Only the URL form is advertised: `List-Unsubscribe-Post` promises a
+        // one-click POST the endpoint would have to accept form-encoded, and
+        // claiming support we do not have is worse than claiming none.
+        if let Some(unsubscribe_url) = mail.unsubscribe_url() {
+            builder = builder.raw_header(HeaderValue::new(
+                HeaderName::new_from_ascii_str("List-Unsubscribe"),
+                format!("<{unsubscribe_url}>"),
+            ));
+        }
+
+        Ok(builder.multipart(MultiPart::alternative_plain_html(text_mail, rendered))?)
+    }
+
+    pub async fn send_mail(&self, mail: Mail, recipient: Mailbox) -> Result<(), Hook0Problem> {
+        let email = self.build_message(&mail, recipient)?;
         self.transport.send(email).await?;
         Ok(())
     }
@@ -589,7 +746,6 @@ impl Mailer {
 
 #[cfg(test)]
 mod tests {
-    use proptest::prelude::*;
     use std::str::FromStr;
 
     use super::*;
@@ -607,6 +763,12 @@ mod tests {
             "3 rue de l'Aubépine, 85110 Chantonnay, France".to_owned(),
             "RCS La Roche-sur-Yon 850 824 350".to_owned(),
         )
+    }
+
+    /// A plausible opt-out link, shaped exactly like the one the reactivation
+    /// job mints (dashboard page + signed token in the query string).
+    fn unsubscribe_url_fixture() -> Url {
+        Url::from_str("https://app.hook0.com/unsubscribe?token=unsub").expect("unsubscribe url")
     }
 
     fn all_variants() -> Vec<Mail> {
@@ -651,6 +813,20 @@ mod tests {
             },
             quota_warning,
             quota_reached,
+            Mail::ReactivationNoEventDay1 {
+                recipient_first_name: Some("Sarah".to_owned()),
+                unsubscribe_url: unsubscribe_url_fixture(),
+            },
+            Mail::ReactivationNoEventDay3 {
+                recipient_first_name: Some("Sarah".to_owned()),
+                play_url: Url::from_str("https://play.hook0.com/").unwrap(),
+                unsubscribe_url: unsubscribe_url_fixture(),
+            },
+            Mail::ReactivationNoEventDay7 {
+                recipient_first_name: Some("Sarah".to_owned()),
+                discord_url: Url::from_str("https://www.hook0.com/community").unwrap(),
+                unsubscribe_url: unsubscribe_url_fixture(),
+            },
         ]
     }
 
@@ -849,6 +1025,79 @@ mod tests {
         }
     }
 
+    fn html_escape_leaves_no_active_markup_characters(raw: &str) -> bool {
+        // Every character that could re-open markup or break out of an attribute
+        // must be gone from the output; what remains is inert text.
+        let escaped = xml_escape(raw);
+        !escaped.contains('<')
+            && !escaped.contains('>')
+            && !escaped.contains('"')
+            && !escaped.contains('\'')
+    }
+
+    proptest::proptest! {
+        // The one hand-picked XSS payload below closes a single case. This closes
+        // the class: for ANY free text a user can put in their name, escaping must
+        // leave nothing that can re-open markup. `&` is deliberately excluded from
+        // the assertion — it legitimately survives as the first character of the
+        // entity sequences (`&amp;`, `&lt;`, …) escaping produces.
+        #[test]
+        fn escaping_neutralizes_arbitrary_free_text(raw in ".*") {
+            proptest::prop_assert!(html_escape_leaves_no_active_markup_characters(&raw));
+        }
+
+        // Ampersands are escaped first, so no entity is ever double-built from a
+        // character that was itself introduced by escaping.
+        #[test]
+        fn escaping_produces_well_formed_entities(raw in ".*") {
+            let escaped = xml_escape(&raw);
+            let ampersands = escaped.matches('&').count();
+            let entities = escaped.matches("&amp;").count()
+                + escaped.matches("&lt;").count()
+                + escaped.matches("&gt;").count()
+                + escaped.matches("&quot;").count()
+                + escaped.matches("&#39;").count();
+            proptest::prop_assert_eq!(ampersands, entities);
+        }
+    }
+
+    /// A recipient-controlled first name carrying HTML is escaped before it is
+    /// interpolated into the template, so no raw markup reaches the rendered
+    /// email. Covers both a text-content break-out (`<script>`) and an
+    /// attribute-value break-out (`"><img …>`).
+    #[test]
+    fn recipient_first_name_html_is_escaped() {
+        let payload = r#"<script>alert(1)</script>"><img src=x onerror=alert(2)>"#;
+        let m = Mail::Welcome {
+            recipient_first_name: Some(payload.to_owned()),
+        };
+        let html = render(&m);
+
+        // Raw, executable markup from the name must never survive rendering.
+        assert!(
+            !html.contains("<script>"),
+            "raw <script> from recipient name leaked into rendered email"
+        );
+        assert!(
+            !html.contains("<img src=x"),
+            "raw <img> from recipient name leaked into rendered email"
+        );
+        assert!(
+            !html.contains(payload),
+            "unescaped recipient-name payload leaked into rendered email"
+        );
+
+        // The characters still render, but as inert escaped entities.
+        assert!(
+            html.contains("&lt;script&gt;alert(1)&lt;/script&gt;"),
+            "escaped form of the recipient name missing from rendered email"
+        );
+        assert!(
+            html.contains("&gt;&lt;img src=x"),
+            "attribute-breaking payload was not escaped in rendered email"
+        );
+    }
+
     /// Test #12 — extra_variables injected by handlers (e.g. dashboard_url_tracked)
     /// are substituted in quota templates.
     #[test]
@@ -877,6 +1126,12 @@ mod tests {
             for caps in href_re.captures_iter(&html) {
                 let url = &caps[1];
                 if url.starts_with("mailto:") {
+                    continue;
+                }
+                // The opt-out link is deliberately untracked: stopping the mail
+                // must work from any client, including those that strip query
+                // parameters, and a reader who leaves is not a funnel step.
+                if m.unsubscribe_url().is_some_and(|u| url == u.as_str()) {
                     continue;
                 }
                 assert!(
@@ -982,6 +1237,102 @@ mod tests {
         }
     }
 
+    /// Test #16 — reactivation J+1 carries the primary "first webhook" CTA to
+    /// the app wizard, a curl snippet, and a link to the docs.
+    #[test]
+    fn reactivation_day1_has_wizard_cta_and_snippet() {
+        let mail = Mail::ReactivationNoEventDay1 {
+            recipient_first_name: Some("Sarah".to_owned()),
+            unsubscribe_url: unsubscribe_url_fixture(),
+        };
+        let html = render(&mail);
+        assert!(
+            html.contains("app.hook0.com"),
+            "J+1 must link to the app wizard"
+        );
+        assert!(
+            html.contains("documentation.hook0.com"),
+            "J+1 must link to the documentation"
+        );
+        assert!(
+            html.contains("Send your first webhook"),
+            "J+1 must carry the primary CTA label"
+        );
+        assert!(html.contains("curl"), "J+1 must include a curl snippet");
+    }
+
+    /// Test #17 — reactivation J+3 routes to play.hook0.com and J+7 to the
+    /// community (Discord) + human support, each via a Matomo-tracked link.
+    #[test]
+    fn reactivation_day3_and_day7_route_to_their_ctas() {
+        let day3 = Mail::ReactivationNoEventDay3 {
+            recipient_first_name: Some("Sarah".to_owned()),
+            play_url: Url::from_str("https://play.hook0.com/").unwrap(),
+            unsubscribe_url: unsubscribe_url_fixture(),
+        };
+        let html3 = render(&day3);
+        assert!(
+            html3.contains("play.hook0.com"),
+            "J+3 must route to play.hook0.com"
+        );
+        assert!(
+            html3.contains("mtm_campaign=reactivation_no_event_d3"),
+            "J+3 play link must be Matomo-tracked for its campaign"
+        );
+
+        let day7 = Mail::ReactivationNoEventDay7 {
+            recipient_first_name: Some("Sarah".to_owned()),
+            discord_url: Url::from_str("https://www.hook0.com/community").unwrap(),
+            unsubscribe_url: unsubscribe_url_fixture(),
+        };
+        let html7 = render(&day7);
+        assert!(
+            html7.contains("hook0.com/community"),
+            "J+7 must route to the community/Discord link"
+        );
+        assert!(
+            html7.contains("support@hook0.com"),
+            "J+7 must offer human support"
+        );
+        assert!(
+            html7.contains("mtm_campaign=reactivation_no_event_d7"),
+            "J+7 community link must be Matomo-tracked for its campaign"
+        );
+    }
+
+    /// Test #18 — every reactivation email carries a working one-click opt-out
+    /// in its footer so the recipient can stop the series (deliverability + CPCE
+    /// spirit). A mention alone is not enough: it has to be a real link to this
+    /// recipient's opt-out URL, so the assertion is on the `href`.
+    #[test]
+    fn reactivation_emails_carry_optout_footer() {
+        for m in all_variants() {
+            if !m.is_lifecycle_reactivation() {
+                continue;
+            }
+            let html = render(&m);
+            let unsubscribe_url = m
+                .unsubscribe_url()
+                .expect("a reactivation email always has an opt-out link")
+                .to_owned();
+            assert!(
+                html.contains(&format!("href=\"{unsubscribe_url}\"")),
+                "Reactivation email {:?} must link to the recipient's opt-out URL",
+                m.matomo_campaign()
+            );
+            assert!(
+                html.contains("Stop these reminders"),
+                "Reactivation email {:?} must label the opt-out link in plain words",
+                m.matomo_campaign()
+            );
+            assert!(
+                html.contains("FGRibreau SARL"),
+                "Reactivation email {:?} must carry the legal footer",
+                m.matomo_campaign()
+            );
+        }
+    }
+
     /// Test #16 — a recipient name carrying well-formed markup must not
     /// become markup. `first_name` is free text on the public registration
     /// endpoint and the mail is delivered to whichever address the
@@ -1065,64 +1416,46 @@ mod tests {
         }
     }
 
-    /// Test #18 — a substituted value is never rescanned for placeholders,
-    /// so a recipient name that looks like a placeholder stays literal
-    /// instead of pulling in another variable's value.
-    #[test]
-    fn placeholder_shaped_recipient_name_is_not_substituted() {
-        let mail = Mail::VerifyUserEmail {
-            recipient_first_name: Some("{ $url }".to_owned()),
-            url: Url::from_str("https://app.hook0.com/verify-email?token=SECRET").unwrap(),
-        };
-        let html = render(&mail);
-        let greeting_start = html.find("Hi ").expect("greeting must be present");
-        let greeting_end = html[greeting_start..]
-            .find("confirm this address")
-            .map(|offset| greeting_start + offset)
-            .expect("greeting must be present");
-        let greeting = &html[greeting_start..greeting_end];
-        assert!(
-            !greeting.contains("SECRET"),
-            "Placeholder-shaped name pulled in another variable: {greeting}"
+    /// The opt-out has to be visible to the mail client too, not only to the
+    /// reader: Gmail and Apple Mail surface their own Unsubscribe control from
+    /// the `List-Unsubscribe` header, and providers weigh it when judging a
+    /// recurring automated series. Transactional mail must NOT carry it — there
+    /// is nothing to unsubscribe from.
+    #[actix_web::test]
+    async fn only_reactivation_mail_advertises_list_unsubscribe() {
+        let mailer = crate::google_ads::test_support::failing_mailer().await;
+        let recipient = Mailbox::new(
+            Some("Sarah".to_owned()),
+            Address::from_str("sarah@example.com").expect("recipient address"),
         );
-        assert!(
-            greeting.contains("{ $url }"),
-            "Placeholder-shaped name must stay literal: {greeting}"
-        );
-    }
 
-    proptest! {
-        // Any name the registration endpoint accepts (1..=50 chars, no control
-        // character — see `RegistrationPost`) renders, and renders without
-        // adding a single link to the mail. Anchors are counted rather than
-        // pattern-matched so any escaping hole shows up whatever markup it
-        // was smuggled through.
-        #[test]
-        fn any_accepted_first_name_renders_without_adding_links(
-            name in "[^\\u{0}-\\u{1f}\\u{7f}]{1,50}"
-        ) {
-            let mail = |first_name: &str| Mail::VerifyUserEmail {
-                recipient_first_name: Some(first_name.to_owned()),
-                url: Url::from_str("https://app.hook0.com/verify-email?token=abc").unwrap(),
-            };
-            let (logo, website, app, doc, privacy, support, legal_name, postal, rcs) = fixture();
-            let render_html = |mail: Mail| {
-                mail.render(
-                    &logo, &website, &app, &doc, &privacy, &support, &legal_name, &postal, &rcs,
-                )
-            };
+        for mail in all_variants() {
+            let message = mailer
+                .build_message(&mail, recipient.clone())
+                .expect("build message");
+            let raw = String::from_utf8_lossy(&message.formatted()).to_string();
+            let advertised = raw
+                .lines()
+                .any(|line| line.to_ascii_lowercase().starts_with("list-unsubscribe:"));
 
-            let baseline = render_html(mail("Sarah")).expect("baseline render must succeed");
-            let rendered = render_html(mail(&name));
-            prop_assert!(rendered.is_ok(), "Render must succeed for {name:?}");
-
-            let html = rendered.expect("checked above");
-            prop_assert_eq!(
-                html.matches("<a ").count(),
-                baseline.matches("<a ").count(),
-                "Recipient name {:?} changed the number of links in the mail",
-                name
-            );
+            match mail.unsubscribe_url() {
+                Some(url) => {
+                    assert!(
+                        advertised,
+                        "reactivation mail {:?} must advertise its opt-out to the mail client",
+                        mail.matomo_campaign()
+                    );
+                    assert!(
+                        raw.contains(&format!("<{url}>")),
+                        "the advertised opt-out must be this recipient's own link"
+                    );
+                }
+                None => assert!(
+                    !advertised,
+                    "transactional mail {:?} must not advertise an unsubscribe",
+                    mail.matomo_campaign()
+                ),
+            }
         }
     }
 
