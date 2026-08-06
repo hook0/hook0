@@ -66,13 +66,46 @@ async function openTutorialIntro(page: Page): Promise<void> {
 }
 
 /**
- * Stand in for the Matomo snippet, which is not loaded in this environment.
- * `trackEvent` only pushes when `window._paq` exists, so creating the queue is
- * what makes the tracking call observable — the call itself is the real one.
+ * Mirror every `_paq` push into a queue of our own, readable as
+ * `window.__trackedEvents`.
+ *
+ * Creating `window._paq` is what makes the tracking call observable, since
+ * `trackEvent` only pushes when it exists — the call itself is the real one.
+ * Reading `window._paq` back is not reliable though: the app loads vue-matomo
+ * whenever the instance advertises a Matomo config, and the Matomo snippet
+ * swaps `window._paq` for its own tracker object, which carries `push` but is
+ * not an array. The mirror survives that swap because the setter re-wraps
+ * whatever replaces the queue.
  */
 async function captureTrackingQueue(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    (window as unknown as { _paq: unknown[] })._paq = [];
+    const mirror: unknown[][] = [];
+    (window as unknown as { __trackedEvents: unknown[][] }).__trackedEvents = mirror;
+
+    type Pushable = { push?: (...entries: unknown[]) => unknown; __mirrored?: boolean };
+    const wrap = (target: unknown): unknown => {
+      const pushable = target as Pushable;
+      if (pushable && typeof pushable.push === "function" && !pushable.__mirrored) {
+        const original = pushable.push.bind(pushable);
+        pushable.push = (...entries: unknown[]) => {
+          for (const entry of entries) {
+            mirror.push(entry as unknown[]);
+          }
+          return original(...entries);
+        };
+        pushable.__mirrored = true;
+      }
+      return target;
+    };
+
+    let queue: unknown = wrap([]);
+    Object.defineProperty(window, "_paq", {
+      configurable: true,
+      get: () => queue,
+      set: (next: unknown) => {
+        queue = wrap(next);
+      },
+    });
   });
 }
 
@@ -209,7 +242,7 @@ test.describe("Onboarding use-case personalization", () => {
     // all, so the choice has to actually reach analytics — not merely land in a
     // store. A refactor that drops the tracking call fails here.
     const trackedUseCase = await page.evaluate(() => {
-      const queue = (window as unknown as { _paq?: unknown[][] })._paq ?? [];
+      const queue = (window as unknown as { __trackedEvents?: unknown[][] }).__trackedEvents ?? [];
       return queue.find(
         (entry) => entry[0] === "trackEvent" && entry[1] === "signup" && entry[2] === "usecase"
       );
