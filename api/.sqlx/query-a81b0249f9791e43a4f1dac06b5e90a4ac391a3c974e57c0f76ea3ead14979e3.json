@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT COUNT(*) AS \"val!\"\n            FROM event.event_type\n            WHERE application__id = $1\n                AND deactivated_at IS NULL\n        ",
+  "query": "\n                SELECT COUNT(user__id) AS \"val!\"\n                FROM iam.user__organization\n                WHERE organization__id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -19,5 +19,5 @@
       null
     ]
   },
-  "hash": "8a6e0445cf6ee1184d289b8677a123a891f1b3a0954c2e5e5d2c21505d7196c7"
+  "hash": "a81b0249f9791e43a4f1dac06b5e90a4ac391a3c974e57c0f76ea3ead14979e3"
 }

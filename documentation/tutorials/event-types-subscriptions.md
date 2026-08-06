@@ -2,6 +2,32 @@
 title: "Webhook Events & Subscriptions — Design It Right"
 description: "Structure events into a type hierarchy, let subscribers filter with wildcards, and route across tenants. The schema design that saves you a migration later."
 keywords: [webhook event types, webhook subscriptions, event schema design, webhook routing, webhook filtering, multi-tenant webhooks]
+faqItems:
+  - question: "How should I name webhook event types?"
+    answer: >-
+      Use a service.resource_type.verb format in lowercase, like
+      user.account.created or order.payment.completed. Grouping events under a
+      shared prefix lets a subscriber filter a whole resource at once. Keep the
+      names stable once they ship, because renaming an event type breaks every
+      subscription bound to it.
+  - question: "How do I subscribe to a group of events, like everything a user does?"
+    answer: >-
+      List the event types you want on the subscription, for example
+      user.account.registered, user.email.verified, and user.profile.updated.
+      Keeping them under a common prefix such as user.account and user.profile
+      makes that list easy to read as your catalog grows.
+  - question: "Should a webhook payload carry the full record or just the IDs?"
+    answer: >-
+      Send thin payloads, meaning the IDs plus the fields that changed rather
+      than the whole database record. Fat payloads get rejected by intermediate
+      proxies more often, and a thin one pushes the consumer to fetch the
+      freshest data from your API using the ID you sent.
+  - question: "How do I stop the same webhook from being processed twice?"
+    answer: >-
+      Hook0 delivers at least once, so a network error can make it retry the
+      same event. Make the consumer idempotent by storing each event_id you
+      have handled, and when one shows up again, return 200 OK without running
+      the logic a second time.
 ---
 
 # Setting up event types and subscriptions

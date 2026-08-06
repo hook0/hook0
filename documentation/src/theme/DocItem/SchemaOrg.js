@@ -26,7 +26,23 @@ function extractSteps(toc) {
     }));
 }
 
-function extractFAQ(toc) {
+function extractFAQ(toc, frontMatter) {
+  // Real Q/A pairs declared in page frontmatter win: they let the FAQPage
+  // schema carry genuine answers instead of a "see section" pointer.
+  const declared = frontMatter.faqItems;
+  if (Array.isArray(declared) && declared.length > 0) {
+    return declared
+      .filter((item) => item && item.question && item.answer)
+      .map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      }));
+  }
+  // Fallback: derive questions from headings that end in "?".
   return toc
     .filter((entry) => entry.value.endsWith('?'))
     .map((entry) => ({
@@ -78,7 +94,7 @@ export default function SchemaOrg({title, description, permalink, frontMatter, t
     }
   }
 
-  const faqItems = extractFAQ(toc);
+  const faqItems = extractFAQ(toc, frontMatter);
   if (faqItems.length > 0) {
     schema.mainEntity = faqItems;
     // Add separate FAQPage schema

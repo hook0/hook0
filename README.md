@@ -1,7 +1,7 @@
 <!-- PROJECT LOGO -->
 <p align="center">
   <a href="https://github.com/hook0/hook0">
-   <img src="./mediakit/logo/1920x1920-banner.png" alt="Hook0 Logo banner">
+   <img width="256" height="256" src="./mediakit/logo/512x512.png" alt="Hook0 Logo banner">
   </a>
 
 <h3 align="center">Hook0</h3>
@@ -45,6 +45,8 @@ vision: https://documentation.hook0.com/docs/what-is-hook0
 # 🐰 About Hook0
 
 Hook0 is a real-time API and App dashboard for managing webhooks.
+
+<img src="./mediakit/screenshots/2026-04-08-2.png" />
 
 - **Free & open-source**
 - **[JSON REST API](https://documentation.hook0.com/reference/)**

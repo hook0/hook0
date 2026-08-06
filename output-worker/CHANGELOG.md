@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [output-worker/v1.0.6] - 2026-08-06
+
+### Added
+
+- Export logs over OTLP for Loki↔Tempo correlation (output-worker)
+
+## [output-worker/v1.0.5] - 2026-08-05
+
+### Added
+
+- Add trace_id/span_id to delivery logs for Loki↔Tempo correlation (output-worker)
+
+## [output-worker/v1.0.4] - 2026-08-05
+
+## [output-worker/v1.0.3] - 2026-08-04
+
+### Added
+
+- Improve loading request attempts from DB (output-worker)
+- Improve amounts/durations in log messages
+- Promote trace to warn (output-worker)
+- Add service.instance.id OTel resource attribute
+- Increase delay tolerance and improve log message (output-worker)
+- Resolve targets with a shared caching async DNS resolver (output-worker)
+- Sample free concurrency slots for logs and OTel (output-worker)
+- Spike/backlog alerts + worker lag & outcome metrics (observability)
+
+### Changed
+
+- Promote a trace log to a warn (output-worker)
+- Avoid rebuilding OT meters everytime
+- Extract and bound Pulsar send helpers (output-worker)
+
+### Fixed
+
+- Improve behavior in case of object storage issues
+- Target IP security (output-worker)
+
+### Other
+
+- Update dependencies
+- Regen sqlx offline data
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+- Update dependencies
+
 ## [output-worker/v1.0.2] - 2026-05-10
 
 ### Added
