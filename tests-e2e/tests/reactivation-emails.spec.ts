@@ -25,6 +25,9 @@ const DATABASE_URL =
 /** Subject of the J+1 step — the first message of the sequence. */
 const DAY1_SUBJECT = "Your first webhook is 5 minutes away";
 
+/** Subject of the J+3 step — the next message the sequence would send. */
+const DAY3_SUBJECT = "The missing piece: a URL to receive your webhook";
+
 /** Upper bound for a reactivation email to show up after an account qualifies. */
 const DRIP_WAIT_MS = 90_000;
 
@@ -108,6 +111,55 @@ async function recordedSteps(organizationId: string): Promise<number[]> {
     )
   );
   return result.rows.map((row: { step: number }) => Number(row.step));
+}
+
+/**
+ * Push a recorded step's send time into the past so the minimum spacing before
+ * the next step of the sequence is satisfied.
+ */
+async function backdateStepSent(organizationId: string, step: number, days: number): Promise<void> {
+  const result = await withDb((client) =>
+    client.query(
+      `UPDATE iam.reactivation_email SET sent_at = NOW() - MAKE_INTERVAL(days => $3) WHERE organization__id = $1 AND step = $2`,
+      [organizationId, step, days]
+    )
+  );
+  expect(result.rowCount, `step ${step} of ${organizationId} should have been aged`).toBe(1);
+}
+
+/** Whether the account asked to stop receiving the drip. */
+async function hasOptedOut(email: string): Promise<boolean> {
+  const result = await withDb((client) =>
+    client.query(
+      `SELECT reactivation_opted_out_at IS NOT NULL AS opted_out FROM iam.user WHERE email = $1`,
+      [email]
+    )
+  );
+  expect(result.rowCount, `user ${email} should exist`).toBe(1);
+  return result.rows[0].opted_out as boolean;
+}
+
+/** When the account opted out. Fails the test if it never did. */
+async function optOutTimestamp(email: string): Promise<string> {
+  const result = await withDb((client) =>
+    client.query(
+      `SELECT reactivation_opted_out_at FROM iam.user WHERE email = $1 AND reactivation_opted_out_at IS NOT NULL`,
+      [email]
+    )
+  );
+  expect(result.rowCount, `the opt-out of ${email} should have been recorded`).toBe(1);
+  return String(result.rows[0].reactivation_opted_out_at);
+}
+
+/**
+ * The opt-out link the email carries, exactly as a reader would click it.
+ * Fails the test rather than returning a fallback: a missing link is the bug
+ * these tests exist to catch.
+ */
+function unsubscribeLinkFrom(html: string): URL {
+  const match = html.match(/href="([^"]*\/unsubscribe\?[^"]*)"/);
+  expect(match, "the reactivation email must carry an opt-out link").not.toBeNull();
+  return new URL(match![1].replace(/&amp;/g, "&"));
 }
 
 /** Number of messages Mailpit holds for an address whose body matches a filter. */
@@ -213,9 +265,14 @@ test.describe("Reactivation drip for accounts that never sent an event", () => {
     expect(html, "reactivation links are Matomo-tagged for funnel analysis").toContain(
       "mtm_campaign=reactivation_no_event_d1"
     );
-    expect(html, "the drip must always tell the user how to stop it").toContain(
-      "Unsubscribe onboarding reminders"
+    const unsubscribeLink = unsubscribeLinkFrom(html);
+    expect(unsubscribeLink.pathname, "the opt-out link points at the unsubscribe page").toBe(
+      "/unsubscribe"
     );
+    expect(
+      unsubscribeLink.searchParams.get("token"),
+      "the opt-out link carries the token that identifies the reader"
+    ).toBeTruthy();
 
     // The recipient's own data must never be rendered raw into the mail.
     expect(html).not.toContain("<script");
@@ -236,6 +293,80 @@ test.describe("Reactivation drip for accounts that never sent an event", () => {
       await countEmails(request, user.email, DAY1_SUBJECT),
       "a recorded step must never be re-sent on later passes"
     ).toBe(1);
+  });
+
+  test("stops the whole series when the reader clicks the opt-out link", async ({ request }) => {
+    // Control account: same age, same state, never opts out. It proves the job
+    // really did run during the observation window, so the absence of a J+3
+    // email for the opted-out account below means something.
+    const control = await registerVerifiedUser(request, "optout-control");
+    const leaver = await registerVerifiedUser(request, "optout");
+
+    await ageSignupByDays(control.email, 2);
+    await ageSignupByDays(leaver.email, 2);
+
+    const message = await getEmailFromMailpit(request, leaver.email, DAY1_SUBJECT, DRIP_WAIT_MS);
+    await getEmailFromMailpit(request, control.email, DAY1_SUBJECT, DRIP_WAIT_MS);
+
+    // Click the link exactly as a mail reader would: no session, no sign-in.
+    const unsubscribeLink = unsubscribeLinkFrom(message.HTML ?? "");
+    const token = unsubscribeLink.searchParams.get("token");
+    const unsubscribe = await request.post(
+      `${API_BASE_URL}/email-preferences/unsubscribe-reactivation`,
+      { data: { token } }
+    );
+    expect(unsubscribe.status(), await unsubscribe.text()).toBeLessThan(400);
+
+    const firstOptOut = await optOutTimestamp(leaver.email);
+
+    // Clicking again (or a mail client prefetching the page) must not move the
+    // recorded date, and must not start failing.
+    const replay = await request.post(
+      `${API_BASE_URL}/email-preferences/unsubscribe-reactivation`,
+      {
+        data: { token },
+      }
+    );
+    expect(replay.status(), await replay.text()).toBeLessThan(400);
+    expect(await optOutTimestamp(leaver.email), "opting out twice is idempotent").toEqual(
+      firstOptOut
+    );
+
+    // Both accounts now qualify for J+3 (age and spacing since J+1 satisfied).
+    // Only the one that stayed subscribed may hear from us again.
+    for (const account of [control, leaver]) {
+      await ageSignupByDays(account.email, 4);
+      await backdateStepSent(account.organizationId, 1, 3);
+    }
+
+    await getEmailFromMailpit(request, control.email, DAY3_SUBJECT, DRIP_WAIT_MS);
+
+    expect(
+      await countEmails(request, leaver.email, DAY3_SUBJECT),
+      "an account that opted out must never receive the next step"
+    ).toBe(0);
+    expect(
+      await recordedSteps(leaver.organizationId),
+      "no further step may be claimed after an opt-out"
+    ).toEqual([1]);
+  });
+
+  test("rejects an unsubscribe link that was tampered with", async ({ request }) => {
+    const user = await registerVerifiedUser(request, "optout-tampered");
+    await ageSignupByDays(user.email, 2);
+
+    const message = await getEmailFromMailpit(request, user.email, DAY1_SUBJECT, DRIP_WAIT_MS);
+    const token = unsubscribeLinkFrom(message.HTML ?? "").searchParams.get("token") ?? "";
+
+    // Flip the last character of the signed token: the signature no longer
+    // matches, so nobody can forge an opt-out for an address they do not own.
+    const tampered = token.slice(0, -1) + (token.endsWith("a") ? "b" : "a");
+    const response = await request.post(
+      `${API_BASE_URL}/email-preferences/unsubscribe-reactivation`,
+      { data: { token: tampered } }
+    );
+    expect(response.status(), "a forged token must be refused").toBe(401);
+    expect(await hasOptedOut(user.email), "a forged token must not opt anybody out").toBe(false);
   });
 
   test("stops as soon as the account sends its first event", async ({ request }) => {

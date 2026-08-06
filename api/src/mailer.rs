@@ -70,18 +70,21 @@ pub enum Mail {
     /// been sent yet. CTA to the dashboard wizard (+ an inline curl snippet).
     ReactivationNoEventDay1 {
         recipient_first_name: Option<String>,
+        unsubscribe_url: Url,
     },
     /// Reactivation drip, step 2 (J+3): lift the most common blocker — no public
     /// URL to receive the webhook — by pointing at play.hook0.com.
     ReactivationNoEventDay3 {
         recipient_first_name: Option<String>,
         play_url: Url,
+        unsubscribe_url: Url,
     },
     /// Reactivation drip, step 3 (J+7): last nudge, routing to the community
     /// (Discord) and to human support.
     ReactivationNoEventDay7 {
         recipient_first_name: Option<String>,
         discord_url: Url,
+        unsubscribe_url: Url,
     },
 }
 
@@ -196,7 +199,7 @@ const MJML_FOOTER_ONBOARDING: &str = r##"      </mj-column>
           Need a hand? <a href="mailto:{ $support_email_address }" style="color:#475569;">{ $support_email_address }</a> &middot; <a href="{ $app_url_tracked }" style="color:#475569;">Open dashboard</a> &middot; <a href="{ $privacy_policy_url_tracked }" style="color:#475569;">Privacy &amp; data rights</a>
         </mj-text>
         <mj-text align="left" font-size="11px" color="#94a3b8" line-height="1.7" padding="10px 0 0 0">
-          You created a Hook0 account but no event has come through yet, so we send a short series of first-steps reminders. To stop them, email <a href="mailto:{ $support_email_address }?subject=Unsubscribe%20onboarding%20reminders" style="color:#475569;">{ $support_email_address }</a> with subject &laquo;&nbsp;Unsubscribe onboarding reminders&nbsp;&raquo;. You have rights over your personal data (access, correction, deletion, portability, objection).
+          You created a Hook0 account but no event has come through yet, so we send a short series of first-steps reminders. <a href="{ $unsubscribe_url }" style="color:#475569;">Stop these reminders</a> &mdash; one click, no sign-in. Transactional email (verification, password reset) is unaffected. You have rights over your personal data (access, correction, deletion, portability, objection).
         </mj-text>
         <mj-text align="left" font-size="11px" color="#cbd5e1" line-height="1.7" padding="10px 0 0 0">
           &copy; { $current_year } { $company_legal_name } &middot; { $company_postal_address } &middot; { $company_rcs }
@@ -379,6 +382,7 @@ impl Mail {
             }
             | Mail::ReactivationNoEventDay1 {
                 recipient_first_name,
+                ..
             }
             | Mail::ReactivationNoEventDay3 {
                 recipient_first_name,
@@ -466,6 +470,22 @@ impl Mail {
         }
     }
 
+    /// Per-recipient opt-out link, present only on the reactivation drip.
+    pub fn unsubscribe_url(&self) -> Option<&Url> {
+        match self {
+            Mail::ReactivationNoEventDay1 {
+                unsubscribe_url, ..
+            }
+            | Mail::ReactivationNoEventDay3 {
+                unsubscribe_url, ..
+            }
+            | Mail::ReactivationNoEventDay7 {
+                unsubscribe_url, ..
+            } => Some(unsubscribe_url),
+            _ => None,
+        }
+    }
+
     pub fn add_variable(&mut self, key: String, value: String) {
         match self {
             Mail::QuotaEventsPerDayWarning {
@@ -525,6 +545,13 @@ impl Mail {
         // Recipient greeting — substituted unconditionally; the fallback
         // above ensures the placeholder is never left empty.
         mjml = mjml.replace("{ $recipient_first_name }", &recipient_first_name);
+
+        // Per-recipient opt-out link (reactivation drip only), deliberately not
+        // Matomo-tagged so stopping the mail never depends on an analytics
+        // parameter surviving the trip.
+        if let Some(unsubscribe_url) = self.unsubscribe_url() {
+            mjml = mjml.replace("{ $unsubscribe_url }", unsubscribe_url.as_str());
+        }
 
         // Untracked globals
         mjml = mjml.replace("{ $logo_url }", logo_url.as_str());
@@ -680,6 +707,12 @@ mod tests {
         )
     }
 
+    /// A plausible opt-out link, shaped exactly like the one the reactivation
+    /// job mints (dashboard page + signed token in the query string).
+    fn unsubscribe_url_fixture() -> Url {
+        Url::from_str("https://app.hook0.com/unsubscribe?token=unsub").expect("unsubscribe url")
+    }
+
     fn all_variants() -> Vec<Mail> {
         let verify_url = Url::from_str("https://app.hook0.com/verify-email?token=abc").unwrap();
         let reset_url = Url::from_str("https://app.hook0.com/reset-password?token=xyz").unwrap();
@@ -724,14 +757,17 @@ mod tests {
             quota_reached,
             Mail::ReactivationNoEventDay1 {
                 recipient_first_name: Some("Sarah".to_owned()),
+                unsubscribe_url: unsubscribe_url_fixture(),
             },
             Mail::ReactivationNoEventDay3 {
                 recipient_first_name: Some("Sarah".to_owned()),
                 play_url: Url::from_str("https://play.hook0.com/").unwrap(),
+                unsubscribe_url: unsubscribe_url_fixture(),
             },
             Mail::ReactivationNoEventDay7 {
                 recipient_first_name: Some("Sarah".to_owned()),
                 discord_url: Url::from_str("https://www.hook0.com/community").unwrap(),
+                unsubscribe_url: unsubscribe_url_fixture(),
             },
         ]
     }
@@ -1034,6 +1070,12 @@ mod tests {
                 if url.starts_with("mailto:") {
                     continue;
                 }
+                // The opt-out link is deliberately untracked: stopping the mail
+                // must work from any client, including those that strip query
+                // parameters, and a reader who leaves is not a funnel step.
+                if m.unsubscribe_url().is_some_and(|u| url == u.as_str()) {
+                    continue;
+                }
                 assert!(
                     url.contains("mtm_source=email"),
                     "Link missing mtm_source in {:?}: {}",
@@ -1143,6 +1185,7 @@ mod tests {
     fn reactivation_day1_has_wizard_cta_and_snippet() {
         let mail = Mail::ReactivationNoEventDay1 {
             recipient_first_name: Some("Sarah".to_owned()),
+            unsubscribe_url: unsubscribe_url_fixture(),
         };
         let html = render(&mail);
         assert!(
@@ -1167,6 +1210,7 @@ mod tests {
         let day3 = Mail::ReactivationNoEventDay3 {
             recipient_first_name: Some("Sarah".to_owned()),
             play_url: Url::from_str("https://play.hook0.com/").unwrap(),
+            unsubscribe_url: unsubscribe_url_fixture(),
         };
         let html3 = render(&day3);
         assert!(
@@ -1181,6 +1225,7 @@ mod tests {
         let day7 = Mail::ReactivationNoEventDay7 {
             recipient_first_name: Some("Sarah".to_owned()),
             discord_url: Url::from_str("https://www.hook0.com/community").unwrap(),
+            unsubscribe_url: unsubscribe_url_fixture(),
         };
         let html7 = render(&day7);
         assert!(
@@ -1197,8 +1242,10 @@ mod tests {
         );
     }
 
-    /// Test #18 — every reactivation email carries the onboarding opt-out footer
-    /// so the recipient can stop the series (deliverability + CPCE spirit).
+    /// Test #18 — every reactivation email carries a working one-click opt-out
+    /// in its footer so the recipient can stop the series (deliverability + CPCE
+    /// spirit). A mention alone is not enough: it has to be a real link to this
+    /// recipient's opt-out URL, so the assertion is on the `href`.
     #[test]
     fn reactivation_emails_carry_optout_footer() {
         for m in all_variants() {
@@ -1206,9 +1253,18 @@ mod tests {
                 continue;
             }
             let html = render(&m);
+            let unsubscribe_url = m
+                .unsubscribe_url()
+                .expect("a reactivation email always has an opt-out link")
+                .to_owned();
             assert!(
-                html.contains("Unsubscribe onboarding reminders"),
-                "Reactivation email {:?} must carry the opt-out mention",
+                html.contains(&format!("href=\"{unsubscribe_url}\"")),
+                "Reactivation email {:?} must link to the recipient's opt-out URL",
+                m.matomo_campaign()
+            );
+            assert!(
+                html.contains("Stop these reminders"),
+                "Reactivation email {:?} must label the opt-out link in plain words",
                 m.matomo_campaign()
             );
             assert!(

@@ -12,6 +12,7 @@ export const routes = {
   Login: 'Login',
   Register: 'Register',
   VerifyEmail: 'VerifyEmail',
+  UnsubscribeReactivation: 'UnsubscribeReactivation',
   UserSettings: 'UserSettings',
   BeginResetPassword: 'BeginResetPassword',
   ResetPassword: 'ResetPassword',
@@ -123,6 +124,12 @@ export default [
     path: '/verify-email',
     component: () => import('@/pages/user/VerifyEmail.vue'),
     meta: { requiresAuth: false, fullScreen: true, title: 'Verify Email' },
+  },
+  {
+    name: routes.UnsubscribeReactivation,
+    path: '/unsubscribe',
+    component: () => import('@/pages/user/UnsubscribeReactivation.vue'),
+    meta: { requiresAuth: false, fullScreen: true, title: 'Unsubscribe' },
   },
   {
     name: routes.CheckEmail,

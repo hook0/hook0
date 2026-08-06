@@ -49,6 +49,8 @@ use tracing::{error, info, warn};
 use url::Url;
 use uuid::Uuid;
 
+use biscuit_auth::PrivateKey;
+
 use crate::mailer::{Mail, Mailer};
 use crate::problems::Hook0Problem;
 
@@ -123,12 +125,17 @@ pub struct ReactivationConfig {
     pub play_url: Url,
     pub discord_url: Url,
     pub max_per_step_per_run: i64,
+    /// Base URL of the dashboard, used to build the per-recipient opt-out link.
+    pub app_url: Url,
+    /// Signs the opt-out token carried by that link.
+    pub biscuit_private_key: PrivateKey,
 }
 
 /// One recipient selected for a given step (the org's registrant).
 #[derive(Debug)]
 struct Candidate {
     organization_id: Uuid,
+    user_id: Uuid,
     step: i16,
     email: String,
     first_name: String,
@@ -241,11 +248,14 @@ async fn select_candidates(
         r#"
             SELECT
                 o.organization__id AS "organization_id!",
+                u.user__id AS "user_id!",
                 u.email AS "email!",
                 u.first_name AS "first_name!"
             FROM iam.organization AS o
             INNER JOIN iam.user AS u ON u.user__id = o.created_by
             WHERE u.email_verified_at IS NOT NULL
+              -- Honour the opt-out offered in every reactivation email.
+              AND u.reactivation_opted_out_at IS NULL
               AND u.created_at <= statement_timestamp() - MAKE_INTERVAL(days => $1)
               -- Onboarding nudge, not win-back: past this age the sign-up is no
               -- longer fresh and the account is left alone for good.
@@ -293,6 +303,7 @@ async fn select_candidates(
         .into_iter()
         .map(|r| Candidate {
             organization_id: r.organization_id,
+            user_id: r.user_id,
             step,
             email: r.email,
             first_name: r.first_name,
@@ -349,17 +360,21 @@ async fn send_reactivation_email(
 /// Map a step number to its mail variant, wiring in the per-step CTA URL.
 fn mail_for_step(candidate: &Candidate, config: &ReactivationConfig) -> Result<Mail, Hook0Problem> {
     let recipient_first_name = Some(candidate.first_name.clone());
+    let unsubscribe_url = unsubscribe_url(candidate, config)?;
     let mail = match candidate.step {
         STEP_DAY1 => Mail::ReactivationNoEventDay1 {
             recipient_first_name,
+            unsubscribe_url,
         },
         STEP_DAY3 => Mail::ReactivationNoEventDay3 {
             recipient_first_name,
             play_url: config.play_url.clone(),
+            unsubscribe_url,
         },
         STEP_DAY7 => Mail::ReactivationNoEventDay7 {
             recipient_first_name,
             discord_url: config.discord_url.clone(),
+            unsubscribe_url,
         },
         other => {
             // Unreachable: steps come from STEPS. Fail loud rather than send the wrong mail.
@@ -370,10 +385,36 @@ fn mail_for_step(candidate: &Candidate, config: &ReactivationConfig) -> Result<M
     Ok(mail)
 }
 
+/// Build the one-click opt-out link for this recipient: the dashboard's
+/// unsubscribe page carrying a token that grants nothing except stopping these
+/// reminders.
+fn unsubscribe_url(
+    candidate: &Candidate,
+    config: &ReactivationConfig,
+) -> Result<Url, Hook0Problem> {
+    let token = crate::iam::create_reactivation_unsubscribe_token(
+        &config.biscuit_private_key,
+        candidate.user_id,
+    )
+    .map_err(|e| {
+        error!(target: "api::reactivation", error = %e, "could not mint unsubscribe token");
+        Hook0Problem::InternalServerError
+    })?;
+
+    let mut url = config.app_url.join("unsubscribe").map_err(|e| {
+        error!(target: "api::reactivation", error = %e, "could not build unsubscribe URL");
+        Hook0Problem::InternalServerError
+    })?;
+    url.query_pairs_mut()
+        .append_pair("token", &token.serialized_biscuit);
+    Ok(url)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::google_ads::test_support::{failing_mailer, seed_event, seed_org, seed_user};
+    use biscuit_auth::{Biscuit, KeyPair};
 
     /// Move a user's sign-up date `days` into the past so age thresholds unlock.
     async fn backdate_signup(pool: &PgPool, user: Uuid, days: i32) {
@@ -410,6 +451,18 @@ mod tests {
             .expect("unverify user");
     }
 
+    /// Record that a user asked to stop receiving these reminders, as the
+    /// public unsubscribe endpoint does.
+    async fn opt_out(pool: &PgPool, user: Uuid) {
+        sqlx::query(
+            r#"UPDATE iam."user" SET reactivation_opted_out_at = statement_timestamp() WHERE user__id = $1"#,
+        )
+        .bind(user)
+        .execute(pool)
+        .await
+        .expect("opt user out");
+    }
+
     /// The steps recorded for an org, ascending.
     async fn steps_sent(pool: &PgPool, org: Uuid) -> Vec<i16> {
         let rows: Vec<(i16,)> = sqlx::query_as(
@@ -424,6 +477,19 @@ mod tests {
 
     /// A large enough cap that the LIMIT never interferes with correctness tests.
     const NO_LIMIT: i64 = 1000;
+
+    /// The runtime configuration the job is given in tests. The signing key is
+    /// freshly generated so the opt-out links minted here are real, verifiable
+    /// biscuits rather than placeholders.
+    fn test_config(max_per_step_per_run: i64) -> ReactivationConfig {
+        ReactivationConfig {
+            play_url: Url::parse("https://play.hook0.com/").expect("play url"),
+            discord_url: Url::parse("https://www.hook0.com/community").expect("discord url"),
+            max_per_step_per_run,
+            app_url: Url::parse("https://app.hook0.com/").expect("app url"),
+            biscuit_private_key: KeyPair::new().private(),
+        }
+    }
 
     /// A verified registrant whose org has no event and is old enough is picked.
     #[sqlx::test]
@@ -468,6 +534,84 @@ mod tests {
             .expect("select");
 
         assert!(candidates.is_empty());
+    }
+
+    /// Opting out is honoured by the selection itself, not merely by the mailer:
+    /// a reader who clicked "stop these reminders" must never be picked again,
+    /// for any step, however eligible they otherwise look.
+    #[sqlx::test]
+    async fn opted_out_user_is_never_selected(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        let _org = seed_org(&pool, user).await;
+        backdate_signup(&pool, user, 2).await;
+
+        // Eligible before the opt-out — otherwise the emptiness below proves
+        // nothing.
+        let before = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
+            .await
+            .expect("select before opt-out");
+        assert_eq!(before.len(), 1, "eligible until the reader opts out");
+
+        opt_out(&pool, user).await;
+
+        for spec in STEPS.iter() {
+            let candidates = select_candidates(
+                &pool,
+                spec.step,
+                spec.min_age_days,
+                spec.predecessor,
+                min_days_since_predecessor(spec),
+                NO_LIMIT,
+            )
+            .await
+            .expect("select after opt-out");
+            assert!(
+                candidates.is_empty(),
+                "step {} still targets an opted-out reader",
+                spec.step
+            );
+        }
+    }
+
+    /// The opt-out link in the email has to actually work: it must carry a
+    /// biscuit that our own authorizer accepts and that resolves to the very
+    /// recipient being mailed. A link pointing at the wrong user, or one the API
+    /// rejects, is worse than no link at all.
+    #[test]
+    fn every_step_carries_a_verifiable_opt_out_link_for_its_recipient() {
+        let config = test_config(NO_LIMIT);
+        let public_key = config.biscuit_private_key.public();
+
+        for spec in STEPS.iter() {
+            let candidate = Candidate {
+                organization_id: Uuid::new_v4(),
+                user_id: Uuid::new_v4(),
+                step: spec.step,
+                email: "reader@example.com".to_owned(),
+                first_name: "Reader".to_owned(),
+            };
+
+            let mail = mail_for_step(&candidate, &config).expect("build mail");
+            let url = mail
+                .unsubscribe_url()
+                .expect("every reactivation email carries an opt-out link");
+
+            assert_eq!(url.path(), "/unsubscribe");
+            let token = url
+                .query_pairs()
+                .find(|(k, _)| k == "token")
+                .map(|(_, v)| v.into_owned())
+                .expect("opt-out link carries a token");
+
+            let biscuit = Biscuit::from_base64(&token, public_key).expect("token is a biscuit");
+            let authorized =
+                crate::iam::authorize_reactivation_unsubscribe(&biscuit).expect("token authorizes");
+            assert_eq!(
+                authorized.user_id, candidate.user_id,
+                "step {} links to the wrong account",
+                spec.step
+            );
+        }
     }
 
     /// Sign-ups older than the upper bound are never contacted. Without this,
@@ -576,11 +720,7 @@ mod tests {
         // Past every sign-up-age threshold, still within MAX_SIGNUP_AGE_DAYS.
         backdate_signup(&pool, user, 10).await;
 
-        let config = ReactivationConfig {
-            play_url: Url::parse("https://play.hook0.com/").unwrap(),
-            discord_url: Url::parse("https://www.hook0.com/community").unwrap(),
-            max_per_step_per_run: NO_LIMIT,
-        };
+        let config = test_config(NO_LIMIT);
 
         // J+1 recorded just now.
         assert!(claim_step(&pool, &org, STEP_DAY1).await.expect("claim d1"));
@@ -647,11 +787,7 @@ mod tests {
         let org = seed_org(&pool, user).await;
         backdate_signup(&pool, user, 10).await;
 
-        let config = ReactivationConfig {
-            play_url: Url::parse("https://play.hook0.com/").unwrap(),
-            discord_url: Url::parse("https://www.hook0.com/community").unwrap(),
-            max_per_step_per_run: NO_LIMIT,
-        };
+        let config = test_config(NO_LIMIT);
         let planned = collect_pass(&pool, &config).await.expect("collect");
 
         assert_eq!(planned.len(), 1, "at most one step per org per pass");
@@ -666,11 +802,7 @@ mod tests {
         let org = seed_org(&pool, user).await;
         backdate_signup(&pool, user, 10).await;
 
-        let config = ReactivationConfig {
-            play_url: Url::parse("https://play.hook0.com/").unwrap(),
-            discord_url: Url::parse("https://www.hook0.com/community").unwrap(),
-            max_per_step_per_run: NO_LIMIT,
-        };
+        let config = test_config(NO_LIMIT);
 
         // Simulate a pass by collecting then claiming (the SMTP send is covered
         // by the mailer's own rendering tests). Each successive step only unlocks
@@ -736,11 +868,7 @@ mod tests {
         let org = seed_org(&pool, user).await;
         backdate_signup(&pool, user, 2).await;
 
-        let config = ReactivationConfig {
-            play_url: Url::parse("https://play.hook0.com/").unwrap(),
-            discord_url: Url::parse("https://www.hook0.com/community").unwrap(),
-            max_per_step_per_run: NO_LIMIT,
-        };
+        let config = test_config(NO_LIMIT);
         let mailer = failing_mailer().await;
 
         // Drive the REAL pass. The SMTP endpoint is unreachable, so the send

@@ -1510,6 +1510,8 @@ async fn main() -> anyhow::Result<()> {
                 play_url: config.reactivation_play_url.clone(),
                 discord_url: config.reactivation_discord_url.clone(),
                 max_per_step_per_run: config.reactivation_emails_max_per_step_per_run,
+                app_url: config.app_url.clone(),
+                biscuit_private_key: biscuit_private_key.clone(),
             };
             let reactivation_period = config.reactivation_emails_period;
             actix_web::rt::spawn(async move {
@@ -1694,6 +1696,16 @@ async fn main() -> anyhow::Result<()> {
                                         .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
                                         .route(web::post().to(handlers::auth::change_password)),
                                 ),
+                        )
+                        // no auth: authenticated by the signed token carried by the
+                        // unsubscribe link of a reactivation email
+                        .service(
+                            web::scope("/email-preferences").service(
+                                web::resource("/unsubscribe-reactivation").route(
+                                    web::post()
+                                        .to(handlers::email_preferences::unsubscribe_reactivation),
+                                ),
+                            ),
                         )
                         // no auth
                         .service(web::scope("/instance").service(
