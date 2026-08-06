@@ -207,6 +207,7 @@ body {
 
 .navbar__logo {
   height: 2rem;
+  margin-left: 0.5rem;
   margin-right: 0.5rem;
   transition: opacity 0.2s ease;
 }

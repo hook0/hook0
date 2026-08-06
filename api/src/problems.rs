@@ -5,7 +5,6 @@ use http_api_problem::{HttpApiProblem, PROBLEM_JSON_MEDIA_TYPE};
 use paperclip::actix::api_v2_errors;
 use serde_json::{Value, to_value};
 use sqlx::Error;
-use sqlx::postgres::PgDatabaseError;
 use std::borrow::Cow;
 use std::fmt::Display;
 use strum::{EnumIter, VariantNames};
@@ -85,29 +84,36 @@ impl From<sqlx::Error> for Hook0Problem {
         match e {
             Error::RowNotFound => Hook0Problem::NotFound,
             Error::Database(ex) => {
-                // Goal map Box<dyn DatabaseError> to PgDatabaseError
-                let pg_error: &PgDatabaseError = ex.try_downcast_ref::<PgDatabaseError>().unwrap();
-
-                //let pg_error: PgDatabaseError = ex.into();
-                match pg_error.constraint() {
-                    Some("application_name_chk") => Hook0Problem::ApplicationNameMissing,
-                    Some("event_type_pkey") => Hook0Problem::EventTypeAlreadyExist,
-                    Some("event_pkey") => Hook0Problem::EventAlreadyIngested,
-                    Some(
-                        "subscription__event_type_event_type__name_fkey"
-                        | "event_event_type__name_fkey",
-                    ) => Hook0Problem::EventTypeDoesNotExist,
-                    Some("user__organization_pkey") => {
-                        Hook0Problem::InvitedUserAlreadyInOrganization
+                let code = ex.code();
+                match code.as_deref() {
+                    // 55P03 (lock_not_available): `lock_timeout` fired while waiting for a row
+                    // lock. It carries no constraint name, so it has to be matched before the
+                    // constraint table below, which would otherwise log transient contention as
+                    // if it were a bug and answer 500 instead of a retryable 503.
+                    Some("55P03") => {
+                        warn!("Database lock timeout (likely quota-enforcement contention): {ex}");
+                        Hook0Problem::ServiceUnavailable
                     }
-                    constraint => {
-                        error!(
-                            "Database error (failed constraint = {}): {}",
-                            constraint.unwrap_or("?"),
-                            &pg_error
-                        );
-                        Hook0Problem::InternalServerError
-                    }
+                    _ => match ex.constraint() {
+                        Some("application_name_chk") => Hook0Problem::ApplicationNameMissing,
+                        Some("event_type_pkey") => Hook0Problem::EventTypeAlreadyExist,
+                        Some("event_pkey") => Hook0Problem::EventAlreadyIngested,
+                        Some(
+                            "subscription__event_type_event_type__name_fkey"
+                            | "event_event_type__name_fkey",
+                        ) => Hook0Problem::EventTypeDoesNotExist,
+                        Some("user__organization_pkey") => {
+                            Hook0Problem::InvitedUserAlreadyInOrganization
+                        }
+                        constraint => {
+                            error!(
+                                "Database error (failed constraint = {}): {}",
+                                constraint.unwrap_or("?"),
+                                &ex
+                            );
+                            Hook0Problem::InternalServerError
+                        }
+                    },
                 }
             }
             Error::PoolTimedOut => {

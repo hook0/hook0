@@ -550,6 +550,13 @@ pub async fn invite(
 
     match Role::from_str(&body.role) {
         Ok(role) => {
+            let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
+
+            state
+                .quotas
+                .enforce_members_per_organization(&mut tx, &organization_id)
+                .await?;
+
             let user_id = query_scalar!(
                 "
                     SELECT user__id
@@ -558,7 +565,7 @@ pub async fn invite(
                 ",
                 &body.email,
             )
-            .fetch_optional(&state.db)
+            .fetch_optional(&mut *tx)
             .await?;
 
             match user_id {
@@ -572,8 +579,10 @@ pub async fn invite(
                         &organization_id,
                         role.as_ref(),
                     )
-                    .execute(&state.db)
+                    .execute(&mut *tx)
                     .await?;
+
+                    tx.commit().await.map_err(Hook0Problem::from)?;
 
                     if let Some(hook0_client) = state.hook0_client.as_ref() {
                         let hook0_client_event: Hook0ClientEvent = EventOrganizationInvited {
