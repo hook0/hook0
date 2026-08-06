@@ -42,6 +42,7 @@ use actix_web::rt::time::sleep;
 use lettre::Address;
 use lettre::message::Mailbox;
 use sqlx::PgPool;
+use std::collections::HashSet;
 use std::str::FromStr;
 use std::time::Duration;
 use tokio::sync::Semaphore;
@@ -227,6 +228,16 @@ async fn collect_pass(
         .await?;
         all.append(&mut candidates);
     }
+
+    // Claims are per organization, but the mail lands in a person's inbox.
+    // Nothing stops one account from owning several organizations, and a
+    // dormant one of those is dormant in all of them — so without this the
+    // same reader would get the same message once per organization, in the
+    // same pass. Keep the first (steps are collected in order, so that is the
+    // earliest step this reader is due) and leave the rest for later passes.
+    let mut already_planned = HashSet::new();
+    all.retain(|candidate| already_planned.insert(candidate.user_id));
+
     Ok(all)
 }
 
@@ -793,6 +804,35 @@ mod tests {
         assert_eq!(planned.len(), 1, "at most one step per org per pass");
         assert_eq!(planned[0].step, STEP_DAY1);
         assert_eq!(planned[0].organization_id, org);
+    }
+
+    /// One reader, several organizations: the claim table is keyed per
+    /// organization, but the mail lands in one inbox. Nothing caps how many
+    /// organizations an account may create, so without a per-recipient guard a
+    /// single pass would send the same message once per dormant organization.
+    #[sqlx::test]
+    async fn a_reader_with_several_organizations_is_mailed_once_per_pass(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        let first_org = seed_org(&pool, user).await;
+        let second_org = seed_org(&pool, user).await;
+        backdate_signup(&pool, user, 2).await;
+
+        // Both organizations qualify on their own.
+        let selected = select_candidates(&pool, STEP_DAY1, 1, None, 0, NO_LIMIT)
+            .await
+            .expect("select");
+        let orgs: Vec<_> = selected.iter().map(|c| c.organization_id).collect();
+        assert!(orgs.contains(&first_org) && orgs.contains(&second_org));
+
+        let config = test_config(NO_LIMIT);
+        let planned = collect_pass(&pool, &config).await.expect("collect");
+
+        assert_eq!(
+            planned.len(),
+            1,
+            "one reader must receive at most one message per pass"
+        );
+        assert_eq!(planned[0].user_id, user);
     }
 
     /// Driving passes manually walks an org J+1 → J+3 → J+7, then stops.

@@ -153,7 +153,7 @@ This documentation may not cover all options or reflect recent changes.
 | `ENABLE_REACTIVATION_EMAILS` | If true (default), verified accounts that never sent an event get a bounded "0 event sent" reactivation email sequence (J+1 / J+3 / J+7); set to false to opt out | `true` |  |
 | `REACTIVATION_DISCORD_URL` | URL of the Hook0 community/Discord used as the J+7 CTA | `https://www.hook0.com/community` |  |
 | `REACTIVATION_EMAILS_MAX_PER_STEP_PER_RUN` | Upper bound on how many recipients a single pass processes per step (bounds work per pass) | `500` |  |
-| `REACTIVATION_EMAILS_PERIOD` | Duration to wait between reactivation email passes | `6h` |  |
+| `REACTIVATION_EMAILS_PERIOD` | Duration to wait between reactivation email passes (at least 1s) | `6h` |  |
 | `REACTIVATION_PLAY_URL` | URL of the Hook0 webhook tester used as the J+3 CTA (lift the "no public URL" blocker) | `https://play.hook0.com/` |  |
 
 ### Monitoring

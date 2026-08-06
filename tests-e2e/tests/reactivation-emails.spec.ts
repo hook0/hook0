@@ -351,6 +351,43 @@ test.describe("Reactivation drip for accounts that never sent an event", () => {
     ).toEqual([1]);
   });
 
+  test("opting out from the browser, by clicking the link exactly as it was sent", async ({
+    page,
+    request,
+  }) => {
+    // The API-level test above proves the endpoint; this one proves the thing
+    // the reader actually does — following the href in the mail — reaches a
+    // page that confirms it worked.
+    const user = await registerVerifiedUser(request, "optout-browser");
+    await ageSignupByDays(user.email, 2);
+
+    const message = await getEmailFromMailpit(request, user.email, DAY1_SUBJECT, DRIP_WAIT_MS);
+    const unsubscribeLink = unsubscribeLinkFrom(message.HTML ?? "");
+
+    await page.goto(`${unsubscribeLink.pathname}${unsubscribeLink.search}`);
+    await expect(page.locator('[data-test="unsubscribe-confirmation"]')).toBeVisible({
+      timeout: 15000,
+    });
+    expect(await hasOptedOut(user.email), "the visit must record the opt-out").toBe(true);
+
+    // The token is long-lived, so it must not stay in the address bar where
+    // analytics and browser history would keep it.
+    expect(page.url(), "the opt-out token must not survive in the URL").not.toContain(
+      unsubscribeLink.searchParams.get("token")
+    );
+  });
+
+  test("tells the reader what happened when the link is not usable", async ({ page }) => {
+    // A link mangled by a mail client is the common case, and it must produce an
+    // explanation rather than a spinner that never resolves.
+    await page.goto("/unsubscribe?token=not-a-real-token");
+    await expect(page.locator('[data-test="unsubscribe-error"]')).toBeVisible({ timeout: 15000 });
+
+    // And a link with no token at all.
+    await page.goto("/unsubscribe");
+    await expect(page.locator('[data-test="unsubscribe-error"]')).toBeVisible({ timeout: 15000 });
+  });
+
   test("rejects an unsubscribe link that was tampered with", async ({ request }) => {
     const user = await registerVerifiedUser(request, "optout-tampered");
     await ageSignupByDays(user.email, 2);

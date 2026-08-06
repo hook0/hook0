@@ -3,6 +3,8 @@ import * as UserService from './UserService.ts';
 import { Problem } from '@/http.ts';
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import router from '@/router.ts';
+import { stripTokenFromUrl } from '@/utils/stripTokenFromUrl';
 import { routes } from '@/routes.ts';
 import { useI18n } from 'vue-i18n';
 import { ArrowLeft } from 'lucide-vue-next';
@@ -45,6 +47,9 @@ function displayError(err: Problem) {
 
 function _onLoad() {
   const token = route.query.token as string;
+  // The opt-out token is long-lived, so it must not linger anywhere URLs are
+  // observed (analytics page views and referrers, browser history).
+  stripTokenFromUrl(router);
   if (!token) {
     displayError({
       id: 'InvalidToken',

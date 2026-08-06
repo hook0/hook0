@@ -129,7 +129,9 @@ export default [
     name: routes.UnsubscribeReactivation,
     path: '/unsubscribe',
     component: () => import('@/pages/user/UnsubscribeReactivation.vue'),
-    meta: { requiresAuth: false, fullScreen: true, title: 'Unsubscribe' },
+    // analyticsIgnore: this URL carries the opt-out token in its query string;
+    // it must never reach the analytics backend as a tracked page.
+    meta: { requiresAuth: false, fullScreen: true, title: 'Unsubscribe', analyticsIgnore: true },
   },
   {
     name: routes.CheckEmail,

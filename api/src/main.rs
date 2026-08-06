@@ -479,12 +479,12 @@ struct Config {
     #[clap(long, env, default_value = "true")]
     enable_reactivation_emails: bool,
 
-    /// [Reactivation] Duration to wait between reactivation email passes
-    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "6h")]
+    /// [Reactivation] Duration to wait between reactivation email passes (at least 1s)
+    #[clap(long, env, value_parser = parse_reactivation_period, default_value = "6h")]
     reactivation_emails_period: Duration,
 
     /// [Reactivation] Upper bound on how many recipients a single pass processes per step (bounds work per pass)
-    #[clap(long, env, default_value = "500")]
+    #[clap(long, env, value_parser = clap::value_parser!(i64).range(1..=10_000), default_value = "500")]
     reactivation_emails_max_per_step_per_run: i64,
 
     /// [Reactivation] URL of the Hook0 webhook tester used as the J+3 CTA (lift the "no public URL" blocker)
@@ -701,6 +701,19 @@ struct Config {
     /// lazily). Runs regardless of Google Ads / Matomo configuration.
     #[clap(long, env, default_value = "3600")]
     signup_attribution_cleanup_period_in_s: u64,
+}
+
+/// Parse the delay between reactivation passes, refusing values that would turn
+/// the job into a tight loop. A zero period makes every pass re-acquire the
+/// housekeeping semaphore immediately, starving the other background jobs that
+/// share it; the floor is deliberately low (1s) so test environments can still
+/// drive several passes inside a run.
+fn parse_reactivation_period(input: &str) -> Result<Duration, String> {
+    let period = humantime::parse_duration(input).map_err(|e| e.to_string())?;
+    if period < Duration::from_secs(1) {
+        return Err("must be at least 1s".to_owned());
+    }
+    Ok(period)
 }
 
 fn parse_biscuit_private_key(input: &str) -> Result<PrivateKey, String> {
