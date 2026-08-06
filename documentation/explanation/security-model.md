@@ -307,10 +307,9 @@ Content-Security-Policy: default-src 'self'
 - Webhook delivery security testing
 - Infrastructure penetration testing
 
-### Bug bounty program
-- Responsible disclosure process
-- Security researcher rewards
-- Public security advisory process
+### Reporting a vulnerability
+
+Found something? Our [vulnerability disclosure policy](../resources/vulnerability-disclosure-policy.md) covers what is in scope, what is excluded, how to send a report, and what happens after the fix ships.
 
 ## Incident response
 
