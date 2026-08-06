@@ -102,6 +102,12 @@ function resend() {
       // Start the cooldown regardless of whether the address actually matched an
       // account: the endpoint answers identically either way (anti-enumeration),
       // so the UI must not behave differently.
+      //
+      // For the same reason the message acknowledges the request and stops
+      // there. A 204 means "accepted", never "sent": an unknown address, an
+      // already-verified one, a cooldown still running or a spent daily
+      // allowance all answer the same, with nothing leaving. Anything more
+      // definite would either be a lie or tell the caller which addresses exist.
       startCooldown(email);
       toast.success(t('auth.checkEmail.resendSuccess'));
     })

@@ -531,6 +531,248 @@ impl Mailer {
 }
 
 #[cfg(test)]
+pub(crate) mod test_support {
+    use std::io::{Read, Write};
+    use std::net::{Shutdown, TcpListener, TcpStream};
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+    use std::time::{Duration, Instant};
+
+    /// Longest a single connection is served before it is dropped, so a client
+    /// that opens one and goes quiet cannot keep a thread forever.
+    const CONNECTION_MAX_LIFETIME: Duration = Duration::from_secs(120);
+    /// Connections served at the same time. Well above what a pooled client
+    /// opens, and a hard stop on the number of threads this server can spawn.
+    const MAX_CONCURRENT_CONNECTIONS: usize = 16;
+    /// Longest command line accepted before the connection is dropped.
+    const MAX_LINE_BYTES: usize = 8 * 1024;
+    /// Largest message body accepted before the connection is dropped.
+    const MAX_MESSAGE_BYTES: usize = 4 * 1024 * 1024;
+
+    /// A minimal in-process SMTP server.
+    ///
+    /// Like the fake Google Ads endpoint, it is a real socket speaking the real
+    /// protocol rather than a mocked transport: the mailer under test connects,
+    /// greets, and hands over a message exactly as it would to a relay. It
+    /// counts the messages it accepts so a test can tell "the mail left" from
+    /// "the mail did not leave" — the distinction the resend quota turns on.
+    ///
+    /// Dropping it stops it.
+    pub(crate) struct FakeSmtp {
+        /// Ready to hand to `MailerSmtpConfig::smtp_connection_url`.
+        pub connection_url: String,
+        delivered: Arc<AtomicUsize>,
+        stop: Arc<AtomicBool>,
+    }
+
+    impl FakeSmtp {
+        pub fn start() -> Self {
+            let listener = TcpListener::bind("127.0.0.1:0").expect("bind fake smtp server");
+            let addr = listener.local_addr().expect("fake smtp local addr");
+            listener
+                .set_nonblocking(true)
+                .expect("fake smtp non-blocking");
+
+            let delivered = Arc::new(AtomicUsize::new(0));
+            let stop = Arc::new(AtomicBool::new(false));
+            let live = Arc::new(AtomicUsize::new(0));
+            let delivered_thread = Arc::clone(&delivered);
+            let stop_thread = Arc::clone(&stop);
+
+            std::thread::spawn(move || {
+                loop {
+                    match listener.accept() {
+                        Ok((stream, _)) => {
+                            if live.load(Ordering::Relaxed) >= MAX_CONCURRENT_CONNECTIONS {
+                                let _ = stream.shutdown(Shutdown::Both);
+                                continue;
+                            }
+                            live.fetch_add(1, Ordering::Relaxed);
+                            let delivered = Arc::clone(&delivered_thread);
+                            let stop = Arc::clone(&stop_thread);
+                            let live = Arc::clone(&live);
+                            std::thread::spawn(move || {
+                                serve(stream, &delivered, &stop);
+                                live.fetch_sub(1, Ordering::Relaxed);
+                            });
+                        }
+                        Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                            if stop_thread.load(Ordering::Relaxed) {
+                                break;
+                            }
+                            std::thread::sleep(Duration::from_millis(5));
+                        }
+                        Err(_) => break,
+                    }
+                }
+            });
+
+            Self {
+                connection_url: format!("smtp://{addr}"),
+                delivered,
+                stop,
+            }
+        }
+
+        /// How many messages this server has accepted so far.
+        pub fn delivered(&self) -> usize {
+            self.delivered.load(Ordering::Relaxed)
+        }
+
+        /// Wait until at least `n` messages have been accepted, or `timeout`
+        /// elapses, then report the count. The send runs on a detached task, so
+        /// a test that wants to observe it has to wait for it.
+        pub async fn wait_for(&self, n: usize, timeout: Duration) -> usize {
+            let steps = (timeout.as_millis() / 25).max(1);
+            for _ in 0..steps {
+                if self.delivered() >= n {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(25)).await;
+            }
+            self.delivered()
+        }
+    }
+
+    impl Drop for FakeSmtp {
+        fn drop(&mut self) {
+            self.stop.store(true, Ordering::Relaxed);
+        }
+    }
+
+    /// Speak SMTP on one accepted connection until the client quits, the server
+    /// is stopped, or the connection outlives its budget.
+    fn serve(mut stream: TcpStream, delivered: &AtomicUsize, stop: &AtomicBool) {
+        // Short read timeout so an idle connection still wakes up often enough
+        // to notice the server was stopped; the deadline below is what actually
+        // ends it.
+        if stream
+            .set_read_timeout(Some(Duration::from_millis(100)))
+            .is_err()
+        {
+            return;
+        }
+        if stream.write_all(b"220 hook0-test ESMTP\r\n").is_err() {
+            return;
+        }
+
+        let deadline = Instant::now() + CONNECTION_MAX_LIFETIME;
+        let mut buf: Vec<u8> = Vec::new();
+        while !stop.load(Ordering::Relaxed) && Instant::now() < deadline {
+            let Some(line) = read_line(&mut stream, &mut buf, deadline, stop) else {
+                break;
+            };
+            let command = line.to_ascii_uppercase();
+
+            if command.starts_with("QUIT") {
+                let _ = stream.write_all(b"221 2.0.0 Bye\r\n");
+                break;
+            }
+
+            let reply: &[u8] = if command.starts_with("EHLO") {
+                // 8BITMIME and SMTPUTF8 are advertised so the client never has
+                // to refuse a message on our account: rendered mails carry
+                // non-ASCII characters (the footer separators, accented names).
+                b"250-hook0-test\r\n250-8BITMIME\r\n250-SMTPUTF8\r\n250 HELP\r\n"
+            } else if command.starts_with("DATA") {
+                if stream
+                    .write_all(b"354 End data with <CR><LF>.<CR><LF>\r\n")
+                    .is_err()
+                {
+                    break;
+                }
+                if read_message(&mut stream, &mut buf, deadline, stop).is_none() {
+                    break;
+                }
+                delivered.fetch_add(1, Ordering::Relaxed);
+                b"250 2.0.0 Ok: queued\r\n"
+            } else {
+                // HELO, MAIL FROM, RCPT TO, NOOP, RSET: everything else this
+                // server has to accept for a message to be handed over.
+                b"250 2.0.0 Ok\r\n"
+            };
+
+            if stream.write_all(reply).is_err() {
+                break;
+            }
+        }
+        let _ = stream.shutdown(Shutdown::Both);
+    }
+
+    /// Read one CRLF-terminated command line, consuming it from `buf`.
+    fn read_line(
+        stream: &mut TcpStream,
+        buf: &mut Vec<u8>,
+        deadline: Instant,
+        stop: &AtomicBool,
+    ) -> Option<String> {
+        loop {
+            if let Some(pos) = find_subslice(buf, b"\r\n") {
+                let line = String::from_utf8_lossy(&buf[..pos]).into_owned();
+                buf.drain(..pos + 2);
+                return Some(line);
+            }
+            if buf.len() > MAX_LINE_BYTES {
+                return None;
+            }
+            read_more(stream, buf, deadline, stop)?;
+        }
+    }
+
+    /// Read a DATA body up to its `<CRLF>.<CRLF>` terminator, consuming it from
+    /// `buf`. The content itself is not kept: what a test needs to know is that
+    /// a message was accepted, not what was in it.
+    fn read_message(
+        stream: &mut TcpStream,
+        buf: &mut Vec<u8>,
+        deadline: Instant,
+        stop: &AtomicBool,
+    ) -> Option<()> {
+        loop {
+            if let Some(pos) = find_subslice(buf, b"\r\n.\r\n") {
+                buf.drain(..pos + 5);
+                return Some(());
+            }
+            if buf.len() > MAX_MESSAGE_BYTES {
+                return None;
+            }
+            read_more(stream, buf, deadline, stop)?;
+        }
+    }
+
+    /// Append one chunk from the socket, retrying across read timeouts until the
+    /// server is stopped or the connection runs out of time.
+    fn read_more(
+        stream: &mut TcpStream,
+        buf: &mut Vec<u8>,
+        deadline: Instant,
+        stop: &AtomicBool,
+    ) -> Option<()> {
+        let mut chunk = [0u8; 4096];
+        loop {
+            if stop.load(Ordering::Relaxed) || Instant::now() >= deadline {
+                return None;
+            }
+            match stream.read(&mut chunk) {
+                Ok(0) => return None,
+                Ok(n) => {
+                    buf.extend_from_slice(&chunk[..n]);
+                    return Some(());
+                }
+                Err(ref e)
+                    if e.kind() == std::io::ErrorKind::WouldBlock
+                        || e.kind() == std::io::ErrorKind::TimedOut => {}
+                Err(_) => return None,
+            }
+        }
+    }
+
+    fn find_subslice(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+        haystack.windows(needle.len()).position(|w| w == needle)
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use std::str::FromStr;
 
@@ -944,6 +1186,70 @@ mod tests {
                 mail.matomo_campaign()
             );
         }
+    }
+
+    async fn test_mailer(smtp_connection_url: &str) -> Mailer {
+        let (logo, website, app, doc, privacy, support, legal_name, postal, rcs) = fixture();
+        let smtp = MailerSmtpConfig {
+            smtp_connection_url: smtp_connection_url.to_owned(),
+            smtp_timeout: Duration::from_secs(5),
+            sender_name: "Hook0 Test".to_owned(),
+            sender_address: Address::from_str("noreply@hook0.com").expect("sender address"),
+        };
+        Mailer::new(
+            smtp, logo, website, app, doc, privacy, support, legal_name, postal, rcs,
+        )
+        .await
+        .expect("build mailer")
+    }
+
+    fn a_verification_mail() -> (Mail, Mailbox) {
+        (
+            Mail::VerifyUserEmail {
+                recipient_first_name: Some("Sarah".to_owned()),
+                url: Url::from_str("https://app.hook0.com/verify-email?token=abc").unwrap(),
+            },
+            Mailbox::new(
+                Some("Sarah Doe".to_owned()),
+                Address::from_str("sarah@example.com").expect("recipient address"),
+            ),
+        )
+    }
+
+    /// Test #16 — the mailer really speaks SMTP: a message handed to it is
+    /// greeted, accepted and queued by a server on a socket. Everything that
+    /// turns on a send having succeeded — the resend quota most of all — is only
+    /// meaningful if this holds.
+    #[actix_web::test]
+    async fn mailer_delivers_to_a_real_smtp_server() {
+        let smtp = test_support::FakeSmtp::start();
+        let mailer = test_mailer(&smtp.connection_url).await;
+        let (mail, recipient) = a_verification_mail();
+
+        mailer
+            .send_mail(mail, recipient)
+            .await
+            .expect("the mail must reach a server that is listening");
+
+        assert_eq!(
+            smtp.delivered(),
+            1,
+            "the server must have accepted exactly one message"
+        );
+    }
+
+    /// Test #17 — and it reports a send that reached no server, instead of
+    /// quietly claiming success. The resend endpoint gives a spent attempt back
+    /// on exactly this error.
+    #[actix_web::test]
+    async fn mailer_reports_a_send_that_reached_no_server() {
+        let mailer = test_mailer("smtp://127.0.0.1:2").await;
+        let (mail, recipient) = a_verification_mail();
+
+        assert!(
+            mailer.send_mail(mail, recipient).await.is_err(),
+            "a send with nothing listening must surface as an error"
+        );
     }
 
     /// Dumps every rendered template to /tmp/hook0-mails/<slug>.html for

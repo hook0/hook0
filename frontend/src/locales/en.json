@@ -74,7 +74,7 @@
       "resend": "Resend verification email",
       "resendCooldown": "Resend available in {seconds}s",
       "resendError": "Could not resend the email. Please try again in a moment.",
-      "resendSuccess": "If that address needs verifying, a new email is on its way.",
+      "resendSuccess": "Request received. If a new verification email is due for that address, it will arrive shortly.",
       "spamNote": "Didn't receive the email? Check your spam folder or contact support.",
       "title": "Check your email"
     },

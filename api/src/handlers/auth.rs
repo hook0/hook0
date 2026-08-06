@@ -9,9 +9,10 @@ use lettre::message::Mailbox;
 use paperclip::actix::web::{Data, Json};
 use paperclip::actix::{Apiv2Schema, CreatedJson, NoContent, api_v2_operation};
 use serde::{Deserialize, Serialize};
-use sqlx::{Acquire, Postgres, query, query_as, query_scalar};
+use sqlx::{Acquire, PgPool, Postgres, query, query_as, query_scalar};
 use std::str::FromStr;
 use tracing::{debug, error, warn};
+use url::Url;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -20,7 +21,7 @@ use crate::iam::{
     authorize_reset_password, create_refresh_token, create_reset_password_token,
     create_user_access_token,
 };
-use crate::mailer::Mail;
+use crate::mailer::{Mail, Mailer};
 use crate::openapi::{OaBiscuitRefresh, OaBiscuitUserAccess};
 use crate::problems::Hook0Problem;
 
@@ -761,55 +762,89 @@ pub async fn resend_verification_email(
 
     // SECURITY: the dominant enumeration timing channel — the mail send — is
     // decoupled below via `tokio::spawn`, so response latency is independent of
-    // whether the address matches an account. A residual sub-cooldown,
-    // microsecond-scale asymmetry remains because the atomic `UPDATE ... RETURNING`
-    // only writes a row on a match; this DB-write timing difference is an accepted
-    // limitation (closing it with dummy writes adds risk for no practical gain).
+    // whether the address matches an account. Two residual signals remain, both
+    // accepted rather than closed:
+    //
+    //  * A microsecond-scale asymmetry: the claim below writes a row only on a
+    //    match, and writing a row takes marginally longer than not writing one.
+    //    Closing it would mean writing dummy rows for addresses that do not
+    //    exist, which buys nothing in practice.
+    //  * A larger one, and unlike the first it can be induced at will: on a
+    //    match the claim takes a row lock, so two concurrent requests for the
+    //    SAME address serialise on that lock, while two requests for an address
+    //    that matches nothing never do. A caller able to fire simultaneous
+    //    requests can measure that difference. It is left open deliberately —
+    //    closing it would mean taking a lock keyed on addresses that do not
+    //    exist, which is a denial-of-service surface of its own, and the lock is
+    //    what keeps the cooldown and the cap atomic under concurrency.
+    //
+    // Everything else stays symmetric: the response is the same NoContent in
+    // every case, and giving a failed attempt back (see below) happens on the
+    // detached task, never on the request path.
 
     // Atomically claim the right to send: only an unverified account past its
     // cooldown and under its window cap matches, and the very same statement
     // stamps the new send time and moves the window counter along. Everything
     // else (unknown email, already verified, still within cooldown, cap reached)
     // matches no row and silently falls through to the identical response below.
-    struct Recipient {
-        user_id: Uuid,
-        email: String,
-        first_name: String,
-        last_name: String,
-    }
-    let recipient = query_as!(
-        Recipient,
+    //
+    // The claim reads the row `FOR UPDATE` before writing it so the values it
+    // overwrites can be returned alongside the new ones — the quota is spent
+    // before the mail is handed to SMTP, so a send that never happens has to be
+    // able to put them back. The lock is also what makes the decision atomic:
+    // two concurrent claims for the same account serialise on it, and the second
+    // re-reads the row the first one left behind rather than a stale copy.
+    let claim = query_as!(
+        ResendClaim,
         r#"
-            UPDATE iam."user"
+            WITH claimable AS (
+                SELECT
+                    user__id,
+                    email,
+                    first_name,
+                    last_name,
+                    email_verification_sent_at,
+                    email_verification_resend_window_started_at,
+                    email_verification_resend_count
+                FROM iam."user"
+                WHERE email = $1
+                  AND email_verified_at IS NULL
+                  AND (
+                      email_verification_sent_at IS NULL
+                      OR email_verification_sent_at < statement_timestamp() - MAKE_INTERVAL(secs => $2)
+                  )
+                  AND (
+                      email_verification_resend_window_started_at IS NULL
+                      OR email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)
+                      OR email_verification_resend_count < $4
+                  )
+                FOR UPDATE
+            )
+            UPDATE iam."user" AS u
             SET email_verification_sent_at = statement_timestamp(),
                 email_verification_resend_window_started_at = CASE
-                    WHEN email_verification_resend_window_started_at IS NULL
-                      OR email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)
+                    WHEN c.email_verification_resend_window_started_at IS NULL
+                      OR c.email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)
                     THEN statement_timestamp()
-                    ELSE email_verification_resend_window_started_at
+                    ELSE c.email_verification_resend_window_started_at
                 END,
                 email_verification_resend_count = CASE
-                    WHEN email_verification_resend_window_started_at IS NULL
-                      OR email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)
+                    WHEN c.email_verification_resend_window_started_at IS NULL
+                      OR c.email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)
                     THEN 1
-                    ELSE email_verification_resend_count + 1
+                    ELSE c.email_verification_resend_count + 1
                 END
-            WHERE email = $1
-              AND email_verified_at IS NULL
-              AND (
-                  email_verification_sent_at IS NULL
-                  OR email_verification_sent_at < statement_timestamp() - MAKE_INTERVAL(secs => $2)
-              )
-              AND (
-                  email_verification_resend_window_started_at IS NULL
-                  OR email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)
-                  OR email_verification_resend_count < $4
-              )
+            FROM claimable AS c
+            WHERE u.user__id = c.user__id
             RETURNING
-                user__id AS "user_id!",
-                email AS "email!",
-                first_name AS "first_name!",
-                last_name AS "last_name!"
+                c.user__id AS "user_id!",
+                c.email AS "email!",
+                c.first_name AS "first_name!",
+                c.last_name AS "last_name!",
+                u.email_verification_sent_at AS "claimed_at!",
+                c.email_verification_sent_at AS "previous_sent_at?",
+                c.email_verification_resend_window_started_at AS "previous_window_started_at?",
+                c.email_verification_resend_count AS "previous_resend_count!"
         "#,
         &body.email,
         RESEND_VERIFICATION_EMAIL_COOLDOWN_SECS,
@@ -819,7 +854,7 @@ pub async fn resend_verification_email(
     .fetch_optional(&state.db)
     .await?;
 
-    if let Some(user) = recipient {
+    if let Some(claim) = claim {
         // Decouple token creation and the mail send from the request path so the
         // response latency is identical whether or not the address matches an
         // account. Awaiting the send inline only for real accounts would leak
@@ -830,51 +865,114 @@ pub async fn resend_verification_email(
         let private_key = state.biscuit_private_key.clone();
         let app_url = state.app_url.clone();
         let mailer = state.mailer.clone();
+        let db = state.db.clone();
         tokio::spawn(async move {
-            let verification_token =
-                match crate::iam::create_email_verification_token(&private_key, user.user_id) {
-                    Ok(token) => token,
-                    Err(e) => {
-                        error!("Error trying to create email verification token: {e}");
-                        return;
-                    }
-                };
-
-            let url = match app_url.join("verify-email") {
-                Ok(mut url) => {
-                    url.query_pairs_mut()
-                        .append_pair("token", &verification_token.serialized_biscuit);
-                    url
-                }
-                Err(e) => {
-                    error!("Could not build verify-email URL to resend verification message: {e}");
-                    return;
-                }
-            };
-
-            match Address::from_str(&user.email) {
-                Ok(address) => {
-                    let mailbox = Mailbox::new(
-                        Some(format!("{} {}", user.first_name, user.last_name)),
-                        address,
+            if let Err(e) = send_verification_email(&private_key, &app_url, &mailer, &claim).await {
+                warn!(
+                    "Could not resend verification email to user {}: {e}",
+                    claim.user_id
+                );
+                // Nothing was sent, so the attempt goes back. The quota exists to
+                // bound the mail that actually reaches a mailbox; charging it for
+                // mail that never left would let an SMTP outage burn a user's
+                // whole daily allowance in minutes and lock them out of the only
+                // recovery path they have for a day.
+                if let Err(e) = release_resend_claim(&db, &claim).await {
+                    error!(
+                        "Could not give back the verification email resend attempt of user {}: {e}",
+                        claim.user_id
                     );
-                    let mail = Mail::VerifyUserEmail {
-                        recipient_first_name: Some(user.first_name.clone()),
-                        url,
-                    };
-                    if let Err(e) = mailer.send_mail(mail, mailbox).await {
-                        warn!(
-                            "Could not resend verification email to user {}: {e}",
-                            user.user_id
-                        );
-                    }
                 }
-                Err(e) => warn!("Could not parse user email to resend verification message: {e}"),
             }
         });
     }
 
     Ok(NoContent)
+}
+
+/// A claimed right to send one verification email, together with the row values
+/// the claim overwrote.
+///
+/// `claimed_at` is the send stamp the claim wrote. It doubles as the proof that
+/// the claim is still the most recent one: the release only applies while that
+/// exact stamp is still on the row, so a later claim that did send is never
+/// rolled back underneath.
+struct ResendClaim {
+    user_id: Uuid,
+    email: String,
+    first_name: String,
+    last_name: String,
+    claimed_at: DateTime<Utc>,
+    previous_sent_at: Option<DateTime<Utc>>,
+    previous_window_started_at: Option<DateTime<Utc>>,
+    previous_resend_count: i32,
+}
+
+/// Mint a fresh verification token and mail it to the account the claim was made
+/// for. Errors carry no address: the caller logs them next to a user id.
+async fn send_verification_email(
+    biscuit_private_key: &PrivateKey,
+    app_url: &Url,
+    mailer: &Mailer,
+    claim: &ResendClaim,
+) -> anyhow::Result<()> {
+    let verification_token =
+        crate::iam::create_email_verification_token(biscuit_private_key, claim.user_id)
+            .map_err(|e| anyhow::anyhow!("could not create an email verification token: {e}"))?;
+
+    let mut url = app_url
+        .join("verify-email")
+        .map_err(|e| anyhow::anyhow!("could not build the verify-email URL: {e}"))?;
+    url.query_pairs_mut()
+        .append_pair("token", &verification_token.serialized_biscuit);
+
+    let address = Address::from_str(&claim.email)
+        .map_err(|e| anyhow::anyhow!("could not parse the recipient address: {e}"))?;
+    let mailbox = Mailbox::new(
+        Some(format!("{} {}", claim.first_name, claim.last_name)),
+        address,
+    );
+    let mail = Mail::VerifyUserEmail {
+        recipient_first_name: Some(claim.first_name.clone()),
+        url,
+    };
+
+    mailer
+        .send_mail(mail, mailbox)
+        .await
+        .map_err(|e| anyhow::anyhow!("could not send the verification email: {e}"))?;
+    Ok(())
+}
+
+/// Put back what a claim took when the mail it was claimed for never left.
+///
+/// The window counter and its anchor go back to the values the claim overwrote,
+/// and so does the send stamp the cooldown reads — the attempt cost the user
+/// nothing because it bought them nothing.
+///
+/// Guarded on the stamp the claim wrote: if a later claim has since moved it,
+/// that one either sent a mail or is still trying, and rolling it back would
+/// hand out an extra send. In that case the statement matches no row and the
+/// release is simply dropped.
+async fn release_resend_claim(db: &PgPool, claim: &ResendClaim) -> Result<(), sqlx::Error> {
+    query!(
+        r#"
+            UPDATE iam."user"
+            SET email_verification_sent_at = $2,
+                email_verification_resend_window_started_at = $3,
+                email_verification_resend_count = $4
+            WHERE user__id = $1
+              AND email_verification_sent_at = $5
+        "#,
+        claim.user_id,
+        claim.previous_sent_at,
+        claim.previous_window_started_at,
+        claim.previous_resend_count,
+        claim.claimed_at,
+    )
+    .execute(db)
+    .await?;
+    Ok(())
 }
 
 #[api_v2_operation(
@@ -1054,11 +1152,27 @@ async fn generate_hashed_password(password: &str) -> Result<PasswordHashString, 
 
 #[cfg(test)]
 mod resend_verification_email_tests {
-    use crate::google_ads::test_support::{seed_user, test_state};
+    use crate::google_ads::test_support::{
+        DEAD_SMTP_CONNECTION_URL, seed_user, test_state_with_smtp,
+    };
+    use crate::mailer::test_support::FakeSmtp;
     use actix_web::{App, http::StatusCode, test, web};
     use chrono::{DateTime, Utc};
     use sqlx::PgPool;
+    use std::time::Duration;
     use uuid::Uuid;
+
+    /// How long a test waits for the detached send (and, when it fails, the
+    /// release that follows) to finish. Bounded so a broken build fails instead
+    /// of hanging.
+    const DETACHED_WORK_TIMEOUT: Duration = Duration::from_secs(10);
+
+    /// How long a test waits before concluding that no further mail is coming.
+    /// A send that was wrongly permitted is spawned the moment the request is
+    /// answered and reaches a loopback server in milliseconds, so this is orders
+    /// of magnitude more than it would need — and short enough that the whole
+    /// suite is not spent proving negatives.
+    const NO_FURTHER_SEND_WINDOW: Duration = Duration::from_secs(3);
 
     /// Insert a user whose email is NOT verified yet (the default: the column is
     /// nullable and left NULL), returning its id.
@@ -1138,13 +1252,55 @@ mod resend_verification_email_tests {
         .expect("age the counting window out");
     }
 
-    /// Build a test service exposing only the resend endpoint against `pool`.
-    /// The SMTP transport in `test_state` points at a dead port, so the send
-    /// fails fast and is swallowed by the handler — every path still answers
-    /// NoContent, which is exactly the behaviour under test.
-    async fn resend(pool: &PgPool, email: &str) -> actix_web::dev::ServiceResponse {
+    /// Read back the anchor of the user's current resend window.
+    async fn resend_window_started_at(pool: &PgPool, user_id: Uuid) -> Option<DateTime<Utc>> {
+        let row: (Option<DateTime<Utc>>,) = sqlx::query_as(
+            r#"SELECT email_verification_resend_window_started_at FROM iam."user" WHERE user__id = $1"#,
+        )
+        .bind(user_id)
+        .fetch_one(pool)
+        .await
+        .expect("read email_verification_resend_window_started_at");
+        row.0
+    }
+
+    /// Wait, bounded, until the detached task has given a failed attempt back:
+    /// the send stamp and the window counter are what they were before the
+    /// claim. Returns whether that happened before the timeout.
+    async fn wait_for_released_claim(
+        pool: &PgPool,
+        user_id: Uuid,
+        expected_sent_at: Option<DateTime<Utc>>,
+        expected_count: i32,
+    ) -> bool {
+        let steps = DETACHED_WORK_TIMEOUT.as_millis() / 25;
+        for _ in 0..steps {
+            if verification_sent_at(pool, user_id).await == expected_sent_at
+                && resend_count(pool, user_id).await == expected_count
+            {
+                return true;
+            }
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+        false
+    }
+
+    /// Build a test service exposing only the resend endpoint against `pool`,
+    /// talking to the SMTP endpoint at `smtp_connection_url`, and POST `email`
+    /// to it.
+    async fn resend_via(
+        pool: &PgPool,
+        smtp_connection_url: &str,
+        email: &str,
+    ) -> actix_web::dev::ServiceResponse {
         let keypair = biscuit_auth::KeyPair::new();
-        let state = test_state(pool.clone(), keypair.private().clone(), None).await;
+        let state = test_state_with_smtp(
+            pool.clone(),
+            keypair.private().clone(),
+            None,
+            smtp_connection_url,
+        )
+        .await;
         let app = test::init_service(
             App::new().app_data(web::Data::new(state)).service(
                 web::scope("/api/v1").service(
@@ -1164,10 +1320,12 @@ mod resend_verification_email_tests {
         test::call_service(&app, req).await
     }
 
-    /// A resend for an unverified account answers NoContent and stamps the send
-    /// time (so the cooldown starts ticking).
+    /// A resend for an unverified account answers NoContent, hands a real
+    /// message to a real SMTP server, and stamps the send time (so the cooldown
+    /// starts ticking).
     #[sqlx::test]
     async fn resend_for_unverified_user_sends_and_stamps(pool: PgPool) {
+        let smtp = FakeSmtp::start();
         let email = format!("unverified-{}@example.com", Uuid::new_v4());
         let user_id = seed_unverified_user(&pool, &email).await;
 
@@ -1176,12 +1334,17 @@ mod resend_verification_email_tests {
             "precondition: no verification email recorded yet"
         );
 
-        let resp = resend(&pool, &email).await;
+        let resp = resend_via(&pool, &smtp.connection_url, &email).await;
         assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 
+        assert_eq!(
+            smtp.wait_for(1, DETACHED_WORK_TIMEOUT).await,
+            1,
+            "a verification email must actually reach the SMTP server"
+        );
         assert!(
             verification_sent_at(&pool, user_id).await.is_some(),
-            "a verification email was (attempted to be) sent, so the send time is stamped"
+            "a verification email was sent, so the send time is stamped"
         );
     }
 
@@ -1190,15 +1353,16 @@ mod resend_verification_email_tests {
     /// never reveals which emails are registered.
     #[sqlx::test]
     async fn resend_response_is_identical_for_unknown_and_known_email(pool: PgPool) {
+        let smtp = FakeSmtp::start();
         let known = format!("known-{}@example.com", Uuid::new_v4());
         seed_unverified_user(&pool, &known).await;
         let unknown = format!("nobody-{}@example.com", Uuid::new_v4());
 
-        let known_resp = resend(&pool, &known).await;
+        let known_resp = resend_via(&pool, &smtp.connection_url, &known).await;
         let known_status = known_resp.status();
         let known_body = test::read_body(known_resp).await;
 
-        let unknown_resp = resend(&pool, &unknown).await;
+        let unknown_resp = resend_via(&pool, &smtp.connection_url, &unknown).await;
         let unknown_status = unknown_resp.status();
         let unknown_body = test::read_body(unknown_resp).await;
 
@@ -1208,19 +1372,36 @@ mod resend_verification_email_tests {
             "status must not leak existence"
         );
         assert_eq!(unknown_body, known_body, "body must not leak existence");
+
+        assert_eq!(
+            smtp.wait_for(1, DETACHED_WORK_TIMEOUT).await,
+            1,
+            "the known address is mailed"
+        );
+        assert_eq!(
+            smtp.wait_for(2, NO_FURTHER_SEND_WINDOW).await,
+            1,
+            "the unknown address is not, and the response says nothing about either"
+        );
     }
 
     /// An already-verified account is never (re)sent a verification email: the
-    /// response is still NoContent, but nothing is stamped.
+    /// response is still NoContent, but nothing is stamped and nothing leaves.
     #[sqlx::test]
     async fn resend_is_a_noop_for_a_verified_user(pool: PgPool) {
+        let smtp = FakeSmtp::start();
         // `seed_user` creates a *verified* user with a deterministic email.
         let user_id = seed_user(&pool).await;
         let email = format!("e2e-{user_id}@example.com");
 
-        let resp = resend(&pool, &email).await;
+        let resp = resend_via(&pool, &smtp.connection_url, &email).await;
         assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 
+        assert_eq!(
+            smtp.wait_for(1, NO_FURTHER_SEND_WINDOW).await,
+            0,
+            "verified users are never mailed a verification link"
+        );
         assert!(
             verification_sent_at(&pool, user_id).await.is_none(),
             "verified users are never sent a verification email"
@@ -1229,19 +1410,21 @@ mod resend_verification_email_tests {
 
     /// A second resend within the cooldown window is throttled: it answers the
     /// same NoContent but does not send again (the stamped send time is
-    /// unchanged).
+    /// unchanged and no second message reaches the server).
     #[sqlx::test]
     async fn resend_is_rate_limited_per_email(pool: PgPool) {
+        let smtp = FakeSmtp::start();
         let email = format!("throttled-{}@example.com", Uuid::new_v4());
         let user_id = seed_unverified_user(&pool, &email).await;
 
-        let first = resend(&pool, &email).await;
+        let first = resend_via(&pool, &smtp.connection_url, &email).await;
         assert_eq!(first.status(), StatusCode::NO_CONTENT);
+        assert_eq!(smtp.wait_for(1, DETACHED_WORK_TIMEOUT).await, 1);
         let first_sent = verification_sent_at(&pool, user_id)
             .await
             .expect("first resend stamps the send time");
 
-        let second = resend(&pool, &email).await;
+        let second = resend_via(&pool, &smtp.connection_url, &email).await;
         assert_eq!(second.status(), StatusCode::NO_CONTENT);
         let second_sent = verification_sent_at(&pool, user_id)
             .await
@@ -1251,6 +1434,11 @@ mod resend_verification_email_tests {
             first_sent, second_sent,
             "a resend within the cooldown must not send again"
         );
+        assert_eq!(
+            smtp.wait_for(2, NO_FURTHER_SEND_WINDOW).await,
+            1,
+            "a resend within the cooldown must not put a second mail on the wire"
+        );
     }
 
     /// The 60s cooldown only spaces sends out; the cap bounds their total. Once
@@ -1259,16 +1447,22 @@ mod resend_verification_email_tests {
     /// position a distributed caller is in.
     #[sqlx::test]
     async fn resend_is_capped_per_account_within_one_window(pool: PgPool) {
+        let smtp = FakeSmtp::start();
         let email = format!("capped-{}@example.com", Uuid::new_v4());
         let user_id = seed_unverified_user(&pool, &email).await;
 
         for expected in 1..=super::RESEND_VERIFICATION_EMAIL_MAX_PER_WINDOW {
-            let resp = resend(&pool, &email).await;
+            let resp = resend_via(&pool, &smtp.connection_url, &email).await;
             assert_eq!(resp.status(), StatusCode::NO_CONTENT);
             assert_eq!(
                 resend_count(&pool, user_id).await,
                 expected,
                 "each allowed resend must move the window counter along"
+            );
+            let delivered = usize::try_from(expected).expect("small positive count");
+            assert_eq!(
+                smtp.wait_for(delivered, DETACHED_WORK_TIMEOUT).await,
+                delivered
             );
             expire_cooldown(&pool, user_id).await;
         }
@@ -1277,8 +1471,10 @@ mod resend_verification_email_tests {
         let sent_before_capped_attempt = verification_sent_at(&pool, user_id)
             .await
             .expect("the allowed resends stamped a send time");
+        let allowance =
+            usize::try_from(super::RESEND_VERIFICATION_EMAIL_MAX_PER_WINDOW).expect("small cap");
 
-        let capped = resend(&pool, &email).await;
+        let capped = resend_via(&pool, &smtp.connection_url, &email).await;
         assert_eq!(
             capped.status(),
             StatusCode::NO_CONTENT,
@@ -1294,23 +1490,39 @@ mod resend_verification_email_tests {
             super::RESEND_VERIFICATION_EMAIL_MAX_PER_WINDOW,
             "a capped resend must not consume more allowance either"
         );
+        assert_eq!(
+            smtp.wait_for(allowance + 1, NO_FURTHER_SEND_WINDOW).await,
+            allowance,
+            "the cap is what bounds the mail a mailbox receives, so nothing more leaves"
+        );
     }
 
     /// The cap is a bound per window, not a permanent lock-out: once the window
     /// has gone by, the account can be helped again and the counter restarts.
     #[sqlx::test]
     async fn resend_cap_lifts_once_the_window_has_elapsed(pool: PgPool) {
+        let smtp = FakeSmtp::start();
         let email = format!("window-{}@example.com", Uuid::new_v4());
         let user_id = seed_unverified_user(&pool, &email).await;
 
         for _ in 0..super::RESEND_VERIFICATION_EMAIL_MAX_PER_WINDOW {
-            assert_eq!(resend(&pool, &email).await.status(), StatusCode::NO_CONTENT);
+            assert_eq!(
+                resend_via(&pool, &smtp.connection_url, &email)
+                    .await
+                    .status(),
+                StatusCode::NO_CONTENT
+            );
             expire_cooldown(&pool, user_id).await;
         }
         let sent_while_capped = verification_sent_at(&pool, user_id)
             .await
             .expect("the allowed resends stamped a send time");
-        assert_eq!(resend(&pool, &email).await.status(), StatusCode::NO_CONTENT);
+        assert_eq!(
+            resend_via(&pool, &smtp.connection_url, &email)
+                .await
+                .status(),
+            StatusCode::NO_CONTENT
+        );
         assert_eq!(
             verification_sent_at(&pool, user_id).await,
             Some(sent_while_capped),
@@ -1319,7 +1531,12 @@ mod resend_verification_email_tests {
 
         expire_resend_window(&pool, user_id).await;
 
-        assert_eq!(resend(&pool, &email).await.status(), StatusCode::NO_CONTENT);
+        assert_eq!(
+            resend_via(&pool, &smtp.connection_url, &email)
+                .await
+                .status(),
+            StatusCode::NO_CONTENT
+        );
         assert_ne!(
             verification_sent_at(&pool, user_id).await,
             Some(sent_while_capped),
@@ -1329,6 +1546,82 @@ mod resend_verification_email_tests {
             resend_count(&pool, user_id).await,
             1,
             "the counter restarts with the new window rather than carrying over"
+        );
+    }
+
+    /// An attempt that never became a mail is given back. The quota bounds what
+    /// reaches a mailbox, so a send that fails must leave the account exactly as
+    /// it found it: same send stamp, same window anchor, same counter.
+    #[sqlx::test]
+    async fn resend_gives_the_attempt_back_when_the_mail_cannot_be_sent(pool: PgPool) {
+        let email = format!("smtp-down-{}@example.com", Uuid::new_v4());
+        let user_id = seed_unverified_user(&pool, &email).await;
+
+        let resp = resend_via(&pool, DEAD_SMTP_CONNECTION_URL, &email).await;
+        assert_eq!(
+            resp.status(),
+            StatusCode::NO_CONTENT,
+            "a failing send must stay invisible to the caller (anti-enumeration)"
+        );
+
+        assert!(
+            wait_for_released_claim(&pool, user_id, None, 0).await,
+            "a send that never happened must give its attempt back"
+        );
+        assert!(
+            resend_window_started_at(&pool, user_id).await.is_none(),
+            "the window anchor goes back too, so the released attempt opened no window"
+        );
+
+        // And the account really is claimable again straight away: with a server
+        // that answers, the very next call delivers.
+        let smtp = FakeSmtp::start();
+        assert_eq!(
+            resend_via(&pool, &smtp.connection_url, &email)
+                .await
+                .status(),
+            StatusCode::NO_CONTENT
+        );
+        assert_eq!(
+            smtp.wait_for(1, DETACHED_WORK_TIMEOUT).await,
+            1,
+            "the cooldown must not stand in the way of an attempt that sent nothing"
+        );
+    }
+
+    /// The defect this guards against: an SMTP outage used to spend the whole
+    /// 24h allowance in minutes while the user received nothing, locking them
+    /// out of the only recovery path they have for a day. More failed attempts
+    /// than the cap allows must still leave the account able to be mailed.
+    #[sqlx::test]
+    async fn an_smtp_outage_does_not_burn_the_daily_allowance(pool: PgPool) {
+        let email = format!("outage-{}@example.com", Uuid::new_v4());
+        let user_id = seed_unverified_user(&pool, &email).await;
+
+        for _ in 0..=super::RESEND_VERIFICATION_EMAIL_MAX_PER_WINDOW {
+            assert_eq!(
+                resend_via(&pool, DEAD_SMTP_CONNECTION_URL, &email)
+                    .await
+                    .status(),
+                StatusCode::NO_CONTENT
+            );
+            assert!(
+                wait_for_released_claim(&pool, user_id, None, 0).await,
+                "every attempt that sent nothing must be given back"
+            );
+        }
+
+        let smtp = FakeSmtp::start();
+        assert_eq!(
+            resend_via(&pool, &smtp.connection_url, &email)
+                .await
+                .status(),
+            StatusCode::NO_CONTENT
+        );
+        assert_eq!(
+            smtp.wait_for(1, DETACHED_WORK_TIMEOUT).await,
+            1,
+            "once the mail server is back, the user must still have their allowance"
         );
     }
 }
