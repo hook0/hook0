@@ -58,13 +58,13 @@
 module.exports = {
   pageTitle: 'Hook0 - Datenschutzerklärung',
   pageDescription: 'Datenschutzerklärung Hook0 (Art. 13 DSGVO): Rechtsgrundlagen, Aufbewahrungsfristen, Rechte, Unterauftragsverarbeiter, Drittstaaten.',
-  pageModified: '2026-08-01',
+  pageModified: '2026-08-06',
   hero: {
     eyebrow: 'Rechtliches',
     title: 'Datenschutzerklärung',
     subtitle: 'Wie Hook0 Ihre personenbezogenen Daten erhebt, verwendet und schützt, im Einklang mit Art. 13 DSGVO.',
     lastUpdatedLabel: 'Letzte Aktualisierung:',
-    lastUpdatedDate: '1. August 2026',
+    lastUpdatedDate: '6. August 2026',
   },
   controller: {
     title: '1. Verantwortlicher',
@@ -111,6 +111,11 @@ module.exports = {
         purposeHtml: '<strong class="text-white">Sicherheit und Überwachung</strong><br><span class="text-gray-400 text-sm">Fehler-Tracking, Verfügbarkeitsüberwachung, DDoS-Schutz, Incident-Response</span>',
         data: 'IP-Adresse, Fehler-Stacktraces, Anfrage-Metadaten, Ergebnisse von Verfügbarkeitssonden',
         basisHtml: 'Art. 6 Abs. 1 lit. f, berechtigte Interessen (Sicherstellung von Integrität und Sicherheit des Dienstes)',
+      },
+      {
+        purposeHtml: '<strong class="text-white">Unterstützung bei der Inbetriebnahme</strong><br><span class="text-gray-400 text-sm">Kurze, begrenzte Folge von drei E-Mails, die Konten mit bestätigter Adresse, aber ohne bisher gesendetes Ereignis bei der Einrichtung unterstützt. Es handelt sich nicht um kommerzielle Werbung: es wird kein Angebot beworben. Die Folge endet, sobald ein erstes Ereignis gesendet wurde, betrifft nur Registrierungen, die jünger als 30 Tage sind, und jede Nachricht enthält einen Abmeldelink, der die gesamte Folge mit einem Klick beendet.</span>',
+        data: 'E-Mail-Adresse, Vorname, Registrierungs- und Bestätigungsdatum, ob ein Ereignis gesendet wurde, bereits gesendete Schritte, Datum des Widerspruchs',
+        basisHtml: 'Art. 6 Abs. 1 lit. f, berechtigtes Interesse (einem registrierten Nutzer zur Inbetriebnahme des Dienstes verhelfen)<br><span class="text-gray-400 text-sm">Widerspruchsrecht: Art. 21 DSGVO, mit einem Klick aus jeder dieser E-Mails</span>',
       },
       {
         purposeHtml: '<strong class="text-white">Kommerzielle Kommunikation</strong><br><span class="text-gray-400 text-sm">Produkt-Updates, Release Notes, Newsletter</span>',

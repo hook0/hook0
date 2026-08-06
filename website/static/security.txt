@@ -1,5 +1,7 @@
-Contact: mailto:security[_-@-^]hook0.com
+Contact: mailto:security@hook0.com
+Expires: 2027-08-06T00:00:00.000Z
 Encryption: https://keybase.io/fgribreau/pgp_keys.asc
-Acknowledgments: https://www.hook0.com/
+Policy: https://documentation.hook0.com/resources/vulnerability-disclosure-policy
+Acknowledgments: https://documentation.hook0.com/resources/security-acknowledgments
 Preferred-Languages: en, fr
-Policy: mailto:support[_-@-^]hook0.com
+Canonical: https://www.hook0.com/.well-known/security.txt
