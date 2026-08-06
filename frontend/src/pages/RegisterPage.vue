@@ -10,6 +10,7 @@ import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
 import { ArrowRight, Check } from 'lucide-vue-next';
+import { checkEmailHandoverState } from '@/utils/checkEmailHandover';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -111,12 +112,14 @@ const onSubmit = handleSubmit((values) => {
     )
     .then(() => {
       trackEvent('signup', 'form-success', 'register');
-      // Carry the address to the check-email page via History API state, never
-      // the URL: vue-matomo auto-tracks the SPA URL (query string included) as
-      // the Matomo page/referrer URL, so an `?email=` query would ship the
-      // user's email to analytics. State survives a refresh, keeping the resend
-      // flow refresh-safe.
-      return router.push({ name: routes.CheckEmail, state: { email: values.email } });
+      // Hand the address over to the check-email page, declaring the
+      // verification email that signing up just sent. That send stamps the
+      // account server-side, so the resend button must start out counting down
+      // rather than offering an attempt the server would silently refuse.
+      return router.push({
+        name: routes.CheckEmail,
+        state: checkEmailHandoverState(values.email, { kind: 'started', atMs: Date.now() }),
+      });
     })
     .catch((err) => {
       const problem = handleAuthError(err);

@@ -12,6 +12,8 @@ import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
 import { ArrowRight } from 'lucide-vue-next';
+import { checkEmailHandoverState } from '@/utils/checkEmailHandover';
+import { NO_COOLDOWN } from '@/utils/cooldown';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -99,11 +101,15 @@ const onSubmit = handleSubmit((values) => {
       // days after the signup mail expired or got lost. The API refuses the
       // login and sends nothing, so leaving them on this form is a dead end:
       // hand them over to the check-email page, which carries the resend button.
-      // The address travels through History API state, never the URL, so it does
-      // not reach analytics (vue-matomo records the SPA URL, query string
-      // included).
+      // The hand-off declares no send, because refusing a login sends nothing —
+      // the resend button is live on arrival, which is the whole point of
+      // routing them here. If they already used it, this browser's own record of
+      // that keeps the countdown running.
       if (problem.id === EMAIL_NOT_VERIFIED_PROBLEM_ID) {
-        void router.push({ name: routes.CheckEmail, state: { email: values.email } });
+        void router.push({
+          name: routes.CheckEmail,
+          state: checkEmailHandoverState(values.email, NO_COOLDOWN),
+        });
       }
     })
     .finally(() => {

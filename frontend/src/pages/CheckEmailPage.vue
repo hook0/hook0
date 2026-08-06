@@ -8,11 +8,14 @@ import { Mail, LifeBuoy, ArrowLeft, Send } from 'lucide-vue-next';
 
 import * as UserService from '@/pages/user/UserService';
 import {
+  latestCooldownStart,
   readCooldownStart,
   remainingCooldownSeconds,
   writeCooldownStart,
+  NO_COOLDOWN,
   type CooldownStart,
 } from '@/utils/cooldown';
+import { readCheckEmailHandover, type ResendTarget } from '@/utils/checkEmailHandover';
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -32,25 +35,45 @@ const { trackEvent, trackPageWithDimensions } = useTracking();
 // actually be sent again.
 const RESEND_COOLDOWN_SECONDS = 60;
 
-// Address to resend to, carried over from the signup redirect via History API
-// state (window.history.state), never the URL. This keeps the email out of
-// analytics: vue-matomo auto-tracks the SPA URL — query string included — as the
-// Matomo page/referrer URL, so an `?email=` query would leak it. State survives
-// a page refresh, so the resend flow stays refresh-safe. Empty when the page is
-// opened without it (e.g. a bookmarked /check-email): the resend action is
-// simply hidden in that case.
-const historyState = window.history.state as { email?: unknown } | null;
-const stateEmail = historyState ? historyState.email : undefined;
-const email = typeof stateEmail === 'string' ? stateEmail : '';
-const canResend = email.length > 0;
+// Who to resend to, as handed over by the page that redirected here (signup, or
+// a login refused because the address is unverified) — through History API
+// state, never the URL, so the address never reaches analytics. Absence is a
+// case of its own rather than an empty address: opened without a hand-off (a
+// bookmarked /check-email), the resend action is simply not offered.
+const resendTarget = readCheckEmailHandover(window.history.state);
+const canResend = resendTarget.kind === 'address';
 
 const isResending = ref<boolean>(false);
-// Read back from session storage, so a reload does not hand the button back: the
-// server-side cooldown outlives the page, and because the endpoint answers 204
-// either way, a re-enabled button would happily report a send that never
-// happened. The countdown picks up where it left off rather than restarting,
-// since what is stored is when it started, not how much is left.
-const cooldownStart = ref<CooldownStart>(readCooldownStart(window.sessionStorage, email));
+
+/**
+ * Where the countdown stands on arrival: the later of what this browser recorded
+ * when the button was last pressed, and the send the redirect declared it had
+ * just made.
+ *
+ * Both matter. Storage is what survives a reload — the server-side cooldown
+ * outlives the page, and since the endpoint answers 204 either way, a re-enabled
+ * button would report a send that never happened. The declared send covers the
+ * first arrival, where nothing is recorded yet and yet a verification email left
+ * seconds ago: signing up sends one and stamps the account, so the very first
+ * click would be throttled in silence.
+ */
+function initialCooldownStart(target: ResendTarget): CooldownStart {
+  if (target.kind === 'none') {
+    return NO_COOLDOWN;
+  }
+  const start = latestCooldownStart(
+    readCooldownStart(window.sessionStorage, target.email),
+    target.lastVerificationSend
+  );
+  if (start.kind === 'started') {
+    // Record the hand-off too, so it still applies on an arrival that carries no
+    // declaration of its own (coming back through the login form, say).
+    writeCooldownStart(window.sessionStorage, target.email, start.atMs);
+  }
+  return start;
+}
+
+const cooldownStart = ref<CooldownStart>(initialCooldownStart(resendTarget));
 const nowMs = ref<number>(Date.now());
 let ticker = 0;
 
@@ -59,7 +82,7 @@ const cooldownRemaining = computed<number>(() =>
 );
 const isCoolingDown = computed<boolean>(() => cooldownRemaining.value > 0);
 
-function startCooldown() {
+function startCooldown(email: string) {
   const startedAtMs = Date.now();
   cooldownStart.value = { kind: 'started', atMs: startedAtMs };
   nowMs.value = startedAtMs;
@@ -67,9 +90,10 @@ function startCooldown() {
 }
 
 function resend() {
-  if (isResending.value || isCoolingDown.value || !canResend) {
+  if (isResending.value || isCoolingDown.value || resendTarget.kind !== 'address') {
     return;
   }
+  const email = resendTarget.email;
   isResending.value = true;
   trackEvent('signup', 'resend-verification-email', 'check-email');
 
@@ -78,14 +102,14 @@ function resend() {
       // Start the cooldown regardless of whether the address actually matched an
       // account: the endpoint answers identically either way (anti-enumeration),
       // so the UI must not behave differently.
-      startCooldown();
+      startCooldown(email);
       toast.success(t('auth.checkEmail.resendSuccess'));
     })
     .catch(() => {
       // A failed attempt also starts the cooldown: the rate limiter in front of
       // the endpoint is exactly what a user hammering the button runs into, and
       // retrying immediately can only fail again.
-      startCooldown();
+      startCooldown(email);
       toast.error(t('auth.checkEmail.resendError'));
     })
     .finally(() => {

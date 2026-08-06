@@ -1,4 +1,5 @@
 import {
+  latestCooldownStart,
   NO_COOLDOWN,
   readCooldownStart,
   remainingCooldownSeconds,
@@ -70,6 +71,38 @@ describe('remainingCooldownSeconds', () => {
 
   it('never exceeds the duration even with clock skew', () => {
     expect(remainingCooldownSeconds(start, 60, startedAtMs - 5_000)).toBe(60);
+  });
+});
+
+describe('latestCooldownStart', () => {
+  const earlier: CooldownStart = { kind: 'started', atMs: 1_000 };
+  const later: CooldownStart = { kind: 'started', atMs: 2_000 };
+
+  it('keeps the one with time left, whichever side it is on', () => {
+    expect(latestCooldownStart(earlier, later)).toEqual(later);
+    expect(latestCooldownStart(later, earlier)).toEqual(later);
+  });
+
+  it('keeps a real cooldown over one that never started', () => {
+    expect(latestCooldownStart(NO_COOLDOWN, later)).toEqual(later);
+    expect(latestCooldownStart(later, NO_COOLDOWN)).toEqual(later);
+  });
+
+  it('is still nothing when neither side started', () => {
+    expect(latestCooldownStart(NO_COOLDOWN, NO_COOLDOWN)).toEqual(NO_COOLDOWN);
+  });
+
+  it('keeps one of two simultaneous starts', () => {
+    expect(latestCooldownStart(later, { kind: 'started', atMs: 2_000 })).toEqual(later);
+  });
+
+  it('cannot be re-enabled early by a stale record', () => {
+    // A record left over from an earlier attempt must never shorten the
+    // cooldown a fresh hand-off just declared.
+    const stale: CooldownStart = { kind: 'started', atMs: 0 };
+    const declared: CooldownStart = { kind: 'started', atMs: 59_000 };
+
+    expect(remainingCooldownSeconds(latestCooldownStart(stale, declared), 60, 59_000)).toBe(60);
   });
 });
 

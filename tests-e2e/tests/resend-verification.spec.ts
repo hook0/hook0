@@ -109,10 +109,14 @@ const COOLDOWN_LABEL = /Resend available in \d+s/;
 const RESEND_ENDPOINT = "/auth/resend-verification-email";
 
 /**
- * Land on /check-email carrying `email` exactly like the signup redirect does:
- * via History API state (never a query param). Reloading forces the page to read
- * the address back from state, proving it is refresh-safe. Also asserts the URL
- * never carries the address.
+ * Land on /check-email carrying `email` exactly like the login redirect does:
+ * via History API state (never a query param), declaring no send of its own —
+ * refusing a login sends nothing, so the resend button is live on arrival.
+ * Reloading forces the page to read the address back from state, proving it is
+ * refresh-safe. Also asserts the URL never carries the address.
+ *
+ * The signup redirect differs on purpose: it declares the mail it just sent, so
+ * the button starts out counting down. That case has its own test below.
  */
 async function landOnCheckEmailWith(page: Page, email: string): Promise<void> {
   await page.goto("/check-email");
@@ -126,13 +130,17 @@ async function landOnCheckEmailWith(page: Page, email: string): Promise<void> {
 }
 
 test.describe("Resend verification email", () => {
-  test("is reachable straight after a real signup, not just from seeded state", async ({
-    page,
-  }) => {
+  test("straight after a real signup the button is already counting down", async ({ page }) => {
     // The other cases seed the address into history state directly. That proves
     // the page works, not that signup actually hands the address over. Here the
     // registration form is filled for real, so a change to the router push, the
     // history mode, or the page's read of it would fail this test.
+    //
+    // And signing up sends a verification email right then, stamping the
+    // account. An enabled button would therefore offer an attempt the server
+    // silently refuses while cheerfully reporting a send that never happened —
+    // the endpoint answers 204 either way. So the honest state on arrival is a
+    // button already counting down.
     const timestamp = Date.now();
     const email = `test-resend-fromsignup-${timestamp}@hook0.local`;
     const password = `TestPassword123!${timestamp}`;
@@ -154,25 +162,34 @@ test.describe("Resend verification email", () => {
 
     await expect(page).toHaveURL(/\/check-email/, { timeout: 15000 });
     await expect(page.locator('[data-test="check-email-page"]')).toBeVisible({ timeout: 10000 });
+    // The address travels in History API state, so it never reaches analytics.
+    expect(new URL(page.url()).search).toBe("");
 
-    // The address made it across: the button is present AND enabled. If the
-    // hand-off broke, the page would render without a usable resend action.
+    // The address made it across: the button is present. If the hand-off broke,
+    // the page would render without any resend action at all.
     const resendButton = page.locator('[data-test="resend-verification-email-button"]');
     await expect(resendButton).toBeVisible({ timeout: 10000 });
-    await expect(resendButton).toBeEnabled();
 
-    // And the button really drives the endpoint. The signup mail left seconds
-    // ago, so the server throttles this one rather than sending a duplicate —
-    // invisibly, as always. What this proves is the wiring: address handed over,
-    // button live, real call made, cooldown entered.
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes(RESEND_ENDPOINT) && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-    await resendButton.click();
-    expect((await responsePromise).status()).toBe(204);
+    // And it reflects the mail signup just sent: disabled, counting down.
     await expect(resendButton).toBeDisabled({ timeout: 10000 });
+    await expect(resendButton).toContainText(COOLDOWN_LABEL, { timeout: 10000 });
+
+    // Pressing it anyway changes nothing — no request leaves, and nothing claims
+    // an email was sent.
+    const postFired = page
+      .waitForResponse(
+        (response) =>
+          response.url().includes(RESEND_ENDPOINT) && response.request().method() === "POST",
+        { timeout: 2000 }
+      )
+      .then(() => true)
+      .catch(() => false);
+    await resendButton.click({ force: true }).catch(() => undefined);
+
+    expect(await postFired).toBe(false);
+    await expect(page.locator('[data-sonner-toast][data-type="success"]')).toHaveCount(0);
+    await expect(resendButton).toBeDisabled();
+    await expect(resendButton).toContainText(COOLDOWN_LABEL);
   });
 
   test("resends from the check-email page and enters cooldown", async ({ page, request }) => {
@@ -244,6 +261,49 @@ test.describe("Resend verification email", () => {
     await expect(resendButton).toContainText(COOLDOWN_LABEL, { timeout: 10000 });
     await expect(page.locator('[data-test="check-email-page"]')).toBeVisible();
     await expect(page.locator('[data-sonner-toast][data-type="error"]')).toHaveCount(0);
+  });
+
+  test("a resend the API refuses says so and still enters cooldown", async ({ page }) => {
+    // The failure path, driven by a real failure rather than an intercepted one:
+    // the page resends whatever address it was handed, and the endpoint is the
+    // authority on what it accepts, so handing it an address the endpoint
+    // rejects makes the real call really fail.
+    //
+    // What must hold then is both halves: the UI says the send failed — never
+    // the success message — and the cooldown starts anyway, because whatever
+    // refused the call (validation, the rate limiter in front of it) will refuse
+    // an immediate retry just the same.
+    const email = "not-an-email";
+
+    await landOnCheckEmailWith(page, email);
+
+    const resendButton = page.locator('[data-test="resend-verification-email-button"]');
+    await expect(resendButton).toBeVisible({ timeout: 10000 });
+    await expect(resendButton).toBeEnabled();
+
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes(RESEND_ENDPOINT) && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+
+    await resendButton.click();
+
+    const response = await responsePromise;
+    expect(
+      response.status(),
+      "the endpoint must refuse an address it cannot accept"
+    ).toBeGreaterThanOrEqual(400);
+
+    // Said out loud, and never as a success.
+    await expect(page.locator('[data-sonner-toast][data-type="error"]')).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.locator('[data-sonner-toast][data-type="success"]')).toHaveCount(0);
+
+    // And the button is out of reach for the cooldown window all the same.
+    await expect(resendButton).toBeDisabled({ timeout: 10000 });
+    await expect(resendButton).toContainText(COOLDOWN_LABEL, { timeout: 10000 });
   });
 
   test("a second resend within the cooldown window is throttled", async ({ page, request }) => {

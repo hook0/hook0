@@ -34,6 +34,26 @@ export function remainingCooldownSeconds(
 }
 
 /**
+ * The later of two cooldown starts — the one that still has time left when they
+ * disagree. A cooldown that never started loses to any that did.
+ *
+ * Needed because a page can learn about a cooldown from two places at once: what
+ * this browser recorded when the visitor last pressed the button, and what the
+ * page that redirected here declared it had just sent. Taking the later of the
+ * two means neither an old record nor a stale hand-off can re-enable the button
+ * while the server is still refusing to send.
+ */
+export function latestCooldownStart(a: CooldownStart, b: CooldownStart): CooldownStart {
+  if (a.kind === 'never') {
+    return b;
+  }
+  if (b.kind === 'never') {
+    return a;
+  }
+  return a.atMs >= b.atMs ? a : b;
+}
+
+/**
  * The subset of the Web Storage API this module needs. Narrow on purpose: it
  * makes the dependency explicit at the call site (which passes the real
  * `window.sessionStorage`) and keeps this module usable outside a browser.
