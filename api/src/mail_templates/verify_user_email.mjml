@@ -15,5 +15,5 @@
           <span class="codelink"><a href="{ $url }">{ $url }</a></span>
         </mj-text>
         <mj-text padding="20px 0 0 0" font-size="12px" color="#94a3b8" line-height="1.6">
-          If a link expires you can sign in again to request a fresh one. Didn't create a Hook0 account? You can safely ignore this email.
+          Link expired? Sign in and we will take you to a page where you can send yourself a new one. Didn't create a Hook0 account? You can safely ignore this email.
         </mj-text>

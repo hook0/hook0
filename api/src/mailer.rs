@@ -665,6 +665,28 @@ mod tests {
         );
     }
 
+    /// Test #4b — verify_user_email must point at the recovery path that really
+    /// works. Signing in with an unverified account is rejected outright and
+    /// sends nothing, so the mail must not claim a fresh link can be requested
+    /// that way: the only working path is the check-email page reached after a
+    /// sign-in attempt, which carries the resend button.
+    #[test]
+    fn verify_user_email_points_at_the_working_recovery_path() {
+        let mail = Mail::VerifyUserEmail {
+            recipient_first_name: Some("Sarah".to_owned()),
+            url: Url::from_str("https://app.hook0.com/verify").unwrap(),
+        };
+        let html = render(&mail);
+        assert!(
+            html.contains("send yourself a new one"),
+            "Verify email must tell the reader how to get a fresh link once this one expired"
+        );
+        assert!(
+            !html.contains("request a fresh one"),
+            "Verify email must not claim signing in alone sends a fresh link: it does not"
+        );
+    }
+
     /// Test #5 — reset_password CTA must say 'Reset password', not 'Verify email'.
     #[test]
     fn reset_password_cta_label_is_reset_not_verify() {

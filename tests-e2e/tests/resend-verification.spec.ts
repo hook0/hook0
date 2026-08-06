@@ -1,7 +1,37 @@
 import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
+import { Client } from "pg";
 import { API_BASE_URL } from "../fixtures/email-verification";
 
 const MAILPIT_URL = process.env.MAILPIT_URL || "http://localhost:8025";
+const DATABASE_URL =
+  process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/hook0";
+
+/**
+ * Push an account's last-verification-send stamp far enough into the past that
+ * the server-side cooldown no longer applies.
+ *
+ * Signing up stamps that column, because the signup email is itself a
+ * verification email. A resend fired seconds later is therefore throttled, on
+ * purpose — the point of the throttle is that a mailbox never gets two identical
+ * mails back to back. Every test that needs a resend to genuinely send is
+ * simulating a user who came back later, which is what this reproduces without
+ * making the suite wait out a real cooldown.
+ */
+function letTheCooldownElapse(email: string): Promise<void> {
+  const client = new Client({ connectionString: DATABASE_URL });
+  return client
+    .connect()
+    .then(() =>
+      client.query(
+        "UPDATE iam.user SET email_verification_sent_at = statement_timestamp() - INTERVAL '1 hour' WHERE email = $1",
+        [email]
+      )
+    )
+    .then((result) => {
+      expect(result.rowCount, `no account to age the cooldown for: ${email}`).toBe(1);
+    })
+    .finally(() => client.end());
+}
 
 /**
  * Every verification email currently sitting in Mailpit for an address, newest
@@ -131,7 +161,10 @@ test.describe("Resend verification email", () => {
     await expect(resendButton).toBeVisible({ timeout: 10000 });
     await expect(resendButton).toBeEnabled();
 
-    // And it really resends for this account, end to end.
+    // And the button really drives the endpoint. The signup mail left seconds
+    // ago, so the server throttles this one rather than sending a duplicate —
+    // invisibly, as always. What this proves is the wiring: address handed over,
+    // button live, real call made, cooldown entered.
     const responsePromise = page.waitForResponse(
       (response) =>
         response.url().includes(RESEND_ENDPOINT) && response.request().method() === "POST",
@@ -153,6 +186,8 @@ test.describe("Resend verification email", () => {
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
+    // Come back later, so the resend is a real send rather than a throttled one.
+    await letTheCooldownElapse(email);
 
     await landOnCheckEmailWith(page, email);
 
@@ -221,6 +256,7 @@ test.describe("Resend verification email", () => {
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
+    await letTheCooldownElapse(email);
 
     await landOnCheckEmailWith(page, email);
 
@@ -261,6 +297,135 @@ test.describe("Resend verification email", () => {
     await expect(resendButton).toContainText(COOLDOWN_LABEL);
   });
 
+  test("a user who comes back and tries to log in can recover from the login form", async ({
+    page,
+    request,
+  }) => {
+    // The case the feature exists for, start to finish. Someone signs up, never
+    // clicks the link, and comes back days later. They do not think "check-email
+    // page" — they go to the login form. The API refuses an unverified account
+    // and sends nothing, so unless that refusal leads somewhere the account is
+    // stranded. It must land them where the resend button lives, and the resend
+    // must put a real second mail in their inbox.
+    const timestamp = Date.now();
+    const email = `test-resend-vialogin-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+    await waitForVerificationEmails(request, email, 1);
+    // Days later.
+    await letTheCooldownElapse(email);
+
+    await page.goto("/login");
+    await expect(page.locator('[data-test="login-form"]')).toBeVisible({ timeout: 10000 });
+    await page.locator('[data-test="login-email-input"]').fill(email);
+    await page.locator('[data-test="login-password-input"]').fill(password);
+
+    const loginResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/auth/login") && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await page.locator('[data-test="login-submit-button"]').click();
+
+    // Credentials are right; the account is simply unverified.
+    const login = await loginResponse;
+    expect(login.status()).toBe(401);
+    const problem = (await login.json()) as { id: string };
+    expect(problem.id, "the login refusal must name the unverified email").toBe(
+      "AuthEmailNotVerified"
+    );
+
+    // Not a dead end: the refusal hands them to the page carrying the resend
+    // button, with their address already loaded.
+    await expect(page).toHaveURL(/\/check-email/, { timeout: 15000 });
+    await expect(page.locator('[data-test="check-email-page"]')).toBeVisible({ timeout: 10000 });
+    // The address travels in History API state, so it never reaches analytics.
+    expect(new URL(page.url()).search).toBe("");
+
+    const resendButton = page.locator('[data-test="resend-verification-email-button"]');
+    await expect(resendButton).toBeVisible({ timeout: 10000 });
+    await expect(resendButton).toBeEnabled();
+
+    const resendResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes(RESEND_ENDPOINT) && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await resendButton.click();
+    expect((await resendResponse).status()).toBe(204);
+
+    // The loop closes only if a second mail really lands.
+    const emails = await waitForVerificationEmails(request, email, 2);
+
+    // And that fresh link completes the account, so the login they attempted now
+    // works.
+    const verifyResponse = await request.post(`${API_BASE_URL}/auth/verify-email`, {
+      data: { token: tokenFrom(emails[0].html) },
+      failOnStatusCode: false,
+    });
+    expect(verifyResponse.status(), "the recovered link must complete verification").toBeLessThan(
+      400
+    );
+
+    const secondLogin = await request.post(`${API_BASE_URL}/auth/login`, {
+      data: { email, password },
+      failOnStatusCode: false,
+    });
+    expect(
+      secondLogin.status(),
+      "after recovering, the login that was refused must succeed"
+    ).toBeLessThan(400);
+  });
+
+  test("the cooldown survives a page reload", async ({ page, request }) => {
+    // The countdown used to live only in memory, so a reload handed the button
+    // back. The server-side cooldown outlives the page and answers 204 either
+    // way, so a re-enabled button cheerfully reports a send that never happened.
+    const timestamp = Date.now();
+    const email = `test-resend-reload-${timestamp}@hook0.local`;
+    const password = `TestPassword123!${timestamp}`;
+
+    const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      data: { email, first_name: "Test", last_name: "User", password },
+    });
+    expect(registerResponse.status()).toBeLessThan(400);
+    await letTheCooldownElapse(email);
+
+    await landOnCheckEmailWith(page, email);
+
+    const resendButton = page.locator('[data-test="resend-verification-email-button"]');
+    await expect(resendButton).toBeVisible({ timeout: 10000 });
+
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes(RESEND_ENDPOINT) && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await resendButton.click();
+    expect((await responsePromise).status()).toBe(204);
+    await expect(resendButton).toBeDisabled({ timeout: 10000 });
+
+    // Reload the way a confused user would, then land on the page again from
+    // scratch. The cooldown must still be running.
+    await page.reload();
+    await expect(page.locator('[data-test="check-email-page"]')).toBeVisible({ timeout: 10000 });
+    await expect(resendButton).toBeDisabled();
+    await expect(resendButton).toContainText(COOLDOWN_LABEL);
+
+    // And it resumes where it left off rather than restarting: the countdown
+    // after the reload cannot be higher than it was before.
+    const labelAfterReload = String(await resendButton.textContent());
+    const countdown = /(\d+)s/.exec(labelAfterReload);
+    expect(countdown, "the cooldown label must carry a countdown").toBeTruthy();
+    const secondsLeft = Number(countdown![1]);
+    expect(secondsLeft).toBeGreaterThan(0);
+    expect(secondsLeft).toBeLessThanOrEqual(60);
+  });
+
   test("the resent link actually arrives and verifies the account", async ({ request }) => {
     // The reason the feature exists: someone lost the first email. A 204 proves
     // nothing on its own — what matters is that a second, working link lands in
@@ -277,6 +442,7 @@ test.describe("Resend verification email", () => {
     // The signup email itself is the first one; wait for it so the resend is
     // measured against a known baseline.
     await waitForVerificationEmails(request, email, 1);
+    await letTheCooldownElapse(email);
 
     const resendResponse = await request.post(`${API_BASE_URL}/auth/resend-verification-email`, {
       data: { email },
@@ -317,6 +483,9 @@ test.describe("Resend verification email", () => {
     });
     expect(registerResponse.status()).toBeLessThan(400);
     await waitForVerificationEmails(request, email, 1);
+    // Past the signup mail's own cooldown, so the first of the calls below is
+    // allowed to send and the rest have to be stopped by the throttle itself.
+    await letTheCooldownElapse(email);
 
     // Five back-to-back calls, no UI involved.
     for (let attempt = 0; attempt < 5; attempt += 1) {

@@ -45,6 +45,9 @@ const [password, passwordAttrs] = defineField('password');
 
 const isLoading = ref<boolean>(false);
 
+/** `Hook0Problem::AuthEmailNotVerified` as the API serialises it. */
+const EMAIL_NOT_VERIFIED_PROBLEM_ID = 'AuthEmailNotVerified';
+
 /** Validate that a redirect path is a safe relative URL (no protocol-relative). */
 function isValidRedirectPath(path: string): boolean {
   return path.startsWith('/') && !path.startsWith('//');
@@ -89,8 +92,19 @@ const onSubmit = handleSubmit((values) => {
       return OrganizationService.list().then(handlePostLoginNavigation);
     })
     .catch((err) => {
-      handleAuthError(err);
+      const problem = handleAuthError(err);
       trackEvent('auth', 'login', 'error');
+
+      // Signing in is where someone who never verified their address ends up,
+      // days after the signup mail expired or got lost. The API refuses the
+      // login and sends nothing, so leaving them on this form is a dead end:
+      // hand them over to the check-email page, which carries the resend button.
+      // The address travels through History API state, never the URL, so it does
+      // not reach analytics (vue-matomo records the SPA URL, query string
+      // included).
+      if (problem.id === EMAIL_NOT_VERIFIED_PROBLEM_ID) {
+        void router.push({ name: routes.CheckEmail, state: { email: values.email } });
+      }
     })
     .finally(() => {
       isLoading.value = false;

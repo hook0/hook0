@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE iam.\"user\"\n            SET email_verification_sent_at = statement_timestamp(),\n                email_verification_resend_window_started_at = CASE\n                    WHEN email_verification_resend_window_started_at IS NULL\n                      OR email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)\n                    THEN statement_timestamp()\n                    ELSE email_verification_resend_window_started_at\n                END,\n                email_verification_resend_count = CASE\n                    WHEN email_verification_resend_window_started_at IS NULL\n                      OR email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)\n                    THEN 1\n                    ELSE email_verification_resend_count + 1\n                END\n            WHERE email = $1\n              AND email_verified_at IS NULL\n              AND (\n                  email_verification_sent_at IS NULL\n                  OR email_verification_sent_at < statement_timestamp() - MAKE_INTERVAL(secs => $2)\n              )\n              AND (\n                  email_verification_resend_window_started_at IS NULL\n                  OR email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)\n                  OR email_verification_resend_count < $4\n              )\n            RETURNING\n                user__id AS \"user_id!\",\n                email AS \"email!\",\n                first_name AS \"first_name!\",\n                last_name AS \"last_name!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "user__id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "email!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "first_name!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "first_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "last_name!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "last_name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Float8",
+        "Float8",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5036d8bdeadff3cbdc9753889e6c69e1d90b88167c634e5834402bcea48507e6"
+}

@@ -716,6 +716,25 @@ pub async fn begin_reset_password(
 /// endpoint useless for mailbox flooding.
 const RESEND_VERIFICATION_EMAIL_COOLDOWN_SECS: f64 = 60.0;
 
+/// Length of the window over which resends are counted, and the cap that applies
+/// inside it. The cooldown above only spaces sends out — on its own it still
+/// allows ~1440 mails a day into one mailbox, which is a usable flooding tool for
+/// a caller that can rotate source addresses. The cap bounds the total instead of
+/// the rate.
+///
+/// Five is well above what recovery needs (the mail landed in spam, the address
+/// had a typo, a corporate filter ate it: one to three attempts) and far below
+/// what a mailbox would experience as abuse. A user who really exhausts it waits
+/// out the window or writes to the support address offered on the same page.
+///
+/// The window is fixed, anchored on the first resend inside it, rather than a
+/// true sliding window: that keeps the whole decision in one atomic statement
+/// with two columns instead of a table of send timestamps. The cost is that a
+/// caller straddling a window boundary can land at most 2 × the cap over an
+/// arbitrary 24h span, which is still bounded and still small.
+const RESEND_VERIFICATION_EMAIL_WINDOW_SECS: f64 = 24.0 * 60.0 * 60.0;
+const RESEND_VERIFICATION_EMAIL_MAX_PER_WINDOW: i32 = 5;
+
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct ResendVerificationEmailPost {
     #[validate(non_control_character, email, length(max = 100))]
@@ -748,8 +767,9 @@ pub async fn resend_verification_email(
     // limitation (closing it with dummy writes adds risk for no practical gain).
 
     // Atomically claim the right to send: only an unverified account past its
-    // cooldown matches, and the very same statement stamps the new send time.
-    // Everything else (unknown email, already verified, still within cooldown)
+    // cooldown and under its window cap matches, and the very same statement
+    // stamps the new send time and moves the window counter along. Everything
+    // else (unknown email, already verified, still within cooldown, cap reached)
     // matches no row and silently falls through to the identical response below.
     struct Recipient {
         user_id: Uuid,
@@ -761,12 +781,29 @@ pub async fn resend_verification_email(
         Recipient,
         r#"
             UPDATE iam."user"
-            SET email_verification_sent_at = statement_timestamp()
+            SET email_verification_sent_at = statement_timestamp(),
+                email_verification_resend_window_started_at = CASE
+                    WHEN email_verification_resend_window_started_at IS NULL
+                      OR email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)
+                    THEN statement_timestamp()
+                    ELSE email_verification_resend_window_started_at
+                END,
+                email_verification_resend_count = CASE
+                    WHEN email_verification_resend_window_started_at IS NULL
+                      OR email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)
+                    THEN 1
+                    ELSE email_verification_resend_count + 1
+                END
             WHERE email = $1
               AND email_verified_at IS NULL
               AND (
                   email_verification_sent_at IS NULL
                   OR email_verification_sent_at < statement_timestamp() - MAKE_INTERVAL(secs => $2)
+              )
+              AND (
+                  email_verification_resend_window_started_at IS NULL
+                  OR email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)
+                  OR email_verification_resend_count < $4
               )
             RETURNING
                 user__id AS "user_id!",
@@ -776,6 +813,8 @@ pub async fn resend_verification_email(
         "#,
         &body.email,
         RESEND_VERIFICATION_EMAIL_COOLDOWN_SECS,
+        RESEND_VERIFICATION_EMAIL_WINDOW_SECS,
+        RESEND_VERIFICATION_EMAIL_MAX_PER_WINDOW,
     )
     .fetch_optional(&state.db)
     .await?;
@@ -1051,6 +1090,54 @@ mod resend_verification_email_tests {
         row.0
     }
 
+    /// Read back how many resends are recorded in the user's current window.
+    async fn resend_count(pool: &PgPool, user_id: Uuid) -> i32 {
+        let row: (i32,) = sqlx::query_as(
+            r#"SELECT email_verification_resend_count FROM iam."user" WHERE user__id = $1"#,
+        )
+        .bind(user_id)
+        .fetch_one(pool)
+        .await
+        .expect("read email_verification_resend_count");
+        row.0
+    }
+
+    /// Age the last-send stamp out of its cooldown, leaving the window counter
+    /// untouched. Lets a test drive several resends back to back so the only
+    /// control left standing is the per-window cap.
+    async fn expire_cooldown(pool: &PgPool, user_id: Uuid) {
+        sqlx::query(
+            r#"
+                UPDATE iam."user"
+                SET email_verification_sent_at =
+                    statement_timestamp() - MAKE_INTERVAL(secs => $2)
+                WHERE user__id = $1
+            "#,
+        )
+        .bind(user_id)
+        .bind(super::RESEND_VERIFICATION_EMAIL_COOLDOWN_SECS * 2.0)
+        .execute(pool)
+        .await
+        .expect("age the cooldown out");
+    }
+
+    /// Age the counting window past its length, as if a day had gone by.
+    async fn expire_resend_window(pool: &PgPool, user_id: Uuid) {
+        sqlx::query(
+            r#"
+                UPDATE iam."user"
+                SET email_verification_resend_window_started_at =
+                    statement_timestamp() - MAKE_INTERVAL(secs => $2)
+                WHERE user__id = $1
+            "#,
+        )
+        .bind(user_id)
+        .bind(super::RESEND_VERIFICATION_EMAIL_WINDOW_SECS + 60.0)
+        .execute(pool)
+        .await
+        .expect("age the counting window out");
+    }
+
     /// Build a test service exposing only the resend endpoint against `pool`.
     /// The SMTP transport in `test_state` points at a dead port, so the send
     /// fails fast and is swallowed by the handler — every path still answers
@@ -1163,6 +1250,85 @@ mod resend_verification_email_tests {
         assert_eq!(
             first_sent, second_sent,
             "a resend within the cooldown must not send again"
+        );
+    }
+
+    /// The 60s cooldown only spaces sends out; the cap bounds their total. Once
+    /// an account has had its allowance for the window, further calls send
+    /// nothing — even with the cooldown out of the way, which is exactly the
+    /// position a distributed caller is in.
+    #[sqlx::test]
+    async fn resend_is_capped_per_account_within_one_window(pool: PgPool) {
+        let email = format!("capped-{}@example.com", Uuid::new_v4());
+        let user_id = seed_unverified_user(&pool, &email).await;
+
+        for expected in 1..=super::RESEND_VERIFICATION_EMAIL_MAX_PER_WINDOW {
+            let resp = resend(&pool, &email).await;
+            assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+            assert_eq!(
+                resend_count(&pool, user_id).await,
+                expected,
+                "each allowed resend must move the window counter along"
+            );
+            expire_cooldown(&pool, user_id).await;
+        }
+
+        // The allowance is spent. Nothing stands in the way but the cap.
+        let sent_before_capped_attempt = verification_sent_at(&pool, user_id)
+            .await
+            .expect("the allowed resends stamped a send time");
+
+        let capped = resend(&pool, &email).await;
+        assert_eq!(
+            capped.status(),
+            StatusCode::NO_CONTENT,
+            "reaching the cap must be invisible to the caller (anti-enumeration)"
+        );
+        assert_eq!(
+            verification_sent_at(&pool, user_id).await,
+            Some(sent_before_capped_attempt),
+            "a capped resend must not send, so it must not stamp a new send time"
+        );
+        assert_eq!(
+            resend_count(&pool, user_id).await,
+            super::RESEND_VERIFICATION_EMAIL_MAX_PER_WINDOW,
+            "a capped resend must not consume more allowance either"
+        );
+    }
+
+    /// The cap is a bound per window, not a permanent lock-out: once the window
+    /// has gone by, the account can be helped again and the counter restarts.
+    #[sqlx::test]
+    async fn resend_cap_lifts_once_the_window_has_elapsed(pool: PgPool) {
+        let email = format!("window-{}@example.com", Uuid::new_v4());
+        let user_id = seed_unverified_user(&pool, &email).await;
+
+        for _ in 0..super::RESEND_VERIFICATION_EMAIL_MAX_PER_WINDOW {
+            assert_eq!(resend(&pool, &email).await.status(), StatusCode::NO_CONTENT);
+            expire_cooldown(&pool, user_id).await;
+        }
+        let sent_while_capped = verification_sent_at(&pool, user_id)
+            .await
+            .expect("the allowed resends stamped a send time");
+        assert_eq!(resend(&pool, &email).await.status(), StatusCode::NO_CONTENT);
+        assert_eq!(
+            verification_sent_at(&pool, user_id).await,
+            Some(sent_while_capped),
+            "precondition: the account is capped"
+        );
+
+        expire_resend_window(&pool, user_id).await;
+
+        assert_eq!(resend(&pool, &email).await.status(), StatusCode::NO_CONTENT);
+        assert_ne!(
+            verification_sent_at(&pool, user_id).await,
+            Some(sent_while_capped),
+            "a new window must let the account be sent to again"
+        );
+        assert_eq!(
+            resend_count(&pool, user_id).await,
+            1,
+            "the counter restarts with the new window rather than carrying over"
         );
     }
 }

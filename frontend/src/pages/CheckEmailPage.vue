@@ -7,7 +7,12 @@ import { toast } from 'vue-sonner';
 import { Mail, LifeBuoy, ArrowLeft, Send } from 'lucide-vue-next';
 
 import * as UserService from '@/pages/user/UserService';
-import { remainingCooldownSeconds } from '@/utils/cooldown';
+import {
+  readCooldownStart,
+  remainingCooldownSeconds,
+  writeCooldownStart,
+  type CooldownStart,
+} from '@/utils/cooldown';
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -40,14 +45,26 @@ const email = typeof stateEmail === 'string' ? stateEmail : '';
 const canResend = email.length > 0;
 
 const isResending = ref<boolean>(false);
-const cooldownStartedAt = ref<number>(0);
+// Read back from session storage, so a reload does not hand the button back: the
+// server-side cooldown outlives the page, and because the endpoint answers 204
+// either way, a re-enabled button would happily report a send that never
+// happened. The countdown picks up where it left off rather than restarting,
+// since what is stored is when it started, not how much is left.
+const cooldownStart = ref<CooldownStart>(readCooldownStart(window.sessionStorage, email));
 const nowMs = ref<number>(Date.now());
 let ticker = 0;
 
 const cooldownRemaining = computed<number>(() =>
-  remainingCooldownSeconds(cooldownStartedAt.value, RESEND_COOLDOWN_SECONDS, nowMs.value)
+  remainingCooldownSeconds(cooldownStart.value, RESEND_COOLDOWN_SECONDS, nowMs.value)
 );
 const isCoolingDown = computed<boolean>(() => cooldownRemaining.value > 0);
+
+function startCooldown() {
+  const startedAtMs = Date.now();
+  cooldownStart.value = { kind: 'started', atMs: startedAtMs };
+  nowMs.value = startedAtMs;
+  writeCooldownStart(window.sessionStorage, email, startedAtMs);
+}
 
 function resend() {
   if (isResending.value || isCoolingDown.value || !canResend) {
@@ -61,11 +78,14 @@ function resend() {
       // Start the cooldown regardless of whether the address actually matched an
       // account: the endpoint answers identically either way (anti-enumeration),
       // so the UI must not behave differently.
-      cooldownStartedAt.value = Date.now();
-      nowMs.value = Date.now();
+      startCooldown();
       toast.success(t('auth.checkEmail.resendSuccess'));
     })
     .catch(() => {
+      // A failed attempt also starts the cooldown: the rate limiter in front of
+      // the endpoint is exactly what a user hammering the button runs into, and
+      // retrying immediately can only fail again.
+      startCooldown();
       toast.error(t('auth.checkEmail.resendError'));
     })
     .finally(() => {
