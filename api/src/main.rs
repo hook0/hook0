@@ -1985,6 +1985,26 @@ async fn main() -> anyhow::Result<()> {
 mod tests {
     use super::*;
 
+    /// A zero (or sub-second) reactivation period would make every pass
+    /// re-acquire the housekeeping semaphore immediately, starving the other
+    /// background jobs that share it. The floor is low enough that test
+    /// environments can still drive several passes inside a run.
+    #[test]
+    fn reactivation_period_refuses_a_tight_loop() {
+        assert!(parse_reactivation_period("0s").is_err());
+        assert!(parse_reactivation_period("999ms").is_err());
+        assert_eq!(
+            parse_reactivation_period("1s"),
+            Ok(Duration::from_secs(1)),
+            "the floor itself is accepted, so short periods stay usable in tests"
+        );
+        assert_eq!(
+            parse_reactivation_period("6h"),
+            Ok(Duration::from_secs(6 * 60 * 60))
+        );
+        assert!(parse_reactivation_period("not-a-duration").is_err());
+    }
+
     /// The Matomo tracker stays dark over cleartext http: the token_auth secret
     /// must never travel unencrypted, so a non-https MATOMO_URL yields no client.
     #[test]

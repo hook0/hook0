@@ -284,15 +284,27 @@ async fn select_candidates(
                   INNER JOIN event.application AS a ON e.application__id = a.application__id
                   WHERE a.organization__id = o.organization__id
               )
+              -- Already sent this step to this reader, for ANY of their
+              -- organizations. Claims are per organization (that is what makes
+              -- them an exclusive lock across instances), but the mail lands in
+              -- a person's inbox and the messages never name an organization —
+              -- so a reader with two dormant orgs would otherwise receive the
+              -- same text once per org, one pass apart.
               AND NOT EXISTS (
-                  SELECT 1 FROM iam.reactivation_email AS re
-                  WHERE re.organization__id = o.organization__id AND re.step = $2
+                  SELECT 1
+                  FROM iam.reactivation_email AS re
+                  INNER JOIN iam.organization AS ro
+                      ON ro.organization__id = re.organization__id
+                  WHERE ro.created_by = u.user__id AND re.step = $2
               )
               AND (
                   $3::smallint IS NULL
                   OR EXISTS (
-                      SELECT 1 FROM iam.reactivation_email AS rp
-                      WHERE rp.organization__id = o.organization__id
+                      SELECT 1
+                      FROM iam.reactivation_email AS rp
+                      INNER JOIN iam.organization AS rpo
+                          ON rpo.organization__id = rp.organization__id
+                      WHERE rpo.created_by = u.user__id
                         AND rp.step = $3
                         AND rp.sent_at <= statement_timestamp() - MAKE_INTERVAL(days => $5)
                   )
@@ -833,6 +845,21 @@ mod tests {
             "one reader must receive at most one message per pass"
         );
         assert_eq!(planned[0].user_id, user);
+
+        // ...and the pass after it, once the first organization has claimed the
+        // step. Deduplicating inside a pass alone would only postpone the
+        // duplicate: the second organization is still unclaimed, so the same
+        // reader would get the identical message on the very next run.
+        assert!(
+            claim_step(&pool, &planned[0].organization_id, planned[0].step)
+                .await
+                .expect("claim")
+        );
+        let next = collect_pass(&pool, &config).await.expect("collect next");
+        assert!(
+            next.is_empty(),
+            "a step already sent to this reader must not come back through another organization"
+        );
     }
 
     /// Driving passes manually walks an org J+1 → J+3 → J+7, then stops.

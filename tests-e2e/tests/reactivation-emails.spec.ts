@@ -65,13 +65,14 @@ interface ReactivationUser {
  */
 async function registerVerifiedUser(
   request: APIRequestContext,
-  testId: string
+  testId: string,
+  firstName = "Nina"
 ): Promise<ReactivationUser> {
   const email = `reactivation-${testId}-${Date.now()}@hook0.local`;
   const password = `TestPassword123!${Date.now()}`;
 
   const registerResponse = await request.post(`${API_BASE_URL}/register`, {
-    data: { email, first_name: "Nina", last_name: "Dormant", password },
+    data: { email, first_name: firstName, last_name: "Dormant", password },
   });
   expect(registerResponse.status(), await registerResponse.text()).toBeLessThan(400);
   const organizationId = (await registerResponse.json()).organization_id as string;
@@ -250,7 +251,11 @@ async function ingestFirstEvent(request: APIRequestContext, user: ReactivationUs
 
 test.describe("Reactivation drip for accounts that never sent an event", () => {
   test("sends the J+1 email, with its CTA, campaign tagging and opt-out", async ({ request }) => {
-    const user = await registerVerifiedUser(request, "day1");
+    // The greeting is the one place a recipient's own text reaches the message,
+    // so this account carries markup in its first name: the escaping assertion
+    // below is only worth anything if something was there to escape.
+    const injectedName = '<script>alert("x")</script>';
+    const user = await registerVerifiedUser(request, "day1", injectedName);
     await ageSignupByDays(user.email, 2);
 
     const message = await getEmailFromMailpit(request, user.email, DAY1_SUBJECT, DRIP_WAIT_MS);
@@ -275,6 +280,7 @@ test.describe("Reactivation drip for accounts that never sent an event", () => {
     ).toBeTruthy();
 
     // The recipient's own data must never be rendered raw into the mail.
+    expect(html, "the greeting must carry the recipient's name at all").toContain("&lt;script&gt;");
     expect(html).not.toContain("<script");
 
     expect(await recordedSteps(user.organizationId), "step 1 is recorded as sent").toContain(1);

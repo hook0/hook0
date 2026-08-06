@@ -1,5 +1,6 @@
 use chrono::Datelike;
 use html2text::from_read;
+use lettre::message::header::{HeaderName, HeaderValue};
 use lettre::message::{Mailbox, MultiPart};
 use lettre::{Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 use std::string::String;
@@ -661,7 +662,9 @@ impl Mailer {
         with_matomo(&url, mail.matomo_campaign())
     }
 
-    pub async fn send_mail(&self, mail: Mail, recipient: Mailbox) -> Result<(), Hook0Problem> {
+    /// Build the message that `send_mail` puts on the wire. Split out so the
+    /// headers it carries can be asserted without an SMTP server.
+    fn build_message(&self, mail: &Mail, recipient: Mailbox) -> Result<Message, Hook0Problem> {
         let rendered = mail.render(
             &self.logo_url,
             &self.website_url,
@@ -675,12 +678,30 @@ impl Mailer {
         )?;
         let text_mail = from_read(rendered.as_bytes(), 80)?;
 
-        let email = Message::builder()
+        let mut builder = Message::builder()
             .from(self.sender.to_owned())
             .to(recipient)
-            .subject(mail.subject())
-            .multipart(MultiPart::alternative_plain_html(text_mail, rendered))?;
+            .subject(mail.subject());
 
+        // Advertise the opt-out to the mail client as well as to the reader.
+        // Gmail and Apple Mail surface their own Unsubscribe control from this
+        // header, and mailbox providers weigh its presence when judging a
+        // recurring automated series — which is what the reactivation drip is.
+        // Only the URL form is advertised: `List-Unsubscribe-Post` promises a
+        // one-click POST the endpoint would have to accept form-encoded, and
+        // claiming support we do not have is worse than claiming none.
+        if let Some(unsubscribe_url) = mail.unsubscribe_url() {
+            builder = builder.raw_header(HeaderValue::new(
+                HeaderName::new_from_ascii_str("List-Unsubscribe"),
+                format!("<{unsubscribe_url}>"),
+            ));
+        }
+
+        Ok(builder.multipart(MultiPart::alternative_plain_html(text_mail, rendered))?)
+    }
+
+    pub async fn send_mail(&self, mail: Mail, recipient: Mailbox) -> Result<(), Hook0Problem> {
+        let email = self.build_message(&mail, recipient)?;
         self.transport.send(email).await?;
         Ok(())
     }
@@ -1272,6 +1293,49 @@ mod tests {
                 "Reactivation email {:?} must carry the legal footer",
                 m.matomo_campaign()
             );
+        }
+    }
+
+    /// The opt-out has to be visible to the mail client too, not only to the
+    /// reader: Gmail and Apple Mail surface their own Unsubscribe control from
+    /// the `List-Unsubscribe` header, and providers weigh it when judging a
+    /// recurring automated series. Transactional mail must NOT carry it — there
+    /// is nothing to unsubscribe from.
+    #[actix_web::test]
+    async fn only_reactivation_mail_advertises_list_unsubscribe() {
+        let mailer = crate::google_ads::test_support::failing_mailer().await;
+        let recipient = Mailbox::new(
+            Some("Sarah".to_owned()),
+            Address::from_str("sarah@example.com").expect("recipient address"),
+        );
+
+        for mail in all_variants() {
+            let message = mailer
+                .build_message(&mail, recipient.clone())
+                .expect("build message");
+            let raw = String::from_utf8_lossy(&message.formatted()).to_string();
+            let advertised = raw
+                .lines()
+                .any(|line| line.to_ascii_lowercase().starts_with("list-unsubscribe:"));
+
+            match mail.unsubscribe_url() {
+                Some(url) => {
+                    assert!(
+                        advertised,
+                        "reactivation mail {:?} must advertise its opt-out to the mail client",
+                        mail.matomo_campaign()
+                    );
+                    assert!(
+                        raw.contains(&format!("<{url}>")),
+                        "the advertised opt-out must be this recipient's own link"
+                    );
+                }
+                None => assert!(
+                    !advertised,
+                    "transactional mail {:?} must not advertise an unsubscribe",
+                    mail.matomo_campaign()
+                ),
+            }
         }
     }
 
