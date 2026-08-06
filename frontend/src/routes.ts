@@ -123,7 +123,18 @@ export default [
     name: routes.VerifyEmail,
     path: '/verify-email',
     component: () => import('@/pages/user/VerifyEmail.vue'),
-    meta: { requiresAuth: false, fullScreen: true, title: 'Verify Email' },
+    meta: {
+      requiresAuth: false,
+      // The link has work to do even for someone already signed in — a second
+      // account, a shared browser, a second click. Bouncing them Home would
+      // leave the address unverified with nothing shown.
+      redirectIfLoggedIn: false,
+      fullScreen: true,
+      title: 'Verify Email',
+      // analyticsIgnore: this URL carries a single-use credential in its query
+      // string; it must never reach the analytics backend as a tracked page.
+      analyticsIgnore: true,
+    },
   },
   {
     name: routes.UnsubscribeReactivation,
@@ -173,6 +184,8 @@ export default [
       redirectIfLoggedIn: false,
       fullScreen: true,
       title: 'Reset Password',
+      // Same reason as Verify Email: the token travels in the query string.
+      analyticsIgnore: true,
     },
   },
   {
