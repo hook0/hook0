@@ -110,6 +110,16 @@ api.container:
         --local dockerfile=build-context \
         --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-api:$VERSION,$CI_REGISTRY_IMAGE/hook0-api:latest,${DOCKERHUB_PREFIX}/hook0-api:$VERSION,${DOCKERHUB_PREFIX}/hook0-api:latest,${GHCR_PREFIX}/hook0-api:$VERSION,${GHCR_PREFIX}/hook0-api:latest\",push=true"
 
+api.container-scan:
+  extends:
+    - .api-release-rules
+    - .release-container-scan
+  needs:
+    - job: api.container
+  variables:
+    IMAGE_REPO: hook0-api
+    TAG_PREFIX: api/v
+
 api.github:
   extends: .api-release-rules
   stage: release
