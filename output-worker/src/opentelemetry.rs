@@ -6,11 +6,12 @@ use opentelemetry::trace::noop::NoopTracerProvider;
 use opentelemetry::trace::{Span, SpanId, TraceId, Tracer};
 use opentelemetry::{Key, KeyValue, global};
 use opentelemetry_otlp::{
-    Compression, ExporterBuildError, MetricExporter, Protocol, SpanExporter, WithExportConfig,
-    WithHttpConfig,
+    Compression, ExporterBuildError, LogExporter, MetricExporter, Protocol, SpanExporter,
+    WithExportConfig, WithHttpConfig,
 };
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::error::OTelSdkResult;
+use opentelemetry_sdk::logs::SdkLoggerProvider;
 use opentelemetry_sdk::metrics::{Aggregation, Instrument, SdkMeterProvider, Stream};
 use opentelemetry_sdk::resource::EnvResourceDetector;
 use opentelemetry_sdk::trace::SdkTracerProvider;
@@ -28,6 +29,7 @@ use crate::{Config, RequestAttempt};
 pub struct OtlpExporters {
     metrics: MetricsExporter,
     traces: TracesExporter,
+    logs: Option<SdkLoggerProvider>,
 }
 
 impl OtlpExporters {
@@ -40,6 +42,9 @@ impl OtlpExporters {
             TracesExporter::Actual(exporter) => exporter.shutdown(),
             TracesExporter::Noop => Ok(()),
         }?;
+        if let Some(logs) = &self.logs {
+            logs.shutdown()?;
+        }
         Ok(())
     }
 }
@@ -73,17 +78,25 @@ fn pick_service_instance_id(detected: Option<&str>) -> String {
     }
 }
 
-pub fn init(config: &Config, version: &str) -> Result<OtlpExporters, ExporterBuildError> {
-    let service_instance_id = service_instance_id();
-    let resource = Resource::builder()
+fn build_resource(config: &Config, version: &str, service_instance_id: &str) -> Resource {
+    Resource::builder()
         .with_attributes([
             KeyValue::new("service.namespace", "hook0"),
             KeyValue::new("service.name", "output-worker"),
             KeyValue::new("service.version", version.to_owned()),
             KeyValue::new("worker.name", config.worker_name.clone()),
-            KeyValue::new(SERVICE_INSTANCE_ID, service_instance_id.clone()),
+            KeyValue::new(SERVICE_INSTANCE_ID, service_instance_id.to_owned()),
         ])
-        .build();
+        .build()
+}
+
+pub fn init(
+    config: &Config,
+    version: &str,
+    logs: Option<SdkLoggerProvider>,
+) -> Result<OtlpExporters, ExporterBuildError> {
+    let service_instance_id = service_instance_id();
+    let resource = build_resource(config, version, &service_instance_id);
     let auth_header = config
         .otlp_authorization
         .as_ref()
@@ -145,7 +158,52 @@ pub fn init(config: &Config, version: &str) -> Result<OtlpExporters, ExporterBui
     Ok(OtlpExporters {
         metrics: metrics_exporter,
         traces: traces_exporter,
+        logs,
     })
+}
+
+/// Build the OTLP logs provider when `otlp_logs_endpoint` is configured, so the
+/// worker's `tracing` events are exported (through the OTel bridge) to Loki
+/// carrying their `trace_id`/`span_id` for Loki↔Tempo correlation. Returns
+/// `Ok(None)` when no logs endpoint is set, leaving logging on stdout only.
+///
+/// This is built separately from [`init`] because the resulting provider must be
+/// wired into the tracing subscriber (via the appender bridge) before the
+/// subscriber is installed, which happens earlier than [`init`] runs. The
+/// provider is then handed to [`init`] so its shutdown stays centralized.
+pub fn build_logger_provider(
+    config: &Config,
+    version: &str,
+) -> Result<Option<SdkLoggerProvider>, ExporterBuildError> {
+    let Some(logs_endpoint) = &config.otlp_logs_endpoint else {
+        return Ok(None);
+    };
+
+    let service_instance_id = service_instance_id();
+    let auth_header = config
+        .otlp_authorization
+        .as_ref()
+        .map(|auth| HashMap::from_iter([("Authorization".to_owned(), auth.to_owned())]));
+
+    let mut builder = LogExporter::builder()
+        .with_http()
+        .with_protocol(Protocol::HttpBinary)
+        .with_compression(Compression::Zstd)
+        .with_endpoint(logs_endpoint.as_str())
+        .with_timeout(Duration::from_secs(1));
+    if let Some(auth) = auth_header {
+        builder = builder.with_headers(auth);
+    }
+    let otlp_exporter = builder.build()?;
+    let logger_provider = SdkLoggerProvider::builder()
+        .with_batch_exporter(otlp_exporter)
+        .with_resource(build_resource(config, version, &service_instance_id))
+        .build();
+
+    info!(
+        "OpenTelemetry logs will be exported to {logs_endpoint} (service.instance.id={service_instance_id})"
+    );
+    Ok(Some(logger_provider))
 }
 
 // These instruments are built once on first use and stay bound to the global
@@ -739,5 +797,57 @@ mod trace_id_logging_tests {
                 expected
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod logger_provider_tests {
+    use super::build_logger_provider;
+    use crate::Config;
+    use clap::Parser;
+
+    /// Build a minimal valid worker `Config`, optionally carrying an OTLP logs
+    /// endpoint. Only the fields `build_logger_provider` reads matter; everything
+    /// else takes its clap default. CLI args win over ambient env, so the endpoint
+    /// is present exactly when requested.
+    fn config(logs_endpoint: Option<&str>) -> Config {
+        let mut args = vec![
+            "hook0-output-worker",
+            "--database-url",
+            "postgres://user:pass@localhost/hook0",
+            "--worker-name",
+            "test-worker",
+        ];
+        if let Some(endpoint) = logs_endpoint {
+            args.push("--otlp-logs-endpoint");
+            args.push(endpoint);
+        }
+        Config::parse_from(args)
+    }
+
+    // The None/Some endpoint -> None/Some provider mapping is pure wiring with no
+    // deeper invariant to property-test, so it is covered by two focused examples.
+
+    #[test]
+    fn no_logs_endpoint_yields_no_provider() {
+        let provider = build_logger_provider(&config(None), "0.0.0-test")
+            .expect("building without a logs endpoint never fails");
+        assert!(
+            provider.is_none(),
+            "an unset OTLP logs endpoint must leave logs on stdout only"
+        );
+    }
+
+    #[test]
+    fn a_logs_endpoint_yields_a_provider() {
+        let provider =
+            build_logger_provider(&config(Some("http://localhost:4318/v1/logs")), "0.0.0-test")
+                .expect("building an OTLP logs exporter must succeed")
+                .expect("a configured endpoint must produce a provider");
+        // No records were emitted, so shutdown drains an empty batch without touching
+        // the (unreachable) endpoint and tears down the batch worker thread.
+        provider
+            .shutdown()
+            .expect("logger provider shuts down cleanly");
     }
 }

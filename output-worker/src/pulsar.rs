@@ -820,6 +820,18 @@ async fn handle_message(
                         // Work
                         let response = work(config, resolver, &attempt).await;
                         trace!(request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, elapsed_ms = response.elapsed_time_ms(), "Got response for request attempt");
+                        // INFO-level, trace-correlated record so every delivery (success or
+                        // failure) surfaces one line in Loki that a Grafana derived field can
+                        // pivot from `trace_id` straight to its Tempo trace.
+                        info!(
+                            request_attempt_id = %attempt.request_attempt_id,
+                            trace_id = %ids.trace_id,
+                            span_id = %ids.span_id,
+                            outcome = classify_outcome(&response).as_str(),
+                            http_status = response.http_code().unwrap_or_default(),
+                            elapsed_ms = response.elapsed_time_ms(),
+                            "Request attempt delivered"
+                        );
 
                         // Open DB transaction
                         let mut tx = pool.begin().await?;
