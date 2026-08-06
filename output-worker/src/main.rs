@@ -205,12 +205,20 @@ struct Config {
     concurrent_lp_reserved: u16,
 
     /// Maximum number of delivery retries before giving up (the effective number of retries is limited by `MAX_RETRIES`, `MAX_RETRY_WINDOW` and the retry policy)
-    #[clap(long, env, default_value_t = 25)]
+    #[clap(long, env, default_value_t = 24)]
     max_retries: u8,
 
     /// Maximum time window for delivery retries before giving up (the effective number of retries is limited by `MAX_RETRIES`, `MAX_RETRY_WINDOW` and the retry policy)
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "8d")]
     max_retry_window: Duration,
+
+    /// Ratio of a retry's base delay used as the width of the random jitter window added on top of it, bounded by an internal minimum and by `RETRY_JITTER_MAX_SPREAD` (set to 0 to disable jitter and get strictly deterministic retry delays)
+    #[clap(long, env, default_value_t = 0.1)]
+    retry_jitter_ratio: f64,
+
+    /// Maximum width of the random jitter window added on top of a retry's base delay; takes precedence over the internal minimum (set to "0s" to disable jitter)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "15m")]
+    retry_jitter_max_spread: Duration,
 
     /// Heartbeat URL that should be called regularly
     #[clap(long, env)]
@@ -436,11 +444,12 @@ async fn main() -> anyhow::Result<()> {
     );
     debug!("Webhook total timeout is set to {:?}", config.timeout);
 
-    let retry_policy = evaluate_retry_policy(config.max_retries, config.max_retry_window);
+    let retry_policy = RetryPolicy::from_config(&config)?;
+    let effective_retry_policy = retry_policy.evaluate(config.max_retry_window);
     info!(
         "Configured retry policy allows a maximum of {} retries in a {} window",
-        retry_policy.0,
-        format_duration(retry_policy.1)
+        effective_retry_policy.0,
+        format_duration(effective_retry_policy.1)
     );
 
     // Built once and shared by every request attempt, so its cache is shared too.
@@ -811,6 +820,7 @@ async fn main() -> anyhow::Result<()> {
                 loop {
                     let result = pulsar::look_for_work(
                         &c,
+                        retry_policy,
                         &po,
                         &os,
                         &wid,
@@ -862,6 +872,7 @@ async fn main() -> anyhow::Result<()> {
                 loop {
                     let t = pg::look_for_work(
                         &cfg,
+                        retry_policy,
                         unit_id,
                         role,
                         &p,
@@ -959,11 +970,106 @@ async fn get_worker(name: String, conn: &PgPool) -> anyhow::Result<Worker> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct RetryPolicy {
+    max_retries: u8,
+    jitter_ratio: f64,
+    jitter_max_spread: Duration,
+}
+
+impl RetryPolicy {
+    /// Minimum width of the random jitter window.
+    const JITTER_MIN_SPREAD: Duration = Duration::from_secs(2);
+
+    fn from_config(config: &Config) -> anyhow::Result<Self> {
+        if !config.retry_jitter_ratio.is_finite() || config.retry_jitter_ratio < 0.0 {
+            bail!(
+                "RETRY_JITTER_RATIO ({}) must be a finite non-negative number (use 0 to disable jitter)",
+                config.retry_jitter_ratio
+            );
+        }
+        Ok(Self {
+            max_retries: config.max_retries,
+            jitter_ratio: config.retry_jitter_ratio,
+            jitter_max_spread: config.retry_jitter_max_spread,
+        })
+    }
+
+    /// Deterministic base delay from the retry schedule, or `None` once retries are exhausted.
+    fn base_delay(&self, retry_count: i16) -> Option<Duration> {
+        if retry_count < self.max_retries.into() {
+            match retry_count {
+                0 => Some(Duration::from_secs(3)),
+                1 => Some(Duration::from_secs(10)),
+                2 => Some(Duration::from_secs(3 * 60)),
+                3 => Some(Duration::from_secs(30 * 60)),
+                4 => Some(Duration::from_hours(1)),
+                5 => Some(Duration::from_hours(3)),
+                6 => Some(Duration::from_hours(5)),
+                _ => Some(Duration::from_hours(10)),
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Width of the random window added on top of `base`; zero when jitter is disabled.
+    fn jitter_spread(&self, base: Duration) -> Duration {
+        if !self.jitter_ratio.is_finite() || self.jitter_ratio <= 0.0 {
+            Duration::ZERO
+        } else {
+            Duration::try_from_secs_f64(self.jitter_ratio * base.as_secs_f64())
+                .unwrap_or(Duration::MAX)
+                .max(Self::JITTER_MIN_SPREAD)
+                .min(self.jitter_max_spread)
+        }
+    }
+
+    /// Base delay plus jitter, or `None` once retries are exhausted.
+    ///
+    /// The result is truncated to whole microseconds: both queue backends store it in
+    /// PostgreSQL (as an `INTERVAL` or a `timestamptz`), neither of which keeps
+    /// sub-microsecond precision. Truncating here keeps the two paths in agreement and
+    /// keeps `PgInterval::try_from` from rejecting the value.
+    fn next_delay(&self, retry_count: i16, factor: f64) -> Option<Duration> {
+        self.base_delay(retry_count).map(|base| {
+            let spread = self.jitter_spread(base);
+            let delay = base.saturating_add(spread.mul_f64(factor.clamp(0.0, 1.0)));
+            Duration::new(delay.as_secs(), delay.subsec_micros() * 1000)
+        })
+    }
+
+    /// Worst-case number of retries and cumulative delay that fit in `max_retry_window`.
+    ///
+    /// Each step is charged its maximum jitter so the result is an upper bound on the retry
+    /// window rather than an under-estimate.
+    fn evaluate(&self, max_retry_window: Duration) -> (u8, Duration) {
+        let mut cumulative = Duration::ZERO;
+        let mut effective_retries = 0;
+
+        for i in 0..self.max_retries {
+            match self.base_delay(i.into()) {
+                Some(base) => {
+                    let d = base.saturating_add(self.jitter_spread(base));
+                    if cumulative.saturating_add(d) > max_retry_window {
+                        break;
+                    }
+                    cumulative = cumulative.saturating_add(d);
+                    effective_retries = i + 1;
+                }
+                None => break,
+            }
+        }
+
+        (effective_retries, cumulative)
+    }
+}
+
 async fn compute_next_retry(
     conn: &mut PgConnection,
     attempt: &RequestAttempt,
     response: &Response,
-    max_retries: u8,
+    policy: RetryPolicy,
 ) -> Result<Option<Duration>, sqlx::Error> {
     match response.response_error {
         Some(ResponseError::InvalidHeader) => {
@@ -1001,10 +1107,7 @@ async fn compute_next_retry(
             .await?;
 
             if sub.is_some() {
-                Ok(compute_next_retry_duration(
-                    max_retries,
-                    attempt.retry_count,
-                ))
+                Ok(policy.next_delay(attempt.retry_count, rand::random::<f64>()))
             } else {
                 // If the subscription was disabled or soft-deleted (or its application was deleted), we do not schedule a next attempt
                 Ok(None)
@@ -1013,72 +1116,53 @@ async fn compute_next_retry(
     }
 }
 
-fn compute_next_retry_duration(max_retries: u8, retry_count: i16) -> Option<Duration> {
-    if retry_count < max_retries.into() {
-        match retry_count {
-            0 => Some(Duration::from_secs(3)),
-            1 => Some(Duration::from_secs(10)),
-            2 => Some(Duration::from_secs(3 * 60)),
-            3 => Some(Duration::from_secs(30 * 60)),
-            4 => Some(Duration::from_hours(1)),
-            5 => Some(Duration::from_hours(3)),
-            6 => Some(Duration::from_hours(5)),
-            _ => Some(Duration::from_hours(10)),
-        }
-    } else {
-        None
-    }
-}
-
-fn evaluate_retry_policy(max_retries: u8, max_retry_window: Duration) -> (u8, Duration) {
-    let mut cumulative = Duration::ZERO;
-    let mut effective_retries = 0;
-
-    for i in 0..max_retries {
-        match compute_next_retry_duration(max_retries, i.into()) {
-            Some(d) => {
-                if cumulative + d > max_retry_window {
-                    break;
-                }
-                cumulative += d;
-                effective_retries = i + 1;
-            }
-            None => break,
-        }
-    }
-
-    (effective_retries, cumulative)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// A policy with jitter disabled, so tests of the base schedule assert exact values
+    fn no_jitter(max_retries: u8) -> RetryPolicy {
+        RetryPolicy {
+            max_retries,
+            jitter_ratio: 0.0,
+            jitter_max_spread: Duration::ZERO,
+        }
+    }
+
+    /// A policy using the shipped defaults
+    fn default_jitter(max_retries: u8) -> RetryPolicy {
+        RetryPolicy {
+            max_retries,
+            jitter_ratio: 0.1,
+            jitter_max_spread: Duration::from_secs(15 * 60),
+        }
+    }
+
     #[test]
     fn test_evaluate_retry_policy_zero_retries() {
-        let (retries, cumulative) = evaluate_retry_policy(0, Duration::from_hours(1));
+        let (retries, cumulative) = no_jitter(0).evaluate(Duration::from_hours(1));
         assert_eq!(retries, 0);
         assert_eq!(cumulative, Duration::ZERO);
     }
 
     #[test]
     fn test_evaluate_retry_policy_zero_window() {
-        let (retries, cumulative) = evaluate_retry_policy(30, Duration::ZERO);
+        let (retries, cumulative) = no_jitter(30).evaluate(Duration::ZERO);
         assert_eq!(retries, 0);
         assert_eq!(cumulative, Duration::ZERO);
     }
 
     #[test]
-    fn test_compute_next_retry_duration_exceeds_max() {
-        assert_eq!(compute_next_retry_duration(5, 5), None);
-        assert_eq!(compute_next_retry_duration(5, 6), None);
-        assert_eq!(compute_next_retry_duration(0, 0), None);
+    fn test_base_delay_exceeds_max() {
+        assert_eq!(no_jitter(5).base_delay(5), None);
+        assert_eq!(no_jitter(5).base_delay(6), None);
+        assert_eq!(no_jitter(0).base_delay(0), None);
     }
 
     #[test]
     fn test_evaluate_retry_policy_unlimited_window() {
         let window = Duration::from_hours(365 * 24);
-        let (retries, cumulative) = evaluate_retry_policy(30, window);
+        let (retries, cumulative) = no_jitter(30).evaluate(window);
         assert_eq!(retries, 30);
         assert!(cumulative < window / 10); // Duration is not just the window but the actual cumulative duration
     }
@@ -1086,9 +1170,188 @@ mod tests {
     #[test]
     fn test_evaluate_retry_policy_tight_window() {
         let window = Duration::from_secs(15);
-        let (retries, cumulative) = evaluate_retry_policy(30, window);
+        let (retries, cumulative) = no_jitter(30).evaluate(window);
         assert_eq!(retries, 2);
         assert!(cumulative < window);
+    }
+
+    #[test]
+    fn test_jitter_spread_is_disabled_by_a_non_positive_or_invalid_ratio() {
+        let base = Duration::from_secs(3);
+        for ratio in [0.0, -0.5, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            let policy = RetryPolicy {
+                max_retries: 30,
+                jitter_ratio: ratio,
+                jitter_max_spread: Duration::from_secs(15 * 60),
+            };
+            assert_eq!(
+                policy.jitter_spread(base),
+                Duration::ZERO,
+                "ratio {ratio} should disable jitter"
+            );
+        }
+    }
+
+    #[test]
+    fn test_jitter_spread_is_disabled_by_a_zero_max_spread() {
+        let policy = RetryPolicy {
+            max_retries: 30,
+            jitter_ratio: 0.1,
+            jitter_max_spread: Duration::ZERO,
+        };
+        assert_eq!(policy.jitter_spread(Duration::from_secs(3)), Duration::ZERO);
+        assert_eq!(
+            policy.jitter_spread(Duration::from_hours(10)),
+            Duration::ZERO
+        );
+    }
+
+    #[test]
+    fn test_jitter_spread_applies_floor_and_cap() {
+        let policy = default_jitter(30);
+
+        // Below the floor: 10% of 3s and of 10s are both under the 2s minimum
+        assert_eq!(
+            policy.jitter_spread(Duration::from_secs(3)),
+            RetryPolicy::JITTER_MIN_SPREAD
+        );
+        assert_eq!(
+            policy.jitter_spread(Duration::from_secs(10)),
+            RetryPolicy::JITTER_MIN_SPREAD
+        );
+
+        // Between floor and cap: proportional
+        assert_eq!(
+            policy.jitter_spread(Duration::from_secs(3 * 60)),
+            Duration::from_secs(18)
+        );
+        assert_eq!(
+            policy.jitter_spread(Duration::from_hours(1)),
+            Duration::from_secs(6 * 60)
+        );
+
+        // Above the cap
+        assert_eq!(
+            policy.jitter_spread(Duration::from_hours(10)),
+            policy.jitter_max_spread
+        );
+    }
+
+    #[test]
+    fn test_jitter_spread_cap_beats_floor_without_panicking() {
+        let policy = RetryPolicy {
+            max_retries: 30,
+            jitter_ratio: 0.1,
+            jitter_max_spread: Duration::from_secs(1),
+        };
+        assert!(policy.jitter_max_spread < RetryPolicy::JITTER_MIN_SPREAD);
+        assert_eq!(
+            policy.jitter_spread(Duration::from_secs(3)),
+            Duration::from_secs(1)
+        );
+    }
+
+    #[test]
+    fn test_jitter_spread_saturates_on_an_overflowing_ratio() {
+        // A ratio this large overflows `Duration`; it must saturate to the cap, not panic
+        let policy = RetryPolicy {
+            max_retries: 30,
+            jitter_ratio: f64::MAX,
+            jitter_max_spread: Duration::from_secs(15 * 60),
+        };
+        let base = Duration::from_hours(10);
+
+        assert_eq!(policy.jitter_spread(base), policy.jitter_max_spread);
+        assert_eq!(
+            policy.next_delay(7, 1.0),
+            Some(base + policy.jitter_max_spread)
+        );
+
+        // The advertised window stays finite too
+        let (retries, cumulative) = policy.evaluate(Duration::from_hours(24));
+        assert!(retries > 0);
+        assert!(cumulative <= Duration::from_hours(24));
+    }
+
+    #[test]
+    fn test_next_delay_only_ever_adds_to_the_base_delay() {
+        let policy = default_jitter(30);
+        let base = policy.base_delay(0).unwrap();
+        let spread = policy.jitter_spread(base);
+
+        assert_eq!(policy.next_delay(0, 0.0), Some(base));
+        assert_eq!(policy.next_delay(0, 1.0), Some(base + spread));
+
+        // Out-of-range factors are clamped, so a delay is never shorter than its base
+        assert_eq!(policy.next_delay(0, -1.0), Some(base));
+        assert_eq!(policy.next_delay(0, 2.0), Some(base + spread));
+
+        for factor in [0.0, 0.25, 0.5, 0.75, 1.0] {
+            let delay = policy.next_delay(0, factor).unwrap();
+            assert!(delay >= base && delay <= base + spread);
+        }
+    }
+
+    #[test]
+    fn test_next_delay_is_always_a_valid_postgresql_interval() {
+        use sqlx::postgres::types::PgInterval;
+
+        let policy = default_jitter(30);
+
+        // This factor is what a `rand::random::<f64>()` draw looks like: without truncation
+        // it yields sub-microsecond nanoseconds, which PostgreSQL's INTERVAL type rejects
+        let factor = 0.6172839455_f64;
+        let base = policy.base_delay(0).unwrap();
+        let spread = policy.jitter_spread(base);
+        assert_ne!(
+            base.saturating_add(spread.mul_f64(factor)).subsec_nanos() % 1000,
+            0,
+            "the pinned factor must exercise the sub-microsecond case"
+        );
+
+        for retry_count in 0..9 {
+            for f in [0.0, factor, 1.0] {
+                let delay = policy.next_delay(retry_count, f).unwrap();
+                assert_eq!(delay.subsec_nanos() % 1000, 0, "{delay:?}");
+                assert!(PgInterval::try_from(delay).is_ok(), "{delay:?}");
+            }
+
+            // The property must hold for any random factor, not just the pinned ones
+            for _ in 0..200 {
+                let delay = policy
+                    .next_delay(retry_count, rand::random::<f64>())
+                    .unwrap();
+                assert!(
+                    PgInterval::try_from(delay).is_ok(),
+                    "delay {delay:?} is not a valid PostgreSQL interval"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_next_delay_is_deterministic_when_jitter_is_disabled() {
+        let policy = no_jitter(30);
+        for factor in [0.0, 0.5, 1.0] {
+            assert_eq!(policy.next_delay(0, factor), Some(Duration::from_secs(3)));
+            assert_eq!(policy.next_delay(1, factor), Some(Duration::from_secs(10)));
+        }
+    }
+
+    #[test]
+    fn test_evaluate_accounts_for_the_worst_case_jitter() {
+        let window = Duration::from_hours(365 * 24);
+        let (_, without_jitter) = no_jitter(30).evaluate(window);
+        let (_, with_jitter) = default_jitter(30).evaluate(window);
+
+        assert!(with_jitter > without_jitter);
+        assert!(with_jitter <= window);
+
+        // A tight window fits fewer retries once each step is charged its maximum jitter:
+        // 3s + 2s = 5s fits, but the next step needs 10s + 2s = 12s (17s total > 15s)
+        let tight = Duration::from_secs(15);
+        assert_eq!(no_jitter(30).evaluate(tight).0, 2);
+        assert_eq!(default_jitter(30).evaluate(tight).0, 1);
     }
 
     #[test]

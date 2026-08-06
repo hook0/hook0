@@ -19,7 +19,7 @@ use crate::opentelemetry::{
 use crate::throughput_log::ThroughputStats;
 use crate::work::{ResponseError, work};
 use crate::{
-    Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, SlotRole, Worker,
+    Config, ObjectStorageConfig, RequestAttemptWithOptionalPayload, RetryPolicy, SlotRole, Worker,
     compute_next_retry,
 };
 use hook0_protobuf::{ObjectStorageResponse, RequestAttempt};
@@ -34,6 +34,7 @@ const MAX_POLLING_SLEEP: Duration = Duration::from_secs(10);
 #[allow(clippy::too_many_arguments)]
 pub async fn look_for_work(
     config: &Config,
+    retry_policy: RetryPolicy,
     unit_id: u16,
     slot_role: SlotRole,
     pool: &PgPool,
@@ -331,15 +332,16 @@ pub async fn look_for_work(
                     .await?;
 
                     // Creating a retry request or giving up
-                    if let Some(retry_in) = compute_next_retry(
-                        &mut tx,
-                        &attempt_with_payload,
-                        &response,
-                        config.max_retries,
-                    )
-                    .await?
+                    if let Some(retry_in) =
+                        compute_next_retry(&mut tx, &attempt_with_payload, &response, retry_policy)
+                            .await?
                     {
                         let next_retry_count = attempt.retry_count + 1;
+                        let retry_interval = PgInterval::try_from(retry_in).map_err(|e| {
+                            anyhow!(
+                                "Could not convert retry delay ({retry_in:?}) to a PG interval: {e}"
+                            )
+                        })?;
                         let retry_id = query!(
                             "
                                 INSERT INTO webhook.request_attempt (application__id, event__id, subscription__id, delay_until, retry_count)
@@ -349,14 +351,14 @@ pub async fn look_for_work(
                             attempt.application_id,
                             attempt.event_id,
                             attempt.subscription_id,
-                            PgInterval::try_from(retry_in).unwrap(),
+                            retry_interval,
                             next_retry_count,
                         )
                         .fetch_one(&mut *tx)
                         .await?
                         .request_attempt__id;
 
-                        debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, retry_count = next_retry_count, %retry_id, retry_in_secs = retry_in.as_secs(), "Request attempt failed; retry created");
+                        debug!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, retry_count = next_retry_count, %retry_id, retry_in_secs = retry_in.as_secs_f64(), "Request attempt failed; retry created");
                     } else {
                         info!(unit_id, request_attempt_id = %attempt.request_attempt_id, trace_id = %ids.trace_id, span_id = %ids.span_id, retry_count = attempt.retry_count, "Request attempt failed; giving up");
                     }
