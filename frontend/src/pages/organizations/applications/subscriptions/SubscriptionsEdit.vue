@@ -18,6 +18,8 @@ import { useEventTypeList } from '../event_types/useEventTypeQueries';
 import type { EventType } from '../event_types/EventTypeService';
 import { intersectWith } from '@/utils/fp';
 import { useTracking } from '@/composables/useTracking';
+import { useOnboardingStore } from '@/stores/onboarding';
+import { getUseCasePreset } from '@/utils/usecasePreset';
 import { usePermissions } from '@/composables/usePermissions';
 import type { Hook0SelectSingleOption } from '@/components/Hook0Select';
 import {
@@ -137,11 +139,24 @@ const createdAt = ref('');
 const isEnabled = ref(true);
 const dedicatedWorkers = ref<string[]>([]);
 const eventTypes = ref<SelectableEventType[]>([]);
-const labels = ref<Hook0KeyValueKeyValuePair[]>([{ key: 'user_id', value: '1' }]);
+// In the onboarding tutorial, the subscription is seeded from the same use case
+// as the event the user will send at the next step. This has to stay in step
+// with EventsSend.vue: delivery requires the event's labels to be a superset of
+// the subscription's, so a subscription left on the generic `user_id` while the
+// event goes out with `customer_id` matches nothing and the tutorial ends on a
+// webhook that never arrives. Copied, not aliased — the form mutates these and
+// the presets are shared module state.
+const onboarding = useOnboardingStore();
+const preset = props.tutorialMode ? getUseCasePreset(onboarding.useCase) : undefined;
+const initialLabels: Hook0KeyValueKeyValuePair[] = preset
+  ? preset.labels.map((label) => ({ ...label }))
+  : [{ key: 'user_id', value: '1' }];
+
+const labels = ref<Hook0KeyValueKeyValuePair[]>(initialLabels);
 const metadata = ref<Hook0KeyValueKeyValuePair[]>([]);
 const headersKv = ref<Hook0KeyValueKeyValuePair[]>([]);
 const headersMap = ref<Record<string, string>>({});
-const labelsMap = ref<Record<string, string>>({ user_id: '1' });
+const labelsMap = ref<Record<string, string>>(kvPairsToRecord(initialLabels));
 const metadataMap = ref<Record<string, string>>({});
 
 const httpMethods = 'GET,PATCH,POST,PUT,DELETE,OPTIONS,HEAD'.split(',').map(toOption);

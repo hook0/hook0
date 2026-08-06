@@ -1,25 +1,6 @@
-import {
-  USE_CASE_OPTIONS,
-  isUseCaseId,
-  getUseCasePreset,
-  formatEventTypeName,
-  type UseCaseId,
-} from './usecasePreset';
+import { USE_CASE_OPTIONS, getUseCasePreset, formatEventTypeName } from './usecasePreset';
 
 describe('usecasePreset', () => {
-  describe('isUseCaseId', () => {
-    it('accepts every advertised option id', () => {
-      for (const option of USE_CASE_OPTIONS) {
-        expect(isUseCaseId(option.id)).toBe(true);
-      }
-    });
-
-    it('rejects an unknown id', () => {
-      expect(isUseCaseId('crypto-mining')).toBe(false);
-      expect(isUseCaseId('')).toBe(false);
-    });
-  });
-
   describe('USE_CASE_OPTIONS', () => {
     it('exposes a distinct, non-empty i18n label key per option', () => {
       const keys = USE_CASE_OPTIONS.map((o) => o.labelKey);
@@ -53,7 +34,14 @@ describe('usecasePreset', () => {
     });
 
     it('produces a valid, non-empty JSON payload and at least one label for each preset', () => {
-      const personalized: UseCaseId[] = ['saas-b2b', 'ecommerce', 'microservices'];
+      // Derived from the advertised options rather than restated, so adding a
+      // fifth use case without a preset fails here instead of shipping a
+      // tutorial step that silently falls back to the generic example.
+      const personalized = USE_CASE_OPTIONS.map((option) => option.id).filter(
+        (id) => id !== 'other'
+      );
+      expect(personalized.length).toBeGreaterThan(0);
+
       for (const id of personalized) {
         const preset = getUseCasePreset(id);
         expect(preset).toBeDefined();
@@ -68,6 +56,17 @@ describe('usecasePreset', () => {
         }).not.toThrow();
         const parsed = JSON.parse(preset.payload) as Record<string, unknown>;
         expect(Object.keys(parsed).length).toBeGreaterThan(0);
+
+        // The segments are submitted as-is to the API, which rejects anything
+        // outside this shape — a preset the user cannot submit is worse than no
+        // preset at all.
+        for (const segment of [
+          preset.eventType.service,
+          preset.eventType.resourceType,
+          preset.eventType.verb,
+        ]) {
+          expect(segment).toMatch(/^[a-z0-9_-]+$/);
+        }
       }
     });
   });

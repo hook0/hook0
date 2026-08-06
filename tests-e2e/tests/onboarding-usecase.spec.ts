@@ -103,7 +103,7 @@ async function advanceToEventTypeStep(page: Page, appName: string): Promise<void
  * the send-event form — the second place the chosen use case is supposed to
  * show up (event type, labels and payload).
  */
-async function advanceToSendEventStep(page: Page): Promise<void> {
+async function advanceToSendEventStep(page: Page): Promise<{ key: string; value: string }> {
   const eventTypeResponse = page.waitForResponse(
     (response) => response.url().includes("/event_types") && response.request().method() === "POST",
     { timeout: 15000 }
@@ -117,10 +117,15 @@ async function advanceToSendEventStep(page: Page): Promise<void> {
   await description.fill("Use-case personalization check");
   await page.locator('[data-test="subscription-url-input"]').fill("https://example.com/webhook");
 
+  // Read the seeded subscription label rather than overwriting it: whether it
+  // matches the event sent at the next step decides whether the tutorial's
+  // webhook is ever delivered, so the test must not paper over it.
   const labels = page.locator('[data-test="subscription-labels"]');
   await expect(labels.locator('[data-test="kv-key-input-0"]')).toBeVisible({ timeout: 15000 });
-  await labels.locator('[data-test="kv-key-input-0"]').fill("env");
-  await labels.locator('[data-test="kv-value-input-0"]').fill("test");
+  const subscriptionLabel = {
+    key: await labels.locator('[data-test="kv-key-input-0"]').inputValue(),
+    value: await labels.locator('[data-test="kv-value-input-0"]').inputValue(),
+  };
 
   const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
   await expect(eventTypeCheckbox).toBeVisible({ timeout: 15000 });
@@ -138,6 +143,8 @@ async function advanceToSendEventStep(page: Page): Promise<void> {
 
   await expect(page).toHaveURL(/\/tutorial\/event/, { timeout: 20000 });
   await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 15000 });
+
+  return subscriptionLabel;
 }
 
 test.describe("Onboarding use-case personalization", () => {
@@ -220,11 +227,11 @@ test.describe("Onboarding use-case personalization", () => {
     // that the user does not have to invent an event type. Walking on to the
     // send-event step also proves the choice survives the whole wizard, which is
     // the second place the preset is supposed to land.
-    await advanceToSendEventStep(page);
+    const subscriptionLabel = await advanceToSendEventStep(page);
 
     // The send-event form is seeded from the same use case: the event type it
     // just created, a domain-relevant label, and a matching payload.
-    await expect(page.locator('[data-test="send-event-type-select"]')).toContainText(
+    await expect(page.locator('[data-test="send-event-type-select"]')).toHaveValue(
       `${ECOMMERCE.service}.${ECOMMERCE.resource}.${ECOMMERCE.verb}`
     );
 
@@ -236,6 +243,18 @@ test.describe("Onboarding use-case personalization", () => {
     await expect(page.locator('[data-test="send-event-payload-input"]')).toContainText(
       ECOMMERCE.payloadMarker
     );
+
+    // The invariant the whole tutorial hangs on: an event is only routed to a
+    // subscription whose labels it fully contains. Personalizing one side and
+    // not the other silently produces a wizard that ends on "your webhook
+    // pipeline is live" while nothing is ever delivered.
+    expect(
+      subscriptionLabel,
+      "the subscription must be filtered on the same label the event carries"
+    ).toEqual({
+      key: ECOMMERCE.labelKey,
+      value: await sendLabels.locator('[data-test="kv-value-input-0"]').inputValue(),
+    });
   });
 
   test("submits the seeded event type as-is", async ({ page, request }) => {
@@ -265,5 +284,20 @@ test.describe("Onboarding use-case personalization", () => {
     await expect(page.locator('[data-test="event-type-service-input"]')).toHaveValue("");
     await expect(page.locator('[data-test="event-type-resource-input"]')).toHaveValue("");
     await expect(page.locator('[data-test="event-type-verb-input"]')).toHaveValue("");
+
+    // The later steps must keep their generic defaults too, and keep matching
+    // each other: the untouched path is the one every user who ignores the
+    // question takes.
+    await page.locator('[data-test="event-type-service-input"]').fill("generic");
+    await page.locator('[data-test="event-type-resource-input"]').fill("thing");
+    await page.locator('[data-test="event-type-verb-input"]').fill("created");
+
+    const subscriptionLabel = await advanceToSendEventStep(page);
+    expect(subscriptionLabel).toEqual({ key: "user_id", value: "1" });
+
+    const sendLabels = page.locator('[data-test="send-event-labels"]');
+    await expect(sendLabels.locator('[data-test="kv-key-input-0"]')).toHaveValue("user_id");
+    await expect(sendLabels.locator('[data-test="kv-value-input-0"]')).toHaveValue("1");
+    await expect(page.locator('[data-test="send-event-payload-input"]')).toContainText("test");
   });
 });

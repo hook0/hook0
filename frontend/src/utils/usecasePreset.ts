@@ -77,10 +77,6 @@ const PRESETS: Record<PersonalizableUseCaseId, UseCasePreset> = {
   },
 };
 
-export function isUseCaseId(value: string): value is UseCaseId {
-  return USE_CASE_OPTIONS.some((option) => option.id === value);
-}
-
 // Returns the preset for a personalizable use-case, or `undefined` for `other`
 // (and any unknown id) so callers keep their existing generic defaults.
 export function getUseCasePreset(useCase: UseCaseId): UseCasePreset | undefined {
