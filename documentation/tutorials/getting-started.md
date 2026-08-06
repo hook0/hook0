@@ -109,6 +109,14 @@ or your organization. Keep it server-side and out of source control, and revoke 
 from the **API keys** page if it ever leaks.
 :::
 
+:::note Self-hosted instances
+Sending an API key as a Bearer token relies on Hook0's application-secret
+compatibility mode, which is on by default. If your instance runs with
+`ENABLE_APPLICATION_SECRET_COMPATIBILITY=false`, this key will not authenticate
+anything: use a [service token](/how-to-guides/manage-service-tokens) everywhere
+this tutorial uses `$HOOK0_TOKEN`.
+:::
+
 
 ## Step 4: Create an Event Type
 

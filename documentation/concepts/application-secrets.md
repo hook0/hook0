@@ -7,6 +7,10 @@ description: The API token of a Hook0 application, what it can do, and how it is
 
 An application secret is the API token of one [application](applications.md). You send it as `Authorization: Bearer <secret>` to call the Hook0 API on that application's behalf — starting with sending events.
 
+:::note Depends on a compatibility setting
+Accepting a raw application secret as a Bearer token is a legacy path, kept for backward compatibility and controlled by the `ENABLE_APPLICATION_SECRET_COMPATIBILITY` setting (see the [configuration reference](../reference/configuration.md)). It is enabled by default, on [app.hook0.com](https://app.hook0.com) as well as in a default self-hosted deployment. On a self-hosted instance where it has been turned off, application secrets authenticate nothing — call the API with a [service token](/how-to-guides/manage-service-tokens) instead.
+:::
+
 ## What an application secret can do
 
 An application secret is not limited to sending events. It carries the full set of permissions on the application it belongs to:

@@ -524,6 +524,11 @@ mod default_secret_tests {
                 db: $pool.clone(),
                 biscuit_private_key: $private_key.clone(),
                 master_api_key: None,
+                // Pinned on rather than read from the runtime default: passing a
+                // raw application secret as a Bearer token only works through
+                // the compatibility path, so if `enable_application_secret_compatibility`
+                // ever defaults to off, these tests keep passing while the
+                // provisioned secret stops authenticating anything in production.
                 enable_application_secret_compatibility: true,
             };
 
@@ -640,7 +645,9 @@ mod default_secret_tests {
         // 3) The default secret must authenticate a real API call: use it as a
         //    Bearer token (application secret compatibility) to list this
         //    application's secrets. A 2xx proves the token is valid and scoped to
-        //    the application.
+        //    the application. This step is what depends on the compatibility
+        //    setting pinned on in `init_api!` — with it off, a raw secret is not
+        //    a Bearer token at all and this call is a 401.
         let authed_call = test::TestRequest::get()
             .uri(&format!(
                 "/api/v1/application_secrets?application_id={application_id}"
@@ -720,6 +727,10 @@ mod default_secret_tests {
     /// leaking is exactly what confines it: the default secret of application A
     /// must be refused on application B (same organization) and on an
     /// application of another organization.
+    ///
+    /// Authenticating with the raw secret only exists behind the compatibility
+    /// setting pinned on in `init_api!`; with it off there is no such blast
+    /// radius to measure here, and this test would still pass.
     #[sqlx::test]
     async fn the_default_secret_is_confined_to_its_own_application(pool: PgPool) {
         let keypair = biscuit_auth::KeyPair::new();
