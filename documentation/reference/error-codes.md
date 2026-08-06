@@ -153,6 +153,66 @@ All API errors follow this structure (RFC 7807):
 }
 ```
 
+### PasswordTooLong
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/PasswordTooLong",
+  "id": "PasswordTooLong",
+  "title": "Provided password is too long",
+  "detail": "Password must be at most 100 characters long.",
+  "status": 400
+}
+```
+
+### PasswordSimilarToEmail
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/PasswordSimilarToEmail",
+  "id": "PasswordSimilarToEmail",
+  "title": "Provided password is too close to the email address",
+  "detail": "Password must not be built from the email address of the account: anyone who knows the address would guess it. Please pick something unrelated.",
+  "status": 400
+}
+```
+
+### PasswordSimilarToName
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/PasswordSimilarToName",
+  "id": "PasswordSimilarToName",
+  "title": "Provided password is too close to the user name",
+  "detail": "Password must not be built from the first or last name of the account. Please pick something unrelated.",
+  "status": 400
+}
+```
+
+### PasswordTooCommon
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/PasswordTooCommon",
+  "id": "PasswordTooCommon",
+  "title": "Provided password is too common",
+  "detail": "This password (or a lightly disguised version of it) is among the most frequently used ones, so it is one of the first an attacker tries. Please pick another one.",
+  "status": 400
+}
+```
+
+### PasswordNotDiverseEnough
+
+```json
+{
+  "type": "https://hook0.com/documentation/errors/PasswordNotDiverseEnough",
+  "id": "PasswordNotDiverseEnough",
+  "title": "Provided password is not diverse enough",
+  "detail": "Password is made of too few different characters, which makes it easy to guess despite its length. Please pick another one.",
+  "status": 400
+}
+```
+
 ### UnauthorizedWorkers
 
 ```json

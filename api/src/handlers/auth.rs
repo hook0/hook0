@@ -892,3 +892,141 @@ async fn store_new_password<'a, A: Acquire<'a, Database = Postgres>>(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod password_policy_tests {
+    use crate::google_ads::test_support::{issue_user_token, seed_org, seed_user, test_state};
+    use actix_web::{App, test, web};
+    use sqlx::PgPool;
+    use uuid::Uuid;
+
+    /// Spin up the real change-password endpoint behind the real biscuit auth
+    /// middleware, over the test database. A macro rather than a function
+    /// because the type of an initialized actix test service is not nameable
+    /// here.
+    macro_rules! init_api {
+        ($pool:expr, $private_key:expr) => {{
+            let state = test_state($pool.clone(), $private_key.clone(), None).await;
+            let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+                db: $pool.clone(),
+                biscuit_private_key: $private_key.clone(),
+                master_api_key: None,
+                enable_application_secret_compatibility: true,
+            };
+
+            test::init_service(
+                App::new().app_data(web::Data::new(state)).service(
+                    web::scope("/api/v1/auth").service(
+                        web::resource("/password")
+                            .wrap(biscuit_auth)
+                            .route(web::post().to(super::change_password)),
+                    ),
+                ),
+            )
+            .await
+        }};
+    }
+
+    /// POST a new password and return the status with the `id` of the problem
+    /// it carries (empty when the response carries no problem).
+    macro_rules! change_password {
+        ($app:expr, $token:expr, $new_password:expr) => {{
+            let request = test::TestRequest::post()
+                .uri("/api/v1/auth/password")
+                .insert_header(("Authorization", format!("Bearer {}", $token)))
+                .set_json(serde_json::json!({ "new_password": $new_password }))
+                .to_request();
+            let response = test::call_service(&$app, request).await;
+            let status = response.status();
+            let body = test::read_body(response).await;
+            let problem = serde_json::from_slice::<serde_json::Value>(&body)
+                .ok()
+                .and_then(|body| body["id"].as_str().map(str::to_owned))
+                .unwrap_or_default();
+            (status, problem)
+        }};
+    }
+
+    async fn stored_hash(pool: &PgPool, user_id: Uuid) -> String {
+        sqlx::query_scalar("SELECT password FROM iam.user WHERE user__id = $1")
+            .bind(user_id)
+            .fetch_one(pool)
+            .await
+            .expect("read stored password")
+    }
+
+    /// The change-password path is one of the three the policy must cover, and
+    /// the only one where the account's identity is read back from the database
+    /// rather than taken from the request. A wrong lookup would check the new
+    /// password against somebody else's identity, and every other test would
+    /// still pass.
+    #[sqlx::test]
+    async fn changing_to_the_account_email_address_is_refused(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        let token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+        let before = stored_hash(&pool, user).await;
+
+        let app = init_api!(pool, private_key);
+        let email: String = sqlx::query_scalar("SELECT email FROM iam.user WHERE user__id = $1")
+            .bind(user)
+            .fetch_one(&pool)
+            .await
+            .expect("read seeded email");
+
+        let (status, problem) = change_password!(app, token, email);
+
+        assert_eq!(status, actix_web::http::StatusCode::BAD_REQUEST);
+        assert_eq!(problem, "PasswordSimilarToEmail");
+        assert_eq!(
+            stored_hash(&pool, user).await,
+            before,
+            "a refused change must leave the stored password alone"
+        );
+    }
+
+    #[sqlx::test]
+    async fn changing_to_a_common_password_is_refused(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        let token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+
+        let app = init_api!(pool, private_key);
+        let (status, problem) = change_password!(app, token, "2026letmein!");
+
+        assert_eq!(status, actix_web::http::StatusCode::BAD_REQUEST);
+        assert_eq!(problem, "PasswordTooCommon");
+    }
+
+    /// The counterpart: a password the policy accepts must actually be stored,
+    /// hashed. Without this, an implementation that refuses everything would
+    /// pass every test above.
+    #[sqlx::test]
+    async fn changing_to_a_strong_password_replaces_the_stored_hash(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        let token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+        let before = stored_hash(&pool, user).await;
+
+        let app = init_api!(pool, private_key);
+        let (status, _) = change_password!(app, token, "quilt lantern harbour");
+
+        assert!(status.is_success(), "unexpected status: {status}");
+
+        let after = stored_hash(&pool, user).await;
+        assert_ne!(after, before);
+        assert!(
+            after.starts_with("$argon2"),
+            "the stored password must be an Argon2 hash, got {after:?}"
+        );
+    }
+}

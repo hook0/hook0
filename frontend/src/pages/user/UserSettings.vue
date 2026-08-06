@@ -231,10 +231,16 @@ function confirmDeleteAccount() {
                 v-model="newPassword"
                 v-bind="newPasswordAttrs"
                 type="password"
+                show-password-toggle
+                autocomplete="new-password"
                 :placeholder="t('userSettings.newPasswordPlaceholder')"
                 :error="errors.new_password"
                 data-test="new-password-input"
-              />
+              >
+                <template #helpText>{{
+                  t('validation.passwordRequirements', { count: passwordMinimumLength })
+                }}</template>
+              </Hook0Input>
             </template>
           </Hook0CardContentLine>
 

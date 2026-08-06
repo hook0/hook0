@@ -229,7 +229,11 @@ const onSubmit = handleSubmit((values) => {
             autocomplete="new-password"
             data-test="register-password-input"
             :disabled="isLoading"
-          />
+          >
+            <template #helpText>{{
+              t('validation.passwordRequirements', { count: passwordMinimumLength })
+            }}</template>
+          </Hook0Input>
 
           <Hook0Captcha v-model="captchaToken" action="registration" class="register-captcha" />
 
