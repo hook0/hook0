@@ -139,7 +139,7 @@ onBeforeUnmount(() => {
 <template>
   <Hook0PageLayout variant="fullscreen" data-test="check-email-page">
     <template #logo>
-      <Hook0Logo variant="image" size="lg" />
+      <Hook0Logo variant="banner-white" size="lg" />
     </template>
 
     <Hook0Card variant="glow">

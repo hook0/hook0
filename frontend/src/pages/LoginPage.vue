@@ -121,7 +121,7 @@ const onSubmit = handleSubmit((values) => {
 <template>
   <Hook0PageLayout variant="fullscreen">
     <template #logo>
-      <Hook0Logo variant="image" size="lg" data-test="login-logo" />
+      <Hook0Logo variant="banner-white" size="lg" data-test="login-logo" />
     </template>
 
     <Hook0Card>

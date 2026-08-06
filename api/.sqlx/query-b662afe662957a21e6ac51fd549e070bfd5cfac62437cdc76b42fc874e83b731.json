@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT organization__id\n                FROM iam.organization\n                WHERE organization__id = $1\n                FOR NO KEY UPDATE\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "organization__id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "iam.organization",
+            "name": "organization__id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b662afe662957a21e6ac51fd549e070bfd5cfac62437cdc76b42fc874e83b731"
+}

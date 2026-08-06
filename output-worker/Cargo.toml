@@ -1,6 +1,6 @@
 [package]
 name = "hook0-output-worker"
-version = "1.0.2"
+version = "1.0.6"
 authors = ["David Sferruzza <david@hook0.com>", "François-Guillaume Ribreau <fg@hook0.com>"]
 repository = "https://gitlab.com/hook0/hook0/-/tree/master/output-worker"
 homepage = "https://www.hook0.com/"
@@ -33,6 +33,7 @@ opentelemetry-otlp = { version = "0.32.0", default-features = false, features = 
 opentelemetry_sdk = { version = "0.32.1", default-features = false, features = ["trace", "metrics", "rt-tokio"] }
 papaya = "0.2.4"
 pulsar = { version = "6.8.0", default-features = false, features = ["tokio-rustls-runtime"] }
+rand = "0.10"
 reqwest = { version = "0.13.4", features = ["hickory-dns", "json"] }
 rustls = { version = "0.23.43", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
 serde = { version = "1.0.229", features = ["derive"] }
@@ -45,3 +46,7 @@ tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "time", "
 tokio-util = { version = "0.7.19", features = ["rt"] }
 url = "2.5.8"
 uuid = { version = "1.24.0", features = ["v4", "v7"] }
+
+[dev-dependencies]
+proptest = "1"
+tracing-subscriber = "0.3.23"

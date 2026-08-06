@@ -481,4 +481,46 @@ mod tests {
         assert!(csp.contains("img-src 'self' data:"));
         assert!(csp.contains("font-src 'none'"));
     }
+
+    /// Play's whole differentiator is "no tracking / zero client-side analytics" (asserted in the
+    /// copy and in the schema.org JSON-LD). Acquisition is measured destination-side via UTM params
+    /// on the outbound CTAs, never by loading an analytics script here. This test locks that in so
+    /// a tracker (or a Matomo host in the CSP) cannot be reintroduced without turning a claim false.
+    #[test]
+    fn test_play_stays_tracker_free_and_attributes_via_utm() {
+        let html = include_str!("../static/index.html");
+
+        // Outbound CTAs carry the UTM tag so the destination's own analytics attributes the click.
+        assert!(
+            html.contains("utm_source=play"),
+            "the register/upsell CTAs must carry ?utm_source=play for destination-side attribution"
+        );
+
+        // No client-side analytics loader may ship on the page.
+        assert!(
+            !html.contains("matomo"),
+            "index.html must NOT reference Matomo -- play advertises zero client-side analytics"
+        );
+        assert!(
+            !html.contains("_paq"),
+            "index.html must NOT define the Matomo _paq queue"
+        );
+        assert!(
+            !html.contains("matomo.js"),
+            "index.html must NOT load the Matomo tracker script"
+        );
+
+        // The CSP must stay locked down with no analytics host whitelisted.
+        let csp = build_csp("https://play.hook0.com");
+        assert!(
+            !csp.contains("matomo"),
+            "build_csp must NOT whitelist any Matomo host, got: {}",
+            csp
+        );
+        assert!(
+            csp.contains("default-src 'none'"),
+            "build_csp must keep the strict default-src 'none' policy, got: {}",
+            csp
+        );
+    }
 }
