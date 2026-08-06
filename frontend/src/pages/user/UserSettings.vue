@@ -7,6 +7,7 @@ import { User, Lock, AlertTriangle, Trash2, Palette } from 'lucide-vue-next';
 
 import * as UserService from '@/pages/user/UserService';
 import { createPasswordChangeSchema } from '@/pages/user/passwordChange.schema';
+import type { UserIdentity } from '@/utils/passwordPolicy';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
@@ -45,9 +46,23 @@ const colorModeOptions = computed(() => [
   { label: t('userSettings.themeDark'), value: 'dark' },
 ]);
 
+// Who the account belongs to, so the new password can be checked against it.
+// The schema is recomputed when the user finishes loading; until then there is
+// nothing to compare against, and the API runs the whole policy on submit
+// anyway.
+const passwordIdentity = computed<UserIdentity>(() => {
+  const user = currentUser.value;
+  if (user === null) {
+    return { email: '', firstName: '', lastName: '' };
+  }
+  return { email: user.email, firstName: user.firstName, lastName: user.lastName };
+});
+
 // VeeValidate form with Zod schema for password change
 const { errors, meta, defineField, handleSubmit, resetForm } = useForm({
-  validationSchema: toTypedSchema(createPasswordChangeSchema()),
+  validationSchema: computed(() =>
+    toTypedSchema(createPasswordChangeSchema(passwordIdentity.value))
+  ),
 });
 
 const [newPassword, newPasswordAttrs] = defineField('new_password');

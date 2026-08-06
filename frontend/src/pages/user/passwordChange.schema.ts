@@ -1,17 +1,33 @@
 import { z } from 'zod';
 import i18n from '@/plugins/i18n';
+import { WEAKNESS_MESSAGE_KEYS, checkPassword, type UserIdentity } from '@/utils/passwordPolicy';
 
-export function createPasswordChangeSchema() {
+export function createPasswordChangeSchema(identity: UserIdentity) {
   const t = i18n.global.t;
-  return z
-    .object({
-      new_password: z.string().min(8, t('validation.passwordMinLength')),
-      confirm_new_password: z.string().min(1, t('validation.passwordConfirm')),
-    })
-    .refine((data) => data.new_password === data.confirm_new_password, {
-      message: t('validation.passwordsMismatch'),
-      path: ['confirm_new_password'],
-    });
+  return (
+    z
+      .object({
+        new_password: z.string().min(8, t('validation.passwordMinLength')),
+        confirm_new_password: z.string().min(1, t('validation.passwordConfirm')),
+      })
+      .refine((data) => data.new_password === data.confirm_new_password, {
+        message: t('validation.passwordsMismatch'),
+        path: ['confirm_new_password'],
+      })
+      // Same rule as registration: the API refuses a password built from the
+      // account's own email address or name, so say it before the round trip.
+      .superRefine((data, context) => {
+        const verdict = checkPassword(data.new_password, identity);
+
+        if (!verdict.acceptable) {
+          context.addIssue({
+            code: 'custom',
+            path: ['new_password'],
+            message: t(WEAKNESS_MESSAGE_KEYS[verdict.weakness]),
+          });
+        }
+      })
+  );
 }
 
 export type PasswordChangeFormValues = z.infer<ReturnType<typeof createPasswordChangeSchema>>;

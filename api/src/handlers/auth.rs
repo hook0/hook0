@@ -1,7 +1,6 @@
 use actix_web::rt::task::spawn_blocking;
 use actix_web::web::ReqData;
-use argon2::password_hash::PasswordHashString;
-use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use biscuit_auth::{Biscuit, PrivateKey};
 use chrono::{DateTime, Utc};
 use lettre::Address;
@@ -22,6 +21,7 @@ use crate::iam::{
 };
 use crate::mailer::Mail;
 use crate::openapi::{OaBiscuitRefresh, OaBiscuitUserAccess};
+use crate::password;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
@@ -237,7 +237,8 @@ async fn import_user_from_keycloak(
             &groups.into_iter().map(|g| g.path).collect::<Vec<_>>(),
         );
 
-        let password_hash = generate_hashed_password(password).await?;
+        let password_hash =
+            password::hash(password::Checked::already_established(password)).await?;
 
         let mut tx = state.db.begin().await?;
 
@@ -824,62 +825,63 @@ async fn do_change_password<'a, A: Acquire<'a, Database = Postgres>>(
     new_password: &str,
     user_id: Uuid,
 ) -> Result<(), Hook0Problem> {
-    if new_password.len() >= usize::from(password_minimum_length) {
-        let password_hash = generate_hashed_password(new_password).await?;
+    let mut db = db.acquire().await?;
 
-        let mut db = db.acquire().await?;
-        let mut tx = db.begin().await?;
+    // The policy compares the new password against who the user is, and only
+    // the database knows that here: neither the reset link nor the biscuit
+    // carries the email address or the name.
+    let identity = query!(
+        "
+            SELECT email, first_name, last_name
+            FROM iam.user
+            WHERE user__id = $1
+        ",
+        &user_id,
+    )
+    .fetch_optional(&mut *db)
+    .await?
+    .ok_or(Hook0Problem::Forbidden)?;
 
-        query!(
-            "
+    let checked_password = password::Checked::new(
+        new_password,
+        password_minimum_length,
+        &password::UserIdentity {
+            email: &identity.email,
+            first_name: &identity.first_name,
+            last_name: &identity.last_name,
+        },
+    )
+    .map_err(|rejection| rejection.into_problem(password_minimum_length))?;
+
+    let password_hash = password::hash(checked_password).await?;
+
+    let mut tx = db.begin().await?;
+
+    query!(
+        "
                 UPDATE iam.user
                 SET password = $1
                 WHERE user__id = $2
             ",
-            password_hash.as_str(),
-            &user_id,
-        )
-        .execute(&mut *tx)
-        .await?;
+        password_hash.as_str(),
+        &user_id,
+    )
+    .execute(&mut *tx)
+    .await?;
 
-        query!(
-            "
+    query!(
+        "
                 UPDATE iam.token
                 SET expired_at = statement_timestamp()
                 WHERE user__id = $1
                     AND (expired_at IS NULL OR expired_at > statement_timestamp())
             ",
-            &user_id,
-        )
-        .execute(&mut *tx)
-        .await?;
+        &user_id,
+    )
+    .execute(&mut *tx)
+    .await?;
 
-        tx.commit().await?;
+    tx.commit().await?;
 
-        Ok(())
-    } else {
-        Err(Hook0Problem::PasswordTooShort(password_minimum_length))
-    }
-}
-
-async fn generate_hashed_password(password: &str) -> Result<PasswordHashString, Hook0Problem> {
-    let password = password.to_owned();
-
-    spawn_blocking(move || {
-        let salt = argon2::password_hash::SaltString::generate(
-            &mut argon2::password_hash::rand_core::OsRng,
-        );
-        Argon2::default()
-            .hash_password(password.as_bytes(), &salt)
-            .map_err(|e| {
-                error!("Error trying to hash user password: {e}");
-                Hook0Problem::InternalServerError
-            })
-            .map(|h| h.serialize())
-    })
-    .await
-    .map_err(|e| {
-        error!("Failed to run password hashing task: {e}");
-        Hook0Problem::InternalServerError
-    })?
+    Ok(())
 }
