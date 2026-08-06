@@ -6,7 +6,7 @@ keywords: [webhook authentication, HMAC signature verification, webhook security
 
 # Implementing Webhook Authentication
 
-This tutorial covers various webhook authentication methods, from basic signature verification to advanced security patterns. You'll learn how to secure your webhook endpoints and verify webhook authenticity using [application secrets](/concepts/application-secrets).
+This tutorial covers various webhook authentication methods, from basic signature verification to advanced security patterns. You'll learn how to secure your webhook endpoints and verify webhook authenticity using the [signing secret of the subscription](/concepts/subscriptions#subscription-secrets) that delivered the webhook.
 
 ## Prerequisites
 
