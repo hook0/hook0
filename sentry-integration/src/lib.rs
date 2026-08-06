@@ -12,12 +12,19 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, fmt};
 
 /// Initialize Sentry integration
+///
+/// `otel_log_layer` is an optional, already-boxed `tracing` layer (the OpenTelemetry
+/// appender bridge lives in the caller so this crate stays OpenTelemetry-free); when
+/// present it is added to the subscriber so log events are also exported over OTLP.
 pub fn init(
     sentry_dsn: &Option<String>,
     traces_sample_rate: &Option<f32>,
     debug: bool,
     send_default_pii: bool,
     enable_spans: bool,
+    otel_log_layer: Option<
+        Box<dyn tracing_subscriber::Layer<tracing_subscriber::Registry> + Send + Sync>,
+    >,
 ) -> Option<ClientInitGuard> {
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
@@ -43,6 +50,7 @@ pub fn init(
         .map(|_| sentry::integrations::tracing::layer().span_filter(move |_| enable_spans));
 
     tracing_subscriber::registry()
+        .with(otel_log_layer)
         .with(env_filter)
         .with(fmt::layer())
         .with(sentry_layer)

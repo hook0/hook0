@@ -28,9 +28,11 @@ humantime = "2.4.0"
 itertools = "0.15.0"
 thousands = "0.2.0"
 tracing = "0.1.44"
-opentelemetry = { version = "0.32.0", default-features = false, features = ["trace", "metrics"] }
-opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls"] }
-opentelemetry_sdk = { version = "0.32.1", default-features = false, features = ["trace", "metrics", "rt-tokio"] }
+tracing-subscriber = "0.3.23"
+opentelemetry = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "logs"] }
+opentelemetry-appender-tracing = { version = "0.32.0", default-features = false }
+opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "logs", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls"] }
+opentelemetry_sdk = { version = "0.32.1", default-features = false, features = ["trace", "metrics", "logs", "rt-tokio"] }
 papaya = "0.2.4"
 pulsar = { version = "6.8.0", default-features = false, features = ["tokio-rustls-runtime"] }
 reqwest = { version = "0.13.4", features = ["hickory-dns", "json"] }
@@ -48,4 +50,3 @@ uuid = { version = "1.24.0", features = ["v4", "v7"] }
 
 [dev-dependencies]
 proptest = "1"
-tracing-subscriber = "0.3.23"
