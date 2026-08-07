@@ -1070,6 +1070,10 @@ pub(crate) mod test_support {
         .await
         .expect("seed request attempt");
     }
+    /// SMTP endpoint that refuses every connection: nothing listens on port 2.
+    /// A send against it fails at the transport boundary — a genuine failure,
+    /// not a mock of any code under test.
+    pub(crate) const DEAD_SMTP_CONNECTION_URL: &str = "smtp://127.0.0.1:2";
 
     /// Attach a user to an organization with a role, so authorization passes.
     pub(crate) async fn seed_membership(pool: &PgPool, user: Uuid, org: Uuid, role: &str) {
@@ -1128,13 +1132,30 @@ pub(crate) mod test_support {
     /// Build a `State` suitable for handler tests: real DB pool + real Google
     /// Ads client (pointed at the fake server by the caller), everything else
     /// inert (no Pulsar, no object storage, no Hook0 self-eventing, quotas
-    /// disabled). The SMTP transport points at a dead port, so mail sends fail
-    /// at the transport boundary instead of reaching a real server — a genuine
-    /// failure, not a mock of any code under test.
+    /// disabled). Mail goes nowhere: use `test_state_with_smtp` when a test has
+    /// to tell a mail that left from one that did not.
     pub(crate) async fn test_state(
         pool: PgPool,
         biscuit_private_key: biscuit_auth::PrivateKey,
         google_ads: Option<Arc<super::GoogleAdsClient>>,
+    ) -> crate::State {
+        test_state_with_smtp(
+            pool,
+            biscuit_private_key,
+            google_ads,
+            DEAD_SMTP_CONNECTION_URL,
+        )
+        .await
+    }
+
+    /// Same, with the SMTP endpoint the mailer talks to left to the caller —
+    /// a real server (see `crate::mailer::test_support::FakeSmtp`) when the test
+    /// needs the send to succeed, a dead port when it needs it to fail.
+    pub(crate) async fn test_state_with_smtp(
+        pool: PgPool,
+        biscuit_private_key: biscuit_auth::PrivateKey,
+        google_ads: Option<Arc<super::GoogleAdsClient>>,
+        smtp_connection_url: &str,
     ) -> crate::State {
         use lettre::Address;
         use std::str::FromStr;
@@ -1144,8 +1165,12 @@ pub(crate) mod test_support {
         let support = Address::from_str("support@hook0.com").expect("support address");
 
         let smtp = crate::mailer::MailerSmtpConfig {
-            smtp_connection_url: "smtp://127.0.0.1:2".to_string(),
-            smtp_timeout: Duration::from_millis(200),
+            smtp_connection_url: smtp_connection_url.to_string(),
+            // Generous enough that a busy CI runner cannot make a working local
+            // server look broken. It costs nothing on the dead-port endpoint:
+            // a refused connection comes back immediately, it never waits out
+            // the timeout.
+            smtp_timeout: Duration::from_secs(5),
             sender_name: "Hook0 Test".to_string(),
             sender_address: Address::from_str("noreply@hook0.com").expect("sender address"),
         };
