@@ -103,10 +103,17 @@ pub async fn register(
         })??;
 
         let mut tx = state.db.begin().await?;
+        // email_verification_sent_at is stamped here, not left NULL: the
+        // verification email below goes out as part of this transaction, and the
+        // resend endpoint anchors its cooldown on that column. Without the stamp
+        // a signup followed immediately by a resend would put two identical mails
+        // in the same mailbox before any throttle applied. The transaction rolls
+        // back if the mail cannot be sent, so the stamp only survives alongside a
+        // mail that really left.
         let user_insert = query!(
             "
-                INSERT INTO iam.user (user__id, email, password, first_name, last_name)
-                VALUES ($1, $2, $3, $4, $5)
+                INSERT INTO iam.user (user__id, email, password, first_name, last_name, email_verification_sent_at)
+                VALUES ($1, $2, $3, $4, $5, statement_timestamp())
                 ON CONFLICT (email) DO NOTHING
             ",
             &user_id,
