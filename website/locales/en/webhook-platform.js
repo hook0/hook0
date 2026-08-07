@@ -119,11 +119,11 @@ module.exports = {
       },
       {
         "q": "Can I self-host the Hook0 webhook platform?",
-        "a": "Yes. The entire Hook0 webhook platform is open-source under SSPL-1.0 and ships with Docker Compose and Kubernetes manifests. Self-hosting is free, with no enterprise tier required, and the self-hosted edition has the same features as the cloud."
+        "a": "Yes. The entire Hook0 webhook platform is source-available under SSPL-1.0 and ships with Docker Compose and Kubernetes manifests. Self-hosting is free, with no enterprise tier required, and the self-hosted edition has the same features as the cloud."
       },
       {
         "q": "How does Hook0 compare to Svix, Hookdeck or Convoy?",
-        "a": "Hook0 is fully open-source (not open-core), 100% bootstrapped (no VC pressure on pricing), and self-hostable on any plan. Svix is open-core with an enterprise tier; Hookdeck is closed-source and US-only; Convoy is open-source but community-maintained. See the side-by-side comparisons for the details."
+        "a": "Hook0 is source-available under SSPL-1.0 with no open-core tier, 100% bootstrapped (no VC pressure on pricing), and self-hostable on any plan: the code we run in the cloud is the code you self-host, and it is published by a French company. Svix is open-core, an MIT core with closed enterprise features. Hookdeck is Canadian and splits its product: the inbound Event Gateway stays closed and cloud-only, while Outpost, its outbound delivery engine, is Apache-2.0 and self-hostable. Convoy is source-available under Elastic License 2.0, which is not OSI-approved, and is actively maintained by frain-dev. See the side-by-side comparisons for the details."
       },
       {
         "q": "Does Hook0 come with a full webhook API?",

@@ -4,21 +4,21 @@
 // the FAQPage JSON-LD is auto-generated from this same array.
 module.exports = {
   "pageTitle": "Best Open-Source Webhook Server (2026) | Hook0",
-  "pageDescription": "Compare open-source webhook servers: Hook0 (SSPL, full-feature), Svix (open-core), Convoy (MIT). Cloud from €59/month, or self-host for compliance.",
+  "pageDescription": "Compare open-source webhook servers: Hook0 (SSPL, full-feature), Svix (open-core), Convoy (Elastic License 2.0). Cloud from €59/month, or self-host for compliance.",
   "pageModified": "2026-07-16",
   "track": "oss-webhooks",
   "hero": {
     "eyebrow": "Open-Source",
     "titleLine1": "Best Open-Source",
     "titleLine2": "Webhook Server",
-    "subtitle": "Hook0 is fully open-source under SSPL; audit every line of code, self-host for compliance, or use Hook0 Cloud for managed infrastructure, automatic updates, and EU hosting. Bootstrapped, no open-core tricks.",
+    "subtitle": "Hook0 is source-available under the SSPL-1.0 license; audit every line of code, self-host for compliance, or use Hook0 Cloud for managed infrastructure, automatic updates, and EU hosting. Bootstrapped, no open-core tricks.",
     "ctaPrimary": "Start Free on Cloud",
     "ctaPrimaryTrack": "oss-webhooks-hero-cloud-signup",
     "ctaSecondary": "Try the Playground",
     "ctaSecondaryHref": "https://play.hook0.com",
     "ctaSecondaryTrack": "oss-webhooks-hero-playground",
     "trustIndicators": [
-      "100% open-source",
+      "Source-available (SSPL-1.0)",
       "Self-host available (Docker / K8s)",
       "Bootstrapped, no VC"
     ]
@@ -57,8 +57,8 @@ module.exports = {
       "criteria": "Criteria",
       "sspl": "SSPL (Hook0)",
       "openCore": "Open-Core (Svix)",
-      "mit": "MIT (Convoy)",
-      "proprietary": "Proprietary (Hookdeck)"
+      "mit": "MIT (permissive)",
+      "proprietary": "Proprietary (closed SaaS)"
     },
     "rows": [
       {
@@ -146,7 +146,7 @@ module.exports = {
     "items": [
       {
         "q": "Is Hook0 open-source?",
-        "a": "Yes. Hook0 is fully open-source under the SSPL-1.0 license. Every line of code is on GitHub and GitLab. There is no proprietary enterprise edition."
+        "a": "Yes. Hook0 is source-available under the SSPL-1.0 license. Every line of code is on GitHub and GitLab. There is no proprietary enterprise edition."
       },
       {
         "q": "What license does Hook0 use?",

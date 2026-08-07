@@ -4,7 +4,7 @@
 // the FAQPage JSON-LD is auto-generated from this same array.
 module.exports = {
   "pageTitle": "Self-Hosted Webhooks: Docker & Kubernetes | Hook0",
-  "pageDescription": "Deploy Hook0 on your infrastructure with Docker or Kubernetes. Fully open-source, same code as cloud. No data leaves your network.",
+  "pageDescription": "Deploy Hook0 on your infrastructure with Docker or Kubernetes. Source-available under SSPL-1.0, same code as cloud. No data leaves your network.",
   "pageModified": "2026-07-16",
   "track": "self-hosted",
   "hero": {
@@ -35,7 +35,7 @@ module.exports = {
       },
       {
         "icon": "code",
-        "title": "Fully Open-Source",
+        "title": "Source-Available (SSPL-1.0)",
         "body": "SSPL-1.0 licensed. No open-core tricks and no feature gates. Every line of code is on GitHub and GitLab. You can audit it, fork it, or send a PR."
       },
       {

@@ -46,7 +46,7 @@ module.exports = {
       { q: 'Is Hook0 a webhook.site alternative?', a: 'Yes: Hook0 is the production-grade alternative when you outgrow webhook.site. Where webhook.site is a request inspector ("what payload did I receive?"), Hook0 is a webhook platform: it sends events to your subscribers, signs them with HMAC, retries on failure, and stores delivery logs. Use webhook.site to debug; use Hook0 in production.' },
       { q: 'How do I migrate from webhook.site to Hook0?', a: 'Sign up for Hook0 (free, no credit card), create an application, and replace the webhook.site URL in your code with one Hook0 REST API call. You get HMAC-signed delivery, retries, dead letter queues and a subscriber portal: no code change beyond the API endpoint.' },
       { q: 'Can I still inspect raw webhook payloads with Hook0?', a: 'Yes. Every event sent through Hook0 is logged with the full request, response, status code and latency. You can replay any event from the dashboard. For ad-hoc testing without an account, play.hook0.com lets you generate disposable webhook URLs the same way webhook.site does.' },
-      { q: 'Is Hook0 open-source unlike webhook.site?', a: 'Yes. Hook0 is fully open-source under SSPL-1.0 and self-hostable on Docker Compose or Kubernetes. webhook.site is a closed-source SaaS. If you need to keep traffic on your own infrastructure, Hook0 is the answer.' },
+      { q: 'Is Hook0 open-source unlike webhook.site?', a: 'Yes. Hook0 is source-available under the SSPL-1.0 license and self-hostable on Docker Compose or Kubernetes. webhook.site is a closed-source SaaS. If you need to keep traffic on your own infrastructure, Hook0 is the answer.' },
     ],
   },
   related: {

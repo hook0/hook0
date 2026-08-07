@@ -3,7 +3,7 @@
 // Hook0 lui-même = « code source ouvert (SSPL-1.0) », JAMAIS « Open Source »
 // (SSPL rejetée par l'OSI, risque L121-1 C. conso). Le titre/slug
 // « open-source-webhooks » reste un terme CATÉGORIE/SEO qui couvre l'écosystème
-// (Svix open-core, Convoy MIT, Hook0 SSPL), la règle s'applique aux claims
+// (Svix open-core, Convoy Elastic License 2.0, Hook0 SSPL), la règle s'applique aux claims
 // sur Hook0 lui-même dans le corps.
 // Souveraineté : CDN Cloudflare (USA) divulgué, data plane Clever Cloud (France).
 // JAMAIS « 100 % souverain / no data sharing / CLOUD Act free ».
@@ -62,8 +62,8 @@ module.exports = {
       "criteria": "Critère",
       "sspl": "SSPL (Hook0)",
       "openCore": "Open-core (Svix)",
-      "mit": "MIT (Convoy)",
-      "proprietary": "Propriétaire (Hookdeck)"
+      "mit": "MIT (permissif)",
+      "proprietary": "Propriétaire (SaaS fermé)"
     },
     "rows": [
       {
