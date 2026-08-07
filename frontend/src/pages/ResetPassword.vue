@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import { Problem } from '@/http';
 import { resetPassword } from '@/pages/user/UserService';
+import { passwordRejection } from '@/utils/passwordProblem';
 import { routes } from '@/routes';
 import router from '@/router';
 import { useI18n } from 'vue-i18n';
@@ -24,6 +25,8 @@ const { t } = useI18n();
 const new_password = ref<string>('');
 const confirm_new_password = ref<string>('');
 const isLoading = ref<boolean>(false);
+// Empty until the API refuses the password; shown under the field it refers to.
+const passwordError = ref<string>('');
 let token: string = '';
 
 // Alert state
@@ -45,6 +48,7 @@ function submit() {
   // A retry starts clean: leaving the previous rejection on screen while the
   // user types a new password reads as if it had been refused again.
   alert.value.visible = false;
+  passwordError.value = '';
 
   if (new_password.value !== confirm_new_password.value) {
     toast.warning(t('common.warning'), {
@@ -66,6 +70,13 @@ function submit() {
     })
     .catch((err) => {
       displayError(err as Problem);
+      // This page never learns the account's email address — only the token —
+      // so the whole policy runs on the server here. Naming the offending field
+      // matters more than anywhere else.
+      const rejection = passwordRejection(err);
+      if (rejection.refused) {
+        passwordError.value = rejection.reason;
+      }
     })
     .finally(() => {
       isLoading.value = false;
@@ -140,6 +151,7 @@ onMounted(() => {
             :placeholder="t('auth.resetPassword.passwordPlaceholder')"
             autocomplete="new-password"
             :disabled="isLoading"
+            :error="passwordError"
             data-test="reset-password-new-password-input"
           />
 

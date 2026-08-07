@@ -8,6 +8,7 @@ import { User, Lock, AlertTriangle, Trash2, Palette } from 'lucide-vue-next';
 import * as UserService from '@/pages/user/UserService';
 import { createPasswordChangeSchema } from '@/pages/user/passwordChange.schema';
 import { DEFAULT_PASSWORD_MINIMUM_LENGTH, type UserIdentity } from '@/utils/passwordPolicy';
+import { passwordRejection } from '@/utils/passwordProblem';
 import { useInstanceConfig } from '@/composables/useInstanceConfig';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useAuthStore } from '@/stores/auth';
@@ -70,7 +71,7 @@ const passwordMinimumLength = computed(() => {
 });
 
 // VeeValidate form with Zod schema for password change
-const { errors, meta, defineField, handleSubmit, resetForm } = useForm({
+const { errors, meta, defineField, handleSubmit, resetForm, setFieldError } = useForm({
   validationSchema: computed(() =>
     toTypedSchema(createPasswordChangeSchema(passwordIdentity.value, passwordMinimumLength.value))
   ),
@@ -88,7 +89,15 @@ const onChangePassword = handleSubmit((values) => {
       });
       resetForm();
     })
-    .catch(handleMutationError);
+    .catch((err: unknown) => {
+      handleMutationError(err);
+      // The blocklist and the length ceiling live on the server. When one of
+      // them is what refused the change, the field the user must fix says so.
+      const rejection = passwordRejection(err);
+      if (rejection.refused) {
+        setFieldError('new_password', rejection.reason);
+      }
+    });
 });
 
 const showDeleteAccountDialog = ref(false);

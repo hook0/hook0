@@ -67,7 +67,7 @@ pub struct UserIdentity<'a> {
 
 /// Why a password was refused. Each variant maps to its own documented API
 /// error so a client can tell the user what to fix.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumIter)]
 pub enum Rejection {
     TooShort,
     TooLong,
@@ -683,6 +683,31 @@ mod tests {
                 text("why")
             );
         }
+    }
+
+    /// A refused password is only useful to the user if the form can say which
+    /// rule refused it, next to the field. That needs both halves to agree on
+    /// the set of error ids that mean "the password was refused" rather than
+    /// "the request failed" — a reason added on one side alone would reach the
+    /// user as an unexplained toast.
+    #[test]
+    fn every_rejection_reason_is_listed_in_the_shared_problem_ids() {
+        use strum::IntoEnumIterator;
+
+        let shared = include_str!("../../password-policy-vectors.json");
+        let parsed = serde_json::from_str::<serde_json::Value>(shared).expect("shared vectors");
+        let listed = parsed["rejectionProblemIds"]
+            .as_array()
+            .expect("rejectionProblemIds array")
+            .iter()
+            .map(|id| id.as_str().unwrap_or_default().to_owned())
+            .collect::<HashSet<_>>();
+
+        let produced = Rejection::iter()
+            .map(|rejection| rejection.into_problem(MINIMUM_LENGTH).to_string())
+            .collect::<HashSet<_>>();
+
+        assert_eq!(produced, listed);
     }
 
     /// These vectors are the contract with `foldIdentity` in the frontend: the

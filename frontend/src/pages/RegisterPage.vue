@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useInstanceConfig } from '@/composables/useInstanceConfig';
 import { DEFAULT_PASSWORD_MINIMUM_LENGTH } from '@/utils/passwordPolicy';
+import { passwordRejection } from '@/utils/passwordProblem';
 import { routes } from '@/routes';
 import router from '@/router';
 import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler';
@@ -48,7 +49,7 @@ const passwordMinimumLength = computed(() => {
 });
 
 // VeeValidate form with Zod schema
-const { errors, defineField, handleSubmit } = useForm({
+const { errors, defineField, handleSubmit, setFieldError } = useForm({
   validationSchema: computed(() =>
     toTypedSchema(createRegisterSchema(passwordMinimumLength.value))
   ),
@@ -131,6 +132,13 @@ const onSubmit = handleSubmit((values) => {
     })
     .catch((err) => {
       const problem = handleAuthError(err);
+      // Two of the six rules can only be checked server-side. When one of them
+      // is what refused the account, say so on the password field rather than
+      // leaving a toast above a form that still looks accepted.
+      const rejection = passwordRejection(err);
+      if (rejection.refused) {
+        setFieldError('password', rejection.reason);
+      }
       trackEvent('signup', 'form-error', problem.title || 'unknown');
     })
     .finally(() => {
