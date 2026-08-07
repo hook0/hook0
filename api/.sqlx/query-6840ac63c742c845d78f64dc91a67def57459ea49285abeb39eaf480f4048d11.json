@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH claimable AS (\n                SELECT\n                    user__id,\n                    email,\n                    first_name,\n                    last_name,\n                    email_verification_sent_at,\n                    email_verification_resend_window_started_at,\n                    email_verification_resend_count\n                FROM iam.\"user\"\n                WHERE email = $1\n                  AND email_verified_at IS NULL\n                  AND (\n                      email_verification_sent_at IS NULL\n                      OR email_verification_sent_at < statement_timestamp() - MAKE_INTERVAL(secs => $2)\n                  )\n                  AND (\n                      email_verification_resend_window_started_at IS NULL\n                      OR email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)\n                      OR email_verification_resend_count < $4\n                  )\n                FOR UPDATE\n            )\n            UPDATE iam.\"user\" AS u\n            SET email_verification_sent_at = statement_timestamp(),\n                email_verification_resend_window_started_at = CASE\n                    WHEN c.email_verification_resend_window_started_at IS NULL\n                      OR c.email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)\n                    THEN statement_timestamp()\n                    ELSE c.email_verification_resend_window_started_at\n                END,\n                email_verification_resend_count = CASE\n                    WHEN c.email_verification_resend_window_started_at IS NULL\n                      OR c.email_verification_resend_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)\n                    THEN 1\n                    ELSE c.email_verification_resend_count + 1\n                END\n            FROM claimable AS c\n            WHERE u.user__id = c.user__id\n            RETURNING\n                c.user__id AS \"user_id!\",\n                c.email AS \"email!\",\n                c.first_name AS \"first_name!\",\n                c.last_name AS \"last_name!\",\n                u.email_verification_sent_at AS \"claimed_at!\",\n                c.email_verification_sent_at AS \"previous_sent_at?\",\n                c.email_verification_resend_window_started_at AS \"previous_window_started_at?\",\n                c.email_verification_resend_count AS \"previous_resend_count!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "email!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "first_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "last_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "claimed_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "previous_sent_at?",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "previous_window_started_at?",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "previous_resend_count!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Float8",
+        "Float8",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "6840ac63c742c845d78f64dc91a67def57459ea49285abeb39eaf480f4048d11"
+}
