@@ -66,44 +66,32 @@ async function openTutorialIntro(page: Page): Promise<void> {
 }
 
 /**
- * Mirror every `_paq` push into a queue of our own, readable as
+ * Pin `window._paq` to a queue this test owns, readable as
  * `window.__trackedEvents`.
  *
  * Creating `window._paq` is what makes the tracking call observable, since
  * `trackEvent` only pushes when it exists — the call itself is the real one.
- * Reading `window._paq` back is not reliable though: the app loads vue-matomo
- * whenever the instance advertises a Matomo config, and the Matomo snippet
- * swaps `window._paq` for its own tracker object, which carries `push` but is
- * not an array. The mirror survives that swap because the setter re-wraps
- * whatever replaces the queue.
+ * What the queue must not do is change identity mid-test: the app calls
+ * `setupMatomo` whenever `/instance` advertises a Matomo config, and the
+ * Matomo snippet swaps `window._paq` for its own tracker object. Whether that
+ * swap lands before or after the click is a race, and the two outcomes read
+ * very differently — an array we can inspect, or a tracker we cannot.
+ *
+ * The setter therefore drops the replacement and keeps our array, so what the
+ * assertion sees no longer depends on how fast the snippet loaded. Tracking
+ * itself is out of scope here; what is asserted is that the app makes the
+ * call.
  */
 async function captureTrackingQueue(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    const mirror: unknown[][] = [];
-    (window as unknown as { __trackedEvents: unknown[][] }).__trackedEvents = mirror;
+    const queue: unknown[][] = [];
+    (window as unknown as { __trackedEvents: unknown[][] }).__trackedEvents = queue;
 
-    type Pushable = { push?: (...entries: unknown[]) => unknown; __mirrored?: boolean };
-    const wrap = (target: unknown): unknown => {
-      const pushable = target as Pushable;
-      if (pushable && typeof pushable.push === "function" && !pushable.__mirrored) {
-        const original = pushable.push.bind(pushable);
-        pushable.push = (...entries: unknown[]) => {
-          for (const entry of entries) {
-            mirror.push(entry as unknown[]);
-          }
-          return original(...entries);
-        };
-        pushable.__mirrored = true;
-      }
-      return target;
-    };
-
-    let queue: unknown = wrap([]);
     Object.defineProperty(window, "_paq", {
       configurable: true,
       get: () => queue,
-      set: (next: unknown) => {
-        queue = wrap(next);
+      set: () => {
+        // Keep ours: see above.
       },
     });
   });
