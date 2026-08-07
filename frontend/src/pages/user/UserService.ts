@@ -37,6 +37,12 @@ export async function unsubscribeReactivation(token: string): Promise<void> {
   );
 }
 
+export async function resendVerificationEmail(email: string): Promise<void> {
+  return unwrapResponse(
+    http.unauthenticated.post<void>(`/auth/resend-verification-email`, { email })
+  );
+}
+
 export async function beginResetPassword(email: string): Promise<void> {
   return unwrapResponse(http.unauthenticated.post<void>(`/auth/begin-reset-password`, { email }));
 }

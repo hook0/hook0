@@ -272,7 +272,11 @@ pub fn create_service_access_token(
 }
 
 const EMAIL_VERIFICATION_TOKEN_VERSION: i64 = 1;
-const EMAIL_VERIFICATION_TOKEN_EXPIRATION: Duration = Duration::from_secs(60 * 30);
+// 24 hours: an email read a few hours late must still lead to a usable account.
+// Single use is not enforced by this expiration but by the handler, which only
+// flips `email_verified_at` while it is still NULL, so a longer-lived token
+// stays one-shot.
+const EMAIL_VERIFICATION_TOKEN_EXPIRATION: Duration = Duration::from_secs(60 * 60 * 24);
 
 pub fn create_email_verification_token(
     private_key: &PrivateKey,
@@ -1885,6 +1889,57 @@ mod tests {
 
         assert!(dbg!(authorize_refresh_token(&not_yet_expired_biscuit)).is_ok());
         assert!(dbg!(authorize_refresh_token(&expired_biscuit)).is_err());
+    }
+
+    #[test]
+    fn email_verification_token_is_valid_and_expires_in_24h() {
+        let keypair = KeyPair::new();
+        let user_id = Uuid::new_v4();
+
+        let token = create_email_verification_token(&keypair.private(), user_id).unwrap();
+
+        // The token now stays usable far beyond the old short window: ~24h out,
+        // so an email read a few hours late still leads to a usable account.
+        let expired_at = token
+            .expired_at
+            .expect("email verification token carries an expiration");
+        let ttl_secs = (expired_at - chrono::Utc::now()).num_seconds();
+        assert!(
+            (ttl_secs - 24 * 60 * 60).abs() <= 60,
+            "email verification token should expire ~24h from now, got {ttl_secs}s"
+        );
+
+        // It still authorizes as an email-verification token for exactly this user.
+        let authorized = authorize_email_verification(&token.biscuit).unwrap();
+        assert_eq!(authorized.user_id, user_id);
+    }
+
+    #[test]
+    fn email_verification_token_authorization_expiration() {
+        // A longer TTL only makes sense if expiry is still enforced: past its
+        // lifetime the token must stop authorizing, so it can never mint a
+        // session. Covers actual expiry, as opposed to replaying a token that is
+        // still within its window.
+        let keypair = KeyPair::new();
+        let user_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_email_verification_token(&keypair.private(), user_id).unwrap();
+
+        let not_yet_expired_biscuit = biscuit
+            .append(
+                BlockBuilder::new()
+                    .check_expiration_date(SystemTime::now() + Duration::from_secs(1)),
+            )
+            .unwrap();
+        let expired_biscuit = biscuit
+            .append(
+                BlockBuilder::new()
+                    .check_expiration_date(SystemTime::now() - Duration::from_secs(1)),
+            )
+            .unwrap();
+
+        assert!(authorize_email_verification(&not_yet_expired_biscuit).is_ok());
+        assert!(authorize_email_verification(&expired_biscuit).is_err());
     }
 
     #[test_log::test]

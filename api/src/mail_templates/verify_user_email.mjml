@@ -5,7 +5,7 @@
           Hi { $recipient_first_name }, confirm this address to activate your Hook0 account.
         </mj-text>
         <mj-text padding="8px 0 0 0" font-size="13px" color="#64748b">
-          The link expires in 5 minutes and only works once.
+          The link expires in 24 hours and only works once.
         </mj-text>
         <mj-button href="{ $url }" align="left" padding="20px 0 16px 0">Verify email</mj-button>
         <mj-text padding="6px 0 0 0" font-size="12px" color="#64748b">
@@ -15,5 +15,5 @@
           <span class="codelink"><a href="{ $url }">{ $url }</a></span>
         </mj-text>
         <mj-text padding="20px 0 0 0" font-size="12px" color="#94a3b8" line-height="1.6">
-          If a link expires you can sign in again to request a fresh one. Didn't create a Hook0 account? You can safely ignore this email.
+          Link expired? Sign in and we will take you to a page where you can send yourself a new one. Didn't create a Hook0 account? You can safely ignore this email.
         </mj-text>
