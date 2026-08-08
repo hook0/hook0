@@ -61,6 +61,12 @@ include:
 osv_dependency_scan:
   stage: test
   dependencies: []
+  # needs: [] on purpose. Without it this job waits for the whole build stage,
+  # so any build failure — including a runner that never got scheduled — turns
+  # a blocking gate into a `skipped` job and the commit reaches master
+  # unscanned. The scan reads the source tree and consumes no artifact, so it
+  # has nothing to wait for.
+  needs: []
   image: golang:1.25
   retry:
     max: 2
