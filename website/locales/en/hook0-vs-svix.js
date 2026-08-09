@@ -20,7 +20,7 @@ module.exports = {
       { title: 'Source-Available, No Closed Add-Ons', body: "Hook0's server ships under SSPL-1.0 and the SDKs under MIT. You get the whole platform: read it, modify it, self-host it. Svix's core is MIT, but enterprise features (SSO, advanced analytics, dedicated support) stay closed-source on paid plans." },
       { title: 'Bootstrapped From Day One', body: 'Svix is venture-funded. Investors expect a return, which means pressure to raise prices or get acquired. Hook0 is 100% bootstrapped. No board to please, no growth-at-all-costs mandate.' },
       { title: 'No Vendor Lock-In', body: 'Hook0 Cloud runs the same open-source code you can read and audit. If you ever need to, you can export and run it yourself (free, Docker or Kubernetes), so you are never trapped in a proprietary platform. Svix restricts self-hosting to enterprise customers.' },
-      { title: 'EU Data Plane, US Edge Disclosed', body: "Hook0's data plane runs on Clever Cloud in France, operated by a French company. The CDN in front is Cloudflare (US), disclosed in our public sub-processor list with its transfer mechanism. Svix is US-based. And because the same code self-hosts, you can run Hook0 in your own network, where no webhook data leaves it." },
+      { title: 'EU Data Plane, US Edge Disclosed', body: "Hook0's data plane runs on Clever Cloud in France, operated by a French company. The CDN in front is Cloudflare (US), disclosed in our public sub-processor list with its transfer mechanism. Svix documents data regions including the EU, but the vendor itself is US-incorporated. And because the same code self-hosts, you can run Hook0 in your own network, where no webhook data leaves it." },
     ],
   },
   comparison: {
@@ -34,7 +34,7 @@ module.exports = {
       { feature: 'Free Tier', hook0Html: 'Yes, no credit card', svixHtml: 'Yes' },
       { feature: 'HMAC Signatures', hook0Html: 'Included (all plans)', svixHtml: 'Included' },
       { feature: 'Retry Logic', hook0Html: 'Configurable per subscription (fast + slow phases, smart defaults)', svixHtml: 'Automatic retries' },
-      { feature: 'Data Hosting', hook0Html: 'Europe (GDPR)', svixHtml: 'US-based' },
+      { feature: 'Data Hosting', hook0Html: 'Europe (GDPR)', svixHtml: 'Multi-region incl. EU; US-incorporated vendor' },
       { feature: 'Subscription Management', hook0Html: 'Included', svixHtml: 'App Portal (paid plans)' },
       { feature: 'Vendor Lock-in Risk', hook0Html: 'None (full source, self-hostable)', svixHtml: 'Moderate (enterprise features closed)' },
     ],

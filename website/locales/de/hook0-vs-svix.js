@@ -23,7 +23,7 @@ module.exports = {
       { title: 'Quellcode verfügbar, keine geschlossenen Add-ons', body: 'Der Hook0-Server wird unter SSPL-1.0 veröffentlicht, die SDKs unter MIT. Du bekommst die gesamte Plattform, du liest sie, änderst sie, hostest sie selbst. Der Svix-Kern ist MIT, aber die Enterprise-Funktionen (SSO, erweiterte Analytics, dedizierter Support) bleiben im geschlossenen Bereich der bezahlten Tarife.' },
       { title: 'Bootstrapped seit Tag eins', body: 'Svix ist VC-finanziert. Investoren erwarten Rendite, das erzeugt Druck, Preise zu erhöhen oder übernommen zu werden. Hook0 ist 100% bootstrappt. Kein Board zu zufriedenstellen, kein Mandat für Wachstum um jeden Preis.' },
       { title: 'Kein Anbieter-Lock-in', body: 'Hook0 Cloud betreibt denselben quelloffenen Code, den du lesen und prüfen kannst. Falls du es irgendwann brauchst, exportierst du und betreibst es selbst (kostenlos, Docker oder Kubernetes), du sitzt also nie in einer proprietären Plattform fest. Svix beschränkt das Selbst-Hosting auf Enterprise-Kunden.' },
-      { title: 'EU-Datenebene, US-Edge offengelegt', body: "Die Datenebene von Hook0 läuft auf Clever Cloud in Frankreich, betrieben von einem französischen Unternehmen. Das vorgelagerte CDN ist Cloudflare (US), offengelegt in unserer öffentlichen Unterauftragsverarbeiter-Liste samt Übermittlungsmechanismus. Svix ist in den USA ansässig. Und weil derselbe Code selbst gehostet werden kann, können Sie Hook0 in Ihrem eigenen Netzwerk betreiben, wo keine Webhook-Daten es verlassen." },
+      { title: 'EU-Datenebene, US-Edge offengelegt', body: "Die Datenebene von Hook0 läuft auf Clever Cloud in Frankreich, betrieben von einem französischen Unternehmen. Das vorgelagerte CDN ist Cloudflare (US), offengelegt in unserer öffentlichen Unterauftragsverarbeiter-Liste samt Übermittlungsmechanismus. Svix dokumentiert Datenregionen einschließlich der EU, das Unternehmen selbst hat jedoch seinen Sitz in den USA. Und weil derselbe Code selbst gehostet werden kann, können Sie Hook0 in Ihrem eigenen Netzwerk betreiben, wo keine Webhook-Daten es verlassen." },
     ],
   },
   comparison: {
@@ -37,7 +37,7 @@ module.exports = {
       { feature: 'Kostenloser Tarif', hook0Html: 'Ja, ohne Kreditkarte', svixHtml: 'Ja' },
       { feature: 'HMAC-Signaturen', hook0Html: 'Enthalten (alle Tarife)', svixHtml: 'Enthalten' },
       { feature: 'Wiederholungslogik', hook0Html: 'Konfigurierbar pro Subscription (schnelle + langsame Phasen, smarte Defaults)', svixHtml: 'Automatische Wiederholungen' },
-      { feature: 'Datenhosting', hook0Html: 'Europa (Clever Cloud FR, CDN Cloudflare USA)', svixHtml: 'Sitz in den USA' },
+      { feature: 'Datenhosting', hook0Html: 'Europa (Clever Cloud FR, CDN Cloudflare USA)', svixHtml: 'Mehrere Regionen inkl. EU; US-Anbieter' },
       { feature: 'Subscription-Management', hook0Html: 'Enthalten', svixHtml: 'App Portal (bezahlte Tarife)' },
       { feature: 'Risiko von Anbieter-Lock-in', hook0Html: 'Keines (gesamter Quellcode, selbst-hostbar)', svixHtml: 'Moderat (Enterprise-Funktionen geschlossen)' },
     ],
