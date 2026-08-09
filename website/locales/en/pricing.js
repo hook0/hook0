@@ -47,11 +47,11 @@ module.exports = {
       },
       {
         "q": "Can I self-host Hook0 for free?",
-        "a": "Yes. Hook0's server is source-available under the SSPL-1.0 license. You can self-host it with Docker Compose or Kubernetes. When self-hosting, you manage your own infrastructure, scaling, updates, and monitoring. Most teams start with Hook0 Cloud for the fastest path to production."
+        "a": "Yes. Hook0's server is fully open-source under the SSPL-1.0 license. You can self-host it with Docker Compose or Kubernetes. When self-hosting, you manage your own infrastructure, scaling, updates, and monitoring. Most teams start with Hook0 Cloud for the fastest path to production."
       },
       {
         "q": "How does Hook0 pricing compare to Svix and Hookdeck?",
-        "a": "Hook0 Cloud starts at €59/month vs Svix at $490/month for comparable features. Svix locks self-hosting behind enterprise pricing. Hookdeck publishes its sending component, Outpost, under Apache-2.0, so it can be self-hosted too — the difference is that Hook0 runs the same code in the cloud and on your own servers, with no enterprise tier holding features back. Hook0's server is source-available under SSPL-1.0, so you can self-host if you need data sovereignty. For detailed numbers from 100k to 10M events per month, see the <a href=\"/webhook-cost-comparison\">webhook cost comparison</a>."
+        "a": "Hook0 Cloud starts at €59/month vs Svix at $490/month for comparable features. Svix locks self-hosting behind enterprise pricing. Hookdeck publishes its sending component, Outpost, under Apache-2.0, so that part can be self-hosted too. The difference is that Hook0 runs the same code in the cloud and on your own servers, with no enterprise tier holding features back. Hook0 is fully open-source under SSPL-1.0, so you can self-host if you need data sovereignty. For detailed numbers from 100k to 10M events per month, see the <a href=\"/webhook-cost-comparison\">webhook cost comparison</a>."
       }
     ]
   }

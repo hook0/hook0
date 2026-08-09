@@ -11,14 +11,14 @@ module.exports = {
     "eyebrow": "Open-Source",
     "titleLine1": "Best Open-Source",
     "titleLine2": "Webhook Server",
-    "subtitle": "Hook0 is source-available under the SSPL-1.0 license; audit every line of code, self-host for compliance, or use Hook0 Cloud for managed infrastructure, automatic updates, and EU hosting. Bootstrapped, no open-core tricks.",
+    "subtitle": "Hook0 is fully open-source under SSPL-1.0; audit every line of code, self-host for compliance, or use Hook0 Cloud for managed infrastructure, automatic updates, and EU hosting. Bootstrapped, no open-core tricks.",
     "ctaPrimary": "Start Free on Cloud",
     "ctaPrimaryTrack": "oss-webhooks-hero-cloud-signup",
     "ctaSecondary": "Try the Playground",
     "ctaSecondaryHref": "https://play.hook0.com",
     "ctaSecondaryTrack": "oss-webhooks-hero-playground",
     "trustIndicators": [
-      "Source-available (SSPL-1.0)",
+      "100% open-source",
       "Self-host available (Docker / K8s)",
       "Bootstrapped, no VC"
     ]
@@ -146,7 +146,7 @@ module.exports = {
     "items": [
       {
         "q": "Is Hook0 open-source?",
-        "a": "Yes. Hook0 is source-available under the SSPL-1.0 license. Every line of code is on GitHub and GitLab. There is no proprietary enterprise edition."
+        "a": "Yes. Hook0 is fully open-source under the SSPL-1.0 license. Every line of code is on GitHub and GitLab. There is no proprietary enterprise edition."
       },
       {
         "q": "What license does Hook0 use?",

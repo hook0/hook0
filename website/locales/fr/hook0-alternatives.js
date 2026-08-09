@@ -47,7 +47,7 @@ module.exports = {
     eyebrow: 'Pourquoi Hook0',
     h2: 'La différence Hook0',
     cards: [
-      { title: 'Une plateforme, pas deux produits', body: 'Hookdeck coupe le sujet en deux : l\'Event Gateway d\'ingestion reste fermé et cloud uniquement, tandis qu\'Outpost gère l\'envoi sortant en Apache-2.0. Hook0 livre l\'envoi, les relances, les signatures et le portail abonnés dans une seule plateforme, et le code que tu auto-héberges est celui qu\'on fait tourner.' },
+      { title: 'Une plateforme, une seule base de code', body: 'Hookdeck coupe le sujet en deux : l\'Event Gateway d\'ingestion reste fermé et cloud uniquement, tandis qu\'Outpost gère l\'envoi sortant en Apache-2.0. Hook0 livre l\'envoi, les relances, les signatures et le portail abonnés dans une seule plateforme, et le code que tu auto-héberges est celui qu\'on fait tourner.' },
       { title: 'Pas de paywall entreprise', body: 'Contrairement à Svix, chaque feature est livrée dans chaque plan. L\'auto-hébergement n\'est pas planqué derrière un appel commercial.' },
       { title: 'Européen, conçu pour la conformité RGPD', body: 'Plan de données hébergé en UE chez Clever Cloud (France). CDN via Cloudflare (USA), divulgué dans notre <a href="/fr/accord-traitement-donnees">DPA</a> et nos <a href="/fr/sous-traitants-rgpd">sous-traitants RGPD</a>. Bootstrappé, pas de board de VC américains qui décident de ta politique de données.' },
     ],

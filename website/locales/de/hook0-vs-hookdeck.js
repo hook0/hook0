@@ -5,7 +5,7 @@
 // Keine absoluten DSGVO-Claims im Body. Keine Behauptung « kein US-Konzern im Stack ».
 module.exports = {
   pageTitle: 'Hook0 vs Hookdeck, Webhook-Plattform vs Gateway | Hook0',
-  pageDescription: 'Vergleich Hook0 und Hookdeck, eine Webhook-Plattform gegen Gateway plus separates Zustellprodukt, Lizenzen, Umfang des Selbst-Hostings und Enterprise-Tarife.',
+  pageDescription: 'Vergleich Hook0 und Hookdeck: eine quelloffene Webhook-Plattform gegen ein Gateway plus separates Zustellprodukt. Lizenzen, Selbst-Hosting und Tarife.',
   pageModified: '2026-07-16',
   breadcrumb: 'Hook0 vs. Hookdeck',
   hero: {

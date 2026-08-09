@@ -9,7 +9,7 @@ module.exports = {
     eyebrow: 'Comparison',
     titleBefore: 'Hook0 vs Svix',
     titleAccent: 'Open-Source Webhook Platform Comparison',
-    subtitle: 'Looking for a Svix alternative? Both are webhook platforms, but they differ on licensing, funding model, hosting, and what "open-source" actually means in practice. Hook0 is source-available under SSPL-1.0, bootstrapped, and EU-hosted, with no vendor lock-in.',
+    subtitle: 'Looking for a Svix alternative? Both are webhook platforms, but they differ on licensing, funding model, hosting, and what "open-source" actually means in practice. Hook0 is 100% open-source, bootstrapped, and EU-hosted, with no vendor lock-in.',
     ctaPrimary: 'Start Free',
     ctaSecondary: 'Try the Playground',
   },

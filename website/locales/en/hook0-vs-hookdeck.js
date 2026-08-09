@@ -2,14 +2,14 @@
 // VERBATIM extraction from the legacy inline template — do not humanize.
 module.exports = {
   pageTitle: 'Hook0 vs Hookdeck: Webhook Platform vs Gateway',
-  pageDescription: 'Compare Hook0 and Hookdeck: one webhook platform vs a gateway and a separate delivery product, licences, self-hosting scope and enterprise pricing tiers.',
+  pageDescription: 'Compare Hook0 and Hookdeck: an open-source webhook platform vs a gateway plus a separate delivery product. Licensing, self-hosting scope, and pricing tiers.',
   pageModified: '2026-07-16',
   breadcrumb: 'Hook0 vs Hookdeck',
   hero: {
     eyebrow: 'Comparison',
     titleBefore: 'Hook0 vs Hookdeck',
     titleAccent: 'Open-Source Webhook Platform Alternative',
-    subtitle: 'Looking for a Hookdeck alternative? Hook0 is a source-available (SSPL-1.0), EU-hosted webhook platform with no vendor lock-in. Hookdeck splits the job between an Event Gateway and Outpost, its delivery product. Here is what each one actually covers.',
+    subtitle: 'Looking for a Hookdeck alternative? Hook0 is a 100% open-source, EU-hosted webhook platform with no vendor lock-in. Hookdeck splits the job between an Event Gateway and Outpost, its delivery product. Here is what each one actually covers.',
     ctaPrimary: 'Start Free',
     ctaSecondary: 'Try the Playground',
   },

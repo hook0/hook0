@@ -18,7 +18,7 @@ module.exports = {
     sub: 'Four webhook platforms, one table. Judge for yourself.',
     headers: { criteria: 'Criteria', hook0: 'Hook0', svix: 'Svix', hookdeck: 'Hookdeck', convoy: 'Convoy' },
     rows: [
-      { criteria: 'Source Code', hook0Html: 'Yes (SSPL-1.0, full source)', svixHtml: 'Partial (open-core, enterprise closed)', hookdeckHtml: 'Partial (Outpost Apache-2.0; Event Gateway closed)', convoyHtml: 'Source-available (Elastic License 2.0, not OSI-approved)' },
+      { criteria: 'Open-Source', hook0Html: 'Yes (SSPL-1.0, full source)', svixHtml: 'Partial (open-core, enterprise closed)', hookdeckHtml: 'Partial (Outpost Apache-2.0; Event Gateway closed)', convoyHtml: 'Source-available (Elastic License 2.0, not OSI-approved)' },
       { criteria: 'Self-Hosting', hook0Html: 'Free (Docker / K8s)', svixHtml: 'Enterprise plan only', hookdeckHtml: 'Outpost yes; Event Gateway cloud-only', convoyHtml: 'Yes (self-managed)' },
       { criteria: 'Free Tier', hook0Html: 'Yes, no credit card', svixHtml: 'Yes', hookdeckHtml: 'Yes (100k events/mo)', convoyHtml: 'Community edition only' },
       { criteria: 'Pricing Model', hook0Html: 'Per-event, transparent', svixHtml: 'Per-event + enterprise tiers', hookdeckHtml: 'Per-event managed; Outpost self-host free', convoyHtml: 'Enterprise pricing' },
@@ -44,7 +44,7 @@ module.exports = {
     eyebrow: 'Why Hook0',
     h2: 'The Hook0 Difference',
     cards: [
-      { title: 'One Platform, Not Two Products', body: 'Hookdeck splits the job: the inbound Event Gateway stays closed and cloud-only, while Outpost handles outbound delivery under Apache-2.0. Hook0 ships sending, retries, signatures and the subscriber portal as one platform, and the code you self-host is the code we run.' },
+      { title: 'One Platform, One Codebase', body: 'Hookdeck splits the job: the inbound Event Gateway stays closed and cloud-only, while Outpost handles outbound delivery under Apache-2.0. Hook0 ships sending, retries, signatures and the subscriber portal as one platform, and the code you self-host is the code we run.' },
       { title: 'No Enterprise Paywall', body: "Unlike Svix, every feature ships in every plan. Self-hosting isn't locked behind a sales call." },
       { title: 'European & GDPR', body: 'Cloud hosted in EU. Data sovereignty built in. Bootstrapped; no US VC board deciding your data policy.' },
     ],
@@ -53,9 +53,9 @@ module.exports = {
     eyebrow: 'FAQ',
     h2: 'Common Questions',
     items: [
-      { q: 'What are the best Hook0 alternatives?', a: 'The main alternatives to Hook0 are Svix (open-core, MIT core with closed enterprise features, VC-funded), Hookdeck (a Canadian company: the inbound Event Gateway is closed and cloud-only, while Outpost, its outbound delivery engine, is Apache-2.0 and self-hostable), and Convoy (source-available under Elastic License 2.0, which is not OSI-approved, actively maintained by frain-dev, VC-funded). Each solves a different slice of the webhook problem. Hook0 is source-available under SSPL-1.0, bootstrapped, and self-hostable for free, with the same code running in the managed cloud and on your own servers, and no enterprise tier reserving features.' },
+      { q: 'What are the best Hook0 alternatives?', a: 'The main alternatives to Hook0 are Svix (open-core, MIT core with closed enterprise features, VC-funded), Hookdeck (a Canadian company: the inbound Event Gateway is closed and cloud-only, while Outpost, its outbound delivery engine, is Apache-2.0 and self-hostable), and Convoy (Elastic License 2.0, which the OSI does not approve, maintained by frain-dev, VC-funded). Each solves a different slice of the webhook problem. Hook0 is the only one that is fully open-source, bootstrapped, and self-hostable for free, with the same code running in the managed cloud and on your own servers.' },
       { q: 'Is Hookdeck better than Hook0?', a: 'Hookdeck is a webhook gateway; it proxies existing webhooks for reliability. Hook0 is a webhook platform; it sends webhooks on your behalf with retries, signatures, and subscriber management. They solve different problems. If you need to add webhooks to your product, Hook0 is the right tool.' },
-      { q: 'Should I use Svix or Hook0?', a: 'Both are webhook platforms, but they differ on licensing and funding. Svix is open-core (enterprise features are closed-source) and raised $17M in VC. Hook0 is source-available under SSPL-1.0, bootstrapped, and offers free self-hosting. If vendor independence and long-term pricing stability matter, Hook0 is the safer bet.' },
+      { q: 'Should I use Svix or Hook0?', a: 'Both are webhook platforms, but they differ on licensing and funding. Svix is open-core (enterprise features are closed-source) and raised $17M in VC. Hook0 is fully open-source under SSPL-1.0, bootstrapped, and offers free self-hosting. If vendor independence and long-term pricing stability matter, Hook0 is the safer bet.' },
       { q: 'What does Hook0 cost?', a: 'Hook0 has a free tier with no credit card required. Hook0 is also open-source and self-hostable for compliance requirements. Hook0 Cloud adds managed infrastructure, EU hosting, automatic updates, and priority support. Paid plans start at €59/month with per-event pricing.' },
       { q: 'Does Hook0 work at scale?', a: "Yes. Hook0's architecture supports PostgreSQL-only for simplicity or Pulsar + S3 for high throughput. Cloud customers process millions of events per day. The same architecture runs identically when self-hosted." },
     ],

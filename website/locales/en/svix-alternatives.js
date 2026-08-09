@@ -35,7 +35,7 @@ module.exports = {
       { criteria: 'HMAC Signatures', svixHtml: 'Included', hook0Html: 'Included (all plans)', hookdeckHtml: 'Verification only', convoyHtml: 'Included', hostedhooksHtml: 'Included' },
       { criteria: 'Retry Logic', svixHtml: 'Automatic retries', hook0Html: 'Configurable per subscription (fast + slow phases)', hookdeckHtml: 'Automatic retries', convoyHtml: 'Automatic retries', hostedhooksHtml: 'Automatic retries' },
       { criteria: 'Data Hosting', svixHtml: 'US-based', hook0Html: 'Europe (GDPR) or self-host', hookdeckHtml: 'US-based', convoyHtml: 'Self-host only', hostedhooksHtml: 'US-based' },
-      { criteria: 'Open-Source Level', svixHtml: 'Partial (open-core)', hook0Html: 'Source-available (SSPL-1.0, no closed add-ons)', hookdeckHtml: 'Partial (Outpost only)', convoyHtml: 'Source-available (Elastic License 2.0, not OSI-approved)', hostedhooksHtml: 'None' },
+      { criteria: 'Open-Source Level', svixHtml: 'Partial (open-core)', hook0Html: 'Full (SSPL-1.0, no closed add-ons)', hookdeckHtml: 'Partial (Outpost only)', convoyHtml: 'Source-available (Elastic License 2.0, not OSI-approved)', hostedhooksHtml: 'None' },
     ],
   },
   faq: {

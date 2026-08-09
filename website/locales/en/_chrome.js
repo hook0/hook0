@@ -193,7 +193,7 @@ module.exports = {
       eyebrow: 'About Hook0',
       h2: 'What is Hook0?',
       paragraphs: [
-        'At Hook0, we are an independent European company founded on principles of software sustainability and ethical data practices. Our code is source-available under SSPL-1.0.',
+        'At Hook0, we are an independent European company founded on principles of software sustainability and ethical data practices. Our code is fully open-source.',
         'We firmly believe in transparency and data sovereignty. Unlike other solutions, Hook0 does not lock your data or software. If you choose the SaaS version of Hook0, all your data will remain in Europe, ensuring compliance with local regulations.',
         'Our business model is entirely supported by revenue from our paying users, with no venture capital funding. Since our launch, we have served our clients with dedication, focusing on quality and reliability.',
       ],
@@ -352,7 +352,7 @@ module.exports = {
     {
       primary: true,
       title: 'Open-Source',
-      description: "Unlike alternatives, Hook0 is <a href='https://github.com/hook0' target='_blank' rel='noopener noreferrer'>source-available</a> under SSPL-1.0. No vendor-locking, we are here to stay, no investors, we are fully sustainable since day 1.",
+      description: "Unlike alternatives, Hook0 is fully <a href='https://github.com/hook0' target='_blank' rel='noopener noreferrer'>open-source</a>. No vendor-locking, we are here to stay, no investors, we are fully sustainable since day 1.",
     },
     {
       primary: true,
