@@ -22,7 +22,7 @@ module.exports = {
       { title: 'Code source disponible, pas d\'add-ons fermés', body: 'Le serveur Hook0 est publié sous SSPL-1.0, les SDK sous MIT. Tu récupères la plateforme entière, tu la lis, tu la modifies, tu l\'auto-héberges. Le cœur de Svix est en MIT, mais les fonctions enterprise (SSO, analytics avancées, support dédié) restent fermées sur les plans payants.' },
       { title: 'Bootstrappé depuis le premier jour', body: 'Svix est financé par des VC. Les investisseurs attendent un retour, ce qui crée de la pression pour augmenter les prix ou se faire racheter. Hook0 est 100% bootstrappé. Pas de board à satisfaire, pas de mandat de croissance à tout prix.' },
       { title: 'Aucun verrouillage fournisseur', body: 'Hook0 Cloud fait tourner le même code à source ouverte que tu peux lire et auditer. Si tu en as besoin un jour, tu exportes et tu l\'exécutes toi-même (gratuit, Docker ou Kubernetes), donc tu n\'es jamais piégé dans une plateforme propriétaire. Svix réserve l\'auto-hébergement à ses clients enterprise.' },
-      { title: 'Plan de données UE, edge US divulgué', body: "Le plan de données de Hook0 tourne sur Clever Cloud en France, exploité par une société française. Le CDN en frontal est Cloudflare (US), divulgué dans notre liste publique de sous-traitants avec son mécanisme de transfert. Svix est basé aux États-Unis. Et comme le même code s'auto-héberge, vous pouvez faire tourner Hook0 dans votre propre réseau, où aucune donnée de webhook ne le quitte." },
+      { title: 'Plan de données UE, edge US divulgué', body: "Le plan de données de Hook0 tourne sur Clever Cloud en France, exploité par une société française. Le CDN en frontal est Cloudflare (US), divulgué dans notre liste publique de sous-traitants avec son mécanisme de transfert. Svix documente des régions de données dont l'UE, mais l'éditeur lui-même est de droit américain. Et comme le même code s'auto-héberge, vous pouvez faire tourner Hook0 dans votre propre réseau, où aucune donnée de webhook ne le quitte." },
     ],
   },
   comparison: {
@@ -36,7 +36,7 @@ module.exports = {
       { feature: 'Tier gratuit', hook0Html: 'Oui, sans carte bancaire', svixHtml: 'Oui' },
       { feature: 'Signatures HMAC', hook0Html: 'Inclus (tous les plans)', svixHtml: 'Inclus' },
       { feature: 'Logique de relances', hook0Html: 'Configurable par souscription (phases rapide + lent, defaults intelligents)', svixHtml: 'Relances automatiques' },
-      { feature: 'Hébergement des données', hook0Html: 'Europe (Clever Cloud FR, CDN Cloudflare US)', svixHtml: 'Basé aux États-Unis' },
+      { feature: 'Hébergement des données', hook0Html: 'Europe (Clever Cloud FR, CDN Cloudflare US)', svixHtml: 'Multi-régions dont UE ; éditeur de droit américain' },
       { feature: 'Gestion des souscriptions', hook0Html: 'Inclus', svixHtml: 'App Portal (plans payants)' },
       { feature: 'Risque de verrouillage fournisseur', hook0Html: 'Aucun (source intégrale, auto-hébergeable)', svixHtml: 'Modéré (fonctions enterprise fermées)' },
     ],
