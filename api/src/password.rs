@@ -257,13 +257,22 @@ fn is_repetition(password: &str) -> bool {
 /// - Requiring the core to account for most of the password accepts "dragon"
 ///   followed by ten digits, which is the first thing a cracking rule tries.
 /// - Requiring a longer core when it carries no letters accepts `@@@@@@12345`,
-///   which is "aaaaaa" disguised, because a disguised short word and a
-///   coincidence are the same shape.
+///   which is "aaaaaa" disguised.
+/// - Requiring a longer core only when the *whole* password is padding — no
+///   semantic guess, just a floor, and it leaves "dragon" alone — looks free:
+///   it removes 97% of the numeric false positives and the blocklist sweep
+///   stays dry. The sweep is not evidence there, because every case in it
+///   contains letters and never reaches that branch. Stretching the 304
+///   all-digit blocklist entries to the length floor instead accepts
+///   `123421317137`: a most-common PIN with digits stapled on, which is the
+///   very trick this machinery exists to defeat.
 ///
-/// The two are structurally indistinguishable, so this is a precision/recall
-/// dial rather than a bug: turning it costs recall against real disguises, and
-/// what it buys is a better message for all-numeric passwords, which password
-/// managers do not produce. Left where it is.
+/// Each attempt fails the same way, because `8047` folding to "boat" and
+/// `1234` being a real entry are the same four-character core with no
+/// structure to tell them apart. This is a precision/recall dial rather than a
+/// bug: turning it costs recall against real disguises, and what it buys is a
+/// better message for all-numeric passwords, which password managers do not
+/// produce. Left where it is.
 fn cores_that_speak_for(password: &str) -> impl Iterator<Item = &str> {
     padding_cores(password)
         .into_iter()
