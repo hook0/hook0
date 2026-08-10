@@ -23,9 +23,7 @@ test.describe("Password policy", () => {
         timeout: 10000,
       });
 
-      await expect(
-        page.getByText(/not built from your email address or your name/i)
-      ).toBeVisible();
+      await expect(page.getByText(/not built from your email address or your name/i)).toBeVisible();
     });
 
     /**
@@ -56,9 +54,9 @@ test.describe("Password policy", () => {
       await page.locator('[data-test="register-password-input"]').fill(email);
       await page.locator('[data-test="register-submit-button"]').click();
 
-      await expect(
-        page.getByText(/must not be built from your email address/i)
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(/must not be built from your email address/i)).toBeVisible({
+        timeout: 10000,
+      });
 
       await expect(page).toHaveURL(/\/register/);
       expect(registerCalled).toBe(false);
@@ -102,6 +100,45 @@ test.describe("Password policy", () => {
       await expect(passwordField).toHaveAttribute("aria-invalid", "true");
       await expect(
         page.locator('[data-test="input-error"]').filter({ hasText: /frequently used/i })
+      ).toBeVisible();
+    });
+
+    /**
+     * The refusal that does not come from the policy: a control character
+     * pasted out of a password manager trips the request struct's own
+     * validator, and comes back as a generic 422 rather than as one of the
+     * six password errors. It used to reach the user as "provided input is
+     * malformed" over a field that still looked accepted.
+     */
+    test("names the rule when the password carries a control character", async ({ page }) => {
+      const timestamp = Date.now();
+      const email = `test-policy-control-${timestamp}@hook0.local`;
+
+      await page.goto("/register");
+      await expect(page.locator('[data-test="register-form"]')).toBeVisible({ timeout: 10000 });
+
+      await page.locator('[data-test="register-email-input"]').fill(email);
+      await page.locator('[data-test="register-firstname-input"]').fill("Policy");
+      await page.locator('[data-test="register-lastname-input"]').fill("Tester");
+      await page
+        .locator('[data-test="register-password-input"]')
+        .fill(`Quilt\tLantern${timestamp}`);
+
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/register") && response.request().method() === "POST",
+        { timeout: 15000 }
+      );
+      await page.locator('[data-test="register-submit-button"]').click();
+
+      expect((await responsePromise).status()).toBe(422);
+
+      await expect(page.locator('[data-test="register-password-input"]')).toHaveAttribute(
+        "aria-invalid",
+        "true"
+      );
+      await expect(
+        page.locator('[data-test="input-error"]').filter({ hasText: /control characters/i })
       ).toBeVisible();
     });
   });
@@ -151,9 +188,9 @@ test.describe("Password policy", () => {
       await page.locator('[data-test="new-password-input"]').fill(email);
       await page.locator('[data-test="confirm-password-input"]').fill(email);
 
-      await expect(
-        page.getByText(/must not be built from your email address/i)
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(/must not be built from your email address/i)).toBeVisible({
+        timeout: 10000,
+      });
       expect(changeCalled).toBe(false);
 
       // The button is gated on validity: proving the form recovers matters as
@@ -301,16 +338,15 @@ test.describe("Password policy", () => {
 
       // The form is still there — this is the whole point of the test.
       await expect(page.locator('[data-test="reset-password-form"]')).toBeVisible();
-      await expect(
-        page.locator('[data-test="reset-password-new-password-input"]')
-      ).toBeVisible();
+      await expect(page.locator('[data-test="reset-password-new-password-input"]')).toBeVisible();
 
       // And it says why, on the field, not only in a banner: this page never
       // learns the account's email, so the server is the only one that can
       // name the rule that refused it.
-      await expect(
-        page.locator('[data-test="reset-password-new-password-input"]')
-      ).toHaveAttribute("aria-invalid", "true");
+      await expect(page.locator('[data-test="reset-password-new-password-input"]')).toHaveAttribute(
+        "aria-invalid",
+        "true"
+      );
       await expect(page.locator("#new_password-error")).toContainText(/email address/i);
 
       // Second attempt, with a password the policy accepts.
