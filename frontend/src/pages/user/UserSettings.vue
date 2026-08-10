@@ -93,7 +93,7 @@ const onChangePassword = handleSubmit((values) => {
       handleMutationError(err);
       // The blocklist and the length ceiling live on the server. When one of
       // them is what refused the change, the field the user must fix says so.
-      const rejection = passwordRejection(err);
+      const rejection = passwordRejection(err, 'new_password');
       if (rejection.refused) {
         setFieldError('new_password', rejection.reason);
       }

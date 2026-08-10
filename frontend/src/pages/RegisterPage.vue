@@ -143,7 +143,7 @@ const onSubmit = handleSubmit((values) => {
       // Two of the six rules can only be checked server-side. When one of them
       // is what refused the account, say so on the password field rather than
       // leaving a toast above a form that still looks accepted.
-      const rejection = passwordRejection(err);
+      const rejection = passwordRejection(err, 'password');
       if (rejection.refused) {
         setFieldError('password', rejection.reason);
       }

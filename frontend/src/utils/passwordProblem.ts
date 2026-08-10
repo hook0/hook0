@@ -46,14 +46,57 @@ function verdictFor(problem: ProblemLike): PasswordRejection {
 }
 
 /**
+ * The other way a password comes back refused: not as one of the policy's own
+ * errors, but as a generic `Validation` 422 — a control character pasted out
+ * of a password manager, say. The API already names the offending field in
+ * `validation`, and nothing in the app read it, so those refusals arrived as a
+ * toast above a field that still looked accepted.
+ *
+ * Only errors carrying a human-readable message are surfaced; the built-in
+ * validators leave it null and their raw code would mean nothing to a user.
+ */
+function validationMessageFor(problem: ProblemLike, field: string): PasswordRejection {
+  const validation: unknown = (problem as unknown as Record<string, unknown>).validation;
+  if (validation === null || typeof validation !== 'object') {
+    return NOT_A_REJECTION;
+  }
+  const entries: unknown = (validation as Record<string, unknown>)[field];
+  if (!Array.isArray(entries)) {
+    return NOT_A_REJECTION;
+  }
+  for (const entry of entries as unknown[]) {
+    if (entry === null || typeof entry !== 'object') {
+      continue;
+    }
+    const message: unknown = (entry as Record<string, unknown>).message;
+    if (typeof message === 'string' && message !== '') {
+      return { refused: true, reason: message };
+    }
+  }
+  return NOT_A_REJECTION;
+}
+
+function verdict(problem: ProblemLike, field: string): PasswordRejection {
+  const rejection = verdictFor(problem);
+  if (rejection.refused) {
+    return rejection;
+  }
+  return validationMessageFor(problem, field);
+}
+
+/**
  * Read a failed password request. Accepts either shape the app rejects with:
  * a Problem already unwrapped by `unwrapResponse`, or the raw Axios error that
  * still carries it in `response.data`. Anything else is a failed request, and
  * says nothing about the password.
+ *
+ * `field` is the name the API knows the password by on this endpoint —
+ * `password` on registration, `new_password` on reset and change — so a
+ * validation error about somebody's first name is never blamed on it.
  */
-export function passwordRejection(error: unknown): PasswordRejection {
+export function passwordRejection(error: unknown, field: string): PasswordRejection {
   if (isProblemLike(error)) {
-    return verdictFor(error);
+    return verdict(error, field);
   }
   if (error === null || typeof error !== 'object') {
     return NOT_A_REJECTION;
@@ -64,7 +107,7 @@ export function passwordRejection(error: unknown): PasswordRejection {
   }
   const data: unknown = (response as Record<string, unknown>).data;
   if (isProblemLike(data)) {
-    return verdictFor(data);
+    return verdict(data, field);
   }
   return NOT_A_REJECTION;
 }

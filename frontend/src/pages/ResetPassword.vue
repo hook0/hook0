@@ -105,7 +105,7 @@ function submit() {
       return router.push({ name: routes.Login });
     })
     .catch((err) => {
-      const rejection = passwordRejection(err);
+      const rejection = passwordRejection(err, 'new_password');
       if (rejection.refused) {
         // Reported once, under the field it refers to. The alert card carries
         // a "back to login" button, which is the wrong thing to put in front

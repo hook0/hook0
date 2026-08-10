@@ -23,12 +23,15 @@ describe('passwordRejection', () => {
 
   it('reads a Problem already unwrapped by the HTTP layer', () => {
     expect(
-      passwordRejection({
-        id: 'PasswordTooCommon',
-        status: 400,
-        title: 'Password too common',
-        detail: 'This password appears in lists of commonly used passwords.',
-      })
+      passwordRejection(
+        {
+          id: 'PasswordTooCommon',
+          status: 400,
+          title: 'Password too common',
+          detail: 'This password appears in lists of commonly used passwords.',
+        },
+        'password'
+      )
     ).toEqual({
       refused: true,
       reason: 'This password appears in lists of commonly used passwords.',
@@ -37,17 +40,20 @@ describe('passwordRejection', () => {
 
   it('reads a raw Axios error carrying the Problem in its response', () => {
     expect(
-      passwordRejection({
-        isAxiosError: true,
-        response: {
-          data: {
-            id: 'PasswordSimilarToEmail',
-            status: 400,
-            title: 'Password similar to email',
-            detail: 'Your password must not be built from your email address.',
+      passwordRejection(
+        {
+          isAxiosError: true,
+          response: {
+            data: {
+              id: 'PasswordSimilarToEmail',
+              status: 400,
+              title: 'Password similar to email',
+              detail: 'Your password must not be built from your email address.',
+            },
           },
         },
-      })
+        'password'
+      )
     ).toEqual({
       refused: true,
       reason: 'Your password must not be built from your email address.',
@@ -59,19 +65,95 @@ describe('passwordRejection', () => {
   // something wrong.
   it('leaves unrelated errors alone', () => {
     expect(
-      passwordRejection({
-        id: 'AuthFailedRefreshToken',
-        status: 401,
-        title: 'Refresh failed',
-        detail: 'Session expired.',
-      })
+      passwordRejection(
+        {
+          id: 'AuthFailedRefreshToken',
+          status: 401,
+          title: 'Refresh failed',
+          detail: 'Session expired.',
+        },
+        'password'
+      )
     ).toEqual({ refused: false });
+  });
+
+  describe('generic validation errors', () => {
+    // A control character pasted out of a password manager comes back as a
+    // plain 422, not as one of the policy's own errors. The API names the
+    // offending field; without reading it the user gets "provided input is
+    // malformed" over a field that still looks accepted.
+    const controlCharacterRefusal = {
+      id: 'Validation',
+      status: 422,
+      title: 'Provided input is malformed',
+      detail: 'password: Password must not contain control characters',
+      validation: {
+        password: [
+          {
+            code: 'secret-characters',
+            message: 'Password must not contain control characters',
+            params: {},
+          },
+        ],
+      },
+    };
+
+    it('surfaces the message the API attached to the password field', () => {
+      expect(passwordRejection(controlCharacterRefusal, 'password')).toEqual({
+        refused: true,
+        reason: 'Password must not contain control characters',
+      });
+    });
+
+    // The same 422 on registration can just as easily be about the first name.
+    // Blaming the password field for it would send the user to fix the wrong
+    // input.
+    it('does not blame the password for another field', () => {
+      expect(
+        passwordRejection(
+          {
+            id: 'Validation',
+            status: 422,
+            title: 'Provided input is malformed',
+            detail: 'first_name: too long',
+            validation: { first_name: [{ code: 'length', message: 'Too long', params: {} }] },
+          },
+          'password'
+        )
+      ).toEqual({ refused: false });
+    });
+
+    // The built-in validators leave the message null, and their raw code
+    // ("length", "email") would mean nothing to a user.
+    it('stays silent when the error carries no readable message', () => {
+      expect(
+        passwordRejection(
+          {
+            id: 'Validation',
+            status: 422,
+            title: 'Provided input is malformed',
+            detail: 'password: invalid',
+            validation: { password: [{ code: 'length', message: null, params: {} }] },
+          },
+          'password'
+        )
+      ).toEqual({ refused: false });
+    });
+
+    it('looks under the name the endpoint uses for its password field', () => {
+      const onReset = {
+        ...controlCharacterRefusal,
+        validation: { new_password: controlCharacterRefusal.validation.password },
+      };
+      expect(passwordRejection(onReset, 'new_password').refused).toBe(true);
+      expect(passwordRejection(onReset, 'password').refused).toBe(false);
+    });
   });
 
   it('survives anything a rejected promise can carry', () => {
     fc.assert(
       fc.property(fc.anything(), (value) => {
-        const verdict = passwordRejection(value);
+        const verdict = passwordRejection(value, 'password');
         // A rejection reason is always a string the form can display.
         return verdict.refused === false || typeof verdict.reason === 'string';
       }),
@@ -85,7 +167,7 @@ describe('passwordRejection', () => {
         fc.string(),
         fc.string(),
         (id, detail) =>
-          passwordRejection({ id, status: 400, title: '', detail }).refused ===
+          passwordRejection({ id, status: 400, title: '', detail }, 'password').refused ===
           sharedRejectionIds.includes(id)
       ),
       { numRuns: 500, seed: 20260806 }
