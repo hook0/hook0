@@ -245,21 +245,29 @@ fn is_repetition(password: &str) -> bool {
 
 /// The cores worth judging the whole password by.
 ///
-/// A core only speaks for the password when what is left around it is too
-/// little to be a secret of its own — the same threshold, and the same
-/// reasoning, as the identity rules. Without it a four-character entry of the
-/// blocklist matched inside a sixteen-digit password (`8047883103493641`
-/// carries `8047`, which folds to "boat"), and the user was told their
-/// password was among the most frequently used ones when it demonstrably was
-/// not. The word has to be the password, not merely appear in it.
+/// A known false positive lives here, and it is deliberate. The blocklist
+/// holds 1140 four-character entries, so four digits taken from inside a long
+/// digit string can hit one by coincidence — `8047883103493641` carries
+/// `8047`, which folds to "boat" — and roughly a quarter of all-numeric
+/// passwords are refused as common when they are nothing of the sort. The
+/// message they get is wrong, not just the verdict.
+///
+/// Two ways to close it were tried and both cost more than they bought:
+///
+/// - Requiring the core to account for most of the password accepts "dragon"
+///   followed by ten digits, which is the first thing a cracking rule tries.
+/// - Requiring a longer core when it carries no letters accepts `@@@@@@12345`,
+///   which is "aaaaaa" disguised, because a disguised short word and a
+///   coincidence are the same shape.
+///
+/// The two are structurally indistinguishable, so this is a precision/recall
+/// dial rather than a bug: turning it costs recall against real disguises, and
+/// what it buys is a better message for all-numeric passwords, which password
+/// managers do not produce. Left where it is.
 fn cores_that_speak_for(password: &str) -> impl Iterator<Item = &str> {
-    let length = password.chars().count();
-
-    padding_cores(password).into_iter().filter(move |core| {
-        let core_length = core.chars().count();
-        core_length >= MINIMUM_FRAGMENT_LENGTH
-            && length.saturating_sub(core_length) < MINIMUM_REMAINDER
-    })
+    padding_cores(password)
+        .into_iter()
+        .filter(|core| core.chars().count() >= MINIMUM_FRAGMENT_LENGTH)
 }
 
 fn is_repeated_unit(candidate: &str) -> bool {
@@ -623,27 +631,6 @@ mod tests {
                 check(password),
                 Err(Rejection::TooCommon),
                 "accepted a common password spelled in digits: {password}"
-            );
-        }
-    }
-
-    /// The blocklist has 1140 four-character entries, and a long digit string
-    /// is very likely to contain one of them somewhere. Matching on that told
-    /// roughly a quarter of all-numeric passwords that they were "among the
-    /// most frequently used ones", which was both a refusal they did not
-    /// deserve and a sentence that was plainly untrue.
-    #[test]
-    fn a_common_word_appearing_inside_a_longer_password_is_not_the_password() {
-        for password in [
-            // Carries "8047" -> "boat", and twelve more characters of its own.
-            "8047883103493641",
-            "8199147285136278",
-            "6421095452277705",
-        ] {
-            assert_eq!(
-                check(password).map(|_| ()),
-                Ok(()),
-                "refused a password for a word it merely contains: {password}"
             );
         }
     }
