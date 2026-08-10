@@ -360,8 +360,18 @@ mod password_policy_tests {
     async fn a_password_unrelated_to_the_user_passes_the_policy(pool: PgPool) {
         let app = init_api!(pool);
 
-        let (_, problem) = register!(app, "someone@example.com", "quilt lantern harbour");
+        let (status, problem) = register!(app, "someone@example.com", "quilt lantern harbour");
 
+        // Registration does not complete here — the verification mail cannot
+        // leave a test harness with no SMTP server — so what this pins is that
+        // the policy let the password through. Every rejection it can raise is
+        // a 400 named "Password…"; the end-to-end proof that an accepted
+        // password is stored and logs in lives in the Playwright suite.
+        assert_ne!(
+            status,
+            actix_web::http::StatusCode::BAD_REQUEST,
+            "a strong password was refused: {problem}"
+        );
         assert!(
             !problem.starts_with("Password"),
             "a strong password was refused by the policy: {problem}"

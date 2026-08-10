@@ -390,8 +390,22 @@ mod tests {
     #[test]
     fn a_length_floor_alone_would_have_accepted_the_reported_password() {
         let reported = "jordanrivera801@example.com";
-        assert!(reported.chars().count() >= usize::from(MINIMUM_LENGTH));
-        assert!(check(reported).is_err());
+
+        // In somebody else's hands the very same string is a fine password:
+        // it clears every rule the old policy had, and every rule the new one
+        // added except one.
+        let a_stranger = UserIdentity {
+            email: "casey.nguyen@example.org",
+            first_name: "Casey",
+            last_name: "Nguyen",
+        };
+        assert_eq!(
+            Checked::new(reported, MINIMUM_LENGTH, &a_stranger).map(|_| ()),
+            Ok(())
+        );
+
+        // That one rule is whose address it is, and it is the whole fix.
+        assert_eq!(check(reported), Err(Rejection::SimilarToEmail));
     }
 
     /// Decorating the address with a character or two must not walk past a rule
@@ -740,10 +754,26 @@ mod tests {
         );
     }
 
-    #[test]
-    fn an_already_established_credential_skips_the_policy() {
-        // The Keycloak import must never lock a user out of their own account.
-        assert_eq!(Checked::already_established("123456").0, "123456");
+    /// The Keycloak import must never lock a user out of their own account, so
+    /// it is the one path allowed to hash a password the policy refuses. Stated
+    /// against `hash` rather than against the newtype: that a wrapper stores
+    /// what it was handed is true by construction and has no failing input,
+    /// whereas this fails the day the escape hatch stops working — or the day
+    /// it quietly starts running the policy it exists to skip.
+    #[actix_web::test]
+    async fn an_already_established_credential_is_hashed_without_passing_the_policy() {
+        let identity = UserIdentity {
+            email: "jordanrivera801@example.com",
+            first_name: "Jordan",
+            last_name: "Rivera",
+        };
+        let weak = "123456";
+        assert!(Checked::new(weak, MINIMUM_LENGTH, &identity).is_err());
+
+        let stored = hash(Checked::already_established(weak))
+            .await
+            .expect("an established credential is hashable");
+        assert!(stored.as_str().starts_with("$argon2"));
     }
 
     /// The shared contract with the frontend. Pinning the *fold* was not enough:
