@@ -269,10 +269,18 @@ const MAXIMUM_AMBIGUOUS_GLYPHS: usize = 8;
 /// folding first turned "2026" into "2o26" and left nothing to trim. So the
 /// boundary is not guessed, it is searched, over a constant number of cuts.
 ///
-/// Both extremes are always offered whatever the cap: the untouched string, so
-/// a password made entirely of digits can still be seen as a repeated unit,
-/// and the fully trimmed one, so a word buried under any amount of padding is
-/// still found.
+/// Two windows per side, because one cap has to assume something. Walking
+/// inward from the padding's inner edge assumes the word's own run of
+/// ambiguous glyphs is short — true of "chicag0", false of "845384111", which
+/// is "baseball1" with every letter written as a digit. Walking inward from
+/// the string's outer edge assumes the padding is short instead. Together they
+/// miss only "long padding *and* long disguised word", which no password a
+/// person types looks like, and neither window can be walked around by making
+/// the word one glyph longer.
+///
+/// Both extremes fall out of this: the untouched string, so a password made
+/// entirely of digits can still be seen as a repeated unit, and the fully
+/// trimmed one, so a word buried under any amount of padding is still found.
 fn padding_cores(value: &str) -> Vec<&str> {
     let is_padding = |c: char| c.is_ascii_digit() || c.is_ascii_punctuation();
 
@@ -287,17 +295,23 @@ fn padding_cores(value: &str) -> Vec<&str> {
     let trailing = value.chars().rev().take_while(|c| is_padding(*c)).count();
     let trimmed_end = length - trailing;
 
-    let mut starts =
-        (leading.saturating_sub(MAXIMUM_AMBIGUOUS_GLYPHS)..=leading).collect::<Vec<_>>();
-    if !starts.contains(&0) {
-        starts.push(0);
-    }
+    let mut starts = (leading.saturating_sub(MAXIMUM_AMBIGUOUS_GLYPHS)..=leading)
+        .chain(0..=MAXIMUM_AMBIGUOUS_GLYPHS.min(leading))
+        .collect::<Vec<_>>();
+    starts.sort_unstable();
+    starts.dedup();
 
-    let mut ends =
-        (trimmed_end..=(trimmed_end + MAXIMUM_AMBIGUOUS_GLYPHS).min(length)).collect::<Vec<_>>();
-    if !ends.contains(&length) {
-        ends.push(length);
-    }
+    // Clamped so no cut ever reaches back into the word: the shortest core
+    // stays the fully trimmed one, which is what keeps this from refusing
+    // anything the search without a cap accepted.
+    let outer_end = length
+        .saturating_sub(MAXIMUM_AMBIGUOUS_GLYPHS)
+        .max(trimmed_end);
+    let mut ends = (trimmed_end..=(trimmed_end + MAXIMUM_AMBIGUOUS_GLYPHS).min(length))
+        .chain(outer_end..=length)
+        .collect::<Vec<_>>();
+    ends.sort_unstable();
+    ends.dedup();
 
     let mut cores = Vec::with_capacity(starts.len() * ends.len());
     for start in starts {
@@ -568,6 +582,27 @@ mod tests {
                 check(password),
                 Err(Rejection::TooCommon),
                 "accepted a disguised common password: {password}"
+            );
+        }
+    }
+
+    /// A word written entirely in digits is longer, in ambiguous glyphs, than
+    /// any cap on how far a cut reaches into the padding. Capping from the
+    /// padding's inner edge alone left "baseball1" spelled "845384111"
+    /// reachable behind a little decoration; a second window anchored at the
+    /// string's outer edge closes it, and closes it for any word length rather
+    /// than moving the threshold.
+    ///
+    /// The padding here is deliberately non-periodic: "20262026" in front
+    /// would be caught as a repeated unit and the test would pass without
+    /// exercising the search at all.
+    #[test]
+    fn a_word_written_entirely_in_digits_is_still_found_under_padding() {
+        for password in ["2026845384111", "202845384111"] {
+            assert_eq!(
+                check(password),
+                Err(Rejection::TooCommon),
+                "accepted a common password spelled in digits: {password}"
             );
         }
     }
@@ -1037,6 +1072,26 @@ mod tests {
                 last_name: &last_name,
             };
             let _ = Checked::new(&password, minimum_length, &identity);
+        }
+
+        /// The invariant the cap rests on: bounding how far a cut reaches must
+        /// never make the search *narrower* at its narrowest point. The
+        /// shortest candidate is still exactly the fully trimmed string, so
+        /// nothing the uncapped search accepted can now be refused — and
+        /// nothing shorter is offered, which is what stops the blocklist from
+        /// degenerating into a substring match.
+        #[test]
+        fn the_shortest_core_is_always_the_fully_trimmed_password(
+            password in "[a-zA-Z0-9 !@#$%^&*()\\-_=+.,;:'\"\\[\\]{}<>/?]{0,60}",
+        ) {
+            let is_padding = |c: char| c.is_ascii_digit() || c.is_ascii_punctuation();
+            let fully_trimmed = password.trim_matches(is_padding);
+
+            let shortest = padding_cores(&password)
+                .into_iter()
+                .min_by_key(|core| core.chars().count());
+
+            prop_assert_eq!(shortest, Some(fully_trimmed));
         }
 
         /// Folding is idempotent for every input, which is what lets the
