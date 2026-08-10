@@ -657,6 +657,37 @@ mod tests {
         );
     }
 
+    /// The counterweight to searching for the padding boundary instead of
+    /// guessing it. Offering every cut inside a padding run, and collapsing
+    /// interchangeable glyphs before consulting the blocklist, both make
+    /// matching more eager — and the failure mode of an over-eager password
+    /// rule is a user who cannot set the password they wanted and has no idea
+    /// why. These are the shapes people actually pick.
+    #[test]
+    fn a_passphrase_wrapped_in_decoration_is_still_accepted() {
+        let identity = UserIdentity {
+            email: "casey.nguyen@example.org",
+            first_name: "Casey",
+            last_name: "Nguyen",
+        };
+
+        for password in [
+            "quilt lantern harbour 2026",
+            "2026 quilt lantern harbour",
+            "!!velours-marmotte-bleu!!",
+            "Tr0ub4dor&3-quilt-lantern",
+            "l1ght-r@1n-over-nantes",
+            "..generic thunder quilt..",
+            "veloce-marmotte-2026-bleu",
+        ] {
+            assert_eq!(
+                Checked::new(password, MINIMUM_LENGTH, &identity).map(|_| ()),
+                Ok(()),
+                "refused a legitimate passphrase: {password}"
+            );
+        }
+    }
+
     /// The shape of credential the end-to-end suite registers with: it opens
     /// with the account's first name, and everything after it is the actual
     /// secret. Refusing it would break every browser test for no security gain.
