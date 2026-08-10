@@ -168,8 +168,13 @@ export function checkPassword(password: string, identity: UserIdentity): Passwor
       continue;
     }
 
+    // The password being *inside* the fragment only means something when the
+    // password has enough letters left to be recognisable as part of it. A
+    // password of punctuation folds to a letter or two, and almost any address
+    // contains those — telling someone their pile of symbols was built from
+    // their email address is both wrong and baffling.
     const isSimilar =
-      folded.includes(foldedPassword) ||
+      (passwordLength >= MINIMUM_FRAGMENT_LENGTH && folded.includes(foldedPassword)) ||
       (foldedPassword.includes(folded) && passwordLength - fragmentLength < MINIMUM_REMAINDER);
     if (isSimilar) {
       return { acceptable: false, weakness };

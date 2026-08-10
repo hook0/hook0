@@ -219,7 +219,14 @@ impl UserIdentity<'_> {
                 return None;
             }
 
-            let is_similar = folded.contains(&folded_password)
+            // The password being *inside* the fragment only means something
+            // when the password has enough letters left to be recognisable as
+            // part of it. A password of punctuation folds to a letter or two,
+            // and almost any address contains those — telling someone their
+            // pile of symbols was built from their email address is both wrong
+            // and baffling.
+            let is_similar = (password_length >= MINIMUM_FRAGMENT_LENGTH
+                && folded.contains(&folded_password))
                 || (folded_password.contains(&folded)
                     && password_length.saturating_sub(fragment_length) < MINIMUM_REMAINDER);
             is_similar.then_some(rejection)
@@ -233,10 +240,26 @@ impl UserIdentity<'_> {
 /// entropy of four characters. Padding is stripped first, or one trailing digit
 /// would break the periodicity and buy the whole trick back.
 fn is_repetition(password: &str) -> bool {
-    padding_cores(password)
-        .into_iter()
-        .filter(|core| core.chars().count() >= MINIMUM_FRAGMENT_LENGTH)
-        .any(is_repeated_unit)
+    cores_that_speak_for(password).any(is_repeated_unit)
+}
+
+/// The cores worth judging the whole password by.
+///
+/// A core only speaks for the password when what is left around it is too
+/// little to be a secret of its own — the same threshold, and the same
+/// reasoning, as the identity rules. Without it a four-character entry of the
+/// blocklist matched inside a sixteen-digit password (`8047883103493641`
+/// carries `8047`, which folds to "boat"), and the user was told their
+/// password was among the most frequently used ones when it demonstrably was
+/// not. The word has to be the password, not merely appear in it.
+fn cores_that_speak_for(password: &str) -> impl Iterator<Item = &str> {
+    let length = password.chars().count();
+
+    padding_cores(password).into_iter().filter(move |core| {
+        let core_length = core.chars().count();
+        core_length >= MINIMUM_FRAGMENT_LENGTH
+            && length.saturating_sub(core_length) < MINIMUM_REMAINDER
+    })
 }
 
 fn is_repeated_unit(candidate: &str) -> bool {
@@ -388,10 +411,7 @@ fn fold_identity(value: &str) -> String {
 fn is_common(password: &str) -> bool {
     let lowercased = password.to_lowercase();
 
-    padding_cores(&lowercased)
-        .into_iter()
-        .filter(|core| core.chars().count() >= MINIMUM_FRAGMENT_LENGTH)
-        .any(|core| COMMON_PASSWORDS.contains(&fold_confusables(core)))
+    cores_that_speak_for(&lowercased).any(|core| COMMON_PASSWORDS.contains(&fold_confusables(core)))
 }
 
 #[cfg(test)]
@@ -605,6 +625,43 @@ mod tests {
                 "accepted a common password spelled in digits: {password}"
             );
         }
+    }
+
+    /// The blocklist has 1140 four-character entries, and a long digit string
+    /// is very likely to contain one of them somewhere. Matching on that told
+    /// roughly a quarter of all-numeric passwords that they were "among the
+    /// most frequently used ones", which was both a refusal they did not
+    /// deserve and a sentence that was plainly untrue.
+    #[test]
+    fn a_common_word_appearing_inside_a_longer_password_is_not_the_password() {
+        for password in [
+            // Carries "8047" -> "boat", and twelve more characters of its own.
+            "8047883103493641",
+            "8199147285136278",
+            "6421095452277705",
+        ] {
+            assert_eq!(
+                check(password).map(|_| ()),
+                Ok(()),
+                "refused a password for a word it merely contains: {password}"
+            );
+        }
+    }
+
+    /// A password of pure punctuation folds to a letter or two, and almost any
+    /// address contains those. Being told a pile of symbols was built from
+    /// your email address is wrong and unactionable.
+    #[test]
+    fn a_password_that_folds_to_almost_nothing_is_not_blamed_on_the_address() {
+        let identity = UserIdentity {
+            email: "jordan.rivera@example.com",
+            first_name: "Jordan",
+            last_name: "Rivera",
+        };
+        assert_eq!(
+            Checked::new("#%^&*()-_=+[]{}@", MINIMUM_LENGTH, &identity).map(|_| ()),
+            Ok(())
+        );
     }
 
     /// The blocklist is 10000 entries and the tests above pin a dozen. Sweeping

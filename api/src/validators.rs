@@ -343,6 +343,12 @@ mod tests {
     /// `Display`, which falls back to printing `params` when an error carries
     /// no message — so a secret validator that forgot its message would hand
     /// the password back through the other field, with nothing to catch it.
+    ///
+    /// It also decides whether the reset form survives. That page treats a
+    /// `Validation` error as a dead link, which is only safe because a refused
+    /// password is recognised first — and it is recognised by its message. A
+    /// secret validator without one would cost the user their reset link, not
+    /// merely leak. Relaxing this assertion breaks more than disclosure.
     #[test]
     fn every_secret_validator_error_carries_a_message() {
         let errors = [
