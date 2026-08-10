@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import i18n from '@/plugins/i18n';
-import { WEAKNESS_MESSAGE_KEYS, checkPassword } from '@/utils/passwordPolicy';
+import {
+  PASSWORD_MAXIMUM_LENGTH,
+  WEAKNESS_MESSAGE_KEYS,
+  checkPassword,
+} from '@/utils/passwordPolicy';
 
 /**
  * `minimumLength` comes from the instance (GET /instance), not from a number
@@ -17,7 +21,11 @@ export function createRegisterSchema(minimumLength: number) {
         lastName: z.string().min(1, t('validation.required', { field: t('fields.lastName') })),
         password: z
           .string()
-          .min(minimumLength, t('validation.passwordMinLength', { count: minimumLength })),
+          .min(minimumLength, t('validation.passwordMinLength', { count: minimumLength }))
+          .max(
+            PASSWORD_MAXIMUM_LENGTH,
+            t('validation.passwordMaxLength', { count: PASSWORD_MAXIMUM_LENGTH })
+          ),
       })
       // The API refuses a password built from the account's own email address or
       // name; say so while the user is still typing rather than after a round

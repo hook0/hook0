@@ -106,7 +106,87 @@ test.describe("Password policy", () => {
     });
   });
 
+  test.describe("Change password form", () => {
+    /**
+     * The third form, and the only one whose schema is rebuilt from data
+     * loaded after mount, behind a button gated on validity. A form that could
+     * never become valid would look exactly like a form nobody had tried.
+     */
+    test("refuses the account email address, then accepts a strong password", async ({
+      page,
+      request,
+    }) => {
+      const timestamp = Date.now();
+      const email = `test-policy-change-${timestamp}@hook0.local`;
+      const password = `OriginalPass123!${timestamp}`;
+      const acceptedPassword = `QuiltLanternHarbour${timestamp}`;
+
+      const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        data: { email, first_name: "Policy", last_name: "Tester", password },
+      });
+      expect(registerResponse.status()).toBeLessThan(400);
+      await verifyEmailViaMailpit(request, email);
+
+      await page.goto("/login");
+      await expect(page.locator('[data-test="login-form"]')).toBeVisible({ timeout: 10000 });
+      await page.locator('[data-test="login-email-input"]').fill(email);
+      await page.locator('[data-test="login-password-input"]').fill(password);
+      await page.locator('[data-test="login-submit-button"]').click();
+      await expect(page).toHaveURL(/\/dashboard|\/organizations|\/tutorial/, { timeout: 15000 });
+
+      await page.goto("/settings");
+      await expect(page.locator('[data-test="change-password-form"]')).toBeVisible({
+        timeout: 10000,
+      });
+
+      // The form knows the signed-in account, so it must refuse this without
+      // asking the API — and it must say so on the field.
+      let changeCalled = false;
+      page.on("request", (request) => {
+        if (request.url().includes("/api/v1/auth/password") && request.method() === "POST") {
+          changeCalled = true;
+        }
+      });
+
+      await page.locator('[data-test="new-password-input"]').fill(email);
+      await page.locator('[data-test="confirm-password-input"]').fill(email);
+
+      await expect(
+        page.getByText(/must not be built from your email address/i)
+      ).toBeVisible({ timeout: 10000 });
+      expect(changeCalled).toBe(false);
+
+      // The button is gated on validity: proving the form recovers matters as
+      // much as proving it refuses.
+      await page.locator('[data-test="new-password-input"]').fill(acceptedPassword);
+      await page.locator('[data-test="confirm-password-input"]').fill(acceptedPassword);
+
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/v1/auth/password") &&
+          response.request().method() === "POST",
+        { timeout: 15000 }
+      );
+      await page.locator('[data-test="change-password-button"]').click();
+      expect((await responsePromise).status()).toBeLessThan(400);
+    });
+  });
+
   test.describe("Reset password page", () => {
+    /**
+     * The other side of keeping the form mounted through a refusal: when the
+     * link itself is the problem, there is nothing a password can fix, and
+     * offering the form invites the user to type one and lose the explanation.
+     */
+    test("offers no form when the link carries no token", async ({ page }) => {
+      await page.goto("/reset-password");
+
+      await expect(
+        page.getByText(/this reset link is invalid or has expired/i)
+      ).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('[data-test="reset-password-form"]')).toHaveCount(0);
+    });
+
     /**
      * The regression this suite exists to catch: a rejection here used to
      * unmount the form, so a weak password cost the user their reset link. The

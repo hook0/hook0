@@ -809,6 +809,14 @@ mod tests {
             .collect::<HashSet<_>>();
 
         assert_eq!(produced, listed);
+
+        // The ceiling is not operator-configurable, so the frontend mirrors it
+        // rather than fetching it. Raising it here alone would let a form
+        // refuse a passphrase the API accepts.
+        assert_eq!(
+            parsed["maximumLength"].as_u64(),
+            Some(MAXIMUM_LENGTH as u64)
+        );
     }
 
     /// These vectors are the contract with `foldIdentity` in the frontend: the

@@ -3,7 +3,12 @@ import { join } from 'node:path';
 
 import fc from 'fast-check';
 
-import { checkPassword, foldIdentity, type UserIdentity } from './passwordPolicy';
+import {
+  PASSWORD_MAXIMUM_LENGTH,
+  checkPassword,
+  foldIdentity,
+  type UserIdentity,
+} from './passwordPolicy';
 
 type SharedVector = {
   why: string;
@@ -16,11 +21,20 @@ type SharedVector = {
 
 // The same file drives the Rust suite (api/src/password.rs). Read rather than
 // imported so the bundler never sees it: it is a test fixture, not shipped code.
-const sharedVectors: SharedVector[] = (
-  JSON.parse(readFileSync(join(__dirname, '../../../password-policy-vectors.json'), 'utf8')) as {
-    vectors: SharedVector[];
-  }
-).vectors;
+const shared = JSON.parse(
+  readFileSync(join(__dirname, '../../../password-policy-vectors.json'), 'utf8')
+) as { vectors: SharedVector[]; maximumLength: number };
+
+const sharedVectors: SharedVector[] = shared.vectors;
+
+describe('PASSWORD_MAXIMUM_LENGTH', () => {
+  // The ceiling is not operator-configurable, so it is mirrored rather than
+  // fetched: raising it on one side alone makes a form and the API disagree
+  // about a passphrase long enough to matter.
+  it('matches the ceiling the API enforces', () => {
+    expect(PASSWORD_MAXIMUM_LENGTH).toBe(shared.maximumLength);
+  });
+});
 
 const identity: UserIdentity = {
   email: 'jordanrivera801@example.com',

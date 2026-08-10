@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import i18n from '@/plugins/i18n';
-import { WEAKNESS_MESSAGE_KEYS, checkPassword, type UserIdentity } from '@/utils/passwordPolicy';
+import {
+  PASSWORD_MAXIMUM_LENGTH,
+  WEAKNESS_MESSAGE_KEYS,
+  checkPassword,
+  type UserIdentity,
+} from '@/utils/passwordPolicy';
 
 /** See `createRegisterSchema`: the floor is instance configuration, not a literal. */
 export function createPasswordChangeSchema(identity: UserIdentity, minimumLength: number) {
@@ -10,7 +15,11 @@ export function createPasswordChangeSchema(identity: UserIdentity, minimumLength
       .object({
         new_password: z
           .string()
-          .min(minimumLength, t('validation.passwordMinLength', { count: minimumLength })),
+          .min(minimumLength, t('validation.passwordMinLength', { count: minimumLength }))
+          .max(
+            PASSWORD_MAXIMUM_LENGTH,
+            t('validation.passwordMaxLength', { count: PASSWORD_MAXIMUM_LENGTH })
+          ),
         confirm_new_password: z.string().min(1, t('validation.passwordConfirm')),
       })
       .refine((data) => data.new_password === data.confirm_new_password, {

@@ -57,6 +57,15 @@ const MINIMUM_REMAINDER = 8;
  */
 export const DEFAULT_PASSWORD_MINIMUM_LENGTH = 12;
 
+/**
+ * The API's ceiling (MAXIMUM_LENGTH in api/src/password.rs), which is not
+ * operator-configurable and so is mirrored rather than fetched. A passphrase
+ * pasted from a password manager can exceed it, and learning that from a round
+ * trip is a poor way to find out. Pinned against the API by
+ * password-policy-vectors.json.
+ */
+export const PASSWORD_MAXIMUM_LENGTH = 100;
+
 /** The digit and symbol substitutions people use to disguise a word. */
 const LOOKALIKES: Readonly<Record<string, string>> = {
   '0': 'o',
