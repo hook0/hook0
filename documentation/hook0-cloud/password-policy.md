@@ -40,10 +40,15 @@ A password is refused when it is:
 - among the ten thousand most common passwords, including disguised
   (`P@ssw0rd`, `1etmein`) and padded (`letmein2026!`, `2026letmein`) variants;
 - a shorter unit typed several times (`abcdabcdabcd`), which clears the length
-  floor while carrying almost no entropy.
+  floor while carrying almost no entropy;
+- carrying a control character — a tab or a line break, usually pasted in by
+  accident rather than typed.
 
-Each refusal carries its own error identifier, listed in the
-[error codes reference](../reference/error-codes.md).
+Each refusal names the rule it broke on the password field. The first four
+carry their own error identifier, listed in the
+[error codes reference](../reference/error-codes.md); the last is reported as
+malformed input, since it is about the characters the field accepts rather
+than about the strength of the password.
 
 Only the minimum length is configurable; the other rules always apply. Existing
 passwords are never re-checked — the rules apply the next time a password is set.

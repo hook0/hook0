@@ -134,12 +134,19 @@ function submit() {
  * a busy server, a dropped connection — is worth another attempt, so the form
  * stays.
  *
+ * `Validation` is here because the request carries exactly two fields: by the
+ * time this is consulted the password case has already returned, so what is
+ * left is a malformed token. Without it the user sits on a perfectly usable
+ * form retyping passwords that can never be the problem — worse than losing
+ * the form, because the page keeps inviting the effort.
+ *
  * Raised by `reset_password` in api/src/handlers/auth.rs.
  */
 const DEAD_LINK_PROBLEM_IDS: ReadonlySet<string> = new Set([
   'AuthEmailExpired',
   'Forbidden',
   'InvalidToken',
+  'Validation',
 ]);
 
 function isDeadLink(err: unknown): boolean {

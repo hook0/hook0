@@ -51,7 +51,8 @@ pub struct LoginResponse {
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct EmailVerificationPost {
-    #[validate(non_control_character, length(min = 1, max = 1000))]
+    // A bearer credential: `secret_token` bounds it without echoing it back.
+    #[validate(custom(function = "crate::validators::secret_token"))]
     token: String,
 }
 
@@ -63,7 +64,8 @@ pub struct BeginResetPasswordPost {
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct ResetPasswordPost {
-    #[validate(non_control_character, length(min = 1, max = 1000))]
+    // See `EmailVerificationPost::token`.
+    #[validate(custom(function = "crate::validators::secret_token"))]
     token: String,
     // Length is deliberately not validated here: the policy owns both bounds
     // (`password::Checked::new`), so the user is told the instance's real
@@ -1201,7 +1203,7 @@ async fn store_new_password<'a, A: Acquire<'a, Database = Postgres>>(
 
 #[cfg(test)]
 mod password_echo_tests {
-    use super::{ChangePasswordPost, LoginPost, ResetPasswordPost};
+    use super::{ChangePasswordPost, EmailVerificationPost, LoginPost, ResetPasswordPost};
     use crate::handlers::registrations::RegistrationPost;
     use serde::de::DeserializeOwned;
     use validator::Validate;
@@ -1272,6 +1274,39 @@ mod password_echo_tests {
             assert!(
                 !body.contains(SECRET),
                 "{field} echoed the refused password: {body}"
+            );
+        }
+    }
+
+    /// The token from a reset link is a credential too, and a sharper case than
+    /// the password: a mail client that wraps the link and encodes the break
+    /// as `%0A` produces a token that fails validation while still being live.
+    /// The reset page strips it from the URL on purpose; handing it back in an
+    /// error would give away exactly what that stripping withholds.
+    #[test]
+    fn no_token_field_echoes_its_value_when_validation_fails() {
+        let refused = format!("{SECRET}\u{7}");
+
+        let bodies = [
+            (
+                "ResetPasswordPost::token",
+                response_body::<ResetPasswordPost>(serde_json::json!({
+                    "token": refused,
+                    "new_password": "quilt lantern harbour",
+                })),
+            ),
+            (
+                "EmailVerificationPost::token",
+                response_body::<EmailVerificationPost>(serde_json::json!({
+                    "token": refused,
+                })),
+            ),
+        ];
+
+        for (field, body) in bodies {
+            assert!(
+                !body.contains(SECRET),
+                "{field} echoed the refused token: {body}"
             );
         }
     }

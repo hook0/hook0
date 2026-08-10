@@ -281,6 +281,43 @@ test.describe("Password policy", () => {
     });
 
     /**
+     * A malformed token comes back as a plain Validation 422, the same id the
+     * password's own control-character rule uses. The difference is which
+     * field it names: nothing the user types can fix a broken token, so
+     * leaving the form up would have them retyping passwords forever.
+     */
+    test("drops the form when the request is refused over the token", async ({ page }) => {
+      await page.goto("/reset-password?token=stub");
+      await expect(page.locator('[data-test="reset-password-form"]')).toBeVisible({
+        timeout: 10000,
+      });
+
+      await page.route("**/api/v1/auth/reset-password", (route) =>
+        route.fulfill({
+          status: 422,
+          contentType: "application/problem+json",
+          body: JSON.stringify({
+            id: "Validation",
+            status: 422,
+            title: "Provided input is malformed",
+            detail: "token: Token is malformed",
+            validation: {
+              token: [{ code: "secret-token", message: "Token is malformed", params: {} }],
+            },
+          }),
+        })
+      );
+
+      const strong = `QuiltLanternHarbour${Date.now()}`;
+      await page.locator('[data-test="reset-password-new-password-input"]').fill(strong);
+      await page.locator('[data-test="reset-password-confirm-password-input"]').fill(strong);
+      await page.locator('[data-test="reset-password-submit-button"]').click();
+
+      await expect(page.getByText(/token is malformed/i)).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('[data-test="reset-password-form"]')).toHaveCount(0);
+    });
+
+    /**
      * The regression this suite exists to catch: a rejection here used to
      * unmount the form, so a weak password cost the user their reset link. The
      * form must survive the refusal and accept a second attempt.

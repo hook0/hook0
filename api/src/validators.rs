@@ -24,6 +24,10 @@ const SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_MAX_LENGTH: usize = 500;
 
 const SECRET_MIN_LENGTH: usize = 1;
 
+/// A token from a link in an email is a few hundred characters; this is the
+/// ceiling that was already applied to them, kept as-is.
+const SECRET_TOKEN_MAX_LENGTH: usize = 1000;
+
 /// Marks a validation error as being about a value the caller must not get
 /// back. `Hook0Problem::Validation` drops the refused value from every error
 /// whose code starts with this, which is the only way to keep it out of the
@@ -33,6 +37,7 @@ pub const CODE_SECRET_PREFIX: &str = "secret-";
 
 const CODE_SECRET_CHARACTERS: &str = "secret-characters";
 const CODE_SECRET_LENGTH: &str = "secret-length";
+const CODE_SECRET_TOKEN: &str = "secret-token";
 const CODE_METADATA_SIZE: &str = "metadata-size";
 const CODE_METADATA_PROPERTY_LENGTH: &str = "metadata-property-length";
 const CODE_LABELS_SIZE: &str = "labels-size";
@@ -82,6 +87,28 @@ pub fn secret(val: &str) -> Result<(), ValidationError> {
             )
             .into(),
         ),
+        params: HashMap::new(),
+    })
+}
+
+/// The single-use credential carried by a link in an email — a password reset,
+/// an email verification, an unsubscribe. Same no-echo rule as the passwords
+/// above, and for a sharper reason: a mail client that wraps a long link and
+/// encodes the break as `%0A` produces a token that fails this check while
+/// still being live, so the refused value is a working credential. The reset
+/// token is stripped from the URL on purpose (`stripTokenFromUrl` in the
+/// frontend) to keep it out of history and referrers; handing it back in an
+/// error would give away what that stripping withholds.
+pub fn secret_token(val: &str) -> Result<(), ValidationError> {
+    let length = val.chars().count();
+    if val.validate_non_control_character()
+        && (SECRET_MIN_LENGTH..=SECRET_TOKEN_MAX_LENGTH).contains(&length)
+    {
+        return Ok(());
+    }
+    Err(ValidationError {
+        code: CODE_SECRET_TOKEN.into(),
+        message: Some("Token is malformed".into()),
         params: HashMap::new(),
     })
 }
@@ -299,7 +326,11 @@ mod tests {
     /// the prefix would start returning the password again, silently.
     #[test]
     fn every_secret_validator_code_carries_the_prefix() {
-        for code in [CODE_SECRET_CHARACTERS, CODE_SECRET_LENGTH] {
+        for code in [
+            CODE_SECRET_CHARACTERS,
+            CODE_SECRET_LENGTH,
+            CODE_SECRET_TOKEN,
+        ] {
             assert!(
                 code.starts_with(CODE_SECRET_PREFIX),
                 "{code} would not be recognised as being about a secret"
@@ -318,6 +349,8 @@ mod tests {
             secret_characters("quilt\u{7}lantern").err(),
             secret("").err(),
             secret(&"x".repeat(SECRET_MAX_LENGTH + 1)).err(),
+            secret_token("token\u{7}wrapped").err(),
+            secret_token(&"x".repeat(SECRET_TOKEN_MAX_LENGTH + 1)).err(),
         ];
 
         for error in errors {
