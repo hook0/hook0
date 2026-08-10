@@ -106,18 +106,44 @@ function submit() {
     })
     .catch((err) => {
       displayError(err as Problem);
-      // A refused password is worth another try in place; anything else means
-      // the link itself is the problem, and the form has nothing left to offer.
       const rejection = passwordRejection(err);
       if (rejection.refused) {
         passwordError.value = rejection.reason;
-      } else {
+        return;
+      }
+      // Only the link being dead removes the form. A server that was busy or
+      // unreachable says nothing about the link, and taking the form away for
+      // it would cost the user their reset for an outage that lasted a second.
+      if (isDeadLink(err)) {
         linkIsUsable.value = false;
       }
     })
     .finally(() => {
       isLoading.value = false;
     });
+}
+
+/**
+ * The errors that mean this particular link will never work again, whatever
+ * the user types: a token the API cannot read or has expired, one it refuses
+ * to authorize, and the client-side case of no token at all. Everything else —
+ * a busy server, a dropped connection — is worth another attempt, so the form
+ * stays.
+ *
+ * Raised by `reset_password` in api/src/handlers/auth.rs.
+ */
+const DEAD_LINK_PROBLEM_IDS: ReadonlySet<string> = new Set([
+  'AuthEmailExpired',
+  'Forbidden',
+  'InvalidToken',
+]);
+
+function isDeadLink(err: unknown): boolean {
+  if (err === null || typeof err !== 'object') {
+    return false;
+  }
+  const id: unknown = (err as Record<string, unknown>).id;
+  return typeof id === 'string' && DEAD_LINK_PROBLEM_IDS.has(id);
 }
 
 function displayError(err: Problem) {
