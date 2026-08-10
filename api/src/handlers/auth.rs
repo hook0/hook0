@@ -865,7 +865,7 @@ async fn store_new_password<'a, A: Acquire<'a, Database = Postgres>>(
     let mut db = db.acquire().await?;
     let mut tx = db.begin().await?;
 
-    query!(
+    let stored = query!(
         "
                 UPDATE iam.user
                 SET password = $1
@@ -876,6 +876,13 @@ async fn store_new_password<'a, A: Acquire<'a, Database = Postgres>>(
     )
     .execute(&mut *tx)
     .await?;
+
+    // The account is read before hashing and written after, on two different
+    // connections. If it disappeared in between, answering 204 would tell the
+    // user their password was changed when nothing was stored.
+    if stored.rows_affected() == 0 {
+        return Err(Hook0Problem::Forbidden);
+    }
 
     query!(
         "
