@@ -182,8 +182,64 @@ test.describe("Password policy", () => {
       await page.goto("/reset-password");
 
       await expect(
-        page.getByText(/this reset link is invalid or has expired/i)
+        page.getByText(/open the link from your password reset email again/i)
       ).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('[data-test="reset-password-form"]')).toHaveCount(0);
+    });
+
+    /**
+     * The two sides of the classification that decides whether a user keeps
+     * their reset link. A server that was busy says nothing about the link, so
+     * the form stays; a token the API will never accept means it does not.
+     * Both are stubbed, because neither is reachable on demand from a healthy
+     * stack.
+     */
+    test("keeps the form when the server fails, drops it when the token is dead", async ({
+      page,
+    }) => {
+      await page.goto("/reset-password?token=stub");
+      await expect(page.locator('[data-test="reset-password-form"]')).toBeVisible({
+        timeout: 10000,
+      });
+
+      await page.route("**/api/v1/auth/reset-password", (route) =>
+        route.fulfill({
+          status: 503,
+          contentType: "application/problem+json",
+          body: JSON.stringify({
+            id: "ServiceUnavailable",
+            status: 503,
+            title: "Something wrong happened",
+            detail: "Hook0 is busy, please retry.",
+          }),
+        })
+      );
+
+      const strong = `QuiltLanternHarbour${Date.now()}`;
+      await page.locator('[data-test="reset-password-new-password-input"]').fill(strong);
+      await page.locator('[data-test="reset-password-confirm-password-input"]').fill(strong);
+      await page.locator('[data-test="reset-password-submit-button"]').click();
+
+      await expect(page.getByText(/hook0 is busy/i)).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('[data-test="reset-password-form"]')).toBeVisible();
+
+      // Now the link really is dead, and retrying cannot help.
+      await page.route("**/api/v1/auth/reset-password", (route) =>
+        route.fulfill({
+          status: 400,
+          contentType: "application/problem+json",
+          body: JSON.stringify({
+            id: "AuthEmailExpired",
+            status: 400,
+            title: "Link expired",
+            detail: "This link has expired.",
+          }),
+        })
+      );
+
+      await page.locator('[data-test="reset-password-submit-button"]').click();
+
+      await expect(page.getByText(/this link has expired/i)).toBeVisible({ timeout: 10000 });
       await expect(page.locator('[data-test="reset-password-form"]')).toHaveCount(0);
     });
 

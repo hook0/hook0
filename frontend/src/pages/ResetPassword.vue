@@ -105,12 +105,16 @@ function submit() {
       return router.push({ name: routes.Login });
     })
     .catch((err) => {
-      displayError(err as Problem);
       const rejection = passwordRejection(err);
       if (rejection.refused) {
+        // Reported once, under the field it refers to. The alert card carries
+        // a "back to login" button, which is the wrong thing to put in front
+        // of someone whose only problem is the password they just chose.
         passwordError.value = rejection.reason;
         return;
       }
+
+      displayError(err as Problem);
       // Only the link being dead removes the form. A server that was busy or
       // unreachable says nothing about the link, and taking the form away for
       // it would cost the user their reset for an outage that lasted a second.

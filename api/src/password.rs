@@ -251,6 +251,15 @@ fn is_repeated_unit(candidate: &str) -> bool {
     })
 }
 
+/// How far into a padding run the word itself can still reach. A word ends on
+/// at most a handful of glyphs the padding would also claim ("chicag0",
+/// "baseba11"), so cuts are offered that deep and no deeper. Without a cap the
+/// search below is quadratic in the length ceiling, on a request body an
+/// unauthenticated caller chooses: a hundred characters of punctuation would
+/// buy a few thousand candidates and the two loops that walk them, for a
+/// password that is refused and therefore never reaches Argon2.
+const MAXIMUM_AMBIGUOUS_GLYPHS: usize = 8;
+
 /// Every word the padding at either end could be hiding.
 ///
 /// Padding is digits and punctuation, but the glyph where it meets the word is
@@ -258,8 +267,12 @@ fn is_repeated_unit(candidate: &str) -> bool {
 /// decoration, in "letmein2026!" none of it does. Guessing that boundary is
 /// what let both tricks through — trimming first ate the zero of "chicago",
 /// folding first turned "2026" into "2o26" and left nothing to trim. So the
-/// boundary is not guessed: every cut inside each padding run is offered, and
-/// the caller tests them all. Bounded by the password's own length ceiling.
+/// boundary is not guessed, it is searched, over a constant number of cuts.
+///
+/// Both extremes are always offered whatever the cap: the untouched string, so
+/// a password made entirely of digits can still be seen as a repeated unit,
+/// and the fully trimmed one, so a word buried under any amount of padding is
+/// still found.
 fn padding_cores(value: &str) -> Vec<&str> {
     let is_padding = |c: char| c.is_ascii_digit() || c.is_ascii_punctuation();
 
@@ -272,11 +285,24 @@ fn padding_cores(value: &str) -> Vec<&str> {
 
     let leading = value.chars().take_while(|c| is_padding(*c)).count();
     let trailing = value.chars().rev().take_while(|c| is_padding(*c)).count();
+    let trimmed_end = length - trailing;
 
-    let mut cores = Vec::new();
-    for start in 0..=leading {
-        for end in start.max(length - trailing)..=length {
-            cores.push(&value[boundaries[start]..boundaries[end]]);
+    let mut starts =
+        (leading.saturating_sub(MAXIMUM_AMBIGUOUS_GLYPHS)..=leading).collect::<Vec<_>>();
+    if !starts.contains(&0) {
+        starts.push(0);
+    }
+
+    let mut ends =
+        (trimmed_end..=(trimmed_end + MAXIMUM_AMBIGUOUS_GLYPHS).min(length)).collect::<Vec<_>>();
+    if !ends.contains(&length) {
+        ends.push(length);
+    }
+
+    let mut cores = Vec::with_capacity(starts.len() * ends.len());
+    for start in starts {
+        for end in ends.iter().filter(|end| **end >= start) {
+            cores.push(&value[boundaries[start]..boundaries[*end]]);
         }
     }
     cores

@@ -141,7 +141,7 @@
       "backToLogin": "Back to sign in",
       "confirmPassword": "Confirm new password",
       "confirmPasswordPlaceholder": "Confirm your new password",
-      "invalidToken": "Invalid or expired link",
+      "invalidToken": "This page needs your reset link",
       "password": "New password",
       "passwordPlaceholder": "Enter your new password",
       "passwordsMismatch": "Passwords do not match.",
@@ -150,7 +150,7 @@
       "submitting": "Updating...",
       "subtitle": "Enter your new password below",
       "title": "Reset your password",
-      "tokenRequired": "This reset link is invalid or has expired. Please request a new one."
+      "tokenRequired": "Open the link from your password reset email again — this page does not keep it after a refresh. If the link has expired, request a new one."
     },
     "trust": {
       "gdpr": "GDPR compliant, EU hosted",
@@ -586,14 +586,12 @@
     "apps": "Apps",
     "createApplication": "Create application",
     "createOrganization": "Create organization",
-    "apiReference": "API Reference",
     "darkMode": "Dark mode",
     "dashboard": "Dashboard",
     "deliveries": "Deliveries",
     "documentation": "Documentation",
     "eventTypes": "Event Types",
     "events": "Events",
-    "documentation": "Documentation",
     "goToAppDashboard": "Go to application dashboard",
     "goToOrgDashboard": "Go to organization dashboard",
     "help": "Help",
