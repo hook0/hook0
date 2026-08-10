@@ -82,6 +82,49 @@
   after_script:
     - rm -f ~/.docker/config.json
 
+# Container image vulnerability scan, run on the image the release just pushed
+# rather than on a working copy — so what is scanned is what users pull.
+# Subclasses set IMAGE_REPO (repository name under $CI_REGISTRY_IMAGE) and
+# TAG_PREFIX (the part of $CI_COMMIT_TAG before the version), and need: the
+# matching `.container` job.
+.release-container-scan:
+  stage: release
+  dependencies: []
+  image:
+    name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/aquasec/trivy:$TRIVY_VERSION
+    entrypoint: [""]
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+  variables:
+    TRIVY_NO_PROGRESS: "true"
+    TRIVY_CACHE_DIR: ".trivycache/"
+    # The image is private on the GitLab registry until it is mirrored; Trivy
+    # reads these two to authenticate its pull.
+    TRIVY_USERNAME: $CI_REGISTRY_USER
+    TRIVY_PASSWORD: $CI_REGISTRY_PASSWORD
+  cache:
+    paths:
+      - .trivycache/
+  script:
+    - trivy --version
+    - export SCAN_IMAGE="$CI_REGISTRY_IMAGE/$IMAGE_REPO:${CI_COMMIT_TAG#$TAG_PREFIX}"
+    - echo "Scanning $SCAN_IMAGE"
+    # Full report first, so the security dashboard is fed even when the gate below fails.
+    - trivy image --scanners vuln --exit-code 0 --format template --template "@/contrib/gitlab.tpl" --output gl-container-scanning-report.json "$SCAN_IMAGE"
+    # Gate: fail the release on anything HIGH/CRITICAL that upstream has already
+    # fixed. --ignore-unfixed keeps a tag from being held hostage by a CVE with
+    # no patch to apply; those still show up in the report above.
+    - trivy image --scanners vuln --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed "$SCAN_IMAGE"
+  artifacts:
+    reports:
+      container_scanning: gl-container-scanning-report.json
+    paths:
+      - gl-container-scanning-report.json
+    when: always
+
 # Common variables for every release flow (DockerHub/GHCR prefixes, GitHub repo).
 .release-globals:
   variables:

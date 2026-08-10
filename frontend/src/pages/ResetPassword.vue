@@ -8,6 +8,7 @@ import { DEFAULT_PASSWORD_MINIMUM_LENGTH, PASSWORD_MAXIMUM_LENGTH } from '@/util
 import { useInstanceConfig } from '@/composables/useInstanceConfig';
 import { routes } from '@/routes';
 import router from '@/router';
+import { stripTokenFromUrl } from '@/utils/stripTokenFromUrl';
 import { useI18n } from 'vue-i18n';
 import { ArrowLeft } from 'lucide-vue-next';
 
@@ -129,6 +130,7 @@ function displayError(err: Problem) {
 
 function _onLoad() {
   token = router.currentRoute.value.query.token as string;
+  stripTokenFromUrl(router);
   if (!token) {
     linkIsUsable.value = false;
     displayError({

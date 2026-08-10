@@ -90,6 +90,16 @@ play.container:
         --local dockerfile="${CI_PROJECT_DIR}/play" \
         --output "type=image,\"name=$CI_REGISTRY_IMAGE/play:$VERSION,$CI_REGISTRY_IMAGE/play:latest\",push=true"
 
+play.container-scan:
+  extends:
+    - .play-release-rules
+    - .release-container-scan
+  needs:
+    - job: play.container
+  variables:
+    IMAGE_REPO: play
+    TAG_PREFIX: play/v
+
 play.github:
   extends: .play-release-rules
   stage: release

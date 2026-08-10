@@ -4,14 +4,15 @@ import { useAuthStore } from '@/stores/auth';
 import { useRoute, useRouter } from 'vue-router';
 import { routes } from '@/routes';
 import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler';
+import { usePostAuthNavigation } from '@/composables/usePostAuthNavigation';
 import { useForm } from 'vee-validate';
-import * as OrganizationService from './organizations/OrganizationService';
-import * as ApplicationService from './organizations/applications/ApplicationService';
 import { createLoginSchema } from './login.schema';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
 import { ArrowRight } from 'lucide-vue-next';
+import { checkEmailHandoverState } from '@/utils/checkEmailHandover';
+import { NO_COOLDOWN } from '@/utils/cooldown';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -45,26 +46,15 @@ const [password, passwordAttrs] = defineField('password');
 
 const isLoading = ref<boolean>(false);
 
+/** `Hook0Problem::AuthEmailNotVerified` as the API serialises it. */
+const EMAIL_NOT_VERIFIED_PROBLEM_ID = 'AuthEmailNotVerified';
+
 /** Validate that a redirect path is a safe relative URL (no protocol-relative). */
 function isValidRedirectPath(path: string): boolean {
   return path.startsWith('/') && !path.startsWith('//');
 }
 
-/** Navigate to the appropriate page after successful login based on org/app count. */
-function handlePostLoginNavigation(
-  organizations: Array<{ organization_id: string }>
-): Promise<unknown> {
-  if (organizations.length === 0) {
-    return router.push({ name: routes.Tutorial });
-  }
-  if (organizations.length === 1) {
-    return ApplicationService.list(organizations[0].organization_id).then((applications) => {
-      const destination = applications.length === 0 ? routes.Tutorial : routes.Home;
-      return router.push({ name: destination });
-    });
-  }
-  return router.push({ name: routes.Home });
-}
+const { navigateAfterAuth } = usePostAuthNavigation();
 
 const onSubmit = handleSubmit((values) => {
   if (isLoading.value) return;
@@ -86,11 +76,26 @@ const onSubmit = handleSubmit((values) => {
         return;
       }
 
-      return OrganizationService.list().then(handlePostLoginNavigation);
+      return navigateAfterAuth();
     })
     .catch((err) => {
-      handleAuthError(err);
+      const problem = handleAuthError(err);
       trackEvent('auth', 'login', 'error');
+
+      // Signing in is where someone who never verified their address ends up,
+      // days after the signup mail expired or got lost. The API refuses the
+      // login and sends nothing, so leaving them on this form is a dead end:
+      // hand them over to the check-email page, which carries the resend button.
+      // The hand-off declares no send, because refusing a login sends nothing —
+      // the resend button is live on arrival, which is the whole point of
+      // routing them here. If they already used it, this browser's own record of
+      // that keeps the countdown running.
+      if (problem.id === EMAIL_NOT_VERIFIED_PROBLEM_ID) {
+        void router.push({
+          name: routes.CheckEmail,
+          state: checkEmailHandoverState(values.email, NO_COOLDOWN),
+        });
+      }
     })
     .finally(() => {
       isLoading.value = false;

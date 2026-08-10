@@ -1,10 +1,21 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { routes } from '@/routes';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
-import { Mail, LifeBuoy, ArrowLeft } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
+import { Mail, LifeBuoy, ArrowLeft, Send } from 'lucide-vue-next';
 
+import * as UserService from '@/pages/user/UserService';
+import {
+  latestCooldownStart,
+  readCooldownStart,
+  remainingCooldownSeconds,
+  writeCooldownStart,
+  NO_COOLDOWN,
+  type CooldownStart,
+} from '@/utils/cooldown';
+import { readCheckEmailHandover, type ResendTarget } from '@/utils/checkEmailHandover';
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -19,9 +30,109 @@ const { t } = useI18n();
 // Analytics tracking
 const { trackEvent, trackPageWithDimensions } = useTracking();
 
+// Seconds a user must wait between two resend attempts. Mirrors the server-side
+// per-account cooldown so the button re-enables about when a new email would
+// actually be sent again.
+const RESEND_COOLDOWN_SECONDS = 60;
+
+// Who to resend to, as handed over by the page that redirected here (signup, or
+// a login refused because the address is unverified) — through History API
+// state, never the URL, so the address never reaches analytics. Absence is a
+// case of its own rather than an empty address: opened without a hand-off (a
+// bookmarked /check-email), the resend action is simply not offered.
+const resendTarget = readCheckEmailHandover(window.history.state);
+const canResend = resendTarget.kind === 'address';
+
+const isResending = ref<boolean>(false);
+
+/**
+ * Where the countdown stands on arrival: the later of what this browser recorded
+ * when the button was last pressed, and the send the redirect declared it had
+ * just made.
+ *
+ * Both matter. Storage is what survives a reload — the server-side cooldown
+ * outlives the page, and since the endpoint answers 204 either way, a re-enabled
+ * button would report a send that never happened. The declared send covers the
+ * first arrival, where nothing is recorded yet and yet a verification email left
+ * seconds ago: signing up sends one and stamps the account, so the very first
+ * click would be throttled in silence.
+ */
+function initialCooldownStart(target: ResendTarget): CooldownStart {
+  if (target.kind === 'none') {
+    return NO_COOLDOWN;
+  }
+  const start = latestCooldownStart(
+    readCooldownStart(window.sessionStorage, target.email),
+    target.lastVerificationSend
+  );
+  if (start.kind === 'started') {
+    // Record the hand-off too, so it still applies on an arrival that carries no
+    // declaration of its own (coming back through the login form, say).
+    writeCooldownStart(window.sessionStorage, target.email, start.atMs);
+  }
+  return start;
+}
+
+const cooldownStart = ref<CooldownStart>(initialCooldownStart(resendTarget));
+const nowMs = ref<number>(Date.now());
+let ticker = 0;
+
+const cooldownRemaining = computed<number>(() =>
+  remainingCooldownSeconds(cooldownStart.value, RESEND_COOLDOWN_SECONDS, nowMs.value)
+);
+const isCoolingDown = computed<boolean>(() => cooldownRemaining.value > 0);
+
+function startCooldown(email: string) {
+  const startedAtMs = Date.now();
+  cooldownStart.value = { kind: 'started', atMs: startedAtMs };
+  nowMs.value = startedAtMs;
+  writeCooldownStart(window.sessionStorage, email, startedAtMs);
+}
+
+function resend() {
+  if (isResending.value || isCoolingDown.value || resendTarget.kind !== 'address') {
+    return;
+  }
+  const email = resendTarget.email;
+  isResending.value = true;
+  trackEvent('signup', 'resend-verification-email', 'check-email');
+
+  UserService.resendVerificationEmail(email)
+    .then(() => {
+      // Start the cooldown regardless of whether the address actually matched an
+      // account: the endpoint answers identically either way (anti-enumeration),
+      // so the UI must not behave differently.
+      //
+      // For the same reason the message acknowledges the request and stops
+      // there. A 204 means "accepted", never "sent": an unknown address, an
+      // already-verified one, a cooldown still running or a spent daily
+      // allowance all answer the same, with nothing leaving. Anything more
+      // definite would either be a lie or tell the caller which addresses exist.
+      startCooldown(email);
+      toast.success(t('auth.checkEmail.resendSuccess'));
+    })
+    .catch(() => {
+      // A failed attempt also starts the cooldown: the rate limiter in front of
+      // the endpoint is exactly what a user hammering the button runs into, and
+      // retrying immediately can only fail again.
+      startCooldown(email);
+      toast.error(t('auth.checkEmail.resendError'));
+    })
+    .finally(() => {
+      isResending.value = false;
+    });
+}
+
 onMounted(() => {
   trackPageWithDimensions('auth', 'view', 'email-sent');
   trackEvent('signup', 'page-view', 'check-email');
+  ticker = window.setInterval(() => {
+    nowMs.value = Date.now();
+  }, 1000);
+});
+
+onBeforeUnmount(() => {
+  window.clearInterval(ticker);
 });
 </script>
 
@@ -49,7 +160,32 @@ onMounted(() => {
         </Hook0Alert>
 
         <Hook0ButtonGroup direction="column" gap="sm" full-width>
-          <Hook0Button variant="primary" size="lg" :to="{ name: routes.Login }" full-width>
+          <Hook0Button
+            v-if="canResend"
+            variant="primary"
+            size="lg"
+            :loading="isResending"
+            :disabled="isResending || isCoolingDown"
+            full-width
+            data-test="resend-verification-email-button"
+            @click="resend"
+          >
+            <template #left>
+              <Send :size="18" aria-hidden="true" />
+            </template>
+            {{
+              isCoolingDown
+                ? t('auth.checkEmail.resendCooldown', { seconds: cooldownRemaining })
+                : t('auth.checkEmail.resend')
+            }}
+          </Hook0Button>
+
+          <Hook0Button
+            :variant="canResend ? 'secondary' : 'primary'"
+            size="lg"
+            :to="{ name: routes.Login }"
+            full-width
+          >
             <template #left>
               <ArrowLeft :size="20" aria-hidden="true" />
             </template>

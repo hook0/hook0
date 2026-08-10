@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import * as UserService from './UserService.ts';
+import { completeVerifiedSession } from './verifiedSessionFlow.ts';
 import { Problem } from '@/http.ts';
 import { onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
-import router from '@/router.ts';
+import { useRoute, useRouter } from 'vue-router';
 import { routes } from '@/routes.ts';
 import { toast } from 'vue-sonner';
+import { useAuthStore } from '@/stores/auth';
+import { usePostAuthNavigation } from '@/composables/usePostAuthNavigation';
 import { useTracking } from '@/composables/useTracking';
+import { stripTokenFromUrl } from '@/utils/stripTokenFromUrl';
 import { useI18n } from 'vue-i18n';
 import { ArrowLeft } from 'lucide-vue-next';
 
@@ -22,6 +25,9 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 const { t } = useI18n();
 
 const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
+const { navigateAfterAuth } = usePostAuthNavigation();
 
 // Analytics tracking
 const { trackEvent, trackPageWithDimensions } = useTracking();
@@ -60,6 +66,9 @@ function displaySuccess() {
 
 function _onLoad() {
   const token = route.query.token as string;
+  // This token now opens a session, so it leaves the address bar the moment it
+  // has been read — before anything that observes URLs can record it.
+  stripTokenFromUrl(router);
   if (!token) {
     displayError({
       id: 'InvalidToken',
@@ -71,9 +80,20 @@ function _onLoad() {
   }
 
   UserService.verifyEmail(token)
-    .then(() => {
+    .then((session) => {
       displaySuccess();
-      return router.push({ name: routes.Login });
+      // Verification returns a real session: log the user in and drop them
+      // straight onto the wizard/dashboard instead of the login form. Once the
+      // session exists the user is authenticated, so a failed post-auth
+      // navigation probe falls back to Home rather than the "Back to login"
+      // error card. Only a failure BEFORE the session exists (invalid/expired
+      // token) reaches the .catch below and sends them to login.
+      return completeVerifiedSession({
+        session,
+        setSession: (s) => authStore.setSession(s),
+        navigateAfterAuth,
+        goHome: () => router.push({ name: routes.Home }),
+      });
     })
     .catch((err) => {
       displayError(err as Problem);

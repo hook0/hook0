@@ -205,6 +205,8 @@ const sidebars = {
           ],
         },
         "resources/security",
+        "resources/vulnerability-disclosure-policy",
+        "resources/security-acknowledgments",
         "resources/pricing-billing",
         "resources/support",
       ],

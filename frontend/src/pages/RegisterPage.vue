@@ -13,6 +13,7 @@ import { toTypedSchema } from '@/utils/zod-adapter';
 import { useTracking } from '@/composables/useTracking';
 import { useI18n } from 'vue-i18n';
 import { ArrowRight, Check } from 'lucide-vue-next';
+import { checkEmailHandoverState } from '@/utils/checkEmailHandover';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -128,7 +129,14 @@ const onSubmit = handleSubmit((values) => {
     )
     .then(() => {
       trackEvent('signup', 'form-success', 'register');
-      return router.push({ name: routes.CheckEmail });
+      // Hand the address over to the check-email page, declaring the
+      // verification email that signing up just sent. That send stamps the
+      // account server-side, so the resend button must start out counting down
+      // rather than offering an attempt the server would silently refuse.
+      return router.push({
+        name: routes.CheckEmail,
+        state: checkEmailHandoverState(values.email, { kind: 'started', atMs: Date.now() }),
+      });
     })
     .catch((err) => {
       const problem = handleAuthError(err);

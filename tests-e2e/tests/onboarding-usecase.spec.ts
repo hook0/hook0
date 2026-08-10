@@ -66,13 +66,40 @@ async function openTutorialIntro(page: Page): Promise<void> {
 }
 
 /**
- * Stand in for the Matomo snippet, which is not loaded in this environment.
- * `trackEvent` only pushes when `window._paq` exists, so creating the queue is
- * what makes the tracking call observable — the call itself is the real one.
+ * Record what the app pushes to `window._paq`, in a log at
+ * `window.__trackedEvents` that nothing else can reach.
+ *
+ * Creating `window._paq` is what makes the tracking call observable, since
+ * `trackEvent` only pushes when it exists — the call itself is the real one.
+ * Getting it back out took three tries, because the Matomo snippet (loaded
+ * whenever `/instance` advertises a Matomo config) is an active participant:
+ * it replaces `window._paq` with its own tracker object, and when it cannot,
+ * it consumes the queue in place and leaves holes in it.
+ *
+ * So the queue is pinned (the setter drops the replacement, so the identity
+ * never changes mid-test) and every push is copied into a separate log that
+ * the snippet has no reference to and cannot rewrite. The assertion reads the
+ * log, never the queue.
  */
 async function captureTrackingQueue(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    (window as unknown as { _paq: unknown[] })._paq = [];
+    const log: unknown[] = [];
+    (window as unknown as { __trackedEvents: unknown[] }).__trackedEvents = log;
+
+    const queue: unknown[] = [];
+    const push = queue.push.bind(queue);
+    queue.push = (...entries: unknown[]) => {
+      log.push(...entries);
+      return push(...entries);
+    };
+
+    Object.defineProperty(window, "_paq", {
+      configurable: true,
+      get: () => queue,
+      set: () => {
+        // Keep ours: see above.
+      },
+    });
   });
 }
 
@@ -209,10 +236,12 @@ test.describe("Onboarding use-case personalization", () => {
     // all, so the choice has to actually reach analytics — not merely land in a
     // store. A refactor that drops the tracking call fails here.
     const trackedUseCase = await page.evaluate(() => {
-      const queue = (window as unknown as { _paq?: unknown[][] })._paq ?? [];
-      return queue.find(
-        (entry) => entry[0] === "trackEvent" && entry[1] === "signup" && entry[2] === "usecase"
-      );
+      const log = (window as unknown as { __trackedEvents?: unknown[] }).__trackedEvents ?? [];
+      return log
+        .filter((entry): entry is unknown[] => Array.isArray(entry))
+        .find(
+          (entry) => entry[0] === "trackEvent" && entry[1] === "signup" && entry[2] === "usecase"
+        );
     });
     expect(trackedUseCase, "selecting a use case must be tracked").toBeTruthy();
     expect(trackedUseCase![3]).toBe("ecommerce");

@@ -19,6 +19,7 @@ variables:
   CARGO_RELEASE_VERSION: "0.25.18"
   ALPINE_VERSION: "3.24"
   BUILDKIT_VERSION: "v0.27.0-rootless"
+  TRIVY_VERSION: "0.68.2"
 
 stages:
   - build
@@ -60,6 +61,12 @@ include:
 osv_dependency_scan:
   stage: test
   dependencies: []
+  # needs: [] on purpose. Without it this job waits for the whole build stage,
+  # so any build failure — including a runner that never got scheduled — turns
+  # a blocking gate into a `skipped` job and the commit reaches master
+  # unscanned. The scan reads the source tree and consumes no artifact, so it
+  # has nothing to wait for.
+  needs: []
   image: golang:1.25
   retry:
     max: 2
@@ -75,40 +82,11 @@ osv_dependency_scan:
     # lockfiles living in subdirectories.
     - osv-scanner --recursive --config=osv-scanner.toml .
 
-# Container scanning using Trivy (no Docker required, works on Kubernetes runners)
-container_scanning:
-  stage: test
-  dependencies: []
-  image:
-    name: aquasec/trivy:0.68.2
-    entrypoint: [""]
-  allow_failure: true
-  retry:
-    max: 2
-    when:
-      - runner_system_failure
-      - stuck_or_timeout_failure
-  variables:
-    TRIVY_NO_PROGRESS: "true"
-    TRIVY_CACHE_DIR: ".trivycache/"
-  cache:
-    paths:
-      - .trivycache/
-  before_script:
-    - trivy --version
-  script:
-    # Scan all Dockerfiles for misconfigurations
-    - trivy config --exit-code 0 --severity HIGH,CRITICAL .
-    # Scan filesystem for vulnerabilities in dependencies
-    - trivy fs --exit-code 0 --severity HIGH,CRITICAL --scanners vuln .
-    # Generate GitLab-compatible report
-    - trivy fs --exit-code 0 --format json --output gl-container-scanning-report.json .
-  artifacts:
-    reports:
-      container_scanning: gl-container-scanning-report.json
-    paths:
-      - gl-container-scanning-report.json
-    when: always
+# Container images are scanned where they exist: in the tag pipelines that push
+# them, against the exact bytes published (see .release-container-scan in
+# ci/release-common.gitlab-ci.yml). Branch pipelines have no image to scan.
+# Their filesystem is covered by osv_dependency_scan above; their Dockerfiles by
+# lint.dockerfiles, validate.dockerfiles and the IaC scan of the SDLC policy.
 
 dast:
   stage: dast
