@@ -307,6 +307,29 @@ mod tests {
         }
     }
 
+    /// The other half of keeping a password out of the response. The problem
+    /// builder strips the value from `params`, but `detail` comes from
+    /// `Display`, which falls back to printing `params` when an error carries
+    /// no message — so a secret validator that forgot its message would hand
+    /// the password back through the other field, with nothing to catch it.
+    #[test]
+    fn every_secret_validator_error_carries_a_message() {
+        let errors = [
+            secret_characters("quilt\u{7}lantern").err(),
+            secret("").err(),
+            secret(&"x".repeat(SECRET_MAX_LENGTH + 1)).err(),
+        ];
+
+        for error in errors {
+            let error = error.expect("the input is expected to be refused");
+            assert!(
+                error.message.is_some(),
+                "{} would print its params, and the value with them",
+                error.code
+            );
+        }
+    }
+
     #[test]
     fn a_secret_may_contain_anything_printable() {
         assert!(secret("quilt lantern harbour ✓ 𝐀").is_ok());

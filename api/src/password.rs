@@ -43,16 +43,12 @@ const MINIMUM_FRAGMENT_LENGTH: usize = 4;
 /// passphrase is not weak merely because its owner is called Eric.
 const MINIMUM_REMAINDER: usize = 8;
 
-/// Every form of a common password we keep in memory: the entry itself, plus
-/// its lookalike-folded form so a disguised entry ("passw0rd" in the list) is
-/// also matched by the disguise a user types.
+/// The common passwords, each stored in the canonical form both sides of a
+/// comparison are reduced to, so a disguise is stored as the word it disguises.
 static COMMON_PASSWORDS: LazyLock<HashSet<String>> = LazyLock::new(|| {
     include_str!("common_passwords.txt")
         .lines()
-        .flat_map(|line| {
-            let lowercased = line.trim().to_lowercase();
-            [fold_lookalikes(&lowercased), lowercased]
-        })
+        .map(|line| fold_confusables(&line.trim().to_lowercase()))
         .filter(|entry| !entry.is_empty())
         .collect()
 });
@@ -234,9 +230,17 @@ impl UserIdentity<'_> {
 /// Is the password a shorter unit typed several times? Counting distinct
 /// characters only catches a unit of one or two ("aaaa", "abab"); `abcdabcdabcd`
 /// clears both the length floor and the character count while carrying the
-/// entropy of four characters.
+/// entropy of four characters. Padding is stripped first, or one trailing digit
+/// would break the periodicity and buy the whole trick back.
 fn is_repetition(password: &str) -> bool {
-    let characters = password.chars().collect::<Vec<_>>();
+    padding_cores(password)
+        .into_iter()
+        .filter(|core| core.chars().count() >= MINIMUM_FRAGMENT_LENGTH)
+        .any(is_repeated_unit)
+}
+
+fn is_repeated_unit(candidate: &str) -> bool {
+    let characters = candidate.chars().collect::<Vec<_>>();
     let length = characters.len();
 
     (1..=length / 2).any(|unit| {
@@ -247,21 +251,47 @@ fn is_repetition(password: &str) -> bool {
     })
 }
 
-/// What the digit `1` can be standing for: itself, or either of the two letters
-/// people write as `1`. It is the one ambiguous glyph of the set, and the
-/// reading changes where the word ends — in "baseba112026" the ones are letters
-/// and the rest is padding, in "password1234" the one is padding. Every reading
-/// is tried rather than guessed.
-const ONE_READINGS: [char; 3] = ['1', 'i', 'l'];
+/// Every word the padding at either end could be hiding.
+///
+/// Padding is digits and punctuation, but the glyph where it meets the word is
+/// ambiguous: in "chicag02026!" the zero belongs to the word and the rest is
+/// decoration, in "letmein2026!" none of it does. Guessing that boundary is
+/// what let both tricks through — trimming first ate the zero of "chicago",
+/// folding first turned "2026" into "2o26" and left nothing to trim. So the
+/// boundary is not guessed: every cut inside each padding run is offered, and
+/// the caller tests them all. Bounded by the password's own length ceiling.
+fn padding_cores(value: &str) -> Vec<&str> {
+    let is_padding = |c: char| c.is_ascii_digit() || c.is_ascii_punctuation();
+
+    let boundaries = value
+        .char_indices()
+        .map(|(index, _)| index)
+        .chain(std::iter::once(value.len()))
+        .collect::<Vec<_>>();
+    let length = boundaries.len() - 1;
+
+    let leading = value.chars().take_while(|c| is_padding(*c)).count();
+    let trailing = value.chars().rev().take_while(|c| is_padding(*c)).count();
+
+    let mut cores = Vec::new();
+    for start in 0..=leading {
+        for end in start.max(length - trailing)..=length {
+            cores.push(&value[boundaries[start]..boundaries[end]]);
+        }
+    }
+    cores
+}
 
 /// Fold the digit and symbol substitutions people use to disguise a word
 /// ("P@ssw0rd" becomes "password"), so a disguise is recognised as the word.
-fn fold_lookalikes_reading_one_as(lowercased: &str, one: char) -> String {
+/// Shared with the frontend, character for character — see
+/// `password-policy-vectors.json`.
+fn fold_lookalikes(lowercased: &str) -> String {
     lowercased
         .chars()
         .map(|c| match c {
             '0' => 'o',
-            '1' => one,
+            '1' => 'i',
             '3' => 'e',
             '4' => 'a',
             '5' => 's',
@@ -275,10 +305,30 @@ fn fold_lookalikes_reading_one_as(lowercased: &str, one: char) -> String {
         .collect()
 }
 
-/// The fold used wherever a single reading is enough — comparing a password to
-/// the user's own identity, where both sides are folded the same way.
-fn fold_lookalikes(lowercased: &str) -> String {
-    fold_lookalikes_reading_one_as(lowercased, 'i')
+/// Collapse each group of glyphs people write for one another onto a single
+/// representative, so that comparing two strings ignores which member of the
+/// group was typed.
+///
+/// This is what the blocklist is matched on, and it is deliberately blunter
+/// than `fold_lookalikes`: "million", "m1ll1on" and "mi11ion" all reduce to the
+/// same thing, where a fold that picks one reading per glyph can only recover
+/// the disguises that happen to agree with its choice. Not used for the
+/// identity rules — those are shared with the frontend and must fold, not
+/// collapse.
+fn fold_confusables(lowercased: &str) -> String {
+    lowercased
+        .chars()
+        .map(|c| match c {
+            'i' | 'l' | '1' | '!' | '|' => '1',
+            'o' | '0' => 'o',
+            'e' | '3' => 'e',
+            'a' | '4' | '@' => 'a',
+            's' | '5' | '$' => 's',
+            't' | '7' => 't',
+            'b' | '8' => 'b',
+            other => other,
+        })
+        .collect()
 }
 
 /// Reduce a value to the letters a human would recognise in it, so that
@@ -292,55 +342,16 @@ fn fold_identity(value: &str) -> String {
 }
 
 /// Is this one of the passwords everybody picks — possibly disguised, possibly
-/// padded to reach the length floor?
+/// padded to reach the length floor? Padding a word and disguising its letters
+/// are the two cheapest ways to stretch a common password into a compliant one,
+/// so neither is allowed to hide it.
 fn is_common(password: &str) -> bool {
     let lowercased = password.to_lowercase();
 
-    ONE_READINGS.iter().any(|one| {
-        // Read the ambiguous `1` first, because it decides where the word ends:
-        // trimming "baseba112026!" before reading its ones as letters eats them
-        // along with the padding.
-        let read = lowercased
-            .chars()
-            .map(|c| if c == '1' { *one } else { c })
-            .collect::<String>();
-
-        // Padding is then trimmed before the remaining glyphs are folded, never
-        // after: folding turns the padding digits into letters ("2026" into
-        // "2o26") and there would be nothing left to trim. Which end carries it
-        // is ambiguous too, so both ends and each end alone are tried.
-        [
-            read.clone(),
-            trim_padding(&read, true, true),
-            trim_padding(&read, false, true),
-            trim_padding(&read, true, false),
-        ]
-        .iter()
-        .filter(|candidate| candidate.chars().count() >= MINIMUM_FRAGMENT_LENGTH)
-        .any(|candidate| {
-            COMMON_PASSWORDS.contains(candidate.as_str())
-                || COMMON_PASSWORDS.contains(&fold_lookalikes(candidate))
-        })
-    })
-}
-
-/// Drop the digits and punctuation padding a word ("letmein2026!" becomes
-/// "letmein"): the cheapest way to stretch a common password to the required
-/// length, and therefore the most popular.
-fn trim_padding(candidate: &str, start: bool, end: bool) -> String {
-    let is_padding = |c: char| c.is_ascii_digit() || c.is_ascii_punctuation();
-
-    let trimmed = if start {
-        candidate.trim_start_matches(is_padding)
-    } else {
-        candidate
-    };
-
-    if end {
-        trimmed.trim_end_matches(is_padding).to_owned()
-    } else {
-        trimmed.to_owned()
-    }
+    padding_cores(&lowercased)
+        .into_iter()
+        .filter(|core| core.chars().count() >= MINIMUM_FRAGMENT_LENGTH)
+        .any(|core| COMMON_PASSWORDS.contains(&fold_confusables(core)))
 }
 
 #[cfg(test)]
@@ -473,6 +484,96 @@ mod tests {
                 Err(Rejection::TooCommon),
                 "accepted a common password written with ones: {password}"
             );
+        }
+    }
+
+    /// One character of decoration used to buy the whole trick back: it broke
+    /// the periodicity, and a repeated unit was only ever tested on the whole
+    /// string.
+    #[test]
+    fn padding_a_repeated_unit_does_not_hide_it() {
+        for password in [
+            "abcdabcdabcd99",
+            "abcabcabcabc!",
+            "1234123412340",
+            "hook0hook0hook0hook01",
+            "12ababababababab",
+            "azazazazazaz09",
+        ] {
+            assert_eq!(
+                check(password),
+                Err(Rejection::NotEnoughDistinctCharacters),
+                "accepted a padded repeated unit: {password}"
+            );
+        }
+    }
+
+    /// The two glyphs the padding and the word fight over. Reading `1` as a
+    /// letter everywhere turned the padding's own ones into letters, and
+    /// trimming before folding ate the `0` that was the "o" of "chicago" —
+    /// so where the word ends is searched for, never guessed.
+    #[test]
+    fn a_disguise_that_reaches_into_the_padding_does_not_hide_a_common_password() {
+        for password in [
+            // The padding carries a one of its own.
+            "1etmein12345",
+            "baseba1112345",
+            "michae112345",
+            "char1ie12345",
+            // The word ends on a glyph the padding would claim.
+            "chicag02026!",
+            "sc0rpi02026!",
+        ] {
+            assert_eq!(
+                check(password),
+                Err(Rejection::TooCommon),
+                "accepted a disguised common password: {password}"
+            );
+        }
+    }
+
+    /// The blocklist is 10000 entries and the tests above pin a dozen. Sweeping
+    /// the real list is what turns "these six disguises are caught" into "this
+    /// disguise is caught, for every word we ship" — the two escapes above were
+    /// found by a sweep and would have been born caught with one.
+    #[test]
+    fn no_shipped_common_password_survives_being_disguised_and_padded() {
+        let words = include_str!("common_passwords.txt")
+            .lines()
+            .map(str::trim)
+            .filter(|word| {
+                word.chars().count() >= MINIMUM_FRAGMENT_LENGTH
+                    && word.chars().all(|c| c.is_ascii_lowercase())
+            })
+            .collect::<Vec<_>>();
+        assert!(words.len() > 1000, "the blocklist did not load: {words:?}");
+
+        let disguise = |word: &str| {
+            word.chars()
+                .map(|c| match c {
+                    'o' => '0',
+                    'i' | 'l' => '1',
+                    'a' => '@',
+                    'e' => '3',
+                    's' => '5',
+                    other => other,
+                })
+                .collect::<String>()
+        };
+
+        for word in words {
+            for candidate in [
+                format!("{word}12345"),
+                format!("{}12345", disguise(word)),
+                format!("{}2026!", disguise(word)),
+                format!("2026!{}", disguise(word)),
+                format!("..{}..", disguise(word)),
+            ] {
+                assert!(
+                    is_common(&candidate),
+                    "{candidate:?} hides the common password {word:?}"
+                );
+            }
         }
     }
 
@@ -779,6 +880,48 @@ mod tests {
                 let length = password.chars().count();
                 prop_assert!(length >= usize::from(minimum_length));
                 prop_assert!(length <= MAXIMUM_LENGTH);
+
+                // Asserting the length alone let the other four gates drift:
+                // `is_repetition` shipped with no property at all, and grew a
+                // bypass nobody sampled.
+                prop_assert!(
+                    password.chars().collect::<HashSet<_>>().len()
+                        >= MINIMUM_DISTINCT_CHARACTERS
+                );
+                prop_assert!(!is_repetition(&password));
+                prop_assert!(!is_common(&password));
+            }
+        }
+
+        /// The rule the whole fix exists for, stated as an invariant rather
+        /// than as a list of addresses: whatever is accepted, you cannot read
+        /// the account's address out of it and have little left over. Both
+        /// email properties above feed the address in whole, so they only ever
+        /// exercise the equality short-circuit — this one exercises the
+        /// containment path that does the actual work.
+        #[test]
+        fn an_accepted_password_is_not_the_email_address_with_decoration(
+            local_part in "[a-z]{3,20}",
+            domain in "[a-z]{3,10}\\.[a-z]{2,4}",
+            decoration in ".{0,20}",
+        ) {
+            let email = format!("{local_part}@{domain}");
+            let identity = UserIdentity {
+                email: &email,
+                first_name: "Some",
+                last_name: "One",
+            };
+            let password = format!("{email}{decoration}");
+
+            if Checked::new(&password, 0, &identity).is_ok() {
+                let folded_password = fold_identity(&password);
+                let folded_email = fold_identity(&email);
+                prop_assert!(
+                    !folded_password.contains(&folded_email)
+                        || folded_password.chars().count()
+                            .saturating_sub(folded_email.chars().count())
+                            >= MINIMUM_REMAINDER
+                );
             }
         }
 
