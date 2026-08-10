@@ -120,12 +120,12 @@ happens, the two implementations are pinned to a single fixture rather than trus
 
 The password policy is the current example: `password-policy-vectors.json`, at the root of the repository, is read by
 the Rust suite (`api/src/password.rs`) and by the frontend suite (`frontend/src/utils/passwordPolicy.test.ts`,
-`frontend/src/utils/passwordProblem.test.ts`). It fixes the verdict for a list of passwords and the set of API error
-ids that mean "the password was refused". Changing a rule on one side without the other fails both suites, which is
-the point: a form that accepts what the API refuses wastes the user's time, and a form that refuses what the API
-accepts is a bug nobody sees.
+`frontend/src/utils/passwordProblem.test.ts`). It fixes the verdict for a list of passwords, the maximum length, and
+the set of API error ids that mean "the password was refused". Changing a rule on one side without the other fails
+both suites, which is the point: a form that accepts what the API refuses wastes the user's time, and a form that
+refuses what the API accepts is a bug nobody sees.
 
-If you add a rejection reason, add it to the fixture in the same change.
+If you add a rejection reason, or move a bound, put it in the fixture in the same change.
 
 ### Reporting Security Vulnerabilities
 
