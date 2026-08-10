@@ -13,6 +13,7 @@ use tracing::{error, warn};
 use crate::handlers::events::PayloadContentType;
 use crate::iam::Role;
 use crate::quotas::QuotaValue;
+use crate::validators::CODE_SECRET_PREFIX;
 
 /**
  * How to implement a new type error for Hook0:
@@ -550,6 +551,38 @@ impl From<Hook0Problem> for Problem {
                 }
             },
             Hook0Problem::Validation(e) => {
+                /// The `validator` derive attaches the value it refused to
+                /// every error it builds, and the whole tree ends up in the
+                /// response body. For a password that means handing it back to
+                /// the caller, to the browser console, and to anything logging
+                /// response bodies — so errors a validator marked as being
+                /// about a secret lose that value on the way out.
+                fn without_secret_values(mut value: Value) -> Value {
+                    match &mut value {
+                        Value::Array(items) => {
+                            for item in items {
+                                *item = without_secret_values(item.take());
+                            }
+                        },
+                        Value::Object(fields) => {
+                            let is_secret = fields
+                                .get("code")
+                                .and_then(Value::as_str)
+                                .is_some_and(|code| code.starts_with(CODE_SECRET_PREFIX));
+                            if let Some(Value::Object(params)) = fields.get_mut("params")
+                                && is_secret
+                            {
+                                params.remove("value");
+                            }
+                            for (_, field) in fields.iter_mut() {
+                                *field = without_secret_values(field.take());
+                            }
+                        },
+                        _ => {},
+                    }
+                    value
+                }
+
                 let errors_str = e.to_string();
                 // `ValidationErrors` renders as an empty string when it holds no error, which only
                 // happens for the value `EnumIter` fabricates to build the public error catalogue.
@@ -562,7 +595,7 @@ impl From<Hook0Problem> for Problem {
                     id: Hook0Problem::Validation(e.to_owned()),
                     title: "Provided input is malformed",
                     detail: detail.into(),
-                    validation: to_value(e).ok(),
+                    validation: to_value(e).ok().map(without_secret_values),
                     status: StatusCode::UNPROCESSABLE_ENTITY,
                 }
             },

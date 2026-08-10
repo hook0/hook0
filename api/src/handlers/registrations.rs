@@ -31,10 +31,11 @@ pub struct RegistrationPost {
     email: String,
     // Length is deliberately not validated here: the policy owns both bounds
     // (`password::Checked::new`), so the user is told the instance's real
-    // minimum instead of a number hardcoded next to the field. It also keeps
-    // the rejected password out of the response body, which the `length`
-    // validator echoes back as an error parameter.
-    #[validate(non_control_character)]
+    // minimum instead of a number hardcoded next to the field, and an
+    // oversized one is refused as `PasswordTooLong` rather than as malformed
+    // input. `secret_characters` keeps the refused password out of the
+    // response body, which the built-in validators echo back.
+    #[validate(custom(function = "crate::validators::secret_characters"))]
     password: String,
     turnstile_token: Option<String>,
     /// Optional Google Ads click identifier captured during the user's

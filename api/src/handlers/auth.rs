@@ -31,8 +31,8 @@ pub struct LoginPost {
     email: String,
     // Bounded, but with no policy of its own: logging in must accept whatever
     // the account's password happens to be, including one set before the policy
-    // existed.
-    #[validate(non_control_character, length(min = 1, max = 100))]
+    // existed. `secret` bounds it without echoing it back.
+    #[validate(custom(function = "crate::validators::secret"))]
     password: String,
 }
 
@@ -66,17 +66,18 @@ pub struct ResetPasswordPost {
     token: String,
     // Length is deliberately not validated here: the policy owns both bounds
     // (`password::Checked::new`), so the user is told the instance's real
-    // minimum instead of a number hardcoded next to the field. It also keeps
-    // the rejected password out of the response body, which the `length`
-    // validator echoes back as an error parameter.
-    #[validate(non_control_character)]
+    // minimum instead of a number hardcoded next to the field, and an
+    // oversized one is refused as `PasswordTooLong` rather than as malformed
+    // input. `secret_characters` keeps the refused password out of the
+    // response body, which the built-in validators echo back.
+    #[validate(custom(function = "crate::validators::secret_characters"))]
     new_password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct ChangePasswordPost {
     // See `ResetPasswordPost::new_password`: the policy owns the bounds.
-    #[validate(non_control_character)]
+    #[validate(custom(function = "crate::validators::secret_characters"))]
     new_password: String,
 }
 
@@ -891,6 +892,102 @@ async fn store_new_password<'a, A: Acquire<'a, Database = Postgres>>(
     tx.commit().await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod password_echo_tests {
+    use super::{ChangePasswordPost, LoginPost, ResetPasswordPost};
+    use crate::handlers::registrations::RegistrationPost;
+    use serde::de::DeserializeOwned;
+    use validator::Validate;
+
+    /// A password the caller must never find in the response.
+    const SECRET: &str = "correct horse battery staple";
+
+    /// The bytes the caller actually receives, built the way the API builds
+    /// them: the DTO's own validation, rendered as the RFC 7807 body.
+    fn response_body<T: DeserializeOwned + Validate>(body: serde_json::Value) -> String {
+        let dto = serde_json::from_value::<T>(body).expect("payload deserializes into the DTO");
+        let errors = dto
+            .validate()
+            .expect_err("payload is expected to fail validation");
+        let problem = http_api_problem::HttpApiProblem::from(
+            crate::problems::Hook0Problem::Validation(errors),
+        );
+        String::from_utf8(problem.json_bytes()).expect("problem body is valid UTF-8")
+    }
+
+    /// The `length` validator hands back the value it refused as an error
+    /// parameter, and the 422 body carries the whole `ValidationErrors` tree —
+    /// so validating the length of a password put that password in the
+    /// response, in the browser console, and in anything logging response
+    /// bodies. The policy owns the bounds instead. This pins every field that
+    /// carries a password, so a validator added later cannot quietly bring the
+    /// echo back.
+    #[test]
+    fn no_password_field_echoes_its_value_when_validation_fails() {
+        // Long enough to trip any remaining length ceiling, and containing a
+        // control character to trip `non_control_character` too: whichever rule
+        // fires, the value must not come back.
+        let refused = format!("{SECRET}\u{7}{}", "x".repeat(200));
+
+        let bodies = [
+            (
+                "RegistrationPost::password",
+                response_body::<RegistrationPost>(serde_json::json!({
+                    "first_name": "Jordan",
+                    "last_name": "Rivera",
+                    "email": "jordanrivera801@example.com",
+                    "password": refused,
+                })),
+            ),
+            (
+                "ResetPasswordPost::new_password",
+                response_body::<ResetPasswordPost>(serde_json::json!({
+                    "token": "a-reset-token",
+                    "new_password": refused,
+                })),
+            ),
+            (
+                "ChangePasswordPost::new_password",
+                response_body::<ChangePasswordPost>(serde_json::json!({
+                    "new_password": refused,
+                })),
+            ),
+            (
+                "LoginPost::password",
+                response_body::<LoginPost>(serde_json::json!({
+                    "email": "jordanrivera801@example.com",
+                    "password": refused,
+                })),
+            ),
+        ];
+
+        for (field, body) in bodies {
+            assert!(
+                !body.contains(SECRET),
+                "{field} echoed the refused password: {body}"
+            );
+        }
+    }
+
+    /// The counterpart: only secrets lose their value. Naming the value it
+    /// refused is how a validation error is useful on an ordinary field, and
+    /// stripping it everywhere would be a silent downgrade of every 422.
+    #[test]
+    fn an_ordinary_field_still_names_the_value_it_refused() {
+        let body = response_body::<RegistrationPost>(serde_json::json!({
+            "first_name": "Jordan",
+            "last_name": "Rivera",
+            "email": "not-an-email-address",
+            "password": "quilt lantern harbour",
+        }));
+
+        assert!(
+            body.contains("not-an-email-address"),
+            "the refused email should still be reported back: {body}"
+        );
+    }
 }
 
 #[cfg(test)]
