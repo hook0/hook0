@@ -95,6 +95,14 @@ test.describe("Password policy", () => {
 
       await expectToast(page, { contains: "common" });
       await expect(page).toHaveURL(/\/register/);
+
+      // A toast above a form that still looks accepted leaves the user
+      // guessing what to retype: the reason must be on the field itself.
+      const passwordField = page.locator('[data-test="register-password-input"]');
+      await expect(passwordField).toHaveAttribute("aria-invalid", "true");
+      await expect(
+        page.locator('[data-test="input-error"]').filter({ hasText: /frequently used/i })
+      ).toBeVisible();
     });
   });
 
@@ -160,6 +168,14 @@ test.describe("Password policy", () => {
       await expect(
         page.locator('[data-test="reset-password-new-password-input"]')
       ).toBeVisible();
+
+      // And it says why, on the field, not only in a banner: this page never
+      // learns the account's email, so the server is the only one that can
+      // name the rule that refused it.
+      await expect(
+        page.locator('[data-test="reset-password-new-password-input"]')
+      ).toHaveAttribute("aria-invalid", "true");
+      await expect(page.locator("#new_password-error")).toContainText(/email address/i);
 
       // Second attempt, with a password the policy accepts.
       await page.locator('[data-test="reset-password-new-password-input"]').fill(acceptedPassword);
