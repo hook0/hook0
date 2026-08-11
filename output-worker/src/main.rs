@@ -1052,17 +1052,17 @@ impl RetryPolicy {
     /// only a rate limit tells us the target is healthy and merely asking for a slower pace;
     /// on a 503 the header is a guess about a recovery we have no reason to trust.
     fn retry_after_hint(&self, response: &Response, now: DateTime<Utc>) -> Option<Duration> {
-        if response.http_code != Some(429) {
-            return None;
+        if response.http_code == Some(429) {
+            response
+                .headers
+                .as_ref()
+                .and_then(|headers| headers.get(RETRY_AFTER))
+                .and_then(|value| value.to_str().ok())
+                .and_then(|value| parse_retry_after(value, now))
+                .map(|hint| hint.min(Self::RETRY_AFTER_MAX))
+        } else {
+            None
         }
-
-        response
-            .headers
-            .as_ref()
-            .and_then(|headers| headers.get(RETRY_AFTER))
-            .and_then(|value| value.to_str().ok())
-            .and_then(|value| parse_retry_after(value, now))
-            .map(|hint| hint.min(Self::RETRY_AFTER_MAX))
     }
 
     /// The scheduled delay, never earlier than what a rate-limiting target asked for.
@@ -1125,14 +1125,14 @@ fn parse_retry_after(value: &str, now: DateTime<Utc>) -> Option<Duration> {
     let value = value.trim();
 
     if let Ok(seconds) = value.parse::<u64>() {
-        return Some(Duration::from_secs(seconds));
+        Some(Duration::from_secs(seconds))
+    } else {
+        DateTime::parse_from_rfc2822(value).ok().map(|date| {
+            (date.with_timezone(&Utc) - now)
+                .to_std()
+                .unwrap_or_default()
+        })
     }
-
-    DateTime::parse_from_rfc2822(value).ok().map(|date| {
-        (date.with_timezone(&Utc) - now)
-            .to_std()
-            .unwrap_or_default()
-    })
 }
 
 async fn compute_next_retry(
