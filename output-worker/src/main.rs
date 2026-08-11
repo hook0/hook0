@@ -17,7 +17,7 @@ use clap::{ArgGroup, Parser, ValueEnum, crate_name, crate_version};
 use hickory_resolver::config::LookupIpStrategy;
 use humantime::format_duration;
 use reqwest::Url;
-use reqwest::header::HeaderName;
+use reqwest::header::{HeaderName, RETRY_AFTER};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{PgConnection, PgPool, query, query_as};
 use std::str::FromStr;
@@ -981,6 +981,13 @@ impl RetryPolicy {
     /// Minimum width of the random jitter window.
     const JITTER_MIN_SPREAD: Duration = Duration::from_secs(2);
 
+    /// Longest delay a target can ask for through `Retry-After`.
+    ///
+    /// Deliberately equal to the schedule's own longest step, so a target can never park an
+    /// attempt for longer than we already would on our own — a header saying "come back in a
+    /// month" costs at most one extra step, not a month.
+    const RETRY_AFTER_MAX: Duration = Duration::from_hours(10);
+
     fn from_config(config: &Config) -> anyhow::Result<Self> {
         if !config.retry_jitter_ratio.is_finite() || config.retry_jitter_ratio < 0.0 {
             bail!(
@@ -1039,6 +1046,49 @@ impl RetryPolicy {
         })
     }
 
+    /// How long a rate-limiting target asked us to wait, bounded by `RETRY_AFTER_MAX`.
+    ///
+    /// Only `429 Too Many Requests` is honoured. Other statuses may carry `Retry-After` too, but
+    /// only a rate limit tells us the target is healthy and merely asking for a slower pace;
+    /// on a 503 the header is a guess about a recovery we have no reason to trust.
+    fn retry_after_hint(&self, response: &Response, now: DateTime<Utc>) -> Option<Duration> {
+        if response.http_code != Some(429) {
+            return None;
+        }
+
+        response
+            .headers
+            .as_ref()
+            .and_then(|headers| headers.get(RETRY_AFTER))
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| parse_retry_after(value, now))
+            .map(|hint| hint.min(Self::RETRY_AFTER_MAX))
+    }
+
+    /// The scheduled delay, never earlier than what a rate-limiting target asked for.
+    ///
+    /// Taking the maximum is what makes this safe to ship: honouring `Retry-After` can only ever
+    /// push an attempt further away, never bring it closer, and it leaves the number of retries
+    /// untouched — `None` still means "exhausted", for exactly the same retry counts as before.
+    ///
+    /// The flip side, and it is real: a run of honoured hints stretches the wall-clock life of an
+    /// attempt beyond the `max_retry_window` estimate logged at startup, which only accounts for
+    /// the base schedule and its jitter.
+    fn next_delay_honouring(
+        &self,
+        retry_count: i16,
+        factor: f64,
+        response: &Response,
+        now: DateTime<Utc>,
+    ) -> Option<Duration> {
+        let hint = self
+            .retry_after_hint(response, now)
+            .unwrap_or(Duration::ZERO);
+
+        self.next_delay(retry_count, factor)
+            .map(|delay| delay.max(hint))
+    }
+
     /// Worst-case number of retries and cumulative delay that fit in `max_retry_window`.
     ///
     /// Each step is charged its maximum jitter so the result is an upper bound on the retry
@@ -1063,6 +1113,26 @@ impl RetryPolicy {
 
         (effective_retries, cumulative)
     }
+}
+
+/// A `Retry-After` value as a delay from `now`, or `None` when it is not one we can trust.
+///
+/// RFC 9110 allows two forms: a count of seconds, or an HTTP-date. A date already in the past
+/// means "you may retry now" and yields a zero delay rather than being discarded. Anything we
+/// cannot parse is ignored, which falls back to the base schedule — a malformed header must
+/// never cost a delivery.
+fn parse_retry_after(value: &str, now: DateTime<Utc>) -> Option<Duration> {
+    let value = value.trim();
+
+    if let Ok(seconds) = value.parse::<u64>() {
+        return Some(Duration::from_secs(seconds));
+    }
+
+    DateTime::parse_from_rfc2822(value).ok().map(|date| {
+        (date.with_timezone(&Utc) - now)
+            .to_std()
+            .unwrap_or_default()
+    })
 }
 
 async fn compute_next_retry(
@@ -1107,7 +1177,12 @@ async fn compute_next_retry(
             .await?;
 
             if sub.is_some() {
-                Ok(policy.next_delay(attempt.retry_count, rand::random::<f64>()))
+                Ok(policy.next_delay_honouring(
+                    attempt.retry_count,
+                    rand::random::<f64>(),
+                    response,
+                    Utc::now(),
+                ))
             } else {
                 // If the subscription was disabled or soft-deleted (or its application was deleted), we do not schedule a next attempt
                 Ok(None)
@@ -1119,6 +1194,8 @@ async fn compute_next_retry(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
+    use reqwest::header::{HeaderMap, HeaderValue};
 
     /// A policy with jitter disabled, so tests of the base schedule assert exact values
     fn no_jitter(max_retries: u8) -> RetryPolicy {
@@ -1405,5 +1482,187 @@ mod tests {
         let cutoff = 1;
         assert!(SlotRole::is_hp(0, cutoff));
         assert!(!SlotRole::is_hp(1, cutoff));
+    }
+
+    /// A response as a target would send it back: a status, and optionally a `Retry-After`.
+    fn response(http_code: u16, retry_after: Option<&str>) -> Response {
+        let headers = retry_after.map(|value| {
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                RETRY_AFTER,
+                HeaderValue::from_str(value).expect("valid header value"),
+            );
+            headers
+        });
+
+        Response {
+            response_error: (http_code >= 400).then_some(ResponseError::Http),
+            http_code: Some(http_code),
+            headers,
+            body: None,
+            elapsed_time: Duration::ZERO,
+        }
+    }
+
+    fn a_moment() -> DateTime<Utc> {
+        DateTime::from_timestamp(1_800_000_000, 0).expect("valid timestamp")
+    }
+
+    #[test]
+    fn test_parse_retry_after_delay_seconds() {
+        let now = a_moment();
+        assert_eq!(parse_retry_after("0", now), Some(Duration::ZERO));
+        assert_eq!(
+            parse_retry_after("120", now),
+            Some(Duration::from_secs(120))
+        );
+        assert_eq!(
+            parse_retry_after("  30  ", now),
+            Some(Duration::from_secs(30))
+        );
+    }
+
+    #[test]
+    fn test_parse_retry_after_http_date() {
+        let now = a_moment();
+        let in_five_minutes = (now + chrono::TimeDelta::minutes(5)).to_rfc2822();
+        assert_eq!(
+            parse_retry_after(&in_five_minutes, now),
+            Some(Duration::from_secs(5 * 60))
+        );
+
+        // The IMF-fixdate form RFC 9110 asks servers to send, spelled with GMT
+        assert_eq!(
+            parse_retry_after("Sun, 06 Nov 1994 08:49:37 GMT", now),
+            Some(Duration::ZERO),
+            "a date already past means the target is ready now, not that the header is unusable"
+        );
+    }
+
+    #[test]
+    fn test_parse_retry_after_rejects_what_it_cannot_trust() {
+        let now = a_moment();
+        for value in ["", "soon", "-5", "12.5", "300s", "Tomorrow"] {
+            assert_eq!(
+                parse_retry_after(value, now),
+                None,
+                "{value:?} must fall back to the base schedule"
+            );
+        }
+    }
+
+    #[test]
+    fn test_retry_after_hint_only_reads_rate_limits() {
+        let now = a_moment();
+        let policy = no_jitter(30);
+
+        assert_eq!(
+            policy.retry_after_hint(&response(429, Some("120")), now),
+            Some(Duration::from_secs(120))
+        );
+        assert_eq!(policy.retry_after_hint(&response(429, None), now), None);
+        assert_eq!(
+            policy.retry_after_hint(&response(429, Some("nope")), now),
+            None
+        );
+
+        for other_status in [200, 400, 500, 503] {
+            assert_eq!(
+                policy.retry_after_hint(&response(other_status, Some("120")), now),
+                None,
+                "only 429 is honoured, got a hint on {other_status}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_retry_after_hint_is_bounded() {
+        let now = a_moment();
+        let policy = no_jitter(30);
+        let a_month = 30 * 24 * 3600;
+
+        assert_eq!(
+            policy.retry_after_hint(&response(429, Some(&a_month.to_string())), now),
+            Some(RetryPolicy::RETRY_AFTER_MAX)
+        );
+        assert_eq!(
+            policy.retry_after_hint(&response(429, Some("99999999999999999999")), now),
+            None,
+            "a value too large to even be a number is not a delay we can trust"
+        );
+    }
+
+    #[test]
+    fn test_next_delay_honouring_waits_for_what_the_target_asked() {
+        let now = a_moment();
+        let policy = no_jitter(30);
+        let hinted = response(429, Some("600"));
+
+        // The first steps are the ones that hammer: 3s and 10s both give way to the hint
+        assert_eq!(
+            policy.next_delay_honouring(0, 0.0, &hinted, now),
+            Some(Duration::from_secs(600))
+        );
+        assert_eq!(
+            policy.next_delay_honouring(1, 0.0, &hinted, now),
+            Some(Duration::from_secs(600))
+        );
+
+        // Once the schedule is already slower than the hint, the schedule wins
+        assert_eq!(
+            policy.next_delay_honouring(3, 0.0, &hinted, now),
+            Some(Duration::from_secs(30 * 60))
+        );
+
+        // No hint, no change
+        assert_eq!(
+            policy.next_delay_honouring(0, 0.0, &response(429, None), now),
+            policy.next_delay(0, 0.0)
+        );
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(512))]
+
+        /// Honouring `Retry-After` can only ever push an attempt further away, and it never
+        /// changes how many retries an attempt gets. Both halves matter: the first is what makes
+        /// the change safe to ship, the second is what keeps `evaluate` honest about the retry
+        /// count.
+        #[test]
+        fn honouring_retry_after_only_ever_delays(
+            retry_count in 0i16..40,
+            factor in 0.0f64..=1.0,
+            hint_secs in 0u64..1_000_000,
+            status in prop::sample::select(vec![200u16, 400, 429, 500, 503]),
+            jitter_ratio in 0.0f64..1.0,
+        ) {
+            let now = a_moment();
+            let policy = RetryPolicy {
+                max_retries: 24,
+                jitter_ratio,
+                jitter_max_spread: Duration::from_secs(15 * 60),
+            };
+            let answer = response(status, Some(&hint_secs.to_string()));
+
+            let base = policy.next_delay(retry_count, factor);
+            let honoured = policy.next_delay_honouring(retry_count, factor, &answer, now);
+
+            prop_assert_eq!(
+                base.is_some(),
+                honoured.is_some(),
+                "the number of retries must not depend on a response header"
+            );
+
+            if let (Some(base), Some(honoured)) = (base, honoured) {
+                prop_assert!(
+                    honoured >= base,
+                    "honouring Retry-After brought the attempt closer: {honoured:?} < {base:?}"
+                );
+                prop_assert!(
+                    honoured <= base.max(RetryPolicy::RETRY_AFTER_MAX),
+                    "honouring Retry-After went past its own bound: {honoured:?}"
+                );
+            }
+        }
     }
 }
