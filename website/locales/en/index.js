@@ -33,6 +33,8 @@ module.exports = {
       { label: 'Compare Alternatives', href: 'https://documentation.hook0.com/comparisons', color: 'purple' },
       { label: 'OSS Friends', href: './oss-friends', color: 'pink' },
       { label: 'Webhook Tester', href: 'https://play.hook0.com', color: 'emerald', external: true },
+      { label: 'Free Webhooks', href: './webhook-free', color: 'green', icon: 'gift' },
+      { label: 'Pricing', href: './pricing', color: 'indigo', icon: 'tag' },
     ],
   },
   // Schema.org graph for the homepage. siteUrl is interpolated from the
