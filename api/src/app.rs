@@ -555,10 +555,26 @@ mod tests {
     use super::test_support::openapi_spec;
 
     use serde_json::Value;
+    use std::collections::BTreeSet;
 
-    /// The document generated clients, the MCP server and the frontend types are
-    /// built from. Committed so none of them has to reach a running instance.
+    /// The document generated clients and the MCP server are built from.
+    /// Committed so neither has to reach a running instance.
     const SNAPSHOT_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/openapi.snapshot.json");
+
+    /// Tags that keep an operation in the snapshot. `public` is the surface
+    /// generated clients expose to their users; `mcp` is what the MCP server
+    /// turns into tools, and it covers a couple of operations the SDKs do not.
+    /// Everything else is the control plane the dashboard drives, and it stays
+    /// out: nobody generates a client for it.
+    const RETAINED_TAGS: [&str; 2] = ["public", "mcp"];
+
+    /// Keys of a path item that describe an operation rather than the path.
+    const HTTP_METHODS: [&str; 8] = [
+        "get", "put", "post", "delete", "options", "head", "patch", "trace",
+    ];
+
+    /// Prefix of a reference to a schema of the document.
+    const SCHEMA_REFERENCE_PREFIX: &str = "#/components/schemas/";
 
     /// Set to any value to rewrite the snapshot instead of failing on a difference.
     const SNAPSHOT_UPDATE_VAR: &str = "UPDATE_OPENAPI_SNAPSHOT";
@@ -607,7 +623,7 @@ mod tests {
     /// with; turning a feature on adds routes and the report then names them.
     #[actix_web::test]
     async fn openapi_snapshot_matches_the_served_document() {
-        let served = openapi_spec().await;
+        let served = client_surface(&openapi_spec().await);
 
         if std::env::var_os(SNAPSHOT_UPDATE_VAR).is_some() {
             let mut rendered =
@@ -639,6 +655,226 @@ mod tests {
              Snapshot: {SNAPSHOT_PATH}",
             report(&committed, &served)
         );
+    }
+
+    /// A generated SDK exposing `auth.login` or `organizations.invite` would be
+    /// handing out the dashboard's own control plane as if it were product.
+    /// Checked against the file rather than against the filter that wrote it, so
+    /// the two would have to be wrong in the same way to let something through.
+    #[actix_web::test]
+    async fn the_snapshot_leaves_the_private_control_plane_out() {
+        let served = openapi_spec().await;
+        let committed: Value = serde_json::from_slice(
+            &std::fs::read(SNAPSHOT_PATH).expect("the snapshot is readable"),
+        )
+        .expect("the committed snapshot is valid JSON");
+
+        let private = operation_ids(&served, |operation| !is_retained(operation));
+        let snapshotted = operation_ids(&committed, |_| true);
+
+        assert!(
+            !private.is_empty(),
+            "the served document tags every operation, so this proves nothing"
+        );
+        let leaked: Vec<_> = snapshotted.intersection(&private).collect();
+        assert!(
+            leaked.is_empty(),
+            "the snapshot exposes operations no client should be generated for: {leaked:?}"
+        );
+
+        println!(
+            "{} operations in the snapshot, {} kept out of it",
+            snapshotted.len(),
+            private.len()
+        );
+    }
+
+    /// Narrowing the document down also drops the components the operations
+    /// left behind used to reach. Dropping one too many yields a document that
+    /// still parses but that no generator can resolve, so the snapshot has to
+    /// carry exactly the components it points at — no dangling reference, and
+    /// no schema nothing points at either.
+    #[actix_web::test]
+    async fn the_snapshot_resolves_every_reference_it_makes() {
+        let committed = std::fs::read(SNAPSHOT_PATH).expect("the snapshot is readable");
+        let committed: Value =
+            serde_json::from_slice(&committed).expect("the committed snapshot is valid JSON");
+
+        let declared: BTreeSet<String> = committed["components"]["schemas"]
+            .as_object()
+            .expect("the snapshot declares schemas")
+            .keys()
+            .cloned()
+            .collect();
+        let referenced = referenced_schemas(&committed);
+
+        assert_eq!(
+            referenced.difference(&declared).collect::<Vec<_>>(),
+            Vec::<&String>::new(),
+            "the snapshot points at schemas it does not carry"
+        );
+        assert_eq!(
+            declared.difference(&referenced).collect::<Vec<_>>(),
+            Vec::<&String>::new(),
+            "the snapshot carries schemas nothing points at"
+        );
+
+        let schemes: BTreeSet<String> = committed["components"]["securitySchemes"]
+            .as_object()
+            .expect("the snapshot declares security schemes")
+            .keys()
+            .cloned()
+            .collect();
+        assert_eq!(
+            required_security_schemes(&committed["paths"])
+                .difference(&schemes)
+                .collect::<Vec<_>>(),
+            Vec::<&String>::new(),
+            "the snapshot requires security schemes it does not carry"
+        );
+    }
+
+    /// Identifiers of the operations of a document that a predicate keeps.
+    fn operation_ids(document: &Value, keep: impl Fn(&Value) -> bool) -> BTreeSet<String> {
+        let mut ids = BTreeSet::new();
+        for item in document["paths"]
+            .as_object()
+            .into_iter()
+            .flat_map(|paths| paths.values())
+        {
+            for (method, operation) in item.as_object().into_iter().flatten() {
+                if HTTP_METHODS.contains(&method.as_str())
+                    && keep(operation)
+                    && let Some(id) = operation["operationId"].as_str()
+                {
+                    ids.insert(id.to_owned());
+                }
+            }
+        }
+        ids
+    }
+
+    /// Narrows the served document down to what clients are generated from: the
+    /// operations carrying one of [`RETAINED_TAGS`], the paths that still hold
+    /// one, and the components those reach.
+    ///
+    /// The control plane the dashboard drives — signing in, registering,
+    /// administering an organization — is not something anyone should find in a
+    /// generated SDK, so it never enters the snapshot in the first place.
+    fn client_surface(served: &Value) -> Value {
+        let mut surface = served.clone();
+
+        let paths = surface["paths"]
+            .as_object_mut()
+            .expect("the served document exposes a paths object");
+        for item in paths.values_mut() {
+            let Some(item) = item.as_object_mut() else {
+                continue;
+            };
+            item.retain(|key, operation| {
+                !HTTP_METHODS.contains(&key.as_str()) || is_retained(operation)
+            });
+        }
+        paths.retain(|_, item| {
+            item.as_object()
+                .is_some_and(|item| item.keys().any(|key| HTTP_METHODS.contains(&key.as_str())))
+        });
+
+        let reachable = reachable_schemas(&surface["paths"], &surface["components"]["schemas"]);
+        let required = required_security_schemes(&surface["paths"]);
+
+        if let Some(components) = surface["components"].as_object_mut() {
+            if let Some(schemas) = components["schemas"].as_object_mut() {
+                schemas.retain(|name, _| reachable.contains(name));
+            }
+            if let Some(schemes) = components["securitySchemes"].as_object_mut() {
+                schemes.retain(|name, _| required.contains(name));
+            }
+        }
+
+        surface
+    }
+
+    /// Whether an operation is one clients are generated from.
+    fn is_retained(operation: &Value) -> bool {
+        operation["tags"].as_array().is_some_and(|tags| {
+            tags.iter()
+                .filter_map(Value::as_str)
+                .any(|tag| RETAINED_TAGS.contains(&tag))
+        })
+    }
+
+    /// Names of the schemas the retained operations reach, references followed
+    /// until the set stops growing — a schema pointing at itself, directly or
+    /// through others, therefore terminates.
+    fn reachable_schemas(paths: &Value, schemas: &Value) -> BTreeSet<String> {
+        let mut reachable = BTreeSet::new();
+        let mut pending: Vec<String> = referenced_schemas(paths).into_iter().collect();
+
+        while let Some(name) = pending.pop() {
+            if !reachable.insert(name.clone()) {
+                continue;
+            }
+            pending.extend(referenced_schemas(&schemas[&name]));
+        }
+
+        reachable
+    }
+
+    /// Names of the schemas a fragment of the document references directly.
+    fn referenced_schemas(fragment: &Value) -> BTreeSet<String> {
+        let mut referenced = BTreeSet::new();
+        collect_schema_references(fragment, &mut referenced);
+        referenced
+    }
+
+    fn collect_schema_references(fragment: &Value, out: &mut BTreeSet<String>) {
+        match fragment {
+            Value::Object(fields) => {
+                for (key, value) in fields {
+                    if key == "$ref"
+                        && let Some(name) = value
+                            .as_str()
+                            .and_then(|reference| reference.strip_prefix(SCHEMA_REFERENCE_PREFIX))
+                    {
+                        out.insert(name.to_owned());
+                    }
+                    collect_schema_references(value, out);
+                }
+            }
+            Value::Array(entries) => {
+                for entry in entries {
+                    collect_schema_references(entry, out);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Names of the security schemes the retained operations require.
+    fn required_security_schemes(paths: &Value) -> BTreeSet<String> {
+        let mut required = BTreeSet::new();
+        for item in paths
+            .as_object()
+            .into_iter()
+            .flat_map(|paths| paths.values())
+        {
+            for operation in item.as_object().into_iter().flat_map(|item| item.values()) {
+                for entry in operation["security"]
+                    .as_array()
+                    .into_iter()
+                    .flat_map(|entries| entries.iter())
+                {
+                    required.extend(
+                        entry
+                            .as_object()
+                            .into_iter()
+                            .flat_map(|entry| entry.keys().cloned()),
+                    );
+                }
+            }
+        }
+        required
     }
 
     /// Renders the differences as a bounded list of JSON pointers, since neither
