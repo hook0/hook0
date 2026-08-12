@@ -17,14 +17,28 @@ use crate::handlers::events::PayloadContentType;
 use crate::iam::Role;
 use crate::quotas::QuotaValue;
 
+/// The published shape of an error body. `api_v2_errors` below names it as the schema every
+/// error response answers with, and it parses that name as a bare identifier that it also reuses
+/// verbatim to build the `$ref`, so the import has to be spelled exactly like this: no qualified
+/// path, and no rename.
+use crate::handlers::errors::Problem;
+
 /**
  * How to implement a new type error for Hook0:
  * 1/ Add the type error variant inside Hook0Problem enum
- * 2/ Implement the Problem inside From<Hook0Problem> for Problem
+ * 2/ Implement the ProblemDetails inside From<Hook0Problem> for ProblemDetails
  * 3/ Give it its public identifier inside Hook0Problem::id (the compiler asks for it)
  * 4/ Done! Enjoy!
  */
-#[api_v2_errors(code = 403, code = 500, code = 400, code = 404, code = 409, code = 503)]
+#[api_v2_errors(
+    default_schema = "Problem",
+    code = 403,
+    code = 500,
+    code = 400,
+    code = 404,
+    code = 409,
+    code = 503
+)]
 #[derive(Debug, Clone, EnumIter)]
 pub enum Hook0Problem {
     // Functional errors
@@ -305,7 +319,7 @@ fn to_problem_status(status: StatusCode) -> http_api_problem::StatusCode {
 
 impl From<Hook0Problem> for HttpApiProblem {
     fn from(hook0_problem: Hook0Problem) -> Self {
-        let problem: Problem = hook0_problem.to_owned().into();
+        let problem: ProblemDetails = hook0_problem.to_owned().into();
         HttpApiProblem::new(to_problem_status(problem.status))
             .type_url(format!(
                 "https://hook0.com/documentation/errors/{}",
@@ -320,7 +334,7 @@ impl From<Hook0Problem> for HttpApiProblem {
 
 impl ResponseError for Hook0Problem {
     fn status_code(&self) -> StatusCode {
-        let problem: Problem = self.to_owned().into();
+        let problem: ProblemDetails = self.to_owned().into();
         problem.status
     }
 
@@ -340,7 +354,7 @@ impl ResponseError for Hook0Problem {
 }
 
 #[derive(Debug, Clone)]
-pub struct Problem {
+pub struct ProblemDetails {
     pub id: Hook0Problem,
     pub title: &'static str,
     pub detail: Cow<'static, str>,
@@ -348,25 +362,25 @@ pub struct Problem {
     pub status: StatusCode,
 }
 
-impl From<Hook0Problem> for Problem {
+impl From<Hook0Problem> for ProblemDetails {
     fn from(hook0_problem: Hook0Problem) -> Self {
         match hook0_problem {
             // Functional errors
-            Hook0Problem::OrganizationNameMissing => Problem {
+            Hook0Problem::OrganizationNameMissing => ProblemDetails {
                 id: Hook0Problem::OrganizationNameMissing,
                 title: "Organization name cannot be empty",
                 detail: "Organization name length must have more than 1 character.".into(),
                 validation: None,
                 status: StatusCode::BAD_REQUEST,
             },
-            Hook0Problem::UserAlreadyExist => Problem {
+            Hook0Problem::UserAlreadyExist => ProblemDetails {
                 id: Hook0Problem::UserAlreadyExist,
                 title: "This user already exist",
                 detail: "This email is already registered.".into(),
                 validation: None,
                 status: StatusCode::CONFLICT,
             },
-            Hook0Problem::RegistrationDisabled => Problem {
+            Hook0Problem::RegistrationDisabled => ProblemDetails {
                 id: Hook0Problem::RegistrationDisabled,
                 title: "Registrations are disabled",
                 detail: "Registration was disabled by an administrator.".into(),
@@ -375,7 +389,7 @@ impl From<Hook0Problem> for Problem {
             },
             Hook0Problem::PasswordTooShort(minimum_length) => {
                 let detail = format!("Password must be at least {minimum_length} characters long.");
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::PasswordTooShort(minimum_length),
                     title: "Provided password is too short",
                     detail: detail.into(),
@@ -383,21 +397,21 @@ impl From<Hook0Problem> for Problem {
                     status: StatusCode::BAD_REQUEST,
                 }
             },
-            Hook0Problem::OrganizationIsNotEmpty => Problem {
+            Hook0Problem::OrganizationIsNotEmpty => ProblemDetails {
                 id: Hook0Problem::OrganizationIsNotEmpty,
                 title: "Organization is not empty",
                 detail: "Organizations that contain at least an application cannot be deleted; applications must be deleted first. If you believe this is a mistake, please contact the Hook0 support team.".into(),
                 validation: None,
                 status: StatusCode::CONFLICT,
             },
-            Hook0Problem::InvitedUserDoesNotExist => Problem {
+            Hook0Problem::InvitedUserDoesNotExist => ProblemDetails {
                 id: Hook0Problem::InvitedUserDoesNotExist,
                 title: "Invited user does not exist",
                 detail: "The user you are trying to invite does not exist. Please make sure the user is already register in Hook0.".into(),
                 validation: None,
                 status: StatusCode::NOT_FOUND,
             },
-            Hook0Problem::InvitedUserAlreadyInOrganization => Problem {
+            Hook0Problem::InvitedUserAlreadyInOrganization => ProblemDetails {
                 id: Hook0Problem::InvitedUserAlreadyInOrganization,
                 title: "Invited user is already in the organization",
                 detail: "The user you are trying to invite has already access to the organization.".into(),
@@ -405,7 +419,7 @@ impl From<Hook0Problem> for Problem {
                 status: StatusCode::CONFLICT,
             },
 
-            Hook0Problem::ApplicationNameMissing => Problem {
+            Hook0Problem::ApplicationNameMissing => ProblemDetails {
                 id: Hook0Problem::ApplicationNameMissing,
                 title: "Application name cannot be empty",
                 detail: "Application name length must have more than 1 character.".into(),
@@ -415,7 +429,7 @@ impl From<Hook0Problem> for Problem {
 
             Hook0Problem::InvalidRole => {
                 let roles = format!("Valid roles are: {}.", Role::VARIANTS.join(", "));
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::InvalidRole,
                     title: "Provided role does not exist",
                     detail: roles.into(),
@@ -424,14 +438,14 @@ impl From<Hook0Problem> for Problem {
                 }
             },
 
-            Hook0Problem::EventTypeAlreadyExist => Problem {
+            Hook0Problem::EventTypeAlreadyExist => ProblemDetails {
                 id: Hook0Problem::EventTypeAlreadyExist,
                 title: "This event type already exist",
                 detail: "An event type with this name is already present.".into(),
                 validation: None,
                 status: StatusCode::CONFLICT,
             },
-            Hook0Problem::EventTypeDoesNotExist => Problem {
+            Hook0Problem::EventTypeDoesNotExist => ProblemDetails {
                 id: Hook0Problem::EventTypeDoesNotExist,
                 title: "Invalid event type",
                 detail: "Event type does not exist or was deactivated. You should (re)create it.".into(),
@@ -441,7 +455,7 @@ impl From<Hook0Problem> for Problem {
 
             Hook0Problem::UnauthorizedWorkers(w) => {
                 let detail = format!("You do not have access to the following workers: {}", w.join(", "));
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::UnauthorizedWorkers(w),
                     title: "Some of the provided dedicated workers are not authorized for your organization",
                     detail: detail.into(),
@@ -450,7 +464,7 @@ impl From<Hook0Problem> for Problem {
                 }
             },
 
-            Hook0Problem::EventAlreadyIngested => Problem {
+            Hook0Problem::EventAlreadyIngested => ProblemDetails {
                 id: Hook0Problem::EventAlreadyIngested,
                 title: "Event already Ingested",
                 detail: "This event was previously ingested and recorded inside Hook0 service.".into(),
@@ -459,7 +473,7 @@ impl From<Hook0Problem> for Problem {
             },
             Hook0Problem::EventInvalidPayloadContentType => {
                 let detail = format!("The specified event payload content type is not handled. Valid content types are: {}", PayloadContentType::VARIANTS.join(", "));
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::EventInvalidPayloadContentType,
                     title: "Invalid event payload content type",
                     detail: detail.into(),
@@ -469,7 +483,7 @@ impl From<Hook0Problem> for Problem {
             },
             Hook0Problem::EventInvalidBase64Payload(e) => {
                 let detail = format!("Event payload is not encoded in valid base64 format: {e}");
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::EventInvalidBase64Payload(e),
                     title: "Invalid event base64 payload",
                     detail: detail.into(),
@@ -479,7 +493,7 @@ impl From<Hook0Problem> for Problem {
             },
             Hook0Problem::EventInvalidJsonPayload(e) => {
                 let detail = format!("Event payload is not encoded in valid JSON format: {e}.");
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::EventInvalidJsonPayload(e),
                     title: "Invalid event JSON payload",
                     detail: detail.into(),
@@ -487,7 +501,7 @@ impl From<Hook0Problem> for Problem {
                     status: StatusCode::BAD_REQUEST,
                 }
             },
-            Hook0Problem::LabelsAmbiguity => Problem {
+            Hook0Problem::LabelsAmbiguity => ProblemDetails {
                 id: Hook0Problem::LabelsAmbiguity,
                 title: "Ambiguous labels specification",
                 detail: "You must specify either the `labels` property as an object with a least one property (recommended) or separated `label_key` and `label_value` properties as strings (legacy), but not both.".into(),
@@ -495,7 +509,7 @@ impl From<Hook0Problem> for Problem {
                 status: StatusCode::BAD_REQUEST,
             },
 
-            Hook0Problem::InvalidDateRange => Problem {
+            Hook0Problem::InvalidDateRange => ProblemDetails {
                 id: Hook0Problem::InvalidDateRange,
                 title: "Invalid date range",
                 detail: "'from' date must not be after 'to' date.".into(),
@@ -504,70 +518,70 @@ impl From<Hook0Problem> for Problem {
             },
 
             // Auth error
-            Hook0Problem::AuthNoAuthorizationHeader => Problem {
+            Hook0Problem::AuthNoAuthorizationHeader => ProblemDetails {
                 id: Hook0Problem::AuthNoAuthorizationHeader,
                 title: "No `Authorization` header was found in the HTTP request",
                 detail: "`Authorization` header must be provided and must contain a bearer token.".into(),
                 validation: None,
                 status: StatusCode::UNAUTHORIZED,
             },
-            Hook0Problem::AuthInvalidAuthorizationHeader => Problem {
+            Hook0Problem::AuthInvalidAuthorizationHeader => ProblemDetails {
                 id: Hook0Problem::AuthInvalidAuthorizationHeader,
                 title: "`Authorization` header is invalid",
                 detail: "`Authorization` header value could not be decoded as a valid UTF-8 string containing `Bearer {UUID}`.".into(),
                 validation: None,
                 status: StatusCode::BAD_REQUEST,
             },
-            Hook0Problem::AuthApplicationSecretLookupError => Problem {
+            Hook0Problem::AuthApplicationSecretLookupError => ProblemDetails {
                 id: Hook0Problem::AuthApplicationSecretLookupError,
                 title: "Could not check database to verify the provided application secret",
                 detail: "This is likely to be caused by database unavailability.".into(),
                 validation: None,
                 status: StatusCode::INTERNAL_SERVER_ERROR,
             },
-            Hook0Problem::AuthInvalidApplicationSecret => Problem {
+            Hook0Problem::AuthInvalidApplicationSecret => ProblemDetails {
                 id: Hook0Problem::AuthInvalidApplicationSecret,
                 title: "Invalid application secret",
                 detail: "The provided application secret does not exist.".into(),
                 validation: None,
                 status: StatusCode::FORBIDDEN,
             },
-            Hook0Problem::AuthBiscuitLookupError => Problem {
+            Hook0Problem::AuthBiscuitLookupError => ProblemDetails {
                 id: Hook0Problem::AuthBiscuitLookupError,
                 title: "Could not check database to verify if the provided Biscuit was revoked",
                 detail: "This is likely to be caused by database unavailability.".into(),
                 validation: None,
                 status: StatusCode::INTERNAL_SERVER_ERROR,
             },
-            Hook0Problem::AuthInvalidBiscuit => Problem {
+            Hook0Problem::AuthInvalidBiscuit => ProblemDetails {
                 id: Hook0Problem::AuthInvalidBiscuit,
                 title: "Invalid Biscuit",
                 detail: "The provided authentication token (Biscuit) is not valid, was not created using the current private key or is expired.".into(),
                 validation: None,
                 status: StatusCode::FORBIDDEN,
             },
-            Hook0Problem::AuthFailedLogin => Problem {
+            Hook0Problem::AuthFailedLogin => ProblemDetails {
                 id: Hook0Problem::AuthFailedLogin,
                 title: "Login failed",
                 detail: "The provided credentials do not match ones of a valid user.".into(),
                 validation: None,
                 status: StatusCode::UNAUTHORIZED,
             },
-            Hook0Problem::AuthEmailNotVerified => Problem {
+            Hook0Problem::AuthEmailNotVerified => ProblemDetails {
                 id: Hook0Problem::AuthEmailNotVerified,
                 title: "Email not verified",
                 detail: "Your email has not been verified yet. Please check your inbox.".into(),
                 validation: None,
                 status: StatusCode::UNAUTHORIZED,
             },
-            Hook0Problem::AuthFailedRefresh => Problem {
+            Hook0Problem::AuthFailedRefresh => ProblemDetails {
                 id: Hook0Problem::AuthFailedRefresh,
                 title: "Refreshing access token failed",
                 detail: "The provided refresh token is probably invalid or expired.".into(),
                 validation: None,
                 status: StatusCode::UNAUTHORIZED,
             },
-            Hook0Problem::AuthEmailAlreadyVerified => Problem {
+            Hook0Problem::AuthEmailAlreadyVerified => ProblemDetails {
                 id: Hook0Problem::AuthEmailAlreadyVerified,
                 title: "Email already verified",
                 detail: "This address has already been verified, so this link has nothing left to do. Sign in to continue.".into(),
@@ -575,7 +589,7 @@ impl From<Hook0Problem> for Problem {
                 status: StatusCode::CONFLICT,
             },
             Hook0Problem::AuthEmailExpired => {
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::AuthEmailExpired,
                     title: "Could not verify your link",
                     detail: "The link you clicked might be expired. Please retry the whole process or contact support.".into(),
@@ -587,7 +601,7 @@ impl From<Hook0Problem> for Problem {
             // Quota errors
             Hook0Problem::TooManyMembersPerOrganization(limit) => {
                 let detail = format!("This organization cannot have more than {limit} users. You might want to upgrade to a better plan.");
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::TooManyMembersPerOrganization(limit),
                     title: "Exceeded number of users that can be invited in this organization",
                     detail: detail.into(),
@@ -597,7 +611,7 @@ impl From<Hook0Problem> for Problem {
             },
             Hook0Problem::TooManyApplicationsPerOrganization(limit) => {
                 let detail = format!("This organization cannot have more than {limit} applications. You might want to upgrade to a better plan.");
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::TooManyApplicationsPerOrganization(limit),
                     title: "Exceeded number of applications that can be created in this organization",
                     detail: detail.into(),
@@ -607,7 +621,7 @@ impl From<Hook0Problem> for Problem {
             },
             Hook0Problem::TooManyEventsToday(limit) => {
                 let detail = format!("This organization cannot ingest more than {limit} events per day. You might want to upgrade to a better plan.");
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::TooManyEventsToday(limit),
                     title: "Exceeded number of events that can be ingested in this organization today",
                     detail: detail.into(),
@@ -617,7 +631,7 @@ impl From<Hook0Problem> for Problem {
             },
             Hook0Problem::TooManySubscriptionsPerApplication(limit) => {
                 let detail = format!("This application cannot have more than {limit} subscriptions. You might want to upgrade to a better plan.");
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::TooManySubscriptionsPerApplication(limit),
                     title: "Exceeded number of subscriptions that can be created in this application",
                     detail: detail.into(),
@@ -627,7 +641,7 @@ impl From<Hook0Problem> for Problem {
             },
             Hook0Problem::TooManyEventTypesPerApplication(limit) => {
                 let detail = format!("This application cannot have more than {limit} event types. You might want to upgrade to a better plan.");
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::TooManyEventTypesPerApplication(limit),
                     title: "Exceeded number of event types that can be created in this application",
                     detail: detail.into(),
@@ -639,7 +653,7 @@ impl From<Hook0Problem> for Problem {
             // Generic errors
             Hook0Problem::JsonPayload(e) => {
                 let error_str = e.to_string();
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::JsonPayload(e),
                     title: "Provided body could not be decoded as JSON",
                     detail: error_str.into(),
@@ -656,7 +670,7 @@ impl From<Hook0Problem> for Problem {
                 } else {
                     errors_str
                 };
-                Problem {
+                ProblemDetails {
                     id: Hook0Problem::Validation(e.to_owned()),
                     title: "Provided input is malformed",
                     detail: detail.into(),
@@ -664,28 +678,28 @@ impl From<Hook0Problem> for Problem {
                     status: StatusCode::UNPROCESSABLE_ENTITY,
                 }
             },
-            Hook0Problem::InternalServerError => Problem {
+            Hook0Problem::InternalServerError => ProblemDetails {
                 id: Hook0Problem::InternalServerError,
                 title: "Something wrong happened",
                 detail: "Hook0 server had issue handling your request. Our team was notified.".into(),
                 validation: None,
                 status: StatusCode::INTERNAL_SERVER_ERROR,
             },
-            Hook0Problem::NotFound => Problem {
+            Hook0Problem::NotFound => ProblemDetails {
                 id: Hook0Problem::NotFound,
                 title: "Item not found",
                 detail: "Could not find the item. Check the identifier or that you have the right to access it.".into(),
                 validation: None,
                 status: StatusCode::NOT_FOUND,
             },
-            Hook0Problem::Forbidden => Problem {
+            Hook0Problem::Forbidden => ProblemDetails {
                 id: Hook0Problem::Forbidden,
                 title: "Insufficient rights",
                 detail: "You don't have the right to access or edit this resource.".into(),
                 validation: None,
                 status: StatusCode::FORBIDDEN,
             },
-            Hook0Problem::ServiceUnavailable => Problem {
+            Hook0Problem::ServiceUnavailable => ProblemDetails {
                 id: Hook0Problem::ServiceUnavailable,
                 title: "Service temporarily unavailable",
                 detail: "Hook0 is under heavy load and could not authorize your request in time. This is a temporary, server-side condition, not a rights issue: the request is safe to retry. Wait a moment and resubmit, honoring the Retry-After response header.".into(),
@@ -747,9 +761,11 @@ mod tests {
     use super::*;
 
     use actix_web::body::to_bytes;
+    use paperclip::actix::{OpenApiExt, web};
     use proptest::prelude::*;
     use std::collections::BTreeSet;
     use std::mem::discriminant;
+    use url::Url;
 
     /// The identifiers published in the OpenAPI schema, as a client reading the spec sees them.
     fn published_identifiers() -> BTreeSet<String> {
@@ -856,6 +872,88 @@ mod tests {
         }
     }
 
+    /// Builds the v3 document paperclip serves, off an app carrying a single operation. No
+    /// server and no database are involved.
+    fn produced_spec() -> Value {
+        let app_url = Url::parse("https://api.hook0.test/").expect("the test app url parses");
+        let mut produced = None;
+
+        let _app = actix_web::App::new()
+            .wrap_api_with_spec(crate::openapi::default_spec(&app_url))
+            .service(web::resource("/errors").route(web::get().to(crate::handlers::errors::list)))
+            .with_raw_json_spec_v3(|app, spec| {
+                produced = Some(spec);
+                app
+            })
+            .build();
+
+        produced.expect("paperclip yields the v3 document it would serve")
+    }
+
+    /// Read from the document paperclip actually serves rather than from the Rust types it was
+    /// built from: that JSON is the whole of what a client generator consumes, so it is the only
+    /// place where the guarantee is worth anything.
+    #[test]
+    fn the_produced_spec_publishes_every_problem_identifier() {
+        let spec = produced_spec();
+
+        // An error response has to answer with a body a generator can type, not with a bare
+        // description.
+        let responses = spec["paths"]["/errors"]["get"]["responses"]
+            .as_object()
+            .expect("the mounted operation declares responses");
+        let error_codes = responses
+            .keys()
+            .filter(|code| code.parse::<u16>().is_ok_and(|code| code >= 400))
+            .collect::<Vec<_>>();
+        assert!(
+            !error_codes.is_empty(),
+            "the mounted operation declares no error response, so there is nothing to check"
+        );
+        for code in &error_codes {
+            let content = &responses[code.as_str()]["content"]["application/json"]["schema"];
+            assert!(
+                content.is_object(),
+                "response {code} carries no schema in its content, it is {}",
+                responses[code.as_str()]
+            );
+        }
+
+        // And the identifier it carries has to be a closed enumeration covering every problem.
+        let problem = &spec["components"]["schemas"]["Problem"];
+        assert!(
+            problem.is_object(),
+            "the error responses point at a Problem schema the components never define"
+        );
+
+        let identifier = &problem["properties"]["id"];
+        let published = identifier["enum"]
+            .as_array()
+            .unwrap_or_else(|| {
+                panic!("the served Problem publishes no enumeration for `id`, it publishes {identifier}")
+            })
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(str::to_owned)
+                    .expect("published identifiers are JSON strings")
+            })
+            .collect::<BTreeSet<String>>();
+
+        for problem in Hook0Problem::iter() {
+            assert!(
+                published.contains(problem.id().as_str()),
+                "the served spec does not publish {problem}, it publishes {published:?}"
+            );
+        }
+        assert_eq!(
+            published.len(),
+            Hook0Problem::iter().count(),
+            "the served enumeration holds duplicate or unknown identifiers: {published:?}"
+        );
+    }
+
     proptest! {
         /// Whatever payload a problem carries, its identifier stays the one published in the
         /// spec: a client matching on `EventAlreadyIngested` keeps recognizing it even when the
@@ -893,7 +991,7 @@ mod tests {
     #[actix_web::test]
     async fn every_problem_response_matches_its_contract() {
         for hook0_problem in Hook0Problem::iter() {
-            let expected_status = Problem::from(hook0_problem.to_owned()).status;
+            let expected_status = ProblemDetails::from(hook0_problem.to_owned()).status;
             // Only 503 tells well-behaved clients to back off; see `error_response`.
             let expected_retry_after = if expected_status == StatusCode::SERVICE_UNAVAILABLE {
                 Some("5")
