@@ -1,8 +1,5 @@
 use ::hook0_client::Hook0Client;
-use actix_cors::Cors;
-use actix_files::{Files, NamedFile};
-use actix_web::middleware::{Compat, NormalizePath};
-use actix_web::{App, HttpServer, http, middleware};
+use actix_web::HttpServer;
 use aws_sdk_s3::Client;
 use aws_sdk_s3::config::retry::RetryConfig;
 use aws_sdk_s3::config::timeout::TimeoutConfig;
@@ -12,7 +9,6 @@ use clap::builder::{BoolValueParser, TypedValueParser};
 use clap::{ArgGroup, Parser, crate_name, crate_version};
 use ipnetwork::IpNetwork;
 use lettre::Address;
-use paperclip::actix::{OpenApiExt, web};
 use pulsar::{
     Authentication, ConnectionRetryOptions, MultiTopicProducer, ProducerOptions, Pulsar,
     TokioExecutor,
@@ -24,10 +20,10 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{Mutex, Semaphore};
 use tracing::{debug, error, info, trace, warn};
-use tracing_actix_web::TracingLogger;
 use url::Url;
 use uuid::Uuid;
 
+mod app;
 mod cloudflare_turnstile;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;
@@ -1604,383 +1600,26 @@ async fn main() -> anyhow::Result<()> {
         // Run web server
         let webapp_path = config.webapp_path.clone();
         let app_url = config.app_url;
-        HttpServer::new(move || {
-            // Compute default OpenAPI spec and apply post-processing
-            let mut spec = openapi::default_spec(&app_url);
-            openapi_postprocess::enrich_openapi_spec(&mut spec);
-
-            // Prepare user IP extraction middleware
-            let get_user_ip = middleware_get_user_ip::GetUserIp {
-                reverse_proxy_cidrs: reverse_proxy_cidrs.clone(),
-                behind_cloudflare: config.behind_cloudflare,
-            };
-
-            // Prepare CORS configuration
-            let cors = {
-                let mut c = Cors::default()
-                    .allowed_headers([
-                        http::header::ACCEPT,
-                        http::header::AUTHORIZATION,
-                        http::header::CONTENT_TYPE,
-                    ])
-                    .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
-                    .max_age(3600);
-
-                for origin in &config.cors_allowed_origins {
-                    c = c.allowed_origin(origin);
-                }
-
-                c
-            };
-
-            // Prepare auth middleware
-            let biscuit_auth = middleware_biscuit::BiscuitAuth {
-                db: initial_state.db.clone(),
-                biscuit_private_key: initial_state.biscuit_private_key.clone(),
-                master_api_key,
-                #[cfg(feature = "application-secret-compatibility")]
-                enable_application_secret_compatibility: config
-                    .enable_application_secret_compatibility,
-            };
-
-            let security_headers = middleware::DefaultHeaders::new()
-                .add(("X-Content-Type-Options", "nosniff"))
-                .add(("Referrer-Policy", "strict-origin-when-cross-origin"))
-                .add(("X-XSS-Protection", "1; mode=block"))
-                .add(("Referrer-Policy", "SAMEORIGIN"))
-                .add(("X-Frame-Options", "DENY"));
-
-            let hsts_header = middleware::DefaultHeaders::new()
-                .add(("Strict-Transport-Security", "max-age=63072000"));
-
-            let security_headers_condition =
-                middleware::Condition::new(config.enable_security_headers, security_headers);
-
-            let hsts_header_condition =
-                middleware::Condition::new(config.enable_hsts_header, hsts_header);
-
-            let mut app = App::new()
-                .app_data(web::Data::new(initial_state.clone()))
-                .app_data(web::JsonConfig::default().error_handler(|e, _req| {
-                    let problem =
-                        problems::Hook0Problem::JsonPayload(problems::JsonPayloadProblem::from(e));
-                    actix_web::error::Error::from(problem)
-                }))
-                .wrap(get_user_ip)
-                .wrap(hsts_header_condition)
-                .wrap(security_headers_condition)
-                .wrap(cors)
-                .wrap(TracingLogger::default())
-                .wrap(NormalizePath::trim())
-                .wrap(sentry_actix::Sentry::new())
-                .wrap_api_with_spec(spec)
-                .with_json_spec_v3_at("/api/v1/swagger.json")
-                .service(
-                    web::scope("/api/v1")
-                        .wrap(Compat::new(rate_limiters.ip()))
-                        .wrap(Compat::new(rate_limiters.global()))
-                        .service(
-                            web::scope("/auth")
-                                .service(
-                                    web::resource("/verify-email")
-                                        .route(web::post().to(handlers::auth::verify_email)),
-                                )
-                                .service(web::resource("/resend-verification-email").route(
-                                    web::post().to(handlers::auth::resend_verification_email),
-                                ))
-                                .service(
-                                    web::resource("/login")
-                                        .route(web::post().to(handlers::auth::login)),
-                                )
-                                .service(
-                                    web::resource("/refresh")
-                                        .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                        .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
-                                        .route(web::post().to(handlers::auth::refresh)),
-                                )
-                                .service(
-                                    web::resource("/logout")
-                                        .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                        .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
-                                        .route(web::post().to(handlers::auth::logout)),
-                                )
-                                .service(
-                                    web::resource("/begin-reset-password").route(
-                                        web::post().to(handlers::auth::begin_reset_password),
-                                    ),
-                                )
-                                .service(
-                                    web::resource("/reset-password")
-                                        .route(web::post().to(handlers::auth::reset_password)),
-                                )
-                                .service(
-                                    web::resource("/password")
-                                        .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                        .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
-                                        .route(web::post().to(handlers::auth::change_password)),
-                                ),
-                        )
-                        // no auth: authenticated by the signed token carried by the
-                        // unsubscribe link of a reactivation email
-                        .service(
-                            web::scope("/email-preferences").service(
-                                web::resource("/unsubscribe-reactivation").route(
-                                    web::post()
-                                        .to(handlers::email_preferences::unsubscribe_reactivation),
-                                ),
-                            ),
-                        )
-                        // no auth
-                        .service(web::scope("/instance").service(
-                            web::resource("").route(web::get().to(handlers::instance::get)),
-                        ))
-                        .service(
-                            web::scope("/quotas")
-                                .service(web::resource("").route(web::get().to(quotas::get))),
-                        )
-                        .service(
-                            web::scope("/environment_variables").service(
-                                web::resource("")
-                                    .route(web::get().to(handlers::environment_variables::get)),
-                            ),
-                        )
-                        .service({
-                            let srv = web::scope("/health").service(
-                                web::resource("").route(web::get().to(handlers::instance::health)),
-                            );
-
-                            #[cfg(feature = "profiling")]
-                            {
-                                srv.service(
-                                    web::resource("/profiling/heap")
-                                        .route(web::get().to(handlers::instance::pprof_heap)),
-                                )
-                                .service(
-                                    web::resource("/profiling/cpu")
-                                        .route(web::get().to(handlers::instance::pprof_cpu)),
-                                )
-                            }
-
-                            #[cfg(not(feature = "profiling"))]
-                            srv
-                        })
-                        .service(web::scope("/errors").service(
-                            web::resource("").route(web::get().to(handlers::errors::list)),
-                        ))
-                        .service(
-                            web::scope("/payload_content_types").service(
-                                web::resource("")
-                                    .route(web::get().to(handlers::events::payload_content_types)),
-                            ),
-                        )
-                        .service(
-                            web::scope("/register").service(
-                                web::resource("")
-                                    .route(web::post().to(handlers::registrations::register)),
-                            ),
-                        )
-                        // with authentication
-                        .service(
-                            web::scope("/organizations")
-                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
-                                .service(
-                                    web::resource("")
-                                        .route(web::get().to(handlers::organizations::list))
-                                        .route(web::post().to(handlers::organizations::create)),
-                                )
-                                .service(
-                                    web::scope("/{organization_id}")
-                                        .service(
-                                            web::resource("")
-                                                .route(web::get().to(handlers::organizations::get))
-                                                .route(web::put().to(handlers::organizations::edit))
-                                                .route(
-                                                    web::delete()
-                                                        .to(handlers::organizations::delete),
-                                                ),
-                                        )
-                                        .service(
-                                            web::resource("/invite")
-                                                .route(
-                                                    web::post().to(handlers::organizations::invite),
-                                                )
-                                                .route(
-                                                    web::delete()
-                                                        .to(handlers::organizations::revoke),
-                                                )
-                                                .route(
-                                                    web::put()
-                                                        .to(handlers::organizations::edit_role),
-                                                ),
-                                        ),
-                                ),
-                        )
-                        .service(
-                            web::scope("/applications")
-                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
-                                .service(
-                                    web::resource("")
-                                        .route(web::get().to(handlers::applications::list))
-                                        .route(web::post().to(handlers::applications::create)),
-                                )
-                                .service(
-                                    web::resource("/{application_id}")
-                                        .route(web::get().to(handlers::applications::get))
-                                        .route(web::put().to(handlers::applications::edit))
-                                        .route(web::delete().to(handlers::applications::delete)),
-                                ),
-                        )
-                        .service(
-                            web::scope("/event_types")
-                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
-                                .service(
-                                    web::resource("")
-                                        .route(web::get().to(handlers::event_types::list))
-                                        .route(web::post().to(handlers::event_types::create)),
-                                )
-                                .service(
-                                    web::resource("/{event_type_name}")
-                                        .route(web::get().to(handlers::event_types::get))
-                                        .route(web::delete().to(handlers::event_types::delete)),
-                                ),
-                        )
-                        .service(
-                            #[cfg(feature = "application-secret-compatibility")]
-                            web::scope("/application_secrets")
-                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
-                                .service(
-                                    web::resource("")
-                                        .route(web::get().to(handlers::application_secrets::list))
-                                        .route(
-                                            web::post().to(handlers::application_secrets::create),
-                                        ),
-                                )
-                                .service(
-                                    web::resource("/{application_secret_token}")
-                                        .route(web::put().to(handlers::application_secrets::edit))
-                                        .route(
-                                            web::delete().to(handlers::application_secrets::delete),
-                                        ),
-                                ),
-                            #[cfg(not(feature = "application-secret-compatibility"))]
-                            web::resource("/"),
-                        )
-                        .service(
-                            web::scope("/service_token")
-                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
-                                .service(
-                                    web::resource("")
-                                        .route(web::get().to(handlers::service_token::list))
-                                        .route(web::post().to(handlers::service_token::create)),
-                                )
-                                .service(
-                                    web::resource("/{service_token_id}")
-                                        .route(web::get().to(handlers::service_token::get))
-                                        .route(web::put().to(handlers::service_token::edit))
-                                        .route(web::delete().to(handlers::service_token::delete)),
-                                ),
-                        )
-                        .service(
-                            web::scope("/events")
-                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
-                                .service(
-                                    web::resource("").route(web::get().to(handlers::events::list)),
-                                )
-                                .service(
-                                    web::resource("/{event_id}")
-                                        .route(web::get().to(handlers::events::get)),
-                                )
-                                .service(
-                                    web::resource("/{event_id}/replay")
-                                        .route(web::post().to(handlers::events::replay)),
-                                ),
-                        )
-                        .service(
-                            web::scope("/event")
-                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
-                                .service(
-                                    web::resource("")
-                                        .route(web::post().to(handlers::events::ingest)),
-                                ),
-                        )
-                        .service(
-                            web::scope("/events_per_day")
-                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
-                                .service(
-                                    web::resource("/application").route(
-                                        web::get().to(handlers::events_per_day::application),
-                                    ),
-                                )
-                                .service(
-                                    web::resource("/organization").route(
-                                        web::get().to(handlers::events_per_day::organization),
-                                    ),
-                                ),
-                        )
-                        .service(
-                            web::scope("/subscriptions")
-                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first
-                                .service(
-                                    web::resource("")
-                                        .route(web::get().to(handlers::subscriptions::list))
-                                        .route(web::post().to(handlers::subscriptions::create)),
-                                )
-                                .service(
-                                    web::resource("/{subscription_id}")
-                                        .route(web::get().to(handlers::subscriptions::get))
-                                        .route(web::put().to(handlers::subscriptions::edit))
-                                        .route(web::delete().to(handlers::subscriptions::delete)),
-                                ),
-                        )
-                        .service(
-                            web::scope("/request_attempts")
-                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
-                                .service(
-                                    web::resource("")
-                                        .route(web::get().to(handlers::request_attempts::list)),
-                                )
-                                .service(
-                                    web::resource("/{request_attempt_id}")
-                                        .route(web::get().to(handlers::request_attempts::get)),
-                                ),
-                        )
-                        .service(
-                            web::scope("/responses")
-                                .wrap(Compat::new(rate_limiters.token())) // Middleware order is counter intuitive: this is executed second
-                                .wrap(biscuit_auth.clone()) // Middleware order is counter intuitive: this is executed first/ Middleware order is counter intuitive: this is executed first
-                                .service(
-                                    web::resource("/{response_id}")
-                                        .route(web::get().to(handlers::responses::get)),
-                                ),
-                        ),
-                );
-
-            if !config.disable_serving_webapp {
-                app = app.default_service(
-                    Files::new("/", webapp_path.as_str())
-                        .index_file(WEBAPP_INDEX_FILE)
-                        .default_handler(
-                            NamedFile::open(format!("{}/{}", webapp_path, WEBAPP_INDEX_FILE))
-                                .expect("Cannot open SPA main file"),
-                        ),
-                );
-            }
-            app.build()
-        })
-        .bind(&format!("{}:{}", config.ip, config.port))?
-        .run()
-        .await
-        .map_err(|e| e.into())
+        let app_factory_config = app::AppFactoryConfig {
+            state: initial_state,
+            app_url,
+            reverse_proxy_cidrs,
+            behind_cloudflare: config.behind_cloudflare,
+            cors_allowed_origins: config.cors_allowed_origins,
+            master_api_key,
+            #[cfg(feature = "application-secret-compatibility")]
+            enable_application_secret_compatibility: config.enable_application_secret_compatibility,
+            enable_security_headers: config.enable_security_headers,
+            enable_hsts_header: config.enable_hsts_header,
+            rate_limiters,
+            disable_serving_webapp: config.disable_serving_webapp,
+            webapp_path,
+        };
+        HttpServer::new(move || app::build_app(&app_factory_config))
+            .bind(&format!("{}:{}", config.ip, config.port))?
+            .run()
+            .await
+            .map_err(|e| e.into())
     } else {
         let keypair = KeyPair::new();
         println!(
