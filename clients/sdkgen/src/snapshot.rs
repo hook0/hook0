@@ -4,9 +4,11 @@ use std::fs;
 use std::path::Path;
 
 use openapiv3::{
-    Components, OpenAPI, Operation as SpecOperation, Parameter as SpecParameter, PathItem,
-    ReferenceOr,
+    Components, OpenAPI, Operation as SpecOperation, Parameter as SpecParameter,
+    ParameterData as SpecParameterData, ParameterSchemaOrContent, PathItem, ReferenceOr,
+    RequestBody as SpecRequestBody, Schema,
 };
+use serde_json::Value;
 
 use crate::error::{Error, preview};
 use crate::limits::Limits;
@@ -16,6 +18,18 @@ pub const PUBLIC_TAG: &str = "public";
 
 /// Where a parameter reference is looked up.
 const PARAMETER_REFERENCE_PREFIX: &str = "#/components/parameters/";
+
+/// Where a request body reference is looked up.
+const REQUEST_BODY_REFERENCE_PREFIX: &str = "#/components/requestBodies/";
+
+/// Where a schema reference is looked up.
+const SCHEMA_REFERENCE_PREFIX: &str = "#/components/schemas/";
+
+/// Media type a request body is read from.
+const JSON_MEDIA_TYPE: &str = "application/json";
+
+/// JSON type a parameter falls back to when the document names none.
+const DEFAULT_PARAMETER_TYPE: &str = "string";
 
 /// An HTTP method an operation answers on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -66,6 +80,18 @@ pub struct Parameter {
     pub name: String,
     pub location: ParameterLocation,
     pub required: bool,
+    pub description: Option<String>,
+    /// JSON type the document gives the parameter, [`DEFAULT_PARAMETER_TYPE`] when it names none.
+    pub schema_type: String,
+}
+
+/// What an operation reads in its request body.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RequestBody {
+    /// A JSON body, its schema resolved down to what the document declares.
+    Json(Value),
+    /// A body in a media type none of the targets describes.
+    Other,
 }
 
 /// One operation of the snapshot, kept as the spec declares it.
@@ -79,12 +105,19 @@ pub struct Operation {
     pub description: Option<String>,
     pub tags: Vec<String>,
     pub parameters: Vec<Parameter>,
+    /// Absent when the operation reads no body.
+    pub request_body: Option<RequestBody>,
 }
 
 impl Operation {
     /// How the operation is named in error messages, when it has no usable id.
     pub fn location(&self) -> String {
         format!("{} {}", self.method, self.path)
+    }
+
+    /// Whether the operation carries that tag.
+    fn carries(&self, tag: &str) -> bool {
+        self.tags.iter().any(|carried| carried == tag)
     }
 }
 
@@ -94,13 +127,13 @@ pub struct Snapshot {
     title: String,
     version: String,
     operations: Vec<Operation>,
-    public_tag_applied: bool,
+    tag_applied: bool,
     filtered_out: usize,
 }
 
 impl Snapshot {
     /// Reads a snapshot from disk, refusing files above the byte ceiling before reading them.
-    pub fn from_path(path: &Path, limits: &Limits) -> Result<Self, Error> {
+    pub fn from_path(path: &Path, tag: &str, limits: &Limits) -> Result<Self, Error> {
         let metadata = fs::metadata(path).map_err(|err| Error::SnapshotUnreadable {
             path: path.display().to_string(),
             reason: err.to_string(),
@@ -118,11 +151,11 @@ impl Snapshot {
             reason: err.to_string(),
         })?;
 
-        Self::from_bytes(&bytes, limits)
+        Self::from_bytes(&bytes, tag, limits)
     }
 
-    /// Parses a snapshot held in memory.
-    pub fn from_bytes(bytes: &[u8], limits: &Limits) -> Result<Self, Error> {
+    /// Parses a snapshot held in memory, narrowed to the operations a target selects.
+    pub fn from_bytes(bytes: &[u8], tag: &str, limits: &Limits) -> Result<Self, Error> {
         if bytes.len() > limits.max_snapshot_bytes {
             return Err(Error::SnapshotTooLarge {
                 size: bytes.len() as u64,
@@ -133,10 +166,10 @@ impl Snapshot {
         let spec: OpenAPI = serde_json::from_slice(bytes)
             .map_err(|err| Error::MalformedSnapshot(preview(&err.to_string())))?;
 
-        Self::from_spec(&spec, limits)
+        Self::from_spec(&spec, tag, limits)
     }
 
-    fn from_spec(spec: &OpenAPI, limits: &Limits) -> Result<Self, Error> {
+    fn from_spec(spec: &OpenAPI, tag: &str, limits: &Limits) -> Result<Self, Error> {
         let declared = count_operations(spec)?;
         if declared > limits.max_operations {
             return Err(Error::TooManyOperations {
@@ -176,13 +209,11 @@ impl Snapshot {
             }
         }
 
-        let public_tag_applied = operations
-            .iter()
-            .any(|operation| operation.tags.iter().any(|tag| tag == PUBLIC_TAG));
+        let tag_applied = operations.iter().any(|operation| operation.carries(tag));
 
         let declared_count = operations.len();
-        if public_tag_applied {
-            operations.retain(|operation| operation.tags.iter().any(|tag| tag == PUBLIC_TAG));
+        if tag_applied {
+            operations.retain(|operation| operation.carries(tag));
         }
 
         Ok(Self {
@@ -190,7 +221,7 @@ impl Snapshot {
             version: spec.info.version.clone(),
             filtered_out: declared_count - operations.len(),
             operations,
-            public_tag_applied,
+            tag_applied,
         })
     }
 
@@ -204,17 +235,17 @@ impl Snapshot {
         &self.version
     }
 
-    /// Operations SDKs are built from, in document order.
+    /// Operations the target is built from, in document order.
     pub fn operations(&self) -> &[Operation] {
         &self.operations
     }
 
-    /// Whether the spec carries the public tag, which narrows the snapshot down to what it marks.
-    pub fn public_tag_applied(&self) -> bool {
-        self.public_tag_applied
+    /// Whether the spec carries that tag, which narrows the snapshot down to what it marks.
+    pub fn tag_applied(&self) -> bool {
+        self.tag_applied
     }
 
-    /// How many operations the public tag left out.
+    /// How many operations the tag left out.
     pub fn filtered_out(&self) -> usize {
         self.filtered_out
     }
@@ -279,6 +310,10 @@ fn read_operation(
         });
     }
 
+    let subject = operation_id
+        .clone()
+        .unwrap_or_else(|| format!("{method} {path}"));
+
     Ok(Operation {
         operation_id,
         method,
@@ -287,7 +322,50 @@ fn read_operation(
         description: operation.description.clone(),
         tags: operation.tags.clone(),
         parameters,
+        request_body: read_request_body(operation, &subject, components, limits)?,
     })
+}
+
+/// The body an operation reads, with the reference reaching its JSON schema resolved.
+fn read_request_body(
+    operation: &SpecOperation,
+    subject: &str,
+    components: Option<&Components>,
+    limits: &Limits,
+) -> Result<Option<RequestBody>, Error> {
+    let Some(body) = operation.request_body.as_ref() else {
+        return Ok(None);
+    };
+
+    let body: &SpecRequestBody = resolve(
+        body,
+        REQUEST_BODY_REFERENCE_PREFIX,
+        |name| components.and_then(|components| components.request_bodies.get(name)),
+        limits,
+    )?;
+
+    let Some(schema) = body
+        .content
+        .get(JSON_MEDIA_TYPE)
+        .and_then(|content| content.schema.as_ref())
+    else {
+        return Ok(Some(RequestBody::Other));
+    };
+
+    let schema: &Schema = resolve(
+        schema,
+        SCHEMA_REFERENCE_PREFIX,
+        |name| components.and_then(|components| components.schemas.get(name)),
+        limits,
+    )?;
+
+    serde_json::to_value(schema)
+        .map(RequestBody::Json)
+        .map(Some)
+        .map_err(|err| Error::UnserializableSchema {
+            subject: preview(subject),
+            reason: err.to_string(),
+        })
 }
 
 /// Operation-level parameters win over path-level ones sharing their name and location.
@@ -322,7 +400,12 @@ fn read_parameter(
     components: Option<&Components>,
     limits: &Limits,
 ) -> Result<Parameter, Error> {
-    let parameter = resolve_parameter(entry, components, limits)?;
+    let parameter: &SpecParameter = resolve(
+        entry,
+        PARAMETER_REFERENCE_PREFIX,
+        |name| components.and_then(|components| components.parameters.get(name)),
+        limits,
+    )?;
     let data = parameter.parameter_data_ref();
 
     let location = match parameter {
@@ -336,21 +419,45 @@ fn read_parameter(
         name: bounded_identifier(&data.name, limits)?,
         location,
         required: data.required,
+        description: data.description.clone(),
+        schema_type: parameter_type(data)?,
     })
 }
 
-/// Follows `$ref` hops until a parameter is reached, which is also what stops a reference cycle.
-fn resolve_parameter<'a>(
-    entry: &'a ReferenceOr<SpecParameter>,
-    components: Option<&'a Components>,
+/// The JSON type a parameter declares, which a caller has to fill in.
+///
+/// A parameter that names no type, or reaches its schema through a reference, falls back to
+/// [`DEFAULT_PARAMETER_TYPE`] rather than being dropped.
+fn parameter_type(data: &SpecParameterData) -> Result<String, Error> {
+    let ParameterSchemaOrContent::Schema(schema) = &data.format else {
+        return Ok(DEFAULT_PARAMETER_TYPE.to_owned());
+    };
+
+    let schema = serde_json::to_value(schema).map_err(|err| Error::UnserializableSchema {
+        subject: preview(&data.name),
+        reason: err.to_string(),
+    })?;
+
+    Ok(schema
+        .get("type")
+        .and_then(Value::as_str)
+        .unwrap_or(DEFAULT_PARAMETER_TYPE)
+        .to_owned())
+}
+
+/// Follows `$ref` hops until an item is reached, which is also what stops a reference cycle.
+fn resolve<'a, T>(
+    entry: &'a ReferenceOr<T>,
+    prefix: &str,
+    lookup: impl Fn(&str) -> Option<&'a ReferenceOr<T>>,
     limits: &Limits,
-) -> Result<&'a SpecParameter, Error> {
+) -> Result<&'a T, Error> {
     let mut current = entry;
     let mut hops = 0;
 
     loop {
         match current {
-            ReferenceOr::Item(parameter) => return Ok(parameter),
+            ReferenceOr::Item(item) => return Ok(item),
             ReferenceOr::Reference { reference } => {
                 if hops >= limits.max_reference_depth {
                     return Err(Error::ReferenceTooDeep {
@@ -360,15 +467,10 @@ fn resolve_parameter<'a>(
                 }
                 hops += 1;
 
-                let name = reference
-                    .strip_prefix(PARAMETER_REFERENCE_PREFIX)
+                current = reference
+                    .strip_prefix(prefix)
                     .map(decode_pointer_segment)
-                    .ok_or_else(|| Error::UnresolvableReference {
-                        reference: preview(reference),
-                    })?;
-
-                current = components
-                    .and_then(|components| components.parameters.get(&name))
+                    .and_then(|name| lookup(&name))
                     .ok_or_else(|| Error::UnresolvableReference {
                         reference: preview(reference),
                     })?;

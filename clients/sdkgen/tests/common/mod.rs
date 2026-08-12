@@ -151,6 +151,16 @@ pub fn declared_operations(bytes: &[u8]) -> Vec<DeclaredOperation> {
     declared
 }
 
+/// The names an emitted tool table gives its tools, read back from the source it wrote.
+pub fn tool_names(source: &str) -> Vec<String> {
+    source
+        .lines()
+        .filter_map(|line| line.trim().strip_prefix("name: \""))
+        .filter_map(|line| line.strip_suffix("\","))
+        .map(str::to_owned)
+        .collect()
+}
+
 /// Everything a model holds true, whatever snapshot it came from.
 pub fn assert_model_invariants(snapshot: &Snapshot, model: &EntityModel, limits: &Limits) {
     assert!(

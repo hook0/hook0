@@ -266,7 +266,7 @@ mod tools {
         assert!(
             !tools.is_empty(),
             "No tools available! Regenerate them with \
-             UPDATE_MCP_TOOLS=1 cargo test -p hook0-mcp tool_definitions. \
+             UPDATE_MCP_TOOLS=1 cargo test -p hook0-sdkgen mcp_tool_definitions. \
              NEVER silently skip - fix the tool definitions."
         );
 

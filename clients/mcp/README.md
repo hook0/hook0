@@ -188,12 +188,14 @@ cargo package --locked
 The tools this server exposes are derived from `api/openapi.snapshot.json` and committed as
 `src/server/generated.rs`. Nothing generates them at build time: the crate is published to
 crates.io, where the snapshot is not around, so the definitions have to travel inside the package.
+This crate depends on nothing that reads the snapshot, not even at build time — `hook0-sdkgen`
+writes that file, and this crate merely compiles it.
 
-A test compares the committed file with what the snapshot describes, and touching a handler tagged
-`mcp` makes it fail. Adopt the change with:
+A test in `hook0-sdkgen` compares the committed file with what the snapshot describes, and touching
+a handler tagged `mcp` makes it fail. Adopt the change with:
 
 ```bash
-UPDATE_MCP_TOOLS=1 cargo test -p hook0-mcp tool_definitions
+UPDATE_MCP_TOOLS=1 cargo test -p hook0-sdkgen mcp_tool_definitions
 ```
 
 Commit the rewritten `src/server/generated.rs` along with your change, and read the diff: a tool

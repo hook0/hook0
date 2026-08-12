@@ -55,6 +55,36 @@ pub enum Error {
 
     #[error("reference `{reference}` points outside the snapshot")]
     UnresolvableReference { reference: String },
+
+    #[error("the schema of `{subject}` could not be serialized: {reason}")]
+    UnserializableSchema { subject: String, reason: String },
+
+    #[error("the selection carries no operation, so the target would emit an empty surface")]
+    EmptySelection,
+
+    #[error("operation `{location}` was selected but declares no operation id to be named after")]
+    UnnamedOperation { location: String },
+
+    #[error(
+        "parameter `{parameter}` of `{operation_id}` travels in a cookie, which a tool call has no way to carry"
+    )]
+    UnsupportedParameter {
+        operation_id: String,
+        parameter: String,
+    },
+
+    #[error(
+        "the body of `{operation_id}` declares no JSON schema, so a caller would have nothing to fill in"
+    )]
+    BodyWithoutJsonSchema { operation_id: String },
+
+    #[error(
+        "the input schema of `{operation_id}` still points at `{reference}`, which no caller can resolve"
+    )]
+    UnresolvedSchema {
+        operation_id: String,
+        reference: String,
+    },
 }
 
 /// Shortens snapshot content down to what an error message may carry.

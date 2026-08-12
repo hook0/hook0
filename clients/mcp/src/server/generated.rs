@@ -1,5 +1,5 @@
 // The tools this server exposes, derived from the OpenAPI snapshot the API crate commits.
-// Do not edit by hand: run `UPDATE_MCP_TOOLS=1 cargo test -p hook0-mcp tool_definitions`.
+// Do not edit by hand: run `UPDATE_MCP_TOOLS=1 cargo test -p hook0-sdkgen mcp_tool_definitions`.
 
 /// Information about an MCP tool, generated from OpenAPI
 #[derive(Debug, Clone)]

@@ -1,5 +1,5 @@
 //! Feeds arbitrary bytes to the snapshot parser: it may refuse them, it may never panic, and
-//! whatever model it builds out of them holds its invariants.
+//! whatever model it builds out of them holds its invariants and emits without panicking.
 //!
 //! The committed corpus under `tests/__fuzz__/snapshot/corpus` is replayed on every run, then a
 //! bounded number of random inputs is drawn. Longer campaigns go through `cargo bolero`.
@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 use bolero::check;
-use hook0_sdkgen::{EntityModel, Limits, Snapshot};
+use hook0_sdkgen::{EntityModel, Limits, MCP_TAG, PUBLIC_TAG, Snapshot, mcp};
 
 mod common;
 
@@ -29,13 +29,24 @@ fn parsing_a_snapshot_never_panics_and_yields_a_sound_model() {
         .for_each(|input: &[u8]| {
             let limits = Limits::default();
 
-            let Ok(snapshot) = Snapshot::from_bytes(input, &limits) else {
-                return;
-            };
-            let Ok(model) = EntityModel::from_snapshot(&snapshot, &limits) else {
-                return;
-            };
+            for tag in [PUBLIC_TAG, MCP_TAG] {
+                let Ok(snapshot) = Snapshot::from_bytes(input, tag, &limits) else {
+                    continue;
+                };
+                let Ok(model) = EntityModel::from_snapshot(&snapshot, &limits) else {
+                    continue;
+                };
 
-            common::assert_model_invariants(&snapshot, &model, &limits);
+                common::assert_model_invariants(&snapshot, &model, &limits);
+
+                // Emission may refuse the model it is handed, but it owes the caller a reason
+                // rather than a panic, and the same model always writes the same bytes.
+                let emitted = mcp::tool_definitions(&model);
+                assert_eq!(
+                    emitted,
+                    mcp::tool_definitions(&model),
+                    "two emissions of the same model differ"
+                );
+            }
         });
 }

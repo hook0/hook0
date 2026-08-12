@@ -3,14 +3,15 @@
 use std::path::Path;
 
 use hook0_sdkgen::{
-    EntityModel, Error, HttpMethod, Limits, Nonconformity, ParameterLocation, Snapshot, Verb,
+    EntityModel, Error, HttpMethod, Limits, MCP_TAG, Nonconformity, PUBLIC_TAG, ParameterLocation,
+    Snapshot, Verb,
 };
 use serde_json::json;
 
 mod common;
 
 fn model_of(bytes: &[u8], limits: &Limits) -> Result<(Snapshot, EntityModel), Error> {
-    let snapshot = Snapshot::from_bytes(bytes, limits)?;
+    let snapshot = Snapshot::from_bytes(bytes, PUBLIC_TAG, limits)?;
     let model = EntityModel::from_snapshot(&snapshot, limits)?;
     Ok((snapshot, model))
 }
@@ -65,10 +66,10 @@ fn the_committed_snapshot_is_rebuilt_identically() {
 #[test]
 fn a_snapshot_read_from_disk_matches_the_one_read_from_memory() {
     let limits = Limits::default();
-    let from_disk =
-        Snapshot::from_path(Path::new(common::FIXTURE_PATH), &limits).expect("the fixture parses");
-    let from_memory =
-        Snapshot::from_bytes(&common::fixture_bytes(), &limits).expect("the fixture parses");
+    let from_disk = Snapshot::from_path(Path::new(common::FIXTURE_PATH), PUBLIC_TAG, &limits)
+        .expect("the fixture parses");
+    let from_memory = Snapshot::from_bytes(&common::fixture_bytes(), PUBLIC_TAG, &limits)
+        .expect("the fixture parses");
 
     assert_eq!(from_disk, from_memory);
 }
@@ -196,11 +197,42 @@ fn the_public_tag_narrows_the_snapshot_to_what_it_marks() {
         "/secrets": {"get": {"operationId": "secrets.list"}},
     })));
 
-    assert!(snapshot.public_tag_applied());
+    assert!(snapshot.tag_applied());
     assert_eq!(snapshot.filtered_out(), 2);
     assert_eq!(snapshot.operations().len(), 1);
     assert_eq!(model.method_count(), 1);
     assert!(model.entity("secrets").is_none());
+}
+
+/// Each target names the tag it is built from, so the same document yields a different surface
+/// depending on who reads it.
+#[test]
+fn a_snapshot_is_narrowed_to_whichever_tag_a_target_names() {
+    let document = common::spec_with_paths(json!({
+        "/things": {
+            "get": {"operationId": "things.list", "tags": ["public"]},
+            "post": {"operationId": "things.create", "tags": ["mcp"]},
+        },
+        "/secrets": {"get": {"operationId": "secrets.list", "tags": ["public", "mcp"]}},
+    }));
+    let limits = Limits::default();
+
+    let selected = |tag: &str| {
+        let snapshot =
+            Snapshot::from_bytes(&document, tag, &limits).expect("the document under test parses");
+        snapshot
+            .operations()
+            .iter()
+            .filter_map(|operation| operation.operation_id.clone())
+            .collect::<Vec<_>>()
+    };
+
+    assert_eq!(selected(PUBLIC_TAG), ["secrets.list", "things.list"]);
+    assert_eq!(selected(MCP_TAG), ["secrets.list", "things.create"]);
+    assert!(
+        selected("absent").len() == 3,
+        "an unused tag narrows nothing"
+    );
 }
 
 #[test]
@@ -210,7 +242,7 @@ fn a_snapshot_without_the_public_tag_keeps_every_operation() {
         "/secrets": {"get": {"operationId": "secrets.list"}},
     })));
 
-    assert!(!snapshot.public_tag_applied());
+    assert!(!snapshot.tag_applied());
     assert_eq!(snapshot.filtered_out(), 0);
     assert_eq!(snapshot.operations().len(), 2);
 }
@@ -225,7 +257,7 @@ fn the_committed_snapshot_narrows_down_to_its_public_tag() {
     let (snapshot, _) = built(&bytes);
 
     assert!(
-        snapshot.public_tag_applied(),
+        snapshot.tag_applied(),
         "the committed snapshot marks nothing public, so nothing narrows the generated surface"
     );
     assert_eq!(
@@ -418,14 +450,14 @@ fn a_snapshot_above_the_byte_ceiling_is_rejected() {
 
     assert!(
         matches!(
-            Snapshot::from_bytes(&bytes, &limits),
+            Snapshot::from_bytes(&bytes, PUBLIC_TAG, &limits),
             Err(Error::SnapshotTooLarge { .. })
         ),
         "an oversized snapshot was accepted"
     );
     assert!(
         matches!(
-            Snapshot::from_path(Path::new(common::FIXTURE_PATH), &limits),
+            Snapshot::from_path(Path::new(common::FIXTURE_PATH), PUBLIC_TAG, &limits),
             Err(Error::SnapshotTooLarge { .. })
         ),
         "an oversized snapshot was accepted from disk"
@@ -547,7 +579,7 @@ fn a_malformed_snapshot_is_rejected() {
     ] {
         assert!(
             matches!(
-                Snapshot::from_bytes(bytes, &Limits::default()),
+                Snapshot::from_bytes(bytes, PUBLIC_TAG, &Limits::default()),
                 Err(Error::MalformedSnapshot(_))
             ),
             "a malformed snapshot was accepted"
@@ -562,6 +594,7 @@ fn a_snapshot_that_cannot_be_read_is_reported() {
             env!("CARGO_MANIFEST_DIR"),
             "/tests/fixtures/absent.json"
         )),
+        PUBLIC_TAG,
         &Limits::default(),
     )
     .expect_err("an absent file is reported");

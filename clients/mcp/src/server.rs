@@ -2,8 +2,8 @@
 //!
 //! Tool definitions, dispatch logic, and read/write classification all come from
 //! the OpenAPI snapshot the API crate commits. They live in `generated.rs`, a
-//! committed source file written by `generator.rs`, so this crate builds from its
-//! own contents alone.
+//! committed source file the `hook0-sdkgen` crate writes and guards, so this crate
+//! builds from its own contents alone and never reads the snapshot.
 
 use crate::client::Hook0Client;
 use crate::error::{McpError, McpErrorExt};
@@ -22,9 +22,6 @@ use std::sync::Arc;
 use tracing::{debug, info};
 
 mod generated;
-
-#[cfg(test)]
-mod generator;
 
 pub use generated::{
     GENERATED_TOOLS, GeneratedToolInfo, get_tool_info, interpolate_path, is_write_tool,
@@ -328,9 +325,9 @@ mod tests {
     use serde_json::Value;
     use std::collections::BTreeSet;
 
-    /// The document the tools are generated from, read here a second time and on its own terms:
-    /// what the build script produced is compared against what the snapshot says, not against
-    /// another reading by the same code.
+    /// The document the tools are generated from, read here on its own terms: the committed tool
+    /// table is compared against what the snapshot says, not against another reading by the code
+    /// that wrote it.
     const SNAPSHOT_PATH: &str = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../../api/openapi.snapshot.json"

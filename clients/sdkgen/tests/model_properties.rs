@@ -112,7 +112,7 @@ fn document(operations: &[GeneratedOperation]) -> Vec<u8> {
 }
 
 fn build(bytes: &[u8], limits: &Limits) -> Result<(Snapshot, EntityModel), Error> {
-    let snapshot = Snapshot::from_bytes(bytes, limits)?;
+    let snapshot = Snapshot::from_bytes(bytes, PUBLIC_TAG, limits)?;
     let model = EntityModel::from_snapshot(&snapshot, limits)?;
     Ok((snapshot, model))
 }
@@ -221,7 +221,7 @@ proptest! {
         let bytes = document(&operations);
         let declared = common::declared_operations(&bytes);
         let limits = Limits { max_operations: ceiling, ..Limits::DEFAULT };
-        let result = Snapshot::from_bytes(&bytes, &limits);
+        let result = Snapshot::from_bytes(&bytes, PUBLIC_TAG, &limits);
 
         if declared.len() > ceiling {
             prop_assert_eq!(
