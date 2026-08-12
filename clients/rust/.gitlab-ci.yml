@@ -11,6 +11,9 @@ client.rust.check:
     - changes:
         - clients/rust/**/*
         - clients/sdkgen/**/*
+        # The generator suites read the API's OpenAPI snapshot, so a change of
+        # the API surface has to run them even when no generator file moved.
+        - api/openapi.snapshot.json
         - Cargo.*
   before_script:
     - rustc --version && cargo --version

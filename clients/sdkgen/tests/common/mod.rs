@@ -4,17 +4,29 @@
 
 use std::collections::BTreeSet;
 
-use hook0_sdkgen::{EntityModel, HttpMethod, Limits, Nonconformity, Operation, Snapshot};
+use hook0_sdkgen::{
+    EntityModel, HttpMethod, Limits, Nonconformity, Operation, PUBLIC_TAG, Snapshot,
+};
 use serde_json::{Value, json};
 
 /// The snapshot the Hook0 API serves, committed so the suites never reach the network.
+///
+/// The generator reads the very file the API crate regenerates and guards, rather than a copy of
+/// it: there is one document in the repository, so there is nothing for the two to drift apart on.
 pub const FIXTURE_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/tests/fixtures/hook0-openapi.json"
+    "/../../api/openapi.snapshot.json"
 );
 
 pub fn fixture_bytes() -> Vec<u8> {
     std::fs::read(FIXTURE_PATH).expect("the committed snapshot fixture is readable")
+}
+
+/// The operations the document marks as the surface generated clients are built from.
+pub fn declared_public_operations(bytes: &[u8]) -> Vec<DeclaredOperation> {
+    let mut declared = declared_operations(bytes);
+    declared.retain(|operation| operation.tags.iter().any(|tag| tag == PUBLIC_TAG));
+    declared
 }
 
 /// Wraps a `paths` object into the smallest document an OpenAPI parser accepts.

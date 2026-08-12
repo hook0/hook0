@@ -23,19 +23,26 @@ fn built(bytes: &[u8]) -> (Snapshot, EntityModel) {
 }
 
 #[test]
-fn every_operation_of_the_committed_snapshot_reaches_the_model() {
+fn every_public_operation_of_the_committed_snapshot_reaches_the_model() {
     let bytes = common::fixture_bytes();
-    let declared = common::declared_operations(&bytes);
+    let public = common::declared_public_operations(&bytes);
     let (snapshot, model) = built(&bytes);
 
+    assert!(
+        !public.is_empty(),
+        "the committed snapshot marks no operation as public"
+    );
     assert_eq!(
-        snapshot.operations().len(),
-        declared.len(),
-        "the snapshot drops operations the document declares"
+        common::identities(snapshot.operations()),
+        public
+            .iter()
+            .map(common::DeclaredOperation::identity)
+            .collect(),
+        "the snapshot does not carry exactly the operations the document marks public"
     );
     assert_eq!(
         model.method_count() + model.unconventional().len(),
-        declared.len()
+        public.len()
     );
     assert!(
         !model.entities().is_empty(),
@@ -198,10 +205,38 @@ fn the_public_tag_narrows_the_snapshot_to_what_it_marks() {
 
 #[test]
 fn a_snapshot_without_the_public_tag_keeps_every_operation() {
-    let (snapshot, _) = built(&common::fixture_bytes());
+    let (snapshot, _) = built(&common::spec_with_paths(json!({
+        "/things": {"get": {"operationId": "things.list"}},
+        "/secrets": {"get": {"operationId": "secrets.list"}},
+    })));
 
     assert!(!snapshot.public_tag_applied());
     assert_eq!(snapshot.filtered_out(), 0);
+    assert_eq!(snapshot.operations().len(), 2);
+}
+
+/// The committed snapshot carries the tag, so the generator sees the curated surface rather than
+/// the whole API: the private control plane the dashboard drives stays out of generated clients.
+#[test]
+fn the_committed_snapshot_narrows_down_to_its_public_tag() {
+    let bytes = common::fixture_bytes();
+    let declared = common::declared_operations(&bytes);
+    let public = common::declared_public_operations(&bytes);
+    let (snapshot, _) = built(&bytes);
+
+    assert!(
+        snapshot.public_tag_applied(),
+        "the committed snapshot marks nothing public, so nothing narrows the generated surface"
+    );
+    assert_eq!(
+        snapshot.filtered_out(),
+        declared.len() - public.len(),
+        "the snapshot leaves out something other than the untagged operations"
+    );
+    assert!(
+        snapshot.filtered_out() > 0,
+        "the committed snapshot exposes its whole surface to generated clients"
+    );
 }
 
 #[test]
