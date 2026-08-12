@@ -20,7 +20,8 @@ cannot place at all, such as one without a separator or without an `operationId`
 `EntityModel::unconventional` with the reason it could not be placed.
 
 When the snapshot carries the `public` tag, the model is narrowed to the operations marked with it;
-otherwise every operation of the snapshot is kept.
+otherwise every operation of the snapshot is kept. The tag itself is written on the handler, in
+`api/src/handlers`; `api/README.md` says when it is warranted and what it commits the API to.
 
 ## Using it
 
