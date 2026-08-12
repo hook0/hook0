@@ -417,6 +417,12 @@ pub(crate) mod test_support {
 
     use crate::mailer;
 
+    /// Public URL of the Hook0 instance the served document describes. Only the
+    /// factory's `app_url` reaches the document, as the `servers` entry every
+    /// consumer of the snapshot resolves relative paths against — hence the real
+    /// one rather than a test hostname.
+    pub(crate) const APP_URL: &str = "https://app.hook0.com/";
+
     /// A state whose database pool is lazy (it is never dialled because no
     /// handler runs) and whose mailer points at a closed local port.
     pub(crate) async fn inert_state() -> State {
@@ -504,7 +510,7 @@ pub(crate) mod test_support {
     pub(crate) async fn inert_app_factory_config() -> AppFactoryConfig {
         AppFactoryConfig {
             state: inert_state().await,
-            app_url: Url::parse("https://app.example.test/").expect("parse app url"),
+            app_url: Url::parse(APP_URL).expect("parse app url"),
             reverse_proxy_cidrs: vec![],
             behind_cloudflare: false,
             cors_allowed_origins: vec![],
@@ -548,6 +554,29 @@ pub(crate) mod test_support {
 mod tests {
     use super::test_support::openapi_spec;
 
+    use serde_json::Value;
+
+    /// The document generated clients, the MCP server and the frontend types are
+    /// built from. Committed so none of them has to reach a running instance.
+    const SNAPSHOT_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/openapi.snapshot.json");
+
+    /// Set to any value to rewrite the snapshot instead of failing on a difference.
+    const SNAPSHOT_UPDATE_VAR: &str = "UPDATE_OPENAPI_SNAPSHOT";
+
+    /// What to run to adopt a deliberate change of the API surface.
+    const SNAPSHOT_UPDATE_COMMAND: &str =
+        "UPDATE_OPENAPI_SNAPSHOT=1 cargo test -p hook0-api openapi_snapshot";
+
+    /// How many differences a failure report lists before it stops.
+    const MAX_REPORTED_DIFFERENCES: usize = 40;
+
+    /// How much of a differing value a failure report prints.
+    const MAX_RENDERED_VALUE_CHARS: usize = 120;
+
+    /// How to read the difference list.
+    const REPORT_LEGEND: &str =
+        "(`-` in the snapshot only, `+` in the served document only, `~` snapshot -> served)";
+
     /// The application can be built and its OpenAPI document read back without
     /// a listening socket or a reachable database, which is what makes the
     /// generated spec inspectable from tests.
@@ -566,5 +595,160 @@ mod tests {
         );
 
         println!("OpenAPI document served with {} paths", paths.len());
+    }
+
+    /// Everything downstream — generated SDKs, the MCP tool definitions, the
+    /// frontend types — is built from the committed snapshot rather than from a
+    /// running instance. Letting the two drift apart would ship clients for an
+    /// API that no longer exists, so a change of the served document only lands
+    /// once someone has adopted it into the snapshot.
+    ///
+    /// The snapshot describes the default feature set, the one the API ships
+    /// with; turning a feature on adds routes and the report then names them.
+    #[actix_web::test]
+    async fn openapi_snapshot_matches_the_served_document() {
+        let served = openapi_spec().await;
+
+        if std::env::var_os(SNAPSHOT_UPDATE_VAR).is_some() {
+            let mut rendered =
+                serde_json::to_string_pretty(&served).expect("the served document serializes");
+            rendered.push('\n');
+            std::fs::write(SNAPSHOT_PATH, rendered).expect("the snapshot is writable");
+            println!("Wrote {SNAPSHOT_PATH}");
+            return;
+        }
+
+        let committed = std::fs::read(SNAPSHOT_PATH).unwrap_or_else(|err| {
+            panic!(
+                "the OpenAPI snapshot cannot be read ({err}).\n\
+                 Generate it with:\n    {SNAPSHOT_UPDATE_COMMAND}\n\
+                 Snapshot: {SNAPSHOT_PATH}"
+            )
+        });
+        let committed: Value =
+            serde_json::from_slice(&committed).expect("the committed snapshot is valid JSON");
+
+        if committed == served {
+            return;
+        }
+
+        panic!(
+            "the served OpenAPI document no longer matches the committed snapshot.\n\
+             {}\n\
+             Adopt the change by running:\n    {SNAPSHOT_UPDATE_COMMAND}\n\
+             Snapshot: {SNAPSHOT_PATH}",
+            report(&committed, &served)
+        );
+    }
+
+    /// Renders the differences as a bounded list of JSON pointers, since neither
+    /// document fits in a failure message: `-` is in the snapshot only, `+` in
+    /// the served document only, `~` is a value the two disagree on.
+    fn report(committed: &Value, served: &Value) -> String {
+        let mut differences = Vec::new();
+        collect(String::new(), committed, served, &mut differences);
+
+        let truncated = differences.len() > MAX_REPORTED_DIFFERENCES;
+        differences.truncate(MAX_REPORTED_DIFFERENCES);
+
+        let mut report = format!("{REPORT_LEGEND}\n{}", differences.join("\n"));
+        if truncated {
+            report.push_str(&format!(
+                "\n… list stops at {MAX_REPORTED_DIFFERENCES} differences"
+            ));
+        }
+        report
+    }
+
+    /// Walks both documents together, naming every disagreement by its JSON
+    /// pointer. Stops once the report is full, so a wholesale rewrite of the
+    /// document costs a bounded walk rather than the whole tree.
+    fn collect(pointer: String, committed: &Value, served: &Value, out: &mut Vec<String>) {
+        if out.len() > MAX_REPORTED_DIFFERENCES {
+            return;
+        }
+
+        match (committed, served) {
+            (Value::Object(committed), Value::Object(served)) => {
+                for (key, value) in committed {
+                    match served.get(key) {
+                        Some(counterpart) => {
+                            collect(child(&pointer, key), value, counterpart, out);
+                        }
+                        None => out.push(format!("- {} (snapshot only)", child(&pointer, key))),
+                    }
+                    if out.len() > MAX_REPORTED_DIFFERENCES {
+                        return;
+                    }
+                }
+                for key in served.keys().filter(|key| !committed.contains_key(*key)) {
+                    out.push(format!("+ {} (served only)", child(&pointer, key)));
+                    if out.len() > MAX_REPORTED_DIFFERENCES {
+                        return;
+                    }
+                }
+            }
+            (Value::Array(committed), Value::Array(served)) => {
+                for (index, (value, counterpart)) in committed.iter().zip(served.iter()).enumerate()
+                {
+                    collect(child(&pointer, &index.to_string()), value, counterpart, out);
+                    if out.len() > MAX_REPORTED_DIFFERENCES {
+                        return;
+                    }
+                }
+                // Entries past the shorter of the two have no counterpart to
+                // compare against, so they are named with the value they hold —
+                // a tag or a security requirement is usually the whole news.
+                let common = committed.len().min(served.len());
+                for (index, value) in committed.iter().enumerate().skip(common) {
+                    out.push(format!(
+                        "- {} = {} (snapshot only)",
+                        child(&pointer, &index.to_string()),
+                        render(value)
+                    ));
+                    if out.len() > MAX_REPORTED_DIFFERENCES {
+                        return;
+                    }
+                }
+                for (index, value) in served.iter().enumerate().skip(common) {
+                    out.push(format!(
+                        "+ {} = {} (served only)",
+                        child(&pointer, &index.to_string()),
+                        render(value)
+                    ));
+                    if out.len() > MAX_REPORTED_DIFFERENCES {
+                        return;
+                    }
+                }
+            }
+            _ => {
+                if committed != served {
+                    out.push(format!(
+                        "~ {pointer}: {} -> {}",
+                        render(committed),
+                        render(served)
+                    ));
+                }
+            }
+        }
+    }
+
+    /// Appends one segment to a JSON pointer, escaped as RFC 6901 asks, so the
+    /// reported pointer resolves as-is against the document.
+    fn child(pointer: &str, segment: &str) -> String {
+        format!(
+            "{pointer}/{}",
+            segment.replace('~', "~0").replace('/', "~1")
+        )
+    }
+
+    /// A value, short enough to read in a failure message and cut on a character
+    /// boundary.
+    fn render(value: &Value) -> String {
+        let rendered = value.to_string();
+        match rendered.char_indices().nth(MAX_RENDERED_VALUE_CHARS) {
+            Some((cut, _)) => format!("{}…", &rendered[..cut]),
+            None => rendered,
+        }
     }
 }
