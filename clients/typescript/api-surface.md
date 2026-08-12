@@ -49,6 +49,7 @@ static ExpiredWebhook(signed_at: Date, tolerance: number, current_time: Date): H
 static GetAvailableEventTypes(error: Error): Hook0ClientError
 static InvalidEventType(s: string): Hook0ClientError
 static InvalidSignature(signature: string): Hook0ClientError
+static MissingHeader(headerName: string): Hook0ClientError
 static SignatureParsing(signature: string): Hook0ClientError
 static TimestampParsingInSignature(timestamp: string): Hook0ClientError
 ```
