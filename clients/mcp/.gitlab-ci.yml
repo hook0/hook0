@@ -20,6 +20,10 @@ client.mcp.check:
     # Only run library unit tests here (not integration tests which require a running API)
     - cargo test --lib --all-features
     - cargo build --release
+    # This crate is published to crates.io, where nothing of the repository is left around it.
+    # `cargo package` builds the crate from the tarball it just wrote, so a file the package does
+    # not carry breaks this job instead of breaking the users of the next release.
+    - cargo package --locked
     - popd
 
 # Build API for MCP integration tests

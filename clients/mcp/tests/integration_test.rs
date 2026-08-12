@@ -261,20 +261,20 @@ mod tools {
             .as_array()
             .expect("tools should be an array");
 
-        // Tools are generated from OpenAPI spec at build time.
-        // If no tools are available, the build is broken - fail fast!
+        // Tools come from src/server/generated.rs, derived from the OpenAPI snapshot.
+        // If no tools are available, that file is broken - fail fast!
         assert!(
             !tools.is_empty(),
-            "No tools available! OpenAPI spec may not be accessible at build time. \
-             Check that HOOK0_API_URL is reachable during build or verify build.rs fallback. \
-             NEVER silently skip - fix the build configuration."
+            "No tools available! Regenerate them with \
+             UPDATE_MCP_TOOLS=1 cargo test -p hook0-mcp tool_definitions. \
+             NEVER silently skip - fix the tool definitions."
         );
 
         // Should have at least the core tools (list_organizations, list_applications, etc.)
         assert!(
             tools.len() >= 5,
             "Should have at least 5 tools, got {}. \
-             OpenAPI spec may be incomplete or build.rs filtering is too aggressive.",
+             The OpenAPI snapshot may be incomplete or its `mcp` tag too sparse.",
             tools.len()
         );
 

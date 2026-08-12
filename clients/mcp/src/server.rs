@@ -1,8 +1,9 @@
 //! MCP Server implementation for Hook0
 //!
-//! This server dynamically generates tools from the OpenAPI specification.
-//! Tool definitions, dispatch logic, and read/write classification are all
-//! auto-generated at build time from the OpenAPI spec.
+//! Tool definitions, dispatch logic, and read/write classification all come from
+//! the OpenAPI snapshot the API crate commits. They live in `generated.rs`, a
+//! committed source file written by `generator.rs`, so this crate builds from its
+//! own contents alone.
 
 use crate::client::Hook0Client;
 use crate::error::{McpError, McpErrorExt};
@@ -20,10 +21,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{debug, info};
 
-// Include auto-generated code from build.rs
-mod generated {
-    include!(concat!(env!("OUT_DIR"), "/generated.rs"));
-}
+mod generated;
+
+#[cfg(test)]
+mod generator;
 
 pub use generated::{
     GENERATED_TOOLS, GeneratedToolInfo, get_tool_info, interpolate_path, is_write_tool,

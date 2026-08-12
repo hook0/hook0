@@ -178,7 +178,26 @@ cargo test
 # Lint
 cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
+
+# Check the crate builds from the tarball published to crates.io
+cargo package --locked
 ```
+
+### Tool definitions
+
+The tools this server exposes are derived from `api/openapi.snapshot.json` and committed as
+`src/server/generated.rs`. Nothing generates them at build time: the crate is published to
+crates.io, where the snapshot is not around, so the definitions have to travel inside the package.
+
+A test compares the committed file with what the snapshot describes, and touching a handler tagged
+`mcp` makes it fail. Adopt the change with:
+
+```bash
+UPDATE_MCP_TOOLS=1 cargo test -p hook0-mcp tool_definitions
+```
+
+Commit the rewritten `src/server/generated.rs` along with your change, and read the diff: a tool
+that appeared, disappeared or changed shape without you meaning it to is a defect in the handler.
 
 ## License
 
