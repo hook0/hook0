@@ -10,6 +10,7 @@ COPY ci/validate-dockerfiles ci/validate-dockerfiles
 COPY api api
 COPY clients/rust clients/rust
 COPY clients/mcp clients/mcp
+COPY clients/sdkgen clients/sdkgen
 COPY output-worker output-worker
 COPY sentry-integration sentry-integration
 COPY protobuf protobuf
