@@ -8,6 +8,7 @@ members = [
   "sentry-integration",
   "clients/rust",
   "clients/mcp",
+  "clients/sdkgen",
   "protobuf"
 ]
 resolver = "3"
