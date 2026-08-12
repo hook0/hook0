@@ -46,7 +46,7 @@ pub struct ServiceTokenPost {
     operation_id = "serviceToken.create",
     consumes = "application/json",
     produces = "application/json",
-    tags("Service Tokens Management")
+    tags("Service Tokens Management", "public")
 )]
 pub async fn create(
     state: Data<crate::State>,
@@ -123,7 +123,7 @@ pub async fn create(
     operation_id = "serviceToken.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Service Tokens Management")
+    tags("Service Tokens Management", "public")
 )]
 pub async fn list(
     state: Data<crate::State>,
@@ -166,7 +166,7 @@ pub async fn list(
     operation_id = "serviceToken.edit",
     consumes = "application/json",
     produces = "application/json",
-    tags("Service Tokens Management")
+    tags("Service Tokens Management", "public")
 )]
 pub async fn edit(
     state: Data<crate::State>,
@@ -240,7 +240,7 @@ pub async fn edit(
     operation_id = "serviceToken.delete",
     consumes = "application/json",
     produces = "application/json",
-    tags("Service Tokens Management")
+    tags("Service Tokens Management", "public")
 )]
 pub async fn delete(
     state: Data<crate::State>,
@@ -323,7 +323,7 @@ pub async fn delete(
     operation_id = "serviceToken.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Service Tokens Management")
+    tags("Service Tokens Management", "public")
 )]
 pub async fn get(
     state: Data<crate::State>,

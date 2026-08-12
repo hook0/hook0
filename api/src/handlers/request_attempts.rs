@@ -229,7 +229,7 @@ pub struct GetQs {
     operation_id = "requestAttempts.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management", "mcp")
+    tags("Subscriptions Management", "mcp", "public")
 )]
 pub async fn get(
     state: Data<crate::State>,
@@ -349,7 +349,7 @@ pub struct Qs {
     operation_id = "requestAttempts.read",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management", "mcp")
+    tags("Subscriptions Management", "mcp", "public")
 )]
 pub async fn list(
     state: Data<crate::State>,

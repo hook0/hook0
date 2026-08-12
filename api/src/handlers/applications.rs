@@ -87,7 +87,7 @@ pub struct ApplicationPost {
     operation_id = "applications.create",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "mcp")
+    tags("Applications Management", "mcp", "public")
 )]
 pub async fn create(
     state: Data<crate::State>,
@@ -195,7 +195,7 @@ pub async fn create(
     operation_id = "applications.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "mcp")
+    tags("Applications Management", "mcp", "public")
 )]
 pub async fn get(
     state: Data<crate::State>,
@@ -286,7 +286,7 @@ pub async fn get(
     operation_id = "applications.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "mcp")
+    tags("Applications Management", "mcp", "public")
 )]
 pub async fn list(
     state: Data<crate::State>,
@@ -320,7 +320,7 @@ pub async fn list(
     operation_id = "applications.update",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "mcp")
+    tags("Applications Management", "mcp", "public")
 )]
 pub async fn edit(
     state: Data<crate::State>,
@@ -390,7 +390,7 @@ pub async fn edit(
     operation_id = "applications.delete",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "mcp")
+    tags("Applications Management", "mcp", "public")
 )]
 pub async fn delete(
     state: Data<crate::State>,

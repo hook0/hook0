@@ -16,3 +16,6 @@ pub mod subscriptions;
 
 #[cfg(feature = "application-secret-compatibility")]
 pub mod application_secrets;
+
+#[cfg(test)]
+mod public_surface;
