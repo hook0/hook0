@@ -3051,7 +3051,6 @@ dependencies = [
 name = "hook0-mcp"
 version = "1.0.2"
 dependencies = [
- "openapiv3",
  "reqwest",
  "rmcp",
  "serde",

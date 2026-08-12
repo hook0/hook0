@@ -320,3 +320,104 @@ impl ServerHandler for Hook0McpServer {
         prompts::get_prompt(&request.name, args)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::GENERATED_TOOLS;
+    use serde_json::Value;
+    use std::collections::BTreeSet;
+
+    /// The document the tools are generated from, read here a second time and on its own terms:
+    /// what the build script produced is compared against what the snapshot says, not against
+    /// another reading by the same code.
+    const SNAPSHOT_PATH: &str = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../api/openapi.snapshot.json"
+    );
+
+    const MCP_TAG: &str = "mcp";
+
+    const HTTP_METHODS: [&str; 5] = ["get", "post", "put", "patch", "delete"];
+
+    fn tagged_operation_ids() -> BTreeSet<String> {
+        let bytes = std::fs::read(SNAPSHOT_PATH).expect("the committed snapshot is readable");
+        let snapshot: Value = serde_json::from_slice(&bytes).expect("the snapshot is JSON");
+
+        let mut tagged = BTreeSet::new();
+        let paths = snapshot["paths"]
+            .as_object()
+            .expect("the snapshot carries paths");
+
+        for item in paths.values() {
+            for method in HTTP_METHODS {
+                let Some(operation) = item.get(method) else {
+                    continue;
+                };
+                let carries_tag = operation["tags"]
+                    .as_array()
+                    .is_some_and(|tags| tags.iter().any(|tag| tag == MCP_TAG));
+                if !carries_tag {
+                    continue;
+                }
+                let name = operation["operationId"]
+                    .as_str()
+                    .expect("a tagged operation carries an operation id");
+                tagged.insert(name.to_owned());
+            }
+        }
+
+        tagged
+    }
+
+    #[test]
+    fn a_tool_is_exposed_for_every_tagged_operation_and_for_nothing_else() {
+        let tagged = tagged_operation_ids();
+        assert!(
+            !tagged.is_empty(),
+            "the snapshot marks no operation for this server"
+        );
+        assert!(
+            !GENERATED_TOOLS.is_empty(),
+            "this server exposes no tool at all"
+        );
+
+        let exposed: BTreeSet<String> = GENERATED_TOOLS
+            .iter()
+            .map(|tool| tool.name.to_owned())
+            .collect();
+
+        assert_eq!(
+            exposed, tagged,
+            "the tools this server exposes are not the operations the snapshot marks for it"
+        );
+    }
+
+    #[test]
+    fn every_tool_carries_a_schema_a_caller_can_fill_in() {
+        for tool in GENERATED_TOOLS {
+            let schema: Value = serde_json::from_str(tool.input_schema)
+                .unwrap_or_else(|err| panic!("the schema of `{}` is not JSON: {err}", tool.name));
+
+            assert_eq!(
+                schema["type"], "object",
+                "the schema of `{}` is not an object",
+                tool.name
+            );
+            assert!(
+                schema["properties"].is_object(),
+                "the schema of `{}` carries no properties object",
+                tool.name
+            );
+            assert!(
+                !tool.input_schema.contains("$ref"),
+                "the schema of `{}` still points at a reference no caller can follow",
+                tool.name
+            );
+            assert!(
+                !tool.path_template.is_empty(),
+                "the tool `{}` answers on no path",
+                tool.name
+            );
+        }
+    }
+}

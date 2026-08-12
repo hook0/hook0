@@ -37,11 +37,11 @@ if [ -z "$SERVICE_TOKEN" ] || [ "$SERVICE_TOKEN" = "null" ]; then
 fi
 echo "==> Service token created"
 
-echo "==> Building MCP with local API OpenAPI spec..."
+echo "==> Building MCP from the committed OpenAPI snapshot..."
 cd "$MCP_DIR"
-HOOK0_OPENAPI_URL="${API_URL}/api/v1/swagger.json" cargo build --release
+cargo build --release
 
 echo "==> Running integration tests..."
-HOOK0_API_URL="$API_URL" MCP_SERVICE_TOKEN="$SERVICE_TOKEN" HOOK0_OPENAPI_URL="${API_URL}/api/v1/swagger.json" cargo test --all-features -- --include-ignored
+HOOK0_API_URL="$API_URL" MCP_SERVICE_TOKEN="$SERVICE_TOKEN" cargo test --all-features -- --include-ignored
 
 echo "==> All integration tests passed!"
