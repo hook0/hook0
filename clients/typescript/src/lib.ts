@@ -55,14 +55,28 @@ export class Hook0ClientError extends Error {
   }
 
   /**
-   * Error when a webhook has expired because it was sent too long ago
+   * Error when a header listed in the signature was not provided with the request
+   * @param headerName - Name of the header the signature covers but the request did not carry
+   */
+  static MissingHeader(headerName: string): Hook0ClientError {
+    return new Hook0ClientError(
+      `The \`${headerName}\` header present in the webhook's signature was not provided with a value`
+    );
+  }
+
+  /**
+   * Error when a webhook's signature timestamp falls outside the tolerance window
+   *
+   * This covers both a webhook that was signed too long ago (a replay) and one that was signed too
+   * far in the future (a clock that is ahead, or a forged timestamp meant to widen the acceptance
+   * window).
    * @param signed_at - Datetime of webhook signature
-   * @param tolerance - Maximum difference (in seconds) between the signature datetime and the current datetime for the webhook to be considered valid
+   * @param tolerance - Maximum difference (in seconds), in either direction, between the signature datetime and the current datetime for the webhook to be considered valid
    * @param current_time - Current time
    */
   static ExpiredWebhook(signed_at: Date, tolerance: number, current_time: Date): Hook0ClientError {
     return new Hook0ClientError(
-      `The webhook has expired because it was sent too long ago (signed_at=${signed_at}, tolerance=${tolerance}, current_time=${current_time})`
+      `The webhook's signature timestamp is outside the tolerance window (signed_at=${signed_at}, tolerance=${tolerance}, current_time=${current_time})`
     );
   }
 }
@@ -343,7 +357,9 @@ export class EventType {
  * @param signature - The value of the `X-Hook0-Signature` header.
  * @param payload - The raw body of the webhook request.
  * @param subscriptionSecret - The signing secret used to validate the signature.
- * @param tolerance - The maximum allowed time difference for the timestamp (in seconds).
+ * @param tolerance - The maximum allowed time difference for the timestamp, in seconds and in
+ * either direction. A timestamp that is too far in the future is rejected just like one that is
+ * too far in the past, so that the acceptance window of any given webhook stays bounded.
  * @param currentTime - The current time (used to check the timestamp).
  * @returns Resolves if the signature is valid, otherwise throws an error.
  */
@@ -366,7 +382,11 @@ export function verifyWebhookSignatureWithCurrentTime(
   }
 
   if (Math.abs(Math.floor(currentTime.getTime() / 1000) - parsedSig.timestamp) > tolerance) {
-    throw Hook0ClientError.ExpiredWebhook(new Date(parsedSig.timestamp), tolerance, currentTime);
+    throw Hook0ClientError.ExpiredWebhook(
+      new Date(parsedSig.timestamp * 1000),
+      tolerance,
+      currentTime
+    );
   }
 
   return true;
@@ -377,7 +397,9 @@ export function verifyWebhookSignatureWithCurrentTime(
  * @param signature - The value of the `X-Hook0-Signature` header.
  * @param payload - The raw body of the webhook request.
  * @param subscriptionSecret - The signing secret used to validate the signature.
- * @param tolerance - The maximum allowed time difference for the timestamp (in seconds).
+ * @param tolerance - The maximum allowed time difference for the timestamp, in seconds and in
+ * either direction. A timestamp that is too far in the future is rejected just like one that is
+ * too far in the past, so that the acceptance window of any given webhook stays bounded.
  * @returns Resolves if the signature is valid, otherwise throws an error.
  */
 export function verifyWebhookSignature(

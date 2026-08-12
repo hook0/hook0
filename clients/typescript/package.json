@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc",
     "test": "jest",
+    "api-surface:update": "ts-node src/tests/apiSurface.update.ts",
     "lint": "eslint .",
     "format": "prettier --write ./src/{*,**/*}.ts",
     "check": "prettier --check ./src/{*,**/*}.ts",
