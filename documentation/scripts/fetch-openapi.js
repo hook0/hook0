@@ -1,8 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Fetch OpenAPI specification from Hook0 API
- * This script runs at build time to fetch the latest OpenAPI spec
+ * Fetch the Hook0 OpenAPI specification the documentation site publishes.
+ *
+ * The API reference at /api is a Scalar viewer that loads hook0-api.json from
+ * the site root at runtime. A build that cannot produce a usable specification
+ * therefore has nothing to publish there, and must stop: a site whose reference
+ * answers 404, or lists no endpoint at all, is worse than a build that failed
+ * loudly.
  */
 
 const fs = require('fs');
@@ -10,7 +15,6 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 
-// Configuration
 const OPENAPI_URL = process.env.HOOK0_API_URL
   ? `${process.env.HOOK0_API_URL}/api/v1/swagger.json`
   : process.env.NODE_ENV === 'production' || process.env.CI
@@ -22,229 +26,250 @@ const OUTPUT_FILE = path.join(OUTPUT_DIR, 'hook0-api.json');
 const STATIC_DIR = path.join(__dirname, '..', 'static');
 const STATIC_FILE = path.join(STATIC_DIR, 'hook0-api.json');
 
-// Ensure output directory exists
-if (!fs.existsSync(OUTPUT_DIR)) {
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-}
+/** Give up on an unresponsive API rather than hanging the build forever. */
+const REQUEST_TIMEOUT_MS = 30000;
 
-// Create a fallback spec function
-const createFallbackSpec = () => {
-  const fallbackSpec = {
-    openapi: '3.0.0',
-    info: {
-      title: 'Hook0 API',
-      version: '1.0.0',
-      description: 'Hook0 Webhook Infrastructure API'
-    },
-    paths: {},
-    components: {
-      securitySchemes: {
-        biscuit: {
-          type: 'apiKey',
-          in: 'header',
-          name: 'Authorization',
-          description: 'Biscuit token authentication'
-        }
-      }
-    }
-  };
+/** Refuse a response too large to be a specification. */
+const MAX_SPEC_BYTES = 16 * 1024 * 1024;
 
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(fallbackSpec, null, 2));
-  console.log('   Created fallback OpenAPI spec');
-};
+const DEFAULT_DESCRIPTION =
+  'Hook0 is a robust webhook infrastructure that handles event delivery, retries, and monitoring for your applications.';
 
-// Determine protocol
-const protocol = OPENAPI_URL.startsWith('https') ? https : http;
-
-console.log(`📥 Fetching OpenAPI spec from: ${OPENAPI_URL}`);
-
-// Fetch the OpenAPI spec
-const fetchSpec = () => {
-  return new Promise((resolve, reject) => {
-    protocol.get(OPENAPI_URL, (res) => {
-      if (res.statusCode !== 200) {
-        // If we can't fetch from the API, use a fallback or skip
-        console.warn(`⚠️  Could not fetch OpenAPI spec (status: ${res.statusCode})`);
-        console.warn('   Using fallback or skipping API doc generation');
-
-        // Check if we have a cached version
-        if (fs.existsSync(OUTPUT_FILE)) {
-          console.log('   Using cached OpenAPI spec');
-          resolve();
-          return;
-        }
-
-        // Create a minimal fallback spec
-        createFallbackSpec();
-        resolve();
+/**
+ * Read the specification over HTTP.
+ * Resolves to `{ available: true, spec }` or `{ available: false, reason }`;
+ * it never rejects, so the caller can try the next source.
+ */
+const fetchFromApi = () =>
+  new Promise((resolve) => {
+    const protocol = OPENAPI_URL.startsWith('https') ? https : http;
+    const request = protocol.get(OPENAPI_URL, (response) => {
+      if (response.statusCode !== 200) {
+        response.resume();
+        resolve({
+          available: false,
+          reason: `${OPENAPI_URL} answered with status ${response.statusCode}`,
+        });
         return;
       }
 
-      let data = '';
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-
-      res.on('end', () => {
-        try {
-          const spec = JSON.parse(data);
-
-          // Add production server URL if not present
-          if (!spec.servers || spec.servers.length === 0 || !spec.servers.some(s => s.url === 'https://app.hook0.com')) {
-            spec.servers.push({
-              url: 'https://app.hook0.com',
-              description: 'Production API'
-            });
-          }
-
-          // Enhance the spec with better descriptions if needed
-          if (spec.info) {
-            spec.info.description = spec.info.description || 'Hook0 is a robust webhook infrastructure that handles event delivery, retries, and monitoring for your applications.';
-            spec.info.contact = {
-              name: 'Hook0 Support',
-              url: 'https://www.hook0.com',
-              email: 'support@hook0.com'
-            };
-            spec.info.license = {
-              name: 'Apache 2.0',
-              url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
-            };
-          }
-
-          // Rename biscuit security schemes to API Token for better UX
-          if (spec.components && spec.components.securitySchemes) {
-            const schemes = spec.components.securitySchemes;
-            if (schemes.biscuit) {
-              schemes.apiToken = {
-                ...schemes.biscuit,
-                description: 'API Token authentication. Use the format: `Bearer YOUR_API_TOKEN`'
-              };
-              delete schemes.biscuit;
-            }
-            if (schemes.biscuit_user_access) {
-              schemes.userAccessToken = {
-                ...schemes.biscuit_user_access,
-                description: 'User access token for authentication'
-              };
-              delete schemes.biscuit_user_access;
-            }
-            if (schemes.biscuit_refresh) {
-              schemes.refreshToken = {
-                ...schemes.biscuit_refresh,
-                description: 'Refresh token for obtaining new access tokens'
-              };
-              delete schemes.biscuit_refresh;
-            }
-
-            // Update security references in paths
-            const updateSecurityRefs = (obj) => {
-              if (Array.isArray(obj)) {
-                return obj.map(item => {
-                  if (item.biscuit !== undefined) {
-                    return { apiToken: item.biscuit };
-                  }
-                  if (item.biscuit_user_access !== undefined) {
-                    return { userAccessToken: item.biscuit_user_access };
-                  }
-                  if (item.biscuit_refresh !== undefined) {
-                    return { refreshToken: item.biscuit_refresh };
-                  }
-                  return item;
-                });
-              }
-              return obj;
-            };
-
-            // Update global security
-            if (spec.security) {
-              spec.security = updateSecurityRefs(spec.security);
-            }
-
-            // Update path-level security
-            if (spec.paths) {
-              for (const path in spec.paths) {
-                for (const method in spec.paths[path]) {
-                  if (spec.paths[path][method].security) {
-                    spec.paths[path][method].security = updateSecurityRefs(spec.paths[path][method].security);
-                  }
-                }
-              }
-            }
-          }
-
-          // Remove "mcp" tag from operations (internal implementation detail)
-          if (spec.paths) {
-            for (const path in spec.paths) {
-              for (const method in spec.paths[path]) {
-                const operation = spec.paths[path][method];
-                if (operation.tags && Array.isArray(operation.tags)) {
-                  operation.tags = operation.tags.filter(tag => tag !== 'mcp');
-                }
-              }
-            }
-          }
-
-          // Remove "mcp" from global tags list if present
-          if (spec.tags && Array.isArray(spec.tags)) {
-            spec.tags = spec.tags.filter(tag => tag.name !== 'mcp');
-          }
-
-          // Write the enhanced spec
-          fs.writeFileSync(OUTPUT_FILE, JSON.stringify(spec, null, 2));
-          console.log(`✅ OpenAPI spec saved to: ${OUTPUT_FILE}`);
-
-          // Also copy to static folder for Scalar
-          fs.writeFileSync(STATIC_FILE, JSON.stringify(spec, null, 2));
-          console.log(`✅ OpenAPI spec copied to: ${STATIC_FILE}`);
-          resolve();
-        } catch (error) {
-          console.warn(`⚠️  Failed to parse OpenAPI spec: ${error.message}`);
-
-          // Check for cached version
-          if (fs.existsSync(OUTPUT_FILE)) {
-            console.log('   Using cached OpenAPI spec');
-            resolve();
-          } else {
-            console.log('   Creating fallback OpenAPI spec');
-            createFallbackSpec();
-            resolve();
-          }
+      let body = '';
+      let size = 0;
+      response.on('data', (chunk) => {
+        size += chunk.length;
+        if (size > MAX_SPEC_BYTES) {
+          request.destroy();
+          resolve({
+            available: false,
+            reason: `${OPENAPI_URL} sent more than ${MAX_SPEC_BYTES} bytes`,
+          });
+          return;
         }
+        body += chunk;
       });
-    }).on('error', (error) => {
-      console.warn(`⚠️  Network error fetching OpenAPI spec: ${error.message}`);
+      response.on('end', () => {
+        resolve(parseSpec(body, OPENAPI_URL));
+      });
+    });
 
-      // Check for cached version
-      if (fs.existsSync(OUTPUT_FILE)) {
-        console.log('   Using cached OpenAPI spec');
-        resolve();
-      } else {
-        // Create fallback spec instead of failing
-        console.log('   Creating fallback OpenAPI spec for CI/offline build');
-        createFallbackSpec();
-        resolve();
-      }
+    request.setTimeout(REQUEST_TIMEOUT_MS, () => {
+      request.destroy();
+      resolve({
+        available: false,
+        reason: `${OPENAPI_URL} did not answer within ${REQUEST_TIMEOUT_MS} ms`,
+      });
+    });
+
+    request.on('error', (error) => {
+      resolve({ available: false, reason: `${OPENAPI_URL} is unreachable: ${error.message}` });
     });
   });
+
+/**
+ * Read the specification a previous build left behind. Acceptable as a source,
+ * but held to the same bar as the network: a cache that is missing, unreadable
+ * or unusable is simply not a source.
+ */
+const readFromCache = () =>
+  fs.promises
+    .readFile(OUTPUT_FILE, 'utf8')
+    .then((body) => parseSpec(body, OUTPUT_FILE))
+    .catch((error) => ({ available: false, reason: `${OUTPUT_FILE}: ${error.message}` }));
+
+const parseSpec = (body, origin) =>
+  Promise.resolve()
+    .then(() => JSON.parse(body))
+    .then((spec) => ({ available: true, spec, origin }))
+    .catch((error) => ({ available: false, reason: `${origin} is not valid JSON: ${error.message}` }));
+
+/**
+ * Why this document cannot be published as an API reference, or an empty string
+ * when it can. A specification without a single path documents nothing, whatever
+ * it came from.
+ */
+const unusableReason = (spec) => {
+  if (typeof spec !== 'object' || spec === null || Array.isArray(spec)) {
+    return 'it is not a JSON object';
+  }
+  const paths = spec.paths;
+  if (typeof paths !== 'object' || paths === null || Array.isArray(paths)) {
+    return 'it has no `paths` object';
+  }
+  if (Object.keys(paths).length === 0) {
+    return 'it documents no path at all';
+  }
+  return '';
 };
 
-// Run the fetch
-fetchSpec()
-  .then(() => {
-    console.log('📄 OpenAPI spec ready for documentation generation');
-    process.exit(0);
-  })
-  .catch((error) => {
-    // This should rarely happen now as we handle most errors above
-    console.error('❌ Unexpected error:', error.message);
+/** Rewrite biscuit security schemes under the names the reference shows. */
+const renameSecurityScheme = (spec, from, to, description) => {
+  const schemes = spec.components.securitySchemes;
+  if (schemes[from] === undefined) {
+    return;
+  }
+  schemes[to] = { ...schemes[from], description };
+  delete schemes[from];
 
-    // Even in worst case, try to create fallback
-    if (!fs.existsSync(OUTPUT_FILE)) {
-      console.log('   Creating emergency fallback OpenAPI spec');
-      createFallbackSpec();
+  const rename = (requirements) => {
+    if (!Array.isArray(requirements)) {
+      return requirements;
+    }
+    return requirements.map((requirement) =>
+      requirement[from] === undefined ? requirement : { [to]: requirement[from] }
+    );
+  };
+
+  if (Array.isArray(spec.security)) {
+    spec.security = rename(spec.security);
+  }
+  for (const pathItem of Object.values(spec.paths)) {
+    for (const operation of Object.values(pathItem)) {
+      if (typeof operation === 'object' && operation !== null && operation.security !== undefined) {
+        operation.security = rename(operation.security);
+      }
+    }
+  }
+};
+
+/** Turn the served document into the one the documentation site publishes. */
+const enhanceSpec = (spec) => {
+  if (!Array.isArray(spec.servers)) {
+    spec.servers = [];
+  }
+  if (!spec.servers.some((server) => server.url === 'https://app.hook0.com')) {
+    spec.servers.push({ url: 'https://app.hook0.com', description: 'Production API' });
+  }
+
+  if (typeof spec.info === 'object' && spec.info !== null) {
+    if (typeof spec.info.description !== 'string' || spec.info.description.length === 0) {
+      spec.info.description = DEFAULT_DESCRIPTION;
+    }
+    spec.info.contact = {
+      name: 'Hook0 Support',
+      url: 'https://www.hook0.com',
+      email: 'support@hook0.com',
+    };
+    spec.info.license = {
+      name: 'Apache 2.0',
+      url: 'https://www.apache.org/licenses/LICENSE-2.0.html',
+    };
+  }
+
+  if (
+    typeof spec.components === 'object' &&
+    spec.components !== null &&
+    typeof spec.components.securitySchemes === 'object' &&
+    spec.components.securitySchemes !== null
+  ) {
+    renameSecurityScheme(
+      spec,
+      'biscuit',
+      'apiToken',
+      'API Token authentication. Use the format: `Bearer YOUR_API_TOKEN`'
+    );
+    renameSecurityScheme(
+      spec,
+      'biscuit_user_access',
+      'userAccessToken',
+      'User access token for authentication'
+    );
+    renameSecurityScheme(
+      spec,
+      'biscuit_refresh',
+      'refreshToken',
+      'Refresh token for obtaining new access tokens'
+    );
+  }
+
+  // The `mcp` tag drives tool generation, it means nothing to a reader.
+  for (const pathItem of Object.values(spec.paths)) {
+    for (const operation of Object.values(pathItem)) {
+      if (typeof operation === 'object' && operation !== null && Array.isArray(operation.tags)) {
+        operation.tags = operation.tags.filter((tag) => tag !== 'mcp');
+      }
+    }
+  }
+  if (Array.isArray(spec.tags)) {
+    spec.tags = spec.tags.filter((tag) => tag.name !== 'mcp');
+  }
+
+  return spec;
+};
+
+const writeSpec = (spec) => {
+  const serialized = JSON.stringify(spec, null, 2);
+  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  fs.mkdirSync(STATIC_DIR, { recursive: true });
+  // Both copies are written from the same document whatever the source: the
+  // reference the site serves comes from the static one.
+  fs.writeFileSync(OUTPUT_FILE, serialized);
+  fs.writeFileSync(STATIC_FILE, serialized);
+  console.log(`✅ OpenAPI spec saved to: ${OUTPUT_FILE}`);
+  console.log(`✅ OpenAPI spec copied to: ${STATIC_FILE}`);
+};
+
+const giveUp = (reasons) => {
+  console.error('❌ No usable OpenAPI specification, refusing to build the documentation.');
+  console.error('   Publishing the site now would serve an API reference with no endpoint.');
+  for (const reason of reasons) {
+    console.error(`   · ${reason}`);
+  }
+  console.error('   Point HOOK0_API_URL at a reachable Hook0 instance, for example:');
+  console.error('     HOOK0_API_URL=https://app.hook0.com npm run fetch-openapi');
+  console.error('   or start one locally with `docker compose up -d` and retry.');
+  process.exit(1);
+};
+
+console.log(`📥 Fetching OpenAPI spec from: ${OPENAPI_URL}`);
+
+fetchFromApi()
+  .then((fromApi) => {
+    if (fromApi.available) {
+      return fromApi;
+    }
+    console.warn(`⚠️  ${fromApi.reason}`);
+    console.warn(`   Falling back to the specification left by a previous build`);
+    return readFromCache().then((fromCache) => ({
+      ...fromCache,
+      reasons: fromCache.available ? [] : [fromApi.reason, fromCache.reason],
+    }));
+  })
+  .then((source) => {
+    if (!source.available) {
+      giveUp(source.reasons === undefined ? [source.reason] : source.reasons);
+      return;
     }
 
-    // Exit with success to not break the build
-    console.log('📄 Proceeding with available OpenAPI spec');
-    process.exit(0);
+    const reason = unusableReason(source.spec);
+    if (reason !== '') {
+      giveUp([`${source.origin} cannot be published: ${reason}`]);
+      return;
+    }
+
+    console.log(`   Specification read from ${source.origin}`);
+    writeSpec(enhanceSpec(source.spec));
+    console.log('📄 OpenAPI spec ready for documentation generation');
+  })
+  .catch((error) => {
+    giveUp([`the fetch script itself failed: ${error.stack}`]);
   });
