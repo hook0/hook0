@@ -1,3 +1,6 @@
+# Also covers the hook0-sdkgen crate: same image, same stage, same cadence, so it rides
+# along here instead of paying for a job of its own. Its fuzz smoke is a plain #[test]
+# and runs with the rest.
 client.rust.check:
   extends: .rust-cache-pull-only
   stage: test
@@ -7,6 +10,7 @@ client.rust.check:
     - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
     - changes:
         - clients/rust/**/*
+        - clients/sdkgen/**/*
         - Cargo.*
   before_script:
     - rustc --version && cargo --version
@@ -21,4 +25,7 @@ client.rust.check:
     - cargo test --all-targets --no-default-features --features consumer
     - cargo clippy --all-targets --no-default-features --features producer -- -D warnings
     - cargo test --all-targets --no-default-features --features producer
+    - cargo fmt -p hook0-sdkgen -- --check
+    - cargo clippy -p hook0-sdkgen --all-targets -- -D warnings
+    - cargo test -p hook0-sdkgen
 
