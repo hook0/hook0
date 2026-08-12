@@ -243,7 +243,7 @@ impl Hook0Client {
 /// - `payload` - The raw body of the webhook request.
 /// - `headers` - Headers of the webhook request.
 /// - `subscription_secret` - The signing secret used to validate the signature.
-/// - `tolerance` - The maximum allowed time difference for the timestamp (5 minutes is a good trade-off between flexibility and protecting against replay attacks).
+/// - `tolerance` - The maximum allowed time difference for the timestamp, in either direction (5 minutes is a good trade-off between flexibility and protecting against replay attacks). A timestamp that is too far in the future is rejected just like one that is too far in the past, so that the acceptance window of any given webhook stays bounded.
 /// - `current_time` - The current time (used to check the timestamp).
 pub fn verify_webhook_signature_with_current_time<
     HeaderKey: AsRef<[u8]>,
@@ -300,7 +300,7 @@ pub fn verify_webhook_signature_with_current_time<
                 let tolerance = Duration::from_std(tolerance);
                 match tolerance {
                     Ok(tolerance) => {
-                        if (current_time - signed_at) > tolerance {
+                        if (current_time - signed_at).abs() > tolerance {
                             Err(Hook0ClientError::ExpiredWebhook {
                                 signed_at,
                                 tolerance,
@@ -325,7 +325,7 @@ pub fn verify_webhook_signature_with_current_time<
 /// - `payload` - The raw body of the webhook request.
 /// - `headers` - Headers of the webhook request.
 /// - `subscription_secret` - The signing secret used to validate the signature.
-/// - `tolerance` - The maximum allowed time difference for the timestamp (5 minutes is a good trade-off between flexibility and protecting against replay attacks).
+/// - `tolerance` - The maximum allowed time difference for the timestamp, in either direction (5 minutes is a good trade-off between flexibility and protecting against replay attacks). A timestamp that is too far in the future is rejected just like one that is too far in the past, so that the acceptance window of any given webhook stays bounded.
 pub fn verify_webhook_signature<HeaderKey: AsRef<[u8]>, HeaderValue: AsRef<[u8]>>(
     signature: &str,
     payload: &[u8],
@@ -497,15 +497,17 @@ pub enum Hook0ClientError {
     InvalidSignature,
 
     #[cfg(feature = "consumer")]
-    /// The webhook has expired because it was sent too long ago
+    /// The webhook's signature timestamp is outside the tolerance window
+    ///
+    /// This covers both a webhook that was signed too long ago (a replay) and one that was signed too far in the future (a clock that is ahead, or a forged timestamp meant to widen the acceptance window).
     #[error(
-        "The webhook has expired because it was sent too long ago (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})"
+        "The webhook's signature timestamp is outside the tolerance window (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})"
     )]
     ExpiredWebhook {
         /// Timestamp of the moment the webhook was signed
         signed_at: DateTime<Utc>,
 
-        /// Maximum difference between the signature timestamp and the current time for the webhook to be considered valid
+        /// Maximum difference, in either direction, between the signature timestamp and the current time for the webhook to be considered valid
         tolerance: Duration,
 
         /// Current time
@@ -710,6 +712,126 @@ mod tests {
                 tolerance
             )
             .is_err()
+        );
+    }
+
+    #[cfg(feature = "consumer")]
+    #[test]
+    fn a_timestamp_later_than_the_tolerance_is_refused() {
+        let signature =
+            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98";
+        let payload = "hello !".as_bytes();
+        let subscription_secret = "secret";
+        let tolerance = StdDuration::from_secs(300);
+        // The webhook claims to have been signed one hour after the moment it is received.
+        let current_time = DateTime::from_timestamp(1636936200 - 3600, 0).unwrap();
+
+        let result = verify_webhook_signature_with_current_time::<&str, &str>(
+            signature,
+            payload,
+            &[],
+            subscription_secret,
+            tolerance,
+            current_time,
+        );
+
+        assert!(
+            matches!(&result, Err(Hook0ClientError::ExpiredWebhook { .. })),
+            "expected an ExpiredWebhook error, got {result:?}"
+        );
+    }
+
+    #[cfg(feature = "consumer")]
+    #[test]
+    fn a_timestamp_slightly_ahead_but_within_the_tolerance_is_accepted() {
+        let signature =
+            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98";
+        let payload = "hello !".as_bytes();
+        let subscription_secret = "secret";
+        let tolerance = StdDuration::from_secs(300);
+        // A minute of clock drift between the producer and the consumer.
+        let current_time = DateTime::from_timestamp(1636936200 - 60, 0).unwrap();
+
+        assert!(
+            verify_webhook_signature_with_current_time::<&str, &str>(
+                signature,
+                payload,
+                &[],
+                subscription_secret,
+                tolerance,
+                current_time,
+            )
+            .is_ok()
+        );
+    }
+
+    #[cfg(feature = "consumer")]
+    #[test]
+    fn a_timestamp_earlier_than_the_tolerance_is_refused() {
+        let signature =
+            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98";
+        let payload = "hello !".as_bytes();
+        let subscription_secret = "secret";
+        let tolerance = StdDuration::from_secs(300);
+        let current_time = DateTime::from_timestamp(1636936200 + 3600, 0).unwrap();
+
+        let result = verify_webhook_signature_with_current_time::<&str, &str>(
+            signature,
+            payload,
+            &[],
+            subscription_secret,
+            tolerance,
+            current_time,
+        );
+
+        assert!(
+            matches!(&result, Err(Hook0ClientError::ExpiredWebhook { .. })),
+            "expected an ExpiredWebhook error, got {result:?}"
+        );
+    }
+
+    #[cfg(feature = "consumer")]
+    #[test]
+    fn a_header_named_in_the_signature_but_absent_from_the_request_is_reported_as_missing() {
+        let signature = "t=1636936200,h=x-test x-test2,v1=493c35f05443fdb74cb99fd4f00e0e7653c2ab6b24fbc97f4a7bd4d56b31758a";
+        let payload = "hello !".as_bytes();
+        let header_values = [("x-test", "val1")];
+        let subscription_secret = "secret";
+        let tolerance = StdDuration::from_secs((i64::MAX / 1000) as u64);
+
+        let result = verify_webhook_signature::<&str, &str>(
+            signature,
+            payload,
+            &header_values,
+            subscription_secret,
+            tolerance,
+        );
+
+        assert!(
+            matches!(&result, Err(Hook0ClientError::MissingHeader(name)) if name.as_str() == "x-test2"),
+            "expected a MissingHeader error naming x-test2, got {result:?}"
+        );
+    }
+
+    #[cfg(feature = "consumer")]
+    #[test]
+    fn a_header_named_in_the_signature_is_required_even_when_only_v0_is_signed() {
+        let signature = "t=1636936200,h=x-test,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98";
+        let payload = "hello !".as_bytes();
+        let subscription_secret = "secret";
+        let tolerance = StdDuration::from_secs((i64::MAX / 1000) as u64);
+
+        let result = verify_webhook_signature::<&str, &str>(
+            signature,
+            payload,
+            &[],
+            subscription_secret,
+            tolerance,
+        );
+
+        assert!(
+            matches!(&result, Err(Hook0ClientError::MissingHeader(name)) if name.as_str() == "x-test"),
+            "expected a MissingHeader error naming x-test, got {result:?}"
         );
     }
 
