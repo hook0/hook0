@@ -3,11 +3,14 @@ use actix_web::http::{StatusCode, header};
 use actix_web::{HttpResponse, ResponseError};
 use http_api_problem::{HttpApiProblem, PROBLEM_JSON_MEDIA_TYPE};
 use paperclip::actix::api_v2_errors;
+use paperclip::v2::models::{DataType, DefaultSchemaRaw};
+use paperclip::v2::schema::Apiv2Schema;
+use serde::{Serialize, Serializer};
 use serde_json::{Value, to_value};
 use sqlx::Error;
 use std::borrow::Cow;
 use std::fmt::Display;
-use strum::{EnumIter, VariantNames};
+use strum::{EnumIter, IntoEnumIterator, VariantNames};
 use tracing::{error, warn};
 
 use crate::handlers::events::PayloadContentType;
@@ -18,10 +21,11 @@ use crate::quotas::QuotaValue;
  * How to implement a new type error for Hook0:
  * 1/ Add the type error variant inside Hook0Problem enum
  * 2/ Implement the Problem inside From<Hook0Problem> for Problem
- * 3/ Done! Enjoy!
+ * 3/ Give it its public identifier inside Hook0Problem::id (the compiler asks for it)
+ * 4/ Done! Enjoy!
  */
 #[api_v2_errors(code = 403, code = 500, code = 400, code = 404, code = 409, code = 503)]
-#[derive(Debug, Clone, EnumIter, strum::Display)]
+#[derive(Debug, Clone, EnumIter)]
 pub enum Hook0Problem {
     // Functional errors
     OrganizationNameMissing,
@@ -77,6 +81,135 @@ pub enum Hook0Problem {
     InternalServerError,
     Forbidden,
     ServiceUnavailable,
+}
+
+/// Public identifier of a problem: the value carried by the `id` member of the RFC 7807 body.
+///
+/// It is rendered in the OpenAPI schema as a closed string enumeration rather than free-form
+/// text, so that a client can match on the exact problem it received instead of comparing
+/// strings it had to discover by hand.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Hook0ProblemId(&'static str);
+
+impl Hook0ProblemId {
+    pub const fn as_str(&self) -> &'static str {
+        self.0
+    }
+
+    /// Every identifier the API can answer with, in variant declaration order.
+    ///
+    /// It is built by walking the variants, so it cannot drift from what `Hook0Problem::id`
+    /// returns.
+    fn all() -> Vec<Self> {
+        Hook0Problem::iter().map(|problem| problem.id()).collect()
+    }
+}
+
+impl Display for Hook0ProblemId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.0)
+    }
+}
+
+impl Serialize for Hook0ProblemId {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.0)
+    }
+}
+
+impl Apiv2Schema for Hook0ProblemId {
+    fn name() -> Option<String> {
+        Some("Hook0ProblemId".to_owned())
+    }
+
+    fn raw_schema() -> DefaultSchemaRaw {
+        DefaultSchemaRaw {
+            data_type: Some(DataType::String),
+            enum_: Self::all()
+                .iter()
+                .map(|id| Value::String(id.as_str().to_owned()))
+                .collect(),
+            description: Some(
+                "Identifier of the problem that occurred, stable across releases".to_owned(),
+            ),
+            ..Default::default()
+        }
+    }
+}
+
+impl Hook0Problem {
+    /// Public identifier of this problem, as carried by the `id` member of the RFC 7807 body and
+    /// published in the OpenAPI schema.
+    ///
+    /// The match is exhaustive on purpose: a new variant does not compile until it is given an
+    /// identifier, which keeps the published enumeration complete without a second list to
+    /// maintain. The identifier never depends on the variant payload, so a client can match on
+    /// it whatever the details of the failure.
+    pub fn id(&self) -> Hook0ProblemId {
+        let id = match self {
+            // Functional errors
+            Self::OrganizationNameMissing => "OrganizationNameMissing",
+            Self::UserAlreadyExist => "UserAlreadyExist",
+            Self::RegistrationDisabled => "RegistrationDisabled",
+            Self::PasswordTooShort(_) => "PasswordTooShort",
+            Self::OrganizationIsNotEmpty => "OrganizationIsNotEmpty",
+            Self::InvitedUserDoesNotExist => "InvitedUserDoesNotExist",
+            Self::InvitedUserAlreadyInOrganization => "InvitedUserAlreadyInOrganization",
+
+            Self::ApplicationNameMissing => "ApplicationNameMissing",
+
+            Self::InvalidRole => "InvalidRole",
+
+            Self::EventTypeAlreadyExist => "EventTypeAlreadyExist",
+            Self::EventTypeDoesNotExist => "EventTypeDoesNotExist",
+
+            Self::UnauthorizedWorkers(_) => "UnauthorizedWorkers",
+
+            Self::EventAlreadyIngested => "EventAlreadyIngested",
+            Self::EventInvalidPayloadContentType => "EventInvalidPayloadContentType",
+            Self::EventInvalidBase64Payload(_) => "EventInvalidBase64Payload",
+            Self::EventInvalidJsonPayload(_) => "EventInvalidJsonPayload",
+
+            Self::LabelsAmbiguity => "LabelsAmbiguity",
+
+            Self::InvalidDateRange => "InvalidDateRange",
+
+            // Auth errors
+            Self::AuthNoAuthorizationHeader => "AuthNoAuthorizationHeader",
+            Self::AuthInvalidAuthorizationHeader => "AuthInvalidAuthorizationHeader",
+            Self::AuthApplicationSecretLookupError => "AuthApplicationSecretLookupError",
+            Self::AuthInvalidApplicationSecret => "AuthInvalidApplicationSecret",
+            Self::AuthBiscuitLookupError => "AuthBiscuitLookupError",
+            Self::AuthInvalidBiscuit => "AuthInvalidBiscuit",
+            Self::AuthFailedLogin => "AuthFailedLogin",
+            Self::AuthEmailNotVerified => "AuthEmailNotVerified",
+            Self::AuthEmailAlreadyVerified => "AuthEmailAlreadyVerified",
+            Self::AuthFailedRefresh => "AuthFailedRefresh",
+            Self::AuthEmailExpired => "AuthEmailExpired",
+
+            // Quota errors
+            Self::TooManyMembersPerOrganization(_) => "TooManyMembersPerOrganization",
+            Self::TooManyApplicationsPerOrganization(_) => "TooManyApplicationsPerOrganization",
+            Self::TooManyEventsToday(_) => "TooManyEventsToday",
+            Self::TooManySubscriptionsPerApplication(_) => "TooManySubscriptionsPerApplication",
+            Self::TooManyEventTypesPerApplication(_) => "TooManyEventTypesPerApplication",
+
+            // Generic errors
+            Self::JsonPayload(_) => "JsonPayload",
+            Self::Validation(_) => "Validation",
+            Self::NotFound => "NotFound",
+            Self::InternalServerError => "InternalServerError",
+            Self::Forbidden => "Forbidden",
+            Self::ServiceUnavailable => "ServiceUnavailable",
+        };
+        Hook0ProblemId(id)
+    }
+}
+
+impl Display for Hook0Problem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.id(), f)
+    }
 }
 
 impl From<sqlx::Error> for Hook0Problem {
@@ -175,9 +308,10 @@ impl From<Hook0Problem> for HttpApiProblem {
         let problem: Problem = hook0_problem.to_owned().into();
         HttpApiProblem::new(to_problem_status(problem.status))
             .type_url(format!(
-                "https://hook0.com/documentation/errors/{hook0_problem}",
-            )) // rely on Display trait of Hook0Problem
-            .value("id".to_owned(), &hook0_problem.to_string()) // also rely on Display trait of Hook0Problem
+                "https://hook0.com/documentation/errors/{}",
+                hook0_problem.id()
+            ))
+            .value("id".to_owned(), &hook0_problem.id())
             .value("validation".to_owned(), &problem.validation)
             .title(problem.title)
             .detail(problem.detail)
@@ -613,7 +747,147 @@ mod tests {
     use super::*;
 
     use actix_web::body::to_bytes;
-    use strum::IntoEnumIterator;
+    use proptest::prelude::*;
+    use std::collections::BTreeSet;
+    use std::mem::discriminant;
+
+    /// The identifiers published in the OpenAPI schema, as a client reading the spec sees them.
+    fn published_identifiers() -> BTreeSet<String> {
+        Hook0ProblemId::raw_schema()
+            .enum_
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(str::to_owned)
+                    .expect("published problem identifiers should be JSON strings")
+            })
+            .collect()
+    }
+
+    /// Every problem the API can answer with, with an arbitrary payload wherever a variant
+    /// carries one, so that the identifier is exercised independently of the failure details.
+    fn any_problem() -> impl Strategy<Value = Hook0Problem> {
+        (
+            proptest::sample::select(Hook0Problem::iter().collect::<Vec<_>>()),
+            any::<u8>(),
+            proptest::collection::vec("\\PC{0,32}", 0..8),
+            "\\PC{0,128}",
+            any::<QuotaValue>(),
+            0_usize..1_000_000,
+        )
+            .prop_map(|(problem, byte, words, text, quota, limit)| match problem {
+                Hook0Problem::PasswordTooShort(_) => Hook0Problem::PasswordTooShort(byte),
+                Hook0Problem::UnauthorizedWorkers(_) => Hook0Problem::UnauthorizedWorkers(words),
+                Hook0Problem::EventInvalidBase64Payload(_) => {
+                    Hook0Problem::EventInvalidBase64Payload(text)
+                }
+                Hook0Problem::EventInvalidJsonPayload(_) => {
+                    Hook0Problem::EventInvalidJsonPayload(text)
+                }
+                Hook0Problem::TooManyMembersPerOrganization(_) => {
+                    Hook0Problem::TooManyMembersPerOrganization(quota)
+                }
+                Hook0Problem::TooManyApplicationsPerOrganization(_) => {
+                    Hook0Problem::TooManyApplicationsPerOrganization(quota)
+                }
+                Hook0Problem::TooManyEventsToday(_) => Hook0Problem::TooManyEventsToday(quota),
+                Hook0Problem::TooManySubscriptionsPerApplication(_) => {
+                    Hook0Problem::TooManySubscriptionsPerApplication(quota)
+                }
+                Hook0Problem::TooManyEventTypesPerApplication(_) => {
+                    Hook0Problem::TooManyEventTypesPerApplication(quota)
+                }
+                Hook0Problem::JsonPayload(_) => {
+                    Hook0Problem::JsonPayload(JsonPayloadProblem::Overflow { limit })
+                }
+                other => other,
+            })
+    }
+
+    /// A client generated from the spec can only recognize the problems the spec enumerates, so
+    /// the enumeration must cover every problem the API can answer with, once each.
+    #[test]
+    fn published_enumeration_covers_every_problem_exactly_once() {
+        let schema = Hook0ProblemId::raw_schema();
+        assert_eq!(
+            schema.data_type,
+            Some(DataType::String),
+            "problem identifiers must be published as strings"
+        );
+
+        let published = published_identifiers();
+        for problem in Hook0Problem::iter() {
+            assert!(
+                published.contains(problem.id().as_str()),
+                "{problem} is missing from the published identifier enumeration"
+            );
+        }
+        assert_eq!(
+            published.len(),
+            Hook0Problem::iter().count(),
+            "the published enumeration holds duplicate or unknown identifiers: {published:?}"
+        );
+    }
+
+    /// The identifier a client reads in the spec is the one it actually receives on the wire.
+    #[actix_web::test]
+    async fn problem_body_carries_the_published_identifier() {
+        for problem in Hook0Problem::iter() {
+            let expected = problem.id();
+            let response = problem.error_response();
+
+            let body = to_bytes(response.into_body())
+                .await
+                .expect("error response body should be readable");
+            let json = serde_json::from_slice::<Value>(&body)
+                .expect("error response body should be valid JSON");
+
+            assert_eq!(
+                json["id"].as_str(),
+                Some(expected.as_str()),
+                "unexpected `id` member for {problem}"
+            );
+            assert_eq!(
+                json["type"].as_str(),
+                Some(format!("https://hook0.com/documentation/errors/{expected}").as_str()),
+                "unexpected `type` member for {problem}"
+            );
+        }
+    }
+
+    proptest! {
+        /// Whatever payload a problem carries, its identifier stays the one published in the
+        /// spec: a client matching on `EventAlreadyIngested` keeps recognizing it even when the
+        /// details of the failure change.
+        #[test]
+        fn problem_identifier_is_non_empty_stable_and_published(problem in any_problem()) {
+            let id = problem.id();
+
+            prop_assert!(
+                !id.as_str().is_empty(),
+                "{problem:?} exposes an empty identifier"
+            );
+            prop_assert!(
+                published_identifiers().contains(id.as_str()),
+                "{problem:?} exposes {id}, which the spec does not publish"
+            );
+
+            // Compare against the same variant carrying its default payload: the identifier is a
+            // property of the variant, never of what it holds.
+            let payload_free = Hook0Problem::iter()
+                .find(|candidate| discriminant(candidate) == discriminant(&problem));
+            match payload_free {
+                Some(payload_free) => prop_assert_eq!(
+                    id,
+                    payload_free.id(),
+                    "{:?} exposes an identifier that depends on its payload",
+                    problem
+                ),
+                None => prop_assert!(false, "{:?} is not reachable through variant iteration", problem),
+            }
+        }
+    }
 
     /// Check the response contract of every error Hook0 can return.
     #[actix_web::test]
