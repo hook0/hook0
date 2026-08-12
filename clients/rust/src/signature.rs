@@ -160,6 +160,35 @@ mod tests {
     }
 
     #[test]
+    fn a_signature_header_carrying_no_signature_at_all_is_refused() {
+        for header in ["t=123", "t=123,h=x-test", "t=123,foo=bar"] {
+            assert!(
+                Signature::parse(header).is_err(),
+                "`{header}` carries no v0 nor v1 field and must not parse"
+            );
+        }
+    }
+
+    #[test]
+    fn a_signature_whose_hex_is_not_decodable_is_refused() {
+        // `zz` is not hex at all, `abcz` and `abc` would decode to a shorter value than announced,
+        // and `ab=cd` is what an extra assignator inside a value looks like.
+        for header in [
+            "t=123,v0=zz",
+            "t=123,v0=abcz",
+            "t=123,v0=abc",
+            "t=123,v0=ab=cd",
+            "t=123,h=x-test,v1=zz",
+            "t=123,h=x-test,v1=abcz",
+        ] {
+            assert!(
+                Signature::parse(header).is_err(),
+                "`{header}` does not carry decodable hex and must not parse"
+            );
+        }
+    }
+
+    #[test]
     fn parse_signature_v1() {
         let signature = Signature::parse("t=123,h=x-test x-test2,v1=1234").unwrap();
         assert_eq!(signature.timestamp, 123);
