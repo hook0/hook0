@@ -161,14 +161,14 @@ pub async fn list(
 }
 
 #[api_v2_operation(
-    summary = "Edit a service token",
+    summary = "Update a service token",
     description = "Updates the name of an existing service token. The token must belong to the specified organization and still be active (not expired or revoked).",
-    operation_id = "serviceToken.edit",
+    operation_id = "serviceToken.update",
     consumes = "application/json",
     produces = "application/json",
     tags("Service Tokens Management", "public")
 )]
-pub async fn edit(
+pub async fn update(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,

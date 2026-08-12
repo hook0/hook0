@@ -311,7 +311,7 @@ pub fn build_app(
                         .service(
                             web::resource("/{service_token_id}")
                                 .route(web::get().to(handlers::service_token::get))
-                                .route(web::put().to(handlers::service_token::edit))
+                                .route(web::put().to(handlers::service_token::update))
                                 .route(web::delete().to(handlers::service_token::delete)),
                         ),
                 )

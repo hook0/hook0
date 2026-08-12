@@ -732,7 +732,7 @@ export interface paths {
      * Edit a service token
      * @description Updates the name of an existing service token. The token must belong to the specified organization and still be active (not expired or revoked).
      */
-    put: operations['serviceToken.edit'];
+    put: operations['serviceToken.update'];
     post?: never;
     /**
      * Delete a service token
@@ -4037,7 +4037,7 @@ export interface operations {
       };
     };
   };
-  'serviceToken.edit': {
+  'serviceToken.update': {
     parameters: {
       query?: never;
       header?: never;

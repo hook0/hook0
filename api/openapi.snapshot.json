@@ -4498,7 +4498,7 @@
       },
       "put": {
         "description": "Updates the name of an existing service token. The token must belong to the specified organization and still be active (not expired or revoked).",
-        "operationId": "serviceToken.edit",
+        "operationId": "serviceToken.update",
         "parameters": [
           {
             "in": "path",
@@ -4598,7 +4598,7 @@
             "biscuit": []
           }
         ],
-        "summary": "Edit a service token",
+        "summary": "Update a service token",
         "tags": [
           "Service Tokens Management",
           "public"
