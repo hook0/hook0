@@ -36,6 +36,39 @@ const DEFAULT_DESCRIPTION =
   'Hook0 is a robust webhook infrastructure that handles event delivery, retries, and monitoring for your applications.';
 
 /**
+ * Accumulate the body of a byte stream, refusing one larger than `limit` bytes.
+ * Resolves to `{ available: true, body }` or `{ available: false, reason }`.
+ *
+ * The chunks are held as bytes and decoded once, at the end. Decoding each
+ * chunk on its own would corrupt every character whose UTF-8 bytes happen to
+ * straddle two of them — a `—` cut in half becomes replacement characters, in
+ * a document that still parses as JSON. That damage is silent, and it outlives
+ * the build that caused it: the same text is written to the published
+ * specification and to the cache the next build falls back on. Holding bytes
+ * also keeps the ceiling honest, since it is spent in the unit it is named in.
+ */
+const readBody = (stream, limit) =>
+  new Promise((resolve) => {
+    const chunks = [];
+    let size = 0;
+    stream.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > limit) {
+        stream.destroy();
+        resolve({ available: false, reason: `sent more than ${limit} bytes` });
+        return;
+      }
+      chunks.push(chunk);
+    });
+    stream.on('end', () => {
+      resolve({ available: true, body: Buffer.concat(chunks).toString('utf8') });
+    });
+    stream.on('error', (error) => {
+      resolve({ available: false, reason: `failed mid-response: ${error.message}` });
+    });
+  });
+
+/**
  * Read the specification over HTTP.
  * Resolves to `{ available: true, spec }` or `{ available: false, reason }`;
  * it never rejects, so the caller can try the next source.
@@ -53,22 +86,13 @@ const fetchFromApi = () =>
         return;
       }
 
-      let body = '';
-      let size = 0;
-      response.on('data', (chunk) => {
-        size += chunk.length;
-        if (size > MAX_SPEC_BYTES) {
+      readBody(response, MAX_SPEC_BYTES).then((read) => {
+        if (!read.available) {
           request.destroy();
-          resolve({
-            available: false,
-            reason: `${OPENAPI_URL} sent more than ${MAX_SPEC_BYTES} bytes`,
-          });
+          resolve({ available: false, reason: `${OPENAPI_URL} ${read.reason}` });
           return;
         }
-        body += chunk;
-      });
-      response.on('end', () => {
-        resolve(parseSpec(body, OPENAPI_URL));
+        resolve(parseSpec(read.body, OPENAPI_URL));
       });
     });
 
@@ -240,36 +264,52 @@ const giveUp = (reasons) => {
   process.exit(1);
 };
 
-console.log(`📥 Fetching OpenAPI spec from: ${OPENAPI_URL}`);
+const main = () => {
+  console.log(`📥 Fetching OpenAPI spec from: ${OPENAPI_URL}`);
 
-fetchFromApi()
-  .then((fromApi) => {
-    if (fromApi.available) {
-      return fromApi;
-    }
-    console.warn(`⚠️  ${fromApi.reason}`);
-    console.warn(`   Falling back to the specification left by a previous build`);
-    return readFromCache().then((fromCache) => ({
-      ...fromCache,
-      reasons: fromCache.available ? [] : [fromApi.reason, fromCache.reason],
-    }));
-  })
-  .then((source) => {
-    if (!source.available) {
-      giveUp(source.reasons === undefined ? [source.reason] : source.reasons);
-      return;
-    }
+  return fetchFromApi()
+    .then((fromApi) => {
+      if (fromApi.available) {
+        return fromApi;
+      }
+      console.warn(`⚠️  ${fromApi.reason}`);
+      console.warn(`   Falling back to the specification left by a previous build`);
+      return readFromCache().then((fromCache) => ({
+        ...fromCache,
+        reasons: fromCache.available ? [] : [fromApi.reason, fromCache.reason],
+      }));
+    })
+    .then((source) => {
+      if (!source.available) {
+        giveUp(source.reasons === undefined ? [source.reason] : source.reasons);
+        return;
+      }
 
-    const reason = unusableReason(source.spec);
-    if (reason !== '') {
-      giveUp([`${source.origin} cannot be published: ${reason}`]);
-      return;
-    }
+      const reason = unusableReason(source.spec);
+      if (reason !== '') {
+        giveUp([`${source.origin} cannot be published: ${reason}`]);
+        return;
+      }
 
-    console.log(`   Specification read from ${source.origin}`);
-    writeSpec(enhanceSpec(source.spec));
-    console.log('📄 OpenAPI spec ready for documentation generation');
-  })
-  .catch((error) => {
-    giveUp([`the fetch script itself failed: ${error.stack}`]);
-  });
+      console.log(`   Specification read from ${source.origin}`);
+      writeSpec(enhanceSpec(source.spec));
+      console.log('📄 OpenAPI spec ready for documentation generation');
+    })
+    .catch((error) => {
+      giveUp([`the fetch script itself failed: ${error.stack}`]);
+    });
+};
+
+// Importing the script exposes its parts to tests; only running it builds.
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  readBody,
+  fetchFromApi,
+  parseSpec,
+  unusableReason,
+  enhanceSpec,
+  renameSecurityScheme,
+};
