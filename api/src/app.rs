@@ -576,6 +576,26 @@ mod tests {
     /// Prefix of a reference to a schema of the document.
     const SCHEMA_REFERENCE_PREFIX: &str = "#/components/schemas/";
 
+    /// The types the dashboard is built against, generated from the served
+    /// document by `openapi-typescript` and indexed by operation identifier.
+    const FRONTEND_TYPES_PATH: &str =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../frontend/src/types.ts");
+
+    /// Ceiling on how much of that file is read, so a runaway one cannot be
+    /// pulled into memory whole.
+    const FRONTEND_TYPES_MAX_BYTES: u64 = 4 * 1024 * 1024;
+
+    /// Header of the block the generated file declares its operations under.
+    const FRONTEND_OPERATIONS_BLOCK: &str = "export interface operations {";
+
+    /// How the generated file points at one of those operations.
+    const FRONTEND_OPERATION_REFERENCE: &str = "operations['";
+
+    /// What to run to regenerate the frontend types. Unlike the snapshot, this
+    /// reads the document over HTTP, so it needs an instance to read it from.
+    const FRONTEND_TYPES_UPDATE_COMMAND: &str =
+        "cd frontend && npm run generate:types  # against a running API";
+
     /// Set to any value to rewrite the snapshot instead of failing on a difference.
     const SNAPSHOT_UPDATE_VAR: &str = "UPDATE_OPENAPI_SNAPSHOT";
 
@@ -732,6 +752,165 @@ mod tests {
             Vec::<&String>::new(),
             "the snapshot requires security schemes it does not carry"
         );
+    }
+    /// The dashboard is typed against a file generated from the served document
+    /// and indexed by operation identifier, and nothing ties the two together
+    /// afterwards: rename an operation and the file still compiles, against
+    /// identifiers the API no longer serves — which only shows up once a request
+    /// is actually made.
+    ///
+    /// Checked against the served document rather than the snapshot, because the
+    /// snapshot is narrowed to what clients are generated from while the
+    /// dashboard also drives the private control plane: signing in, registering,
+    /// administering an organization.
+    /// Operations the API serves that the generated frontend types predate.
+    ///
+    /// They are named rather than tolerated as a count, so a third one cannot
+    /// slip in unnoticed, and the list empties itself the day the types are
+    /// regenerated against a running API. Regenerating them today would also
+    /// bring the closed enumeration of problem identifiers, which several
+    /// dashboard call sites do not satisfy — that is a change of its own.
+    const FRONTEND_TYPES_STALE_SINCE: [&str; 2] = [
+        "auth.resend_verification_email",
+        "emailPreferences.unsubscribeReactivation",
+    ];
+
+    #[actix_web::test]
+    async fn the_frontend_types_are_indexed_by_the_operations_the_api_serves() {
+        let served = operation_ids(&openapi_spec().await, |_| true);
+        let frontend = frontend_operation_ids(&read_frontend_types());
+
+        let unserved: BTreeSet<_> = frontend.difference(&served).cloned().collect();
+        let missing: BTreeSet<_> = served
+            .difference(&frontend)
+            .filter(|id| !FRONTEND_TYPES_STALE_SINCE.contains(&id.as_str()))
+            .cloned()
+            .collect();
+
+        if unserved.is_empty() && missing.is_empty() {
+            println!("{} operations shared with the frontend types", served.len());
+            return;
+        }
+
+        let mut report = String::new();
+        if !unserved.is_empty() {
+            report.push_str(&format!(
+                "Indexed by the frontend types, not served by the API:\n    {}\n",
+                names(&unserved)
+            ));
+        }
+        if !missing.is_empty() {
+            report.push_str(&format!(
+                "Served by the API, absent from the frontend types:\n    {}\n",
+                names(&missing)
+            ));
+        }
+        panic!(
+            "the generated frontend types no longer describe the served API.\n\
+             {report}\
+             Regenerate them with:\n    {FRONTEND_TYPES_UPDATE_COMMAND}\n\
+             File: {FRONTEND_TYPES_PATH}"
+        );
+    }
+
+    /// Reads the generated frontend types, refusing a file past
+    /// [`FRONTEND_TYPES_MAX_BYTES`] rather than growing to hold it.
+    fn read_frontend_types() -> String {
+        use std::io::Read;
+
+        let file = std::fs::File::open(FRONTEND_TYPES_PATH).unwrap_or_else(|err| {
+            panic!(
+                "the generated frontend types cannot be read ({err}).\n\
+                 Generate them with:\n    {FRONTEND_TYPES_UPDATE_COMMAND}\n\
+                 File: {FRONTEND_TYPES_PATH}"
+            )
+        });
+
+        let mut source = String::new();
+        let read = file
+            .take(FRONTEND_TYPES_MAX_BYTES + 1)
+            .read_to_string(&mut source)
+            .expect("the generated frontend types are valid UTF-8");
+        assert!(
+            read as u64 <= FRONTEND_TYPES_MAX_BYTES,
+            "the generated frontend types are larger than the {FRONTEND_TYPES_MAX_BYTES} bytes \
+             this reads.\nFile: {FRONTEND_TYPES_PATH}"
+        );
+
+        source
+    }
+
+    /// Identifiers the generated frontend types name, taken from both places the
+    /// generator writes them: the keys of its `operations` block, and the
+    /// references its path table resolves against them. Reading both means an
+    /// identifier edited on one side alone is reported rather than covered for by
+    /// the other.
+    fn frontend_operation_ids(source: &str) -> BTreeSet<String> {
+        let mut ids = declared_frontend_operations(source);
+        ids.extend(referenced_frontend_operations(source));
+        ids
+    }
+
+    /// Keys of the `operations` block, which the generator lists one per line at
+    /// the block's own indentation, quoted unless the formatter could drop the
+    /// quotes.
+    fn declared_frontend_operations(source: &str) -> BTreeSet<String> {
+        let mut ids = BTreeSet::new();
+        let Some((_, block)) = source.split_once(FRONTEND_OPERATIONS_BLOCK) else {
+            return ids;
+        };
+
+        for line in block.lines() {
+            // The block closes on the first line to return to column zero.
+            if line == "}" {
+                break;
+            }
+            let Some(entry) = line.strip_prefix("  ") else {
+                continue;
+            };
+            // Anything indented further belongs to an operation, not to the block.
+            if entry.starts_with(' ') {
+                continue;
+            }
+            if let Some(key) = entry.strip_suffix(": {") {
+                ids.insert(key.trim_matches('\'').to_owned());
+            }
+        }
+
+        ids
+    }
+
+    /// Identifiers the file resolves a path against, as `operations['…']`.
+    fn referenced_frontend_operations(source: &str) -> BTreeSet<String> {
+        let mut ids = BTreeSet::new();
+
+        for tail in source.split(FRONTEND_OPERATION_REFERENCE).skip(1) {
+            // An identifier is written on one line, so a reference the closing
+            // quote of which is further down is not one.
+            if let Some((id, _)) = tail.split_once('\'')
+                && !id.is_empty()
+                && !id.contains('\n')
+            {
+                ids.insert(id.to_owned());
+            }
+        }
+
+        ids
+    }
+
+    /// Names, as many as a failure message carries.
+    fn names(ids: &BTreeSet<String>) -> String {
+        let listed: Vec<&str> = ids
+            .iter()
+            .take(MAX_REPORTED_DIFFERENCES)
+            .map(String::as_str)
+            .collect();
+
+        let mut rendered = listed.join(", ");
+        if ids.len() > listed.len() {
+            rendered.push_str(&format!(", … {} more", ids.len() - listed.len()));
+        }
+        rendered
     }
 
     /// Identifiers of the operations of a document that a predicate keeps.
