@@ -99,7 +99,7 @@ module.exports = {
       },
       {
         title: 'Convoy (Elastic License v2)',
-        body: 'Source-available but not OSI-approved: the licence forbids offering Convoy as a managed service. Community is free; the Premium feature set (JS transformations, RBAC, white-label portal) is licensed at $999/month.',
+        body: 'Source-available: the licence forbids offering Convoy as a managed service. Community is free; the Premium feature set (JS transformations, RBAC, white-label portal) is licensed at $999/month.',
       },
     ],
     opsCard: {
