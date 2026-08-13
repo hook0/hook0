@@ -8,9 +8,45 @@ This is the Rust SDK for [Hook0](https://www.hook0.com), an open source Webhooks
 
 ## Features
 
-- **Send Events**: Send events to Hook0. (**producer**)
+- **Send Events**: Send events to Hook0, retried and bounded. (**producer**)
 - **Upsert Event Types**: Make sure event types you use in your application's events are created in Hook0. (**producer**)
 - **Verifying Webhook Signatures**: Ensure the authenticity and integrity of incoming webhooks. (**consumer**)
+
+## Sending an event is idempotent, and retried
+
+`send_event` sends every event under an ID it knows: the one set on the `Event`, or a UUIDv7 it
+generates when the event carries none. **Passing no ID no longer means the ID comes from Hook0** —
+the interface is unchanged, but the value now comes from the client, is sent with the request, and
+is what `send_event` returns.
+
+That is what makes retrying safe. Hook0 keys events on their ID, so a request repeated after a
+network failure or a server error ingests the event once rather than twice; without a
+client-chosen ID, a repeated request would create a second event and deliver it to every
+subscriber.
+
+Only a network failure or a server error is retried. A retried request Hook0 answers with
+`EventAlreadyIngested` reports success — an earlier attempt of that same send reached the API. The
+same answer to a *first* attempt is a genuine conflict and is reported as an error.
+
+Every send is bounded, and every bound is configurable:
+
+```rust
+use hook0_client::{Hook0Client, RetryPolicy};
+use std::time::Duration;
+
+let client = Hook0Client::new(api_url, application_id, &token)?
+    .with_retry_policy(RetryPolicy {
+        max_attempts: 4,
+        initial_backoff: Duration::from_millis(100),
+        max_backoff: Duration::from_secs(2),
+        max_total_delay: Duration::from_secs(5),
+    })
+    .with_request_timeout(Duration::from_secs(10))
+    .with_max_payload_bytes(1024 * 1024);
+```
+
+Those are the defaults. `RetryPolicy::disabled()` sends each event exactly once. A payload above
+the maximum is refused before any request is issued.
 
 ## Getting Started
 

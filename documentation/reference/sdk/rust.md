@@ -53,6 +53,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+### Sending an Event Is Idempotent, and Retried
+
+`send_event` sends every event under an ID it knows: the one set on the `Event`, or a UUIDv7 it
+generates when the event carries none. **Passing no ID no longer means the ID comes from Hook0** —
+the interface is unchanged, but the value now comes from the client, is sent with the request, and
+is what `send_event` returns.
+
+That is what makes retrying safe. Hook0 keys events on their ID, so a request repeated after a
+network failure or a server error ingests the event once rather than twice; without a
+client-chosen ID, a repeated request would create a second event and deliver it to every
+subscriber.
+
+Only a network failure or a server error is retried — an answer Hook0 would repeat (a bad request,
+an exhausted quota) is reported as is. A retried request Hook0 answers with `EventAlreadyIngested`
+returns success, because an earlier attempt of that same send reached the API; the same answer to a
+*first* attempt is a genuine conflict and is returned as an error.
+
+Every send is bounded, and every bound is configurable:
+
+```rust
+use hook0_client::{Hook0Client, RetryPolicy};
+use std::time::Duration;
+
+let client = Hook0Client::new(api_url, application_id, &token)?
+    .with_retry_policy(RetryPolicy {
+        max_attempts: 4,
+        initial_backoff: Duration::from_millis(100),
+        max_backoff: Duration::from_secs(2),
+        max_total_delay: Duration::from_secs(5),
+    })
+    .with_request_timeout(Duration::from_secs(10))
+    .with_max_payload_bytes(1024 * 1024);
+```
+
+Those are the defaults. `RetryPolicy::disabled()` sends each event exactly once. A payload above the
+maximum is refused before any request is issued, so neither the round trip nor the retries after it
+are spent on a request the API would refuse.
+
 ### Verify Webhook Signatures (Consumer)
 
 ```rust
@@ -504,7 +542,12 @@ let application_id = std::env::var("HOOK0_APP_ID")
     .expect("HOOK0_APP_ID environment variable not set");
 ```
 
-### 5. Provide Custom Event IDs for Idempotency
+### 5. Provide Custom Event IDs to Deduplicate Across Emitters
+
+The client already sends an ID of its own, so retries are idempotent without you doing anything.
+Set an ID yourself when the *same* event can be produced more than once by your application — a
+payment webhook replayed by your provider, a job that can run twice — by deriving a stable UUID
+from your domain key:
 
 ```rust
 use uuid::Uuid;

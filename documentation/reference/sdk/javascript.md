@@ -37,6 +37,50 @@ const event = new Event(
 const eventId = await hook0.sendEvent(event);
 ```
 
+## Sending an Event Is Idempotent, and Retried
+
+`sendEvent` sends every event under an ID it knows: the one set on the `Event`, or a UUIDv7 it
+generates when the event carries none. **Passing no ID no longer means the ID comes from Hook0** —
+the interface is unchanged, but the value now comes from the client, is sent with the request, and
+is what `sendEvent` resolves to.
+
+That is what makes retrying safe. Hook0 keys events on their ID, so a request repeated after a
+network failure or a server error ingests the event once rather than twice; without a
+client-chosen ID, a repeated request would create a second event and deliver it to every
+subscriber.
+
+Only a network failure or a server error is retried — an answer Hook0 would repeat (a bad request,
+an exhausted quota) is reported as is. A retried request Hook0 answers with `EventAlreadyIngested`
+resolves, because an earlier attempt of that same send reached the API; the same answer to a
+*first* attempt is a genuine conflict and rejects.
+
+Every send is bounded, and every bound is configurable:
+
+```typescript
+import { Hook0Client, Hook0ClientOptions, RetryPolicy } from 'hook0-client';
+
+const hook0 = new Hook0Client(
+  'http://localhost:8081/api/v1',
+  'app_1234567890',
+  '{YOUR_TOKEN}',
+  false,
+  new Hook0ClientOptions(
+    new RetryPolicy(
+      4,    // attempts, the first one included
+      100,  // ceiling of the delay before the first retry, in milliseconds
+      2000, // ceiling no single delay ever exceeds, in milliseconds
+      5000  // budget all the delays of one send share, in milliseconds
+    ),
+    10000,       // longest one attempt is given, in milliseconds
+    1024 * 1024  // largest event payload the client sends, in bytes
+  )
+);
+```
+
+Those are the defaults. `RetryPolicy.disabled()` sends each event exactly once. A payload above the
+maximum is refused before any request is issued, so neither the round trip nor the retries after it
+are spent on a request the API would refuse.
+
 ## Configuration
 
 ### Client Initialization
@@ -340,12 +384,14 @@ const eventIds = await Promise.all(eventPromises);
 console.log(`Sent ${eventIds.length} events`);
 ```
 
-### 4. Use Unique Event IDs
+### 4. Use Unique Event IDs to Deduplicate Across Emitters
 
 ```typescript
 import { v5 as uuidv5 } from 'uuid';
 
-// Provide your own event ID for idempotency.
+// The client already sends an id of its own, so retries are idempotent without you doing anything.
+// Set an id yourself when the *same* event can be produced more than once by your application — a
+// payment webhook replayed by your provider, a job that can run twice.
 // Hook0 requires event_id to be a UUID, so derive a stable one from your domain key.
 const event = new Event(
   'payment.transaction.processed',
@@ -383,17 +429,15 @@ const hook0 = new Hook0Client(
 
 **Network Errors**
 ```typescript
-// Implement retry logic for network failures
-async function sendEventWithRetry(client: Hook0Client, event: Event, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await client.sendEvent(event);
-    } catch (error) {
-      if (i === maxRetries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
-    }
-  }
-}
+// The client already retries network failures and server errors on its own, under the same event
+// id, so a retry cannot ingest the event twice. Change how it does so rather than wrapping it:
+import { Hook0Client, Hook0ClientOptions, RetryPolicy } from 'hook0-client';
+
+const patient = new Hook0Client(apiUrl, applicationId, token, false, new Hook0ClientOptions(
+  new RetryPolicy(6, 200, 5000, 20000)
+));
+
+// A `sendEvent` that rejects with "gave up after N attempts" has already exhausted them.
 ```
 
 ## Support

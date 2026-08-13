@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, afterEach } from '@jest/globals';
 import * as http from 'http';
 
-import { Hook0Client, Event } from '../src/index';
+import { Hook0Client, Event, Hook0ClientOptions, RetryPolicy } from '../src/index';
 
 /**
  * The client is exercised against a Hook0 API listening on a loopback port, so every case below
@@ -15,6 +15,76 @@ interface ScriptedResponse {
   body: unknown;
 }
 
+/** The same, plus how long the API sits on it before writing anything. */
+interface HeldResponse extends ScriptedResponse {
+  heldForMs: number;
+}
+
+/** The shape a UUID has, whichever version it carries. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * A retry schedule short enough that a case spends its time on requests rather than on waiting,
+ * and whose budget is far above what its delays add up to, so the number of attempts a case
+ * observes is the one its policy asked for.
+ */
+function promptRetries(maxAttempts: number): RetryPolicy {
+  return new RetryPolicy(maxAttempts, 5, 5, 1_000);
+}
+
+function withRetries(policy: RetryPolicy, requestTimeoutMs = 5_000): Hook0ClientOptions {
+  return new Hook0ClientOptions(policy, requestTimeoutMs);
+}
+
+function anEvent(): Event {
+  return new Event('auth.user.create', '{"email": "test@example.com"}', 'application/json', {
+    environment: 'production',
+  });
+}
+
+function alreadyIngested(): ScriptedResponse {
+  return {
+    status: 409,
+    body: {
+      id: 'EventAlreadyIngested',
+      title: 'Event already Ingested',
+      detail: 'This event was previously ingested and recorded inside Hook0 service.',
+      status: 409,
+    },
+  };
+}
+
+function serverError(): ScriptedResponse {
+  return { status: 500, body: { id: 'InternalServerError', status: 500 } };
+}
+
+function ingested(eventId: string): ScriptedResponse {
+  return {
+    status: 201,
+    body: {
+      application_id: 'app-123',
+      event_id: eventId,
+      received_at: new Date().toISOString(),
+    },
+  };
+}
+
+/** The event ID request number `index` carried, as the API read it. */
+function eventIdOf(api: FakeHook0Api, index: number): string {
+  const request = api.received[index];
+  if (request === undefined) {
+    throw new Error(`Expected at least ${index + 1} requests, got ${api.received.length}`);
+  }
+  const body: unknown = JSON.parse(request.body);
+  if (typeof body === 'object' && body !== null && 'event_id' in body) {
+    const eventId = (body as { event_id: unknown }).event_id;
+    if (typeof eventId === 'string') {
+      return eventId;
+    }
+  }
+  throw new Error(`Request ${index} carries no event_id: ${request.body}`);
+}
+
 /** A request the API received, in the order it received it. */
 interface ReceivedRequest {
   body: string;
@@ -25,6 +95,16 @@ const MAX_REQUEST_BODY_BYTES = 64 * 1024;
 
 /** Every case talks to a loopback socket, so none of them has any reason to take this long. */
 const TEST_TIMEOUT_MS = 10_000;
+
+/** Resolves after `delayMs`, so an answer can be withheld from the client for a while. */
+function hold(delayMs: number): Promise<void> {
+  if (delayMs === 0) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+}
 
 function readBody(request: http.IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -48,7 +128,7 @@ function readBody(request: http.IncomingMessage): Promise<string> {
 /** A Hook0 API listening on a loopback port for the lifetime of one test. */
 class FakeHook0Api {
   readonly received: ReceivedRequest[] = [];
-  private readonly responses: ScriptedResponse[] = [];
+  private readonly responses: HeldResponse[] = [];
   private answered = 0;
   private readonly server: http.Server;
 
@@ -58,8 +138,10 @@ class FakeHook0Api {
         .then((body) => {
           this.received.push({ body });
           const scripted = this.nextResponse();
-          response.writeHead(scripted.status, { 'Content-Type': 'application/json' });
-          response.end(JSON.stringify(scripted.body));
+          return hold(scripted.heldForMs).then(() => {
+            response.writeHead(scripted.status, { 'Content-Type': 'application/json' });
+            response.end(JSON.stringify(scripted.body));
+          });
         })
         .catch((error: Error) => {
           response.writeHead(500, { 'Content-Type': 'application/json' });
@@ -70,14 +152,20 @@ class FakeHook0Api {
 
   /** Queues the answers the case expects the client to draw, in order. */
   willAnswer(...responses: ScriptedResponse[]): void {
-    this.responses.push(...responses);
+    this.responses.push(...responses.map((response) => ({ ...response, heldForMs: 0 })));
   }
 
-  private nextResponse(): ScriptedResponse {
+  /** Queues one answer the API withholds long enough for a client to give up waiting for it. */
+  willAnswerAfter(heldForMs: number, response: ScriptedResponse): void {
+    this.responses.push({ ...response, heldForMs });
+  }
+
+  private nextResponse(): HeldResponse {
     if (this.answered >= this.responses.length) {
       return {
         status: 500,
         body: { error: 'The test scripted no answer for this request' },
+        heldForMs: 0,
       };
     }
     const scripted = this.responses[this.answered];
@@ -158,39 +246,70 @@ describe('Hook0Client', () => {
   );
 
   test(
-    'should send an event without eventId and return server-generated id (201 Created)',
+    'sends an event the caller gave no id under an id it generated itself',
     async () => {
-      const serverGeneratedId = '01961234-5678-7abc-8def-0123456789ab';
-      api.willAnswer({
-        status: 201,
-        body: {
-          application_id: 'app-123',
-          event_id: serverGeneratedId,
-          received_at: new Date().toISOString(),
-        },
-      });
+      const ingestedId = '01961234-5678-7abc-8def-0123456789ab';
+      api.willAnswer(ingested(ingestedId));
 
-      const event = new Event(
-        'auth.user.create',
-        '{"email": "test@example.com"}',
-        'application/json',
-        { environment: 'production' }
-      );
+      const eventId = await client.sendEvent(anEvent());
 
-      const eventId = await client.sendEvent(event);
-
-      expect(eventId).toStrictEqual(serverGeneratedId);
+      expect(eventId).toStrictEqual(ingestedId);
       expect(api.received).toHaveLength(1);
 
-      // Verify the request body does not contain event_id
-      const requestBody = JSON.parse(api.received[0].body);
-      expect(requestBody.event_id).toBeUndefined();
+      // The request must carry an id: without one, a replayed request makes Hook0 mint a second
+      // one, and the event is ingested and delivered twice.
+      expect(eventIdOf(api, 0)).toMatch(UUID);
     },
     TEST_TIMEOUT_MS
   );
 
   test(
-    'should fail when too many events are sent (429 Too Many Requests)',
+    'retries an attempt that ran out of time under the same event id',
+    async () => {
+      const ingestedId = '01961234-5678-7abc-8def-0123456789ab';
+      api.willAnswerAfter(400, ingested(ingestedId));
+      api.willAnswer(ingested(ingestedId));
+
+      const patient = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        withRetries(promptRetries(3), 100)
+      );
+
+      const eventId = await patient.sendEvent(anEvent());
+
+      expect(eventId).toStrictEqual(ingestedId);
+      expect(api.received).toHaveLength(2);
+      // The retry must repeat the id of the attempt it repeats, or Hook0 ingests the event twice.
+      expect(eventIdOf(api, 1)).toStrictEqual(eventIdOf(api, 0));
+      expect(eventIdOf(api, 0)).toMatch(UUID);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'stops retrying server errors at the configured number of attempts',
+    async () => {
+      api.willAnswer(serverError(), serverError(), serverError(), serverError());
+
+      const stubborn = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        withRetries(promptRetries(3))
+      );
+
+      await expect(stubborn.sendEvent(anEvent())).rejects.toThrow('gave up after 3 attempts');
+      expect(api.received).toHaveLength(3);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'does not retry an answer the API would repeat (429 Too Many Requests)',
     async () => {
       api.willAnswer({
         status: 429,
@@ -200,15 +319,130 @@ describe('Hook0Client', () => {
         },
       });
 
-      const event = new Event(
-        'auth.user.create',
-        '{"email": "test@example.com"}',
-        'application/json',
-        { environment: 'production' }
+      const stubborn = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        withRetries(promptRetries(4))
       );
 
-      await expect(client.sendEvent(event)).rejects.toThrow('Sending event');
+      // A quota that is exhausted for the day cannot clear itself between two attempts.
+      await expect(stubborn.sendEvent(anEvent())).rejects.toThrow('Sending event');
       expect(api.received).toHaveLength(1);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'reports success when a retry is answered that the event was already ingested',
+    async () => {
+      api.willAnswer(serverError(), alreadyIngested());
+
+      const stubborn = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        withRetries(promptRetries(3))
+      );
+
+      const eventId = await stubborn.sendEvent(anEvent());
+
+      // The conflict is the mark of the attempt this one repeats having reached the API.
+      expect(eventId).toStrictEqual(eventIdOf(api, 0));
+      expect(api.received).toHaveLength(2);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'reports the conflict when a first attempt is answered that the event was already ingested',
+    async () => {
+      api.willAnswer(alreadyIngested());
+
+      const stubborn = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        withRetries(promptRetries(3))
+      );
+
+      // Nothing this send did can explain the conflict, so the caller has to hear about it.
+      await expect(stubborn.sendEvent(anEvent())).rejects.toThrow('EventAlreadyIngested');
+      expect(api.received).toHaveLength(1);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'issues a single request when retrying is switched off',
+    async () => {
+      api.willAnswer(serverError(), serverError(), serverError());
+
+      const once = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        withRetries(RetryPolicy.disabled())
+      );
+
+      await expect(once.sendEvent(anEvent())).rejects.toThrow('Sending event');
+      expect(api.received).toHaveLength(1);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'refuses a payload above the maximum before any request is issued',
+    async () => {
+      const maximum = 16;
+      api.willAnswer(ingested('01961234-5678-7abc-8def-0123456789ab'));
+
+      const strict = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        new Hook0ClientOptions(new RetryPolicy(), 5_000, maximum)
+      );
+      const event = new Event('auth.user.create', 'x'.repeat(maximum + 1), 'application/json', {});
+
+      await expect(strict.sendEvent(event)).rejects.toThrow(
+        `${maximum} bytes this client sends at most`
+      );
+      expect(api.received).toHaveLength(0);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'keeps the delays of one send inside the configured budget',
+    async () => {
+      // Nine retries of up to 300 ms each would run for seconds; the budget below lets 300 ms of
+      // them through in total.
+      const attempts = 10;
+      const budgetMs = 300;
+      /** What ten requests to a loopback socket, and the work around them, may cost on top. */
+      const roundTripAllowanceMs = 400;
+
+      const budgeted = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        withRetries(new RetryPolicy(attempts, budgetMs, budgetMs, budgetMs))
+      );
+
+      const started = Date.now();
+      await expect(budgeted.sendEvent(anEvent())).rejects.toThrow('gave up after');
+      const elapsed = Date.now() - started;
+
+      expect(elapsed).toBeLessThan(budgetMs + roundTripAllowanceMs);
+      expect(api.received.length).toBeGreaterThanOrEqual(2);
+      expect(api.received.length).toBeLessThanOrEqual(attempts);
     },
     TEST_TIMEOUT_MS
   );

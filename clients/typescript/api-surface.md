@@ -9,6 +9,18 @@ Generated — do not edit by hand. Regenerate with `npm run api-surface:update`.
 or reshaping anything below breaks consumers and requires a major version bump; adding to it
 requires a minor one.
 
+## const DEFAULT_MAX_PAYLOAD_BYTES
+
+```ts
+DEFAULT_MAX_PAYLOAD_BYTES: number
+```
+
+## const DEFAULT_REQUEST_TIMEOUT_MS
+
+```ts
+DEFAULT_REQUEST_TIMEOUT_MS: number
+```
+
 ## class Event
 
 ```ts
@@ -35,7 +47,7 @@ verb: string
 ## class Hook0Client
 
 ```ts
-constructor(apiUrl: string, applicationId: string, token: string, debug?: boolean): Hook0Client
+constructor(apiUrl: string, applicationId: string, token: string, debug?: boolean, options?: Hook0ClientOptions): Hook0Client
 sendEvent(event: Event): Promise<string>
 upsertEventTypes(eventTypes: string[]): Promise<string[]>
 ```
@@ -50,8 +62,39 @@ static GetAvailableEventTypes(error: Error): Hook0ClientError
 static InvalidEventType(s: string): Hook0ClientError
 static InvalidSignature(signature: string): Hook0ClientError
 static MissingHeader(headerName: string): Hook0ClientError
+static PayloadTooLarge(eventId: string, size: number, maximum: number): Hook0ClientError
+static RetriesExhausted(eventId: string, attempts: number, waitedMs: number, lastFailure: string): Hook0ClientError
 static SignatureParsing(signature: string): Hook0ClientError
 static TimestampParsingInSignature(timestamp: string): Hook0ClientError
+```
+
+## class Hook0ClientOptions
+
+```ts
+constructor(retryPolicy?: RetryPolicy, requestTimeoutMs?: number, maxPayloadBytes?: number): Hook0ClientOptions
+maxPayloadBytes: number
+requestTimeoutMs: number
+retryPolicy: RetryPolicy
+```
+
+## const MAX_ATTEMPTS_CAP
+
+```ts
+MAX_ATTEMPTS_CAP: number
+```
+
+## class RetryPolicy
+
+```ts
+constructor(maxAttempts?: number, initialBackoffMs?: number, maxBackoffMs?: number, maxTotalDelayMs?: number): RetryPolicy
+static disabled(): RetryPolicy
+attempts(): number
+backoffCeilingMs(retry: number): number
+delaysMs(draws: number[]): number[]
+initialBackoffMs: number
+maxAttempts: number
+maxBackoffMs: number
+maxTotalDelayMs: number
 ```
 
 ## class Signature
