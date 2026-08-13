@@ -108,7 +108,7 @@ onMounted(() => {
         <template #documentation>
           <Hook0Button
             variant="link"
-            href="https://documentation.hook0.com/docs/events"
+            href="https://documentation.hook0.com/concepts/events"
             target="_blank"
           >
             <BookOpen :size="14" aria-hidden="true" />

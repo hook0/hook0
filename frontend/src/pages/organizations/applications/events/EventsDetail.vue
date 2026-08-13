@@ -77,9 +77,11 @@ const { data: event, isLoading, error, refetch } = useEventDetail(eventId, appli
           <Hook0CardHeader>
             <template #header>{{ t('events.metadata') }}</template>
             <template #subtitle>
-              <Hook0Button variant="link" href="https://documentation.hook0.com/docs/metadata">{{
-                t('events.metadataLearnMore')
-              }}</Hook0Button>
+              <Hook0Button
+                variant="link"
+                href="https://documentation.hook0.com/concepts/metadata"
+                >{{ t('events.metadataLearnMore') }}</Hook0Button
+              >
             </template>
           </Hook0CardHeader>
           <Hook0CardContent>

@@ -15,7 +15,7 @@ const { t } = useI18n();
           <i18n-t keypath="home.gettingStartedSubtitle" tag="span">
             <template #link>
               <a
-                href="https://documentation.hook0.com/docs/getting-started"
+                href="https://documentation.hook0.com/tutorials/getting-started"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="home__link"
