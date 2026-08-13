@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import { Problem } from '@/http';
 import { resetPassword } from '@/pages/user/UserService';
+import { passwordRejection } from '@/utils/passwordProblem';
+import { DEFAULT_PASSWORD_MINIMUM_LENGTH, PASSWORD_MAXIMUM_LENGTH } from '@/utils/passwordPolicy';
+import { useInstanceConfig } from '@/composables/useInstanceConfig';
 import { routes } from '@/routes';
 import router from '@/router';
 import { stripTokenFromUrl } from '@/utils/stripTokenFromUrl';
@@ -25,6 +28,25 @@ const { t } = useI18n();
 const new_password = ref<string>('');
 const confirm_new_password = ref<string>('');
 const isLoading = ref<boolean>(false);
+// Empty until the password is refused; shown under the field it refers to.
+const passwordError = ref<string>('');
+// Whether retrying can still work. A refused password is worth another try; a
+// missing or expired link is not, and offering a form under that error invites
+// the user to fix something no password can fix.
+const linkIsUsable = ref<boolean>(true);
+
+// The floor is operator configuration; the ceiling is not, so it is mirrored.
+// This page never learns the account's address — only the token — so the
+// identity rules cannot run here, but the length rules can, and finding out
+// about them from a round trip is the worst way to find out.
+const { data: instanceConfig } = useInstanceConfig();
+const passwordMinimumLength = computed(() => {
+  const config = instanceConfig.value;
+  if (config === undefined) {
+    return DEFAULT_PASSWORD_MINIMUM_LENGTH;
+  }
+  return config.password_minimum_length;
+});
 let token: string = '';
 
 // Alert state
@@ -43,10 +65,31 @@ const alert = ref<{
 function submit() {
   if (isLoading.value) return;
 
+  // A retry starts clean: leaving the previous rejection on screen while the
+  // user types a new password reads as if it had been refused again.
+  alert.value.visible = false;
+  passwordError.value = '';
+
   if (new_password.value !== confirm_new_password.value) {
     toast.warning(t('common.warning'), {
       description: t('auth.resetPassword.passwordsMismatch'),
       duration: 5000,
+    });
+    return;
+  }
+
+  // The two rules this page can check on its own. Everything else — the
+  // blocklist, the account's own address and name — only the server knows.
+  const length = [...new_password.value].length;
+  if (length < passwordMinimumLength.value) {
+    passwordError.value = t('validation.passwordMinLength', {
+      count: passwordMinimumLength.value,
+    });
+    return;
+  }
+  if (length > PASSWORD_MAXIMUM_LENGTH) {
+    passwordError.value = t('validation.passwordMaxLength', {
+      count: PASSWORD_MAXIMUM_LENGTH,
     });
     return;
   }
@@ -62,11 +105,56 @@ function submit() {
       return router.push({ name: routes.Login });
     })
     .catch((err) => {
+      const rejection = passwordRejection(err, 'new_password');
+      if (rejection.refused) {
+        // Reported once, under the field it refers to. The alert card carries
+        // a "back to login" button, which is the wrong thing to put in front
+        // of someone whose only problem is the password they just chose.
+        passwordError.value = rejection.reason;
+        return;
+      }
+
       displayError(err as Problem);
+      // Only the link being dead removes the form. A server that was busy or
+      // unreachable says nothing about the link, and taking the form away for
+      // it would cost the user their reset for an outage that lasted a second.
+      if (isDeadLink(err)) {
+        linkIsUsable.value = false;
+      }
     })
     .finally(() => {
       isLoading.value = false;
     });
+}
+
+/**
+ * The errors that mean this particular link will never work again, whatever
+ * the user types: a token the API cannot read or has expired, one it refuses
+ * to authorize, and the client-side case of no token at all. Everything else —
+ * a busy server, a dropped connection — is worth another attempt, so the form
+ * stays.
+ *
+ * `Validation` is here because the request carries exactly two fields: by the
+ * time this is consulted the password case has already returned, so what is
+ * left is a malformed token. Without it the user sits on a perfectly usable
+ * form retyping passwords that can never be the problem — worse than losing
+ * the form, because the page keeps inviting the effort.
+ *
+ * Raised by `reset_password` in api/src/handlers/auth.rs.
+ */
+const DEAD_LINK_PROBLEM_IDS: ReadonlySet<string> = new Set([
+  'AuthEmailExpired',
+  'Forbidden',
+  'InvalidToken',
+  'Validation',
+]);
+
+function isDeadLink(err: unknown): boolean {
+  if (err === null || typeof err !== 'object') {
+    return false;
+  }
+  const id: unknown = (err as Record<string, unknown>).id;
+  return typeof id === 'string' && DEAD_LINK_PROBLEM_IDS.has(id);
 }
 
 function displayError(err: Problem) {
@@ -81,6 +169,7 @@ function _onLoad() {
   token = router.currentRoute.value.query.token as string;
   stripTokenFromUrl(router);
   if (!token) {
+    linkIsUsable.value = false;
     displayError({
       id: 'InvalidToken',
       status: 400,
@@ -115,8 +204,11 @@ onMounted(() => {
       </Hook0CardContent>
     </Hook0Card>
 
-    <!-- Form Card -->
-    <Hook0Card v-else variant="glow">
+    <!-- Form Card. Deliberately not the `v-else` of the card above: a refused
+         password is a mistake the user can fix in place, and unmounting the
+         form would cost them their reset link for it. It goes away only when
+         retrying cannot help — a missing or expired link. -->
+    <Hook0Card v-if="linkIsUsable" variant="glow">
       <Hook0CardHeader
         variant="centered"
         :title="t('auth.resetPassword.title')"
@@ -135,8 +227,13 @@ onMounted(() => {
             :placeholder="t('auth.resetPassword.passwordPlaceholder')"
             autocomplete="new-password"
             :disabled="isLoading"
+            :error="passwordError"
             data-test="reset-password-new-password-input"
-          />
+          >
+            <template #helpText>{{
+              t('validation.passwordRequirements', { count: passwordMinimumLength })
+            }}</template>
+          </Hook0Input>
 
           <Hook0Input
             id="confirm_password"
