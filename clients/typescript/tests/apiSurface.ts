@@ -10,7 +10,7 @@ import * as ts from 'typescript';
  * removed or reshaped without the report (and therefore a reviewer) noticing.
  */
 
-const PACKAGE_ROOT = path.resolve(__dirname, '..', '..');
+const PACKAGE_ROOT = path.resolve(__dirname, '..');
 const SOURCE_DIR = path.join(PACKAGE_ROOT, 'src');
 const ENTRY_POINT = path.join(SOURCE_DIR, 'index.ts');
 
@@ -226,7 +226,7 @@ function describeExport(checker: ts.TypeChecker, exported: ts.Symbol): ApiEntry 
 
   throw new Error(
     `Exported symbol \`${name}\` has a kind this extractor cannot describe. ` +
-      `Teach src/tests/apiSurface.ts about it so it appears in ${REPORT_NAME}.`
+      `Teach tests/apiSurface.ts about it so it appears in ${REPORT_NAME}.`
   );
 }
 
@@ -239,7 +239,7 @@ function render(entries: ApiEntry[]): string {
     '',
     `Generated — do not edit by hand. Regenerate with \`${UPDATE_COMMAND}\`.`,
     '',
-    '`src/tests/apiSurface.test.ts` fails when the code and this file disagree. Renaming, removing',
+    '`tests/apiSurface.test.ts` fails when the code and this file disagree. Renaming, removing',
     'or reshaping anything below breaks consumers and requires a major version bump; adding to it',
     'requires a minor one.',
   ];

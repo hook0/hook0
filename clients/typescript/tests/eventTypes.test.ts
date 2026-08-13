@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { EventType, Hook0ClientError } from '../index';
+import { EventType, Hook0ClientError } from '../src/index';
 
 describe('EventType', () => {
   it('should create an EventType instance', () => {

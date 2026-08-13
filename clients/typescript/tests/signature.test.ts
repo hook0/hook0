@@ -5,7 +5,7 @@ import {
   Signature,
   verifyWebhookSignature,
   verifyWebhookSignatureWithCurrentTime,
-} from '../index';
+} from '../src/index';
 
 describe('Signature', () => {
   test('should successfully parse a valid v0 signature', () => {

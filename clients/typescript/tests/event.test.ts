@@ -1,6 +1,6 @@
 import { describe, expect, test } from '@jest/globals';
 
-import { Event } from '../index';
+import { Event } from '../src/index';
 
 describe('Event', () => {
   test('should create an Event instance without optional parameters', () => {

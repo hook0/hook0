@@ -5,7 +5,7 @@ public member. This file is the contract consumers depend on.
 
 Generated — do not edit by hand. Regenerate with `npm run api-surface:update`.
 
-`src/tests/apiSurface.test.ts` fails when the code and this file disagree. Renaming, removing
+`tests/apiSurface.test.ts` fails when the code and this file disagree. Renaming, removing
 or reshaping anything below breaks consumers and requires a major version bump; adding to it
 requires a minor one.
 

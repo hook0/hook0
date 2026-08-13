@@ -9,10 +9,10 @@
   "scripts": {
     "build": "tsc",
     "test": "jest",
-    "api-surface:update": "ts-node src/tests/apiSurface.update.ts",
+    "api-surface:update": "ts-node tests/apiSurface.update.ts",
     "lint": "eslint .",
-    "format": "prettier --write ./src/{*,**/*}.ts",
-    "check": "prettier --check ./src/{*,**/*}.ts",
+    "format": "prettier --write ./{src,tests}/{*,**/*}.ts",
+    "check": "prettier --check ./{src,tests}/{*,**/*}.ts",
     "check-full": "npm run --silent check && npm run --silent lint && npm run --silent test",
     "release-major": "npm run --silent check-full && npm run --silent build && npm-release major",
     "release-minor": "npm run --silent check-full && npm run --silent build && npm-release minor",
