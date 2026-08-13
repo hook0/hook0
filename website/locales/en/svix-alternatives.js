@@ -28,14 +28,14 @@ module.exports = {
     sub: 'Five webhook platforms side by side. Data speaks louder than marketing pages.',
     headers: { criteria: 'Criteria', svix: 'Svix', hook0: 'Hook0', hookdeck: 'Hookdeck', convoy: 'Convoy', hostedhooks: 'HostedHooks' },
     rows: [
-      { criteria: 'License', svixHtml: 'MIT (open-core, enterprise closed)', hook0Html: 'SSPL-1.0 (full source available)', hookdeckHtml: 'Partial (Outpost Apache-2.0; Event Gateway closed)', convoyHtml: 'Source-available (Elastic License 2.0, not OSI-approved)', hostedhooksHtml: 'Closed-source' },
+      { criteria: 'License', svixHtml: 'MIT (open-core, enterprise closed)', hook0Html: 'SSPL-1.0 (full source available)', hookdeckHtml: 'Partial (Outpost Apache-2.0; Event Gateway closed)', convoyHtml: 'Source-available (Elastic License 2.0)', hostedhooksHtml: 'Closed-source' },
       { criteria: 'Funding', svixHtml: '$17M VC-funded', hook0Html: '100% Bootstrapped', hookdeckHtml: '$3.5M VC-funded', convoyHtml: 'VC-funded', hostedhooksHtml: 'Bootstrapped' },
       { criteria: 'Self-Hosting', svixHtml: 'Enterprise plan only (full features)', hook0Html: 'Free (Docker / K8s)', hookdeckHtml: 'Outpost only (Event Gateway cloud-only)', convoyHtml: 'Yes (self-managed)', hostedhooksHtml: 'No' },
       { criteria: 'Free Tier', svixHtml: 'Yes', hook0Html: 'Yes, no credit card', hookdeckHtml: 'Yes (100k events/mo)', convoyHtml: 'Community edition only', hostedhooksHtml: 'Yes (limited)' },
       { criteria: 'HMAC Signatures', svixHtml: 'Included', hook0Html: 'Included (all plans)', hookdeckHtml: 'Verification only', convoyHtml: 'Included', hostedhooksHtml: 'Included' },
       { criteria: 'Retry Logic', svixHtml: 'Automatic retries', hook0Html: 'Configurable per subscription (fast + slow phases)', hookdeckHtml: 'Automatic retries', convoyHtml: 'Automatic retries', hostedhooksHtml: 'Automatic retries' },
       { criteria: 'Data Hosting', svixHtml: 'US-based', hook0Html: 'Europe (GDPR) or self-host', hookdeckHtml: 'US-based', convoyHtml: 'Self-host only', hostedhooksHtml: 'US-based' },
-      { criteria: 'Open-Source Level', svixHtml: 'Partial (open-core)', hook0Html: 'Full (SSPL-1.0, no closed add-ons)', hookdeckHtml: 'Partial (Outpost only)', convoyHtml: 'Source-available (Elastic License 2.0, not OSI-approved)', hostedhooksHtml: 'None' },
+      { criteria: 'Open-Source Level', svixHtml: 'Partial (open-core)', hook0Html: 'Full (SSPL-1.0, no closed add-ons)', hookdeckHtml: 'Partial (Outpost only)', convoyHtml: 'Source-available (Elastic License 2.0)', hostedhooksHtml: 'None' },
     ],
   },
   faq: {
@@ -44,7 +44,7 @@ module.exports = {
     items: [
       { q: 'Is Svix truly open-source?', a: "Partially. Svix's base is MIT-licensed, but enterprise features (SSO, advanced analytics, priority support) are proprietary and closed-source. This is called open-core. You can run the community edition, but key production features require a paid plan. Hook0, by contrast, ships everything under SSPL-1.0 with no closed-source add-ons." },
       { q: 'Can I self-host Svix for free?', a: "You can self-host the MIT-licensed community edition, but enterprise features are not included. Full self-hosting with all features requires Svix's enterprise plan. Hook0 and Convoy both offer free self-hosting with full feature parity." },
-      { q: 'What is the best Svix alternative for startups?', a: "Hook0 works well for startups. Free tier, no credit card, per-event pricing starting at €59/month, and free self-hosting via Docker or Kubernetes. The company is 100% bootstrapped, so there's no VC pushing to raise prices next quarter. Convoy is worth a look too, though it ships under the Elastic License 2.0, which is source-available but not OSI-approved." },
+      { q: 'What is the best Svix alternative for startups?', a: "Hook0 works well for startups. Free tier, no credit card, per-event pricing starting at €59/month, and free self-hosting via Docker or Kubernetes. The company is 100% bootstrapped, so there's no VC pushing to raise prices next quarter. Convoy is worth a look too, though it ships under the Elastic License 2.0, which is source-available, like Hook0's SSPL-1.0." },
       { q: 'How does Svix pricing compare to alternatives?', a: 'Svix offers a free tier and per-event paid plans, but self-hosting and enterprise features require enterprise pricing (contact sales). Hook0 Cloud starts at €59/month with transparent pricing and includes self-hosting for free on any plan. Hookdeck prices per event, with its Event Gateway cloud-only and Outpost self-hostable. Convoy is self-hosted only with enterprise pricing for support. HostedHooks offers cloud-only paid plans.' },
       { q: 'Which Svix alternative is both EU-hosted and open-source?', a: 'Hook0. Its data plane runs on Clever Cloud in France (inside the EU) on every plan, and the full server is open-source under SSPL-1.0, so you can audit it or self-host it. Svix is US-hosted and open-core; many EU-hosted webhook services are closed and cloud-only. The CDN in front of Hook0 Cloud is Cloudflare (US), disclosed in the public sub-processor list.' },
     ],
