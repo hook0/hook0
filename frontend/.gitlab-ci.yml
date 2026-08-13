@@ -35,3 +35,7 @@ frontend.check:
     - pushd frontend/
     - npm run check
     - npm run lint
+    # The unit and property tests never ran in the pipeline, so nothing stopped
+    # a regression they cover. Run them in this job rather than in one of their
+    # own: they need no service, no database and no extra image.
+    - npm run test

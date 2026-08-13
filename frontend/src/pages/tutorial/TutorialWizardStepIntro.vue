@@ -81,7 +81,7 @@ const tutorialSteps: TutorialStepItem[] = [
               <Hook0Button
                 variant="link"
                 target="_blank"
-                href="https://documentation.hook0.com/docs/getting-started"
+                href="https://documentation.hook0.com/tutorials/getting-started"
                 >{{ t('tutorial.intro.programmatically') }}</Hook0Button
               >
             </template>
@@ -150,7 +150,7 @@ const tutorialSteps: TutorialStepItem[] = [
 .intro-split__note {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
-  line-height: 0;
+  line-height: 1.6;
 }
 
 .intro-usecase {

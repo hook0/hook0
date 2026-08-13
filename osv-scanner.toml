@@ -97,3 +97,45 @@ pulled transitively by biscuit-quote (biscuit-auth) and paperclip-macros
 version exists; removal depends on biscuit-auth and paperclip upstreams
 migrating off it. Tracked.
 """
+
+# image-size 2.0.2 is the latest published version (dist-tags.latest), and both
+# advisories carry no fixed version — there is nothing to bump to. Re-evaluate
+# on the ignoreUntil date, or as soon as image-size ships a release.
+
+[[IgnoredVulns]]
+id = "GHSA-5p2g-fcmc-qvqq"
+ignoreUntil = "2026-11-30T00:00:00Z"
+reason = """
+image-size 2.0.2: denial of service through infinite loops in the JXL and HEIF
+parsers. Pulled transitively by @docusaurus/mdx-loader, which measures the
+images committed in documentation/ at build time. The parser never sees input
+we do not control, and it runs in CI, not at runtime — a hang would fail the
+docs build, not affect a user. No fixed version exists: 2.0.2 is the latest
+release upstream.
+"""
+
+[[IgnoredVulns]]
+id = "GHSA-w3rx-r6r6-pgpr"
+ignoreUntil = "2026-11-30T00:00:00Z"
+reason = """
+image-size 2.0.2: denial of service through an infinite loop in the ICNS
+parser. Same exposure as GHSA-5p2g-fcmc-qvqq — @docusaurus/mdx-loader parsing
+our own documentation images at build time, in CI, with no fixed version
+available upstream.
+"""
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0253"
+ignoreUntil = "2026-08-31T00:00:00Z"
+reason = """
+lru 0.16.4 is pulled only by aws-sdk-s3, which pins lru ^0.16.3 up to and
+including its latest release (1.141.0) — no published aws-sdk-s3 moves to the
+fixed 0.18.x line, so there is no bump available today. The fixed line is
+already vendored in the tree at 0.18.2 (via ratatui-core), so only the
+aws-sdk-s3 copy is affected.
+
+The advisory needs a panic to unwind out of a key's Drop while inside
+LruCache::pop(), caught by std::panic::catch_unwind — the workspace contains no
+catch_unwind at all, so the unsound state cannot be observed here. Re-evaluated
+with the other aws-sdk-s3-blocked entries on 2026-08-31.
+"""

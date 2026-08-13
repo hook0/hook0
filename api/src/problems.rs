@@ -16,6 +16,7 @@ use tracing::{error, warn};
 use crate::handlers::events::PayloadContentType;
 use crate::iam::Role;
 use crate::quotas::QuotaValue;
+use crate::validators::CODE_SECRET_PREFIX;
 
 /// The published shape of an error body. `api_v2_errors` below names it as the schema every
 /// error response answers with, and it parses that name as a bare identifier that it also reuses
@@ -50,6 +51,11 @@ pub enum Hook0Problem {
     UserAlreadyExist,
     RegistrationDisabled,
     PasswordTooShort(u8),
+    PasswordTooLong,
+    PasswordSimilarToEmail,
+    PasswordSimilarToName,
+    PasswordTooCommon,
+    PasswordNotDiverseEnough,
     OrganizationIsNotEmpty,
     InvitedUserDoesNotExist,
     InvitedUserAlreadyInOrganization,
@@ -179,6 +185,11 @@ impl Hook0Problem {
             Self::UserAlreadyExist => "UserAlreadyExist",
             Self::RegistrationDisabled => "RegistrationDisabled",
             Self::PasswordTooShort(_) => "PasswordTooShort",
+            Self::PasswordTooLong => "PasswordTooLong",
+            Self::PasswordSimilarToEmail => "PasswordSimilarToEmail",
+            Self::PasswordSimilarToName => "PasswordSimilarToName",
+            Self::PasswordTooCommon => "PasswordTooCommon",
+            Self::PasswordNotDiverseEnough => "PasswordNotDiverseEnough",
             Self::OrganizationIsNotEmpty => "OrganizationIsNotEmpty",
             Self::InvitedUserDoesNotExist => "InvitedUserDoesNotExist",
             Self::InvitedUserAlreadyInOrganization => "InvitedUserAlreadyInOrganization",
@@ -407,6 +418,45 @@ impl From<Hook0Problem> for ProblemDetails {
                     validation: None,
                     status: StatusCode::BAD_REQUEST,
                 }
+            },
+            Hook0Problem::PasswordTooLong => ProblemDetails {
+                id: Hook0Problem::PasswordTooLong,
+                title: "Provided password is too long",
+                detail: format!(
+                    "Password must be at most {} characters long.",
+                    crate::password::MAXIMUM_LENGTH
+                )
+                .into(),
+                validation: None,
+                status: StatusCode::BAD_REQUEST,
+            },
+            Hook0Problem::PasswordSimilarToEmail => ProblemDetails {
+                id: Hook0Problem::PasswordSimilarToEmail,
+                title: "Provided password is too close to the email address",
+                detail: "Password must not be built from the email address of the account: anyone who knows the address would guess it. Please pick something unrelated.".into(),
+                validation: None,
+                status: StatusCode::BAD_REQUEST,
+            },
+            Hook0Problem::PasswordSimilarToName => ProblemDetails {
+                id: Hook0Problem::PasswordSimilarToName,
+                title: "Provided password is too close to the user name",
+                detail: "Password must not be built from the first or last name of the account. Please pick something unrelated.".into(),
+                validation: None,
+                status: StatusCode::BAD_REQUEST,
+            },
+            Hook0Problem::PasswordTooCommon => ProblemDetails {
+                id: Hook0Problem::PasswordTooCommon,
+                title: "Provided password is too common",
+                detail: "This password (or a lightly disguised version of it) is among the most frequently used ones, so it is one of the first an attacker tries. Please pick another one.".into(),
+                validation: None,
+                status: StatusCode::BAD_REQUEST,
+            },
+            Hook0Problem::PasswordNotDiverseEnough => ProblemDetails {
+                id: Hook0Problem::PasswordNotDiverseEnough,
+                title: "Provided password is not diverse enough",
+                detail: "Password is made of too few different characters, which makes it easy to guess despite its length. Please pick another one.".into(),
+                validation: None,
+                status: StatusCode::BAD_REQUEST,
             },
             Hook0Problem::OrganizationIsNotEmpty => ProblemDetails {
                 id: Hook0Problem::OrganizationIsNotEmpty,
@@ -673,6 +723,38 @@ impl From<Hook0Problem> for ProblemDetails {
                 }
             },
             Hook0Problem::Validation(e) => {
+                /// The `validator` derive attaches the value it refused to
+                /// every error it builds, and the whole tree ends up in the
+                /// response body. For a password that means handing it back to
+                /// the caller, to the browser console, and to anything logging
+                /// response bodies — so errors a validator marked as being
+                /// about a secret lose that value on the way out.
+                fn without_secret_values(mut value: Value) -> Value {
+                    match &mut value {
+                        Value::Array(items) => {
+                            for item in items {
+                                *item = without_secret_values(item.take());
+                            }
+                        },
+                        Value::Object(fields) => {
+                            let is_secret = fields
+                                .get("code")
+                                .and_then(Value::as_str)
+                                .is_some_and(|code| code.starts_with(CODE_SECRET_PREFIX));
+                            if let Some(Value::Object(params)) = fields.get_mut("params")
+                                && is_secret
+                            {
+                                params.remove("value");
+                            }
+                            for (_, field) in fields.iter_mut() {
+                                *field = without_secret_values(field.take());
+                            }
+                        },
+                        _ => {},
+                    }
+                    value
+                }
+
                 let errors_str = e.to_string();
                 // `ValidationErrors` renders as an empty string when it holds no error, which only
                 // happens for the value `EnumIter` fabricates to build the public error catalogue.
@@ -685,7 +767,7 @@ impl From<Hook0Problem> for ProblemDetails {
                     id: Hook0Problem::Validation(e.to_owned()),
                     title: "Provided input is malformed",
                     detail: detail.into(),
-                    validation: to_value(e).ok(),
+                    validation: to_value(e).ok().map(without_secret_values),
                     status: StatusCode::UNPROCESSABLE_ENTITY,
                 }
             },

@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { useInstanceConfig } from '@/composables/useInstanceConfig';
+import { DEFAULT_PASSWORD_MINIMUM_LENGTH } from '@/utils/passwordPolicy';
+import { passwordRejection } from '@/utils/passwordProblem';
 import { routes } from '@/routes';
 import router from '@/router';
 import { useAuthErrorHandler } from '@/composables/useAuthErrorHandler';
@@ -34,9 +37,23 @@ const { t } = useI18n();
 
 const authStore = useAuthStore();
 
+// The length floor is operator configuration; read it rather than guess it.
+// Until /instance answers, the form falls back to the shipped default so it is
+// never more permissive than the API by accident.
+const { data: instanceConfig } = useInstanceConfig();
+const passwordMinimumLength = computed(() => {
+  const config = instanceConfig.value;
+  if (config === undefined) {
+    return DEFAULT_PASSWORD_MINIMUM_LENGTH;
+  }
+  return config.password_minimum_length;
+});
+
 // VeeValidate form with Zod schema
-const { errors, defineField, handleSubmit } = useForm({
-  validationSchema: toTypedSchema(createRegisterSchema()),
+const { errors, defineField, handleSubmit, setFieldError } = useForm({
+  validationSchema: computed(() =>
+    toTypedSchema(createRegisterSchema(passwordMinimumLength.value))
+  ),
 });
 
 const [email, emailAttrs] = defineField('email');
@@ -123,6 +140,13 @@ const onSubmit = handleSubmit((values) => {
     })
     .catch((err) => {
       const problem = handleAuthError(err);
+      // Two of the six rules can only be checked server-side. When one of them
+      // is what refused the account, say so on the password field rather than
+      // leaving a toast above a form that still looks accepted.
+      const rejection = passwordRejection(err, 'password');
+      if (rejection.refused) {
+        setFieldError('password', rejection.reason);
+      }
       trackEvent('signup', 'form-error', problem.title || 'unknown');
     })
     .finally(() => {
@@ -221,7 +245,11 @@ const onSubmit = handleSubmit((values) => {
             autocomplete="new-password"
             data-test="register-password-input"
             :disabled="isLoading"
-          />
+          >
+            <template #helpText>{{
+              t('validation.passwordRequirements', { count: passwordMinimumLength })
+            }}</template>
+          </Hook0Input>
 
           <Hook0Captcha v-model="captchaToken" action="registration" class="register-captcha" />
 
