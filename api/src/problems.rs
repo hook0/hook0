@@ -32,11 +32,15 @@ use crate::handlers::errors::Problem;
  */
 #[api_v2_errors(
     default_schema = "Problem",
-    code = 403,
-    code = 500,
     code = 400,
+    code = 401,
+    code = 403,
     code = 404,
     code = 409,
+    code = 410,
+    code = 422,
+    code = 429,
+    code = 500,
     code = 503
 )]
 #[derive(Debug, Clone, EnumIter)]
@@ -94,6 +98,7 @@ pub enum Hook0Problem {
     NotFound,
     InternalServerError,
     Forbidden,
+    RateLimited,
     ServiceUnavailable,
 }
 
@@ -108,6 +113,14 @@ pub struct Hook0ProblemId(&'static str);
 impl Hook0ProblemId {
     pub const fn as_str(&self) -> &'static str {
         self.0
+    }
+
+    /// Documentation page of this problem, as carried by the `type` member of the RFC 7807 body.
+    ///
+    /// Built here rather than at each place a body is produced, so what the API sends and what it
+    /// publishes cannot say two different things.
+    pub fn type_url(&self) -> String {
+        format!("https://hook0.com/documentation/errors/{}", self.0)
     }
 
     /// Every identifier the API can answer with, in variant declaration order.
@@ -214,6 +227,7 @@ impl Hook0Problem {
             Self::NotFound => "NotFound",
             Self::InternalServerError => "InternalServerError",
             Self::Forbidden => "Forbidden",
+            Self::RateLimited => "RateLimited",
             Self::ServiceUnavailable => "ServiceUnavailable",
         };
         Hook0ProblemId(id)
@@ -321,10 +335,7 @@ impl From<Hook0Problem> for HttpApiProblem {
     fn from(hook0_problem: Hook0Problem) -> Self {
         let problem: ProblemDetails = hook0_problem.to_owned().into();
         HttpApiProblem::new(to_problem_status(problem.status))
-            .type_url(format!(
-                "https://hook0.com/documentation/errors/{}",
-                hook0_problem.id()
-            ))
+            .type_url(hook0_problem.id().type_url())
             .value("id".to_owned(), &hook0_problem.id())
             .value("validation".to_owned(), &problem.validation)
             .title(problem.title)
@@ -699,6 +710,13 @@ impl From<Hook0Problem> for ProblemDetails {
                 validation: None,
                 status: StatusCode::FORBIDDEN,
             },
+            Hook0Problem::RateLimited => ProblemDetails {
+                id: Hook0Problem::RateLimited,
+                title: "Too many requests",
+                detail: "Requests are coming in faster than this Hook0 instance accepts them, so this one was not processed. This is a temporary, client-side pacing condition, not a rights issue: the request is safe to send again once the delay given by the `Retry-After` response header has elapsed.".into(),
+                validation: None,
+                status: StatusCode::TOO_MANY_REQUESTS,
+            },
             Hook0Problem::ServiceUnavailable => ProblemDetails {
                 id: Hook0Problem::ServiceUnavailable,
                 title: "Service temporarily unavailable",
@@ -760,11 +778,12 @@ impl From<JsonPayloadError> for JsonPayloadProblem {
 mod tests {
     use super::*;
 
-    use actix_web::body::to_bytes;
+    use actix_web::body::{MessageBody, to_bytes};
     use paperclip::actix::{OpenApiExt, web};
     use proptest::prelude::*;
     use std::collections::BTreeSet;
     use std::mem::discriminant;
+    use std::sync::OnceLock;
     use url::Url;
 
     /// The identifiers published in the OpenAPI schema, as a client reading the spec sees them.
@@ -1043,6 +1062,312 @@ mod tests {
             assert!(
                 problem["detail"].as_str().is_some_and(|d| !d.is_empty()),
                 "missing detail for {hook0_problem}"
+            );
+        }
+    }
+
+    /// The document the real application serves, read once, from a synchronous test.
+    fn served_document() -> &'static Value {
+        static DOCUMENT: OnceLock<Value> = OnceLock::new();
+        DOCUMENT.get_or_init(|| {
+            actix_web::rt::System::new().block_on(crate::app::test_support::openapi_spec())
+        })
+    }
+
+    /// Every operation of a served document, named by method and path.
+    ///
+    /// An entry of a path item that declares responses is an operation; reading it that way keeps
+    /// a list of HTTP methods from having to be maintained here alongside the one the document
+    /// already carries.
+    fn operations(document: &Value) -> Vec<(String, &Value)> {
+        let mut operations = Vec::new();
+        for (path, item) in document["paths"].as_object().into_iter().flatten() {
+            for (method, operation) in item.as_object().into_iter().flatten() {
+                if operation["responses"].is_object() {
+                    operations.push((format!("{method} {path}"), operation));
+                }
+            }
+        }
+        operations
+    }
+
+    /// Every status the API can answer with, taken from the problems themselves rather than
+    /// written down a second time, so a problem given a new status is seen here.
+    fn statuses_the_api_can_answer() -> BTreeSet<u16> {
+        Hook0Problem::iter()
+            .map(|problem| ProblemDetails::from(problem).status.as_u16())
+            .collect()
+    }
+
+    /// Error statuses one operation of a served document declares.
+    fn declared_error_statuses(operation: &Value) -> BTreeSet<u16> {
+        operation["responses"]
+            .as_object()
+            .into_iter()
+            .flatten()
+            .filter_map(|(code, _)| code.parse::<u16>().ok())
+            .filter(|code| *code >= 400)
+            .collect()
+    }
+
+    /// Error statuses a served document declares anywhere.
+    fn declared_error_statuses_of_the_document(document: &Value) -> BTreeSet<u16> {
+        operations(document)
+            .into_iter()
+            .flat_map(|(_, operation)| declared_error_statuses(operation))
+            .collect()
+    }
+
+    /// Members a served document says an error body carries.
+    fn documented_problem_members(document: &Value) -> BTreeSet<String> {
+        document["components"]["schemas"]["Problem"]["properties"]
+            .as_object()
+            .expect("the served document defines the Problem schema")
+            .keys()
+            .cloned()
+            .collect()
+    }
+
+    /// Members an error body really carries, read off the bytes the response holds so that a
+    /// property test can call it without a runtime.
+    fn wire_members(problem: &Hook0Problem) -> BTreeSet<String> {
+        let Ok(bytes) = problem.error_response().into_body().try_into_bytes() else {
+            panic!("{problem} answers a body that is not held in memory");
+        };
+        serde_json::from_slice::<Value>(&bytes)
+            .expect("an error response body is valid JSON")
+            .as_object()
+            .unwrap_or_else(|| panic!("{problem} answers a body that is not a JSON object"))
+            .keys()
+            .cloned()
+            .collect()
+    }
+
+    /// A generated client only handles the statuses its operations declare, and it is generated
+    /// from this document alone. The list it is checked against is derived from the problems, so
+    /// giving one a status nothing declares fails here rather than at a caller's expense.
+    #[actix_web::test]
+    async fn every_status_the_api_can_answer_is_declared_by_every_operation() {
+        let document = crate::app::test_support::openapi_spec().await;
+        let answerable = statuses_the_api_can_answer();
+
+        let operations = operations(&document);
+        assert!(
+            !operations.is_empty(),
+            "the served document declares no operation, so this proves nothing"
+        );
+
+        for (name, operation) in operations {
+            assert_eq!(
+                declared_error_statuses(operation),
+                answerable,
+                "the error statuses `{name}` declares are not the ones the API can answer with"
+            );
+        }
+    }
+
+    /// The published schema is the whole of what a generated client knows about an error body. It
+    /// has to name every member the body carries — and none it does not, which would leave a
+    /// client waiting for a field the API never sends.
+    #[actix_web::test]
+    async fn the_published_problem_schema_names_exactly_the_members_of_the_wire_body() {
+        let document = crate::app::test_support::openapi_spec().await;
+        let documented = documented_problem_members(&document);
+
+        let required: BTreeSet<String> = document["components"]["schemas"]["Problem"]["required"]
+            .as_array()
+            .expect("the published Problem schema names its required members")
+            .iter()
+            .filter_map(|member| member.as_str().map(str::to_owned))
+            .collect();
+        assert!(
+            required.is_subset(&documented),
+            "the published Problem schema requires members it does not describe: {:?}",
+            required.difference(&documented).collect::<Vec<_>>()
+        );
+
+        for problem in Hook0Problem::iter() {
+            assert_eq!(
+                wire_members(&problem),
+                documented,
+                "the body of {problem} and the published Problem schema do not carry the same members"
+            );
+        }
+    }
+
+    /// The rate limiters wrap the whole `/api/v1` scope, so their answer is the one error a client
+    /// can meet that never passes through `Hook0Problem`'s own response. Rate limiting is also the
+    /// error a busy emitter meets most often, so it is the one an SDK can least afford not to
+    /// type: it has to arrive as the same body, under the same content type, and to say that the
+    /// request is worth sending again.
+    ///
+    /// Driven by exhausting the quota against the real application, because the middleware is what
+    /// is under test.
+    #[actix_web::test]
+    async fn exhausting_a_rate_limiter_answers_the_documented_problem_body() {
+        use crate::app::{build_app, test_support::inert_app_factory_config};
+        use crate::rate_limiting::Hook0RateLimiters;
+        use actix_web::test;
+        use std::net::SocketAddr;
+
+        /// Lets exactly one request through.
+        const BURST: u32 = 1;
+        /// Holds the next one back long enough that the test cannot race the quota replenishing.
+        const REPLENISH_PERIOD_IN_MS: u64 = 3_600_000;
+
+        let document = crate::app::test_support::openapi_spec().await;
+        let documented = documented_problem_members(&document);
+        let published = published_identifiers();
+
+        // Each limiter is exercised alone, so one still answering the plain-text default of the
+        // middleware cannot hide behind another refusing the request first.
+        let limiters = [
+            (
+                "instance-wide",
+                Hook0RateLimiters::new(
+                    false,
+                    false,
+                    BURST,
+                    REPLENISH_PERIOD_IN_MS,
+                    true,
+                    BURST,
+                    REPLENISH_PERIOD_IN_MS,
+                    true,
+                    BURST,
+                    REPLENISH_PERIOD_IN_MS,
+                ),
+            ),
+            (
+                "per-IP",
+                Hook0RateLimiters::new(
+                    false,
+                    true,
+                    BURST,
+                    REPLENISH_PERIOD_IN_MS,
+                    false,
+                    BURST,
+                    REPLENISH_PERIOD_IN_MS,
+                    true,
+                    BURST,
+                    REPLENISH_PERIOD_IN_MS,
+                ),
+            ),
+        ];
+
+        for (limiter, rate_limiters) in limiters {
+            let mut config = inert_app_factory_config().await;
+            config.rate_limiters = rate_limiters;
+            let app = test::init_service(build_app(&config)).await;
+
+            // `/api/v1/errors` reaches no database, so what the quota lets through stays cheap.
+            let request = || {
+                test::TestRequest::get()
+                    .uri("/api/v1/errors")
+                    .peer_addr(SocketAddr::from(([127, 0, 0, 1], 5678)))
+                    .to_request()
+            };
+
+            let allowed = test::call_service(&app, request()).await;
+            assert!(
+                allowed.status().is_success(),
+                "the {limiter} rate limiter refused the first request with {}, so nothing below is about exceeding a quota",
+                allowed.status()
+            );
+
+            let refused = test::call_service(&app, request()).await;
+            assert_eq!(
+                refused.status(),
+                StatusCode::TOO_MANY_REQUESTS,
+                "the {limiter} rate limiter let a second request through"
+            );
+            assert_eq!(
+                refused
+                    .headers()
+                    .get(header::CONTENT_TYPE)
+                    .and_then(|value| value.to_str().ok()),
+                Some(PROBLEM_JSON_MEDIA_TYPE),
+                "the {limiter} rate limiter does not answer a problem document"
+            );
+            assert!(
+                refused.headers().contains_key(header::RETRY_AFTER),
+                "the {limiter} rate limiter does not tell the client when to try again"
+            );
+
+            let body = test::read_body(refused).await;
+            let body = serde_json::from_slice::<Value>(&body)
+                .expect("the rate limiter answers a body that is valid JSON");
+
+            let carried: BTreeSet<String> = body
+                .as_object()
+                .expect("the rate limiter answers a JSON object")
+                .keys()
+                .cloned()
+                .collect();
+            assert_eq!(
+                carried, documented,
+                "the body the {limiter} rate limiter answers does not carry the members the published Problem schema names"
+            );
+
+            let id = body["id"]
+                .as_str()
+                .expect("the rate limiter names the problem it answers");
+            assert!(
+                published.contains(id),
+                "the {limiter} rate limiter answers `{id}`, which the published enumeration does not hold"
+            );
+            assert_eq!(
+                body["status"].as_u64(),
+                Some(u64::from(StatusCode::TOO_MANY_REQUESTS.as_u16())),
+                "the body the {limiter} rate limiter answers disagrees with its own status"
+            );
+            let documentation_page = Hook0Problem::iter()
+                .find(|problem| problem.id().as_str() == id)
+                .unwrap_or_else(|| {
+                    panic!("the {limiter} rate limiter answers `{id}`, which is no known problem")
+                })
+                .id()
+                .type_url();
+            assert_eq!(
+                body["type"].as_str(),
+                Some(documentation_page).as_deref(),
+                "the {limiter} rate limiter points at the wrong documentation page"
+            );
+            assert!(
+                body["title"]
+                    .as_str()
+                    .is_some_and(|title| !title.is_empty()),
+                "the {limiter} rate limiter answers no title"
+            );
+            assert!(
+                body["detail"]
+                    .as_str()
+                    .is_some_and(|detail| !detail.is_empty()),
+                "the {limiter} rate limiter answers no detail"
+            );
+        }
+    }
+
+    proptest! {
+        /// Whatever payload a problem carries, the response it answers stays inside what the
+        /// served document promises: a status some operation declares, and exactly the members the
+        /// published schema names.
+        #[test]
+        fn every_problem_answers_a_declared_status_carrying_the_documented_members(problem in any_problem()) {
+            let document = served_document();
+
+            let status = problem.error_response().status().as_u16();
+            prop_assert!(
+                declared_error_statuses_of_the_document(document).contains(&status),
+                "{:?} answers {}, which the served document declares nowhere",
+                problem,
+                status
+            );
+
+            prop_assert_eq!(
+                wire_members(&problem),
+                documented_problem_members(document),
+                "the body of {:?} does not carry the members the published Problem schema names",
+                problem
             );
         }
     }
