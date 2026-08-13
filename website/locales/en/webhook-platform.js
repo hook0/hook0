@@ -143,6 +143,10 @@ module.exports = {
         "href": "./webhook-api"
       },
       {
+        "label": "Webhook Service",
+        "href": "./webhook-service"
+      },
+      {
         "label": "Hook0 vs Svix",
         "href": "./hook0-vs-svix"
       },
