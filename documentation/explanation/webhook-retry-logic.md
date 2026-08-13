@@ -198,7 +198,13 @@ When a delivery fails, Hook0 records one of these error codes:
 
 ## SSRF protection
 
-Hook0 blocks webhook deliveries to private/internal IP addresses by default (loopback, RFC 1918, link-local, etc.). This prevents Server-Side Request Forgery attacks. This check can be disabled with the `DISABLE_TARGET_IP_CHECK` flag for development environments.
+Hook0 blocks webhook deliveries to IP addresses that are not globally reachable by default (loopback, RFC 1918 private ranges, carrier-grade NAT, link-local -- which covers cloud metadata endpoints such as `169.254.169.254` -- unique-local, multicast and reserved ranges). This prevents Server-Side Request Forgery attacks.
+
+IPv6 targets are checked too. The whole IETF-reserved block `::/8` (RFC 4291 section 4) is refused: nothing routable was ever allocated there, but every way of writing an IPv4 address inside an IPv6 one lives there -- IPv4-mapped (`::ffff:0:0/96`), IPv4-compatible (`::/96`), IPv4-translated (`::ffff:0:0:0/96`, RFC 2765 SIIT) and ISATAP (`::5efe:0:0/96`, RFC 5214). 6to4 (`2002::/16`, together with its IPv4 relay anycast prefix `192.88.99.0/24`) is refused outright too, because its bits 16 to 47 are an arbitrary IPv4 address and that is where the traffic ends up. The one carve-out inside `::/8` is the NAT64 well-known prefix (`64:ff9b::/96`), which is refused only when the IPv4 address it carries is itself forbidden -- so Hook0 keeps working behind NAT64/DNS64 without the prefix becoming a way to spell `127.0.0.1` in IPv6.
+
+The check applies to hostnames *and* to URLs written with an IP literal, and the addresses it vetted are pinned into the connection, so a second DNS answer cannot redirect the request afterwards (DNS rebinding).
+
+This check can be disabled with the `DISABLE_TARGET_IP_CHECK` flag for development environments.
 
 ## Further reading
 
