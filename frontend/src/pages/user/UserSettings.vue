@@ -7,6 +7,9 @@ import { User, Lock, AlertTriangle, Trash2, Palette } from 'lucide-vue-next';
 
 import * as UserService from '@/pages/user/UserService';
 import { createPasswordChangeSchema } from '@/pages/user/passwordChange.schema';
+import { DEFAULT_PASSWORD_MINIMUM_LENGTH, type UserIdentity } from '@/utils/passwordPolicy';
+import { passwordRejection } from '@/utils/passwordProblem';
+import { useInstanceConfig } from '@/composables/useInstanceConfig';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
@@ -45,9 +48,33 @@ const colorModeOptions = computed(() => [
   { label: t('userSettings.themeDark'), value: 'dark' },
 ]);
 
+// Who the account belongs to, so the new password can be checked against it.
+// The schema is recomputed when the user finishes loading; until then there is
+// nothing to compare against, and the API runs the whole policy on submit
+// anyway.
+const passwordIdentity = computed<UserIdentity>(() => {
+  const user = currentUser.value;
+  if (user === null) {
+    return { email: '', firstName: '', lastName: '' };
+  }
+  return { email: user.email, firstName: user.firstName, lastName: user.lastName };
+});
+
+// The length floor is operator configuration; read it rather than guess it.
+const { data: instanceConfig } = useInstanceConfig();
+const passwordMinimumLength = computed(() => {
+  const config = instanceConfig.value;
+  if (config === undefined) {
+    return DEFAULT_PASSWORD_MINIMUM_LENGTH;
+  }
+  return config.password_minimum_length;
+});
+
 // VeeValidate form with Zod schema for password change
-const { errors, meta, defineField, handleSubmit, resetForm } = useForm({
-  validationSchema: toTypedSchema(createPasswordChangeSchema()),
+const { errors, meta, defineField, handleSubmit, resetForm, setFieldError } = useForm({
+  validationSchema: computed(() =>
+    toTypedSchema(createPasswordChangeSchema(passwordIdentity.value, passwordMinimumLength.value))
+  ),
 });
 
 const [newPassword, newPasswordAttrs] = defineField('new_password');
@@ -62,7 +89,15 @@ const onChangePassword = handleSubmit((values) => {
       });
       resetForm();
     })
-    .catch(handleMutationError);
+    .catch((err: unknown) => {
+      handleMutationError(err);
+      // The blocklist and the length ceiling live on the server. When one of
+      // them is what refused the change, the field the user must fix says so.
+      const rejection = passwordRejection(err, 'new_password');
+      if (rejection.refused) {
+        setFieldError('new_password', rejection.reason);
+      }
+    });
 });
 
 const showDeleteAccountDialog = ref(false);
@@ -205,10 +240,16 @@ function confirmDeleteAccount() {
                 v-model="newPassword"
                 v-bind="newPasswordAttrs"
                 type="password"
+                show-password-toggle
+                autocomplete="new-password"
                 :placeholder="t('userSettings.newPasswordPlaceholder')"
                 :error="errors.new_password"
                 data-test="new-password-input"
-              />
+              >
+                <template #helpText>{{
+                  t('validation.passwordRequirements', { count: passwordMinimumLength })
+                }}</template>
+              </Hook0Input>
             </template>
           </Hook0CardContentLine>
 

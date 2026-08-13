@@ -20,7 +20,8 @@ use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct UnsubscribeReactivationPost {
-    #[validate(non_control_character, length(min = 1, max = 1000))]
+    // A bearer credential: `secret_token` bounds it without echoing it back.
+    #[validate(custom(function = "crate::validators::secret_token"))]
     token: String,
 }
 
