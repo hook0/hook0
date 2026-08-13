@@ -17,8 +17,9 @@ client.mcp.check:
     - pushd clients/mcp
     - cargo fmt --all -- --check
     - cargo clippy --all-targets --all-features -- -D warnings
-    # Only run library unit tests here (not integration tests which require a running API)
-    - cargo test --lib --all-features
+    # Runs unit tests plus the protocol negotiation tests, which need no API.
+    # The API-dependent integration tests are #[ignore]d and run in client.mcp.integration.
+    - cargo test --all-features
     - cargo build --release
     # This crate is published to crates.io, where nothing of the repository is left around it.
     # `cargo package` builds the crate from the tarball it just wrote, so a file the package does

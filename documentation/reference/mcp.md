@@ -138,8 +138,8 @@ Restart your AI assistant, then try these prompts:
 | `HOOK0_API_TOKEN` | *required* | Your Hook0 service token |
 | `HOOK0_API_URL` | `https://app.hook0.com` | Hook0 API base URL (change for self-hosted) |
 | `HOOK0_READ_ONLY` | `false` | Restrict to read-only operations |
-| `MCP_TRANSPORT` | `stdio` | Transport protocol: `stdio` or `sse` |
-| `MCP_SSE_PORT` | `3000` | Port for SSE transport mode |
+| `MCP_TRANSPORT` | `stdio` | Transport protocol. Only `stdio` is supported; `sse` is reserved and not implemented |
+| `MCP_SSE_PORT` | `3000` | Reserved for SSE transport, which is not implemented |
 
 ### Self-Hosted Configuration
 
@@ -500,15 +500,14 @@ lsof -i :3000
 
 ## Advanced Usage
 
-### SSE Transport Mode
+### SSE / HTTP Transport Mode
 
-For web-based integrations or scenarios where stdio isn't available:
+Not implemented. The server speaks MCP over stdio only.
 
-```bash
-HOOK0_API_TOKEN=your-token MCP_TRANSPORT=sse MCP_SSE_PORT=3001 hook0-mcp
-```
-
-The server will listen on `http://localhost:3001/sse` for MCP connections.
+`MCP_TRANSPORT=sse` is accepted as a configuration value but the server exits with
+an error rather than starting, so there is no HTTP or SSE endpoint to connect to.
+For web-based integrations, run `hook0-mcp` behind a process that bridges stdio to
+your transport of choice.
 
 ### Programmatic Integration
 

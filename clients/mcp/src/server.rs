@@ -9,17 +9,32 @@ use crate::client::Hook0Client;
 use crate::error::{McpError, McpErrorExt};
 use crate::prompts;
 use rmcp::model::{
-    CallToolRequestParams, CallToolResult, ContentBlock, GetPromptRequestParams, GetPromptResult,
-    Implementation, ListPromptsResult, ListResourcesResult, ListToolsResult,
-    PaginatedRequestParams, ProtocolVersion, ReadResourceRequestParams, ReadResourceResult,
-    Resource, ResourceContents, ServerCapabilities, ServerInfo, Tool,
+    CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, GetPromptRequestParams,
+    GetPromptResponse, Implementation, ListPromptsResult, ListResourcesResult, ListToolsResult,
+    PaginatedRequestParams, ProtocolVersion, ReadResourceRequestParams, ReadResourceResponse,
+    ReadResourceResult, Resource, ResourceContents, ServerCapabilities, ServerInfo, Tool,
 };
 use rmcp::service::RequestContext;
 use rmcp::{RoleServer, ServerHandler};
 use serde_json::{Map, Value, json};
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{debug, info};
+
+/// Protocol versions this handler actually implements.
+///
+/// Deliberately excludes `2026-07-28`: it requires the stateless lifecycle,
+/// `subscriptions/listen`, and MRTR input-required handling that this server
+/// does not provide. rmcp enforces this list on both entry points: it bounds what
+/// `initialize` may negotiate down to, and it rejects any request whose inline
+/// `_meta` names an unlisted version with `-32022 Unsupported protocol version`.
+const SUPPORTED_PROTOCOL_VERSIONS: &[ProtocolVersion] = &[
+    ProtocolVersion::V_2024_11_05,
+    ProtocolVersion::V_2025_03_26,
+    ProtocolVersion::V_2025_06_18,
+    ProtocolVersion::V_2025_11_25,
+];
 
 mod generated;
 
@@ -163,7 +178,11 @@ impl ServerHandler for Hook0McpServer {
              Use tools to create applications, register event types, \
              configure subscriptions, and debug delivery issues.",
         )
-        .with_protocol_version(ProtocolVersion::V_2024_11_05)
+        .with_protocol_version(ProtocolVersion::V_2025_11_25)
+    }
+
+    fn supported_protocol_versions(&self) -> Cow<'static, [ProtocolVersion]> {
+        Cow::Borrowed(SUPPORTED_PROTOCOL_VERSIONS)
     }
 
     async fn list_tools(
@@ -182,18 +201,14 @@ impl ServerHandler for Hook0McpServer {
 
         info!("Returning {} tools", tools.len());
 
-        Ok(ListToolsResult {
-            tools,
-            next_cursor: None,
-            meta: None,
-        })
+        Ok(ListToolsResult::with_all_items(tools))
     }
 
     async fn call_tool(
         &self,
         request: CallToolRequestParams,
         _context: RequestContext<RoleServer>,
-    ) -> Result<CallToolResult, McpError> {
+    ) -> Result<CallToolResponse, McpError> {
         info!("Calling tool: {}", request.name);
 
         // Reject write tools in read-only mode
@@ -209,7 +224,9 @@ impl ServerHandler for Hook0McpServer {
         }
 
         let args = request.arguments.unwrap_or_default();
-        self.dispatch_tool(&request.name, &args).await
+        self.dispatch_tool(&request.name, &args)
+            .await
+            .map(Into::into)
     }
 
     async fn list_resources(
@@ -228,18 +245,14 @@ impl ServerHandler for Hook0McpServer {
                 .with_mime_type("application/json"),
         ];
 
-        Ok(ListResourcesResult {
-            resources,
-            next_cursor: None,
-            meta: None,
-        })
+        Ok(ListResourcesResult::with_all_items(resources))
     }
 
     async fn read_resource(
         &self,
         request: ReadResourceRequestParams,
         _context: RequestContext<RoleServer>,
-    ) -> Result<ReadResourceResult, McpError> {
+    ) -> Result<ReadResourceResponse, McpError> {
         info!("Reading resource: {}", request.uri);
 
         let content = match request.uri.as_str() {
@@ -284,10 +297,7 @@ impl ServerHandler for Hook0McpServer {
         let content = content.map_err(|e| -> McpError { e.into() })?;
         let text = serde_json::to_string_pretty(&content).unwrap_or_else(|_| content.to_string());
 
-        Ok(ReadResourceResult::new(vec![ResourceContents::text(
-            text,
-            request.uri,
-        )]))
+        Ok(ReadResourceResult::new(vec![ResourceContents::text(text, request.uri)]).into())
     }
 
     async fn list_prompts(
@@ -296,18 +306,14 @@ impl ServerHandler for Hook0McpServer {
         _context: RequestContext<RoleServer>,
     ) -> Result<ListPromptsResult, McpError> {
         info!("Listing prompts");
-        Ok(ListPromptsResult {
-            meta: None,
-            next_cursor: None,
-            prompts: prompts::list_prompts(),
-        })
+        Ok(ListPromptsResult::with_all_items(prompts::list_prompts()))
     }
 
     async fn get_prompt(
         &self,
         request: GetPromptRequestParams,
         _context: RequestContext<RoleServer>,
-    ) -> Result<GetPromptResult, McpError> {
+    ) -> Result<GetPromptResponse, McpError> {
         info!("Getting prompt: {}", request.name);
         // Convert JsonObject to HashMap<String, String>
         let args = request.arguments.map(|obj| {
@@ -315,7 +321,7 @@ impl ServerHandler for Hook0McpServer {
                 .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
                 .collect()
         });
-        prompts::get_prompt(&request.name, args)
+        prompts::get_prompt(&request.name, args).map(Into::into)
     }
 }
 

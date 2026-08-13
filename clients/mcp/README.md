@@ -81,8 +81,8 @@ Create a **Service Token** from the Hook0 dashboard:
 | `HOOK0_API_TOKEN` | *required* | Your Hook0 API token |
 | `HOOK0_API_URL` | `https://app.hook0.com` | Hook0 API base URL |
 | `HOOK0_READ_ONLY` | `false` | Enable read-only mode |
-| `MCP_TRANSPORT` | `stdio` | Transport: `stdio` or `sse` |
-| `MCP_SSE_PORT` | `3000` | Port for SSE transport |
+| `MCP_TRANSPORT` | `stdio` | Transport. Only `stdio` is supported; `sse` is reserved and not implemented |
+| `MCP_SSE_PORT` | `3000` | Reserved for SSE transport, which is not implemented |
 
 ### Read-Only Mode
 
