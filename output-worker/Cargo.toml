@@ -18,7 +18,7 @@ anyhow = "1.0.104"
 aws-sdk-s3 = { version = "1.141.0", features = ["behavior-version-latest"] }
 chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.6", features = ["derive", "env", "cargo", "wrap_help"] }
-futures = "0.3.33"
+futures = "0.3.34"
 hex = "0.4.3"
 hickory-resolver = "0.26.1"
 hmac = "0.13.0"
