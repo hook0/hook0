@@ -142,14 +142,24 @@ fn vet_addresses(
     let has_forbidden_ip = ips.iter().any(|ip| is_forbidden_ip(*ip));
 
     if has_forbidden_ip && !allow_forbidden {
+        debug!(
+            ?ips,
+            forbidden_ips = ?ips.iter().filter(|ip| is_forbidden_ip(**ip)).collect::<Vec<_>>(),
+            "Target rejected: it resolves to at least one IP that is not globally reachable"
+        );
+
         // Unlike glibc's `getaddrinfo`, hickory has no `AI_ADDRCONFIG`, so AAAA records are
         // returned even on a host with no global IPv6 address. A target whose A record is fine but
         // whose AAAA record points somewhere internal used to be delivered and is now rejected.
         // Log that case distinctly so its blast radius is measurable before anyone reports it.
+        //
+        // This only concerns *resolved* addresses: a URL with an IPv6 literal host takes the
+        // `Host::Ipv6` branch in `resolve_target`, never reaches the resolver, and so is not
+        // affected by `DNS_IP_STRATEGY` at all -- `is_forbidden_ip` is its only guard.
         if rejected_only_because_of_ipv6(&ips) {
             warn!(
                 ?ips,
-                "Target rejected only because of its IPv6 addresses; its IPv4 addresses are globally reachable (set DNS_IP_STRATEGY=ipv4-only to ignore IPv6 records)"
+                "Target rejected only because of its IPv6 addresses; its IPv4 addresses are globally reachable (set DNS_IP_STRATEGY=ipv4-only to ignore AAAA records -- but not if this worker reaches the Internet through NAT64, where IPv4-only targets are reachable only via their synthesized AAAA records)"
             );
         }
         return Err(ResolveError::ForbiddenIp);
@@ -174,10 +184,20 @@ fn vet_addresses(
 fn rejected_only_because_of_ipv6(ips: &[IpAddr]) -> bool {
     let mut offenders = ips.iter().filter(|ip| is_forbidden_ip(**ip)).peekable();
     // `all` is vacuously true on an empty iterator, so check that something was rejected at all.
-    let all_offenders_are_ipv6 = offenders.peek().is_some() && offenders.all(|ip| ip.is_ipv6());
+    let all_offenders_are_benign_ipv6 = offenders.peek().is_some()
+        && offenders.all(|ip| match ip {
+            // An IPv6 address that names an IPv4 one is not a benign "this target's AAAA record
+            // is not globally reachable" case, and `ipv4-only` is not its fix: following that
+            // advice would hide an SSRF attempt instead of fixing a misconfiguration.
+            IpAddr::V6(ip) => match classify_ipv4_carrier(ip) {
+                Ipv4Carrier::NotIpv4Carrying => true,
+                Ipv4Carrier::Nat64WellKnown(_) | Ipv4Carrier::NeverAValidTarget => false,
+            },
+            IpAddr::V4(_) => false,
+        });
     let has_usable_ipv4 = ips.iter().any(|ip| ip.is_ipv4() && !is_forbidden_ip(*ip));
 
-    all_offenders_are_ipv6 && has_usable_ipv4
+    all_offenders_are_benign_ipv6 && has_usable_ipv4
 }
 
 /// Translates a hickory failure into the taxonomy the rest of the worker reasons about.
@@ -252,9 +272,109 @@ impl ResolveError {
     }
 }
 
+/// How an IPv6 address relates to an IPv4 one, and whether it can be a webhook target at all.
+///
+/// Returned by [`classify_ipv4_carrier`]. Every caller must `match` on this exhaustively: the
+/// whole point of the enum is that [`Ipv4Carrier::Nat64WellKnown`] cannot be silently folded
+/// into the refuse-outright path by a later edit, because doing so would break every webhook
+/// delivery on a NAT64 deployment.
+enum Ipv4Carrier {
+    /// NAT64 well-known prefix (`64:ff9b::/96`, RFC 6052 section 2.1). The verdict comes from
+    /// the IPv4 address carried, *not* from the prefix.
+    ///
+    /// This prefix cannot be refused wholesale: under NAT64/DNS64, DNS64 synthesizes AAAA
+    /// records here for every IPv4-only target, so `example.com` legitimately resolves to
+    /// `64:ff9b::5db8:d822` and refusing the prefix would stop all delivery. IANA marks it
+    /// globally reachable for that reason. But nothing stops the carried address from being
+    /// 127.0.0.1, so the IPv4 rules are applied to it. RFC 6052 section 3.1 forbids embedding
+    /// non-global IPv4 addresses here anyway, so this refuses nothing legal.
+    Nat64WellKnown(Ipv4Addr),
+
+    /// A transition format, or a reserved block those formats live in, that is never a
+    /// legitimate webhook target -- whatever it encodes, and whether or not it encodes an
+    /// IPv4 address at all.
+    NeverAValidTarget,
+
+    /// Neither an IPv4-carrying transition format nor a block that hosts one; the ordinary
+    /// IPv6 rules decide.
+    NotIpv4Carrying,
+}
+
+/// Classifies the IPv6 transition formats that let an IPv6 address name an IPv4 address, plus
+/// the reserved block those formats live in.
+///
+/// The well-known prefix is only ever a /96 (RFC 6052 section 3.1), so its IPv4 address is
+/// unambiguously the last 32 bits. Prefixes of other lengths place it elsewhere and cannot be
+/// recognized from the address alone (RFC 6052 section 2.2), which is why the local-use
+/// `64:ff9b:1::/48` (RFC 8215) is refused outright instead of decoded.
+///
+/// The `::/8` arm refuses a *block*, not an encoding, on purpose. Enumerating the encodings is
+/// what let `::ffff:0:7f00:1` (SIIT) and `::5efe:7f00:1` (ISATAP) through: each is one more
+/// spelling of 127.0.0.1 that the previous arm's `segments[5] == 0 || segments[5] == 0xffff`
+/// test happened not to cover. Refusing the reserved block ends that class of miss.
+///
+/// **Arm order below is load-bearing.** `64:ff9b::/96` is itself inside `::/8`, so the
+/// `Nat64WellKnown` arm must stay first; moving it below the block arm would refuse the whole
+/// well-known prefix and break every webhook delivery on a NAT64/DNS64 deployment. Two things
+/// catch that: the block arm is written as an unguarded range, so rustc reports the hoisted
+/// `Nat64WellKnown` arm as an `unreachable_patterns` warning, and the
+/// `the_nat64_well_known_prefix_inherits_the_verdict_of_the_ipv4_it_carries` proptest fails
+/// loudly if the warning is ignored.
+fn classify_ipv4_carrier(ip: &Ipv6Addr) -> Ipv4Carrier {
+    match ip.segments() {
+        // IPv4-IPv6 Translat. well-known prefix (`64:ff9b::/96`). Must stay first: this prefix
+        // is inside the `::/8` block the last arm refuses outright.
+        [0x64, 0xff9b, 0, 0, 0, 0, high, low] => {
+            Ipv4Carrier::Nat64WellKnown(Ipv4Addr::from((u32::from(high) << 16) | u32::from(low)))
+        }
+        // Rest of IPv4-IPv6 Translat. (`64:ff9b::/32`): RFC 8215's local-use `64:ff9b:1::/48`
+        // plus the unallocated remainder
+        [0x64, 0xff9b, _, _, _, _, _, _]
+        // 6to4 (`2002::/16`, RFC 3056), deprecated by RFC 7526: bits 16 to 47 are an arbitrary
+        // IPv4 address and that is where the traffic ends up
+        | [0x2002, _, _, _, _, _, _, _] => Ipv4Carrier::NeverAValidTarget,
+        // Reserved by the IETF (`::/8`, RFC 4291 section 4). Global unicast is `2000::/3`, so
+        // nothing routable was ever allocated here -- but every API-level way of writing an IPv4
+        // address in IPv6 was: IPv4-Compatible (`::/96`, deprecated by RFC 4291 section 2.5.5.1),
+        // IPv4-mapped (`::ffff:0:0/96`, RFC 4291 section 2.5.5.2), IPv4-translated
+        // (`::ffff:0:0:0/96`, RFC 2765 SIIT, removed by RFC 6145) and ISATAP (`::5efe:0:0/96`,
+        // RFC 5214). Each is malformed in an AAAA record and a redundant spelling of a plain
+        // IPv4 URL, so the block goes rather than the list.
+        //
+        // Written as an unguarded range rather than `if s0 <= 0xff` so that the arm order is
+        // checked by the compiler: a guarded arm never makes a later arm unreachable, so with a
+        // guard here, hoisting this block above `Nat64WellKnown` would silently swallow the NAT64
+        // carve-out. As a range it earns an `unreachable_patterns` warning instead. Hoisting it
+        // above the `64:ff9b::/32` arm only flags a redundancy this block already subsumes.
+        //
+        // `::` and `::1` are refused here and nowhere else -- `is_forbidden_ip` dropped its
+        // `is_unspecified` / `is_loopback` checks once this arm subsumed them. Any new carve-out
+        // inside this block must re-check both, or it reopens loopback.
+        [0x0000..=0x00ff, _, _, _, _, _, _, _] => Ipv4Carrier::NeverAValidTarget,
+        _ => Ipv4Carrier::NotIpv4Carrying,
+    }
+}
+
 /// Returns `true` when the given IP address must not be targeted by a webhook (loopback, private, link-local, shared, cloud-metadata, and other non-globally-reachable ranges).
 fn is_forbidden_ip(ip: IpAddr) -> bool {
     // This should be replaced by https://doc.rust-lang.org/nightly/core/net/enum.IpAddr.html#method.is_global when it becomes stable
+    //
+    // ...with deliberate departures that must survive that replacement. `is_global` follows the
+    // IANA special-purpose registry, where the NAT64 well-known prefix is globally reachable and
+    // 6to4 is "N/A", so it answers `true` for both `64:ff9b::7f00:1` and `2002:7f00:1::1` -- two
+    // ways of spelling 127.0.0.1. See [`classify_ipv4_carrier`].
+    //
+    // The whole of `::/8` is a departure too. `is_global`'s V6 arm excludes exactly one prefix
+    // inside it -- IPv4-mapped `::ffff:0:0/96` -- so it answers `true` for `::7f00:1`
+    // (IPv4-Compatible, `::/96`), `::ffff:0:7f00:1` (IPv4-translated, `::ffff:0:0:0/96`,
+    // RFC 2765) and `::5efe:7f00:1` (ISATAP, RFC 5214): three more ways of spelling 127.0.0.1.
+    // The block is reserved by the IETF (RFC 4291 section 4) and holds nothing routable, so
+    // [`classify_ipv4_carrier`] refuses all of it except the `64:ff9b::/96` carve-out.
+    //
+    // Multicast and `192.88.99.0/24` are departures for the same reason: neither is on the list
+    // `is_global` derives from. `224.0.0.0/4` and `ff00::/8` live in the multicast registries
+    // rather than the special-purpose one, and `192.88.99.0/24` is marked deprecated there rather
+    // than not-globally-reachable.
 
     // v4
     fn is_shared(ip: &Ipv4Addr) -> bool {
@@ -269,7 +389,10 @@ fn is_forbidden_ip(ip: IpAddr) -> bool {
 
     // v6
     fn is_documentation(ip: &Ipv6Addr) -> bool {
-        (ip.segments()[0] == 0x2001) && (ip.segments()[1] == 0xdb8)
+        // Documentation (`2001:db8::/32`)
+        ((ip.segments()[0] == 0x2001) && (ip.segments()[1] == 0xdb8))
+            // Documentation (`3fff::/20`, RFC 9637)
+            || ((ip.segments()[0] == 0x3fff) && (ip.segments()[1] < 0x1000))
     }
     fn is_unique_local(ip: &Ipv6Addr) -> bool {
         (ip.segments()[0] & 0xfe00) == 0xfc00
@@ -277,8 +400,18 @@ fn is_forbidden_ip(ip: IpAddr) -> bool {
     fn is_unicast_link_local(ip: &Ipv6Addr) -> bool {
         (ip.segments()[0] & 0xffc0) == 0xfe80
     }
+    /// Site-Local Unicast (`fec0::/10`), deprecated by RFC 3879 but still used as internal
+    /// addressing by legacy networks, and never globally reachable. Not covered by
+    /// `is_unicast_link_local`: the same /10 mask yields `0xfec0`, not `0xfe80`.
+    fn is_unicast_site_local(ip: &Ipv6Addr) -> bool {
+        (ip.segments()[0] & 0xffc0) == 0xfec0
+    }
 
     match ip {
+        // Checked against the IANA IPv4 Special-Purpose Address Registry: no range it marks as
+        // not globally reachable is missing below. This arm over-blocks in places, so that is a
+        // superset claim rather than an exact match -- but it is what makes a future registry
+        // addition re-verifiable instead of guessed at.
         IpAddr::V4(ip) => {
             ip.octets()[0] == 0 // "This network"
                 || ip.is_private()
@@ -287,20 +420,31 @@ fn is_forbidden_ip(ip: IpAddr) -> bool {
                 || ip.is_link_local()
                 // addresses reserved for future protocols (`192.0.0.0/24`)
                 ||(ip.octets()[0] == 192 && ip.octets()[1] == 0 && ip.octets()[2] == 0)
+                // 6to4 Relay Anycast (`192.88.99.0/24`, RFC 3068), deprecated by RFC 7526 -- the
+                // IPv4 half of the `2002::/16` prefix `classify_ipv4_carrier` refuses
+                || (ip.octets()[0] == 192 && ip.octets()[1] == 88 && ip.octets()[2] == 99)
                 || ip.is_documentation()
                 || is_benchmarking(&ip)
                 || is_reserved(&ip)
+                // Multicast (`224.0.0.0/4`, RFC 5771): never a unicast webhook target, mirroring
+                // the `ff00::/8` rule in the V6 arm
+                || ip.is_multicast()
                 || ip.is_broadcast()
         }
-        IpAddr::V6(ip) => {
-            ip.is_unspecified()
-                || ip.is_loopback()
-                // IPv4-mapped Address (`::ffff:0:0/96`)
-                || matches!(ip.segments(), [0, 0, 0, 0, 0, 0xffff, _, _])
-                // IPv4-IPv6 Translat. (`64:ff9b:1::/48`)
-                || matches!(ip.segments(), [0x64, 0xff9b, 1, _, _, _, _, _])
+        // A NAT64 well-known-prefix address *is* the IPv4 address it carries, so it inherits that
+        // address's verdict. This recurses exactly once: the argument is an `IpAddr::V4` and the
+        // V4 arm above never calls back in.
+        IpAddr::V6(ip) => match classify_ipv4_carrier(&ip) {
+            Ipv4Carrier::Nat64WellKnown(embedded) => is_forbidden_ip(IpAddr::V4(embedded)),
+            Ipv4Carrier::NeverAValidTarget => true,
+            // No `is_unspecified` or `is_loopback` check here: `::` and `::1` are both inside the
+            // `::/8` block `classify_ipv4_carrier` refuses outright, so they never reach this
+            // branch. Adding them back would be dead code that reads like the rule that stops
+            // them, sending the next reader to the wrong place. The constraint that keeps this
+            // true is recorded on that arm in `classify_ipv4_carrier`.
+            Ipv4Carrier::NotIpv4Carrying => {
                 // Discard-Only Address Block (`100::/64`)
-                || matches!(ip.segments(), [0x100, 0, 0, 0, _, _, _, _])
+                matches!(ip.segments(), [0x100, 0, 0, 0, _, _, _, _])
                 // IETF Protocol Assignments (`2001::/23`)
                 || (matches!(ip.segments(), [0x2001, b, _, _, _, _, _, _] if b < 0x200)
                     && !(
@@ -315,10 +459,16 @@ fn is_forbidden_ip(ip: IpAddr) -> bool {
                         // ORCHIDv2 (`2001:20::/28`)
                         || matches!(ip.segments(), [0x2001, b, _, _, _, _, _, _] if (0x20..=0x2F).contains(&b))
                     ))
+                // Segment Routing (SRv6) SIDs (`5f00::/16`, RFC 9602)
+                || matches!(ip.segments(), [0x5f00, _, _, _, _, _, _, _])
                 || is_documentation(&ip)
                 || is_unique_local(&ip)
                 || is_unicast_link_local(&ip)
-        }
+                || is_unicast_site_local(&ip)
+                // Multicast (`ff00::/8`, RFC 4291 section 2.7): never a unicast webhook target
+                || ip.is_multicast()
+            }
+        },
     }
 }
 
@@ -333,6 +483,7 @@ mod tests {
     use hickory_resolver::proto::ProtoError;
     use hickory_resolver::proto::op::{Query, ResponseCode};
     use hickory_resolver::proto::rr::{Name, RecordType};
+    use proptest::prelude::*;
     use std::str::FromStr;
     use std::time::Instant;
 
@@ -565,6 +716,23 @@ mod tests {
         assert!(!rejected_only_because_of_ipv6(&[ip("fc00::1")]));
         // Nothing was rejected at all.
         assert!(!rejected_only_because_of_ipv6(&[ip("1.1.1.1")]));
+
+        // An AAAA record that *names an IPv4 address* is not the `AI_ADDRCONFIG` regression: it is
+        // how an attacker spells an internal IPv4 address in IPv6. Reporting it as an IPv6-only
+        // rejection would advertise `DNS_IP_STRATEGY=ipv4-only` as the fix, and following that
+        // advice would hide the attempt rather than stop it.
+        assert!(!rejected_only_because_of_ipv6(&[
+            ip("1.1.1.1"),
+            ip("64:ff9b::7f00:1")
+        ]));
+        assert!(!rejected_only_because_of_ipv6(&[
+            ip("1.1.1.1"),
+            ip("2002:a9fe:a9fe::1")
+        ]));
+        assert!(!rejected_only_because_of_ipv6(&[
+            ip("1.1.1.1"),
+            ip("::ffff:169.254.169.254")
+        ]));
     }
 
     #[test]
@@ -734,6 +902,39 @@ mod tests {
                 .unwrap_err(),
             ResolveError::ForbiddenIp
         );
+
+        // A literal skips DNS entirely, so `DNS_IP_STRATEGY` cannot filter it out however it is
+        // set: `is_forbidden_ip` is the only thing between the customer's URL and the metadata
+        // service.
+        assert_eq!(
+            resolver
+                .resolve_target(&url("http://[64:ff9b::a9fe:a9fe]:8080/"), false)
+                .await
+                .unwrap_err(),
+            ResolveError::ForbiddenIp
+        );
+        assert_eq!(
+            resolver
+                .resolve_target(&url("http://[2002:7f00:1::1]:8080/"), false)
+                .await
+                .unwrap_err(),
+            ResolveError::ForbiddenIp
+        );
+        assert_eq!(
+            resolver
+                .resolve_target(&url("http://[::ffff:0:7f00:1]:8080/"), false)
+                .await
+                .unwrap_err(),
+            ResolveError::ForbiddenIp
+        );
+
+        // ...while the same prefix around a *public* IPv4 address stays a legitimate target,
+        // because that is what DNS64 synthesizes for every IPv4-only target.
+        let addrs = resolver
+            .resolve_target(&url("http://[64:ff9b::5db8:d822]:443/"), false)
+            .await
+            .expect("the well-known prefix around a public IPv4 is a legitimate target");
+        assert_eq!(addrs, vec![SocketAddr::new(ip("64:ff9b::5db8:d822"), 443)]);
     }
 
     #[tokio::test]
@@ -804,20 +1005,135 @@ mod tests {
         assert!(is_forbidden_ip(ip("100.64.0.1"))); // shared (CGNAT)
         assert!(is_forbidden_ip(ip("169.254.1.1"))); // link-local
         assert!(is_forbidden_ip(ip("169.254.169.254"))); // cloud metadata
+        assert!(is_forbidden_ip(ip("192.88.99.1"))); // 6to4 relay anycast (RFC 7526)
+        assert!(is_forbidden_ip(ip("224.0.0.1"))); // all-hosts multicast
+        assert!(is_forbidden_ip(ip("239.255.255.250"))); // SSDP, administratively-scoped multicast
         assert!(is_forbidden_ip(ip("255.255.255.255"))); // broadcast
         // IPv6
+        // `::/8` is refused as a block, so these are caught by that arm rather than by
+        // `is_loopback` / `is_unspecified` -- which is why neither test lives in `is_forbidden_ip`
         assert!(is_forbidden_ip(ip("::1"))); // loopback
         assert!(is_forbidden_ip(ip("::"))); // unspecified
+        assert!(is_forbidden_ip(ip("1::1"))); // unallocated remainder of `::/8`
+        assert!(is_forbidden_ip(ip("0:0:0:1::1"))); // ditto, just past the `::/64` encodings
+        assert!(is_forbidden_ip(ip("ff:ffff::1"))); // top of `::/8`
         assert!(is_forbidden_ip(ip("fc00::1"))); // unique local
         assert!(is_forbidden_ip(ip("fe80::1"))); // link-local
         assert!(is_forbidden_ip(ip("::ffff:127.0.0.1"))); // IPv4-mapped loopback
         assert!(is_forbidden_ip(ip("::ffff:169.254.169.254"))); // IPv4-mapped metadata
         assert!(is_forbidden_ip(ip("64:ff9b:1::1"))); // IPv4/IPv6 translation
         assert!(is_forbidden_ip(ip("100::1"))); // discard-only block
+        assert!(is_forbidden_ip(ip("fec0::1"))); // deprecated site-local unicast
+        assert!(is_forbidden_ip(ip("5f00::1"))); // SRv6 SIDs (RFC 9602)
+        assert!(is_forbidden_ip(ip("ff02::1"))); // link-local all-nodes multicast
+        assert!(is_forbidden_ip(ip("ff0e::1"))); // global-scope multicast is not a unicast target
         // IETF Protocol Assignments (`2001::/23`), excluding the globally-reachable carve-outs
         assert!(is_forbidden_ip(ip("2001::1"))); // generic 2001::/23 (Teredo region)
         assert!(is_forbidden_ip(ip("2001:1ff::1"))); // top of the /23 (b == 0x1ff)
         assert!(is_forbidden_ip(ip("2001:db8::1"))); // documentation
+        assert!(is_forbidden_ip(ip("3fff::1"))); // documentation (RFC 9637)
+        assert!(is_forbidden_ip(ip("3fff:fff::1"))); // top of `3fff::/20`
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(512))]
+
+        // `64:ff9b::<v4>` is exactly as forbidden as `<v4>` itself, over the whole IPv4 space.
+        // Both halves of that equality matter: refusing the prefix outright would break every
+        // delivery on a NAT64/DNS64 deployment, and allowing it outright lets an IPv6 literal
+        // name 169.254.169.254.
+        #[test]
+        fn the_nat64_well_known_prefix_inherits_the_verdict_of_the_ipv4_it_carries(bits in any::<u32>()) {
+            let v4 = Ipv4Addr::from(bits);
+            let wkp = Ipv6Addr::from_bits((0x0064_ff9b_u128 << 96) | u128::from(bits));
+            prop_assert_eq!(
+                is_forbidden_ip(IpAddr::V6(wkp)),
+                is_forbidden_ip(IpAddr::V4(v4)),
+                "{} must inherit the verdict of {}",
+                wkp,
+                v4
+            );
+        }
+
+        // The three blocks `classify_ipv4_carrier` refuses outright, one test each so a shrunk
+        // counterexample names the invariant it broke. Hand-picked assertions record which
+        // spelling maps to which IPv4 address; these record that no spelling was missed --
+        // which is the property that enumerating encodings kept failing to deliver.
+
+        // Every address reserved by the IETF (`::/8`, RFC 4291 section 2.4) is refused, whatever
+        // encoding it happens to be: IPv4-Compatible, IPv4-mapped, SIIT IPv4-translated, ISATAP,
+        // or none of them.
+        #[test]
+        fn every_address_in_the_ietf_reserved_block_is_refused(bits in any::<u128>().prop_map(|b| b >> 8)) {
+            let ip = Ipv6Addr::from_bits(bits);
+            // The block is not uniformly forbidden: `64:ff9b::/96` lives inside it and inherits
+            // the verdict of the IPv4 address it carries, so `64:ff9b::5db8:d822` is allowed.
+            prop_assume!(!matches!(ip.segments(), [0x64, 0xff9b, 0, 0, 0, 0, _, _]));
+            prop_assert!(
+                is_forbidden_ip(IpAddr::V6(ip)),
+                "{} is inside `::/8` and must be refused",
+                ip
+            );
+        }
+
+        // Everything in `64:ff9b::/32` that is *not* the well-known /96 is refused: RFC 6052
+        // section 2.2 puts the embedded IPv4 address at a position the address alone does not
+        // reveal, so there is nothing to decode and inherit from.
+        #[test]
+        fn the_rest_of_the_nat64_prefix_is_refused(low in any::<u128>().prop_map(|b| b >> 32)) {
+            prop_assume!(low >> 32 != 0); // that would be the well-known `64:ff9b::/96`
+            let ip = Ipv6Addr::from_bits((0x0064_ff9b_u128 << 96) | low);
+            prop_assert!(
+                is_forbidden_ip(IpAddr::V6(ip)),
+                "{} is in `64:ff9b::/32` but not the well-known prefix, so it must be refused",
+                ip
+            );
+        }
+
+        // 6to4 (`2002::/16`, RFC 3056) is refused unconditionally: bits 16 to 47 are an arbitrary
+        // IPv4 address and that is where the traffic ends up, public or not.
+        #[test]
+        fn every_6to4_address_is_refused(low in any::<u128>().prop_map(|b| b >> 16)) {
+            let ip = Ipv6Addr::from_bits((0x2002_u128 << 112) | low);
+            prop_assert!(
+                is_forbidden_ip(IpAddr::V6(ip)),
+                "{} is inside `2002::/16` and must be refused",
+                ip
+            );
+        }
+    }
+
+    /// The IPv6 transition formats let an IPv6 address name an arbitrary IPv4 address, so the
+    /// IPv4 rules have to apply to whatever they carry. Otherwise `64:ff9b::7f00:1` and
+    /// `2002:7f00:1::1` are two spellings of 127.0.0.1 that walk straight past the guard.
+    #[test]
+    fn forbids_ipv6_transition_addresses_that_carry_a_forbidden_ipv4() {
+        // NAT64 well-known prefix (`64:ff9b::/96`): the carried IPv4 address decides
+        assert!(is_forbidden_ip(ip("64:ff9b::a9fe:a9fe"))); // carries cloud metadata
+        assert!(is_forbidden_ip(ip("64:ff9b::7f00:1"))); // carries loopback
+        assert!(is_forbidden_ip(ip("64:ff9b::a00:1"))); // carries RFC 1918
+        assert!(is_forbidden_ip(ip("64:ff9b::e000:1"))); // carries 224.0.0.1
+        assert!(is_forbidden_ip(ip("64:ff9b::c058:6301"))); // carries 192.88.99.1
+        assert!(is_forbidden_ip(ip("64:ff9b::"))); // carries 0.0.0.0, so the decoder fails closed
+        // The rest of `64:ff9b::/32` is not the well-known prefix, so it is not decodable: the
+        // embedded IPv4's position depends on a prefix length the address does not carry
+        assert!(is_forbidden_ip(ip("64:ff9b:0:1::1"))); // unallocated remainder of the /32
+        assert!(is_forbidden_ip(ip("64:ff9b:1::1"))); // RFC 8215 local use
+        // 6to4 (`2002::/16`) carries an IPv4 address in bits 16 to 47 and is refused outright
+        assert!(is_forbidden_ip(ip("2002:a9fe:a9fe::1"))); // carries cloud metadata
+        assert!(is_forbidden_ip(ip("2002:7f00:1::1"))); // carries loopback
+        assert!(is_forbidden_ip(ip("2002:5db8:d822::1"))); // refused even around a public IPv4
+        // IPv4-Compatible Address (`::/96`), deprecated by RFC 4291
+        assert!(is_forbidden_ip(ip("::7f00:1"))); // carries loopback
+        assert!(is_forbidden_ip(ip("::a9fe:a9fe"))); // carries cloud metadata
+        // IPv4-translated Address (`::ffff:0:0:0/96`, RFC 2765 SIIT, removed by RFC 6145):
+        // refused with the rest of `::/8`, so what it carries is irrelevant
+        assert!(is_forbidden_ip(ip("::ffff:0:7f00:1"))); // carries loopback
+        assert!(is_forbidden_ip(ip("::ffff:0:a9fe:a9fe"))); // carries cloud metadata
+        assert!(is_forbidden_ip(ip("::ffff:0:5db8:d822"))); // refused even around a public IPv4
+        // ISATAP (`::5efe:0:0/96`, RFC 5214) over the `::/64` prefix
+        assert!(is_forbidden_ip(ip("::5efe:7f00:1"))); // carries loopback
+        assert!(is_forbidden_ip(ip("::5efe:a9fe:a9fe"))); // carries cloud metadata
     }
 
     #[test]
@@ -825,8 +1141,17 @@ mod tests {
         assert!(!is_forbidden_ip(ip("1.1.1.1")));
         assert!(!is_forbidden_ip(ip("8.8.8.8")));
         assert!(!is_forbidden_ip(ip("93.184.216.34"))); // example.com
+        assert!(!is_forbidden_ip(ip("192.88.98.255"))); // just below `192.88.99.0/24`
+        assert!(!is_forbidden_ip(ip("192.88.100.1"))); // just above `192.88.99.0/24`
+        assert!(!is_forbidden_ip(ip("223.255.255.255"))); // last address below `224.0.0.0/4`
         assert!(!is_forbidden_ip(ip("2606:4700:4700::1111"))); // Cloudflare DNS
         assert!(!is_forbidden_ip(ip("2001:4860:4860::8888"))); // Google DNS
+        // Just above `::/8`, so the block arm must not reach it. `100::/64` itself is the
+        // discard-only block, which makes this the first address above `::/8` nothing forbids.
+        assert!(!is_forbidden_ip(ip("100:0:0:1::1")));
+        // The NAT64 carve-out *inside* `::/8`: this is what breaks if the `Nat64WellKnown` arm
+        // ever stops being matched before the block arm.
+        assert!(!is_forbidden_ip(ip("64:ff9b::5db8:d822")));
         // Globally-reachable carve-outs inside `2001::/23`
         assert!(!is_forbidden_ip(ip("2001:1::1"))); // Port Control Protocol Anycast
         assert!(!is_forbidden_ip(ip("2001:1::2"))); // TURN Anycast
@@ -836,5 +1161,12 @@ mod tests {
         assert!(!is_forbidden_ip(ip("2001:2f::1"))); // ORCHIDv2 (high)
         // First block just above `2001::/23` (b == 0x200) is globally reachable
         assert!(!is_forbidden_ip(ip("2001:200::1")));
+        // First block just above `3fff::/20` (b == 0x1000) is globally reachable
+        assert!(!is_forbidden_ip(ip("3fff:1000::1")));
+        // Refusing the whole NAT64 well-known prefix would break every delivery on a NAT64/DNS64
+        // deployment, where DNS64 synthesizes an address under it for every IPv4-only target.
+        // Only the IPv4 address it carries may decide.
+        assert!(!is_forbidden_ip(ip("64:ff9b::5db8:d822"))); // DNS64-synthesized example.com
+        assert!(!is_forbidden_ip(ip("64:ff9b::101:101"))); // DNS64-synthesized 1.1.1.1
     }
 }
