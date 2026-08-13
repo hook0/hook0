@@ -14,6 +14,10 @@ module.exports = {
   'webhook-platform': { fr: 'plateforme-webhook', de: 'webhook-plattform' },
   'pricing': { fr: 'tarifs', de: 'preise' },
   'webhook-api': { fr: 'api-webhook', de: 'webhook-api' },
+  // EN-only for now: paid-search landing for the "webhook service" cluster, whose
+  // queries arrive in English. Localize once it earns impressions (test-and-scale,
+  // same rule as the tester pages below).
+  'webhook-service': {},
   'oss-friends': { fr: 'amis-open-source', de: 'open-source-freunde' },
   'security': { fr: 'securite', de: 'sicherheit' },
   'webhook-playground': { fr: 'testeur-webhook', de: 'webhook-tester' },
