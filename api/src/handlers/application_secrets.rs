@@ -104,7 +104,7 @@ pub async fn create(
 #[api_v2_operation(
     summary = "List application secrets",
     description = "Retrieves all active API tokens for a given application.",
-    operation_id = "applicationSecrets.read",
+    operation_id = "applicationSecrets.list",
     consumes = "application/json",
     produces = "application/json",
     tags("Applications Management", "public")

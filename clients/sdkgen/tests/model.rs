@@ -100,12 +100,17 @@ fn canonical_verbs_are_recognised() {
 fn verbs_outside_the_vocabulary_stay_named_methods() {
     let (_, model) = built(&common::fixture_bytes());
 
-    let read = model
-        .entity("applicationSecrets")
-        .and_then(|entity| entity.method("read"))
-        .expect("the snapshot declares applicationSecrets.read");
-    assert_eq!(read.verb, Verb::Named("read".to_owned()));
-    assert!(!read.verb.is_canonical());
+    // Starts with a canonical verb without being one, so a generator matching on a prefix
+    // rather than on the whole verb would wrongly render this as a plain list.
+    let list_for_application = model
+        .entity("events_per_day")
+        .and_then(|entity| entity.method("list_for_application"))
+        .expect("the snapshot declares events_per_day.list_for_application");
+    assert_eq!(
+        list_for_application.verb,
+        Verb::Named("list_for_application".to_owned())
+    );
+    assert!(!list_for_application.verb.is_canonical());
 
     let ingest = model
         .entity("events")

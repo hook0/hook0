@@ -210,7 +210,7 @@ mod tests {
     #[test]
     fn an_identifier_needs_an_entity_and_a_verb() {
         assert!(follows_entity_verb_convention("applications.create"));
-        assert!(follows_entity_verb_convention("applicationSecrets.read"));
+        assert!(follows_entity_verb_convention("applicationSecrets.list"));
         assert!(follows_entity_verb_convention(
             "events_per_day.list_for_application"
         ));

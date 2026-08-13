@@ -1193,7 +1193,7 @@
     "/api/v1/application_secrets/": {
       "get": {
         "description": "Retrieves all active API tokens for a given application.",
-        "operationId": "applicationSecrets.read",
+        "operationId": "applicationSecrets.list",
         "parameters": [
           {
             "in": "query",
@@ -1704,7 +1704,7 @@
         ]
       },
       "post": {
-        "description": "Creates a new Hook0 application within an organization. An application is the container for event types, subscriptions, and events. Use this when setting up a new service that will emit or receive webhook events. Creation also provisions an application secret named 'Default', so there is no need to create a first API key afterwards: read it with applicationSecrets.read. That secret is scoped to this application alone, but within it grants full control (sending events, and managing event types, subscriptions and secrets), so it must be handled as a credential.",
+        "description": "Creates a new Hook0 application within an organization. An application is the container for event types, subscriptions, and events. Use this when setting up a new service that will emit or receive webhook events. Creation also provisions an application secret named 'Default', so there is no need to create a first API key afterwards: read it with applicationSecrets.list. That secret is scoped to this application alone, but within it grants full control (sending events, and managing event types, subscriptions and secrets), so it must be handled as a credential.",
         "operationId": "applications.create",
         "requestBody": {
           "content": {
@@ -3712,7 +3712,7 @@
     "/api/v1/request_attempts/": {
       "get": {
         "description": "Retrieves webhook delivery attempts for an application. Each attempt shows the delivery status (pending, in_progress, successful, failed, waiting), retry count, and timestamps. Filter by event_id, subscription_id, date range, or event types. Paginated via Link header.",
-        "operationId": "requestAttempts.read",
+        "operationId": "requestAttempts.list",
         "parameters": [
           {
             "in": "query",

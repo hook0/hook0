@@ -140,7 +140,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         input_schema: "{\"properties\":{\"application_id\":{\"type\":\"string\"},\"request_attempt_id\":{\"type\":\"string\"}},\"required\":[\"application_id\",\"request_attempt_id\"],\"type\":\"object\"}",
     },
     GeneratedToolInfo {
-        name: "requestAttempts.read",
+        name: "requestAttempts.list",
         description: "List request attempts",
         method: "GET",
         path_template: "/api/v1/request_attempts/",
