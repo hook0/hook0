@@ -58,7 +58,7 @@ This documentation may not cover all options or reflect recent changes.
 | `DISABLE_REGISTRATION` | Set to true to disable registration endpoint | - |  |
 | `MASTER_API_KEY` 🔒 | A global admin API key that have almost all rights. Better left undefined, USE AT YOUR OWN RISKS! | - |  |
 | `MAX_AUTHORIZATION_TIME` | Maximum duration that can be spent running Biscuit's authorizer | `30ms` |  |
-| `PASSWORD_MINIMUM_LENGTH` | Minimum length of user passwords. This is checked when a user registers | `12` |  |
+| `PASSWORD_MINIMUM_LENGTH` | Minimum length of user passwords, between 1 and 100. Checked wherever a password is set: registration, password reset and password change | `12` |  |
 
 ### Email
 

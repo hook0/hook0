@@ -1,7 +1,7 @@
 use actix_web::rt::task::spawn_blocking;
 use actix_web::web::ReqData;
 use argon2::password_hash::PasswordHashString;
-use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use biscuit_auth::{Biscuit, PrivateKey};
 use chrono::{DateTime, Utc};
 use lettre::Address;
@@ -23,20 +23,17 @@ use crate::iam::{
 };
 use crate::mailer::{Mail, Mailer};
 use crate::openapi::{OaBiscuitRefresh, OaBiscuitUserAccess};
+use crate::password;
 use crate::problems::Hook0Problem;
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct LoginPost {
     #[validate(non_control_character, length(min = 1, max = 100))]
     email: String,
-    #[validate(
-        non_control_character,
-        length(
-            min = 1,
-            max = 100,
-            message = "Password must be at least 10 characters long and at most 100 characters long"
-        )
-    )]
+    // Bounded, but with no policy of its own: logging in must accept whatever
+    // the account's password happens to be, including one set before the policy
+    // existed. `secret` bounds it without echoing it back.
+    #[validate(custom(function = "crate::validators::secret"))]
     password: String,
 }
 
@@ -54,7 +51,8 @@ pub struct LoginResponse {
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct EmailVerificationPost {
-    #[validate(non_control_character, length(min = 1, max = 1000))]
+    // A bearer credential: `secret_token` bounds it without echoing it back.
+    #[validate(custom(function = "crate::validators::secret_token"))]
     token: String,
 }
 
@@ -66,29 +64,23 @@ pub struct BeginResetPasswordPost {
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct ResetPasswordPost {
-    #[validate(non_control_character, length(min = 1, max = 1000))]
+    // See `EmailVerificationPost::token`.
+    #[validate(custom(function = "crate::validators::secret_token"))]
     token: String,
-    #[validate(
-        non_control_character,
-        length(
-            min = 10,
-            max = 100,
-            message = "Password must be at least 10 characters long and at most 100 characters long"
-        )
-    )]
+    // Length is deliberately not validated here: the policy owns both bounds
+    // (`password::Checked::new`), so the user is told the instance's real
+    // minimum instead of a number hardcoded next to the field, and an
+    // oversized one is refused as `PasswordTooLong` rather than as malformed
+    // input. `secret_characters` keeps the refused password out of the
+    // response body, which the built-in validators echo back.
+    #[validate(custom(function = "crate::validators::secret_characters"))]
     new_password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Apiv2Schema, Validate)]
 pub struct ChangePasswordPost {
-    #[validate(
-        non_control_character,
-        length(
-            min = 10,
-            max = 100,
-            message = "Password must be at least 10 characters long and at most 100 characters long"
-        )
-    )]
+    // See `ResetPasswordPost::new_password`: the policy owns the bounds.
+    #[validate(custom(function = "crate::validators::secret_characters"))]
     new_password: String,
 }
 
@@ -238,7 +230,8 @@ async fn import_user_from_keycloak(
             &groups.into_iter().map(|g| g.path).collect::<Vec<_>>(),
         );
 
-        let password_hash = generate_hashed_password(password).await?;
+        let password_hash =
+            password::hash(password::Checked::already_established(password)).await?;
 
         let mut tx = state.db.begin().await?;
 
@@ -1047,13 +1040,14 @@ pub async fn reset_password(
         if let Some(user_id) = uid {
             let mut tx = state.db.begin().await?;
 
-            do_change_password(
-                &mut tx,
+            let password_hash = check_and_hash_new_password(
+                &mut *tx,
                 state.password_minimum_length,
                 &body.new_password,
                 user_id,
             )
             .await?;
+            store_new_password(&mut *tx, password_hash.as_str(), user_id).await?;
 
             query!(
                 "
@@ -1105,81 +1099,373 @@ pub async fn change_password(
         state.debug_authorizer,
     )?;
 
-    do_change_password(
+    let password_hash = check_and_hash_new_password(
         &state.db,
         state.password_minimum_length,
         &body.new_password,
         token.user_id,
     )
     .await?;
+    store_new_password(&state.db, password_hash.as_str(), token.user_id).await?;
 
     Ok(NoContent)
 }
 
-async fn do_change_password<'a, A: Acquire<'a, Database = Postgres>>(
+/// Run the policy against who the account belongs to, then hash.
+///
+/// Split from the write below so no connection is held for the ~100ms Argon2
+/// deliberately costs: on the change-password path the connection comes from
+/// the pool, and holding it across the hash would starve the pool one request
+/// at a time.
+async fn check_and_hash_new_password<'a, A: Acquire<'a, Database = Postgres>>(
     db: A,
     password_minimum_length: u8,
     new_password: &str,
     user_id: Uuid,
+) -> Result<PasswordHashString, Hook0Problem> {
+    let mut db = db.acquire().await?;
+
+    // Only the database knows who this account belongs to: neither the reset
+    // link nor the biscuit carries the email address or the name.
+    let identity = query!(
+        "
+            SELECT email, first_name, last_name
+            FROM iam.user
+            WHERE user__id = $1
+        ",
+        &user_id,
+    )
+    .fetch_optional(&mut *db)
+    .await?
+    .ok_or(Hook0Problem::Forbidden)?;
+
+    let checked_password = password::Checked::new(
+        new_password,
+        password_minimum_length,
+        &password::UserIdentity {
+            email: &identity.email,
+            first_name: &identity.first_name,
+            last_name: &identity.last_name,
+        },
+    )
+    .map_err(|rejection| rejection.into_problem(password_minimum_length))?;
+
+    drop(db);
+
+    password::hash(checked_password).await
+}
+
+/// Store an already checked and hashed password, and expire every token the
+/// account had, so a stolen session does not survive the change.
+async fn store_new_password<'a, A: Acquire<'a, Database = Postgres>>(
+    db: A,
+    password_hash: &str,
+    user_id: Uuid,
 ) -> Result<(), Hook0Problem> {
-    if new_password.len() >= usize::from(password_minimum_length) {
-        let password_hash = generate_hashed_password(new_password).await?;
+    let mut db = db.acquire().await?;
+    let mut tx = db.begin().await?;
 
-        let mut db = db.acquire().await?;
-        let mut tx = db.begin().await?;
-
-        query!(
-            "
+    let stored = query!(
+        "
                 UPDATE iam.user
                 SET password = $1
                 WHERE user__id = $2
             ",
-            password_hash.as_str(),
-            &user_id,
-        )
-        .execute(&mut *tx)
-        .await?;
+        password_hash,
+        &user_id,
+    )
+    .execute(&mut *tx)
+    .await?;
 
-        query!(
-            "
+    // The account is read before hashing and written after, on two different
+    // connections. If it disappeared in between, answering 204 would tell the
+    // user their password was changed when nothing was stored.
+    if stored.rows_affected() == 0 {
+        return Err(Hook0Problem::Forbidden);
+    }
+
+    query!(
+        "
                 UPDATE iam.token
                 SET expired_at = statement_timestamp()
                 WHERE user__id = $1
                     AND (expired_at IS NULL OR expired_at > statement_timestamp())
             ",
-            &user_id,
-        )
-        .execute(&mut *tx)
-        .await?;
+        &user_id,
+    )
+    .execute(&mut *tx)
+    .await?;
 
-        tx.commit().await?;
+    tx.commit().await?;
 
-        Ok(())
-    } else {
-        Err(Hook0Problem::PasswordTooShort(password_minimum_length))
+    Ok(())
+}
+
+#[cfg(test)]
+mod password_echo_tests {
+    use super::{ChangePasswordPost, EmailVerificationPost, LoginPost, ResetPasswordPost};
+    use crate::handlers::registrations::RegistrationPost;
+    use serde::de::DeserializeOwned;
+    use validator::Validate;
+
+    /// A password the caller must never find in the response.
+    const SECRET: &str = "correct horse battery staple";
+
+    /// The bytes the caller actually receives, built the way the API builds
+    /// them: the DTO's own validation, rendered as the RFC 7807 body.
+    fn response_body<T: DeserializeOwned + Validate>(body: serde_json::Value) -> String {
+        let dto = serde_json::from_value::<T>(body).expect("payload deserializes into the DTO");
+        let errors = dto
+            .validate()
+            .expect_err("payload is expected to fail validation");
+        let problem = http_api_problem::HttpApiProblem::from(
+            crate::problems::Hook0Problem::Validation(errors),
+        );
+        String::from_utf8(problem.json_bytes()).expect("problem body is valid UTF-8")
+    }
+
+    /// The `length` validator hands back the value it refused as an error
+    /// parameter, and the 422 body carries the whole `ValidationErrors` tree —
+    /// so validating the length of a password put that password in the
+    /// response, in the browser console, and in anything logging response
+    /// bodies. The policy owns the bounds instead. This pins every field that
+    /// carries a password, so a validator added later cannot quietly bring the
+    /// echo back.
+    #[test]
+    fn no_password_field_echoes_its_value_when_validation_fails() {
+        // Long enough to trip any remaining length ceiling, and containing a
+        // control character to trip `non_control_character` too: whichever rule
+        // fires, the value must not come back.
+        let refused = format!("{SECRET}\u{7}{}", "x".repeat(200));
+
+        let bodies = [
+            (
+                "RegistrationPost::password",
+                response_body::<RegistrationPost>(serde_json::json!({
+                    "first_name": "Jordan",
+                    "last_name": "Rivera",
+                    "email": "jordanrivera801@example.com",
+                    "password": refused,
+                })),
+            ),
+            (
+                "ResetPasswordPost::new_password",
+                response_body::<ResetPasswordPost>(serde_json::json!({
+                    "token": "a-reset-token",
+                    "new_password": refused,
+                })),
+            ),
+            (
+                "ChangePasswordPost::new_password",
+                response_body::<ChangePasswordPost>(serde_json::json!({
+                    "new_password": refused,
+                })),
+            ),
+            (
+                "LoginPost::password",
+                response_body::<LoginPost>(serde_json::json!({
+                    "email": "jordanrivera801@example.com",
+                    "password": refused,
+                })),
+            ),
+        ];
+
+        for (field, body) in bodies {
+            assert!(
+                !body.contains(SECRET),
+                "{field} echoed the refused password: {body}"
+            );
+        }
+    }
+
+    /// The token from a reset link is a credential too, and a sharper case than
+    /// the password: a mail client that wraps the link and encodes the break
+    /// as `%0A` produces a token that fails validation while still being live.
+    /// The reset page strips it from the URL on purpose; handing it back in an
+    /// error would give away exactly what that stripping withholds.
+    #[test]
+    fn no_token_field_echoes_its_value_when_validation_fails() {
+        let refused = format!("{SECRET}\u{7}");
+
+        let bodies = [
+            (
+                "ResetPasswordPost::token",
+                response_body::<ResetPasswordPost>(serde_json::json!({
+                    "token": refused,
+                    "new_password": "quilt lantern harbour",
+                })),
+            ),
+            (
+                "EmailVerificationPost::token",
+                response_body::<EmailVerificationPost>(serde_json::json!({
+                    "token": refused,
+                })),
+            ),
+        ];
+
+        for (field, body) in bodies {
+            assert!(
+                !body.contains(SECRET),
+                "{field} echoed the refused token: {body}"
+            );
+        }
+    }
+
+    /// The counterpart: only secrets lose their value. Naming the value it
+    /// refused is how a validation error is useful on an ordinary field, and
+    /// stripping it everywhere would be a silent downgrade of every 422.
+    #[test]
+    fn an_ordinary_field_still_names_the_value_it_refused() {
+        let body = response_body::<RegistrationPost>(serde_json::json!({
+            "first_name": "Jordan",
+            "last_name": "Rivera",
+            "email": "not-an-email-address",
+            "password": "quilt lantern harbour",
+        }));
+
+        assert!(
+            body.contains("not-an-email-address"),
+            "the refused email should still be reported back: {body}"
+        );
     }
 }
 
-async fn generate_hashed_password(password: &str) -> Result<PasswordHashString, Hook0Problem> {
-    let password = password.to_owned();
+#[cfg(test)]
+mod password_policy_tests {
+    use crate::google_ads::test_support::{issue_user_token, seed_org, seed_user, test_state};
+    use actix_web::{App, test, web};
+    use sqlx::PgPool;
+    use uuid::Uuid;
 
-    spawn_blocking(move || {
-        let salt = argon2::password_hash::SaltString::generate(
-            &mut argon2::password_hash::rand_core::OsRng,
+    /// Spin up the real change-password endpoint behind the real biscuit auth
+    /// middleware, over the test database. A macro rather than a function
+    /// because the type of an initialized actix test service is not nameable
+    /// here.
+    macro_rules! init_api {
+        ($pool:expr, $private_key:expr) => {{
+            let state = test_state($pool.clone(), $private_key.clone(), None).await;
+            let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+                db: $pool.clone(),
+                biscuit_private_key: $private_key.clone(),
+                master_api_key: None,
+                enable_application_secret_compatibility: true,
+            };
+
+            test::init_service(
+                App::new().app_data(web::Data::new(state)).service(
+                    web::scope("/api/v1/auth").service(
+                        web::resource("/password")
+                            .wrap(biscuit_auth)
+                            .route(web::post().to(super::change_password)),
+                    ),
+                ),
+            )
+            .await
+        }};
+    }
+
+    /// POST a new password and return the status with the `id` of the problem
+    /// it carries (empty when the response carries no problem).
+    macro_rules! change_password {
+        ($app:expr, $token:expr, $new_password:expr) => {{
+            let request = test::TestRequest::post()
+                .uri("/api/v1/auth/password")
+                .insert_header(("Authorization", format!("Bearer {}", $token)))
+                .set_json(serde_json::json!({ "new_password": $new_password }))
+                .to_request();
+            let response = test::call_service(&$app, request).await;
+            let status = response.status();
+            let body = test::read_body(response).await;
+            let problem = serde_json::from_slice::<serde_json::Value>(&body)
+                .ok()
+                .and_then(|body| body["id"].as_str().map(str::to_owned))
+                .unwrap_or_default();
+            (status, problem)
+        }};
+    }
+
+    async fn stored_hash(pool: &PgPool, user_id: Uuid) -> String {
+        sqlx::query_scalar("SELECT password FROM iam.user WHERE user__id = $1")
+            .bind(user_id)
+            .fetch_one(pool)
+            .await
+            .expect("read stored password")
+    }
+
+    /// The change-password path is one of the three the policy must cover, and
+    /// the only one where the account's identity is read back from the database
+    /// rather than taken from the request. A wrong lookup would check the new
+    /// password against somebody else's identity, and every other test would
+    /// still pass.
+    #[sqlx::test]
+    async fn changing_to_the_account_email_address_is_refused(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        let token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+        let before = stored_hash(&pool, user).await;
+
+        let app = init_api!(pool, private_key);
+        let email: String = sqlx::query_scalar("SELECT email FROM iam.user WHERE user__id = $1")
+            .bind(user)
+            .fetch_one(&pool)
+            .await
+            .expect("read seeded email");
+
+        let (status, problem) = change_password!(app, token, email);
+
+        assert_eq!(status, actix_web::http::StatusCode::BAD_REQUEST);
+        assert_eq!(problem, "PasswordSimilarToEmail");
+        assert_eq!(
+            stored_hash(&pool, user).await,
+            before,
+            "a refused change must leave the stored password alone"
         );
-        Argon2::default()
-            .hash_password(password.as_bytes(), &salt)
-            .map_err(|e| {
-                error!("Error trying to hash user password: {e}");
-                Hook0Problem::InternalServerError
-            })
-            .map(|h| h.serialize())
-    })
-    .await
-    .map_err(|e| {
-        error!("Failed to run password hashing task: {e}");
-        Hook0Problem::InternalServerError
-    })?
+    }
+
+    #[sqlx::test]
+    async fn changing_to_a_common_password_is_refused(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        let token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+
+        let app = init_api!(pool, private_key);
+        let (status, problem) = change_password!(app, token, "2026letmein!");
+
+        assert_eq!(status, actix_web::http::StatusCode::BAD_REQUEST);
+        assert_eq!(problem, "PasswordTooCommon");
+    }
+
+    /// The counterpart: a password the policy accepts must actually be stored,
+    /// hashed. Without this, an implementation that refuses everything would
+    /// pass every test above.
+    #[sqlx::test]
+    async fn changing_to_a_strong_password_replaces_the_stored_hash(pool: PgPool) {
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        let token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+        let before = stored_hash(&pool, user).await;
+
+        let app = init_api!(pool, private_key);
+        let (status, _) = change_password!(app, token, "quilt lantern harbour");
+
+        assert!(status.is_success(), "unexpected status: {status}");
+
+        let after = stored_hash(&pool, user).await;
+        assert_ne!(after, before);
+        assert!(
+            after.starts_with("$argon2"),
+            "the stored password must be an Argon2 hash, got {after:?}"
+        );
+    }
 }
 
 #[cfg(test)]
