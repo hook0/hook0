@@ -388,7 +388,7 @@ const missingFieldsTooltip = computed(() => {
                   <template #link>
                     <Hook0Button
                       variant="link"
-                      href="https://documentation.hook0.com/docs/verifying-webhook-signatures"
+                      href="https://documentation.hook0.com/tutorials/webhook-authentication"
                       target="_blank"
                       >{{ t('subscriptions.authenticateWebhooks') }}</Hook0Button
                     >
