@@ -113,6 +113,20 @@ Each Pull Request that comes in is required to resolve [an open Issue](https://g
 is labeled "Bug", "Improvement", or "New Feature". This ensures that any code change made implements a known actionable
 item, be it a feature or otherwise.
 
+#### Rules Implemented Twice
+
+A few rules exist in both the API and the frontend, so a form can refuse a value without a round trip. When that
+happens, the two implementations are pinned to a single fixture rather than trusted to stay in step by hand.
+
+The password policy is the current example: `password-policy-vectors.json`, at the root of the repository, is read by
+the Rust suite (`api/src/password.rs`) and by the frontend suite (`frontend/src/utils/passwordPolicy.test.ts`,
+`frontend/src/utils/passwordProblem.test.ts`). It fixes the verdict for a list of passwords, the maximum length, and
+the set of API error ids that mean "the password was refused". Changing a rule on one side without the other fails
+both suites, which is the point: a form that accepts what the API refuses wastes the user's time, and a form that
+refuses what the API accepts is a bug nobody sees.
+
+If you add a rejection reason, or move a bound, put it in the fixture in the same change.
+
 ### Reporting Security Vulnerabilities
 
 If you believe you have discovered a security issue within a Hook0 product or service, please reach out to us

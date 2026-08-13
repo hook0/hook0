@@ -1,7 +1,9 @@
 use reqwest::header::HeaderMap;
 use serde_json::Value;
 use std::collections::HashMap;
-use validator::ValidationError;
+use validator::{ValidateNonControlCharacter, ValidationError};
+
+use crate::password::MAXIMUM_LENGTH as SECRET_MAX_LENGTH;
 
 const METADATA_MAX_SIZE: usize = 50;
 const METADATA_PROPERTY_MIN_LENGTH: usize = 1;
@@ -20,6 +22,22 @@ const SUBSCRIPTION_TARGET_HTTP_URL_MAX_LENGTH: usize = 1000;
 const SUBSCRIPTION_TARGET_HTTP_HEADERS_MAX_SIZE: usize = 10;
 const SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_MAX_LENGTH: usize = 500;
 
+const SECRET_MIN_LENGTH: usize = 1;
+
+/// A token from a link in an email is a few hundred characters; this is the
+/// ceiling that was already applied to them, kept as-is.
+const SECRET_TOKEN_MAX_LENGTH: usize = 1000;
+
+/// Marks a validation error as being about a value the caller must not get
+/// back. `Hook0Problem::Validation` drops the refused value from every error
+/// whose code starts with this, which is the only way to keep it out of the
+/// response: the `validator` derive attaches the value to each error it
+/// builds, whichever validator produced it.
+pub const CODE_SECRET_PREFIX: &str = "secret-";
+
+const CODE_SECRET_CHARACTERS: &str = "secret-characters";
+const CODE_SECRET_LENGTH: &str = "secret-length";
+const CODE_SECRET_TOKEN: &str = "secret-token";
 const CODE_METADATA_SIZE: &str = "metadata-size";
 const CODE_METADATA_PROPERTY_LENGTH: &str = "metadata-property-length";
 const CODE_LABELS_SIZE: &str = "labels-size";
@@ -31,6 +49,69 @@ const CODE_SUBSCRIPTION_TARGET_HTTP_URL_LENGTH: &str = "subscription-target-http
 const CODE_SUBSCRIPTION_TARGET_HTTP_HEADERS_SIZE: &str = "subscription-target-http-headers-size";
 const CODE_SUBSCRIPTION_TARGET_HTTP_HEADERS_PROPERTY_LENGTH: &str =
     "subscription-target-http-headers-property-length";
+
+/// Reject control characters in a secret without putting the secret in the
+/// error. Validation errors are serialized whole into the response body, and
+/// the built-in `non_control_character` and `length` validators hand back the
+/// value they refused as a `value` parameter — for a password, that returns
+/// it to the caller, to the browser console, and to anything that logs
+/// response bodies. Same rule as `validate_non_control_character`, without the
+/// echo.
+pub fn secret_characters(val: &str) -> Result<(), ValidationError> {
+    if val.validate_non_control_character() {
+        return Ok(());
+    }
+    Err(ValidationError {
+        code: CODE_SECRET_CHARACTERS.into(),
+        message: Some("Password must not contain control characters".into()),
+        params: HashMap::new(),
+    })
+}
+
+/// A secret no policy will bound afterwards: logging in must accept whatever
+/// the account's password happens to be, so nothing downstream rejects an
+/// oversized one. Bounds it here, under the same no-echo rule as
+/// `secret_characters`.
+pub fn secret(val: &str) -> Result<(), ValidationError> {
+    secret_characters(val)?;
+
+    let length = val.chars().count();
+    if (SECRET_MIN_LENGTH..=SECRET_MAX_LENGTH).contains(&length) {
+        return Ok(());
+    }
+    Err(ValidationError {
+        code: CODE_SECRET_LENGTH.into(),
+        message: Some(
+            format!(
+                "Password must be between {SECRET_MIN_LENGTH} and {SECRET_MAX_LENGTH} characters"
+            )
+            .into(),
+        ),
+        params: HashMap::new(),
+    })
+}
+
+/// The single-use credential carried by a link in an email — a password reset,
+/// an email verification, an unsubscribe. Same no-echo rule as the passwords
+/// above, and for a sharper reason: a mail client that wraps a long link and
+/// encodes the break as `%0A` produces a token that fails this check while
+/// still being live, so the refused value is a working credential. The reset
+/// token is stripped from the URL on purpose (`stripTokenFromUrl` in the
+/// frontend) to keep it out of history and referrers; handing it back in an
+/// error would give away what that stripping withholds.
+pub fn secret_token(val: &str) -> Result<(), ValidationError> {
+    let length = val.chars().count();
+    if val.validate_non_control_character()
+        && (SECRET_MIN_LENGTH..=SECRET_TOKEN_MAX_LENGTH).contains(&length)
+    {
+        return Ok(());
+    }
+    Err(ValidationError {
+        code: CODE_SECRET_TOKEN.into(),
+        message: Some("Token is malformed".into()),
+        params: HashMap::new(),
+    })
+}
 
 pub fn metadata(val: &HashMap<String, String>) -> Result<(), ValidationError> {
     if val.len() > METADATA_MAX_SIZE {
@@ -239,6 +320,88 @@ pub fn subscription_target_http_method_headers(val: &HeaderMap) -> Result<(), Va
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The prefix is the whole mechanism: `Hook0Problem::Validation` decides
+    /// what to strip from a code alone, so a secret validator whose code drops
+    /// the prefix would start returning the password again, silently.
+    #[test]
+    fn every_secret_validator_code_carries_the_prefix() {
+        for code in [
+            CODE_SECRET_CHARACTERS,
+            CODE_SECRET_LENGTH,
+            CODE_SECRET_TOKEN,
+        ] {
+            assert!(
+                code.starts_with(CODE_SECRET_PREFIX),
+                "{code} would not be recognised as being about a secret"
+            );
+        }
+    }
+
+    /// The other half of keeping a password out of the response. The problem
+    /// builder strips the value from `params`, but `detail` comes from
+    /// `Display`, which falls back to printing `params` when an error carries
+    /// no message — so a secret validator that forgot its message would hand
+    /// the password back through the other field, with nothing to catch it.
+    ///
+    /// It also decides whether the reset form survives. That page treats a
+    /// `Validation` error as a dead link, which is only safe because a refused
+    /// password is recognised first — and it is recognised by its message. A
+    /// secret validator without one would cost the user their reset link, not
+    /// merely leak. Relaxing this assertion breaks more than disclosure.
+    #[test]
+    fn every_secret_validator_error_carries_a_message() {
+        let errors = [
+            secret_characters("quilt\u{7}lantern").err(),
+            secret("").err(),
+            secret(&"x".repeat(SECRET_MAX_LENGTH + 1)).err(),
+            secret_token("token\u{7}wrapped").err(),
+            secret_token(&"x".repeat(SECRET_TOKEN_MAX_LENGTH + 1)).err(),
+        ];
+
+        for error in errors {
+            let error = error.expect("the input is expected to be refused");
+            assert!(
+                error.message.is_some(),
+                "{} would print its params, and the value with them",
+                error.code
+            );
+        }
+    }
+
+    #[test]
+    fn a_secret_may_contain_anything_printable() {
+        assert!(secret("quilt lantern harbour ✓ 𝐀").is_ok());
+        assert!(secret_characters("quilt lantern harbour ✓ 𝐀").is_ok());
+    }
+
+    #[test]
+    fn a_secret_is_refused_for_control_characters_and_for_length() {
+        assert_eq!(
+            secret_characters("quilt\u{7}lantern")
+                .err()
+                .map(|e| e.code)
+                .unwrap_or_else(|| "".into()),
+            CODE_SECRET_CHARACTERS
+        );
+        assert_eq!(
+            secret("")
+                .err()
+                .map(|e| e.code)
+                .unwrap_or_else(|| "".into()),
+            CODE_SECRET_LENGTH
+        );
+        assert_eq!(
+            secret(&"x".repeat(SECRET_MAX_LENGTH + 1))
+                .err()
+                .map(|e| e.code)
+                .unwrap_or_else(|| "".into()),
+            CODE_SECRET_LENGTH
+        );
+        // Counted in characters, not bytes: a long password made of multi-byte
+        // characters must not be refused for a length it does not have.
+        assert!(secret(&"é".repeat(SECRET_MAX_LENGTH)).is_ok());
+    }
 
     #[test]
     fn metadata_valid() {

@@ -17,11 +17,41 @@ The policy is applicable to all internal and external personnel and Systems and 
 
 ## Principles
 
-- Passwords should be strong (at least 8 characters, usage of lowercase/uppercase/numbers/symbols)
+- Passwords should be strong: length is what buys strength, so prefer a long passphrase over a short password decorated with symbols
 - Do not use the same password for more than one service or system
 - Change the password at least twice per year
 - Do not use variants of the old password (e.g. adding a number to the old password)
 - The use of **Bitwarden password manager is mandatory**.
+
+## What Hook0 enforces on account passwords
+
+Every path that sets a password — registration, password reset and password
+change — applies the same rules. Following
+[NIST SP 800-63B](https://pages.nist.gov/800-63-3/sp800-63b.html), they are a
+length floor plus blocklists rather than composition rules ("one uppercase, one
+digit, one symbol"), which mostly push people towards predictable substitutions.
+
+A password is refused when it is:
+
+- shorter than the instance's minimum (`PASSWORD_MINIMUM_LENGTH`, 12 by default)
+  or longer than 100 characters;
+- the account's own email address or name — or built around either, unless what
+  surrounds that fragment is still a secret of its own;
+- among the ten thousand most common passwords, including disguised
+  (`P@ssw0rd`, `1etmein`) and padded (`letmein2026!`, `2026letmein`) variants;
+- a shorter unit typed several times (`abcdabcdabcd`), which clears the length
+  floor while carrying almost no entropy;
+- carrying a control character — a tab or a line break, usually pasted in by
+  accident rather than typed.
+
+Each refusal names the rule it broke on the password field. The first four
+carry their own error identifier, listed in the
+[error codes reference](../reference/error-codes.md); the last is reported as
+malformed input, since it is about the characters the field accepts rather
+than about the strength of the password.
+
+Only the minimum length is configurable; the other rules always apply. Existing
+passwords are never re-checked — the rules apply the next time a password is set.
 
 ## Server-side password storage
 

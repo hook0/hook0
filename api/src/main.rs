@@ -48,6 +48,7 @@ mod openapi;
 mod openapi_postprocess;
 mod opentelemetry;
 mod pagination;
+mod password;
 mod problems;
 mod quotas;
 mod rate_limiting;
@@ -303,8 +304,8 @@ struct Config {
     #[clap(long, env)]
     disable_registration: bool,
 
-    /// [Auth] Minimum length of user passwords. This is checked when a user registers.
-    #[clap(long, env, default_value = "12")]
+    /// [Auth] Minimum length of user passwords, between 1 and 100. Checked wherever a password is set: registration, password reset and password change.
+    #[clap(long, env, default_value = "12", value_parser = clap::value_parser!(u8).range(1..=password::MAXIMUM_LENGTH as i64))]
     password_minimum_length: u8,
 
     /// [Rate Limiting] Set to true to disable every API rate limiting
