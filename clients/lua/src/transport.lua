@@ -1,0 +1,413 @@
+--- How a request reaches the API, and what a server on the other end is not allowed to cost.
+---
+--- The transport answers the status and the bytes and knows nothing of what the API declares:
+--- reading those bytes is the generated half's job, and deciding whether to send them again is the
+--- client's. That is what lets one HTTP implementation serve both the hand-written event path and
+--- every generated method — a generated group calls whatever object it is handed, and this is the
+--- one this rock ships.
+---
+--- The exchange is written here rather than taken from `socket.http`, and that is the whole point:
+--- `socket.http` reads a head of any length and a body of any length into memory before a caller is
+--- consulted, so a server that is broken or hostile decides how much a client spends. Every ceiling
+--- the shared conformance corpus names is applied here instead, on the line that crosses it: how
+--- many header lines an answer may carry, how long one of them may be, how large the whole head may
+--- come to, and how many bytes of body are read off the socket.
+
+local Errors = require("hook0.errors")
+local Json = require("hook0.json")
+local Runtime = require("hook0.runtime")
+local socket = require("socket")
+
+local Transport = {}
+Transport.__index = Transport
+
+--- A request the API never answered, and what caused that.
+---
+--- The three causes are told apart because only one of them could end differently. A request that
+--- got no answer — a connection refused or reset, an attempt out of time, a body that stopped
+--- mid-way — says nothing about whether the API acted on it, which is exactly why a send carries an
+--- identifier the client chose itself, and why repeating it is safe and worth doing. An answer that
+--- crossed a ceiling this client set for itself draws the same answer the second time, and reading it
+--- again four times over costs the caller four times as much for the same failure. A URL nothing can
+--- be sent to was never sent at all, and a repetition builds the same unusable request, turning a
+--- misconfiguration into a message that accuses the network.
+---
+--- The names are the ones the shared conformance corpus gives them, so the verdict a client applies
+--- and the verdict that corpus writes down are the same words.
+Transport.TransportError = Errors.kind("TransportError", Errors.ClientError)
+
+--- Longest one attempt at reaching the API is given before it is abandoned, in seconds.
+---
+--- Ten seconds is far above what ingesting an event takes when the API is healthy, and short enough
+--- that a stuck connection does not hold a caller for a noticeable time.
+Transport.DEFAULT_REQUEST_TIMEOUT = 10.0
+
+--- Largest response body read off a socket, in bytes.
+Transport.DEFAULT_MAX_RESPONSE_BYTES = 8 * 1024 * 1024
+
+--- How many header lines an answer may carry before it is refused. Sixty-four is well above what the
+--- API sends.
+Transport.DEFAULT_MAX_RESPONSE_HEADERS = 64
+
+--- Longest one header line may be, name and value together, in bytes.
+Transport.DEFAULT_MAX_HEADER_BYTES = 64 * 1024
+
+--- Largest whole head an answer may carry, every line counted together, in bytes.
+---
+--- This is the one that bounds what a head costs. A line count and a size per line multiply:
+--- sixty-four lines of sixty-four kilobytes each is four megabytes of head, and both of the bounds
+--- above admit it. They earn their place by refusing early, on the line that crosses them rather
+--- than at the end of the head; this one sets the ceiling.
+---
+--- Sixteen kilobytes is what Node enforces by default, and matching it is the point: a lower ceiling
+--- would refuse heads another target accepts, and a higher one would not bind there at all, leaving
+--- each language a different effective limit.
+Transport.DEFAULT_MAX_HEAD_BYTES = 16 * 1024
+
+--- How many bytes of body are asked for at a time. Bounded so that a `Content-Length` a server made
+--- up cannot be turned into an allocation before a single byte has arrived.
+Transport.CHUNK_BYTES = 32 * 1024
+
+--- What a request body says it carries, and what an answer is asked for in.
+Transport.JSON_MEDIA_TYPE = "application/json"
+
+--- The schemes this transport reaches, and the port each one uses when the URL names none.
+local PORTS = { http = 80, https = 443 }
+
+--- The API was reached for and answered nothing this client could read to its end.
+--- @param detail string
+function Transport.no_answer(detail)
+  Errors.throw(Transport.TransportError, detail, { cause = "no_answer", retryable = true })
+end
+
+--- The API answered, and what it answered crossed a ceiling this client set for itself.
+--- @param detail string
+function Transport.answer_above_a_bound(detail)
+  Errors.throw(Transport.TransportError, detail, { cause = "answer_above_a_bound", retryable = false })
+end
+
+--- There is nowhere to send the request, so nothing was sent.
+--- @param detail string
+function Transport.unusable_api_url(detail)
+  Errors.throw(Transport.TransportError, detail, { cause = "unusable_api_url", retryable = false })
+end
+
+--- What this transport reaches, read out of a URL.
+---
+--- Written here rather than taken from `socket.url`, which answers a table of pieces for any text at
+--- all: what a transport needs is a refusal for the text it cannot send anything to, and that is one
+--- of the three causes the corpus classifies.
+---
+--- @param url string
+--- @return table
+local function reachable(url)
+  if type(url) ~= "string" then
+    Transport.unusable_api_url("the API URL is " .. type(url) .. ", not a URL")
+  end
+
+  local scheme, rest = url:match("^(%a[%w+.-]*)://(.*)$")
+  if scheme == nil then
+    Transport.unusable_api_url("`" .. Runtime.preview(url) .. "` names no scheme this transport can send a request to")
+  end
+
+  scheme = scheme:lower()
+  if PORTS[scheme] == nil then
+    Transport.unusable_api_url("`" .. scheme .. "` is not a scheme this transport can send a request to")
+  end
+
+  local authority = rest:match("^([^/?#]*)") or ""
+  local target = rest:sub(#authority + 1)
+  if authority:find("@", 1, true) then
+    authority = authority:sub(authority:find("@", 1, true) + 1)
+  end
+
+  local host, port = authority:match("^%[([^%]]*)%]:?(%d*)$")
+  if host == nil then
+    host, port = authority:match("^([^:]*):?(%d*)$")
+  end
+  if host == nil or host == "" then
+    Transport.unusable_api_url("`" .. Runtime.preview(url) .. "` names no host to send a request to")
+  end
+
+  return {
+    scheme = scheme,
+    host = host,
+    port = port ~= "" and math.tointeger(tonumber(port)) or PORTS[scheme],
+    target = target ~= "" and target or "/",
+  }
+end
+
+--- A value as it travels in a query string.
+local function encoded(text)
+  return (text:gsub("[^A-Za-z0-9%-%._~]", function(character)
+    return string.format("%%%02X", character:byte())
+  end))
+end
+
+--- Where the request lands: the path of the base URL, extended by the operation's own, and then the
+--- query the operation asked for.
+local function resolved(base_url, path, query)
+  local reached = reachable(base_url)
+  local written = tostring(path or "")
+
+  if written:sub(1, 1) == "/" then
+    reached.target = written
+  elseif written ~= "" then
+    reached.target = reached.target:gsub("/*$", "") .. "/" .. written
+  end
+
+  local asked = {}
+  for index = 1, #(query or {}) do
+    asked[#asked + 1] = encoded(tostring(query[index][1])) .. "=" .. encoded(tostring(query[index][2]))
+  end
+  if #asked > 0 then
+    local separator = reached.target:find("?", 1, true) and "&" or "?"
+    reached.target = reached.target .. separator .. table.concat(asked, "&")
+  end
+
+  return reached
+end
+
+--- What is left of the budget one attempt was given, set on the socket before every blocking call.
+---
+--- A timeout set once bounds each call rather than the exchange: a server answering one byte just
+--- under it, over and over, would hold a caller for as long as it liked. What is bounded here is the
+--- whole attempt, so the arithmetic is done again before every read and every write.
+local function within(connection, deadline)
+  local left = deadline - socket.gettime()
+  if left <= 0 then
+    Transport.no_answer("the attempt ran out of the time it was given before the API answered")
+  end
+  connection:settimeout(left)
+  return connection
+end
+
+--- One connection to the API, wrapped in TLS when the URL asked for it.
+local function connected(reached, deadline)
+  local raw, opening = socket.tcp()
+  if raw == nil then
+    Transport.no_answer("no socket could be opened: " .. tostring(opening))
+  end
+
+  local opened, failed = within(raw, deadline):connect(reached.host, reached.port)
+  if opened == nil then
+    raw:close()
+    Transport.no_answer("the API at " .. reached.host .. ":" .. reached.port ..
+      " was not reached: " .. tostring(failed))
+  end
+
+  if reached.scheme ~= "https" then
+    return raw
+  end
+
+  local ok, ssl = pcall(require, "ssl")
+  if not ok then
+    raw:close()
+    Transport.unusable_api_url("`https` needs luasec, which is not installed beside this rock")
+  end
+
+  local secured, wrapping = ssl.wrap(raw, { mode = "client", protocol = "any", verify = "peer", options = "all" })
+  if secured == nil then
+    raw:close()
+    Transport.no_answer("the connection could not be secured: " .. tostring(wrapping))
+  end
+  secured:sni(reached.host)
+
+  local shaken, refusing = within(secured, deadline):dohandshake()
+  if shaken == nil then
+    secured:close()
+    Transport.no_answer("the API refused the handshake: " .. tostring(refusing))
+  end
+  return secured
+end
+
+--- One line of the head, refused before it is held whole when it is longer than this client reads.
+local function head_line(connection, deadline, max_header_bytes)
+  local line, failed, partial = within(connection, deadline):receive("*l")
+  if line == nil then
+    if partial ~= nil and #partial > max_header_bytes then
+      Transport.answer_above_a_bound(
+        "the API answered a header above the " .. max_header_bytes .. " bytes read at most")
+    end
+    Transport.no_answer("the API answered nothing this client could read: " .. tostring(failed))
+  end
+  if #line > max_header_bytes then
+    Transport.answer_above_a_bound("the API answered a header above the " .. max_header_bytes .. " bytes read at most")
+  end
+  return line
+end
+
+--- What an answer carried beside its body, under the names a caller looks them up by.
+---
+--- Read line by line and refused on the line that crosses a ceiling, rather than after the head has
+--- been held whole: a head this client will not accept costs it the line it was refused on.
+local function carried(connection, deadline, options)
+  local headers = {}
+  local held = 0
+  local whole = 0
+
+  while true do
+    local line = head_line(connection, deadline, options.max_header_bytes)
+    if line == "" then
+      return headers
+    end
+
+    held = held + 1
+    if held > options.max_response_headers then
+      Transport.answer_above_a_bound(
+        "the API answered more than the " .. options.max_response_headers .. " header lines read at most")
+    end
+
+    whole = whole + #line
+    if whole > options.max_head_bytes then
+      Transport.answer_above_a_bound(
+        "the API answered a head above the " .. options.max_head_bytes .. " bytes read at most")
+    end
+
+    local name, value = line:match("^([^:]+):%s*(.*)$")
+    if name ~= nil then
+      headers[name:lower()] = (value:gsub("%s+$", ""))
+    end
+  end
+end
+
+--- The body of an answer, up to what this transport agrees to hold.
+---
+--- Read in bounded pieces whatever the answer says its length is, so a `Content-Length` a server made
+--- up costs nothing until the bytes behind it actually arrive.
+local function bounded(connection, deadline, headers, max_response_bytes)
+  local announced = math.tointeger(tonumber(headers["content-length"] or ""))
+  local held = {}
+  local size = 0
+
+  while true do
+    local wanted = Transport.CHUNK_BYTES
+    if announced ~= nil then
+      wanted = math.min(wanted, announced - size)
+      if wanted <= 0 then
+        break
+      end
+    end
+
+    local read, failed, partial = within(connection, deadline):receive(wanted)
+    local piece = read or partial or ""
+    size = size + #piece
+    if size > max_response_bytes then
+      Transport.answer_above_a_bound(
+        "the API answered more than the " .. max_response_bytes .. " bytes read at most")
+    end
+    if #piece > 0 then
+      held[#held + 1] = piece
+    end
+
+    if read == nil then
+      if failed == "closed" then
+        break
+      end
+      Transport.no_answer("the API stopped answering mid-body: " .. tostring(failed))
+    end
+  end
+
+  return table.concat(held)
+end
+
+--- Builds a transport pointed at one API, under one credential.
+---
+--- @param base_url string where the API lives, such as https://app.hook0.com/api/v1
+--- @param token string an authentication token valid for that API
+--- @param options table|nil the ceilings one exchange is held to
+--- @return table
+function Transport.new(base_url, token, options)
+  local chosen = options or {}
+  return setmetatable({
+    base_url = base_url,
+    token = token,
+    timeout = chosen.request_timeout or Transport.DEFAULT_REQUEST_TIMEOUT,
+    max_response_bytes = chosen.max_response_bytes or Transport.DEFAULT_MAX_RESPONSE_BYTES,
+    max_response_headers = chosen.max_response_headers or Transport.DEFAULT_MAX_RESPONSE_HEADERS,
+    max_header_bytes = chosen.max_header_bytes or Transport.DEFAULT_MAX_HEADER_BYTES,
+    max_head_bytes = chosen.max_head_bytes or Transport.DEFAULT_MAX_HEAD_BYTES,
+  }, Transport)
+end
+
+--- What the API answered, headers included, whether or not it answered a success.
+---
+--- Header names are lowercased and a later value wins over an earlier one under the same name, so a
+--- caller reads a header without knowing which case the server wrote it in.
+---
+--- @param method string the HTTP method the operation is issued under
+--- @param path string where the request lands, absolute or under the base URL
+--- @param query table|nil the name and value pairs of the query string
+--- @param body any|nil what to send as a JSON document, or nothing at all
+--- @return integer, table, string the status, the headers and the body
+function Transport:deliver(method, path, query, body)
+  local reached = resolved(self.base_url, path, query)
+  local deadline = socket.gettime() + self.timeout
+
+  local written = nil
+  if body ~= nil then
+    local ok, encoded_body = Json.try_encode(body)
+    if not ok then
+      -- A caller's mistake rather than a failure of the exchange: nothing about the network would
+      -- make the same value encodable the second time, and a send has nothing to decide here.
+      Errors.throw(Errors.ClientError, "the body of the request is not something a document can carry")
+    end
+    written = encoded_body
+  end
+
+  local head = {
+    string.upper(tostring(method)) .. " " .. reached.target .. " HTTP/1.1",
+    "Host: " .. reached.host .. (reached.port == PORTS[reached.scheme] and "" or ":" .. reached.port),
+    "Authorization: Bearer " .. tostring(self.token),
+    "Accept: " .. Transport.JSON_MEDIA_TYPE,
+    "Connection: close",
+  }
+  if written ~= nil then
+    head[#head + 1] = "Content-Type: " .. Transport.JSON_MEDIA_TYPE
+    head[#head + 1] = "Content-Length: " .. #written
+  end
+
+  local connection = connected(reached, deadline)
+  local ok, answered = pcall(function()
+    local sent, failed = within(connection, deadline):send(
+      table.concat(head, "\r\n") .. "\r\n\r\n" .. (written or ""))
+    if sent == nil then
+      Transport.no_answer("the request could not be sent: " .. tostring(failed))
+    end
+
+    local status = head_line(connection, deadline, self.max_header_bytes):match("^HTTP/%d%.%d%s+(%d%d%d)")
+    if status == nil then
+      Transport.no_answer("the API answered something that is not an HTTP status line")
+    end
+    local headers = carried(connection, deadline, self)
+    return {
+      math.tointeger(tonumber(status)),
+      headers,
+      bounded(connection, deadline, headers, self.max_response_bytes),
+    }
+  end)
+
+  connection:close()
+  if not ok then
+    error(answered, 0)
+  end
+  return answered[1], answered[2], answered[3]
+end
+
+--- What the API answered, whether or not it answered a success.
+---
+--- This is the shape the generated half of this rock reads, which is the status and the bytes. A
+--- caller that also needs what the answer carried beside its body — the delay a paced instance names
+--- is one — asks `deliver` for it.
+---
+--- @param method string the HTTP method the operation is issued under
+--- @param path string where the request lands, absolute or under the base URL
+--- @param query table|nil the name and value pairs of the query string
+--- @param body any|nil what to send as a JSON document, or nothing at all
+--- @return integer, string the status and the body
+function Transport:request(method, path, query, body)
+  local status, _, payload = self:deliver(method, path, query, body)
+  return status, payload
+end
+
+return Transport

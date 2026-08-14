@@ -13,11 +13,20 @@ variables:
   PYTHON_VERSION: "3.13-trixie"
   GO_VERSION: "1.26-trixie"
   RUBY_VERSION: "3.4-trixie"
-  # The release the Java SDK is built for, and the runtime half of the image its job runs in; the
-  # build-tool half is pinned beside the job, since a build tool is not a runtime.
+  # The release the Java and Kotlin SDKs are built for, and the runtime half of the image their jobs
+  # run in; the build-tool half is pinned beside each job, since a build tool is not a runtime. The
+  # Kotlin compiler is a plugin of that build tool rather than an image, so it is pinned in
+  # `clients/kotlin/pom.xml` where a test refuses it unpinned, and both artefacts are built for one
+  # release — which is what lets them sit on one classpath.
   JAVA_VERSION: "21"
   PHP_VERSION: "8.4-cli-trixie"
   DOTNET_VERSION: "8.0"
+  # Lua ships no image of its own, so this pins the interpreter, the rock manager beside it and the
+  # distribution all three, which is what the other language jobs get from an official image.
+  LUA_VERSION: "5.4.8-luarocks-trixie"
+  # Zig makes no stability promise between releases, so the toolchain is pinned exactly rather than
+  # by minor: a floating one would rewrite the meaning of the source under it without a commit.
+  ZIG_VERSION: "0.16.0"
   PROTOC_VERSION: "35.1"
   POSTGRES_DB: hook0-ci
   POSTGRES_USER: runner
@@ -60,8 +69,11 @@ include:
   - local: "clients/go/.gitlab-ci.yml"
   - local: "clients/ruby/.gitlab-ci.yml"
   - local: "clients/java/.gitlab-ci.yml"
+  - local: "clients/kotlin/.gitlab-ci.yml"
   - local: "clients/php/.gitlab-ci.yml"
   - local: "clients/csharp/.gitlab-ci.yml"
+  - local: "clients/lua/.gitlab-ci.yml"
+  - local: "clients/zig/.gitlab-ci.yml"
   - local: "documentation/.gitlab-ci.yml"
   - local: "tests-api-integrations/.gitlab-ci.yml"
   - local: "tests-e2e/.gitlab-ci.yml"

@@ -13,12 +13,15 @@
 pub mod csharp;
 pub mod go;
 pub mod java;
+pub mod kotlin;
+pub mod lua;
 pub mod mcp;
 pub mod php;
 pub mod python;
 pub mod ruby;
 pub mod rust;
 pub mod typescript;
+pub mod zig;
 
 use std::sync::LazyLock;
 
@@ -115,12 +118,15 @@ static TARGETS: LazyLock<Vec<Target>> = LazyLock::new(|| {
         csharp::target(),
         go::target(),
         java::target(),
+        kotlin::target(),
+        lua::target(),
         mcp::target(),
         php::target(),
         python::target(),
         ruby::target(),
         rust::target(),
         typescript::target(),
+        zig::target(),
     ]
 });
 
@@ -314,6 +320,295 @@ fn java() -> LanguageSpec {
         },
         comment: CommentStyle::DoubleSlash,
         extension: "java",
+    }
+}
+
+/// Everything a name emitted as Kotlin has to stay out of the way of wherever a *binding* goes.
+///
+/// The language's twenty-eight hard keywords are illegal as a property, as an argument and as a
+/// function alike, which was measured against `kotlinc` rather than read off a list: every one of
+/// the three probes is refused for every one of them. What is deliberately absent is the soft and
+/// modifier vocabulary — `data`, `value`, `field`, `get`, `set`, `open`, `sealed`, `suspend` and the
+/// rest — because the parser reads those as names wherever this target puts one, and reserving them
+/// would rename a member the API is entitled to declare for a collision the language does not have.
+///
+/// Backticks are the escape Kotlin offers for the twenty-eight, and they were measured too: they do
+/// rescue all of them in all three positions. They are not used here, for two reasons. A backticked
+/// property compiles to the getter its name dictates, so `val \`class\`` emits `getClass()` — and a
+/// Java caller of the published artefact then reads the property where it wrote `getClass()`, which
+/// was measured as well and is a silent wrong answer rather than a compilation failure. And a
+/// backtick rescues nothing in the one position that actually needs rescuing below, so a
+/// backtick-only strategy would still need a table. A suffix is what seven of the other targets
+/// spell an escape as, and it reads the same from Kotlin and from Java.
+///
+/// The last five are the emitter's own names. An operation whose parameter is spelled `path` would
+/// shadow the local that fills the path template, one spelled `transport` would shadow the property
+/// every request is issued through, and a member spelled `out` would be written into the map that
+/// is being built out of it. Java, Go and TypeScript keep their locals here for the same reason.
+///
+/// Sorted, as [`ReservedWords`] searches it by halving.
+const KOTLIN_KEYWORDS: [&str; 33] = [
+    "as",
+    "body",
+    "break",
+    "class",
+    "continue",
+    "do",
+    "else",
+    "false",
+    "for",
+    "fun",
+    "if",
+    "in",
+    "interface",
+    "is",
+    "null",
+    "object",
+    "out",
+    "package",
+    "path",
+    "query",
+    "return",
+    "super",
+    "this",
+    "throw",
+    "transport",
+    "true",
+    "try",
+    "typealias",
+    "typeof",
+    "val",
+    "var",
+    "when",
+    "while",
+];
+
+/// The two names a declaration would *hide* rather than merely sit beside, and only in one position.
+///
+/// This is the positional distinction Kotlin has, and it is the opposite way round from Java's. In
+/// Java the keywords are refused everywhere and the no-argument methods of `Object` are refused only
+/// where a method is declared; in Kotlin the keywords are refused everywhere *and escapable*, while
+/// these two are refused only where a function is declared and are not escapable at all —
+/// `` fun `toString`() `` is the same declaration as `fun toString()` and draws the same refusal,
+/// which was measured rather than assumed.
+///
+/// A property spelled either way is fine: Kotlin compiles `val hashCode: String` to `getHashCode()`,
+/// so it sits beside `hashCode()` instead of replacing it, and a data class carrying one still
+/// generates its own. `equals` is deliberately absent for the reason it is absent from the Java
+/// table: a declaration of that name takes an argument of another type, so it overloads rather than
+/// hides, and the compiler accepts it. `copy` and `component1` are absent because only a data class
+/// generates those, and no data class this target writes declares a method beyond `toJson`.
+///
+/// Sorted, as [`ReservedWords`] searches it by halving.
+const KOTLIN_SHADOWED: [&str; 2] = ["hashCode", "toString"];
+
+/// What a name rendering to no identifier at all is spelled as in Kotlin.
+const KOTLIN_PLACEHOLDER: &str = "value";
+
+static KOTLIN_RESERVED: LazyLock<ReservedWords> = LazyLock::new(|| {
+    ReservedWords::build(&KOTLIN_KEYWORDS, Escape::Suffix('_'), KOTLIN_PLACEHOLDER).expect(
+        "the Kotlin keyword table is sorted, carries no empty word, and does not hold its own \
+         fallback",
+    )
+});
+
+/// What a *function* of an emitted Kotlin declaration has to stay out of the way of: the keywords,
+/// which apply there as everywhere, together with the two names a function would hide. The two
+/// halves are merged into the one sorted list [`ReservedWords`] searches, since a reader of one
+/// declaration should not have to work out which of two tables applies where.
+static KOTLIN_METHOD_RESERVED: LazyLock<ReservedWords> = LazyLock::new(|| {
+    let mut words: Vec<&str> = KOTLIN_KEYWORDS
+        .iter()
+        .chain(KOTLIN_SHADOWED.iter())
+        .copied()
+        .collect();
+    words.sort_unstable();
+    words.dedup();
+
+    ReservedWords::build(&words, Escape::Suffix('_'), KOTLIN_PLACEHOLDER).expect(
+        "the merged Kotlin vocabulary is sorted, carries no empty word, and does not hold its own \
+         fallback",
+    )
+});
+
+/// The vocabulary a function of an emitted Kotlin declaration is spelled out of the way of.
+pub(super) fn kotlin_method_reserved() -> &'static ReservedWords {
+    LazyLock::force(&KOTLIN_METHOD_RESERVED)
+}
+
+/// How Kotlin wants what it is handed spelled.
+///
+/// Every number is the type the language reads a JSON number back as; nothing is boxed by hand,
+/// since absence is a property of the type here rather than of the class that carries it — a member
+/// the document does not require is declared `T?` and every other one is not. A file is named after
+/// the type it declares, which the language does not insist on and this target does anyway: the
+/// whole directory is owned by the generator, so a type that stops being declared has to take a file
+/// with it.
+fn kotlin() -> LanguageSpec {
+    LanguageSpec {
+        casing: Casing {
+            type_name: Case::UpperCamel,
+            method: Case::LowerCamel,
+            field: Case::LowerCamel,
+            parameter: Case::LowerCamel,
+            constant: Case::ScreamingSnake,
+            file: Case::UpperCamel,
+            module: Case::Lower,
+        },
+        reserved: LazyLock::force(&KOTLIN_RESERVED),
+        scalars: ScalarNames {
+            string: "String",
+            uuid: "UUID",
+            date_time: "OffsetDateTime",
+            date: "LocalDate",
+            // Nothing in the standard library reads every URL the API can answer, and a type that
+            // refused one would lose a value the document says is text.
+            url: "String",
+            integer32: "Int",
+            integer64: "Long",
+            number: "Double",
+            boolean: "Boolean",
+        },
+        comment: CommentStyle::DoubleSlash,
+        extension: "kt",
+    }
+}
+
+/// Lua's own vocabulary: the twenty-two words the language keeps for itself.
+///
+/// Every one of them is illegal wherever an identifier goes, and — unlike Ruby or PHP — that
+/// includes the position a member sits in: `t.end` is a parse error, and the only way to reach a
+/// member spelled that way is `t["end"]`, which is not what a caller of a generated SDK should have
+/// to write. So there is one vocabulary here rather than two, and it applies to members, to methods
+/// and to arguments alike.
+const LUA_KEYWORDS: [&str; 22] = [
+    "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in",
+    "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while",
+];
+
+/// The names an emitted declaration would *replace* rather than merely sit beside.
+///
+/// Three things are in here. The metamethods are what a table already answers to through its
+/// metatable, and a member carrying one of them under a different meaning changes what happens a
+/// long way from where it was declared: a `__eq` that is a value the API sent decides what two
+/// documents comparing equal means, and a `__index` that is a member turns every missing lookup
+/// into whatever the API happened to answer. None of them can be reached by a name the document
+/// spells today — rendering drops the leading underscores, so `__index` arrives as `index` — but
+/// they are the language's vocabulary rather than today's surface, and this table describes the
+/// language.
+///
+/// The second set is what every emitted value already carries: the constructor, the two decoders,
+/// the writer and the membership test. A member of an instance shadows what the table it was built
+/// from declares, so a field spelled `to_table` is a string where a method should be, and the value
+/// carrying it can no longer be written back.
+///
+/// The third is the names the emitter itself writes into the file a group sits in: the two helpers
+/// every operation body calls, which a parameter of that name would shadow inside the very method
+/// that calls them, and `self`, which a method declared with a colon receives whether or not it
+/// asked for one — a parameter spelled that way is declared twice in one signature, which the
+/// language refuses outright.
+///
+/// What is deliberately absent is `transport`. A group holds one, and every emitted method reads it
+/// as `self.transport` rather than as a bare name, so an operation declaring a parameter of that
+/// name shadows nothing: reserving it would rename an argument the API is entitled to declare for a
+/// collision that cannot happen.
+///
+/// Sorted, as [`ReservedWords`] searches it by halving — which puts the capitalised member first
+/// and the underscored ones ahead of the rest.
+const LUA_SHADOWED: [&str; 37] = [
+    "VALUES",
+    "__add",
+    "__band",
+    "__bnot",
+    "__bor",
+    "__bxor",
+    "__call",
+    "__close",
+    "__concat",
+    "__div",
+    "__eq",
+    "__gc",
+    "__idiv",
+    "__index",
+    "__le",
+    "__len",
+    "__lt",
+    "__metatable",
+    "__mod",
+    "__mode",
+    "__mul",
+    "__name",
+    "__newindex",
+    "__pairs",
+    "__pow",
+    "__shl",
+    "__shr",
+    "__sub",
+    "__tostring",
+    "__unm",
+    "check_answer",
+    "from_json",
+    "member",
+    "new",
+    "read_answer",
+    "self",
+    "to_table",
+];
+
+/// What a name rendering to no identifier at all is spelled as in Lua.
+const LUA_PLACEHOLDER: &str = "value";
+
+/// Everything a name emitted as Lua has to stay out of the way of, merged into the one sorted list
+/// [`ReservedWords`] searches.
+static LUA_RESERVED: LazyLock<ReservedWords> = LazyLock::new(|| {
+    let mut words: Vec<&str> = LUA_KEYWORDS
+        .iter()
+        .chain(LUA_SHADOWED.iter())
+        .copied()
+        .collect();
+    words.sort_unstable();
+    words.dedup();
+
+    ReservedWords::build(&words, Escape::Suffix('_'), LUA_PLACEHOLDER).expect(
+        "the merged Lua vocabulary is sorted, carries no empty word, and does not hold its own \
+         fallback",
+    )
+});
+
+/// How Lua wants what it is handed spelled.
+///
+/// Every scalar the document states as text is text here, and so are the three the document gives a
+/// format to: the language carries no type for an identifier, a moment or a day, and what the API
+/// answered is what has to go back out unchanged. A whole number is `integer` rather than `number`
+/// because Lua 5.3 split the two, and writing a count back as `1.0` is a document the API refuses.
+///
+/// A file is named after the layer it carries rather than after a type, since the rockspec is what
+/// maps a module name onto a path.
+fn lua() -> LanguageSpec {
+    LanguageSpec {
+        casing: Casing {
+            type_name: Case::UpperCamel,
+            method: Case::Snake,
+            field: Case::Snake,
+            parameter: Case::Snake,
+            constant: Case::ScreamingSnake,
+            file: Case::Snake,
+            module: Case::Snake,
+        },
+        reserved: LazyLock::force(&LUA_RESERVED),
+        scalars: ScalarNames {
+            string: "string",
+            uuid: "string",
+            date_time: "string",
+            date: "string",
+            url: "string",
+            integer32: "integer",
+            integer64: "integer",
+            number: "number",
+            boolean: "boolean",
+        },
+        comment: CommentStyle::DoubleDash,
+        extension: "lua",
     }
 }
 
@@ -1249,5 +1544,141 @@ fn php() -> LanguageSpec {
         },
         comment: CommentStyle::DoubleSlash,
         extension: "php",
+    }
+}
+
+/// Zig's own vocabulary, plus the names the emitter writes into every method body.
+///
+/// The keywords are illegal wherever an identifier goes, a struct field included: `error: []const
+/// u8` is a parse error, and so is a parameter spelled `align`. Zig does have an escape that would
+/// admit them — `@"error"` is a legal identifier, and it is what a hand-written client would reach
+/// for — but [`Escape`] carries one character, a prefix or a suffix, and quoting is neither. This
+/// target therefore spells a keyword out of the way with `_` as eight of the other targets do, which
+/// costs a name the API is entitled to declare an underscore and costs nobody a compile.
+///
+/// The rest are what an argument would shadow inside the very body that reads it. Every emitted
+/// method declares an allocator, an arena, the answer it read back and — when it answers a value —
+/// the `Owned` holding it; `self` and `fields` are the ones the language and the decoder put there.
+/// A parameter carrying one of those names would be read in place of what the emitter meant.
+///
+/// The primitive type names are deliberately absent. `u8`, `bool` and the rest are not keywords, and
+/// a struct field or an argument may carry any of them: what would be shadowed is the type inside
+/// that one signature, and no emitted signature names a primitive after the argument that shadows
+/// it. Reserving them would rename a field the document is entitled to declare for a collision the
+/// language does not have.
+///
+/// Sorted, as [`ReservedWords`] searches it by halving.
+const ZIG_KEYWORDS: [&str; 62] = [
+    "addrspace",
+    "align",
+    "allocator",
+    "allowzero",
+    "and",
+    "answered",
+    "anyframe",
+    "anytype",
+    "arena",
+    "asm",
+    "async",
+    "await",
+    "break",
+    "callconv",
+    "catch",
+    "comptime",
+    "const",
+    "continue",
+    "defer",
+    "else",
+    "enum",
+    "errdefer",
+    "error",
+    "export",
+    "extern",
+    "fields",
+    "fn",
+    "for",
+    "fromJson",
+    "held",
+    "if",
+    "inline",
+    "linksection",
+    "noalias",
+    "noinline",
+    "nosuspend",
+    "opaque",
+    "or",
+    "orelse",
+    "out",
+    "owned",
+    "packed",
+    "pub",
+    "reported",
+    "resume",
+    "return",
+    "self",
+    "struct",
+    "suspend",
+    "switch",
+    "test",
+    "threadlocal",
+    "toJson",
+    "transport",
+    "try",
+    "union",
+    "unreachable",
+    "usingnamespace",
+    "value",
+    "var",
+    "volatile",
+    "while",
+];
+
+/// What a name rendering to no identifier at all is spelled as in Zig.
+///
+/// Not the `value` every other target falls back on: that name is already taken here, by the one
+/// argument every decoder is handed.
+const ZIG_PLACEHOLDER: &str = "member";
+
+static ZIG_RESERVED: LazyLock<ReservedWords> = LazyLock::new(|| {
+    ReservedWords::build(&ZIG_KEYWORDS, Escape::Suffix('_'), ZIG_PLACEHOLDER).expect(
+        "the Zig keyword table is sorted, carries no empty word, and does not hold its own fallback",
+    )
+});
+
+/// How Zig wants what it is handed spelled.
+///
+/// Every scalar the document states as text is text here, and so are the three the document gives a
+/// format to: the language carries no type for an identifier, a moment or a day, and what the API
+/// answered is what has to go back out unchanged — a type that stood for anything else would need a
+/// conversion between what was parsed and what the type claims, and would have to allocate to make
+/// it.
+///
+/// A file is named after the layer it carries rather than after a type, since a Zig file is a struct
+/// and one file may declare as many as it likes.
+fn zig() -> LanguageSpec {
+    LanguageSpec {
+        casing: Casing {
+            type_name: Case::UpperCamel,
+            method: Case::LowerCamel,
+            field: Case::Snake,
+            parameter: Case::Snake,
+            constant: Case::Snake,
+            file: Case::Snake,
+            module: Case::Snake,
+        },
+        reserved: LazyLock::force(&ZIG_RESERVED),
+        scalars: ScalarNames {
+            string: "[]const u8",
+            uuid: "[]const u8",
+            date_time: "[]const u8",
+            date: "[]const u8",
+            url: "[]const u8",
+            integer32: "i32",
+            integer64: "i64",
+            number: "f64",
+            boolean: "bool",
+        },
+        comment: CommentStyle::DoubleSlash,
+        extension: "zig",
     }
 }

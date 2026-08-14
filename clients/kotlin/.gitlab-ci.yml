@@ -1,0 +1,51 @@
+# A job of its own, like the Java client beside it: another compiler, another suite, and nothing an
+# existing job could have run.
+#
+# The image is the Java one, unchanged. Kotlin ships no image of its own worth pinning: its compiler
+# is a Maven plugin, so it is pinned in `pom.xml` beside every other version this build resolves,
+# and what the image has to carry is a JVM and a build tool — which is exactly what the Java job
+# already pins. One image for both artefacts also means the two are always built for the same
+# release, which is what lets them sit on one classpath.
+clients.kotlin.check:
+  stage: test
+  dependencies: []
+  image: maven:3.9.11-eclipse-temurin-$JAVA_VERSION
+  # The whole suite talks to loopback sockets and to a compiler it drives itself; anything past this
+  # is a run that is stuck rather than one that is slow.
+  timeout: 15m
+  variables:
+    # Inside the working tree, so the cache below can carry it between runs and a build never
+    # resolves again what it already holds.
+    MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/clients/kotlin/.m2"
+    MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress --errors"
+  cache:
+    # Keyed on the build file, so a pinned version somebody changes is fetched and a run that
+    # changed nothing reaches the network for nothing.
+    key:
+      files:
+        - clients/kotlin/pom.xml
+    paths:
+      - clients/kotlin/.m2
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
+    - changes:
+        - clients/kotlin/**/*
+        # The generated half of the artefact is written from the API's OpenAPI snapshot, so a change
+        # of the generator or of the API surface has to face the suites that exercise what it wrote.
+        - clients/sdkgen/**/*
+        - api/openapi.snapshot.json
+        # Retry classification, the bounds of a send and signature verification are hand-written
+        # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
+        # this client rather than the one language whoever edited it happened to be reading.
+        - clients/conformance/**/*
+  before_script:
+    - java -version
+    - mvn --version
+  script:
+    - pushd clients/kotlin
+    # Three things, one invocation. `ktlint:check` first, because the generator emits
+    # already-formatted source and an offence there is a defect in it or a hand edit beside it —
+    # nothing is corrected, since a job that rewrote what it was checking would report success on
+    # source nobody wrote. `verify` then runs the enforcer that refuses an unpinned plugin or a
+    # dynamic version, compiles both halves with warnings as failures, and runs the suites.
+    - mvn $MAVEN_CLI_OPTS ktlint:check verify

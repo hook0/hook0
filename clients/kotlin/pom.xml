@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.hook0</groupId>
+  <artifactId>hook0-client-kotlin</artifactId>
+  <version>1.1.0</version>
+  <packaging>jar</packaging>
+
+  <name>hook0-client-kotlin</name>
+  <description>Kotlin SDK for Hook0, open-source Webhooks as a service for SaaS</description>
+  <url>https://www.hook0.com/</url>
+
+  <licenses>
+    <license>
+      <name>MIT</name>
+      <url>https://opensource.org/licenses/MIT</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>David Sferruzza</name>
+      <email>david@hook0.com</email>
+    </developer>
+    <developer>
+      <name>François-Guillaume Ribreau</name>
+      <email>fg@hook0.com</email>
+    </developer>
+  </developers>
+
+  <scm>
+    <url>https://gitlab.com/hook0/hook0</url>
+    <connection>scm:git:https://gitlab.com/hook0/hook0.git</connection>
+  </scm>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>21</maven.compiler.release>
+    <kotlin.compiler.jvmTarget>21</kotlin.compiler.jvmTarget>
+
+    <!--
+      Every version below is pinned. Nothing here is a range and nothing is a snapshot, so what the
+      build resolves is decided by this file rather than by the day it runs; `maven-enforcer-plugin`
+      below refuses the pipeline if that ever stops being true. The build tool itself comes from the
+      image the job runs in, pinned beside the job, so nothing downloads a distribution of its own on
+      first use either.
+    -->
+    <kotlin.version>2.4.10</kotlin.version>
+    <ktlint.plugin.version>3.7.1</ktlint.plugin.version>
+    <compiler.plugin.version>3.13.0</compiler.plugin.version>
+    <surefire.plugin.version>3.5.2</surefire.plugin.version>
+    <enforcer.plugin.version>3.5.0</enforcer.plugin.version>
+    <resources.plugin.version>3.3.1</resources.plugin.version>
+    <jar.plugin.version>3.4.2</jar.plugin.version>
+    <install.plugin.version>3.1.3</install.plugin.version>
+    <!--
+      Named although nothing here runs them: the default lifecycle binds them, and an unpinned
+      binding is exactly what `requirePluginVersions` refuses.
+    -->
+    <clean.plugin.version>3.4.0</clean.plugin.version>
+    <site.plugin.version>3.21.0</site.plugin.version>
+    <deploy.plugin.version>3.1.3</deploy.plugin.version>
+    <junit.version>5.11.4</junit.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <!--
+    One runtime dependency, and it is the language rather than a library: `kotlin-stdlib` is what
+    every Kotlin class file links against — `Intrinsics`, `Metadata`, the collection type aliases —
+    and no Kotlin artefact exists without it, exactly as no Java artefact exists without `java.base`.
+    Everything else this SDK does it does with the standard library: it reaches the network, verifies
+    signatures, reads and writes JSON and suspends without naming a second artefact.
+    `PackagingTest` is what keeps that sentence true rather than aspirational, and it is written as a
+    subtraction: any runtime dependency other than the language's own runtime fails it, so an added
+    one is a red build rather than a line nobody reads.
+    Two absences are worth naming. `kotlinx.serialization` is not here — the API speaks a small,
+    closed subset of JSON, and a bounded reader of our own costs an application less than
+    reconciling its pinned version, and its compiler plugin, with ours. `kotlinx.coroutines` is not
+    here either — `suspend` is a feature of the language and its machinery lives in the standard
+    library, so the suspending surface works inside whichever coroutine runtime the caller already
+    brought, at the version the caller pinned.
+  -->
+  <dependencies>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-stdlib</artifactId>
+      <version>${kotlin.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!--
+      Test scope, and the same compiler the build above uses. What the language refuses where the
+      generator puts a name is a claim, and `ReservedWordsTest` settles it by compiling sources it
+      writes rather than by carrying a list somebody remembered. Java gets the same measurement for
+      nothing, out of the compiler the JDK ships; Kotlin's has to be asked for, and this is the
+      artefact the build has already resolved to compile the SDK with.
+    -->
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-compiler-embeddable</artifactId>
+      <version>${kotlin.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <!--
+      The generator owns `src/main/kotlin/com/hook0/kotlin/generated` and rewrites it wholesale, so
+      the hand-written suite sits outside `src` entirely: a directory named `test` anywhere under a
+      target's `src` is what the layout guard beside the generator refuses, because a test file there
+      would be deleted without a word at the next regeneration, and the coverage it carries with it.
+    -->
+    <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
+    <testSourceDirectory>${project.basedir}/test/kotlin</testSourceDirectory>
+    <testResources>
+      <testResource>
+        <directory>${project.basedir}/test/resources</directory>
+      </testResource>
+    </testResources>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>${enforcer.plugin.version}</version>
+        <executions>
+          <execution>
+            <id>pinned</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <!--
+                  What bounds the build's reach: every plugin and every dependency resolves to one
+                  version this file names. Without these, a range or a missing plugin version lets
+                  the build pull whatever was published since the last run.
+                -->
+                <requirePluginVersions/>
+                <banDynamicVersions>
+                  <allowSnapshots>false</allowSnapshots>
+                </banDynamicVersions>
+                <requireReleaseDeps/>
+                <requireJavaVersion>
+                  <version>[21,)</version>
+                </requireJavaVersion>
+              </rules>
+              <fail>true</fail>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-maven-plugin</artifactId>
+        <version>${kotlin.version}</version>
+        <configuration>
+          <jvmTarget>${kotlin.compiler.jvmTarget}</jvmTarget>
+          <args>
+            <!--
+              Warnings are failures. The generator emits source that already compiles clean, so a
+              warning here is a defect in it or a hand edit beside it.
+            -->
+            <arg>-Werror</arg>
+          </args>
+        </configuration>
+        <executions>
+          <execution>
+            <id>compile</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <sourceDirs>
+                <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
+              </sourceDirs>
+            </configuration>
+          </execution>
+          <execution>
+            <id>test-compile</id>
+            <phase>test-compile</phase>
+            <goals>
+              <goal>test-compile</goal>
+            </goals>
+            <configuration>
+              <sourceDirs>
+                <sourceDir>${project.basedir}/test/kotlin</sourceDir>
+              </sourceDirs>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>com.github.gantsign.maven</groupId>
+        <artifactId>ktlint-maven-plugin</artifactId>
+        <version>${ktlint.plugin.version}</version>
+        <configuration>
+          <!--
+            A check rather than a format, and for the same reason Checkstyle guards the Java client
+            and RuboCop the Ruby one: this validates, it never corrects. A job that rewrote what it
+            was checking would report success on source nobody wrote, and the emitter — not a pass
+            after it — stays the one place that decides what the generated half looks like.
+          -->
+          <failOnViolation>true</failOnViolation>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${surefire.plugin.version}</version>
+        <configuration>
+          <!--
+            Every suite talks to a loopback socket and finishes in seconds. A run past this is one
+            that is stuck rather than one that is slow, and a stuck run has to fail rather than hold
+            the pipeline until the runner gives up on it.
+          -->
+          <forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${compiler.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>${resources.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>${jar.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-install-plugin</artifactId>
+        <version>${install.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>${clean.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>${site.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <version>${deploy.plugin.version}</version>
+      </plugin>
+    </plugins>
+  </build>
+</project>
