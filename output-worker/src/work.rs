@@ -72,19 +72,23 @@ impl Response {
         self.http_code.and_then(|c| c.try_into().ok())
     }
 
+    /// The response headers, as a JSON object.
+    ///
+    /// The target chooses these bytes, and a header value is only guaranteed to be bytes — HTTP
+    /// allows values outside visible ASCII. Such a value is transcribed lossily rather than
+    /// refused: a header we cannot read exactly is still worth recording, and no response a target
+    /// decides to send may take a delivery down.
     pub fn headers(&self) -> Option<serde_json::Value> {
         self.headers.as_ref().and_then(|hm| {
-            let iter = hm
+            let hashmap: HashMap<String, String> = hm
                 .iter()
                 .map(|(k, v)| {
-                    let key = k.to_string();
-                    let value = v
-                        .to_str()
-                        .expect("Failed to extract a HTTP header value (there might be invisible characters)")
-                        .to_owned();
-                    (key, value)
-                });
-            let hashmap: HashMap<String, String> = iter.collect();
+                    (
+                        k.to_string(),
+                        String::from_utf8_lossy(v.as_bytes()).into_owned(),
+                    )
+                })
+                .collect();
             serde_json::to_value(hashmap).ok()
         })
     }
@@ -503,6 +507,28 @@ mod tests {
     use super::*;
 
     use chrono::prelude::*;
+
+    /// A target picks its own response headers, and HTTP lets a value carry bytes outside visible
+    /// ASCII. Reading those headers back must yield the value, not bring the delivery down.
+    #[test]
+    fn response_headers_read_a_value_that_is_not_visible_ascii() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "x-reason",
+            HeaderValue::from_bytes("café".as_bytes()).expect("a legal header value"),
+        );
+
+        let response = Response {
+            response_error: None,
+            http_code: Some(200),
+            headers: Some(headers),
+            body: None,
+            elapsed_time: Duration::from_millis(1),
+        };
+
+        let read = response.headers().expect("headers must be readable");
+        assert_eq!(read["x-reason"].as_str(), Some("café"));
+    }
 
     #[test]
     fn create_signature_v0() {
