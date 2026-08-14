@@ -10,6 +10,7 @@ use Hook0\Options;
 use Hook0\RetryPolicy;
 use Hook0\Tests\Support\ApiCase;
 use Hook0\Tests\Support\ScriptedResponse;
+use Hook0\Transport;
 
 /**
  * What a send does over a real socket.
@@ -218,17 +219,19 @@ final class ClientTest extends ApiCase
         self::assertCount(1, $this->api->received());
     }
 
-    public function testAnAnswerCarryingAHeadAboveTheMaximumIsRefusedOnce(): void
+    public function testAnAnswerCarryingAHeadAboveACeilingTheCallerLoweredIsRefusedOnce(): void
     {
         // The count and the length per line multiply, so neither of them bounds what a head costs.
         // This is the one that does, and it is what refuses a head made of lines that are each
-        // inside both of the others.
+        // inside both of the others. Here the ceiling is one a caller chose, which is how the
+        // option is shown to reach the transport at all rather than only its default being right.
         $maximum = 2048;
-        $padding = [];
-        for ($index = 1; $index <= 16; $index++) {
-            $padding[sprintf('x-pad-%d', $index)] = str_repeat('v', 256);
-        }
-        $crowded = new ScriptedResponse(201, $this->ingested(self::INGESTED_ID)->body, 0.0, $padding);
+        $crowded = new ScriptedResponse(
+            201,
+            $this->ingested(self::INGESTED_ID)->body,
+            0.0,
+            $this->paddingOf(16, 256)
+        );
         $this->api->willAnswer($crowded, $crowded, $crowded, $crowded);
 
         try {
@@ -242,6 +245,57 @@ final class ClientTest extends ApiCase
             );
         }
 
+        self::assertCount(1, $this->api->received());
+    }
+
+    public function testAnAnswerCarryingAHeadAboveTheCeilingThisClientAppliesIsRefusedOnce(): void
+    {
+        // The ceiling the contract names, exercised as it ships rather than lowered to suit the
+        // case: a client whose default were wrong passes the case above and fails this one.
+        //
+        // Sixty lines of a kilobyte, and that shape is the point. The two component bounds must not
+        // be what refuses this head, or the case would report the wrong ceiling while looking green:
+        // lines long enough that the total is crossed inside the first score of them, and few enough
+        // that the line count is never approached — the API's own `Content-Type`, `Content-Length`
+        // and `Connection` are counted too, so a head built from sixty-four padding lines is refused
+        // for being too many lines, which proves nothing about the total.
+        $crowded = new ScriptedResponse(
+            201,
+            $this->ingested(self::INGESTED_ID)->body,
+            0.0,
+            $this->paddingOf(60, 1024)
+        );
+        $this->api->willAnswer($crowded, $crowded, $crowded, $crowded);
+
+        try {
+            $this->client()->sendEvent($this->anEvent());
+            self::fail('a head above the ceiling was read');
+        } catch (ClientError $refused) {
+            self::assertStringContainsString(
+                sprintf('head above the %d bytes read at most', Transport::DEFAULT_MAX_HEAD_BYTES),
+                $refused->getMessage()
+            );
+        }
+
+        self::assertCount(1, $this->api->received());
+    }
+
+    public function testAnAnswerCarryingAHeadWellUnderTheCeilingIsRead(): void
+    {
+        // Eight kilobytes: comfortably under the ceiling rather than just under it. Refusal above a
+        // safety ceiling is a property of this client; acceptance at the rim is a property of
+        // whichever HTTP stack is underneath, which settles a head before this client is consulted,
+        // so a case built at the rim would report the runtime of the day instead.
+        $this->api->willAnswer(new ScriptedResponse(
+            201,
+            $this->ingested(self::INGESTED_ID)->body,
+            0.0,
+            $this->paddingOf(8, 1024)
+        ));
+
+        $eventId = $this->client()->sendEvent($this->anEvent());
+
+        self::assertSame(self::INGESTED_ID, $eventId);
         self::assertCount(1, $this->api->received());
     }
 
@@ -352,5 +406,20 @@ final class ClientTest extends ApiCase
         usleep(5000);
 
         self::assertLessThan(Client::generateEventId(), $earlier);
+    }
+
+    /**
+     * Header lines an answer is padded with, each the same length, named apart so none replaces another.
+     *
+     * @return array<string, string>
+     */
+    private function paddingOf(int $lines, int $bytes): array
+    {
+        $padding = [];
+        for ($index = 1; $index <= $lines; $index++) {
+            $padding[sprintf('x-pad-%d', $index)] = str_repeat('v', $bytes);
+        }
+
+        return $padding;
     }
 }

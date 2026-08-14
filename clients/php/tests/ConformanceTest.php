@@ -161,12 +161,13 @@ final class ConformanceTest extends ApiCase
         ];
 
         $bounds = Contract::of('bounds.json')['bounds'];
+        $unapplied = array_values(array_diff(array_keys($bounds), array_keys($applied)));
 
-        self::assertSame(
-            [],
-            array_values(array_diff(array_keys($bounds), array_keys($applied))),
-            'the corpus names a bound this client does not apply'
-        );
+        self::assertSame([], $unapplied, sprintf(
+            'the corpus names %s, which this client does not apply: a bound added to the contract '
+            . 'and left unread here keeps the suite green over half a contract',
+            implode(', ', array_map(static fn (string $name): string => '`' . $name . '`', $unapplied))
+        ));
         foreach ($bounds as $name => $wanted) {
             self::assertEqualsWithDelta((float) $wanted, $applied[$name], 0.001, $name);
         }
