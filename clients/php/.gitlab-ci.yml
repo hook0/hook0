@@ -1,0 +1,39 @@
+# A job of its own, unlike the generator guards that ride along with the Rust client: this is
+# another runtime, with another toolchain and another image, so there is nothing here an existing
+# job could have run.
+clients.php.check:
+  stage: test
+  dependencies: []
+  image: php:$PHP_VERSION
+  # The whole suite talks to loopback sockets and finishes in seconds; anything past this is a run
+  # that is stuck rather than one that is slow.
+  timeout: 10m
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
+    - changes:
+        - clients/php/**/*
+        # The generated half of the package is written from the API's OpenAPI snapshot, so a change
+        # of the generator or of the API surface has to face the suites that exercise what it wrote.
+        - clients/sdkgen/**/*
+        - api/openapi.snapshot.json
+        # Retry classification, the bounds of a send and signature verification are hand-written
+        # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
+        # this client rather than the one language whoever edited it happened to be reading.
+        - clients/conformance/**/*
+  before_script:
+    - php --version
+    # Pinned, so that a release of either is a change somebody made rather than a pipeline that
+    # turned red on its own. Both are single files rather than an installed dependency tree: the
+    # package declares none, and resolving one here would put a lockfile and an archive extractor
+    # in the way of running a suite that needs neither. What the package itself is allowed to
+    # require is settled by `tests/ComposerTest.php`, which runs below.
+    - curl -fsSL -o /usr/local/bin/phpunit https://phar.phpunit.de/phpunit-11.5.56.phar
+    - curl -fsSL -o /usr/local/bin/phpcs https://github.com/PHPCSStandards/PHP_CodeSniffer/releases/download/3.13.6/phpcs.phar
+    - chmod +x /usr/local/bin/phpunit /usr/local/bin/phpcs
+  script:
+    - pushd clients/php
+    # The generator emits already-formatted, already-linted source, so an offence here is a defect
+    # in it or a hand edit beside it. Nothing is corrected: a job that rewrote what it was checking
+    # would report success on source nobody wrote.
+    - phpcs
+    - phpunit --no-coverage

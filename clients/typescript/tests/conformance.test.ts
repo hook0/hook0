@@ -6,7 +6,6 @@ import * as path from 'path';
 import {
   DEFAULT_MAX_PAYLOAD_BYTES,
   DEFAULT_MAX_RESPONSE_BYTES,
-  DEFAULT_REQUEST_TIMEOUT_MS,
   Event,
   Hook0Client,
   Hook0ClientError,
@@ -177,13 +176,18 @@ function anEvent(): Event {
 /** No request here is anywhere near this large; the cap bounds what one connection can buffer. */
 const MAX_REQUEST_BODY_BYTES = 64 * 1024;
 
-/** Resolves after `delayMs`, so an answer can be withheld from the client for a while. */
+/**
+ * Resolves after `delayMs`, so an answer can be withheld from the client for a while.
+ *
+ * The wait is one a case is meant to outlive — a client that gave up on an answer moves on while
+ * the API is still sitting on it — so the timer is told not to hold the runtime open on its own.
+ */
 function hold(delayMs: number): Promise<void> {
   if (delayMs === 0) {
     return Promise.resolve();
   }
   return new Promise((resolve) => {
-    setTimeout(resolve, delayMs);
+    setTimeout(resolve, delayMs).unref();
   });
 }
 
@@ -388,7 +392,6 @@ function issuedFor(scripted: ScriptedResponse): Promise<{ issued: number; surviv
 }
 
 describe('the shared conformance corpus', () => {
-
   test(
     'every problem the corpus classifies is repeated as it says',
     async () => {
@@ -439,7 +442,10 @@ describe('the shared conformance corpus', () => {
       switch (cause) {
         case 'no_answer': {
           api.willAnswer({ ...ingested(), heldForMs: 400 }, ingested());
-          const { issued, survived, said } = await issuedBy(api, client(api, promptOptions(4, 100)));
+          const { issued, survived, said } = await issuedBy(
+            api,
+            client(api, promptOptions(4, 100))
+          );
           return { survived, attempts: issued, said };
         }
         case 'answer_above_a_bound': {
@@ -495,24 +501,45 @@ describe('the shared conformance corpus', () => {
     'a head above the ceilings the corpus names is refused',
     async () => {
       // The head is written by the other end, so a client that bounds the body and not the head has
-      // only moved where a broken or hostile server spends its caller's memory. Each ceiling is
-      // crossed on its own, and well over, so that no case sits in the band where the runtime rather
-      // than the client is what answers.
+      // only moved where a broken or hostile server spends its caller's memory. Every ceiling is
+      // crossed on its own and well over, and the head that is read is well under: the band around a
+      // ceiling is where the runtime of the day answers rather than the client, so nothing here is
+      // built in it.
       const lines = BOUNDS.max_response_headers;
       const perLine = BOUNDS.max_header_bytes;
       const whole = BOUNDS.max_head_bytes;
 
+      // A quarter of the lines, an eighth of the whole-head ceiling in bytes: a head this size is
+      // one a client reads without a word.
+      const wellUnder: Record<string, string> = {};
+      for (let line = 0; line < Math.floor(lines / 4); line += 1) {
+        wellUnder[`x-filler-${line}`] = 'v'.repeat(Math.floor(whole / lines));
+      }
+
+      // Above the count this client holds a head to, and below what the runtime under it will hold:
+      // past that the runtime refuses the head before the client sees it, and the case would be
+      // reading the runtime rather than the client.
       const tooMany: Record<string, string> = {};
       for (let line = 0; line < lines + 8; line += 1) {
         tooMany[`x-filler-${line}`] = 'filler';
       }
-      const tooLong: Record<string, string> = { 'x-filler': 'v'.repeat(perLine + 8) };
-      // Lines that are neither too many nor too long on their own, and too much head together.
+      const tooLong: Record<string, string> = { 'x-filler': 'v'.repeat(perLine * 2) };
+      // Lines that are neither too many nor too long on their own — an eighth of the whole-head
+      // ceiling each, one short of the count — and eight times too much head together.
       const tooMuch: Record<string, string> = {};
-      const filling = Math.floor(whole / Math.floor(lines / 2));
-      for (let line = 0; line < Math.floor(lines / 2) + 1; line += 1) {
-        tooMuch[`x-filler-${line}`] = 'v'.repeat(filling);
+      for (let line = 0; line < lines - 1; line += 1) {
+        tooMuch[`x-filler-${line}`] = 'v'.repeat(Math.floor(whole / 8));
       }
+
+      const read = await withApi((api) => {
+        api.willAnswer({ ...ingested(), headers: wellUnder });
+        return issuedBy(api, client(api, promptOptions(4)));
+      });
+      expect({
+        head: 'well under every ceiling',
+        survived: read.survived,
+        said: read.said,
+      }).toStrictEqual({ head: 'well under every ceiling', survived: true, said: '' });
 
       for (const [head, headers] of [
         ['more header lines than are read', tooMany],
@@ -524,8 +551,12 @@ describe('the shared conformance corpus', () => {
           return issuedBy(api, client(api, promptOptions(4)));
         });
 
-        expect({ head, survived }).toStrictEqual({ head, survived: false });
-        expect({ head, issued, said }).toStrictEqual({ head, issued: 1, said });
+        expect({ head, survived, issued, said }).toStrictEqual({
+          head,
+          survived: false,
+          issued: 1,
+          said,
+        });
       }
     },
     TEST_TIMEOUT_MS

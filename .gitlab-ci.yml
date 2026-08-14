@@ -13,6 +13,11 @@ variables:
   PYTHON_VERSION: "3.13-trixie"
   GO_VERSION: "1.26-trixie"
   RUBY_VERSION: "3.4-trixie"
+  # The release the Java SDK is built for, and the runtime half of the image its job runs in; the
+  # build-tool half is pinned beside the job, since a build tool is not a runtime.
+  JAVA_VERSION: "21"
+  PHP_VERSION: "8.4-cli-trixie"
+  DOTNET_VERSION: "8.0"
   PROTOC_VERSION: "35.1"
   POSTGRES_DB: hook0-ci
   POSTGRES_USER: runner
@@ -54,6 +59,9 @@ include:
   - local: "clients/python/.gitlab-ci.yml"
   - local: "clients/go/.gitlab-ci.yml"
   - local: "clients/ruby/.gitlab-ci.yml"
+  - local: "clients/java/.gitlab-ci.yml"
+  - local: "clients/php/.gitlab-ci.yml"
+  - local: "clients/csharp/.gitlab-ci.yml"
   - local: "documentation/.gitlab-ci.yml"
   - local: "tests-api-integrations/.gitlab-ci.yml"
   - local: "tests-e2e/.gitlab-ci.yml"

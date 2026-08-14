@@ -1,0 +1,463 @@
+package com.hook0.client;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+
+/**
+ * The cases the shared conformance corpus dictates, run against this client through both surfaces.
+ *
+ * <p>Nothing below writes down a verdict, a bound, a header or a signature of its own. Everything is read out of the
+ * committed documents at {@code clients/conformance} and this client is driven against them over a real socket, so a
+ * case added there is exercised here without this file being touched.
+ */
+@Timeout(180)
+final class ConformanceTest {
+
+  private static final Map<String, Object> RETRY = Corpus.document("retry.json");
+  private static final Map<String, Object> REQUEST = Corpus.document("request.json");
+  private static final Map<String, Object> SIGNATURE = Corpus.document("signature.json");
+
+  private static final String INGESTED_ID = "01961234-5678-7abc-8def-0123456789ac";
+  private static final String TOKEN = "token-xyz";
+
+  /** The schedule a case that is not about waiting spends between attempts. */
+  private static final Duration PROMPT_BACKOFF = Duration.ofMillis(5);
+
+  /**
+   * The budget the delay cases share. A delay the API names above it is expected to be cut down to it, so this also
+   * bounds what those cases cost.
+   */
+  private static final Duration DELAY_BUDGET = Duration.ofMillis(1100);
+
+  /**
+   * What a wait may overshoot by before it is read as more than what was asked for: a loopback round trip, a timer and
+   * a scheduler all sit inside it.
+   */
+  private static final Duration DELAY_SLACK = Duration.ofMillis(900);
+
+  /** What a send says it did, out of the message it failed with. */
+  private static final Pattern GAVE_UP = Pattern.compile("gave up after (\\d+) attempts");
+
+  /**
+   * How a refusal the corpus names reads in this client's own words.
+   *
+   * <p>Every name the corpus declares is looked up here, so one added there stops this suite until it is mapped rather
+   * than passing under whatever the client happened to say.
+   */
+  private static final Map<String, String> REFUSALS =
+      Map.of(
+          "code_not_hexadecimal", "not hexadecimal",
+          "header_not_delivered", "was not delivered",
+          "code_mismatch", "does not match",
+          "outside_tolerance", "outside the");
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void theCorpusSaysWhatEveryProblemDoesToASend(Surface surface) {
+    // The status is not what decides: the corpus carries problems answering the same status with
+    // opposite verdicts, and a client reading the status alone fails half of them.
+    for (Map<String, Object> rule : Corpus.entries(RETRY, "problems")) {
+      boolean retryable = ((Boolean) rule.get("retryable")).booleanValue();
+      int expected = retryable ? 2 : 1;
+      Outcome outcome =
+          issuedFor(surface, refusal(status(rule), (String) rule.get("problem"), Map.of()));
+
+      assertEquals(
+          expected,
+          outcome.issued(),
+          "`"
+              + rule.get("problem")
+              + "` under "
+              + status(rule)
+              + " issued "
+              + outcome.issued()
+              + " requests where the corpus expects "
+              + expected
+              + ": "
+              + rule.get("reason"));
+      assertEquals(retryable, outcome.ingested());
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void theCorpusSaysWhatEveryStatusDoesToASend(Surface surface) {
+    // A body naming no problem this client could read is also what an older client meets when the
+    // API names a problem it has never heard of.
+    for (Map<String, Object> rule : Corpus.entries(RETRY, "statuses")) {
+      boolean retryable = ((Boolean) rule.get("retryable")).booleanValue();
+      int expected = retryable ? 2 : 1;
+      Outcome outcome =
+          issuedFor(surface, refusal(status(rule), "AProblemThisClientHasNeverHeardOf", Map.of()));
+
+      assertEquals(
+          expected,
+          outcome.issued(),
+          "a status of "
+              + status(rule)
+              + " issued "
+              + outcome.issued()
+              + " requests where the corpus expects "
+              + expected
+              + ": "
+              + rule.get("reason"));
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void theCorpusSaysWhatARequestTheApiNeverAnsweredDoes(Surface surface) {
+    // Every cause the corpus names is provoked for real rather than reported: a server that sits on
+    // an answer past the timeout, an answer above a ceiling this client set for itself, and a URL
+    // nothing can be sent to.
+    @SuppressWarnings("unchecked")
+    Map<String, Object> transport = (Map<String, Object>) RETRY.get("transport");
+    for (Map<String, Object> rule : Corpus.entries(transport, "causes")) {
+      String cause = (String) rule.get("cause");
+      boolean retryable = ((Boolean) rule.get("retryable")).booleanValue();
+      int expected = retryable ? 2 : 1;
+      Outcome outcome = provoked(surface, cause);
+
+      assertEquals(
+          expected,
+          outcome.issued(),
+          "`"
+              + cause
+              + "` issued "
+              + outcome.issued()
+              + " requests where the corpus expects "
+              + expected
+              + ": "
+              + rule.get("reason"));
+      assertEquals(retryable, outcome.ingested());
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void theDelayTheApiNamesIsHonouredAndBounded(Surface surface) {
+    // The header is written by the other end, so honouring it whole would hand a stranger the length
+    // of this client's send. What the corpus asks for is that a delay be waited out when the budget
+    // can afford it and cut down to what is left of the budget when it cannot.
+    @SuppressWarnings("unchecked")
+    Map<String, Object> retryAfter = (Map<String, Object>) RETRY.get("retry_after");
+    String header = (String) retryAfter.get("header");
+
+    for (Map<String, Object> delay : Corpus.entries(retryAfter, "cases")) {
+      boolean honoured = ((Boolean) delay.get("honoured")).booleanValue();
+      long asked = honoured ? ((Long) delay.get("seconds")).longValue() * 1000 : 0;
+      long expected = Math.min(asked, DELAY_BUDGET.toMillis());
+      long waited = waitedFor(surface, header, (String) delay.get("header"));
+
+      assertTrue(
+          waited >= expected,
+          "`" + header + ": " + delay.get("header") + "` was retried after " + waited
+              + "ms, sooner than the " + expected + "ms it asked for");
+      assertTrue(
+          waited <= expected + DELAY_SLACK.toMillis(),
+          "`" + header + ": " + delay.get("header") + "` held the send for " + waited
+              + "ms, above the " + expected + "ms it is bounded to");
+    }
+  }
+
+  @Test
+  void theBoundsAreTheOnesTheCorpusNames() {
+    // This client's defaults, held against the one place the numbers are written down. What is
+    // asserted is read from the corpus rather than listed here, so a bound added there and left
+    // unapplied fails instead of passing unnoticed.
+    Options built = Options.defaults();
+    RetryPolicy policy = built.retryPolicy();
+
+    Map<String, Long> applied = new LinkedHashMap<>();
+    applied.put("max_attempts", Long.valueOf(policy.maxAttempts()));
+    applied.put("max_attempts_cap", Long.valueOf(RetryPolicy.MAX_ATTEMPTS_CAP));
+    applied.put("initial_backoff_ms", Long.valueOf(policy.initialBackoff().toMillis()));
+    applied.put("max_backoff_ms", Long.valueOf(policy.maxBackoff().toMillis()));
+    applied.put("max_total_delay_ms", Long.valueOf(policy.maxTotalDelay().toMillis()));
+    applied.put("request_timeout_ms", Long.valueOf(built.requestTimeout().toMillis()));
+    applied.put("max_payload_bytes", Long.valueOf(built.maxPayloadBytes()));
+    applied.put("max_response_bytes", Long.valueOf(built.maxResponseBytes()));
+    applied.put("max_head_bytes", Long.valueOf(built.maxHeadBytes()));
+    applied.put("max_response_headers", Long.valueOf(built.maxResponseHeaders()));
+    applied.put("max_header_bytes", Long.valueOf(built.maxHeaderBytes()));
+
+    Map<String, Object> document = Corpus.document("bounds.json");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> bounds = (Map<String, Object>) document.get("bounds");
+
+    TreeSet<String> unapplied = new TreeSet<>(bounds.keySet());
+    unapplied.removeAll(applied.keySet());
+
+    assertTrue(unapplied.isEmpty(), "the corpus names bounds this client does not apply: " + unapplied);
+
+    String text = Corpus.text("bounds.json");
+    for (Map.Entry<String, Object> bound : bounds.entrySet()) {
+      assertEquals(
+          ((Long) bound.getValue()).longValue(),
+          applied.get(bound.getKey()).longValue(),
+          bound.getKey());
+      // Read once more straight out of the committed text, so the number this suite asserts is the
+      // number somebody wrote down rather than whatever the reader made of it.
+      assertTrue(
+          text.contains("\"" + bound.getKey() + "\": " + bound.getValue()),
+          "`" + bound.getKey() + "` was not read out of the corpus as it is written there");
+    }
+  }
+
+  @Test
+  void everyRequestCarriesWhatTheCorpusPins() {
+    List<Map<String, Object>> headers = Corpus.entries(REQUEST, "headers");
+    List<Object> occasions = Corpus.values(REQUEST, "occasions");
+
+    TreeSet<String> unknown = new TreeSet<>();
+    for (Map<String, Object> header : headers) {
+      if (!occasions.contains(header.get("when"))) {
+        unknown.add((String) header.get("when"));
+      }
+    }
+    assertTrue(unknown.isEmpty(), "the corpus pins a header for an occasion it does not declare: " + unknown);
+
+    try (FakeApi api = new FakeApi();
+        Hook0Client client = new Hook0Client(api.baseUrl(), "app-123", TOKEN, options(1))) {
+      api.willAnswer(FakeApi.Scripted.of(201, Map.of("event_id", INGESTED_ID)));
+      client.sendEvent(anEvent());
+
+      FakeApi.Received sent = api.received().get(0);
+      for (Map<String, Object> header : headers) {
+        String name = ((String) header.get("name")).toLowerCase(Locale.ROOT);
+        String wanted = ((String) header.get("value")).replace("${token}", TOKEN);
+        assertEquals(
+            wanted,
+            sent.headers().get(name),
+            "a request carrying a body did not arrive with `" + header.get("name") + "`: " + header.get("reason"));
+      }
+    }
+  }
+
+  @Test
+  void everyRefusalTheCorpusDeclaresReadsAsOneOfThisClients() {
+    // A refusal named in the corpus and mapped to nothing here would pass under any wording.
+    TreeSet<String> unmapped = new TreeSet<>();
+    for (Object refusal : Corpus.values(SIGNATURE, "refusals")) {
+      if (!REFUSALS.containsKey(refusal)) {
+        unmapped.add(String.valueOf(refusal));
+      }
+    }
+    assertTrue(unmapped.isEmpty(), "the corpus declares refusals this suite maps to nothing: " + unmapped);
+  }
+
+  @Test
+  void everyDeliveryOfTheCorpusIsVerifiedAsItSays() {
+    // A refused delivery has to be refused for the reason the corpus names: a client that computed a
+    // code over a header that never arrived and reported a mismatch would otherwise look right.
+    for (Map<String, Object> vector : Corpus.entries(SIGNATURE, "vectors")) {
+      if ("accepted".equals(vector.get("verdict"))) {
+        verified(vector);
+        continue;
+      }
+
+      ClientException refused =
+          assertThrows(ClientException.class, () -> verified(vector), (String) vector.get("name"));
+      String wanted = REFUSALS.get(vector.get("refusal"));
+
+      assertTrue(
+          refused.getMessage().contains(wanted),
+          "a delivery the corpus refuses as `"
+              + vector.get("refusal")
+              + "` was answered `"
+              + refused.getMessage()
+              + "`: "
+              + vector.get("reason"));
+    }
+  }
+
+  private static void verified(Map<String, Object> vector) {
+    @SuppressWarnings("unchecked")
+    List<List<Object>> delivered = (List<List<Object>>) vector.get("headers");
+    List<Map.Entry<String, String>> headers = new ArrayList<>();
+    for (List<Object> header : delivered) {
+      headers.add(Map.entry((String) header.get(0), (String) header.get(1)));
+    }
+
+    Webhooks.verifyAt(
+        (String) vector.get("signature"),
+        (String) vector.get("payload"),
+        headers,
+        (String) vector.get("secret"),
+        Duration.ofSeconds(((Long) vector.get("tolerance_seconds")).longValue()),
+        Instant.ofEpochSecond(((Long) vector.get("current_time")).longValue()));
+  }
+
+  /** How many requests a send issued, and whether it ended up ingesting the event. */
+  private record Outcome(int issued, boolean ingested) {}
+
+  private static int status(Map<String, Object> rule) {
+    return (int) ((Long) rule.get("status")).longValue();
+  }
+
+  private static Options options(int maxAttempts) {
+    return Options.defaults()
+        .withRetryPolicy(new RetryPolicy(maxAttempts, PROMPT_BACKOFF, PROMPT_BACKOFF, Duration.ofSeconds(1)))
+        .withRequestTimeout(Duration.ofSeconds(5));
+  }
+
+  private static Event anEvent() {
+    return Event.of("auth.user.create", "{\"email\": \"test@example.com\"}", "application/json", Map.of());
+  }
+
+  private static FakeApi.Scripted ingested() {
+    return FakeApi.Scripted.of(201, Map.of("application_id", "app-123", "event_id", INGESTED_ID));
+  }
+
+  /** What the API says when it refuses a request, in the shape every Hook0 failure takes. */
+  private static FakeApi.Scripted refusal(int status, String problem, Map<String, String> headers) {
+    return FakeApi.Scripted.of(
+        status,
+        Map.of(
+            "id", problem,
+            "status", Long.valueOf(status),
+            "title", "refused",
+            "detail", "what the corpus scripted",
+            "type", "https://hook0.com/documentation/errors/" + problem),
+        headers);
+  }
+
+  /**
+   * How many requests a send made when the API answered that way and then took the event.
+   *
+   * <p>One API per case rather than one per suite: what is counted is what this send issued, and a count carried over
+   * from the case before it would say nothing.
+   */
+  private static Outcome issuedFor(Surface surface, FakeApi.Scripted answer) {
+    try (FakeApi api = new FakeApi();
+        Hook0Client client = new Hook0Client(api.baseUrl(), "app-123", TOKEN, options(4))) {
+      api.willAnswer(answer, ingested());
+      return counted(api, () -> surface.send(client, anEvent()));
+    }
+  }
+
+  /** One cause of a request the API never answered, provoked over a real socket. */
+  private static Outcome provoked(Surface surface, String cause) {
+    return switch (cause) {
+      case "no_answer" -> provokedByNoAnswer(surface);
+      case "answer_above_a_bound" -> provokedByAnAnswerAboveABound(surface);
+      case "unusable_api_url" -> provokedByAnUnusableApiUrl(surface);
+      default -> throw new IllegalStateException(
+          "the corpus names a cause `" + cause + "` this suite does not know how to provoke");
+    };
+  }
+
+  /** An attempt that runs out of time before the API writes anything. */
+  private static Outcome provokedByNoAnswer(Surface surface) {
+    Options impatient = options(4).withRequestTimeout(Duration.ofMillis(200));
+    try (FakeApi api = new FakeApi();
+        Hook0Client client = new Hook0Client(api.baseUrl(), "app-123", TOKEN, impatient)) {
+      api.willAnswer(
+          new FakeApi.Scripted(201, Json.write(Map.of("event_id", INGESTED_ID)), Duration.ofSeconds(1), Map.of()),
+          ingested());
+      return counted(api, () -> surface.send(client, anEvent()));
+    }
+  }
+
+  /** An answer larger than what this client agreed to read off the socket. */
+  private static Outcome provokedByAnAnswerAboveABound(Surface surface) {
+    Options small = options(4).withMaxResponseBytes(256);
+    try (FakeApi api = new FakeApi();
+        Hook0Client client = new Hook0Client(api.baseUrl(), "app-123", TOKEN, small)) {
+      api.willAnswer(
+          FakeApi.Scripted.of(201, Map.of("event_id", INGESTED_ID, "padding", "x".repeat(2048))), ingested());
+      return counted(api, () -> surface.send(client, anEvent()));
+    }
+  }
+
+  /** A base URL nothing can be sent to, which means nothing is ever sent. */
+  private static Outcome provokedByAnUnusableApiUrl(Surface surface) {
+    try (FakeApi api = new FakeApi();
+        Hook0Client client = new Hook0Client("gopher://nowhere.invalid", "app-123", TOKEN, options(4))) {
+      api.willAnswer(ingested());
+      return counted(api, () -> surface.send(client, anEvent()));
+    }
+  }
+
+  /**
+   * How many attempts a send made, and whether it ended up ingesting the event.
+   *
+   * <p>A send that reached a server is counted by what that server received. One that never reached anything — an API
+   * URL nothing can be sent to is the corpus's own example — is counted by what the client says it did, which is also
+   * the message a caller is left holding: a misconfiguration retried four times reads as a network that would not
+   * answer.
+   */
+  private static Outcome counted(FakeApi api, Runnable send) {
+    try {
+      send.run();
+      return new Outcome(api.received().size(), true);
+    } catch (Hook0Exception refused) {
+      return new Outcome(Math.max(api.received().size(), attemptsOf(refused.getMessage())), false);
+    }
+  }
+
+  private static int attemptsOf(String message) {
+    Matcher named = GAVE_UP.matcher(message == null ? "" : message);
+    return named.find() ? Integer.parseInt(named.group(1)) : 1;
+  }
+
+  /** How long a send spent waiting when the API named that delay beside a paced answer. */
+  private static long waitedFor(Surface surface, String header, String written) {
+    Map<String, Object> paced = pacedProblem();
+    Options budgeted =
+        Options.defaults()
+            .withRetryPolicy(new RetryPolicy(4, PROMPT_BACKOFF, PROMPT_BACKOFF, DELAY_BUDGET))
+            .withRequestTimeout(Duration.ofSeconds(5));
+
+    try (FakeApi api = new FakeApi();
+        Hook0Client client = new Hook0Client(api.baseUrl(), "app-123", TOKEN, budgeted)) {
+      api.willAnswer(
+          refusal(status(paced), (String) paced.get("problem"), Map.of(header, written)), ingested());
+
+      long started = System.nanoTime();
+      surface.send(client, anEvent());
+      long waited = (System.nanoTime() - started) / 1_000_000;
+
+      assertEquals(2, api.received().size(), "a paced answer was not retried");
+      return waited;
+    }
+  }
+
+  /**
+   * A problem the corpus says is worth repeating, sharing its status with one it says is not.
+   *
+   * <p>That pair is the whole reason the corpus classifies problems rather than statuses, and the retryable one is the
+   * answer the API names a delay beside.
+   */
+  private static Map<String, Object> pacedProblem() {
+    List<Map<String, Object>> problems = Corpus.entries(RETRY, "problems");
+    for (Map<String, Object> rule : problems) {
+      if (!((Boolean) rule.get("retryable")).booleanValue()) {
+        continue;
+      }
+      for (Map<String, Object> other : problems) {
+        if (status(other) == status(rule) && !((Boolean) other.get("retryable")).booleanValue()) {
+          return rule;
+        }
+      }
+    }
+    return fail("no status of the corpus carries opposite verdicts");
+  }
+}

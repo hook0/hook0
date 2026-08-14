@@ -23,6 +23,10 @@ client.rust.check:
         - clients/*/src/**
         - clients/*/lib/**
         - clients/*/generated/**
+        # Retry classification, the bounds of a send and signature verification are hand-written
+        # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
+        # this client rather than the one language whoever edited it happened to be reading.
+        - clients/conformance/**/*
         - Cargo.*
   before_script:
     - rustc --version && cargo --version

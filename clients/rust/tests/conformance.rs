@@ -20,8 +20,12 @@ const MAX_CORPUS_BYTES: u64 = 512 * 1024;
 /// One document of the shared contract, bounded before it is parsed.
 fn corpus(document: &str) -> Value {
     let path = PathBuf::from(CORPUS).join(document);
-    let about = fs::metadata(&path)
-        .unwrap_or_else(|e| panic!("the shared contract at {} is unreadable: {e}", path.display()));
+    let about = fs::metadata(&path).unwrap_or_else(|e| {
+        panic!(
+            "the shared contract at {} is unreadable: {e}",
+            path.display()
+        )
+    });
     assert!(
         about.len() <= MAX_CORPUS_BYTES,
         "{} is {} bytes long, above the {MAX_CORPUS_BYTES} read back",
@@ -29,10 +33,18 @@ fn corpus(document: &str) -> Value {
         about.len(),
     );
 
-    let written = fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("the shared contract at {} is unreadable: {e}", path.display()));
-    serde_json::from_str(&written)
-        .unwrap_or_else(|e| panic!("{} does not read as the contract it is: {e}", path.display()))
+    let written = fs::read_to_string(&path).unwrap_or_else(|e| {
+        panic!(
+            "the shared contract at {} is unreadable: {e}",
+            path.display()
+        )
+    });
+    serde_json::from_str(&written).unwrap_or_else(|e| {
+        panic!(
+            "{} does not read as the contract it is: {e}",
+            path.display()
+        )
+    })
 }
 
 /// The entries the corpus carries at `at`, which no case may find empty: a document that classifies
@@ -55,6 +67,7 @@ fn text<'a>(entry: &'a Value, field: &str) -> &'a str {
 }
 
 /// What the corpus wrote at `field` of one entry, as a whole number.
+#[cfg(feature = "producer")]
 fn number(entry: &Value, field: &str) -> i64 {
     at(entry, field)
         .and_then(Value::as_i64)
@@ -62,6 +75,7 @@ fn number(entry: &Value, field: &str) -> i64 {
 }
 
 /// What the corpus wrote at `field` of one entry, as a verdict.
+#[cfg(feature = "producer")]
 fn flag(entry: &Value, field: &str) -> bool {
     at(entry, field)
         .and_then(Value::as_bool)
@@ -320,11 +334,7 @@ mod sending {
             Ok(_) => (api.received().len(), true, String::new()),
             Err(refused) => {
                 let said = refused.to_string();
-                (
-                    api.received().len().max(attempts_of(&said)),
-                    false,
-                    said,
-                )
+                (api.received().len().max(attempts_of(&said)), false, said)
             }
         }
     }
@@ -364,7 +374,8 @@ mod sending {
             .find(|rule| {
                 flag(rule, "retryable")
                     && problems.iter().any(|other| {
-                        number(other, "status") == number(rule, "status") && !flag(other, "retryable")
+                        number(other, "status") == number(rule, "status")
+                            && !flag(other, "retryable")
                     })
             })
             .cloned()
@@ -406,7 +417,8 @@ mod sending {
 
         for rule in entries(&contract, "/statuses") {
             let status = number(&rule, "status") as u16;
-            let (issued, _) = issued_for(refusal(status, "AProblemThisClientHasNeverHeardOf")).await;
+            let (issued, _) =
+                issued_for(refusal(status, "AProblemThisClientHasNeverHeardOf")).await;
 
             let expected = if flag(&rule, "retryable") { 2 } else { 1 };
             assert_eq!(
@@ -429,7 +441,9 @@ mod sending {
                     ingested().held_for(Duration::from_millis(500)),
                     ingested(),
                 ]);
-                let client = api.client().with_request_timeout(Duration::from_millis(100));
+                let client = api
+                    .client()
+                    .with_request_timeout(Duration::from_millis(100));
                 (api, client)
             }
             "answer_above_a_bound" => {
@@ -451,7 +465,9 @@ mod sending {
                     .with_retry_policy(prompt_retries(4));
                 (api, client)
             }
-            _ => panic!("the corpus names the transport cause `{cause}`, which this suite cannot provoke"),
+            _ => panic!(
+                "the corpus names the transport cause `{cause}`, which this suite cannot provoke"
+            ),
         };
 
         let (issued, survived, _) = issued_by(&api, client).await;
@@ -480,7 +496,10 @@ mod sending {
                 continue;
             }
 
-            assert!(!survived, "a send that met `{cause}` reported success: {reason}");
+            assert!(
+                !survived,
+                "a send that met `{cause}` reported success: {reason}"
+            );
             assert_eq!(
                 attempts, 1,
                 "`{cause}` was met {attempts} times where the corpus says repeating it changes \
@@ -492,9 +511,10 @@ mod sending {
     #[actix_web::test]
     async fn a_head_above_the_ceilings_the_corpus_names_is_refused() {
         // The head is written by the other end, so a client that bounds the body and not the head
-        // has only moved where a broken or hostile server spends its caller's memory. Each ceiling
-        // is crossed on its own, and well over, so that no case sits in the band where the runtime
-        // rather than the client is what answers.
+        // has only moved where a broken or hostile server spends its caller's memory. Every ceiling
+        // is crossed on its own and well over, and the head that is read is well under: the band
+        // around a ceiling is where the runtime of the day answers rather than the client, so
+        // nothing here is built in it.
         let contract = corpus("bounds.json");
         let bounds = contract
             .get("bounds")
@@ -503,18 +523,37 @@ mod sending {
         let per_line = number(bounds, "max_header_bytes") as usize;
         let whole = number(bounds, "max_head_bytes") as usize;
 
+        // Half of every ceiling: a head this size is one a client reads without a word.
+        let mut well_under = ingested();
+        for index in 0..lines / 4 {
+            well_under =
+                well_under.carrying(&format!("x-filler-{index}"), &"v".repeat(whole / lines));
+        }
+
+        // Above the count this client holds a head to, and below the hundred lines the HTTP stack
+        // under it holds one to: past that, the runtime refuses the head before the client sees it,
+        // and the case would be reading the runtime rather than the client.
         let mut too_many = ScriptedResponse::new(200, &json!({}));
         for index in 0..lines + 8 {
             too_many = too_many.carrying(&format!("x-filler-{index}"), "filler");
         }
         let too_long =
-            ScriptedResponse::new(200, &json!({})).carrying("x-filler", &"v".repeat(per_line + 8));
+            ScriptedResponse::new(200, &json!({})).carrying("x-filler", &"v".repeat(per_line * 2));
+        // Lines that are neither too many nor too long on their own — an eighth of the whole-head
+        // ceiling each, one short of the count — and eight times too much head together.
         let mut too_much = ScriptedResponse::new(200, &json!({}));
-        // Lines that are neither too many nor too long on their own, and too much head together.
-        let filling = whole / (lines / 2);
-        for index in 0..lines / 2 + 1 {
+        let filling = whole / 8;
+        for index in 0..lines - 1 {
             too_much = too_much.carrying(&format!("x-filler-{index}"), &"v".repeat(filling));
         }
+
+        let api = TestApi::start(vec![well_under]);
+        let (_, survived, said) = issued_by(&api, api.client()).await;
+        assert!(
+            survived,
+            "an answer whose head is well under every ceiling was refused ({said})",
+        );
+        api.stop().await;
 
         for (head, scripted) in [
             ("more header lines than are read", too_many),
@@ -548,10 +587,7 @@ mod sending {
 
         // A send carries a body, so every occasion the corpus declares applies to this one request.
         let received = api.received();
-        let carried = &received
-            .first()
-            .expect("the send reached the API")
-            .headers;
+        let carried = &received.first().expect("the send reached the API").headers;
 
         for header in entries(&contract, "/headers") {
             let name = text(&header, "name").to_lowercase();
@@ -596,7 +632,10 @@ mod sending {
             let sent = patient.send_event(&an_event()).await;
             let waited = started.elapsed();
 
-            assert!(sent.is_ok(), "the send did not survive a paced answer: {sent:?}");
+            assert!(
+                sent.is_ok(),
+                "the send did not survive a paced answer: {sent:?}"
+            );
             assert_eq!(
                 api.received().len(),
                 2,
@@ -633,10 +672,19 @@ mod sending {
         let applied: HashMap<&str, i64> = HashMap::from([
             ("max_attempts", i64::from(policy.max_attempts)),
             ("max_attempts_cap", i64::from(MAX_ATTEMPTS_CAP)),
-            ("initial_backoff_ms", policy.initial_backoff.as_millis() as i64),
+            (
+                "initial_backoff_ms",
+                policy.initial_backoff.as_millis() as i64,
+            ),
             ("max_backoff_ms", policy.max_backoff.as_millis() as i64),
-            ("max_total_delay_ms", policy.max_total_delay.as_millis() as i64),
-            ("request_timeout_ms", DEFAULT_REQUEST_TIMEOUT.as_millis() as i64),
+            (
+                "max_total_delay_ms",
+                policy.max_total_delay.as_millis() as i64,
+            ),
+            (
+                "request_timeout_ms",
+                DEFAULT_REQUEST_TIMEOUT.as_millis() as i64,
+            ),
             ("max_payload_bytes", DEFAULT_MAX_PAYLOAD_BYTES as i64),
             ("max_response_bytes", DEFAULT_MAX_RESPONSE_BYTES as i64),
             ("max_head_bytes", MAX_HEAD_BYTES as i64),
@@ -649,9 +697,9 @@ mod sending {
             .and_then(Value::as_object)
             .expect("the shared contract carries no bounds");
         for (bound, named) in bounds {
-            let carried = applied
-                .get(bound.as_str())
-                .unwrap_or_else(|| panic!("the corpus names `{bound}`, which this client applies nowhere"));
+            let carried = applied.get(bound.as_str()).unwrap_or_else(|| {
+                panic!("the corpus names `{bound}`, which this client applies nowhere")
+            });
             assert_eq!(
                 Some(*carried),
                 named.as_i64(),
@@ -731,7 +779,9 @@ mod verifying {
                     let pair = pair
                         .as_array()
                         .filter(|pair| pair.len() == 2)
-                        .unwrap_or_else(|| panic!("a header of `{name}` is not a name and a value"));
+                        .unwrap_or_else(|| {
+                            panic!("a header of `{name}` is not a name and a value")
+                        });
                     (
                         pair[0].as_str().unwrap_or_default().to_owned(),
                         pair[1].as_str().unwrap_or_default().to_owned(),

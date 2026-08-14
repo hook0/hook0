@@ -1,0 +1,8 @@
+# What the build writes. Only the two halves of the source are committed: the generated tree, which
+# travels as source because the artefact is published without the OpenAPI snapshot beside it, and
+# everything hand-written next to it.
+target/
+
+# Where the pipeline keeps what it resolved, so a run that changed nothing reaches the network for
+# nothing. Never committed: it is a cache of what the build file already pins.
+.m2/

@@ -503,7 +503,8 @@ function headAboveABound(headers: Headers): HeadVerdict {
 }
 
 /** The body of an answer, read no further than this client agrees to hold. */
-type BoundedBody = { kind: 'bodyRead'; text: string } | { kind: 'bodyAboveTheBound'; detail: string };
+type BoundedBody =
+  { kind: 'bodyRead'; text: string } | { kind: 'bodyAboveTheBound'; detail: string };
 
 /**
  * Read the body of an answer, stopping at the ceiling rather than at the end of what is written.
@@ -533,12 +534,10 @@ function readBoundedBody(response: Response, maxBytes: number): Promise<BoundedB
       held += step.value.length;
       if (held > maxBytes) {
         chunks.length = 0;
-        return reader.cancel().then(
-          (): BoundedBody => ({
-            kind: 'bodyAboveTheBound',
-            detail: `the API answered more than the ${maxBytes} bytes read at most`,
-          })
-        );
+        return reader.cancel().then((): BoundedBody => ({
+          kind: 'bodyAboveTheBound',
+          detail: `the API answered more than the ${maxBytes} bytes read at most`,
+        }));
       }
 
       chunks.push(step.value);
@@ -569,8 +568,7 @@ type Attempt =
 
 /** The request every attempt of one send repeats, or why nothing could be sent at all. */
 type BuildableRequest =
-  | { kind: 'buildable'; url: string; body: string }
-  | { kind: 'unbuildable'; detail: string };
+  { kind: 'buildable'; url: string; body: string } | { kind: 'unbuildable'; detail: string };
 
 /** A failed attempt whose answer, if there was one, named no delay. */
 function failed(detail: string, retryable: boolean): Attempt {
@@ -604,9 +602,11 @@ function isAboveABound(cause: unknown): boolean {
   /** No chain of causes a runtime builds is anywhere near this long; the bound keeps a cyclic one from being walked forever. */
   const MAX_LINKS = 8;
 
+  // Read by shape rather than by type: a failure raised by the runtime is not built from the same
+  // `Error` an embedder holds when the two do not share a realm, and `instanceof` answers no there.
   let walked: unknown = cause;
   for (let link = 0; link < MAX_LINKS; link += 1) {
-    if (!(walked instanceof Error)) {
+    if (typeof walked !== 'object' || walked === null) {
       return false;
     }
     if ((walked as { code?: unknown }).code === HEAD_OVERFLOW) {
@@ -633,7 +633,9 @@ function transportFailure(cause: unknown): Attempt {
 }
 
 /** The identifier Hook0 says it ingested the event under, when its answer carries one. */
-function ingestedIdOf(body: string): { kind: 'ingestedId'; eventId: string } | { kind: 'noIngestedId' } {
+function ingestedIdOf(
+  body: string
+): { kind: 'ingestedId'; eventId: string } | { kind: 'noIngestedId' } {
   const read = jsonOf(body);
   if (
     read.kind === 'json' &&

@@ -10,8 +10,11 @@
 //! language: two emitters writing the same language cannot disagree on how a field is spelled or on
 //! what a `date-time` is called.
 
+pub mod csharp;
 pub mod go;
+pub mod java;
 pub mod mcp;
+pub mod php;
 pub mod python;
 pub mod ruby;
 pub mod rust;
@@ -109,8 +112,11 @@ pub fn targets() -> &'static [Target] {
 
 static TARGETS: LazyLock<Vec<Target>> = LazyLock::new(|| {
     vec![
+        csharp::target(),
         go::target(),
+        java::target(),
         mcp::target(),
+        php::target(),
         python::target(),
         ruby::target(),
         rust::target(),
@@ -164,6 +170,150 @@ fn rust() -> LanguageSpec {
         },
         comment: CommentStyle::DoubleSlash,
         extension: "rs",
+    }
+}
+
+/// Everything a name emitted as Java has to stay out of the way of.
+///
+/// Three sets, merged because in Java they apply in the same places rather than in different ones.
+///
+/// The language's own words — its fifty keywords, the `_` it took back in Java 9, and the three
+/// literals — are illegal wherever an identifier goes: as a field, as a method, as an argument and
+/// as a type alike. That is the opposite of Ruby, where a keyword is a perfectly good method name,
+/// and it is why there is one table here rather than two.
+///
+/// The eight no-argument methods of `java.lang.Object` are the second set. They are legal as a
+/// field and as an argument, and illegal as a method — and a `record` component is *both*: it
+/// declares a field and the accessor that reads it, so §8.10.3 refuses a component spelled after
+/// any of them outright. Every value this target declares is a record, so they belong here. What is
+/// deliberately absent is `equals`: it takes an argument, so a no-argument `equals()` overloads it
+/// rather than replacing it, and the compiler accepts a component of that name.
+///
+/// The last set is the emitter's own locals. An operation whose parameter is spelled `path` would
+/// be declared twice in the method that fills the path template, and one spelled `out` would shadow
+/// the map a value is written into — the first fails to compile and the second writes the wrong
+/// document. Go and TypeScript keep their locals here for the same reason.
+///
+/// The restricted type identifiers — `record`, `sealed`, `permits`, `var`, `yield` — are absent on
+/// purpose: they are refused only where a *type* is named, and a type name is rendered
+/// [`Case::UpperCamel`] here, so no name this target declares can ever spell one of them. Every
+/// entry below was measured against `javac` rather than read off a list, and the measurement is
+/// committed as a case of the Java suite so it stays a fact.
+///
+/// Sorted, as [`ReservedWords`] searches it by halving.
+const JAVA_KEYWORDS: [&str; 69] = [
+    "_",
+    "abstract",
+    "answered",
+    "assert",
+    "body",
+    "boolean",
+    "break",
+    "byte",
+    "case",
+    "catch",
+    "char",
+    "class",
+    "clone",
+    "const",
+    "continue",
+    "default",
+    "do",
+    "double",
+    "else",
+    "enum",
+    "extends",
+    "false",
+    "fields",
+    "final",
+    "finalize",
+    "finally",
+    "float",
+    "for",
+    "getClass",
+    "goto",
+    "hashCode",
+    "if",
+    "implements",
+    "import",
+    "instanceof",
+    "int",
+    "interface",
+    "long",
+    "native",
+    "new",
+    "notify",
+    "notifyAll",
+    "null",
+    "out",
+    "package",
+    "path",
+    "private",
+    "protected",
+    "public",
+    "query",
+    "return",
+    "short",
+    "static",
+    "strictfp",
+    "super",
+    "switch",
+    "synchronized",
+    "this",
+    "throw",
+    "throws",
+    "toString",
+    "transient",
+    "transport",
+    "true",
+    "try",
+    "void",
+    "volatile",
+    "wait",
+    "while",
+];
+
+/// What a name rendering to no identifier at all is spelled as in Java.
+const JAVA_PLACEHOLDER: &str = "value";
+
+static JAVA_RESERVED: LazyLock<ReservedWords> = LazyLock::new(|| {
+    ReservedWords::build(&JAVA_KEYWORDS, Escape::Suffix('_'), JAVA_PLACEHOLDER).expect(
+        "the Java keyword table is sorted, carries no empty word, and does not hold its own fallback",
+    )
+});
+
+/// How Java wants what it is handed spelled.
+///
+/// Every number is the boxed type rather than the primitive one: a member the document does not
+/// require is absent as `null`, and `int` has no way to be absent. A file is named after the type
+/// it declares — the language insists on it — so files carry the casing type names do.
+fn java() -> LanguageSpec {
+    LanguageSpec {
+        casing: Casing {
+            type_name: Case::UpperCamel,
+            method: Case::LowerCamel,
+            field: Case::LowerCamel,
+            parameter: Case::LowerCamel,
+            constant: Case::ScreamingSnake,
+            file: Case::UpperCamel,
+            module: Case::Lower,
+        },
+        reserved: LazyLock::force(&JAVA_RESERVED),
+        scalars: ScalarNames {
+            string: "String",
+            uuid: "UUID",
+            date_time: "OffsetDateTime",
+            date: "LocalDate",
+            // Nothing in the standard library reads every URL the API can answer, and a type that
+            // refused one would lose a value the document says is text.
+            url: "String",
+            integer32: "Integer",
+            integer64: "Long",
+            number: "Double",
+            boolean: "Boolean",
+        },
+        comment: CommentStyle::DoubleSlash,
+        extension: "java",
     }
 }
 
@@ -701,5 +851,403 @@ fn typescript() -> LanguageSpec {
         },
         comment: CommentStyle::DoubleSlash,
         extension: "ts",
+    }
+}
+
+/// The words C# keeps for itself where this target puts a *binding*.
+///
+/// Every one of them is escapable — `@class` is a name the compiler reads as `class` — and that
+/// escape is invisible to everything else: `@class` and `class` are the same identifier, so the
+/// prefix moves a name out of the parser's way and out of nothing else's. That is why this table is
+/// the keywords alone, and why the shadowing half below is escaped differently.
+///
+/// Only the reserved words are listed. A contextual one — `value`, `var`, `record`, `async`,
+/// `await`, `nameof` — is a name a binding may carry, and spelling it out of the way would put an
+/// `@` in a published signature for a collision the language does not have.
+///
+/// Sorted, as [`ReservedWords`] searches it by halving.
+const CSHARP_KEYWORDS: [&str; 77] = [
+    "abstract",
+    "as",
+    "base",
+    "bool",
+    "break",
+    "byte",
+    "case",
+    "catch",
+    "char",
+    "checked",
+    "class",
+    "const",
+    "continue",
+    "decimal",
+    "default",
+    "delegate",
+    "do",
+    "double",
+    "else",
+    "enum",
+    "event",
+    "explicit",
+    "extern",
+    "false",
+    "finally",
+    "fixed",
+    "float",
+    "for",
+    "foreach",
+    "goto",
+    "if",
+    "implicit",
+    "in",
+    "int",
+    "interface",
+    "internal",
+    "is",
+    "lock",
+    "long",
+    "namespace",
+    "new",
+    "null",
+    "object",
+    "operator",
+    "out",
+    "override",
+    "params",
+    "private",
+    "protected",
+    "public",
+    "readonly",
+    "ref",
+    "return",
+    "sbyte",
+    "sealed",
+    "short",
+    "sizeof",
+    "stackalloc",
+    "static",
+    "string",
+    "struct",
+    "switch",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "typeof",
+    "uint",
+    "ulong",
+    "unchecked",
+    "unsafe",
+    "ushort",
+    "using",
+    "virtual",
+    "void",
+    "volatile",
+    "while",
+];
+
+/// The names an emitted *member* would collide with rather than merely sit beside.
+///
+/// These are what every object already answers to, and what the compiler says about each of them
+/// was measured rather than reasoned about. A property spelled `Equals`, `GetHashCode` or
+/// `ToString` is `error CS0102`: the declaration the compiler already wrote for the type is
+/// there first. One spelled `GetType`, `MemberwiseClone` or `ReferenceEquals` is `warning CS0108`,
+/// which a build that treats warnings as errors reads the same way. `Finalize` produces neither and
+/// is therefore absent: reserving it would rename a member the API is entitled to declare for a
+/// collision the compiler does not have.
+///
+/// The keyword table does not apply here at all, which is the positional distinction C# has.
+/// A member is rendered in upper camel case and C# reserves nothing that is spelled that way, so a
+/// field the document calls `class` is a property called `Class` and needs no escape. What a member
+/// does have to avoid is this list — and, separately and per declaration, the name of the type it
+/// sits in, which `error CS0542` refuses and which no fixed vocabulary can express.
+///
+/// Sorted, as [`ReservedWords`] searches it by halving.
+const CSHARP_SHADOWED: [&str; 6] = [
+    "Equals",
+    "GetHashCode",
+    "GetType",
+    "MemberwiseClone",
+    "ReferenceEquals",
+    "ToString",
+];
+
+/// What a name rendering to no identifier at all is spelled as in C#, in each position.
+const CSHARP_PLACEHOLDER: &str = "value";
+const CSHARP_MEMBER_PLACEHOLDER: &str = "Value";
+
+static CSHARP_RESERVED: LazyLock<ReservedWords> = LazyLock::new(|| {
+    ReservedWords::build(&CSHARP_KEYWORDS, Escape::Prefix('@'), CSHARP_PLACEHOLDER).expect(
+        "the C# keyword table is sorted, carries no empty word, and does not hold its own fallback",
+    )
+});
+
+/// What a member of an emitted C# declaration is spelled out of the way of.
+///
+/// The escape is a suffix rather than the `@` the keywords use, because `@` is not an escape at
+/// all here: the compiler reads `@ToString` and `ToString` as one name, so prefixing it would
+/// rename nothing and the collision would ship.
+static CSHARP_MEMBER_RESERVED: LazyLock<ReservedWords> = LazyLock::new(|| {
+    ReservedWords::build(
+        &CSHARP_SHADOWED,
+        Escape::Suffix('_'),
+        CSHARP_MEMBER_PLACEHOLDER,
+    )
+    .expect(
+        "the C# shadowing table is sorted, carries no empty word, and does not hold its own \
+         fallback",
+    )
+});
+
+/// The vocabulary a member of an emitted C# declaration is spelled out of the way of.
+pub(super) fn csharp_member_reserved() -> &'static ReservedWords {
+    LazyLock::force(&CSHARP_MEMBER_RESERVED)
+}
+
+/// How C# wants what it is handed spelled.
+///
+/// Everything a caller reaches is upper camel case, which is what the framework's own surface is
+/// spelled as; only the arguments of a method, which never leave the signature they are declared
+/// in, are lower. A file is named after the type it carries, so it is cased like one.
+fn csharp() -> LanguageSpec {
+    LanguageSpec {
+        casing: Casing {
+            type_name: Case::UpperCamel,
+            method: Case::UpperCamel,
+            field: Case::UpperCamel,
+            parameter: Case::LowerCamel,
+            constant: Case::UpperCamel,
+            file: Case::UpperCamel,
+            module: Case::UpperCamel,
+        },
+        reserved: LazyLock::force(&CSHARP_RESERVED),
+        scalars: ScalarNames {
+            string: "string",
+            uuid: "Guid",
+            date_time: "DateTimeOffset",
+            date: "DateOnly",
+            // What the API answers is text, and text is what has to go back out unchanged; `Uri`
+            // would put a normalisation nobody asked for between the two.
+            url: "string",
+            integer32: "int",
+            integer64: "long",
+            number: "double",
+            boolean: "bool",
+        },
+        comment: CommentStyle::DoubleSlash,
+        extension: "cs",
+    }
+}
+
+/// The words PHP keeps for itself where this target puts a *type* name, written the way a type name
+/// reaches them.
+///
+/// PHP compares its own vocabulary without regard to case — `class List` and `class LIST` are the
+/// same parse error — and every name this target spells reaches a table under exactly one
+/// [`Case`]. A type name is upper camel case, so the words are written that way and compared
+/// exactly: a table written in lower case would be searched for `List` and find nothing, and the
+/// keyword would ship as a class the language refuses to parse.
+///
+/// The list is the language's reserved words together with the names it refuses as a class outright
+/// (`Object`, `Int`, `Never` and the rest), since both fail the same way. What is deliberately
+/// absent is every keyword spelled with a separator — `include_once`, `require_once`,
+/// `__halt_compiler` — because rendering drops the separator and `IncludeOnce` is a class name the
+/// language accepts. Sorted, as [`ReservedWords`] searches it by halving.
+const PHP_KEYWORDS: [&str; 84] = [
+    "Abstract",
+    "And",
+    "Array",
+    "As",
+    "Bool",
+    "Break",
+    "Callable",
+    "Case",
+    "Catch",
+    "Class",
+    "Clone",
+    "Const",
+    "Continue",
+    "Declare",
+    "Default",
+    "Die",
+    "Do",
+    "Echo",
+    "Else",
+    "Elseif",
+    "Empty",
+    "Enddeclare",
+    "Endfor",
+    "Endforeach",
+    "Endif",
+    "Endswitch",
+    "Endwhile",
+    "Enum",
+    "Eval",
+    "Exit",
+    "Extends",
+    "False",
+    "Final",
+    "Finally",
+    "Float",
+    "Fn",
+    "For",
+    "Foreach",
+    "Function",
+    "Global",
+    "Goto",
+    "If",
+    "Implements",
+    "Include",
+    "Instanceof",
+    "Insteadof",
+    "Int",
+    "Interface",
+    "Isset",
+    "Iterable",
+    "List",
+    "Match",
+    "Mixed",
+    "Namespace",
+    "Never",
+    "New",
+    "Null",
+    "Numeric",
+    "Object",
+    "Or",
+    "Parent",
+    "Print",
+    "Private",
+    "Protected",
+    "Public",
+    "Readonly",
+    "Require",
+    "Resource",
+    "Return",
+    "Self",
+    "Static",
+    "String",
+    "Switch",
+    "Throw",
+    "Trait",
+    "True",
+    "Try",
+    "Unset",
+    "Use",
+    "Var",
+    "Void",
+    "While",
+    "Xor",
+    "Yield",
+];
+
+/// The names a member of an emitted PHP declaration would *replace* rather than merely sit beside.
+///
+/// Three things are in here, and the language's keywords are not, on purpose: PHP reads what
+/// follows `function`, `->`, `::` and `$` as a name rather than as a keyword, so a method called
+/// `list`, a property called `class` and an argument called `print` are all names a caller can
+/// write, and escaping them would put an underscore in a published package for a collision that
+/// cannot happen.
+///
+/// `Class` is the one word the language does refuse in a member position: a class constant — and
+/// therefore an enumeration case — may not be spelled that way, because `Something::class` already
+/// names the class itself. It is upper camel case here, which is how an enumeration case reaches
+/// this table.
+///
+/// The magic methods are what every class already answers to, and a declaration carrying one of
+/// them under a different meaning changes what happens a long way from where it was declared: a
+/// `__toString` decides what the value reads as the next time anything prints it. Rendering drops
+/// the leading underscores, so no name the document carries reaches one today; they are the
+/// language's vocabulary rather than today's surface, and the table describes the language.
+///
+/// The rest are the names the emitter itself writes into every declaration — the two helpers an
+/// operation group calls, the two the base exception calls, and the three every emitted type
+/// carries — which a member spelled the same way would take the place of. Sorted, as
+/// [`ReservedWords`] searches it by halving, which puts the upper-case word first and the
+/// underscored ones ahead of the rest.
+const PHP_SHADOWED: [&str; 25] = [
+    "Class",
+    "__call",
+    "__callStatic",
+    "__clone",
+    "__construct",
+    "__debugInfo",
+    "__destruct",
+    "__get",
+    "__invoke",
+    "__isset",
+    "__serialize",
+    "__set",
+    "__set_state",
+    "__sleep",
+    "__toString",
+    "__unserialize",
+    "__unset",
+    "__wakeup",
+    "checkAnswer",
+    "equals",
+    "fromJson",
+    "problemOf",
+    "raiseForStatus",
+    "readAnswer",
+    "toArray",
+];
+
+/// What a name rendering to no identifier at all is spelled as in PHP.
+const PHP_PLACEHOLDER: &str = "value";
+
+static PHP_RESERVED: LazyLock<ReservedWords> = LazyLock::new(|| {
+    ReservedWords::build(&PHP_KEYWORDS, Escape::Suffix('_'), PHP_PLACEHOLDER).expect(
+        "the PHP keyword table is sorted, carries no empty word, and does not hold its own fallback",
+    )
+});
+
+static PHP_SHADOWED_RESERVED: LazyLock<ReservedWords> = LazyLock::new(|| {
+    ReservedWords::build(&PHP_SHADOWED, Escape::Suffix('_'), PHP_PLACEHOLDER).expect(
+        "the PHP shadowing table is sorted, carries no empty word, and does not hold its own \
+         fallback",
+    )
+});
+
+/// The vocabulary a member of an emitted PHP declaration is spelled out of the way of.
+pub(super) fn php_shadowed() -> &'static ReservedWords {
+    LazyLock::force(&PHP_SHADOWED_RESERVED)
+}
+
+/// How PHP wants what it is handed spelled.
+///
+/// A file is named after the type it carries, since that is what an autoloader turns a class name
+/// back into, so it is cased like one. An enumeration case is upper camel case, which is what the
+/// language's own style guides spell one as, and is also what keeps it clear of `class` being the
+/// one member name the language refuses.
+///
+/// Every identifier the API answers travels as the text it answered: PHP has no type for one, and
+/// that text is what has to go back out unchanged. A day and a moment share the one immutable type
+/// the language carries for both, which is why how much of either survives being written is decided
+/// in the runtime rather than read off the type.
+fn php() -> LanguageSpec {
+    LanguageSpec {
+        casing: Casing {
+            type_name: Case::UpperCamel,
+            method: Case::LowerCamel,
+            field: Case::LowerCamel,
+            parameter: Case::LowerCamel,
+            constant: Case::UpperCamel,
+            file: Case::UpperCamel,
+            module: Case::UpperCamel,
+        },
+        reserved: LazyLock::force(&PHP_RESERVED),
+        scalars: ScalarNames {
+            string: "string",
+            uuid: "string",
+            date_time: "\\DateTimeImmutable",
+            date: "\\DateTimeImmutable",
+            url: "string",
+            integer32: "int",
+            integer64: "int",
+            number: "float",
+            boolean: "bool",
+        },
+        comment: CommentStyle::DoubleSlash,
+        extension: "php",
     }
 }

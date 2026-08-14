@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hook0.Client", "src\Hook0.Client.csproj", "{13CCF109-79F6-4B06-993A-873A2F2500A3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hook0.Client.Tests", "tests\Hook0.Client.Tests.csproj", "{820DD6BC-FAF6-4999-88F8-9E0BF319E916}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{13CCF109-79F6-4B06-993A-873A2F2500A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13CCF109-79F6-4B06-993A-873A2F2500A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13CCF109-79F6-4B06-993A-873A2F2500A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13CCF109-79F6-4B06-993A-873A2F2500A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{820DD6BC-FAF6-4999-88F8-9E0BF319E916}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{820DD6BC-FAF6-4999-88F8-9E0BF319E916}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{820DD6BC-FAF6-4999-88F8-9E0BF319E916}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{820DD6BC-FAF6-4999-88F8-9E0BF319E916}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -29,8 +29,6 @@ compile_error!("at least one of feature \"producer\" and feature \"consumer\" mu
 use chrono::{DateTime, Utc};
 
 #[cfg(feature = "producer")]
-use http_body_util::Limited;
-#[cfg(feature = "producer")]
 use lazy_regex::regex_captures;
 #[cfg(feature = "producer")]
 use reqwest::StatusCode;
@@ -509,7 +507,20 @@ impl Hook0Client {
         };
         let status = answer.status();
         let named_delay = named_delay(answer.headers());
-        let (res, head_refusal) = bounded(answer, self.max_response_bytes);
+        let (res, refusal) = match bounded(answer, self.max_response_bytes).await {
+            Ok(read) => read,
+            // The answer stopped mid-way, so it says nothing about whether Hook0 acted on the
+            // request; the next attempt can carry the whole of it, and the ID this client chose is
+            // what keeps that from ingesting the event twice.
+            Err(error) => {
+                return Attempt::Failed(Failure {
+                    retryable: true,
+                    body: underlying_cause(&error),
+                    named_delay: None,
+                    error,
+                });
+            }
+        };
 
         match res.error_for_status_ref() {
             Ok(_) => {
@@ -523,7 +534,7 @@ impl Hook0Client {
                     // answer above a ceiling it set for itself is one of those; repeating the
                     // request would meet the same answer.
                     Err(error) => Attempt::Failed(Failure {
-                        body: head_refusal.or_else(|| underlying_cause(&error)),
+                        body: refusal.or_else(|| underlying_cause(&error)),
                         error,
                         retryable: false,
                         named_delay: None,
@@ -538,8 +549,8 @@ impl Hook0Client {
                     Attempt::Failed(Failure {
                         // An answer that crossed a ceiling this client set for itself draws the
                         // same answer the next time, whatever its status says.
-                        retryable: head_refusal.is_none() && is_retryable(status, body.as_deref()),
-                        body: head_refusal.or(body),
+                        retryable: refusal.is_none() && is_retryable(status, body.as_deref()),
+                        body: refusal.or(body),
                         error,
                         named_delay,
                     })
@@ -579,6 +590,8 @@ impl Hook0Client {
             .map_err(Hook0ClientError::GetAvailableEventTypes)?;
         let available_event_types_vec =
             bounded(available_event_types_answer, self.max_response_bytes)
+                .await
+                .map_err(Hook0ClientError::GetAvailableEventTypes)?
                 .0
                 .error_for_status()
                 .map_err(Hook0ClientError::GetAvailableEventTypes)?
@@ -903,30 +916,41 @@ struct Failure {
 }
 
 #[cfg(feature = "producer")]
-/// The same answer, held to what this client agrees to read off the socket, and why it will not be
-/// read at all when its head already crossed a ceiling.
+/// The same answer, read no further than this client agrees to hold, and why it was not read at all
+/// when its head had already crossed a ceiling.
 ///
 /// `reqwest` reads a body without a ceiling of its own, so a server that is broken or hostile can
-/// stream into an emitter's memory for as long as the connection lasts. Wrapping the body makes the
-/// read stop at the ceiling and fail there, which is what turns an answer without end into an error
-/// rather than into an allocation. Nothing about the answer changes below the ceiling.
+/// stream into an emitter's memory for as long as the connection lasts. The body is taken a frame
+/// at a time and abandoned as soon as the next one would cross the ceiling, so nothing beyond it is
+/// ever held: what comes back carries the bytes that were read, and the caller reads them the way it
+/// would have read the answer itself.
 ///
-/// An answer whose head is already above a ceiling is held to nothing at all: the read that follows
-/// fails instead of holding a body on top of a head this client has refused. That refusal reaches
-/// the caller as the failure of that read because [`Hook0ClientError::EventSending`] carries a
-/// Reqwest error, and only Reqwest builds one.
-fn bounded(
-    answer: reqwest::Response,
+/// An answer that crossed a ceiling — of its head, or of its body — comes back carrying nothing at
+/// all, which is what makes the read that follows fail. That is how the refusal reaches a caller:
+/// [`Hook0ClientError::EventSending`] carries a Reqwest error, and only Reqwest builds one.
+async fn bounded(
+    mut answer: reqwest::Response,
     max_response_bytes: usize,
-) -> (reqwest::Response, Option<String>) {
-    let refusal = head_above_a_bound(answer.headers());
-    let held = match refusal {
-        Some(_) => 0,
-        None => max_response_bytes,
-    };
+) -> Result<(reqwest::Response, Option<String>), reqwest::Error> {
+    let mut refusal = head_above_a_bound(answer.headers());
+    let mut read: Vec<u8> = Vec::new();
+
+    if refusal.is_none() {
+        while let Some(frame) = answer.chunk().await? {
+            if read.len().saturating_add(frame.len()) > max_response_bytes {
+                read = Vec::new();
+                refusal = Some(format!(
+                    "the API answered more than the {max_response_bytes} bytes read at most"
+                ));
+                break;
+            }
+            read.extend_from_slice(&frame);
+        }
+    }
 
     let url = answer.url().to_owned();
-    let (mut parts, body) = http::Response::<reqwest::Body>::from(answer).into_parts();
+    // Whatever is left of the body is dropped with the answer it came on, read or refused.
+    let (mut parts, _) = http::Response::<reqwest::Body>::from(answer).into_parts();
 
     // Rebuilding an answer drops the URL it came from, and `reqwest` reads that URL back out of an
     // extension only its own builder writes; without this, every failure below names a placeholder
@@ -935,11 +959,9 @@ fn bounded(
         parts.extensions = carrier.into_parts().0.extensions;
     }
 
-    let held = reqwest::Response::from(http::Response::from_parts(
-        parts,
-        reqwest::Body::wrap(Limited::new(body, held)),
-    ));
-    (held, refusal)
+    let held =
+        reqwest::Response::from(http::Response::from_parts(parts, reqwest::Body::from(read)));
+    Ok((held, refusal))
 }
 
 #[cfg(feature = "producer")]

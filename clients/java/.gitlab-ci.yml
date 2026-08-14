@@ -1,0 +1,52 @@
+# A job of its own, unlike the generator guards that ride along with the Rust client: this is
+# another runtime, with another toolchain and another image, so there is nothing here an existing
+# job could have run.
+#
+# The image carries the build tool as well as the runtime, and its version is pinned here rather
+# than resolved: a wrapper that downloads its own distribution on first use is one more thing to
+# pin, one more thing to be offline for, and one more way for two runs of the same commit to build
+# with different bytes.
+clients.java.check:
+  stage: test
+  dependencies: []
+  image: maven:3.9.11-eclipse-temurin-$JAVA_VERSION
+  # The whole suite talks to loopback sockets and finishes in seconds; anything past this is a run
+  # that is stuck rather than one that is slow.
+  timeout: 15m
+  variables:
+    # Inside the working tree, so the cache below can carry it between runs and a build never
+    # resolves again what it already holds.
+    MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/clients/java/.m2"
+    MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress --errors"
+  cache:
+    # Keyed on the build file, so a pinned version somebody changes is fetched and a run that
+    # changed nothing reaches the network for nothing.
+    key:
+      files:
+        - clients/java/pom.xml
+    paths:
+      - clients/java/.m2
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
+    - changes:
+        - clients/java/**/*
+        # The generated half of the artefact is written from the API's OpenAPI snapshot, so a change
+        # of the generator or of the API surface has to face the suites that exercise what it wrote.
+        - clients/sdkgen/**/*
+        - api/openapi.snapshot.json
+        # Retry classification, the bounds of a send and signature verification are hand-written
+        # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
+        # this client rather than the one language whoever edited it happened to be reading.
+        - clients/conformance/**/*
+  before_script:
+    - java -version
+    - mvn --version
+  script:
+    - pushd clients/java
+    # Three things, one invocation. `checkstyle:check` first, because the generator emits
+    # already-formatted, already-linted source and an offence there is a defect in it or a hand edit
+    # beside it — nothing is corrected, since a job that rewrote what it was checking would report
+    # success on source nobody wrote. `verify` then runs the enforcer that refuses an unpinned
+    # plugin or a dynamic version, compiles both halves with warnings as failures, and runs the
+    # suites.
+    - mvn $MAVEN_CLI_OPTS checkstyle:check verify

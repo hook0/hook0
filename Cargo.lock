@@ -3036,7 +3036,6 @@ dependencies = [
  "hex",
  "hmac 0.13.0",
  "http 1.5.0",
- "http-body-util",
  "lazy-regex",
  "proptest",
  "reqwest",
