@@ -56,6 +56,33 @@ To add the Hook0 client in your TS/JS project, install it via npm:
 npm install hook0-client
 ```
 
+### Both module systems, and one copy of the code
+
+`require` and `import` both reach the package, and the `exports` map says so rather than leaving it
+to be inferred:
+
+```javascript
+const { Hook0Client } = require('hook0-client'); // CommonJS
+```
+
+```javascript
+import { Hook0Client } from 'hook0-client'; // ES modules, named
+import hook0Client from 'hook0-client'; // ES modules, the whole package
+```
+
+TypeScript resolves the declarations for whichever half it picks, under `bundler`, `node16` and
+`nodenext` alike.
+
+The ES module half re-exports the compiled CommonJS instead of being a second compilation of it, so
+a dependency tree that reaches the package both ways still gets **one** `Hook0ClientError` class
+rather than two. That matters here: `verifyWebhookSignature` and `EventType.fromString` answer with
+either a value or a `Hook0ClientError`, so telling the two apart means writing
+`instanceof Hook0ClientError` — and against an error built by a second copy of the class, that test
+answers `false`, which would read a refused signature as a verified one.
+
+The compiled layout is not part of the contract: reaching into `hook0-client/dist/…` is refused at
+resolution. Import the package.
+
 ## What is Hook0?
 
 **Hook0** is an open source product that helps any software system (such as Software-as-a-Service applications) to expose webhooks to their end users.

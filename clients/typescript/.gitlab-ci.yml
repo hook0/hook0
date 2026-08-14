@@ -13,8 +13,11 @@ clients.typescript.build:
   script:
     - pushd clients/typescript/
     - npm install
-    - npm test
+    # Before the suite rather than after: `tests/packaging.test.ts` installs the built package into
+    # a throwaway consumer and imports it both ways, so a condition of the `exports` map pointing at
+    # a file the build does not emit fails here instead of on the first `npm install` a user runs.
     - npm run build
+    - npm test
   artifacts:
     name: "$CI_JOB_NAME"
     paths:
