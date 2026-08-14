@@ -10,6 +10,7 @@
 //! language: two emitters writing the same language cannot disagree on how a field is spelled or on
 //! what a `date-time` is called.
 
+pub mod go;
 pub mod mcp;
 pub mod python;
 
@@ -103,7 +104,8 @@ pub fn targets() -> &'static [Target] {
     &TARGETS
 }
 
-static TARGETS: LazyLock<Vec<Target>> = LazyLock::new(|| vec![mcp::target(), python::target()]);
+static TARGETS: LazyLock<Vec<Target>> =
+    LazyLock::new(|| vec![go::target(), mcp::target(), python::target()]);
 
 /// Rust's own vocabulary, including the words it reserves without using them yet.
 ///
@@ -132,6 +134,7 @@ fn rust() -> LanguageSpec {
             type_name: Case::UpperCamel,
             method: Case::Snake,
             field: Case::Snake,
+            parameter: Case::Snake,
             constant: Case::ScreamingSnake,
             file: Case::Snake,
             module: Case::Snake,
@@ -182,6 +185,7 @@ fn python() -> LanguageSpec {
             type_name: Case::UpperCamel,
             method: Case::Snake,
             field: Case::Snake,
+            parameter: Case::Snake,
             constant: Case::ScreamingSnake,
             file: Case::Snake,
             module: Case::Snake,
@@ -200,5 +204,140 @@ fn python() -> LanguageSpec {
         },
         comment: CommentStyle::Hash,
         extension: "py",
+    }
+}
+
+/// Go's own vocabulary: its keywords, its predeclared identifiers, and the words the emitter keeps
+/// for the locals it writes into every method body.
+///
+/// The predeclared ones are not keywords — nothing stops an argument called `len` or `error` — but
+/// one shadows the builtin for the rest of the body it sits in, and a body that calls `len` after
+/// that calls whatever was passed. The emitter's own locals are here for the same reason: an
+/// argument spelling `path` would be assigned over by the line that fills in the path template.
+/// Sorted, as [`ReservedWords`] searches it by halving.
+const GO_KEYWORDS: [&str; 80] = [
+    "any",
+    "append",
+    "body",
+    "bool",
+    "break",
+    "byte",
+    "cap",
+    "case",
+    "chan",
+    "clear",
+    "close",
+    "comparable",
+    "complex",
+    "complex128",
+    "complex64",
+    "const",
+    "continue",
+    "copy",
+    "ctx",
+    "default",
+    "defer",
+    "delete",
+    "else",
+    "err",
+    "error",
+    "failure",
+    "fallthrough",
+    "false",
+    "float32",
+    "float64",
+    "for",
+    "func",
+    "go",
+    "goto",
+    "group",
+    "if",
+    "imag",
+    "import",
+    "int",
+    "int16",
+    "int32",
+    "int64",
+    "int8",
+    "interface",
+    "iota",
+    "len",
+    "make",
+    "map",
+    "max",
+    "min",
+    "new",
+    "nil",
+    "out",
+    "package",
+    "panic",
+    "path",
+    "payload",
+    "print",
+    "println",
+    "query",
+    "range",
+    "real",
+    "recover",
+    "return",
+    "rune",
+    "select",
+    "status",
+    "string",
+    "struct",
+    "switch",
+    "transport",
+    "true",
+    "type",
+    "uint",
+    "uint16",
+    "uint32",
+    "uint64",
+    "uint8",
+    "uintptr",
+    "var",
+];
+
+/// What a name rendering to no identifier at all is spelled as in Go.
+const GO_PLACEHOLDER: &str = "value";
+
+static GO_RESERVED: LazyLock<ReservedWords> = LazyLock::new(|| {
+    ReservedWords::build(&GO_KEYWORDS, Escape::Suffix('_'), GO_PLACEHOLDER).expect(
+        "the Go keyword table is sorted, carries no empty word, and does not hold its own fallback",
+    )
+});
+
+/// How Go wants what it is handed spelled.
+///
+/// The casing of the first letter is what decides whether a name leaves its package, so everything
+/// a caller reaches — types, methods, fields, constants — is [`Case::UpperCamel`], and only the
+/// arguments of a method, which never leave the body they are declared in, are lower.
+fn go() -> LanguageSpec {
+    LanguageSpec {
+        casing: Casing {
+            type_name: Case::UpperCamel,
+            method: Case::UpperCamel,
+            field: Case::UpperCamel,
+            parameter: Case::LowerCamel,
+            constant: Case::UpperCamel,
+            file: Case::Snake,
+            module: Case::Lower,
+        },
+        reserved: LazyLock::force(&GO_RESERVED),
+        scalars: ScalarNames {
+            string: "string",
+            // Neither of these two names a type the standard library carries, so the target
+            // declares them; `time.Time` and the rest are Go's own.
+            uuid: "UUID",
+            date_time: "time.Time",
+            date: "Date",
+            url: "string",
+            integer32: "int32",
+            integer64: "int64",
+            number: "float64",
+            boolean: "bool",
+        },
+        comment: CommentStyle::DoubleSlash,
+        extension: "go",
     }
 }

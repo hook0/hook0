@@ -1,0 +1,32 @@
+# A job of its own, unlike the generator guards that ride along with the Rust client: this is
+# another toolchain and another image, so there is nothing here an existing job could have run.
+clients.go.check:
+  stage: test
+  dependencies: []
+  image: golang:$GO_VERSION
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
+    - changes:
+        - clients/go/**/*
+        # The generated half of the module is written from the API's OpenAPI snapshot, so a change
+        # of the generator or of the API surface has to face the suites that exercise what it wrote.
+        - clients/sdkgen/**/*
+        - api/openapi.snapshot.json
+  before_script:
+    - go version
+    # The module requires nothing, so nothing is downloaded and nothing has to be pinned. A
+    # `require` appearing here is a dependency somebody added, and it stops the job.
+    - test -z "$(go list -m -f '{{ .Path }}' all | tail -n +2)" || { go list -m all; echo 'the Go SDK has grown a dependency; it is meant to reach for the standard library alone'; exit 1; }
+  script:
+    - pushd clients/go
+    # `gofmt -l` names the files it would rewrite and exits successfully either way, so what it
+    # named is what decides.
+    - gofmt -l .
+    - test -z "$(gofmt -l .)" || { echo 'the files above are not what gofmt writes; the generator emits already-formatted source, so a difference here is a defect in it or a hand edit beside it'; exit 1; }
+    - go vet ./...
+    - go test ./...
+    # The corpus committed beside the properties runs above, as ordinary cases. This is the search
+    # itself, under a deadline, so a pipeline can never be held by one.
+    - go test -run '^$' -fuzz FuzzRetryScheduleStaysWithinEveryBound -fuzztime 20s .
+    - go test -run '^$' -fuzz FuzzReadingASignatureAnswersOneOfTheDeclaredRefusals -fuzztime 20s .
+    - go test -run '^$' -fuzz FuzzAGeneratedTypeWritesBackWhatItRead -fuzztime 20s .

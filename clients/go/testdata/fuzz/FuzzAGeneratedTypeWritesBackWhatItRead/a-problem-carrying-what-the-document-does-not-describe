@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"id\":\"Validation\",\"title\":\"t\",\"detail\":\"d\",\"status\":400,\"type\":\"u\",\"validation\":{\"name\":[\"is required\"]}}")

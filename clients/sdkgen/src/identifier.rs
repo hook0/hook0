@@ -124,6 +124,10 @@ pub struct Casing {
     pub type_name: Case,
     pub method: Case,
     pub field: Case,
+    /// How an argument of a method is spelled, which is not always how a member of a type is: a
+    /// language where the casing of a name decides whether it leaves the package spells the two
+    /// differently, and a language that reads them alike loses nothing by saying so twice.
+    pub parameter: Case,
     pub constant: Case,
     pub file: Case,
     pub module: Case,

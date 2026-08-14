@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"id\":\"NotFound\",\"title\":\"Not found\",\"detail\":\"This application does not exist.\",\"status\":404,\"type\":\"https://documentation.hook0.com/problems\"}")
