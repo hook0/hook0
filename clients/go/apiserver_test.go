@@ -39,6 +39,8 @@ type scriptedResponse struct {
 	status int
 	// body is the document the answer carries.
 	body any
+	// headers are what the answer carries beside its body, such as the delay a paced instance names.
+	headers map[string]string
 	// heldFor is how long the API sits on the answer before writing anything.
 	heldFor time.Duration
 	// hangsUp says the API closes the connection without answering at all, which is the transport
@@ -192,6 +194,9 @@ func (a *fakeAPI) serve(writer http.ResponseWriter, request *http.Request) {
 		panic(err)
 	}
 	writer.Header().Set("Content-Type", "application/json")
+	for name, value := range scripted.headers {
+		writer.Header().Set(name, value)
+	}
 	writer.WriteHeader(scripted.status)
 	_, _ = writer.Write(answer)
 }

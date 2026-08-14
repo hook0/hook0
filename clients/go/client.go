@@ -19,9 +19,11 @@
 // repeated request says an earlier attempt of that same send reached the API, so the send succeeded.
 // The same answer to a first attempt is a genuine conflict and is reported as one.
 //
-// Only what could end differently is retried: a request that got no answer, and a server error.
-// What the API refuses outright is answered as is, since repeating it would only spend the same
-// round trip again.
+// Only what could end differently is retried: a request that got no answer, a server error, and an
+// instance saying it is being reached faster than it accepts. What the API refuses outright — a
+// quota that is spent, a payload it will not read — is answered as is, since repeating it would only
+// spend the same round trip again. The verdict for every problem the API can report is written down
+// in the conformance corpus committed beside this module, which the suite here reads.
 //
 // A send is bounded on five axes, each of them the caller's to set: the size of the payload, which
 // is refused before a socket is opened; how long one attempt is given; how many attempts are made;
@@ -41,6 +43,8 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -62,6 +66,14 @@ const (
 	// AlreadyIngested is the identifier Hook0 gives the problem it answers when an event identifier
 	// is already taken.
 	AlreadyIngested = "EventAlreadyIngested"
+
+	// RateLimited is the identifier Hook0 gives the problem it answers when requests are reaching
+	// the instance faster than it accepts them.
+	//
+	// It shares its status with the quota problems, and is the only one of them worth repeating: a
+	// quota clears when a plan changes or a day turns, neither of which happens inside the seconds a
+	// send is given, while pacing clears on its own and the answer says when.
+	RateLimited = "RateLimited"
 )
 
 const (
@@ -71,9 +83,18 @@ const (
 	// conflictStatus is what Hook0 answers when the event identifier a request carries is taken.
 	conflictStatus = 409
 
+	// pacedStatus is what Hook0 answers both when a quota is spent and when requests are coming in
+	// faster than the instance accepts them. Which of the two it is only the problem the body names
+	// can say, which is why this status alone decides nothing.
+	pacedStatus = 429
+
 	// lowestServerError is the first status saying the failure is on Hook0's side, and so could
 	// clear on its own.
 	lowestServerError = 500
+
+	// delayHeader is what the API names the delay before the request becomes servable in, in whole
+	// seconds.
+	delayHeader = "Retry-After"
 
 	// eventPath is where an event is ingested, under the API URL.
 	eventPath = "event"
@@ -361,6 +382,13 @@ type attempt struct {
 	detail string
 	// retryable says whether repeating this very request could end differently.
 	retryable bool
+	// err is the failure underneath, nil when the API answered and the answer is the whole story.
+	// It travels to the caller so that errors.Is reaches the nature of what went wrong.
+	err error
+	// delayNamed says the answer named how long to wait before repeating the request.
+	delayNamed bool
+	// delay is how long it named, meaningful only when delayNamed says so.
+	delay time.Duration
 }
 
 // SendEvent sends an event, and answers the identifier it was sent under.
@@ -406,7 +434,8 @@ func (c *Client) SendEvent(ctx context.Context, event Event) (string, error) {
 
 		retry := issued - 1
 		if outcome.retryable && retry < len(delays) {
-			timer := time.NewTimer(delays[retry])
+			wait := waitFor(outcome, delays[retry], policy.MaxTotalDelay-waited)
+			timer := time.NewTimer(wait)
 			select {
 			case <-ctx.Done():
 				timer.Stop()
@@ -419,29 +448,35 @@ func (c *Client) SendEvent(ctx context.Context, event Event) (string, error) {
 				}
 			case <-timer.C:
 			}
-			waited += delays[retry]
+			waited += wait
 			continue
 		}
 
-		return "", &SendError{EventId: eventId, Attempts: issued, Waited: waited, Detail: outcome.detail}
+		return "", &SendError{
+			EventId:  eventId,
+			Attempts: issued,
+			Waited:   waited,
+			Detail:   outcome.detail,
+			Err:      outcome.err,
+		}
 	}
 }
 
 // attemptSend is one attempt at sending an already-bounded event.
 func (c *Client) attemptSend(ctx context.Context, body map[string]any) attempt {
-	status, payload, err := c.transport.Request(ctx, http.MethodPost, eventPath, url.Values{}, body)
+	status, headers, payload, err := c.transport.Deliver(ctx, http.MethodPost, eventPath, url.Values{}, body)
 	if err != nil {
-		var unreachable *TransportError
-		// Only a request that got no answer could end differently; anything else is a request this
-		// client could not build, and building it again would fail the same way.
-		return attempt{detail: err.Error(), retryable: errors.As(err, &unreachable)}
+		// Decided by the nature of the failure, not by the type carrying it: an answer above a
+		// ceiling and a URL nothing can be sent to arrive as the same type as a reset connection,
+		// and repeating either of them meets the very same thing.
+		return attempt{detail: err.Error(), retryable: errors.Is(err, ErrUnreachable), err: err}
 	}
-	return readAttempt(status, payload)
+	return readAttempt(status, headers, payload)
 }
 
 // readAttempt says what the API answered one attempt, and whether repeating it could end
 // differently.
-func readAttempt(status int, payload []byte) attempt {
+func readAttempt(status int, headers http.Header, payload []byte) attempt {
 	body := string(payload)
 
 	if status >= 200 && status < 300 {
@@ -454,12 +489,62 @@ func readAttempt(status int, payload []byte) attempt {
 		return attempt{ingested: ingested}
 	}
 
-	if status == conflictStatus && isAlreadyIngested(payload) {
+	if status == conflictStatus && problemId(payload) == AlreadyIngested {
 		return attempt{alreadyIngested: true, detail: body}
 	}
 
-	// Only the server side of a server error can change between two identical requests.
-	return attempt{detail: body, retryable: status >= lowestServerError}
+	delay, delayNamed := namedDelay(headers)
+	return attempt{
+		detail:     body,
+		retryable:  isRetryable(status, problemId(payload)),
+		delayNamed: delayNamed,
+		delay:      delay,
+	}
+}
+
+// isRetryable says whether repeating a request the API answered that way could end differently.
+//
+// The status decides on its own everywhere but under the one it answers both a spent quota and a
+// paced instance with: a quota clears when a plan changes or a day turns, and neither is something a
+// send spending seconds can wait for. Only the problem the body names tells the two apart, and a
+// body naming a problem this client has never heard of falls back to what the status says.
+func isRetryable(status int, problem string) bool {
+	if status == pacedStatus {
+		return problem == RateLimited
+	}
+	return status >= lowestServerError
+}
+
+// waitFor is how long to wait before the next attempt: what the API asked for when it asked for
+// anything, and the client's own schedule otherwise.
+//
+// Either way it is cut down to what is left of the budget every delay of one send shares, so a
+// delay written by the other end cannot stretch a send past what the caller allowed for it.
+func waitFor(outcome attempt, scheduled time.Duration, remaining time.Duration) time.Duration {
+	wanted := scheduled
+	if outcome.delayNamed {
+		wanted = outcome.delay
+	}
+	return max(min(wanted, remaining), 0)
+}
+
+// namedDelay is the delay the API named before the request becomes servable, and whether it named
+// one this client can read.
+//
+// Only a whole number of seconds is read. The header may also carry a date, which is a clock this
+// client would be comparing against its own, and anything else is a header nobody meant: both leave
+// the client's own schedule in place rather than being guessed at.
+func namedDelay(headers http.Header) (time.Duration, bool) {
+	written := strings.TrimSpace(headers.Get(delayHeader))
+	if written == "" {
+		return 0, false
+	}
+
+	seconds, err := strconv.ParseInt(written, 10, 32)
+	if err != nil || seconds < 0 {
+		return 0, false
+	}
+	return time.Duration(seconds) * time.Second, true
 }
 
 // ingestedId is the identifier the API says it ingested the event under.
@@ -473,16 +558,15 @@ func ingestedId(payload []byte) string {
 	return answered.EventId
 }
 
-// isAlreadyIngested says whether a problem document is the one Hook0 answers when an identifier is
-// already taken.
-func isAlreadyIngested(payload []byte) bool {
+// problemId is the problem a refusal names, empty when the body names none this client can read.
+func problemId(payload []byte) string {
 	var problem struct {
 		Id string `json:"id"`
 	}
 	if err := json.Unmarshal(payload, &problem); err != nil {
-		return false
+		return ""
 	}
-	return problem.Id == AlreadyIngested
+	return problem.Id
 }
 
 // fullEvent is an event as the API reads one.

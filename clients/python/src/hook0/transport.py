@@ -23,7 +23,7 @@ import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from typing import Any
 
 # Longest one attempt at reaching the API is given before it is abandoned.
@@ -32,11 +32,13 @@ DEFAULT_REQUEST_TIMEOUT = 10.0
 # Largest response body read off a socket, in bytes.
 DEFAULT_MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 
-# Longest status line or header line read, in bytes.
+# Longest status line or header line read, in bytes, and most header lines read out of one response.
+#
+# The head of an answer is written by the other end, so it is bounded like the body: a server that
+# is broken or hostile can otherwise spend a caller's memory on headers alone. Both are the numbers
+# the conformance corpus names, so that no two SDKs bound different things.
 MAX_LINE_BYTES = 64 * 1024
-
-# Most header lines read out of one response.
-MAX_HEADERS = 128
+MAX_HEADERS = 64
 
 # Most chunks read out of one chunked response body.
 MAX_CHUNKS = 4096
@@ -49,11 +51,21 @@ DEFAULT_PORTS = {"http": 80, "https": 443}
 
 
 class TransportError(Exception):
-    """A request that got no answer: a connection refused or reset, or an attempt out of time.
+    """A request that produced no answer to read.
 
-    None of these says whether the API acted on the request, which is exactly why the client sends
-    an event under an identifier it chose itself.
+    Several natures of failure land here — a connection refused or reset, an attempt out of time, an
+    answer above a ceiling this client set for itself, a URL nothing can be sent to — and only the
+    first of them could end differently. Each one therefore says whether it is `transient`, and that
+    is what the client retries on: deciding by the type instead would spend four attempts on a
+    mistyped API URL and then hand the caller a message that accuses the network.
+
+    A transient failure says nothing about whether the API acted on the request, which is exactly why
+    the client sends an event under an identifier it chose itself.
     """
+
+    def __init__(self, detail: str, *, transient: bool) -> None:
+        super().__init__(detail)
+        self.transient = transient
 
 
 def _resolved(base_url: str, path: str, query: Sequence[tuple[str, str]]) -> str:
@@ -70,6 +82,42 @@ def _encoded(body: Any) -> bytes | None:
     if body is None:
         return None
     return json.dumps(body).encode("utf-8")
+
+
+def _carried(headers: Iterable[tuple[str, str]]) -> dict[str, str]:
+    """What an answer carried beside its body, under the names a caller looks them up by.
+
+    A later value wins over an earlier one under the same name, and every name is lowercased, so a
+    caller reads a header without knowing which case the server wrote it in.
+
+    This is also where the head is held to its ceilings, for both transports at once: one of them
+    reads the head itself and the other is handed it by the standard library, and a bound applied in
+    only one of the two is a bound the other does not have.
+    """
+    read: dict[str, str] = {}
+    for name, value in headers:
+        if len(name) + len(value) > MAX_LINE_BYTES:
+            raise TransportError(
+                f"the API answered a `{name}` header above the {MAX_LINE_BYTES} bytes read at most",
+                transient=False,
+            )
+        read[name.lower()] = value.strip()
+        if len(read) > MAX_HEADERS:
+            raise TransportError(f"the API answered more than the {MAX_HEADERS} headers read at most", transient=False)
+    return read
+
+
+def _reachable(url: str) -> None:
+    """Refuses a URL nothing can be sent to, before anything is sent to it.
+
+    A scheme no transport speaks and a URL naming no host are configuration, not weather: they are
+    told apart here so that neither is repeated as if a socket had failed.
+    """
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme not in DEFAULT_PORTS:
+        raise TransportError(f"`{parts.scheme}` is not a scheme this transport reaches", transient=False)
+    if not parts.hostname:
+        raise TransportError("the API URL names no host", transient=False)
 
 
 class HttpTransport:
@@ -94,9 +142,28 @@ class HttpTransport:
         query: Sequence[tuple[str, str]],
         body: Any = None,
     ) -> tuple[int, bytes]:
-        """What the API answered, whether or not it answered a success."""
+        """What the API answered, whether or not it answered a success.
+
+        This is the shape the generated half of this package reads, which is the status and the
+        bytes. A caller that also needs what the answer carried beside its body — the delay a paced
+        instance names is one — asks `deliver` for it.
+        """
+        status, _, payload = self.deliver(method, path, query, body)
+        return status, payload
+
+    def deliver(
+        self,
+        method: str,
+        path: str,
+        query: Sequence[tuple[str, str]],
+        body: Any = None,
+    ) -> tuple[int, dict[str, str], bytes]:
+        """What the API answered, headers included, whether or not it answered a success."""
+        url = _resolved(self._base_url, path, query)
+        _reachable(url)
+
         data = _encoded(body)
-        request = urllib.request.Request(_resolved(self._base_url, path, query), data=data, method=method)
+        request = urllib.request.Request(url, data=data, method=method)
         request.add_header("Authorization", f"Bearer {self._token}")
         request.add_header("Accept", JSON_MEDIA_TYPE)
         if data is not None:
@@ -104,20 +171,33 @@ class HttpTransport:
 
         try:
             with urllib.request.urlopen(request, timeout=self._timeout) as answer:  # noqa: S310
-                return answer.status, self._read(answer)
+                return answer.status, _carried(answer.headers.items()), self._read(answer)
         except urllib.error.HTTPError as refused:
             # A refusal is an answer: the status and the body are what say whether repeating the
             # request could end differently, so they are read rather than raised over.
             with refused:
-                return refused.code, self._read(refused)
-        except (OSError, http.client.HTTPException, ValueError) as unreachable:
-            raise TransportError(str(unreachable)) from unreachable
+                return refused.code, _carried(refused.headers.items()), self._read(refused)
+        except http.client.IncompleteRead as truncated:
+            # A body that stopped mid-way is the one protocol failure worth meeting again: the next
+            # answer could carry the whole of it.
+            raise TransportError(str(truncated), transient=True) from truncated
+        except http.client.HTTPException as unreadable:
+            # A head this client could not read whole — a line above what the standard library
+            # holds, more headers than it counts — reads the same way the second time.
+            raise TransportError(str(unreadable), transient=False) from unreadable
+        except OSError as unreachable:
+            raise TransportError(str(unreachable), transient=True) from unreachable
+        except ValueError as unusable:
+            raise TransportError(str(unusable), transient=False) from unusable
 
     def _read(self, answer: Any) -> bytes:
         """The body of an answer, up to what this transport agrees to hold."""
         payload = answer.read(self._max_response_bytes + 1)
         if len(payload) > self._max_response_bytes:
-            raise TransportError(f"the API answered more than the {self._max_response_bytes} bytes read at most")
+            raise TransportError(
+                f"the API answered more than the {self._max_response_bytes} bytes read at most",
+                transient=False,
+            )
         return payload
 
 
@@ -143,23 +223,37 @@ class AsyncHttpTransport:
         query: Sequence[tuple[str, str]],
         body: Any = None,
     ) -> tuple[int, bytes]:
-        """What the API answered, whether or not it answered a success."""
+        """What the API answered, whether or not it answered a success.
+
+        This is the shape the generated half of this package reads; `deliver` is the same exchange
+        with what the answer carried beside its body.
+        """
+        status, _, payload = await self.deliver(method, path, query, body)
+        return status, payload
+
+    async def deliver(
+        self,
+        method: str,
+        path: str,
+        query: Sequence[tuple[str, str]],
+        body: Any = None,
+    ) -> tuple[int, dict[str, str], bytes]:
+        """What the API answered, headers included, whether or not it answered a success."""
         url = _resolved(self._base_url, path, query)
+        _reachable(url)
+
         try:
             return await asyncio.wait_for(self._exchange(url, method, _encoded(body)), self._timeout)
         except TimeoutError as expired:
-            raise TransportError(f"the API did not answer within {self._timeout}s") from expired
-        except (OSError, ssl.SSLError, EOFError, ValueError) as unreachable:
-            raise TransportError(str(unreachable)) from unreachable
+            raise TransportError(f"the API did not answer within {self._timeout}s", transient=True) from expired
+        except (OSError, ssl.SSLError, EOFError) as unreachable:
+            raise TransportError(str(unreachable), transient=True) from unreachable
+        except ValueError as unusable:
+            raise TransportError(str(unusable), transient=False) from unusable
 
-    async def _exchange(self, url: str, method: str, data: bytes | None) -> tuple[int, bytes]:
+    async def _exchange(self, url: str, method: str, data: bytes | None) -> tuple[int, dict[str, str], bytes]:
         """One request written to a connection, and the answer read back off it."""
         parts = urllib.parse.urlsplit(url)
-        if parts.scheme not in DEFAULT_PORTS:
-            raise TransportError(f"`{parts.scheme}` is not a scheme this transport reaches")
-        if not parts.hostname:
-            raise TransportError("the API URL names no host")
-
         port = parts.port if parts.port else DEFAULT_PORTS[parts.scheme]
         context = ssl.create_default_context() if parts.scheme == "https" else None
         reader, writer = await asyncio.open_connection(
@@ -206,10 +300,11 @@ class AsyncHttpTransport:
             return head
         return head + data
 
-    async def _answer(self, reader: asyncio.StreamReader) -> tuple[int, bytes]:
-        """The status and the body of one answer."""
+    async def _answer(self, reader: asyncio.StreamReader) -> tuple[int, dict[str, str], bytes]:
+        """The status, the headers and the body of one answer."""
         status = _status(await self._line(reader))
 
+        carried: list[tuple[str, str]] = []
         length: int | None = None
         chunked = False
         for _ in range(MAX_HEADERS):
@@ -219,35 +314,45 @@ class AsyncHttpTransport:
             name, _, value = line.partition(":")
             name = name.strip().lower()
             value = value.strip()
+            carried.append((name, value))
             if name == "content-length":
                 length = _length(value)
             elif name == "transfer-encoding":
                 chunked = "chunked" in value.lower()
         else:
-            raise TransportError(f"the API answered more than the {MAX_HEADERS} headers read at most")
+            raise TransportError(f"the API answered more than the {MAX_HEADERS} headers read at most", transient=False)
 
+        headers = _carried(carried)
         if chunked:
-            return status, await self._chunked(reader)
+            return status, headers, await self._chunked(reader)
         if length is not None:
             if length > self._max_response_bytes:
-                raise TransportError(f"the API announced {length} bytes, above the {self._max_response_bytes} read")
-            return status, await reader.readexactly(length)
+                raise TransportError(
+                    f"the API announced {length} bytes, above the {self._max_response_bytes} read",
+                    transient=False,
+                )
+            return status, headers, await reader.readexactly(length)
 
         # No length and no chunking: the body runs to the end of the connection, which the request
         # asked the server to close.
         payload = await reader.read(self._max_response_bytes + 1)
         if len(payload) > self._max_response_bytes:
-            raise TransportError(f"the API answered more than the {self._max_response_bytes} bytes read at most")
-        return status, payload
+            raise TransportError(
+                f"the API answered more than the {self._max_response_bytes} bytes read at most",
+                transient=False,
+            )
+        return status, headers, payload
 
     async def _line(self, reader: asyncio.StreamReader) -> str:
         """One line of the head of an answer, bounded by what a line may hold."""
         try:
             line = await reader.readuntil(b"\n")
         except asyncio.LimitOverrunError as overrun:
-            raise TransportError(f"the API answered a line above the {MAX_LINE_BYTES} bytes read") from overrun
+            raise TransportError(
+                f"the API answered a line above the {MAX_LINE_BYTES} bytes read", transient=False
+            ) from overrun
         except asyncio.IncompleteReadError as truncated:
-            raise TransportError("the API closed the connection mid-answer") from truncated
+            raise TransportError("the API closed the connection mid-answer", transient=True) from truncated
         return line.decode("utf-8", errors="replace")
 
     async def _chunked(self, reader: asyncio.StreamReader) -> bytes:
@@ -259,21 +364,24 @@ class AsyncHttpTransport:
             if size == 0:
                 return bytes(payload)
             if len(payload) + size > self._max_response_bytes:
-                raise TransportError(f"the API answered more than the {self._max_response_bytes} bytes read at most")
+                raise TransportError(
+                    f"the API answered more than the {self._max_response_bytes} bytes read at most",
+                    transient=False,
+                )
             payload.extend(await reader.readexactly(size))
             await reader.readexactly(2)
-        raise TransportError(f"the API answered more than the {MAX_CHUNKS} chunks read at most")
+        raise TransportError(f"the API answered more than the {MAX_CHUNKS} chunks read at most", transient=False)
 
 
 def _status(line: str) -> int:
     """The status of an answer, out of the line that opens it."""
     fields = line.split(" ", 2)
     if len(fields) < 2 or not fields[0].startswith("HTTP/"):
-        raise TransportError(f"the API did not answer with a status line: {line.strip()!r}")
+        raise TransportError(f"the API did not answer with a status line: {line.strip()!r}", transient=False)
     try:
         return int(fields[1])
     except ValueError as unreadable:
-        raise TransportError(f"`{fields[1]}` is not a status") from unreadable
+        raise TransportError(f"`{fields[1]}` is not a status", transient=False) from unreadable
 
 
 def _length(value: str) -> int:
@@ -281,9 +389,9 @@ def _length(value: str) -> int:
     try:
         length = int(value)
     except ValueError as unreadable:
-        raise TransportError(f"`{value}` is not a length") from unreadable
+        raise TransportError(f"`{value}` is not a length", transient=False) from unreadable
     if length < 0:
-        raise TransportError(f"`{value}` is not a length")
+        raise TransportError(f"`{value}` is not a length", transient=False)
     return length
 
 
@@ -293,4 +401,4 @@ def _chunk_size(header: str) -> int:
     try:
         return int(size, 16)
     except ValueError as unreadable:
-        raise TransportError(f"`{header}` is not a chunk size") from unreadable
+        raise TransportError(f"`{header}` is not a chunk size", transient=False) from unreadable

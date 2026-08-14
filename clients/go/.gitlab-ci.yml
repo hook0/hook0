@@ -12,6 +12,10 @@ clients.go.check:
         # of the generator or of the API surface has to face the suites that exercise what it wrote.
         - clients/sdkgen/**/*
         - api/openapi.snapshot.json
+        # Retry classification, the bounds of a send and signature verification are hand-written
+        # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
+        # this client rather than the one language whoever edited it happened to be reading.
+        - clients/conformance/**/*
   before_script:
     - go version
     # The module requires nothing, so nothing is downloaded and nothing has to be pinned. A

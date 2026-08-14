@@ -11,9 +11,11 @@ subscriber. It also gives the answer to a retry its meaning: `EventAlreadyIngest
 *repeated* request says an earlier attempt of that same send reached the API, so the send
 succeeded. The same answer to a *first* attempt is a genuine conflict and is reported as one.
 
-Only what could end differently is retried: a request that got no answer, and a server error. What
-the API refuses outright — a quota that is spent, a payload it will not read — is reported as is,
-since repeating it would only spend the same round trip again.
+Only what could end differently is retried: a request that got no answer, a server error, and an
+instance saying it is being reached faster than it accepts. What the API refuses outright — a quota
+that is spent, a payload it will not read — is reported as is, since repeating it would only spend
+the same round trip again. The verdict for every problem the API can report is written down in the
+conformance corpus committed beside this package, which the suite here reads.
 
 A send is bounded on five axes, each of them the caller's to set: the size of the payload, which is
 refused before a socket is opened; how long one attempt is given; how many attempts are made; how
@@ -64,11 +66,32 @@ MAX_BACKOFF_DOUBLINGS = 30
 # The identifier Hook0 gives the problem it answers when an event identifier is already taken.
 ALREADY_INGESTED = "EventAlreadyIngested"
 
+# The identifier Hook0 gives the problem it answers when requests are reaching the instance faster
+# than it accepts them.
+#
+# It shares its status with the quota problems, and is the only one of them worth repeating: a quota
+# clears when a plan changes or a day turns, neither of which happens inside the seconds a send is
+# given, while pacing clears on its own and the answer says when.
+RATE_LIMITED = "RateLimited"
+
 # Status Hook0 answers when the event identifier a request carries is already taken.
 CONFLICT = 409
 
+# Status Hook0 answers both when a quota is spent and when requests are coming in faster than the
+# instance accepts them. Which of the two it is only the problem the body names can say, which is
+# why this status alone decides nothing.
+PACED = 429
+
 # First status saying the failure is on Hook0's side, and so could clear on its own.
 LOWEST_SERVER_ERROR = 500
+
+# What the API names the delay before the request becomes servable in, in whole seconds.
+DELAY_HEADER = "retry-after"
+
+# Longest value of that header read, and the largest delay it may name. A header written by the
+# other end is bounded before it is turned into a number, and a delay above this is one nobody meant.
+MAX_DELAY_HEADER_BYTES = 32
+MAX_NAMED_DELAY_SECONDS = 2**31 - 1
 
 # What an event type reads as.
 EVENT_TYPE = re.compile(r"^([A-Za-z0-9_]+)[.]([A-Za-z0-9_]+)[.]([A-Za-z0-9_]+)$")
@@ -266,6 +289,8 @@ class _Attempt:
     detail: str
     # Whether repeating this very request could end differently.
     retryable: bool
+    # How long the answer said to wait before repeating the request, in seconds, when it said.
+    retry_after: float | None = None
 
 
 def _ingested(event_id: str) -> _Attempt:
@@ -276,11 +301,11 @@ def _conflicted(detail: str) -> _Attempt:
     return _Attempt(None, True, detail, False)
 
 
-def _failed(detail: str, retryable: bool) -> _Attempt:
-    return _Attempt(None, False, detail, retryable)
+def _failed(detail: str, retryable: bool, retry_after: float | None = None) -> _Attempt:
+    return _Attempt(None, False, detail, retryable, retry_after)
 
 
-def _read_attempt(status: int, payload: bytes) -> _Attempt:
+def _read_attempt(status: int, headers: Mapping[str, str], payload: bytes) -> _Attempt:
     """What the API answered one attempt, and whether repeating it could end differently."""
     body = payload.decode("utf-8", errors="replace")
 
@@ -292,11 +317,57 @@ def _read_attempt(status: int, payload: bytes) -> _Attempt:
             return _failed(f"Hook0 answered {status} without an event id", False)
         return _ingested(ingested)
 
-    if status == CONFLICT and _is_already_ingested(body):
+    problem = _problem_id(body)
+    if status == CONFLICT and problem == ALREADY_INGESTED:
         return _conflicted(body)
 
-    # Only the server side of a server error can change between two identical requests.
-    return _failed(body, status >= LOWEST_SERVER_ERROR)
+    return _failed(body, _is_retryable(status, problem), _named_delay(headers))
+
+
+def _is_retryable(status: int, problem: str | None) -> bool:
+    """Whether repeating a request the API answered that way could end differently.
+
+    The status decides on its own everywhere but under the one it answers both a spent quota and a
+    paced instance with: a quota clears when a plan changes or a day turns, and neither is something
+    a send spending seconds can wait for. Only the problem the body names tells the two apart, and a
+    body naming a problem this client has never heard of falls back to what the status says.
+    """
+    if status == PACED:
+        return problem == RATE_LIMITED
+    return status >= LOWEST_SERVER_ERROR
+
+
+def _named_delay(headers: Mapping[str, str]) -> float | None:
+    """The delay the API named before the request becomes servable, in seconds.
+
+    Only a whole number of seconds is read. The header may also carry a date, which is a clock this
+    client would be comparing against its own, and anything else is a header nobody meant: both leave
+    the client's own schedule in place rather than being guessed at.
+    """
+    written = headers.get(DELAY_HEADER, "").strip()
+    if not written or len(written) > MAX_DELAY_HEADER_BYTES:
+        return None
+
+    try:
+        seconds = int(written)
+    except ValueError:
+        return None
+
+    if seconds < 0 or seconds > MAX_NAMED_DELAY_SECONDS:
+        return None
+    return float(seconds)
+
+
+def _wait_for(outcome: _Attempt, scheduled: float, remaining: float) -> float:
+    """How long to wait before the next attempt.
+
+    It is what the API asked for when it asked for anything, and the client's own schedule
+    otherwise. Either way it is cut down to what is left of the budget every delay of one send
+    shares, so a delay written by the other end cannot stretch a send past what the caller allowed
+    for it.
+    """
+    wanted = outcome.retry_after if outcome.retry_after is not None else scheduled
+    return max(min(wanted, remaining), 0.0)
 
 
 def _ingested_id(body: str) -> str | None:
@@ -313,13 +384,18 @@ def _ingested_id(body: str) -> str | None:
     return None
 
 
-def _is_already_ingested(body: str) -> bool:
-    """Whether a problem document is the one Hook0 answers when an identifier is already taken."""
+def _problem_id(body: str) -> str | None:
+    """The problem a refusal names, unset when the body names none this client can read."""
     try:
         problem = json.loads(body)
     except ValueError:
-        return False
-    return isinstance(problem, dict) and problem.get("id") == ALREADY_INGESTED
+        return None
+    if not isinstance(problem, dict):
+        return None
+    named = problem.get("id")
+    if isinstance(named, str):
+        return named
+    return None
 
 
 def _refuse_oversized(event: Event, event_id: str, maximum: int) -> None:
@@ -400,8 +476,9 @@ class Hook0Client:
 
             retry = attempt - 1
             if outcome.retryable and retry < len(delays):
-                time.sleep(delays[retry])
-                waited += delays[retry]
+                wait = _wait_for(outcome, delays[retry], policy.max_total_delay - waited)
+                time.sleep(wait)
+                waited += wait
                 continue
 
             raise _given_up(event_id, attempt, waited, outcome.detail)
@@ -409,10 +486,13 @@ class Hook0Client:
     def _attempt(self, body: Mapping[str, Any]) -> _Attempt:
         """One attempt at sending an already-bounded event."""
         try:
-            status, payload = self.transport.request("POST", EVENT_PATH, [], body)
+            status, headers, payload = self.transport.deliver("POST", EVENT_PATH, [], body)
         except TransportError as unreachable:
-            return _failed(str(unreachable), True)
-        return _read_attempt(status, payload)
+            # Decided by the nature of the failure, not by the type carrying it: an answer above a
+            # ceiling and a URL nothing can be sent to arrive as the same type as a reset
+            # connection, and repeating either of them meets the very same thing.
+            return _failed(str(unreachable), unreachable.transient)
+        return _read_attempt(status, headers, payload)
 
     def upsert_event_types(self, event_types: Sequence[str]) -> list[str]:
         """Creates the event types the application does not declare yet, and answers those."""
@@ -492,8 +572,9 @@ class Hook0AsyncClient:
 
             retry = attempt - 1
             if outcome.retryable and retry < len(delays):
-                await asyncio.sleep(delays[retry])
-                waited += delays[retry]
+                wait = _wait_for(outcome, delays[retry], policy.max_total_delay - waited)
+                await asyncio.sleep(wait)
+                waited += wait
                 continue
 
             raise _given_up(event_id, attempt, waited, outcome.detail)
@@ -501,10 +582,13 @@ class Hook0AsyncClient:
     async def _attempt(self, body: Mapping[str, Any]) -> _Attempt:
         """One attempt at sending an already-bounded event."""
         try:
-            status, payload = await self.transport.request("POST", EVENT_PATH, [], body)
+            status, headers, payload = await self.transport.deliver("POST", EVENT_PATH, [], body)
         except TransportError as unreachable:
-            return _failed(str(unreachable), True)
-        return _read_attempt(status, payload)
+            # Decided by the nature of the failure, not by the type carrying it: an answer above a
+            # ceiling and a URL nothing can be sent to arrive as the same type as a reset
+            # connection, and repeating either of them meets the very same thing.
+            return _failed(str(unreachable), unreachable.transient)
+        return _read_attempt(status, headers, payload)
 
     async def upsert_event_types(self, event_types: Sequence[str]) -> list[str]:
         """Creates the event types the application does not declare yet, and answers those."""

@@ -12,6 +12,7 @@
 //! Every input is bounded by [`Limits`], and a snapshot crossing a ceiling is rejected with the
 //! ceiling it crossed rather than trimmed down to fit.
 
+pub mod conformance;
 pub mod emit;
 mod error;
 pub mod identifier;
@@ -20,6 +21,7 @@ pub mod model;
 mod snapshot;
 pub mod targets;
 
+pub use conformance::{ConformanceError, Corpus, CorpusLimits};
 pub use emit::{
     CommentStyle, EmittedFile, FileTree, Ownership, RelativePath, WriteReport, banner, write_target,
 };

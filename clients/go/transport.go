@@ -33,21 +33,32 @@ const (
 
 	// DefaultMaxResponseBytes is the largest response body read off a socket.
 	DefaultMaxResponseBytes int64 = 8 * 1024 * 1024
+
+	// MaxResponseHeaders is the most headers read out of one answer, and MaxHeaderBytes the longest
+	// one of them may be.
+	//
+	// The head of an answer is written by the other end, so it is bounded like the body: a server
+	// that is broken or hostile can otherwise spend a caller's memory on headers alone. Both are
+	// the numbers the conformance corpus names, so that no two SDKs bound different things.
+	MaxResponseHeaders = 64
+	MaxHeaderBytes     = 64 * 1024
 )
 
 // jsonMediaType is what a request body says it carries, and what an answer is asked for in.
 const jsonMediaType = "application/json"
 
-// TransportError is a request that got no answer: a connection refused or reset, an attempt out of
-// time, a body that stopped mid-way.
+// TransportError is a request that produced no answer to read.
 //
-// None of these says whether the API acted on the request, which is exactly why a send carries an
-// identifier the client chose itself. It is also the one failure a send retries: anything else is
-// either what the API answered or a request that could never be built.
+// Several natures of failure land here — a connection that was refused or reset, an answer above a
+// ceiling this client set for itself, a URL nothing can be sent to — and only the first of them
+// could end differently. What a send retries is therefore decided by errors.Is against
+// ErrUnreachable, ErrAnswerAboveABound and ErrUnusableAPIURL, never by this type: a client deciding
+// by the type spends four attempts on a mistyped API URL and then hands its caller a message that
+// accuses the network.
 type TransportError struct {
 	// Detail says what went wrong, in the words a caller is given.
 	Detail string
-	// Err is what the standard library reported, nil when there is nothing to name.
+	// Err is the nature of the failure, and under it whatever the standard library reported.
 	Err error
 }
 
@@ -84,10 +95,18 @@ func NewTransport(baseURL string, token string, timeout time.Duration, maxRespon
 		maxResponseBytes = DefaultMaxResponseBytes
 	}
 
+	// The head is bounded where it is read off the socket rather than only after it arrived: a
+	// server writing headers forever would otherwise be buffered whole before anything counted them.
+	carrier := &http.Transport{}
+	if standard, is := http.DefaultTransport.(*http.Transport); is {
+		carrier = standard.Clone()
+	}
+	carrier.MaxResponseHeaderBytes = int64(MaxResponseHeaders) * int64(MaxHeaderBytes)
+
 	return &Transport{
 		baseURL:          baseURL,
 		token:            token,
-		client:           &http.Client{Timeout: timeout},
+		client:           &http.Client{Timeout: timeout, Transport: carrier},
 		maxResponseBytes: maxResponseBytes,
 	}
 }
@@ -97,6 +116,10 @@ func NewTransport(baseURL string, token string, timeout time.Duration, maxRespon
 // A refusal is an answer: the status and the body are what say whether repeating the request could
 // end differently, so they are answered rather than raised over. Only a request that got no answer
 // at all is an error here.
+//
+// This is the shape the generated package declares, which reads what the API sent and nothing about
+// how it was sent. A caller that also needs the headers — the delay a paced instance names beside a
+// refusal is one — asks Deliver for them.
 func (t *Transport) Request(
 	ctx context.Context,
 	method string,
@@ -104,9 +127,27 @@ func (t *Transport) Request(
 	query url.Values,
 	body any,
 ) (int, []byte, error) {
+	status, _, payload, err := t.Deliver(ctx, method, path, query, body)
+	return status, payload, err
+}
+
+// Deliver issues one request and answers the status, the headers, and the body.
+//
+// It is Request with what the answer carried beside its body, which is what a client reads when the
+// API names how long to wait before the request becomes servable again.
+func (t *Transport) Deliver(
+	ctx context.Context,
+	method string,
+	path string,
+	query url.Values,
+	body any,
+) (int, http.Header, []byte, error) {
 	target, err := t.resolve(path, query)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, &TransportError{
+			Detail: err.Error(),
+			Err:    fmt.Errorf("%w: %w", ErrUnusableAPIURL, err),
+		}
 	}
 
 	var encoded io.Reader
@@ -114,14 +155,14 @@ func (t *Transport) Request(
 		written, err := json.Marshal(body)
 		if err != nil {
 			// A body that cannot be written is not a request that could be repeated.
-			return 0, nil, fmt.Errorf("the request body cannot be written as JSON: %w", err)
+			return 0, nil, nil, fmt.Errorf("the request body cannot be written as JSON: %w", err)
 		}
 		encoded = bytes.NewReader(written)
 	}
 
 	request, err := http.NewRequestWithContext(ctx, method, target, encoded)
 	if err != nil {
-		return 0, nil, fmt.Errorf("the request cannot be built: %w", err)
+		return 0, nil, nil, fmt.Errorf("the request cannot be built: %w", err)
 	}
 	request.Header.Set("Authorization", "Bearer "+t.token)
 	request.Header.Set("Accept", jsonMediaType)
@@ -131,21 +172,61 @@ func (t *Transport) Request(
 
 	answer, err := t.client.Do(request)
 	if err != nil {
-		return 0, nil, &TransportError{Detail: err.Error(), Err: err}
+		return 0, nil, nil, &TransportError{
+			Detail: err.Error(),
+			Err:    fmt.Errorf("%w: %w", ErrUnreachable, err),
+		}
 	}
 	defer answer.Body.Close()
 
+	if err := bounded(answer.Header); err != nil {
+		return 0, nil, nil, err
+	}
+
 	payload, err := io.ReadAll(io.LimitReader(answer.Body, t.maxResponseBytes+1))
 	if err != nil {
-		return 0, nil, &TransportError{Detail: err.Error(), Err: err}
+		// A body that stopped mid-way is a request that got no answer worth reading, and the next
+		// one could carry the whole of it.
+		return 0, nil, nil, &TransportError{
+			Detail: err.Error(),
+			Err:    fmt.Errorf("%w: %w", ErrUnreachable, err),
+		}
 	}
 	if int64(len(payload)) > t.maxResponseBytes {
-		return 0, nil, &TransportError{
+		return 0, nil, nil, &TransportError{
 			Detail: fmt.Sprintf("the API answered more than the %d bytes read at most", t.maxResponseBytes),
+			Err:    ErrAnswerAboveABound,
 		}
 	}
 
-	return answer.StatusCode, payload, nil
+	return answer.StatusCode, answer.Header, payload, nil
+}
+
+// bounded refuses a head above what this client agrees to hold, naming the ceiling it crossed.
+func bounded(headers http.Header) error {
+	if len(headers) > MaxResponseHeaders {
+		return &TransportError{
+			Detail: fmt.Sprintf(
+				"the API answered %d headers, above the %d read at most", len(headers), MaxResponseHeaders,
+			),
+			Err: ErrAnswerAboveABound,
+		}
+	}
+
+	for name, values := range headers {
+		for _, value := range values {
+			if len(name)+len(value) > MaxHeaderBytes {
+				return &TransportError{
+					Detail: fmt.Sprintf(
+						"the API answered a `%s` header above the %d bytes read at most", name, MaxHeaderBytes,
+					),
+					Err: ErrAnswerAboveABound,
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // resolve says where a request lands: a path of its own replaces the base's, a relative one extends

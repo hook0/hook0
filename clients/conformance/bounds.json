@@ -1,0 +1,27 @@
+{
+  "$comment": [
+    "The shared contract: the bounds one send is held to, in one authoritative place.",
+    "A change here is a change to every SDK. Each target reads this file from its own suite and",
+    "holds its own defaults against it, so a number edited here fails every target that still",
+    "carries the old one, rather than being corrected once per language by whoever remembers.",
+    "The first seven bound what this client does. The last three bound what the other end may cost",
+    "it: a server that is broken or hostile can otherwise stream a body, a head or a header of any",
+    "length into a caller's memory, and a client with no ceiling has no answer to that. They are",
+    "written here rather than per language so that two targets cannot bound different things.",
+    "Every value is a ceiling a caller may lower and, for the ones a policy exposes, may raise up",
+    "to the hard cap. `max_attempts_cap` is the one nothing may cross: a policy is configuration,",
+    "and configuration can be wrong."
+  ],
+  "bounds": {
+    "max_attempts": 4,
+    "max_attempts_cap": 16,
+    "initial_backoff_ms": 100,
+    "max_backoff_ms": 2000,
+    "max_total_delay_ms": 5000,
+    "request_timeout_ms": 10000,
+    "max_payload_bytes": 1048576,
+    "max_response_bytes": 8388608,
+    "max_response_headers": 64,
+    "max_header_bytes": 65536
+  }
+}

@@ -18,6 +18,26 @@ var (
 	// ErrInvalidEventType is an event type that does not read as `service.resource_type.verb`.
 	ErrInvalidEventType = errors.New("the event type does not have a valid syntax")
 
+	// ErrUnreachable is a request that got no answer: a connection refused or reset, an attempt out
+	// of time, a body that stopped mid-way.
+	//
+	// It is the one failure of a send that could end differently, which is why it is told apart
+	// from the others rather than grouped with them under the type that carries them all. None of
+	// these says whether the API acted on the request, which is exactly why a send carries an
+	// identifier the client chose itself.
+	ErrUnreachable = errors.New("the API could not be reached")
+
+	// ErrAnswerAboveABound is an answer that crossed a ceiling this client set for itself: a body,
+	// a header, or a number of headers above what it agrees to read.
+	//
+	// Repeating the request draws the same answer, so it is reported rather than retried: a client
+	// that retries it reads the oversized answer four times and then blames the network.
+	ErrAnswerAboveABound = errors.New("the API answered more than this client reads")
+
+	// ErrUnusableAPIURL is an API URL no request can be sent to. Nothing was sent when a caller
+	// sees it, and building the same request again would fail the same way.
+	ErrUnusableAPIURL = errors.New("the API URL is not one a request can be sent to")
+
 	// ErrSignatureUnreadable is a signature header this client cannot read whole: a part it needs
 	// that is missing, a moment that is not a number of seconds, a code that is not hexadecimal.
 	ErrSignatureUnreadable = errors.New("the signature header cannot be read")

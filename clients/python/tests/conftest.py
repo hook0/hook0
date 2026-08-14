@@ -55,6 +55,8 @@ class ScriptedResponse:
     body: Any
     # How long the API sits on the answer before writing anything, in seconds.
     held_for: float = 0.0
+    # What the answer carries beside its body, such as the delay a paced instance names.
+    headers: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -160,6 +162,8 @@ def _handler_for(api: FakeHook0Api) -> type[BaseHTTPRequestHandler]:
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(answer)))
                 self.send_header("Connection", "close")
+                for name, value in scripted.headers.items():
+                    self.send_header(name, value)
                 self.end_headers()
                 self.wfile.write(answer)
             except OSError:

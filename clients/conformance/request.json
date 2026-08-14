@@ -1,0 +1,34 @@
+{
+  "$comment": [
+    "The shared contract: what every SDK puts on the wire, beyond the body itself.",
+    "A change here is a change to every SDK. Each target reads this file from its own suite, sends a",
+    "real request to a listening socket and holds what arrived against the list below, so a header",
+    "dropped or renamed in one target fails there rather than at the first API that notices.",
+    "Header names are matched without regard to case, as HTTP compares them. `${token}` stands for",
+    "the credential the client was built with, and is the only substitution a value may carry.",
+    "`when` says which requests carry the header, and is one of the `occasions` below.",
+    "This is the smallest thing worth pinning and the easiest to let drift: a client that omits the",
+    "representation it accepts works perfectly until the API serves a second one."
+  ],
+  "occasions": ["every request", "a request carrying a body"],
+  "headers": [
+    {
+      "name": "Authorization",
+      "value": "Bearer ${token}",
+      "when": "every request",
+      "reason": "the credential the API authenticates the application with"
+    },
+    {
+      "name": "Accept",
+      "value": "application/json",
+      "when": "every request",
+      "reason": "the representation every SDK is written to read; a client that asks for nothing is at the mercy of whatever the API decides to serve the day it serves more than one"
+    },
+    {
+      "name": "Content-Type",
+      "value": "application/json",
+      "when": "a request carrying a body",
+      "reason": "what the body is written as, which a request carrying no body has nothing to declare"
+    }
+  ]
+}

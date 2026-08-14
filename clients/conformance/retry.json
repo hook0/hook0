@@ -1,0 +1,424 @@
+{
+  "$comment": [
+    "The shared contract: what a client repeats after a failure, and what it answers as is.",
+    "A change here is a change to every SDK. Each target reads this file from its own suite, makes",
+    "the API answer each case over a real socket and watches whether its own client issues the",
+    "request again, so a verdict edited here fails every target that still disagrees with it.",
+    "A client reads a failure in this order. A failure that never produced an answer takes the",
+    "verdict of its cause under `transport`. An answer whose body names a problem the `problems`",
+    "list carries takes that verdict. Any other answer takes the verdict of its status, which is",
+    "also what an older client falls back to when the API names a problem it has never heard of.",
+    "The `problems` list covers the API's whole problem catalogue, on purpose: a problem added to",
+    "the API and left out of here fails the generator's own check until somebody decides whether it",
+    "retries. That is the point of the list being exhaustive rather than a list of exceptions.",
+    "The same status can carry either verdict, which is why the problem wins over it: the quotas and",
+    "the instance pacing below all answer 429, and only pacing clears inside a send's delay budget.",
+    "The `transport` causes are the same shape for the same reason. A client that decides by which",
+    "of its own error types carries the failure retries a mistyped API URL and a response that broke",
+    "its own ceiling as if they were a reset connection: the verdict follows the cause, not the type."
+  ],
+  "transport": {
+    "$comment": [
+      "Failures that produced no answer to read, told apart by what caused them rather than by which",
+      "type a client happens to wrap them in. Only one of them could end differently, and a client",
+      "that groups them together spends four attempts on a wrong URL and then blames the network in",
+      "the message it hands its caller.",
+      "A target maps each cause onto the failures of its own runtime and provokes it for real: a",
+      "socket that hangs up, a body above the ceiling, a URL nothing can be sent to."
+    ],
+    "causes": [
+      {
+        "cause": "no_answer",
+        "retryable": true,
+        "reason": "a request that got no answer says nothing about whether the API acted on it, and the identifier the client chose is what keeps a second attempt from ingesting the event twice"
+      },
+      {
+        "cause": "answer_above_a_bound",
+        "retryable": false,
+        "reason": "the answer crossed a ceiling this client set for itself, and the same request draws the same answer; retrying reads the oversized head or body again, four times over"
+      },
+      {
+        "cause": "unusable_api_url",
+        "retryable": false,
+        "reason": "nothing was ever sent, because there is nowhere to send it; a repetition builds the same unusable request, and the retries turn a misconfiguration into a message that accuses the network"
+      }
+    ]
+  },
+  "statuses": [
+    {
+      "status": 400,
+      "retryable": false,
+      "reason": "the request is refused for what it says, and it says the same thing the second time"
+    },
+    {
+      "status": 401,
+      "retryable": false,
+      "reason": "the credential is refused, and repeating the request presents the same one"
+    },
+    {
+      "status": 403,
+      "retryable": false,
+      "reason": "the credential is read and does not carry the right, which no repetition grants"
+    },
+    {
+      "status": 404,
+      "retryable": false,
+      "reason": "nothing answers at that address, and asking again looks in the same place"
+    },
+    {
+      "status": 409,
+      "retryable": false,
+      "reason": "the state the request conflicts with is still there when the request comes back"
+    },
+    {
+      "status": 410,
+      "retryable": false,
+      "reason": "what the request reaches for is gone for good, which is what tells it apart from a 404"
+    },
+    {
+      "status": 422,
+      "retryable": false,
+      "reason": "the body was read and refused on its contents, which a second copy of it carries too"
+    },
+    {
+      "status": 429,
+      "retryable": false,
+      "reason": "a quota that is spent is the usual reason for this status, and a send's delay budget is measured in seconds; only the problem the body names can say otherwise"
+    },
+    {
+      "status": 500,
+      "retryable": true,
+      "reason": "the failure is on the API's side, which is the one side that can differ between two identical requests"
+    },
+    {
+      "status": 503,
+      "retryable": true,
+      "reason": "the API is momentarily unable to serve the request and says so; the condition clears without the request changing"
+    }
+  ],
+  "problems": [
+    {
+      "problem": "OrganizationNameMissing",
+      "status": 400,
+      "retryable": false,
+      "reason": "the request names no organization, and the same request names none either"
+    },
+    {
+      "problem": "UserAlreadyExist",
+      "status": 409,
+      "retryable": false,
+      "reason": "the account is already there, and it is still there on the second attempt"
+    },
+    {
+      "problem": "RegistrationDisabled",
+      "status": 410,
+      "retryable": false,
+      "reason": "the instance does not register accounts; that is how it is configured, not weather"
+    },
+    {
+      "problem": "PasswordTooShort",
+      "status": 400,
+      "retryable": false,
+      "reason": "the password is what it is, and sending it again sends the same one"
+    },
+    {
+      "problem": "PasswordTooLong",
+      "status": 400,
+      "retryable": false,
+      "reason": "the password is what it is, and sending it again sends the same one"
+    },
+    {
+      "problem": "PasswordSimilarToEmail",
+      "status": 400,
+      "retryable": false,
+      "reason": "the password is built from the account's own identity, which a repetition does not change"
+    },
+    {
+      "problem": "PasswordSimilarToName",
+      "status": 400,
+      "retryable": false,
+      "reason": "the password is built from the account's own identity, which a repetition does not change"
+    },
+    {
+      "problem": "PasswordTooCommon",
+      "status": 400,
+      "retryable": false,
+      "reason": "the password is one of the ones guessed first, and it stays one"
+    },
+    {
+      "problem": "PasswordNotDiverseEnough",
+      "status": 400,
+      "retryable": false,
+      "reason": "the password is what it is, and sending it again sends the same one"
+    },
+    {
+      "problem": "OrganizationIsNotEmpty",
+      "status": 409,
+      "retryable": false,
+      "reason": "the organization still holds what stops it from being removed, and the request does not empty it"
+    },
+    {
+      "problem": "InvitedUserDoesNotExist",
+      "status": 404,
+      "retryable": false,
+      "reason": "no account answers to that address, and a second attempt looks for the same one"
+    },
+    {
+      "problem": "InvitedUserAlreadyInOrganization",
+      "status": 409,
+      "retryable": false,
+      "reason": "the membership the request would create is already there"
+    },
+    {
+      "problem": "ApplicationNameMissing",
+      "status": 400,
+      "retryable": false,
+      "reason": "the request names no application, and the same request names none either"
+    },
+    {
+      "problem": "InvalidRole",
+      "status": 400,
+      "retryable": false,
+      "reason": "the role named is not one the API declares, whichever attempt names it"
+    },
+    {
+      "problem": "EventTypeAlreadyExist",
+      "status": 409,
+      "retryable": false,
+      "reason": "the event type the request would declare is already declared"
+    },
+    {
+      "problem": "EventTypeDoesNotExist",
+      "status": 400,
+      "retryable": false,
+      "reason": "the event type the request uses is not declared, and repeating the request declares nothing"
+    },
+    {
+      "problem": "UnauthorizedWorkers",
+      "status": 400,
+      "retryable": false,
+      "reason": "the workers the request names are not ones it may use, on this attempt or the next"
+    },
+    {
+      "problem": "EventAlreadyIngested",
+      "status": 409,
+      "retryable": false,
+      "reason": "the identifier is taken; a send reads this as its own earlier attempt having landed rather than as something to repeat"
+    },
+    {
+      "problem": "EventInvalidPayloadContentType",
+      "status": 400,
+      "retryable": false,
+      "reason": "the payload announces a content type the API does not read, and the second copy announces it too"
+    },
+    {
+      "problem": "EventInvalidBase64Payload",
+      "status": 400,
+      "retryable": false,
+      "reason": "the payload is not the encoding it claims, and re-sending the same bytes claims the same thing"
+    },
+    {
+      "problem": "EventInvalidJsonPayload",
+      "status": 400,
+      "retryable": false,
+      "reason": "the payload is not JSON, and re-sending the same bytes is not JSON either"
+    },
+    {
+      "problem": "LabelsAmbiguity",
+      "status": 400,
+      "retryable": false,
+      "reason": "the labels the event carries cannot be routed as written, whichever attempt carries them"
+    },
+    {
+      "problem": "InvalidDateRange",
+      "status": 400,
+      "retryable": false,
+      "reason": "the range asked for does not read as one, and asking again asks for the same range"
+    },
+    {
+      "problem": "AuthNoAuthorizationHeader",
+      "status": 401,
+      "retryable": false,
+      "reason": "the request carries no credential, and the request that follows it carries none either"
+    },
+    {
+      "problem": "AuthInvalidAuthorizationHeader",
+      "status": 400,
+      "retryable": false,
+      "reason": "the credential header is not one the API can read, on this attempt or the next"
+    },
+    {
+      "problem": "AuthApplicationSecretLookupError",
+      "status": 500,
+      "retryable": true,
+      "reason": "the API could not look the secret up; that is its own side failing, and it can come back"
+    },
+    {
+      "problem": "AuthInvalidApplicationSecret",
+      "status": 403,
+      "retryable": false,
+      "reason": "the secret is read and refused, which repeating it does not change"
+    },
+    {
+      "problem": "AuthBiscuitLookupError",
+      "status": 500,
+      "retryable": true,
+      "reason": "the API could not look the token up; that is its own side failing, and it can come back"
+    },
+    {
+      "problem": "AuthInvalidBiscuit",
+      "status": 403,
+      "retryable": false,
+      "reason": "the token is read and refused, which repeating it does not change"
+    },
+    {
+      "problem": "AuthFailedLogin",
+      "status": 401,
+      "retryable": false,
+      "reason": "the credentials submitted are not the account's, and submitting them again does not make them so"
+    },
+    {
+      "problem": "AuthEmailNotVerified",
+      "status": 401,
+      "retryable": false,
+      "reason": "the address stays unverified until somebody verifies it, which no repetition does"
+    },
+    {
+      "problem": "AuthEmailAlreadyVerified",
+      "status": 409,
+      "retryable": false,
+      "reason": "the address is verified already, and it is still verified on the second attempt"
+    },
+    {
+      "problem": "AuthFailedRefresh",
+      "status": 401,
+      "retryable": false,
+      "reason": "the session cannot be extended from what was presented, whichever attempt presents it"
+    },
+    {
+      "problem": "AuthEmailExpired",
+      "status": 401,
+      "retryable": false,
+      "reason": "the link has run out of time, and time does not run backwards between two attempts"
+    },
+    {
+      "problem": "TooManyMembersPerOrganization",
+      "status": 429,
+      "retryable": false,
+      "reason": "a plan quota that clears when the plan changes, never inside the seconds a send is given"
+    },
+    {
+      "problem": "TooManyApplicationsPerOrganization",
+      "status": 429,
+      "retryable": false,
+      "reason": "a plan quota that clears when the plan changes, never inside the seconds a send is given"
+    },
+    {
+      "problem": "TooManyEventsToday",
+      "status": 429,
+      "retryable": false,
+      "reason": "a daily quota that clears at the turn of the day, never inside the seconds a send is given"
+    },
+    {
+      "problem": "TooManySubscriptionsPerApplication",
+      "status": 429,
+      "retryable": false,
+      "reason": "a plan quota that clears when the plan changes, never inside the seconds a send is given"
+    },
+    {
+      "problem": "TooManyEventTypesPerApplication",
+      "status": 429,
+      "retryable": false,
+      "reason": "a plan quota that clears when the plan changes, never inside the seconds a send is given"
+    },
+    {
+      "problem": "JsonPayload",
+      "status": 400,
+      "retryable": false,
+      "reason": "the body could not be read as JSON, and the same body reads the same way"
+    },
+    {
+      "problem": "Validation",
+      "status": 422,
+      "retryable": false,
+      "reason": "the body was read and its values refused, which a second copy of them meets again"
+    },
+    {
+      "problem": "NotFound",
+      "status": 404,
+      "retryable": false,
+      "reason": "nothing answers at that address, and asking again looks in the same place"
+    },
+    {
+      "problem": "InternalServerError",
+      "status": 500,
+      "retryable": true,
+      "reason": "the API failed on its own side, which is the one side that can differ between two identical requests"
+    },
+    {
+      "problem": "Forbidden",
+      "status": 403,
+      "retryable": false,
+      "reason": "the credential is read and does not carry the right, which no repetition grants"
+    },
+    {
+      "problem": "RateLimited",
+      "status": 429,
+      "retryable": true,
+      "reason": "instance pacing, not a quota: the request was not processed and is safe to send again once the delay the answer names has elapsed"
+    },
+    {
+      "problem": "ServiceUnavailable",
+      "status": 503,
+      "retryable": true,
+      "reason": "the API is momentarily unable to serve the request and says so; the condition clears without the request changing"
+    }
+  ],
+  "retry_after": {
+    "$comment": [
+      "What a client does with the delay the API names beside a retryable answer.",
+      "It is the API's estimate of when the request becomes servable, so it is preferred over the",
+      "client's own schedule when it can be read. It is also written by the other end, so it is",
+      "bounded like anything else that arrives from there: the wait it asks for is cut down to what",
+      "is left of the send's delay budget, and a send whose budget is spent stops rather than waits."
+    ],
+    "header": "Retry-After",
+    "honoured_when": "the answer is one this file classifies as retryable and the header names a whole number of seconds that is not negative",
+    "bounded_by": "max_total_delay_ms, less what the delays of this send have already spent",
+    "cases": [
+      {
+        "name": "a delay the budget can afford is the one waited out",
+        "header": "1",
+        "honoured": true,
+        "seconds": 1
+      },
+      {
+        "name": "a delay of no seconds sends the next attempt straight away",
+        "header": "0",
+        "honoured": true,
+        "seconds": 0
+      },
+      {
+        "name": "a delay far above the budget is cut down to what is left of it",
+        "header": "86400",
+        "honoured": true,
+        "seconds": 86400
+      },
+      {
+        "name": "a delay that is not a number of seconds leaves the client's own schedule in place",
+        "header": "in a little while",
+        "honoured": false
+      },
+      {
+        "name": "a delay written as a date leaves the client's own schedule in place",
+        "header": "Wed, 21 Oct 2026 07:28:00 GMT",
+        "honoured": false
+      },
+      {
+        "name": "a delay pointing backwards leaves the client's own schedule in place",
+        "header": "-1",
+        "honoured": false
+      }
+    ]
+  }
+}
