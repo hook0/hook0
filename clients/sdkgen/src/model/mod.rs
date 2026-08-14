@@ -1,8 +1,18 @@
+pub mod api;
+pub mod errors;
+pub mod security;
+pub mod shape;
+
 use std::collections::BTreeMap;
 
 use crate::error::{Error, preview};
 use crate::limits::Limits;
 use crate::snapshot::{Operation, Snapshot};
+
+pub use api::ApiModel;
+pub use errors::{ErrorModel, ProblemCatalogue};
+pub use security::{Scheme, SecurityModel};
+pub use shape::{Field, IGNORED_KEYWORDS, MODELLED_KEYWORDS, ObjectShape, Scalar, Shape};
 
 /// Separator between the entity and the verb of an operation id.
 const VERB_SEPARATOR: char = '.';
@@ -48,6 +58,15 @@ pub struct Method {
     pub verb_text: String,
     pub verb: Verb,
     pub operation: Operation,
+    /// Type the method reads, absent when it reads no body.
+    ///
+    /// Shapes point into the schema registry an [`ApiModel`] carries, so they are read there:
+    /// an entity model built on its own describes what the API does without naming any type, and
+    /// leaves this absent.
+    pub request: Option<Shape>,
+    /// Status the method answers on success and the type it writes back, both absent under the
+    /// same condition as [`Method::request`].
+    pub success: Option<(u16, Option<Shape>)>,
 }
 
 /// A group of operations sharing the leading segment of their operation id.
@@ -115,6 +134,8 @@ impl EntityModel {
                         verb: Verb::read(&verb_text),
                         verb_text,
                         operation: operation.clone(),
+                        request: None,
+                        success: None,
                     });
                 }
             }
@@ -164,6 +185,13 @@ impl EntityModel {
     /// The entity carrying that name.
     pub fn entity(&self, name: &str) -> Option<&Entity> {
         self.entities.iter().find(|entity| entity.name == name)
+    }
+
+    /// Every method of every entity, for the reader that fills in the types they carry.
+    pub(crate) fn methods_mut(&mut self) -> impl Iterator<Item = &mut Method> {
+        self.entities
+            .iter_mut()
+            .flat_map(|entity| entity.methods.iter_mut())
     }
 }
 

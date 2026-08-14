@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 use bolero::check;
-use hook0_sdkgen::{EntityModel, Limits, MCP_TAG, PUBLIC_TAG, Snapshot, mcp};
+use hook0_sdkgen::{ApiModel, EntityModel, Limits, MCP_TAG, PUBLIC_TAG, Snapshot, mcp};
 
 mod common;
 
@@ -33,6 +33,22 @@ fn parsing_a_snapshot_never_panics_and_yields_a_sound_model() {
                 let Ok(snapshot) = Snapshot::from_bytes(input, tag, &limits) else {
                     continue;
                 };
+                // Reading the types the document declares may refuse it, and owes the caller a
+                // reason rather than a panic whatever it was handed.
+                let read = ApiModel::from_snapshot(&snapshot, &limits);
+                if let Ok(api) = read.as_ref() {
+                    common::assert_model_invariants(&snapshot, &api.entities, &limits);
+                    assert!(
+                        !api.errors.catalogue.is_empty(),
+                        "a discovered catalogue lists no problem"
+                    );
+                }
+                assert_eq!(
+                    read,
+                    ApiModel::from_snapshot(&snapshot, &limits),
+                    "two reads of the same snapshot differ"
+                );
+
                 let Ok(model) = EntityModel::from_snapshot(&snapshot, &limits) else {
                     continue;
                 };

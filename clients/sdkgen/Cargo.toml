@@ -28,3 +28,6 @@ thiserror = "2.0"
 [dev-dependencies]
 bolero = "0.13"
 proptest = "1"
+
+# Real directories for the emission writer, which is only worth testing against a real filesystem
+tempfile = "3.27"

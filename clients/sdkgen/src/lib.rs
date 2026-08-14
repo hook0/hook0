@@ -12,16 +12,26 @@
 //! Every input is bounded by [`Limits`], and a snapshot crossing a ceiling is rejected with the
 //! ceiling it crossed rather than trimmed down to fit.
 
+pub mod emit;
 mod error;
+pub mod identifier;
 mod limits;
 pub mod mcp;
-mod model;
+pub mod model;
 mod snapshot;
 
+pub use emit::{
+    CommentStyle, EmittedFile, FileTree, Ownership, RelativePath, WriteReport, banner, write_target,
+};
 pub use error::Error;
+pub use identifier::{Case, Casing, Escape, ReservedWords};
 pub use limits::Limits;
 pub use mcp::MCP_TAG;
-pub use model::{Entity, EntityModel, Method, Nonconformity, UnconventionalOperation, Verb};
+pub use model::{
+    ApiModel, Entity, EntityModel, ErrorModel, Field, IGNORED_KEYWORDS, MODELLED_KEYWORDS, Method,
+    Nonconformity, ObjectShape, ProblemCatalogue, Scalar, Scheme, SecurityModel, Shape,
+    UnconventionalOperation, Verb,
+};
 pub use snapshot::{
     HttpMethod, Operation, PUBLIC_TAG, Parameter, ParameterLocation, RequestBody, Snapshot,
 };

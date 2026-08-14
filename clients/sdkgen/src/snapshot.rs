@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::fs;
 use std::path::Path;
@@ -6,7 +6,7 @@ use std::path::Path;
 use openapiv3::{
     Components, OpenAPI, Operation as SpecOperation, Parameter as SpecParameter,
     ParameterData as SpecParameterData, ParameterSchemaOrContent, PathItem, ReferenceOr,
-    RequestBody as SpecRequestBody, Schema,
+    RequestBody as SpecRequestBody, Response as SpecResponse, Schema, StatusCode,
 };
 use serde_json::Value;
 
@@ -23,7 +23,13 @@ const PARAMETER_REFERENCE_PREFIX: &str = "#/components/parameters/";
 const REQUEST_BODY_REFERENCE_PREFIX: &str = "#/components/requestBodies/";
 
 /// Where a schema reference is looked up.
-const SCHEMA_REFERENCE_PREFIX: &str = "#/components/schemas/";
+pub(crate) const SCHEMA_REFERENCE_PREFIX: &str = "#/components/schemas/";
+
+/// Where a response reference is looked up.
+const RESPONSE_REFERENCE_PREFIX: &str = "#/components/responses/";
+
+/// Where a security scheme reference is looked up.
+const SECURITY_SCHEME_REFERENCE_PREFIX: &str = "#/components/securitySchemes/";
 
 /// Media type a request body is read from.
 const JSON_MEDIA_TYPE: &str = "application/json";
@@ -94,6 +100,35 @@ pub enum RequestBody {
     Other,
 }
 
+/// What an operation writes back under one status, kept as the spec declares it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ResponseBody {
+    /// A JSON body, its schema left exactly as the document writes it so a `$ref` still names the
+    /// component it points at.
+    Json(Value),
+    /// A body in a media type none of the targets describes.
+    Other,
+}
+
+/// The status an operation answers a response under, as the document writes it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum ResponseStatus {
+    /// A single status code, as `"200"` writes it.
+    Code(u16),
+    /// A class of status codes, as `"2XX"` writes it, carrying the leading digit alone.
+    Range(u16),
+    /// The `default` entry, which stands for whatever status the document does not spell out.
+    Default,
+}
+
+/// One response of an operation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Response {
+    pub status: ResponseStatus,
+    /// Absent when the response carries no content at all.
+    pub body: Option<ResponseBody>,
+}
+
 /// One operation of the snapshot, kept as the spec declares it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Operation {
@@ -107,6 +142,16 @@ pub struct Operation {
     pub parameters: Vec<Parameter>,
     /// Absent when the operation reads no body.
     pub request_body: Option<RequestBody>,
+    /// Component the JSON request body was reached through, absent when the body is written where
+    /// the operation declares it. [`RequestBody::Json`] carries the schema with its references
+    /// already followed, which is what a tool caller needs and what loses that name.
+    pub request_body_schema: Option<String>,
+    /// Responses the operation declares, ordered by status.
+    pub responses: Vec<Response>,
+    /// Security schemes the operation requires, named as `components.securitySchemes` declares
+    /// them. Alternatives are flattened: a target that carries every named scheme satisfies the
+    /// operation whichever way the document groups them.
+    pub security: Vec<String>,
 }
 
 impl Operation {
@@ -122,11 +167,18 @@ impl Operation {
 }
 
 /// The operations an OpenAPI snapshot exposes, once its ceilings have been honoured.
+///
+/// The snapshot stays shaped like the document it came from: schemas and security schemes are the
+/// JSON the spec writes, references included. Turning them into the type language targets are
+/// generated from is what [`crate::ApiModel`] is for.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Snapshot {
     title: String,
     version: String,
+    servers: Vec<String>,
     operations: Vec<Operation>,
+    schemas: BTreeMap<String, Value>,
+    security_schemes: BTreeMap<String, Value>,
     tag_applied: bool,
     filtered_out: usize,
 }
@@ -219,6 +271,13 @@ impl Snapshot {
         Ok(Self {
             title: spec.info.title.clone(),
             version: spec.info.version.clone(),
+            servers: spec
+                .servers
+                .iter()
+                .map(|server| server.url.clone())
+                .collect(),
+            schemas: read_component_schemas(spec.components.as_ref(), limits)?,
+            security_schemes: read_security_schemes(spec.components.as_ref(), limits)?,
             filtered_out: declared_count - operations.len(),
             operations,
             tag_applied,
@@ -233,6 +292,21 @@ impl Snapshot {
     /// Version the spec gives itself.
     pub fn version(&self) -> &str {
         &self.version
+    }
+
+    /// Base URLs the spec serves its operations from.
+    pub fn servers(&self) -> &[String] {
+        &self.servers
+    }
+
+    /// Schemas `components.schemas` declares, as the document writes them.
+    pub fn schemas(&self) -> &BTreeMap<String, Value> {
+        &self.schemas
+    }
+
+    /// Security schemes `components.securitySchemes` declares, as the document writes them.
+    pub fn security_schemes(&self) -> &BTreeMap<String, Value> {
+        &self.security_schemes
     }
 
     /// Operations the target is built from, in document order.
@@ -314,6 +388,9 @@ fn read_operation(
         .clone()
         .unwrap_or_else(|| format!("{method} {path}"));
 
+    let (request_body, request_body_schema) =
+        read_request_body(operation, &subject, components, limits)?;
+
     Ok(Operation {
         operation_id,
         method,
@@ -322,19 +399,23 @@ fn read_operation(
         description: operation.description.clone(),
         tags: operation.tags.clone(),
         parameters,
-        request_body: read_request_body(operation, &subject, components, limits)?,
+        request_body,
+        request_body_schema,
+        responses: read_responses(operation, &subject, components, limits)?,
+        security: read_security(operation, limits)?,
     })
 }
 
-/// The body an operation reads, with the reference reaching its JSON schema resolved.
+/// The body an operation reads, with the reference reaching its JSON schema resolved, alongside
+/// the name of the component that reference went through.
 fn read_request_body(
     operation: &SpecOperation,
     subject: &str,
     components: Option<&Components>,
     limits: &Limits,
-) -> Result<Option<RequestBody>, Error> {
+) -> Result<(Option<RequestBody>, Option<String>), Error> {
     let Some(body) = operation.request_body.as_ref() else {
-        return Ok(None);
+        return Ok((None, None));
     };
 
     let body: &SpecRequestBody = resolve(
@@ -349,23 +430,173 @@ fn read_request_body(
         .get(JSON_MEDIA_TYPE)
         .and_then(|content| content.schema.as_ref())
     else {
-        return Ok(Some(RequestBody::Other));
+        return Ok((Some(RequestBody::Other), None));
     };
 
-    let schema: &Schema = resolve(
+    let (schema, schema_name): (&Schema, Option<String>) = resolve_named(
         schema,
         SCHEMA_REFERENCE_PREFIX,
         |name| components.and_then(|components| components.schemas.get(name)),
         limits,
     )?;
 
+    let schema = serde_json::to_value(schema).map_err(|err| Error::UnserializableSchema {
+        subject: preview(subject),
+        reason: err.to_string(),
+    })?;
+
+    Ok((Some(RequestBody::Json(schema)), schema_name))
+}
+
+/// The responses an operation declares, with the reference reaching each of them resolved.
+///
+/// The schema a response carries is kept exactly as the document writes it: a target that has to
+/// declare a type for an error body needs the name of the component it points at, and following
+/// the reference here is what would drop it.
+fn read_responses(
+    operation: &SpecOperation,
+    subject: &str,
+    components: Option<&Components>,
+    limits: &Limits,
+) -> Result<Vec<Response>, Error> {
+    let declared = operation
+        .responses
+        .default
+        .as_ref()
+        .map(|response| (ResponseStatus::Default, response))
+        .into_iter()
+        .chain(
+            operation
+                .responses
+                .responses
+                .iter()
+                .map(|(status, response)| (response_status(status), response)),
+        );
+
+    let mut responses = Vec::new();
+    for (status, response) in declared {
+        let response: &SpecResponse = resolve(
+            response,
+            RESPONSE_REFERENCE_PREFIX,
+            |name| components.and_then(|components| components.responses.get(name)),
+            limits,
+        )?;
+
+        responses.push(Response {
+            status,
+            body: read_response_body(response, subject)?,
+        });
+    }
+
+    responses.sort_by_key(|response| response.status);
+    Ok(responses)
+}
+
+fn read_response_body(
+    response: &SpecResponse,
+    subject: &str,
+) -> Result<Option<ResponseBody>, Error> {
+    if response.content.is_empty() {
+        return Ok(None);
+    }
+
+    let Some(schema) = response
+        .content
+        .get(JSON_MEDIA_TYPE)
+        .and_then(|content| content.schema.as_ref())
+    else {
+        return Ok(Some(ResponseBody::Other));
+    };
+
     serde_json::to_value(schema)
-        .map(RequestBody::Json)
+        .map(ResponseBody::Json)
         .map(Some)
         .map_err(|err| Error::UnserializableSchema {
             subject: preview(subject),
             reason: err.to_string(),
         })
+}
+
+fn response_status(status: &StatusCode) -> ResponseStatus {
+    match status {
+        StatusCode::Code(code) => ResponseStatus::Code(*code),
+        StatusCode::Range(range) => ResponseStatus::Range(*range),
+    }
+}
+
+/// The security schemes an operation requires, in the order the document names them.
+///
+/// A document groups requirements as alternatives, each one a set of schemes to satisfy together.
+/// Generated clients carry credentials rather than pick between them, so the names are flattened
+/// into the set an operation may be called with.
+fn read_security(operation: &SpecOperation, limits: &Limits) -> Result<Vec<String>, Error> {
+    let Some(requirements) = operation.security.as_ref() else {
+        return Ok(Vec::new());
+    };
+
+    let mut names = Vec::new();
+    for requirement in requirements {
+        for name in requirement.keys() {
+            let name = bounded_identifier(name, limits)?;
+            if !names.contains(&name) {
+                names.push(name);
+            }
+        }
+    }
+
+    Ok(names)
+}
+
+fn read_component_schemas(
+    components: Option<&Components>,
+    limits: &Limits,
+) -> Result<BTreeMap<String, Value>, Error> {
+    let Some(components) = components else {
+        return Ok(BTreeMap::new());
+    };
+
+    let mut schemas = BTreeMap::new();
+    for (name, schema) in &components.schemas {
+        let schema: &Schema = resolve(
+            schema,
+            SCHEMA_REFERENCE_PREFIX,
+            |name| components.schemas.get(name),
+            limits,
+        )?;
+        let schema = serde_json::to_value(schema).map_err(|err| Error::UnserializableSchema {
+            subject: preview(name),
+            reason: err.to_string(),
+        })?;
+        schemas.insert(bounded_identifier(name, limits)?, schema);
+    }
+
+    Ok(schemas)
+}
+
+fn read_security_schemes(
+    components: Option<&Components>,
+    limits: &Limits,
+) -> Result<BTreeMap<String, Value>, Error> {
+    let Some(components) = components else {
+        return Ok(BTreeMap::new());
+    };
+
+    let mut schemes = BTreeMap::new();
+    for (name, scheme) in &components.security_schemes {
+        let scheme = resolve(
+            scheme,
+            SECURITY_SCHEME_REFERENCE_PREFIX,
+            |name| components.security_schemes.get(name),
+            limits,
+        )?;
+        let scheme = serde_json::to_value(scheme).map_err(|err| Error::UnserializableSchema {
+            subject: preview(name),
+            reason: err.to_string(),
+        })?;
+        schemes.insert(bounded_identifier(name, limits)?, scheme);
+    }
+
+    Ok(schemes)
 }
 
 /// Operation-level parameters win over path-level ones sharing their name and location.
@@ -452,12 +683,23 @@ fn resolve<'a, T>(
     lookup: impl Fn(&str) -> Option<&'a ReferenceOr<T>>,
     limits: &Limits,
 ) -> Result<&'a T, Error> {
+    resolve_named(entry, prefix, lookup, limits).map(|(item, _)| item)
+}
+
+/// Same, also reporting the component the last hop went through, absent when there was no hop.
+fn resolve_named<'a, T>(
+    entry: &'a ReferenceOr<T>,
+    prefix: &str,
+    lookup: impl Fn(&str) -> Option<&'a ReferenceOr<T>>,
+    limits: &Limits,
+) -> Result<(&'a T, Option<String>), Error> {
     let mut current = entry;
+    let mut through = None;
     let mut hops = 0;
 
     loop {
         match current {
-            ReferenceOr::Item(item) => return Ok(item),
+            ReferenceOr::Item(item) => return Ok((item, through)),
             ReferenceOr::Reference { reference } => {
                 if hops >= limits.max_reference_depth {
                     return Err(Error::ReferenceTooDeep {
@@ -467,20 +709,23 @@ fn resolve<'a, T>(
                 }
                 hops += 1;
 
-                current = reference
+                let name = reference
                     .strip_prefix(prefix)
                     .map(decode_pointer_segment)
-                    .and_then(|name| lookup(&name))
                     .ok_or_else(|| Error::UnresolvableReference {
                         reference: preview(reference),
                     })?;
+                current = lookup(&name).ok_or_else(|| Error::UnresolvableReference {
+                    reference: preview(reference),
+                })?;
+                through = Some(name);
             }
         }
     }
 }
 
 /// Turns a JSON pointer segment back into the key it names.
-fn decode_pointer_segment(segment: &str) -> String {
+pub(crate) fn decode_pointer_segment(segment: &str) -> String {
     segment.replace("~1", "/").replace("~0", "~")
 }
 
