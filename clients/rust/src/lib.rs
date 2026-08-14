@@ -65,6 +65,19 @@ use std::time::Duration as StdDuration;
 #[cfg(feature = "consumer")]
 mod signature;
 
+/// Everything the API document describes, written by the SDK generator and never by hand.
+///
+/// It is reached as a module rather than flattened into this one on purpose. The document declares
+/// schemas called `Event` and `EventType`, which are the API's own resources and not the [`Event`]
+/// an emitter fills in here; re-exporting them side by side would either fail to compile or, worse,
+/// let a glob quietly drop whichever one lost. Under a module of its own, every name the document
+/// declares is reachable, unambiguous, and safe for the API to add to.
+///
+/// It follows the `producer` feature because everything it declares is the control plane of the
+/// API: a consumer that only verifies webhook signatures pulls in none of it.
+#[cfg(feature = "producer")]
+pub mod generated;
+
 #[cfg(feature = "producer")]
 /// Longest one attempt at reaching Hook0 is given before it is abandoned, unless the client is
 /// told otherwise with [`Hook0Client::with_request_timeout`].

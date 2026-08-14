@@ -221,6 +221,21 @@ pub fn render(words: &[String], case: Case) -> String {
     rendered
 }
 
+/// The name that text is spelled under in one language: split into words, rendered under the
+/// casing asked for, and moved out of the way of the language's own vocabulary.
+///
+/// Every target needs exactly this, and a target writing its own would be a second place where a
+/// name could come out spelled differently from everywhere else.
+pub fn spell(
+    text: &str,
+    case: Case,
+    reserved: &ReservedWords,
+    limits: &Limits,
+) -> Result<String, Error> {
+    let words = checked_words(text, limits)?;
+    Ok(escape(&render(&words, case), reserved))
+}
+
 /// Spells a rendered identifier out of the way of a language's vocabulary.
 ///
 /// Escaping is applied again as long as it keeps landing on a keyword, which is what covers a

@@ -15,11 +15,13 @@ client.rust.check:
         # the API surface has to run them even when no generator file moved.
         - api/openapi.snapshot.json
         # Generated trees are written here, so a hand edit of any of them has to
-        # face the drift guard that wrote it. Two shapes, because where a target
-        # lands is the target's business: under a `src` for a language that has
-        # one, directly under the client for a language that keeps a package's
-        # tests beside it and so has none.
+        # face the drift guard that wrote it. Three shapes, because where a
+        # target lands is the target's business: under a `src` for a language
+        # that has one, under a `lib` for a language that keeps its sources
+        # there, and directly under the client for a language that keeps a
+        # package's tests beside it and so has neither.
         - clients/*/src/**
+        - clients/*/lib/**
         - clients/*/generated/**
         - Cargo.*
   before_script:

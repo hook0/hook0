@@ -21,7 +21,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::emit::{EmittedFile, FileTree, Ownership, RelativePath, banner};
 use crate::error::{Error, preview};
-use crate::identifier::{Case, checked_words, escape, render};
+use crate::identifier::{Case, spell};
 use crate::limits::Limits;
 use crate::model::{ApiModel, Entity, ErrorModel, Field, Method, ObjectShape, Scalar, Shape};
 use crate::snapshot::{PUBLIC_TAG, Parameter, ParameterLocation};
@@ -83,7 +83,7 @@ fn emit(language: &LanguageSpec, model: &ApiModel) -> Result<FileTree, Error> {
     let limits = Limits::DEFAULT;
     let banner = banner(language.comment, &update_command(NAME), &limits)?;
 
-    let enums = enumerations(model, &limits)?;
+    let enums = model.enumerations(&limits)?;
     let types = Types::read(model, &enums, language, &limits)?;
 
     let files = vec![
@@ -298,69 +298,6 @@ fn enum_of(errors: &ErrorModel, enums: &BTreeMap<String, String>) -> Result<Stri
         .ok_or_else(|| Error::UnresolvableReference {
             reference: preview(name),
         })
-}
-
-/// Every closed list of strings the model carries, under the name it is declared with.
-///
-/// A list reached twice under one name has to spell the same values both times: two enumerations
-/// sharing a name would be one class, and whichever one lost would be a silent mis-decoding.
-fn enumerations(model: &ApiModel, limits: &Limits) -> Result<BTreeMap<String, Vec<String>>, Error> {
-    let mut found = BTreeMap::new();
-
-    for object in model.schemas.values() {
-        for field in &object.fields {
-            collect_enums(&field.shape, &mut found, limits, 0)?;
-        }
-    }
-    for entity in model.entities.entities() {
-        for method in &entity.methods {
-            if let Some(shape) = method.request.as_ref() {
-                collect_enums(shape, &mut found, limits, 0)?;
-            }
-            if let Some((_, Some(shape))) = method.success.as_ref() {
-                collect_enums(shape, &mut found, limits, 0)?;
-            }
-        }
-    }
-
-    Ok(found)
-}
-
-fn collect_enums(
-    shape: &Shape,
-    found: &mut BTreeMap<String, Vec<String>>,
-    limits: &Limits,
-    depth: usize,
-) -> Result<(), Error> {
-    if depth > limits.max_shape_depth {
-        return Err(Error::SchemaTooDeep {
-            subject: preview("a field of the model"),
-            limit: limits.max_shape_depth,
-        });
-    }
-
-    match shape {
-        Shape::Enum { name, values } => match found.get(name) {
-            Some(first) if first != values => Err(Error::SchemaNameCollision {
-                name: preview(name),
-                first: preview(&first.join(", ")),
-                second: preview(&values.join(", ")),
-            }),
-            Some(_) => Ok(()),
-            None => {
-                found.insert(name.clone(), values.clone());
-                Ok(())
-            }
-        },
-        Shape::Array(inner) | Shape::Map(inner) => collect_enums(inner, found, limits, depth + 1),
-        Shape::Object(object) => {
-            for field in &object.fields {
-                collect_enums(&field.shape, found, limits, depth + 1)?;
-            }
-            Ok(())
-        }
-        Shape::Scalar(_) | Shape::Named(_) | Shape::Json => Ok(()),
-    }
 }
 
 /// What a module imports, gathered while its body is written rather than guessed afterwards.
@@ -1027,8 +964,7 @@ fn ident(
     language: &LanguageSpec,
     limits: &Limits,
 ) -> Result<String, Error> {
-    let words = checked_words(text, limits)?;
-    Ok(escape(&render(&words, case), language.reserved))
+    spell(text, case, language.reserved, limits)
 }
 
 /// What a method says about itself, from what the document says about the operation.

@@ -230,6 +230,26 @@ function describeExport(checker: ts.TypeChecker, exported: ts.Symbol): ApiEntry 
   );
 }
 
+/**
+ * One entry per exported symbol, and one per member of an exported namespace.
+ *
+ * A namespace re-export is a whole surface rather than a single symbol: folding it into one line
+ * would leave every signature inside it out of the report, which is exactly what the report exists
+ * to stop.
+ */
+function describeExports(checker: ts.TypeChecker, exported: ts.Symbol): ApiEntry[] {
+  const symbol = targetOf(checker, exported);
+  if ((symbol.flags & ts.SymbolFlags.Module) === 0) {
+    return [describeExport(checker, exported)];
+  }
+
+  const namespace = exported.getName();
+  return checker
+    .getExportsOfModule(symbol)
+    .map((member) => describeExport(checker, member))
+    .map((entry) => ({ ...entry, name: `${namespace}.${entry.name}` }));
+}
+
 function render(entries: ApiEntry[]): string {
   const header = [
     '# hook0-client — public API surface',
@@ -276,7 +296,7 @@ export function extractApiSurface(): string {
 
   const entries = checker
     .getExportsOfModule(moduleSymbol)
-    .map((exported) => describeExport(checker, exported))
+    .flatMap((exported) => describeExports(checker, exported))
     .sort((a, b) => byText(a.name, b.name));
 
   return render(entries);

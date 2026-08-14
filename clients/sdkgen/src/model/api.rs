@@ -7,7 +7,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::error::Error;
+use crate::error::{Error, preview};
 use crate::limits::Limits;
 use crate::model::EntityModel;
 use crate::model::errors::ErrorModel;
@@ -45,6 +45,35 @@ pub struct ApiModel {
 }
 
 impl ApiModel {
+    /// Every closed list of strings the model carries, under the name it is declared with.
+    ///
+    /// A target declares one type per entry, so the answer has to be the same for all of them:
+    /// asked here rather than once per language, two targets cannot disagree on what the API
+    /// declares. A list reached twice under one name has to spell the same values both times, since
+    /// two enumerations sharing a name would be one type and whichever one lost would be a silent
+    /// mis-decoding.
+    pub fn enumerations(&self, limits: &Limits) -> Result<BTreeMap<String, Vec<String>>, Error> {
+        let mut found = BTreeMap::new();
+
+        for object in self.schemas.values() {
+            for field in &object.fields {
+                collect_enums(&field.shape, &mut found, limits, 0)?;
+            }
+        }
+        for entity in self.entities.entities() {
+            for method in &entity.methods {
+                if let Some(shape) = method.request.as_ref() {
+                    collect_enums(shape, &mut found, limits, 0)?;
+                }
+                if let Some((_, Some(shape))) = method.success.as_ref() {
+                    collect_enums(shape, &mut found, limits, 0)?;
+                }
+            }
+        }
+
+        Ok(found)
+    }
+
     /// Reads the whole model out of a snapshot.
     pub fn from_snapshot(snapshot: &Snapshot, limits: &Limits) -> Result<Self, Error> {
         let mut entities = EntityModel::from_snapshot(snapshot, limits)?;
@@ -72,6 +101,44 @@ impl ApiModel {
             errors,
             security,
         })
+    }
+}
+
+/// Gathers every closed list of strings a shape carries, however deeply it sits.
+fn collect_enums(
+    shape: &Shape,
+    found: &mut BTreeMap<String, Vec<String>>,
+    limits: &Limits,
+    depth: usize,
+) -> Result<(), Error> {
+    if depth > limits.max_shape_depth {
+        return Err(Error::SchemaTooDeep {
+            subject: preview("a field of the model"),
+            limit: limits.max_shape_depth,
+        });
+    }
+
+    match shape {
+        Shape::Enum { name, values } => match found.get(name) {
+            Some(first) if first != values => Err(Error::SchemaNameCollision {
+                name: preview(name),
+                first: preview(&first.join(", ")),
+                second: preview(&values.join(", ")),
+            }),
+            Some(_) => Ok(()),
+            None => {
+                found.insert(name.clone(), values.clone());
+                Ok(())
+            }
+        },
+        Shape::Array(inner) | Shape::Map(inner) => collect_enums(inner, found, limits, depth + 1),
+        Shape::Object(object) => {
+            for field in &object.fields {
+                collect_enums(&field.shape, found, limits, depth + 1)?;
+            }
+            Ok(())
+        }
+        Shape::Scalar(_) | Shape::Named(_) | Shape::Json => Ok(()),
     }
 }
 

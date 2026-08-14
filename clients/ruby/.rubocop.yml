@@ -1,0 +1,55 @@
+# What the emitted source and the hand-written source are both held to.
+#
+# The generator writes source that already satisfies this file: nothing reformats what it wrote, so
+# a difference reported here is a defect in the generator or a hand edit beside it.
+
+AllCops:
+  TargetRubyVersion: 3.1
+  NewCops: enable
+  SuggestExtensions: false
+
+# Double quotes throughout. The generator writes string literals carrying snapshot text, which has
+# to be escaped whatever the quoting is; one style for both halves is what keeps a regenerated file
+# from being reported as badly quoted.
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+Layout/LineLength:
+  Max: 120
+
+# A generated class carries one member per member the API declares, and a generated method one
+# argument per parameter the operation declares. Both are the API's shape rather than a decision
+# anybody made here, so counting them says nothing about the code.
+Metrics/ParameterLists:
+  Max: 8
+  CountKeywordArgs: false
+
+Metrics/ClassLength:
+  Max: 250
+
+Metrics/ModuleLength:
+  Max: 250
+
+Metrics/MethodLength:
+  Max: 30
+
+Metrics/AbcSize:
+  Max: 40
+
+Metrics/CyclomaticComplexity:
+  Max: 12
+
+Metrics/PerceivedComplexity:
+  Max: 12
+
+Metrics/BlockLength:
+  Max: 40
+
+# Development dependencies live in the gemspec rather than in a Gemfile: the gem declares no
+# runtime dependency at all, so there is nothing for a lockfile to resolve, and the pipeline
+# installs the linter and the test framework by exact version rather than through bundler.
+Gemspec/DevelopmentDependencies:
+  EnforcedStyle: gemspec
