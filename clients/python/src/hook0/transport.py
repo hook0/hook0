@@ -40,6 +40,19 @@ DEFAULT_MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 MAX_LINE_BYTES = 64 * 1024
 MAX_HEADERS = 64
 
+# Largest whole head read, every line counted together, in bytes.
+#
+# This is the one that bounds what a head costs, because it bounds the total: a line count and a
+# size per line multiply, and the two above admit sixty-four lines of sixty-four kilobytes between
+# them. They earn their place by refusing early, on the line that crosses them rather than at the
+# end of the head; this one sets the ceiling.
+#
+# Sixteen kilobytes is the ceiling of the strictest runtime any target runs on, which is what makes
+# it a number every target can apply in library code. It is applied here rather than inherited from
+# the runtime: `http.client` bounds a line and a count of lines but never a total, and both of its
+# numbers are module attributes an application can reassign underneath this package.
+MAX_HEAD_BYTES = 16 * 1024
+
 # Most chunks read out of one chunked response body.
 MAX_CHUNKS = 4096
 
@@ -95,10 +108,17 @@ def _carried(headers: Iterable[tuple[str, str]]) -> dict[str, str]:
     only one of the two is a bound the other does not have.
     """
     read: dict[str, str] = {}
+    whole = 0
     for name, value in headers:
         if len(name) + len(value) > MAX_LINE_BYTES:
             raise TransportError(
                 f"the API answered a `{name}` header above the {MAX_LINE_BYTES} bytes read at most",
+                transient=False,
+            )
+        whole += len(name) + len(value)
+        if whole > MAX_HEAD_BYTES:
+            raise TransportError(
+                f"the API answered a head above the {MAX_HEAD_BYTES} bytes read at most",
                 transient=False,
             )
         read[name.lower()] = value.strip()

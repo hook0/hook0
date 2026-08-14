@@ -15,6 +15,7 @@ module Hook0Test
     RETRY = Hook0Test.contract("retry.json")
     BOUNDS = Hook0Test.contract("bounds.json")["bounds"]
     SIGNATURE = Hook0Test.contract("signature.json")
+    REQUEST = Hook0Test.contract("request.json")
 
     INGESTED_ID = "01961234-5678-7abc-8def-0123456789ac"
 
@@ -114,11 +115,40 @@ module Hook0Test
         "max_payload_bytes" => built.options.max_payload_bytes,
         "max_response_bytes" => built.options.max_response_bytes,
         "max_response_headers" => built.options.max_response_headers,
-        "max_header_bytes" => built.options.max_header_bytes
+        "max_header_bytes" => built.options.max_header_bytes,
+        "max_head_bytes" => built.options.max_head_bytes
       }
 
       assert_empty BOUNDS.keys - applied.keys, "the corpus names a bound this client does not apply"
       BOUNDS.each { |name, wanted| assert_in_delta wanted, applied.fetch(name), 0.001, name }
+    end
+
+    def test_every_occasion_a_header_names_is_one_the_corpus_declares
+      # A `when` spelled differently from the occasion it means would match no request, and the case
+      # below would then assert nothing about that header while still passing.
+      REQUEST["headers"].each do |header|
+        assert_includes REQUEST["occasions"], header["when"],
+                        "the corpus carries `#{header["name"]}` on `#{header["when"]}`, " \
+                        "which is not one of the occasions it declares"
+      end
+    end
+
+    def test_a_request_carries_the_headers_its_occasion_declares_and_only_those
+      # Read back off the socket, on both occasions the corpus declares: a send carries a body, and
+      # a read does not. What separates them is the point — a client that sets `Content-Type` on a
+      # request with nothing in it is describing a body that is not there.
+      @api.will_answer(ingested(INGESTED_ID))
+      client(options(max_attempts: 4)).send_event(an_event)
+      carrying_a_body = @api.received.fetch(0)
+
+      restarted do
+        @api.will_answer(ScriptedResponse.new(200, []))
+        transport.request("GET", "/applications")
+        carrying_nothing = @api.received.fetch(0)
+
+        assert_carries carrying_a_body, ["every request", "a request carrying a body"]
+        assert_carries carrying_nothing, ["every request"]
+      end
     end
 
     def test_every_refusal_the_corpus_declares_reads_as_one_of_this_client_s
@@ -144,6 +174,36 @@ module Hook0Test
     end
 
     private
+
+    # The transport the generated half is handed, pointed at the API this case is listening on.
+    def transport
+      Hook0::Transport.new(@api.base_url, "token-xyz")
+    end
+
+    # What the corpus says a request on these occasions carries, held against what arrived.
+    #
+    # Both directions are checked: a header the occasion declares has to be there with the value the
+    # corpus spells, and one it does not declare has to be absent. Only the second direction catches
+    # a client that sets every header it knows on every request it makes.
+    def assert_carries(request, occasions)
+      REQUEST["headers"].each do |header|
+        name = header["name"].downcase
+        carried = request.headers[name]
+
+        unless occasions.include?(header["when"])
+          assert_nil carried,
+                     "a request carried `#{header["name"]}: #{carried}`, which the corpus carries " \
+                     "only on `#{header["when"]}`: #{header["reason"]}"
+          next
+        end
+
+        wanted = header["value"].gsub("${token}", "token-xyz")
+
+        assert_equal wanted, carried,
+                     "a request carried `#{header["name"]}: #{carried}` where the corpus says " \
+                     "`#{wanted}`: #{header["reason"]}"
+      end
+    end
 
     # One cause of a request the API never answered, provoked over a real socket: how many requests
     # the send issued, and whether it ended up ingesting the event.

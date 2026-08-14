@@ -150,19 +150,24 @@ module Hook0
     # @return [Integer] the longest one header line may be
     attr_reader :max_header_bytes
 
+    # @return [Integer] the largest whole head, every line counted together
+    attr_reader :max_head_bytes
+
     # @param retry_policy [RetryPolicy]
     # @param request_timeout [Float]
     # @param max_payload_bytes [Integer]
     # @param max_response_bytes [Integer]
     # @param max_response_headers [Integer]
     # @param max_header_bytes [Integer]
+    # @param max_head_bytes [Integer]
     def initialize(
       retry_policy: RetryPolicy.new,
       request_timeout: Transport::DEFAULT_REQUEST_TIMEOUT,
       max_payload_bytes: DEFAULT_MAX_PAYLOAD_BYTES,
       max_response_bytes: Transport::DEFAULT_MAX_RESPONSE_BYTES,
       max_response_headers: Transport::DEFAULT_MAX_RESPONSE_HEADERS,
-      max_header_bytes: Transport::DEFAULT_MAX_HEADER_BYTES
+      max_header_bytes: Transport::DEFAULT_MAX_HEADER_BYTES,
+      max_head_bytes: Transport::DEFAULT_MAX_HEAD_BYTES
     )
       @retry_policy = retry_policy
       @request_timeout = request_timeout
@@ -170,6 +175,7 @@ module Hook0
       @max_response_bytes = max_response_bytes
       @max_response_headers = max_response_headers
       @max_header_bytes = max_header_bytes
+      @max_head_bytes = max_head_bytes
       freeze
     end
   end
@@ -382,7 +388,8 @@ module Hook0
         timeout: options.request_timeout,
         max_response_bytes: options.max_response_bytes,
         max_response_headers: options.max_response_headers,
-        max_header_bytes: options.max_header_bytes
+        max_header_bytes: options.max_header_bytes,
+        max_head_bytes: options.max_head_bytes
       )
     end
 

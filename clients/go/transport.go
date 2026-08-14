@@ -42,6 +42,20 @@ const (
 	// the numbers the conformance corpus names, so that no two SDKs bound different things.
 	MaxResponseHeaders = 64
 	MaxHeaderBytes     = 64 * 1024
+
+	// MaxHeadBytes is the largest whole head an answer may carry, every line counted together.
+	//
+	// This is the one that bounds what a head costs, because it bounds the total: a line count and
+	// a size per line multiply, and the two above admit sixty-four lines of sixty-four kilobytes
+	// between them. They earn their place by refusing early, on the line that crosses them rather
+	// than at the end of the head; this one sets the ceiling.
+	//
+	// Sixteen kilobytes is the ceiling of the strictest runtime any target runs on, which is what
+	// makes it a number every target can apply in library code. It is applied here rather than left
+	// to MaxResponseHeaderBytes below: that one is an outer wall, set far above this so that what
+	// refuses an abusive head is this client's own ceiling rather than whatever the runtime of the
+	// day happens to allow.
+	MaxHeadBytes = 16 * 1024
 )
 
 // jsonMediaType is what a request body says it carries, and what an answer is asked for in.
@@ -213,6 +227,7 @@ func bounded(headers http.Header) error {
 		}
 	}
 
+	whole := 0
 	for name, values := range headers {
 		for _, value := range values {
 			if len(name)+len(value) > MaxHeaderBytes {
@@ -223,6 +238,19 @@ func bounded(headers http.Header) error {
 					Err: ErrAnswerAboveABound,
 				}
 			}
+			whole += len(name) + len(value)
+		}
+	}
+
+	// The total, once every line has been counted. A head this far along is one the runtime has
+	// already read whole, so counting it to its end costs nothing more than counting part of it,
+	// and the refusal can say how heavy the head actually was.
+	if whole > MaxHeadBytes {
+		return &TransportError{
+			Detail: fmt.Sprintf(
+				"the API answered a head of %d bytes, above the %d read at most", whole, MaxHeadBytes,
+			),
+			Err: ErrAnswerAboveABound,
 		}
 	}
 

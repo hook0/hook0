@@ -23,6 +23,41 @@ export const DEFAULT_REQUEST_TIMEOUT_MS: number = 10_000;
 export const DEFAULT_MAX_PAYLOAD_BYTES: number = 1024 * 1024;
 
 /**
+ * Largest answer the client reads off the socket, unless it is built with another
+ * `Hook0ClientOptions`.
+ *
+ * The body of an answer is written by the other end: a server that is broken or hostile can
+ * otherwise stream into an emitter's memory for as long as the connection lasts, and a client with
+ * no ceiling has no answer to that. Eight mebibytes is far above anything Hook0's API replies with,
+ * and the read stops there rather than growing with whatever arrives.
+ */
+export const DEFAULT_MAX_RESPONSE_BYTES: number = 8 * 1024 * 1024;
+
+/**
+ * Header lines an answer may carry before this client refuses to read it.
+ *
+ * The head is written by the other end just like the body, so it is bounded like the body: a client
+ * that holds a head of any length has only moved where a broken or hostile server spends its
+ * caller's memory. This one and `MAX_HEADER_BYTES` refuse early, on the line that crosses them,
+ * rather than at the end of the head.
+ */
+export const MAX_RESPONSE_HEADERS: number = 64;
+
+/** Longest one header line may be, its name and its value together, in bytes. */
+export const MAX_HEADER_BYTES: number = 64 * 1024;
+
+/**
+ * Largest whole head an answer may carry, every line counted together, in bytes.
+ *
+ * This is the one that bounds what a head costs: a line count and a size per line multiply, and
+ * `MAX_RESPONSE_HEADERS` lines of `MAX_HEADER_BYTES` each is four mebibytes of head that both of
+ * them admit. Sixteen kibibytes is what Node enforces by default, and matching it is the point: a
+ * lower ceiling would refuse heads another Hook0 SDK accepts, and a higher one is not reachable
+ * from library code at all, since a larger head is refused before this client is consulted.
+ */
+export const MAX_HEAD_BYTES: number = 16 * 1024;
+
+/**
  * Most attempts a `RetryPolicy` can ever make, whatever `maxAttempts` says.
  *
  * A policy is configuration, and configuration can be wrong; this cap keeps a mistyped
@@ -36,11 +71,44 @@ const MAX_BACKOFF_DOUBLINGS = 30;
 /** The public identifier Hook0 gives the problem it answers when an event ID is already taken. */
 const ALREADY_INGESTED = 'EventAlreadyIngested';
 
+/**
+ * The public identifier Hook0 gives the problem it answers when requests are reaching the instance
+ * faster than it accepts them.
+ *
+ * It shares its status with the quota problems and is the only one of them worth repeating: a quota
+ * clears when a plan changes or a day turns, neither of which happens inside the seconds a send is
+ * given, while pacing clears on its own and the answer says when.
+ */
+const RATE_LIMITED = 'RateLimited';
+
 /** Status Hook0 answers when the event ID a request carries is already taken. */
 const CONFLICT = 409;
 
+/**
+ * Status Hook0 answers both when a quota is spent and when requests are coming in faster than the
+ * instance accepts them. Which of the two it is only the problem the body names can say, which is
+ * why this status alone decides nothing.
+ */
+const PACED = 429;
+
 /** First status that says the failure is on Hook0's side, and so could clear on its own. */
 const LOWEST_SERVER_ERROR = 500;
+
+/** What every request says it carries, and what every answer is asked for in. */
+const JSON_MEDIA_TYPE = 'application/json';
+
+/** What the API names the delay before the request becomes servable again, in whole seconds. */
+const DELAY_HEADER = 'Retry-After';
+
+/** The schemes a request can travel on, and so the ones an API URL may name. */
+const REACHABLE_SCHEMES = ['http:', 'https:'];
+
+/**
+ * How Node reports a head above what it agrees to read, which it refuses on the socket before this
+ * client is consulted. It is an answer above a bound rather than an answer that never came: the
+ * same request draws the same head, and repeating it reads that head again.
+ */
+const HEAD_OVERFLOW = 'UND_ERR_HEADERS_OVERFLOW';
 
 /**
  * Custom error class for Hook0Client
@@ -249,11 +317,13 @@ export class Hook0ClientOptions {
    * @param retryPolicy - How the client spaces out the attempts of a send
    * @param requestTimeoutMs - Longest one attempt is given, in milliseconds
    * @param maxPayloadBytes - Largest event payload the client agrees to send, in bytes
+   * @param maxResponseBytes - Largest answer the client agrees to read off the socket, in bytes
    */
   constructor(
     public retryPolicy: RetryPolicy = new RetryPolicy(),
     public requestTimeoutMs: number = DEFAULT_REQUEST_TIMEOUT_MS,
-    public maxPayloadBytes: number = DEFAULT_MAX_PAYLOAD_BYTES
+    public maxPayloadBytes: number = DEFAULT_MAX_PAYLOAD_BYTES,
+    public maxResponseBytes: number = DEFAULT_MAX_RESPONSE_BYTES
   ) {}
 }
 
@@ -322,26 +392,190 @@ function eventIdOf(event: Event): string {
   return generateEventId();
 }
 
-/** Whether an RFC 9457 problem body is the one Hook0 answers when an event ID is already taken. */
-function isAlreadyIngested(body: string): boolean {
+/** What a body says, when it says JSON. */
+type ReadBody = { kind: 'json'; value: unknown } | { kind: 'notJson'; detail: string };
+
+/** Read a body as JSON, without the failure to do so escaping as something else. */
+function jsonOf(body: string): ReadBody {
   try {
-    const problem: unknown = JSON.parse(body);
-    return (
-      typeof problem === 'object' &&
-      problem !== null &&
-      'id' in problem &&
-      (problem as { id: unknown }).id === ALREADY_INGESTED
-    );
-  } catch {
-    return false;
+    return { kind: 'json', value: JSON.parse(body) };
+  } catch (cause) {
+    return { kind: 'notJson', detail: detailOf(cause) };
   }
+}
+
+/** Whether an RFC 9457 problem body names that problem. */
+function problemIs(body: string, problem: string): boolean {
+  const read = jsonOf(body);
+  return (
+    read.kind === 'json' &&
+    typeof read.value === 'object' &&
+    read.value !== null &&
+    'id' in read.value &&
+    (read.value as { id: unknown }).id === problem
+  );
+}
+
+/**
+ * Whether repeating a request Hook0 answered that way could end differently.
+ *
+ * The status decides on its own everywhere but under the one Hook0 answers both a spent quota and a
+ * paced instance with: a quota clears when a plan changes or a day turns, and neither is something
+ * a send spending seconds can wait for. Only the problem the body names tells the two apart, and a
+ * body naming a problem this client has never heard of falls back to the status.
+ * @param status - What Hook0 answered
+ * @param body - What it answered beside it
+ */
+function isRetryable(status: number, body: string): boolean {
+  if (status === PACED) {
+    return problemIs(body, RATE_LIMITED);
+  }
+  // Only the server side of a server error can change between two identical requests.
+  return status >= LOWEST_SERVER_ERROR;
+}
+
+/** How long Hook0 named before the request becomes servable again, when it named a delay. */
+type NamedDelay = { kind: 'noDelayNamed' } | { kind: 'delayNamed'; delayMs: number };
+
+/**
+ * The delay Hook0 named beside an answer, when it named one this client can read.
+ *
+ * Only a whole number of seconds is read. The header may also carry a date, which is a clock this
+ * client would be comparing against its own, and anything else is a header nobody meant: both leave
+ * the client's own schedule in place rather than being guessed at.
+ * @param headers - What the answer carried beside its body
+ */
+function delayNamedBy(headers: Headers): NamedDelay {
+  const written = headers.get(DELAY_HEADER);
+  if (typeof written !== 'string' || !/^\d+$/.test(written.trim())) {
+    return { kind: 'noDelayNamed' };
+  }
+
+  const seconds = Number(written.trim());
+  if (!Number.isSafeInteger(seconds)) {
+    return { kind: 'noDelayNamed' };
+  }
+  return { kind: 'delayNamed', delayMs: seconds * 1000 };
+}
+
+/** Why the head of an answer is above what this client agrees to hold, when it is. */
+type HeadVerdict = { kind: 'headWithinTheBounds' } | { kind: 'headAboveABound'; detail: string };
+
+/**
+ * Whether the head of an answer crossed one of the ceilings this client holds a head to.
+ *
+ * Counted the way a head is written: one line per header, its name and its value together. The line
+ * count and the length of one line refuse early, on the line that crosses them; the whole head is
+ * what actually bounds the memory a head can cost, since the other two multiply.
+ * @param headers - What the answer carried beside its body
+ */
+function headAboveABound(headers: Headers): HeadVerdict {
+  let lines = 0;
+  let whole = 0;
+
+  for (const [name, value] of headers) {
+    lines += 1;
+    if (lines > MAX_RESPONSE_HEADERS) {
+      return {
+        kind: 'headAboveABound',
+        detail: `the API answered more than the ${MAX_RESPONSE_HEADERS} header lines read at most`,
+      };
+    }
+
+    const line = Buffer.byteLength(name, 'utf8') + Buffer.byteLength(value, 'utf8');
+    if (line > MAX_HEADER_BYTES) {
+      return {
+        kind: 'headAboveABound',
+        detail: `the API answered a \`${name}\` header above the ${MAX_HEADER_BYTES} bytes read at most`,
+      };
+    }
+
+    whole += line;
+    if (whole > MAX_HEAD_BYTES) {
+      return {
+        kind: 'headAboveABound',
+        detail: `the API answered a head above the ${MAX_HEAD_BYTES} bytes read at most`,
+      };
+    }
+  }
+
+  return { kind: 'headWithinTheBounds' };
+}
+
+/** The body of an answer, read no further than this client agrees to hold. */
+type BoundedBody = { kind: 'bodyRead'; text: string } | { kind: 'bodyAboveTheBound'; detail: string };
+
+/**
+ * Read the body of an answer, stopping at the ceiling rather than at the end of what is written.
+ *
+ * `fetch` reads a body without a ceiling of its own, so a server that is broken or hostile can
+ * stream into an emitter's memory for as long as the connection lasts. Reading it a chunk at a time
+ * makes the read stop where the ceiling is, and what has been read up to there is dropped with it.
+ * @param response - The answer to read
+ * @param maxBytes - Largest body this client agrees to hold
+ */
+function readBoundedBody(response: Response, maxBytes: number): Promise<BoundedBody> {
+  const stream = response.body;
+  if (stream === null) {
+    return Promise.resolve({ kind: 'bodyRead', text: '' });
+  }
+
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let held = 0;
+
+  function pump(): Promise<BoundedBody> {
+    return reader.read().then((step): Promise<BoundedBody> | BoundedBody => {
+      if (step.done) {
+        return { kind: 'bodyRead', text: Buffer.concat(chunks).toString('utf8') };
+      }
+
+      held += step.value.length;
+      if (held > maxBytes) {
+        chunks.length = 0;
+        return reader.cancel().then(
+          (): BoundedBody => ({
+            kind: 'bodyAboveTheBound',
+            detail: `the API answered more than the ${maxBytes} bytes read at most`,
+          })
+        );
+      }
+
+      chunks.push(step.value);
+      return pump();
+    });
+  }
+
+  return pump();
+}
+
+/** Let go of an answer this client has refused to read, so its connection is not held open. */
+function discard(response: Response): Promise<void> {
+  const stream = response.body;
+  if (stream === null) {
+    return Promise.resolve();
+  }
+  return stream.cancel().then(
+    () => undefined,
+    () => undefined
+  );
 }
 
 /** What one attempt at sending an event ended with. */
 type Attempt =
   | { kind: 'ingested'; eventId: string }
   | { kind: 'alreadyIngested'; detail: string }
-  | { kind: 'failed'; detail: string; retryable: boolean };
+  | { kind: 'failed'; detail: string; retryable: boolean; namedDelay: NamedDelay };
+
+/** The request every attempt of one send repeats, or why nothing could be sent at all. */
+type BuildableRequest =
+  | { kind: 'buildable'; url: string; body: string }
+  | { kind: 'unbuildable'; detail: string };
+
+/** A failed attempt whose answer, if there was one, named no delay. */
+function failed(detail: string, retryable: boolean): Attempt {
+  return { kind: 'failed', detail, retryable, namedDelay: { kind: 'noDelayNamed' } };
+}
 
 /** Resolves after `delayMs`, so that a retry waits before it is issued. */
 function wait(delayMs: number): Promise<void> {
@@ -358,51 +592,119 @@ function detailOf(cause: unknown): string {
   return String(cause);
 }
 
-/** Read what Hook0 answered one attempt, and whether repeating it could end differently. */
-function readAttempt(response: Response): Promise<Attempt> {
-  if (response.ok) {
-    return response.json().then(
-      (body: unknown): Attempt => {
-        if (typeof body === 'object' && body !== null && 'event_id' in body) {
-          const ingestedId = (body as { event_id: unknown }).event_id;
-          if (typeof ingestedId === 'string') {
-            return { kind: 'ingested', eventId: ingestedId };
-          }
-        }
-        // Hook0 accepted the event but answered something this client cannot read; repeating the
-        // request would meet the same answer.
-        return {
-          kind: 'failed',
-          detail: `Hook0 answered ${response.status} without an event id`,
-          retryable: false,
-        };
-      },
-      (cause: unknown): Attempt => ({
-        kind: 'failed',
-        detail: detailOf(cause),
-        retryable: false,
-      })
-    );
+/**
+ * Whether what `fetch` rejected with is an answer above a ceiling rather than an answer that never
+ * came.
+ *
+ * Node refuses a head above what it reads on the socket, before this client is consulted, and
+ * reports it under a code carried somewhere down the chain of causes.
+ * @param cause - What the rejected promise carried
+ */
+function isAboveABound(cause: unknown): boolean {
+  /** No chain of causes a runtime builds is anywhere near this long; the bound keeps a cyclic one from being walked forever. */
+  const MAX_LINKS = 8;
+
+  let walked: unknown = cause;
+  for (let link = 0; link < MAX_LINKS; link += 1) {
+    if (!(walked instanceof Error)) {
+      return false;
+    }
+    if ((walked as { code?: unknown }).code === HEAD_OVERFLOW) {
+      return true;
+    }
+    walked = (walked as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
+/**
+ * What a request that never got an answer was, told apart by what caused it rather than by which
+ * type carried it.
+ *
+ * Everything `fetch` rejects with is a `TypeError`, so the type says nothing: a connection that was
+ * refused and a head above what Node agrees to read arrive as the same one. An answer that crossed
+ * a ceiling draws the same answer the next time, so it is not repeated; everything else here is a
+ * request that got no answer, which says nothing about whether Hook0 acted on it and is what the
+ * identifier this client chose makes safe to send again.
+ * @param cause - What the rejected `fetch` carried
+ */
+function transportFailure(cause: unknown): Attempt {
+  return failed(detailOf(cause), !isAboveABound(cause));
+}
+
+/** The identifier Hook0 says it ingested the event under, when its answer carries one. */
+function ingestedIdOf(body: string): { kind: 'ingestedId'; eventId: string } | { kind: 'noIngestedId' } {
+  const read = jsonOf(body);
+  if (
+    read.kind === 'json' &&
+    typeof read.value === 'object' &&
+    read.value !== null &&
+    'event_id' in read.value
+  ) {
+    const ingestedId = (read.value as { event_id: unknown }).event_id;
+    if (typeof ingestedId === 'string') {
+      return { kind: 'ingestedId', eventId: ingestedId };
+    }
+  }
+  return { kind: 'noIngestedId' };
+}
+
+/**
+ * Read what Hook0 answered one attempt, and whether repeating it could end differently.
+ * @param response - What Hook0 answered
+ * @param maxResponseBytes - Largest body this client agrees to hold
+ */
+function readAttempt(response: Response, maxResponseBytes: number): Promise<Attempt> {
+  const namedDelay = delayNamedBy(response.headers);
+
+  // The head is refused before the body is read, so an abusive head costs one pass over what
+  // arrived rather than that plus a body on top. An answer that crossed a ceiling this client set
+  // for itself draws the same answer the next time, whatever its status says.
+  const head = headAboveABound(response.headers);
+  if (head.kind === 'headAboveABound') {
+    return discard(response).then(() => failed(head.detail, false));
   }
 
-  return response.text().then(
-    (body): Attempt => {
-      if (response.status === CONFLICT && isAlreadyIngested(body)) {
-        return { kind: 'alreadyIngested', detail: body };
+  return readBoundedBody(response, maxResponseBytes).then((body): Attempt => {
+    if (body.kind === 'bodyAboveTheBound') {
+      return failed(body.detail, false);
+    }
+
+    if (response.ok) {
+      const ingested = ingestedIdOf(body.text);
+      if (ingested.kind === 'ingestedId') {
+        return { kind: 'ingested', eventId: ingested.eventId };
       }
-      return {
-        kind: 'failed',
-        detail: body,
-        // Only the server side of a server error can change between two identical requests.
-        retryable: response.status >= LOWEST_SERVER_ERROR,
-      };
-    },
-    (cause: unknown): Attempt => ({
+      // Hook0 accepted the event but answered something this client cannot read; repeating the
+      // request would meet the same answer.
+      return failed(`Hook0 answered ${response.status} without an event id`, false);
+    }
+
+    if (response.status === CONFLICT && problemIs(body.text, ALREADY_INGESTED)) {
+      return { kind: 'alreadyIngested', detail: body.text };
+    }
+    return {
       kind: 'failed',
-      detail: detailOf(cause),
-      retryable: true,
-    })
-  );
+      detail: body.text,
+      retryable: isRetryable(response.status, body.text),
+      namedDelay,
+    };
+  });
+}
+
+/**
+ * How long to wait before the next attempt: what Hook0 asked for when it asked for anything, and
+ * this client's own schedule otherwise.
+ *
+ * Either way it is cut down to what is left of the budget the delays of one send share, so a delay
+ * written by the other end cannot stretch a send past what its caller allowed for it.
+ * @param named - The delay Hook0 named, when it named one
+ * @param scheduledMs - What this client's own schedule had in mind
+ * @param remainingMs - What is left of the budget every delay of this send shares
+ */
+function waitBeforeRetry(named: NamedDelay, scheduledMs: number, remainingMs: number): number {
+  const wanted = named.kind === 'delayNamed' ? named.delayMs : scheduledMs;
+  return Math.max(Math.min(wanted, remainingMs), 0);
 }
 
 /**
@@ -447,12 +749,17 @@ export class Hook0Client {
    * that is repeated after a network failure or a server error ingests the event once, not twice —
    * which is what makes retrying safe.
    *
-   * A send is bounded on four axes, each of them configurable through `Hook0ClientOptions`: an
+   * A send is bounded on five axes, each of them configurable through `Hook0ClientOptions`: an
    * oversized payload is ruled out before anything is sent, one attempt is bounded by
-   * `requestTimeoutMs`, how many attempts are made is bounded by `RetryPolicy.maxAttempts`, and
-   * the time spent waiting between them is bounded by `RetryPolicy.maxTotalDelayMs`. Only a
-   * network failure or a server error is retried; anything Hook0 refuses outright is reported as
-   * is.
+   * `requestTimeoutMs`, what an answer may cost to read is bounded by `maxResponseBytes`, how many
+   * attempts are made is bounded by `RetryPolicy.maxAttempts`, and the time spent waiting between
+   * them is bounded by `RetryPolicy.maxTotalDelayMs`.
+   *
+   * A network failure, a server error and an instance that is pacing its requests are retried;
+   * anything Hook0 refuses outright — a spent quota included, which no delay this send can afford
+   * would clear — is reported as is. When the answer names how long to wait before the request
+   * becomes servable again, that delay is waited out instead of this client's own schedule, cut
+   * down to what is left of `RetryPolicy.maxTotalDelayMs`.
    *
    * A retried request that Hook0 answers with `EventAlreadyIngested` resolves: an earlier attempt
    * of this very send reached the API, and the event carries the ID returned here. That answer to
@@ -469,13 +776,64 @@ export class Hook0Client {
       );
     }
 
-    const eventIngestionUrl = new URL('event', this.apiUrl).toString();
-    const fullEvent = FullEvent.fromEvent(event, this.applicationId, eventId);
-    const body = JSON.stringify(fullEvent);
+    // The request is built once, before any attempt: a URL nothing can be sent to and a body that
+    // cannot be written are the same the second time round, so they are reported here rather than
+    // repeated four times over and handed to the caller as a network that would not answer.
+    const request = this.eventIngestionRequest(event, eventId);
+    if (request.kind === 'unbuildable') {
+      return Promise.reject(Hook0ClientError.EventSending(eventId, new Error(request.detail)));
+    }
+
     const policy = this.options.retryPolicy;
     const delays = policy.delaysMs(jitterDraws(policy.attempts() - 1));
 
-    return this.attemptSend(eventIngestionUrl, body, eventId, delays, 1, 0);
+    return this.attemptSend(request.url, request.body, eventId, delays, 1, 0);
+  }
+
+  /** The request one send repeats, or why it could not be built at all. */
+  private eventIngestionRequest(event: Event, eventId: string): BuildableRequest {
+    const target = new URL('event', this.apiUrl);
+    if (!REACHABLE_SCHEMES.includes(target.protocol)) {
+      return {
+        kind: 'unbuildable',
+        detail: `\`${target.toString()}\` names no scheme a request can travel on; nothing was sent`,
+      };
+    }
+
+    const fullEvent = FullEvent.fromEvent(event, this.applicationId, eventId);
+    try {
+      return { kind: 'buildable', url: target.toString(), body: JSON.stringify(fullEvent) };
+    } catch (cause) {
+      return {
+        kind: 'unbuildable',
+        detail: `the event cannot be written as JSON: ${detailOf(cause)}; nothing was sent`,
+      };
+    }
+  }
+
+  /**
+   * The event types the API says it holds, read no further than this client agrees to hold.
+   * @param response - What the API answered
+   */
+  private async readEventTypeNames(response: Response): Promise<string[]> {
+    const head = headAboveABound(response.headers);
+    if (head.kind === 'headAboveABound') {
+      await discard(response);
+      throw Hook0ClientError.GetAvailableEventTypes(new Error(head.detail));
+    }
+
+    const body = await readBoundedBody(response, this.options.maxResponseBytes);
+    if (body.kind === 'bodyAboveTheBound') {
+      throw Hook0ClientError.GetAvailableEventTypes(new Error(body.detail));
+    }
+
+    const read = jsonOf(body.text);
+    if (read.kind === 'notJson' || !Array.isArray(read.value)) {
+      throw Hook0ClientError.GetAvailableEventTypes(
+        new Error(`the API answered ${response.status} without a list of event types`)
+      );
+    }
+    return read.value.map((et: { event_type_name: string }) => et.event_type_name);
   }
 
   /** Issue one attempt, then either resolve, wait and issue the next one, or give up. */
@@ -490,22 +848,16 @@ export class Hook0Client {
     return fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': JSON_MEDIA_TYPE,
+        Accept: JSON_MEDIA_TYPE,
         ...this.headers.headers,
       },
       body,
       signal: AbortSignal.timeout(this.options.requestTimeoutMs),
     })
       .then(
-        (response) => readAttempt(response),
-        // `fetch` only rejects when the request never got an answer: a refused connection, a reset
-        // one, an attempt that ran out of time. None of them says whether Hook0 ingested the event,
-        // which is precisely why the client sends an ID it chose itself.
-        (cause: unknown): Attempt => ({
-          kind: 'failed',
-          detail: detailOf(cause),
-          retryable: true,
-        })
+        (response) => readAttempt(response, this.options.maxResponseBytes),
+        (cause: unknown): Attempt => transportFailure(cause)
       )
       .then((outcome) => {
         if (outcome.kind === 'ingested') {
@@ -526,7 +878,11 @@ export class Hook0Client {
 
         const retry = attempt - 1;
         if (outcome.retryable && retry < delays.length) {
-          const delay = delays[retry];
+          const delay = waitBeforeRetry(
+            outcome.namedDelay,
+            delays[retry],
+            this.options.retryPolicy.maxTotalDelayMs - waitedMs
+          );
           if (this.debug) {
             console.debug(`Attempt ${attempt} at sending event ${eventId} failed, retrying`);
           }
@@ -571,7 +927,7 @@ export class Hook0Client {
       {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
+          Accept: JSON_MEDIA_TYPE,
           ...this.headers.headers,
         },
       }
@@ -581,10 +937,7 @@ export class Hook0Client {
       throw Hook0ClientError.GetAvailableEventTypes(new Error(response.statusText));
     }
 
-    const availableEventTypesVec = await response.json();
-    const availableEventTypes = new Set(
-      availableEventTypesVec.map((et: { event_type_name: string }) => et.event_type_name)
-    );
+    const availableEventTypes = new Set(await this.readEventTypeNames(response));
 
     if (this.debug) {
       console.debug(`There are currently ${availableEventTypes.size} event types`);
@@ -607,7 +960,8 @@ export class Hook0Client {
         const postResponse = await fetch(eventTypesUrl.toString(), {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': JSON_MEDIA_TYPE,
+            Accept: JSON_MEDIA_TYPE,
             ...this.headers.headers,
           },
           body: JSON.stringify(body),

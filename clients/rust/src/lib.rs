@@ -18,9 +18,10 @@
 //!
 //! Every send is bounded, and every bound is configurable:
 //! [`Hook0Client::with_max_payload_bytes`] rules an oversized payload out before anything is sent,
-//! [`Hook0Client::with_request_timeout`] bounds one attempt, and [`RetryPolicy`] bounds how many
-//! attempts are made and how long they may spend waiting between them. Pass
-//! [`RetryPolicy::disabled`] to send each event exactly once.
+//! [`Hook0Client::with_request_timeout`] bounds one attempt,
+//! [`Hook0Client::with_max_response_bytes`] bounds what an answer may cost to read, and
+//! [`RetryPolicy`] bounds how many attempts are made and how long they may spend waiting between
+//! them. Pass [`RetryPolicy::disabled`] to send each event exactly once.
 
 #[cfg(all(not(feature = "producer"), not(feature = "consumer")))]
 compile_error!("at least one of feature \"producer\" and feature \"consumer\" must be enabled");
@@ -28,13 +29,17 @@ compile_error!("at least one of feature \"producer\" and feature \"consumer\" mu
 use chrono::{DateTime, Utc};
 
 #[cfg(feature = "producer")]
+use http_body_util::Limited;
+#[cfg(feature = "producer")]
 use lazy_regex::regex_captures;
 #[cfg(feature = "producer")]
 use reqwest::StatusCode;
 #[cfg(feature = "producer")]
-use reqwest::header::{AUTHORIZATION, InvalidHeaderValue};
+use reqwest::header::{
+    ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue, InvalidHeaderValue, RETRY_AFTER,
+};
 #[cfg(feature = "producer")]
-use reqwest::{Client, Url};
+use reqwest::{Client, ResponseBuilderExt, Url};
 #[cfg(feature = "producer")]
 use serde::ser::Error as SerializationError;
 #[cfg(feature = "producer")]
@@ -97,11 +102,61 @@ pub const DEFAULT_REQUEST_TIMEOUT: StdDuration = StdDuration::from_secs(10);
 pub const DEFAULT_MAX_PAYLOAD_BYTES: usize = 1024 * 1024;
 
 #[cfg(feature = "producer")]
+/// Largest answer the client reads off the socket, unless it is told otherwise with
+/// [`Hook0Client::with_max_response_bytes`].
+///
+/// The body of an answer is written by the other end: a server that is broken or hostile can
+/// otherwise stream into an emitter's memory for as long as the connection lasts, and a client with
+/// no ceiling has no answer to that. Eight mebibytes is far above anything Hook0's API replies with,
+/// and the read stops there rather than growing with whatever arrives.
+pub const DEFAULT_MAX_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
+
+#[cfg(feature = "producer")]
+/// Header lines an answer may carry before this client refuses to read it.
+///
+/// The head is written by the other end just like the body, so it is bounded like the body: a
+/// client that holds a head of any length has only moved where a broken or hostile server spends
+/// its caller's memory. This one and [`MAX_HEADER_BYTES`] refuse early, on the line that crosses
+/// them, rather than at the end of the head.
+pub const MAX_RESPONSE_HEADERS: usize = 64;
+
+#[cfg(feature = "producer")]
+/// Longest one header line may be, its name and its value together, in bytes.
+pub const MAX_HEADER_BYTES: usize = 64 * 1024;
+
+#[cfg(feature = "producer")]
+/// Largest whole head an answer may carry, every line counted together, in bytes.
+///
+/// This is the one that bounds what a head costs: a line count and a size per line multiply, and
+/// [`MAX_RESPONSE_HEADERS`] lines of [`MAX_HEADER_BYTES`] each is four mebibytes of head that both
+/// of them admit. Sixteen kibibytes is what the strictest runtime any Hook0 SDK runs on enforces by
+/// default, and matching it is the point: a lower ceiling would refuse heads another SDK accepts,
+/// and a higher one would not bind there at all.
+pub const MAX_HEAD_BYTES: usize = 16 * 1024;
+
+#[cfg(feature = "producer")]
 /// Most attempts a [`RetryPolicy`] can ever make, whatever `max_attempts` says.
 ///
 /// A policy is configuration, and configuration can be wrong; this cap keeps a mistyped
 /// `max_attempts` from turning one send into an unbounded series of requests.
 pub const MAX_ATTEMPTS_CAP: u32 = 16;
+
+#[cfg(feature = "producer")]
+/// What every request says it carries, and what every answer is asked for in.
+const JSON_MEDIA_TYPE: &str = "application/json";
+
+#[cfg(feature = "producer")]
+/// Public identifier Hook0 gives the problem it answers when an event ID is already taken.
+const ALREADY_INGESTED: &str = "EventAlreadyIngested";
+
+#[cfg(feature = "producer")]
+/// Public identifier Hook0 gives the problem it answers when requests are reaching the instance
+/// faster than it accepts them.
+///
+/// It shares its status with the quota problems and is the only one of them worth repeating: a
+/// quota clears when a plan changes or a day turns, neither of which happens inside the seconds a
+/// send is given, while pacing clears on its own and the answer says when.
+const RATE_LIMITED: &str = "RateLimited";
 
 #[cfg(feature = "producer")]
 /// How a client spaces out the attempts of a single send.
@@ -241,6 +296,7 @@ pub struct Hook0Client {
     retry_policy: RetryPolicy,
     request_timeout: StdDuration,
     max_payload_bytes: usize,
+    max_response_bytes: usize,
 }
 
 #[cfg(feature = "producer")]
@@ -251,16 +307,22 @@ impl Hook0Client {
     /// - `application_id` - UUID of your Hook0 application.
     /// - `token` - Authentication token valid for your Hook0 application.
     pub fn new(api_url: Url, application_id: Uuid, token: &str) -> Result<Self, Hook0ClientError> {
-        let authenticated_client =
-            reqwest::header::HeaderValue::from_str(&format!("Bearer {token}"))
-                .map_err(|e| Hook0ClientError::AuthHeader(e).log_and_return())
-                .map(|hv| reqwest::header::HeaderMap::from_iter([(AUTHORIZATION, hv)]))
-                .and_then(|headers| {
-                    Client::builder()
-                        .default_headers(headers)
-                        .build()
-                        .map_err(|e| Hook0ClientError::ReqwestClient(e).log_and_return())
-                })?;
+        let authenticated_client = HeaderValue::from_str(&format!("Bearer {token}"))
+            .map_err(|e| Hook0ClientError::AuthHeader(e).log_and_return())
+            .map(|hv| {
+                // A client that asks for nothing is at the mercy of whatever the API decides to
+                // serve the day it serves more than one representation.
+                HeaderMap::from_iter([
+                    (AUTHORIZATION, hv),
+                    (ACCEPT, HeaderValue::from_static(JSON_MEDIA_TYPE)),
+                ])
+            })
+            .and_then(|headers| {
+                Client::builder()
+                    .default_headers(headers)
+                    .build()
+                    .map_err(|e| Hook0ClientError::ReqwestClient(e).log_and_return())
+            })?;
 
         Ok(Self {
             api_url,
@@ -269,6 +331,7 @@ impl Hook0Client {
             retry_policy: RetryPolicy::default(),
             request_timeout: DEFAULT_REQUEST_TIMEOUT,
             max_payload_bytes: DEFAULT_MAX_PAYLOAD_BYTES,
+            max_response_bytes: DEFAULT_MAX_RESPONSE_BYTES,
         })
     }
 
@@ -321,6 +384,20 @@ impl Hook0Client {
         self.max_payload_bytes
     }
 
+    /// Change the largest answer this client agrees to read off the socket
+    ///
+    /// An answer whose body is larger is abandoned where it crossed the ceiling, and the attempt
+    /// fails rather than holding whatever the other end decided to write.
+    pub fn with_max_response_bytes(mut self, max_response_bytes: usize) -> Self {
+        self.max_response_bytes = max_response_bytes;
+        self
+    }
+
+    /// Get the largest answer this client agrees to read off the socket
+    pub fn max_response_bytes(&self) -> usize {
+        self.max_response_bytes
+    }
+
     fn mk_url(&self, segments: &[&str]) -> Result<Url, Hook0ClientError> {
         append_url_segments(&self.api_url, segments)
             .map_err(|e| Hook0ClientError::Url(e).log_and_return())
@@ -333,12 +410,18 @@ impl Hook0Client {
     /// request that is repeated after a network failure or a server error ingests the event once,
     /// not twice — which is what makes retrying safe.
     ///
-    /// A send is bounded on four axes, each of them configurable:
+    /// A send is bounded on five axes, each of them configurable:
     /// [`Hook0Client::with_max_payload_bytes`] rules an oversized payload out before anything is
     /// sent, [`Hook0Client::with_request_timeout`] bounds one attempt,
+    /// [`Hook0Client::with_max_response_bytes`] bounds what an answer may cost to read,
     /// [`RetryPolicy::max_attempts`] bounds how many attempts are made, and
-    /// [`RetryPolicy::max_total_delay`] bounds the time spent waiting between them. Only a network
-    /// failure or a server error is retried; anything Hook0 refuses outright is reported as is.
+    /// [`RetryPolicy::max_total_delay`] bounds the time spent waiting between them.
+    ///
+    /// A network failure, a server error and an instance that is pacing its requests are retried;
+    /// anything Hook0 refuses outright — a spent quota included, which no delay this send can
+    /// afford would clear — is reported as is. When the answer names how long to wait before the
+    /// request becomes servable again, that delay is waited out instead of this client's own
+    /// schedule, cut down to what is left of [`RetryPolicy::max_total_delay`].
     ///
     /// A retried request that Hook0 answers with `EventAlreadyIngested` reports success: an earlier
     /// attempt of this very send reached the API, and the event carries the ID returned here. That
@@ -378,6 +461,7 @@ impl Hook0Client {
                         error,
                         body,
                         retryable: false,
+                        named_delay: None,
                     }
                 }
                 Attempt::Failed(failure) => failure,
@@ -386,8 +470,9 @@ impl Hook0Client {
             match delays.get((attempts - 1) as usize) {
                 Some(delay) if failure.retryable => {
                     trace!("Attempt {attempts} at sending event {event_id} failed, retrying");
-                    waited = waited.saturating_add(*delay);
-                    tokio::time::sleep(*delay).await;
+                    let wait = wait_before_retry(&self.retry_policy, &failure, *delay, waited);
+                    waited = waited.saturating_add(wait);
+                    tokio::time::sleep(wait).await;
                 }
                 _ => {
                     return Err(Hook0ClientError::EventSending {
@@ -411,17 +496,20 @@ impl Hook0Client {
             .send()
             .await;
 
-        let res = match response {
+        let answer = match response {
             Ok(res) => res,
             Err(error) => {
                 return Attempt::Failed(Failure {
                     retryable: is_transient(&error),
                     body: underlying_cause(&error),
+                    named_delay: None,
                     error,
                 });
             }
         };
-        let status = res.status();
+        let status = answer.status();
+        let named_delay = named_delay(answer.headers());
+        let (res, head_refusal) = bounded(answer, self.max_response_bytes);
 
         match res.error_for_status_ref() {
             Ok(_) => {
@@ -431,12 +519,14 @@ impl Hook0Client {
                 }
                 match res.json::<Response>().await {
                     Ok(response) => Attempt::Ingested(response.event_id),
-                    // Hook0 accepted the event but answered something this client cannot read;
-                    // repeating the request would meet the same answer.
+                    // Hook0 accepted the event but answered something this client cannot read — an
+                    // answer above a ceiling it set for itself is one of those; repeating the
+                    // request would meet the same answer.
                     Err(error) => Attempt::Failed(Failure {
+                        body: head_refusal.or_else(|| underlying_cause(&error)),
                         error,
-                        body: None,
                         retryable: false,
+                        named_delay: None,
                     }),
                 }
             }
@@ -446,10 +536,12 @@ impl Hook0Client {
                     Attempt::AlreadyIngested { error, body }
                 } else {
                     Attempt::Failed(Failure {
+                        // An answer that crossed a ceiling this client set for itself draws the
+                        // same answer the next time, whatever its status says.
+                        retryable: head_refusal.is_none() && is_retryable(status, body.as_deref()),
+                        body: head_refusal.or(body),
                         error,
-                        body,
-                        // Only the server side of a 5xx can change between two identical requests.
-                        retryable: status.is_server_error(),
+                        named_delay,
                     })
                 }
             }
@@ -478,18 +570,21 @@ impl Hook0Client {
         }
 
         trace!("Getting the list of available event types");
-        let available_event_types_vec = self
+        let available_event_types_answer = self
             .client
             .get(event_types_url.as_str())
             .query(&[("application_id", self.application_id())])
             .send()
             .await
-            .map_err(Hook0ClientError::GetAvailableEventTypes)?
-            .error_for_status()
-            .map_err(Hook0ClientError::GetAvailableEventTypes)?
-            .json::<Vec<ApiEventType>>()
-            .await
             .map_err(Hook0ClientError::GetAvailableEventTypes)?;
+        let available_event_types_vec =
+            bounded(available_event_types_answer, self.max_response_bytes)
+                .0
+                .error_for_status()
+                .map_err(Hook0ClientError::GetAvailableEventTypes)?
+                .json::<Vec<ApiEventType>>()
+                .await
+                .map_err(Hook0ClientError::GetAvailableEventTypes)?;
         let available_event_types = available_event_types_vec
             .iter()
             .map(|et| et.event_type_name.to_owned())
@@ -801,6 +896,132 @@ struct Failure {
     error: reqwest::Error,
     body: Option<String>,
     retryable: bool,
+
+    /// How long Hook0 named before the request becomes servable again, when it named a delay this
+    /// client can read.
+    named_delay: Option<StdDuration>,
+}
+
+#[cfg(feature = "producer")]
+/// The same answer, held to what this client agrees to read off the socket, and why it will not be
+/// read at all when its head already crossed a ceiling.
+///
+/// `reqwest` reads a body without a ceiling of its own, so a server that is broken or hostile can
+/// stream into an emitter's memory for as long as the connection lasts. Wrapping the body makes the
+/// read stop at the ceiling and fail there, which is what turns an answer without end into an error
+/// rather than into an allocation. Nothing about the answer changes below the ceiling.
+///
+/// An answer whose head is already above a ceiling is held to nothing at all: the read that follows
+/// fails instead of holding a body on top of a head this client has refused. That refusal reaches
+/// the caller as the failure of that read because [`Hook0ClientError::EventSending`] carries a
+/// Reqwest error, and only Reqwest builds one.
+fn bounded(
+    answer: reqwest::Response,
+    max_response_bytes: usize,
+) -> (reqwest::Response, Option<String>) {
+    let refusal = head_above_a_bound(answer.headers());
+    let held = match refusal {
+        Some(_) => 0,
+        None => max_response_bytes,
+    };
+
+    let url = answer.url().to_owned();
+    let (mut parts, body) = http::Response::<reqwest::Body>::from(answer).into_parts();
+
+    // Rebuilding an answer drops the URL it came from, and `reqwest` reads that URL back out of an
+    // extension only its own builder writes; without this, every failure below names a placeholder
+    // instead of the endpoint it was answered by.
+    if let Ok(carrier) = http::Response::builder().url(url).body(()) {
+        parts.extensions = carrier.into_parts().0.extensions;
+    }
+
+    let held = reqwest::Response::from(http::Response::from_parts(
+        parts,
+        reqwest::Body::wrap(Limited::new(body, held)),
+    ));
+    (held, refusal)
+}
+
+#[cfg(feature = "producer")]
+/// Why the head of an answer is above what this client agrees to hold, when it is.
+///
+/// Counted the way a head is written: one line per header, its name and its value together. The
+/// line count and the length of one line refuse early, on the line that crosses them; the whole
+/// head is what actually bounds the memory a head can cost, since the other two multiply.
+fn head_above_a_bound(headers: &HeaderMap) -> Option<String> {
+    let mut lines = 0usize;
+    let mut whole = 0usize;
+
+    for (name, value) in headers {
+        lines += 1;
+        if lines > MAX_RESPONSE_HEADERS {
+            return Some(format!(
+                "the API answered more than the {MAX_RESPONSE_HEADERS} header lines read at most"
+            ));
+        }
+
+        let line = name.as_str().len().saturating_add(value.len());
+        if line > MAX_HEADER_BYTES {
+            return Some(format!(
+                "the API answered a `{name}` header above the {MAX_HEADER_BYTES} bytes read at most"
+            ));
+        }
+
+        whole = whole.saturating_add(line);
+        if whole > MAX_HEAD_BYTES {
+            return Some(format!(
+                "the API answered a head above the {MAX_HEAD_BYTES} bytes read at most"
+            ));
+        }
+    }
+
+    None
+}
+
+#[cfg(feature = "producer")]
+/// Whether repeating a request Hook0 answered that way could end differently.
+///
+/// The status decides on its own everywhere but under the one Hook0 answers both a spent quota and
+/// a paced instance with: a quota clears when a plan changes or a day turns, and neither is
+/// something a send spending seconds can wait for. Only the problem the body names tells the two
+/// apart, and a body naming a problem this client has never heard of falls back to the status.
+fn is_retryable(status: StatusCode, body: Option<&str>) -> bool {
+    if status == StatusCode::TOO_MANY_REQUESTS {
+        return problem_id(body).as_deref() == Some(RATE_LIMITED);
+    }
+    // Only the server side of a 5xx can change between two identical requests.
+    status.is_server_error()
+}
+
+#[cfg(feature = "producer")]
+/// The delay Hook0 named before the request becomes servable again, when it named one this client
+/// can read.
+///
+/// Only a whole number of seconds is read. The header may also carry a date, which is a clock this
+/// client would be comparing against its own, and anything else is a header nobody meant: both
+/// leave the client's own schedule in place rather than being guessed at.
+fn named_delay(headers: &HeaderMap) -> Option<StdDuration> {
+    headers
+        .get(RETRY_AFTER)
+        .and_then(|named| named.to_str().ok())
+        .and_then(|named| named.trim().parse::<u32>().ok())
+        .map(|seconds| StdDuration::from_secs(u64::from(seconds)))
+}
+
+#[cfg(feature = "producer")]
+/// How long to wait before the next attempt: what Hook0 asked for when it asked for anything, and
+/// this client's own schedule otherwise.
+///
+/// Either way it is cut down to what is left of the budget the delays of one send share, so a delay
+/// written by the other end cannot stretch a send past what its caller allowed for it.
+fn wait_before_retry(
+    policy: &RetryPolicy,
+    failure: &Failure,
+    scheduled: StdDuration,
+    waited: StdDuration,
+) -> StdDuration {
+    let remaining = policy.max_total_delay.saturating_sub(waited);
+    failure.named_delay.unwrap_or(scheduled).min(remaining)
 }
 
 #[cfg(feature = "producer")]
@@ -844,25 +1065,24 @@ fn underlying_cause(error: &reqwest::Error) -> Option<String> {
 }
 
 #[cfg(feature = "producer")]
-/// Whether an RFC 9457 problem body is the one Hook0 answers when an event ID is already taken.
-///
-/// The body names the problem but does not carry the event ID, which is the other reason the
-/// client has to know the ID it sent.
-fn is_already_ingested(body: Option<&str>) -> bool {
-    /// Public identifier Hook0 gives that problem.
-    const ALREADY_INGESTED: &str = "EventAlreadyIngested";
-
+/// The problem an RFC 9457 body names, when it names one this client can read.
+fn problem_id(body: Option<&str>) -> Option<String> {
     #[derive(Debug, Deserialize)]
     struct Problem {
         id: String,
     }
 
-    match body {
-        Some(body) => serde_json::from_str::<Problem>(body)
-            .map(|problem| problem.id == ALREADY_INGESTED)
-            .unwrap_or(false),
-        None => false,
-    }
+    body.and_then(|body| serde_json::from_str::<Problem>(body).ok())
+        .map(|problem| problem.id)
+}
+
+#[cfg(feature = "producer")]
+/// Whether an RFC 9457 problem body is the one Hook0 answers when an event ID is already taken.
+///
+/// The body names the problem but does not carry the event ID, which is the other reason the
+/// client has to know the ID it sent.
+fn is_already_ingested(body: Option<&str>) -> bool {
+    problem_id(body).as_deref() == Some(ALREADY_INGESTED)
 }
 
 #[cfg(feature = "producer")]

@@ -199,26 +199,74 @@ def test_the_corpus_says_what_every_transport_cause_does_to_a_send(
     )
 
 
-@pytest.mark.parametrize(
-    "head",
-    ["more headers than are read", "a header longer than is read"],
-)
+def padding(lines: int, each: int) -> dict[str, str]:
+    """Filler an answer's head is scripted with: `lines` of them, `each` bytes of name and value."""
+    return {f"X-Filler-{index}": "v" * max(each - len(f"X-Filler-{index}"), 1) for index in range(lines)}
+
+
+# The shapes an abusive head comes in, each one crossing exactly one of the ceilings the corpus
+# names, and what its refusal has to say for the ceiling it crossed to be the one it was built for.
+#
+# The whole-head shape is a few wide lines rather than many narrow ones. It is the only one of the
+# three that bounds what a head costs, since a line count and a size per line multiply and neither
+# refuses a head that stays under both; eight lines a quarter of that ceiling each weigh twice the
+# ceiling while sitting nowhere near the other two. A shape just inside the line count would be
+# refused on the count instead — the answer's own `Server`, `Date`, `Content-Type`, `Content-Length`
+# and `Connection` are counted beside the filler — and a refusal obtained that way would have proved
+# the opposite of what the case is for.
+#
+# The per-line shape is read for the number it names rather than for a wording, because the refusal
+# comes from whatever reads the line: the line reader of one flavour and the standard library of the
+# other both draw the line at that same number, and each says so in its own words.
+ABUSIVE_HEADS = {
+    "more headers than are read": (
+        padding(BOUNDS["max_response_headers"] + 8, 16),
+        f"more than the {BOUNDS['max_response_headers']} headers read at most",
+    ),
+    "a header longer than is read": (
+        padding(1, BOUNDS["max_header_bytes"] + 8),
+        str(BOUNDS["max_header_bytes"]),
+    ),
+    "a whole head longer than is read": (
+        padding(8, BOUNDS["max_head_bytes"] // 4),
+        f"a head above the {BOUNDS['max_head_bytes']} bytes read at most",
+    ),
+}
+
+
+@pytest.mark.parametrize("head", list(ABUSIVE_HEADS))
 def test_a_head_above_the_ceilings_the_corpus_names_is_refused(api: FakeHook0Api, caller: Caller, head: str) -> None:
     """The head of an answer is held to the same bounds as its body.
 
     It is written by the other end, so a client that bounds the body and not the headers has only
     moved where a server spends its caller's memory.
     """
-    if head == "more headers than are read":
-        headers = {f"X-Filler-{index}": "filler" for index in range(BOUNDS["max_response_headers"] + 8)}
-    else:
-        headers = {"X-Filler": "v" * (BOUNDS["max_header_bytes"] + 8)}
+    headers, says = ABUSIVE_HEADS[head]
     api.will_answer(ScriptedResponse(200, {}, headers=headers), ingested(INGESTED_ID))
 
     with pytest.raises(Hook0ClientError) as refused:
         caller(prompt_options(max_attempts=4)).send_event(an_event())
 
+    assert says in str(refused.value), (
+        f"a head built to cross the ceiling `{says}` was refused as `{refused.value}`, which names another one"
+    )
     assert "gave up after" not in str(refused.value), "an answer this client will not read was drawn again"
+
+
+def test_an_answer_whose_whole_head_is_well_under_the_ceiling_is_read(api: FakeHook0Api, caller: Caller) -> None:
+    """A head weighing half of what a head may weigh, which every runtime reads.
+
+    Only the refusal above the bound is a property this client owns. Whether a head just under it is
+    read at all is settled by the runtime before this client is consulted, and the strictest runtime
+    any target runs on draws its own line a little above the number the corpus names — so the
+    accepting side is exercised well clear of that band, and the band itself is left untested rather
+    than pinned to the build of the day.
+    """
+    narrow = padding(8, BOUNDS["max_head_bytes"] // 16)
+    api.will_answer(ScriptedResponse(201, ingested(INGESTED_ID).body, headers=narrow))
+
+    assert caller(prompt_options(max_attempts=4)).send_event(an_event()) == INGESTED_ID
+    assert len(api.received) == 1
 
 
 def test_every_request_carries_what_the_corpus_says_it_does(api: FakeHook0Api, caller: Caller) -> None:
@@ -278,23 +326,35 @@ def test_the_delay_the_api_names_is_honoured_and_bounded(
 
 
 def test_the_bounds_are_the_ones_the_corpus_names() -> None:
-    """This client's defaults, held against the one place the numbers are written down."""
+    """This client's defaults, held against the one place the numbers are written down.
+
+    Both sides are discovered: the names come out of the corpus and the values out of this client,
+    so a ceiling added there and applied nowhere here is named as missing rather than quietly
+    skipped by a case that only ever checks the ones it already knew about.
+    """
     from hook0.client import MAX_ATTEMPTS_CAP
-    from hook0.transport import MAX_HEADERS, MAX_LINE_BYTES
+    from hook0.transport import MAX_HEADERS, MAX_HEAD_BYTES, MAX_LINE_BYTES
 
     client = Hook0Client("http://127.0.0.1:1", "app-123", "token-xyz")
     policy = client.options.retry_policy
+    applied = {
+        "max_attempts": policy.max_attempts,
+        "max_attempts_cap": MAX_ATTEMPTS_CAP,
+        "initial_backoff_ms": policy.initial_backoff * 1000,
+        "max_backoff_ms": policy.max_backoff * 1000,
+        "max_total_delay_ms": policy.max_total_delay * 1000,
+        "request_timeout_ms": client.options.request_timeout * 1000,
+        "max_payload_bytes": client.options.max_payload_bytes,
+        "max_response_bytes": client.options.max_response_bytes,
+        "max_response_headers": MAX_HEADERS,
+        "max_header_bytes": MAX_LINE_BYTES,
+        "max_head_bytes": MAX_HEAD_BYTES,
+    }
 
-    assert policy.max_attempts == BOUNDS["max_attempts"]
-    assert MAX_ATTEMPTS_CAP == BOUNDS["max_attempts_cap"]
-    assert policy.initial_backoff * 1000 == BOUNDS["initial_backoff_ms"]
-    assert policy.max_backoff * 1000 == BOUNDS["max_backoff_ms"]
-    assert policy.max_total_delay * 1000 == BOUNDS["max_total_delay_ms"]
-    assert client.options.request_timeout * 1000 == BOUNDS["request_timeout_ms"]
-    assert client.options.max_payload_bytes == BOUNDS["max_payload_bytes"]
-    assert client.options.max_response_bytes == BOUNDS["max_response_bytes"]
-    assert MAX_HEADERS == BOUNDS["max_response_headers"]
-    assert MAX_LINE_BYTES == BOUNDS["max_header_bytes"]
+    unapplied = sorted(set(BOUNDS) - set(applied))
+    assert not unapplied, f"the corpus names bounds this client does not apply: {', '.join(unapplied)}"
+    for name, wanted in BOUNDS.items():
+        assert applied[name] == wanted, name
 
 
 def test_every_refusal_the_corpus_declares_reads_as_one_of_this_client_s() -> None:

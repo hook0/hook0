@@ -74,19 +74,24 @@ type retryContract struct {
 }
 
 // boundsContract is what the corpus says one send is held to, and what the other end may cost it.
+//
+// The numbers are read under the names the corpus writes them under, rather than into fields
+// declared here: a bound added there is then one this suite sees and holds this client to, instead
+// of one that lands in no field and is dropped on the floor while every case still passes.
 type boundsContract struct {
-	Bounds struct {
-		MaxAttempts        int   `json:"max_attempts"`
-		MaxAttemptsCap     int   `json:"max_attempts_cap"`
-		InitialBackoffs    int64 `json:"initial_backoff_ms"`
-		MaxBackoffMs       int64 `json:"max_backoff_ms"`
-		MaxTotalDelayMs    int64 `json:"max_total_delay_ms"`
-		RequestTimeout     int64 `json:"request_timeout_ms"`
-		MaxPayloadBytes    int   `json:"max_payload_bytes"`
-		MaxResponseBytes   int64 `json:"max_response_bytes"`
-		MaxResponseHeaders int   `json:"max_response_headers"`
-		MaxHeaderBytes     int   `json:"max_header_bytes"`
-	} `json:"bounds"`
+	Bounds map[string]int64 `json:"bounds"`
+}
+
+// boundOf is the number the corpus writes under one name, refusing a name it does not carry: a case
+// reading a bound the corpus no longer names would otherwise hold this client to zero.
+func boundOf(t *testing.T, contract boundsContract, name string) int64 {
+	t.Helper()
+
+	named, carried := contract.Bounds[name]
+	if !carried {
+		t.Fatalf("the corpus names no bound `%s`", name)
+	}
+	return named
 }
 
 // requestContract is what the corpus says every request carries beside its body.
@@ -327,34 +332,80 @@ func TestTheCorpusSaysWhatEveryTransportCauseDoesToASend(t *testing.T) {
 	}
 }
 
+// headPadding is filler an answer's head is scripted with: how many lines it carries, and how many
+// bytes of name and value each of them weighs.
+type headPadding struct {
+	lines int
+	bytes int
+}
+
+// carried is filler of that shape, as headers an answer can be scripted with.
+func (p headPadding) carried() map[string]string {
+	filler := map[string]string{}
+	for index := range p.lines {
+		name := fmt.Sprintf("X-Filler-%d", index)
+		filler[name] = strings.Repeat("v", max(p.bytes-len(name), 1))
+	}
+	return filler
+}
+
 // TestAHeadAboveTheCeilingsTheCorpusNamesIsRefused holds the head of an answer to the same bounds
 // as its body.
 //
 // The head is written by the other end, so a client that bounds the body and not the headers has
-// only moved where a server spends its caller's memory.
+// only moved where a server spends its caller's memory. Each shape below crosses exactly one of the
+// ceilings the corpus names, and the refusal is read for the ceiling it names: a head built to
+// cross the total and refused on the line count would have proved the opposite of what it is here
+// for, and would have passed just as quietly.
 func TestAHeadAboveTheCeilingsTheCorpusNamesIsRefused(t *testing.T) {
-	contract := corpus[boundsContract](t, "bounds.json").Bounds
+	contract := corpus[boundsContract](t, "bounds.json")
+	headers := boundOf(t, contract, "max_response_headers")
+	perLine := boundOf(t, contract, "max_header_bytes")
+	whole := boundOf(t, contract, "max_head_bytes")
 
-	tooMany := map[string]string{}
-	for index := range contract.MaxResponseHeaders + 8 {
-		tooMany[fmt.Sprintf("X-Filler-%d", index)] = "filler"
-	}
-	tooLong := map[string]string{"X-Filler": strings.Repeat("v", contract.MaxHeaderBytes+8)}
-
-	for name, headers := range map[string]map[string]string{
-		"more headers than are read":   tooMany,
-		"a header longer than is read": tooLong,
+	for _, abusive := range []struct {
+		name    string
+		padding headPadding
+		says    string
+	}{
+		{
+			name:    "more headers than are read",
+			padding: headPadding{lines: int(headers) + 8, bytes: 16},
+			says:    fmt.Sprintf("above the %d read at most", headers),
+		},
+		{
+			name:    "a header longer than is read",
+			padding: headPadding{lines: 1, bytes: int(perLine) + 8},
+			says:    fmt.Sprintf("above the %d bytes read at most", perLine),
+		},
+		{
+			// A few wide lines rather than many narrow ones: this is the only one of the three that
+			// bounds what a head costs, since a line count and a size per line multiply and neither
+			// refuses a head that stays under both. Eight lines a quarter of the whole-head ceiling
+			// each weigh twice that ceiling while sitting nowhere near the other two — a shape just
+			// inside the line count would be refused on the count instead, the answer's own
+			// `Content-Type`, `Content-Length` and `Date` being counted beside the filler.
+			name:    "a whole head longer than is read",
+			padding: headPadding{lines: 8, bytes: int(whole) / 4},
+			says:    fmt.Sprintf("above the %d read at most", whole),
+		},
 	} {
-		t.Run(name, func(t *testing.T) {
+		t.Run(abusive.name, func(t *testing.T) {
 			api := listen(t)
 			api.willAnswer(
-				scriptedResponse{status: 200, body: map[string]any{}, headers: headers},
+				scriptedResponse{status: 200, body: map[string]any{}, headers: abusive.padding.carried()},
 				ingested("a5b4dd60-6ab4-4bd6-9f0b-1a4f8a2a0104"),
 			)
 
 			_, err := client(api, promptOptions(4)).SendEvent(bounded(t), anEvent())
 			if !errors.Is(err, hook0.ErrAnswerAboveABound) {
 				t.Fatalf("a head above what this client reads was answered %v", err)
+			}
+			if !strings.Contains(err.Error(), abusive.says) {
+				t.Errorf(
+					"a head built to cross the ceiling of %s was refused as `%v`, which names another one",
+					abusive.says, err,
+				)
 			}
 
 			var refusal *hook0.SendError
@@ -365,31 +416,134 @@ func TestAHeadAboveTheCeilingsTheCorpusNamesIsRefused(t *testing.T) {
 	}
 }
 
-// TestEveryRequestCarriesWhatTheCorpusSaysItDoes reads back what actually reached the socket.
+// TestAHeadWellUnderTheCeilingIsRead drives an answer whose whole head weighs half of what a head
+// may weigh.
+//
+// Only the refusal above the bound is a property this client owns. Whether a head just under it is
+// read at all is settled by the runtime before this client is consulted, and the strictest runtime
+// any target runs on draws its own line a little above the number the corpus names — so the
+// accepting side is exercised well clear of that band, where every runtime agrees, and the band
+// itself is left untested rather than pinned to the build of the day.
+func TestAHeadWellUnderTheCeilingIsRead(t *testing.T) {
+	contract := corpus[boundsContract](t, "bounds.json")
+	padding := headPadding{lines: 8, bytes: int(boundOf(t, contract, "max_head_bytes")) / 16}
+
+	eventId := "a5b4dd60-6ab4-4bd6-9f0b-1a4f8a2a0105"
+	answer := ingested(eventId)
+	answer.headers = padding.carried()
+
+	api := listen(t)
+	api.willAnswer(answer)
+
+	sent, err := client(api, promptOptions(4)).SendEvent(bounded(t), anEvent())
+	if err != nil {
+		t.Fatalf("an answer carrying %d bytes of head was refused: %v", padding.lines*padding.bytes, err)
+	}
+	if sent != eventId {
+		t.Errorf("the send answered `%s`, not the identifier the API ingested it under", sent)
+	}
+	if issued := api.requestCount(); issued != 1 {
+		t.Errorf("an answer this client reads was drawn %d times", issued)
+	}
+}
+
+// isTheOccasion is how each occasion the corpus declares reads against one request that reached the
+// API. Every occasion the corpus names is looked up here, so one added there stops this suite until
+// it is answered rather than passing under whatever this client happened to send.
+//
+// What decides is the request as the API received it, not the call that produced it: a body is a
+// body because one arrived.
+var isTheOccasion = map[string]func(receivedRequest) bool{
+	"every request":             func(receivedRequest) bool { return true },
+	"a request carrying a body": func(request receivedRequest) bool { return request.body != "" },
+}
+
+// TestEveryRequestCarriesWhatTheCorpusSaysItDoes reads back what actually reached the socket, on
+// each of the occasions the corpus declares.
 //
 // A representation a client forgets to ask for costs nothing until the API serves a second one, at
 // which point it costs everything, which is exactly the kind of divergence nobody notices by hand.
+// The occasion is half of the contract: a header the corpus carries on requests that have a body is
+// one a bodiless request has nothing to declare, and a suite that only ever sends a body would never
+// find out either way.
 func TestEveryRequestCarriesWhatTheCorpusSaysItDoes(t *testing.T) {
 	contract := corpus[requestContract](t, "request.json")
 	if len(contract.Headers) == 0 {
 		t.Fatal("the corpus names no header a request carries")
 	}
-
-	api := listen(t)
-	api.willAnswer(ingested("a5b4dd60-6ab4-4bd6-9f0b-1a4f8a2a0105"))
-
-	if _, err := client(api, promptOptions(4)).SendEvent(bounded(t), anEvent()); err != nil {
-		t.Fatalf("the send failed: %v", err)
+	if len(contract.Occasions) == 0 {
+		t.Fatal("the corpus declares no occasion a header is carried on")
+	}
+	for _, occasion := range contract.Occasions {
+		if _, answered := isTheOccasion[occasion]; !answered {
+			t.Fatalf(
+				"the corpus declares the occasion `%s`, which this suite cannot tell one request by",
+				occasion,
+			)
+		}
+	}
+	for _, header := range contract.Headers {
+		if _, answered := isTheOccasion[header.When]; !answered {
+			t.Fatalf(
+				"the corpus carries `%s` on `%s`, which is no occasion this suite can tell one request by",
+				header.Name, header.When,
+			)
+		}
 	}
 
-	// A send carries a body, so every occasion the corpus declares applies to this one request.
-	carried := api.requests()[0].headers
-	for _, header := range contract.Headers {
-		expected := strings.ReplaceAll(header.Value, "${token}", token)
-		if written := carried.Get(header.Name); written != expected {
+	// Declaring an event type the application does not have reads what it declares and then writes
+	// the one it lacks: a request carrying no body, and one carrying a body, which between them are
+	// every occasion the corpus declares.
+	api := listen(t)
+	api.willAnswer(
+		scriptedResponse{status: 200, body: []any{}},
+		scriptedResponse{status: 201, body: map[string]any{}},
+	)
+
+	_, err := client(api, promptOptions(4)).UpsertEventTypes(bounded(t), []string{"auth.user.create"})
+	if err != nil {
+		t.Fatalf("declaring an event type failed: %v", err)
+	}
+
+	exercised := map[string]bool{}
+	for index, request := range api.requests() {
+		for _, occasion := range contract.Occasions {
+			if isTheOccasion[occasion](request) {
+				exercised[occasion] = true
+			}
+		}
+
+		for _, header := range contract.Headers {
+			// Get compares the name as HTTP does, without regard to the case it is written in.
+			written := request.headers.Get(header.Name)
+			carried := isTheOccasion[header.When](request)
+
+			if !carried {
+				if written != "" {
+					t.Errorf(
+						"request %d (%s %s) carried `%s: %s`, which the shared contract carries on `%s` alone: %s",
+						index, request.method, request.target, header.Name, written, header.When, header.Reason,
+					)
+				}
+				continue
+			}
+
+			expected := strings.ReplaceAll(header.Value, "${token}", token)
+			if written != expected {
+				t.Errorf(
+					"request %d (%s %s) carried `%s: %s` where the shared contract says `%s` on `%s`: %s",
+					index, request.method, request.target, header.Name, written, expected, header.When, header.Reason,
+				)
+			}
+		}
+	}
+
+	// A contract held against requests that never happened is a contract held against nothing.
+	for _, occasion := range contract.Occasions {
+		if !exercised[occasion] {
 			t.Errorf(
-				"the request carried `%s: %s` where the shared contract says `%s`: %s",
-				header.Name, written, expected, header.Reason,
+				"nothing this suite sent is `%s`, so what the corpus carries on that occasion was held to nothing",
+				occasion,
 			)
 		}
 	}
@@ -482,29 +636,40 @@ func retryablePacing(contract retryContract) (struct {
 
 // TestTheBoundsAreTheOnesTheCorpusNames holds this client's defaults against the one place the
 // numbers are written down.
+//
+// Both sides are discovered: the names come out of the corpus and the values out of this client, so
+// a ceiling added there and applied nowhere here is named as missing rather than quietly skipped by
+// a case that only ever checks the ones it already knew about.
 func TestTheBoundsAreTheOnesTheCorpusNames(t *testing.T) {
-	contract := corpus[boundsContract](t, "bounds.json").Bounds
+	contract := corpus[boundsContract](t, "bounds.json")
+	if len(contract.Bounds) == 0 {
+		t.Fatal("the corpus names no bound at all")
+	}
+
 	options := hook0.DefaultOptions()
 	policy := options.RetryPolicy
+	applied := map[string]int64{
+		"max_attempts":         int64(policy.MaxAttempts),
+		"max_attempts_cap":     int64(hook0.MaxAttemptsCap),
+		"initial_backoff_ms":   policy.InitialBackoff.Milliseconds(),
+		"max_backoff_ms":       policy.MaxBackoff.Milliseconds(),
+		"max_total_delay_ms":   policy.MaxTotalDelay.Milliseconds(),
+		"request_timeout_ms":   options.RequestTimeout.Milliseconds(),
+		"max_payload_bytes":    int64(options.MaxPayloadBytes),
+		"max_response_bytes":   options.MaxResponseBytes,
+		"max_response_headers": int64(hook0.MaxResponseHeaders),
+		"max_header_bytes":     int64(hook0.MaxHeaderBytes),
+		"max_head_bytes":       int64(hook0.MaxHeadBytes),
+	}
 
-	for _, bound := range []struct {
-		name    string
-		carried int64
-		named   int64
-	}{
-		{"the attempts one send makes", int64(policy.MaxAttempts), int64(contract.MaxAttempts)},
-		{"the attempts nothing may cross", int64(hook0.MaxAttemptsCap), int64(contract.MaxAttemptsCap)},
-		{"the first delay", policy.InitialBackoff.Milliseconds(), contract.InitialBackoffs},
-		{"the ceiling of one delay", policy.MaxBackoff.Milliseconds(), contract.MaxBackoffMs},
-		{"the budget every delay shares", policy.MaxTotalDelay.Milliseconds(), contract.MaxTotalDelayMs},
-		{"the time one attempt is given", options.RequestTimeout.Milliseconds(), contract.RequestTimeout},
-		{"the largest payload sent", int64(options.MaxPayloadBytes), int64(contract.MaxPayloadBytes)},
-		{"the largest answer read", options.MaxResponseBytes, contract.MaxResponseBytes},
-		{"the most headers read", int64(hook0.MaxResponseHeaders), int64(contract.MaxResponseHeaders)},
-		{"the longest header read", int64(hook0.MaxHeaderBytes), int64(contract.MaxHeaderBytes)},
-	} {
-		if bound.carried != bound.named {
-			t.Errorf("%s is %d here and %d in the shared contract", bound.name, bound.carried, bound.named)
+	for name, named := range contract.Bounds {
+		carried, applies := applied[name]
+		if !applies {
+			t.Errorf("the corpus names the bound `%s`, which this client does not apply", name)
+			continue
+		}
+		if carried != named {
+			t.Errorf("`%s` is %d here and %d in the shared contract", name, carried, named)
 		}
 	}
 }

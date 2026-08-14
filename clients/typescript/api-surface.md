@@ -15,6 +15,12 @@ requires a minor one.
 DEFAULT_MAX_PAYLOAD_BYTES: number
 ```
 
+## const DEFAULT_MAX_RESPONSE_BYTES
+
+```ts
+DEFAULT_MAX_RESPONSE_BYTES: number
+```
+
 ## const DEFAULT_REQUEST_TIMEOUT_MS
 
 ```ts
@@ -71,8 +77,9 @@ static TimestampParsingInSignature(timestamp: string): Hook0ClientError
 ## class Hook0ClientOptions
 
 ```ts
-constructor(retryPolicy?: RetryPolicy, requestTimeoutMs?: number, maxPayloadBytes?: number): Hook0ClientOptions
+constructor(retryPolicy?: RetryPolicy, requestTimeoutMs?: number, maxPayloadBytes?: number, maxResponseBytes?: number): Hook0ClientOptions
 maxPayloadBytes: number
+maxResponseBytes: number
 requestTimeoutMs: number
 retryPolicy: RetryPolicy
 ```
@@ -81,6 +88,24 @@ retryPolicy: RetryPolicy
 
 ```ts
 MAX_ATTEMPTS_CAP: number
+```
+
+## const MAX_HEADER_BYTES
+
+```ts
+MAX_HEADER_BYTES: number
+```
+
+## const MAX_HEAD_BYTES
+
+```ts
+MAX_HEAD_BYTES: number
+```
+
+## const MAX_RESPONSE_HEADERS
+
+```ts
+MAX_RESPONSE_HEADERS: number
 ```
 
 ## class RetryPolicy

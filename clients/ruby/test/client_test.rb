@@ -135,6 +135,43 @@ module Hook0Test
       assert_equal 1, @api.received.size
     end
 
+    def test_an_answer_whose_whole_head_is_comfortably_below_the_maximum_is_read
+      # Eight kilobytes of head, half the ceiling and below what the strictest runtime any target
+      # runs on refuses. The band just under the bound is deliberately not exercised anywhere: a
+      # runtime is free to refuse there, so a case that expected an answer to be read would be
+      # green or red depending on the version of the day rather than on this client.
+      each = 1024
+      narrow = ScriptedResponse.new(201, ingested(INGESTED_ID).body, 0.0,
+                                    (1..8).to_h { |i| ["x-pad-#{i}", "v" * (each - "x-pad-#{i}: ".bytesize)] })
+      @api.will_answer(narrow)
+
+      assert_equal INGESTED_ID, client.send_event(an_event)
+      assert_equal 1, @api.received.size
+    end
+
+    def test_an_answer_whose_whole_head_is_above_the_maximum_is_refused_once
+      # The case that isolates the total from the components: sixty lines of a kilobyte each sits
+      # inside both the line count and the per-line size, and is four times the whole-head ceiling.
+      # Sixty-four lines would have been refused on the count instead — `Content-Type` and
+      # `Content-Length` bring it to sixty-six — and a refusal for that reason proves nothing here.
+      #
+      # What is asserted is the refusal above the bound, never an acceptance just below it: the
+      # first is a safety property every runtime can honour, the second depends on ceilings the
+      # runtime enforces before this client is consulted.
+      maximum = 16 * 1024
+      each = 1024
+      wide = ScriptedResponse.new(201, ingested(INGESTED_ID).body, 0.0,
+                                  (1..60).to_h { |i| ["x-pad-#{i}", "v" * (each - "x-pad-#{i}: ".bytesize)] })
+      @api.will_answer(wide, wide, wide, wide)
+
+      refused = assert_raises(Hook0::ClientError) do
+        client(options(max_attempts: 4, max_head_bytes: maximum)).send_event(an_event)
+      end
+
+      assert_includes refused.message, "a head above the #{maximum} bytes read at most"
+      assert_equal 1, @api.received.size
+    end
+
     def test_an_answer_carrying_a_header_line_above_the_maximum_is_refused_once
       maximum = 512
       padded = ScriptedResponse.new(201, ingested(INGESTED_ID).body, 0.0, { "x-pad" => "v" * (maximum + 1) })

@@ -94,6 +94,18 @@ module Hook0
     # Longest one header line may be, name and value together, in bytes.
     DEFAULT_MAX_HEADER_BYTES = 64 * 1024
 
+    # Largest whole head an answer may carry, every line counted together, in bytes.
+    #
+    # This is the one that bounds what a head costs. A line count and a size per line multiply:
+    # sixty-four lines of sixty-four kilobytes each is four megabytes of head, and both of the
+    # bounds above admit it. They earn their place by refusing early, on the line that crosses
+    # them rather than at the end of the head; this one sets the ceiling.
+    #
+    # Sixteen kilobytes is what Node enforces by default, and matching it is the point: a lower
+    # ceiling would refuse heads another target accepts, and a higher one would not bind there at
+    # all, leaving each language a different effective limit.
+    DEFAULT_MAX_HEAD_BYTES = 16 * 1024
+
     # What a request body says it carries, and what an answer is asked for in.
     JSON_MEDIA_TYPE = "application/json"
 
@@ -118,13 +130,15 @@ module Hook0
     # @param max_response_bytes [Integer] the largest answer read off a socket
     # @param max_response_headers [Integer] how many header lines an answer may carry
     # @param max_header_bytes [Integer] the longest one header line may be
+    # @param max_head_bytes [Integer] the largest whole head, every line counted together
     def initialize(
       base_url,
       token,
       timeout: DEFAULT_REQUEST_TIMEOUT,
       max_response_bytes: DEFAULT_MAX_RESPONSE_BYTES,
       max_response_headers: DEFAULT_MAX_RESPONSE_HEADERS,
-      max_header_bytes: DEFAULT_MAX_HEADER_BYTES
+      max_header_bytes: DEFAULT_MAX_HEADER_BYTES,
+      max_head_bytes: DEFAULT_MAX_HEAD_BYTES
     )
       @base_url = base_url
       @token = token
@@ -132,6 +146,7 @@ module Hook0
       @max_response_bytes = max_response_bytes
       @max_response_headers = max_response_headers
       @max_header_bytes = max_header_bytes
+      @max_head_bytes = max_head_bytes
     end
 
     # What the API answered, whether or not it answered a success.
@@ -231,6 +246,7 @@ module Hook0
     # already buffered rather than that plus a megabyte-scale body on top.
     def carried(answer)
       held = 0
+      whole = 0
       answer.each_header.to_h do |name, value|
         held += 1
         if held > @max_response_headers
@@ -243,6 +259,13 @@ module Hook0
         if line > @max_header_bytes
           raise TransportError.answer_above_a_bound(
             "the API answered a `#{name.to_s.downcase}` header above the #{@max_header_bytes} bytes read at most"
+          )
+        end
+
+        whole += line
+        if whole > @max_head_bytes
+          raise TransportError.answer_above_a_bound(
+            "the API answered a head above the #{@max_head_bytes} bytes read at most"
           )
         end
 
