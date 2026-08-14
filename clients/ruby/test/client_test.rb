@@ -124,7 +124,7 @@ module Hook0Test
       # to apply. A repetition would read the same oversized head again, which is why it is one.
       maximum = 8
       crowded = ScriptedResponse.new(201, ingested(INGESTED_ID).body, 0.0,
-                                     (1..maximum + 1).to_h { |i| ["x-pad-#{i}", "v"] })
+                                     (1..(maximum + 1)).to_h { |i| ["x-pad-#{i}", "v"] })
       @api.will_answer(crowded, crowded, crowded, crowded)
 
       refused = assert_raises(Hook0::ClientError) do

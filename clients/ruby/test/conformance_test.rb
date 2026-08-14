@@ -99,20 +99,26 @@ module Hook0Test
     end
 
     def test_the_bounds_are_the_ones_the_corpus_names
-      # This client's defaults, held against the one place the numbers are written down.
+      # This client's defaults, held against the one place the numbers are written down. What is
+      # asserted is read from the corpus rather than listed here, so a bound added there and left
+      # unapplied fails instead of passing unnoticed.
       built = Hook0::Client.new("http://127.0.0.1:1", "app-123", "token-xyz")
       policy = built.options.retry_policy
+      applied = {
+        "max_attempts" => policy.max_attempts,
+        "max_attempts_cap" => Hook0::RetryPolicy::MAX_ATTEMPTS_CAP,
+        "initial_backoff_ms" => policy.initial_backoff * 1000,
+        "max_backoff_ms" => policy.max_backoff * 1000,
+        "max_total_delay_ms" => policy.max_total_delay * 1000,
+        "request_timeout_ms" => built.options.request_timeout * 1000,
+        "max_payload_bytes" => built.options.max_payload_bytes,
+        "max_response_bytes" => built.options.max_response_bytes,
+        "max_response_headers" => built.options.max_response_headers,
+        "max_header_bytes" => built.options.max_header_bytes
+      }
 
-      assert_equal BOUNDS["max_attempts"], policy.max_attempts
-      assert_equal BOUNDS["max_attempts_cap"], Hook0::RetryPolicy::MAX_ATTEMPTS_CAP
-      assert_in_delta BOUNDS["initial_backoff_ms"], policy.initial_backoff * 1000
-      assert_in_delta BOUNDS["max_backoff_ms"], policy.max_backoff * 1000
-      assert_in_delta BOUNDS["max_total_delay_ms"], policy.max_total_delay * 1000
-      assert_in_delta BOUNDS["request_timeout_ms"], built.options.request_timeout * 1000
-      assert_equal BOUNDS["max_payload_bytes"], built.options.max_payload_bytes
-      assert_equal BOUNDS["max_response_bytes"], built.options.max_response_bytes
-      assert_equal BOUNDS["max_response_headers"], built.options.max_response_headers
-      assert_equal BOUNDS["max_header_bytes"], built.options.max_header_bytes
+      assert_empty BOUNDS.keys - applied.keys, "the corpus names a bound this client does not apply"
+      BOUNDS.each { |name, wanted| assert_in_delta wanted, applied.fetch(name), 0.001, name }
     end
 
     def test_every_refusal_the_corpus_declares_reads_as_one_of_this_client_s
