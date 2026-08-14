@@ -111,6 +111,8 @@ module Hook0Test
       assert_in_delta BOUNDS["request_timeout_ms"], built.options.request_timeout * 1000
       assert_equal BOUNDS["max_payload_bytes"], built.options.max_payload_bytes
       assert_equal BOUNDS["max_response_bytes"], built.options.max_response_bytes
+      assert_equal BOUNDS["max_response_headers"], built.options.max_response_headers
+      assert_equal BOUNDS["max_header_bytes"], built.options.max_header_bytes
     end
 
     def test_every_refusal_the_corpus_declares_reads_as_one_of_this_client_s

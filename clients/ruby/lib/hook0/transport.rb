@@ -83,6 +83,17 @@ module Hook0
     # Largest response body read off a socket, in bytes.
     DEFAULT_MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 
+    # How many header lines an answer may carry before it is refused.
+    #
+    # `Net::HTTP` bounds neither how many header lines it accepts nor how long one may be: it holds
+    # fifty thousand of them, and a single value of eight megabytes, without complaint. So the head
+    # of an answer is a server-controlled way to spend a caller's memory, and the ceiling has to be
+    # this client's own. Sixty-four is well above what the API sends.
+    DEFAULT_MAX_RESPONSE_HEADERS = 64
+
+    # Longest one header line may be, name and value together, in bytes.
+    DEFAULT_MAX_HEADER_BYTES = 64 * 1024
+
     # What a request body says it carries, and what an answer is asked for in.
     JSON_MEDIA_TYPE = "application/json"
 
@@ -105,11 +116,22 @@ module Hook0
     # @param token [String] an authentication token valid for that API
     # @param timeout [Float] how long one attempt is given, in seconds
     # @param max_response_bytes [Integer] the largest answer read off a socket
-    def initialize(base_url, token, timeout: DEFAULT_REQUEST_TIMEOUT, max_response_bytes: DEFAULT_MAX_RESPONSE_BYTES)
+    # @param max_response_headers [Integer] how many header lines an answer may carry
+    # @param max_header_bytes [Integer] the longest one header line may be
+    def initialize(
+      base_url,
+      token,
+      timeout: DEFAULT_REQUEST_TIMEOUT,
+      max_response_bytes: DEFAULT_MAX_RESPONSE_BYTES,
+      max_response_headers: DEFAULT_MAX_RESPONSE_HEADERS,
+      max_header_bytes: DEFAULT_MAX_HEADER_BYTES
+    )
       @base_url = base_url
       @token = token
       @timeout = timeout
       @max_response_bytes = max_response_bytes
+      @max_response_headers = max_response_headers
+      @max_header_bytes = max_header_bytes
     end
 
     # What the API answered, whether or not it answered a success.
@@ -205,10 +227,27 @@ module Hook0
 
     # What an answer carried beside its body, under the names a caller looks them up by.
     #
-    # Nothing unbounded arrives here: how many header lines an answer may carry and how long each
-    # may be are what `Net::HTTP` caps while it reads them off the socket.
+    # Refused before the body is read, so an abusive head costs one pass over what `Net::HTTP` has
+    # already buffered rather than that plus a megabyte-scale body on top.
     def carried(answer)
-      answer.each_header.to_h { |name, value| [name.downcase, value.to_s.strip] }
+      held = 0
+      answer.each_header.to_h do |name, value|
+        held += 1
+        if held > @max_response_headers
+          raise TransportError.answer_above_a_bound(
+            "the API answered more than the #{@max_response_headers} header lines read at most"
+          )
+        end
+
+        line = name.to_s.bytesize + value.to_s.bytesize
+        if line > @max_header_bytes
+          raise TransportError.answer_above_a_bound(
+            "the API answered a `#{name.to_s.downcase}` header above the #{@max_header_bytes} bytes read at most"
+          )
+        end
+
+        [name.downcase, value.to_s.strip]
+      end
     end
 
     # The body of an answer, up to what this transport agrees to hold.

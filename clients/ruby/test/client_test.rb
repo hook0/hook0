@@ -119,6 +119,35 @@ module Hook0Test
       assert_empty @api.received
     end
 
+    def test_an_answer_carrying_more_header_lines_than_the_maximum_is_refused_once
+      # `Net::HTTP` holds however many header lines a server writes, so the ceiling is this client's
+      # to apply. A repetition would read the same oversized head again, which is why it is one.
+      maximum = 8
+      crowded = ScriptedResponse.new(201, ingested(INGESTED_ID).body, 0.0,
+                                     (1..maximum + 1).to_h { |i| ["x-pad-#{i}", "v"] })
+      @api.will_answer(crowded, crowded, crowded, crowded)
+
+      refused = assert_raises(Hook0::ClientError) do
+        client(options(max_attempts: 4, max_response_headers: maximum)).send_event(an_event)
+      end
+
+      assert_includes refused.message, "#{maximum} header lines read at most"
+      assert_equal 1, @api.received.size
+    end
+
+    def test_an_answer_carrying_a_header_line_above_the_maximum_is_refused_once
+      maximum = 512
+      padded = ScriptedResponse.new(201, ingested(INGESTED_ID).body, 0.0, { "x-pad" => "v" * (maximum + 1) })
+      @api.will_answer(padded, padded, padded, padded)
+
+      refused = assert_raises(Hook0::ClientError) do
+        client(options(max_attempts: 4, max_header_bytes: maximum)).send_event(an_event)
+      end
+
+      assert_includes refused.message, "`x-pad` header above the #{maximum} bytes read at most"
+      assert_equal 1, @api.received.size
+    end
+
     def test_a_send_carries_the_application_and_the_credential
       @api.will_answer(ingested(INGESTED_ID))
 
