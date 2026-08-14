@@ -42,21 +42,30 @@ for entity in model.entities() {
 # Ok::<(), hook0_sdkgen::Error>(())
 ```
 
-## Emitting the MCP tool table
+## Targets
 
-`hook0-mcp` is published to crates.io with no copy of the snapshot beside it, so its tool table is
-a committed source file — `clients/mcp/src/server/generated.rs` — that this crate writes and the
-server merely compiles. The MCP crate depends on nothing here, not even at build time.
+What the generator writes is a registry of plain values — `targets::targets()` — rather than a set
+of entry points. Each entry names itself, the tag it selects out of the snapshot, where it lands
+relative to the root of the repository, what it owns there, how its language spells things, and the
+one function turning the model into files.
 
-`mcp::tool_definitions` turns a model selected by `MCP_TAG` into that file. A deliberate change of
-the API surface is adopted with:
+Today it carries one entry, `mcp`: `hook0-mcp` is published to crates.io with no copy of the
+snapshot beside it, so its tool table is a committed source file —
+`clients/mcp/src/server/generated.rs` — that this crate writes and the server merely compiles. The
+MCP crate depends on nothing here, not even at build time.
+
+Every target is emitted and checked through one driver, `tests/targets.rs`:
 
 ```
-UPDATE_MCP_TOOLS=1 cargo test -p hook0-sdkgen mcp_tool_definitions
+cargo test -p hook0-sdkgen sdk_targets                 # check every target
+UPDATE_SDK=1 cargo test -p hook0-sdkgen sdk_targets    # rewrite every target
+UPDATE_SDK=mcp cargo test -p hook0-sdkgen sdk_targets  # rewrite one, still check the rest
 ```
 
-and the rewritten file is committed. Without the variable the same test fails, naming that command,
-so a surface that never reached the file stops in CI rather than at a release.
+The rewritten files are committed. Without the variable the same test fails, naming the command for
+each target that drifted — all of them at once, so adopting one change cannot bury another — and a
+surface that never reached a generated tree stops in CI rather than at a release. What `UPDATE_SDK`
+accepts is the registry itself: a target added to it is addressable with no second list to update.
 
 ## Bounds
 
@@ -66,14 +75,16 @@ is rejected with the count it reached and the ceiling it crossed — nothing is 
 
 ## Tests
 
-`cargo test -p hook0-sdkgen` runs five suites, all black box:
+`cargo test -p hook0-sdkgen` runs the suites below, all black box:
 
 - `tests/model.rs`: the committed snapshot of the Hook0 API plus documents written for a single
   behaviour each;
 - `tests/model_properties.rs`: property-based checks on idempotence, on conservation of the
   operations, and on the ceilings, with past failures replayed from `proptest-regressions/`;
-- `tests/mcp_tools.rs`: the drift guard over the committed MCP tool table, plus the checks that the
-  emission is idempotent and that the `mcp` tag selects what the `public` tag leaves out;
+- `tests/targets.rs`: the emission driver — the drift guard over every committed target, that the
+  registry is what `UPDATE_SDK` accepts, and that two emissions of a target yield the same tree;
+- `tests/mcp_tools.rs`: the shape of the MCP tool surface — one tool per selected operation, an
+  idempotent emission, and the `mcp` tag selecting what the `public` tag leaves out;
 - `tests/mcp_tools_properties.rs`: property-based checks that every selected operation yields
   exactly one tool, that tool names never collide, that re-emission writes the same bytes, and that
   an operation no tool could carry stops the emission;

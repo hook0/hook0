@@ -11,17 +11,31 @@
 
 use serde_json::{Map, Value, json};
 
+use crate::emit::{EmittedFile, FileTree, Ownership, RelativePath};
 use crate::error::{Error, preview};
-use crate::model::EntityModel;
+use crate::limits::Limits;
+use crate::model::{ApiModel, EntityModel};
 use crate::snapshot::{Operation, ParameterLocation, RequestBody};
+use crate::targets::{LanguageSpec, Target, rust, update_command};
 
 /// Tag an operation carries to become a tool of the MCP server.
 pub const MCP_TAG: &str = "mcp";
 
-/// The scaffolding the tool table is read through, which the snapshot has no say over.
-const PRELUDE: &str = r#"// The tools this server exposes, derived from the OpenAPI snapshot the API crate commits.
-// Do not edit by hand: run `UPDATE_MCP_TOOLS=1 cargo test -p hook0-sdkgen mcp_tool_definitions`.
+/// How the target is named, and what `UPDATE_SDK` accepts to rewrite it.
+pub const NAME: &str = "mcp";
 
+/// Where the server keeps the module it compiles the tool table out of.
+const ROOT: &str = "clients/mcp/src/server";
+
+/// The one file of that directory this target owns; everything beside it is hand-written.
+const FILE: &str = "generated.rs";
+
+/// The line saying where the tool table comes from, which no command in it ever changes.
+const HEADER: &str =
+    "// The tools this server exposes, derived from the OpenAPI snapshot the API crate commits.";
+
+/// The scaffolding the tool table is read through, which the snapshot has no say over.
+const PRELUDE: &str = r#"
 /// Information about an MCP tool, generated from OpenAPI
 #[derive(Debug, Clone)]
 pub struct GeneratedToolInfo {
@@ -74,6 +88,35 @@ pub fn interpolate_path(
 }
 "#;
 
+/// This target, as the registry carries it.
+pub(super) fn target() -> Target {
+    Target {
+        name: NAME,
+        tag: MCP_TAG,
+        root: ROOT,
+        // The module the tool table sits in is hand-written apart from that one file, so nothing
+        // beside it is ever swept away as stale.
+        ownership: Ownership::Files,
+        language: rust(),
+        emit,
+    }
+}
+
+/// The tool table, as the one file this target owns.
+///
+/// The language is not read: every name and every schema travels as a string literal the snapshot
+/// dictates, so nothing here is spelled the way Rust wants it spelled.
+fn emit(_language: &LanguageSpec, model: &ApiModel) -> Result<FileTree, Error> {
+    let limits = Limits::DEFAULT;
+
+    let file = EmittedFile {
+        path: RelativePath::build(FILE, &limits)?,
+        contents: tool_definitions(&model.entities)?,
+    };
+
+    FileTree::build(vec![file], &limits)
+}
+
 /// The whole content of the tool definitions file, as the model dictates it.
 ///
 /// Every operation the model carries becomes exactly one tool, named after its operation id and
@@ -85,7 +128,10 @@ pub fn tool_definitions(model: &EntityModel) -> Result<String, Error> {
     }
     tools.sort_by(|left, right| left.0.cmp(right.0));
 
-    let mut source = String::from(PRELUDE);
+    let mut source = format!(
+        "{HEADER}\n// Do not edit by hand: run `{}`.\n{PRELUDE}",
+        update_command(NAME)
+    );
     for (name, operation) in tools {
         source.push_str(&tool(name, operation)?);
     }

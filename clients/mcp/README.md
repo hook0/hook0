@@ -191,11 +191,11 @@ crates.io, where the snapshot is not around, so the definitions have to travel i
 This crate depends on nothing that reads the snapshot, not even at build time — `hook0-sdkgen`
 writes that file, and this crate merely compiles it.
 
-A test in `hook0-sdkgen` compares the committed file with what the snapshot describes, and touching
-a handler tagged `mcp` makes it fail. Adopt the change with:
+The emission driver in `hook0-sdkgen` compares the committed file with what the snapshot describes,
+and touching a handler tagged `mcp` makes it fail. Adopt the change with:
 
 ```bash
-UPDATE_MCP_TOOLS=1 cargo test -p hook0-sdkgen mcp_tool_definitions
+UPDATE_SDK=mcp cargo test -p hook0-sdkgen sdk_targets
 ```
 
 Commit the rewritten `src/server/generated.rs` along with your change, and read the diff: a tool

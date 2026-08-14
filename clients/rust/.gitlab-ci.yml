@@ -14,9 +14,9 @@ client.rust.check:
         # The generator suites read the API's OpenAPI snapshot, so a change of
         # the API surface has to run them even when no generator file moved.
         - api/openapi.snapshot.json
-        # The MCP tool table is written here, so a hand edit of it has to face
-        # the drift guard that wrote it.
-        - clients/mcp/src/server/generated.rs
+        # Generated trees are written here, so a hand edit of any of them has to
+        # face the drift guard that wrote it.
+        - clients/*/src/**
         - Cargo.*
   before_script:
     - rustc --version && cargo --version
