@@ -262,12 +262,16 @@ final class ClientTest {
     UUID first = Uuid7.generate();
     UUID next = Uuid7.generate();
 
-    assertTrue(prefix(next).compareTo(prefix(first)) >= 0, "an identifier minted after another carries an earlier moment");
+    assertTrue(
+        prefix(next).compareTo(prefix(first)) >= 0,
+        "an identifier minted after another carries an earlier moment");
 
     Thread.sleep(5);
     UUID later = Uuid7.generate();
 
-    assertTrue(prefix(later).compareTo(prefix(first)) > 0, "an identifier minted a moment later carries an earlier moment");
+    assertTrue(
+        prefix(later).compareTo(prefix(first)) > 0,
+        "an identifier minted a moment later carries an earlier moment");
     assertNotEquals(first, next, "two identifiers minted one after the other are the same identifier");
   }
 
