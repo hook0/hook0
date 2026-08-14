@@ -1,0 +1,24 @@
+[package]
+name = "release-packages"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata.release]
+release = false
+publish = false
+
+[dependencies]
+# The registry of what the repository generates, which is where the set of releasable packages
+# starts. Nothing here names a target: this dependency is the only thing that knows they exist.
+hook0-sdkgen = { path = "../../clients/sdkgen" }
+
+semver = "1"
+serde_json = "1.0"
+thiserror = "2.0"
+toml = "1.1"
+
+[dev-dependencies]
+# Real directories, since discovery is a question about a filesystem and answering it against a
+# fabricated one would only prove the fabrication.
+tempfile = "3.27"

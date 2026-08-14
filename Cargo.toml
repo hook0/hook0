@@ -2,6 +2,7 @@
 members = [
   "api",
   "cli",
+  "ci/release-packages",
   "ci/validate-dockerfiles",
   "play",
   "output-worker",
