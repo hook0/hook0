@@ -11,6 +11,7 @@
 //! what a `date-time` is called.
 
 pub mod mcp;
+pub mod python;
 
 use std::sync::LazyLock;
 
@@ -102,7 +103,7 @@ pub fn targets() -> &'static [Target] {
     &TARGETS
 }
 
-static TARGETS: LazyLock<Vec<Target>> = LazyLock::new(|| vec![mcp::target()]);
+static TARGETS: LazyLock<Vec<Target>> = LazyLock::new(|| vec![mcp::target(), python::target()]);
 
 /// Rust's own vocabulary, including the words it reserves without using them yet.
 ///
@@ -149,5 +150,55 @@ fn rust() -> LanguageSpec {
         },
         comment: CommentStyle::DoubleSlash,
         extension: "rs",
+    }
+}
+
+/// Python's own vocabulary, plus the two builtins the API surface actually collides with.
+///
+/// The keywords are the words no identifier may be spelled as at all; `id` and `type` are not
+/// keywords, but the document names fields after both, and a member shadowing the builtin it is
+/// named after is a name whose meaning depends on where it is read. Sorted, as [`ReservedWords`]
+/// searches it by halving — which puts the capitalised constants first.
+const PYTHON_KEYWORDS: [&str; 37] = [
+    "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class", "continue",
+    "def", "del", "elif", "else", "except", "finally", "for", "from", "global", "id", "if",
+    "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try",
+    "type", "while", "with", "yield",
+];
+
+/// What a name rendering to no identifier at all is spelled as in Python.
+const PYTHON_PLACEHOLDER: &str = "value";
+
+static PYTHON_RESERVED: LazyLock<ReservedWords> = LazyLock::new(|| {
+    ReservedWords::build(&PYTHON_KEYWORDS, Escape::Suffix('_'), PYTHON_PLACEHOLDER).expect(
+        "the Python keyword table is sorted, carries no empty word, and does not hold its own fallback",
+    )
+});
+
+/// How Python wants what it is handed spelled.
+fn python() -> LanguageSpec {
+    LanguageSpec {
+        casing: Casing {
+            type_name: Case::UpperCamel,
+            method: Case::Snake,
+            field: Case::Snake,
+            constant: Case::ScreamingSnake,
+            file: Case::Snake,
+            module: Case::Snake,
+        },
+        reserved: LazyLock::force(&PYTHON_RESERVED),
+        scalars: ScalarNames {
+            string: "str",
+            uuid: "uuid.UUID",
+            date_time: "datetime.datetime",
+            date: "datetime.date",
+            url: "str",
+            integer32: "int",
+            integer64: "int",
+            number: "float",
+            boolean: "bool",
+        },
+        comment: CommentStyle::Hash,
+        extension: "py",
     }
 }

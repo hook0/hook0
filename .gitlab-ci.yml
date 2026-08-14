@@ -10,6 +10,7 @@ variables:
   PG_VERSION: "18"
   RUST_VERSION: "1.97-trixie"
   NODE_VERSION: "24-trixie"
+  PYTHON_VERSION: "3.13-trixie"
   PROTOC_VERSION: "35.1"
   POSTGRES_DB: hook0-ci
   POSTGRES_USER: runner
@@ -48,6 +49,7 @@ include:
   - local: "clients/rust/.gitlab-ci.yml"
   - local: "clients/mcp/.gitlab-ci.yml"
   - local: "clients/typescript/.gitlab-ci.yml"
+  - local: "clients/python/.gitlab-ci.yml"
   - local: "documentation/.gitlab-ci.yml"
   - local: "tests-api-integrations/.gitlab-ci.yml"
   - local: "tests-e2e/.gitlab-ci.yml"
