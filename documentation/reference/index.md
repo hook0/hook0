@@ -43,10 +43,21 @@ Complete API specification with all endpoints, request/response formats, and aut
 
 Client libraries for integrating Hook0 into your applications.
 
-| Language | Package | Status |
-|----------|---------|--------|
-| JavaScript/TypeScript | [`@hook0/sdk`](sdk/javascript.md) | Stable |
-| Rust | [`hook0-client`](sdk/rust.md) | Stable |
+| Language | Package | Install from |
+|----------|---------|--------------|
+| JavaScript/TypeScript | [`hook0-client`](sdk/javascript.md) | npm |
+| Rust | [`hook0-client`](sdk/rust.md) | crates.io |
+| Python | [`hook0-client`](sdk/python.md) | PyPI |
+| Ruby | [`hook0-client`](sdk/ruby.md) | RubyGems |
+| C# / .NET | [`Hook0.Client`](sdk/csharp.md) | NuGet |
+| Go | [`clients/go`](sdk/go.md) | source |
+| PHP | [`hook0/client`](sdk/php.md) | source |
+| Java | [`com.hook0:hook0-client`](sdk/java.md) | source |
+| Kotlin | [`com.hook0:hook0-client-kotlin`](sdk/kotlin.md) | source |
+| Lua | [`hook0-client`](sdk/lua.md) | source |
+| Zig | [`hook0_client`](sdk/zig.md) | source |
+
+Each page says how to install the client, how to send an event, and how to verify a webhook signature. See [SDKs & client libraries](sdk/index.md) for what they share.
 
 ---
 

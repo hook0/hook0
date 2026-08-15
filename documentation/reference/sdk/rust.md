@@ -1,3 +1,9 @@
+---
+title: "Rust webhook SDK — hook0-client crate"
+description: "Send Hook0 events and verify webhook signatures from Rust. Async on tokio and reqwest, idempotent event IDs, retries and payload bounds built in."
+keywords: [Rust webhook SDK, Hook0 Rust client, hook0-client crate, verify webhook signature Rust, actix-web webhook, async webhook client Rust]
+---
+
 # Rust SDK
 
 The official Hook0 SDK for Rust applications, providing a safe, performant, and idiomatic interface to the Hook0 API.
@@ -34,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create an event
     let event = Event {
-        event_id: &None,
+        event_id: None,
         event_type: "user.account.created",
         payload: Cow::Borrowed(r#"{"user_id": "123", "email": "john@example.com"}"#),
         payload_content_type: "application/json",
@@ -65,10 +71,12 @@ network failure or a server error ingests the event once rather than twice; with
 client-chosen ID, a repeated request would create a second event and deliver it to every
 subscriber.
 
-Only a network failure or a server error is retried — an answer Hook0 would repeat (a bad request,
-an exhausted quota) is reported as is. A retried request Hook0 answers with `EventAlreadyIngested`
-returns success, because an earlier attempt of that same send reached the API; the same answer to a
-*first* attempt is a genuine conflict and is returned as an error.
+A network failure, a server error, and a `429` whose body names the `RateLimited` problem are
+retried; a `Retry-After` header is honoured and clamped to what is left of the delay budget. An
+answer Hook0 would repeat (a bad request, an exhausted daily quota) is reported as is. A retried
+request Hook0 answers with `EventAlreadyIngested` returns success, because an earlier attempt of
+that same send reached the API; the same answer to a *first* attempt is a genuine conflict and is
+returned as an error.
 
 Every send is bounded, and every bound is configurable:
 
@@ -263,7 +271,7 @@ async fn send_event_with_handling(client: &Hook0Client, event: &Event<'_>) {
             println!("Event sent successfully: {}", event_id);
         }
         Err(Hook0ClientError::EventSending { event_id, error, body }) => {
-            eprintln!("Failed to send event {}: {}", event_id, error);
+            eprintln!("Failed to send event {:?}: {}", event_id, error);
             if let Some(body) = body {
                 eprintln!("Response body: {}", body);
             }
@@ -350,7 +358,7 @@ async fn create_and_send_user_event(
     let payload = serde_json::to_string(&user)?;
 
     let event = Event {
-        event_id: &None,
+        event_id: None,
         event_type: "user.account.created",
         payload: Cow::Owned(payload),
         payload_content_type: "application/json",
@@ -425,7 +433,7 @@ mod integration_tests {
 
         // Send test event
         let event = Event {
-            event_id: &None,
+            event_id: None,
             event_type: "test.integration",
             payload: Cow::Borrowed(r#"{"test": true}"#),
             payload_content_type: "application/json",
@@ -555,10 +563,9 @@ use std::borrow::Cow;
 use hook0_client::Event;
 
 let custom_event_id = Uuid::new_v4();
-let event_id_opt = Some(&custom_event_id);
 
 let event = Event {
-    event_id: &event_id_opt,
+    event_id: Some(&custom_event_id),
     event_type: "payment.processed",
     payload: Cow::Borrowed(r#"{"amount": 100.00}"#),
     payload_content_type: "application/json",
@@ -591,7 +598,7 @@ tokio::spawn(async move {
 ```rust
 // Ensure payload string matches content type
 let event = Event {
-    event_id: &None,
+    event_id: None,
     event_type: "user.account.created",
     payload: Cow::Borrowed(r#"{"user_id": "123"}"#),  // JSON string
     payload_content_type: "application/json",  // Must match

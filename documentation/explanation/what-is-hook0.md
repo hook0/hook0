@@ -159,7 +159,7 @@ Hook0 tracks every delivery attempt:
 
 - Open source (SSPL v1), self-hostable, or use the [cloud version](https://www.hook0.com/)
 - Written in Rust, scales horizontally
-- RESTful API with SDKs (Rust, TypeScript)
+- RESTful API with [official SDKs](../reference/sdk/index.md) for eleven languages
 - Automatic retries, dead letter queues, rate limiting
 - Full delivery visibility in the dashboard
 

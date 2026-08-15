@@ -1,12 +1,32 @@
 ---
-title: "Hook0 SDKs — JavaScript, Python, Rust"
-description: "Client libraries that wrap the Hook0 REST API. Each SDK handles auth and sends webhook events in under 10 lines of code. Available for JS/TS, Python, and Rust."
-keywords: [Hook0 SDK, webhook SDK, JavaScript webhook library, Python webhook client, Rust webhook SDK, webhook API client]
+title: "Hook0 SDKs — 11 official webhook client libraries"
+description: "Official Hook0 clients for JavaScript, TypeScript, Rust, Python, Go, Ruby, PHP, C#, Java, Kotlin, Lua and Zig. Each sends events, verifies webhook signatures, and retries under bounds you set."
+keywords: [Hook0 SDK, webhook SDK, webhook client library, JavaScript webhook library, Python webhook client, Rust webhook SDK, Go webhook client, Java webhook SDK, C# webhook client, verify webhook signature]
 ---
 
 # SDKs & client libraries
 
-Hook0 has official SDKs for several programming languages. They share the same design patterns but stay idiomatic to each language.
+Hook0 has eleven official clients. They share the same behaviour and the same defaults, and each one is written in the idiom of its language rather than a translation of another.
+
+Every client does four things: it sends events, it declares the event types your application uses, it verifies the signature of an incoming webhook, and it exposes the rest of the API as generated, typed operations.
+
+## The clients
+
+| Language | Page | Package | Install from | Surfaces |
+|----------|------|---------|--------------|----------|
+| JavaScript / TypeScript | [JavaScript SDK](javascript.md) | `hook0-client` | npm | promises |
+| Rust | [Rust SDK](rust.md) | `hook0-client` | crates.io | async |
+| Python | [Python SDK](python.md) | `hook0-client` | PyPI | blocking and `asyncio` |
+| Ruby | [Ruby SDK](ruby.md) | `hook0-client` | RubyGems | blocking |
+| C# / .NET | [C# SDK](csharp.md) | `Hook0.Client` | NuGet | blocking and `Task` |
+| Go | [Go SDK](go.md) | `github.com/hook0/hook0/clients/go` | source | blocking |
+| PHP | [PHP SDK](php.md) | `hook0/client` | source | blocking |
+| Java | [Java SDK](java.md) | `com.hook0:hook0-client` | source | blocking and `CompletableFuture` |
+| Kotlin | [Kotlin SDK](kotlin.md) | `com.hook0:hook0-client-kotlin` | source | blocking and suspending |
+| Lua | [Lua SDK](lua.md) | `hook0-client` | source | blocking |
+| Zig | [Zig SDK](zig.md) | `hook0_client` | source | blocking |
+
+Six of the clients are not on their language's registry yet. Nothing is wrong with the code; each one is waiting on something a pipeline cannot supply on its own, such as a namespace to claim or a split repository to decide on. Each page says what stands in the way and how to depend on the client today. The rest install with one command.
 
 ## Set up environment variables
 
@@ -29,166 +49,41 @@ APP_ID=$APP_ID
 EOF
 ```
 
-## Official SDKs
+The token goes to the client without a `Bearer` prefix. Every client adds it.
 
-### [JavaScript/TypeScript SDK](javascript.md)
-TypeScript SDK for Node.js with event sending.
+## What every client does without being asked
 
-**Features:**
-- Event sending with type definitions
-- Event type management (upsert)
-- Webhook signature verification
-- Node.js compatibility
+Read this before you write anything around a client, because three of these will change what you write.
 
-**Installation:**
-```bash
-npm install hook0-client
-```
+### It mints the event ID, so a retry cannot duplicate an event
 
-**Quick start:**
-```typescript
-import { Hook0Client, Event } from 'hook0-client';
+A send goes out under an ID the client knows: the one you set on the event, or a UUIDv7 it generates when you set none. Passing no ID does not mean the ID comes from Hook0. The value comes from the client, travels with the request, and is what the send returns.
 
-const hook0 = new Hook0Client(
-  'http://localhost:8081/api/v1',
-  'app_1234567890',
-  '{YOUR_TOKEN}'
-);
+Hook0 keys events on that ID, so a request repeated after a failure ingests the event once rather than twice. Set an ID yourself only when the *same* event can be produced more than once by your own application, a payment webhook replayed by your provider or a job that can run twice, by deriving a stable UUID from your domain key.
 
-const event = new Event(
-  'user.account.created',
-  JSON.stringify({ user_id: 123 }),
-  'application/json',
-  { source: 'api' }
-);
+### It already retries
 
-await hook0.sendEvent(event);
-```
+A network failure, a server error, and a `429` whose body names the `RateLimited` problem are retried. A `429` that names a spent daily quota is not, because a quota clears when a plan changes or a day turns and no send can wait for that. A `Retry-After` header is honoured and clamped to what is left of the delay budget.
 
-[View full documentation](javascript.md)
+A second retry loop wrapped around a client is a loop around a loop. Change the client's policy instead, or disable it and own the retry yourself.
 
----
+| Bound | Default |
+|-------|---------|
+| Attempts, the first one included | 4, capped at 16 |
+| Delay before the first retry | 100 ms |
+| Ceiling no single delay exceeds | 2 s |
+| Budget all delays of one send share | 5 s |
+| Timeout, per attempt | 10 s |
+| Largest event payload sent | 1 MiB |
+| Largest response body read | 8 MiB |
 
-### [Rust SDK](rust.md)
-Native Rust SDK for sending events and verifying webhook signatures.
+Every client exposes a disabled policy that sends each event exactly once.
 
-**Features:**
-- Event sending with typed payloads
-- Event type management (upsert)
-- Webhook signature verification (v0 and v1)
-- Optional feature flags (`producer`, `consumer`)
+### It refuses what the API would refuse
 
-**Installation:**
-```toml
-[dependencies]
-hook0-client = "1"
-```
+A payload above the maximum fails before any request goes out, so neither the round trip nor the retries after it are spent on a request the API would reject. A response body above the ceiling is refused rather than read into memory, and so are an oversized header, too many headers, and an oversized head.
 
-**Quick start:**
-```rust
-use hook0_client::{Hook0Client, Event};
-use reqwest::Url;
-use uuid::Uuid;
-use std::borrow::Cow;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_url = Url::parse("http://localhost:8081/api/v1")?;
-    let application_id = Uuid::parse_str("your-app-id-here")?;
-    let client = Hook0Client::new(api_url, application_id, "{YOUR_TOKEN}")?;
-
-    let event = Event {
-        event_id: &None,
-        event_type: "user.account.created",
-        payload: Cow::Borrowed(r#"{"user_id": "123"}"#),
-        payload_content_type: "application/json",
-        metadata: None,
-        occurred_at: None,
-        labels: vec![("environment".to_string(), "production".to_string())],
-    };
-
-    let event_id = client.send_event(&event).await?;
-    println!("Event sent: {}", event_id);
-    Ok(())
-}
-```
-
-[View full documentation](rust.md)
-
----
-
-## Additional language support
-
-:::info SDKs coming soon
-Official SDKs for Python, Go, PHP, Ruby, Java, and .NET are planned. In the meantime, use the REST API directly with your language's HTTP client.
-:::
-
-### Using the REST API
-
-Everything Hook0 does is available through the REST API. Here is how to send events in a few languages:
-
-**Python Example:**
-```python
-import requests
-
-response = requests.post(
-    'http://localhost:8081/api/v1/event',
-    headers={
-        'Authorization': 'Bearer {YOUR_TOKEN}',
-        'Content-Type': 'application/json'
-    },
-    json={
-        'event_type': 'user.account.created',
-        'payload': {'user_id': 123}
-    }
-)
-```
-
-**Go Example:**
-```go
-import "net/http"
-import "encoding/json"
-
-event := map[string]interface{}{
-    "event_type": "user.account.created",
-    "payload": map[string]interface{}{"user_id": 123},
-}
-
-data, _ := json.Marshal(event)
-req, _ := http.NewRequest("POST", "https://app.hook0.com/api/v1/event", bytes.NewBuffer(data))
-req.Header.Set("Authorization", "Bearer {YOUR_TOKEN}")
-req.Header.Set("Content-Type", "application/json")
-
-client := &http.Client{}
-resp, _ := client.Do(req)
-```
-
-## Core SDK features
-
-All official Hook0 SDKs provide:
-
-### Authentication and security
-- Authentication via Biscuit tokens (user sessions) and Service tokens (programmatic access)
-- Webhook signature verification
-- TLS/SSL support
-- Secure credential management
-
-### API operations
-- Event sending (single events)
-- Application management (via REST API)
-- Subscription CRUD operations (via REST API)
-- Event type management
-- Delivery status tracking (via REST API)
-
-### Developer experience
-- Type safety and auto-completion
-- Error handling with typed errors
-- Structured logging
-- Documentation with examples
-
-## Common usage patterns
-
-### Sending events
+## Sending an event
 
 ```typescript
 // JavaScript/TypeScript
@@ -226,25 +121,11 @@ curl -X POST $HOOK0_API/event \
   }'
 ```
 
-### Managing subscriptions
+## Verifying a webhook
 
-```bash
-# Using the REST API
-curl -X POST $HOOK0_API/subscriptions \
-  -H "Authorization: Bearer $HOOK0_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "description": "Order Events",
-    "event_types": ["order.checkout.completed", "order.shipped"],
-    "target": {
-      "type": "http",
-      "url": "https://api.example.com/webhooks",
-      "method": "POST"
-    }
-  }'
-```
+This is the half most readers need, and the half most often got wrong by hand. Every client ships it.
 
-### Webhook verification
+Two rules hold in all eleven. Verify against the **raw** request body: a body that has been parsed and re-serialised no longer hashes to what was signed. And keep the tolerance bilateral, which every client does, so a delivery dated too far ahead is refused exactly like one dated too far behind.
 
 ```typescript
 // JavaScript/TypeScript
@@ -283,6 +164,28 @@ app.post('/webhook', express.json({
 });
 ```
 
+How a refusal reaches you differs by language, and each page says which. Rust and Go return a result; Python, Ruby, PHP, C#, Java and Kotlin raise; Lua raises a table you match with `Hook0.is`; Zig answers a closed error set.
+
+## Managing subscriptions
+
+```bash
+# Using the REST API
+curl -X POST $HOOK0_API/subscriptions \
+  -H "Authorization: Bearer $HOOK0_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Order Events",
+    "event_types": ["order.checkout.completed", "order.shipped"],
+    "target": {
+      "type": "http",
+      "url": "https://api.example.com/webhooks",
+      "method": "POST"
+    }
+  }'
+```
+
+Every client also reaches this through its generated API groups, one group per entity and one method per operation, so you do not have to drop to `curl`. See the "Calling the rest of the API" section of each page.
+
 ## Error handling
 
 SDKs return typed errors you can match on:
@@ -296,7 +199,7 @@ try {
 } catch (error) {
   if (error instanceof Hook0ClientError) {
     console.error('Hook0 error:', error.message);
-    
+
     if (error.message.includes('Invalid event type')) {
       // Handle invalid event type format
     } else if (error.message.includes('failed')) {
@@ -306,97 +209,16 @@ try {
 }
 ```
 
-```javascript
-// REST API error handling
-fetch('http://localhost:8081/api/v1/event', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer {YOUR_TOKEN}',
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify(event)
-})
-.then(response => {
-  if (response.status === 429) {
-    // Rate limited - check X-RateLimit-Reset header
-    const resetTime = response.headers.get('X-RateLimit-Reset');
-    // Implement retry logic
-  } else if (!response.ok) {
-    // Handle other errors
-  }
-});
-```
+Every problem the API can report is its own type in the generated half of each client, under a common base, so a handler may name one problem or catch all of them.
 
-## Configuration
+## Authentication and security
 
-### TypeScript SDK configuration
-```typescript
-const hook0 = new Hook0Client(
-  'http://localhost:8081',     // API URL
-  'app_1234567890',            // Application ID
-  '{YOUR_TOKEN}',   // Authentication token
-  false                        // Debug mode (optional)
-);
-```
+- Authentication via Biscuit tokens (user sessions) and Service tokens (programmatic access)
+- Webhook signature verification, `v0` over the body and `v1` over the covered headers and the body
+- TLS for every request
+- The token is never logged, and never exposed by a client's accessors
 
-### REST API configuration
-When using the REST API directly, configure your HTTP client:
-
-```javascript
-// Example with axios
-const apiClient = axios.create({
-  baseURL: 'http://localhost:8081',
-  headers: {
-    'Authorization': 'Bearer {YOUR_TOKEN}',
-    'Content-Type': 'application/json'
-  },
-  timeout: 30000
-});
-```
-
-## Testing
-
-### Testing with TypeScript SDK
-
-
-```typescript
-// Mock fetch for testing
-import { Hook0Client, Event } from 'hook0-client';
-import { jest } from '@jest/globals';
-
-test('should send event', async () => {
-  global.fetch = jest.fn().mockResolvedValueOnce({
-    ok: true,
-    text: async () => ''
-  });
-  
-  const client = new Hook0Client(
-    'http://localhost:8081/api/v1',
-    'app_test',
-    'test_token'
-  );
-  
-  const event = new Event(
-    'test.event',
-    JSON.stringify({ test: true }),
-    'application/json',
-    {}
-  );
-  
-  await client.sendEvent(event);
-  
-  expect(fetch).toHaveBeenCalledWith(
-    'http://localhost:8081/api/v1/event',
-    expect.objectContaining({
-      method: 'POST'
-    })
-  );
-});
-```
-
-## SDK development guidelines
-
-Want to contribute an SDK? Here is what we expect:
+## Contributing an SDK
 
 ### Requirements checklist
 
@@ -429,12 +251,3 @@ Want to contribute an SDK? Here is what we expect:
 - [Discord](https://www.hook0.com/community) - Community support
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/hook0) - #hook0 tag
 - support@hook0.com - For critical issues
-
-### Contributing
-
-To contribute to our SDK:
-
-1. Open an issue to discuss your proposal
-2. Follow the requirements checklist above
-3. Submit for review
-4. Enjoy :)

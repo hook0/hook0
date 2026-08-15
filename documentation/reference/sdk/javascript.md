@@ -1,3 +1,9 @@
+---
+title: "JavaScript & TypeScript webhook SDK — hook0-client"
+description: "Send Hook0 events and verify webhook signatures from Node.js. Typed, ESM and CommonJS, idempotent event IDs, retries and payload bounds built in."
+keywords: [JavaScript webhook SDK, TypeScript webhook client, hook0-client npm, verify webhook signature Node.js, Express webhook endpoint, send webhook event JavaScript]
+---
+
 # JavaScript/TypeScript SDK
 
 The official Hook0 SDK for JavaScript and TypeScript applications, providing a type-safe and idiomatic interface to the Hook0 API.
@@ -49,10 +55,11 @@ network failure or a server error ingests the event once rather than twice; with
 client-chosen ID, a repeated request would create a second event and deliver it to every
 subscriber.
 
-Only a network failure or a server error is retried — an answer Hook0 would repeat (a bad request,
-an exhausted quota) is reported as is. A retried request Hook0 answers with `EventAlreadyIngested`
-resolves, because an earlier attempt of that same send reached the API; the same answer to a
-*first* attempt is a genuine conflict and rejects.
+A network failure, a server error, and a `429` whose body names the `RateLimited` problem are
+retried; a `Retry-After` header is honoured and clamped to what is left of the delay budget. An
+answer Hook0 would repeat (a bad request, an exhausted daily quota) is reported as is. A retried
+request Hook0 answers with `EventAlreadyIngested` resolves, because an earlier attempt of that same
+send reached the API; the same answer to a *first* attempt is a genuine conflict and rejects.
 
 Every send is bounded, and every bound is configurable:
 
@@ -142,9 +149,7 @@ console.log('Event ID:', eventId);
 The batch events functionality is not currently implemented. Please send events individually using the single event method above.
 :::
 
-:::note Event Query Not Available
-The event listing and querying functionality is not available in the current SDK implementation. Use the REST API directly for these operations.
-:::
+Listing and querying events goes through the generated API groups rather than through `Hook0Client`. See [Calling the rest of the API](#calling-the-rest-of-the-api).
 
 ### Event Type Management
 
@@ -159,9 +164,47 @@ const addedEventTypes = await hook0.upsertEventTypes([
 console.log('Added event types:', addedEventTypes);
 ```
 
-:::note Limited Management Features
-The current SDK implementation provides basic event sending and event type management. For full application and subscription management, please use the REST API directly.
-:::
+## Calling the rest of the API
+
+`Hook0Client` covers sending events and declaring event types. Every other operation Hook0 declares is a method on a generated group, exported under the `generated` namespace:
+
+```typescript
+import { generated } from 'hook0-client';
+
+const applications = new generated.ApplicationsApi(transport);
+const application = await applications.get(applicationId);
+```
+
+The generated half declares the transport it issues requests through and does not implement one, so nothing in it carries a socket. Supply your own:
+
+```typescript
+import { generated } from 'hook0-client';
+
+const transport: generated.Transport = {
+  async request(asked) {
+    const query = new URLSearchParams(asked.query as [string, string][]).toString();
+    const answered = await fetch(
+      `https://app.hook0.com${asked.path}${query ? `?${query}` : ''}`,
+      {
+        method: asked.method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+          ...(asked.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        },
+        body: asked.body,
+        signal: AbortSignal.timeout(10_000),
+      }
+    );
+
+    return { status: answered.status, payload: await answered.text() };
+  },
+};
+```
+
+Every problem the API can report is its own subclass of `generated.ProblemError`, which carries the HTTP status and the parsed problem.
+
+The names the API document declares live under `generated` rather than at the top level because the document itself declares an `Event` and an `EventType`, which are the API's resources and not the `Event` an emitter fills in.
 
 ## Advanced Features
 
