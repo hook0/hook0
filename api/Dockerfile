@@ -15,6 +15,7 @@ RUN --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=clients/rust,target=clients/rust \
     --mount=type=bind,source=clients/mcp,target=clients/mcp \
     --mount=type=bind,source=clients/sdkgen,target=clients/sdkgen \
+    --mount=type=bind,source=ci/release-packages,target=ci/release-packages \
     --mount=type=bind,source=output-worker,target=output-worker \
     --mount=type=bind,source=sentry-integration,target=sentry-integration \
     --mount=type=bind,source=protobuf,target=protobuf \
