@@ -1,5 +1,8 @@
 package com.hook0.kotlin
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Path
 import java.time.Duration
 import java.time.Instant
 import java.util.Locale
@@ -181,15 +184,33 @@ class ConformanceTest {
         api.willAnswer(FakeApi.Scripted.of(201, mapOf("event_id" to INGESTED_ID)))
         client.sendEvent(anEvent())
 
+        // A send carries a body, so every occasion the corpus declares applies to this one request.
+        val composedAtMost = REQUEST["max_composed_bytes"] as Long
+        val bound = mapOf("token" to TOKEN, "language" to "kotlin", "version" to publishedVersion())
+
         val sent = api.received()[0]
         for (header in headers) {
           val name = (header["name"] as String).lowercase(Locale.ROOT)
-          val wanted = (header["value"] as String).replace("\${token}", TOKEN)
-          assertEquals(
-            wanted,
-            sent.headers[name],
-            "a request carrying a body did not arrive with `${header["name"]}`: ${header["reason"]}"
+          val template = header["value"] as String
+          val written = sent.headers[name] ?: ""
+          val chunks = templateChunks(template, bound)
+
+          assertTrue(
+            matchesChunks(chunks, written),
+            "the request carried `$name: $written` where the shared contract says `$template`: " +
+              "${header["reason"]}"
           )
+
+          // A value with a hole this suite cannot fill is one the client composed out of what the
+          // platform told it, and what the platform says is as long as it feels like.
+          if (chunks.size > 1) {
+            val spent = written.toByteArray(StandardCharsets.UTF_8).size
+            assertTrue(
+              spent <= composedAtMost,
+              "the request carried $spent bytes of `$name`, above the $composedAtMost the shared " +
+                "contract cuts a composed value to"
+            )
+          }
         }
       }
     }
@@ -260,6 +281,10 @@ class ConformanceTest {
 
     /** What a send says it did, out of the message it failed with. */
     private val GAVE_UP = Regex("gave up after (\\d+) attempts")
+
+    /** What the build file publishes this artefact at, read beside the coordinates it publishes it under. */
+    private val PUBLISHED =
+      Regex("<artifactId>hook0-client-kotlin</artifactId>\\s*<version>([^<]+)</version>")
 
     /**
      * How a refusal the corpus names reads in this client's own words.
@@ -436,6 +461,89 @@ class ConformanceTest {
         }
       }
       throw IllegalStateException("no status of the corpus carries opposite verdicts")
+    }
+
+    /**
+     * What a value of the request document is made of, once the holes this suite can speak for are
+     * filled in.
+     *
+     * A value is a template: `${name}` is a hole and everything around it is literal. A hole named
+     * in [bound] becomes part of the literal text around it; one that is not is a hole no suite can
+     * fill without reimplementing the client it is testing, and it separates two chunks. A template
+     * whose holes are all bound is therefore one chunk, and the whole value is that chunk.
+     */
+    private fun templateChunks(template: String, bound: Map<String, String>): List<String> {
+      val chunks = mutableListOf("")
+      var rest = template
+
+      while (true) {
+        val opened = rest.indexOf("\${")
+        if (opened < 0) {
+          break
+        }
+        val closed = rest.indexOf('}', opened)
+        if (closed < 0) {
+          break
+        }
+        val last = chunks.size - 1
+        chunks[last] += rest.substring(0, opened)
+
+        val name = rest.substring(opened + 2, closed)
+        val filled = bound[name]
+        if (filled == null) {
+          chunks.add("")
+        } else {
+          chunks[last] += filled
+        }
+        rest = rest.substring(closed + 1)
+      }
+
+      chunks[chunks.size - 1] += rest
+      return chunks.toList()
+    }
+
+    /**
+     * Whether what arrived is what those chunks describe: the literal text in order, anchored at
+     * both ends, with something non-empty standing in every hole between them.
+     */
+    private fun matchesChunks(chunks: List<String>, carried: String): Boolean {
+      val first = chunks.first()
+      if (chunks.size == 1) {
+        return carried == first
+      }
+      if (!carried.startsWith(first)) {
+        return false
+      }
+
+      var rest = carried.substring(first.length)
+      for (chunk in chunks.subList(1, chunks.size - 1)) {
+        // A hole stands before this chunk, and nothing is not something, so the search starts past
+        // whatever fills it.
+        val found = rest.indexOf(chunk, 1)
+        if (found < 0) {
+          return false
+        }
+        rest = rest.substring(found + chunk.length)
+      }
+
+      val last = chunks.last()
+      return rest.length > last.length && rest.endsWith(last)
+    }
+
+    /**
+     * The version this artefact is published at, which is the one hole of the `User-Agent` this
+     * suite can speak for.
+     *
+     * A jar carries no build file to read it back out of at runtime, so the client writes the
+     * number down beside the transport; reading it here out of `pom.xml` is what keeps the two from
+     * drifting apart.
+     */
+    private fun publishedVersion(): String {
+      val pom = Path.of("pom.xml").toAbsolutePath()
+      val published =
+        PUBLISHED.find(Files.readString(pom, StandardCharsets.UTF_8))
+          ?: throw IllegalStateException("the build file publishes this artefact at no version: $pom")
+      return published.groupValues[1].trim()
     }
 
     private fun verified(vector: Map<String, Any?>) {

@@ -18,6 +18,15 @@ local REQUEST = Helper.contract("request.json")
 
 local INGESTED_ID = "01961234-5678-7abc-8def-0123456789ac"
 
+--- What this rock releases, as a request spells it.
+---
+--- Read out of the rockspec rather than out of the library, so that what the wire carries is held
+--- against what a release publishes: a version bumped in one of the two and not the other fails
+--- here. The LuaRocks revision counts how many times one version was packaged and says nothing about
+--- the code, so what goes out is what precedes it.
+local VERSION = assert(Helper.rockspec().version:match("^(.+)%-%d+$"),
+  "the rockspec declares a version no LuaRocks revision follows")
+
 --- The budget the delay cases share. A delay the API names above it is expected to be cut down to
 --- it, so this also bounds what those cases cost.
 local DELAY_BUDGET = 1.1
@@ -52,6 +61,72 @@ local PROVOKED = {
       Helper.options({ max_attempts = 4, max_response_bytes = 256 })
   end,
 }
+
+--- What a value of the request document is made of, once the holes this suite can speak for are
+--- filled in.
+---
+--- A value is a template: `${name}` is a hole and everything around it is literal. A hole named in
+--- `bound` becomes part of the literal text around it; one that is not is a hole no suite can fill
+--- without reimplementing the client it is testing, and it separates two chunks. A template whose
+--- holes are all bound is therefore one chunk, and the whole value is that chunk.
+---
+--- Every search is a plain one: a template carries `(` and `-`, which a Lua pattern reads as
+--- punctuation of its own.
+--- @param template string
+--- @param bound table what each hole this suite can speak for carries
+--- @return table
+local function template_chunks(template, bound)
+  local chunks = { "" }
+  local rest = template
+
+  while true do
+    local opened = rest:find("${", 1, true)
+    local closed = opened and rest:find("}", opened, true)
+    if closed == nil then
+      break
+    end
+
+    chunks[#chunks] = chunks[#chunks] .. rest:sub(1, opened - 1)
+    local filled = bound[rest:sub(opened + 2, closed - 1)]
+    if filled ~= nil then
+      chunks[#chunks] = chunks[#chunks] .. filled
+    else
+      chunks[#chunks + 1] = ""
+    end
+    rest = rest:sub(closed + 1)
+  end
+
+  chunks[#chunks] = chunks[#chunks] .. rest
+  return chunks
+end
+
+--- Whether what arrived is what those chunks describe: the literal text in order, anchored at both
+--- ends, with something non-empty standing in every hole between them.
+--- @param chunks table
+--- @param carried string
+--- @return boolean
+local function matches_chunks(chunks, carried)
+  if #chunks == 1 then
+    return carried == chunks[1]
+  end
+  if carried:sub(1, #chunks[1]) ~= chunks[1] then
+    return false
+  end
+
+  local rest = carried:sub(#chunks[1] + 1)
+  for index = 2, #chunks - 1 do
+    -- A hole stands before this chunk, and nothing is not something, so the search starts past
+    -- whatever fills it.
+    local found = rest:find(chunks[index], 2, true)
+    if found == nil then
+      return false
+    end
+    rest = rest:sub(found + #chunks[index])
+  end
+
+  local last = chunks[#chunks]
+  return #rest > #last and rest:sub(#rest - #last + 1) == last
+end
 
 --- Two problems answering the same status, one worth repeating and one not.
 ---
@@ -303,6 +378,11 @@ describe("the shared conformance corpus", function()
     built.transport:request("GET", "/applications")
     local received = api:stop()
 
+    -- The holes this suite can speak for: the credential this client was built with, the target
+    -- reading the corpus, and the version the rockspec releases. What is left over is a hole no
+    -- suite can fill without reimplementing the client it is testing.
+    local bound = { token = "token-xyz", language = "lua", version = VERSION }
+
     local carrying = { [1] = { "every request", "a request carrying a body" }, [2] = { "every request" } }
     for index, occasions in pairs(carrying) do
       local request = received[index]
@@ -316,9 +396,18 @@ describe("the shared conformance corpus", function()
         end
 
         if declared then
-          local wanted = header.value:gsub("%${token}", function() return "token-xyz" end)
-          assert.are.equal(wanted, carried, "a request carried `" .. header.name .. ": " ..
-            tostring(carried) .. "` where the corpus says `" .. wanted .. "`: " .. header.reason)
+          local chunks = template_chunks(header.value, bound)
+          assert.is_true(matches_chunks(chunks, carried or ""),
+            "a request carried `" .. header.name .. ": " .. tostring(carried) ..
+            "` where the corpus says `" .. header.value .. "`: " .. header.reason)
+
+          -- A value with a hole this suite cannot fill is one the client composed out of what the
+          -- platform told it, and what the platform says is as long as it feels like.
+          if #chunks > 1 then
+            assert.is_true(#carried <= REQUEST.max_composed_bytes,
+              "a request carried " .. #carried .. " bytes of `" .. header.name .. "`, above the " ..
+              REQUEST.max_composed_bytes .. " the corpus cuts a composed value to")
+          end
         else
           assert.is_nil(carried, "a request carried `" .. header.name .. ": " .. tostring(carried) ..
             "`, which the corpus carries only on `" .. header.when .. "`: " .. header.reason)

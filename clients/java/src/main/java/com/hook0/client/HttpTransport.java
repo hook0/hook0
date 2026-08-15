@@ -44,11 +44,32 @@ public final class HttpTransport implements Transport, AutoCloseable {
   /** What a request body says it carries, and what an answer is asked for in. */
   public static final String JSON_MEDIA_TYPE = "application/json";
 
+  /**
+   * Which release of this artefact is talking to the API.
+   *
+   * <p>A jar carries no build file to read the number back out of at runtime, so it is written here; the conformance
+   * suite holds it against the version {@code pom.xml} publishes, so the two cannot drift apart.
+   */
+  static final String VERSION = "1.1.0";
+
   /** The schemes this transport reaches. */
   private static final List<String> SCHEMES = List.of("http", "https");
 
   /** What one header line costs beyond its name and its value: the `: ` between them and the break after. */
   private static final int LINE_OVERHEAD = 4;
+
+  /**
+   * Longest each part this client composes its {@code User-Agent} out of may be, in characters.
+   *
+   * <p>The runtime and the operating system are described by the platform rather than by this artefact, so their
+   * length is not this artefact's to guarantee: they are cut here so that the header cannot grow with whatever the
+   * platform feels like saying. Every part is also stripped of anything the grammar of the header uses as punctuation,
+   * so a platform cannot forge a shape it does not have.
+   */
+  private static final int MAX_USER_AGENT_PART_CHARS = 64;
+
+  /** Which SDK, at which version, on which runtime and operating system, is talking to the API. */
+  private static final String USER_AGENT = userAgent();
 
   private final String apiUrl;
   private final String token;
@@ -123,6 +144,28 @@ public final class HttpTransport implements Transport, AutoCloseable {
     return TransportException.noAnswer(detail == null ? failure.getClass().getSimpleName() : detail);
   }
 
+  /** How {@link #USER_AGENT} is put together, out of what this artefact knows and what the platform says of itself. */
+  private static String userAgent() {
+    String runtime = clipped("java " + System.getProperty("java.version"));
+    String os = clipped(System.getProperty("os.name") + " " + System.getProperty("os.arch"));
+    return "hook0-client-java/" + clipped(VERSION) + " (" + runtime + "; " + os + ")";
+  }
+
+  /**
+   * One part of the {@code User-Agent}, with everything the header's own grammar uses taken out of it and cut to
+   * {@link #MAX_USER_AGENT_PART_CHARS}.
+   */
+  private static String clipped(String part) {
+    StringBuilder kept = new StringBuilder();
+    for (int index = 0; index < part.length() && kept.length() < MAX_USER_AGENT_PART_CHARS; index++) {
+      char one = part.charAt(index);
+      if (one >= ' ' && one <= '~' && one != '(' && one != ')' && one != ';') {
+        kept.append(one);
+      }
+    }
+    return kept.toString();
+  }
+
   private HttpRequest built(String method, String path, List<QueryParameter> query, Object body) {
     URI target = resolved(path, query);
 
@@ -130,7 +173,8 @@ public final class HttpTransport implements Transport, AutoCloseable {
         HttpRequest.newBuilder(target)
             .timeout(options.requestTimeout())
             .header("Authorization", "Bearer " + token)
-            .header("Accept", JSON_MEDIA_TYPE);
+            .header("Accept", JSON_MEDIA_TYPE)
+            .header("User-Agent", USER_AGENT);
 
     if (body == null) {
       return building.method(method.toUpperCase(Locale.ROOT), HttpRequest.BodyPublishers.noBody()).build();

@@ -10,15 +10,26 @@
 
 const std = @import("std");
 
+/// What this package declares itself to be, read here so that the source never says it twice.
+///
+/// The version is on the wire — every request names it — and the manifest is the one place it is
+/// written down: it is handed to the module below rather than repeated in a constant somebody would
+/// have to remember to move.
+const manifest = @import("build.zig.zon");
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+
+    const declared = b.addOptions();
+    declared.addOption([]const u8, "version", manifest.version);
 
     const hook0 = b.addModule("hook0", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
     });
+    hook0.addOptions("manifest", declared);
 
     const suite = b.addModule("tests", .{
         .root_source_file = b.path("tests/root.zig"),

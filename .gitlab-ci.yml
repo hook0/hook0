@@ -77,6 +77,7 @@ include:
   - local: "documentation/.gitlab-ci.yml"
   - local: "tests-api-integrations/.gitlab-ci.yml"
   - local: "tests-e2e/.gitlab-ci.yml"
+  - local: "smoke/.gitlab-ci.yml"
   - local: "frontend/.gitlab-ci.yml"
   - local: "play/.gitlab-ci.yml"
   - local: "cli/.gitlab-ci.yml"

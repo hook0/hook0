@@ -9,6 +9,12 @@ either transport this module exports.
 
 from __future__ import annotations
 
+# The version this package is published under, and the one it reports on the wire. It is bound
+# before anything below is imported because the transport reads it from here to compose the header
+# every request carries; the conformance suite reads `pyproject.toml` and holds that header against
+# it, so a number bumped in one place and not the other fails a case rather than shipping.
+__version__ = "1.1.0"
+
 from .client import (
     ALREADY_INGESTED,
     DEFAULT_MAX_PAYLOAD_BYTES,

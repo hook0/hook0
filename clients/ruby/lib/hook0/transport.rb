@@ -4,6 +4,8 @@ require "json"
 require "net/http"
 require "uri"
 
+require_relative "version"
+
 module Hook0
   # A request the API never answered, and what caused that.
   #
@@ -109,6 +111,31 @@ module Hook0
     # What a request body says it carries, and what an answer is asked for in.
     JSON_MEDIA_TYPE = "application/json"
 
+    # Longest each part the User-Agent is composed out of may be, in characters.
+    #
+    # The runtime and the operating system are described by the platform rather than by this gem, so
+    # their length is not this gem's to guarantee: they are cut here so that the header cannot grow
+    # with whatever the platform feels like saying. Every part is also stripped of anything the
+    # grammar of the header uses as punctuation, so a platform cannot forge a shape it does not have.
+    MAX_USER_AGENT_PART_CHARS = 64
+    private_constant :MAX_USER_AGENT_PART_CHARS
+
+    # One part of the User-Agent, with everything the header's own grammar uses taken out of it and
+    # cut to MAX_USER_AGENT_PART_CHARS.
+    def self.clipped(part)
+      part.to_s.each_char.select { |character| character.match?(/[ -~]/) && !"();".include?(character) }
+          .first(MAX_USER_AGENT_PART_CHARS).join
+    end
+    private_class_method :clipped
+
+    # Which SDK, at which version, on which runtime and operating system, is talking to the API.
+    #
+    # The version is the constant the gemspec reads rather than a number written down again here:
+    # one remembered in two places is one that will disagree with itself the first time it is bumped.
+    USER_AGENT = "hook0-client-ruby/#{clipped(Hook0::VERSION)} " \
+                 "(#{clipped("ruby #{RUBY_VERSION}")}; #{clipped(RUBY_PLATFORM)})".freeze
+    private_constant :USER_AGENT
+
     # The schemes this transport reaches.
     SCHEMES = %w[http https].freeze
 
@@ -210,6 +237,9 @@ module Hook0
       request = Net::HTTPGenericRequest.new(method.to_s.upcase, !body.nil?, true, target)
       request["Authorization"] = "Bearer #{@token}"
       request["Accept"] = JSON_MEDIA_TYPE
+      # Set rather than left alone: what `Net::HTTP` names itself here is the word `Ruby`, which says
+      # nothing about which SDK is talking or which version of it.
+      request["User-Agent"] = USER_AGENT
       unless body.nil?
         request["Content-Type"] = JSON_MEDIA_TYPE
         request.body = JSON.generate(body)

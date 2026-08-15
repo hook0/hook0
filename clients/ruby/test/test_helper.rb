@@ -254,6 +254,54 @@ module Hook0Test
     JSON.parse(File.read(path, encoding: "UTF-8"))
   end
 
+  # What a value of the shared contract is made of, once the holes a suite can speak for are filled
+  # in.
+  #
+  # A value is a template: `${name}` is a hole and everything around it is literal. A hole named in
+  # `bound` becomes part of the literal text around it; one that is not is a hole no suite can fill
+  # without reimplementing the client it is testing, and it separates two chunks. A template whose
+  # holes are all bound is therefore one chunk, and the whole value is that chunk.
+  def self.template_chunks(template, bound)
+    chunks = [+""]
+    rest = template
+
+    while (opened = rest.index("${"))
+      closed = rest.index("}", opened)
+      break if closed.nil?
+
+      chunks.last << rest[0...opened]
+      name = rest[(opened + 2)...closed]
+      if bound.key?(name)
+        chunks.last << bound[name]
+      else
+        chunks << +""
+      end
+      rest = rest[(closed + 1)..]
+    end
+
+    chunks.last << rest
+    chunks
+  end
+
+  # Whether what arrived is what those chunks describe: the literal text in order, anchored at both
+  # ends, with something non-empty standing in every hole between them.
+  def self.matches_chunks?(chunks, carried)
+    return carried == chunks.first if chunks.size == 1
+    return false unless carried.start_with?(chunks.first)
+
+    rest = carried[chunks.first.length..]
+    chunks[1...-1].each do |chunk|
+      # A hole stands before this chunk, and nothing is not something, so the search starts past
+      # whatever fills it.
+      found = rest.empty? ? nil : rest[1..].index(chunk)
+      return false if found.nil?
+
+      rest = rest[(1 + found + chunk.length)..]
+    end
+
+    rest.length > chunks.last.length && rest.end_with?(chunks.last)
+  end
+
   # The counter-examples worth keeping, committed beside the properties they broke.
   #
   # One JSON value per line, so that a header carrying a comma, a newline or nothing at all is read

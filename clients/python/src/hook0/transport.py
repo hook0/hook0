@@ -18,13 +18,17 @@ from __future__ import annotations
 
 import asyncio
 import http.client
+import itertools
 import json
+import platform
 import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Iterable, Sequence
 from typing import Any
+
+from . import __version__
 
 # Longest one attempt at reaching the API is given before it is abandoned.
 DEFAULT_REQUEST_TIMEOUT = 10.0
@@ -61,6 +65,34 @@ JSON_MEDIA_TYPE = "application/json"
 
 # Ports the schemes reach when a URL names none.
 DEFAULT_PORTS = {"http": 80, "https": 443}
+
+# Longest each part the `User-Agent` is composed of may be, in characters.
+#
+# The runtime and the operating system are described by the platform rather than by this package, so
+# their length is not this package's to guarantee: they are cut here so that the header cannot grow
+# with whatever the platform feels like saying. Every part is also stripped of anything the grammar
+# of the header uses as punctuation, so a platform cannot forge a shape it does not have.
+MAX_USER_AGENT_PART_CHARS = 64
+
+
+def _clipped(part: str) -> str:
+    """One part of the `User-Agent`: printable ASCII, none of the header's own punctuation, cut to size."""
+    printable = (character for character in part if " " <= character <= "~" and character not in "();")
+    return "".join(itertools.islice(printable, MAX_USER_AGENT_PART_CHARS))
+
+
+def _user_agent() -> str:
+    """Which SDK, at which version, on which runtime and operating system, is talking to the API."""
+    runtime = _clipped(f"{platform.python_implementation()} {platform.python_version()}")
+    machine = _clipped(f"{platform.system()} {platform.machine()}")
+    return f"hook0-client-python/{_clipped(__version__)} ({runtime}; {machine})"
+
+
+# What every request says it comes from.
+#
+# Composed once: neither the interpreter nor the machine under it changes while a process runs, and
+# an instance can otherwise not tell which SDKs, at which versions, are still reaching it.
+USER_AGENT = _user_agent()
 
 
 class TransportError(Exception):
@@ -186,6 +218,7 @@ class HttpTransport:
         request = urllib.request.Request(url, data=data, method=method)
         request.add_header("Authorization", f"Bearer {self._token}")
         request.add_header("Accept", JSON_MEDIA_TYPE)
+        request.add_header("User-Agent", USER_AGENT)
         if data is not None:
             request.add_header("Content-Type", JSON_MEDIA_TYPE)
 
@@ -307,6 +340,7 @@ class AsyncHttpTransport:
             f"Host: {parts.netloc}",
             f"Authorization: Bearer {self._token}",
             f"Accept: {JSON_MEDIA_TYPE}",
+            f"User-Agent: {USER_AGENT}",
             # One exchange per connection: nothing here pools them, and a server that closes is
             # what makes a body of unstated length readable to its end.
             "Connection: close",

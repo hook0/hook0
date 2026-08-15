@@ -1,0 +1,4 @@
+# `luasocket` and `luasec` are the rock's two runtime dependencies — a socket is the one thing
+# Lua's standard library cannot open — and they are found through `LUA_PATH`/`LUA_CPATH` as
+# `luarocks path` writes them, which the harness inherits from whoever started it.
+run = ["lua5.4", "smoke.lua"]

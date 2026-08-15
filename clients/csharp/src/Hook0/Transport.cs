@@ -4,6 +4,8 @@ using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -126,6 +128,22 @@ public sealed class HttpTransport : ITransport, IAsyncTransport, IDisposable
 
     /// <summary>How many kibibytes one kibibyte is written as, which is the unit the handler takes.</summary>
     private const int BytesPerKibibyte = 1024;
+
+    /// <summary>Longest each part the <c>User-Agent</c> is composed out of may be, in characters.</summary>
+    /// <remarks>
+    /// The runtime and the operating system are described by the platform rather than by this
+    /// assembly, so their length is not this assembly's to guarantee: they are cut here so that the
+    /// header cannot grow with whatever the platform feels like saying. Every part is also stripped
+    /// of anything the grammar of the header uses as punctuation, so a platform cannot forge a shape
+    /// it does not have.
+    /// </remarks>
+    private const int MaxUserAgentPartChars = 64;
+
+    /// <summary>Which SDK, at which version, on which runtime and operating system, is talking.</summary>
+    /// <remarks>
+    /// Composed once, since nothing it is built out of changes over the life of a process.
+    /// </remarks>
+    private static readonly string UserAgent = Composed();
 
     private readonly Uri _baseUrl;
     private readonly string _token;
@@ -399,6 +417,7 @@ public sealed class HttpTransport : ITransport, IAsyncTransport, IDisposable
         HttpRequestMessage request = new(new HttpMethod(method), Resolved(path, query));
         request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {_token}");
         request.Headers.TryAddWithoutValidation("Accept", JsonMediaType);
+        request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
 
         if (body is not null)
         {
@@ -408,6 +427,50 @@ public sealed class HttpTransport : ITransport, IAsyncTransport, IDisposable
         }
 
         return request;
+    }
+
+    /// <summary>How this client names itself, out of the assembly and out of the platform.</summary>
+    /// <remarks>
+    /// The version is the one the build stamped on this assembly rather than one written down again
+    /// here: one remembered in two places is one that will disagree with itself the first time it is
+    /// bumped. The stamp carries the commit beside the version, which says nothing to an API reading
+    /// the header and is cut off.
+    /// </remarks>
+    private static string Composed()
+    {
+        string stamped = typeof(HttpTransport).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion ?? string.Empty;
+        int built = stamped.IndexOf('+', StringComparison.Ordinal);
+
+        return $"hook0-client-csharp/{Clipped(built < 0 ? stamped : stamped[..built])} " +
+            $"({Clipped(RuntimeInformation.FrameworkDescription)}; " +
+            $"{Clipped(RuntimeInformation.RuntimeIdentifier)})";
+    }
+
+    /// <summary>
+    /// One part of the <c>User-Agent</c>, with everything the header's own grammar uses taken out of
+    /// it and cut to <see cref="MaxUserAgentPartChars"/>.
+    /// </summary>
+    private static string Clipped(string part)
+    {
+        StringBuilder kept = new(MaxUserAgentPartChars);
+
+        foreach (char one in part)
+        {
+            if (one is < ' ' or > '~' or '(' or ')' or ';')
+            {
+                continue;
+            }
+
+            kept.Append(one);
+            if (kept.Length == MaxUserAgentPartChars)
+            {
+                break;
+            }
+        }
+
+        return kept.ToString();
     }
 
     /// <summary>Where a request lands: a path of its own replaces the base's, a relative one extends it.</summary>

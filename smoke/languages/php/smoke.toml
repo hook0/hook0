@@ -1,0 +1,3 @@
+# The package requires only extensions the interpreter already carries, so the autoloader Composer
+# already wrote beside the client is the whole setup.
+run = ["php", "smoke.php"]

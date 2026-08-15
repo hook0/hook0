@@ -19,7 +19,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"runtime"
+	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -60,6 +63,73 @@ const (
 
 // jsonMediaType is what a request body says it carries, and what an answer is asked for in.
 const jsonMediaType = "application/json"
+
+// maxUserAgentPartChars is the longest each part this client composes its User-Agent out of may be,
+// in characters.
+//
+// The runtime and the operating system are described by the platform rather than by this module, so
+// their length is not this module's to guarantee: they are cut here so that the header cannot grow
+// with whatever the platform feels like saying. Every part is also stripped of anything the grammar
+// of the header uses as punctuation, so a platform cannot forge a shape it does not have.
+const maxUserAgentPartChars = 64
+
+// modulePath is what this module is imported under, which is the name the build records it by.
+const modulePath = "github.com/hook0/hook0/clients/go"
+
+// unknownVersion is what the version reads as when the build recorded none for this module, which
+// is what a binary built without module information leaves behind.
+const unknownVersion = "unknown"
+
+// userAgent says which SDK, at which version, on which runtime and operating system, is talking to
+// the API.
+//
+// Nothing in the module declares a version: a Go module is versioned by the tag that publishes it,
+// so the number is read back out of what the build recorded rather than written down here, where it
+// would disagree with that tag the first time either moved. Worked out once, since nothing it is
+// built out of changes while the process runs.
+var userAgent = sync.OnceValue(func() string {
+	return fmt.Sprintf(
+		"hook0-client-go/%s (%s; %s)",
+		clipped(moduleVersion()),
+		clipped(runtime.Version()),
+		clipped(runtime.GOOS+" "+runtime.GOARCH),
+	)
+})
+
+// moduleVersion is what the build recorded this module as: the version something else required it
+// at, the version it was itself built as when it is the main module, and nothing nameable when the
+// build recorded neither.
+func moduleVersion() string {
+	info, read := debug.ReadBuildInfo()
+	if !read {
+		return unknownVersion
+	}
+	for _, dependency := range info.Deps {
+		if dependency.Path == modulePath && dependency.Version != "" {
+			return dependency.Version
+		}
+	}
+	if info.Main.Path == modulePath && info.Main.Version != "" {
+		return info.Main.Version
+	}
+	return unknownVersion
+}
+
+// clipped is one part of the User-Agent, with everything the header's own grammar uses taken out of
+// it and cut to maxUserAgentPartChars.
+func clipped(part string) string {
+	var kept strings.Builder
+	for _, character := range part {
+		if character < ' ' || character > '~' || character == '(' || character == ')' || character == ';' {
+			continue
+		}
+		if kept.Len() == maxUserAgentPartChars {
+			break
+		}
+		kept.WriteRune(character)
+	}
+	return kept.String()
+}
 
 // TransportError is a request that produced no answer to read.
 //
@@ -180,6 +250,9 @@ func (t *Transport) Deliver(
 	}
 	request.Header.Set("Authorization", "Bearer "+t.token)
 	request.Header.Set("Accept", jsonMediaType)
+	// Set rather than left alone: what the standard library names itself here says which Go built
+	// the caller and nothing at all about which SDK is talking.
+	request.Header.Set("User-Agent", userAgent())
 	if body != nil {
 		request.Header.Set("Content-Type", jsonMediaType)
 	}

@@ -283,11 +283,19 @@ public sealed class ConformanceTests : ApiCase
     {
         Assert.Equal(body, received.Body.Length > 0);
 
+        int composedAtMost = Requests["max_composed_bytes"]!.GetValue<int>();
+        Dictionary<string, string> bound = new(StringComparer.Ordinal)
+        {
+            ["token"] = Token,
+            ["language"] = "csharp",
+        };
+
         foreach (JsonNode? pinned in Requests["headers"]!.AsArray())
         {
             string name = Text(pinned!, "name");
             string when = Text(pinned!, "when");
-            string value = Text(pinned!, "value").Replace("${token}", Token, StringComparison.Ordinal);
+            string template = Text(pinned!, "value");
+            List<string> chunks = TemplateChunks(template, bound);
 
             List<string> arrived =
             [
@@ -310,10 +318,107 @@ public sealed class ConformanceTests : ApiCase
                 $"the request carried no `{name}` header, which the corpus pins to `{when}`: " +
                 Text(pinned!, "reason"));
             Assert.True(
-                arrived.Contains(value, StringComparer.Ordinal),
-                $"the request carried `{name}: {string.Join(", ", arrived)}` where the corpus pins " +
-                $"`{value}`");
+                arrived.Exists(one => MatchesChunks(chunks, one)),
+                $"the request carried `{name}: {string.Join(", ", arrived)}` where the corpus says " +
+                $"`{template}`: {Text(pinned!, "reason")}");
+
+            // A value with a hole this suite cannot fill is one the client composed out of what the
+            // platform told it, and what the platform says is as long as it feels like.
+            if (chunks.Count > 1)
+            {
+                foreach (string one in arrived)
+                {
+                    Assert.True(
+                        Encoding.UTF8.GetByteCount(one) <= composedAtMost,
+                        $"the request carried {Encoding.UTF8.GetByteCount(one)} bytes of `{name}`, " +
+                        $"above the {composedAtMost} the corpus cuts a composed value to");
+                }
+            }
         }
+    }
+
+    /// <summary>
+    /// What a value of the request document is made of, once the holes this suite can speak for are
+    /// filled in.
+    /// </summary>
+    /// <remarks>
+    /// A value is a template: <c>${name}</c> is a hole and everything around it is literal. A hole
+    /// named in <paramref name="bound"/> becomes part of the literal text around it; one that is not
+    /// is a hole no suite can fill without reimplementing the client it is testing, and it separates
+    /// two chunks. A template whose holes are all bound is therefore one chunk, and the whole value
+    /// is that chunk.
+    /// </remarks>
+    /// <param name="template">The value the corpus writes down.</param>
+    /// <param name="bound">What each hole this suite can speak for carries.</param>
+    /// <returns>The literal text of the value, one chunk per hole it leaves open.</returns>
+    private static List<string> TemplateChunks(string template, IReadOnlyDictionary<string, string> bound)
+    {
+        List<string> chunks = [string.Empty];
+        string rest = template;
+
+        for (int opened = rest.IndexOf("${", StringComparison.Ordinal); opened >= 0;)
+        {
+            int closed = rest.IndexOf('}', opened);
+            if (closed < 0)
+            {
+                break;
+            }
+
+            chunks[^1] += rest[..opened];
+            if (bound.TryGetValue(rest[(opened + 2)..closed], out string? filled))
+            {
+                chunks[^1] += filled;
+            }
+            else
+            {
+                chunks.Add(string.Empty);
+            }
+
+            rest = rest[(closed + 1)..];
+            opened = rest.IndexOf("${", StringComparison.Ordinal);
+        }
+
+        chunks[^1] += rest;
+        return chunks;
+    }
+
+    /// <summary>
+    /// Whether what arrived is what those chunks describe: the literal text in order, anchored at
+    /// both ends, with something non-empty standing in every hole between them.
+    /// </summary>
+    /// <param name="chunks">The literal text the value is made of.</param>
+    /// <param name="carried">What reached the socket under that header.</param>
+    /// <returns>Whether the one describes the other.</returns>
+    private static bool MatchesChunks(IReadOnlyList<string> chunks, string carried)
+    {
+        if (chunks.Count == 1)
+        {
+            return string.Equals(carried, chunks[0], StringComparison.Ordinal);
+        }
+
+        if (!carried.StartsWith(chunks[0], StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        string rest = carried[chunks[0].Length..];
+        for (int chunk = 1; chunk < chunks.Count - 1; chunk++)
+        {
+            // A hole stands before this chunk, and nothing is not something, so the search starts
+            // past whatever fills it.
+            int found = rest.Length == 0
+                ? -1
+                : rest.IndexOf(chunks[chunk], 1, StringComparison.Ordinal);
+            if (found < 0)
+            {
+                return false;
+            }
+
+            rest = rest[(found + chunks[chunk].Length)..];
+        }
+
+        string last = chunks[^1];
+        return rest.Length > last.Length && rest.EndsWith(last, StringComparison.Ordinal);
     }
 
     /// <summary>One cause of a request the API never answered, provoked over a real socket.</summary>

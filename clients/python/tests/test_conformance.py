@@ -12,6 +12,7 @@ from __future__ import annotations
 import datetime
 import json
 import time
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -58,10 +59,73 @@ def document(name: str) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def manifest_version() -> str:
+    """The version this package is published under, which is the one it reports on the wire.
+
+    Read out of the manifest rather than written down again here, so that the number the client
+    carries and the number the package ships as cannot disagree without this suite saying so.
+    """
+    manifest = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    return str(tomllib.loads(manifest.read_text(encoding="utf-8"))["project"]["version"])
+
+
+def template_chunks(template: str, bound: dict[str, str]) -> list[str]:
+    """What a value of the request document is made of, once the holes this suite can fill are.
+
+    A value is a template: `${name}` is a hole and everything around it is literal. A hole named in
+    `bound` becomes part of the literal text around it; one that is not is a hole no suite can fill
+    without reimplementing the client it is testing, and it separates two chunks. A template whose
+    holes are all bound is therefore one chunk, and the whole value is that chunk.
+    """
+    chunks = [""]
+    rest = template
+
+    while (opened := rest.find("${")) >= 0:
+        closed = rest.find("}", opened)
+        if closed < 0:
+            break
+        chunks[-1] += rest[:opened]
+
+        name = rest[opened + 2 : closed]
+        if name in bound:
+            chunks[-1] += bound[name]
+        else:
+            chunks.append("")
+        rest = rest[closed + 1 :]
+
+    chunks[-1] += rest
+    return chunks
+
+
+def matches_chunks(chunks: list[str], carried: str) -> bool:
+    """Whether what arrived is what those chunks describe.
+
+    The literal text in order, anchored at both ends, with something non-empty standing in every
+    hole between them.
+    """
+    if len(chunks) == 1:
+        return carried == chunks[0]
+    if not carried.startswith(chunks[0]):
+        return False
+
+    rest = carried[len(chunks[0]) :]
+    for chunk in chunks[1:-1]:
+        # A hole stands before this chunk, and nothing is not something, so the search starts past
+        # whatever fills it.
+        found = rest[1:].find(chunk)
+        if found < 0:
+            return False
+        rest = rest[1 + found + len(chunk) :]
+
+    last = chunks[-1]
+    return len(rest) > len(last) and rest.endswith(last)
+
+
 RETRY = document("retry.json")
 BOUNDS = document("bounds.json")["bounds"]
 SIGNATURE = document("signature.json")
 REQUEST = document("request.json")
+VERSION = manifest_version()
 
 # How a refusal the corpus names reads in this client's own words. Every name the corpus declares is
 # looked up here, so one added there stops this suite until it is mapped rather than passing under
@@ -280,12 +344,25 @@ def test_every_request_carries_what_the_corpus_says_it_does(api: FakeHook0Api, c
 
     # A send carries a body, so every occasion the corpus declares applies to this one request.
     carried = api.received[0].headers
+    bound = {"token": "token-xyz", "language": "python", "version": VERSION}
     for header in REQUEST["headers"]:
-        expected = header["value"].replace("${token}", "token-xyz")
-        assert carried.get(header["name"].lower()) == expected, (
-            f"the request carried `{header['name']}: {carried.get(header['name'].lower())}` where the "
-            f"shared contract says `{expected}`: {header['reason']}"
+        template = header["value"]
+        arrived = carried.get(header["name"].lower(), "")
+        chunks = template_chunks(template, bound)
+
+        assert matches_chunks(chunks, arrived), (
+            f"the request carried `{header['name']}: {arrived}` where the shared contract says "
+            f"`{template}`: {header['reason']}"
         )
+
+        # A value with a hole this suite cannot fill is one the client composed out of what the
+        # platform told it, and what the platform says is as long as it feels like.
+        if len(chunks) > 1:
+            written = len(arrived.encode("utf-8"))
+            assert written <= REQUEST["max_composed_bytes"], (
+                f"the request carried {written} bytes of `{header['name']}`, above the "
+                f"{REQUEST['max_composed_bytes']} the shared contract cuts a composed value to"
+            )
 
 
 @pytest.mark.parametrize("delay", RETRY["retry_after"]["cases"], ids=lambda delay: delay["name"])

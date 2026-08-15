@@ -90,6 +90,7 @@ class HttpTransport(
         .timeout(options.requestTimeout)
         .header("Authorization", "Bearer $token")
         .header("Accept", JSON_MEDIA_TYPE)
+        .header("User-Agent", USER_AGENT)
 
     if (body == null) {
       return building
@@ -243,6 +244,15 @@ class HttpTransport(
     /** What a request body says it carries, and what an answer is asked for in. */
     const val JSON_MEDIA_TYPE = "application/json"
 
+    /**
+     * Which release of this artefact is talking to the API.
+     *
+     * A jar carries no build file to read the number back out of at runtime, so it is written here;
+     * the conformance suite holds it against the version `pom.xml` publishes, so the two cannot
+     * drift apart.
+     */
+    internal const val VERSION = "1.1.0"
+
     /** The schemes this transport reaches. */
     private val SCHEMES = listOf("http", "https")
 
@@ -251,6 +261,34 @@ class HttpTransport(
      * after.
      */
     private const val LINE_OVERHEAD = 4
+
+    /**
+     * Longest each part this client composes its `User-Agent` out of may be, in characters.
+     *
+     * The runtime and the operating system are described by the platform rather than by this
+     * artefact, so their length is not this artefact's to guarantee: they are cut here so that the
+     * header cannot grow with whatever the platform feels like saying. Every part is also stripped
+     * of anything the grammar of the header uses as punctuation, so a platform cannot forge a shape
+     * it does not have.
+     */
+    private const val MAX_USER_AGENT_PART_CHARS = 64
+
+    /** Which SDK, at which version, on which runtime and operating system, is talking to the API. */
+    private val USER_AGENT = userAgent()
+
+    /** How [USER_AGENT] is put together, out of what this artefact knows and what the platform says of itself. */
+    private fun userAgent(): String {
+      val runtime = clipped("kotlin ${KotlinVersion.CURRENT}")
+      val os = clipped("${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
+      return "hook0-client-kotlin/${clipped(VERSION)} ($runtime; $os)"
+    }
+
+    /**
+     * One part of the `User-Agent`, with everything the header's own grammar uses taken out of it
+     * and cut to [MAX_USER_AGENT_PART_CHARS].
+     */
+    private fun clipped(part: String): String =
+      part.filter { it in ' '..'~' && it != '(' && it != ')' && it != ';' }.take(MAX_USER_AGENT_PART_CHARS)
 
     private fun answered(answer: HttpResponse<String>): Answer {
       val headers = LinkedHashMap<String, String>()

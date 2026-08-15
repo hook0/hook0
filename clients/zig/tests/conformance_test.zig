@@ -35,6 +35,65 @@ fn refusalOf(name: []const u8) ?hook0.SignatureError {
     return null;
 }
 
+/// What a value of the request document is made of, once the holes this suite can speak for are
+/// filled in.
+///
+/// A value is a template: `${name}` is a hole and everything around it is literal. A hole named in
+/// `bound` becomes part of the literal text around it; one that is not is a hole no suite can fill
+/// without reimplementing the client it is testing, and it separates two chunks. A template whose
+/// holes are all bound is therefore one chunk, and the whole value is that chunk.
+fn templateChunks(
+    held: std.mem.Allocator,
+    template: []const u8,
+    bound: []const [2][]const u8,
+) ![]const []const u8 {
+    var chunks: std.ArrayList([]const u8) = .empty;
+    try chunks.append(held, "");
+    var rest = template;
+
+    while (std.mem.indexOf(u8, rest, "${")) |opened| {
+        const closed = std.mem.indexOfScalarPos(u8, rest, opened, '}') orelse break;
+
+        const last = chunks.items.len - 1;
+        chunks.items[last] = try std.mem.concat(held, u8, &.{ chunks.items[last], rest[0..opened] });
+
+        const name = rest[opened + 2 .. closed];
+        var filled: ?[]const u8 = null;
+        for (bound) |pair| {
+            if (std.mem.eql(u8, pair[0], name)) filled = pair[1];
+        }
+        if (filled) |text| {
+            chunks.items[last] = try std.mem.concat(held, u8, &.{ chunks.items[last], text });
+        } else {
+            try chunks.append(held, "");
+        }
+        rest = rest[closed + 1 ..];
+    }
+
+    const last = chunks.items.len - 1;
+    chunks.items[last] = try std.mem.concat(held, u8, &.{ chunks.items[last], rest });
+    return chunks.toOwnedSlice(held);
+}
+
+/// Whether what arrived is what those chunks describe: the literal text in order, anchored at both
+/// ends, with something non-empty standing in every hole between them.
+fn matchesChunks(chunks: []const []const u8, carried: []const u8) bool {
+    if (chunks.len == 1) return std.mem.eql(u8, carried, chunks[0]);
+    if (!std.mem.startsWith(u8, carried, chunks[0])) return false;
+
+    var rest = carried[chunks[0].len..];
+    for (chunks[1 .. chunks.len - 1]) |chunk| {
+        // A hole stands before this chunk, and nothing is not something, so the search starts past
+        // whatever fills it.
+        if (rest.len == 0) return false;
+        const found = std.mem.indexOf(u8, rest[1..], chunk) orelse return false;
+        rest = rest[1 + found + chunk.len ..];
+    }
+
+    const last = chunks[chunks.len - 1];
+    return rest.len > last.len and std.mem.endsWith(u8, rest, last);
+}
+
 /// How many requests a send made when the API answered that way, and whether it ended up ingesting
 /// the event.
 fn issuedBy(scripted: []const helper.Scripted, chosen: hook0.Options) !struct { usize, bool } {
@@ -393,6 +452,12 @@ test "a request carries the headers its occasion declares, and only those" {
     }
     _ = try built.inner.request(held, .{ .method = "GET", .path = "/applications" });
 
+    // The holes this suite can speak for: the credential this client was built with, and the target
+    // reading the corpus. What is left over is a hole no suite fills without reimplementing the
+    // client it is testing.
+    const bound = [_][2][]const u8{ .{ "token", "token-xyz" }, .{ "language", "zig" } };
+    const composed_at_most: usize = @intCast(read.value.object.get("max_composed_bytes").?.integer);
+
     const carrying = [_]struct { index: usize, body: bool }{
         .{ .index = 0, .body = true },
         .{ .index = 1, .body = false },
@@ -417,17 +482,32 @@ test "a request carries the headers its occasion declares, and only those" {
                 continue;
             }
 
-            const wanted = try std.mem.replaceOwned(
-                u8,
-                held,
-                header.object.get("value").?.string,
-                "${token}",
-                "token-xyz",
-            );
-            std.testing.expectEqualStrings(wanted, carried orelse "") catch |failed| {
-                std.debug.print("`{s}`: {s}\n", .{ name, header.object.get("reason").?.string });
+            const template = header.object.get("value").?.string;
+            const written = carried orelse "";
+            const chunks = try templateChunks(held, template, &bound);
+
+            std.testing.expect(matchesChunks(chunks, written)) catch |failed| {
+                std.debug.print("a request carried `{s}: {s}` where the corpus says `{s}`: {s}\n", .{
+                    name,
+                    written,
+                    template,
+                    header.object.get("reason").?.string,
+                });
                 return failed;
             };
+
+            // A value with a hole this suite cannot fill is one the client composed out of what the
+            // platform told it, and what the platform says is as long as it feels like.
+            if (chunks.len > 1) {
+                std.testing.expect(written.len <= composed_at_most) catch |failed| {
+                    std.debug.print("a request carried {d} bytes of `{s}`, above the {d} the corpus cuts a composed value to\n", .{
+                        written.len,
+                        name,
+                        composed_at_most,
+                    });
+                    return failed;
+                };
+            }
         }
     }
 }

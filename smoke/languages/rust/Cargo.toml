@@ -1,0 +1,20 @@
+[package]
+name = "rust-smoke"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Detached from the root workspace, like the harness above it: this is not something the repository
+# builds or releases.
+[workspace]
+
+[dependencies]
+hook0-client = { path = "../../../clients/rust" }
+
+# The two vocabulary types the client's own signatures are written in, at the versions it declares.
+url = "2.5"
+uuid = "1.24"
+
+# `send_event` is asynchronous, so something has to drive it. Nothing beyond a current-thread
+# runtime is needed to send two events.
+tokio = { version = "1", features = ["macros", "rt"] }

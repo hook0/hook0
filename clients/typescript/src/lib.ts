@@ -111,6 +111,62 @@ const REACHABLE_SCHEMES = ['http:', 'https:'];
 const HEAD_OVERFLOW = 'UND_ERR_HEADERS_OVERFLOW';
 
 /**
+ * Longest each part this client composes its `User-Agent` out of may be, in characters.
+ *
+ * The runtime and the operating system are described by the platform rather than by this package,
+ * so their length is not this package's to guarantee: they are cut here so that the header cannot
+ * grow with whatever the platform feels like saying. Every part is also stripped of anything the
+ * grammar of the header uses as punctuation, so a platform cannot forge a shape it does not have.
+ */
+const MAX_USER_AGENT_PART_CHARS = 64;
+
+/**
+ * The version this package is published under, as it reaches the API.
+ *
+ * Reading it back out of `package.json` would make the manifest an input of the build, and the
+ * emit takes its root from the directory every input shares: a manifest sitting above `src` moves
+ * the whole emit one directory deeper inside `dist`, which breaks the very paths that manifest
+ * points at. It is written here instead, and the conformance suite reads the manifest and holds
+ * this header against it, so the two cannot disagree without a case failing.
+ */
+const VERSION = '1.1.0';
+
+/**
+ * One part of the `User-Agent`, with everything the header's own grammar uses taken out of it and
+ * cut to `MAX_USER_AGENT_PART_CHARS`.
+ * @param part - What the platform, or this package, had to say
+ */
+function clipped(part: string): string {
+  return [...part]
+    .filter((character) => character >= ' ' && character <= '~')
+    .filter((character) => !'();'.includes(character))
+    .slice(0, MAX_USER_AGENT_PART_CHARS)
+    .join('');
+}
+
+/** Which SDK, at which version, on which runtime and operating system, is talking to the API. */
+function userAgent(): string {
+  const version = clipped(VERSION);
+  // A runtime carrying no `process` at all — a browser, an edge worker — names neither the runtime
+  // nor the machine under it rather than guessing at either.
+  if (typeof process === 'undefined') {
+    return `hook0-client-typescript/${version} (unknown; unknown)`;
+  }
+
+  const runtime = clipped(`node ${process.version}`);
+  const os = clipped(`${process.platform} ${process.arch}`);
+  return `hook0-client-typescript/${version} (${runtime}; ${os})`;
+}
+
+/**
+ * What every request says it comes from.
+ *
+ * Composed once: neither the runtime nor the machine under it changes while a process runs, and an
+ * instance can otherwise not tell which SDKs, at which versions, are still reaching it.
+ */
+const USER_AGENT = userAgent();
+
+/**
  * Custom error class for Hook0Client
  */
 export class Hook0ClientError extends Error {
@@ -852,6 +908,7 @@ export class Hook0Client {
       headers: {
         'Content-Type': JSON_MEDIA_TYPE,
         Accept: JSON_MEDIA_TYPE,
+        'User-Agent': USER_AGENT,
         ...this.headers.headers,
       },
       body,
@@ -930,6 +987,7 @@ export class Hook0Client {
         method: 'GET',
         headers: {
           Accept: JSON_MEDIA_TYPE,
+          'User-Agent': USER_AGENT,
           ...this.headers.headers,
         },
       }
@@ -964,6 +1022,7 @@ export class Hook0Client {
           headers: {
             'Content-Type': JSON_MEDIA_TYPE,
             Accept: JSON_MEDIA_TYPE,
+            'User-Agent': USER_AGENT,
             ...this.headers.headers,
           },
           body: JSON.stringify(body),

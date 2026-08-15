@@ -71,6 +71,14 @@ Transport.CHUNK_BYTES = 32 * 1024
 --- What a request body says it carries, and what an answer is asked for in.
 Transport.JSON_MEDIA_TYPE = "application/json"
 
+--- Longest each part this client composes its `User-Agent` out of may be, in characters.
+---
+--- The interpreter and the operating system are described by the platform rather than by this rock,
+--- so their length is not this rock's to guarantee: they are cut here so that the header cannot grow
+--- with whatever the platform feels like saying. Every part is also stripped of anything the grammar
+--- of the header uses as punctuation, so a platform cannot forge a shape it does not have.
+local MAX_USER_AGENT_PART_CHARS = 64
+
 --- The schemes this transport reaches, and the port each one uses when the URL names none.
 local PORTS = { http = 80, https = 443 }
 
@@ -311,6 +319,36 @@ local function bounded(connection, deadline, headers, max_response_bytes)
   return table.concat(held)
 end
 
+--- One part of the `User-Agent`, with everything the header's own grammar uses taken out of it and
+--- cut to `MAX_USER_AGENT_PART_CHARS`.
+--- @param part string
+--- @return string
+local function clipped(part)
+  local kept = part:gsub("[^\32-\126]", ""):gsub("[();]", "")
+  return kept:sub(1, MAX_USER_AGENT_PART_CHARS)
+end
+
+--- What this rock says it is, composed once: none of the three parts it is built out of can change
+--- while a process runs.
+local composed = nil
+
+--- Which SDK, at which version, on which runtime and operating system, is talking to the API.
+---
+--- The version is the one the module this file is a half of declares, rather than a second copy of
+--- it here, and it is read at first use rather than at load: that module is assembled out of this
+--- one, so requiring it as this file loads would be a cycle. Lua says nothing about the operating
+--- system beyond the separator it writes paths with, and neither luasocket nor luasec adds to it,
+--- which leaves the two families it can tell apart.
+--- @return string
+local function user_agent()
+  if composed == nil then
+    local family = package.config:sub(1, 1) == "\\" and "windows" or "posix"
+    composed = "hook0-client-lua/" .. clipped(require("hook0").VERSION) ..
+      " (" .. clipped(_VERSION) .. "; " .. clipped(family) .. ")"
+  end
+  return composed
+end
+
 --- Builds a transport pointed at one API, under one credential.
 ---
 --- @param base_url string where the API lives, such as https://app.hook0.com/api/v1
@@ -360,6 +398,7 @@ function Transport:deliver(method, path, query, body)
     "Host: " .. reached.host .. (reached.port == PORTS[reached.scheme] and "" or ":" .. reached.port),
     "Authorization: Bearer " .. tostring(self.token),
     "Accept: " .. Transport.JSON_MEDIA_TYPE,
+    "User-Agent: " .. user_agent(),
     "Connection: close",
   }
   if written ~= nil then

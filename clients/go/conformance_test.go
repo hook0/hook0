@@ -96,13 +96,78 @@ func boundOf(t *testing.T, contract boundsContract, name string) int64 {
 
 // requestContract is what the corpus says every request carries beside its body.
 type requestContract struct {
-	Occasions []string `json:"occasions"`
-	Headers   []struct {
+	Occasions        []string `json:"occasions"`
+	MaxComposedBytes int      `json:"max_composed_bytes"`
+	Headers          []struct {
 		Name   string `json:"name"`
 		Value  string `json:"value"`
 		When   string `json:"when"`
 		Reason string `json:"reason"`
 	} `json:"headers"`
+}
+
+// templateChunks is what a value of the request document is made of, once the holes this suite can
+// speak for are filled in.
+//
+// A value is a template: `${name}` is a hole and everything around it is literal. A hole named in
+// bound becomes part of the literal text around it; one that is not is a hole no suite can fill
+// without reimplementing the client it is testing, and it separates two chunks. A template whose
+// holes are all bound is therefore one chunk, and the whole value is that chunk.
+func templateChunks(template string, bound map[string]string) []string {
+	chunks := []string{""}
+	rest := template
+
+	for {
+		opened := strings.Index(rest, "${")
+		if opened < 0 {
+			break
+		}
+		closed := strings.Index(rest[opened:], "}")
+		if closed < 0 {
+			break
+		}
+		closed += opened
+
+		last := len(chunks) - 1
+		chunks[last] += rest[:opened]
+		if filled, named := bound[rest[opened+2:closed]]; named {
+			chunks[last] += filled
+		} else {
+			chunks = append(chunks, "")
+		}
+		rest = rest[closed+1:]
+	}
+
+	chunks[len(chunks)-1] += rest
+	return chunks
+}
+
+// matchesChunks says whether what arrived is what those chunks describe: the literal text in order,
+// anchored at both ends, with something non-empty standing in every hole between them.
+func matchesChunks(chunks []string, carried string) bool {
+	if len(chunks) == 1 {
+		return carried == chunks[0]
+	}
+	rest, anchored := strings.CutPrefix(carried, chunks[0])
+	if !anchored {
+		return false
+	}
+
+	for _, chunk := range chunks[1 : len(chunks)-1] {
+		// A hole stands before this chunk, and nothing is not something, so the search starts past
+		// whatever fills it.
+		if rest == "" {
+			return false
+		}
+		found := strings.Index(rest[1:], chunk)
+		if found < 0 {
+			return false
+		}
+		rest = rest[1+found+len(chunk):]
+	}
+
+	last := chunks[len(chunks)-1]
+	return len(rest) > len(last) && strings.HasSuffix(rest, last)
 }
 
 // signatureContract is every delivery the corpus pins a verdict for.
@@ -505,6 +570,11 @@ func TestEveryRequestCarriesWhatTheCorpusSaysItDoes(t *testing.T) {
 		t.Fatalf("declaring an event type failed: %v", err)
 	}
 
+	// The holes this suite can speak for: the credential this client was built with, and the target
+	// reading the corpus. What is left over is a hole no suite fills without reimplementing the
+	// client it is testing.
+	bound := map[string]string{"token": token, "language": "go"}
+
 	exercised := map[string]bool{}
 	for index, request := range api.requests() {
 		for _, occasion := range contract.Occasions {
@@ -528,11 +598,20 @@ func TestEveryRequestCarriesWhatTheCorpusSaysItDoes(t *testing.T) {
 				continue
 			}
 
-			expected := strings.ReplaceAll(header.Value, "${token}", token)
-			if written != expected {
+			chunks := templateChunks(header.Value, bound)
+			if !matchesChunks(chunks, written) {
 				t.Errorf(
 					"request %d (%s %s) carried `%s: %s` where the shared contract says `%s` on `%s`: %s",
-					index, request.method, request.target, header.Name, written, expected, header.When, header.Reason,
+					index, request.method, request.target, header.Name, written, header.Value, header.When, header.Reason,
+				)
+			}
+
+			// A value with a hole this suite cannot fill is one the client composed out of what the
+			// platform told it, and what the platform says is as long as it feels like.
+			if len(chunks) > 1 && len(written) > contract.MaxComposedBytes {
+				t.Errorf(
+					"request %d (%s %s) carried %d bytes of `%s`, above the %d the shared contract cuts a composed value to",
+					index, request.method, request.target, len(written), header.Name, contract.MaxComposedBytes,
 				)
 			}
 		}

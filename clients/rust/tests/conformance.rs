@@ -82,6 +82,66 @@ fn flag(entry: &Value, field: &str) -> bool {
         .unwrap_or_else(|| panic!("`{field}` is not the verdict the contract declares"))
 }
 
+/// What a value of the request document is made of, once the holes this suite can speak for are
+/// filled in.
+///
+/// A value is a template: `${name}` is a hole and everything around it is literal. A hole named in
+/// `bound` becomes part of the literal text around it; one that is not is a hole no suite can fill
+/// without reimplementing the client it is testing, and it separates two chunks. A template whose
+/// holes are all bound is therefore one chunk, and the whole value is that chunk.
+#[cfg(feature = "producer")]
+fn template_chunks(template: &str, bound: &[(&str, &str)]) -> Vec<String> {
+    let mut chunks = vec![String::new()];
+    let mut rest = template;
+
+    while let Some(opened) = rest.find("${") {
+        let Some(closed) = rest[opened..].find('}').map(|found| opened + found) else {
+            break;
+        };
+        let last = chunks.len() - 1;
+        chunks[last].push_str(&rest[..opened]);
+
+        match bound
+            .iter()
+            .find(|(name, _)| *name == &rest[opened + 2..closed])
+        {
+            Some((_, filled)) => chunks[last].push_str(filled),
+            None => chunks.push(String::new()),
+        }
+        rest = &rest[closed + 1..];
+    }
+
+    let last = chunks.len() - 1;
+    chunks[last].push_str(rest);
+    chunks
+}
+
+/// Whether what arrived is what those chunks describe: the literal text in order, anchored at both
+/// ends, with something non-empty standing in every hole between them.
+#[cfg(feature = "producer")]
+fn matches_chunks(chunks: &[String], carried: &str) -> bool {
+    let Some((first, rest_of)) = chunks.split_first() else {
+        return false;
+    };
+    let Some((last, between)) = rest_of.split_last() else {
+        return carried == first;
+    };
+    let Some(mut rest) = carried.strip_prefix(first.as_str()) else {
+        return false;
+    };
+
+    for chunk in between {
+        // A hole stands before this chunk, and nothing is not something, so the search starts past
+        // whatever fills it.
+        let Some(found) = rest.get(1..).and_then(|past| past.find(chunk.as_str())) else {
+            return false;
+        };
+        rest = &rest[1 + found + chunk.len()..];
+    }
+
+    rest.len() > last.len() && rest.ends_with(last.as_str())
+}
+
 /// Where in one entry a field is read from: a name is a field of it, a path is followed through it.
 fn at<'a>(entry: &'a Value, field: &str) -> Option<&'a Value> {
     if field.starts_with('/') {
@@ -93,7 +153,7 @@ fn at<'a>(entry: &'a Value, field: &str) -> Option<&'a Value> {
 
 #[cfg(feature = "producer")]
 mod sending {
-    use super::{corpus, entries, flag, number, text};
+    use super::{corpus, entries, flag, matches_chunks, number, template_chunks, text};
     use actix_web::dev::ServerHandle;
     use actix_web::http::StatusCode;
     use actix_web::{App, HttpRequest, HttpResponse, HttpServer, web};
@@ -589,17 +649,30 @@ mod sending {
         let received = api.received();
         let carried = &received.first().expect("the send reached the API").headers;
 
+        let composed_at_most = number(&contract, "/max_composed_bytes") as usize;
         for header in entries(&contract, "/headers") {
             let name = text(&header, "name").to_lowercase();
-            let expected = text(&header, "value").replace("${token}", TOKEN);
+            let template = text(&header, "value");
             let written = carried.get(&name).map(String::as_str).unwrap_or("");
-            assert_eq!(
-                written,
-                expected,
+            let chunks = template_chunks(template, &[("token", TOKEN), ("language", "rust")]);
+
+            assert!(
+                matches_chunks(&chunks, written),
                 "the request carried `{name}: {written}` where the shared contract says \
-                 `{expected}`: {}",
+                 `{template}`: {}",
                 text(&header, "reason"),
             );
+
+            // A value with a hole this suite cannot fill is one the client composed out of what
+            // the platform told it, and what the platform says is as long as it feels like.
+            if chunks.len() > 1 {
+                assert!(
+                    written.len() <= composed_at_most,
+                    "the request carried {} bytes of `{name}`, above the {composed_at_most} the \
+                     shared contract cuts a composed value to",
+                    written.len(),
+                );
+            }
         }
 
         api.stop().await;

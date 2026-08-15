@@ -144,6 +144,43 @@ pub const MAX_ATTEMPTS_CAP: u32 = 16;
 const JSON_MEDIA_TYPE: &str = "application/json";
 
 #[cfg(feature = "producer")]
+/// Longest each part this client composes its `User-Agent` out of may be, in characters.
+///
+/// The runtime and the operating system are described by the platform rather than by this crate,
+/// so their length is not this crate's to guarantee: they are cut here so that the header cannot
+/// grow with whatever the platform feels like saying. Every part is also stripped of anything the
+/// grammar of the header uses as punctuation, so a platform cannot forge a shape it does not have.
+const MAX_USER_AGENT_PART_CHARS: usize = 64;
+
+#[cfg(feature = "producer")]
+/// Which SDK, at which version, on which runtime and operating system, is talking to the API.
+///
+/// The version is read from the manifest of this crate rather than written down again here: one
+/// remembered in two places is one that will disagree with itself the first time it is bumped.
+fn user_agent() -> String {
+    let version = clipped(env!("CARGO_PKG_VERSION"));
+    // Nothing in the standard library answers which compiler built this, so the runtime is named
+    // and not versioned; the operating system and the architecture are what it runs on.
+    let os = clipped(&format!(
+        "{} {}",
+        std::env::consts::OS,
+        std::env::consts::ARCH
+    ));
+    format!("hook0-client-rust/{version} (rust; {os})")
+}
+
+#[cfg(feature = "producer")]
+/// One part of the `User-Agent`, with everything the header's own grammar uses taken out of it and
+/// cut to [`MAX_USER_AGENT_PART_CHARS`].
+fn clipped(part: &str) -> String {
+    part.chars()
+        .filter(|c| c.is_ascii_graphic() || *c == ' ')
+        .filter(|c| !matches!(c, '(' | ')' | ';'))
+        .take(MAX_USER_AGENT_PART_CHARS)
+        .collect()
+}
+
+#[cfg(feature = "producer")]
 /// Public identifier Hook0 gives the problem it answers when an event ID is already taken.
 const ALREADY_INGESTED: &str = "EventAlreadyIngested";
 
@@ -318,6 +355,9 @@ impl Hook0Client {
             .and_then(|headers| {
                 Client::builder()
                     .default_headers(headers)
+                    // Said once here rather than per request: an instance can otherwise not tell
+                    // which SDKs, at which versions, are still reaching it.
+                    .user_agent(user_agent())
                     .build()
                     .map_err(|e| Hook0ClientError::ReqwestClient(e).log_and_return())
             })?;

@@ -27,8 +27,8 @@ pub const transport = @import("transport.zig");
 pub const client = @import("client.zig");
 pub const generated = @import("generated/root.zig");
 
-/// What this package is released as, which `build.zig.zon` is held against rather than repeats.
-pub const version = "1.1.0";
+/// What this package is released as, which `build.zig.zon` declares and the build hands down.
+pub const version = @import("manifest").version;
 
 pub const Client = client.Client;
 pub const Options = client.Options;

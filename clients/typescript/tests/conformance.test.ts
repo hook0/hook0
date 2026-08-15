@@ -86,10 +86,95 @@ function flag(entry: Record<string, unknown>, field: string): boolean {
   return written;
 }
 
+/**
+ * What a value of the request document is made of, once the holes this suite can speak for are
+ * filled in.
+ *
+ * A value is a template: `${name}` is a hole and everything around it is literal. A hole named in
+ * `bound` becomes part of the literal text around it; one that is not is a hole no suite can fill
+ * without reimplementing the client it is testing, and it separates two chunks. A template whose
+ * holes are all bound is therefore one chunk, and the whole value is that chunk.
+ */
+function templateChunks(template: string, bound: Map<string, string>): string[] {
+  const chunks = [''];
+  let rest = template;
+
+  for (let opened = rest.indexOf('${'); opened >= 0; opened = rest.indexOf('${')) {
+    const closed = rest.indexOf('}', opened);
+    if (closed < 0) {
+      break;
+    }
+    chunks[chunks.length - 1] += rest.slice(0, opened);
+
+    const filled = bound.get(rest.slice(opened + 2, closed));
+    if (filled === undefined) {
+      chunks.push('');
+    } else {
+      chunks[chunks.length - 1] += filled;
+    }
+    rest = rest.slice(closed + 1);
+  }
+
+  chunks[chunks.length - 1] += rest;
+  return chunks;
+}
+
+/**
+ * Whether what arrived is what those chunks describe: the literal text in order, anchored at both
+ * ends, with something non-empty standing in every hole between them.
+ */
+function matchesChunks(chunks: string[], carried: string): boolean {
+  const first = chunks[0];
+  if (chunks.length === 1) {
+    return carried === first;
+  }
+  if (!carried.startsWith(first)) {
+    return false;
+  }
+
+  let rest = carried.slice(first.length);
+  for (const chunk of chunks.slice(1, -1)) {
+    // A hole stands before this chunk, and nothing is not something, so the search starts past
+    // whatever fills it.
+    const found = rest.slice(1).indexOf(chunk);
+    if (found < 0) {
+      return false;
+    }
+    rest = rest.slice(1 + found + chunk.length);
+  }
+
+  const last = chunks[chunks.length - 1];
+  return rest.length > last.length && rest.endsWith(last);
+}
+
+/** What arrived under one header name, however the runtime chose to hand it over. */
+function carriedText(headers: http.IncomingHttpHeaders, name: string): string {
+  const arrived = headers[name];
+  if (Array.isArray(arrived)) {
+    return arrived.join(', ');
+  }
+  if (typeof arrived === 'string') {
+    return arrived;
+  }
+  return '';
+}
+
 const RETRY = corpus('retry.json');
 const BOUNDS = corpus('bounds.json').bounds as Record<string, number>;
 const REQUEST = corpus('request.json');
 const SIGNATURE = corpus('signature.json');
+
+/**
+ * The version this package is published under, which is the one it reports on the wire. It is read
+ * out of the manifest rather than written down again here, so that the number the client carries
+ * and the number the package ships as cannot disagree without this suite saying so.
+ */
+const VERSION = (
+  JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'package.json'), 'utf8')) as Record<
+    string,
+    string
+  >
+).version;
 
 /** The credential every client below is built with, and the one the corpus expects on the wire. */
 const TOKEN = 'token-xyz';
@@ -574,10 +659,38 @@ describe('the shared conformance corpus', () => {
         // A send carries a body, so every occasion the corpus declares applies to this one request.
         return api.received[0].headers;
       });
+      const bound = new Map([
+        ['token', TOKEN],
+        ['language', 'typescript'],
+        ['version', VERSION],
+      ]);
+      const composedAtMost = number(REQUEST, 'max_composed_bytes');
       for (const header of entries(REQUEST, 'headers')) {
         const name = text(header, 'name').toLowerCase();
-        const expected = text(header, 'value').replace('${token}', TOKEN);
-        expect({ name, written: carried[name] }).toStrictEqual({ name, written: expected });
+        const template = text(header, 'value');
+        const reason = text(header, 'reason');
+        const arrived = carriedText(carried, name);
+        const chunks = templateChunks(template, bound);
+
+        expect({
+          name,
+          arrived,
+          template,
+          matched: matchesChunks(chunks, arrived),
+          reason,
+        }).toStrictEqual({ name, arrived, template, matched: true, reason });
+
+        // A value with a hole this suite cannot fill is one the client composed out of what the
+        // platform told it, and what the platform says is as long as it feels like.
+        if (chunks.length > 1) {
+          const bytes = Buffer.byteLength(arrived, 'utf8');
+          expect({ name, bytes, composedAtMost, within: bytes <= composedAtMost }).toStrictEqual({
+            name,
+            bytes,
+            composedAtMost,
+            within: true,
+          });
+        }
       }
     },
     TEST_TIMEOUT_MS

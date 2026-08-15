@@ -4,13 +4,24 @@
     "A change here is a change to every SDK. Each target reads this file from its own suite, sends a",
     "real request to a listening socket and holds what arrived against the list below, so a header",
     "dropped or renamed in one target fails there rather than at the first API that notices.",
-    "Header names are matched without regard to case, as HTTP compares them. `${token}` stands for",
-    "the credential the client was built with, and is the only substitution a value may carry.",
+    "Header names are matched without regard to case, as HTTP compares them.",
+    "A value is a template: `${name}` is a hole and everything around it is literal. A suite fills",
+    "the holes it can speak for — `${token}` is the credential the client was built with, and",
+    "`${language}` is the target reading the file — and what is left over is a hole no suite can fill",
+    "without reimplementing the client it is testing. Those are matched rather than compared: the",
+    "literal text has to arrive in order, anchored at both ends, with something non-empty in each",
+    "hole. A template whose holes are all filled is an exact string, which is what the first three",
+    "below are, so nothing about how they are checked has changed.",
+    "`max_composed_bytes` bounds any value a client composes rather than repeats — one carrying a",
+    "hole no suite fills, which is one built out of what the platform said rather than out of what",
+    "is written here. Those parts are as long as the platform feels like making them, so a client",
+    "cuts them to fit rather than sending whatever it was handed.",
     "`when` says which requests carry the header, and is one of the `occasions` below.",
     "This is the smallest thing worth pinning and the easiest to let drift: a client that omits the",
     "representation it accepts works perfectly until the API serves a second one."
   ],
   "occasions": ["every request", "a request carrying a body"],
+  "max_composed_bytes": 256,
   "headers": [
     {
       "name": "Authorization",
@@ -29,6 +40,12 @@
       "value": "application/json",
       "when": "a request carrying a body",
       "reason": "what the body is written as, which a request carrying no body has nothing to declare"
+    },
+    {
+      "name": "User-Agent",
+      "value": "hook0-client-${language}/${version} (${runtime}; ${os})",
+      "when": "every request",
+      "reason": "which SDK, at which version, on which runtime and operating system, is talking to the API; an instance can otherwise not tell a deprecation that has reached everybody from one that has reached nobody, and nothing can go back and ask a client that shipped two years ago"
     }
   ]
 }

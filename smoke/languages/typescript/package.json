@@ -1,0 +1,13 @@
+{
+  "name": "typescript-smoke",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Holds the TypeScript client against a Hook0 that is really running",
+  "scripts": {
+    "presmoke": "npm --prefix ../../../clients/typescript install --silent --no-audit --no-fund && npm --prefix ../../../clients/typescript run --silent build && npm install --silent --no-audit --no-fund",
+    "smoke": "node smoke.js"
+  },
+  "dependencies": {
+    "hook0-client": "file:../../../clients/typescript"
+  }
+}

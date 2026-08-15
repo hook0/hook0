@@ -1,0 +1,3 @@
+# The MCP server's public interface is a protocol, not a library, so the smoke builds the server and
+# speaks to it over its own stdio transport rather than calling into its crate.
+run = ["cargo", "run", "--quiet"]

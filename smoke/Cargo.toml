@@ -1,0 +1,29 @@
+[package]
+name = "hook0-smoke"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Its own workspace on purpose. This crate is not part of what the repository builds or releases —
+# it drives the other eleven toolchains — and the root workspace is the list of what is. Detaching
+# it keeps that list meaning what it says.
+[workspace]
+
+[package.metadata.release]
+release = false
+publish = false
+
+[dependencies]
+# The registry of what the repository generates, which is where the set of clients that must have a
+# smoke comes from. Nothing here names a client: this dependency is the only thing that knows they
+# exist.
+hook0-sdkgen = { path = "../clients/sdkgen" }
+
+serde_json = "1.0"
+toml = "1.1"
+ureq = { version = "3.1", default-features = false, features = ["json", "rustls"] }
+
+[dev-dependencies]
+# Real directories, since discovery is a question about a filesystem and answering it against a
+# fabricated one would only prove the fabrication.
+tempfile = "3.27"

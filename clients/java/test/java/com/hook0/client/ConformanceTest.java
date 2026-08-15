@@ -5,6 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -54,6 +59,10 @@ final class ConformanceTest {
 
   /** What a send says it did, out of the message it failed with. */
   private static final Pattern GAVE_UP = Pattern.compile("gave up after (\\d+) attempts");
+
+  /** What the build file publishes this artefact at, read beside the coordinates it publishes it under. */
+  private static final Pattern PUBLISHED =
+      Pattern.compile("<artifactId>hook0-client</artifactId>\\s*<version>([^<]+)</version>");
 
   /**
    * How a refusal the corpus names reads in this client's own words.
@@ -239,16 +248,117 @@ final class ConformanceTest {
       api.willAnswer(FakeApi.Scripted.of(201, Map.of("event_id", INGESTED_ID)));
       client.sendEvent(anEvent());
 
+      // A send carries a body, so every occasion the corpus declares applies to this one request.
+      long composedAtMost = ((Long) REQUEST.get("max_composed_bytes")).longValue();
+      Map<String, String> bound = Map.of("token", TOKEN, "language", "java", "version", publishedVersion());
+
       FakeApi.Received sent = api.received().get(0);
       for (Map<String, Object> header : headers) {
         String name = ((String) header.get("name")).toLowerCase(Locale.ROOT);
-        String wanted = ((String) header.get("value")).replace("${token}", TOKEN);
-        assertEquals(
-            wanted,
-            sent.headers().get(name),
-            "a request carrying a body did not arrive with `" + header.get("name") + "`: " + header.get("reason"));
+        String template = (String) header.get("value");
+        String written = sent.headers().getOrDefault(name, "");
+        List<String> chunks = templateChunks(template, bound);
+
+        assertTrue(
+            matchesChunks(chunks, written),
+            "the request carried `" + name + ": " + written + "` where the shared contract says `" + template + "`: "
+                + header.get("reason"));
+
+        // A value with a hole this suite cannot fill is one the client composed out of what the
+        // platform told it, and what the platform says is as long as it feels like.
+        if (chunks.size() > 1) {
+          int spent = written.getBytes(StandardCharsets.UTF_8).length;
+          assertTrue(
+              spent <= composedAtMost,
+              "the request carried " + spent + " bytes of `" + name + "`, above the " + composedAtMost
+                  + " the shared contract cuts a composed value to");
+        }
       }
     }
+  }
+
+  /**
+   * What a value of the request document is made of, once the holes this suite can speak for are filled in.
+   *
+   * <p>A value is a template: `${name}` is a hole and everything around it is literal. A hole named in
+   * {@code bound} becomes part of the literal text around it; one that is not is a hole no suite can fill without
+   * reimplementing the client it is testing, and it separates two chunks. A template whose holes are all bound is
+   * therefore one chunk, and the whole value is that chunk.
+   */
+  private static List<String> templateChunks(String template, Map<String, String> bound) {
+    List<String> chunks = new ArrayList<>();
+    chunks.add("");
+    String rest = template;
+
+    for (int opened = rest.indexOf("${"); opened >= 0; opened = rest.indexOf("${")) {
+      int closed = rest.indexOf('}', opened);
+      if (closed < 0) {
+        break;
+      }
+      int last = chunks.size() - 1;
+      chunks.set(last, chunks.get(last) + rest.substring(0, opened));
+
+      String name = rest.substring(opened + 2, closed);
+      if (bound.containsKey(name)) {
+        chunks.set(last, chunks.get(last) + bound.get(name));
+      } else {
+        chunks.add("");
+      }
+      rest = rest.substring(closed + 1);
+    }
+
+    int last = chunks.size() - 1;
+    chunks.set(last, chunks.get(last) + rest);
+    return List.copyOf(chunks);
+  }
+
+  /**
+   * Whether what arrived is what those chunks describe: the literal text in order, anchored at both ends, with
+   * something non-empty standing in every hole between them.
+   */
+  private static boolean matchesChunks(List<String> chunks, String carried) {
+    String first = chunks.get(0);
+    if (chunks.size() == 1) {
+      return carried.equals(first);
+    }
+    if (!carried.startsWith(first)) {
+      return false;
+    }
+
+    String rest = carried.substring(first.length());
+    for (String chunk : chunks.subList(1, chunks.size() - 1)) {
+      // A hole stands before this chunk, and nothing is not something, so the search starts past
+      // whatever fills it.
+      int found = rest.indexOf(chunk, 1);
+      if (found < 0) {
+        return false;
+      }
+      rest = rest.substring(found + chunk.length());
+    }
+
+    String last = chunks.get(chunks.size() - 1);
+    return rest.length() > last.length() && rest.endsWith(last);
+  }
+
+  /**
+   * The version this artefact is published at, which is the one hole of the {@code User-Agent} this suite can speak
+   * for.
+   *
+   * <p>A jar carries no build file to read it back out of at runtime, so the client writes it down beside the
+   * transport; reading it here out of {@code pom.xml} is what keeps the two from drifting apart.
+   */
+  private static String publishedVersion() {
+    Path pom = Path.of("pom.xml").toAbsolutePath();
+    String text;
+    try {
+      text = Files.readString(pom, StandardCharsets.UTF_8);
+    } catch (IOException unreadable) {
+      throw new UncheckedIOException("the build file is not where this suite looks for it: " + pom, unreadable);
+    }
+
+    Matcher published = PUBLISHED.matcher(text);
+    assertTrue(published.find(), "the build file publishes this artefact at no version: " + pom);
+    return published.group(1).strip();
   }
 
   @Test

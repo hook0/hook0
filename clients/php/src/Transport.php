@@ -58,6 +58,22 @@ final class Transport
     /** What a request body says it carries, and what an answer is asked for in. */
     private const JSON_MEDIA_TYPE = 'application/json';
 
+    /**
+     * Longest each part this client composes its `User-Agent` out of may be, in characters.
+     *
+     * The runtime and the operating system are described by the platform rather than by this package,
+     * so their length is not this package's to guarantee: they are cut here so that the header cannot
+     * grow with whatever the platform feels like saying. Every part is also stripped of anything the
+     * grammar of the header uses as punctuation, so a platform cannot forge a shape it does not have.
+     */
+    private const MAX_USER_AGENT_PART_CHARS = 64;
+
+    /** What this package is installed under, which is what its version is asked for by. */
+    private const PACKAGE_NAME = 'hook0/client';
+
+    /** What a version reads as where nothing that knows one is there to be asked. */
+    private const UNKNOWN_VERSION = 'unknown';
+
     /** The schemes this transport reaches. */
     private const SCHEMES = ['http', 'https'];
 
@@ -289,6 +305,7 @@ final class Transport
         $lines = [
             'Authorization: Bearer ' . $this->token,
             'Accept: ' . self::JSON_MEDIA_TYPE,
+            'User-Agent: ' . self::userAgent(),
             // The library asks the server for permission before sending a body of any size, and
             // waits a second for an answer that a plain HTTP/1.1 server never sends. Nothing here
             // needs that handshake, so it is turned off rather than waited out.
@@ -316,5 +333,41 @@ final class Transport
         $options[CURLOPT_HTTPHEADER] = $lines;
 
         return $options;
+    }
+
+    /**
+     * Which SDK, at which version, on which runtime and operating system, is talking to the API.
+     *
+     * A Composer package carries no version of its own: the registry reads one off the tag that
+     * publishes it, which is why `composer.json` declares none and whatever installed this package is
+     * the only thing that can be asked. A source checkout that went through no installer has nothing
+     * to ask, and says so rather than naming a version it cannot stand behind. So does a project that
+     * has Composer but copied these sources in rather than requiring them: asking after a package
+     * nothing installed raises rather than answering, and a header is no place to find that out.
+     */
+    private static function userAgent(): string
+    {
+        $installed = class_exists(\Composer\InstalledVersions::class)
+            && \Composer\InstalledVersions::isInstalled(self::PACKAGE_NAME)
+            ? \Composer\InstalledVersions::getPrettyVersion(self::PACKAGE_NAME)
+            : null;
+
+        return sprintf(
+            'hook0-client-php/%s (%s; %s)',
+            self::clipped($installed ?? self::UNKNOWN_VERSION),
+            self::clipped('php ' . PHP_VERSION),
+            self::clipped(PHP_OS_FAMILY . ' ' . php_uname('m'))
+        );
+    }
+
+    /**
+     * One part of the `User-Agent`, with everything the header's own grammar uses taken out of it and
+     * cut to {@see self::MAX_USER_AGENT_PART_CHARS}.
+     */
+    private static function clipped(string $part): string
+    {
+        $printable = (string) preg_replace('/[^\x20-\x7E]/', '', $part);
+
+        return substr(str_replace(['(', ')', ';'], '', $printable), 0, self::MAX_USER_AGENT_PART_CHARS);
     }
 }

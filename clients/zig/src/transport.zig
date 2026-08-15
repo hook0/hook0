@@ -23,6 +23,7 @@
 //! it. It is stated here rather than left for somebody to find.
 
 const std = @import("std");
+const builtin = @import("builtin");
 
 const runtime = @import("runtime.zig");
 
@@ -106,6 +107,39 @@ pub const default_max_head_bytes: usize = 16 * 1024;
 
 /// What a request body says it carries, and what an answer is asked for in.
 pub const json_media_type = "application/json";
+
+/// Longest each part this client composes its `User-Agent` out of may be, in characters.
+///
+/// The compiler and the target are described by the toolchain rather than by this package, so their
+/// length is not this package's to guarantee: they are cut here so that the header cannot grow with
+/// whatever the toolchain feels like saying. Every part is also stripped of anything the grammar of
+/// the header uses as punctuation, so a toolchain cannot forge a shape it does not have.
+const max_user_agent_part_chars = 64;
+
+/// Which SDK, at which version, on which runtime and operating system, is talking to the API.
+///
+/// Every part of it is settled while this package is compiled: the version comes from the manifest
+/// through the build rather than from a constant that would have to be moved with it, and the
+/// compiler, the operating system and the architecture are what `builtin` names. What is left at
+/// run time is one line of text nobody has to assemble.
+const user_agent = "hook0-client-zig/" ++ clipped(@import("manifest").version) ++
+    " (" ++ clipped("zig " ++ builtin.zig_version_string) ++
+    "; " ++ clipped(@tagName(builtin.os.tag) ++ " " ++ @tagName(builtin.cpu.arch)) ++ ")";
+
+/// One part of the `User-Agent`, with everything the header's own grammar uses taken out of it and
+/// cut to `max_user_agent_part_chars`.
+fn clipped(comptime part: []const u8) []const u8 {
+    comptime {
+        var kept: []const u8 = "";
+        for (part) |character| {
+            if (kept.len == max_user_agent_part_chars) break;
+            if (character < 0x20 or character > 0x7E) continue;
+            if (character == '(' or character == ')' or character == ';') continue;
+            kept = kept ++ [_]u8{character};
+        }
+        return kept;
+    }
+}
 
 /// The ceilings one exchange is held to.
 pub const Bounds = struct {
@@ -309,6 +343,7 @@ pub const Transport = struct {
         writer.print("Host: {s}:{d}\r\n", .{ reached.host, reached.port }) catch return error.NoAnswer;
         writer.print("Authorization: Bearer {s}\r\n", .{self.token}) catch return error.NoAnswer;
         writer.print("Accept: {s}\r\n", .{json_media_type}) catch return error.NoAnswer;
+        writer.writeAll("User-Agent: " ++ user_agent ++ "\r\n") catch return error.NoAnswer;
         writer.writeAll("Connection: close\r\n") catch return error.NoAnswer;
         if (written) |body| {
             writer.print("Content-Type: {s}\r\n", .{json_media_type}) catch return error.NoAnswer;

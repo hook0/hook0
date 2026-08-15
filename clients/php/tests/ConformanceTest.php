@@ -11,6 +11,7 @@ use Hook0\RetryPolicy;
 use Hook0\Signature;
 use Hook0\Tests\Support\ApiCase;
 use Hook0\Tests\Support\Contract;
+use Hook0\Tests\Support\ReceivedRequest;
 use Hook0\Tests\Support\ScriptedResponse;
 
 /**
@@ -190,6 +191,9 @@ final class ConformanceTest extends ApiCase
         self::assertCount(2, $received);
         [$carryingABody, $carryingNone] = $received;
 
+        $composedAtMost = (int) $contract['max_composed_bytes'];
+        $bound = ['token' => self::TOKEN, 'language' => 'php'];
+
         foreach ($contract['headers'] as $header) {
             self::assertContains($header['when'], $contract['occasions'], sprintf(
                 'the corpus names an occasion `%s` this suite does not know how to build',
@@ -197,11 +201,11 @@ final class ConformanceTest extends ApiCase
             ));
 
             $name = strtolower($header['name']);
-            $wanted = str_replace('${token}', self::TOKEN, $header['value']);
+            $chunks = self::templateChunks($header['value'], $bound);
 
-            self::assertSame($wanted, $carryingABody->headers[$name] ?? null, $header['reason']);
+            $this->carried($carryingABody, $header, $chunks, $composedAtMost);
             if ($header['when'] === 'every request') {
-                self::assertSame($wanted, $carryingNone->headers[$name] ?? null, $header['reason']);
+                $this->carried($carryingNone, $header, $chunks, $composedAtMost);
                 continue;
             }
             self::assertArrayNotHasKey($name, $carryingNone->headers, $header['reason']);
@@ -244,6 +248,113 @@ final class ConformanceTest extends ApiCase
                 );
             }
         }
+    }
+
+    /**
+     * Holds one header of one request that reached the socket against what the corpus says of it.
+     *
+     * @param array<string, mixed> $header the entry the corpus declares that header under
+     * @param list<string> $chunks the literal text of its value, with the holes this suite fills in
+     */
+    private function carried(
+        ReceivedRequest $request,
+        array $header,
+        array $chunks,
+        int $composedAtMost
+    ): void {
+        $name = strtolower($header['name']);
+        $written = $request->headers[$name] ?? '';
+
+        self::assertTrue(self::matchesChunks($chunks, $written), sprintf(
+            'the request carried `%s: %s` where the corpus says `%s`: %s',
+            $name,
+            $written,
+            $header['value'],
+            $header['reason']
+        ));
+
+        // A value with a hole this suite cannot fill is one the client composed out of what the
+        // platform told it, and what the platform says is as long as it feels like.
+        if (count($chunks) > 1) {
+            self::assertLessThanOrEqual($composedAtMost, strlen($written), sprintf(
+                'the request carried %d bytes of `%s`, above the %d the corpus cuts a composed '
+                . 'value to',
+                strlen($written),
+                $name,
+                $composedAtMost
+            ));
+        }
+    }
+
+    /**
+     * What a value of the request document is made of, once the holes this suite can speak for are
+     * filled in.
+     *
+     * A value is a template: `${name}` is a hole and everything around it is literal. A hole named in
+     * `$bound` becomes part of the literal text around it; one that is not is a hole no suite can
+     * fill without reimplementing the client it is testing, and it separates two chunks. A template
+     * whose holes are all bound is therefore one chunk, and the whole value is that chunk.
+     *
+     * @param array<string, string> $bound what each hole this suite can speak for carries
+     * @return list<string>
+     */
+    private static function templateChunks(string $template, array $bound): array
+    {
+        $chunks = [''];
+        $rest = $template;
+
+        while (($opened = strpos($rest, '${')) !== false) {
+            $closed = strpos($rest, '}', $opened);
+            if ($closed === false) {
+                break;
+            }
+
+            $last = count($chunks) - 1;
+            $chunks[$last] .= substr($rest, 0, $opened);
+            $name = substr($rest, $opened + 2, $closed - $opened - 2);
+
+            if (array_key_exists($name, $bound)) {
+                $chunks[$last] .= $bound[$name];
+            } else {
+                $chunks[] = '';
+            }
+            $rest = substr($rest, $closed + 1);
+        }
+
+        $chunks[count($chunks) - 1] .= $rest;
+
+        return $chunks;
+    }
+
+    /**
+     * Whether what arrived is what those chunks describe: the literal text in order, anchored at both
+     * ends, with something non-empty standing in every hole between them.
+     *
+     * @param list<string> $chunks
+     */
+    private static function matchesChunks(array $chunks, string $carried): bool
+    {
+        if (count($chunks) === 1) {
+            return $carried === $chunks[0];
+        }
+        if (!str_starts_with($carried, $chunks[0])) {
+            return false;
+        }
+
+        $rest = substr($carried, strlen($chunks[0]));
+        foreach (array_slice($chunks, 1, -1) as $chunk) {
+            // A hole stands before this chunk, and nothing is not something, so the search starts
+            // past whatever fills it.
+            $found = $rest === '' ? false : strpos($rest, $chunk, 1);
+            if ($found === false) {
+                return false;
+            }
+            $rest = substr($rest, $found + strlen($chunk));
+        }
+
+        $last = $chunks[count($chunks) - 1];
+
+        return strlen($rest) > strlen($last) && str_ends_with($rest, $last);
     }
 
     /**

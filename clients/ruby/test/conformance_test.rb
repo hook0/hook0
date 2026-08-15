@@ -19,6 +19,11 @@ module Hook0Test
 
     INGESTED_ID = "01961234-5678-7abc-8def-0123456789ac"
 
+    # The holes of a header value this suite can speak for: the credential the client under test was
+    # built with, and the target reading the corpus. What is left over is a hole no suite fills
+    # without reimplementing the client it is testing.
+    BOUND = { "token" => "token-xyz", "language" => "ruby" }.freeze
+
     # The schedule a case that is not about waiting spends between attempts, in seconds.
     PROMPT_BACKOFF = 0.005
 
@@ -197,11 +202,18 @@ module Hook0Test
           next
         end
 
-        wanted = header["value"].gsub("${token}", "token-xyz")
+        chunks = Hook0Test.template_chunks(header["value"], BOUND)
 
-        assert_equal wanted, carried,
-                     "a request carried `#{header["name"]}: #{carried}` where the corpus says " \
-                     "`#{wanted}`: #{header["reason"]}"
+        assert Hook0Test.matches_chunks?(chunks, carried.to_s),
+               "a request carried `#{header["name"]}: #{carried}` where the corpus says " \
+               "`#{header["value"]}`: #{header["reason"]}"
+        next if chunks.size == 1
+
+        # A value with a hole this suite cannot fill is one the client composed out of what the
+        # platform told it, and what the platform says is as long as it feels like.
+        assert_operator carried.to_s.bytesize, :<=, REQUEST["max_composed_bytes"],
+                        "a request carried #{carried.to_s.bytesize} bytes of `#{header["name"]}`, above the " \
+                        "#{REQUEST["max_composed_bytes"]} the corpus cuts a composed value to"
       end
     end
 

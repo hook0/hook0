@@ -1,0 +1,3 @@
+# The package declares no dependencies at all, so there is nothing to install: the interpreter is
+# pointed at the client's source and that is the whole setup.
+run = ["python3", "smoke.py"]
