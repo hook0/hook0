@@ -87,7 +87,17 @@ function eventIdOf(api: FakeHook0Api, index: number): string {
 
 /** A request the API received, in the order it received it. */
 interface ReceivedRequest {
+  target: string;
   body: string;
+}
+
+/** What a request asked for, which a server always reads off the request line. */
+function targetOf(request: http.IncomingMessage): string {
+  const target = request.url;
+  if (typeof target !== 'string') {
+    throw new Error('A request arrived carrying no target');
+  }
+  return target;
 }
 
 /** No request here is anywhere near this large; the cap bounds what one connection can buffer. */
@@ -134,9 +144,10 @@ class FakeHook0Api {
 
   constructor() {
     this.server = http.createServer((request, response) => {
+      const target = targetOf(request);
       readBody(request)
         .then((body) => {
-          this.received.push({ body });
+          this.received.push({ target, body });
           const scripted = this.nextResponse();
           return hold(scripted.heldForMs).then(() => {
             response.writeHead(scripted.status, { 'Content-Type': 'application/json' });
@@ -391,6 +402,67 @@ describe('Hook0Client', () => {
 
       await expect(once.sendEvent(anEvent())).rejects.toThrow('Sending event');
       expect(api.received).toHaveLength(1);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'reaches the same endpoint whether or not the API URL ends in a slash',
+    async () => {
+      api.willAnswer(
+        ingested('01961234-5678-7abc-8def-0123456789ab'),
+        ingested('01961234-5678-7abc-8def-0123456789ac')
+      );
+
+      // A Hook0 is reached at an API URL carrying the path it is served under — `/api/v1` — and
+      // the two spellings of that URL are the same instance. Resolving an endpoint against the
+      // one written without the slash is what replaces `v1` with the endpoint and posts to a path
+      // no instance serves.
+      const written = new Hook0Client(`${api.baseUrl}/api/v1`, 'app-123', 'token-xyz');
+      const spelt = new Hook0Client(`${api.baseUrl}/api/v1/`, 'app-123', 'token-xyz');
+      await written.sendEvent(anEvent());
+      await spelt.sendEvent(anEvent());
+
+      expect(api.received.map((request) => request.target)).toStrictEqual([
+        '/api/v1/event',
+        '/api/v1/event',
+      ]);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'names the status when a refused send gives it nothing else to go on',
+    async () => {
+      // What a request that missed the path an instance is served under draws: a status, and no
+      // body to read a reason out of.
+      api.willAnswer({ status: 404, body: undefined });
+
+      await expect(client.sendEvent(anEvent())).rejects.toThrow(
+        'the API answered 404 with no body'
+      );
+      expect(api.received).toHaveLength(1);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'names the problem and what it said when a send is refused with one',
+    async () => {
+      api.willAnswer({
+        status: 403,
+        body: {
+          id: 'AuthInvalidApplicationSecret',
+          title: 'Invalid application secret',
+          detail: 'The provided application secret does not exist.',
+          status: 403,
+        },
+      });
+
+      // The identifier is what tells one refusal from another without reading prose.
+      await expect(client.sendEvent(anEvent())).rejects.toThrow(
+        'the API answered 403 AuthInvalidApplicationSecret: The provided application secret does not exist.'
+      );
     },
     TEST_TIMEOUT_MS
   );

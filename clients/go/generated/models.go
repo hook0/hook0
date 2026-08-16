@@ -277,8 +277,8 @@ type Event struct {
 	EventTypeName string `json:"event_type_name"`
 	// Ip carries `ip`.
 	Ip string `json:"ip"`
-	// Labels carries `labels`.
-	Labels any `json:"labels"`
+	// Labels carries `labels`: Labels for event filtering and routing to subscriptions.
+	Labels map[string]string `json:"labels"`
 	// Metadata carries `metadata`.
 	Metadata any `json:"metadata,omitempty"`
 	// OccurredAt carries `occurred_at`.
@@ -341,8 +341,8 @@ type EventWithPayload struct {
 	EventTypeName string `json:"event_type_name"`
 	// Ip carries `ip`.
 	Ip string `json:"ip"`
-	// Labels carries `labels`.
-	Labels any `json:"labels"`
+	// Labels carries `labels`: Labels for event filtering and routing to subscriptions.
+	Labels map[string]string `json:"labels"`
 	// Metadata carries `metadata`.
 	Metadata any `json:"metadata,omitempty"`
 	// OccurredAt carries `occurred_at`.

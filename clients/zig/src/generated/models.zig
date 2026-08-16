@@ -566,8 +566,8 @@ pub const Event = struct {
     event_type_name: []const u8,
     /// carries `ip`.
     ip: []const u8,
-    /// carries `labels`.
-    labels: std.json.Value,
+    /// carries `labels`: Labels for event filtering and routing to subscriptions.
+    labels: runtime.Map([]const u8),
     /// carries `occurred_at`.
     occurred_at: []const u8,
     /// carries `payload_content_type`.
@@ -587,7 +587,7 @@ pub const Event = struct {
             .event_id = try runtime.read(allocator, fields, "event_id", runtime.text),
             .event_type_name = try runtime.read(allocator, fields, "event_type_name", runtime.text),
             .ip = try runtime.read(allocator, fields, "ip", runtime.text),
-            .labels = try runtime.read(allocator, fields, "labels", runtime.jsonValue),
+            .labels = try runtime.read(allocator, fields, "labels", runtime.map(runtime.text).read),
             .occurred_at = try runtime.read(allocator, fields, "occurred_at", runtime.text),
             .payload_content_type = try runtime.read(
                 allocator,
@@ -778,8 +778,8 @@ pub const EventWithPayload = struct {
     event_type_name: []const u8,
     /// carries `ip`.
     ip: []const u8,
-    /// carries `labels`.
-    labels: std.json.Value,
+    /// carries `labels`: Labels for event filtering and routing to subscriptions.
+    labels: runtime.Map([]const u8),
     /// carries `occurred_at`.
     occurred_at: []const u8,
     /// carries `payload`.
@@ -801,7 +801,7 @@ pub const EventWithPayload = struct {
             .event_id = try runtime.read(allocator, fields, "event_id", runtime.text),
             .event_type_name = try runtime.read(allocator, fields, "event_type_name", runtime.text),
             .ip = try runtime.read(allocator, fields, "ip", runtime.text),
-            .labels = try runtime.read(allocator, fields, "labels", runtime.jsonValue),
+            .labels = try runtime.read(allocator, fields, "labels", runtime.map(runtime.text).read),
             .occurred_at = try runtime.read(allocator, fields, "occurred_at", runtime.text),
             .payload = try runtime.read(allocator, fields, "payload", runtime.text),
             .payload_content_type = try runtime.read(

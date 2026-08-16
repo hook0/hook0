@@ -165,18 +165,8 @@ impl Hook0Client {
                 Hook0McpError::Json(e)
             })
         } else {
-            // Try to extract error message from response
             let error_body = response.text().await.unwrap_or_default();
-            let message = if let Ok(json) = serde_json::from_str::<Value>(&error_body) {
-                json.get("message")
-                    .or_else(|| json.get("error"))
-                    .or_else(|| json.get("detail"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or(&error_body)
-                    .to_string()
-            } else {
-                error_body
-            };
+            let message = refusal(&error_body);
 
             warn!("API error: {} {} - {}", status.as_u16(), url, message);
 
@@ -188,9 +178,87 @@ impl Hook0Client {
     }
 }
 
+/// Longest a refusal read off an answer may be, in characters.
+///
+/// The body is written by the other end, and an error an assistant reads is not the place to hold
+/// however much of it arrived. What is cut is said, so a reader knows there was more.
+const MAX_REFUSAL_CHARS: usize = 2048;
+
+/// One string field of a JSON body, when it carries one that says something.
+fn field<'a>(body: &'a Value, name: &str) -> Option<&'a str> {
+    body.get(name)
+        .and_then(Value::as_str)
+        .filter(|said| !said.is_empty())
+}
+
+/// As much of a refusal as is reported, saying what was left out.
+fn clipped(said: &str) -> String {
+    if said.chars().count() <= MAX_REFUSAL_CHARS {
+        return said.to_owned();
+    }
+    let held: String = said.chars().take(MAX_REFUSAL_CHARS).collect();
+    format!("{held}… ({} characters in all)", said.chars().count())
+}
+
+/// What an answer Hook0 refused a request with said.
+///
+/// Hook0 answers a refusal with an RFC 9457 problem document, and the stable name of the problem is
+/// under `id`: `EventAlreadyIngested`, `AuthInvalidApplicationSecret`, and so on. That name is the
+/// only part of the answer an assistant can act on — it is what tells a duplicated ingestion, which
+/// is already done and must not be repeated, from any other conflict — so it is named first and the
+/// prose beside it after. Dropping it in favour of the prose leaves every refusal looking alike.
+///
+/// A body that is not one of those documents is reported as it arrived: a proxy or a gateway
+/// between the assistant and Hook0 writes what it likes, and what it wrote is the only clue there
+/// is.
+fn refusal(body: &str) -> String {
+    let Ok(json) = serde_json::from_str::<Value>(body) else {
+        return clipped(body);
+    };
+
+    let said = field(&json, "message")
+        .or_else(|| field(&json, "error"))
+        .or_else(|| field(&json, "detail"));
+
+    match (field(&json, "id"), said) {
+        (Some(problem), Some(said)) => clipped(&format!("{problem}: {said}")),
+        (Some(problem), None) => clipped(problem),
+        (None, Some(said)) => clipped(said),
+        (None, None) => clipped(body),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The problem document Hook0 answers a duplicated ingestion with, as its API writes it.
+    const ALREADY_INGESTED: &str = r#"{"id":"EventAlreadyIngested","title":"Event already Ingested","detail":"This event was previously ingested and recorded inside Hook0 service.","status":409}"#;
+
+    #[test]
+    fn a_refusal_names_the_problem_hook0_named() {
+        assert_eq!(
+            refusal(ALREADY_INGESTED),
+            "EventAlreadyIngested: This event was previously ingested and recorded inside Hook0 service."
+        );
+    }
+
+    #[test]
+    fn a_refusal_that_names_no_problem_is_reported_as_it_arrived() {
+        assert_eq!(refusal("<html>502 Bad Gateway</html>"), "<html>502 Bad Gateway</html>");
+        assert_eq!(refusal(r#"{"message":"nope"}"#), "nope");
+        assert_eq!(refusal(""), "");
+    }
+
+    #[test]
+    fn a_refusal_is_cut_to_what_is_reported() {
+        let long = "x".repeat(MAX_REFUSAL_CHARS + 1);
+
+        let said = refusal(&long);
+
+        assert!(said.starts_with(&"x".repeat(MAX_REFUSAL_CHARS)));
+        assert!(said.ends_with(&format!("… ({} characters in all)", long.len())));
+    }
 
     #[test]
     fn test_url_building() {

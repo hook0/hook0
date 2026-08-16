@@ -185,6 +185,10 @@
             "type": "string"
           },
           "labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Labels for event filtering and routing to subscriptions.",
             "type": "object"
           },
           "metadata": {
@@ -328,6 +332,10 @@
             "type": "string"
           },
           "labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Labels for event filtering and routing to subscriptions.",
             "type": "object"
           },
           "metadata": {

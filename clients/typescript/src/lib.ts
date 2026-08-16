@@ -104,6 +104,15 @@ const DELAY_HEADER = 'Retry-After';
 const REACHABLE_SCHEMES = ['http:', 'https:'];
 
 /**
+ * Longest excerpt of a refused answer's body an error message carries, in characters.
+ *
+ * A body is written by the other end and is only bounded by `maxResponseBytes`, which is megabytes:
+ * an error message is not the place to hold however much of it arrived. What is cut is said, so a
+ * reader knows there was more.
+ */
+const MAX_REFUSAL_EXCERPT_CHARS = 512;
+
+/**
  * How Node reports a head above what it agrees to read, which it refuses on the socket before this
  * client is consulted. It is an answer above a bound rather than an answer that never came: the
  * same request draws the same head, and repeating it reads that head again.
@@ -167,6 +176,22 @@ function userAgent(): string {
 const USER_AGENT = userAgent();
 
 /**
+ * What a cause says, which is never nothing and never the bare word `Error`.
+ *
+ * Interpolating an `Error` writes its type in front of its message, and writes nothing but that type
+ * when it carries no message: `Sending event … failed: Error` is a failure whose message names
+ * neither what was reached nor what came back, which is a client that cannot be debugged by whoever
+ * installed it.
+ * @param error - What the failure was built from
+ */
+function said(error: Error): string {
+  if (error.message.length > 0) {
+    return error.message;
+  }
+  return `${error.name} with no message`;
+}
+
+/**
  * Custom error class for Hook0Client
  */
 export class Hook0ClientError extends Error {
@@ -176,7 +201,7 @@ export class Hook0ClientError extends Error {
    * @param error - Error details
    */
   static EventSending(eventId: string | undefined, error: Error): Hook0ClientError {
-    return new Hook0ClientError(`Sending event${eventId ? ' ' + eventId : ''} failed: ${error}`);
+    return new Hook0ClientError(`Sending event${eventId ? ' ' + eventId : ''} failed: ${said(error)}`);
   }
 
   /**
@@ -192,7 +217,7 @@ export class Hook0ClientError extends Error {
    * @param error - Error details
    */
   static GetAvailableEventTypes(error: Error): Hook0ClientError {
-    return new Hook0ClientError(`Getting available event types failed: ${error}`);
+    return new Hook0ClientError(`Getting available event types failed: ${said(error)}`);
   }
 
   /**
@@ -472,6 +497,63 @@ function problemIs(body: string, problem: string): boolean {
   );
 }
 
+/** What a document says at `field`, when it carries one that says anything. */
+type Field = { kind: 'says'; text: string } | { kind: 'saysNothing' };
+
+/** Read one string field off a body already read as a JSON object. */
+function fieldOf(document: object, field: string): Field {
+  if (!(field in document)) {
+    return { kind: 'saysNothing' };
+  }
+  const value = (document as Record<string, unknown>)[field];
+  if (typeof value !== 'string' || value.length === 0) {
+    return { kind: 'saysNothing' };
+  }
+  return { kind: 'says', text: value };
+}
+
+/** As much of a body as an error message carries, saying what it left out. */
+function excerpt(body: string): string {
+  if (body.length <= MAX_REFUSAL_EXCERPT_CHARS) {
+    return body;
+  }
+  return `${body.slice(0, MAX_REFUSAL_EXCERPT_CHARS)}… (${body.length} characters in all)`;
+}
+
+/**
+ * What an answer this client could not act on said, in the one line an error message carries.
+ *
+ * The status is named whatever else there is, because there may be nothing else: an answer can
+ * carry no body at all — a 404 written by a reverse proxy, or by an API URL that misses the path
+ * the instance is served under — and a message built out of the body alone then says nothing
+ * whatsoever about what went wrong. When the body is one of Hook0's problem documents, its stable
+ * identifier is named next: that is what tells one refusal from another without reading prose, and
+ * it is what a caller deciding what to do about a failure can match on. Anything else is quoted as
+ * it arrived, cut to `MAX_REFUSAL_EXCERPT_CHARS`.
+ * @param status - What Hook0 answered
+ * @param body - What it answered beside it
+ */
+function refusalOf(status: number, body: string): string {
+  const answered = `the API answered ${status}`;
+
+  const read = jsonOf(body);
+  if (read.kind === 'json' && typeof read.value === 'object' && read.value !== null) {
+    const problem = fieldOf(read.value, 'id');
+    const detail = fieldOf(read.value, 'detail');
+    if (problem.kind === 'says' && detail.kind === 'says') {
+      return `${answered} ${problem.text}: ${detail.text}`;
+    }
+    if (problem.kind === 'says') {
+      return `${answered} ${problem.text}`;
+    }
+  }
+
+  if (body.length === 0) {
+    return `${answered} with no body`;
+  }
+  return `${answered} with: ${excerpt(body)}`;
+}
+
 /**
  * Whether repeating a request Hook0 answered that way could end differently.
  *
@@ -739,11 +821,11 @@ function readAttempt(response: Response, maxResponseBytes: number): Promise<Atte
     }
 
     if (response.status === CONFLICT && problemIs(body.text, ALREADY_INGESTED)) {
-      return { kind: 'alreadyIngested', detail: body.text };
+      return { kind: 'alreadyIngested', detail: refusalOf(response.status, body.text) };
     }
     return {
       kind: 'failed',
-      detail: body.text,
+      detail: refusalOf(response.status, body.text),
       retryable: isRetryable(response.status, body.text),
       namedDelay,
     };
@@ -763,6 +845,24 @@ function readAttempt(response: Response, maxResponseBytes: number): Promise<Atte
 function waitBeforeRetry(named: NamedDelay, scheduledMs: number, remainingMs: number): number {
   const wanted = named.kind === 'delayNamed' ? named.delayMs : scheduledMs;
   return Math.max(Math.min(wanted, remainingMs), 0);
+}
+
+/**
+ * The base every endpoint of this client is resolved against.
+ *
+ * A relative reference resolves against the *directory* of its base, so `event` against
+ * `https://app.hook0.com/api/v1` reaches `/api/event` — the last segment of the base is replaced
+ * rather than kept, and the whole API is missed by one path segment. The trailing slash is added
+ * here, once, so that the base URL every SDK's README spells without one reaches the same endpoints
+ * as the one spelled with it.
+ * @param apiUrl - API base URL, with or without a trailing slash
+ */
+function baseOf(apiUrl: string): URL {
+  const base = new URL(apiUrl);
+  if (!base.pathname.endsWith('/')) {
+    base.pathname = `${base.pathname}/`;
+  }
+  return base;
 }
 
 /**
@@ -790,7 +890,7 @@ export class Hook0Client {
     debug: boolean = false,
     options: Hook0ClientOptions = new Hook0ClientOptions()
   ) {
-    this.apiUrl = new URL(apiUrl);
+    this.apiUrl = baseOf(apiUrl);
     this.applicationId = applicationId;
     this.headers = {
       headers: { Authorization: `Bearer ${token}` },
@@ -867,6 +967,19 @@ export class Hook0Client {
         detail: `the event cannot be written as JSON: ${detailOf(cause)}; nothing was sent`,
       };
     }
+  }
+
+  /**
+   * What an answer this client could not act on said, its body read no further than this client
+   * agrees to hold.
+   * @param response - The answer that was refused
+   */
+  private async refusal(response: Response): Promise<string> {
+    const body = await readBoundedBody(response, this.options.maxResponseBytes);
+    if (body.kind === 'bodyAboveTheBound') {
+      return `the API answered ${response.status}; ${body.detail}`;
+    }
+    return refusalOf(response.status, body.text);
   }
 
   /**
@@ -994,7 +1107,7 @@ export class Hook0Client {
     );
 
     if (!response.ok) {
-      throw Hook0ClientError.GetAvailableEventTypes(new Error(response.statusText));
+      throw Hook0ClientError.GetAvailableEventTypes(new Error(await this.refusal(response)));
     }
 
     const availableEventTypes = new Set(await this.readEventTypeNames(response));
@@ -1029,7 +1142,10 @@ export class Hook0Client {
         });
 
         if (!postResponse.ok) {
-          throw Hook0ClientError.EventSending(eventTypeStr, new Error(postResponse.statusText));
+          throw Hook0ClientError.EventSending(
+            eventTypeStr,
+            new Error(await this.refusal(postResponse))
+          );
         }
 
         addedEventTypes.push(eventTypeStr);

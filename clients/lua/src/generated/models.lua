@@ -607,7 +607,8 @@ Models.Event.__eq = Runtime.equality
 --- @param fields.event_id string carries `event_id`.
 --- @param fields.event_type_name string carries `event_type_name`.
 --- @param fields.ip string carries `ip`.
---- @param fields.labels any carries `labels`.
+--- @param fields.labels table<string, string> carries `labels`: Labels for event filtering and routing to
+---   subscriptions.
 --- @param fields.occurred_at string carries `occurred_at`.
 --- @param fields.payload_content_type string carries `payload_content_type`.
 --- @param fields.received_at string carries `received_at`.
@@ -635,7 +636,7 @@ function Models.Event.from_json(value)
     event_id = Runtime.read(fields, "event_id", Runtime.TEXT),
     event_type_name = Runtime.read(fields, "event_type_name", Runtime.TEXT),
     ip = Runtime.read(fields, "ip", Runtime.TEXT),
-    labels = Runtime.read(fields, "labels", Runtime.JSON_VALUE),
+    labels = Runtime.read(fields, "labels", Runtime.map(Runtime.TEXT)),
     occurred_at = Runtime.read(fields, "occurred_at", Runtime.TEXT),
     payload_content_type = Runtime.read(fields, "payload_content_type", Runtime.TEXT),
     received_at = Runtime.read(fields, "received_at", Runtime.TEXT),
@@ -650,7 +651,7 @@ function Models.Event:to_table()
     ["event_id"] = self.event_id,
     ["event_type_name"] = self.event_type_name,
     ["ip"] = self.ip,
-    ["labels"] = self.labels,
+    ["labels"] = Runtime.written_map(self.labels, Runtime.itself),
     ["occurred_at"] = self.occurred_at,
     ["payload_content_type"] = self.payload_content_type,
     ["received_at"] = self.received_at,
@@ -821,7 +822,8 @@ Models.EventWithPayload.__eq = Runtime.equality
 --- @param fields.event_id string carries `event_id`.
 --- @param fields.event_type_name string carries `event_type_name`.
 --- @param fields.ip string carries `ip`.
---- @param fields.labels any carries `labels`.
+--- @param fields.labels table<string, string> carries `labels`: Labels for event filtering and routing to
+---   subscriptions.
 --- @param fields.occurred_at string carries `occurred_at`.
 --- @param fields.payload string carries `payload`.
 --- @param fields.payload_content_type string carries `payload_content_type`.
@@ -851,7 +853,7 @@ function Models.EventWithPayload.from_json(value)
     event_id = Runtime.read(fields, "event_id", Runtime.TEXT),
     event_type_name = Runtime.read(fields, "event_type_name", Runtime.TEXT),
     ip = Runtime.read(fields, "ip", Runtime.TEXT),
-    labels = Runtime.read(fields, "labels", Runtime.JSON_VALUE),
+    labels = Runtime.read(fields, "labels", Runtime.map(Runtime.TEXT)),
     occurred_at = Runtime.read(fields, "occurred_at", Runtime.TEXT),
     payload = Runtime.read(fields, "payload", Runtime.TEXT),
     payload_content_type = Runtime.read(fields, "payload_content_type", Runtime.TEXT),
@@ -867,7 +869,7 @@ function Models.EventWithPayload:to_table()
     ["event_id"] = self.event_id,
     ["event_type_name"] = self.event_type_name,
     ["ip"] = self.ip,
-    ["labels"] = self.labels,
+    ["labels"] = Runtime.written_map(self.labels, Runtime.itself),
     ["occurred_at"] = self.occurred_at,
     ["payload"] = self.payload,
     ["payload_content_type"] = self.payload_content_type,

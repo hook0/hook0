@@ -13,7 +13,7 @@ import java.util.UUID
  * @property eventId carries `event_id`.
  * @property eventTypeName carries `event_type_name`.
  * @property ip carries `ip`.
- * @property labels carries `labels`.
+ * @property labels carries `labels`: Labels for event filtering and routing to subscriptions.
  * @property occurredAt carries `occurred_at`.
  * @property payloadContentType carries `payload_content_type`.
  * @property receivedAt carries `received_at`.
@@ -23,7 +23,7 @@ data class Event(
   val eventId: UUID,
   val eventTypeName: String,
   val ip: String,
-  val labels: Any,
+  val labels: Map<String, String>,
   val occurredAt: OffsetDateTime,
   val payloadContentType: String,
   val receivedAt: OffsetDateTime,
@@ -63,7 +63,7 @@ data class Event(
         Wire.read(fields, "event_id", Wire::asUuid),
         Wire.read(fields, "event_type_name", Wire::asText),
         Wire.read(fields, "ip", Wire::asText),
-        Wire.read(fields, "labels", Wire::asJson),
+        Wire.read(fields, "labels", Wire.asMap(Wire::asText)),
         Wire.read(fields, "occurred_at", Wire::asMoment),
         Wire.read(fields, "payload_content_type", Wire::asText),
         Wire.read(fields, "received_at", Wire::asMoment),

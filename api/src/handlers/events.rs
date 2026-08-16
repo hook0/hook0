@@ -132,9 +132,23 @@ struct EventRaw {
     labels: Value,
 }
 
+/// The labels of a stored event, in the shape the API declares them: a map of string to string.
+///
+/// The column is `jsonb` and `event_labels_is_object` only holds it to an object, so the values
+/// being strings is guaranteed by the ingestion endpoint rather than by the schema. A row that
+/// endpoint did not write can hold something this cannot represent, and the only honest answer then
+/// is to refuse. Returning an empty map instead would tell the caller the event carried no labels
+/// at all — a claim it cannot tell apart from the truth, and would filter on.
+fn stored_labels(stored: &Value) -> Result<HashMap<String, String>, Hook0Problem> {
+    serde_json::from_value(stored.clone()).map_err(|e| {
+        error!("Event labels are stored in a shape the API cannot represent: {e}");
+        Hook0Problem::InternalServerError
+    })
+}
+
 impl EventRaw {
-    pub fn to_event(&self) -> Event {
-        Event {
+    pub fn to_event(&self) -> Result<Event, Hook0Problem> {
+        Ok(Event {
             event_id: self.event__id,
             event_type_name: self.event_type__name.clone(),
             payload_content_type: self.payload_content_type.clone(),
@@ -142,8 +156,8 @@ impl EventRaw {
             metadata: self.metadata.clone(),
             occurred_at: self.occurred_at,
             received_at: self.received_at,
-            labels: self.labels.clone(),
-        }
+            labels: stored_labels(&self.labels)?,
+        })
     }
 }
 
@@ -156,7 +170,8 @@ pub struct Event {
     metadata: Option<Value>,
     occurred_at: DateTime<Utc>,
     received_at: DateTime<Utc>,
-    labels: Value,
+    /// Labels for event filtering and routing to subscriptions.
+    labels: HashMap<String, String>,
 }
 
 #[api_v2_operation(
@@ -199,7 +214,10 @@ pub async fn list(
         .await
         .map_err(Hook0Problem::from)?;
 
-    let events = raw_events.iter().map(|re| re.to_event()).collect();
+    let events = raw_events
+        .iter()
+        .map(EventRaw::to_event)
+        .collect::<Result<Vec<Event>, Hook0Problem>>()?;
     Ok(Json(events))
 }
 
@@ -218,8 +236,8 @@ struct EventWithPayloadRaw {
 }
 
 impl EventWithPayloadRaw {
-    pub fn to_event(&self, payload: &[u8]) -> EventWithPayload {
-        EventWithPayload {
+    pub fn to_event(&self, payload: &[u8]) -> Result<EventWithPayload, Hook0Problem> {
+        Ok(EventWithPayload {
             event_id: self.event__id,
             event_type_name: self.event_type__name.clone(),
             payload: Base64.encode(payload),
@@ -228,8 +246,8 @@ impl EventWithPayloadRaw {
             metadata: self.metadata.clone(),
             occurred_at: self.occurred_at,
             received_at: self.received_at,
-            labels: self.labels.clone(),
-        }
+            labels: stored_labels(&self.labels)?,
+        })
     }
 }
 
@@ -243,7 +261,8 @@ pub struct EventWithPayload {
     metadata: Option<Value>,
     occurred_at: DateTime<Utc>,
     received_at: DateTime<Utc>,
-    labels: Value,
+    /// Labels for event filtering and routing to subscriptions.
+    labels: HashMap<String, String>,
 }
 
 #[api_v2_operation(
@@ -291,7 +310,7 @@ pub async fn get(
     match raw_event {
         Some(re) => {
             if let Some(p) = &re.payload {
-                Ok(Json(re.to_event(p)))
+                Ok(Json(re.to_event(p)?))
             } else if let Some(object_storage) = &state.object_storage {
                 let key = format!(
                     "{}/event/{}/{event_id}",
@@ -326,12 +345,12 @@ pub async fn get(
                         Hook0Problem::InternalServerError
                     })?
                     .to_vec();
-                Ok(Json(re.to_event(&payload)))
+                Ok(Json(re.to_event(&payload)?))
             } else {
                 error!(
                     "Payload of event {event_id} is not in database but object storage is disabled"
                 );
-                Ok(Json(re.to_event(&[])))
+                Ok(Json(re.to_event(&[])?))
             }
         }
         None => Err(Hook0Problem::NotFound),
@@ -1052,5 +1071,50 @@ mod tests {
             PayloadContentType::Binary.validate_and_decode(invalid_payload),
             Err(Hook0Problem::EventInvalidBase64Payload(_))
         ));
+    }
+
+    /// A stored label the declared type cannot carry is refused, never flattened away.
+    ///
+    /// `event_labels_is_object` holds the column to an object and stops there, so every shape below
+    /// can sit in a row that the ingestion endpoint did not write. Answering with an empty map
+    /// would tell the caller the event carried no labels, which is indistinguishable from an event
+    /// that genuinely carried none — so the caller would filter on a claim the API made up. The
+    /// document says these are strings; where they are not, the API has to say so instead.
+    #[test]
+    fn a_stored_label_the_type_cannot_carry_is_refused_rather_than_dropped() {
+        for stored in [
+            json!({"count": 3}),
+            json!({"enabled": true}),
+            json!({"nested": {"environment": "test"}}),
+            json!({"absent": null}),
+            json!({"many": ["a", "b"]}),
+            json!({"environment": "test", "count": 3}),
+        ] {
+            assert!(
+                matches!(
+                    stored_labels(&stored),
+                    Err(Hook0Problem::InternalServerError)
+                ),
+                "{stored} is not a map of strings, so reading it must be refused"
+            );
+        }
+    }
+
+    /// The shapes the type does carry still go through, so the refusal above is about
+    /// representability and not about labels in general.
+    #[test]
+    fn stored_labels_that_are_strings_are_read_back_whole() {
+        assert_eq!(
+            stored_labels(&json!({})).expect("an event without labels reads back"),
+            HashMap::new()
+        );
+        assert_eq!(
+            stored_labels(&json!({"environment": "test", "tenant": "acme"}))
+                .expect("a map of strings reads back"),
+            HashMap::from([
+                ("environment".to_owned(), "test".to_owned()),
+                ("tenant".to_owned(), "acme".to_owned()),
+            ])
+        );
     }
 }

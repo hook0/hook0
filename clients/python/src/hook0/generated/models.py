@@ -361,7 +361,7 @@ class Event:
     event_id: uuid.UUID
     event_type_name: str
     ip: str
-    labels: Any
+    labels: dict[str, str]
     occurred_at: datetime.datetime
     payload_content_type: str
     received_at: datetime.datetime
@@ -375,7 +375,7 @@ class Event:
             read(fields, "event_id", as_uuid),
             read(fields, "event_type_name", as_text),
             read(fields, "ip", as_text),
-            read(fields, "labels", as_json),
+            read(fields, "labels", as_map(as_text)),
             read(fields, "occurred_at", as_datetime),
             read(fields, "payload_content_type", as_text),
             read(fields, "received_at", as_datetime),
@@ -388,7 +388,7 @@ class Event:
         out["event_id"] = str(self.event_id)
         out["event_type_name"] = self.event_type_name
         out["ip"] = self.ip
-        out["labels"] = self.labels
+        out["labels"] = dict(self.labels)
         out["occurred_at"] = self.occurred_at.isoformat()
         out["payload_content_type"] = self.payload_content_type
         out["received_at"] = self.received_at.isoformat()
@@ -508,7 +508,7 @@ class EventWithPayload:
     event_id: uuid.UUID
     event_type_name: str
     ip: str
-    labels: Any
+    labels: dict[str, str]
     occurred_at: datetime.datetime
     payload: str
     payload_content_type: str
@@ -523,7 +523,7 @@ class EventWithPayload:
             read(fields, "event_id", as_uuid),
             read(fields, "event_type_name", as_text),
             read(fields, "ip", as_text),
-            read(fields, "labels", as_json),
+            read(fields, "labels", as_map(as_text)),
             read(fields, "occurred_at", as_datetime),
             read(fields, "payload", as_text),
             read(fields, "payload_content_type", as_text),
@@ -537,7 +537,7 @@ class EventWithPayload:
         out["event_id"] = str(self.event_id)
         out["event_type_name"] = self.event_type_name
         out["ip"] = self.ip
-        out["labels"] = self.labels
+        out["labels"] = dict(self.labels)
         out["occurred_at"] = self.occurred_at.isoformat()
         out["payload"] = self.payload
         out["payload_content_type"] = self.payload_content_type

@@ -8,7 +8,7 @@
 
 use actix_web::dev::ServerHandle;
 use actix_web::{App, HttpResponse, HttpServer, web};
-use hook0_client::{Event, Hook0Client, Hook0ClientError, RetryPolicy};
+use hook0_client::{Event, Hook0Client, Hook0ClientError, RetryPolicy, generated};
 use serde_json::{Value, json};
 use std::borrow::Cow;
 use std::net::TcpListener;
@@ -481,6 +481,71 @@ async fn the_delays_of_one_send_stay_inside_the_configured_budget() {
     assert!(
         (2..=ATTEMPTS as usize).contains(&attempts),
         "expected the send to retry and to stop at {ATTEMPTS} attempts, it made {attempts}"
+    );
+
+    api.stop().await;
+}
+
+/// An event read back out of the API and sent on again, with its labels carried across untouched.
+///
+/// This is the shape every forwarder, replayer and migration script has: read an event, build the
+/// next one from it. It only works if both sides of the document agree on what a label is, so the
+/// assignments below carry no cast, no re-parse and no `serde_json::from_value` — the map the read
+/// model hands over is the map the write models take. Were the read side to go back to being
+/// free-form, this stops compiling, which is the failure worth having: a caller finds out at build
+/// time rather than by casting until it type-checks.
+#[actix_web::test]
+async fn labels_read_off_an_event_are_carried_into_the_next_one() {
+    let read: generated::Event = serde_json::from_value(json!({
+        "event_id": Uuid::nil(),
+        "event_type_name": "service.resource.verb",
+        "ip": "127.0.0.1",
+        "labels": {"environment": "test", "tenant": "acme"},
+        "occurred_at": "2026-01-01T00:00:00Z",
+        "payload_content_type": "application/json",
+        "received_at": "2026-01-01T00:00:00Z",
+    }))
+    .expect("an event as the API serializes it parses into the model generated from the document");
+
+    let posted = generated::EventPost {
+        application_id: Uuid::nil(),
+        event_id: None,
+        event_type: read.event_type_name.clone(),
+        labels: read.labels.clone(),
+        metadata: None,
+        occurred_at: read.occurred_at,
+        payload: r#"{"hello":"world"}"#.to_owned(),
+        payload_content_type: read.payload_content_type.clone(),
+    };
+    assert_eq!(
+        posted.labels, read.labels,
+        "the labels of the event posted back are the ones read off the first"
+    );
+
+    let id = Uuid::now_v7();
+    let api = TestApi::start(vec![ingested(&id)]);
+
+    api.client()
+        .send_event(&Event {
+            event_id: None,
+            event_type: &posted.event_type,
+            payload: Cow::Borrowed(posted.payload.as_str()),
+            payload_content_type: &posted.payload_content_type,
+            metadata: None,
+            occurred_at: None,
+            labels: read.labels.into_iter().collect(),
+        })
+        .await
+        .expect("the API accepts the event built from the one that was read");
+
+    let received = api.received();
+    let body = received
+        .first()
+        .unwrap_or_else(|| panic!("expected one request, got {received:?}"));
+    assert_eq!(
+        body.get("labels"),
+        Some(&json!({"environment": "test", "tenant": "acme"})),
+        "the labels reached the API as they were read, in {body}"
     );
 
     api.stop().await;

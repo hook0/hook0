@@ -15,7 +15,7 @@ import java.util.UUID;
  * @param eventId carries `event_id`.
  * @param eventTypeName carries `event_type_name`.
  * @param ip carries `ip`.
- * @param labels carries `labels`.
+ * @param labels carries `labels`: Labels for event filtering and routing to subscriptions.
  * @param occurredAt carries `occurred_at`.
  * @param payloadContentType carries `payload_content_type`.
  * @param receivedAt carries `received_at`.
@@ -25,7 +25,7 @@ public record Event(
     UUID eventId,
     String eventTypeName,
     String ip,
-    Object labels,
+    Map<String, String> labels,
     OffsetDateTime occurredAt,
     String payloadContentType,
     OffsetDateTime receivedAt,
@@ -43,7 +43,7 @@ public record Event(
         Wire.read(fields, "event_id", Wire::asUuid),
         Wire.read(fields, "event_type_name", Wire::asText),
         Wire.read(fields, "ip", Wire::asText),
-        Wire.read(fields, "labels", Wire::asJson),
+        Wire.read(fields, "labels", Wire.asMap(Wire::asText)),
         Wire.read(fields, "occurred_at", Wire::asMoment),
         Wire.read(fields, "payload_content_type", Wire::asText),
         Wire.read(fields, "received_at", Wire::asMoment),

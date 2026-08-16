@@ -254,7 +254,7 @@ list(): Promise<Problem[]>
 event_id: string
 event_type_name: string
 ip: string
-labels: unknown
+labels: Record<string, string>
 metadata?: unknown
 occurred_at: string
 payload_content_type: string
@@ -308,7 +308,7 @@ list(applicationId: string): Promise<EventType[]>
 event_id: string
 event_type_name: string
 ip: string
-labels: unknown
+labels: Record<string, string>
 metadata?: unknown
 occurred_at: string
 payload: string
