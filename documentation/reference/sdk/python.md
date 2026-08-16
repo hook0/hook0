@@ -2,6 +2,7 @@
 title: "Python webhook SDK — hook0-client"
 description: "Send Hook0 events and verify webhook signatures from Python, blocking or with asyncio. Install from PyPI, no third-party dependencies, Python 3.11 or later."
 keywords: [Python webhook SDK, Hook0 Python client, hook0-client PyPI, verify webhook signature Python, asyncio webhook client, send webhook event Python]
+sdkTarget: python
 ---
 
 # Python SDK
@@ -20,7 +21,7 @@ Python 3.11 or later is required. The distribution is named `hook0-client`; the 
 
 ## Send an event
 
-```python
+```python example=send
 from hook0 import Event, Hook0Client
 
 client = Hook0Client(
@@ -41,7 +42,7 @@ event_id = client.send_event(
 
 `Event` carries three required fields and four optional ones:
 
-```python
+```python example=event
 Event(
     event_type="billing.invoice.paid",
     payload='{"invoice": "in_123"}',
@@ -59,7 +60,7 @@ The token goes in without a `Bearer` prefix; the client adds it.
 
 `Hook0AsyncClient` applies the same bounds, reads the same answers and retries for the same reasons. It awaits where the other waits.
 
-```python
+```python example=async
 from hook0 import Event, Hook0AsyncClient
 
 client = Hook0AsyncClient("https://app.hook0.com/api/v1", application_id, token)
@@ -89,7 +90,7 @@ A retried request that Hook0 answers with `EventAlreadyIngested` reports success
 
 Every send is bounded, and every bound is configurable:
 
-```python
+```python example=options
 from hook0 import Hook0Client, Hook0ClientOptions, RetryPolicy
 
 client = Hook0Client(
@@ -126,7 +127,7 @@ Those are the defaults, exported as `DEFAULT_REQUEST_TIMEOUT`, `DEFAULT_MAX_PAYL
 
 ## Verify a webhook signature
 
-```python
+```python example=verify
 from hook0 import Hook0ClientError, verify_webhook_signature
 
 try:
@@ -151,7 +152,7 @@ To hold the signature against a moment you choose, in a test for instance, use `
 
 ### Flask
 
-```python
+```python example=flask
 from flask import Flask, request
 from hook0 import Hook0ClientError, verify_webhook_signature
 
@@ -180,7 +181,7 @@ def webhook():
 
 An event whose type the application does not declare is refused. `upsert_event_types` creates the ones that are missing and returns only those it created:
 
-```python
+```python example=upsert
 created = client.upsert_event_types(
     [
         "billing.invoice.paid",
@@ -191,7 +192,7 @@ created = client.upsert_event_types(
 
 An event type is written `service.resource_type.verb`. `EventType.parse` reads one and raises `Hook0ClientError` on anything else:
 
-```python
+```python example=parse
 from hook0 import EventType
 
 parsed = EventType.parse("billing.invoice.paid")
@@ -202,7 +203,7 @@ print(parsed.service, parsed.resource_type, parsed.verb)
 
 Sending events is two methods out of the whole API. Every operation Hook0 declares is a method of a generated group, and every problem it reports is its own exception:
 
-```python
+```python example=rest
 from hook0 import HttpTransport
 from hook0.generated import ApplicationsApi
 from hook0.generated.errors import NotFoundError
@@ -230,7 +231,7 @@ Every generated exception derives from `ProblemError`, which carries the HTTP `s
 
 `Hook0ClientError` carries its detail in the message:
 
-```python
+```python example=errors
 from hook0 import Hook0ClientError
 
 try:

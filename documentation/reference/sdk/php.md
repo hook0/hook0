@@ -2,6 +2,7 @@
 title: "PHP webhook SDK — hook0/client"
 description: "Send Hook0 events and verify webhook signatures from PHP 8.2 or later. Retries, idempotent event IDs and payload bounds built in. Not yet on Packagist."
 keywords: [PHP webhook SDK, Hook0 PHP client, verify webhook signature PHP, Laravel webhook endpoint, Symfony webhook, send webhook event PHP]
+sdkTarget: php
 ---
 
 # PHP SDK
@@ -38,7 +39,7 @@ Then `composer update hook0/client`. The classes autoload under the `Hook0\` nam
 
 ## Send an event
 
-```php
+```php example=send
 <?php
 
 use Hook0\Client;
@@ -60,7 +61,7 @@ $eventId = $client->sendEvent(new Event(
 
 `Event` takes three required arguments and four optional ones:
 
-```php
+```php example=event
 new Event(
     eventType: 'billing.invoice.paid',
     payload: '{"invoice": "in_123"}',
@@ -86,7 +87,7 @@ A retried request that Hook0 answers with `EventAlreadyIngested` reports success
 
 ## Bounds, and how to change them
 
-```php
+```php example=bounds
 use Hook0\Client;
 use Hook0\Options;
 use Hook0\RetryPolicy;
@@ -125,7 +126,7 @@ Those are the defaults. Durations are seconds, as floats.
 
 ## Verify a webhook signature
 
-```php
+```php example=verify
 use Hook0\ClientError;
 use Hook0\Signature;
 
@@ -152,7 +153,7 @@ The clock window is bilateral: a webhook signed too far in the future is refused
 
 ### Laravel
 
-```php
+```php example=laravel
 use Hook0\ClientError;
 use Hook0\Signature;
 use Illuminate\Http\Request;
@@ -182,7 +183,7 @@ Route::post('/webhook', function (Request $request) {
 
 An event whose type the application does not declare is refused. `upsertEventTypes` creates the ones that are missing and returns only those it created:
 
-```php
+```php example=upsert
 $created = $client->upsertEventTypes([
     'billing.invoice.paid',
     'billing.invoice.voided',
@@ -195,7 +196,7 @@ An event type is written `service.resource_type.verb`. `Hook0\EventType::parse` 
 
 Sending events is two methods out of the whole API. Every operation Hook0 declares is a method of a generated group:
 
-```php
+```php example=api
 use Hook0\Generated\ApplicationsApi;
 use Hook0\Generated\NotFoundError;
 use Hook0\Transport;
@@ -220,14 +221,13 @@ try {
 
 All of them extend `RuntimeException`.
 
-```php
+`sendEvent` and `upsertEventTypes` fold a `TransportError` into a `ClientError` themselves, so a caller of either has one thing to catch. `TransportError` reaches a caller only through the generated API groups, which issue their own requests and let it through unwrapped:
+
+```php example=errors
 use Hook0\ClientError;
-use Hook0\TransportError;
 
 try {
     $client->sendEvent($event);
-} catch (TransportError $refused) {
-    $logger->warning("no answer from Hook0 ({$refused->causeName}), retryable: " . var_export($refused->retryable, true));
 } catch (ClientError $refused) {
     $logger->error('event not sent: ' . $refused->getMessage());
 }

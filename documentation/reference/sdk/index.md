@@ -2,6 +2,7 @@
 title: "Hook0 SDKs — 11 official webhook client libraries"
 description: "Official Hook0 clients for JavaScript, TypeScript, Rust, Python, Go, Ruby, PHP, C#, Java, Kotlin, Lua and Zig. Each sends events, verifies webhook signatures, and retries under bounds you set."
 keywords: [Hook0 SDK, webhook SDK, webhook client library, JavaScript webhook library, Python webhook client, Rust webhook SDK, Go webhook client, Java webhook SDK, C# webhook client, verify webhook signature]
+sdkTarget: none
 ---
 
 # SDKs & client libraries
@@ -85,7 +86,7 @@ A payload above the maximum fails before any request goes out, so neither the ro
 
 ## Sending an event
 
-```typescript
+```typescript example=usingClient
 // JavaScript/TypeScript
 const event = new Event(
   'order.checkout.completed',
@@ -127,28 +128,29 @@ This is the half most readers need, and the half most often got wrong by hand. E
 
 Two rules hold in all eleven. Verify against the **raw** request body: a body that has been parsed and re-serialised no longer hashes to what was signed. And keep the tolerance bilateral, which every client does, so a delivery dated too far ahead is refused exactly like one dated too far behind.
 
-```typescript
+```typescript example=webhookHandlerUsingApp
 // JavaScript/TypeScript
 import { verifyWebhookSignature } from 'hook0-client';
 
 // Note: Express.js normalizes all header names to lowercase
 // Capture raw body for signature verification
 app.post('/webhook', express.json({
-  verify: (req, res, buf) => { req.rawBody = buf; }
+  verify: (req, res, buf) => { (req as any).rawBody = buf; }
 }), (req, res) => {
-  const signature = req.headers['x-hook0-signature'];
-  // Use raw body for signature verification, not JSON.stringify(req.body)
-  const rawBodyString = req.rawBody.toString('utf8');
+  const signature = req.headers['x-hook0-signature'] as string;
+  // Verify against the raw bytes, not a stringified copy: verifyWebhookSignature hashes the body it
+  // is handed, so a body already turned into a string would no longer match what Hook0 signed.
+  const rawBody = (req as any).rawBody as Buffer;
   const headers = new Headers();
   Object.entries(req.headers).forEach(([key, value]) => {
     if (typeof value === 'string') headers.set(key, value);
   });
-  const secret = process.env.WEBHOOK_SECRET;
+  const secret = process.env.WEBHOOK_SECRET!;
 
   try {
     const isValid = verifyWebhookSignature(
       signature,
-      rawBodyString,
+      rawBody,
       headers,
       secret,
       300 // 5-minute tolerance
@@ -190,7 +192,7 @@ Every client also reaches this through its generated API groups, one group per e
 
 SDKs return typed errors you can match on:
 
-```typescript
+```typescript example=usingEvent
 // JavaScript/TypeScript
 import { Hook0ClientError } from 'hook0-client';
 

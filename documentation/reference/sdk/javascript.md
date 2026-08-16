@@ -2,6 +2,7 @@
 title: "JavaScript & TypeScript webhook SDK — hook0-client"
 description: "Send Hook0 events and verify webhook signatures from Node.js. Typed, ESM and CommonJS, idempotent event IDs, retries and payload bounds built in."
 keywords: [JavaScript webhook SDK, TypeScript webhook client, hook0-client npm, verify webhook signature Node.js, Express webhook endpoint, send webhook event JavaScript]
+sdkTarget: typescript
 ---
 
 # JavaScript/TypeScript SDK
@@ -20,7 +21,7 @@ pnpm add hook0-client
 
 ## Quick Start
 
-```typescript
+```typescript example=program
 import { Hook0Client, Event } from 'hook0-client';
 
 const hook0 = new Hook0Client(
@@ -63,7 +64,7 @@ send reached the API; the same answer to a *first* attempt is a genuine conflict
 
 Every send is bounded, and every bound is configurable:
 
-```typescript
+```typescript example=program
 import { Hook0Client, Hook0ClientOptions, RetryPolicy } from 'hook0-client';
 
 const hook0 = new Hook0Client(
@@ -92,7 +93,7 @@ are spent on a request the API would refuse.
 
 ### Client Initialization
 
-```typescript
+```typescript example=program
 import { Hook0Client } from 'hook0-client';
 
 const hook0 = new Hook0Client(
@@ -115,7 +116,7 @@ The current TypeScript SDK implementation requires explicit configuration and do
 
 #### Send Single Event
 
-```typescript
+```typescript example=program
 import { Hook0Client, Event } from 'hook0-client';
 
 const hook0 = new Hook0Client(
@@ -153,7 +154,7 @@ Listing and querying events goes through the generated API groups rather than th
 
 ### Event Type Management
 
-```typescript
+```typescript example=usingClient
 // Upsert event types (creates if not exists)
 const addedEventTypes = await hook0.upsertEventTypes([
   'user.account.created',
@@ -168,7 +169,7 @@ console.log('Added event types:', addedEventTypes);
 
 `Hook0Client` covers sending events and declaring event types. Every other operation Hook0 declares is a method on a generated group, exported under the `generated` namespace:
 
-```typescript
+```typescript example=restApiGroup
 import { generated } from 'hook0-client';
 
 const applications = new generated.ApplicationsApi(transport);
@@ -177,7 +178,7 @@ const application = await applications.get(applicationId);
 
 The generated half declares the transport it issues requests through and does not implement one, so nothing in it carries a socket. Supply your own:
 
-```typescript
+```typescript example=restApiTransport
 import { generated } from 'hook0-client';
 
 const transport: generated.Transport = {
@@ -210,7 +211,7 @@ The names the API document declares live under `generated` rather than at the to
 
 ### Webhook Verification
 
-```typescript
+```typescript example=webhookHandlerFull
 import { verifyWebhookSignature } from 'hook0-client';
 import express from 'express';
 
@@ -223,8 +224,9 @@ app.post('/webhook', express.json({
 }), (req, res) => {
   const signature = req.headers['x-hook0-signature'] as string;
   const secret = process.env.WEBHOOK_SECRET!;
-  // Use raw body for signature verification, not JSON.stringify(req.body)
-  const rawBodyString = (req as any).rawBody.toString('utf8');
+  // Verify against the raw bytes, not a stringified copy: verifyWebhookSignature hashes the body it
+  // is handed, so a body already turned into a string would no longer match what Hook0 signed.
+  const rawBody = (req as any).rawBody as Buffer;
 
   try {
     // Verify the signature with headers
@@ -237,7 +239,7 @@ app.post('/webhook', express.json({
 
     const isValid = verifyWebhookSignature(
       signature,
-      rawBodyString,
+      rawBody,
       headers,
       secret,
       300 // 5-minute tolerance
@@ -261,7 +263,7 @@ app.post('/webhook', express.json({
 
 ### Error Handling
 
-```typescript
+```typescript example=usingClient
 import { Hook0ClientError } from 'hook0-client';
 
 try {
@@ -297,7 +299,7 @@ Middleware system and event streaming are not available in the current SDK imple
 
 The SDK is written in TypeScript and provides type definitions:
 
-```typescript
+```typescript example=program
 import { Hook0Client, Event, EventType, Hook0ClientError } from 'hook0-client';
 
 // Type-safe event creation
@@ -326,17 +328,18 @@ if (eventType instanceof Hook0ClientError) {
 
 ### Testing
 
-```typescript
+```typescript example=program
 import { Hook0Client, Event } from 'hook0-client';
-import { jest } from '@jest/globals';
+import { describe, expect, jest, test } from '@jest/globals';
 
 describe('Event Handler', () => {
   test('should send user created event', async () => {
-    // Mock the fetch function
-    global.fetch = jest.fn().mockResolvedValueOnce({
+    // Mock the fetch function; typing the mock as `typeof fetch` is what lets
+    // mockResolvedValueOnce take a Response-shaped value instead of rejecting the call outright.
+    global.fetch = jest.fn<typeof fetch>().mockResolvedValueOnce({
       ok: true,
       text: async () => '',
-    });
+    } as Response);
 
     const client = new Hook0Client(
       'http://localhost:8081/api/v1',
@@ -372,13 +375,15 @@ describe('Event Handler', () => {
 
 ### 1. Use Environment Variables
 
-```typescript
-// Bad - hardcoded credentials
-const hook0 = new Hook0Client(
-  'http://localhost:8081/api/v1',
-  'app_1234567890',
-  'hardcoded_token_here'
-);
+```typescript example=hook0ClientImport
+{
+  // Bad - hardcoded credentials
+  const hook0 = new Hook0Client(
+    'http://localhost:8081/api/v1',
+    'app_1234567890',
+    'hardcoded_token_here'
+  );
+}
 
 // Good - use environment variables
 const hook0 = new Hook0Client(
@@ -390,7 +395,7 @@ const hook0 = new Hook0Client(
 
 ### 2. Implement Proper Error Handling
 
-```typescript
+```typescript example=usingClientAndEvent
 // Bad
 await hook0.sendEvent(event);
 
@@ -411,7 +416,7 @@ try {
 
 ### 3. Efficient Event Sending
 
-```typescript
+```typescript example=usingClient
 // When sending multiple events, consider using Promise.all for parallelization
 const eventPromises = users.map(user => {
   const event = new Event(
@@ -429,7 +434,7 @@ console.log(`Sent ${eventIds.length} events`);
 
 ### 4. Use Unique Event IDs to Deduplicate Across Emitters
 
-```typescript
+```typescript example=usingClient
 import { v5 as uuidv5 } from 'uuid';
 
 // The client already sends an id of its own, so retries are idempotent without you doing anything.
@@ -454,7 +459,7 @@ const eventId = await hook0.sendEvent(event);
 ### Common Issues
 
 **Authentication Errors**
-```typescript
+```typescript example=hook0ClientImport
 // Ensure token is passed correctly (without Bearer prefix - SDK adds it)
 const hook0 = new Hook0Client(
   'http://localhost:8081/api/v1',
@@ -464,14 +469,14 @@ const hook0 = new Hook0Client(
 ```
 
 **CORS Issues in Browser**
-```typescript
+```typescript example=program
 // The SDK uses fetch() which handles CORS automatically
 // Ensure your Hook0 application is configured to accept
 // requests from your domain
 ```
 
 **Network Errors**
-```typescript
+```typescript example=retryTuning
 // The client already retries network failures and server errors on its own, under the same event
 // id, so a retry cannot ingest the event twice. Change how it does so rather than wrapping it:
 import { Hook0Client, Hook0ClientOptions, RetryPolicy } from 'hook0-client';

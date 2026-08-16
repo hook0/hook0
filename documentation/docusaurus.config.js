@@ -67,6 +67,10 @@ const config = {
             "**/.docusaurus/**",
             "**/scripts/**",
             "**/CLAUDE.md",
+            // The harnesses the SDK examples are assembled into, and the note explaining them.
+            // They live beside the pages so that whoever edits a snippet can see what it stands
+            // on, and they are addressed to that person rather than to a reader of the product.
+            "**/reference/sdk/examples/**",
           ],
         },
         sitemap: {

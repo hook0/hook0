@@ -2,6 +2,7 @@
 title: "Ruby webhook SDK — hook0-client gem"
 description: "Send Hook0 events and verify webhook signatures from Ruby. No runtime dependencies, retries and payload bounds built in, Ruby 3.1 or later."
 keywords: [Ruby webhook SDK, Hook0 Ruby client, hook0-client gem, verify webhook signature Ruby, Rails webhook endpoint, send webhook event Ruby]
+sdkTarget: ruby
 ---
 
 # Ruby SDK
@@ -18,7 +19,7 @@ gem install hook0-client
 
 Or in a `Gemfile`:
 
-```ruby
+```ruby example=gemfile
 gem "hook0-client"
 ```
 
@@ -26,7 +27,7 @@ Ruby 3.1 or later is required.
 
 ## Send an event
 
-```ruby
+```ruby example=send
 require "hook0"
 
 client = Hook0::Client.new(
@@ -47,7 +48,7 @@ event_id = client.send_event(
 
 `Hook0::Event` takes three required keywords and four optional ones:
 
-```ruby
+```ruby example=event
 Hook0::Event.new(
   event_type: "billing.invoice.paid",
   payload: '{"invoice": "in_123"}',
@@ -73,7 +74,7 @@ A retried request that Hook0 answers with `EventAlreadyIngested` reports success
 
 ## Bounds, and how to change them
 
-```ruby
+```ruby example=options
 client = Hook0::Client.new(
   "https://app.hook0.com/api/v1",
   application_id,
@@ -108,7 +109,7 @@ Those are the defaults. Durations are seconds, as floats.
 
 ## Verify a webhook signature
 
-```ruby
+```ruby example=verify
 begin
   Hook0.verify_webhook_signature(
     request.headers["X-Hook0-Signature"],
@@ -132,7 +133,7 @@ The clock window is bilateral: a webhook signed too far in the future is refused
 
 ### Rails
 
-```ruby
+```ruby example=rails
 class WebhooksController < ApplicationController
   skip_before_action :verify_authenticity_token
 
@@ -162,7 +163,7 @@ Read `request.body` yourself rather than `params`. Rails has already reshaped `p
 
 An event whose type the application does not declare is refused. `upsert_event_types` creates the ones that are missing and returns only those it created:
 
-```ruby
+```ruby example=upsert
 created = client.upsert_event_types(
   %w[billing.invoice.paid billing.invoice.voided]
 )
@@ -174,7 +175,7 @@ An event type is written `service.resource_type.verb`. `Hook0::EventType.parse` 
 
 Sending events is two methods out of the whole API. Every operation Hook0 declares is a method of a generated group:
 
-```ruby
+```ruby example=rest
 applications = Hook0::Generated::ApplicationsApi.new(
   Hook0::Transport.new("https://app.hook0.com", token)
 )
@@ -195,7 +196,7 @@ end
 | `Hook0::Runtime::DecodeError` | A response body could not be read as the shape it declared |
 | `Hook0::Generated::ProblemError` and its subclasses | The API reported a problem |
 
-```ruby
+```ruby example=errors
 begin
   client.send_event(event)
 rescue Hook0::TransportError => refused

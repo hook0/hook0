@@ -2,6 +2,7 @@
 title: "Go webhook SDK — hook0 client"
 description: "Send Hook0 events and verify webhook signatures from Go. Standard library only, context on every call, retries and payload bounds built in. Go 1.24 or later."
 keywords: [Go webhook SDK, Hook0 Go client, verify webhook signature Go, send webhook event Go, golang webhook library, HMAC signature Go]
+sdkTarget: go
 ---
 
 # Go SDK
@@ -18,7 +19,7 @@ go get github.com/hook0/hook0/clients/go
 
 Go 1.24 or later is required. The package is named `hook0` while the module path ends in `go`, so import it under an alias:
 
-```go
+```go example=import
 import hook0 "github.com/hook0/hook0/clients/go"
 ```
 
@@ -30,7 +31,7 @@ This module is not published under a version. A module in a subdirectory is rele
 
 ## Send an event
 
-```go
+```go example=program
 package main
 
 import (
@@ -64,7 +65,7 @@ func main() {
 
 `Event` has three fields you must set and four you may:
 
-```go
+```go example=event
 hook0.Event{
 	EventType:          "billing.invoice.paid",
 	Payload:            `{"invoice": "in_123"}`,
@@ -94,7 +95,7 @@ A retried request that Hook0 answers with `EventAlreadyIngested` reports success
 
 ## Bounds, and how to change them
 
-```go
+```go example=options
 options := hook0.DefaultOptions()
 options.RetryPolicy = hook0.RetryPolicy{
 	MaxAttempts:    4,
@@ -125,7 +126,7 @@ Those are the defaults, exported as `DefaultRequestTimeout`, `DefaultMaxPayloadB
 
 ## Verify a webhook signature
 
-```go
+```go example=handler
 import (
 	"io"
 	"net/http"
@@ -164,7 +165,7 @@ func handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 Each refusal wraps a sentinel you can match with `errors.Is`:
 
-```go
+```go example=matching
 switch {
 case errors.Is(err, hook0.ErrSignatureMismatch):
 	// the body or a covered header was changed in flight, or the secret is wrong
@@ -183,7 +184,7 @@ case errors.Is(err, hook0.ErrSignatureUnreadable):
 
 An event whose type the application does not declare is refused. `UpsertEventTypes` creates the ones that are missing and returns only those it created:
 
-```go
+```go example=upsert
 created, err := client.UpsertEventTypes(ctx, []string{
 	"billing.invoice.paid",
 	"billing.invoice.voided",
@@ -196,18 +197,24 @@ An event type is written `service.resource_type.verb`. `ParseEventType` reads on
 
 Sending events is two methods out of the whole API. Every operation Hook0 declares is a method of a generated group:
 
-```go
+```go example=file
 import (
+	"context"
+	"errors"
+
 	hook0 "github.com/hook0/hook0/clients/go"
 	"github.com/hook0/hook0/clients/go/generated"
 )
 
-transport := hook0.NewTransport("https://app.hook0.com", token, 0, 0)
-applications := generated.NewApplicationsAPI(transport)
+func readApplication(ctx context.Context, applicationId string) (*generated.ApplicationInfo, error) {
+	transport := hook0.NewTransport("https://app.hook0.com", token, 0, 0)
+	applications := generated.NewApplicationsAPI(transport)
 
-application, err := applications.Get(ctx, applicationId)
-if errors.Is(err, generated.ErrNotFound) {
-	// every problem the API names has a sentinel of its own
+	application, err := applications.Get(ctx, applicationId)
+	if errors.Is(err, generated.ErrNotFound) {
+		// every problem the API names has a sentinel of its own
+	}
+	return application, err
 }
 ```
 
@@ -224,7 +231,7 @@ Passing `0` for the timeout or the response ceiling gives `NewTransport` its def
 
 Every one of them implements `Unwrap`, and the sentinels below match through it with `errors.Is`: `ErrPayloadTooLarge`, `ErrInvalidEventType`, `ErrUnreachable`, `ErrAnswerAboveABound`, `ErrUnusableAPIURL`, `ErrSignatureUnreadable`, `ErrHeaderNotDelivered`, `ErrSignatureMismatch`, `ErrSignatureOutsideTolerance`.
 
-```go
+```go example=matching
 var sent *hook0.SendError
 if errors.As(err, &sent) {
 	log.Printf("event %s gave up after %d attempts, %s waited", sent.EventId, sent.Attempts, sent.Waited)

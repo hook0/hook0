@@ -2,6 +2,7 @@
 title: "Zig webhook SDK — hook0_client"
 description: "Send Hook0 events and verify webhook signatures from Zig 0.16. Blocking, no dependencies, clock and sockets injected through std.Io. Fetched from source, not a registry."
 keywords: [Zig webhook SDK, Hook0 Zig client, verify webhook signature Zig, zig fetch dependency, std.Io HTTP client, send webhook event Zig]
+sdkTarget: zig
 ---
 
 # Zig SDK
@@ -34,14 +35,14 @@ Use `--save=hook0` rather than a bare `--save`. The manifest names the package `
 
 In your `build.zig`:
 
-```zig
+```zig example=program
 const hook0 = b.dependency("hook0", .{ .target = target, .optimize = optimize });
 exe.root_module.addImport("hook0", hook0.module("hook0"));
 ```
 
 ## Send an event
 
-```zig
+```zig example=send
 const hook0 = @import("hook0");
 
 var client: hook0.Client = .init(io, "https://app.hook0.com/api/v1", application_id, token, .{});
@@ -61,7 +62,7 @@ std.log.info("ingested as {s}", .{sent.value});
 
 `Event` has three required fields and four optional ones:
 
-```zig
+```zig example=event
 hook0.Event{
     .event_type = "billing.invoice.paid",
     .payload = "{\"invoice\":\"in_123\"}",
@@ -89,7 +90,7 @@ A retried request that Hook0 answers with `EventAlreadyIngested` reports success
 
 ## Bounds, and how to change them
 
-```zig
+```zig example=configure
 var client: hook0.Client = .init(io, api_url, application_id, token, .{
     .retry_policy = .{
         .max_attempts = 4,
@@ -126,7 +127,7 @@ Those are the defaults, which is what `.{}` gives.
 
 ## Verify a webhook signature
 
-```zig
+```zig example=verify
 hook0.verifyWebhookSignature(
     io,
     delivered.header("x-hook0-signature").?,
@@ -150,7 +151,7 @@ The clock window is bilateral: a delivery dated too far ahead is refused exactly
 
 The error set is closed:
 
-```zig
+```zig example=errors
 pub const SignatureError = error{
     CodeNotHexadecimal,
     HeaderNotDelivered,
@@ -164,7 +165,7 @@ pub const SignatureError = error{
 
 An event whose type the application does not declare is refused. `upsertEventTypes` creates the ones that are missing and answers only those it created:
 
-```zig
+```zig example=upsert
 const created = try client.upsertEventTypes(allocator, &.{
     "billing.invoice.paid",
     "billing.invoice.voided",
@@ -178,7 +179,7 @@ An event type is written `service.resource_type.verb`. `hook0.EventType.parse` r
 
 Sending events is two methods out of the whole API. Every operation Hook0 declares is a method of a generated group, built on the transport the client already holds:
 
-```zig
+```zig example=api_group
 var group: hook0.api.ApplicationSecretsApi = .{ .transport = client.transportOf() };
 const secrets = try group.list(allocator, application_id);
 defer secrets.deinit();

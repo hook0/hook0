@@ -2,6 +2,7 @@
 title: "Rust webhook SDK — hook0-client crate"
 description: "Send Hook0 events and verify webhook signatures from Rust. Async on tokio and reqwest, idempotent event IDs, retries and payload bounds built in."
 keywords: [Rust webhook SDK, Hook0 Rust client, hook0-client crate, verify webhook signature Rust, actix-web webhook, async webhook client Rust]
+sdkTarget: rust
 ---
 
 # Rust SDK
@@ -23,7 +24,7 @@ The Rust SDK (`hook0-client`) supports both webhook production (sending events) 
 
 ### Send Events (Producer)
 
-```rust
+```rust example=send
 use hook0_client::{Hook0Client, Event};
 use reqwest::Url;
 use uuid::Uuid;
@@ -80,7 +81,7 @@ returned as an error.
 
 Every send is bounded, and every bound is configurable:
 
-```rust
+```rust example=bounds
 use hook0_client::{Hook0Client, RetryPolicy};
 use std::time::Duration;
 
@@ -101,7 +102,7 @@ are spent on a request the API would refuse.
 
 ### Verify Webhook Signatures (Consumer)
 
-```rust
+```rust example=verify
 use hook0_client::verify_webhook_signature;
 use std::time::Duration;
 
@@ -159,7 +160,7 @@ hook0-client = { version = "1", default-features = false, features = ["consumer"
 
 Initialize the client with your Hook0 credentials:
 
-```rust
+```rust example=configure
 use hook0_client::Hook0Client;
 use reqwest::Url;
 use uuid::Uuid;
@@ -175,7 +176,7 @@ let client = Hook0Client::new(api_url, application_id, &token)?;
 
 Ensure your application has the required event types defined:
 
-```rust
+```rust example=upsert
 let event_types = vec![
     "user.account.created",
     "user.account.updated",
@@ -194,7 +195,7 @@ The SDK provides built-in webhook signature verification:
 
 ### Example: Actix-web Integration
 
-```rust
+```rust example=actix
 use actix_web::{web, App, HttpRequest, HttpServer, Responder};
 use hook0_client::{verify_webhook_signature, Hook0ClientError};
 use std::time::Duration;
@@ -262,7 +263,7 @@ See the `examples/actix-web.rs` file in the [repository](https://github.com/hook
 
 The SDK uses the `Hook0ClientError` enum for comprehensive error handling:
 
-```rust
+```rust example=error_handling
 use hook0_client::{Hook0Client, Hook0ClientError, Event};
 
 async fn send_event_with_handling(client: &Hook0Client, event: &Event<'_>) {
@@ -288,7 +289,7 @@ async fn send_event_with_handling(client: &Hook0Client, event: &Event<'_>) {
 
 ### Consumer Errors
 
-```rust
+```rust example=consumer_errors
 use hook0_client::{Hook0ClientError, verify_webhook_signature};
 use std::time::Duration;
 
@@ -321,7 +322,7 @@ fn handle_webhook_verification(
 
 Use strongly-typed payloads with serde:
 
-```rust
+```rust example=type_safety
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use hook0_client::{Hook0Client, Event};
@@ -379,7 +380,7 @@ async fn create_and_send_user_event(
 
 ### Unit Testing Webhook Verification
 
-```rust
+```rust example=unit_test
 #[cfg(test)]
 mod tests {
     use hook0_client::verify_webhook_signature;
@@ -411,7 +412,7 @@ mod tests {
 
 ### Integration Testing
 
-```rust
+```rust example=integration_test
 #[cfg(test)]
 mod integration_tests {
     use hook0_client::{Hook0Client, Event};
@@ -454,7 +455,7 @@ mod integration_tests {
 
 The `Hook0Client` uses `reqwest::Client` internally, which maintains a connection pool. Reuse the client instance:
 
-```rust
+```rust example=arc_share
 use hook0_client::Hook0Client;
 use std::sync::Arc;
 
@@ -464,14 +465,14 @@ let client = Arc::new(Hook0Client::new(api_url, application_id, &token)?);
 // Clone Arc for different async tasks
 let client_clone = client.clone();
 tokio::spawn(async move {
-    let event = /* ... */;
+    let event = /* build the event to send */ todo!();
     client_clone.send_event(&event).await.unwrap();
 });
 ```
 
 ### Parallel Event Processing
 
-```rust
+```rust example=parallel
 use futures::future::join_all;
 use hook0_client::{Hook0Client, Event};
 use std::sync::Arc;
@@ -498,7 +499,7 @@ async fn send_events_parallel(
 
 ### 1. Reuse Client Instances
 
-```rust
+```rust example=reuse_client
 // Initialize once at application startup
 let client = Hook0Client::new(api_url, application_id, &token)?;
 
@@ -508,7 +509,7 @@ let client = Arc::new(client);
 
 ### 2. Use Strong Types
 
-```rust
+```rust example=strong_types
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -527,7 +528,7 @@ let payload_str = serde_json::to_string(&payload)?;
 
 ### 3. Handle Errors Properly
 
-```rust
+```rust example=handle_errors
 use log::{info, error};
 
 match client.send_event(&event).await {
@@ -543,7 +544,7 @@ match client.send_event(&event).await {
 
 ### 4. Use Environment Variables
 
-```rust
+```rust example=env_vars
 let token = std::env::var("HOOK0_TOKEN")
     .expect("HOOK0_TOKEN environment variable not set");
 let application_id = std::env::var("HOOK0_APP_ID")
@@ -557,7 +558,7 @@ Set an ID yourself when the *same* event can be produced more than once by your 
 payment webhook replayed by your provider, a job that can run twice — by deriving a stable UUID
 from your domain key:
 
-```rust
+```rust example=custom_event_id
 use uuid::Uuid;
 use std::borrow::Cow;
 use hook0_client::Event;
@@ -580,7 +581,7 @@ let event = Event {
 ### Common Issues
 
 **Lifetime Issues with Async**
-```rust
+```rust example=arc_share
 use std::sync::Arc;
 use hook0_client::Hook0Client;
 
@@ -589,13 +590,13 @@ let client = Arc::new(Hook0Client::new(api_url, application_id, &token)?);
 let client_clone = client.clone();
 
 tokio::spawn(async move {
-    let event = /* ... */;
+    let event = /* build the event to send */ todo!();
     client_clone.send_event(&event).await.unwrap();
 });
 ```
 
 **Payload Content Type Mismatch**
-```rust
+```rust example=payload_mismatch
 // Ensure payload string matches content type
 let event = Event {
     event_id: None,
@@ -609,11 +610,12 @@ let event = Event {
 ```
 
 **Async Runtime Issues**
-```rust
+```rust example=async_runtime
 // Use tokio::main for simple cases
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = /* ... */;
+    let client: Hook0Client = /* build the client */ todo!();
+    let event = /* build the event to send */ todo!();
     client.send_event(&event).await?;
     Ok(())
 }

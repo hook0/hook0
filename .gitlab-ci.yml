@@ -75,6 +75,7 @@ include:
   - local: "clients/lua/.gitlab-ci.yml"
   - local: "clients/zig/.gitlab-ci.yml"
   - local: "documentation/.gitlab-ci.yml"
+  - local: "documentation-examples/.gitlab-ci.yml"
   - local: "tests-api-integrations/.gitlab-ci.yml"
   - local: "tests-e2e/.gitlab-ci.yml"
   - local: "smoke/.gitlab-ci.yml"

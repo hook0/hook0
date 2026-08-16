@@ -2,6 +2,7 @@
 title: "Kotlin webhook SDK — com.hook0:hook0-client-kotlin"
 description: "Send Hook0 events and verify webhook signatures from Kotlin 2.4 on Java 21. Blocking and suspending calls, kotlin-stdlib only. Not yet on Maven Central."
 keywords: [Kotlin webhook SDK, Hook0 Kotlin client, suspend function webhook, verify webhook signature Kotlin, Ktor webhook endpoint, send webhook event Kotlin]
+sdkTarget: kotlin
 ---
 
 # Kotlin SDK
@@ -39,11 +40,7 @@ For Gradle, the same coordinates: `implementation("com.hook0:hook0-client-kotlin
 
 ## Send an event
 
-```kotlin
-import com.hook0.kotlin.Event
-import com.hook0.kotlin.Hook0Client
-import java.util.UUID
-
+```kotlin example=send
 Hook0Client("https://app.hook0.com/api/v1", applicationId, token).use { client ->
   val sent: UUID = client.sendEvent(
     Event(
@@ -58,13 +55,13 @@ Hook0Client("https://app.hook0.com/api/v1", applicationId, token).use { client -
 
 The same send, suspending:
 
-```kotlin
+```kotlin example=send_suspending
 val sent: UUID = client.sendEventSuspending(event)
 ```
 
 `Event` is a data class with three required parameters and four that default:
 
-```kotlin
+```kotlin example=event_builder
 Event(
   eventType = "billing.invoice.paid",
   payload = """{"invoice":"in_123"}""",
@@ -90,11 +87,7 @@ A retried request that Hook0 answers with `EventAlreadyIngested` reports success
 
 ## Bounds, and how to change them
 
-```kotlin
-import com.hook0.kotlin.Options
-import com.hook0.kotlin.RetryPolicy
-import java.time.Duration
-
+```kotlin example=bounds
 val options = Options.defaults().copy(
   retryPolicy = RetryPolicy(
     maxAttempts = 4,
@@ -126,10 +119,7 @@ Those are the defaults, and `Options.defaults()` and `RetryPolicy.defaults()` re
 
 ## Verify a webhook signature
 
-```kotlin
-import com.hook0.kotlin.Webhooks
-import java.time.Duration
-
+```kotlin example=verify
 Webhooks.verify(
   request.getHeader("X-Hook0-Signature"),
   rawBody,
@@ -149,7 +139,7 @@ The clock window is bilateral: a moment too far in the future is refused exactly
 
 ### Ktor
 
-```kotlin
+```kotlin example=ktor
 routing {
   post("/webhook") {
     val rawBody = call.receiveText()
@@ -181,7 +171,7 @@ routing {
 
 An event whose type the application does not declare is refused. Only the missing ones are created, and those are what comes back:
 
-```kotlin
+```kotlin example=upsert
 val created: List<String> = client.upsertEventTypes(
   listOf("billing.invoice.paid", "billing.invoice.voided")
 )
@@ -193,10 +183,7 @@ val created: List<String> = client.upsertEventTypes(
 
 Sending events is two methods out of the whole API. Every operation Hook0 declares is generated, grouped by entity, in both flavours:
 
-```kotlin
-import com.hook0.kotlin.generated.ApplicationsApi
-import com.hook0.kotlin.generated.ApplicationsSuspendingApi
-
+```kotlin example=rest_api
 val application = ApplicationsApi(client.transport).get(applicationId)
 
 val suspended = ApplicationsSuspendingApi(client.transport).get(applicationId)

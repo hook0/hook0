@@ -2,6 +2,7 @@
 title: "C# / .NET webhook SDK — Hook0.Client"
 description: "Send Hook0 events and verify webhook signatures from .NET 8. Blocking and Task-returning methods, zero runtime dependencies, retries and payload bounds built in."
 keywords: [C# webhook SDK, .NET webhook client, Hook0.Client NuGet, verify webhook signature C#, ASP.NET Core webhook endpoint, send webhook event dotnet]
+sdkTarget: csharp
 ---
 
 # C# SDK
@@ -16,13 +17,11 @@ The package has zero runtime dependencies. It reaches the network, verifies sign
 dotnet add package Hook0.Client
 ```
 
-The package targets `net8.0`. The root namespace is `Hook0`.
+The package targets `net8.0`. The root namespace is `Hook0`, and every snippet below assumes `using Hook0;`.
 
 ## Send an event
 
-```csharp
-using Hook0;
-
+```csharp example=send
 using Hook0Client client = new(
     apiUrl: "https://app.hook0.com/api/v1",
     applicationId: "your-application-id",
@@ -39,13 +38,13 @@ string eventId = client.SendEvent(new Event
 
 The same send, awaited:
 
-```csharp
+```csharp example=send_async
 string eventId = await client.SendEventAsync(anEvent, cancellationToken);
 ```
 
 `Event` is a record with three `required` members and four optional ones:
 
-```csharp
+```csharp example=event
 new Event
 {
     EventType = "billing.invoice.paid",
@@ -74,7 +73,7 @@ A retried request that Hook0 answers with `EventAlreadyIngested` reports success
 
 ## Bounds, and how to change them
 
-```csharp
+```csharp example=configure
 using Hook0Client client = new(
     apiUrl: "https://app.hook0.com/api/v1",
     applicationId: applicationId,
@@ -110,9 +109,7 @@ Those are the defaults.
 
 ## Verify a webhook signature
 
-```csharp
-using Hook0;
-
+```csharp example=verify
 try
 {
     Webhooks.VerifyWebhookSignature(
@@ -135,7 +132,7 @@ The clock window is bilateral, so a delivery dated too far ahead is refused exac
 
 ### ASP.NET Core
 
-```csharp
+```csharp example=aspnet
 app.MapPost("/webhook", async (HttpRequest request, CancellationToken cancellationToken) =>
 {
     using MemoryStream buffered = new();
@@ -169,7 +166,7 @@ Read the body into bytes yourself. Model binding has already reshaped anything i
 
 An event whose type the application does not declare is refused. Only the missing ones are created, and those are what comes back:
 
-```csharp
+```csharp example=upsert
 IReadOnlyList<string> created = client.UpsertEventTypes(
     ["billing.invoice.paid", "billing.invoice.voided"]);
 ```
@@ -178,12 +175,9 @@ IReadOnlyList<string> created = client.UpsertEventTypes(
 
 ## Calling the rest of the API
 
-Sending events is two methods out of the whole API. Every operation Hook0 declares is a method on a generated group, in both idioms, over the transport the client already built:
+Sending events is two methods out of the whole API. Every operation Hook0 declares is a method on a generated group, in both idioms, over the transport the client already built — `using Hook0.Generated;` reaches them:
 
-```csharp
-using Hook0;
-using Hook0.Generated;
-
+```csharp example=generated
 ApplicationsApi applications = new(client.Transport);
 IReadOnlyList<Application> mine = applications.List("your-organization-id");
 
@@ -206,7 +200,7 @@ Each problem the API can report is an exception of its own under `ProblemExcepti
 
 `SendException`, `EventTypeException` and `SignatureException` all derive from `Hook0Exception`, so one `catch` covers the three.
 
-```csharp
+```csharp example=errors
 try
 {
     string eventId = client.SendEvent(anEvent);

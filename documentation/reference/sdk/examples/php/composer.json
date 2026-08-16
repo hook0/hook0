@@ -1,0 +1,27 @@
+{
+    "name": "hook0/documentation-examples-php",
+    "description": "Every PHP example of documentation/reference/sdk/php.md, assembled and type-checked against the real client.",
+    "type": "project",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "{{client}}"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "hook0/client": "*@dev"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "2.2.8",
+        "illuminate/contracts": "11.51.0",
+        "illuminate/http": "11.51.0",
+        "illuminate/routing": "11.51.0",
+        "illuminate/support": "11.51.0",
+        "psr/log": "3.0.2"
+    },
+    "minimum-stability": "stable",
+    "config": {
+        "sort-packages": true
+    }
+}

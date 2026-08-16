@@ -1,0 +1,36 @@
+# How a Zig example of the SDK reference is proven.
+#
+# Zig analyses a declaration only once something needs it, so a `pub fn` nobody calls is never even
+# looked at — building the client's own package does not, by itself, prove a page's example beside
+# it compiles. `build.zig` here writes a small root that does `std.testing.refAllDecls` on every
+# file it finds under `examples/`, forcing each one's declarations to be fully analysed rather than
+# skipped, and builds that root as a module that imports `hook0` straight from `clients/zig`'s own
+# `src/root.zig` — no `zig fetch`, no registry, the same source this checkout would ship.
+#
+# One example is different: the one showing what a *consumer's* `build.zig` writes to depend on
+# this package cannot be proven inside that module, because `b.dependency(...)` only resolves
+# inside a real build run, not inside ordinary compiled code. `install-check/` is a second,
+# throwaway Zig package that depends on `clients/zig` by path — generated at configure time, since
+# the path from wherever this project is assembled back to the client is not known until then — and
+# a second command builds it for real, proving the dependency actually wires up.
+#
+# Nothing is run beyond that: every send in these pages needs a live API, and `smoke/` is where a
+# live API is stood up.
+proof = "compiled"
+proves = "assembled against clients/zig and built — every example forced through Zig's lazy analysis by std.testing.refAllDecls, and the build.zig dependency example additionally proven by a real `zig build` of a throwaway project depending on the client by path; a renamed method, a changed signature or broken dependency wiring fails"
+
+path = "examples/{{name}}.zig"
+timeout_seconds = 300
+
+run = [
+    ["zig", "build", "test"],
+    ["zig", "build", "--build-file", "install-check/build.zig"],
+]
+
+[environment]
+# Both builds above are pointed at caches inside the assembled project itself, rather than the
+# tester's shared `~/.cache/zig`: what one run of this checker leaves behind stays beside the
+# project it was assembled into, never mixed into another run's cache, another language's, or
+# `clients/zig`'s own — the client is only ever read here, never built.
+ZIG_LOCAL_CACHE_DIR = ".zig-cache"
+ZIG_GLOBAL_CACHE_DIR = ".zig-global-cache"

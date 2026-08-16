@@ -2,6 +2,7 @@
 title: "Java webhook SDK — com.hook0:hook0-client"
 description: "Send Hook0 events and verify webhook signatures from Java 21. Blocking and CompletableFuture methods, no transitive dependencies. Not yet on Maven Central."
 keywords: [Java webhook SDK, Hook0 Java client, verify webhook signature Java, Spring Boot webhook endpoint, CompletableFuture webhook, send webhook event Java]
+sdkTarget: java
 ---
 
 # Java SDK
@@ -39,12 +40,7 @@ For Gradle, the same coordinates: `implementation("com.hook0:hook0-client:1.1.0"
 
 ## Send an event
 
-```java
-import com.hook0.client.Event;
-import com.hook0.client.Hook0Client;
-import java.util.Map;
-import java.util.UUID;
-
+```java example=send
 try (Hook0Client client = new Hook0Client("https://app.hook0.com/api/v1", applicationId, token)) {
   UUID sent = client.sendEvent(
       Event.of(
@@ -57,13 +53,13 @@ try (Hook0Client client = new Hook0Client("https://app.hook0.com/api/v1", applic
 
 The same send, without waiting for it:
 
-```java
+```java example=send_async
 CompletableFuture<UUID> sending = client.sendEventAsync(event);
 ```
 
 `Event.of` covers the four fields most sends set. The rest arrive through withers:
 
-```java
+```java example=event_builder
 Event event = Event.of("billing.invoice.paid", payload, "application/json", Map.of())
     .withMetadata(Map.of("emitter", "billing-worker"))
     .withOccurredAt(OffsetDateTime.now(ZoneOffset.UTC))
@@ -84,11 +80,7 @@ A retried request that Hook0 answers with `EventAlreadyIngested` reports success
 
 ## Bounds, and how to change them
 
-```java
-import com.hook0.client.Options;
-import com.hook0.client.RetryPolicy;
-import java.time.Duration;
-
+```java example=bounds
 Options options = Options.defaults()
     .withRetryPolicy(new RetryPolicy(
         4,
@@ -118,10 +110,7 @@ Those are the defaults, and `Options.defaults()` and `RetryPolicy.defaults()` re
 
 ## Verify a webhook signature
 
-```java
-import com.hook0.client.Webhooks;
-import java.time.Duration;
-
+```java example=verify
 Webhooks.verify(
     request.getHeader("X-Hook0-Signature"),
     rawBody,
@@ -140,7 +129,7 @@ The clock window is bilateral: a moment too far in the future is refused exactly
 
 ### Spring Boot
 
-```java
+```java example=spring
 @PostMapping(path = "/webhook", consumes = MediaType.ALL_VALUE)
 public ResponseEntity<Void> webhook(
     @RequestBody String rawBody,
@@ -172,7 +161,7 @@ Binding the body as a `String` keeps the bytes Spring received. Binding it to a 
 
 An event whose type the application does not declare is refused. Only the missing ones are created, and those are what comes back:
 
-```java
+```java example=upsert
 List<String> created = client.upsertEventTypes(
     List.of("billing.invoice.paid", "billing.invoice.voided"));
 ```
@@ -183,9 +172,7 @@ List<String> created = client.upsertEventTypes(
 
 Sending events is two methods out of the whole API. Every operation Hook0 declares is generated, grouped by entity, in both flavours:
 
-```java
-import com.hook0.client.generated.*;
-
+```java example=rest_api
 ApplicationsApi applications = new ApplicationsApi(client.transport());
 ApplicationInfo application = applications.get(applicationId);
 

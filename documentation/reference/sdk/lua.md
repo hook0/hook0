@@ -2,6 +2,7 @@
 title: "Lua webhook SDK — hook0-client rock"
 description: "Send Hook0 events and verify webhook signatures from Lua 5.3 or 5.4. Blocking, two dependencies, retries and payload bounds built in."
 keywords: [Lua webhook SDK, Hook0 Lua client, verify webhook signature Lua, OpenResty webhook, luarocks hook0-client, send webhook event Lua]
+sdkTarget: lua
 ---
 
 # Lua SDK
@@ -31,7 +32,7 @@ luarocks make hook0-client-1.1.0-1.rockspec
 
 ## Send an event
 
-```lua
+```lua example=send
 local Hook0 = require("hook0")
 
 local client = Hook0.Client.new("https://app.hook0.com/api/v1", application_id, token)
@@ -46,7 +47,7 @@ local event_id = client:send_event({
 
 An event is a plain table. Three fields are required and four are optional:
 
-```lua
+```lua example=event
 {
   event_type = "billing.invoice.paid",
   payload = '{"invoice": "in_123"}',
@@ -76,7 +77,7 @@ The random half of a generated ID comes from `math.random`. Lua 5.4 seeds it at 
 
 ## Bounds, and how to change them
 
-```lua
+```lua example=bounds
 local client = Hook0.Client.new(
   "https://app.hook0.com/api/v1",
   application_id,
@@ -111,7 +112,7 @@ Those are the defaults. Durations are seconds.
 
 ## Verify a webhook signature
 
-```lua
+```lua example=verify
 local ok, refused = pcall(
   Hook0.verify_webhook_signature,
   request.headers["x-hook0-signature"],
@@ -136,7 +137,7 @@ The clock window is bilateral: a webhook signed too far in the future is refused
 
 Every failure this client raises is a table carrying the kind it is, never a string. Kinds chain, so one test covers a whole family:
 
-```lua
+```lua example=match
 local ok, raised = pcall(function() return client:send_event(event) end)
 
 if not ok then
@@ -158,7 +159,7 @@ The kinds are `Hook0.ClientError` at the root, with `Hook0.TransportError`, `Hoo
 
 An event whose type the application does not declare is refused. `upsert_event_types` creates the ones that are missing and returns only those it created:
 
-```lua
+```lua example=upsert
 local created = client:upsert_event_types({
   "billing.invoice.paid",
   "billing.invoice.voided",
@@ -171,7 +172,7 @@ An event type is written `service.resource_type.verb`. `Hook0.EventType.parse` r
 
 Sending events is two methods out of the whole API. `Hook0.api` builds one group per entity over a transport:
 
-```lua
+```lua example=api
 local api = Hook0.api(client.transport)
 local secrets = api.ApplicationSecretsApi:list(application_id)
 ```
