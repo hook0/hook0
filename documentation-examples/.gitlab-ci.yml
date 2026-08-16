@@ -50,21 +50,36 @@ documentation.examples:
       - .nuget/packages/
   before_script:
     - apt-get update
-    # Ten toolchains, of which eight are what Debian ships for this release. Two are not: Zig makes
-    # no stability promise between releases and Debian's is not the one this repository pins, and
-    # the Kotlin compiler is not packaged at all.
+    # Ten toolchains, of which six are what Debian ships for this release. Four are not, and each is
+    # fetched from its own vendor below: Debian's Go is older than the release `clients/go/go.mod`
+    # requires, Zig makes no stability promise between releases and Debian's is not the one this
+    # repository pins, the Kotlin compiler is not packaged at all, and Debian carries no .NET under
+    # any component — the only things it ships answering to that description are Mono-era CIL
+    # libraries.
+    #
+    # `php-curl` is here because `clients/php/composer.json` requires `ext-curl`, and Composer
+    # refuses to resolve a package whose platform requirements the interpreter cannot meet. The
+    # other two extensions it names, `ext-hash` and `ext-json`, are built into PHP itself.
     - >
       apt-get install --yes --no-install-recommends
       build-essential ca-certificates curl unzip xz-utils
-      golang-go
       nodejs npm
       python3 python3-venv
       ruby
-      php-cli php-mbstring php-xml composer
+      php-cli php-curl php-mbstring php-xml composer
       lua5.4 liblua5.4-dev luarocks
       openjdk-${JAVA_VERSION}-jdk-headless maven
-      dotnet-sdk-${DOTNET_VERSION}
     - mkdir -p "$TOOLCHAINS"
+    # Debian's Go is older than what `clients/go/go.mod` declares, and Go cannot make up the
+    # difference on its own here: the examples build under `GOPROXY = "off"`, set where they are
+    # declared so that a red pipeline is a statement about the documentation rather than about the
+    # network, and fetching a newer toolchain is itself a proxy fetch. So the release is fetched
+    # here, resolved from the variable naming the image `clients.go.check` runs on, and the two jobs
+    # move together when it is raised.
+    - GO_RELEASE="$(curl -fsSL https://go.dev/dl/?mode=json | sed -n 's/.*"version":[ ]*"\(go[0-9.]*\)".*/\1/p' | grep "^go${GO_VERSION%%-*}\." | head -1)"
+    - test -n "$GO_RELEASE" || { echo "go.dev lists no release of Go ${GO_VERSION%%-*}, which is the release \$GO_VERSION names"; exit 1; }
+    - curl -fsSL "https://go.dev/dl/${GO_RELEASE}.linux-amd64.tar.gz" | tar -xz -C "$TOOLCHAINS"
+    - ln -sf "$TOOLCHAINS/go/bin/go" /usr/local/bin/go
     # Pinned by the root variable, exactly rather than by minor, for the reason stated where it is
     # declared: a floating Zig would rewrite the meaning of the source under it without a commit.
     - curl -fsSL "https://ziglang.org/download/${ZIG_VERSION}/zig-x86_64-linux-${ZIG_VERSION}.tar.xz" | tar -xJ -C "$TOOLCHAINS"
@@ -77,6 +92,17 @@ documentation.examples:
     - curl -fsSLo /tmp/kotlin-compiler.zip "https://github.com/JetBrains/kotlin/releases/download/v${KOTLIN_VERSION}/kotlin-compiler-${KOTLIN_VERSION}.zip"
     - unzip -q /tmp/kotlin-compiler.zip -d "$TOOLCHAINS"
     - ln -sf "$TOOLCHAINS/kotlinc/bin/kotlinc" /usr/local/bin/kotlinc
+    # The last of the four, and the only one no distribution carries at all. `dotnet-install.sh` is
+    # how Microsoft hands the SDK to a machine it is not provisioning by `apt`, which is what this
+    # one is — the same fetch-and-link as the three above, rather than a package feed and a second
+    # trust root added to the image for one language.
+    #
+    # `--channel` is handed the variable `clients.csharp.check` builds its image tag from, so the
+    # two jobs resolve one SDK and move together when it is raised. Two jobs proving C# against two
+    # SDKs would be worse than either of them failing.
+    - curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
+    - bash /tmp/dotnet-install.sh --channel "$DOTNET_VERSION" --install-dir "$TOOLCHAINS/dotnet" --no-path
+    - ln -sf "$TOOLCHAINS/dotnet/dotnet" /usr/local/bin/dotnet
     # The caches above are inside the checkout, which is the only thing GitLab will carry between
     # runs, so every tool is pointed at them.
     - export CARGO_HOME="$CI_PROJECT_DIR/.cargo"
