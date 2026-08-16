@@ -530,6 +530,28 @@ mod tests {
         assert_eq!(read["x-reason"].as_str(), Some("café"));
     }
 
+    /// The bytes a target sends need not be UTF-8 at all. What cannot be decoded is replaced, so
+    /// the readable part of the value still reaches the record.
+    #[test]
+    fn response_headers_read_a_value_that_is_not_utf8() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "x-reason",
+            HeaderValue::from_bytes(b"caf\xe9").expect("a legal header value"),
+        );
+
+        let response = Response {
+            response_error: None,
+            http_code: Some(200),
+            headers: Some(headers),
+            body: None,
+            elapsed_time: Duration::from_millis(1),
+        };
+
+        let read = response.headers().expect("headers must be readable");
+        assert_eq!(read["x-reason"].as_str(), Some("caf\u{FFFD}"));
+    }
+
     #[test]
     fn create_signature_v0() {
         let signed_at = Utc.with_ymd_and_hms(2021, 11, 15, 0, 30, 0).unwrap();
