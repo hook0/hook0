@@ -77,8 +77,27 @@ module Hook0
     # @return [Float]
     def backoff_ceiling(retry_number)
       doublings = (retry_number - 1).clamp(0, MAX_BACKOFF_DOUBLINGS)
-      ceiling = @max_backoff.clamp(0.0, Float::INFINITY)
-      (@initial_backoff.clamp(0.0, Float::INFINITY) * (2**doublings)).clamp(0.0, ceiling)
+      ceiling = self.class.within(@max_backoff, 0.0, Float::INFINITY)
+      grown = self.class.within(@initial_backoff, 0.0, Float::INFINITY) * (2**doublings)
+      self.class.within(grown, 0.0, ceiling)
+    end
+
+    # A number a caller set, brought inside a range whatever it was.
+    #
+    # `Float::NAN` answers false to every comparison, so `clamp` and `max` raise on it rather than
+    # ordering it, and a policy holding one would take down every send it was configured for rather
+    # than spacing one out. It is read as the bottom of the range, which is what a duration no
+    # schedule could be built on already means to the other clients.
+    #
+    # @param value [Numeric]
+    # @param lowest [Float]
+    # @param highest [Float]
+    # @return [Float]
+    def self.within(value, lowest, highest)
+      number = value.to_f
+      return lowest if number.nan?
+
+      number.clamp(lowest, highest)
     end
 
     # The delays this policy waits between the attempts of one send, one per retry.
@@ -93,7 +112,7 @@ module Hook0
     # @param draws [Array<Float>] one draw in `[0, 1)` per retry
     # @return [Array<Float>]
     def delays(draws)
-      budget = [@max_total_delay, 0.0].max
+      budget = self.class.within(@max_total_delay, 0.0, Float::INFINITY)
       waits = []
       spent = 0.0
 

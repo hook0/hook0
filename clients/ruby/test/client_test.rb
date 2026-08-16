@@ -257,6 +257,22 @@ module Hook0Test
       assert_operator delays.sum, :<=, policy.max_total_delay
     end
 
+    def test_a_policy_holding_a_duration_that_is_not_a_number_still_builds_a_schedule
+      # `Float::NAN` answers false to every comparison, so ordering it raises rather than placing
+      # it: a policy holding one used to take down every send it was configured for, at the first
+      # `clamp`. It is read as nothing instead, which is what the other clients already do with a
+      # duration no schedule could be built on.
+      %i[initial_backoff max_backoff max_total_delay].each do |held|
+        chosen = { max_attempts: 4, initial_backoff: 0.1, max_backoff: 2.0, max_total_delay: 5.0 }
+        policy = Hook0::RetryPolicy.new(**chosen, held => Float::NAN)
+
+        delays = policy.delays([0.5, 0.5, 0.5])
+
+        assert delays.all? { |waited| waited.finite? && waited >= 0.0 },
+               "a policy holding `#{held}: NaN` scheduled #{delays.inspect}"
+      end
+    end
+
     def test_a_disabled_policy_waits_for_nothing
       policy = Hook0::RetryPolicy.disabled
 
