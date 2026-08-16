@@ -8,6 +8,54 @@ use std::time::Duration;
 use tracing::{debug, warn};
 use url::Url;
 
+/// Longest each part this client composes its `User-Agent` out of may be, in characters.
+///
+/// The operating system is described by the platform rather than by this crate, so its length is
+/// not this crate's to guarantee: the parts are cut here so that the header cannot grow with
+/// whatever the platform feels like saying. Every part is also stripped of anything the grammar of
+/// the header uses as punctuation, so a platform cannot forge a shape it does not have.
+const MAX_USER_AGENT_PART_CHARS: usize = 64;
+
+/// Name of the header every request states the retry policy behind it under.
+const CLIENT_OPTIONS: &str = "hook0-client-options";
+
+/// The retry policy behind every request this client makes, which is no retrying at all.
+///
+/// The SDKs carry a policy a caller sets and state it here; this server holds none, so it states
+/// the one attempt it makes and the nothing it waits between attempts it does not make. The shape
+/// is the shared contract's: parts joined by `,`, each cut at its first `=`, every duration a count
+/// of milliseconds. Saying nothing instead would leave an instance unable to tell this server from
+/// an SDK whose header went missing.
+const NO_RETRIES: &str = "attempts=1,backoff=0,ceiling=0,budget=0";
+
+/// Which SDK, at which version, on which runtime and operating system, is talking to the API.
+///
+/// The version is read from the manifest of this crate rather than written down again here: one
+/// remembered in two places is one that will disagree with itself the first time it is bumped. The
+/// name is this target's own rather than the Rust SDK's, since telling the two apart is the whole
+/// point of an instance reading this.
+fn user_agent() -> String {
+    let version = clipped_part(env!("CARGO_PKG_VERSION"));
+    // Nothing in the standard library answers which compiler built this, so the runtime is named
+    // and not versioned; the operating system and the architecture are what it runs on.
+    let os = clipped_part(&format!(
+        "{} {}",
+        std::env::consts::OS,
+        std::env::consts::ARCH
+    ));
+    format!("hook0-client-mcp/{version} (rust; {os})")
+}
+
+/// One part of the `User-Agent`, with everything the header's own grammar uses taken out of it and
+/// cut to [`MAX_USER_AGENT_PART_CHARS`].
+fn clipped_part(part: &str) -> String {
+    part.chars()
+        .filter(|c| c.is_ascii_graphic() || *c == ' ')
+        .filter(|c| !matches!(c, '(' | ')' | ';'))
+        .take(MAX_USER_AGENT_PART_CHARS)
+        .collect()
+}
+
 /// HTTP client for Hook0 API
 #[derive(Debug, Clone)]
 pub struct Hook0Client {
@@ -30,10 +78,19 @@ impl Hook0Client {
             header::CONTENT_TYPE,
             header::HeaderValue::from_static("application/json"),
         );
+        // Said once here rather than per request: nothing this server does changes the policy
+        // behind its requests, since it holds none to change.
+        headers.insert(
+            header::HeaderName::from_static(CLIENT_OPTIONS),
+            header::HeaderValue::from_static(NO_RETRIES),
+        );
 
         // Create HTTP client
         let client = Client::builder()
             .default_headers(headers)
+            // An instance can otherwise not tell which SDKs, at which versions, are still reaching
+            // it — and this server went a whole release without saying either.
+            .user_agent(user_agent())
             .timeout(Duration::from_secs(30))
             .connect_timeout(Duration::from_secs(10))
             .build()
@@ -231,6 +288,98 @@ fn refusal(body: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::Transport;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+
+    /// Longest the exchange below is given before it is abandoned, so a socket that never answers
+    /// fails the case rather than holding the suite.
+    const EXCHANGE_TIMEOUT: Duration = Duration::from_secs(10);
+
+    /// Largest request head read back off the socket, in bytes.
+    const MAX_HEAD_BYTES: usize = 16 * 1024;
+
+    /// What this server puts on the wire, read back off a socket rather than off the builder.
+    ///
+    /// This target's generated half is a tool table, so the shared conformance corpus is not a
+    /// contract about it and no suite holds it to one. That is how it went a whole release stating
+    /// neither which client it is nor the policy behind its requests, while the eleven SDKs stated
+    /// both. Until something else covers it, this case is what keeps the two headers on.
+    #[tokio::test]
+    async fn every_request_states_which_client_it_is_and_the_policy_behind_it() {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("a loopback port is available to bind");
+        let address = listener
+            .local_addr()
+            .expect("a bound listener has a local address");
+
+        let served = tokio::spawn(async move {
+            let (mut stream, _) = listener
+                .accept()
+                .await
+                .expect("the client reaches the listening socket");
+
+            let mut head = Vec::new();
+            let mut byte = [0u8; 1];
+            while !head.ends_with(b"\r\n\r\n") && head.len() < MAX_HEAD_BYTES {
+                match stream.read(&mut byte).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => head.push(byte[0]),
+                }
+            }
+
+            stream
+                .write_all(b"HTTP/1.1 204 No Content\r\ncontent-length: 0\r\n\r\n")
+                .await
+                .expect("the answer is written back");
+            String::from_utf8_lossy(&head).into_owned()
+        });
+
+        let config = Config {
+            api_url: Url::parse(&format!("http://{address}"))
+                .expect("a loopback address makes a parsable base URL"),
+            api_token: "token-xyz".to_owned(),
+            transport: Transport::Stdio,
+            read_only: false,
+        };
+        let client = Hook0Client::new(&config).expect("the client accepts a loopback API URL");
+
+        tokio::time::timeout(EXCHANGE_TIMEOUT, client.get("/applications"))
+            .await
+            .expect("the exchange finishes inside its deadline")
+            .expect("the API answers the request");
+
+        let head = tokio::time::timeout(EXCHANGE_TIMEOUT, served)
+            .await
+            .expect("the socket finishes reading inside its deadline")
+            .expect("the listening task ran to the end");
+        let lines: Vec<&str> = head.lines().map(str::trim).collect();
+
+        let stated = lines
+            .iter()
+            .find_map(|line| line.strip_prefix("hook0-client-options: "))
+            .unwrap_or_else(|| panic!("the request states no retry policy, in {lines:?}"));
+        assert_eq!(
+            stated, NO_RETRIES,
+            "a server that never retries states `{stated}`",
+        );
+
+        let identified = lines
+            .iter()
+            .find_map(|line| line.strip_prefix("user-agent: "))
+            .unwrap_or_else(|| {
+                panic!("the request says nothing about which client it is, in {lines:?}")
+            });
+        assert!(
+            identified.starts_with("hook0-client-mcp/"),
+            "the request comes from `{identified}`, which does not name this target",
+        );
+        assert!(
+            !identified.contains("hook0-client-rust/"),
+            "the request identifies itself as the Rust SDK, which an instance cannot tell apart",
+        );
+    }
 
     /// The problem document Hook0 answers a duplicated ingestion with, as its API writes it.
     const ALREADY_INGESTED: &str = r#"{"id":"EventAlreadyIngested","title":"Event already Ingested","detail":"This event was previously ingested and recorded inside Hook0 service.","status":409}"#;
