@@ -169,22 +169,25 @@ exercises, in every client, against vectors with a moment pinned in them.
 
 ## What it found on its first run
 
-Two clients do not pass, and neither failure is in this harness. Both are the kind of defect that
-only a real instance can show, which is the argument for the whole exercise.
+Two clients failed, and neither failure was in this harness. Both are the kind of defect that only a
+real instance can show, which is the argument for the whole exercise. Both are fixed, and each is
+now held by a case in its own client's suite as well as by the run below.
 
-**The TypeScript client drops the API's base path.** It resolves the endpoint with
+**The TypeScript client dropped the API's base path.** It resolved the endpoint with
 `new URL('event', this.apiUrl)`, and relative resolution against a base whose path has no trailing
 slash discards the last segment: given `https://app.hook0.com/api/v1` — the base URL the sibling
-SDKs' READMEs all spell without a trailing slash — it posts to `/api/event`. The 404 that comes back
-carries no body, so the failure is reported as `Sending event … failed: Error`, with nothing said
-about what went wrong. Every other client accepts the base URL either way.
+SDKs' READMEs all spell without a trailing slash — it posted to `/api/event`. Every other client
+accepts the base URL either way. The 404 that came back carried no body, and what the caller was
+handed for it was `Sending event … failed: Error`, which names neither what was reached nor what
+came back. Both are fixed: the base is given its trailing slash once, when the client is built, and
+a refused send names the status, the problem the answer identified, and what that answer said.
 
-**The MCP server discards the identifier of the problem it was told.** `Hook0McpClient` reduces an
+**The MCP server discarded the identifier of the problem it was told.** `Hook0McpClient` reduced an
 error answer to `message`, `error` or `detail`, in that order, and Hook0's problem document carries
-the stable name under `id`. So a duplicated ingestion reaches the assistant as
-`API error (409): This event was previously ingested…` — English prose, under the generic
-`internal_error` code. There is no machine-readable way to tell that conflict from any other, which
-is exactly what an assistant deciding whether to retry needs.
+the stable name under `id`. So a duplicated ingestion reached the assistant as
+`API error (409): This event was previously ingested…` — English prose, with no machine-readable way
+to tell that conflict from any other, which is exactly what an assistant deciding whether to retry
+needs. The name is read out of the document and reported ahead of the prose now.
 
 ## The one client that does less
 

@@ -201,7 +201,9 @@ export class Hook0ClientError extends Error {
    * @param error - Error details
    */
   static EventSending(eventId: string | undefined, error: Error): Hook0ClientError {
-    return new Hook0ClientError(`Sending event${eventId ? ' ' + eventId : ''} failed: ${said(error)}`);
+    return new Hook0ClientError(
+      `Sending event${eventId ? ' ' + eventId : ''} failed: ${said(error)}`
+    );
   }
 
   /**

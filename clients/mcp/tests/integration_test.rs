@@ -777,3 +777,123 @@ mod prompts {
         );
     }
 }
+
+// =============================================================================
+// Refusal Tests
+// =============================================================================
+
+/// What reaches an assistant when Hook0 refuses one of its tool calls.
+///
+/// The server is driven over its stdio transport, as everywhere else here, but the Hook0 it is
+/// pointed at is a socket this test listens on and answers a real problem document from. No
+/// credentials and no instance are needed, so unlike the tests above these are not `#[ignore]`d:
+/// what they are about is how an answer is read, and the answer is right here.
+mod refusals {
+    use super::*;
+    use std::io::Read;
+    use std::net::TcpListener;
+    use std::thread;
+
+    /// The problem document Hook0 answers a duplicated ingestion with, as its API writes it.
+    const ALREADY_INGESTED: &str = r#"{"id":"EventAlreadyIngested","title":"Event already Ingested","detail":"This event was previously ingested and recorded inside Hook0 service.","status":409}"#;
+
+    /// Longest request this listener reads before it answers, in bytes.
+    const MAX_REQUEST_BYTES: usize = 64 * 1024;
+
+    /// Longest this listener waits on a socket that has stopped saying anything.
+    const PATIENCE: Duration = Duration::from_secs(10);
+
+    /// A Hook0 that refuses the first request it is sent, and answers where it is listening.
+    fn refusing_hook0(status: &'static str, body: &'static str) -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to listen");
+        let at = format!(
+            "http://{}",
+            listener.local_addr().expect("Failed to read the port")
+        );
+
+        thread::spawn(move || {
+            let Ok((mut connection, _)) = listener.accept() else {
+                return;
+            };
+            let _ = connection.set_read_timeout(Some(PATIENCE));
+            let _ = connection.set_write_timeout(Some(PATIENCE));
+
+            // Read the head, so the request is off the socket before it is answered. The body
+            // after it is not read: nothing here reads what was sent, and the answer is the same
+            // either way.
+            let mut held = Vec::new();
+            let mut byte = [0u8; 1];
+            while held.len() < MAX_REQUEST_BYTES && !held.ends_with(b"\r\n\r\n") {
+                match connection.read(&mut byte) {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => held.push(byte[0]),
+                }
+            }
+
+            let _ = write!(
+                connection,
+                "HTTP/1.1 {status}\r\nContent-Type: application/problem+json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            let _ = connection.flush();
+        });
+
+        at
+    }
+
+    /// One ingestion, with every argument the generated tool declares it needs.
+    fn an_ingestion() -> Value {
+        json!({
+            "name": "events.ingest",
+            "arguments": {
+                "application_id": "6f8a3e1c-9a2b-4d5e-8f70-1c2d3e4f5a6b",
+                "event_id": "0195c0de-0000-7000-8000-000000000001",
+                "event_type": "smoke.event.sent",
+                "labels": { "language": "mcp" },
+                "occurred_at": "2026-01-01T00:00:00Z",
+                "payload": "{\"from\":\"a test\"}",
+                "payload_content_type": "application/json",
+            },
+        })
+    }
+
+    #[test]
+    fn a_refused_tool_call_names_the_problem_hook0_named() {
+        let mut server = McpServerProcess::spawn(
+            "placeholder-token-never-used",
+            &refusing_hook0("409 Conflict", ALREADY_INGESTED),
+        );
+        server.initialize();
+
+        let response = server.send_request("tools/call", an_ingestion());
+
+        let error = response.error.expect("A refused call should return error");
+        // Its stable name is the only part of a refusal an assistant can act on: it is what tells
+        // an ingestion that already happened, and must not be tried again, from any other conflict.
+        assert!(
+            error.message.contains("EventAlreadyIngested"),
+            "A refusal has to name the problem Hook0 named: {}",
+            error.message
+        );
+    }
+
+    #[test]
+    fn a_refused_tool_call_says_what_the_problem_said() {
+        let mut server = McpServerProcess::spawn(
+            "placeholder-token-never-used",
+            &refusing_hook0("409 Conflict", ALREADY_INGESTED),
+        );
+        server.initialize();
+
+        let response = server.send_request("tools/call", an_ingestion());
+
+        let error = response.error.expect("A refused call should return error");
+        assert!(
+            error
+                .message
+                .contains("This event was previously ingested and recorded inside Hook0 service."),
+            "A refusal has to carry what Hook0 said about it: {}",
+            error.message
+        );
+    }
+}

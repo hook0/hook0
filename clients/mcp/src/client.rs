@@ -245,7 +245,10 @@ mod tests {
 
     #[test]
     fn a_refusal_that_names_no_problem_is_reported_as_it_arrived() {
-        assert_eq!(refusal("<html>502 Bad Gateway</html>"), "<html>502 Bad Gateway</html>");
+        assert_eq!(
+            refusal("<html>502 Bad Gateway</html>"),
+            "<html>502 Bad Gateway</html>"
+        );
         assert_eq!(refusal(r#"{"message":"nope"}"#), "nope");
         assert_eq!(refusal(""), "");
     }
