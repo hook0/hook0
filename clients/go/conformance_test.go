@@ -640,6 +640,32 @@ func TestEveryRequestCarriesWhatTheCorpusSaysItDoes(t *testing.T) {
 	}
 }
 
+// TestAPolicyAskingForMoreAttemptsThanTheCapStatesTheCap holds the options header to what the
+// client will do rather than to what it was handed.
+//
+// This is the one place where those two come apart, and so the one place the header can be read two
+// ways. A client stating the number it was asked for puts a reader on watch for a burst that cannot
+// arrive, so the cap is what goes on the wire. The cap is read from the corpus, so every target
+// answers to one number.
+func TestAPolicyAskingForMoreAttemptsThanTheCapStatesTheCap(t *testing.T) {
+	capped := int(boundOf(t, corpus[boundsContract](t, "bounds.json"), "max_attempts_cap"))
+
+	api := listen(t)
+	api.willAnswer(ingested("a5b4dd60-6ab4-4bd6-9f0b-1a4f8a2a0003"))
+
+	if _, err := client(api, promptOptions(capped+1)).SendEvent(bounded(t), anEvent()); err != nil {
+		t.Fatalf("a send under a policy asking for more attempts than the cap failed: %v", err)
+	}
+
+	stated := api.requests()[0].headers.Get("Hook0-Client-Options")
+	if wanted := fmt.Sprintf("attempts=%d,", capped); !strings.HasPrefix(stated, wanted) {
+		t.Errorf(
+			"a policy asking for %d attempts states `%s`, where the cap is %d",
+			capped+1, stated, capped,
+		)
+	}
+}
+
 // TestTheDelayTheAPINamesIsHonouredAndBounded runs every value of the delay header the corpus
 // carries.
 //

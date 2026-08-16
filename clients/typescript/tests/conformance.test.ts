@@ -705,6 +705,29 @@ describe('the shared conformance corpus', () => {
   );
 
   test(
+    'a policy asking for more attempts than the cap states the cap',
+    async () => {
+      // The one place where what a caller asked for and what the client will do come apart, and so
+      // the one place the options header can be read two ways. A client stating the number it was
+      // handed puts a reader on watch for a burst that cannot arrive, so the cap is what goes on
+      // the wire. The cap is read from the corpus, so every target answers to one number.
+      const cap = BOUNDS['max_attempts_cap'];
+      const carried = await withApi(async (api) => {
+        api.willAnswer(ingested());
+        await client(api, promptOptions(cap + 1)).sendEvent(anEvent());
+        return api.received[0].headers;
+      });
+
+      const stated = carriedText(carried, 'hook0-client-options');
+      expect({ stated, statesTheCap: stated.startsWith(`attempts=${cap},`) }).toStrictEqual({
+        stated,
+        statesTheCap: true,
+      });
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
     'the delay the API names is honoured and bounded',
     async () => {
       // The header is written by the other end, so honouring it whole would hand a stranger the

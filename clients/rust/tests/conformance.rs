@@ -698,6 +698,40 @@ mod sending {
     }
 
     #[actix_web::test]
+    async fn a_policy_asking_for_more_attempts_than_the_cap_states_the_cap() {
+        // The one place where what a caller asked for and what the client will do come apart, and
+        // so the one place the options header can be read two ways. A client stating the number it
+        // was handed puts a reader on watch for a burst that cannot arrive, so the cap is what goes
+        // on the wire. The cap is read from the corpus, so every target answers to one number.
+        let cap = number(&corpus("bounds.json"), "/bounds/max_attempts_cap") as u32;
+        let api = TestApi::start(vec![ingested()]);
+
+        api.client()
+            .with_retry_policy(RetryPolicy {
+                max_attempts: cap + 1,
+                ..prompt_retries(4)
+            })
+            .send_event(&an_event())
+            .await
+            .expect("the API accepts the event");
+
+        let received = api.received();
+        let carried = &received.first().expect("the send reached the API").headers;
+        let stated = carried
+            .get("hook0-client-options")
+            .map(String::as_str)
+            .unwrap_or("");
+
+        assert!(
+            stated.starts_with(&format!("attempts={cap},")),
+            "a policy asking for {} attempts states `{stated}`, where the cap is {cap}",
+            cap + 1,
+        );
+
+        api.stop().await;
+    }
+
+    #[actix_web::test]
     async fn the_delay_the_api_names_is_honoured_and_bounded() {
         // The header is written by the other end, so honouring it whole would hand a stranger the
         // length of this client's send. What the corpus asks for is that a delay be waited out when

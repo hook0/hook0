@@ -377,6 +377,24 @@ def test_every_request_carries_what_the_corpus_says_it_does(api: FakeHook0Api, c
             )
 
 
+def test_a_policy_asking_for_more_attempts_than_the_cap_states_the_cap(api: FakeHook0Api, caller: Caller) -> None:
+    """The one place where what a caller asked for and what the client will do come apart.
+
+    It is therefore the one place the options header can be read two ways. A client stating the
+    number it was handed puts a reader on watch for a burst that cannot arrive, so the cap is what
+    goes on the wire. The cap is read from the corpus, so every target answers to one number.
+    """
+    cap = int(BOUNDS["max_attempts_cap"])
+    api.will_answer(ingested(INGESTED_ID))
+
+    caller(prompt_options(max_attempts=cap + 1)).send_event(an_event())
+
+    stated = api.received[0].headers["hook0-client-options"]
+    assert stated.startswith(f"attempts={cap},"), (
+        f"a policy asking for {cap + 1} attempts states `{stated}`, where the cap is {cap}"
+    )
+
+
 @pytest.mark.parametrize("delay", RETRY["retry_after"]["cases"], ids=lambda delay: delay["name"])
 def test_the_delay_the_api_names_is_honoured_and_bounded(
     api: FakeHook0Api, caller: Caller, delay: dict[str, Any]
