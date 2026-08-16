@@ -346,7 +346,8 @@ func NewClient(apiURL string, applicationId string, token string, options Option
 		apiURL:        apiURL,
 		applicationId: applicationId,
 		options:       options,
-		transport:     NewTransport(apiURL, token, options.RequestTimeout, options.MaxResponseBytes),
+		transport: NewTransport(apiURL, token, options.RequestTimeout, options.MaxResponseBytes).
+			underRetryPolicy(options.RetryPolicy),
 	}
 }
 

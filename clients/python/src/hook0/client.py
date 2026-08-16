@@ -44,6 +44,7 @@ from .transport import (
     DEFAULT_REQUEST_TIMEOUT,
     HttpTransport,
     TransportError,
+    client_options,
 )
 
 # Largest event payload the client agrees to send, in bytes.
@@ -62,6 +63,14 @@ MAX_ATTEMPTS_CAP = 16
 
 # Beyond this many doublings any backoff has long since reached its ceiling.
 MAX_BACKOFF_DOUBLINGS = 30
+
+# Longest delay the header every request carries can state, in milliseconds.
+#
+# A delay is a float of seconds here and a whole number of milliseconds on the wire, and the two do
+# not have the same reach: seconds go up to where a float stops being finite, and past that there is
+# no integer to write down at all. This is the largest whole number every runtime reading the header
+# holds exactly, which is what makes it the same ceiling in every SDK rather than one per language.
+MAX_STATED_DELAY_MS = 2**53 - 1
 
 # The identifier Hook0 gives the problem it answers when an event identifier is already taken.
 ALREADY_INGESTED = "EventAlreadyIngested"
@@ -165,6 +174,36 @@ class RetryPolicy:
             waits.append(delay)
 
         return waits
+
+
+def _stated_delay(seconds: float) -> int:
+    """One delay of a policy, as the whole milliseconds the header states it in.
+
+    Brought inside `0..=MAX_STATED_DELAY_MS`, because a float of seconds reaches places a whole
+    number of milliseconds does not: a delay of infinite or unreadable length has no integer to
+    write down, and rounding one straight raises rather than producing a header. Both ends of that
+    range are stated rather than raised over — a delay below zero is the nothing it waits, and one
+    nothing bounds is at least as long as the longest that can be written down.
+    """
+    milliseconds = max(seconds * 1000, 0.0)
+    if not math.isfinite(milliseconds):
+        return MAX_STATED_DELAY_MS
+    return min(round(milliseconds), MAX_STATED_DELAY_MS)
+
+
+def _stated(policy: RetryPolicy) -> str:
+    """What the policy in force reads as in the header every request carries.
+
+    In force means past this client's own clamps rather than as asked for: a policy that asked for a
+    thousand attempts states the `MAX_ATTEMPTS_CAP` it will make, since a thousand would have a
+    reader watching for a burst that cannot arrive.
+    """
+    return client_options(
+        attempts=policy.attempts(),
+        backoff_ms=_stated_delay(policy.initial_backoff),
+        ceiling_ms=_stated_delay(policy.max_backoff),
+        budget_ms=_stated_delay(policy.max_total_delay),
+    )
 
 
 def _draw(draws: Sequence[float], index: int) -> float:
@@ -450,6 +489,7 @@ class Hook0Client:
             token,
             timeout=options.request_timeout,
             max_response_bytes=options.max_response_bytes,
+            client_options=_stated(options.retry_policy),
         )
 
     def send_event(self, event: Event) -> str:
@@ -546,6 +586,7 @@ class Hook0AsyncClient:
             token,
             timeout=options.request_timeout,
             max_response_bytes=options.max_response_bytes,
+            client_options=_stated(options.retry_policy),
         )
 
     async def send_event(self, event: Event) -> str:

@@ -14,8 +14,8 @@ import (
 	"errors"
 	"testing"
 
-	hook0 "github.com/hook0/hook0/clients/go"
-	"github.com/hook0/hook0/clients/go/generated"
+	hook0 "github.com/hook0/hook0-go"
+	"github.com/hook0/hook0-go/generated"
 )
 
 func applications(api *fakeAPI) *generated.ApplicationsAPI {

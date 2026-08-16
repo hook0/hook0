@@ -273,6 +273,7 @@ function Client.new(api_url, application_id, token, options)
       max_response_headers = chosen.max_response_headers,
       max_header_bytes = chosen.max_header_bytes,
       max_head_bytes = chosen.max_head_bytes,
+      retry_policy = chosen.retry_policy,
     }),
   }, Client)
 end

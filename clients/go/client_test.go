@@ -4,10 +4,13 @@ package hook0_test
 
 import (
 	"errors"
+	"math"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
-	hook0 "github.com/hook0/hook0/clients/go"
+	hook0 "github.com/hook0/hook0-go"
 )
 
 func client(api *fakeAPI, options hook0.Options) *hook0.Client {
@@ -186,6 +189,38 @@ func TestUpsertingEventTypesCreatesOnlyWhatIsMissing(t *testing.T) {
 	}
 	if count := api.requestCount(); count != 2 {
 		t.Errorf("upserting issued %d requests, not one listing and one creation", count)
+	}
+}
+
+func TestAPolicyAtTheEdgesOfItsTypeStillStatesFourIntegers(t *testing.T) {
+	// A Duration is a signed count of nanoseconds, so the far ends of it are a delay longer than any
+	// caller meant and one that runs backwards. Neither is a policy anybody configures on purpose,
+	// and both are what a header composed out of arithmetic gets wrong: what has to hold is that the
+	// value stays four integers a reader can cut apart, rather than a crash or a word.
+	edges := hook0.DefaultOptions()
+	edges.RetryPolicy = hook0.RetryPolicy{
+		MaxAttempts:    math.MaxInt,
+		InitialBackoff: math.MaxInt64,
+		MaxBackoff:     math.MinInt64,
+		MaxTotalDelay:  -time.Second,
+	}
+
+	api := listen(t)
+	api.willAnswer(ingested("a5b4dd60-6ab4-4bd6-9f0b-1a4f8a2a0002"))
+
+	if _, err := client(api, edges).SendEvent(bounded(t), anEvent()); err != nil {
+		t.Fatalf("a send under a policy at the edges of its type failed: %v", err)
+	}
+
+	stated := api.requests()[0].headers.Get("Hook0-Client-Options")
+	for _, part := range strings.Split(stated, ",") {
+		name, written, cut := strings.Cut(part, "=")
+		if !cut {
+			t.Fatalf("`%s` carries a part naming nothing, in `%s`", part, stated)
+		}
+		if _, err := strconv.ParseUint(written, 10, 64); err != nil {
+			t.Errorf("`%s` states %q, which is no whole number of its own: %v", name, written, err)
+		}
 	}
 }
 

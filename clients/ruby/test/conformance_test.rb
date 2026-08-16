@@ -19,10 +19,14 @@ module Hook0Test
 
     INGESTED_ID = "01961234-5678-7abc-8def-0123456789ac"
 
-    # The holes of a header value this suite can speak for: the credential the client under test was
-    # built with, and the target reading the corpus. What is left over is a hole no suite fills
-    # without reimplementing the client it is testing.
-    BOUND = { "token" => "token-xyz", "language" => "ruby" }.freeze
+    # The holes of a header value that are the same whichever client a case builds: the credential
+    # every case uses, and the target reading the corpus.
+    #
+    # This is half of what a case binds. The other half is the retry policy the client under test
+    # was built with, which differs per case and is merged in by `assert_carries` through
+    # `Hook0Test.stated_by`. Reading this constant alone says nothing about how many holes are
+    # filled.
+    BOUND_IN_EVERY_CASE = { "token" => "token-xyz", "language" => "ruby" }.freeze
 
     # The schedule a case that is not about waiting spends between attempts, in seconds.
     PROMPT_BACKOFF = 0.005
@@ -142,8 +146,9 @@ module Hook0Test
       # Read back off the socket, on both occasions the corpus declares: a send carries a body, and
       # a read does not. What separates them is the point — a client that sets `Content-Type` on a
       # request with nothing in it is describing a body that is not there.
+      chosen = options(max_attempts: 4)
       @api.will_answer(ingested(INGESTED_ID))
-      client(options(max_attempts: 4)).send_event(an_event)
+      client(chosen).send_event(an_event)
       carrying_a_body = @api.received.fetch(0)
 
       restarted do
@@ -151,9 +156,32 @@ module Hook0Test
         transport.request("GET", "/applications")
         carrying_nothing = @api.received.fetch(0)
 
-        assert_carries carrying_a_body, ["every request", "a request carrying a body"]
-        assert_carries carrying_nothing, ["every request"]
+        # The two are held to different policies on purpose: the send goes through a client this
+        # case configured, and the read through a transport built with none, which states the
+        # default. A header carrying one value on both is one that reports something other than the
+        # policy behind the request.
+        assert_carries carrying_a_body, ["every request", "a request carrying a body"], chosen.retry_policy
+        assert_carries carrying_nothing, ["every request"], Hook0::RetryPolicy.new
       end
+    end
+
+    def test_a_client_asking_for_more_attempts_than_the_cap_states_the_cap
+      # The contract pins the clamped reading: a policy asking for more attempts than anything may
+      # make states the cap, because the cap is what its traffic will show and the number it asked
+      # for would send a reader looking for a burst that cannot happen. The expected number is the
+      # corpus's own rather than this client's, which is what keeps two SDKs from describing the
+      # same setup differently — the disagreement is invisible until a policy crosses the cap.
+      cap = BOUNDS.fetch("max_attempts_cap").to_i
+      greedy = Hook0::RetryPolicy.new(max_attempts: cap * 100, initial_backoff: 0.0,
+                                      max_backoff: 0.0, max_total_delay: 0.0)
+      @api.will_answer(ingested(INGESTED_ID))
+      client(Hook0::Options.new(retry_policy: greedy, request_timeout: 5.0)).send_event(an_event)
+
+      stated = @api.received.fetch(0).headers["hook0-client-options"]
+
+      assert_equal "attempts=#{cap},backoff=0,ceiling=0,budget=0", stated,
+                   "a client asked for #{cap * 100} attempts and stated `#{stated}`, where the " \
+                   "corpus caps what any policy may make at #{cap}"
     end
 
     def test_every_refusal_the_corpus_declares_reads_as_one_of_this_client_s
@@ -190,7 +218,9 @@ module Hook0Test
     # Both directions are checked: a header the occasion declares has to be there with the value the
     # corpus spells, and one it does not declare has to be absent. Only the second direction catches
     # a client that sets every header it knows on every request it makes.
-    def assert_carries(request, occasions)
+    def assert_carries(request, occasions, policy)
+      bound = BOUND_IN_EVERY_CASE.merge(Hook0Test.stated_by(policy))
+
       REQUEST["headers"].each do |header|
         name = header["name"].downcase
         carried = request.headers[name]
@@ -202,7 +232,7 @@ module Hook0Test
           next
         end
 
-        chunks = Hook0Test.template_chunks(header["value"], BOUND)
+        chunks = Hook0Test.template_chunks(header["value"], bound)
 
         assert Hook0Test.matches_chunks?(chunks, carried.to_s),
                "a request carried `#{header["name"]}: #{carried}` where the corpus says " \
@@ -285,22 +315,6 @@ module Hook0Test
         vector["secret"],
         vector["tolerance_seconds"].to_f,
         Time.at(vector["current_time"]).utc
-      )
-    end
-
-    # What the API says when it refuses a request, in the shape every Hook0 failure takes.
-    def refusal(status, problem, headers = {})
-      ScriptedResponse.new(
-        status,
-        {
-          "id" => problem,
-          "status" => status,
-          "title" => "refused",
-          "detail" => "what the corpus scripted",
-          "type" => "https://hook0.com/documentation/errors/#{problem}"
-        },
-        0.0,
-        headers
       )
     end
 

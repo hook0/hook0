@@ -18,6 +18,31 @@ import org.junit.jupiter.api.Timeout
 class TransportTest {
 
   @Test
+  fun aPolicyHoldingNumbersItsHeaderCannotStateIsStillStatedOnTheWire() {
+    // Three numbers a caller should not write and can: more attempts than the policy will ever make,
+    // a delay too large for the milliseconds it is stated in, and a negative one. What reaches the
+    // socket is the schedule the policy would actually apply, rather than an exception raised while
+    // a header was being composed.
+    val absurd = RetryPolicy(
+      1000,
+      Duration.ofSeconds(Long.MAX_VALUE),
+      Duration.ofMillis(-5),
+      Duration.ofSeconds(Long.MAX_VALUE)
+    )
+
+    FakeApi().use { api ->
+      api.willAnswer(FakeApi.Scripted.of(200, emptyMap<String, Any?>()))
+      issued(api, once().copy(retryPolicy = absurd))
+
+      assertEquals(
+        "attempts=${RetryPolicy.MAX_ATTEMPTS_CAP},backoff=${Long.MAX_VALUE},ceiling=0," +
+          "budget=${Long.MAX_VALUE}",
+        api.received()[0].headers["hook0-client-options"]
+      )
+    }
+  }
+
+  @Test
   fun anAnswerAboveTheBodyBoundIsRefusedAsOneThatWouldDrawTheSameAnswerAgain() {
     FakeApi().use { api ->
       api.willAnswer(FakeApi.Scripted.of(200, mapOf("padding" to "x".repeat(4096))))

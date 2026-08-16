@@ -173,6 +173,31 @@ def test_event_types_the_application_already_declares_are_not_created(api: FakeH
     assert len(api.received) == 2
 
 
+@pytest.mark.parametrize(
+    "delay",
+    [float("inf"), float("nan"), 1e308, -1.0],
+    ids=["infinite", "unreadable", "past-what-milliseconds-reach", "backwards"],
+)
+def test_a_policy_at_the_edges_of_its_type_still_states_four_integers(
+    api: FakeHook0Api, caller: Caller, delay: float
+) -> None:
+    """A delay a float holds but a whole number of milliseconds does not.
+
+    Seconds are a float here and the header states milliseconds as integers, and the two do not
+    reach the same places: rounding an infinite or unreadable delay raises rather than producing a
+    header, so a policy nobody would configure on purpose took the client down before it opened a
+    socket. What has to hold is that the value stays four integers a reader can cut apart.
+    """
+    api.will_answer(ingested(INGESTED_ID))
+
+    caller(Hook0ClientOptions(retry_policy=RetryPolicy(10**9, delay, delay, delay))).send_event(an_event())
+
+    stated = api.received[0].headers["hook0-client-options"]
+    for part in stated.split(","):
+        name, _, written = part.partition("=")
+        assert written.isdigit(), f"`{name}` states {written!r}, which is no whole number of its own, in {stated!r}"
+
+
 def test_an_event_type_that_does_not_read_as_three_parts_is_refused(api: FakeHook0Api, caller: Caller) -> None:
     with pytest.raises(Hook0ClientError) as refused:
         caller().upsert_event_types(["not-an-event-type"])

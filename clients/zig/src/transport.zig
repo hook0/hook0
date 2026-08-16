@@ -25,6 +25,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+const client = @import("client.zig");
 const runtime = @import("runtime.zig");
 
 const net = std.Io.net;
@@ -116,6 +117,13 @@ pub const json_media_type = "application/json";
 /// the header uses as punctuation, so a toolchain cannot forge a shape it does not have.
 const max_user_agent_part_chars = 64;
 
+/// Longest a duration this client states its retry policy in may be, in milliseconds.
+///
+/// The three durations of a policy are numbers a caller set, and a header is no place for whatever
+/// arithmetic they lead to: about twenty-five days is already past any schedule a send could hold,
+/// and cutting to it is what bounds the value whatever was configured.
+const max_stated_milliseconds: u64 = (1 << 31) - 1;
+
 /// Which SDK, at which version, on which runtime and operating system, is talking to the API.
 ///
 /// Every part of it is settled while this package is compiled: the version comes from the manifest
@@ -204,6 +212,8 @@ pub const Transport = struct {
     base_url: []const u8,
     token: []const u8,
     bounds: Bounds = .{},
+    /// The policy every request states the client this serves was built with.
+    retry_policy: client.RetryPolicy = .{},
 
     /// What the generated half issues its requests through.
     pub fn any(self: *Transport) runtime.Transport {
@@ -344,6 +354,7 @@ pub const Transport = struct {
         writer.print("Authorization: Bearer {s}\r\n", .{self.token}) catch return error.NoAnswer;
         writer.print("Accept: {s}\r\n", .{json_media_type}) catch return error.NoAnswer;
         writer.writeAll("User-Agent: " ++ user_agent ++ "\r\n") catch return error.NoAnswer;
+        self.stateOptions(writer) catch return error.NoAnswer;
         writer.writeAll("Connection: close\r\n") catch return error.NoAnswer;
         if (written) |body| {
             writer.print("Content-Type: {s}\r\n", .{json_media_type}) catch return error.NoAnswer;
@@ -354,6 +365,29 @@ pub const Transport = struct {
             writer.writeAll(body) catch return error.NoAnswer;
         }
         writer.flush() catch return error.NoAnswer;
+    }
+
+    /// Writes the retry policy this transport was built to serve, as every request states it.
+    ///
+    /// What it states is what the policy holds rather than what one send went on to do: a policy
+    /// allowing a single attempt still names the delays it holds, and an instance reading
+    /// `attempts=1` already knows none of them will be waited. It is the one client setting the API
+    /// can see the consequences of without being told — a burst of identical requests is a client
+    /// repeating one send, and nothing else on the wire tells that apart from a client in a loop.
+    ///
+    /// The grammar is the one `X-Hook0-Signature` already travels under, parts joined by `,` and
+    /// each cut at its first `=`, so nothing here is a second shape to get wrong.
+    fn stateOptions(self: *Transport, writer: *std.Io.Writer) !void {
+        const policy = self.retry_policy;
+        try writer.print(
+            "Hook0-Client-Options: attempts={d},backoff={d},ceiling={d},budget={d}\r\n",
+            .{
+                policy.attempts(),
+                @min(policy.initial_backoff_ms, max_stated_milliseconds),
+                @min(policy.max_backoff_ms, max_stated_milliseconds),
+                @min(policy.max_total_delay_ms, max_stated_milliseconds),
+            },
+        );
     }
 
     /// Everything the answer is, read under every ceiling this client set for itself.

@@ -271,6 +271,7 @@ pub const Client = struct {
                     .max_header_bytes = options.max_header_bytes,
                     .max_head_bytes = options.max_head_bytes,
                 },
+                .retry_policy = options.retry_policy,
             },
         };
     }

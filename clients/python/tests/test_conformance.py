@@ -344,7 +344,19 @@ def test_every_request_carries_what_the_corpus_says_it_does(api: FakeHook0Api, c
 
     # A send carries a body, so every occasion the corpus declares applies to this one request.
     carried = api.received[0].headers
-    bound = {"token": "token-xyz", "language": "python", "version": VERSION}
+    # The retry policy the client above was built with, which is what it is expected to state on the
+    # wire. Read back off that policy rather than written out here, so the case cannot agree with a
+    # client that states a schedule nobody configured.
+    policy = prompt_options(max_attempts=4).retry_policy
+    bound = {
+        "token": "token-xyz",
+        "language": "python",
+        "version": VERSION,
+        "attempts": str(policy.attempts()),
+        "backoff_ms": str(round(policy.initial_backoff * 1000)),
+        "ceiling_ms": str(round(policy.max_backoff * 1000)),
+        "budget_ms": str(round(policy.max_total_delay * 1000)),
+    }
     for header in REQUEST["headers"]:
         template = header["value"]
         arrived = carried.get(header["name"].lower(), "")

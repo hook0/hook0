@@ -89,6 +89,7 @@ function eventIdOf(api: FakeHook0Api, index: number): string {
 interface ReceivedRequest {
   target: string;
   body: string;
+  headers: http.IncomingHttpHeaders;
 }
 
 /** What a request asked for, which a server always reads off the request line. */
@@ -147,7 +148,7 @@ class FakeHook0Api {
       const target = targetOf(request);
       readBody(request)
         .then((body) => {
-          this.received.push({ target, body });
+          this.received.push({ target, body, headers: request.headers });
           const scripted = this.nextResponse();
           return hold(scripted.heldForMs).then(() => {
             response.writeHead(scripted.status, { 'Content-Type': 'application/json' });
@@ -682,6 +683,44 @@ describe('Hook0Client', () => {
 
       expect(result).toEqual([]);
       expect(api.received).toHaveLength(0);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test.each([
+    ['infinite', Infinity],
+    ['unreadable', NaN],
+    ['past what a whole number reaches', 1e300],
+    ['backwards', -1],
+  ])(
+    'a policy holding a %s delay still states four integers',
+    async (_delay, milliseconds) => {
+      // A `number` holds delays a whole number of milliseconds does not: infinity and `NaN` write
+      // themselves out by name, and anything past the safe range writes itself in exponent form.
+      // None of the three is an integer, and a reader cutting the value apart gets a word where a
+      // number belongs. What has to hold is that the value stays four integers whatever a caller
+      // configured.
+      api.willAnswer(ingested('01961234-5678-7abc-8def-0123456789ab'));
+      const edges = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        withRetries(new RetryPolicy(1e9, milliseconds, milliseconds, milliseconds))
+      );
+
+      await edges.sendEvent(anEvent());
+
+      const stated = api.received[0].headers['hook0-client-options'];
+      expect(typeof stated).toBe('string');
+      for (const part of String(stated).split(',')) {
+        const [name, ...written] = part.split('=');
+        expect({
+          name,
+          written: written.join('='),
+          whole: /^\d+$/.test(written.join('=')),
+        }).toEqual({ name, written: written.join('='), whole: true });
+      }
     },
     TEST_TIMEOUT_MS
   );

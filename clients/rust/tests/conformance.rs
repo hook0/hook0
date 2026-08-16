@@ -649,12 +649,31 @@ mod sending {
         let received = api.received();
         let carried = &received.first().expect("the send reached the API").headers;
 
+        // The retry policy the client above was built with, which is what it is expected to state
+        // on the wire. Read back off that policy rather than written out here, so the case cannot
+        // agree with a client that states a schedule nobody configured.
+        let policy = prompt_retries(4);
+        let attempts = policy.attempts().to_string();
+        let backoff = policy.initial_backoff.as_millis().to_string();
+        let ceiling = policy.max_backoff.as_millis().to_string();
+        let budget = policy.max_total_delay.as_millis().to_string();
+
         let composed_at_most = number(&contract, "/max_composed_bytes") as usize;
         for header in entries(&contract, "/headers") {
             let name = text(&header, "name").to_lowercase();
             let template = text(&header, "value");
             let written = carried.get(&name).map(String::as_str).unwrap_or("");
-            let chunks = template_chunks(template, &[("token", TOKEN), ("language", "rust")]);
+            let chunks = template_chunks(
+                template,
+                &[
+                    ("token", TOKEN),
+                    ("language", "rust"),
+                    ("attempts", &attempts),
+                    ("backoff_ms", &backoff),
+                    ("ceiling_ms", &ceiling),
+                    ("budget_ms", &budget),
+                ],
+            );
 
             assert!(
                 matches_chunks(&chunks, written),

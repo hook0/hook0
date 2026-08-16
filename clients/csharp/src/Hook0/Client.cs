@@ -352,7 +352,8 @@ public sealed class Hook0Client : IDisposable
             Options.MaxResponseBytes,
             Options.MaxResponseHeaders,
             Options.MaxHeadBytes,
-            Options.MaxHeaderBytes);
+            Options.MaxHeaderBytes,
+            Options.RetryPolicy);
     }
 
     /// <summary>The bounds one send is held to.</summary>

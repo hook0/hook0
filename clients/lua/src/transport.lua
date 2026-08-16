@@ -79,6 +79,13 @@ Transport.JSON_MEDIA_TYPE = "application/json"
 --- of the header uses as punctuation, so a platform cannot forge a shape it does not have.
 local MAX_USER_AGENT_PART_CHARS = 64
 
+--- Longest a duration this client states its retry policy in may be, in milliseconds.
+---
+--- The three durations of a policy are numbers a caller set, and a header is no place for whatever
+--- arithmetic they lead to: about twenty-five days is already past any schedule a send could hold,
+--- and cutting to it is what keeps the value an integer whatever was configured.
+local MAX_STATED_MILLISECONDS = (1 << 31) - 1
+
 --- The schemes this transport reaches, and the port each one uses when the URL names none.
 local PORTS = { http = 80, https = 443 }
 
@@ -349,7 +356,47 @@ local function user_agent()
   return composed
 end
 
+--- One duration of a retry policy, in the whole milliseconds it is stated as.
+---
+--- A number no schedule could be built on is not a duration: anything above every duration is stated
+--- as the ceiling and anything else that is not a number as nothing at all, so an integer travels
+--- whatever a caller configured.
+--- @param seconds number
+--- @return integer
+local function stated_milliseconds(seconds)
+  local milliseconds = (tonumber(seconds) or 0) * 1000
+  if milliseconds ~= milliseconds then
+    return 0
+  end
+  return math.floor(math.min(math.max(milliseconds, 0), MAX_STATED_MILLISECONDS) + 0.5)
+end
+
+--- The retry policy a transport was built to serve, as every request states it.
+---
+--- What it states is what the policy holds rather than what one send went on to do: a policy
+--- allowing a single attempt still names the delays it holds, and an instance reading `attempts=1`
+--- already knows none of them will be waited. It is the one client setting the API can see the
+--- consequences of without being told — a burst of identical requests is a client repeating one
+--- send, and nothing else on the wire tells that apart from a client in a loop.
+---
+--- The grammar is the one `X-Hook0-Signature` already travels under, parts joined by `,` and each
+--- cut at its first `=`, so nothing here is a second shape to get wrong.
+--- @param policy table
+--- @return string
+local function client_options(policy)
+  return string.format(
+    "attempts=%d,backoff=%d,ceiling=%d,budget=%d",
+    policy:attempts(),
+    stated_milliseconds(policy.initial_backoff),
+    stated_milliseconds(policy.max_backoff),
+    stated_milliseconds(policy.max_total_delay))
+end
+
 --- Builds a transport pointed at one API, under one credential.
+---
+--- The policy a transport states is the one the client it serves was built with, and the default one
+--- where nothing handed it a client. It is asked for here rather than at load, for the reason
+--- `user_agent` is: the module that declares a policy is assembled out of this one.
 ---
 --- @param base_url string where the API lives, such as https://app.hook0.com/api/v1
 --- @param token string an authentication token valid for that API
@@ -365,6 +412,7 @@ function Transport.new(base_url, token, options)
     max_response_headers = chosen.max_response_headers or Transport.DEFAULT_MAX_RESPONSE_HEADERS,
     max_header_bytes = chosen.max_header_bytes or Transport.DEFAULT_MAX_HEADER_BYTES,
     max_head_bytes = chosen.max_head_bytes or Transport.DEFAULT_MAX_HEAD_BYTES,
+    retry_policy = chosen.retry_policy or require("hook0").RetryPolicy.new(),
   }, Transport)
 end
 
@@ -399,6 +447,7 @@ function Transport:deliver(method, path, query, body)
     "Authorization: Bearer " .. tostring(self.token),
     "Accept: " .. Transport.JSON_MEDIA_TYPE,
     "User-Agent: " .. user_agent(),
+    "Hook0-Client-Options: " .. client_options(self.retry_policy),
     "Connection: close",
   }
   if written ~= nil then

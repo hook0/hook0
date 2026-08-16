@@ -95,6 +95,28 @@ def _user_agent() -> str:
 USER_AGENT = _user_agent()
 
 
+def client_options(*, attempts: int, backoff_ms: int, ceiling_ms: int, budget_ms: int) -> str:
+    """The retry policy behind a request, as the header every request carries states it.
+
+    The four parts arrive in the order the shared contract fixes and are joined the way
+    `X-Hook0-Signature` joins its own: every duration a count of milliseconds and every part an
+    integer, so an instance reads the value back by cutting each part at its first `=` and nothing
+    here needs a parser of its own. Whole numbers are also what bounds the value without cutting it
+    down to a length: four of them are as long as a number written out and no longer, whatever a
+    caller configures. Bringing a policy inside the bounds it is honoured under is the caller's,
+    since it is the caller that holds the policy.
+    """
+    return f"attempts={attempts},backoff={backoff_ms},ceiling={ceiling_ms},budget={budget_ms}"
+
+
+# What a request made through a transport alone says about the retry policy behind it.
+#
+# A transport reached directly — which is how the generated half of this package is built — issues
+# one request and waits for nothing between attempts it does not make. A client that retries hands
+# its own policy over instead.
+NO_RETRIES = client_options(attempts=1, backoff_ms=0, ceiling_ms=0, budget_ms=0)
+
+
 class TransportError(Exception):
     """A request that produced no answer to read.
 
@@ -181,11 +203,13 @@ class HttpTransport:
         token: str,
         timeout: float = DEFAULT_REQUEST_TIMEOUT,
         max_response_bytes: int = DEFAULT_MAX_RESPONSE_BYTES,
+        client_options: str = NO_RETRIES,
     ) -> None:
         self._base_url = base_url
         self._token = token
         self._timeout = timeout
         self._max_response_bytes = max_response_bytes
+        self._client_options = client_options
 
     def request(
         self,
@@ -219,6 +243,7 @@ class HttpTransport:
         request.add_header("Authorization", f"Bearer {self._token}")
         request.add_header("Accept", JSON_MEDIA_TYPE)
         request.add_header("User-Agent", USER_AGENT)
+        request.add_header("Hook0-Client-Options", self._client_options)
         if data is not None:
             request.add_header("Content-Type", JSON_MEDIA_TYPE)
 
@@ -263,11 +288,13 @@ class AsyncHttpTransport:
         token: str,
         timeout: float = DEFAULT_REQUEST_TIMEOUT,
         max_response_bytes: int = DEFAULT_MAX_RESPONSE_BYTES,
+        client_options: str = NO_RETRIES,
     ) -> None:
         self._base_url = base_url
         self._token = token
         self._timeout = timeout
         self._max_response_bytes = max_response_bytes
+        self._client_options = client_options
 
     async def request(
         self,
@@ -341,6 +368,7 @@ class AsyncHttpTransport:
             f"Authorization: Bearer {self._token}",
             f"Accept: {JSON_MEDIA_TYPE}",
             f"User-Agent: {USER_AGENT}",
+            f"Hook0-Client-Options: {self._client_options}",
             # One exchange per connection: nothing here pools them, and a server that closes is
             # what makes a body of unstated length readable to its end.
             "Connection: close",

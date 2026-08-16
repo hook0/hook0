@@ -62,6 +62,28 @@ local PROVOKED = {
   end,
 }
 
+--- The holes of the request document that the retry policy a case built its client with answers.
+---
+--- Read off that policy rather than written out here: a literal would agree with a client that had
+--- drifted alongside this file, and it would be wrong the moment a case builds a client on another
+--- policy. The two conversions are the ones the header itself is specified in — the attempts a
+--- policy actually makes, which is what it asked for after its own cap, and each of its durations in
+--- whole milliseconds.
+--- @param policy table
+--- @return table
+local function stated_by(policy)
+  local function milliseconds(seconds)
+    return string.format("%d", math.floor(seconds * 1000 + 0.5))
+  end
+
+  return {
+    attempts = string.format("%d", policy:attempts()),
+    backoff_ms = milliseconds(policy.initial_backoff),
+    ceiling_ms = milliseconds(policy.max_backoff),
+    budget_ms = milliseconds(policy.max_total_delay),
+  }
+end
+
 --- What a value of the request document is made of, once the holes this suite can speak for are
 --- filled in.
 ---
@@ -373,15 +395,20 @@ describe("the shared conformance corpus", function()
     end
 
     local api = Helper.FakeApi.new({ Helper.ingested(INGESTED_ID), { status = 200, body = Json.array({}) } })
-    local built = Helper.client(api, Helper.options({ max_attempts = 4 }))
+    local chosen = Helper.options({ max_attempts = 4 })
+    local built = Helper.client(api, chosen)
     built:send_event(Helper.an_event())
     built.transport:request("GET", "/applications")
     local received = api:stop()
 
     -- The holes this suite can speak for: the credential this client was built with, the target
-    -- reading the corpus, and the version the rockspec releases. What is left over is a hole no
-    -- suite can fill without reimplementing the client it is testing.
+    -- reading the corpus, the version the rockspec releases, and the retry policy this case handed
+    -- the client. What is left over is a hole no suite can fill without reimplementing the client it
+    -- is testing.
     local bound = { token = "token-xyz", language = "lua", version = VERSION }
+    for hole, filled in pairs(stated_by(chosen.retry_policy)) do
+      bound[hole] = filled
+    end
 
     local carrying = { [1] = { "every request", "a request carrying a body" }, [2] = { "every request" } }
     for index, occasions in pairs(carrying) do
@@ -414,6 +441,31 @@ describe("the shared conformance corpus", function()
         end
       end
     end
+  end)
+
+  it("states the cap when a client asks for more attempts than it", function()
+    -- The contract pins the clamped reading: a policy asking for more attempts than anything may
+    -- make states the cap, because the cap is what its traffic will show and the number it asked for
+    -- would send a reader looking for a burst that cannot happen. The expected number is the
+    -- corpus's own rather than this client's, which is what keeps two SDKs from describing the same
+    -- setup differently — the disagreement is invisible until a policy crosses the cap.
+    local cap = math.tointeger(BOUNDS.max_attempts_cap)
+    local api = Helper.FakeApi.new({ Helper.ingested(INGESTED_ID) })
+    local greedy = Hook0.Options.new({
+      retry_policy = Hook0.RetryPolicy.new({
+        max_attempts = cap * 100,
+        initial_backoff = 0.0,
+        max_backoff = 0.0,
+        max_total_delay = 0.0,
+      }),
+      request_timeout = 5.0,
+    })
+    Helper.client(api, greedy):send_event(Helper.an_event())
+    local stated = api:stop()[1].headers["hook0-client-options"]
+
+    assert.are.equal(string.format("attempts=%d,backoff=0,ceiling=0,budget=0", cap), stated,
+      "a client asked for " .. (cap * 100) .. " attempts and stated `" .. stated ..
+      "`, where the corpus caps what any policy may make at " .. cap)
   end)
 
   it("refuses every delivery of the corpus for the reason it names", function()

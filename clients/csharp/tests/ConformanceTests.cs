@@ -13,6 +13,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -262,32 +263,42 @@ public sealed class ConformanceTests : ApiCase
             unknown.Count == 0,
             $"the corpus names occasions this suite cannot decide: {string.Join(", ", unknown)}");
 
+        ClientOptions built = Options();
+
         Api.WillAnswer(Ingested(IngestedId), Ingested(IngestedId));
-        using Hook0Client client = Client();
+        using Hook0Client client = Client(built);
 
         await Send(client, AnEvent(), surface);
         ReceivedRequest carrying = Assert.Single(Api.Received);
-        Carries(carrying, body: true);
+        Carries(carrying, built, body: true);
 
         Restarted();
         Api.WillAnswer(new ScriptedResponse(
             200,
             new JsonArray(new JsonObject { ["event_type_name"] = "auth.user.create" })));
-        using Hook0Client reading = Client();
+        using Hook0Client reading = Client(built);
         await Upserted(reading, surface);
-        Carries(Assert.Single(Api.Received), body: false);
+        Carries(Assert.Single(Api.Received), built, body: false);
     }
 
     /// <summary>Holds one request that reached the socket against every header the corpus pins.</summary>
-    private static void Carries(ReceivedRequest received, bool body)
+    private static void Carries(ReceivedRequest received, ClientOptions built, bool body)
     {
         Assert.Equal(body, received.Body.Length > 0);
 
         int composedAtMost = Requests["max_composed_bytes"]!.GetValue<int>();
+
+        // The schedule is the one the client under test was built with, so what the corpus writes
+        // about the retry policy is an exact string rather than a shape with something in it.
+        RetryPolicy policy = built.RetryPolicy;
         Dictionary<string, string> bound = new(StringComparer.Ordinal)
         {
             ["token"] = Token,
             ["language"] = "csharp",
+            ["attempts"] = Written(policy.Attempts),
+            ["backoff_ms"] = Written(policy.InitialBackoff.Ticks / TimeSpan.TicksPerMillisecond),
+            ["ceiling_ms"] = Written(policy.MaxBackoff.Ticks / TimeSpan.TicksPerMillisecond),
+            ["budget_ms"] = Written(policy.MaxTotalDelay.Ticks / TimeSpan.TicksPerMillisecond),
         };
 
         foreach (JsonNode? pinned in Requests["headers"]!.AsArray())
@@ -336,6 +347,11 @@ public sealed class ConformanceTests : ApiCase
             }
         }
     }
+
+    /// <summary>One number of the retry policy, written the way the wire carries it.</summary>
+    /// <param name="number">What the policy holds.</param>
+    /// <returns>Its digits, under whichever culture the suite happens to run.</returns>
+    private static string Written(long number) => number.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
     /// What a value of the request document is made of, once the holes this suite can speak for are

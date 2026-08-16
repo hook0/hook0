@@ -220,6 +220,22 @@ module Hook0Test
       )
     end
 
+    # What the API says when it refuses a request, in the shape every Hook0 failure takes.
+    def refusal(status, problem, headers = {})
+      ScriptedResponse.new(
+        status,
+        {
+          "id" => problem,
+          "status" => status,
+          "title" => "refused",
+          "detail" => "what the corpus scripted",
+          "type" => "https://hook0.com/documentation/errors/#{problem}"
+        },
+        0.0,
+        headers
+      )
+    end
+
     def already_ingested
       ScriptedResponse.new(
         409,
@@ -252,6 +268,22 @@ module Hook0Test
     raise "#{path} is #{size} bytes long, above the #{MAX_CORPUS_BYTES} read back" if size > MAX_CORPUS_BYTES
 
     JSON.parse(File.read(path, encoding: "UTF-8"))
+  end
+
+  # The holes of the request document that the retry policy a case built its client with answers.
+  #
+  # Read off that policy rather than written out: a literal would agree with a client that had
+  # drifted alongside this file, and it would be wrong the moment a case builds a client on another
+  # policy. The two conversions are the ones the header itself is specified in — the attempts a
+  # policy actually makes, which is what it asked for after its own cap, and each of its durations
+  # in whole milliseconds.
+  def self.stated_by(policy)
+    {
+      "attempts" => policy.attempts.to_s,
+      "backoff_ms" => (policy.initial_backoff * 1000).round.to_s,
+      "ceiling_ms" => (policy.max_backoff * 1000).round.to_s,
+      "budget_ms" => (policy.max_total_delay * 1000).round.to_s
+    }
   end
 
   # What a value of the shared contract is made of, once the holes a suite can speak for are filled

@@ -659,10 +659,18 @@ describe('the shared conformance corpus', () => {
         // A send carries a body, so every occasion the corpus declares applies to this one request.
         return api.received[0].headers;
       });
+      // The retry policy the client above was built with, which is what it is expected to state on
+      // the wire. Read back off that policy rather than written out here, so the case cannot agree
+      // with a client that states a schedule nobody configured.
+      const policy = promptOptions(4).retryPolicy;
       const bound = new Map([
         ['token', TOKEN],
         ['language', 'typescript'],
         ['version', VERSION],
+        ['attempts', String(policy.attempts())],
+        ['backoff_ms', String(policy.initialBackoffMs)],
+        ['ceiling_ms', String(policy.maxBackoffMs)],
+        ['budget_ms', String(policy.maxTotalDelayMs)],
       ]);
       const composedAtMost = number(REQUEST, 'max_composed_bytes');
       for (const header of entries(REQUEST, 'headers')) {

@@ -7,10 +7,11 @@
 //! carried, and what the caller was told at the end. Nothing is stubbed.
 
 use actix_web::dev::ServerHandle;
-use actix_web::{App, HttpResponse, HttpServer, web};
+use actix_web::{App, HttpRequest, HttpResponse, HttpServer, web};
 use hook0_client::{Event, Hook0Client, Hook0ClientError, RetryPolicy, generated};
 use serde_json::{Value, json};
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::net::TcpListener;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -85,11 +86,32 @@ fn already_ingested() -> ScriptedResponse {
 struct ApiState {
     /// The body of every request that reached the API, in the order it reached it.
     received: Arc<Mutex<Vec<Value>>>,
+    /// What each of those requests carried beside its body, in the same order.
+    carried: Arc<Mutex<Vec<HashMap<String, String>>>>,
     /// The answers still to be given, in order.
     scripted: Arc<Mutex<Vec<ScriptedResponse>>>,
 }
 
-async fn ingest(state: web::Data<ApiState>, body: web::Json<Value>) -> HttpResponse {
+async fn ingest(
+    state: web::Data<ApiState>,
+    request: HttpRequest,
+    body: web::Json<Value>,
+) -> HttpResponse {
+    if let Ok(mut carried) = state.carried.lock() {
+        carried.push(
+            request
+                .headers()
+                .iter()
+                .filter_map(|(name, value)| {
+                    value
+                        .to_str()
+                        .ok()
+                        .map(|written| (name.as_str().to_owned(), written.to_owned()))
+                })
+                .collect(),
+        );
+    }
+
     let scripted = {
         match (state.received.lock(), state.scripted.lock()) {
             (Ok(mut received), Ok(mut scripted)) => {
@@ -128,6 +150,7 @@ impl TestApi {
     fn start(scripted: Vec<ScriptedResponse>) -> Self {
         let state = ApiState {
             received: Arc::new(Mutex::new(Vec::new())),
+            carried: Arc::new(Mutex::new(Vec::new())),
             scripted: Arc::new(Mutex::new(scripted)),
         };
 
@@ -170,6 +193,14 @@ impl TestApi {
             .received
             .lock()
             .expect("the recorded requests are readable")
+            .clone()
+    }
+
+    fn carried(&self) -> Vec<HashMap<String, String>> {
+        self.state
+            .carried
+            .lock()
+            .expect("the recorded headers are readable")
             .clone()
     }
 
@@ -547,6 +578,45 @@ async fn labels_read_off_an_event_are_carried_into_the_next_one() {
         Some(&json!({"environment": "test", "tenant": "acme"})),
         "the labels reached the API as they were read, in {body}"
     );
+
+    api.stop().await;
+}
+
+#[actix_web::test]
+async fn a_policy_at_the_edges_of_its_type_still_states_four_integers() {
+    // A Duration reaches far past any delay a caller means, and a count of attempts reaches past
+    // what this client will ever make. Neither is a policy anybody configures on purpose, and both
+    // are what a header composed out of arithmetic gets wrong: what has to hold is that the value
+    // stays four integers a reader can cut apart, rather than a panic or a word.
+    let id = Uuid::now_v7();
+    let api = TestApi::start(vec![ingested(&id)]);
+
+    api.client()
+        .with_retry_policy(RetryPolicy {
+            max_attempts: u32::MAX,
+            initial_backoff: Duration::MAX,
+            max_backoff: Duration::MAX,
+            max_total_delay: Duration::MAX,
+        })
+        .send_event(&an_event())
+        .await
+        .expect("the API accepts the event");
+
+    let carried = api.carried();
+    let stated = carried
+        .first()
+        .and_then(|headers| headers.get("hook0-client-options"))
+        .unwrap_or_else(|| panic!("the send carried no options header, in {carried:?}"));
+
+    for part in stated.split(',') {
+        let (name, written) = part
+            .split_once('=')
+            .unwrap_or_else(|| panic!("`{part}` names nothing, in `{stated}`"));
+        assert!(
+            !written.is_empty() && written.bytes().all(|byte| byte.is_ascii_digit()),
+            "`{name}` states `{written}`, which is no whole number of its own, in `{stated}`",
+        );
+    }
 
     api.stop().await;
 }

@@ -9,6 +9,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
+import java.time.Duration
 import java.util.Locale
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionStage
@@ -43,6 +44,9 @@ class HttpTransport(
   private val options: Options = Options.defaults()
 ) : Transport,
   AutoCloseable {
+
+  /** The retry policy this transport was built with, in the shape an API reads it off the wire. */
+  private val clientOptions: String = clientOptions(options.retryPolicy)
 
   private val http: HttpClient =
     HttpClient.newBuilder()
@@ -91,6 +95,7 @@ class HttpTransport(
         .header("Authorization", "Bearer $token")
         .header("Accept", JSON_MEDIA_TYPE)
         .header("User-Agent", USER_AGENT)
+        .header("Hook0-Client-Options", clientOptions)
 
     if (body == null) {
       return building
@@ -289,6 +294,47 @@ class HttpTransport(
      */
     private fun clipped(part: String): String =
       part.filter { it in ' '..'~' && it != '(' && it != ')' && it != ';' }.take(MAX_USER_AGENT_PART_CHARS)
+
+    /**
+     * How the retry policy of a transport is put together for the wire.
+     *
+     * The grammar is the one `X-Hook0-Signature` already uses — parts joined by `,`, each cut at its
+     * first `=` — so this header costs no parser that is not written twice over already.
+     *
+     * What is stated is the policy in force, not what a send went on to do with it: a policy
+     * allowing one attempt still states its delays, because they are what it holds, and an API
+     * reading `attempts=1` already knows none of them will be waited. In force is also after this
+     * client's own clamps — [RetryPolicy.attempts] rather than [RetryPolicy.maxAttempts] — since the
+     * capped number is the one the API's traffic will show, and a thousand would send a reader
+     * looking for a burst that cannot happen.
+     */
+    private fun clientOptions(policy: RetryPolicy): String {
+      val backoff = millis(policy.initialBackoff)
+      val ceiling = millis(policy.maxBackoff)
+      val budget = millis(policy.maxTotalDelay)
+      return "attempts=${policy.attempts()},backoff=$backoff,ceiling=$ceiling,budget=$budget"
+    }
+
+    /**
+     * One delay of a policy, in the whole milliseconds the header states it in.
+     *
+     * A [Duration] holds more than a count of milliseconds can: `toMillis` raises on anything from
+     * about 292 million years up, and a negative one is a number no delay can be waited for. Neither
+     * is a duration a caller should write and both are durations a caller can write, so they are
+     * brought inside what the header can state — the largest count there is, and zero — rather than
+     * raised from the composing of a header. Zero is also what the policy itself would wait for a
+     * negative delay, so what is stated stays what would happen.
+     */
+    private fun millis(held: Duration): Long {
+      if (held.isNegative) {
+        return 0
+      }
+      val seconds = held.seconds
+      if (seconds > (Long.MAX_VALUE - 999) / 1000) {
+        return Long.MAX_VALUE
+      }
+      return seconds * 1000 + held.nano / 1_000_000
+    }
 
     private fun answered(answer: HttpResponse<String>): Answer {
       val headers = LinkedHashMap<String, String>()

@@ -199,6 +199,28 @@ module Hook0Test
       assert_equal({ "environment" => "production" }, request.json["labels"])
     end
 
+    def test_a_policy_holding_durations_no_schedule_could_use_still_states_whole_numbers
+      # `Float#round` raises on infinity and on nothing-at-all, so a duration carrying either would
+      # take down every request that states it rather than being reported. Each of the three is
+      # exercised, because one conversion left unguarded is enough to raise. What is driven is the
+      # transport rather than a send: stating the policy is what this pins, and a schedule built on
+      # these numbers is a separate question from what the header says about them.
+      unusable = [Float::INFINITY, -Float::INFINITY, Float::NAN]
+      cases = unusable.product(%i[initial_backoff max_backoff max_total_delay])
+      @api.will_answer(*Array.new(cases.size) { ScriptedResponse.new(200, []) })
+
+      cases.each_with_index do |(seconds, held), index|
+        policy = Hook0::RetryPolicy.new(max_attempts: 1, **{ held => seconds })
+        Hook0::Transport.new(@api.base_url, "token-xyz", retry_policy: policy)
+                        .request("GET", "/applications")
+
+        stated = @api.received.fetch(index).headers["hook0-client-options"]
+
+        assert_match(/\Aattempts=\d+,backoff=\d+,ceiling=\d+,budget=\d+\z/, stated,
+                     "a policy holding `#{held}: #{seconds}` stated `#{stated}`")
+      end
+    end
+
     def test_event_types_the_application_already_declares_are_not_created
       @api.will_answer(
         ScriptedResponse.new(200, [{ "event_type_name" => "auth.user.create" }]),

@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	hook0 "github.com/hook0/hook0/clients/go"
+	hook0 "github.com/hook0/hook0-go"
 )
 
 const (

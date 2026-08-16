@@ -389,7 +389,8 @@ module Hook0
         max_response_bytes: options.max_response_bytes,
         max_response_headers: options.max_response_headers,
         max_header_bytes: options.max_header_bytes,
-        max_head_bytes: options.max_head_bytes
+        max_head_bytes: options.max_head_bytes,
+        retry_policy: options.retry_policy
       )
     end
 

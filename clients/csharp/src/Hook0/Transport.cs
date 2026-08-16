@@ -153,6 +153,7 @@ public sealed class HttpTransport : ITransport, IAsyncTransport, IDisposable
     private readonly int _maxHeaderBytes;
     private readonly HttpClient _http;
     private readonly bool _unusableBaseUrl;
+    private readonly string _clientOptions;
 
     /// <summary>Reaches an API over HTTP, under the bounds the caller sets.</summary>
     /// <param name="baseUrl">Where the API lives, such as <c>https://app.hook0.com/api/v1</c>.</param>
@@ -162,6 +163,10 @@ public sealed class HttpTransport : ITransport, IAsyncTransport, IDisposable
     /// <param name="maxResponseHeaders">How many header lines an answer may carry.</param>
     /// <param name="maxHeadBytes">How long the whole head of an answer may be.</param>
     /// <param name="maxHeaderBytes">How long one header line of it may be.</param>
+    /// <remarks>
+    /// A transport built this way reports the default retry schedule, since it is handed no other.
+    /// The overload taking a <see cref="RetryPolicy"/> is what a client that retries calls.
+    /// </remarks>
     public HttpTransport(
         string baseUrl,
         string token,
@@ -170,12 +175,58 @@ public sealed class HttpTransport : ITransport, IAsyncTransport, IDisposable
         int maxResponseHeaders = DefaultMaxResponseHeaders,
         int maxHeadBytes = DefaultMaxHeadBytes,
         int maxHeaderBytes = DefaultMaxHeaderBytes)
+        : this(
+            baseUrl,
+            token,
+            timeout,
+            maxResponseBytes,
+            maxResponseHeaders,
+            maxHeadBytes,
+            maxHeaderBytes,
+            new RetryPolicy())
+    {
+    }
+
+    /// <summary>Reaches an API over HTTP, stating the schedule its caller retries on.</summary>
+    /// <param name="baseUrl">Where the API lives, such as <c>https://app.hook0.com/api/v1</c>.</param>
+    /// <param name="token">An authentication token valid for that API.</param>
+    /// <param name="timeout">How long one attempt is given.</param>
+    /// <param name="maxResponseBytes">The largest answer read off a socket.</param>
+    /// <param name="maxResponseHeaders">How many header lines an answer may carry.</param>
+    /// <param name="maxHeadBytes">How long the whole head of an answer may be.</param>
+    /// <param name="maxHeaderBytes">How long one header line of it may be.</param>
+    /// <param name="retryPolicy">The schedule the requests of one send are spaced out by.</param>
+    /// <remarks>
+    /// This is an overload rather than one more optional argument on the constructor above, and
+    /// that is not a matter of taste. C# resolves optional arguments at the call site, so a caller
+    /// compiled against the published package carries a call to the arity it saw. Growing that
+    /// constructor by one parameter deletes the signature they call and hands them a
+    /// <c>MissingMethodException</c> at run time, in code they never touched and a build that
+    /// never went red.
+    /// <para>
+    /// Every parameter here is required, and the schedule is last, so that the two constructors can
+    /// never both apply to one call. A schedule sitting earlier, among the optional arguments, would
+    /// leave <c>new HttpTransport(url, token, null)</c> ambiguous between a timeout and a policy —
+    /// which is a break too, a smaller one that surfaces at a caller's next build rather than in
+    /// production, and one there is no reason to leave lying around.
+    /// </para>
+    /// </remarks>
+    public HttpTransport(
+        string baseUrl,
+        string token,
+        TimeSpan? timeout,
+        int maxResponseBytes,
+        int maxResponseHeaders,
+        int maxHeadBytes,
+        int maxHeaderBytes,
+        RetryPolicy retryPolicy)
     {
         _token = token;
         _timeout = timeout ?? DefaultRequestTimeout;
         _maxResponseBytes = maxResponseBytes;
         _maxResponseHeaders = maxResponseHeaders;
         _maxHeaderBytes = maxHeaderBytes;
+        _clientOptions = Stated(retryPolicy);
 
         // A base URL nothing can be sent to is remembered rather than thrown from a constructor: it
         // is a request that was never issued, and the corpus classifies it as one.
@@ -418,6 +469,7 @@ public sealed class HttpTransport : ITransport, IAsyncTransport, IDisposable
         request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {_token}");
         request.Headers.TryAddWithoutValidation("Accept", JsonMediaType);
         request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
+        request.Headers.TryAddWithoutValidation("Hook0-Client-Options", _clientOptions);
 
         if (body is not null)
         {
@@ -447,6 +499,41 @@ public sealed class HttpTransport : ITransport, IAsyncTransport, IDisposable
             $"({Clipped(RuntimeInformation.FrameworkDescription)}; " +
             $"{Clipped(RuntimeInformation.RuntimeIdentifier)})";
     }
+
+    /// <summary>The schedule a transport was built with, in the shape an API reads it off the wire.</summary>
+    /// <remarks>
+    /// The grammar is the one <c>X-Hook0-Signature</c> already uses — parts joined by <c>,</c>, each
+    /// cut at its first <c>=</c> — so this header costs no parser that is not written twice over
+    /// already.
+    /// <para>
+    /// What is stated is the policy in force, not what a send went on to do with it: a policy
+    /// allowing one attempt still states its delays, because they are what it holds, and an API
+    /// reading <c>attempts=1</c> already knows none of them will be waited. In force is also after
+    /// this client's own clamps — <see cref="RetryPolicy.Attempts"/> rather than
+    /// <see cref="RetryPolicy.MaxAttempts"/> — since the capped number is the one the API's traffic
+    /// will show, and a thousand would send a reader looking for a burst that cannot happen.
+    /// </para>
+    /// </remarks>
+    private static string Stated(RetryPolicy policy)
+    {
+        long backoff = Millis(policy.InitialBackoff);
+        long ceiling = Millis(policy.MaxBackoff);
+        long budget = Millis(policy.MaxTotalDelay);
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"attempts={policy.Attempts},backoff={backoff},ceiling={ceiling},budget={budget}");
+    }
+
+    /// <summary>One delay of a policy, in the whole milliseconds the header states it in.</summary>
+    /// <remarks>
+    /// Counted off the ticks rather than read from <see cref="TimeSpan.TotalMilliseconds"/>, which
+    /// is a <c>double</c>: a whole number the header states has no business being rounded on its way
+    /// there, and a count of ticks divided down can hold no value a <c>long</c> cannot. A negative
+    /// delay is stated as zero, which is what the policy itself would wait for one.
+    /// </remarks>
+    private static long Millis(TimeSpan held) =>
+        held.Ticks > 0 ? held.Ticks / TimeSpan.TicksPerMillisecond : 0;
 
     /// <summary>
     /// One part of the <c>User-Agent</c>, with everything the header's own grammar uses taken out of

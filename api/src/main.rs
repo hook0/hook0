@@ -24,6 +24,7 @@ use url::Url;
 use uuid::Uuid;
 
 mod app;
+mod client_options;
 mod cloudflare_turnstile;
 mod expired_tokens_cleanup;
 mod extractor_user_ip;

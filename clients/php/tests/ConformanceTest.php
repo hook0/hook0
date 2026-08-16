@@ -183,7 +183,8 @@ final class ConformanceTest extends ApiCase
             new ScriptedResponse(200, [['event_type_name' => 'auth.user.create']])
         );
 
-        $client = $this->client();
+        $chosen = $this->options();
+        $client = $this->client($chosen);
         $client->sendEvent($this->anEvent());
         $client->upsertEventTypes(['auth.user.create']);
 
@@ -192,7 +193,10 @@ final class ConformanceTest extends ApiCase
         [$carryingABody, $carryingNone] = $received;
 
         $composedAtMost = (int) $contract['max_composed_bytes'];
-        $bound = ['token' => self::TOKEN, 'language' => 'php'];
+        $bound = array_merge(
+            ['token' => self::TOKEN, 'language' => 'php'],
+            self::statedBy($chosen->retryPolicy)
+        );
 
         foreach ($contract['headers'] as $header) {
             self::assertContains($header['when'], $contract['occasions'], sprintf(
@@ -210,6 +214,42 @@ final class ConformanceTest extends ApiCase
             }
             self::assertArrayNotHasKey($name, $carryingNone->headers, $header['reason']);
         }
+    }
+
+    public function testAClientAskingForMoreAttemptsThanTheCapStatesTheCap(): void
+    {
+        // The contract pins the clamped reading: a policy asking for more attempts than anything may
+        // make states the cap, because the cap is what its traffic will show and the number it asked
+        // for would send a reader looking for a burst that cannot happen. The expected number is the
+        // corpus's own rather than this client's, which is what keeps two SDKs from describing the
+        // same setup differently — the disagreement is invisible until a policy crosses the cap.
+        $cap = (int) Contract::of('bounds.json')['bounds']['max_attempts_cap'];
+        $greedy = new Options(
+            retryPolicy: new RetryPolicy(
+                maxAttempts: $cap * 100,
+                initialBackoff: 0.0,
+                maxBackoff: 0.0,
+                maxTotalDelay: 0.0
+            ),
+            requestTimeout: 5.0
+        );
+
+        $this->api->willAnswer($this->ingested(self::INGESTED_ID));
+        $this->client($greedy)->sendEvent($this->anEvent());
+
+        $stated = $this->api->received()[0]->headers['hook0-client-options'] ?? '';
+
+        self::assertSame(
+            sprintf('attempts=%d,backoff=0,ceiling=0,budget=0', $cap),
+            $stated,
+            sprintf(
+                'a client asked for %d attempts and stated `%s`, where the corpus caps what any '
+                . 'policy may make at %d',
+                $cap * 100,
+                $stated,
+                $cap
+            )
+        );
     }
 
     public function testEveryRefusalTheCorpusDeclaresReadsAsOneOfThisClients(): void
@@ -284,6 +324,33 @@ final class ConformanceTest extends ApiCase
                 $composedAtMost
             ));
         }
+    }
+
+    /**
+     * The holes of the request document that the retry policy a case built its client with answers.
+     *
+     * Read off that policy rather than written out here: a literal would agree with a client that
+     * had drifted alongside this file, and it would be wrong the moment a case builds a client on
+     * another policy. The two conversions are the ones the header itself is specified in — the
+     * attempts a policy actually makes, which is what it asked for after its own cap, and each of
+     * its durations in whole milliseconds.
+     *
+     * @return array<string, string>
+     */
+    private static function statedBy(RetryPolicy $policy): array
+    {
+        return [
+            'attempts' => (string) $policy->attempts(),
+            'backoff_ms' => self::inMilliseconds($policy->initialBackoff),
+            'ceiling_ms' => self::inMilliseconds($policy->maxBackoff),
+            'budget_ms' => self::inMilliseconds($policy->maxTotalDelay),
+        ];
+    }
+
+    /** One duration a policy holds, in the whole milliseconds the header states it in. */
+    private static function inMilliseconds(float $seconds): string
+    {
+        return (string) (int) round($seconds * 1000);
     }
 
     /**

@@ -172,6 +172,28 @@ describe("a schedule", function()
     assert.are.equal(1, Hook0.RetryPolicy.new({ max_attempts = -4 }):attempts())
     assert.are.equal(1, Hook0.RetryPolicy.disabled():attempts())
   end)
+
+  it("states whole numbers for durations no schedule could be built on", function()
+    -- `string.format("%d", …)` refuses a number with no integer representation, so a duration
+    -- carrying infinity or nothing-at-all would take down every request that states it rather than
+    -- being reported. Each of the three is exercised, because one conversion left unguarded is
+    -- enough to raise. What is driven is the transport rather than a send: stating the policy is
+    -- what this pins, and a schedule built on these numbers is a separate question.
+    local stated = "^attempts=%d+,backoff=%d+,ceiling=%d+,budget=%d+$"
+
+    for _, seconds in ipairs({ math.huge, -math.huge, 0 / 0 }) do
+      for _, held in ipairs({ "initial_backoff", "max_backoff", "max_total_delay" }) do
+        local api = Helper.FakeApi.new({ { status = 200, body = Json.array({}) } })
+        local policy = Hook0.RetryPolicy.new({ max_attempts = 1, [held] = seconds })
+        Hook0.Transport.new(api:base_url(), "token-xyz", { retry_policy = policy })
+          :request("GET", "/applications")
+        local carried = api:stop()[1].headers["hook0-client-options"]
+
+        assert.is_truthy(carried:match(stated),
+          "a policy holding `" .. held .. ": " .. tostring(seconds) .. "` stated `" .. carried .. "`")
+      end
+    end
+  end)
 end)
 
 describe("upserting event types", function()

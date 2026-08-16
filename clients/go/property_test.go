@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	hook0 "github.com/hook0/hook0/clients/go"
-	"github.com/hook0/hook0/clients/go/generated"
+	hook0 "github.com/hook0/hook0-go"
+	"github.com/hook0/hook0-go/generated"
 )
 
 // refusals are every reason this package declines to verify a webhook. A refusal that is none of

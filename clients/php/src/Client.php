@@ -111,7 +111,8 @@ final class Client
             $options->maxResponseBytes,
             $options->maxResponseHeaders,
             $options->maxHeaderBytes,
-            $options->maxHeadBytes
+            $options->maxHeadBytes,
+            $options->retryPolicy
         );
     }
 

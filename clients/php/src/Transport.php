@@ -68,6 +68,15 @@ final class Transport
      */
     private const MAX_USER_AGENT_PART_CHARS = 64;
 
+    /**
+     * Longest a duration this client states its retry policy in may be, in milliseconds.
+     *
+     * The three durations of a policy are numbers a caller set, and a header is no place for
+     * whatever arithmetic they lead to: about twenty-five days is already past any schedule a send
+     * could hold, and cutting to it is what keeps the value an integer whatever was configured.
+     */
+    private const MAX_STATED_MILLISECONDS = (2 ** 31) - 1;
+
     /** What this package is installed under, which is what its version is asked for by. */
     private const PACKAGE_NAME = 'hook0/client';
 
@@ -91,6 +100,7 @@ final class Transport
      * @param int $maxResponseHeaders how many header lines an answer may carry
      * @param int $maxHeaderBytes the longest one header line may be
      * @param int $maxHeadBytes the largest whole head, every line counted together
+     * @param RetryPolicy $retryPolicy the policy every request states the client was built with
      */
     public function __construct(
         private readonly string $baseUrl,
@@ -100,6 +110,7 @@ final class Transport
         private readonly int $maxResponseHeaders = self::DEFAULT_MAX_RESPONSE_HEADERS,
         private readonly int $maxHeaderBytes = self::DEFAULT_MAX_HEADER_BYTES,
         private readonly int $maxHeadBytes = self::DEFAULT_MAX_HEAD_BYTES,
+        private readonly RetryPolicy $retryPolicy = new RetryPolicy(),
     ) {
     }
 
@@ -306,6 +317,7 @@ final class Transport
             'Authorization: Bearer ' . $this->token,
             'Accept: ' . self::JSON_MEDIA_TYPE,
             'User-Agent: ' . self::userAgent(),
+            'Hook0-Client-Options: ' . $this->clientOptions(),
             // The library asks the server for permission before sending a body of any size, and
             // waits a second for an answer that a plain HTTP/1.1 server never sends. Nothing here
             // needs that handshake, so it is turned off rather than waited out.
@@ -369,5 +381,44 @@ final class Transport
         $printable = (string) preg_replace('/[^\x20-\x7E]/', '', $part);
 
         return substr(str_replace(['(', ')', ';'], '', $printable), 0, self::MAX_USER_AGENT_PART_CHARS);
+    }
+
+    /**
+     * The retry policy this transport was built to serve, as every request states it.
+     *
+     * What it states is what the policy holds rather than what one send went on to do: a policy
+     * allowing a single attempt still names the delays it holds, and an instance reading
+     * `attempts=1` already knows none of them will be waited. It is the one client setting the API
+     * can see the consequences of without being told — a burst of identical requests is a client
+     * repeating one send, and nothing else on the wire tells that apart from a client in a loop.
+     *
+     * The grammar is the one `X-Hook0-Signature` already travels under, parts joined by `,` and
+     * each cut at its first `=`, so nothing here is a second shape to get wrong.
+     */
+    private function clientOptions(): string
+    {
+        return sprintf(
+            'attempts=%d,backoff=%d,ceiling=%d,budget=%d',
+            $this->retryPolicy->attempts(),
+            self::statedMilliseconds($this->retryPolicy->initialBackoff),
+            self::statedMilliseconds($this->retryPolicy->maxBackoff),
+            self::statedMilliseconds($this->retryPolicy->maxTotalDelay)
+        );
+    }
+
+    /**
+     * One duration of that policy, in the whole milliseconds it is stated as.
+     *
+     * A number no schedule could be built on is not a duration: anything above every duration is
+     * stated as the ceiling and anything else that is not finite as nothing at all, so an integer
+     * travels whatever a caller configured.
+     */
+    private static function statedMilliseconds(float $seconds): int
+    {
+        if (!is_finite($seconds)) {
+            return $seconds > 0 ? self::MAX_STATED_MILLISECONDS : 0;
+        }
+
+        return (int) min(max(round($seconds * 1000), 0), self::MAX_STATED_MILLISECONDS);
     }
 }

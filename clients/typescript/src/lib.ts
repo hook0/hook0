@@ -410,6 +410,59 @@ export class Hook0ClientOptions {
   ) {}
 }
 
+/**
+ * Longest delay the header every request carries can state, in milliseconds.
+ *
+ * A delay is a `number` here and a whole number of milliseconds on the wire, and the two do not
+ * have the same reach: a `number` goes up to where it stops being finite, and one written past
+ * `Number.MAX_SAFE_INTEGER` stops being a whole number a reader can hold — it is written in
+ * exponent form, which is not the integer the shared contract asks for. This is the largest whole
+ * number every runtime reading the header holds exactly, which is what makes it the same ceiling in
+ * every SDK rather than one per language.
+ */
+const MAX_STATED_DELAY_MS = Number.MAX_SAFE_INTEGER;
+
+/**
+ * One delay of a policy, as the whole milliseconds the header states it in.
+ *
+ * Brought inside `0..=MAX_STATED_DELAY_MS`, because a `number` reaches places a whole number of
+ * milliseconds does not: infinity and `NaN` write themselves out by name and anything past the safe
+ * range writes itself in exponent form, none of which is an integer. Both ends of that range are
+ * stated rather than refused — a delay below zero is the nothing it waits, and one nothing bounds is
+ * at least as long as the longest that can be written down.
+ * @param milliseconds - What the policy holds for this delay
+ */
+function statedDelay(milliseconds: number): number {
+  const atLeastNothing = Math.max(milliseconds, 0);
+  if (!Number.isFinite(atLeastNothing)) {
+    return MAX_STATED_DELAY_MS;
+  }
+  return Math.min(Math.round(atLeastNothing), MAX_STATED_DELAY_MS);
+}
+
+/**
+ * The retry policy behind a request, as the header every request carries states it.
+ *
+ * The four parts are the policy in force, in the order the shared contract fixes, joined the way
+ * `X-Hook0-Signature` joins its own: every duration is a count of milliseconds and every part an
+ * integer, so an instance reads the value back by cutting each part at its first `=` and nothing
+ * here needs a parser of its own. Whole numbers are also what bounds the value without cutting it
+ * down to a length: four of them are as long as a number written out and no longer, whatever a
+ * caller configures.
+ *
+ * In force means past this client's own clamps rather than as asked for: a policy that asked for a
+ * thousand attempts states the `MAX_ATTEMPTS_CAP` it will make, since a thousand would have a
+ * reader watching for a burst that cannot arrive.
+ * @param policy - How the client spaces out the attempts of a send
+ */
+function clientOptions(policy: RetryPolicy): string {
+  const attempts = policy.attempts();
+  const backoff = statedDelay(policy.initialBackoffMs);
+  const ceiling = statedDelay(policy.maxBackoffMs);
+  const budget = statedDelay(policy.maxTotalDelayMs);
+  return `attempts=${attempts},backoff=${backoff},ceiling=${ceiling},budget=${budget}`;
+}
+
 /** The draw for one retry, brought back inside `[0, 1]` whatever the source of randomness gave. */
 function drawAt(draws: number[], index: number): number {
   if (index >= draws.length) {
@@ -1024,6 +1077,10 @@ export class Hook0Client {
         'Content-Type': JSON_MEDIA_TYPE,
         Accept: JSON_MEDIA_TYPE,
         'User-Agent': USER_AGENT,
+        // Read per request rather than composed once: the policy is a field a caller can replace
+        // on a client already built, and a value settled at construction would state the one it
+        // replaced.
+        'Hook0-Client-Options': clientOptions(this.options.retryPolicy),
         ...this.headers.headers,
       },
       body,
@@ -1103,6 +1160,7 @@ export class Hook0Client {
         headers: {
           Accept: JSON_MEDIA_TYPE,
           'User-Agent': USER_AGENT,
+          'Hook0-Client-Options': clientOptions(this.options.retryPolicy),
           ...this.headers.headers,
         },
       }
@@ -1138,6 +1196,7 @@ export class Hook0Client {
             'Content-Type': JSON_MEDIA_TYPE,
             Accept: JSON_MEDIA_TYPE,
             'User-Agent': USER_AGENT,
+            'Hook0-Client-Options': clientOptions(this.options.retryPolicy),
             ...this.headers.headers,
           },
           body: JSON.stringify(body),

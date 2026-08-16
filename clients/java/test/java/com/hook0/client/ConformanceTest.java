@@ -230,8 +230,9 @@ final class ConformanceTest {
     }
   }
 
-  @Test
-  void everyRequestCarriesWhatTheCorpusPins() {
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void everyRequestCarriesWhatTheCorpusPins(Surface surface) {
     List<Map<String, Object>> headers = Corpus.entries(REQUEST, "headers");
     List<Object> occasions = Corpus.values(REQUEST, "occasions");
 
@@ -243,14 +244,26 @@ final class ConformanceTest {
     }
     assertTrue(unknown.isEmpty(), "the corpus pins a header for an occasion it does not declare: " + unknown);
 
+    Options built = options(1);
     try (FakeApi api = new FakeApi();
-        Hook0Client client = new Hook0Client(api.baseUrl(), "app-123", TOKEN, options(1))) {
+        Hook0Client client = new Hook0Client(api.baseUrl(), "app-123", TOKEN, built)) {
       api.willAnswer(FakeApi.Scripted.of(201, Map.of("event_id", INGESTED_ID)));
-      client.sendEvent(anEvent());
+      surface.send(client, anEvent());
 
       // A send carries a body, so every occasion the corpus declares applies to this one request.
       long composedAtMost = ((Long) REQUEST.get("max_composed_bytes")).longValue();
-      Map<String, String> bound = Map.of("token", TOKEN, "language", "java", "version", publishedVersion());
+      // The schedule is the one this client was built with a few lines up, so what the corpus writes
+      // about the retry policy is an exact string rather than a shape with something in it.
+      RetryPolicy policy = built.retryPolicy();
+      Map<String, String> bound =
+          Map.of(
+              "token", TOKEN,
+              "language", "java",
+              "version", publishedVersion(),
+              "attempts", String.valueOf(policy.attempts()),
+              "backoff_ms", String.valueOf(policy.initialBackoff().toMillis()),
+              "ceiling_ms", String.valueOf(policy.maxBackoff().toMillis()),
+              "budget_ms", String.valueOf(policy.maxTotalDelay().toMillis()));
 
       FakeApi.Received sent = api.received().get(0);
       for (Map<String, Object> header : headers) {

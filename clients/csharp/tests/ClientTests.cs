@@ -246,6 +246,42 @@ public sealed class ClientTests : ApiCase
     }
 
     [Fact]
+    public async Task APolicyHoldingNumbersItsHeaderCannotStateIsStillStatedOnTheWire()
+    {
+        // Three numbers a caller should not write and can: more attempts than the policy will ever
+        // make, a delay as long as a duration goes, and a negative one. What reaches the socket is
+        // the schedule the policy would actually apply, rather than a header rounded through a
+        // double or an exception raised while it was being composed.
+        Api.WillAnswer(Ingested(IngestedId));
+        using Hook0Client client = Client(new ClientOptions
+        {
+            RetryPolicy = new RetryPolicy
+            {
+                MaxAttempts = 1000,
+                InitialBackoff = TimeSpan.MaxValue,
+                MaxBackoff = TimeSpan.FromMilliseconds(-5),
+                MaxTotalDelay = TimeSpan.MaxValue,
+            },
+            RequestTimeout = TimeSpan.FromSeconds(5),
+        });
+
+        await client.SendEventAsync(AnEvent());
+
+        long longest = TimeSpan.MaxValue.Ticks / TimeSpan.TicksPerMillisecond;
+        KeyValuePair<string, string> stated = Assert.Single(
+            Api.Received[0].Headers,
+            header => string.Equals(
+                header.Key,
+                "Hook0-Client-Options",
+                StringComparison.OrdinalIgnoreCase));
+
+        Assert.Equal(
+            FormattableString.Invariant(
+                $"attempts={RetryPolicy.MaxAttemptsCap},backoff={longest},ceiling=0,budget={longest}"),
+            stated.Value);
+    }
+
+    [Fact]
     public void AnEventTypeThatDoesNotNameAllThreeOfItsPartsIsRefused()
     {
         Assert.Throws<EventTypeException>(() => EventType.Parse("auth.user"));

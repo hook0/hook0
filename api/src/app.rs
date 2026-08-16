@@ -17,6 +17,7 @@ use tracing_actix_web::TracingLogger;
 use url::Url;
 use uuid::Uuid;
 
+use crate::client_options::Hook0RootSpanBuilder;
 use crate::rate_limiting::Hook0RateLimiters;
 use crate::{
     State, WEBAPP_INDEX_FILE, handlers, middleware_biscuit, middleware_get_user_ip, openapi,
@@ -126,7 +127,7 @@ pub fn build_app(
         .wrap(hsts_header_condition)
         .wrap(security_headers_condition)
         .wrap(cors)
-        .wrap(TracingLogger::default())
+        .wrap(TracingLogger::<Hook0RootSpanBuilder>::new())
         .wrap(NormalizePath::trim())
         .wrap(sentry_actix::Sentry::new())
         .wrap_api_with_spec(spec)

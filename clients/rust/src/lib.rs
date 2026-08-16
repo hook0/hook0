@@ -181,6 +181,51 @@ fn clipped(part: &str) -> String {
 }
 
 #[cfg(feature = "producer")]
+/// Name of the header every request states the retry policy behind it under.
+const CLIENT_OPTIONS: &str = "Hook0-Client-Options";
+
+#[cfg(feature = "producer")]
+/// Longest delay the header every request carries can state, in milliseconds.
+///
+/// A [`StdDuration`] reaches far past the delays the SDKs in other languages can hold, let alone
+/// state: [`StdDuration::MAX`] is twenty-three digits of milliseconds, which a reader holding it as
+/// a double reads back as a different number. This is the largest whole number every runtime
+/// reading the header holds exactly, and it is the same ceiling in every SDK so that two of them
+/// cannot describe one unbounded policy differently.
+const MAX_STATED_DELAY_MS: u128 = (1 << 53) - 1;
+
+#[cfg(feature = "producer")]
+/// The retry policy behind a request, as the header every request carries states it.
+///
+/// The four parts are the policy in force, in the order the shared contract fixes, joined the way
+/// `X-Hook0-Signature` joins its own: every duration is a count of milliseconds and every part an
+/// integer, so an instance reads the value back by cutting each part at its first `=` and nothing
+/// here needs a parser of its own. Integers are also what bounds the value without cutting it down
+/// to a length: four of them are as long as their widths allow and no longer, whatever a caller
+/// configures.
+///
+/// In force means past this client's own bounds rather than as asked for: a policy that asked for a
+/// thousand attempts states the [`MAX_ATTEMPTS_CAP`] it will make, since a thousand would have a
+/// reader watching for a burst that cannot arrive, and a delay longer than any SDK can state states
+/// [`MAX_STATED_DELAY_MS`].
+fn client_options(policy: &RetryPolicy) -> String {
+    format!(
+        "attempts={},backoff={},ceiling={},budget={}",
+        policy.attempts(),
+        stated_delay(policy.initial_backoff),
+        stated_delay(policy.max_backoff),
+        stated_delay(policy.max_total_delay),
+    )
+}
+
+#[cfg(feature = "producer")]
+/// One delay of a policy, as the whole milliseconds the header states it in, capped at
+/// [`MAX_STATED_DELAY_MS`].
+fn stated_delay(delay: StdDuration) -> u128 {
+    delay.as_millis().min(MAX_STATED_DELAY_MS)
+}
+
+#[cfg(feature = "producer")]
 /// Public identifier Hook0 gives the problem it answers when an event ID is already taken.
 const ALREADY_INGESTED: &str = "EventAlreadyIngested";
 
@@ -529,6 +574,10 @@ impl Hook0Client {
         let response = self
             .client
             .post(url.as_str())
+            // Per request rather than a default of the underlying client: the policy is chosen
+            // after that client is built, so a default settled at construction would state the
+            // policy this one replaced.
+            .header(CLIENT_OPTIONS, client_options(&self.retry_policy))
             .timeout(self.request_timeout)
             .json(body)
             .send()
@@ -624,6 +673,7 @@ impl Hook0Client {
         let available_event_types_answer = self
             .client
             .get(event_types_url.as_str())
+            .header(CLIENT_OPTIONS, client_options(&self.retry_policy))
             .query(&[("application_id", self.application_id())])
             .send()
             .await
@@ -675,6 +725,7 @@ impl Hook0Client {
 
                 self.client
                     .post(event_types_url.as_str())
+                    .header(CLIENT_OPTIONS, client_options(&self.retry_policy))
                     .json(&body)
                     .send()
                     .await

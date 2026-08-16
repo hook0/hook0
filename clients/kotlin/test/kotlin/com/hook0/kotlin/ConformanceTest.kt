@@ -163,8 +163,9 @@ class ConformanceTest {
     }
   }
 
-  @Test
-  fun everyRequestCarriesWhatTheCorpusPins() {
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun everyRequestCarriesWhatTheCorpusPins(surface: Surface) {
     val headers = Corpus.entries(REQUEST, "headers")
     val occasions = Corpus.values(REQUEST, "occasions")
 
@@ -179,14 +180,26 @@ class ConformanceTest {
       "the corpus pins a header for an occasion it does not declare: $unknown"
     )
 
+    val built = options(1)
     FakeApi().use { api ->
-      Hook0Client(api.baseUrl(), "app-123", TOKEN, options(1)).use { client ->
+      Hook0Client(api.baseUrl(), "app-123", TOKEN, built).use { client ->
         api.willAnswer(FakeApi.Scripted.of(201, mapOf("event_id" to INGESTED_ID)))
-        client.sendEvent(anEvent())
+        surface.send(client, anEvent())
 
         // A send carries a body, so every occasion the corpus declares applies to this one request.
         val composedAtMost = REQUEST["max_composed_bytes"] as Long
-        val bound = mapOf("token" to TOKEN, "language" to "kotlin", "version" to publishedVersion())
+        // The schedule is the one this client was built with a few lines up, so what the corpus
+        // writes about the retry policy is an exact string rather than a shape with something in it.
+        val policy = built.retryPolicy
+        val bound = mapOf(
+          "token" to TOKEN,
+          "language" to "kotlin",
+          "version" to publishedVersion(),
+          "attempts" to policy.attempts().toString(),
+          "backoff_ms" to policy.initialBackoff.toMillis().toString(),
+          "ceiling_ms" to policy.maxBackoff.toMillis().toString(),
+          "budget_ms" to policy.maxTotalDelay.toMillis().toString()
+        )
 
         val sent = api.received()[0]
         for (header in headers) {

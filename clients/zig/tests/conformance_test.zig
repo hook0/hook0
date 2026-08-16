@@ -445,17 +445,32 @@ test "a request carries the headers its occasion declares, and only those" {
     const api = try helper.FakeApi.init(io, held, &scripted);
     defer api.deinit();
 
-    var built = try helper.client(io, held, api, helper.options(4));
+    const chosen = helper.options(4);
+    var built = try helper.client(io, held, api, chosen);
     {
         const owned = try built.sendEvent(held, helper.anEvent());
         owned.deinit();
     }
     _ = try built.inner.request(held, .{ .method = "GET", .path = "/applications" });
 
-    // The holes this suite can speak for: the credential this client was built with, and the target
-    // reading the corpus. What is left over is a hole no suite fills without reimplementing the
-    // client it is testing.
-    const bound = [_][2][]const u8{ .{ "token", "token-xyz" }, .{ "language", "zig" } };
+    // The holes this suite can speak for: the credential this client was built with, the target
+    // reading the corpus, and the retry policy this case handed the client. What is left over is a
+    // hole no suite fills without reimplementing the client it is testing.
+    //
+    // The policy is read off what the client was built with rather than written out: a literal
+    // would agree with a client that had drifted alongside this file, and it would be wrong the
+    // moment a case builds a client on another policy. The attempts are the ones the policy
+    // actually makes, which is what it asked for after its own cap; its durations are already the
+    // whole milliseconds the header states.
+    const policy = chosen.retry_policy;
+    const bound = [_][2][]const u8{
+        .{ "token", "token-xyz" },
+        .{ "language", "zig" },
+        .{ "attempts", try std.fmt.allocPrint(held, "{d}", .{policy.attempts()}) },
+        .{ "backoff_ms", try std.fmt.allocPrint(held, "{d}", .{policy.initial_backoff_ms}) },
+        .{ "ceiling_ms", try std.fmt.allocPrint(held, "{d}", .{policy.max_backoff_ms}) },
+        .{ "budget_ms", try std.fmt.allocPrint(held, "{d}", .{policy.max_total_delay_ms}) },
+    };
     const composed_at_most: usize = @intCast(read.value.object.get("max_composed_bytes").?.integer);
 
     const carrying = [_]struct { index: usize, body: bool }{
@@ -510,6 +525,54 @@ test "a request carries the headers its occasion declares, and only those" {
             }
         }
     }
+}
+
+test "a client asking for more attempts than the cap states the cap" {
+    // The contract pins the clamped reading: a policy asking for more attempts than anything may
+    // make states the cap, because the cap is what its traffic will show and the number it asked for
+    // would send a reader looking for a burst that cannot happen. The expected number is the
+    // corpus's own rather than this client's, which is what keeps two SDKs from describing the same
+    // setup differently — the disagreement is invisible until a policy crosses the cap.
+    const read = try helper.contract(io, allocator, "bounds.json");
+    defer read.deinit();
+
+    const cap: u32 = @intCast(read.value.object.get("bounds").?.object.get("max_attempts_cap").?.integer);
+
+    var arena: std.heap.ArenaAllocator = .init(allocator);
+    defer arena.deinit();
+    const held = arena.allocator();
+
+    const scripted = [_]helper.Scripted{helper.ingested(helper.ingested_id)};
+    const api = try helper.FakeApi.init(io, held, &scripted);
+    defer api.deinit();
+
+    const greedy: hook0.Options = .{
+        .retry_policy = .{
+            .max_attempts = cap * 100,
+            .initial_backoff_ms = 0,
+            .max_backoff_ms = 0,
+            .max_total_delay_ms = 0,
+        },
+        .request_timeout_ms = 5_000,
+    };
+    var built = try helper.client(io, held, api, greedy);
+    {
+        const owned = try built.sendEvent(held, helper.anEvent());
+        owned.deinit();
+    }
+
+    const request = api.at(0) orelse return error.NothingReceived;
+    const stated = request.get("Hook0-Client-Options") orelse "";
+    const wanted = try std.fmt.allocPrint(held, "attempts={d},backoff=0,ceiling=0,budget=0", .{cap});
+
+    std.testing.expectEqualStrings(wanted, stated) catch |failed| {
+        std.debug.print(
+            "a client asked for {d} attempts and stated `{s}`, where the corpus caps what any " ++
+                "policy may make at {d}\n",
+            .{ cap * 100, stated, cap },
+        );
+        return failed;
+    };
 }
 
 test "every delivery of the corpus is verified as it says" {

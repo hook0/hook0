@@ -74,7 +74,7 @@ const jsonMediaType = "application/json"
 const maxUserAgentPartChars = 64
 
 // modulePath is what this module is imported under, which is the name the build records it by.
-const modulePath = "github.com/hook0/hook0/clients/go"
+const modulePath = "github.com/hook0/hook0-go"
 
 // unknownVersion is what the version reads as when the build recorded none for this module, which
 // is what a binary built without module information leaves behind.
@@ -131,6 +131,28 @@ func clipped(part string) string {
 	return kept.String()
 }
 
+// clientOptions is the retry policy behind a request, as the header every request carries states it.
+//
+// The four parts are the policy in force, in the order the shared contract fixes, joined the way
+// X-Hook0-Signature joins its own: every duration is a count of milliseconds and every part an
+// integer, so an instance reads the value back by cutting each part at its first `=` and nothing
+// here needs a parser of its own. Integers are also what bounds the value without cutting it down
+// to a length: four of them are as long as their widths allow and no longer, whatever a caller
+// configures.
+//
+// In force means past this client's own clamps rather than as asked for: a policy that asked for a
+// thousand attempts states the MaxAttemptsCap it will make, since a thousand would have a reader
+// watching for a burst that cannot arrive, and a delay below zero states the nothing it waits.
+func clientOptions(policy RetryPolicy) string {
+	return fmt.Sprintf(
+		"attempts=%d,backoff=%d,ceiling=%d,budget=%d",
+		policy.Attempts(),
+		max(policy.InitialBackoff, 0).Milliseconds(),
+		max(policy.MaxBackoff, 0).Milliseconds(),
+		max(policy.MaxTotalDelay, 0).Milliseconds(),
+	)
+}
+
 // TransportError is a request that produced no answer to read.
 //
 // Several natures of failure land here — a connection that was refused or reset, an answer above a
@@ -165,6 +187,7 @@ type Transport struct {
 	token            string
 	client           *http.Client
 	maxResponseBytes int64
+	clientOptions    string
 }
 
 // NewTransport builds a transport reaching an instance of the API with a token valid for it.
@@ -192,7 +215,18 @@ func NewTransport(baseURL string, token string, timeout time.Duration, maxRespon
 		token:            token,
 		client:           &http.Client{Timeout: timeout, Transport: carrier},
 		maxResponseBytes: maxResponseBytes,
+		// A transport reached directly — which is how a generated operation group is built — issues
+		// one request and waits for nothing between attempts it does not make. A client that
+		// retries states its own policy over this one.
+		clientOptions: clientOptions(DisabledRetryPolicy()),
 	}
+}
+
+// underRetryPolicy states the policy the requests of this transport are made under, and answers the
+// transport so that a caller can build and state in one expression.
+func (t *Transport) underRetryPolicy(policy RetryPolicy) *Transport {
+	t.clientOptions = clientOptions(policy)
+	return t
 }
 
 // Request issues one request and answers the status, the body, and why it got neither.
@@ -253,6 +287,7 @@ func (t *Transport) Deliver(
 	// Set rather than left alone: what the standard library names itself here says which Go built
 	// the caller and nothing at all about which SDK is talking.
 	request.Header.Set("User-Agent", userAgent())
+	request.Header.Set("Hook0-Client-Options", t.clientOptions)
 	if body != nil {
 		request.Header.Set("Content-Type", jsonMediaType)
 	}

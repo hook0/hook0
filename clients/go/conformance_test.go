@@ -15,11 +15,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	hook0 "github.com/hook0/hook0/clients/go"
+	hook0 "github.com/hook0/hook0-go"
 )
 
 const (
@@ -565,15 +566,26 @@ func TestEveryRequestCarriesWhatTheCorpusSaysItDoes(t *testing.T) {
 		scriptedResponse{status: 201, body: map[string]any{}},
 	)
 
-	_, err := client(api, promptOptions(4)).UpsertEventTypes(bounded(t), []string{"auth.user.create"})
+	options := promptOptions(4)
+	_, err := client(api, options).UpsertEventTypes(bounded(t), []string{"auth.user.create"})
 	if err != nil {
 		t.Fatalf("declaring an event type failed: %v", err)
 	}
 
-	// The holes this suite can speak for: the credential this client was built with, and the target
-	// reading the corpus. What is left over is a hole no suite fills without reimplementing the
-	// client it is testing.
-	bound := map[string]string{"token": token, "language": "go"}
+	// The holes this suite can speak for: the credential this client was built with, the target
+	// reading the corpus, and the retry policy that client was configured with — read back off that
+	// policy rather than written out here, so the case cannot agree with a client that states a
+	// schedule nobody configured. What is left over is a hole no suite fills without reimplementing
+	// the client it is testing.
+	policy := options.RetryPolicy
+	bound := map[string]string{
+		"token":      token,
+		"language":   "go",
+		"attempts":   strconv.Itoa(policy.Attempts()),
+		"backoff_ms": strconv.FormatInt(policy.InitialBackoff.Milliseconds(), 10),
+		"ceiling_ms": strconv.FormatInt(policy.MaxBackoff.Milliseconds(), 10),
+		"budget_ms":  strconv.FormatInt(policy.MaxTotalDelay.Milliseconds(), 10),
+	}
 
 	exercised := map[string]bool{}
 	for index, request := range api.requests() {

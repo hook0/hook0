@@ -18,7 +18,23 @@
     "cuts them to fit rather than sending whatever it was handed.",
     "`when` says which requests carry the header, and is one of the `occasions` below.",
     "This is the smallest thing worth pinning and the easiest to let drift: a client that omits the",
-    "representation it accepts works perfectly until the API serves a second one."
+    "representation it accepts works perfectly until the API serves a second one.",
+    "`Hook0-Client-Options` reuses the grammar of `X-Hook0-Signature` rather than inventing a",
+    "second one: parts joined by `,`, each part cut at its FIRST `=`, so a value containing `=`",
+    "stays whole. Every client already emits and reads that shape, so this header costs no new",
+    "parser and offers no new way to get parsing wrong.",
+    "Its four parts are the retry policy the client was built with, in this fixed order, each an",
+    "integer with no unit suffix and every duration in milliseconds. Fixed order is what lets a",
+    "suite compare the whole value as one string instead of parsing it back apart.",
+    "It reports the policy IN FORCE, not what this particular send did with it. A policy allowing",
+    "four attempts says `attempts=4` on a send that succeeded on the first, because four is what it",
+    "would have allowed; and a policy allowing one still states the delays it holds, because they",
+    "are what it holds, and a reader seeing `attempts=1` already knows none will be waited.",
+    "In force also means AFTER the client's own clamps. A client asked for a thousand attempts and",
+    "capped at sixteen states sixteen, because sixteen is what its traffic will show and a thousand",
+    "would send a reader looking for a burst that cannot happen. This is the one place the two",
+    "readings of `configured` come apart, and getting it wrong in one target puts two Hook0 SDKs on",
+    "the wire describing the same setup differently."
   ],
   "occasions": ["every request", "a request carrying a body"],
   "max_composed_bytes": 256,
@@ -46,6 +62,12 @@
       "value": "hook0-client-${language}/${version} (${runtime}; ${os})",
       "when": "every request",
       "reason": "which SDK, at which version, on which runtime and operating system, is talking to the API; an instance can otherwise not tell a deprecation that has reached everybody from one that has reached nobody, and nothing can go back and ask a client that shipped two years ago"
+    },
+    {
+      "name": "Hook0-Client-Options",
+      "value": "attempts=${attempts},backoff=${backoff_ms},ceiling=${ceiling_ms},budget=${budget_ms}",
+      "when": "every request",
+      "reason": "the retry policy behind the request, which is the only client setting the API can see the consequences of without being told: a burst of identical requests arriving inside a few seconds is a client repeating one send, and without this header it is indistinguishable from a client in a loop. It also makes the far commoner mistake legible — a client left at one attempt reports a flaky API for failures a single retry would have absorbed, and nothing on the API side can tell that today"
     }
   ]
 }
