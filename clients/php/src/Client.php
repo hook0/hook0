@@ -178,7 +178,7 @@ final class Client
                 throw $this->givenUp($eventId, $issued, $waited, $outcome->detail);
             }
 
-            $waiting = $this->waitFor($outcome, $scheduled, $policy->maxTotalDelay - $waited);
+            $waiting = $this->waitFor($outcome, $scheduled, $policy->maxTotalDelayInForce() - $waited);
             usleep((int) round($waiting * 1_000_000));
             $waited += $waiting;
         }

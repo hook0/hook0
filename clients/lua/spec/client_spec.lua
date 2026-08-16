@@ -173,24 +173,25 @@ describe("a schedule", function()
     assert.are.equal(1, Hook0.RetryPolicy.disabled():attempts())
   end)
 
-  it("states whole numbers for durations no schedule could be built on", function()
-    -- `string.format("%d", …)` refuses a number with no integer representation, so a duration
-    -- carrying infinity or nothing-at-all would take down every request that states it rather than
-    -- being reported. Each of the three is exercised, because one conversion left unguarded is
-    -- enough to raise. What is driven is the transport rather than a send: stating the policy is
-    -- what this pins, and a schedule built on these numbers is a separate question.
-    local stated = "^attempts=%d+,backoff=%d+,ceiling=%d+,budget=%d+$"
+  it("is in force with the default for a duration no schedule could be built on", function()
+    -- A value that is not a finite number names no duration, and a policy holding one is in force
+    -- with the default of that field. Both halves are held to it: what the request states and what
+    -- the send would actually wait, because a header that named a policy the client does not run
+    -- would be worse than no header at all.
+    local default = Hook0.RetryPolicy.new()
+    local draws = { 0.5, 0.5, 0.5 }
 
-    for _, seconds in ipairs({ math.huge, -math.huge, 0 / 0 }) do
+    for _, unusable in ipairs({ { "+INF", math.huge }, { "-INF", -math.huge }, { "NaN", 0 / 0 } }) do
       for _, held in ipairs({ "initial_backoff", "max_backoff", "max_total_delay" }) do
         local api = Helper.FakeApi.new({ { status = 200, body = Json.array({}) } })
-        local policy = Hook0.RetryPolicy.new({ max_attempts = 1, [held] = seconds })
+        local policy = Hook0.RetryPolicy.new({ [held] = unusable[2] })
         Hook0.Transport.new(api:base_url(), "token-xyz", { retry_policy = policy })
           :request("GET", "/applications")
         local carried = api:stop()[1].headers["hook0-client-options"]
+        local because = "a policy holding `" .. held .. ": " .. unusable[1] .. "`"
 
-        assert.is_truthy(carried:match(stated),
-          "a policy holding `" .. held .. ": " .. tostring(seconds) .. "` stated `" .. carried .. "`")
+        assert.are.equal("attempts=4,backoff=100,ceiling=2000,budget=5000", carried, because)
+        assert.are.same(default:delays(draws), policy:delays(draws), because)
       end
     end
   end)

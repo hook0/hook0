@@ -357,9 +357,7 @@ export class RetryPolicy {
    */
   backoffCeilingMs(retry: number): number {
     const doublings = Math.min(Math.max(retry - 1, 0), MAX_BACKOFF_DOUBLINGS);
-    const initial = Math.max(this.initialBackoffMs, 0);
-    const maximum = Math.max(this.maxBackoffMs, 0);
-    return Math.min(initial * 2 ** doublings, maximum);
+    return Math.min(initialBackoffOf(this) * 2 ** doublings, maxBackoffOf(this));
   }
 
   /**
@@ -376,7 +374,7 @@ export class RetryPolicy {
    */
   delaysMs(draws: number[]): number[] {
     const retries = this.attempts() - 1;
-    const budget = Math.max(this.maxTotalDelayMs, 0);
+    const budget = maxTotalDelayOf(this);
     const delays: number[] = [];
     let spent = 0;
 
@@ -423,21 +421,57 @@ export class Hook0ClientOptions {
 const MAX_STATED_DELAY_MS = Number.MAX_SAFE_INTEGER;
 
 /**
- * One delay of a policy, as the whole milliseconds the header states it in.
+ * The policy every field falls back to one field at a time, built from the declarations on
+ * `RetryPolicy` so that moving a default moves the fallback with it rather than leaving a second
+ * copy behind.
+ */
+const DEFAULT_POLICY = new RetryPolicy();
+
+/**
+ * What one duration of a policy is read as, wherever this client reads one.
  *
- * Brought inside `0..=MAX_STATED_DELAY_MS`, because a `number` reaches places a whole number of
- * milliseconds does not: infinity and `NaN` write themselves out by name and anything past the safe
- * range writes itself in exponent form, none of which is an integer. Both ends of that range are
- * stated rather than refused — a delay below zero is the nothing it waits, and one nothing bounds is
- * at least as long as the longest that can be written down.
- * @param milliseconds - What the policy holds for this delay
+ * A number that is not finite — infinite either way, or `NaN` — says nothing about how long to
+ * wait, so the field's own default is what it is read as. Zero would quietly delete the spacing
+ * between attempts and turn a broken policy into a burst; treating it as unbounded is what makes a
+ * client wait for ever. The default is neither, and it is the same value in every SDK, so one
+ * mistyped field cannot make two clients behave differently.
+ *
+ * A negative but finite delay is a delay of nothing, which is what it has always been read as.
+ * @param value - What the policy holds for this field
+ * @param fallback - What that field defaults to
+ */
+function readDuration(value: number, fallback: number): number {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.max(value, 0);
+}
+
+/** The ceiling of the first retry's delay, as this client reads it. */
+function initialBackoffOf(policy: RetryPolicy): number {
+  return readDuration(policy.initialBackoffMs, DEFAULT_POLICY.initialBackoffMs);
+}
+
+/** The ceiling no single delay exceeds, as this client reads it. */
+function maxBackoffOf(policy: RetryPolicy): number {
+  return readDuration(policy.maxBackoffMs, DEFAULT_POLICY.maxBackoffMs);
+}
+
+/** The budget every delay of one send shares, as this client reads it. */
+function maxTotalDelayOf(policy: RetryPolicy): number {
+  return readDuration(policy.maxTotalDelayMs, DEFAULT_POLICY.maxTotalDelayMs);
+}
+
+/**
+ * One delay a policy is read as, in the whole milliseconds the header states it in.
+ *
+ * Capped at `MAX_STATED_DELAY_MS`: a `number` reaches past where a whole number every reader holds
+ * exactly stops, and one written past that range writes itself in exponent form, which is not the
+ * integer the shared contract asks for.
+ * @param milliseconds - The delay this client reads, already a finite count of milliseconds
  */
 function statedDelay(milliseconds: number): number {
-  const atLeastNothing = Math.max(milliseconds, 0);
-  if (!Number.isFinite(atLeastNothing)) {
-    return MAX_STATED_DELAY_MS;
-  }
-  return Math.min(Math.round(atLeastNothing), MAX_STATED_DELAY_MS);
+  return Math.min(Math.round(milliseconds), MAX_STATED_DELAY_MS);
 }
 
 /**
@@ -457,9 +491,9 @@ function statedDelay(milliseconds: number): number {
  */
 function clientOptions(policy: RetryPolicy): string {
   const attempts = policy.attempts();
-  const backoff = statedDelay(policy.initialBackoffMs);
-  const ceiling = statedDelay(policy.maxBackoffMs);
-  const budget = statedDelay(policy.maxTotalDelayMs);
+  const backoff = statedDelay(initialBackoffOf(policy));
+  const ceiling = statedDelay(maxBackoffOf(policy));
+  const budget = statedDelay(maxTotalDelayOf(policy));
   return `attempts=${attempts},backoff=${backoff},ceiling=${ceiling},budget=${budget}`;
 }
 

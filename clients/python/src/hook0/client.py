@@ -150,7 +150,7 @@ class RetryPolicy:
         successive retries never decrease.
         """
         doublings = min(max(retry - 1, 0), MAX_BACKOFF_DOUBLINGS)
-        return min(max(self.initial_backoff, 0.0) * (2**doublings), max(self.max_backoff, 0.0))
+        return min(_initial_backoff_of(self) * (2**doublings), _max_backoff_of(self))
 
     def delays(self, draws: Sequence[float]) -> list[float]:
         """The delays this policy waits between the attempts of one send, one per retry.
@@ -162,7 +162,7 @@ class RetryPolicy:
         A draw that is missing or is not a finite number is read as `1`, which asks for the whole
         ceiling: an unusable source of randomness makes the client wait longer, never less.
         """
-        budget = max(self.max_total_delay, 0.0)
+        budget = _max_total_delay_of(self)
         waits: list[float] = []
         spent = 0.0
 
@@ -176,16 +176,50 @@ class RetryPolicy:
         return waits
 
 
-def _stated_delay(seconds: float) -> int:
-    """One delay of a policy, as the whole milliseconds the header states it in.
+# The policy every field falls back to one field at a time, built from the declarations above so
+# that moving a default moves the fallback with it rather than leaving a second copy behind.
+_DEFAULTS = RetryPolicy()
 
-    Brought inside `0..=MAX_STATED_DELAY_MS`, because a float of seconds reaches places a whole
-    number of milliseconds does not: a delay of infinite or unreadable length has no integer to
-    write down, and rounding one straight raises rather than producing a header. Both ends of that
-    range are stated rather than raised over — a delay below zero is the nothing it waits, and one
-    nothing bounds is at least as long as the longest that can be written down.
+
+def _read(value: float, default: float) -> float:
+    """What one duration of a policy is read as, wherever this client reads one.
+
+    A number that is not finite — infinite either way, or not a number at all — says nothing about
+    how long to wait, so the field's own default is what it is read as. Zero would quietly delete
+    the spacing between attempts and turn a broken policy into a burst; treating it as unbounded is
+    what makes a client wait for ever. The default is neither, and it is the same value in every
+    SDK, so one mistyped field cannot make two clients behave differently.
+
+    A negative but finite delay is a delay of nothing, which is what it has always been read as.
     """
-    milliseconds = max(seconds * 1000, 0.0)
+    if not math.isfinite(value):
+        return default
+    return max(value, 0.0)
+
+
+def _initial_backoff_of(policy: RetryPolicy) -> float:
+    """The ceiling of the first retry's delay, as this client reads it."""
+    return _read(policy.initial_backoff, _DEFAULTS.initial_backoff)
+
+
+def _max_backoff_of(policy: RetryPolicy) -> float:
+    """The ceiling no single delay exceeds, as this client reads it."""
+    return _read(policy.max_backoff, _DEFAULTS.max_backoff)
+
+
+def _max_total_delay_of(policy: RetryPolicy) -> float:
+    """The budget every delay of one send shares, as this client reads it."""
+    return _read(policy.max_total_delay, _DEFAULTS.max_total_delay)
+
+
+def _stated_delay(seconds: float) -> int:
+    """One delay a policy is read as, in the whole milliseconds the header states it in.
+
+    Capped at `MAX_STATED_DELAY_MS`: seconds are a float and reach past where a whole number of
+    milliseconds every reader holds exactly stops, and a finite count of seconds can multiply into
+    an infinite count of milliseconds, which has no integer to write down at all.
+    """
+    milliseconds = seconds * 1000
     if not math.isfinite(milliseconds):
         return MAX_STATED_DELAY_MS
     return min(round(milliseconds), MAX_STATED_DELAY_MS)
@@ -200,9 +234,9 @@ def _stated(policy: RetryPolicy) -> str:
     """
     return client_options(
         attempts=policy.attempts(),
-        backoff_ms=_stated_delay(policy.initial_backoff),
-        ceiling_ms=_stated_delay(policy.max_backoff),
-        budget_ms=_stated_delay(policy.max_total_delay),
+        backoff_ms=_stated_delay(_initial_backoff_of(policy)),
+        ceiling_ms=_stated_delay(_max_backoff_of(policy)),
+        budget_ms=_stated_delay(_max_total_delay_of(policy)),
     )
 
 

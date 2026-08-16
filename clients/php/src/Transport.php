@@ -400,25 +400,22 @@ final class Transport
         return sprintf(
             'attempts=%d,backoff=%d,ceiling=%d,budget=%d',
             $this->retryPolicy->attempts(),
-            self::statedMilliseconds($this->retryPolicy->initialBackoff),
-            self::statedMilliseconds($this->retryPolicy->maxBackoff),
-            self::statedMilliseconds($this->retryPolicy->maxTotalDelay)
+            self::statedMilliseconds($this->retryPolicy->initialBackoffInForce()),
+            self::statedMilliseconds($this->retryPolicy->maxBackoffInForce()),
+            self::statedMilliseconds($this->retryPolicy->maxTotalDelayInForce())
         );
     }
 
     /**
      * One duration of that policy, in the whole milliseconds it is stated as.
      *
-     * A number no schedule could be built on is not a duration: anything above every duration is
-     * stated as the ceiling and anything else that is not finite as nothing at all, so an integer
-     * travels whatever a caller configured.
+     * What arrives here is already the duration in force, so a value no schedule could be built on
+     * has been read as its default before this sees it: what is stated and what is waited are the
+     * same number by construction rather than by two rules that agree today. All that is left is
+     * the ceiling, which keeps a finite duration nobody meant from deciding how long the header is.
      */
     private static function statedMilliseconds(float $seconds): int
     {
-        if (!is_finite($seconds)) {
-            return $seconds > 0 ? self::MAX_STATED_MILLISECONDS : 0;
-        }
-
         return (int) min(max(round($seconds * 1000), 0), self::MAX_STATED_MILLISECONDS);
     }
 }

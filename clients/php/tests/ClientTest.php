@@ -368,6 +368,38 @@ final class ClientTest extends ApiCase
         self::assertLessThanOrEqual($policy->maxTotalDelay, array_sum($delays));
     }
 
+    public function testADurationNoScheduleCouldBeBuiltOnIsTheDefaultBothOnTheWireAndInTheWait(): void
+    {
+        // A value that is not a finite number names no duration, and a policy holding one is in
+        // force with the default of that field. Both halves are held to it: what the request states
+        // and what the send would actually wait, because a header that named a policy the client
+        // does not run would be worse than no header at all.
+        $unusable = ['+INF' => INF, '-INF' => -INF, 'NaN' => NAN];
+        $held = ['initialBackoff', 'maxBackoff', 'maxTotalDelay'];
+
+        $default = new RetryPolicy();
+        $draws = [0.5, 0.5, 0.5];
+
+        foreach ($unusable as $named => $seconds) {
+            foreach ($held as $index => $field) {
+                $written = [4, 0.1, 2.0, 5.0];
+                $written[$index + 1] = $seconds;
+                $policy = new RetryPolicy(...$written);
+
+                $this->restarted();
+                $this->api->willAnswer($this->ingested(self::INGESTED_ID));
+                $this->client(new Options(retryPolicy: $policy, requestTimeout: 5.0))
+                    ->sendEvent($this->anEvent());
+
+                $stated = $this->api->received()[0]->headers['hook0-client-options'] ?? '';
+                $because = sprintf('a policy holding `%s: %s`', $field, $named);
+
+                self::assertSame('attempts=4,backoff=100,ceiling=2000,budget=5000', $stated, $because);
+                self::assertSame($default->delays($draws), $policy->delays($draws), $because);
+            }
+        }
+    }
+
     public function testADisabledPolicyWaitsForNothing(): void
     {
         $policy = RetryPolicy::disabled();

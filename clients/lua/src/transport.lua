@@ -358,16 +358,14 @@ end
 
 --- One duration of a retry policy, in the whole milliseconds it is stated as.
 ---
---- A number no schedule could be built on is not a duration: anything above every duration is stated
---- as the ceiling and anything else that is not a number as nothing at all, so an integer travels
---- whatever a caller configured.
+--- What arrives here is already the duration in force, so a value no schedule could be built on has
+--- been read as its default before this sees it: what is stated and what is waited are the same
+--- number by construction rather than by two rules that agree today. All that is left is the
+--- ceiling, which keeps a finite duration nobody meant from deciding how long the header is.
 --- @param seconds number
 --- @return integer
 local function stated_milliseconds(seconds)
   local milliseconds = (tonumber(seconds) or 0) * 1000
-  if milliseconds ~= milliseconds then
-    return 0
-  end
   return math.floor(math.min(math.max(milliseconds, 0), MAX_STATED_MILLISECONDS) + 0.5)
 end
 
@@ -387,9 +385,9 @@ local function client_options(policy)
   return string.format(
     "attempts=%d,backoff=%d,ceiling=%d,budget=%d",
     policy:attempts(),
-    stated_milliseconds(policy.initial_backoff),
-    stated_milliseconds(policy.max_backoff),
-    stated_milliseconds(policy.max_total_delay))
+    stated_milliseconds(policy:initial_backoff_in_force()),
+    stated_milliseconds(policy:max_backoff_in_force()),
+    stated_milliseconds(policy:max_total_delay_in_force()))
 end
 
 --- Builds a transport pointed at one API, under one credential.

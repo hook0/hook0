@@ -7,6 +7,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Xunit;
@@ -279,6 +281,84 @@ public sealed class ClientTests : ApiCase
             FormattableString.Invariant(
                 $"attempts={RetryPolicy.MaxAttemptsCap},backoff={longest},ceiling=0,budget={longest}"),
             stated.Value);
+
+        // The schedule reads those same numbers, so it has to survive them too: a header stating a
+        // budget the scheduler raises on rather than waits describes a send that dies. What it
+        // holds to is what the header states — a ceiling of nothing, before each of its attempts.
+        IReadOnlyList<TimeSpan> waited = client.Options.RetryPolicy.Delays([1.0, 1.0, 1.0]);
+        Assert.Equal(RetryPolicy.MaxAttemptsCap - 1, waited.Count);
+        Assert.All(waited, one => Assert.Equal(TimeSpan.Zero, one));
+    }
+
+    [Fact]
+    public void ADurationThisClientHoldsCannotBeNonFinite()
+    {
+        // The shared rule reads a non-finite delay as the default of the field it was written in.
+        // There is nothing to read here: a TimeSpan counts ticks, and the conversions that could
+        // carry an infinity or a NaN into one refuse before a policy can hold it. The rule is
+        // satisfied by the type rather than by a branch, and this is what says so — a branch for it
+        // would be one no input can reach and no test can cover.
+        Assert.Throws<OverflowException>(() => TimeSpan.FromMilliseconds(double.PositiveInfinity));
+        Assert.Throws<OverflowException>(() => TimeSpan.FromMilliseconds(double.NegativeInfinity));
+        Assert.Throws<ArgumentException>(() => TimeSpan.FromMilliseconds(double.NaN));
+    }
+
+    [Fact]
+    public async Task WhatTheHeaderStatesIsWhatTheScheduleWaits()
+    {
+        // The header is worth nothing if it describes a schedule the client does not keep. Every
+        // delay is drawn against the whole of its ceiling, which is the drawn schedule at its
+        // longest, and the numbers the wire carries are held against it rather than against the
+        // policy they were both read from.
+        RetryPolicy policy = new()
+        {
+            MaxAttempts = 3,
+            InitialBackoff = TimeSpan.FromMilliseconds(200),
+            MaxBackoff = TimeSpan.FromMilliseconds(400),
+            MaxTotalDelay = TimeSpan.FromSeconds(5),
+        };
+
+        Api.WillAnswer(Ingested(IngestedId));
+        using Hook0Client client = Client(new ClientOptions
+        {
+            RetryPolicy = policy,
+            RequestTimeout = TimeSpan.FromSeconds(5),
+        });
+
+        await client.SendEventAsync(AnEvent());
+
+        Dictionary<string, long> stated = Assert
+            .Single(
+                Api.Received[0].Headers,
+                header => string.Equals(
+                    header.Key,
+                    "Hook0-Client-Options",
+                    StringComparison.OrdinalIgnoreCase))
+            .Value
+            .Split(',')
+            .ToDictionary(
+                part => part[..part.IndexOf('=', StringComparison.Ordinal)],
+                part => long.Parse(
+                    part[(part.IndexOf('=', StringComparison.Ordinal) + 1)..],
+                    CultureInfo.InvariantCulture),
+                StringComparer.Ordinal);
+
+        IReadOnlyList<TimeSpan> longest = policy.Delays([1.0, 1.0]);
+
+        Assert.Equal(
+            stated["backoff"],
+            (long)policy.BackoffCeiling(1).TotalMilliseconds);
+        Assert.All(
+            longest,
+            one => Assert.True(
+                (long)one.TotalMilliseconds <= stated["ceiling"],
+                $"the schedule waits {one.TotalMilliseconds}ms where the header states a ceiling " +
+                $"of {stated["ceiling"]}"));
+
+        long spent = longest.Sum(one => (long)one.TotalMilliseconds);
+        Assert.True(
+            spent <= stated["budget"],
+            $"the schedule spends {spent}ms where the header states a budget of {stated["budget"]}");
     }
 
     [Fact]

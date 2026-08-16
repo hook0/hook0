@@ -78,9 +78,9 @@ local function stated_by(policy)
 
   return {
     attempts = string.format("%d", policy:attempts()),
-    backoff_ms = milliseconds(policy.initial_backoff),
-    ceiling_ms = milliseconds(policy.max_backoff),
-    budget_ms = milliseconds(policy.max_total_delay),
+    backoff_ms = milliseconds(policy:initial_backoff_in_force()),
+    ceiling_ms = milliseconds(policy:max_backoff_in_force()),
+    budget_ms = milliseconds(policy:max_total_delay_in_force()),
   }
 end
 

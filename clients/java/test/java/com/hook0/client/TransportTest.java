@@ -51,6 +51,45 @@ final class TransportTest {
   }
 
   @Test
+  void whatTheHeaderStatesIsWhatTheScheduleWaits() {
+    // The header is worth nothing if it describes a schedule the client does not keep. Every delay
+    // is drawn against the whole of its ceiling, which is what the drawn schedule looks like at its
+    // longest, and the numbers the wire carries are held against it rather than against the policy
+    // they were both read from.
+    RetryPolicy policy =
+        new RetryPolicy(3, Duration.ofMillis(200), Duration.ofMillis(400), Duration.ofSeconds(5));
+
+    try (FakeApi api = new FakeApi()) {
+      api.willAnswer(FakeApi.Scripted.of(200, Map.of()));
+      issued(api, once().withRetryPolicy(policy));
+
+      Map<String, Long> stated = new LinkedHashMap<>();
+      for (String part : api.received().get(0).headers().get("hook0-client-options").split(",")) {
+        int assigned = part.indexOf('=');
+        stated.put(part.substring(0, assigned), Long.valueOf(part.substring(assigned + 1)));
+      }
+
+      List<Long> longest = policy.delaysMillis(new double[] {1.0, 1.0});
+      long spent = longest.stream().mapToLong(Long::longValue).sum();
+
+      assertEquals(
+          stated.get("backoff").longValue(),
+          policy.backoffCeilingMillis(1),
+          "the header states a first delay the schedule does not hold to");
+      for (Long waited : longest) {
+        assertTrue(
+            waited.longValue() <= stated.get("ceiling").longValue(),
+            "the schedule waits " + waited + "ms where the header states a ceiling of "
+                + stated.get("ceiling"));
+      }
+      assertTrue(
+          spent <= stated.get("budget").longValue(),
+          "the schedule spends " + spent + "ms where the header states a budget of "
+              + stated.get("budget"));
+    }
+  }
+
+  @Test
   void aPolicyHoldingNumbersItsHeaderCannotStateIsStillStatedOnTheWire() {
     // Three numbers a caller should not write and can: more attempts than the policy will ever make,
     // a delay too large for the milliseconds it is stated in, and a negative one. What reaches the
@@ -59,6 +98,13 @@ final class TransportTest {
     RetryPolicy absurd =
         new RetryPolicy(
             1000, Duration.ofSeconds(Long.MAX_VALUE), Duration.ofMillis(-5), Duration.ofSeconds(Long.MAX_VALUE));
+
+    // The schedule reads those same numbers, so it has to survive them too: a header stating a
+    // budget the scheduler raises on rather than waits describes a send that dies. What it holds
+    // to is what the header states — a ceiling of nothing, waited before each of its attempts.
+    List<Long> waited = absurd.delaysMillis(new double[] {1.0, 1.0, 1.0});
+    assertEquals(RetryPolicy.MAX_ATTEMPTS_CAP - 1, waited.size());
+    assertEquals(0L, waited.stream().mapToLong(Long::longValue).sum());
 
     try (FakeApi api = new FakeApi()) {
       api.willAnswer(FakeApi.Scripted.of(200, Map.of()));

@@ -90,6 +90,23 @@ Set `HOOK0_READ_ONLY=true` for safe observability access. Only list/get operatio
 
 ---
 
+## Protocol revisions
+
+MCP is versioned by dated revisions, and a client and a server settle on one during `initialize`. This server implements:
+
+- `2024-11-05`
+- `2025-03-26`
+- `2025-06-18`
+- `2025-11-25`
+
+`2025-11-25` is the one it advertises, and the one it answers with when a client asks for a revision that is not on that list — so a client pinned to something else negotiates down rather than being turned away. A request whose inline `_meta` names an unlisted revision is refused outright, with `-32022 Unsupported protocol version`.
+
+`2026-07-28` is deliberately absent. It asks for a stateless lifecycle, `subscriptions/listen` and input-required tool handling that this server does not provide, and a server claiming a revision it has not implemented is worse for a client than one that does not claim it. If your client speaks `2026-07-28` and nothing older, this server is not usable with it yet.
+
+That list is not prose kept up by hand. `tests/integration_test.rs` reads it out of this file, asks a running server which revisions it actually answers on, and fails if the two have come apart — so a revision the server gains or loses cannot leave this section behind.
+
+---
+
 ## Available Tools
 
 ### Read Operations

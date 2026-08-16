@@ -72,12 +72,45 @@ public record RetryPolicy(int maxAttempts, Duration initialBackoff, Duration max
    */
   public long backoffCeilingMillis(int retryNumber) {
     int doublings = Math.clamp((long) retryNumber - 1, 0, MAX_BACKOFF_DOUBLINGS);
-    long ceiling = Math.max(maxBackoff.toMillis(), 0);
-    long doubled = Math.max(initialBackoff.toMillis(), 0);
+    long ceiling = millis(maxBackoff);
+    long doubled = millis(initialBackoff);
     for (int step = 0; step < doublings && doubled < ceiling; step++) {
-      doubled = Math.min(doubled * 2, ceiling);
+      // Doubling past the ceiling lands on it. Written as a comparison rather than as a doubling
+      // that is then capped, because the doubling itself overflows for a ceiling near the largest
+      // count there is, and a wrapped one reads as a delay of nothing at all.
+      doubled = doubled > ceiling / 2 ? ceiling : doubled * 2;
     }
     return Math.clamp(doubled, 0, ceiling);
+  }
+
+  /**
+   * One delay of this policy, in the whole milliseconds it is counted in.
+   *
+   * <p>A {@link Duration} holds more than a count of milliseconds can: {@link Duration#toMillis()} raises on anything
+   * from about 292 million years up, and a negative one is a number no delay can be waited for. Neither is a duration
+   * a caller should write and both are durations a caller can write, so each is brought inside what can be counted —
+   * the largest count there is, and zero — rather than raised from the middle of a send.
+   *
+   * <p>This is the one place a delay of this policy becomes a number, so what the schedule waits and what the client
+   * states in {@code Hook0-Client-Options} cannot come to disagree: they are the same conversion.
+   *
+   * <p>Nothing here reads a delay that is not a number. The shared rule across the SDKs is that an infinite or
+   * not-a-number delay is read as the default of the field holding it; a {@link Duration} is a count of seconds and a
+   * count of nanoseconds, both whole, and no factory on it takes a floating-point number — so there is no value to
+   * read that way, and a branch for one would be unreachable.
+   *
+   * @param held the delay to count
+   * @return that delay in whole milliseconds, never negative
+   */
+  static long millis(Duration held) {
+    if (held.isNegative()) {
+      return 0;
+    }
+    long seconds = held.getSeconds();
+    if (seconds > (Long.MAX_VALUE - 999) / 1000) {
+      return Long.MAX_VALUE;
+    }
+    return seconds * 1000 + held.getNano() / 1_000_000;
   }
 
   /**
@@ -94,7 +127,7 @@ public record RetryPolicy(int maxAttempts, Duration initialBackoff, Duration max
    * @return how long to wait before each retry, in milliseconds
    */
   public List<Long> delaysMillis(double[] draws) {
-    long budget = Math.max(maxTotalDelay.toMillis(), 0);
+    long budget = millis(maxTotalDelay);
     List<Long> waits = new ArrayList<>();
     long spent = 0;
 

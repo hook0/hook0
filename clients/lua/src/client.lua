@@ -49,15 +49,24 @@ RetryPolicy.MAX_ATTEMPTS_CAP = 16
 --- Beyond this many doublings any backoff has long since reached its ceiling.
 RetryPolicy.MAX_BACKOFF_DOUBLINGS = 30
 
+--- What each duration of a policy is where a caller named none, in seconds.
+---
+--- Declared here rather than written into `RetryPolicy.new`, because they are also what a duration
+--- falls back to when a caller names one no schedule could be built on: a fallback spelled out a
+--- second time is one that will disagree with the default the first time either moves.
+RetryPolicy.DEFAULT_INITIAL_BACKOFF = 0.1
+RetryPolicy.DEFAULT_MAX_BACKOFF = 2.0
+RetryPolicy.DEFAULT_MAX_TOTAL_DELAY = 5.0
+
 --- @param chosen table|nil `max_attempts`, `initial_backoff`, `max_backoff`, `max_total_delay`
 --- @return table
 function RetryPolicy.new(chosen)
   local asked = chosen or {}
   return setmetatable({
     max_attempts = asked.max_attempts or 4,
-    initial_backoff = asked.initial_backoff or 0.1,
-    max_backoff = asked.max_backoff or 2.0,
-    max_total_delay = asked.max_total_delay or 5.0,
+    initial_backoff = asked.initial_backoff or RetryPolicy.DEFAULT_INITIAL_BACKOFF,
+    max_backoff = asked.max_backoff or RetryPolicy.DEFAULT_MAX_BACKOFF,
+    max_total_delay = asked.max_total_delay or RetryPolicy.DEFAULT_MAX_TOTAL_DELAY,
   }, RetryPolicy)
 end
 
@@ -90,10 +99,55 @@ end
 ---
 --- @param retry_number integer
 --- @return number
+--- A number of seconds a caller set, brought back to something a schedule can be built on.
+---
+--- A value that is not a finite number names no duration at all, and it is read as the one an
+--- unconfigured policy holds. Nothing is the tempting reading and the wrong one: a policy whose
+--- delays collapse to zero fires its whole schedule back to back, which is the burst a client states
+--- its policy so that an instance could recognise — it would manufacture the very traffic the header
+--- exists to explain. Unbounded is worse: a send that never comes back. The default is bounded, is
+--- what every client falls back to, and leaves the client behaving the way an unconfigured one does.
+---
+--- A negative number is a real duration somebody wrote rather than an unusable one, and keeps being
+--- read as nothing. This is a duration's own reading rather than `clamped`, which also serves the
+--- attempts, the doublings and the jitter draw, where a duration's default means nothing.
+---
+--- @param seconds any
+--- @param fallback number
+--- @return number
+local function in_force(seconds, fallback)
+  local number = tonumber(seconds)
+  if number == nil or number ~= number or number == math.huge or number == -math.huge then
+    return fallback
+  end
+  return math.max(number, 0.0)
+end
+
+--- The delay before the first retry this policy is in force with, in seconds.
+---
+--- What a send waits and what a request states are both read from here, so the two cannot come to
+--- describe different policies.
+--- @return number
+function RetryPolicy:initial_backoff_in_force()
+  return in_force(self.initial_backoff, RetryPolicy.DEFAULT_INITIAL_BACKOFF)
+end
+
+--- The ceiling no single delay of this policy exceeds, in seconds.
+--- @return number
+function RetryPolicy:max_backoff_in_force()
+  return in_force(self.max_backoff, RetryPolicy.DEFAULT_MAX_BACKOFF)
+end
+
+--- The budget all the delays of one send share, in seconds.
+--- @return number
+function RetryPolicy:max_total_delay_in_force()
+  return in_force(self.max_total_delay, RetryPolicy.DEFAULT_MAX_TOTAL_DELAY)
+end
+
 function RetryPolicy:backoff_ceiling(retry_number)
   local doublings = clamped(retry_number - 1, 0, RetryPolicy.MAX_BACKOFF_DOUBLINGS)
-  local ceiling = clamped(self.max_backoff, 0.0, math.huge)
-  return clamped(clamped(self.initial_backoff, 0.0, math.huge) * (2 ^ doublings), 0.0, ceiling)
+  local ceiling = self:max_backoff_in_force()
+  return clamped(self:initial_backoff_in_force() * (2 ^ doublings), 0.0, ceiling)
 end
 
 --- The draw for one retry, brought back inside `[0, 1]` whatever the randomness gave.
@@ -121,7 +175,7 @@ end
 --- @param draws table one draw in `[0, 1)` per retry
 --- @return table
 function RetryPolicy:delays(draws)
-  local budget = clamped(self.max_total_delay, 0.0, math.huge)
+  local budget = self:max_total_delay_in_force()
   local waits = {}
   local spent = 0.0
 
@@ -430,7 +484,7 @@ function Client:send_event(event)
     -- Either way it is cut down to what is left of the budget every delay of one send shares, so a
     -- delay written by the other end cannot stretch a send past what the caller allowed for it.
     local wanted = outcome.retry_after or scheduled
-    local waiting = clamped(wanted, 0.0, math.max(policy.max_total_delay - waited, 0.0))
+    local waiting = clamped(wanted, 0.0, math.max(policy:max_total_delay_in_force() - waited, 0.0))
     socket.sleep(waiting)
     waited = waited + waiting
   end

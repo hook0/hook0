@@ -309,31 +309,10 @@ class HttpTransport(
      * looking for a burst that cannot happen.
      */
     private fun clientOptions(policy: RetryPolicy): String {
-      val backoff = millis(policy.initialBackoff)
-      val ceiling = millis(policy.maxBackoff)
-      val budget = millis(policy.maxTotalDelay)
+      val backoff = RetryPolicy.millis(policy.initialBackoff)
+      val ceiling = RetryPolicy.millis(policy.maxBackoff)
+      val budget = RetryPolicy.millis(policy.maxTotalDelay)
       return "attempts=${policy.attempts()},backoff=$backoff,ceiling=$ceiling,budget=$budget"
-    }
-
-    /**
-     * One delay of a policy, in the whole milliseconds the header states it in.
-     *
-     * A [Duration] holds more than a count of milliseconds can: `toMillis` raises on anything from
-     * about 292 million years up, and a negative one is a number no delay can be waited for. Neither
-     * is a duration a caller should write and both are durations a caller can write, so they are
-     * brought inside what the header can state — the largest count there is, and zero — rather than
-     * raised from the composing of a header. Zero is also what the policy itself would wait for a
-     * negative delay, so what is stated stays what would happen.
-     */
-    private fun millis(held: Duration): Long {
-      if (held.isNegative) {
-        return 0
-      }
-      val seconds = held.seconds
-      if (seconds > (Long.MAX_VALUE - 999) / 1000) {
-        return Long.MAX_VALUE
-      }
-      return seconds * 1000 + held.nano / 1_000_000
     }
 
     private fun answered(answer: HttpResponse<String>): Answer {

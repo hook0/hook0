@@ -8,6 +8,7 @@ fails here.
 
 from __future__ import annotations
 
+import dataclasses
 import re
 
 import pytest
@@ -196,6 +197,49 @@ def test_a_policy_at_the_edges_of_its_type_still_states_four_integers(
     for part in stated.split(","):
         name, _, written = part.partition("=")
         assert written.isdigit(), f"`{name}` states {written!r}, which is no whole number of its own, in {stated!r}"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param(float("inf"), id="infinite"),
+        pytest.param(float("-inf"), id="negatively-infinite"),
+        pytest.param(float("nan"), id="unreadable"),
+    ],
+)
+@pytest.mark.parametrize("duration", ["initial_backoff", "max_backoff", "max_total_delay"])
+def test_a_non_finite_duration_is_read_as_that_fields_default(
+    api: FakeHook0Api, caller: Caller, duration: str, value: float
+) -> None:
+    """A duration that is not a number says nothing about how long to wait, so the default stands.
+
+    Reading it as zero would delete the spacing between attempts and turn a broken policy into a
+    burst; reading it as unbounded is what makes a client wait for ever. The default is neither.
+    Both halves are held here: what the header states, read off the socket, and what the client
+    would actually wait — a header stating a schedule the client does not keep is worse than no
+    header, since it reads as fact.
+    """
+    defaults = RetryPolicy()
+    policy = dataclasses.replace(defaults, **{duration: value})
+    api.will_answer(ingested(INGESTED_ID))
+
+    caller(Hook0ClientOptions(retry_policy=policy)).send_event(an_event())
+
+    stated = api.received[0].headers["hook0-client-options"]
+    expected = (
+        f"attempts={defaults.attempts()},"
+        f"backoff={round(defaults.initial_backoff * 1000)},"
+        f"ceiling={round(defaults.max_backoff * 1000)},"
+        f"budget={round(defaults.max_total_delay * 1000)}"
+    )
+    assert stated == expected, f"a policy whose `{duration}` is {value} states `{stated}`"
+
+    # The schedule the client would keep, at the ends of the draw range and inside it.
+    for draws in ([1.0, 1.0, 1.0], [0.0, 0.0, 0.0], [0.5, 0.25, 0.75]):
+        assert policy.delays(draws) == defaults.delays(draws), (
+            f"a policy whose `{duration}` is {value} waits {policy.delays(draws)} where the "
+            f"defaults it states wait {defaults.delays(draws)}"
+        )
 
 
 def test_an_event_type_that_does_not_read_as_three_parts_is_refused(api: FakeHook0Api, caller: Caller) -> None:

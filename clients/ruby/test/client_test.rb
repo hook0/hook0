@@ -199,25 +199,28 @@ module Hook0Test
       assert_equal({ "environment" => "production" }, request.json["labels"])
     end
 
-    def test_a_policy_holding_durations_no_schedule_could_use_still_states_whole_numbers
-      # `Float#round` raises on infinity and on nothing-at-all, so a duration carrying either would
-      # take down every request that states it rather than being reported. Each of the three is
-      # exercised, because one conversion left unguarded is enough to raise. What is driven is the
-      # transport rather than a send: stating the policy is what this pins, and a schedule built on
-      # these numbers is a separate question from what the header says about them.
-      unusable = [Float::INFINITY, -Float::INFINITY, Float::NAN]
-      cases = unusable.product(%i[initial_backoff max_backoff max_total_delay])
+    def test_a_duration_no_schedule_could_be_built_on_is_the_default_both_on_the_wire_and_in_the_wait
+      # A value that is not a finite number names no duration, and a policy holding one is in force
+      # with the default of that field. Both halves are held to it: what the request states and what
+      # the send would actually wait, because a header that named a policy the client does not run
+      # would be worse than no header at all.
+      unusable = { "+INF" => Float::INFINITY, "-INF" => -Float::INFINITY, "NaN" => Float::NAN }
+      cases = unusable.to_a.product(%i[initial_backoff max_backoff max_total_delay])
       @api.will_answer(*Array.new(cases.size) { ScriptedResponse.new(200, []) })
 
-      cases.each_with_index do |(seconds, held), index|
-        policy = Hook0::RetryPolicy.new(max_attempts: 1, **{ held => seconds })
+      default = Hook0::RetryPolicy.new
+      draws = [0.5, 0.5, 0.5]
+
+      cases.each_with_index do |((named, seconds), held), index|
+        policy = Hook0::RetryPolicy.new(held => seconds)
         Hook0::Transport.new(@api.base_url, "token-xyz", retry_policy: policy)
                         .request("GET", "/applications")
 
         stated = @api.received.fetch(index).headers["hook0-client-options"]
+        because = "a policy holding `#{held}: #{named}`"
 
-        assert_match(/\Aattempts=\d+,backoff=\d+,ceiling=\d+,budget=\d+\z/, stated,
-                     "a policy holding `#{held}: #{seconds}` stated `#{stated}`")
+        assert_equal "attempts=4,backoff=100,ceiling=2000,budget=5000", stated, because
+        assert_equal default.delays(draws), policy.delays(draws), because
       end
     end
 
@@ -255,22 +258,6 @@ module Hook0Test
 
       assert_equal 3, delays.size
       assert_operator delays.sum, :<=, policy.max_total_delay
-    end
-
-    def test_a_policy_holding_a_duration_that_is_not_a_number_still_builds_a_schedule
-      # `Float::NAN` answers false to every comparison, so ordering it raises rather than placing
-      # it: a policy holding one used to take down every send it was configured for, at the first
-      # `clamp`. It is read as nothing instead, which is what the other clients already do with a
-      # duration no schedule could be built on.
-      %i[initial_backoff max_backoff max_total_delay].each do |held|
-        chosen = { max_attempts: 4, initial_backoff: 0.1, max_backoff: 2.0, max_total_delay: 5.0 }
-        policy = Hook0::RetryPolicy.new(**chosen, held => Float::NAN)
-
-        delays = policy.delays([0.5, 0.5, 0.5])
-
-        assert delays.all? { |waited| waited.finite? && waited >= 0.0 },
-               "a policy holding `#{held}: NaN` scheduled #{delays.inspect}"
-      end
     end
 
     def test_a_disabled_policy_waits_for_nothing

@@ -18,6 +18,42 @@ import org.junit.jupiter.api.Timeout
 class TransportTest {
 
   @Test
+  fun whatTheHeaderStatesIsWhatTheScheduleWaits() {
+    // The header is worth nothing if it describes a schedule the client does not keep. Every delay
+    // is drawn against the whole of its ceiling, which is what the drawn schedule looks like at its
+    // longest, and the numbers the wire carries are held against it rather than against the policy
+    // they were both read from.
+    val policy = RetryPolicy(3, Duration.ofMillis(200), Duration.ofMillis(400), Duration.ofSeconds(5))
+
+    FakeApi().use { api ->
+      api.willAnswer(FakeApi.Scripted.of(200, emptyMap<String, Any?>()))
+      issued(api, once().copy(retryPolicy = policy))
+
+      val stated = api.received()[0].headers["hook0-client-options"]!!
+        .split(",")
+        .associate { part -> part.substringBefore('=') to part.substringAfter('=').toLong() }
+
+      val longest = policy.delaysMillis(doubleArrayOf(1.0, 1.0))
+
+      assertEquals(
+        stated["backoff"],
+        policy.backoffCeilingMillis(1),
+        "the header states a first delay the schedule does not hold to"
+      )
+      for (waited in longest) {
+        assertTrue(
+          waited <= stated["ceiling"]!!,
+          "the schedule waits ${waited}ms where the header states a ceiling of ${stated["ceiling"]}"
+        )
+      }
+      assertTrue(
+        longest.sum() <= stated["budget"]!!,
+        "the schedule spends ${longest.sum()}ms where the header states a budget of ${stated["budget"]}"
+      )
+    }
+  }
+
+  @Test
   fun aPolicyHoldingNumbersItsHeaderCannotStateIsStillStatedOnTheWire() {
     // Three numbers a caller should not write and can: more attempts than the policy will ever make,
     // a delay too large for the milliseconds it is stated in, and a negative one. What reaches the
@@ -29,6 +65,13 @@ class TransportTest {
       Duration.ofMillis(-5),
       Duration.ofSeconds(Long.MAX_VALUE)
     )
+
+    // The schedule reads those same numbers, so it has to survive them too: a header stating a
+    // budget the scheduler raises on rather than waits describes a send that dies. What it holds
+    // to is what the header states — a ceiling of nothing, waited before each of its attempts.
+    val waited = absurd.delaysMillis(doubleArrayOf(1.0, 1.0, 1.0))
+    assertEquals(RetryPolicy.MAX_ATTEMPTS_CAP - 1, waited.size)
+    assertEquals(0L, waited.sum())
 
     FakeApi().use { api ->
       api.willAnswer(FakeApi.Scripted.of(200, emptyMap<String, Any?>()))

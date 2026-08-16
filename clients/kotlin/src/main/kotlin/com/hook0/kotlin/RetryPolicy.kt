@@ -49,11 +49,14 @@ data class RetryPolicy(
    */
   fun backoffCeilingMillis(retryNumber: Int): Long {
     val doublings = (retryNumber.toLong() - 1).coerceIn(0, MAX_BACKOFF_DOUBLINGS.toLong())
-    val ceiling = max(maxBackoff.toMillis(), 0)
-    var doubled = max(initialBackoff.toMillis(), 0)
+    val ceiling = millis(maxBackoff)
+    var doubled = millis(initialBackoff)
     var step = 0L
     while (step < doublings && doubled < ceiling) {
-      doubled = min(doubled * 2, ceiling)
+      // Doubling past the ceiling lands on it. Written as a comparison rather than as a doubling
+      // that is then capped, because the doubling itself overflows for a ceiling near the largest
+      // count there is, and a wrapped one reads as a delay of nothing at all.
+      doubled = if (doubled > ceiling / 2) ceiling else doubled * 2
       step++
     }
     return doubled.coerceIn(0, ceiling)
@@ -73,7 +76,7 @@ data class RetryPolicy(
    * @return how long to wait before each retry, in milliseconds
    */
   fun delaysMillis(draws: DoubleArray): List<Long> {
-    val budget = max(maxTotalDelay.toMillis(), 0)
+    val budget = millis(maxTotalDelay)
     val waits = ArrayList<Long>()
     var spent = 0L
 
@@ -90,6 +93,39 @@ data class RetryPolicy(
   }
 
   companion object {
+    /**
+     * One delay of a policy, in the whole milliseconds it is counted in.
+     *
+     * A [Duration] holds more than a count of milliseconds can: `toMillis` raises on anything from
+     * about 292 million years up, and a negative one is a number no delay can be waited for.
+     * Neither is a duration a caller should write and both are durations a caller can write, so
+     * each is brought inside what can be counted — the largest count there is, and zero — rather
+     * than raised from the middle of a send.
+     *
+     * This is the one place a delay of a policy becomes a number, so what the schedule waits and
+     * what the client states in `Hook0-Client-Options` cannot come to disagree: they are the same
+     * conversion.
+     *
+     * Nothing here reads a delay that is not a number. The shared rule across the SDKs is that an
+     * infinite or not-a-number delay is read as the default of the field holding it; a [Duration] is
+     * a count of seconds and a count of nanoseconds, both whole, and no factory on it takes a
+     * floating-point number — so there is no value to read that way, and a branch for one would be
+     * unreachable.
+     *
+     * @param held the delay to count
+     * @return that delay in whole milliseconds, never negative
+     */
+    internal fun millis(held: Duration): Long {
+      if (held.isNegative) {
+        return 0
+      }
+      val seconds = held.seconds
+      if (seconds > (Long.MAX_VALUE - 999) / 1000) {
+        return Long.MAX_VALUE
+      }
+      return seconds * 1000 + held.nano / 1_000_000
+    }
+
     /**
      * Most attempts a policy can ever make, whatever [maxAttempts] says.
      *

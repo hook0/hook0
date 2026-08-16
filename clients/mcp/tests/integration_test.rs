@@ -205,13 +205,47 @@ impl Drop for McpServerProcess {
 /// therefore not `#[ignore]`d.
 mod protocol {
     use super::*;
+    use rmcp::model::ProtocolVersion;
 
-    /// Must stay in sync with `SUPPORTED_PROTOCOL_VERSIONS` in `src/server.rs`.
-    const SUPPORTED_VERSIONS: &[&str] = &["2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25"];
+    /// Where the README states which revisions this server answers on.
+    const REVISIONS_HEADING: &str = "## Protocol revisions";
 
     /// The version advertised by `get_info()`, returned when a client requests a
     /// version the server does not support.
     const FALLBACK_VERSION: &str = "2025-11-25";
+
+    /// The revisions the README lists under [`REVISIONS_HEADING`], sorted.
+    ///
+    /// Read out of the file rather than restated here, because a copy of the list beside the one
+    /// users read is a copy that goes stale silently — which is exactly what a client discovering
+    /// the difference at `initialize` time would be paying for.
+    ///
+    /// Only whole bullets of the shape ``- `<revision>` `` count, so the prose around the list can
+    /// name a revision without being read as claiming it.
+    fn documented_revisions() -> Vec<String> {
+        let readme = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("README.md"),
+        )
+        .expect("the README this crate publishes");
+
+        let mut listed: Vec<String> = readme
+            .lines()
+            .skip_while(|line| line.trim() != REVISIONS_HEADING)
+            .skip(1)
+            .take_while(|line| !line.starts_with("## "))
+            .filter_map(|line| line.trim().strip_prefix("- `"))
+            .filter_map(|listed| listed.strip_suffix('`'))
+            .map(str::to_string)
+            .collect();
+        listed.sort();
+
+        assert!(
+            !listed.is_empty(),
+            "no revision is listed under `{REVISIONS_HEADING}` in the README, so this suite would \
+             be checking the server against nothing"
+        );
+        listed
+    }
 
     fn negotiated_version(response: &JsonRpcResponse) -> String {
         response
@@ -225,42 +259,43 @@ mod protocol {
             .to_string()
     }
 
-    #[test]
-    fn test_supported_versions_are_echoed() {
-        for version in SUPPORTED_VERSIONS {
-            let mut server = McpServerProcess::start_without_credentials();
-            let response = server.initialize_with_version(version);
-
-            assert_eq!(
-                negotiated_version(&response),
-                *version,
-                "server should negotiate the requested version {}",
-                version
-            );
-        }
-    }
-
-    /// 2026-07-28 requires the stateless lifecycle, `subscriptions/listen`, and
-    /// MRTR handling this server does not implement, so `supported_protocol_versions`
-    /// excludes it and the handshake must fall back instead of echoing it.
+    /// What the server answers on and what the README says it answers on are one fact, and this is
+    /// what keeps them one.
     ///
-    /// This asserts the `initialize` path. The other entry point needs no test of
-    /// ours: rmcp validates a request's inline `_meta` version against the same
-    /// list and answers `-32022 Unsupported protocol version` when it is absent
-    /// from it.
+    /// Every revision rmcp knows is offered to a running server, and what comes back says whether
+    /// the server took it: the requested revision means yes, the advertised one means it negotiated
+    /// down. So the supported set is measured rather than restated, and holding it against the
+    /// README catches the drift in both directions — a revision gained without a line in the file,
+    /// and a line in the file for a revision the server has dropped.
+    ///
+    /// This covers the `initialize` path. The other entry point needs no test of ours: rmcp checks
+    /// a request's inline `_meta` revision against the same list and answers `-32022 Unsupported
+    /// protocol version` when it is absent from it.
     #[test]
-    fn test_initialize_does_not_negotiate_2026_07_28() {
-        let mut server = McpServerProcess::start_without_credentials();
-        let response = server.initialize_with_version("2026-07-28");
+    fn test_the_revisions_answered_are_the_revisions_documented() {
+        let mut answered = Vec::new();
+        for revision in ProtocolVersion::KNOWN_VERSIONS {
+            let mut server = McpServerProcess::start_without_credentials();
+            let negotiated = negotiated_version(&server.initialize_with_version(revision.as_str()));
 
-        let negotiated = negotiated_version(&response);
-        assert_ne!(
-            negotiated, "2026-07-28",
-            "server must not negotiate a protocol version it does not implement"
-        );
+            match negotiated == revision.as_str() {
+                true => answered.push(negotiated),
+                false => assert_eq!(
+                    negotiated,
+                    FALLBACK_VERSION,
+                    "a revision this server does not implement ({}) should negotiate down to the \
+                     one it advertises, not to something else",
+                    revision.as_str()
+                ),
+            }
+        }
+        answered.sort();
+
         assert_eq!(
-            negotiated, FALLBACK_VERSION,
-            "unsupported version should fall back to the advertised version"
+            answered,
+            documented_revisions(),
+            "the revisions this server answers on are not the ones its README lists under \
+             `{REVISIONS_HEADING}`, so whoever reads it would point a client at the wrong thing"
         );
     }
 
@@ -270,9 +305,9 @@ mod protocol {
     /// set `result_type: Some(ResultType::COMPLETE)` before stripping.
     #[test]
     fn test_results_carry_no_result_type() {
-        for version in SUPPORTED_VERSIONS {
+        for version in documented_revisions() {
             let mut server = McpServerProcess::start_without_credentials();
-            server.initialize_with_version(version);
+            server.initialize_with_version(&version);
 
             let response = server.send_request("tools/list", json!({}));
             let result = response

@@ -31,6 +31,18 @@ final class RetryPolicy
     private const MAX_BACKOFF_DOUBLINGS = 30;
 
     /**
+     * What each duration of a policy is where a caller named none, in seconds.
+     *
+     * Declared here rather than written into the signature below, because they are also what a
+     * duration falls back to when a caller names one no schedule could be built on: a fallback
+     * spelled out a second time is one that will disagree with the default the first time either
+     * moves.
+     */
+    public const DEFAULT_INITIAL_BACKOFF = 0.1;
+    public const DEFAULT_MAX_BACKOFF = 2.0;
+    public const DEFAULT_MAX_TOTAL_DELAY = 5.0;
+
+    /**
      * @param int $maxAttempts attempts a single send makes at most, the first one included; `1`
      *   disables retrying
      * @param float $initialBackoff ceiling of the delay before the first retry, in seconds
@@ -39,10 +51,33 @@ final class RetryPolicy
      */
     public function __construct(
         public readonly int $maxAttempts = 4,
-        public readonly float $initialBackoff = 0.1,
-        public readonly float $maxBackoff = 2.0,
-        public readonly float $maxTotalDelay = 5.0,
+        public readonly float $initialBackoff = self::DEFAULT_INITIAL_BACKOFF,
+        public readonly float $maxBackoff = self::DEFAULT_MAX_BACKOFF,
+        public readonly float $maxTotalDelay = self::DEFAULT_MAX_TOTAL_DELAY,
     ) {
+    }
+
+    /**
+     * The delay before the first retry this policy is in force with, in seconds.
+     *
+     * What a send waits and what a request states are both read from here, so the two cannot come
+     * to describe different policies.
+     */
+    public function initialBackoffInForce(): float
+    {
+        return self::inForce($this->initialBackoff, self::DEFAULT_INITIAL_BACKOFF);
+    }
+
+    /** The ceiling no single delay of this policy exceeds, in seconds. */
+    public function maxBackoffInForce(): float
+    {
+        return self::inForce($this->maxBackoff, self::DEFAULT_MAX_BACKOFF);
+    }
+
+    /** The budget all the delays of one send share, in seconds. */
+    public function maxTotalDelayInForce(): float
+    {
+        return self::inForce($this->maxTotalDelay, self::DEFAULT_MAX_TOTAL_DELAY);
     }
 
     /** A policy that never retries: one attempt, and the caller hears what it answered. */
@@ -71,8 +106,8 @@ final class RetryPolicy
     public function backoffCeiling(int $retryNumber): float
     {
         $doublings = min(max($retryNumber - 1, 0), self::MAX_BACKOFF_DOUBLINGS);
-        $ceiling = self::atLeastNothing($this->maxBackoff);
-        $wanted = self::atLeastNothing($this->initialBackoff) * (2 ** $doublings);
+        $ceiling = $this->maxBackoffInForce();
+        $wanted = $this->initialBackoffInForce() * (2 ** $doublings);
 
         return min($wanted, $ceiling);
     }
@@ -92,7 +127,7 @@ final class RetryPolicy
      */
     public function delays(array $draws): array
     {
-        $budget = self::atLeastNothing($this->maxTotalDelay);
+        $budget = $this->maxTotalDelayInForce();
         $waits = [];
         $spent = 0.0;
 
@@ -127,11 +162,24 @@ final class RetryPolicy
         return min(max((float) $drawn, 0.0), 1.0);
     }
 
-    /** A number of seconds a caller set, brought back to something a schedule can be built on. */
-    private static function atLeastNothing(float $seconds): float
+    /**
+     * A number of seconds a caller set, brought back to something a schedule can be built on.
+     *
+     * A value that is not a finite number names no duration at all, and it is read as the one an
+     * unconfigured policy holds. Nothing is the tempting reading and the wrong one: a policy whose
+     * delays collapse to zero fires its whole schedule back to back, which is the burst a client
+     * states its policy so that an instance could recognise — it would manufacture the very traffic
+     * the header exists to explain. Unbounded is worse: a send that never comes back. The default
+     * is bounded, is what every client falls back to, and leaves the client behaving the way an
+     * unconfigured one does, which is what an unusable value should buy.
+     *
+     * A negative number is a real duration somebody wrote rather than an unusable one, and keeps
+     * being read as nothing.
+     */
+    private static function inForce(float $seconds, float $default): float
     {
         if (!is_finite($seconds)) {
-            return 0.0;
+            return $default;
         }
 
         return max($seconds, 0.0);

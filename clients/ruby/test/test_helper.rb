@@ -280,9 +280,9 @@ module Hook0Test
   def self.stated_by(policy)
     {
       "attempts" => policy.attempts.to_s,
-      "backoff_ms" => (policy.initial_backoff * 1000).round.to_s,
-      "ceiling_ms" => (policy.max_backoff * 1000).round.to_s,
-      "budget_ms" => (policy.max_total_delay * 1000).round.to_s
+      "backoff_ms" => (policy.initial_backoff_in_force * 1000).round.to_s,
+      "ceiling_ms" => (policy.max_backoff_in_force * 1000).round.to_s,
+      "budget_ms" => (policy.max_total_delay_in_force * 1000).round.to_s
     }
   end
 

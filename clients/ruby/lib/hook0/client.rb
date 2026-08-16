@@ -42,11 +42,22 @@ module Hook0
     # @return [Float] budget all the delays of one send share, in seconds
     attr_reader :max_total_delay
 
+    # What each duration of a policy is where a caller named none, in seconds.
+    #
+    # Declared here rather than written into the signature below, because they are also what a
+    # duration falls back to when a caller names one no schedule could be built on: a fallback
+    # spelled out a second time is one that will disagree with the default the first time either
+    # moves.
+    DEFAULT_INITIAL_BACKOFF = 0.1
+    DEFAULT_MAX_BACKOFF = 2.0
+    DEFAULT_MAX_TOTAL_DELAY = 5.0
+
     # @param max_attempts [Integer] `1` disables retrying
     # @param initial_backoff [Float]
     # @param max_backoff [Float]
     # @param max_total_delay [Float]
-    def initialize(max_attempts: 4, initial_backoff: 0.1, max_backoff: 2.0, max_total_delay: 5.0)
+    def initialize(max_attempts: 4, initial_backoff: DEFAULT_INITIAL_BACKOFF,
+                   max_backoff: DEFAULT_MAX_BACKOFF, max_total_delay: DEFAULT_MAX_TOTAL_DELAY)
       @max_attempts = max_attempts
       @initial_backoff = initial_backoff
       @max_backoff = max_backoff
@@ -77,27 +88,56 @@ module Hook0
     # @return [Float]
     def backoff_ceiling(retry_number)
       doublings = (retry_number - 1).clamp(0, MAX_BACKOFF_DOUBLINGS)
-      ceiling = self.class.within(@max_backoff, 0.0, Float::INFINITY)
-      grown = self.class.within(@initial_backoff, 0.0, Float::INFINITY) * (2**doublings)
-      self.class.within(grown, 0.0, ceiling)
+      ceiling = max_backoff_in_force
+      (initial_backoff_in_force * (2**doublings)).clamp(0.0, ceiling)
     end
 
-    # A number a caller set, brought inside a range whatever it was.
+    # The delay before the first retry this policy is in force with, in seconds.
     #
-    # `Float::NAN` answers false to every comparison, so `clamp` and `max` raise on it rather than
-    # ordering it, and a policy holding one would take down every send it was configured for rather
-    # than spacing one out. It is read as the bottom of the range, which is what a duration no
-    # schedule could be built on already means to the other clients.
+    # What a send waits and what a request states are both read from here, so the two cannot come to
+    # describe different policies.
     #
-    # @param value [Numeric]
-    # @param lowest [Float]
-    # @param highest [Float]
     # @return [Float]
-    def self.within(value, lowest, highest)
-      number = value.to_f
-      return lowest if number.nan?
+    def initial_backoff_in_force
+      self.class.in_force(@initial_backoff, DEFAULT_INITIAL_BACKOFF)
+    end
 
-      number.clamp(lowest, highest)
+    # The ceiling no single delay of this policy exceeds, in seconds.
+    #
+    # @return [Float]
+    def max_backoff_in_force
+      self.class.in_force(@max_backoff, DEFAULT_MAX_BACKOFF)
+    end
+
+    # The budget all the delays of one send share, in seconds.
+    #
+    # @return [Float]
+    def max_total_delay_in_force
+      self.class.in_force(@max_total_delay, DEFAULT_MAX_TOTAL_DELAY)
+    end
+
+    # A number of seconds a caller set, brought back to something a schedule can be built on.
+    #
+    # A value that is not a finite number names no duration at all, and it is read as the one an
+    # unconfigured policy holds. Nothing is the tempting reading and the wrong one: a policy whose
+    # delays collapse to zero fires its whole schedule back to back, which is the burst a client
+    # states its policy so that an instance could recognise — it would manufacture the very traffic
+    # the header exists to explain. Unbounded is worse: a send that never comes back. The default is
+    # bounded, is what every client falls back to, and leaves the client behaving the way an
+    # unconfigured one does, which is what an unusable value should buy.
+    #
+    # A negative number is a real duration somebody wrote rather than an unusable one, and keeps
+    # being read as nothing. `Float::NAN` never reaches an ordering here, which is what used to
+    # raise: it answers false to every comparison, so `clamp` and `max` refuse it.
+    #
+    # @param seconds [Numeric]
+    # @param fallback [Float]
+    # @return [Float]
+    def self.in_force(seconds, fallback)
+      number = seconds.to_f
+      return fallback unless number.finite?
+
+      [number, 0.0].max
     end
 
     # The delays this policy waits between the attempts of one send, one per retry.
@@ -112,7 +152,7 @@ module Hook0
     # @param draws [Array<Float>] one draw in `[0, 1)` per retry
     # @return [Array<Float>]
     def delays(draws)
-      budget = self.class.within(@max_total_delay, 0.0, Float::INFINITY)
+      budget = max_total_delay_in_force
       waits = []
       spent = 0.0
 
@@ -439,7 +479,7 @@ module Hook0
         scheduled = outcome.retryable ? delays[issued - 1] : nil
         raise given_up(event_id, issued, waited, outcome.detail) if scheduled.nil?
 
-        waiting = wait_for(outcome, scheduled, policy.max_total_delay - waited)
+        waiting = wait_for(outcome, scheduled, policy.max_total_delay_in_force - waited)
         sleep(waiting)
         waited += waiting
       end

@@ -8,7 +8,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -185,31 +184,11 @@ public final class HttpTransport implements Transport, AutoCloseable {
     return "attempts="
         + policy.attempts()
         + ",backoff="
-        + millis(policy.initialBackoff())
+        + RetryPolicy.millis(policy.initialBackoff())
         + ",ceiling="
-        + millis(policy.maxBackoff())
+        + RetryPolicy.millis(policy.maxBackoff())
         + ",budget="
-        + millis(policy.maxTotalDelay());
-  }
-
-  /**
-   * One delay of a policy, in the whole milliseconds the header states it in.
-   *
-   * <p>A {@link Duration} holds more than a count of milliseconds can: {@code Duration.toMillis()} raises on anything
-   * from about 292 million years up, and a negative one is a number no delay can be waited for. Neither is a duration
-   * a caller should write and both are durations a caller can write, so they are brought inside what the header can
-   * state — the largest count there is, and zero — rather than raised from the composing of a header. Zero is also
-   * what the policy itself would wait for a negative delay, so what is stated stays what would happen.
-   */
-  private static long millis(Duration held) {
-    if (held.isNegative()) {
-      return 0;
-    }
-    long seconds = held.getSeconds();
-    if (seconds > (Long.MAX_VALUE - 999) / 1000) {
-      return Long.MAX_VALUE;
-    }
-    return seconds * 1000 + held.getNano() / 1_000_000;
+        + RetryPolicy.millis(policy.maxTotalDelay());
   }
 
   private HttpRequest built(String method, String path, List<QueryParameter> query, Object body) {

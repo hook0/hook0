@@ -724,4 +724,117 @@ describe('Hook0Client', () => {
     },
     TEST_TIMEOUT_MS
   );
+
+  const NON_FINITE: [string, number][] = [
+    ['infinite', Infinity],
+    ['negatively infinite', -Infinity],
+    ['unreadable', NaN],
+  ];
+  const DURATIONS: [string, (policy: RetryPolicy, held: number) => RetryPolicy][] = [
+    [
+      'initialBackoffMs',
+      (p, held) => new RetryPolicy(p.maxAttempts, held, p.maxBackoffMs, p.maxTotalDelayMs),
+    ],
+    [
+      'maxBackoffMs',
+      (p, held) => new RetryPolicy(p.maxAttempts, p.initialBackoffMs, held, p.maxTotalDelayMs),
+    ],
+    [
+      'maxTotalDelayMs',
+      (p, held) => new RetryPolicy(p.maxAttempts, p.initialBackoffMs, p.maxBackoffMs, held),
+    ],
+  ];
+
+  const cases = DURATIONS.flatMap(([duration, holding]) =>
+    NON_FINITE.map(([shape, value]): [string, string, (p: RetryPolicy) => RetryPolicy, number] => [
+      duration,
+      shape,
+      (p: RetryPolicy) => holding(p, value),
+      value,
+    ])
+  );
+
+  test.each(cases)(
+    'a %s that is %s is read as that field default',
+    async (duration, _shape, holding, value) => {
+      // A duration that is not a number says nothing about how long to wait, so the default stands.
+      // Reading it as zero would delete the spacing between attempts and turn a broken policy into
+      // a burst; reading it as unbounded is what makes a client wait for ever. Both halves are held
+      // here: what the header states, read off the socket, and what the client would actually wait.
+      // A header stating a schedule the client does not keep is worse than no header — this client
+      // used to hand `NaN` to its timer, which fires in a millisecond, while stating a real delay.
+      const defaults = new RetryPolicy();
+      const policy = holding(defaults);
+      api.willAnswer(ingested('01961234-5678-7abc-8def-0123456789ab'));
+
+      const client = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        new Hook0ClientOptions(policy)
+      );
+      await client.sendEvent(anEvent());
+
+      const stated = api.received[0].headers['hook0-client-options'];
+      const expected =
+        `attempts=${defaults.attempts()},` +
+        `backoff=${defaults.initialBackoffMs},` +
+        `ceiling=${defaults.maxBackoffMs},` +
+        `budget=${defaults.maxTotalDelayMs}`;
+      expect({ duration, value: String(value), stated }).toEqual({
+        duration,
+        value: String(value),
+        stated: expected,
+      });
+
+      // The schedule the client would keep, at both ends of the draw range and inside it. This is
+      // the half a header-only case would miss: before this rule the delays came back `[NaN, NaN,
+      // NaN]`, which `setTimeout` fires in a millisecond, so the client stated a wait it skipped.
+      for (const draws of [
+        [1, 1, 1],
+        [0, 0, 0],
+        [0.5, 0.25, 0.75],
+      ]) {
+        expect({ duration, draws, kept: policy.delaysMs(draws) }).toEqual({
+          duration,
+          draws,
+          kept: defaults.delaysMs(draws),
+        });
+      }
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'a wait the policy schedules is actually waited out',
+    async () => {
+      // The delay of one retry is drawn anywhere between zero and its ceiling, so no single wait
+      // has a floor worth asserting. What does have one is the ceiling the client hands its timer:
+      // a client that skips its waits reaches the second attempt at once, whatever it drew.
+      const defaults = new RetryPolicy();
+      const whole = defaults.delaysMs([1, 1, 1])[0];
+      api.willAnswer(serverError(), ingested('01961234-5678-7abc-8def-0123456789ab'));
+
+      const client = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        // A budget that is not a number: the field falls back to its default, so the retry below
+        // is scheduled and paid for rather than skipped.
+        new Hook0ClientOptions(new RetryPolicy(2, whole, whole, NaN))
+      );
+
+      const started = Date.now();
+      await client.sendEvent(anEvent());
+      const took = Date.now() - started;
+
+      expect({ requests: api.received.length, within: took <= whole + 2_000 }).toEqual({
+        requests: 2,
+        within: true,
+      });
+    },
+    TEST_TIMEOUT_MS
+  );
 });

@@ -271,21 +271,19 @@ module Hook0
     # cut at its first `=`, so nothing here is a second shape to get wrong.
     def client_options
       "attempts=#{@retry_policy.attempts}," \
-        "backoff=#{stated_milliseconds(@retry_policy.initial_backoff)}," \
-        "ceiling=#{stated_milliseconds(@retry_policy.max_backoff)}," \
-        "budget=#{stated_milliseconds(@retry_policy.max_total_delay)}"
+        "backoff=#{stated_milliseconds(@retry_policy.initial_backoff_in_force)}," \
+        "ceiling=#{stated_milliseconds(@retry_policy.max_backoff_in_force)}," \
+        "budget=#{stated_milliseconds(@retry_policy.max_total_delay_in_force)}"
     end
 
     # One duration of that policy, in the whole milliseconds it is stated as.
     #
-    # A number no schedule could be built on is not a duration: anything above every duration is
-    # stated as the ceiling and anything else that is not finite as nothing at all, so an integer
-    # travels whatever a caller configured.
+    # What arrives here is already the duration in force, so a value no schedule could be built on
+    # has been read as its default before this sees it: what is stated and what is waited are the
+    # same number by construction rather than by two rules that agree today. All that is left is the
+    # ceiling, which keeps a finite duration nobody meant from deciding how long the header is.
     def stated_milliseconds(seconds)
-      milliseconds = seconds.to_f * 1000
-      return milliseconds.positive? ? MAX_STATED_MILLISECONDS : 0 unless milliseconds.finite?
-
-      milliseconds.round.clamp(0, MAX_STATED_MILLISECONDS)
+      (seconds.to_f * 1000).round.clamp(0, MAX_STATED_MILLISECONDS)
     end
 
     # One exchange, bounded on every axis a server controls.
