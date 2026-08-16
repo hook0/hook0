@@ -64,6 +64,14 @@
     <site.plugin.version>3.21.0</site.plugin.version>
     <deploy.plugin.version>3.1.3</deploy.plugin.version>
     <junit.version>5.11.4</junit.version>
+    <!--
+      What only a release runs, pinned here beside everything else rather than in the profile that
+      uses them: a version is a version whether or not today's build resolves it.
+    -->
+    <source.plugin.version>3.4.0</source.plugin.version>
+    <dokka.plugin.version>2.0.0</dokka.plugin.version>
+    <gpg.plugin.version>3.2.8</gpg.plugin.version>
+    <central.publishing.plugin.version>0.11.0</central.publishing.plugin.version>
   </properties>
 
   <dependencyManagement>
@@ -276,4 +284,111 @@
       </plugin>
     </plugins>
   </build>
+
+  <!--
+    What a release does and a check does not.
+    Central takes no release without a sources jar, a javadoc jar and a detached OpenPGP signature
+    over every file of it, and none of the three is anything a test run needs. They sit behind a
+    profile so that `mvn ktlint:check verify` resolves none of these plugins, builds no jar it will
+    not test, and reaches for no signing key that only the release job has: the check on a merge
+    request is the same build it was before this file learned to publish.
+  -->
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>${source.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>sources</id>
+                <goals>
+                  <!--
+                    `jar-no-fork` rather than `jar`: the forking goal runs the generate-sources
+                    phase a second time, and what generates sources here is the SDK generator.
+                  -->
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!--
+            Kotlin produces no javadoc of its own: `javadoc` reads Java sources, and there are none
+            here. Dokka reads the Kotlin and writes the javadoc-shaped documentation Central expects
+            beside a jar, so the artefact carries documentation of the API it actually has rather
+            than an empty jar put there to satisfy a validator.
+          -->
+          <plugin>
+            <groupId>org.jetbrains.dokka</groupId>
+            <artifactId>dokka-maven-plugin</artifactId>
+            <version>${dokka.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>javadoc</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>javadocJar</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <sourceDirectories>
+                <dir>${project.basedir}/src/main/kotlin</dir>
+              </sourceDirectories>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>${gpg.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>sign</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <!--
+                There is nobody at the runner to answer a prompt, so the passphrase is handed to
+                gpg on the pipe rather than asked for on a terminal that does not exist. A build
+                that asked would hang until the job timed out.
+              -->
+              <gpgArguments>
+                <arg>--pinentry-mode</arg>
+                <arg>loopback</arg>
+              </gpgArguments>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>${central.publishing.plugin.version}</version>
+            <!-- Replaces the deploy binding, so `deploy` uploads to the Portal and nowhere else. -->
+            <extensions>true</extensions>
+            <configuration>
+              <!-- The `<server>` the job writes into `settings.xml`, holding the token pair. -->
+              <publishingServerId>central</publishingServerId>
+              <autoPublish>true</autoPublish>
+              <!--
+                Waiting for `validated` rather than for `published`: validation is what can fail and
+                what the job has to report, and it answers in minutes. Publication is Central's own
+                queue, and a job holding a runner open until it drains is a job with no bound on how
+                long it runs.
+              -->
+              <waitUntil>validated</waitUntil>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

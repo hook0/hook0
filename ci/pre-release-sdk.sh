@@ -51,6 +51,25 @@ $PACKAGES list
 # a release that already went wrong, and the tool refuses rather than picking one.
 CURRENT=$($PACKAGES current)
 
+# The directory of every package this tag covers. It scopes each changelog below,
+# and it scopes the commits the guard reads: a commit touching none of them says
+# nothing about this release.
+DIRECTORIES=$($PACKAGES directories)
+
+# Before anything is written: hold the release to the commits it is made of.
+#
+# The bump is an argument, and the version below is computed by adding one to the
+# last release — so nothing here knows what happened since, and a change that
+# breaks a client goes out as a patch the moment somebody asks for one. What
+# happened since is in the commit messages, and release-packages reads them: a
+# bump smaller than they demand is refused naming the commits that demand more.
+# A larger one is left alone, since deciding a release is a major is a decision
+# no commit log can overrule.
+#
+# Unquoted on purpose: one path per package, which is one argument per package.
+# shellcheck disable=SC2086
+$PACKAGES required-bump "$BUMP_TYPE" 'sdk-v*' $DIRECTORIES
+
 case "$BUMP_TYPE" in
     patch) NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1"."$2"."$3+1}') ;;
     minor) NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1"."$2+1".0"}') ;;
@@ -79,7 +98,7 @@ cargo update --workspace
 
 # One changelog per package, scoped to the package's own directory and to the
 # tags this release uses, as ADR 0004 requires. The set of packages is the one
-# above rather than a list written here.
+# read above rather than a list written here.
 #
 # Each file is written whole rather than prepended to. `--prepend` inserts the
 # document it just generated at byte zero, header and all, so a file that has
@@ -88,7 +107,6 @@ cargo update --workspace
 # today. Regenerating is idempotent instead: the same commits produce the same
 # file, and the pending ones move from `[Unreleased]` into the section the tag
 # names.
-DIRECTORIES=$($PACKAGES directories)
 while IFS= read -r directory; do
     [ -n "$directory" ] || continue
 

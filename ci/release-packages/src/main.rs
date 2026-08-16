@@ -3,9 +3,10 @@
 //! `list` prints the inventory, which is what a release pipeline does before it publishes anything
 //! so that what went out is legible afterwards rather than inferred. `current`, `check-version` and
 //! `set-version` are what the bump script and the tag pipeline ask instead of naming files,
-//! `directories` is what scopes a changelog to the package it belongs to, and `mirrors` is what the
-//! mirror push iterates so that a client added to the generator's registry is pushed to a
-//! repository of its own without a line of YAML being written.
+//! `required-bump` is what they ask before writing anything so that the release is at least as big
+//! as its own commits say it is, `directories` is what scopes a changelog to the package it belongs
+//! to, and `mirrors` is what the mirror push iterates so that a client added to the generator's
+//! registry is pushed to a repository of its own without a line of YAML being written.
 //!
 //! Everything but `list` is about the SDK release — the packages that go out together under one
 //! tag. A package with a release flow of its own is listed and then left alone, since bumping it
@@ -15,15 +16,16 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use release_packages::{
-    Change, TargetRoot, check_mirrors, check_publishers, check_version, current_version, discover,
-    mirrors, render, sdk_train, set_version,
+    Bump, Change, TargetRoot, check_bump, check_mirrors, check_publishers, check_version,
+    current_version, discover, mirrors, naming, render, required_bump, sdk_train, set_version,
 };
 
 /// Where the repository is, which is the working directory unless something says otherwise.
 const ROOT_VARIABLE: &str = "RELEASE_PACKAGES_ROOT";
 
 const USAGE: &str = "usage: release-packages [list | current | directories | mirrors | \
-                     check-version <X.Y.Z> | set-version <X.Y.Z>]";
+                     check-version <X.Y.Z> | set-version <X.Y.Z> | \
+                     required-bump <patch|minor|major> <tag-glob> <path>...]";
 
 fn main() -> ExitCode {
     let tree = std::env::var_os(ROOT_VARIABLE)
@@ -38,6 +40,9 @@ fn main() -> ExitCode {
         ["mirrors"] => mirror_list(&tree),
         ["check-version", version] => check(&tree, version),
         ["set-version", version] => write(&tree, version),
+        ["required-bump", requested, tag_glob, ref paths @ ..] if !paths.is_empty() => {
+            demanded(&tree, requested, tag_glob, paths)
+        }
         _ => Err(format!(
             "{USAGE}\n  {ROOT_VARIABLE} names the repository root; it defaults to the working \
              directory."
@@ -115,6 +120,34 @@ fn write(tree: &Path, version: &str) -> Result<String, String> {
         });
     }
     Ok(report)
+}
+
+/// Refuse a release smaller than the commits since the last one demand, and say what they were.
+///
+/// This reads the history rather than the tree, so it is the one command here that asks nothing of
+/// the inventory: the packages a tag covers are what the caller passes as paths, and a package with
+/// a release flow of its own passes its own.
+fn demanded(
+    tree: &Path,
+    requested: &str,
+    tag_glob: &str,
+    paths: &[&str],
+) -> Result<String, String> {
+    let asked = Bump::named(requested)
+        .ok_or_else(|| format!("`{requested}` is not a bump; use patch, minor or major"))?;
+    let found = required_bump(tree, tag_glob, paths).map_err(|e| e.to_string())?;
+    check_bump(&found, asked).map_err(|e| e.to_string())?;
+
+    Ok(format!(
+        "{} commits since {} touch {}\nthe smallest release they allow is {}, and {} was asked \
+         for\n{}",
+        found.read,
+        found.since,
+        paths.join(", "),
+        found.bump,
+        asked,
+        naming(&found.reasons, Bump::Patch),
+    ))
 }
 
 /// The inventory, and the three things that have to be true of it before any command reads it:

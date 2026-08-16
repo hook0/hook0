@@ -4,7 +4,7 @@
 // with is the client in this commit, not the one that happened to be published last.
 module hook0.example/documentation
 
-go 1.24
+go 1.25.13
 
 require github.com/hook0/hook0-go v0.0.0
 

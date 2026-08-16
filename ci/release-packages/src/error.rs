@@ -5,6 +5,7 @@
 
 use std::path::PathBuf;
 
+use crate::bump::{Bump, Since};
 use crate::manifest::Kind;
 
 #[derive(Debug, thiserror::Error)]
@@ -203,4 +204,45 @@ pub enum Error {
 
     #[error("no package on this release declares a version, so there is nothing to bump")]
     NoVersionAtAll,
+
+    #[error("`git {command}`: {reason}")]
+    Git { command: String, reason: String },
+
+    #[error(
+        "tags matching `{pattern}` exist and none of them is reachable from HEAD, so there is no \
+         last release to read the commits since; releasing from here would weigh every commit that \
+         ever touched the package"
+    )]
+    NoReachableTag { pattern: String },
+
+    #[error(
+        "more than {ceiling} commits touch this package since {since}, past the ceiling this tool \
+         reads a history under; reading part of it would miss a breaking commit sitting just past \
+         the last one read, so raise the ceiling deliberately rather than by accident"
+    )]
+    TooManyCommits { ceiling: usize, since: Since },
+
+    #[error(
+        "`git log` answered {bytes} bytes, past the {ceiling}-byte ceiling a history is read under"
+    )]
+    HistoryTooLarge { bytes: usize, ceiling: usize },
+
+    #[error(
+        "a package is read over {count} paths, past the ceiling of {ceiling} this tool reads one \
+         under; raise the ceiling deliberately rather than by accident"
+    )]
+    TooManyPaths { count: usize, ceiling: usize },
+
+    #[error(
+        "`{requested}` is smaller than the release the commits since {since} demand: they require \
+         `{required}`, and these are why\n{commits}\nEither the release is a {required} one, or a \
+         commit above is marked as something it is not — in which case the fix is a message, not a \
+         smaller number."
+    )]
+    BumpTooSmall {
+        requested: Bump,
+        required: Bump,
+        since: Since,
+        commits: String,
+    },
 }

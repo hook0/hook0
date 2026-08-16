@@ -15,13 +15,22 @@ directory = "clients/java"
 published_as = "com.hook0:hook0-client"
 registry = "Maven-Central"
 reason = """
-Two things are missing and only one of them is a job. Before anything can be published at all, a
-person has to claim the `com.hook0` namespace on the Central Portal and prove control of the domain
-by publishing the TXT record Sonatype asks for. Then `clients/java/pom.xml` has to gain what a
-Central release needs: `central-publishing-maven-plugin`, `maven-gpg-plugin`, and the source and
-javadoc jars Central rejects a release without. Only then does the job become writable, and it needs
-four variables that do not exist yet — a base64 GPG private key, its passphrase, and the Central
-Portal token pair. None of them is invented here.
+What is left is not a job: it is an account nobody can open from a pipeline. The `com.hook0`
+namespace is unclaimed on the Central Portal, and claiming it means proving control of the domain by
+publishing the TXT record Sonatype asks for. Nothing may be uploaded under coordinates the Portal has
+not granted, so the job would have nowhere to upload to.
+
+Four CI variables follow from the claim and are the only other thing missing. `MAVEN_GPG_PRIVATE_KEY`
+is the OpenPGP secret key, ASCII-armoured and base64-encoded so it survives being a variable, and
+`MAVEN_GPG_PASSPHRASE` is what unlocks it: Central takes no release without a detached signature over
+every file of it, and the public half has to reach a keyserver Central reads. `MAVEN_CENTRAL_USERNAME`
+and `MAVEN_CENTRAL_TOKEN` are the user-token pair the Portal issues once the namespace is granted —
+they are not the account's own credentials, and they are what the job writes into the `central`
+server entry `central-publishing-maven-plugin` reads. None of the four is invented here.
+
+The build is ready for all of it: `clients/java/pom.xml` carries a `release` profile holding
+`central-publishing-maven-plugin`, `maven-gpg-plugin` and the source and javadoc jars Central rejects
+a release without, engaged by `-Prelease` and by nothing the merge-request check runs.
 """
 
 [[package]]
@@ -29,15 +38,18 @@ directory = "clients/kotlin"
 published_as = "com.hook0:hook0-client-kotlin"
 registry = "Maven-Central"
 reason = """
-A second package on Central beside `com.hook0:hook0-client`, blocked behind the same unclaimed
-namespace: one claim covers both, so neither goes before it is made. `clients/kotlin/pom.xml` then
-needs the same publishing and signing plugins as the Java client, with Dokka standing in for the
-javadoc jar Central will not take a release without — Kotlin sources produce no javadoc of their
-own.
+A second package on Central beside `com.hook0:hook0-client`, waiting on exactly what that one waits
+on and on nothing of its own: the unclaimed `com.hook0` namespace, and the four variables recorded
+against the Java client. One claim covers both artefacts and one set of credentials publishes both,
+so there is no second thing to supply here.
 
 Publishing one of the two and leaving the other is worse than publishing neither. They are built for
 one Java release so that they can sit on one classpath, and a user who found only one on Central
 would be reaching for a pair that never went out together.
+
+The build is ready: `clients/kotlin/pom.xml` carries the same `release` profile as the Java client,
+with Dokka writing the javadoc jar Central will not take a release without — Kotlin sources produce
+no javadoc of their own.
 """
 
 [[package]]

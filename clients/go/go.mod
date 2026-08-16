@@ -8,4 +8,4 @@ module github.com/hook0/hook0-go
 // Sending an event, verifying a signature and reading what the API answers are all done with the
 // standard library, so installing this can never drag a transitive dependency into an application
 // that only wanted to send an event. Nothing below is a `require`, and nothing ever should be.
-go 1.24
+go 1.25.13

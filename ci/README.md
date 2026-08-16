@@ -111,6 +111,25 @@ either — see below — and neither is which of those reach a registry today.
    - Create and push a git tag (e.g., sdk-v1.0.1)
 4. The tag triggers the SDK release pipeline, which checks the tree agrees with the tag and then runs every publish job the release has.
 
+### What holds a release to being as big as it is
+
+The bump is an argument — `patch`, `minor` or `major` — and the version it produces is the last
+release plus one, so nothing in either script knows what actually happened since. What happened is
+in the commit messages, and both `ci/pre-release.sh` and `ci/pre-release-sdk.sh` ask
+`release-packages` to read them before writing anything:
+
+```bash
+cargo run -p release-packages -- required-bump patch 'mcp/v*' 'clients/mcp/**'
+```
+
+It reads every commit since the last tag of that shape that touches those paths, derives the
+smallest release they allow — `major` for a `!` before the colon or a `BREAKING CHANGE:` footer,
+`minor` for a `feat`, `patch` otherwise — and refuses a smaller one, naming the commits that demand
+more. A larger one is allowed: deciding that a release is a major is a decision about what it means
+to whoever installs it, and no commit log can overrule it. The answer to a refusal is therefore
+either a bigger bump or a commit message that says what the commit did, since a change that breaks
+the wire under a `chore:` subject is the case this exists to catch.
+
 ### What the release covers, and how it is decided
 
 Nothing in `ci/` names an SDK. `ci/release-packages` reads the generator's registry

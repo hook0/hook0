@@ -16,9 +16,15 @@
 //! reason it has none is written where this can read it — so a registry left alone deliberately is
 //! a decision rather than an absence indistinguishable from an oversight.
 //!
+//! Versioned, published, and released as what the change actually was: the size of a bump is read
+//! off the commits since the last tag rather than taken on trust from whoever started the release,
+//! so a change marked as breaking cannot go out as a patch.
+//!
 //! Every walk is bounded — how many targets, how far up, how many entries in a directory, how many
-//! bytes of a file — and a ceiling crossed is a refusal rather than a truncation.
+//! bytes of a file, how many commits of a history — and a ceiling crossed is a refusal rather than a
+//! truncation.
 
+mod bump;
 mod error;
 pub mod manifest;
 mod xml;
@@ -27,6 +33,10 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
+pub use bump::{
+    Bump, Commit, MAX_COMMITS, MAX_HISTORY_BYTES, MAX_PATHS, Required, Since, check_bump, naming,
+    required_bump,
+};
 pub use error::Error;
 pub use manifest::{Kind, Manifest, Registry, Version};
 
