@@ -57,6 +57,20 @@ final class ConformanceTest {
    */
   private static final Duration DELAY_SLACK = Duration.ofMillis(900);
 
+  /**
+   * What a wait may come back early by before it is read as a wait that did not happen.
+   *
+   * <p>A delay is scheduled on one clock and measured on another — the wait goes through a timer, and what this suite
+   * reads is {@code System.nanoTime()} — so the two disagree by a fraction of a millisecond in either direction, and
+   * the millisecond this suite counts in is truncated rather than rounded. A send that waited its whole delay can
+   * therefore read one millisecond short of it, which is not a defect and which no client can fix.
+   *
+   * <p>It is deliberately a small fraction of the shortest delay any case asserts, which is a second: a client that
+   * shortened a delay, skipped it, or ignored the header still reads hundreds of milliseconds below what it asked
+   * for, and still fails.
+   */
+  private static final Duration CLOCK_SLACK = Duration.ofMillis(50);
+
   /** What a send says it did, out of the message it failed with. */
   private static final Pattern GAVE_UP = Pattern.compile("gave up after (\\d+) attempts");
 
@@ -176,7 +190,7 @@ final class ConformanceTest {
       long waited = waitedFor(surface, header, (String) delay.get("header"));
 
       assertTrue(
-          waited >= expected,
+          waited >= expected - CLOCK_SLACK.toMillis(),
           "`" + header + ": " + delay.get("header") + "` was retried after " + waited
               + "ms, sooner than the " + expected + "ms it asked for");
       assertTrue(

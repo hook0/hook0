@@ -57,6 +57,24 @@ public sealed class ConformanceTests : ApiCase
     private static readonly TimeSpan DelaySlack = TimeSpan.FromSeconds(0.6);
 
     /// <summary>
+    /// What a wait may come back early by before it is read as a wait that did not happen.
+    /// </summary>
+    /// <remarks>
+    /// A delay is scheduled on one clock and measured on another — the wait goes through a timer,
+    /// and what this suite reads is a <see cref="Stopwatch"/> — so the two disagree by a fraction of
+    /// a millisecond in either direction. Measured here, <c>Task.Delay</c> came back before its own
+    /// deadline on the stopwatch's clock in two runs out of twelve, and the pipeline read a whole
+    /// send one millisecond short of a 1.1 second wait. Neither is a defect, and no client can fix
+    /// either.
+    /// <para>
+    /// It is deliberately a small fraction of the shortest delay any case asserts, which is a
+    /// second: a client that shortened a delay, skipped it, or ignored the header still reads
+    /// hundreds of milliseconds below what it asked for, and still fails.
+    /// </para>
+    /// </remarks>
+    private static readonly TimeSpan ClockSlack = TimeSpan.FromMilliseconds(50);
+
+    /// <summary>
     /// How a refusal the corpus names reads in this client's own words. Every name the corpus
     /// declares is looked up here, so one added there stops this suite until it is mapped rather
     /// than passing under whatever the client happened to say.
@@ -164,7 +182,7 @@ public sealed class ConformanceTests : ApiCase
                 : TimeSpan.Zero;
 
             Assert.True(
-                waited >= expected,
+                waited >= expected - ClockSlack,
                 $"`{header}: {Text(delay!, "header")}` was retried after {waited.TotalSeconds:F3}s, " +
                 $"sooner than the {expected.TotalSeconds:F3}s it asked for");
             Assert.True(

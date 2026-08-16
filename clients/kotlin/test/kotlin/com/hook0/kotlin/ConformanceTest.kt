@@ -108,7 +108,7 @@ class ConformanceTest {
       val waited = waitedFor(surface, header, delay["header"] as String)
 
       assertTrue(
-        waited >= expected,
+        waited >= expected - CLOCK_SLACK.toMillis(),
         "`$header: ${delay["header"]}` was retried after ${waited}ms, sooner than the ${expected}ms " +
           "it asked for"
       )
@@ -291,6 +291,21 @@ class ConformanceTest {
      * round trip, a timer and a scheduler all sit inside it.
      */
     private val DELAY_SLACK: Duration = Duration.ofMillis(900)
+
+    /**
+     * What a wait may come back early by before it is read as a wait that did not happen.
+     *
+     * A delay is scheduled on one clock and measured on another — the wait goes through a timer,
+     * and what this suite reads is `System.nanoTime()` — so the two disagree by a fraction of a
+     * millisecond in either direction, and the millisecond this suite counts in is truncated rather
+     * than rounded. A send that waited its whole delay can therefore read one millisecond short of
+     * it, which is not a defect and which no client can fix.
+     *
+     * It is deliberately a small fraction of the shortest delay any case asserts, which is a
+     * second: a client that shortened a delay, skipped it, or ignored the header still reads
+     * hundreds of milliseconds below what it asked for, and still fails.
+     */
+    private val CLOCK_SLACK: Duration = Duration.ofMillis(50)
 
     /** What a send says it did, out of the message it failed with. */
     private val GAVE_UP = Regex("gave up after (\\d+) attempts")
