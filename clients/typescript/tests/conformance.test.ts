@@ -197,6 +197,26 @@ const DELAY_BUDGET_MS = 1_100;
  */
 const DELAY_SLACK_MS = 600;
 
+/**
+ * What a wait may come back early by before it is read as a wait that did not happen.
+ *
+ * A delay is scheduled on one clock and measured on another — the wait goes through `setTimeout`,
+ * and what this suite reads is `performance.now()` — so the two disagree by a fraction of a
+ * millisecond in either direction. Measured here, a bare `setTimeout` came back before its own
+ * deadline on that clock in nine runs out of three hundred, by at most 0.784 ms; read on
+ * `Date.now()` instead it came back a whole millisecond early, since that clock is truncated to
+ * milliseconds. Neither is a defect, and no client can fix either.
+ *
+ * Twenty milliseconds is some twenty-five times the worst undershoot measured and twenty times the
+ * millisecond `setTimeout` schedules on, so a slower or noisier runner is well inside it. It is
+ * also a fiftieth of the shortest delay any case asserts, which is a second, and that headroom is
+ * the point: a client waiting nine tenths of a one-second delay comes back about fifty-two
+ * milliseconds short once the two loopback round trips inside the measurement are counted, so an
+ * allowance of fifty would have let that regression through on the very case it matters for. This
+ * one leaves some eighty milliseconds of room before a tenth of a delay could hide in it.
+ */
+const CLOCK_SLACK_MS = 20;
+
 /** Every case talks to a loopback socket, so none of them has any reason to take this long. */
 const TEST_TIMEOUT_MS = 20_000;
 
@@ -752,9 +772,16 @@ describe('the shared conformance corpus', () => {
             )
           );
 
-          const started = Date.now();
+          // `performance.now()` rather than `Date.now()`: the wall clock is truncated to whole
+          // milliseconds and NTP can step it backwards mid-case, so it can read a wait as shorter
+          // than it was for reasons that have nothing to do with the client.
+          const started = performance.now();
           const answered = await patient.sendEvent(anEvent());
-          return { sent: answered, waited: Date.now() - started, issued: api.received.length };
+          return {
+            sent: answered,
+            waited: performance.now() - started,
+            issued: api.received.length,
+          };
         });
 
         expect(sent).toStrictEqual(INGESTED_ID);
@@ -763,7 +790,10 @@ describe('the shared conformance corpus', () => {
         const askedFor = flag(delay, 'honoured')
           ? Math.min(number(delay, 'seconds') * 1000, DELAY_BUDGET_MS)
           : 0;
-        expect({ written, sooner: waited < askedFor }).toStrictEqual({ written, sooner: false });
+        expect({ written, sooner: waited < askedFor - CLOCK_SLACK_MS }).toStrictEqual({
+          written,
+          sooner: false,
+        });
         expect({ written, longer: waited > askedFor + DELAY_SLACK_MS }).toStrictEqual({
           written,
           longer: false,
