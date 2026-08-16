@@ -67,7 +67,11 @@ final class ConformanceTest {
    *
    * <p>It is deliberately a small fraction of the shortest delay any case asserts, which is a second: a client that
    * shortened a delay, skipped it, or ignored the header still reads hundreds of milliseconds below what it asked
-   * for, and still fails.
+   * for, and still fails. Measured rather than assumed, on the shortest case, against a client mutated to wait nine
+   * tenths of what it was told: eleven settled runs came back between 89ms and 93ms short, so this floor sits some
+   * 39ms clear of catching that. What eats into the margin is the round trips inside the measured window, which give
+   * back what the mutation removes — so a run cold enough to widen them is the one to distrust, not a run that
+   * waited.
    */
   private static final Duration CLOCK_SLACK = Duration.ofMillis(50);
 

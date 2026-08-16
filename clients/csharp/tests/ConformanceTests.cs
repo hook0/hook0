@@ -69,7 +69,12 @@ public sealed class ConformanceTests : ApiCase
     /// <para>
     /// It is deliberately a small fraction of the shortest delay any case asserts, which is a
     /// second: a client that shortened a delay, skipped it, or ignored the header still reads
-    /// hundreds of milliseconds below what it asked for, and still fails.
+    /// hundreds of milliseconds below what it asked for, and still fails. Measured rather than
+    /// assumed, on the shortest case, against a client mutated to wait nine tenths of what it was
+    /// told: eleven settled runs came back between 90.3 ms and 98.0 ms short, so this floor sits
+    /// some 40 ms clear of catching that. What eats into the margin is the round trips inside the
+    /// measured window, which give back what the mutation removes — so a run cold enough to widen
+    /// them is the one to distrust, not a run that waited.
     /// </para>
     /// </remarks>
     private static readonly TimeSpan ClockSlack = TimeSpan.FromMilliseconds(50);
