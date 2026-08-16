@@ -1,4 +1,35 @@
 # `luasocket` and `luasec` are the rock's two runtime dependencies — a socket is the one thing
-# Lua's standard library cannot open — and they are found through `LUA_PATH`/`LUA_CPATH` as
-# `luarocks path` writes them, which the harness inherits from whoever started it.
+# Lua's standard library cannot open. Neither installs into a directory the interpreter searches on
+# its own, so the search path has to point at wherever they landed.
 run = ["lua5.4", "smoke.lua"]
+
+# Where that is, asked rather than inherited. `luarocks path` is the authority on it, and the answer
+# differs by installation: a `--local` tree under the home directory, a system tree, or whatever
+# `--tree` was pointed at. Reading it from the environment instead would make this smoke pass or
+# fail on whether the shell that started the harness had run `eval "$(luarocks path)"`, which is
+# state nobody declared and the reason this used to work on one machine and nowhere else.
+#
+# `;;` is Lua's own way of saying "and then the usual places", so the rocks come first and the
+# interpreter's compiled-in defaults still answer for everything else.
+[[requires]]
+run = ["luarocks", "--lua-version=5.4", "path", "--lr-path"]
+sets = "LUA_PATH"
+suffix = ";;"
+remedy = "Install LuaRocks for Lua 5.4 — `apt-get install lua5.4 liblua5.4-dev luarocks` on Debian and Ubuntu, `brew install lua luarocks` on macOS — then `luarocks --lua-version=5.4 install luasocket 3.1.0` and `luarocks --lua-version=5.4 install luasec 1.3.2`."
+
+[[requires]]
+run = ["luarocks", "--lua-version=5.4", "path", "--lr-cpath"]
+sets = "LUA_CPATH"
+suffix = ";;"
+remedy = "Install LuaRocks for Lua 5.4 — `apt-get install lua5.4 liblua5.4-dev luarocks` on Debian and Ubuntu, `brew install lua luarocks` on macOS — then `luarocks --lua-version=5.4 install luasocket 3.1.0` and `luarocks --lua-version=5.4 install luasec 1.3.2`."
+
+# The path being right buys nothing if the rocks are not on it. Asked separately so that a machine
+# missing them is told which line installs them, rather than being handed the interpreter's list of
+# every directory it looked in — which names everywhere the answer is not and nowhere it might be.
+[[requires]]
+run = ["luarocks", "--lua-version=5.4", "show", "luasocket"]
+remedy = "luarocks --lua-version=5.4 install luasocket 3.1.0 (add --local to install under your home directory)"
+
+[[requires]]
+run = ["luarocks", "--lua-version=5.4", "show", "luasec"]
+remedy = "luarocks --lua-version=5.4 install luasec 1.3.2 (add --local to install under your home directory)"

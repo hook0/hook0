@@ -154,6 +154,12 @@ fn exercise(
             "\n== {} =========================================",
             smoke.target
         );
+        // Asked before the smoke starts rather than left to it. A runtime whose packages sit
+        // outside the system path needs a search path pointed at them, and one inherited from
+        // whoever started this harness is state nobody declared.
+        let mut environment = environment.clone();
+        environment.extend(smoke.satisfied()?);
+
         let (program, arguments) = smoke.command.split_at(1);
         let ended = process::stream(
             &program[0],

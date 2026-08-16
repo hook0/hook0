@@ -8,7 +8,7 @@
 use std::fs;
 use std::path::Path;
 
-use hook0_smoke::discovery::{Smoke, discover};
+use hook0_smoke::discovery::{Requirement, Smoke, discover};
 use hook0_smoke::error::Error;
 
 /// A languages directory with nothing in it but what a test puts there.
@@ -53,8 +53,118 @@ fn a_target_is_paired_with_the_directory_answering_to_its_name() {
             target: "brainfuck".to_owned(),
             directory: tree.path().join("brainfuck"),
             command: vec!["bf".to_owned(), "smoke.bf".to_owned()],
+            requires: vec![],
         }]
     );
+}
+
+#[test]
+fn a_smoke_declares_what_it_needs_before_it_runs_and_what_that_sets() {
+    let tree = Tree::new();
+    tree.smoke(
+        "brainfuck",
+        "run = [\"bf\", \"smoke.bf\"]\n\
+         [[requires]]\n\
+         run = [\"bfrocks\", \"path\"]\n\
+         sets = \"BF_PATH\"\n\
+         suffix = \";;\"\n\
+         remedy = \"bfrocks install bfsocket\"\n",
+    );
+
+    let found = discover(&names(&["brainfuck"]), tree.path()).expect("the pairing");
+
+    assert_eq!(
+        found[0].requires,
+        vec![Requirement {
+            run: vec!["bfrocks".to_owned(), "path".to_owned()],
+            sets: Some("BF_PATH".to_owned()),
+            suffix: ";;".to_owned(),
+            remedy: "bfrocks install bfsocket".to_owned(),
+        }]
+    );
+}
+
+#[test]
+fn a_requirement_that_cannot_be_asked_is_refused_with_the_line_that_fixes_it() {
+    // The point of the remedy: a machine without the package manager is told how to get one,
+    // rather than being handed whatever the missing program's absence looks like.
+    let tree = Tree::new();
+    tree.smoke(
+        "brainfuck",
+        "run = [\"bf\", \"smoke.bf\"]\n\
+         [[requires]]\n\
+         run = [\"a-package-manager-no-machine-has\", \"path\"]\n\
+         sets = \"BF_PATH\"\n\
+         remedy = \"apt-get install bfrocks\"\n",
+    );
+    let found = discover(&names(&["brainfuck"]), tree.path()).expect("the pairing");
+
+    let refused = found[0].satisfied().expect_err("a refusal");
+
+    let said = format!("{refused}");
+    assert!(said.contains("apt-get install bfrocks"), "{said}");
+    assert!(said.contains("brainfuck"), "the smoke is named: {said}");
+}
+
+#[test]
+fn a_requirement_that_holds_answers_the_variable_it_sets() {
+    let tree = Tree::new();
+    tree.smoke(
+        "brainfuck",
+        "run = [\"bf\", \"smoke.bf\"]\n\
+         [[requires]]\n\
+         run = [\"echo\", \"/where/rocks/went\"]\n\
+         sets = \"BF_PATH\"\n\
+         suffix = \";;\"\n\
+         remedy = \"unreachable\"\n\
+         [[requires]]\n\
+         run = [\"true\"]\n\
+         remedy = \"unreachable\"\n",
+    );
+    let found = discover(&names(&["brainfuck"]), tree.path()).expect("the pairing");
+
+    let derived = found[0].satisfied().expect("the requirements hold");
+
+    // The second sets nothing, so it contributes nothing but its verdict.
+    assert_eq!(
+        derived,
+        vec![("BF_PATH".to_owned(), "/where/rocks/went;;".to_owned())]
+    );
+}
+
+#[test]
+fn a_requirement_that_fails_is_refused_even_though_the_program_is_there() {
+    let tree = Tree::new();
+    tree.smoke(
+        "brainfuck",
+        "run = [\"bf\", \"smoke.bf\"]\n\
+         [[requires]]\n\
+         run = [\"false\"]\n\
+         remedy = \"bfrocks install bfsocket 1.2.3\"\n",
+    );
+    let found = discover(&names(&["brainfuck"]), tree.path()).expect("the pairing");
+
+    let refused = found[0].satisfied().expect_err("a refusal");
+
+    assert!(
+        format!("{refused}").contains("bfrocks install bfsocket 1.2.3"),
+        "{refused}"
+    );
+}
+
+#[test]
+fn a_requirement_naming_no_remedy_is_refused_because_it_would_teach_nobody() {
+    let tree = Tree::new();
+    tree.smoke(
+        "brainfuck",
+        "run = [\"bf\", \"smoke.bf\"]\n\
+         [[requires]]\n\
+         run = [\"bfrocks\", \"path\"]\n",
+    );
+
+    let refused = refusal(&["brainfuck"], &tree);
+
+    assert!(format!("{refused}").contains("remedy"), "{refused}");
 }
 
 #[test]

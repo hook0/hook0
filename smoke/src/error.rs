@@ -92,6 +92,12 @@ pub enum Error {
         name: String,
         why: String,
     },
+    RequirementUnmet {
+        target: String,
+        program: String,
+        said: String,
+        remedy: String,
+    },
     SmokesFailed {
         failed: Vec<String>,
     },
@@ -190,6 +196,20 @@ impl fmt::Display for Error {
             ),
             Self::Receiver { cause } => write!(f, "the webhook receiver failed: {cause}"),
             Self::MissingSetting { name, why } => write!(f, "{name} is not set, and {why}"),
+            Self::RequirementUnmet {
+                target,
+                program,
+                said,
+                remedy,
+            } => write!(
+                f,
+                "the {target} smoke needs `{program}` to answer before it can run, and it did not: \
+                 {said}\n  That command is how this harness settles where {target}'s packages are \
+                 and whether they are installed, neither of which the runtime works out on its \
+                 own. It is asked rather than read out of the environment on purpose: a run that \
+                 depended on whoever started it having exported the right search path would pass \
+                 here and fail everywhere else.\n  {remedy}"
+            ),
             Self::SmokesFailed { failed } => {
                 write!(f, "{} failed: {}", failed.len(), failed.join(", "))
             }

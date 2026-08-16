@@ -114,7 +114,9 @@ clients.live-smoke:
   script:
     - export PATH="/opt/zig:/opt/dotnet:$PATH"
     - export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
-    - eval "$(luarocks --lua-version=5.4 path)" && export LUA_PATH LUA_CPATH
+    # No `eval "$(luarocks path)"` here, deliberately. The Lua smoke derives its own search path
+    # from `luarocks` and declares that in its manifest, so exporting one in this job would prove
+    # nothing about a developer's machine — it would only hide the day the derivation broke.
     # Three questions worth asking before anything is started, and none of them needs the stack: is
     # every client the generator declares paired with a smoke, does the compose file still declare
     # what the harness reads out of it, and is the deadline the harness waits for a delivery under
