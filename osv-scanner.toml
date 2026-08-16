@@ -16,60 +16,18 @@ paste. Migration to pastey (drop-in fork) depends on tikv-jemallocator
 upstream — tracked at https://github.com/tikv/jemallocator/issues
 """
 
-[[IgnoredVulns]]
-id = "RUSTSEC-2023-0071"
-ignoreUntil = "2026-12-31T00:00:00Z"
-reason = """
-rsa 0.9.10 Marvin attack timing sidechannel only affects code that
-performs RSA decryption with PKCS#1 v1.5 padding. The crate is in
-Cargo.lock via sqlx-mysql, which we do NOT compile (hook0 only enables
-the postgres feature of sqlx). `cargo tree -i rsa` returns "nothing to
-print" — confirming no compile-time pull. False positive for this
-codebase.
-"""
+# Two migrations this file was waiting on have landed, and their entries are gone
+# with the crates that needed them: `validator` is at 0.21.0, which dropped the
+# five `unic-*` crates (RUSTSEC-2025-0075, -0080, -0081, -0098, -0101), and
+# `hickory-proto` is at 0.26.1, which is the bump RUSTSEC-2026-0118 and -0119
+# were deferred against. `rsa` (RUSTSEC-2023-0071) came in through `sqlx-mysql`
+# and is no longer in `Cargo.lock` at all. Each was removed after checking the
+# lockfile rather than after reading the scanner's "unused ignores" list, which
+# in v2.3.0 names every entry whether or not it is doing anything — see the note
+# at the bottom of this file.
 
-# unic-* 0.9.0 are all unmaintained warnings, transitively pulled by
-# validator 0.20.0. Migration plan: bump to validator 0.21+ once it
-# ships its `unicode-properties`/`icu` rewrite. Tracking upstream.
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0081"
-ignoreUntil = "2026-12-31T00:00:00Z"
-reason = "unic-char-property: unmaintained warning, transitively via validator 0.20"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0075"
-ignoreUntil = "2026-12-31T00:00:00Z"
-reason = "unic-char-range: unmaintained warning, transitively via validator 0.20"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0080"
-ignoreUntil = "2026-12-31T00:00:00Z"
-reason = "unic-common: unmaintained warning, transitively via validator 0.20"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0101"
-ignoreUntil = "2026-12-31T00:00:00Z"
-reason = "unic-ucd-common: unmaintained warning, transitively via validator 0.20"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0098"
-ignoreUntil = "2026-12-31T00:00:00Z"
-reason = "unic-ucd-version: unmaintained warning, transitively via validator 0.20"
-
-# Rust transitive bumps deferred to a follow-up MR (require major upgrades
-# of reqwest 0.13 → 0.14+ and aws-sdk-s3 to a version that pulls
-# rustls 0.23+). Tracked separately.
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0118"
-ignoreUntil = "2026-08-31T00:00:00Z"
-reason = "hickory-proto 0.25.2 → 0.26.x deferred to follow-up MR (needs reqwest major bump). Tracked."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0119"
-ignoreUntil = "2026-08-31T00:00:00Z"
-reason = "hickory-proto 0.25.2 → 0.26.1 deferred to follow-up MR (needs reqwest major bump). Tracked."
+# Rust transitive bumps deferred to a follow-up MR (require an upgrade of
+# aws-sdk-s3 to a version that pulls rustls 0.23+). Tracked separately.
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0098"
@@ -139,3 +97,19 @@ LruCache::pop(), caught by std::panic::catch_unwind — the workspace contains n
 catch_unwind at all, so the unsound state cannot be observed here. Re-evaluated
 with the other aws-sdk-s3-blocked entries on 2026-08-31.
 """
+
+# Do not prune this file from the scanner's "unused ignores" list.
+#
+# In osv-scanner v2.3.0 that list names every entry, working or not. `ShouldIgnore`
+# hands back a copy of the entry (internal/config/config.go), the filter calls
+# `MarkAsUsed()` on that copy (pkg/osvscanner/filter.go), and the copy is dropped
+# on the next line — so the flag the list reads is never set on the entry the
+# config holds. A run that filters eleven findings still reports all of its
+# ignores as unused, which is what this repository's own output shows.
+#
+# What does say an entry is live is the `<id> has been filtered out because:` line
+# the same run prints, and what says one is dead is the crate being absent from
+# the lockfile. Both were checked before anything was removed here.
+#
+# The list is also harmless: it is logged at warning level, and only an
+# error-level log sets the exit code to 127.

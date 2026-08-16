@@ -43,14 +43,22 @@ One directory per target, named after it:
 
 ```
 examples/go/
-  examples.toml   how an example is proven, and what that proves
-  harness.go      the rest of the file, once per region
-  go.mod          the project every example of this language is built inside
+  examples.toml     how an example is proven, and what that proves
+  harness.go        the rest of the file, once per region
+  template.go.mod   the project every example of this language is built inside
 ```
 
 Everything that is neither `examples.toml` nor `harness.*` is the project scaffold: it is copied
 next to the assembled examples, with `{{client}}` replaced by the absolute path of the client this
 target emits into and `{{repository}}` by the repository root.
+
+A scaffold file whose name starts with `template.` loses that prefix when it is copied, so
+`template.go.mod` becomes the project's `go.mod`. That exists for the files a substitution leaves
+invalid until it happens: `{{client}}` sits where a module path belongs, so a committed file named
+`go.mod` is one no Go-aware tool can read — including the dependency scanner, which reads every
+`go.mod` in the tree and fails the build on one it cannot parse. Use the prefix only where the
+committed form would be read by something as the real thing; a `tsconfig.json` or a `Cargo.toml`
+carrying a placeholder is nobody's manifest and needs nothing.
 
 ### `examples.toml`
 
