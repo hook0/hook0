@@ -27,7 +27,8 @@ fn source(path: &str) -> String {
         "{} is {length} bytes, which is not a source file this test should be reading",
         path.display()
     );
-    fs::read_to_string(path).unwrap_or_else(|cause| panic!("{} unreadable: {cause}", path.display()))
+    fs::read_to_string(path)
+        .unwrap_or_else(|cause| panic!("{} unreadable: {cause}", path.display()))
 }
 
 /// The seconds in `Duration::from_secs(N)` on the line declaring `name`.

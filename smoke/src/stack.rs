@@ -401,7 +401,9 @@ impl Stack {
         let url = format!("http://{}:{}/", self.receiver_host, port);
         let (from, answered) = match &self.running {
             Running::Containers => (
-                format!("the `{CURL_SERVICE}` container, which shares `{WORKER_SERVICE}`'s network"),
+                format!(
+                    "the `{CURL_SERVICE}` container, which shares `{WORKER_SERVICE}`'s network"
+                ),
                 fetched_in_container(&url),
             ),
             Running::Processes(_) => (
@@ -412,7 +414,9 @@ impl Stack {
 
         match answered {
             Ok(status) => {
-                println!("== control: {url} answers {status} from {from}, so a delivery can arrive");
+                println!(
+                    "== control: {url} answers {status} from {from}, so a delivery can arrive"
+                );
                 Ok(())
             }
             Err(said) => Err(Error::ReceiverUnreachable {
@@ -494,7 +498,9 @@ impl Stack {
                         .join(" ")
                 ),
             };
-            println!("== stack: left standing because {KEEP} is set; take it down with\n   {by_hand}");
+            println!(
+                "== stack: left standing because {KEEP} is set; take it down with\n   {by_hand}"
+            );
             return;
         }
 
