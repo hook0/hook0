@@ -496,6 +496,14 @@ lsof -i :3000
 2. Check for JSON syntax errors in the config file
 3. Verify the `command` path is correct (try absolute path)
 
+### Your Assistant Connects On a Different Protocol Revision Than It Asked For
+
+**Cause:** MCP is versioned by dated revisions, and the client and the server settle on one when they connect. If your assistant asks for a revision this server has not implemented, the server answers with the newest one it has rather than refusing, and the session continues on that. `2026-07-28` is the revision currently not implemented: it asks for a stateless lifecycle, `subscriptions/listen` and input-required tool handling the server does not provide.
+
+**Fix:**
+- Usually nothing. Assistants negotiate down on their own and every tool keeps working.
+- If yours refuses to negotiate down, pin it to a revision the server answers on. The list is in the [`hook0-mcp` README](https://crates.io/crates/hook0-mcp#protocol-revisions), which ships with the binary you installed and is kept honest by the server's own test suite.
+
 ---
 
 ## Advanced Usage

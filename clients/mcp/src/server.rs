@@ -22,6 +22,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{debug, info};
 
+/// The version `get_info` advertises, and the one a client asking for something unimplemented is
+/// answered with.
+///
+/// Named here so that it can be an element of the list below rather than a second statement beside
+/// it. Written out twice, the two could disagree — and the way they disagree is a server advertising
+/// a version it then refuses, which leaves a client negotiating towards something it cannot have.
+const ADVERTISED_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion::V_2025_11_25;
+
 /// Protocol versions this handler actually implements.
 ///
 /// Deliberately excludes `2026-07-28`: it requires the stateless lifecycle,
@@ -29,11 +37,14 @@ use tracing::{debug, info};
 /// does not provide. rmcp enforces this list on both entry points: it bounds what
 /// `initialize` may negotiate down to, and it rejects any request whose inline
 /// `_meta` names an unlisted version with `-32022 Unsupported protocol version`.
+///
+/// `README.md` states this list for whoever points a client at this server, and the handshake suite
+/// holds the two together, so a version added or dropped here without the file changing fails.
 const SUPPORTED_PROTOCOL_VERSIONS: &[ProtocolVersion] = &[
     ProtocolVersion::V_2024_11_05,
     ProtocolVersion::V_2025_03_26,
     ProtocolVersion::V_2025_06_18,
-    ProtocolVersion::V_2025_11_25,
+    ADVERTISED_PROTOCOL_VERSION,
 ];
 
 mod generated;
@@ -178,7 +189,7 @@ impl ServerHandler for Hook0McpServer {
              Use tools to create applications, register event types, \
              configure subscriptions, and debug delivery issues.",
         )
-        .with_protocol_version(ProtocolVersion::V_2025_11_25)
+        .with_protocol_version(ADVERTISED_PROTOCOL_VERSION)
     }
 
     fn supported_protocol_versions(&self) -> Cow<'static, [ProtocolVersion]> {

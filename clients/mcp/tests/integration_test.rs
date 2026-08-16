@@ -210,9 +210,17 @@ mod protocol {
     /// Where the README states which revisions this server answers on.
     const REVISIONS_HEADING: &str = "## Protocol revisions";
 
-    /// The version advertised by `get_info()`, returned when a client requests a
-    /// version the server does not support.
-    const FALLBACK_VERSION: &str = "2025-11-25";
+    /// What `get_info()` advertises, and what a client asking for an unimplemented revision is
+    /// answered with: the newest revision the README lists.
+    ///
+    /// Derived rather than stated, for the reason the list itself is derived — a server that
+    /// advertised a revision its own README does not list would be sending clients towards
+    /// something they cannot have, and a constant here saying otherwise would agree with it.
+    fn advertised_revision() -> String {
+        documented_revisions()
+            .pop()
+            .expect("documented_revisions refuses an empty list")
+    }
 
     /// The revisions the README lists under [`REVISIONS_HEADING`], sorted.
     ///
@@ -273,6 +281,7 @@ mod protocol {
     /// protocol version` when it is absent from it.
     #[test]
     fn test_the_revisions_answered_are_the_revisions_documented() {
+        let advertised = advertised_revision();
         let mut answered = Vec::new();
         for revision in ProtocolVersion::KNOWN_VERSIONS {
             let mut server = McpServerProcess::start_without_credentials();
@@ -282,9 +291,9 @@ mod protocol {
                 true => answered.push(negotiated),
                 false => assert_eq!(
                     negotiated,
-                    FALLBACK_VERSION,
+                    advertised,
                     "a revision this server does not implement ({}) should negotiate down to the \
-                     one it advertises, not to something else",
+                     newest one it documents, not to something else",
                     revision.as_str()
                 ),
             }
