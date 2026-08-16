@@ -65,6 +65,13 @@ sdk.packages:
         - ci/**/*
         - clients/**/*
         - Cargo.*
+        # An ignore rule anywhere, because this job also carries the guard that
+        # refuses a file git tracks while a rule covers it. A rule is written far
+        # from the package it ends up contradicting — the one that hid a build
+        # cache was in a client, the two standing today are in the website and
+        # the frontend — so watching only the paths above would leave the guard
+        # blind to the commit that introduces the contradiction.
+        - "**/.gitignore"
   before_script:
     - rustc --version && cargo --version
     - rustup component add clippy rustfmt
