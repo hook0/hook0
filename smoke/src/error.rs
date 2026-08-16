@@ -25,6 +25,10 @@ pub enum Error {
         path: String,
         cause: String,
     },
+    Composition {
+        path: String,
+        detail: String,
+    },
     TargetsWithoutSmoke {
         targets: Vec<String>,
         languages: String,
@@ -65,6 +69,18 @@ pub enum Error {
     },
     NoDelivery {
         seconds: u64,
+        expectation: String,
+        worker_said: String,
+    },
+    ReceiverUnreachable {
+        from: String,
+        url: String,
+        said: String,
+        remedy: String,
+    },
+    StackDied {
+        what: String,
+        status: String,
     },
     NoGateway {
         project: String,
@@ -97,6 +113,10 @@ impl fmt::Display for Error {
                 )
             }
             Self::ParseManifest { path, cause } => write!(f, "`{path}` is not readable: {cause}"),
+            Self::Composition { path, detail } => write!(
+                f,
+                "`{path}` is what both ways of bringing the stack up are configured from, and it is {detail}"
+            ),
             Self::TargetsWithoutSmoke { targets, languages } => write!(
                 f,
                 "the generator declares {} that no smoke exercises: {}. Add `{languages}/<name>/{}` for each, or the client ships untested against a real instance",
@@ -134,9 +154,35 @@ impl fmt::Display for Error {
                 f,
                 "no verification email for {address} reached Mailpit within {seconds}s"
             ),
-            Self::NoDelivery { seconds } => write!(
+            Self::NoDelivery {
+                seconds,
+                expectation,
+                worker_said,
+            } => write!(
                 f,
-                "the output worker delivered no webhook within {seconds}s, so there is no server-produced signature to verify"
+                "waited {seconds}s for the output worker to deliver one webhook to the subscription \
+                 just created, and none arrived, so there is no server-produced signature for any \
+                 client to verify.\n  The receiver was proved reachable from inside the stack before \
+                 provisioning, so this is not the network between them.\n  {expectation}.\n  What the \
+                 output worker said while it was waited for:\n{worker_said}"
+            ),
+            Self::ReceiverUnreachable {
+                from,
+                url,
+                said,
+                remedy,
+            } => write!(
+                f,
+                "the webhook receiver at {url} cannot be reached from {from}: {said}.\n  That is the \
+                 path every delivery takes, so nothing provisioned after this could ever be \
+                 delivered and no client would have a server-produced signature to verify. The \
+                 stack is not at fault and neither is the harness: something between them is \
+                 dropping what the containers send, which on Linux is almost always the host \
+                 firewall.\n  {remedy}"
+            ),
+            Self::StackDied { what, status } => write!(
+                f,
+                "`{what}` {status} after it was started; what it said is above this line"
             ),
             Self::NoGateway { project } => write!(
                 f,

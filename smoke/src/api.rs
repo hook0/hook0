@@ -104,19 +104,35 @@ fn get(what: &str, url: &str) -> Result<Value, Error> {
     })
 }
 
-/// The body, up to the ceiling this harness sets for itself.
+/// The body, or a refusal naming the ceiling this harness sets for itself.
+///
+/// One byte beyond the ceiling is read so that crossing it can be seen. Cutting the body there
+/// instead and handing what was read on would make every caller below report that the answer is not
+/// JSON — a wrong diagnosis for a bound that was crossed, and one that sends whoever reads it
+/// looking at the API rather than at the ceiling.
 fn read_body(answer: &mut ureq::http::Response<ureq::Body>, what: &str) -> Result<String, Error> {
-    let mut read = String::new();
+    let mut read: Vec<u8> = Vec::new();
     answer
         .body_mut()
         .as_reader()
-        .take(MAX_ANSWER_BYTES)
-        .read_to_string(&mut read)
+        .take(MAX_ANSWER_BYTES + 1)
+        .read_to_end(&mut read)
         .map_err(|cause| Error::Http {
             what: what.to_owned(),
             cause: format!("the answer could not be read: {cause}"),
         })?;
-    Ok(read)
+
+    if read.len() as u64 > MAX_ANSWER_BYTES {
+        return Err(Error::Answer {
+            what: what.to_owned(),
+            detail: format!("the answer is longer than the {MAX_ANSWER_BYTES} bytes read at most"),
+        });
+    }
+
+    String::from_utf8(read).map_err(|cause| Error::Http {
+        what: what.to_owned(),
+        cause: format!("the answer could not be read: {cause}"),
+    })
 }
 
 /// The string a document declares under that name, or a refusal saying what came instead.
@@ -176,6 +192,11 @@ fn verification_token(mailpit: &str, address: &str) -> Result<String, Error> {
             .cloned()
             .unwrap_or_default();
 
+        // Skipping past the ceiling rather than refusing at it, unlike the body read above: Mailpit
+        // was already asked for at most this many and answers newest first, this is a search for one
+        // address no other run uses, and it is retried until `EMAIL_WITHIN` runs out. A run that
+        // shares a Mailpit with another must not fail because a fifty-first message arrived; a
+        // verification email that never turns up is already refused, by name, below the loop.
         for message in messages.iter().take(MAX_MESSAGES) {
             let addressed = message
                 .get("To")

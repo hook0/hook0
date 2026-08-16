@@ -751,7 +751,7 @@ pub fn verify_webhook_signature_with_current_time<
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    if !parsed_sig.verify(payload, &headers_vec, subscription_secret) {
+    if !parsed_sig.verify(payload, &headers_vec, subscription_secret)? {
         Err(Hook0ClientError::InvalidSignature)
     } else {
         let signed_at = DateTime::from_timestamp(parsed_sig.timestamp, 0);

@@ -258,39 +258,40 @@ impl ServerHandler for Hook0McpServer {
         let content = match request.uri.as_str() {
             "hook0://organizations" => self.client.get("/organizations/").await,
             "hook0://applications" => self.client.get("/applications/").await,
-            uri if uri.starts_with("hook0://applications/") => {
-                let rest = uri.strip_prefix("hook0://applications/").unwrap();
-                if let Some(app_id) = rest.strip_suffix("/events") {
-                    self.client
-                        .get(&format!("/applications/{}/events/", app_id))
-                        .await
-                } else if let Some(app_id) = rest.strip_suffix("/subscriptions") {
-                    self.client
-                        .get(&format!("/applications/{}/subscriptions/", app_id))
-                        .await
-                } else if let Some(app_id) = rest.strip_suffix("/event_types") {
-                    self.client
-                        .get(&format!("/applications/{}/event_types/", app_id))
-                        .await
+            uri => {
+                // The prefix is stripped where it is tested, rather than tested in a match guard
+                // and stripped again in the arm: the second reading is what has to be kept in step
+                // with the first, and nothing in the language keeps it there.
+                if let Some(rest) = uri.strip_prefix("hook0://applications/") {
+                    if let Some(app_id) = rest.strip_suffix("/events") {
+                        self.client
+                            .get(&format!("/applications/{}/events/", app_id))
+                            .await
+                    } else if let Some(app_id) = rest.strip_suffix("/subscriptions") {
+                        self.client
+                            .get(&format!("/applications/{}/subscriptions/", app_id))
+                            .await
+                    } else if let Some(app_id) = rest.strip_suffix("/event_types") {
+                        self.client
+                            .get(&format!("/applications/{}/event_types/", app_id))
+                            .await
+                    } else {
+                        self.client.get(&format!("/applications/{}/", rest)).await
+                    }
+                } else if let Some(rest) = uri.strip_prefix("hook0://events/") {
+                    if let Some(event_id) = rest.strip_suffix("/attempts") {
+                        self.client
+                            .get(&format!("/events/{}/request_attempts/", event_id))
+                            .await
+                    } else {
+                        self.client.get(&format!("/events/{}/", rest)).await
+                    }
                 } else {
-                    self.client.get(&format!("/applications/{}/", rest)).await
+                    return Err(McpError::resource_not_found(
+                        format!("Resource not found: {}", request.uri),
+                        None,
+                    ));
                 }
-            }
-            uri if uri.starts_with("hook0://events/") => {
-                let rest = uri.strip_prefix("hook0://events/").unwrap();
-                if let Some(event_id) = rest.strip_suffix("/attempts") {
-                    self.client
-                        .get(&format!("/events/{}/request_attempts/", event_id))
-                        .await
-                } else {
-                    self.client.get(&format!("/events/{}/", rest)).await
-                }
-            }
-            _ => {
-                return Err(McpError::resource_not_found(
-                    format!("Resource not found: {}", request.uri),
-                    None,
-                ));
             }
         };
 

@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { URL } from 'url';
+import { URL } from 'node:url';
 import { Signature } from './index';
 
 /**

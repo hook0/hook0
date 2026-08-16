@@ -6,9 +6,20 @@
 # brings up on a developer's machine. It cannot be what CI does: the note at the top of
 # `tests-e2e/.gitlab-ci.yml` says this runner is a Kubernetes executor with no Docker-in-Docker, and
 # that job accordingly runs Postgres and Mailpit as GitLab services with the API as a process. This
-# job is that same topology — the same images, the same environment, the same binaries out of
-# `api-integration-tests.build` — with the harness attaching to it instead of starting it. Every
-# question the smokes ask is asked of the same processes either way.
+# job is that same shape.
+#
+# WHAT KEEPS THE TWO FROM DRIFTING
+#
+# Only the *way* the API is started differs. It is started by the harness either way, and the
+# environment it is started with is read out of `docker-compose.yaml` by the harness rather than
+# transcribed here — which is why this file declares no DATABASE_URL, no BISCUIT_PRIVATE_KEY and no
+# port. What is below is only what belongs to the job: the credentials its services are built with,
+# and where the two binaries are. `HOOK0_SMOKE_BINARIES` is the whole of the choice; without it the
+# harness composes.
+#
+# The service aliases are the names the compose file already uses, which is what lets the API's own
+# `DATABASE_URL` and `SMTP_CONNECTION_URL` work here unchanged. `smoke/tests/composition.rs` holds
+# the compose file to declaring what the harness reads out of it.
 #
 # WHY IT DOES NOT RUN ON EVERY CHANGE
 #
@@ -54,31 +65,22 @@ clients.live-smoke:
     - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/axllent/mailpit:v1.28
       alias: mailpit
   variables:
-    ## PostgreSQL
+    ## What the Postgres service is built with. These are the job's, not the API's: the API is
+    ## handed the compose file's own DATABASE_URL, and it expects to find this database behind it.
     POSTGRES_DB: hook0
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
-    ## What the API and the output worker are configured with, matching docker-compose.yaml
-    DATABASE_URL: "postgres://postgres:postgres@postgres:5432/hook0"
-    SMTP_CONNECTION_URL: "smtp://mailpit:1025"
-    EMAIL_SENDER_ADDRESS: "sender@hook0.local"
-    APP_URL: "http://localhost:8001"
-    BISCUIT_PRIVATE_KEY: "bbea79cd66926b219b3219a3186decb36136d774dd7c35a8239e512090fa8854"
-    IP: "0.0.0.0"
-    PORT: "8081"
-    CORS_ALLOWED_ORIGINS: "http://localhost:8001"
-    DISABLE_SERVING_WEBAPP: "true"
-    # The subscription points at a socket the harness opens on this container, which is a private
-    # address the worker would otherwise refuse to call.
-    DISABLE_TARGET_IP_CHECK: "true"
-    WORKER_NAME: "smoke"
-    ## What tells the harness the stack is already running, and where its three parts are
-    HOOK0_SMOKE_API_URL: "http://127.0.0.1:8081/api/v1"
-    HOOK0_SMOKE_MAILPIT_URL: "http://mailpit:8025"
-    HOOK0_SMOKE_RECEIVER_HOST: "127.0.0.1"
+    ## Where `api-integration-tests.build` leaves the two binaries. Setting this is what tells the
+    ## harness there is no Docker daemon here.
+    HOOK0_SMOKE_BINARIES: target/release
     ## The checksum of the tarball $ZIG_VERSION names, published beside it in Zig's release index.
     ZIG_SHA256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
   before_script:
+    # `php-curl` is not an afterthought: Debian's `php-cli` ships without it and the PHP client
+    # declares `ext-curl` as a requirement, so without it every send dies on an undefined
+    # `curl_init` — a failure that says nothing about the client. `ext-hash` and `ext-json`, which
+    # it also declares, are built into PHP itself.
+    #
     # Node, Go and Ruby come from Debian rather than from the images the per-client jobs use, so
     # they are the release Debian carries rather than the one pinned at the top of the root
     # pipeline. Each is above what its client declares as a floor, and what is being asked here is
@@ -88,7 +90,7 @@ clients.live-smoke:
     - >-
       apt-get install --yes --no-install-recommends
       build-essential ca-certificates curl xz-utils pkg-config libssl-dev
-      golang-go nodejs npm python3 ruby-full php-cli
+      golang-go nodejs npm python3 ruby-full php-cli php-curl
       openjdk-21-jdk-headless maven
       lua5.4 liblua5.4-dev luarocks
     # The two runtime dependencies of the Lua rock, which is the one client that cannot open a
@@ -96,8 +98,6 @@ clients.live-smoke:
     # a pipeline that turned red on its own.
     - luarocks --lua-version=5.4 install luasocket 3.1.0
     - luarocks --lua-version=5.4 install luasec 1.3.2
-    - eval "$(luarocks --lua-version=5.4 path)"
-    - export LUA_PATH LUA_CPATH
     # Zig publishes no image, so the toolchain is fetched and held to what it contains. Every step is
     # bounded: a mirror that accepts the connection and then stops sending would otherwise hold the
     # job for its whole timeout.
@@ -105,26 +105,22 @@ clients.live-smoke:
       --output zig.tar.xz "https://ziglang.org/download/$ZIG_VERSION/zig-x86_64-linux-$ZIG_VERSION.tar.xz"
     - echo "$ZIG_SHA256  zig.tar.xz" | sha256sum --check --strict
     - mkdir -p /opt/zig && tar --extract --xz --file zig.tar.xz --directory /opt/zig --strip-components 1
-    - export PATH="/opt/zig:$PATH"
     # .NET is not in Debian at all, so it comes from its vendor's installer, at the release the root
-    # pipeline pins.
+    # pipeline pins. `bash` rather than `sh`: the installer is written against bash and a POSIX
+    # shell stops on its first redirection.
     - curl --fail --silent --show-error --location --connect-timeout 30 --max-time 300
       --output dotnet-install.sh https://dot.net/v1/dotnet-install.sh
-    # `bash` rather than `sh`: the installer is written against bash and a POSIX shell stops on its
-    # first redirection.
     - bash dotnet-install.sh --channel "$DOTNET_VERSION" --install-dir /opt/dotnet --no-path
-    - export PATH="/opt/dotnet:$PATH" DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
-    - export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
   script:
     - export PATH="/opt/zig:/opt/dotnet:$PATH"
+    - export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
     - eval "$(luarocks --lua-version=5.4 path)" && export LUA_PATH LUA_CPATH
-    # What pairs every target with a smoke, which is the one question worth asking before anything
-    # is started: a client the generator declares and nothing exercises fails here.
-    - cargo test --manifest-path smoke/Cargo.toml --test discovery
-    # The same two binaries the API integration job built, run as the processes the composition
-    # would have run them as.
+    # Three questions worth asking before anything is started, and none of them needs the stack: is
+    # every client the generator declares paired with a smoke, does the compose file still declare
+    # what the harness reads out of it, and is the deadline the harness waits for a delivery under
+    # still the output worker's own cadence rather than a number that has drifted away from it.
+    - cargo test --manifest-path smoke/Cargo.toml
     - chmod +x target/release/hook0-api target/release/hook0-output-worker
-    - ./target/release/hook0-api &
-    - ./target/release/hook0-output-worker &
-    # The harness waits for the API itself, under its own deadline, and refuses if it never answers.
+    # The harness starts the API and the worker, waits for them under its own deadline, provisions,
+    # runs every smoke, and stops them again — the same code that composes them elsewhere.
     - cargo run --manifest-path smoke/Cargo.toml

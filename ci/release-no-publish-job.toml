@@ -1,0 +1,107 @@
+# A package this repository releases that no job publishes, and why it has none.
+#
+# `ci/release-packages` reads what the release flows under `ci/` declare they publish and matches it
+# against the inventory it reads out of the tree, in both directions. A package that reaches neither
+# a job nor an entry here fails the build. So does an entry naming a package that does not exist, an
+# entry whose registry or published name is not the one that package's manifest resolves to, and an
+# entry for a package a job does publish — a reason cannot be written about nothing, cannot go on
+# describing a package this one has stopped being, and cannot outlive the absence it explains.
+#
+# The tool only checks that somebody decided. What is written here is for whoever has to close the
+# gap, so each reason says what is missing and what closing it would take.
+
+[[package]]
+directory = "clients/go"
+published_as = "github.com/hook0/hook0/clients/go"
+registry = "go-proxy"
+reason = """
+Go has no registry to upload to: a module is published by pushing a tag the proxy can see, and a
+module in a subdirectory needs a tag naming that subdirectory — `clients/go/vX.Y.Z` — which is not
+the `sdk-vX.Y.Z` this release pushes. The module path also points at GitHub, which is a mirror of
+this repository rather than the repository. So `go get github.com/hook0/hook0/clients/go@v1.1.0`
+resolves nothing today, and only `@latest` works, answering a pseudo-version built from the mirror's
+default branch (`v0.0.0-<date>-<sha>`).
+
+There are two ways out and both are decisions rather than tasks. Either the tag pipeline pushes
+`clients/go/vX.Y.Z` to the GitHub mirror once the mirror has the commit, which is a few lines and
+puts the release on the mirror's lag — that lag has broken release-note generation before, as the
+comment at the top of `ci/extract-release-notes.sh` records. Or the Go client moves to a repository
+of its own and the module path follows it.
+"""
+
+[[package]]
+directory = "clients/php"
+published_as = "hook0/client"
+registry = "Packagist"
+reason = """
+Packagist accepts no uploads and reads no subdirectories: a package is a repository, and its
+versions are that repository's tags. `clients/php` is a directory in a monorepo, so it cannot be
+submitted as it stands. Publishing it means maintaining a read-only split repository (`splitsh-lite`
+or `git subtree split`), pushing `vX.Y.Z` tags to it, and registering that repository once. The
+split is scriptable; deciding to have a second repository is not.
+"""
+
+[[package]]
+directory = "clients/java"
+published_as = "com.hook0:hook0-client"
+registry = "Maven-Central"
+reason = """
+Two things are missing and only one of them is a job. Before anything can be published at all, a
+person has to claim the `com.hook0` namespace on the Central Portal and prove control of the domain
+by publishing the TXT record Sonatype asks for. Then `clients/java/pom.xml` has to gain what a
+Central release needs: `central-publishing-maven-plugin`, `maven-gpg-plugin`, and the source and
+javadoc jars Central rejects a release without. Only then does the job become writable, and it needs
+four variables that do not exist yet — a base64 GPG private key, its passphrase, and the Central
+Portal token pair. None of them is invented here.
+"""
+
+[[package]]
+directory = "clients/kotlin"
+published_as = "com.hook0:hook0-client-kotlin"
+registry = "Maven-Central"
+reason = """
+A second package on Central beside `com.hook0:hook0-client`, blocked behind the same unclaimed
+namespace: one claim covers both, so neither goes before it is made. `clients/kotlin/pom.xml` then
+needs the same publishing and signing plugins as the Java client, with Dokka standing in for the
+javadoc jar Central will not take a release without — Kotlin sources produce no javadoc of their
+own.
+
+Publishing one of the two and leaving the other is worse than publishing neither. They are built for
+one Java release so that they can sit on one classpath, and a user who found only one on Central
+would be reaching for a pair that never went out together.
+"""
+
+[[package]]
+directory = "clients/lua"
+published_as = "hook0-client"
+registry = "LuaRocks"
+reason = """
+A rock is uploaded as a file whose name states its version — LuaRocks reads a rockspec as
+`<package>-<version>-<revision>.rockspec` — and carries inside it the source it is built from. A
+bump writes the version and stops there: `hook0-client-1.1.0-1.rockspec` keeps the name it was born
+with, and its `source.tag = "sdk-v1.1.0"` keeps pointing at the release before. The first upload
+after a bump would therefore be a file whose name, whose contents and whose source disagree three
+ways, and it would either be refused or publish a rock that fetches the previous release.
+
+Closing this means teaching the bump to rename a rockspec and to move the source tag inside it,
+which would be the first thing `ci/release-packages` writes that is not a version. The upload then
+needs a luarocks.org account and the `LUAROCKS_API_KEY` that comes with it.
+"""
+
+[[package]]
+directory = "clients/zig"
+published_as = "hook0_client"
+registry = "zig-fetch"
+reason = """
+There is nothing to upload to and no credential to upload with. Zig has no registry: `zig fetch`
+resolves a path, a tarball or a git ref and records the hash it got, so a version is never a thing a
+package announces — it is a thing a consumer pins.
+
+What is left is the subdirectory problem the Go and PHP clients have, in a milder form. This
+package's manifest sits in `clients/zig` rather than at the root of the repository, so a consumer
+naming the repository URL does not reach it and depends on a checkout instead, which is what
+`documentation/reference/sdk/zig.md` tells them to do. For a URL to resolve, something has to serve
+an archive whose root is this directory: a split repository as for PHP, or an asset the tag pipeline
+builds and attaches. Either would be worth doing and neither is a publish job in the sense the five
+jobs are — there is no registry at the far end of it.
+"""

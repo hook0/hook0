@@ -9,8 +9,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use release_packages::{
-    Change, Error, Package, TargetRoot, Version, check_version, current_version, discover, render,
-    sdk_train, set_version,
+    Change, Error, Package, TargetRoot, Version, check_publishers, check_version, current_version,
+    discover, render, sdk_train, set_version,
 };
 
 /// A tree with nothing in it but what a test puts there.
@@ -289,6 +289,205 @@ fn a_directory_carrying_nothing_is_not_a_package() {
     .expect("only the claimed package");
 
     assert_eq!(packages.len(), 1);
+}
+
+// --- Whether anything publishes it ----------------------------------------------------------
+
+/// A tree holding one npm package and one release flow, for the question of whether anything
+/// publishes it. What the flow says is what each test says it says, since a publisher is read off
+/// what a job declares rather than off a list of jobs kept somewhere.
+fn one_publishable(flow: &str) -> (Tree, Vec<TargetRoot>) {
+    let tree = Tree::new();
+    tree.directory("clients/sole/generated")
+        .write(
+            "clients/sole/package.json",
+            r#"{ "name": "hook0-client", "version": "1.0.0" }"#,
+        )
+        .write("ci/release-sdk.gitlab-ci.yml", flow);
+    (tree, vec![target("sole", "clients/sole/generated")])
+}
+
+fn publishers(tree: &Tree, targets: &[TargetRoot]) -> Result<(), Error> {
+    let packages = discover(targets, tree.path()).expect("the packages");
+    check_publishers(&packages, tree.path())
+}
+
+fn unpublished(tree: &Tree, targets: &[TargetRoot]) -> Error {
+    match publishers(tree, targets) {
+        Ok(()) => panic!("expected a refusal, got a release nothing publishes"),
+        Err(error) => error,
+    }
+}
+
+/// A job that publishes nothing, which is every job in the pipeline that is not a publisher.
+const NO_PUBLISHER: &str = "sdk.packages:\n  script:\n    - cargo run -p release-packages\n";
+
+/// A job that publishes the one package the tree holds, written the way the flows write it.
+const PUBLISHER: &str = "sdk-release.npm:\n  variables:\n    PUBLISHES: clients/sole\n  \
+                         script:\n    - cd \"$PUBLISHES\"\n    - npm publish --access public\n";
+
+#[test]
+fn a_package_a_job_declares_it_publishes_reaches_a_registry() {
+    let (tree, targets) = one_publishable(PUBLISHER);
+
+    publishers(&tree, &targets).expect("the package its job publishes");
+}
+
+#[test]
+fn a_package_no_job_publishes_stops_the_release_naming_it() {
+    let (tree, targets) = one_publishable(NO_PUBLISHER);
+
+    let error = unpublished(&tree, &targets);
+    let said = error.to_string();
+
+    assert!(said.contains("hook0-client"), "{said}");
+    assert!(said.contains("clients/sole"), "{said}");
+    assert!(said.contains("npm"), "{said}");
+    assert!(said.contains(release_packages::NO_PUBLISH_JOB), "{said}");
+    assert!(matches!(error, Error::NoPublisher { .. }), "{error:?}");
+}
+
+/// The declaration is read as a declaration rather than as text that happens to be in the file, so
+/// a job somebody commented out publishes nothing.
+#[test]
+fn a_declaration_behind_a_comment_publishes_nothing() {
+    let (tree, targets) = one_publishable("# sdk-release.npm:\n#   PUBLISHES: clients/sole\n");
+
+    let error = unpublished(&tree, &targets);
+
+    assert!(matches!(error, Error::NoPublisher { .. }), "{error:?}");
+}
+
+#[test]
+fn a_recorded_reason_stands_in_for_the_job_that_is_missing() {
+    let (tree, targets) = one_publishable(NO_PUBLISHER);
+    tree.write(
+        release_packages::NO_PUBLISH_JOB,
+        "[[package]]\ndirectory = \"clients/sole\"\npublished_as = \"hook0-client\"\n\
+         registry = \"npm\"\n\
+         reason = \"The registry is waiting on something a pipeline cannot supply.\"\n",
+    );
+
+    publishers(&tree, &targets).expect("the package whose absence is recorded");
+}
+
+#[test]
+fn a_reason_recorded_for_a_package_that_is_not_there_is_refused() {
+    let (tree, targets) = one_publishable(PUBLISHER);
+    tree.write(
+        release_packages::NO_PUBLISH_JOB,
+        "[[package]]\ndirectory = \"clients/nowhere\"\npublished_as = \"hook0-client\"\n\
+         registry = \"npm\"\n\
+         reason = \"A reason about a package this repository does not have.\"\n",
+    );
+
+    let error = unpublished(&tree, &targets);
+    let said = error.to_string();
+
+    assert!(said.contains("clients/nowhere"), "{said}");
+    assert!(said.contains(release_packages::NO_PUBLISH_JOB), "{said}");
+    assert!(
+        matches!(error, Error::UnknownPackageNamed { .. }),
+        "{error:?}"
+    );
+}
+
+#[test]
+fn a_job_publishing_something_the_inventory_does_not_know_is_refused() {
+    let (tree, targets) = one_publishable(
+        "sdk-release.npm:\n  variables:\n    PUBLISHES: clients/ghost\n  script:\n    - cd .\n",
+    );
+
+    let error = unpublished(&tree, &targets);
+    let said = error.to_string();
+
+    assert!(said.contains("clients/ghost"), "{said}");
+    assert!(said.contains("ci/release-sdk.gitlab-ci.yml"), "{said}");
+    assert!(
+        matches!(error, Error::UnknownPackageNamed { .. }),
+        "{error:?}"
+    );
+}
+
+#[test]
+fn a_reason_for_a_package_a_job_does_publish_is_refused() {
+    let (tree, targets) = one_publishable(PUBLISHER);
+    tree.write(
+        release_packages::NO_PUBLISH_JOB,
+        "[[package]]\ndirectory = \"clients/sole\"\npublished_as = \"hook0-client\"\n\
+         registry = \"npm\"\n\
+         reason = \"Written when there was no job, and left behind when there was.\"\n",
+    );
+
+    let error = unpublished(&tree, &targets);
+    let said = error.to_string();
+
+    assert!(said.contains("ci/release-sdk.gitlab-ci.yml"), "{said}");
+    assert!(
+        matches!(error, Error::RecordedYetPublished { .. }),
+        "{error:?}"
+    );
+}
+
+#[test]
+fn a_reason_about_a_registry_the_package_no_longer_has_is_refused() {
+    let (tree, targets) = one_publishable(NO_PUBLISHER);
+    tree.write(
+        release_packages::NO_PUBLISH_JOB,
+        "[[package]]\ndirectory = \"clients/sole\"\npublished_as = \"hook0-client\"\n\
+         registry = \"Packagist\"\n\
+         reason = \"True of the ecosystem this package used to be in.\"\n",
+    );
+
+    let error = unpublished(&tree, &targets);
+    let said = error.to_string();
+
+    assert!(said.contains("Packagist") && said.contains("npm"), "{said}");
+    assert!(
+        matches!(error, Error::RecordedDisagrees { .. }),
+        "{error:?}"
+    );
+}
+
+/// The name a record states is the name the manifest gives, so prose about a package that has since
+/// been renamed goes red rather than on describing something that is no longer there.
+#[test]
+fn a_reason_about_a_name_the_package_no_longer_publishes_under_is_refused() {
+    let (tree, targets) = one_publishable(NO_PUBLISHER);
+    tree.write(
+        release_packages::NO_PUBLISH_JOB,
+        "[[package]]\ndirectory = \"clients/sole\"\npublished_as = \"hook0-sole\"\n\
+         registry = \"npm\"\n\
+         reason = \"True of the name this package used to go out under.\"\n",
+    );
+
+    let error = unpublished(&tree, &targets);
+    let said = error.to_string();
+
+    assert!(
+        said.contains("hook0-sole") && said.contains("hook0-client"),
+        "{said}"
+    );
+    assert!(
+        matches!(error, Error::RecordedDisagrees { .. }),
+        "{error:?}"
+    );
+}
+
+#[test]
+fn a_record_naming_a_package_without_saying_why_is_not_a_reason() {
+    let (tree, targets) = one_publishable(NO_PUBLISHER);
+    tree.write(
+        release_packages::NO_PUBLISH_JOB,
+        "[[package]]\ndirectory = \"clients/sole\"\npublished_as = \"hook0-client\"\n\
+         registry = \"npm\"\nreason = \"\"\n",
+    );
+
+    let error = unpublished(&tree, &targets);
+    let said = error.to_string();
+
+    assert!(said.contains("reason"), "{said}");
+    assert!(matches!(error, Error::MissingField { .. }), "{error:?}");
 }
 
 // --- One case per manifest shape ----------------------------------------------------------------
@@ -830,19 +1029,62 @@ fn more_targets_than_the_ceiling_are_refused_before_a_single_directory_is_read()
     assert!(matches!(error, Error::TooManyTargets { .. }), "{error:?}");
 }
 
+/// Fill a directory past the ceiling, so that reading all of it is the thing that cannot be done.
+fn crowd(tree: &Tree, relative: &str) {
+    let directory = tree.path().join(relative);
+    fs::create_dir_all(&directory).expect("the directory");
+    for entry in 0..=release_packages::MAX_DIR_ENTRIES {
+        fs::write(directory.join(format!("entry-{entry}")), "").expect("the entry");
+    }
+}
+
+/// Reading part of a directory would leave whatever sat past the last entry out of the inventory
+/// without a word, which is the omission the whole tool is against.
+#[test]
+fn a_package_directory_past_the_entry_ceiling_is_refused_rather_than_trimmed() {
+    let tree = Tree::new();
+    tree.directory("clients/sole/generated").write(
+        "clients/sole/package.json",
+        r#"{ "name": "hook0-client", "version": "1.0.0" }"#,
+    );
+    crowd(&tree, "clients/sole");
+
+    let error = refusal(&tree, &[target("sole", "clients/sole/generated")]);
+    let said = error.to_string();
+
+    assert!(said.contains("clients/sole"), "{said}");
+    assert!(matches!(error, Error::TooManyEntries { .. }), "{error:?}");
+}
+
+#[test]
+fn the_clients_directory_past_the_entry_ceiling_is_refused_rather_than_trimmed() {
+    let tree = Tree::new();
+    tree.directory("clients/sole/generated").write(
+        "clients/sole/package.json",
+        r#"{ "name": "hook0-client", "version": "1.0.0" }"#,
+    );
+    crowd(&tree, "clients");
+
+    let error = refusal(&tree, &[target("sole", "clients/sole/generated")]);
+    let said = error.to_string();
+
+    assert!(said.contains("clients"), "{said}");
+    assert!(matches!(error, Error::TooManyEntries { .. }), "{error:?}");
+}
+
 #[test]
 fn a_manifest_past_the_byte_ceiling_is_refused_rather_than_read() {
     let (tree, targets) = one_package(
         "package.json",
         &format!(
             "{{ \"name\": \"big\", \"version\": \"1.0.0\", \"pad\": \"{}\" }}",
-            "p".repeat(release_packages::manifest::MAX_MANIFEST_BYTES as usize)
+            "p".repeat(release_packages::manifest::MAX_FILE_BYTES as usize)
         ),
     );
 
     let error = refusal(&tree, &targets);
 
-    assert!(matches!(error, Error::ManifestTooLarge { .. }), "{error:?}");
+    assert!(matches!(error, Error::FileTooLarge { .. }), "{error:?}");
 }
 
 #[test]

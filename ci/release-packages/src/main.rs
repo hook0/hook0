@@ -13,7 +13,8 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use release_packages::{
-    Change, TargetRoot, check_version, current_version, discover, render, sdk_train, set_version,
+    Change, TargetRoot, check_publishers, check_version, current_version, discover, render,
+    sdk_train, set_version,
 };
 
 /// Where the repository is, which is the working directory unless something says otherwise.
@@ -103,8 +104,12 @@ fn write(tree: &Path, version: &str) -> Result<String, String> {
     Ok(report)
 }
 
+/// The inventory, and the two things that have to be true of it before any command reads it: every
+/// target resolves to a package, and every package reaches a registry or says why it does not.
 fn packages(tree: &Path) -> Result<Vec<release_packages::Package>, String> {
-    discover(&registry(), tree).map_err(|e| e.to_string())
+    let found = discover(&registry(), tree).map_err(|e| e.to_string())?;
+    check_publishers(&found, tree).map_err(|e| e.to_string())?;
+    Ok(found)
 }
 
 fn parse(version: &str) -> Result<semver::Version, String> {

@@ -58,14 +58,36 @@ eval "$(luarocks --lua-version=5.4 path)"
 ```
 
 The output worker has to be able to reach a socket the harness opens on the host, since that is
-where the webhook whose signature is verified is delivered. On a machine whose firewall drops
-traffic arriving from the Docker bridge — `ufw` does by default — the run gets as far as
-provisioning and then refuses with *the output worker delivered no webhook*. Allowing that one
-bridge is what unblocks it:
+where the webhook whose signature is verified is delivered. On a machine whose firewall drops what
+arrives from the Docker bridge — `ufw` does, by default, and says nothing about it — no delivery
+can ever arrive. The run finds that out for itself, before it provisions anything, and prints the
+rule that opens it, naming the subnet it just read off the daemon:
 
-```sh
-sudo ufw allow in on "br-$(docker network ls --filter label=com.docker.compose.project=hook0-smoke --format '{{.ID}}')" from 172.16.0.0/12 proto tcp
 ```
+sudo ufw allow from 172.18.0.0/16 to any comment 'docker bridge'
+```
+
+A rule on the *subnet* rather than on the bridge interface, deliberately. Compose creates and
+destroys its network on every run, and the interface it makes — `br-<network id>` — is named after
+an id that changes each time, so a rule pinned to the interface works for exactly one run and then
+silently stops applying. That is not a hypothesis: it is how this was first found.
+
+## When it refuses
+
+Every refusal names what it expected. Three are worth knowing in advance:
+
+- **the receiver cannot be reached from inside the stack** — the firewall above, found by a request
+  over exactly the path the delivery takes, before an account is even registered. This check is the
+  difference between one sentence and a two-minute silence with four equally plausible causes;
+- **no webhook within the deadline** — the deadline is [derived](src/worker.rs) from the output
+  worker's own defaults rather than picked, and the refusal shows the arithmetic and the last lines
+  the worker logged while it was being waited for;
+- **a process stopped on its own** — reported before anything is waited for, because a worker that
+  exited at startup otherwise arrives, much later, as a webhook that never came.
+
+Setting `HOOK0_SMOKE_KEEP` leaves a *failed* run's stack standing, with the command to take it down
+by hand. A run that passed takes it down whatever is set. It is for the questions nobody thought of
+in advance, which are the only ones a removed container cannot answer.
 
 The one question that needs no Docker at all — is every client the generator declares paired with a
 smoke — is a plain test:
@@ -74,13 +96,45 @@ smoke — is a plain test:
 cargo test --manifest-path smoke/Cargo.toml --test discovery
 ```
 
-## Attaching to a stack somebody else started
+## The two ways up, and what is shared between them
 
-Setting `HOOK0_SMOKE_API_URL` makes the harness attach instead of composing, which is what CI does:
-that runner has no Docker, so the job starts the same processes as GitLab services and points the
-harness at them. `HOOK0_SMOKE_MAILPIT_URL` is required in that mode, since Mailpit is not on
-loopback there; `HOOK0_SMOKE_RECEIVER_HOST` says what address the output worker reaches the harness
-on, and defaults to `127.0.0.1`.
+Setting `HOOK0_SMOKE_BINARIES` to a directory holding `hook0-api` and `hook0-output-worker` makes
+the harness start those two as processes instead of composing containers. That is what CI does: its
+runner has no Docker, so Postgres and Mailpit are GitLab services and the binaries come from
+`api-integration-tests.build`.
+
+Only the way the two are started differs. **Both are started by the harness, with the environment
+read out of `docker-compose.yaml`** — so the CI job declares no `DATABASE_URL`, no
+`BISCUIT_PRIVATE_KEY` and no port, and there is no second copy of the configuration to drift.
+Everything after that point is one code path: the readiness wait, the provisioning, the delivery,
+the smokes, the teardown. Nothing downstream can tell which way the stack came up.
+
+The order is shared too, and not by coincidence: the compose file declares `output-worker` as
+depending on `api` being healthy, because the API is what runs the migrations. The process path
+waits for the API to answer before starting the worker, for the same reason — started alongside, the
+worker asks for a table that does not exist yet and exits, leaving a stack that answers, provisions,
+and then never delivers. A process this harness started that stops on its own is reported as that,
+before anything is waited for.
+
+Three things genuinely cannot be shared, and each is commented where it happens:
+
+| | Containers | Processes |
+|---|---|---|
+| `DISABLE_SERVING_WEBAPP` | from the API's image (`api/Dockerfile`) | set by the harness, same value |
+| Mailpit | `127.0.0.1`, the published port | the alias the compose file names, same port |
+| The receiver | the Compose network's gateway | `127.0.0.1` |
+| Proving the receiver is reachable | a `curl` in the `api` container | a request from this host |
+| What the worker said | `docker compose logs` | already on this run's own output |
+
+The reachability check runs from the `api` service rather than from the worker, and that is not a
+guess about what the image carries: the compose file's own health check for `api` **is** a `curl`,
+and it sits on the same bridge network as the worker, which is what makes their route to this host
+the same route.
+
+One more difference is worth knowing about because it is not configuration: the containers are
+built from source by the image build, while CI reuses the binary `api-integration-tests.build`
+produced with `--no-default-features -F application-secret-compatibility`. Both carry the feature
+the harness needs; the bytes are not the same bytes.
 
 ## How the set of clients is decided
 

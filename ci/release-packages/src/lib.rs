@@ -11,8 +11,13 @@
 //! too: a package added under `clients/` that no target claims would be versioned by nothing, and
 //! is refused rather than passed over.
 //!
+//! Being versioned is half of being released. The release flows are read the same way, off what
+//! each publish job declares it publishes, and a package no job publishes is refused unless the
+//! reason it has none is written where this can read it — so a registry left alone deliberately is
+//! a decision rather than an absence indistinguishable from an oversight.
+//!
 //! Every walk is bounded — how many targets, how far up, how many entries in a directory, how many
-//! bytes of a manifest — and a ceiling crossed is a refusal rather than a truncation.
+//! bytes of a file — and a ceiling crossed is a refusal rather than a truncation.
 
 mod error;
 pub mod manifest;
@@ -44,6 +49,27 @@ pub const SDK_TAG_PREFIX: &str = "sdk-v";
 /// Where a package's own release flow would be, if it has one — `ci/release-mcp.gitlab-ci.yml` for
 /// the package sitting in `clients/mcp`.
 const FLOW: (&str, &str) = ("ci/release-", ".gitlab-ci.yml");
+
+/// The one directory the release flows live in, and so the one a publish job is read out of.
+const CI: &str = "ci";
+
+/// What a publish job calls the package directory it publishes, and cds into to publish it.
+///
+/// Declaring it is what makes a publisher legible here, and using it is what stops the declaration
+/// and the deed drifting apart: a job that published something else would have to go somewhere
+/// other than where it says it goes.
+pub const PUBLISHES: &str = "PUBLISHES";
+
+/// Where a package no job publishes says why it has none.
+pub const NO_PUBLISH_JOB: &str = "ci/release-no-publish-job.toml";
+
+/// The most characters a directory, a registry or a published name stated in that file — or a
+/// directory a job declares it publishes — may run to.
+const MAX_NAMED_CHARS: usize = 256;
+
+/// The most characters one recorded reason may run to. A reason is a paragraph about what a
+/// registry is waiting for; anything past this is a document, and belongs where documents go.
+const MAX_REASON_CHARS: usize = 4096;
 
 /// Which release a package rides.
 ///
@@ -254,21 +280,39 @@ fn ascent(root: &str, package_directory: &str) -> Vec<String> {
     climbed
 }
 
-/// The manifests sitting directly in a directory, sorted, so that two of them are two rather than
-/// whichever the filesystem answered first.
-fn manifests_in(directory: &Path) -> Result<Vec<(String, Kind)>, Error> {
+/// What a directory holds, up to the ceiling and refusing past it.
+///
+/// A directory this tool cannot read at all is empty rather than an error: a target whose generated
+/// directory has not been written yet is walked past on the way up to its package, and running out
+/// of levels is what refuses. A directory it can read but not all of is the other thing entirely —
+/// whatever sat past the last entry read would be missing from the inventory without a word, which
+/// is the omission this tool is against, so the ceiling refuses naming the directory.
+fn entries_of(directory: &Path) -> Result<Vec<std::fs::DirEntry>, Error> {
     let Ok(entries) = std::fs::read_dir(directory) else {
-        // A target whose generated directory has not been written yet is not an error here; the
-        // ascent carries on towards the package, and running out of levels is what refuses.
         return Ok(Vec::new());
     };
 
     let mut found = Vec::new();
-    for entry in entries.take(MAX_DIR_ENTRIES) {
-        let entry = entry.map_err(|source| Error::Read {
+    for entry in entries {
+        if found.len() >= MAX_DIR_ENTRIES {
+            return Err(Error::TooManyEntries {
+                path: directory.to_path_buf(),
+                ceiling: MAX_DIR_ENTRIES,
+            });
+        }
+        found.push(entry.map_err(|source| Error::Read {
             path: directory.to_path_buf(),
             source,
-        })?;
+        })?);
+    }
+    Ok(found)
+}
+
+/// The manifests sitting directly in a directory, sorted, so that two of them are two rather than
+/// whichever the filesystem answered first.
+fn manifests_in(directory: &Path) -> Result<Vec<(String, Kind)>, Error> {
+    let mut found = Vec::new();
+    for entry in entries_of(directory)? {
         if !entry.file_type().is_ok_and(|kind| kind.is_file()) {
             continue;
         }
@@ -307,16 +351,9 @@ fn refuse_duplicates(packages: &[Package]) -> Result<(), Error> {
 fn refuse_unclaimed(packages: &[Package], tree: &Path) -> Result<(), Error> {
     let claimed: Vec<&str> = packages.iter().map(|p| p.directory.as_str()).collect();
     let clients = tree.join(CLIENTS);
-    let Ok(entries) = std::fs::read_dir(&clients) else {
-        return Ok(());
-    };
 
     let mut directories = Vec::new();
-    for entry in entries.take(MAX_DIR_ENTRIES) {
-        let entry = entry.map_err(|source| Error::Read {
-            path: clients.clone(),
-            source,
-        })?;
+    for entry in entries_of(&clients)? {
         if entry.file_type().is_ok_and(|kind| kind.is_dir()) {
             directories.push(entry.file_name().to_string_lossy().into_owned());
         }
@@ -336,6 +373,190 @@ fn refuse_unclaimed(packages: &[Package], tree: &Path) -> Result<(), Error> {
         }
     }
     Ok(())
+}
+
+/// The omission after the one this tool started with: a package that is versioned by everything
+/// here and published by nothing.
+///
+/// Being in the inventory is what gets a package a version; a job that publishes it is what gets it
+/// to a user. So the flows are read too, and the two are matched in both directions — a package no
+/// job publishes is refused, and a job naming a package the inventory has never heard of is refused
+/// with it, since one of the two is wrong either way and neither is knowable from the other alone.
+///
+/// A registry left alone on purpose is the third case, and it is why this is a match rather than a
+/// rule: some ecosystems have nothing to upload to at all, and some are waiting on something only a
+/// person can supply. Those are decisions, and a decision is written in [`NO_PUBLISH_JOB`] where
+/// this reads it — which is what leaves every other absence an oversight.
+pub fn check_publishers(packages: &[Package], tree: &Path) -> Result<(), Error> {
+    let published = publish_declarations(tree)?;
+    let recorded = recorded_absences(tree)?;
+
+    for (file, directory) in &published {
+        if !packages
+            .iter()
+            .any(|package| package.directory == *directory)
+        {
+            return Err(Error::UnknownPackageNamed {
+                file: file.clone(),
+                directory: directory.clone(),
+            });
+        }
+    }
+
+    for absence in &recorded {
+        let Some(package) = packages
+            .iter()
+            .find(|package| package.directory == absence.directory)
+        else {
+            return Err(Error::UnknownPackageNamed {
+                file: NO_PUBLISH_JOB.to_string(),
+                directory: absence.directory.clone(),
+            });
+        };
+        for (field, recorded, resolved) in [
+            ("published to", &absence.registry, package.registry.id()),
+            ("published as", &absence.name, package.name.as_str()),
+        ] {
+            if recorded != resolved {
+                return Err(Error::RecordedDisagrees {
+                    record: NO_PUBLISH_JOB,
+                    directory: absence.directory.clone(),
+                    field,
+                    recorded: recorded.clone(),
+                    resolved: resolved.to_string(),
+                });
+            }
+        }
+        if let Some((file, _)) = published
+            .iter()
+            .find(|(_, directory)| *directory == absence.directory)
+        {
+            return Err(Error::RecordedYetPublished {
+                record: NO_PUBLISH_JOB,
+                directory: absence.directory.clone(),
+                file: file.clone(),
+            });
+        }
+    }
+
+    for package in packages {
+        let published_by_a_job = published
+            .iter()
+            .any(|(_, directory)| *directory == package.directory);
+        let said_so = recorded
+            .iter()
+            .any(|absence| absence.directory == package.directory);
+        if !published_by_a_job && !said_so {
+            return Err(Error::NoPublisher {
+                name: package.name.clone(),
+                directory: package.directory.clone(),
+                registry: package.registry.id(),
+                record: NO_PUBLISH_JOB,
+            });
+        }
+    }
+    Ok(())
+}
+
+/// A package recorded as having no publish job, named there the three ways the inventory names it
+/// so that a record cannot go on describing a package this one has stopped being.
+///
+/// The reason recorded beside it is read and bounded and then let go: what it says is for whoever
+/// reads the file, and that it says anything at all is what this tool is checking.
+struct Absence {
+    directory: String,
+    registry: String,
+    name: String,
+}
+
+/// What every release flow says it publishes, each claim carrying the file that made it — so a
+/// claim about nothing can be answered with where it was written.
+fn publish_declarations(tree: &Path) -> Result<Vec<(String, String)>, Error> {
+    let mut declared = Vec::new();
+    for entry in entries_of(&tree.join(CI))? {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if !name.ends_with(FLOW.1) || !entry.file_type().is_ok_and(|kind| kind.is_file()) {
+            continue;
+        }
+        let file = format!("{CI}/{name}");
+        let body = manifest::read_bounded(&tree.join(&file))?;
+        for line in body.lines() {
+            let Some(claimed) = manifest::after_key(line, PUBLISHES) else {
+                continue;
+            };
+            let claimed = claimed.trim().trim_matches(['"', '\'']).to_string();
+            let claimed = bounded(Path::new(&file), PUBLISHES, claimed, MAX_NAMED_CHARS)?;
+            declared.push((file.clone(), claimed));
+        }
+    }
+    declared.sort();
+    Ok(declared)
+}
+
+/// Every package recorded as published by nothing, refusing a record that says which package
+/// without saying why.
+fn recorded_absences(tree: &Path) -> Result<Vec<Absence>, Error> {
+    let path = PathBuf::from(NO_PUBLISH_JOB);
+    if !tree.join(&path).is_file() {
+        return Ok(Vec::new());
+    }
+
+    let body = manifest::read_bounded(&tree.join(&path))?;
+    let document: toml::Value = toml::from_str(&body).map_err(|e| Error::Unreadable {
+        path: path.clone(),
+        reason: e.to_string(),
+    })?;
+    let entries = document.get("package").and_then(toml::Value::as_array);
+
+    let mut absences = Vec::new();
+    for entry in entries.map(Vec::as_slice).unwrap_or_default() {
+        let stated = |field: &'static str| -> Result<String, Error> {
+            entry
+                .get(field)
+                .and_then(toml::Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
+                .ok_or(Error::MissingField {
+                    path: path.clone(),
+                    field,
+                })
+        };
+        let directory = bounded(&path, "directory", stated("directory")?, MAX_NAMED_CHARS)?;
+        let registry = bounded(&path, "registry", stated("registry")?, MAX_NAMED_CHARS)?;
+        let name = bounded(
+            &path,
+            "published_as",
+            stated("published_as")?,
+            MAX_NAMED_CHARS,
+        )?;
+        bounded(&path, "reason", stated("reason")?, MAX_REASON_CHARS)?;
+        absences.push(Absence {
+            directory,
+            registry,
+            name,
+        });
+    }
+    Ok(absences)
+}
+
+/// A value read out of a file this tool does not write, held to a ceiling before it is carried.
+fn bounded(
+    path: &Path,
+    field: &'static str,
+    value: String,
+    ceiling: usize,
+) -> Result<String, Error> {
+    let length = value.chars().count();
+    match length > ceiling {
+        true => Err(Error::FieldTooLong {
+            path: path.to_path_buf(),
+            field,
+            length,
+            ceiling,
+        }),
+        false => Ok(value),
+    }
 }
 
 /// One column of the inventory: what it is headed, and what it reads off a package.

@@ -16,8 +16,8 @@ pub enum Error {
         source: std::io::Error,
     },
 
-    #[error("{path} is {size} bytes, past the {ceiling}-byte ceiling a manifest is read under")]
-    ManifestTooLarge {
+    #[error("{path} is {size} bytes, past the {ceiling}-byte ceiling a file is read under")]
+    FileTooLarge {
         path: PathBuf,
         size: u64,
         ceiling: u64,
@@ -28,6 +28,12 @@ pub enum Error {
          the ceiling deliberately rather than by accident"
     )]
     TooManyTargets { count: usize, ceiling: usize },
+
+    #[error(
+        "`{path}` holds more than {ceiling} entries, past the ceiling this tool reads a directory \
+         under; raise the ceiling deliberately rather than by accident"
+    )]
+    TooManyEntries { path: PathBuf, ceiling: usize },
 
     #[error(
         "target `{target}` lands at `{root}`, which does not sit under `{clients}/<package>/`; \
@@ -102,6 +108,46 @@ pub enum Error {
          version or publish it; register it with the generator or mark it unpublishable"
     )]
     UnclaimedPackage { directory: String, kind: Kind },
+
+    #[error(
+        "`{name}` ({directory}) is published to {registry} by no job under `ci/`, and `{record}` \
+         does not say why; a package nothing publishes ships nowhere and nothing goes red about it"
+    )]
+    NoPublisher {
+        name: String,
+        directory: String,
+        registry: &'static str,
+        record: &'static str,
+    },
+
+    #[error(
+        "`{file}` names `{directory}`, which is not a package this repository releases; what \
+         publishes a package and what says one is published by nothing both have to name one that \
+         exists"
+    )]
+    UnknownPackageNamed { file: String, directory: String },
+
+    #[error(
+        "`{record}` records `{directory}` as {field} `{recorded}`, and its manifest resolves to \
+         `{resolved}`; a reason about a package this one is no longer is not a reason about this one"
+    )]
+    RecordedDisagrees {
+        record: &'static str,
+        directory: String,
+        field: &'static str,
+        recorded: String,
+        resolved: String,
+    },
+
+    #[error(
+        "`{record}` says `{directory}` has no publish job, and `{file}` publishes it; a reason \
+         cannot outlive the absence it explains"
+    )]
+    RecordedYetPublished {
+        record: &'static str,
+        directory: String,
+        file: String,
+    },
 
     #[error(
         "{path}: the version reads `{found}`, but no line declares it in a form that could be \

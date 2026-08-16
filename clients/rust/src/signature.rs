@@ -95,12 +95,25 @@ impl Signature {
         }
     }
 
-    pub fn verify(&self, payload: &[u8], ordered_header_values: &[String], secret: &str) -> bool {
+    /// Whether the signature was produced over that payload with that secret.
+    ///
+    /// Keying the MAC is fallible in the type system even though HMAC accepts a key of any size, and
+    /// a verifier that panics on it takes down the webhook handler it was called from. The refusal
+    /// is returned instead, as the same [`Hook0ClientError::InvalidSignature`] a signature that does
+    /// not verify answers with: a secret this client cannot key an HMAC with is one it cannot
+    /// establish anything about the webhook under, so it establishes nothing.
+    pub fn verify(
+        &self,
+        payload: &[u8],
+        ordered_header_values: &[String],
+        secret: &str,
+    ) -> Result<bool, Hook0ClientError> {
         let timestamp_str = self.timestamp.to_string();
         let timestamp_str_bytes = timestamp_str.as_bytes();
 
         type HmacSha256 = Hmac<Sha256>;
-        let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap(); // MAC can take key of any size; this should never fail
+        let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
+            .map_err(|_| Hook0ClientError::InvalidSignature)?;
         mac.update(timestamp_str_bytes);
         mac.update(Self::PAYLOAD_SEPARATOR_BYTES);
 
@@ -120,16 +133,16 @@ impl Signature {
             );
             mac.update(Self::PAYLOAD_SEPARATOR_BYTES);
             mac.update(payload);
-            mac.verify_slice(v1).is_ok()
+            Ok(mac.verify_slice(v1).is_ok())
         } else if let Some(v0) = self.v0.as_ref() {
             trace!("Verifying v0 signature...");
 
             mac.update(payload);
-            mac.verify_slice(v0).is_ok()
+            Ok(mac.verify_slice(v0).is_ok())
         } else {
             // This cannot happen because this error would be raised while parsing the signature
             trace!("Failed to decode signature: no v0 nor v1 field");
-            false
+            Ok(false)
         }
     }
 }

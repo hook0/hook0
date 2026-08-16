@@ -25,6 +25,20 @@ const MANIFEST = JSON.parse(
   fs.readFileSync(path.join(PACKAGE_ROOT, 'package.json'), 'utf8')
 ) as Manifest;
 
+/**
+ * The same file read as the fields it carries rather than as the shape declared below, so that the
+ * dependency guard looks at what appeared in the manifest instead of at what a type says may.
+ */
+const MANIFEST_FIELDS = JSON.parse(
+  fs.readFileSync(path.join(PACKAGE_ROOT, 'package.json'), 'utf8')
+) as Record<string, Record<string, string>>;
+
+/**
+ * The manifest fields npm installs into the tree of whoever depends on this package.
+ * `devDependencies` is not one of them: it is never installed by a consumer.
+ */
+const INSTALLED_INTO_CONSUMERS = ['dependencies', 'peerDependencies', 'optionalDependencies'];
+
 /** No probe here reaches the network or the disk beyond a handful of files; a slow one is a hung one. */
 const PROBE_TIMEOUT_MS = 60_000;
 
@@ -93,6 +107,19 @@ function declaredPaths(): string[] {
 }
 
 describe('published package', () => {
+  test('installs nothing into a consumer', () => {
+    // Every client in this repository reaches the network, signs and decodes with what its runtime
+    // already ships, and that sentence is worth exactly what the guard behind it is worth. A
+    // dependency here is installed by everyone who installs `hook0-client`, whether they wanted it
+    // or not — including a bundler polyfill standing in for a builtin, which is how the `url`
+    // package got here in the first place.
+    const declared = Object.entries(MANIFEST_FIELDS)
+      .filter(([field]) => INSTALLED_INTO_CONSUMERS.includes(field))
+      .flatMap(([field, named]) => Object.keys(named).map((name) => `${field}.${name}`));
+
+    expect({ declared }).toEqual({ declared: [] });
+  });
+
   test('points every condition at a file the build produces', () => {
     const missing = declaredPaths().filter(
       (declared) => !fs.existsSync(path.join(PACKAGE_ROOT, declared))

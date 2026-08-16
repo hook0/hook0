@@ -32,22 +32,18 @@ const PEER_TIMEOUT: Duration = Duration::from_secs(10);
 /// How often the accept loop wakes to check whether it is out of time.
 const POLL: Duration = Duration::from_millis(50);
 
+/// What a request has to carry to be the delivery rather than some other caller.
+pub const SIGNATURE_HEADER: &str = "x-hook0-signature";
+
 /// One delivery, as it arrived.
 #[derive(Debug, Clone)]
 pub struct Delivery {
     /// Header names lowercased, values as delivered, in the order they arrived.
     pub headers: Vec<(String, String)>,
     pub body: Vec<u8>,
-}
-
-impl Delivery {
-    /// The value delivered under that name, which the signature header is read out of.
-    pub fn header(&self, name: &str) -> Option<&str> {
-        self.headers
-            .iter()
-            .find(|(delivered, _)| delivered == name)
-            .map(|(_, value)| value.as_str())
-    }
+    /// What the instance signed it with. Not optional, and that is the point: a request carrying no
+    /// signature is not kept, so nothing downstream has to handle a delivery that was never one.
+    pub signature: String,
 }
 
 /// A socket the instance can reach, waiting for one delivery.
@@ -78,40 +74,63 @@ pub fn listen() -> Result<Listening, Error> {
 }
 
 impl Listening {
-    /// The first delivery, or a refusal once `within` has run out.
-    pub fn first(&self, within: Duration) -> Result<Delivery, Error> {
+    /// The first delivery, or nothing once `within` has run out.
+    ///
+    /// Nothing rather than a refusal: what makes a webhook that never arrived worth reading is the
+    /// worker's cadence and the worker's logs, and a socket knows neither. The caller does, and it
+    /// is the caller that says so.
+    pub fn first(&self, within: Duration) -> Option<Delivery> {
         match self.caught.recv_timeout(within) {
-            Ok(delivery) => Ok(delivery),
-            Err(RecvTimeoutError::Timeout) | Err(RecvTimeoutError::Disconnected) => {
-                Err(Error::NoDelivery {
-                    seconds: within.as_secs(),
-                })
-            }
+            Ok(delivery) => Some(delivery),
+            Err(RecvTimeoutError::Timeout) | Err(RecvTimeoutError::Disconnected) => None,
         }
     }
 }
 
 /// Accepts until one delivery has been caught, or until the caller has stopped listening.
+///
+/// Everything that connects is answered, and only what carries [`SIGNATURE_HEADER`] is kept. The
+/// two are separate on purpose: this socket is also what the reachability check fetches, and
+/// anything else that finds an open port — a scanner, a health check, somebody diagnosing by hand
+/// — would otherwise *become* the delivery and be refused for carrying no signature, which
+/// accuses the instance of something the instance did not do.
 fn serve(listener: TcpListener, caught: SyncSender<Delivery>) {
     // The thread outlives no run: the deadline is the same order as the one the caller waits
     // under, so a socket nobody ever reaches is released rather than held for the process.
     let deadline = Instant::now() + Duration::from_secs(600);
     while Instant::now() < deadline {
         match listener.accept() {
-            Ok((stream, _)) => {
-                if let Some(delivery) = read_one(stream) {
+            Ok((stream, _)) => match read_one(stream).and_then(signed) {
+                Some(delivery) => {
                     let _ = caught.send(delivery);
                     return;
                 }
-            }
+                None => continue,
+            },
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => thread::sleep(POLL),
             Err(_) => return,
         }
     }
 }
 
+/// What came off the socket, before it is known to be a delivery rather than some other caller.
+type Arrived = (Vec<(String, String)>, Vec<u8>);
+
+/// The delivery, if what arrived carries a signature; nothing if it did not.
+fn signed((headers, body): Arrived) -> Option<Delivery> {
+    let signature = headers
+        .iter()
+        .find(|(name, _)| name == SIGNATURE_HEADER)
+        .map(|(_, value)| value.to_owned())?;
+    Some(Delivery {
+        headers,
+        body,
+        signature,
+    })
+}
+
 /// Reads one request, answers it, and says what arrived.
-fn read_one(mut stream: TcpStream) -> Option<Delivery> {
+fn read_one(mut stream: TcpStream) -> Option<Arrived> {
     let _ = stream.set_read_timeout(Some(PEER_TIMEOUT));
     let _ = stream.set_write_timeout(Some(PEER_TIMEOUT));
 
@@ -151,7 +170,7 @@ fn read_one(mut stream: TcpStream) -> Option<Delivery> {
     let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
     let _ = stream.flush();
 
-    Some(Delivery { headers, body })
+    Some((headers, body))
 }
 
 /// One line of head, refusing a peer that sends a head larger than the ceiling.

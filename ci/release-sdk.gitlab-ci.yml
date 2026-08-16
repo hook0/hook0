@@ -12,7 +12,11 @@
 # `<package>/vX.Y.Z`, and the SDKs kept `sdk-vX.Y.Z` because npm and crates.io
 # were already wired to it.
 #
-# Registries with no job here, and why, are set out in ci/README.md.
+# Every publish job below declares the package directory it publishes in
+# `PUBLISHES` and cds into it, which is both how the job finds its package and
+# how `ci/release-packages` knows the package has a publisher at all. A package
+# that reaches no job is a failed build unless `ci/release-no-publish-job.toml`
+# says why it reaches none.
 # =============================================================================
 
 .sdk-release-rules:
@@ -53,13 +57,12 @@ sdk.packages:
   rules:
     - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
     - changes:
-        - ci/release-packages/**/*
-        - ci/release-sdk.gitlab-ci.yml
-        - ci/pre-release-sdk.sh
-        # A manifest is where a package's name and version come from, and the
-        # registry of targets is where the set of packages comes from. Watching
-        # the whole of both is deliberate: a narrower pattern would be a list of
-        # manifest file names to keep in step with the ecosystems that land here.
+        # A manifest is where a package's name and version come from, the
+        # registry of targets is where the set of packages comes from, and every
+        # release flow is where the publishers come from. Watching the whole of
+        # each is deliberate: a narrower pattern would be a list of file names to
+        # keep in step with the ecosystems and the flows that land here.
+        - ci/**/*
         - clients/**/*
         - Cargo.*
   before_script:
@@ -90,14 +93,16 @@ sdk-release.npm:
       artifacts: true
     - job: clients.typescript.check
       artifacts: false
+  variables:
+    PUBLISHES: clients/typescript
   script:
     # node_modules/ and dist/ already available from clients.typescript.build artifacts
-    - cd clients/typescript
+    - cd "$PUBLISHES"
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
     - npm publish --access public
     - echo "=== Published to npm ==="
   after_script:
-    - rm -f clients/typescript/.npmrc
+    - rm -f "$PUBLISHES/.npmrc"
 
 # --- Publish to crates.io ----------------------------------------------------
 
@@ -110,8 +115,10 @@ sdk-release.cargo:
       artifacts: false
     - job: client.rust.check
       artifacts: false
+  variables:
+    PUBLISHES: clients/rust
   script:
-    - cd clients/rust
+    - cd "$PUBLISHES"
     - cargo publish --token "${CARGO_TOKEN}"
     - echo "=== Published to crates.io ==="
 
@@ -127,6 +134,7 @@ sdk-release.pypi:
     - job: clients.python.check
       artifacts: false
   variables:
+    PUBLISHES: clients/python
     # An API token is a password whose user name is fixed, which is what PyPI
     # asks for and what keeps the token out of the command line.
     TWINE_USERNAME: __token__
@@ -138,7 +146,7 @@ sdk-release.pypi:
     # pipeline that turned red on its own.
     - pip install --no-cache-dir build==1.2.2 twine==6.1.0
   script:
-    - cd clients/python
+    - cd "$PUBLISHES"
     - python -m build
     # Refuses a distribution PyPI would reject anyway — a README it cannot
     # render, metadata it cannot read — before the upload rather than after.
@@ -158,11 +166,12 @@ sdk-release.rubygems:
     - job: clients.ruby.check
       artifacts: false
   variables:
+    PUBLISHES: clients/ruby
     # What `gem push` reads instead of ~/.gem/credentials, so no key is ever
     # written to the filesystem of the runner.
     GEM_HOST_API_KEY: $RUBYGEMS_API_KEY
   script:
-    - cd clients/ruby
+    - cd "$PUBLISHES"
     # The glob is the gemspec the package carries; naming it here would be a
     # second place to change when it is renamed.
     - gem build ./*.gemspec
@@ -183,10 +192,11 @@ sdk-release.nuget:
     - job: clients.csharp.check
       artifacts: false
   variables:
+    PUBLISHES: clients/csharp
     DOTNET_CLI_TELEMETRY_OPTOUT: "1"
     DOTNET_NOLOGO: "1"
   script:
-    - cd clients/csharp
+    - cd "$PUBLISHES"
     # The directory rather than the project file: it holds exactly one project,
     # and the packaging suite beside it is what keeps that true.
     - dotnet pack src --configuration Release --output artifacts

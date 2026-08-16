@@ -8,7 +8,7 @@ The manual release jobs (`release:patch`, `release:minor`, `release:major`) and 
 |----------|-------------|--------------|
 | `GITLAB_RELEASE_TOKEN` | Personal access token with `write_repository` scope | All releases |
 | `NPM_TOKEN` | npm automation token, publish scope on `hook0-client` | SDK release (npm) |
-| `CARGO_TOKEN` | crates.io API token, `publish-update` scope | SDK release (crates.io) |
+| `CARGO_TOKEN` | crates.io API token, `publish-update` scope. Two crates go out under it: `hook0-client` on the SDK release and `hook0-mcp` on the MCP one. | SDK release (crates.io), MCP release |
 | `PYPI_TOKEN` | PyPI API token scoped to the `hook0-client` project. Passed as the password with the user name `__token__`, which is what PyPI expects. | SDK release (PyPI) |
 | `RUBYGEMS_API_KEY` | RubyGems API key with the `push_rubygem` scope. The gemspec sets `rubygems_mfa_required`, so the key has to be one `gem push` can use without prompting for an OTP — otherwise the job hangs until its timeout. | SDK release (RubyGems) |
 | `NUGET_API_KEY` | nuget.org API key scoped to `Hook0.Client` with Push permission. NuGet keys expire (365 days maximum), so this one has a renewal date. | SDK release (NuGet) |
@@ -92,7 +92,8 @@ Tag pipeline triggered (vX.Y.Z)
 
 ## SDK Release Process
 
-SDK releases are independent from main releases and publish the TypeScript and Rust clients.
+SDK releases are independent from main releases. Which clients they cover is not written down here
+either — see below — and neither is which of those reach a registry today.
 
 1. On the master branch pipeline, find the manual jobs in `trigger-release` stage:
    - `sdk-release:patch` - Bumps patch version (1.0.0 → 1.0.1)
@@ -105,7 +106,7 @@ SDK releases are independent from main releases and publish the TypeScript and R
    - Regenerate each package's `CHANGELOG.md`, scoped to its own directory
    - Create a commit with the version bump
    - Create and push a git tag (e.g., sdk-v1.0.1)
-4. The tag triggers the SDK release pipeline, which checks the tree agrees with the tag and then publishes each package to its registry.
+4. The tag triggers the SDK release pipeline, which checks the tree agrees with the tag and then runs every publish job the release has.
 
 ### What the release covers, and how it is decided
 
@@ -113,10 +114,11 @@ Nothing in `ci/` names an SDK. `ci/release-packages` reads the generator's regis
 of targets (`hook0_sdkgen::targets::targets()`), walks up from where each target
 lands to the one directory its package occupies under `clients/`, and reads the
 package's name and version out of whatever manifest sits there. A target added to
-the registry is therefore versioned and published by machinery that already
-exists; a target whose package cannot be established stops the release naming
-itself and the paths it looked at, rather than shipping forever at whatever
-version it was born with.
+the registry is therefore versioned, inventoried and held to the release tag by
+machinery that already exists, and held to having somewhere to be published by
+the section below; a target whose package cannot be established stops the release
+naming itself and the paths it looked at, rather than shipping forever at
+whatever version it was born with.
 
 A package that owns a release flow of its own — `ci/release-<name>.gitlab-ci.yml`,
 which today is only `clients/mcp` — has a tag of its own per ADR 0004 and is left
@@ -128,42 +130,22 @@ Run it against a working copy to see the inventory:
 cargo run -p release-packages -- list
 ```
 
-### Registries with no publish job, and why
+### What publishes a package, and what happens when nothing does
 
-Three of the packages the tool discovers have no job in
-`ci/release-sdk.gitlab-ci.yml`. Each one is missing something a pipeline cannot
-supply on its own, and a job that failed on its first real run would be worse
-than an absent one.
+A publish job names the package directory it publishes in a `PUBLISHES` variable
+and cds into it, so what a job says it publishes is what it does publish. That is
+also how `ci/release-packages` knows a package has a publisher at all: it reads
+every flow under `ci/`, and matches the declarations against the inventory in
+both directions. A job naming a package the inventory has never heard of fails
+the build, and so does a package no job names.
 
-- **Go — `github.com/hook0/hook0/clients/go`.** Go has no registry: a module is
-  published by pushing a tag the proxy can see, and a module in a subdirectory
-  needs a tag naming that subdirectory — `clients/go/vX.Y.Z` — which is not the
-  `sdk-vX.Y.Z` this pipeline uses. The module path also points at GitHub, which
-  is a mirror of this repository rather than the repository. So today
-  `go get github.com/hook0/hook0/clients/go@v1.1.0` resolves nothing, and only
-  `@latest` works, answering a pseudo-version built from the mirror's default
-  branch (`v0.0.0-<date>-<sha>`). For a real version to work, one of two things
-  has to change: either the tag pipeline also pushes `clients/go/vX.Y.Z` to the
-  GitHub mirror once the mirror has the commit, or the Go client moves to a
-  repository of its own and the module path follows it. The first is a few lines;
-  what makes it a decision rather than a task is that it puts the release on the
-  mirror's lag, which has already broken release-note generation before (see the
-  comment at the top of `ci/extract-release-notes.sh`).
-
-- **Packagist — `hook0/client`.** Packagist does not accept uploads and does not
-  read subdirectories: a package is a repository, and its versions are that
-  repository's tags. `clients/php` is a directory in a monorepo, so it cannot be
-  submitted as-is. Publishing it means maintaining a read-only split repository
-  (`splitsh-lite` or `git subtree split`), pushing `vX.Y.Z` tags to it, and
-  registering that repository once. The split is scriptable; deciding to have a
-  second repository is not.
-
-- **Maven Central — `com.hook0:hook0-client`.** Two things are missing, and only
-  one of them is a job. Before anything can ever be published, a human has to
-  claim the `com.hook0` namespace on the Central Portal and prove control of the
-  domain by publishing the TXT record Sonatype asks for; and `clients/java/pom.xml`
-  has to gain the plugins a Central release needs — `central-publishing-maven-plugin`,
-  `maven-gpg-plugin`, and the source and javadoc jars Central rejects a release
-  without. Once both are done the job needs four variables that do not exist yet:
-  a base64 GPG private key, its passphrase, and the Central Portal token pair.
-  None of them is invented here.
+Not every package can reach a registry today, and two of them have no registry to
+reach at all: a Go module and a Zig package are fetched rather than uploaded.
+Every package in that position is recorded in `ci/release-no-publish-job.toml`,
+one entry each, stating the registry and the published name the inventory reports
+for it and the reason it has no job. The tool holds every entry to the package it
+names, so a reason cannot be written about a package that does not exist, cannot
+go on describing one that has been renamed or has moved ecosystems, and cannot
+outlive the job that closes the gap. That file is where to find out what is
+missing and what supplying it would take; there is deliberately no second copy of
+those reasons here to fall out of step with them.

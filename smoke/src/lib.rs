@@ -12,8 +12,10 @@
 //! plain `cargo test`.
 
 pub mod api;
+pub mod compose;
 pub mod discovery;
 pub mod error;
 pub mod process;
 pub mod receiver;
 pub mod stack;
+pub mod worker;

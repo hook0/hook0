@@ -15,9 +15,10 @@ use std::path::{Path, PathBuf};
 
 use crate::error::Error;
 
-/// The most bytes a manifest is read under. Every one of these files is written by hand and
-/// measured in kilobytes; anything past this is not a manifest.
-pub const MAX_MANIFEST_BYTES: u64 = 1 << 20;
+/// The most bytes a file is read under, whether it is a manifest or one of the release flows the
+/// publishers are read out of. Every one of them is written by hand and measured in kilobytes;
+/// anything past this is not one of them.
+pub const MAX_FILE_BYTES: u64 = 1 << 20;
 
 /// The longest a package name may be, which is npm's own ceiling and the strictest of the
 /// registries reached here.
@@ -213,11 +214,11 @@ pub fn read_bounded(path: &Path) -> Result<String, Error> {
             source,
         })?
         .len();
-    if size > MAX_MANIFEST_BYTES {
-        return Err(Error::ManifestTooLarge {
+    if size > MAX_FILE_BYTES {
+        return Err(Error::FileTooLarge {
             path: path.to_path_buf(),
             size,
-            ceiling: MAX_MANIFEST_BYTES,
+            ceiling: MAX_FILE_BYTES,
         });
     }
     std::fs::read_to_string(path).map_err(|source| Error::Read {
@@ -552,7 +553,7 @@ fn code_of(line: &str) -> &str {
 /// What sits after `key` and its separator on this line, or nothing if the line assigns something
 /// else. The key has to be the whole of what precedes the separator, so `spec.version` is not read
 /// off the line assigning `spec.required_ruby_version`.
-fn after_key<'a>(line: &'a str, key: &str) -> Option<&'a str> {
+pub(crate) fn after_key<'a>(line: &'a str, key: &str) -> Option<&'a str> {
     let (left, right) = code_of(line).split_once(['=', ':'])?;
     (left.trim() == key).then_some(right)
 }

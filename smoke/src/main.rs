@@ -19,7 +19,7 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use hook0_smoke::error::Error;
-use hook0_smoke::{api, discovery, process, receiver, stack};
+use hook0_smoke::{api, discovery, process, receiver, stack, worker};
 
 /// Where the per-language smokes live, relative to this crate.
 const LANGUAGES: &str = "languages";
@@ -34,9 +34,6 @@ const DELIVERY: &str = "delivery";
 /// How long one language's smoke is given, compiling included. Java and C# build from cold here;
 /// anything past this is a run that is stuck rather than one that is slow.
 const SMOKE_WITHIN: Duration = Duration::from_secs(900);
-
-/// How long the instance is given to deliver the webhook the signature is read off.
-const DELIVERY_WITHIN: Duration = Duration::from_secs(120);
 
 /// How far from the moment it names a signature may be held. Wide on purpose: the delivery is
 /// caught once, at the start, and the last language to verify it does so after every toolchain
@@ -81,15 +78,15 @@ fn run() -> Result<(), Error> {
             .join(", ")
     );
 
-    let stack = stack::up()?;
-    let outcome = exercise(&stack, &crate_root, &smokes);
-    stack.down();
+    let mut stack = stack::up()?;
+    let outcome = exercise(&mut stack, &crate_root, &smokes);
+    stack.down(outcome.is_err());
     outcome
 }
 
 /// Provisions, catches one real delivery, and runs every smoke against both.
 fn exercise(
-    stack: &stack::Stack,
+    stack: &mut stack::Stack,
     crate_root: &Path,
     smokes: &[discovery::Smoke],
 ) -> Result<(), Error> {
@@ -97,21 +94,45 @@ fn exercise(
     let listening = receiver::listen()?;
     let receiver_url = format!("http://{}:{}/", stack.receiver_host, listening.port);
 
+    println!(
+        "\n== control: every smoke below verifies a signature this instance produced, so the \
+         instance has to produce one first. Nothing runs until it has."
+    );
+
+    // Asked here, before an account exists, because it is the one thing that can be settled in a
+    // fraction of a second and would otherwise be discovered as a minute of silence with four
+    // plausible causes.
+    stack.reaches_receiver(listening.port)?;
+
     let provisioned = api::provision(&stack.api, &stack.mailpit, &nonce, &receiver_url)?;
     api::emit(&stack.api, &provisioned, &nonce)?;
 
-    let delivered = listening.first(DELIVERY_WITHIN)?;
-    let signature = delivered
-        .header("x-hook0-signature")
-        .ok_or_else(|| Error::Answer {
-            what: "catching the delivery".to_owned(),
-            detail: "the instance delivered a webhook carrying no `x-hook0-signature`".to_owned(),
-        })?
-        .to_owned();
-    println!("== delivery: caught, signed by the instance as {signature}");
+    stack.still_running()?;
+    println!(
+        "== control: waiting up to {}s for one signed webhook ({})",
+        worker::DELIVERS_WITHIN.as_secs(),
+        worker::expectation()
+    );
+    let delivered = match listening.first(worker::DELIVERS_WITHIN) {
+        Some(delivered) => delivered,
+        None => {
+            return Err(Error::NoDelivery {
+                seconds: worker::DELIVERS_WITHIN.as_secs(),
+                expectation: worker::expectation(),
+                worker_said: stack.worker_said(),
+            });
+        }
+    };
+    println!(
+        "== control: passed. The instance signed and delivered {} bytes as {}, and that is what \
+         all {} smokes verify",
+        delivered.body.len(),
+        delivered.signature,
+        smokes.len()
+    );
 
     let delivery = crate_root.join(DELIVERY);
-    write_delivery(&delivery, &delivered, &signature, &provisioned)?;
+    write_delivery(&delivery, &delivered, &provisioned)?;
 
     let environment = vec![
         ("HOOK0_API_URL".to_owned(), stack.api.clone()),
@@ -164,7 +185,6 @@ fn exercise(
 fn write_delivery(
     at: &Path,
     delivered: &receiver::Delivery,
-    signature: &str,
     provisioned: &api::Provisioned,
 ) -> Result<(), Error> {
     let write = |name: &str, what: &[u8]| -> Result<(), Error> {
@@ -187,7 +207,7 @@ fn write_delivery(
         .collect::<String>();
 
     write("secret", provisioned.subscription_secret.as_bytes())?;
-    write("signature", signature.as_bytes())?;
+    write("signature", delivered.signature.as_bytes())?;
     write("body", &delivered.body)?;
     write("headers", headers.as_bytes())?;
     write("tolerance", TOLERANCE_SECONDS.to_string().as_bytes())

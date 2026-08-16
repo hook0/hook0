@@ -21,6 +21,10 @@ hook0-sdkgen = { path = "../clients/sdkgen" }
 
 serde_json = "1.0"
 toml = "1.1"
+# The compose file is the one place the stack is described, so it is read rather than
+# transcribed.
+yaml-rust2 = "0.10"
+
 ureq = { version = "3.1", default-features = false, features = ["json", "rustls"] }
 
 [dev-dependencies]
