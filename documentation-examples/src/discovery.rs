@@ -24,6 +24,16 @@ pub const EXAMPLES_DIRECTORY: &str = "examples";
 /// The prefix of the file a language writes its harness in.
 pub const HARNESS_PREFIX: &str = "harness.";
 
+/// The prefix a scaffold file carries when what is committed is not yet the file it becomes, and is
+/// dropped when the project is assembled.
+///
+/// `go.mod` is what forced it. The committed one holds `{{client}}` where a module path belongs, so
+/// it is not a `go.mod` any Go-aware tool can read — and the dependency scanner reads every file of
+/// that name in the tree and fails the build on one it cannot parse, which is a security gate going
+/// red over a file that declares no dependency at all. The prefix keeps the template out of that
+/// set, and the assembled project still receives it under the name its toolchain insists on.
+pub const TEMPLATE_PREFIX: &str = "template.";
+
 /// One language's side of the work: what it shows, and what proving it means.
 #[derive(Debug)]
 pub struct Language {

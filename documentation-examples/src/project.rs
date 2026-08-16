@@ -14,7 +14,7 @@ use std::process::{Command, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::discovery::{HARNESS_PREFIX, Language};
+use crate::discovery::{HARNESS_PREFIX, Language, TEMPLATE_PREFIX};
 use crate::error::Error;
 use crate::limits::{MAX_OUTPUT_BYTES, MAX_SCAFFOLD_BYTES, MAX_SCAFFOLD_FILES, POLL_INTERVAL};
 use crate::manifest::MANIFEST;
@@ -190,7 +190,10 @@ fn copy_into(
             &read_bounded(&entry.path(), "scaffold file", MAX_SCAFFOLD_BYTES)?,
             places,
         );
-        write(&to.join(&inner), &body)?;
+        // A template is committed under a name its own toolchain would not recognise and written
+        // under the one it insists on, so what sits in the tree is never mistaken for the real file.
+        let written = relative.join(name.strip_prefix(TEMPLATE_PREFIX).unwrap_or(&name));
+        write(&to.join(&written), &body)?;
     }
     Ok(())
 }
