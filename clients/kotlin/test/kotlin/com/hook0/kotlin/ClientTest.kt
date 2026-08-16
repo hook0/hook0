@@ -18,6 +18,45 @@ class ClientTest {
 
   @ParameterizedTest
   @EnumSource(Surface::class)
+  fun aBudgetTooLargeToCountStillCutsDownTheDelayTheApiNames(surface: Surface) {
+    // The retry loop reads the budget a third time, to cut an API-named delay down to what is left
+    // of it. That read is the one furthest from the schedule and the header, and a budget too large
+    // to count raised there rather than anywhere a caller would look — the send died between two
+    // attempts, on the answer that asked it to come back.
+    val absurd = options(2).copy(
+      retryPolicy = RetryPolicy(
+        2,
+        Duration.ofMillis(5),
+        Duration.ofMillis(5),
+        Duration.ofSeconds(Long.MAX_VALUE)
+      )
+    )
+
+    FakeApi().use { api ->
+      client(api, absurd).use { client ->
+        api.willAnswer(
+          FakeApi.Scripted.of(
+            503,
+            mapOf(
+              "id" to "ServiceUnavailable",
+              "status" to 503L,
+              "title" to "unavailable",
+              "detail" to "come back shortly",
+              "type" to "https://hook0.com/documentation/errors/ServiceUnavailable"
+            ),
+            mapOf("Retry-After" to "0")
+          ),
+          ingested(INGESTED_ID)
+        )
+
+        assertEquals(UUID.fromString(INGESTED_ID), surface.send(client, anEvent()))
+        assertEquals(2, api.received().size, "the named delay was not honoured and retried")
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
   fun aSendThatSucceedsIssuesOneRequest(surface: Surface) {
     FakeApi().use { api ->
       client(api, options(4)).use { client ->

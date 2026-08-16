@@ -309,9 +309,9 @@ class HttpTransport(
      * looking for a burst that cannot happen.
      */
     private fun clientOptions(policy: RetryPolicy): String {
-      val backoff = RetryPolicy.millis(policy.initialBackoff)
-      val ceiling = RetryPolicy.millis(policy.maxBackoff)
-      val budget = RetryPolicy.millis(policy.maxTotalDelay)
+      val backoff = policy.initialBackoffMillis
+      val ceiling = policy.maxBackoffMillis
+      val budget = policy.maxTotalDelayMillis
       return "attempts=${policy.attempts()},backoff=$backoff,ceiling=$ceiling,budget=$budget"
     }
 

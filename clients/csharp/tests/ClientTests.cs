@@ -290,6 +290,35 @@ public sealed class ClientTests : ApiCase
         Assert.All(waited, one => Assert.Equal(TimeSpan.Zero, one));
     }
 
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task ABudgetTooLargeToCountStillCutsDownTheDelayTheApiNames(Surface surface)
+    {
+        // The retry loop reads the budget a third time, to cut an API-named delay down to what is
+        // left of it. That read is the one furthest from the schedule and the header, and it read
+        // the field raw — where a TimeSpan counts ticks it survives, and where a sibling SDK counts
+        // milliseconds the same read raised and killed the send between two attempts.
+        Api.WillAnswer(
+            Refusal(503, "ServiceUnavailable", [new KeyValuePair<string, string>("Retry-After", "0")]),
+            Ingested(IngestedId));
+
+        using Hook0Client client = Client(new ClientOptions
+        {
+            RetryPolicy = new RetryPolicy
+            {
+                MaxAttempts = 2,
+                InitialBackoff = PromptBackoff,
+                MaxBackoff = PromptBackoff,
+                MaxTotalDelay = TimeSpan.MaxValue,
+            },
+            RequestTimeout = TimeSpan.FromSeconds(5),
+        });
+
+        Assert.Equal(IngestedId, await Send(client, AnEvent(), surface));
+        Assert.Equal(2, Api.Received.Count);
+    }
+
     [Fact]
     public void ADurationThisClientHoldsCannotBeNonFinite()
     {

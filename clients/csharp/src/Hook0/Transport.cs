@@ -516,24 +516,25 @@ public sealed class HttpTransport : ITransport, IAsyncTransport, IDisposable
     /// </remarks>
     private static string Stated(RetryPolicy policy)
     {
-        long backoff = Millis(policy.InitialBackoff);
-        long ceiling = Millis(policy.MaxBackoff);
-        long budget = Millis(policy.MaxTotalDelay);
+        long backoff = Millis(policy.InitialBackoffInForce);
+        long ceiling = Millis(policy.MaxBackoffInForce);
+        long budget = Millis(policy.MaxTotalDelayInForce);
 
         return string.Create(
             CultureInfo.InvariantCulture,
             $"attempts={policy.Attempts},backoff={backoff},ceiling={ceiling},budget={budget}");
     }
 
-    /// <summary>One delay of a policy, in the whole milliseconds the header states it in.</summary>
+    /// <summary>A delay the policy holds, in the whole milliseconds the header states it in.</summary>
     /// <remarks>
     /// Counted off the ticks rather than read from <see cref="TimeSpan.TotalMilliseconds"/>, which
     /// is a <c>double</c>: a whole number the header states has no business being rounded on its way
-    /// there, and a count of ticks divided down can hold no value a <c>long</c> cannot. A negative
-    /// delay is stated as zero, which is what the policy itself would wait for one.
+    /// there, and a count of ticks divided down can hold no value a <c>long</c> cannot. What is
+    /// counted is what the policy says is in force, so this renders that number rather than
+    /// deciding it — the deciding is done once, on the policy, for the schedule and the header
+    /// alike.
     /// </remarks>
-    private static long Millis(TimeSpan held) =>
-        held.Ticks > 0 ? held.Ticks / TimeSpan.TicksPerMillisecond : 0;
+    private static long Millis(TimeSpan held) => held.Ticks / TimeSpan.TicksPerMillisecond;
 
     /// <summary>
     /// One part of the <c>User-Agent</c>, with everything the header's own grammar uses taken out of

@@ -184,11 +184,11 @@ public final class HttpTransport implements Transport, AutoCloseable {
     return "attempts="
         + policy.attempts()
         + ",backoff="
-        + RetryPolicy.millis(policy.initialBackoff())
+        + policy.initialBackoffMillis()
         + ",ceiling="
-        + RetryPolicy.millis(policy.maxBackoff())
+        + policy.maxBackoffMillis()
         + ",budget="
-        + RetryPolicy.millis(policy.maxTotalDelay());
+        + policy.maxTotalDelayMillis();
   }
 
   private HttpRequest built(String method, String path, List<QueryParameter> query, Object body) {

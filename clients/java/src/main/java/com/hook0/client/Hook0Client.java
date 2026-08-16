@@ -497,7 +497,7 @@ public final class Hook0Client implements AutoCloseable {
     // The delay the API named is preferred over this client's own schedule when it named one, and
     // either way it is cut down to what is left of the budget every delay of one send shares: a
     // number written by the other end cannot stretch a send past what the caller allowed for it.
-    long remaining = Math.max(options.retryPolicy().maxTotalDelay().toMillis() - waitedMillis, 0);
+    long remaining = Math.max(options.retryPolicy().maxTotalDelayMillis() - waitedMillis, 0);
     long wanted =
         outcome.namedDelayMillis() == null
             ? send.delays().get(issued - 1).longValue()

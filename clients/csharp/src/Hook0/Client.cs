@@ -59,6 +59,24 @@ public sealed record RetryPolicy
     /// <summary>Attempts this policy actually makes: <see cref="MaxAttempts"/>, brought inside its cap.</summary>
     public int Attempts => Math.Clamp(MaxAttempts, 1, MaxAttemptsCap);
 
+    /// <summary>The first delay this policy holds, as everything that reads it reads it.</summary>
+    /// <remarks>
+    /// One accessor per field, rather than each caller bringing the field inside its bounds for
+    /// itself: the schedule, the budget the retry loop cuts an API-named delay down to, and the
+    /// <c>Hook0-Client-Options</c> header all read this, and three rules that agree today are three
+    /// that can stop agreeing. A delay no client can wait for — one below zero — is read as none.
+    /// </remarks>
+    internal TimeSpan InitialBackoffInForce => InForce(InitialBackoff);
+
+    /// <summary>The longest single delay this policy holds, as everything that reads it reads it.</summary>
+    internal TimeSpan MaxBackoffInForce => InForce(MaxBackoff);
+
+    /// <summary>The budget this policy holds, as everything that reads it reads it.</summary>
+    internal TimeSpan MaxTotalDelayInForce => InForce(MaxTotalDelay);
+
+    /// <summary>One delay of this policy, brought inside what a delay can be.</summary>
+    private static TimeSpan InForce(TimeSpan held) => held > TimeSpan.Zero ? held : TimeSpan.Zero;
+
     /// <summary>Ceiling of the delay before retry number <paramref name="retryNumber"/>.</summary>
     /// <remarks>
     /// It doubles from <see cref="InitialBackoff"/> and never exceeds <see cref="MaxBackoff"/>, so
@@ -69,8 +87,8 @@ public sealed record RetryPolicy
     public TimeSpan BackoffCeiling(int retryNumber)
     {
         int doublings = Math.Clamp(retryNumber - 1, 0, MaxBackoffDoublings);
-        double ceiling = Math.Max(MaxBackoff.TotalSeconds, 0);
-        double doubled = Math.Max(InitialBackoff.TotalSeconds, 0) * Math.Pow(2, doublings);
+        double ceiling = MaxBackoffInForce.TotalSeconds;
+        double doubled = InitialBackoffInForce.TotalSeconds * Math.Pow(2, doublings);
         return TimeSpan.FromSeconds(Math.Clamp(doubled, 0, ceiling));
     }
 
@@ -88,7 +106,7 @@ public sealed record RetryPolicy
     /// <returns>The delays, in the order they are waited out.</returns>
     public IReadOnlyList<TimeSpan> Delays(IReadOnlyList<double> draws)
     {
-        double budget = Math.Max(MaxTotalDelay.TotalSeconds, 0);
+        double budget = MaxTotalDelayInForce.TotalSeconds;
         List<TimeSpan> waits = new(Math.Max(Attempts - 1, 0));
         double spent = 0;
 
@@ -907,7 +925,7 @@ public sealed class Hook0Client : IDisposable
             // otherwise — either way cut down to what is left of the budget every delay of one send
             // shares, so a delay written by the other end cannot stretch a send past what the caller
             // allowed for it.
-            double remaining = Math.Max((_policy.MaxTotalDelay - _waited).TotalSeconds, 0);
+            double remaining = Math.Max((_policy.MaxTotalDelayInForce - _waited).TotalSeconds, 0);
             double wanted = (outcome.NamedDelay ?? scheduled.Value).TotalSeconds;
             TimeSpan waiting = TimeSpan.FromSeconds(Math.Clamp(wanted, 0, remaining));
             _waited += waiting;

@@ -39,6 +39,22 @@ data class RetryPolicy(
   fun attempts(): Int = maxAttempts.coerceIn(1, MAX_ATTEMPTS_CAP)
 
   /**
+   * The first delay this policy holds, as everything that reads it reads it.
+   *
+   * One accessor per field, rather than each caller converting the field for itself: the schedule,
+   * the budget the retry loop cuts a named delay down to, and the `Hook0-Client-Options` header all
+   * state this number, and three conversions that agree today are three that can stop agreeing.
+   * Reading the field raw is how the wire came to describe a schedule the client would not keep.
+   */
+  internal val initialBackoffMillis: Long get() = millis(initialBackoff)
+
+  /** The longest single delay this policy holds, as everything that reads it reads it. */
+  internal val maxBackoffMillis: Long get() = millis(maxBackoff)
+
+  /** The budget this policy holds, as everything that reads it reads it. */
+  internal val maxTotalDelayMillis: Long get() = millis(maxTotalDelay)
+
+  /**
    * Ceiling of the delay before retry number [retryNumber], where `1` is the first retry.
    *
    * It doubles from [initialBackoff] and never exceeds [maxBackoff], so the ceilings of successive
@@ -49,8 +65,8 @@ data class RetryPolicy(
    */
   fun backoffCeilingMillis(retryNumber: Int): Long {
     val doublings = (retryNumber.toLong() - 1).coerceIn(0, MAX_BACKOFF_DOUBLINGS.toLong())
-    val ceiling = millis(maxBackoff)
-    var doubled = millis(initialBackoff)
+    val ceiling = maxBackoffMillis
+    var doubled = initialBackoffMillis
     var step = 0L
     while (step < doublings && doubled < ceiling) {
       // Doubling past the ceiling lands on it. Written as a comparison rather than as a doubling
@@ -76,7 +92,7 @@ data class RetryPolicy(
    * @return how long to wait before each retry, in milliseconds
    */
   fun delaysMillis(draws: DoubleArray): List<Long> {
-    val budget = millis(maxTotalDelay)
+    val budget = maxTotalDelayMillis
     val waits = ArrayList<Long>()
     var spent = 0L
 
@@ -115,7 +131,7 @@ data class RetryPolicy(
      * @param held the delay to count
      * @return that delay in whole milliseconds, never negative
      */
-    internal fun millis(held: Duration): Long {
+    private fun millis(held: Duration): Long {
       if (held.isNegative) {
         return 0
       }

@@ -306,7 +306,7 @@ class Hook0Client private constructor(
     // The delay the API named is preferred over this client's own schedule when it named one, and
     // either way it is cut down to what is left of the budget every delay of one send shares: a
     // number written by the other end cannot stretch a send past what the caller allowed for it.
-    val remaining = max(options.retryPolicy.maxTotalDelay.toMillis() - waitedMillis, 0)
+    val remaining = max(options.retryPolicy.maxTotalDelayMillis - waitedMillis, 0)
     val wanted = outcome.namedDelayMillis ?: send.delays[issued - 1]
     return Decision.Waiting(wanted.coerceIn(0, remaining))
   }

@@ -72,8 +72,8 @@ public record RetryPolicy(int maxAttempts, Duration initialBackoff, Duration max
    */
   public long backoffCeilingMillis(int retryNumber) {
     int doublings = Math.clamp((long) retryNumber - 1, 0, MAX_BACKOFF_DOUBLINGS);
-    long ceiling = millis(maxBackoff);
-    long doubled = millis(initialBackoff);
+    long ceiling = maxBackoffMillis();
+    long doubled = initialBackoffMillis();
     for (int step = 0; step < doublings && doubled < ceiling; step++) {
       // Doubling past the ceiling lands on it. Written as a comparison rather than as a doubling
       // that is then capped, because the doubling itself overflows for a ceiling near the largest
@@ -102,7 +102,7 @@ public record RetryPolicy(int maxAttempts, Duration initialBackoff, Duration max
    * @param held the delay to count
    * @return that delay in whole milliseconds, never negative
    */
-  static long millis(Duration held) {
+  private static long millis(Duration held) {
     if (held.isNegative()) {
       return 0;
     }
@@ -111,6 +111,38 @@ public record RetryPolicy(int maxAttempts, Duration initialBackoff, Duration max
       return Long.MAX_VALUE;
     }
     return seconds * 1000 + held.getNano() / 1_000_000;
+  }
+
+  /**
+   * The first delay this policy holds, as everything that reads it reads it.
+   *
+   * <p>One accessor per field, rather than each caller converting the field for itself: the schedule, the budget the
+   * retry loop cuts a named delay down to, and the {@code Hook0-Client-Options} header all state this number, and
+   * three conversions that agree today are three that can stop agreeing. Reading the field raw is how the wire came
+   * to describe a schedule the client would not keep.
+   *
+   * @return the delay before the first retry, in whole milliseconds
+   */
+  long initialBackoffMillis() {
+    return millis(initialBackoff);
+  }
+
+  /**
+   * The longest single delay this policy holds, as everything that reads it reads it.
+   *
+   * @return the ceiling no delay exceeds, in whole milliseconds
+   */
+  long maxBackoffMillis() {
+    return millis(maxBackoff);
+  }
+
+  /**
+   * The budget this policy holds, as everything that reads it reads it.
+   *
+   * @return what all the delays of one send share, in whole milliseconds
+   */
+  long maxTotalDelayMillis() {
+    return millis(maxTotalDelay);
   }
 
   /**
@@ -127,7 +159,7 @@ public record RetryPolicy(int maxAttempts, Duration initialBackoff, Duration max
    * @return how long to wait before each retry, in milliseconds
    */
   public List<Long> delaysMillis(double[] draws) {
-    long budget = millis(maxTotalDelay);
+    long budget = maxTotalDelayMillis();
     List<Long> waits = new ArrayList<>();
     long spent = 0;
 

@@ -31,6 +31,37 @@ final class ClientTest {
     return new Hook0Client(api.baseUrl(), "app-123", "token-xyz", options);
   }
 
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void aBudgetTooLargeToCountStillCutsDownTheDelayTheApiNames(Surface surface) {
+    // The retry loop reads the budget a third time, to cut an API-named delay down to what is left
+    // of it. That read is the one furthest from the schedule and the header, and a budget too large
+    // to count raised there rather than anywhere a caller would look — the send died between two
+    // attempts, on the answer that asked it to come back.
+    Options absurd =
+        options(2)
+            .withRetryPolicy(
+                new RetryPolicy(2, Duration.ofMillis(5), Duration.ofMillis(5), Duration.ofSeconds(Long.MAX_VALUE)));
+
+    try (FakeApi api = new FakeApi();
+        Hook0Client client = client(api, absurd)) {
+      api.willAnswer(
+          FakeApi.Scripted.of(
+              503,
+              Map.of(
+                  "id", "ServiceUnavailable",
+                  "status", Long.valueOf(503),
+                  "title", "unavailable",
+                  "detail", "come back shortly",
+                  "type", "https://hook0.com/documentation/errors/ServiceUnavailable"),
+              Map.of("Retry-After", "0")),
+          ingested(INGESTED_ID));
+
+      assertEquals(INGESTED_ID, surface.send(client, anEvent()).toString());
+      assertEquals(2, api.received().size(), "the named delay was not honoured and retried");
+    }
+  }
+
   private static Event anEvent() {
     return Event.of(
         "auth.user.create", "{\"email\": \"test@example.com\"}", "application/json", Map.of("environment",
