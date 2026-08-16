@@ -9,8 +9,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use release_packages::{
-    Change, Error, Package, TargetRoot, Version, check_publishers, check_version, current_version,
-    discover, render, sdk_train, set_version,
+    Change, Error, Mirror, Package, TargetRoot, Version, check_mirrors, check_publishers,
+    check_version, current_version, discover, mirrors, render, sdk_train, set_version,
 };
 
 /// A tree with nothing in it but what a test puts there.
@@ -490,6 +490,123 @@ fn a_record_naming_a_package_without_saying_why_is_not_a_reason() {
     assert!(matches!(error, Error::MissingField { .. }), "{error:?}");
 }
 
+// --- The repository each client is mirrored to ----------------------------------------------
+
+/// Where a client is mirrored is derived from where it sits, so a language nobody wrote this for
+/// reaches a repository of its own the day its target lands.
+#[test]
+fn every_client_on_the_release_is_mirrored_to_a_repository_named_after_it() {
+    let tree = Tree::new();
+    tree.directory("clients/nobody/generated")
+        .write(
+            "clients/nobody/package.json",
+            r#"{ "name": "@hook0/nobody", "version": "1.0.0" }"#,
+        )
+        .directory("clients/somebody/generated")
+        .write(
+            "clients/somebody/Cargo.toml",
+            "[package]\nname = \"hook0-somebody\"\nversion = \"1.0.0\"\n",
+        );
+
+    let packages = discover(
+        &[
+            target("nobody", "clients/nobody/generated"),
+            target("somebody", "clients/somebody/generated"),
+        ],
+        tree.path(),
+    )
+    .expect("both packages");
+
+    let pushed = mirrors(&packages).expect("a mirror each");
+
+    assert_eq!(
+        pushed,
+        vec![
+            Mirror {
+                directory: "clients/nobody".to_string(),
+                repository: "hook0/hook0-nobody".to_string(),
+            },
+            Mirror {
+                directory: "clients/somebody".to_string(),
+                repository: "hook0/hook0-somebody".to_string(),
+            },
+        ]
+    );
+    assert_eq!(pushed[0].url_path(), "github.com/hook0/hook0-nobody");
+}
+
+/// A package with a flow of its own goes out under a tag this release never pushes, so a `vX.Y.Z`
+/// cut from the SDK tag would put a version on its mirror that nothing ever released.
+#[test]
+fn a_package_on_its_own_release_is_not_mirrored_by_the_sdk_release() {
+    let (tree, targets) = two_trains();
+    let packages = discover(&targets, tree.path()).expect("both packages");
+
+    let pushed = mirrors(&packages).expect("the one mirror");
+
+    assert_eq!(pushed.len(), 1);
+    assert_eq!(pushed[0].directory, "clients/rider");
+}
+
+/// A tree holding one Go module, whose path is whatever the test says it is.
+fn one_module(module: &str) -> Vec<Package> {
+    let tree = Tree::new();
+    tree.directory("clients/goey/generated").write(
+        "clients/goey/go.mod",
+        &format!("module {module}\n\ngo 1.24\n"),
+    );
+    discover(&[target("goey", "clients/goey/generated")], tree.path()).expect("the module")
+}
+
+#[test]
+fn a_module_named_after_the_mirror_serving_it_is_what_a_user_can_install() {
+    check_mirrors(&one_module("github.com/hook0/hook0-goey")).expect("a path that resolves");
+}
+
+/// The failure this catches is the one a user reports rather than a pipeline: a module path and the
+/// repository serving it are one fact in two places, and `go get` of a path nothing answers at
+/// resolves nothing while every job stays green.
+#[test]
+fn a_module_path_that_is_not_the_url_of_its_mirror_is_refused() {
+    let error = check_mirrors(&one_module("github.com/hook0/hook0/clients/goey"))
+        .expect_err("a path pointing somewhere the mirror is not");
+    let said = error.to_string();
+
+    assert!(
+        said.contains("github.com/hook0/hook0/clients/goey"),
+        "{said}"
+    );
+    assert!(said.contains("github.com/hook0/hook0-goey"), "{said}");
+    assert!(said.contains("clients/goey"), "{said}");
+    assert!(
+        matches!(error, Error::ModulePathNotTheMirror { .. }),
+        "{error:?}"
+    );
+}
+
+#[test]
+fn more_mirrors_than_one_run_pushes_are_refused_rather_than_pushed() {
+    let tree = Tree::new();
+    let names: Vec<String> = (0..=release_packages::MAX_MIRRORS)
+        .map(|n| format!("c{n}"))
+        .collect();
+    for name in &names {
+        tree.directory(&format!("clients/{name}/generated")).write(
+            &format!("clients/{name}/package.json"),
+            &format!(r#"{{ "name": "{name}", "version": "1.0.0" }}"#),
+        );
+    }
+    let targets: Vec<TargetRoot> = names
+        .iter()
+        .map(|name| target(name, &format!("clients/{name}/generated")))
+        .collect();
+    let packages = discover(&targets, tree.path()).expect("every package");
+
+    let error = mirrors(&packages).expect_err("a run past the ceiling");
+
+    assert!(matches!(error, Error::TooManyMirrors { .. }), "{error:?}");
+}
+
 // --- One case per manifest shape ----------------------------------------------------------------
 
 /// A tree holding one package of one shape, with the target landing two levels inside it.
@@ -535,10 +652,11 @@ fn a_pyproject_is_read_off_its_project_table() {
 fn a_go_module_is_named_by_its_url_and_versioned_by_nothing_in_the_tree() {
     let package = read_one(
         "go.mod",
-        "// A module in a subdirectory.\nmodule github.com/hook0/hook0/clients/go\n\ngo 1.24\n",
+        "// A module reached at the address it names.\nmodule github.com/hook0/hook0-sole\n\n\
+         go 1.24\n",
     );
 
-    assert_eq!(package.name, "github.com/hook0/hook0/clients/go");
+    assert_eq!(package.name, "github.com/hook0/hook0-sole");
     assert_eq!(package.version, Version::FromTag);
     assert_eq!(package.registry.id(), "go-proxy");
 }

@@ -80,6 +80,17 @@ sdk.packages:
       else
         cargo run --locked -p release-packages -- list
       fi
+    # Which clients are mirrored, and to which repository, carried forward as a
+    # file rather than reproduced in a shell: the mirror push and the three jobs
+    # that publish out of a mirror all read this, so a client added to the
+    # generator's registry reaches its own repository without a line of YAML
+    # being written.
+    - mkdir -p artifacts
+    - cargo run --locked -p release-packages -- mirrors | tee artifacts/mirrors.txt
+  artifacts:
+    paths:
+      - artifacts/mirrors.txt
+    expire_in: 1 week
 
 # --- Publish to npm ----------------------------------------------------------
 
@@ -202,6 +213,248 @@ sdk-release.nuget:
     - dotnet pack src --configuration Release --output artifacts
     - dotnet nuget push "artifacts/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY"
     - echo "=== Published to NuGet ==="
+
+# --- Give every client a repository of its own -------------------------------
+#
+# GitLab holds the monorepo and runs this pipeline; each client also exists on
+# GitHub as a repository whose root is that client. Three ecosystems can be
+# reached no other way — Packagist reads a repository and its tags, `zig fetch`
+# needs a URL serving an archive whose root is the package, and a Go module is
+# fetched at the address its path names — and the rest get a browsable source
+# mirror out of the same push.
+#
+# A mirror is a derived artefact. Nothing is ever merged back from one, and
+# nothing here writes to GitLab.
+
+sdk-release.mirrors:
+  extends: .sdk-publish
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/alpine:$ALPINE_VERSION
+  # No `dependencies:` here, deliberately: setting it — even to the empty list the
+  # other publish jobs use — is what decides which artefacts are downloaded, and
+  # an empty one would leave this job without the list it iterates.
+  needs:
+    - job: sdk.packages
+      artifacts: true
+  # Eleven splits over the whole history, then twenty-two pushes. Measured at
+  # seconds per split on a warm checkout; this is the point past which the job is
+  # stuck rather than slow, and it is above the twenty minutes a publish job gets
+  # because a publish job splits nothing.
+  timeout: 30m
+  variables:
+    # `git subtree split` reads every commit that ever touched a prefix, so the
+    # shallow clone a tag pipeline defaults to would answer with a fraction of
+    # the history and mirror a truncated repository.
+    GIT_DEPTH: "0"
+    # What one push to one mirror is given before the release fails, rather than
+    # a mirror that accepts the connection and stops answering holding a runner
+    # until the job's own timeout.
+    MIRROR_PUSH_TIMEOUT_SECONDS: "300"
+    # The branch each mirror's default branch is overwritten with, and the local
+    # ref each split is written to on the way there.
+    MIRROR_BRANCH: main
+    MIRROR_SPLIT_REF: refs/heads/mirror-split
+  before_script:
+    - apk add --no-cache git git-subtree
+    - git config user.email "ci@hook0.com"
+    - git config user.name "Hook0 CI"
+  script:
+    - |
+      set -eu
+
+      version="${CI_COMMIT_TAG#sdk-v}"
+
+      # An empty list would mirror nothing and say nothing about having done so,
+      # which is the silent omission the inventory exists to remove.
+      test -s artifacts/mirrors.txt
+
+      pushed=0
+      while read -r directory repository; do
+        echo "=== $directory -> $repository ==="
+        test -n "$repository"
+
+        # A commit whose tree is the client directory, so the mirror's root is
+        # the package. Written from scratch each run: the ref is deleted first,
+        # so a previous release's split can never be what gets pushed.
+        git update-ref -d "$MIRROR_SPLIT_REF"
+        git subtree split --prefix="$directory" --branch "${MIRROR_SPLIT_REF#refs/heads/}"
+        head="$(git rev-parse "$MIRROR_SPLIT_REF")"
+
+        remote="https://oauth2:${GITHUB_MIRROR_TOKEN}@github.com/${repository}.git"
+
+        # Forced, and deliberately so. What is overwritten is a branch this job
+        # synthesised on the previous release, in a repository nobody commits to
+        # by hand; the commits discarded are re-derivable from the tag this
+        # pipeline runs on. That is not the force-push the rule is about, which
+        # is one that destroys work only the remote had. GitLab, which holds the
+        # work, is never pushed to from here at all.
+        timeout "$MIRROR_PUSH_TIMEOUT_SECONDS" git push --force "$remote" "$head:refs/heads/$MIRROR_BRANCH"
+
+        # The tag is not forced. Re-running this job pushes the same tag at the
+        # same commit, which succeeds; a release trying to move a version a user
+        # has already fetched pushes it at a different commit, which fails here
+        # rather than silently redefining what was published. Pushed as a commit
+        # to a remote ref rather than through a local tag, so this never writes
+        # into a tag namespace the monorepo already uses for its own releases.
+        timeout "$MIRROR_PUSH_TIMEOUT_SECONDS" git push "$remote" "$head:refs/tags/v$version"
+
+        pushed=$((pushed + 1))
+      done < artifacts/mirrors.txt
+
+      echo "=== $pushed clients mirrored at v$version ==="
+
+# --- Publish to the Go module proxy ------------------------------------------
+
+sdk-release.go:
+  extends: .sdk-publish
+  dependencies: []
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/golang:$GO_VERSION
+  needs:
+    - job: sdk.packages
+      artifacts: false
+    - job: sdk-release.mirrors
+      artifacts: false
+    - job: clients.go.check
+      artifacts: false
+  variables:
+    PUBLISHES: clients/go
+    # How long the proxy is given to notice the tag the mirror push just made,
+    # as a count of tries and the wait between them rather than an open loop.
+    GO_PROXY_ATTEMPTS: "12"
+    GO_PROXY_BACKOFF_SECONDS: "15"
+  script:
+    - |
+      set -eu
+      cd "$PUBLISHES"
+
+      # The module path is read off the module rather than written here, so this
+      # job cannot publish something other than what `go.mod` declares.
+      module="$(go list -m)"
+      version="v${CI_COMMIT_TAG#sdk-v}"
+
+      # This is the whole of publishing a Go module: there is nothing to upload,
+      # and a version exists once the proxy has fetched the tag and cached it.
+      # Asking for the version is what makes it do that, and getting an answer is
+      # what proves `go get "$module@$version"` now resolves.
+      attempt=1
+      until curl --fail --silent --show-error --location \
+        --connect-timeout 30 --max-time 120 \
+        "https://proxy.golang.org/${module}/@v/${version}.info"; do
+        echo "the proxy does not have $module@$version yet (attempt $attempt)"
+        test "$attempt" -lt "$GO_PROXY_ATTEMPTS"
+        attempt=$((attempt + 1))
+        sleep "$GO_PROXY_BACKOFF_SECONDS"
+      done
+
+      echo "=== Published $module@$version to the Go module proxy ==="
+
+# --- Publish to Packagist ----------------------------------------------------
+
+sdk-release.php:
+  extends: .sdk-publish
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/alpine:$ALPINE_VERSION
+  needs:
+    - job: sdk.packages
+      artifacts: true
+    - job: sdk-release.mirrors
+      artifacts: false
+    - job: clients.php.check
+      artifacts: false
+  variables:
+    PUBLISHES: clients/php
+    # How long Packagist is given to crawl the tag the mirror push just made.
+    PACKAGIST_ATTEMPTS: "12"
+    PACKAGIST_BACKOFF_SECONDS: "15"
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - |
+      set -eu
+
+      # Which repository serves this package is read out of the inventory, so the
+      # URL Packagist is told to crawl is the one the mirror push wrote to.
+      repository="$(awk -v want="$PUBLISHES" '$1 == want { print $2 }' artifacts/mirrors.txt)"
+      test -n "$repository"
+
+      cd "$PUBLISHES"
+      package="$(jq -r .name composer.json)"
+      version="v${CI_COMMIT_TAG#sdk-v}"
+
+      # Packagist accepts no uploads: a package is a repository, and publishing a
+      # version is telling Packagist to read the tags of one it already knows.
+      # Registering the repository is a one-off a person does; this keeps it
+      # current on every release rather than waiting for the next crawl.
+      curl --fail --silent --show-error --location \
+        --connect-timeout 30 --max-time 120 \
+        --header 'Content-Type: application/json' \
+        --data "{\"repository\":{\"url\":\"https://github.com/${repository}\"}}" \
+        "https://packagist.org/api/update-package?username=${PACKAGIST_USERNAME}&apiToken=${PACKAGIST_API_TOKEN}"
+
+      # And then it has to actually be there. Packagist crawls asynchronously, so
+      # this waits — for a bounded number of tries, after which the release has
+      # not published and says so.
+      attempt=1
+      until curl --fail --silent --show-error --location \
+        --connect-timeout 30 --max-time 120 \
+        "https://repo.packagist.org/p2/${package}.json" | jq --exit-status --arg v "$version" \
+        '.packages[] | map(.version) | index($v)' > /dev/null; do
+        echo "Packagist does not list $package $version yet (attempt $attempt)"
+        test "$attempt" -lt "$PACKAGIST_ATTEMPTS"
+        attempt=$((attempt + 1))
+        sleep "$PACKAGIST_BACKOFF_SECONDS"
+      done
+
+      echo "=== Published $package $version to Packagist ==="
+
+# --- Publish the archive a `zig fetch` resolves ------------------------------
+
+sdk-release.zig:
+  extends: .sdk-publish
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/alpine:$ALPINE_VERSION
+  needs:
+    - job: sdk.packages
+      artifacts: true
+    - job: sdk-release.mirrors
+      artifacts: false
+    - job: clients.zig.check
+      artifacts: false
+  variables:
+    PUBLISHES: clients/zig
+    ZIG_ARCHIVE_ATTEMPTS: "12"
+    ZIG_ARCHIVE_BACKOFF_SECONDS: "15"
+  before_script:
+    - apk add --no-cache curl tar
+  script:
+    - |
+      set -eu
+
+      repository="$(awk -v want="$PUBLISHES" '$1 == want { print $2 }' artifacts/mirrors.txt)"
+      test -n "$repository"
+
+      version="${CI_COMMIT_TAG#sdk-v}"
+
+      # Zig has no registry. What is published is a URL serving an archive whose
+      # root is the package, which is what the mirror's tag archive is and what
+      # the documentation now tells a consumer to pin.
+      url="https://github.com/${repository}/archive/refs/tags/v${version}.tar.gz"
+
+      attempt=1
+      until curl --fail --silent --show-error --location \
+        --connect-timeout 30 --max-time 120 \
+        --output package.tar.gz "$url"; do
+        echo "$url does not answer yet (attempt $attempt)"
+        test "$attempt" -lt "$ZIG_ARCHIVE_ATTEMPTS"
+        attempt=$((attempt + 1))
+        sleep "$ZIG_ARCHIVE_BACKOFF_SECONDS"
+      done
+
+      # A URL that answers is not yet a package. This is what `zig fetch` would
+      # unpack, held to carrying the manifest at its root and to that manifest
+      # declaring the version being released.
+      mkdir -p fetched
+      tar --extract --gzip --file package.tar.gz --strip-components 1 --directory fetched
+      grep -q "\.version = \"$version\"" fetched/build.zig.zon
+
+      echo "=== Published $url, whose root carries build.zig.zon at $version ==="
 
 # =============================================================================
 # Manual SDK release triggers (master branch only)

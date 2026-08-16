@@ -1,7 +1,7 @@
 # Hook0 Go Client
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../../LICENSE.txt)
-[![Go Reference](https://pkg.go.dev/badge/github.com/hook0/hook0/clients/go.svg)](https://pkg.go.dev/github.com/hook0/hook0/clients/go)
+[![Go Reference](https://pkg.go.dev/badge/github.com/hook0/hook0-go.svg)](https://pkg.go.dev/github.com/hook0/hook0-go)
 
 This is the Go SDK for [Hook0](https://www.hook0.com), an open source Webhooks-as-a-Service platform designed for SaaS applications.
 
@@ -21,13 +21,13 @@ The two halves never import each other either. The generated package declares th
 ## Getting Started
 
 ```
-go get github.com/hook0/hook0/clients/go
+go get github.com/hook0/hook0-go
 ```
 
-The package is `hook0`, and the module path ends in `go` because that is where it sits in the repository; import it under its own name if your tooling does not fill that in:
+The package is `hook0` while the module path ends in `go`, so import it under its own name if your tooling does not fill that in:
 
 ```go
-import hook0 "github.com/hook0/hook0/clients/go"
+import hook0 "github.com/hook0/hook0-go"
 ```
 
 Go 1.24 or later is required.
@@ -93,7 +93,7 @@ The clock window is bilateral: a webhook signed too far in the future is refused
 Every operation Hook0 declares is a method of a generated group, built on the transport the client already carries:
 
 ```go
-import "github.com/hook0/hook0/clients/go/generated"
+import "github.com/hook0/hook0-go/generated"
 
 applications := generated.NewApplicationsAPI(client.Transport())
 

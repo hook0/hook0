@@ -16,6 +16,9 @@ The manual release jobs (`release:patch`, `release:minor`, `release:major`) and 
 | `DOCKERHUB_TOKEN` | Docker Hub access token | Container release |
 | `GITHUB_USERNAME` | GitHub username for GHCR | Container release |
 | `GITHUB_TOKEN` | GitHub PAT with `packages:write` scope | Container + GitHub release |
+| `GITHUB_MIRROR_TOKEN` | GitHub PAT with `contents:write` on every `hook0/hook0-<language>` mirror. Held apart from `GITHUB_TOKEN` because it may write to repositories rather than to a package registry, and because the mirrors are the only thing it may write to. | SDK release (mirrors) |
+| `PACKAGIST_USERNAME` | Packagist account name, passed as a query parameter to the update API. | SDK release (Packagist) |
+| `PACKAGIST_API_TOKEN` | Packagist API token of that account. It only asks Packagist to re-read a repository it already knows, so registering `hook0/hook0-php` once by hand is what has to happen before the first release. | SDK release (Packagist) |
 
 ### Setup in GitLab
 
@@ -139,13 +142,44 @@ every flow under `ci/`, and matches the declarations against the inventory in
 both directions. A job naming a package the inventory has never heard of fails
 the build, and so does a package no job names.
 
-Not every package can reach a registry today, and two of them have no registry to
-reach at all: a Go module and a Zig package are fetched rather than uploaded.
-Every package in that position is recorded in `ci/release-no-publish-job.toml`,
-one entry each, stating the registry and the published name the inventory reports
-for it and the reason it has no job. The tool holds every entry to the package it
+Not every package can reach a registry today. Every package in that position is
+recorded in `ci/release-no-publish-job.toml`, one entry each, stating the registry
+and the published name the inventory reports for it and the reason it has no job. The tool holds every entry to the package it
 names, so a reason cannot be written about a package that does not exist, cannot
 go on describing one that has been renamed or has moved ecosystems, and cannot
 outlive the job that closes the gap. That file is where to find out what is
 missing and what supplying it would take; there is deliberately no second copy of
 those reasons here to fall out of step with them.
+
+### The mirrors, and the three ecosystems that need one
+
+GitLab holds the monorepo and runs this pipeline. Each SDK client also exists on
+GitHub as a repository of its own — `github.com/hook0/hook0-<language>` — whose
+root is that client. `sdk-release.mirrors` builds each one with `git subtree
+split`, force-pushes the resulting commit onto the mirror's default branch and
+pushes a plain `vX.Y.Z` tag beside it. A mirror is a derived artefact: nothing is
+merged back from one, and nothing in this job writes to GitLab.
+
+Which clients are mirrored is not written in the YAML either. `cargo run -p
+release-packages -- mirrors` prints one line per client — the directory to split
+and the repository to push it to — and the job loops over that, so a client added
+to the generator's registry reaches a repository of its own without this file or
+`ci/release-sdk.gitlab-ci.yml` changing. The repository name is derived from the
+directory, and the run refuses past a ceiling of mirrors rather than discovering
+one in a runner.
+
+Three ecosystems can be published no other way, and their publish jobs are what
+the mirrors are for:
+
+- **Go** — a module is named by the address it is fetched at, so
+  `clients/go/go.mod` declares `github.com/hook0/hook0-go` and the mirror is what
+  answers there. `release-packages` refuses a release where the module path and
+  the mirror have come apart, since `go get` of a path nothing serves resolves
+  nothing while every job stays green. Publishing is asking `proxy.golang.org`
+  for the version, which is what makes it fetch and cache the tag.
+- **PHP** — Packagist accepts no uploads and reads no subdirectories. The mirror
+  is the repository it is registered against; the release tells it to re-read the
+  tags and then waits, bounded, for the version to appear.
+- **Zig** — there is no registry at all. What is published is the mirror's tag
+  archive, whose root is the package; the release fetches it back and holds it to
+  carrying `build.zig.zon` at the version being released.

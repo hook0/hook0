@@ -1,9 +1,11 @@
 // What this package is, and what depending on it costs.
 //
 // Zig has no central registry, so a consumer names this package by URL and by hash rather than by
-// version: `zig fetch --save git+https://gitlab.com/hook0/hook0#sdk-v1.1.0` writes both into their
-// own `build.zig.zon`, and `b.dependency("hook0", .{}).module("hook0")` is what they import. The tag
-// is what a release moves; the hash is what makes a build reproducible whatever the tag points at.
+// version: `zig fetch --save=hook0 https://github.com/hook0/hook0-zig/archive/refs/tags/v1.1.0.tar.gz`
+// writes both into their own `build.zig.zon`, and `b.dependency("hook0", .{}).module("hook0")` is
+// what they import. That URL is the mirror this directory is pushed to, whose root is the package —
+// an archive of the monorepo would not be one. The tag is what a release moves; the hash is what
+// makes a build reproducible whatever the tag points at.
 //
 // `.dependencies` is empty and is meant to stay that way: this SDK reaches the network, verifies
 // signatures and reads what the API answers with the standard library alone.

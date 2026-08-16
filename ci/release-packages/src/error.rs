@@ -36,6 +36,24 @@ pub enum Error {
     TooManyEntries { path: PathBuf, ceiling: usize },
 
     #[error(
+        "the release would push {count} mirrors, past the ceiling of {ceiling} one run pushes; \
+         raise the ceiling deliberately rather than by accident"
+    )]
+    TooManyMirrors { count: usize, ceiling: usize },
+
+    #[error(
+        "`{directory}` is fetched from {registry}, where a package is named by the address it is \
+         reached at; it declares `{declared}` and its mirror answers at `{expected}`, so what a \
+         user would install is not what this release publishes"
+    )]
+    ModulePathNotTheMirror {
+        directory: String,
+        registry: &'static str,
+        declared: String,
+        expected: String,
+    },
+
+    #[error(
         "target `{target}` lands at `{root}`, which does not sit under `{clients}/<package>/`; \
          every package occupies one directory directly under `{clients}`, and the package a target \
          belongs to is read off that shape"

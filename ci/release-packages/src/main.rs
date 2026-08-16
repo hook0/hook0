@@ -2,8 +2,10 @@
 //!
 //! `list` prints the inventory, which is what a release pipeline does before it publishes anything
 //! so that what went out is legible afterwards rather than inferred. `current`, `check-version` and
-//! `set-version` are what the bump script and the tag pipeline ask instead of naming files, and
-//! `directories` is what scopes a changelog to the package it belongs to.
+//! `set-version` are what the bump script and the tag pipeline ask instead of naming files,
+//! `directories` is what scopes a changelog to the package it belongs to, and `mirrors` is what the
+//! mirror push iterates so that a client added to the generator's registry is pushed to a
+//! repository of its own without a line of YAML being written.
 //!
 //! Everything but `list` is about the SDK release — the packages that go out together under one
 //! tag. A package with a release flow of its own is listed and then left alone, since bumping it
@@ -13,14 +15,14 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use release_packages::{
-    Change, TargetRoot, check_publishers, check_version, current_version, discover, render,
-    sdk_train, set_version,
+    Change, TargetRoot, check_mirrors, check_publishers, check_version, current_version, discover,
+    mirrors, render, sdk_train, set_version,
 };
 
 /// Where the repository is, which is the working directory unless something says otherwise.
 const ROOT_VARIABLE: &str = "RELEASE_PACKAGES_ROOT";
 
-const USAGE: &str = "usage: release-packages [list | current | directories | \
+const USAGE: &str = "usage: release-packages [list | current | directories | mirrors | \
                      check-version <X.Y.Z> | set-version <X.Y.Z>]";
 
 fn main() -> ExitCode {
@@ -33,6 +35,7 @@ fn main() -> ExitCode {
         [] | ["list"] => list(&tree),
         ["current"] => current(&tree),
         ["directories"] => directories(&tree),
+        ["mirrors"] => mirror_list(&tree),
         ["check-version", version] => check(&tree, version),
         ["set-version", version] => write(&tree, version),
         _ => Err(format!(
@@ -72,6 +75,16 @@ fn directories(tree: &Path) -> Result<String, String> {
         .collect())
 }
 
+/// Every mirror the release pushes, one per line: the directory to split, then the repository to
+/// push it to. Two fields and no header, because a shell loop is what reads this.
+fn mirror_list(tree: &Path) -> Result<String, String> {
+    Ok(mirrors(&packages(tree)?)
+        .map_err(|e| e.to_string())?
+        .iter()
+        .map(|mirror| format!("{} {}\n", mirror.directory, mirror.repository))
+        .collect())
+}
+
 /// Refuse unless the tree says what the tag says.
 fn check(tree: &Path, version: &str) -> Result<String, String> {
     let version = parse(version)?;
@@ -104,11 +117,13 @@ fn write(tree: &Path, version: &str) -> Result<String, String> {
     Ok(report)
 }
 
-/// The inventory, and the two things that have to be true of it before any command reads it: every
-/// target resolves to a package, and every package reaches a registry or says why it does not.
+/// The inventory, and the three things that have to be true of it before any command reads it:
+/// every target resolves to a package, every package reaches a registry or says why it does not,
+/// and every package fetched by URL is named after the mirror serving it.
 fn packages(tree: &Path) -> Result<Vec<release_packages::Package>, String> {
     let found = discover(&registry(), tree).map_err(|e| e.to_string())?;
     check_publishers(&found, tree).map_err(|e| e.to_string())?;
+    check_mirrors(&found).map_err(|e| e.to_string())?;
     Ok(found)
 }
 

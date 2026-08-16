@@ -20,14 +20,16 @@ Every client does four things: it sends events, it declares the event types your
 | Python | [Python SDK](python.md) | `hook0-client` | PyPI | blocking and `asyncio` |
 | Ruby | [Ruby SDK](ruby.md) | `hook0-client` | RubyGems | blocking |
 | C# / .NET | [C# SDK](csharp.md) | `Hook0.Client` | NuGet | blocking and `Task` |
-| Go | [Go SDK](go.md) | `github.com/hook0/hook0/clients/go` | source | blocking |
-| PHP | [PHP SDK](php.md) | `hook0/client` | source | blocking |
+| Go | [Go SDK](go.md) | `github.com/hook0/hook0-go` | Go module proxy | blocking |
+| PHP | [PHP SDK](php.md) | `hook0/client` | Packagist | blocking |
 | Java | [Java SDK](java.md) | `com.hook0:hook0-client` | source | blocking and `CompletableFuture` |
 | Kotlin | [Kotlin SDK](kotlin.md) | `com.hook0:hook0-client-kotlin` | source | blocking and suspending |
 | Lua | [Lua SDK](lua.md) | `hook0-client` | source | blocking |
-| Zig | [Zig SDK](zig.md) | `hook0_client` | source | blocking |
+| Zig | [Zig SDK](zig.md) | `hook0_client` | tagged archive | blocking |
 
-Six of the clients are not on their language's registry yet. Nothing is wrong with the code; each one is waiting on something a pipeline cannot supply on its own, such as a namespace to claim or a split repository to decide on. Each page says what stands in the way and how to depend on the client today. The rest install with one command.
+Three of the clients — Java, Kotlin and Lua — are not on their language's registry yet. Nothing is wrong with the code; each one is waiting on something a pipeline cannot supply on its own, such as a namespace to claim. Each page says what stands in the way and how to depend on the client today. The rest install with one command.
+
+Go, PHP and Zig install from a repository rather than from a registry, because that is what those three ecosystems fetch from. Each client is pushed to a read-only mirror of its own on GitHub — `github.com/hook0/hook0-<language>` — tagged `vX.Y.Z` on every SDK release. The mirrors are derived from this monorepo, which stays the one place anything is changed.
 
 ## Set up environment variables
 

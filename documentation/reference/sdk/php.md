@@ -1,6 +1,6 @@
 ---
 title: "PHP webhook SDK — hook0/client"
-description: "Send Hook0 events and verify webhook signatures from PHP 8.2 or later. Retries, idempotent event IDs and payload bounds built in. Not yet on Packagist."
+description: "Send Hook0 events and verify webhook signatures from PHP 8.2 or later. Retries, idempotent event IDs and payload bounds built in. Install with Composer."
 keywords: [PHP webhook SDK, Hook0 PHP client, verify webhook signature PHP, Laravel webhook endpoint, Symfony webhook, send webhook event PHP]
 sdkTarget: php
 ---
@@ -13,29 +13,13 @@ The package requires PHP 8.2 or later and the `curl`, `hash` and `json` extensio
 
 ## Installation
 
-:::warning Not published to Packagist yet
-`composer require hook0/client` does not resolve. Packagist does not accept uploads and does not read subdirectories: a package is a repository, and its versions are that repository's tags. The PHP client is a directory inside the Hook0 monorepo, so it cannot be registered as it stands. Publishing it means maintaining a split repository, which has not been decided.
-
-Until then, depend on a local checkout with a `path` repository.
-:::
-
-Clone Hook0, then in your project's `composer.json`:
-
-```json
-{
-  "repositories": [
-    {
-      "type": "path",
-      "url": "../hook0/clients/php"
-    }
-  ],
-  "require": {
-    "hook0/client": "*"
-  }
-}
+```bash
+composer require hook0/client
 ```
 
-Then `composer update hook0/client`. The classes autoload under the `Hook0\` namespace.
+The classes autoload under the `Hook0\` namespace.
+
+Packagist reads a repository and its tags rather than an upload, so what it is registered against is `github.com/hook0/hook0-php`, a read-only mirror of `clients/php` that the release pipeline pushes to and tags. Every `sdk-vX.Y.Z` release of the Hook0 SDKs puts the matching `vX.Y.Z` on that mirror and tells Packagist to read it. Issues and merge requests belong on [the monorepo](https://gitlab.com/hook0/hook0); nothing merged into the mirror survives the next release.
 
 ## Send an event
 

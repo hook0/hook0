@@ -46,6 +46,20 @@ pub const MAX_DIR_ENTRIES: usize = 4096;
 /// What the tag of a release covering every SDK at once starts with.
 pub const SDK_TAG_PREFIX: &str = "sdk-v";
 
+/// The account on GitHub every mirror sits under.
+pub const MIRROR_OWNER: &str = "hook0";
+
+/// What a mirror repository is called before the language: `clients/go` is mirrored to
+/// `hook0/hook0-go`.
+const MIRROR_PREFIX: &str = "hook0-";
+
+/// The host serving the mirrors, which is also what a package fetched by URL is named after.
+pub const MIRROR_HOST: &str = "github.com";
+
+/// The most mirrors pushed in one run. Eleven go out today; a release past this is one where
+/// somebody should be raising this deliberately rather than discovering it in a runner.
+pub const MAX_MIRRORS: usize = 32;
+
 /// Where a package's own release flow would be, if it has one — `ci/release-mcp.gitlab-ci.yml` for
 /// the package sitting in `clients/mcp`.
 const FLOW: (&str, &str) = ("ci/release-", ".gitlab-ci.yml");
@@ -140,6 +154,81 @@ pub fn sdk_train(packages: &[Package]) -> Vec<Package> {
         .filter(|package| package.on_sdk_train())
         .cloned()
         .collect()
+}
+
+/// The repository one client is pushed to, so that the package is a repository rather than a
+/// directory inside one.
+///
+/// Three ecosystems cannot be reached any other way: Packagist reads a repository and its tags, Zig
+/// resolves a URL serving an archive whose root is the package, and a Go module is fetched at the
+/// address its path names. All three are directories in this monorepo, and a mirror is what makes
+/// each of them the thing its ecosystem expects to find.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Mirror {
+    /// The package directory whose contents the mirror holds at its root.
+    pub directory: String,
+    /// `owner/name` of the repository on [`MIRROR_HOST`] it is pushed to.
+    pub repository: String,
+}
+
+impl Mirror {
+    /// What a consumer names this mirror by, which is the module path a Go package carries.
+    pub fn url_path(&self) -> String {
+        format!("{MIRROR_HOST}/{}", self.repository)
+    }
+}
+
+/// Where a directory under [`CLIENTS`] is mirrored, derived rather than looked up: the name is the
+/// language, so a language added to the generator's registry has a mirror the day it lands.
+fn mirror_of(directory: &str) -> Mirror {
+    let language = directory.rsplit('/').next().unwrap_or(directory);
+    Mirror {
+        directory: directory.to_string(),
+        repository: format!("{MIRROR_OWNER}/{MIRROR_PREFIX}{language}"),
+    }
+}
+
+/// Every mirror one SDK release pushes.
+///
+/// A package with a release flow of its own is left out for the reason the bump leaves it out: it
+/// goes out under a tag this release never pushes, so a `vX.Y.Z` cut from this tag would name a
+/// version it never claimed.
+pub fn mirrors(packages: &[Package]) -> Result<Vec<Mirror>, Error> {
+    let pushed: Vec<Mirror> = packages
+        .iter()
+        .filter(|package| package.on_sdk_train())
+        .map(|package| mirror_of(&package.directory))
+        .collect();
+    match pushed.len() > MAX_MIRRORS {
+        true => Err(Error::TooManyMirrors {
+            count: pushed.len(),
+            ceiling: MAX_MIRRORS,
+        }),
+        false => Ok(pushed),
+    }
+}
+
+/// Refuse a package fetched by URL whose name is not the URL its mirror answers at.
+///
+/// A Go module is named by the address it is reached at, so its path and its mirror are one fact
+/// written in two places. Left to drift, `go get` resolves nothing and nothing goes red until a user
+/// reports it — which is the same silent failure the rest of this tool exists to remove.
+pub fn check_mirrors(packages: &[Package]) -> Result<(), Error> {
+    for package in packages.iter().filter(|package| package.on_sdk_train()) {
+        if package.registry != Registry::GoProxy {
+            continue;
+        }
+        let expected = mirror_of(&package.directory).url_path();
+        if package.name != expected {
+            return Err(Error::ModulePathNotTheMirror {
+                directory: package.directory.clone(),
+                registry: package.registry.id(),
+                declared: package.name.clone(),
+                expected,
+            });
+        }
+    }
+    Ok(())
 }
 
 /// The one version every SDK is at, or a refusal naming the packages that disagree.

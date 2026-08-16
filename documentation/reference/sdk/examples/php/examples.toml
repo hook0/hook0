@@ -1,11 +1,12 @@
 # How a PHP example of the SDK reference is proven.
 #
-# Every snippet becomes a file under `generated/`, in a project that reaches the real client the
-# way the page's own Installation section tells a reader to: a Composer `path` repository pointing
-# at `clients/php`, so the same `use Hook0\Client;` a reader would write resolves to the same class
-# this checker analyses. PHPStan then reads the whole project's declared types without producing an
-# artefact -- a renamed method, a changed argument or a dropped constructor parameter all stop this
-# job at the page that shows the old spelling, wherever the client's types reach.
+# Every snippet becomes a file under `generated/`, in a project that reaches the client through a
+# Composer `path` repository pointing at `clients/php` rather than through the version Packagist
+# serves: what the pages must agree with is the client in this commit, not the one that happened to
+# be published last. The same `use Hook0\Client;` a reader would write resolves to the same class
+# this checker analyses either way. PHPStan then reads the whole project's declared types without
+# producing an artefact -- a renamed method, a changed argument or a dropped constructor parameter
+# all stop this job at the page that shows the old spelling, wherever the client's types reach.
 #
 # PHP has no compiler to hand a snippet to, and `php -l` only parses syntax: it has never loaded a
 # single class, so it would wave through a call to a method the client dropped a release ago.
@@ -20,7 +21,7 @@
 # reaches, Hook0's and Laravel's alike, is the real, installed class, and a change to the Hook0
 # client under any example still fails this job.
 proof = "type-checked"
-proves = "assembled against clients/php through the Composer path repository the page's own Installation section teaches, and resolved by PHPStan; a renamed method, a changed argument or a dropped constructor parameter fails wherever the client's declared types reach, but nothing is executed, so a value merely wrong at runtime is not caught"
+proves = "assembled against clients/php through a Composer path repository, and resolved by PHPStan; a renamed method, a changed argument or a dropped constructor parameter fails wherever the client's declared types reach, but nothing is executed, so a value merely wrong at runtime is not caught"
 
 path = "generated/{{name}}.php"
 timeout_seconds = 300

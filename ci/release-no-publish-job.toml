@@ -11,37 +11,6 @@
 # gap, so each reason says what is missing and what closing it would take.
 
 [[package]]
-directory = "clients/go"
-published_as = "github.com/hook0/hook0/clients/go"
-registry = "go-proxy"
-reason = """
-Go has no registry to upload to: a module is published by pushing a tag the proxy can see, and a
-module in a subdirectory needs a tag naming that subdirectory — `clients/go/vX.Y.Z` — which is not
-the `sdk-vX.Y.Z` this release pushes. The module path also points at GitHub, which is a mirror of
-this repository rather than the repository. So `go get github.com/hook0/hook0/clients/go@v1.1.0`
-resolves nothing today, and only `@latest` works, answering a pseudo-version built from the mirror's
-default branch (`v0.0.0-<date>-<sha>`).
-
-There are two ways out and both are decisions rather than tasks. Either the tag pipeline pushes
-`clients/go/vX.Y.Z` to the GitHub mirror once the mirror has the commit, which is a few lines and
-puts the release on the mirror's lag — that lag has broken release-note generation before, as the
-comment at the top of `ci/extract-release-notes.sh` records. Or the Go client moves to a repository
-of its own and the module path follows it.
-"""
-
-[[package]]
-directory = "clients/php"
-published_as = "hook0/client"
-registry = "Packagist"
-reason = """
-Packagist accepts no uploads and reads no subdirectories: a package is a repository, and its
-versions are that repository's tags. `clients/php` is a directory in a monorepo, so it cannot be
-submitted as it stands. Publishing it means maintaining a read-only split repository (`splitsh-lite`
-or `git subtree split`), pushing `vX.Y.Z` tags to it, and registering that repository once. The
-split is scriptable; deciding to have a second repository is not.
-"""
-
-[[package]]
 directory = "clients/java"
 published_as = "com.hook0:hook0-client"
 registry = "Maven-Central"
@@ -88,20 +57,3 @@ which would be the first thing `ci/release-packages` writes that is not a versio
 needs a luarocks.org account and the `LUAROCKS_API_KEY` that comes with it.
 """
 
-[[package]]
-directory = "clients/zig"
-published_as = "hook0_client"
-registry = "zig-fetch"
-reason = """
-There is nothing to upload to and no credential to upload with. Zig has no registry: `zig fetch`
-resolves a path, a tarball or a git ref and records the hash it got, so a version is never a thing a
-package announces — it is a thing a consumer pins.
-
-What is left is the subdirectory problem the Go and PHP clients have, in a milder form. This
-package's manifest sits in `clients/zig` rather than at the root of the repository, so a consumer
-naming the repository URL does not reach it and depends on a checkout instead, which is what
-`documentation/reference/sdk/zig.md` tells them to do. For a URL to resolve, something has to serve
-an archive whose root is this directory: a split repository as for PHP, or an asset the tag pipeline
-builds and attaches. Either would be worth doing and neither is a publish job in the sense the five
-jobs are — there is no registry at the far end of it.
-"""

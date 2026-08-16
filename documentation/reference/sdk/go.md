@@ -14,20 +14,16 @@ The module declares no requirements at all. Everything it does it does with the 
 ## Installation
 
 ```bash
-go get github.com/hook0/hook0/clients/go
+go get github.com/hook0/hook0-go@v1.1.0
 ```
 
 Go 1.24 or later is required. The package is named `hook0` while the module path ends in `go`, so import it under an alias:
 
 ```go example=import
-import hook0 "github.com/hook0/hook0/clients/go"
+import hook0 "github.com/hook0/hook0-go"
 ```
 
-:::warning No version tag resolves yet
-This module is not published under a version. A module in a subdirectory is released by a tag naming that subdirectory, `clients/go/vX.Y.Z`, which is not the `sdk-vX.Y.Z` tag the Hook0 SDKs are released under, and no such tag exists today.
-
-`go get github.com/hook0/hook0/clients/go@v1.1.0` therefore resolves nothing. Only `@latest` works, and it answers a pseudo-version built from the default branch of the GitHub mirror, of the form `v0.0.0-<date>-<sha>`. Pin that pseudo-version in your `go.mod` if you need a build to stay put.
-:::
+The module sits at the root of `github.com/hook0/hook0-go`, a read-only mirror of `clients/go` that the release pipeline pushes to and tags. Every `sdk-vX.Y.Z` release of the Hook0 SDKs puts the matching `vX.Y.Z` on that mirror, which is the version the Go module proxy answers. Issues and merge requests belong on [the monorepo](https://gitlab.com/hook0/hook0); nothing merged into the mirror survives the next release.
 
 ## Send an event
 
@@ -38,7 +34,7 @@ import (
 	"context"
 	"log"
 
-	hook0 "github.com/hook0/hook0/clients/go"
+	hook0 "github.com/hook0/hook0-go"
 )
 
 func main() {
@@ -132,7 +128,7 @@ import (
 	"net/http"
 	"time"
 
-	hook0 "github.com/hook0/hook0/clients/go"
+	hook0 "github.com/hook0/hook0-go"
 )
 
 func handleWebhook(w http.ResponseWriter, r *http.Request) {
@@ -202,8 +198,8 @@ import (
 	"context"
 	"errors"
 
-	hook0 "github.com/hook0/hook0/clients/go"
-	"github.com/hook0/hook0/clients/go/generated"
+	hook0 "github.com/hook0/hook0-go"
+	"github.com/hook0/hook0-go/generated"
 )
 
 func readApplication(ctx context.Context, applicationId string) (*generated.ApplicationInfo, error) {
@@ -240,7 +236,7 @@ if errors.As(err, &sent) {
 
 ## Links
 
-- **Package**: [pkg.go.dev](https://pkg.go.dev/github.com/hook0/hook0/clients/go)
+- **Package**: [pkg.go.dev](https://pkg.go.dev/github.com/hook0/hook0-go)
 - **Source**: [clients/go](https://gitlab.com/hook0/hook0/-/tree/master/clients/go)
 - **API reference**: [Hook0 API](../../openapi/intro)
 - **Other SDKs**: [SDKs & client libraries](index.md)

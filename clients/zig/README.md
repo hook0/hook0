@@ -21,10 +21,10 @@ This is the Zig SDK for [Hook0](https://www.hook0.com), an open source Webhooks-
 
 ## Install
 
-There is no central registry for Zig packages, so "publishing" is a tag and a URL: `zig fetch` resolves a tarball or a git ref and writes the hash it got into your `build.zig.zon`. Depending on this package means fetching the tag the SDKs are released under:
+There is no central registry for Zig packages, so "publishing" is a tag and a URL: `zig fetch` resolves a tarball or a git ref and writes the hash it got into your `build.zig.zon`. The URL is the tag archive of `github.com/hook0/hook0-zig`, the read-only mirror this directory is pushed to on every SDK release — a mirror rather than the monorepo because `zig fetch` needs an archive whose root is the package:
 
 ```sh
-zig fetch --save git+https://gitlab.com/hook0/hook0#sdk-v1.1.0
+zig fetch --save=hook0 https://github.com/hook0/hook0-zig/archive/refs/tags/v1.1.0.tar.gz
 ```
 
 That writes a `.hash` beside the URL, and every later build is held to it: the bytes you built against are the bytes anyone else building your project gets. Then, in your `build.zig`:

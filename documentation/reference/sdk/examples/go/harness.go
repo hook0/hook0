@@ -37,7 +37,7 @@ package {{name}}
 import (
 	"time"
 
-	hook0 "github.com/hook0/hook0/clients/go"
+	hook0 "github.com/hook0/hook0-go"
 )
 
 // The value the page shows, held so that every field of it is checked against the client.
@@ -52,7 +52,7 @@ package {{name}}
 import (
 	"time"
 
-	hook0 "github.com/hook0/hook0/clients/go"
+	hook0 "github.com/hook0/hook0-go"
 )
 
 var (
@@ -88,7 +88,7 @@ import (
 	"errors"
 	"log"
 
-	hook0 "github.com/hook0/hook0/clients/go"
+	hook0 "github.com/hook0/hook0-go"
 )
 
 // Both of these are reached by some of the snippets that drop in below and by none of the others,
@@ -112,7 +112,7 @@ package {{name}}
 import (
 	"context"
 
-	hook0 "github.com/hook0/hook0/clients/go"
+	hook0 "github.com/hook0/hook0-go"
 )
 
 // The event types an application declares before it sends anything of them.
