@@ -38,6 +38,22 @@ documentation.examples:
   variables:
     # Where the toolchains this image does not carry are unpacked.
     TOOLCHAINS: /opt/documentation-examples
+    # LuaRocks is the one toolchain below no root variable names, because the image
+    # `clients.lua.check` runs on pins it in a tag that says only `-luarocks`. That image carries
+    # 3.13.0, so this does, and the two are held together by nothing but this comment — which is
+    # worth saying rather than leaving it to look deliberate.
+    LUAROCKS_VERSION: "3.13.0"
+    # The checksums for the two archives whose vendors publish none in a form a job can fetch.
+    # They sit here rather than beside the versions because they are what the versions are
+    # *verified* against: bumping one without the other stops this job at the checksum rather than
+    # somewhere further in, which is the failure worth having.
+    #
+    # `LUA_SHA256` is the value lua.org states on its download page beside the archive.
+    # `LUAROCKS_SHA256` is not a vendor attestation: luarocks.org publishes a detached OpenPGP
+    # signature and no digest, so this is our own record of the bytes 3.13.0 was, which catches a
+    # substitution or a corrupted transfer and does not prove what upstream intended.
+    LUA_SHA256: 4f18ddae154e793e46eeab727c59ef1c0c0c2b744e7b94219710d76f530629ae
+    LUAROCKS_SHA256: 245bf6ec560c042cb8948e3d661189292587c5949104677f1eecddc54dbe7e37
   cache:
     # Shared across branches on purpose: what is cached is dependency downloads that belong to a
     # version rather than to a commit, and a per-branch copy of them would multiply the same bytes
@@ -50,58 +66,140 @@ documentation.examples:
       - .nuget/packages/
   before_script:
     - apt-get update
-    # Ten toolchains, of which six are what Debian ships for this release. Four are not, and each is
-    # fetched from its own vendor below: Debian's Go is older than the release `clients/go/go.mod`
-    # requires, Zig makes no stability promise between releases and Debian's is not the one this
-    # repository pins, the Kotlin compiler is not packaged at all, and Debian carries no .NET under
-    # any component — the only things it ships answering to that description are Mono-era CIL
-    # libraries.
+    # Ten toolchains, of which Debian supplies three: Python, PHP and the JDK, the three whose
+    # packaged version is the one the client's own job runs. The other seven come from their own
+    # vendor below, for one of two reasons — Debian carries nothing (the Kotlin compiler, and .NET,
+    # whose only entries under that description are Mono-era CIL libraries), or Debian carries a
+    # different version from the image the client is checked on, which is a gate that can go green
+    # while the documentation is wrong. Go was that second case and it was fatal; Node, Ruby and Lua
+    # were the same defect not yet fatal.
     #
     # `php-curl` is here because `clients/php/composer.json` requires `ext-curl`, and Composer
     # refuses to resolve a package whose platform requirements the interpreter cannot meet. The
-    # other two extensions it names, `ext-hash` and `ext-json`, are built into PHP itself.
+    # other two extensions it names, `ext-hash` and `ext-json`, are built into PHP itself. The
+    # `-dev` libraries are what Ruby is configured against when it is built below.
     - >
       apt-get install --yes --no-install-recommends
       build-essential ca-certificates curl unzip xz-utils
-      nodejs npm
+      libssl-dev libyaml-dev zlib1g-dev
       python3 python3-venv
-      ruby
       php-cli php-curl php-mbstring php-xml composer
-      lua5.4 liblua5.4-dev luarocks
       openjdk-${JAVA_VERSION}-jdk-headless maven
     - mkdir -p "$TOOLCHAINS"
-    # Debian's Go is older than what `clients/go/go.mod` declares, and Go cannot make up the
+    - |
+      # Nothing below is installed on trust. This job compiles the examples this project publishes,
+      # so a toolchain fetched over the network and run unverified is a supply chain we do not
+      # control — and `clients/zig` already verifies the very archive this job used to take on
+      # faith, so the two jobs disagreed about whether that mattered.
+      #
+      # Where the vendor publishes a digest, it is fetched beside the archive and checked here.
+      # Where the vendor publishes none, the digest is pinned in this job's variables and says so.
+      # Every fetch is bounded in time as well: a mirror that accepts the connection and then stops
+      # sending would otherwise hold the job open for its whole timeout.
+      fetch() {
+        curl --fail --silent --show-error --location \
+          --connect-timeout 30 --max-time 900 --output "$2" "$1"
+      }
+      verify() {
+        case ${#2} in
+          64)  echo "$2  $1" | sha256sum --check --strict ;;
+          128) echo "$2  $1" | sha512sum --check --strict ;;
+          *)   echo "no digest for $1, and this job does not install what nothing vouches for"
+               exit 1 ;;
+        esac
+      }
+      # The release a `<major>.<minor>-<suite>` image tag resolves to, for the vendors that publish
+      # an index rather than a fixed URL.
+      minor() { echo "${1%%-*}"; }
+    # Go. Debian's is older than what `clients/go/go.mod` declares, and Go cannot make up the
     # difference on its own here: the examples build under `GOPROXY = "off"`, set where they are
     # declared so that a red pipeline is a statement about the documentation rather than about the
-    # network, and fetching a newer toolchain is itself a proxy fetch. So the release is fetched
-    # here, resolved from the variable naming the image `clients.go.check` runs on, and the two jobs
-    # move together when it is raised.
-    - GO_RELEASE="$(curl -fsSL https://go.dev/dl/?mode=json | sed -n 's/.*"version":[ ]*"\(go[0-9.]*\)".*/\1/p' | grep "^go${GO_VERSION%%-*}\." | head -1)"
-    - test -n "$GO_RELEASE" || { echo "go.dev lists no release of Go ${GO_VERSION%%-*}, which is the release \$GO_VERSION names"; exit 1; }
-    - curl -fsSL "https://go.dev/dl/${GO_RELEASE}.linux-amd64.tar.gz" | tar -xz -C "$TOOLCHAINS"
+    # network, and fetching a newer toolchain is itself a proxy fetch.
+    #
+    # The release index carries the archive's digest beside its name, so one document answers both
+    # what to fetch and what it should hash to. Not the `.sha256` next to the archive: that path
+    # answers 200 with an HTML page rather than a digest, which is a checksum check that would
+    # have verified nothing had the guard below not refused it.
+    - GO_RELEASE="$(curl -fsSL --connect-timeout 30 --max-time 120 'https://go.dev/dl/?mode=json' | python3 -c 'import json,sys; m = sys.argv[1]; builds = (f for r in json.load(sys.stdin) if r.get("stable") and r["version"].startswith("go" + m + ".") for f in r["files"] if (f.get("os"), f.get("arch"), f.get("kind")) == ("linux", "amd64", "archive")); print(next((f["filename"] + " " + f["sha256"] for f in builds), ""))' "$(minor "$GO_VERSION")")"
+    - test -n "$GO_RELEASE" || { echo "go.dev lists no linux-amd64 archive for Go $(minor "$GO_VERSION"), which is the release \$GO_VERSION names"; exit 1; }
+    - fetch "https://go.dev/dl/$(echo "$GO_RELEASE" | cut -d' ' -f1)" /tmp/go.tar.gz
+    - verify /tmp/go.tar.gz "$(echo "$GO_RELEASE" | cut -d' ' -f2)"
+    - tar -xzf /tmp/go.tar.gz -C "$TOOLCHAINS"
     - ln -sf "$TOOLCHAINS/go/bin/go" /usr/local/bin/go
-    # Pinned by the root variable, exactly rather than by minor, for the reason stated where it is
-    # declared: a floating Zig would rewrite the meaning of the source under it without a commit.
-    - curl -fsSL "https://ziglang.org/download/${ZIG_VERSION}/zig-x86_64-linux-${ZIG_VERSION}.tar.xz" | tar -xJ -C "$TOOLCHAINS"
+    # Node. Debian ships 20 where `clients.typescript.check` runs 24. `SHASUMS256.txt` under the
+    # channel directory names the archive and its digest at once, so one fetch resolves both.
+    # Node goes on PATH rather than being symlinked: `npm` resolves its own library through the
+    # directory it sits in, and the examples run `npm install`.
+    - NODE_SUMS="$(curl -fsSL --connect-timeout 30 --max-time 120 "https://nodejs.org/dist/latest-v$(minor "$NODE_VERSION").x/SHASUMS256.txt")"
+    - NODE_ARCHIVE="$(echo "$NODE_SUMS" | awk '$2 ~ /-linux-x64\.tar\.xz$/ { print $2; exit }')"
+    - test -n "$NODE_ARCHIVE" || { echo "nodejs.org lists no linux-x64 build of Node $(minor "$NODE_VERSION")"; exit 1; }
+    - fetch "https://nodejs.org/dist/latest-v$(minor "$NODE_VERSION").x/${NODE_ARCHIVE}" /tmp/node.tar.xz
+    - verify /tmp/node.tar.xz "$(echo "$NODE_SUMS" | awk -v a="$NODE_ARCHIVE" '$2 == a { print $1 }')"
+    - tar -xJf /tmp/node.tar.xz -C "$TOOLCHAINS"
+    - export PATH="$TOOLCHAINS/${NODE_ARCHIVE%.tar.xz}/bin:$PATH"
+    # Ruby. Debian ships 3.3 where `clients.ruby.check` runs 3.4, and Ruby publishes no binary
+    # build, so this is the one toolchain compiled here rather than unpacked. `index.txt` is the
+    # canonical list and carries the URL and the digest of every release on one line.
+    - RUBY_LINE="$(curl -fsSL --connect-timeout 30 --max-time 120 https://cache.ruby-lang.org/pub/ruby/index.txt | awk -v p="^ruby-$(minor "$RUBY_VERSION")\\\\." '$1 ~ p && $2 ~ /\.tar\.xz$/ { line = $0 } END { print line }')"
+    - test -n "$RUBY_LINE" || { echo "ruby-lang.org lists no release of Ruby $(minor "$RUBY_VERSION"), which is the release \$RUBY_VERSION names"; exit 1; }
+    - fetch "$(echo "$RUBY_LINE" | cut -f2)" /tmp/ruby.tar.xz
+    - verify /tmp/ruby.tar.xz "$(echo "$RUBY_LINE" | cut -f4)"
+    - mkdir -p /tmp/ruby-src && tar -xJf /tmp/ruby.tar.xz -C /tmp/ruby-src --strip-components 1
+    # The examples are read by `ruby -c` and nothing else, so this is built for the parser rather
+    # than for a full installation: no documentation, and no extension the check ever loads.
+    - cd /tmp/ruby-src && ./configure --prefix="$TOOLCHAINS/ruby" --disable-install-doc --disable-install-rdoc >/dev/null
+    - make --directory /tmp/ruby-src --jobs "$(nproc)" >/dev/null && make --directory /tmp/ruby-src install >/dev/null
+    - cd "$CI_PROJECT_DIR" && ln -sf "$TOOLCHAINS/ruby/bin/ruby" /usr/local/bin/ruby
+    # Lua. Debian ships 5.4.7 where `clients.lua.check` runs 5.4.8, and both it and LuaRocks are
+    # built from source — a few seconds each. Their digests are pinned in this job's variables,
+    # for the reasons given there.
+    - fetch "https://www.lua.org/ftp/lua-$(echo "$LUA_VERSION" | cut -d- -f1).tar.gz" /tmp/lua.tar.gz
+    - verify /tmp/lua.tar.gz "$LUA_SHA256"
+    - mkdir -p /tmp/lua-src && tar -xzf /tmp/lua.tar.gz -C /tmp/lua-src --strip-components 1
+    # `linux` rather than `linux-readline`: the REPL is never opened here, and the readline target
+    # would add a library to the image for a prompt nothing types at. Lua 5.4 offers exactly these
+    # two — `PLATS` in its own Makefile lists `linux` and `linux-readline`, and no third spelling —
+    # so a target invented for readability fails the build rather than falling back.
+    - make --directory /tmp/lua-src linux >/dev/null && make --directory /tmp/lua-src install INSTALL_TOP="$TOOLCHAINS/lua" >/dev/null
+    - ln -sf "$TOOLCHAINS/lua/bin/lua" /usr/local/bin/lua5.4
+    - fetch "https://luarocks.org/releases/luarocks-${LUAROCKS_VERSION}.tar.gz" /tmp/luarocks.tar.gz
+    - verify /tmp/luarocks.tar.gz "$LUAROCKS_SHA256"
+    - mkdir -p /tmp/luarocks-src && tar -xzf /tmp/luarocks.tar.gz -C /tmp/luarocks-src --strip-components 1
+    - cd /tmp/luarocks-src && ./configure --prefix="$TOOLCHAINS/luarocks" --with-lua="$TOOLCHAINS/lua" --lua-version=5.4 >/dev/null
+    - make --directory /tmp/luarocks-src install >/dev/null
+    - cd "$CI_PROJECT_DIR" && ln -sf "$TOOLCHAINS/luarocks/bin/luarocks" /usr/local/bin/luarocks
+    # Zig. Pinned by the root variable, exactly rather than by minor, for the reason stated where it
+    # is declared: a floating Zig would rewrite the meaning of the source under it without a commit.
+    # `ZIG_SHA256` is that same root variable's other half, so this job and `clients.zig.check`
+    # verify one archive against one digest.
+    - fetch "https://ziglang.org/download/${ZIG_VERSION}/zig-x86_64-linux-${ZIG_VERSION}.tar.xz" /tmp/zig.tar.xz
+    - verify /tmp/zig.tar.xz "$ZIG_SHA256"
+    - tar -xJf /tmp/zig.tar.xz -C "$TOOLCHAINS"
     - ln -sf "$TOOLCHAINS/zig-x86_64-linux-${ZIG_VERSION}/zig" /usr/local/bin/zig
     # The Kotlin compiler's version is read out of the client's own POM rather than spelled here.
     # `clients/kotlin` refuses an unpinned compiler in its own suite, so that POM is where the pin
-    # lives; a second spelling of it here is a second thing to forget to raise.
+    # lives; a second spelling of it here is a second thing to forget to raise. Digest: a `.sha256`
+    # published beside the archive on the release.
     - KOTLIN_VERSION="$(sed -n 's:.*<kotlin\.version>\(.*\)</kotlin\.version>.*:\1:p' clients/kotlin/pom.xml)"
     - test -n "$KOTLIN_VERSION" || { echo 'clients/kotlin/pom.xml declares no <kotlin.version>, so nothing says which compiler these pages are held to'; exit 1; }
-    - curl -fsSLo /tmp/kotlin-compiler.zip "https://github.com/JetBrains/kotlin/releases/download/v${KOTLIN_VERSION}/kotlin-compiler-${KOTLIN_VERSION}.zip"
+    - KOTLIN_RELEASE="https://github.com/JetBrains/kotlin/releases/download/v${KOTLIN_VERSION}/kotlin-compiler-${KOTLIN_VERSION}.zip"
+    - fetch "$KOTLIN_RELEASE" /tmp/kotlin-compiler.zip
+    - verify /tmp/kotlin-compiler.zip "$(curl -fsSL --connect-timeout 30 --max-time 60 "${KOTLIN_RELEASE}.sha256" | cut -d' ' -f1)"
     - unzip -q /tmp/kotlin-compiler.zip -d "$TOOLCHAINS"
     - ln -sf "$TOOLCHAINS/kotlinc/bin/kotlinc" /usr/local/bin/kotlinc
-    # The last of the four, and the only one no distribution carries at all. `dotnet-install.sh` is
-    # how Microsoft hands the SDK to a machine it is not provisioning by `apt`, which is what this
-    # one is — the same fetch-and-link as the three above, rather than a package feed and a second
-    # trust root added to the image for one language.
+    # .NET, the one no distribution carries at all. This reads Microsoft's release metadata for the
+    # channel `clients.csharp.check` builds its image tag from — so the two jobs resolve one SDK and
+    # move together — and takes the archive and its SHA-512 from the same document.
     #
-    # `--channel` is handed the variable `clients.csharp.check` builds its image tag from, so the
-    # two jobs resolve one SDK and move together when it is raised. Two jobs proving C# against two
-    # SDKs would be worse than either of them failing.
-    - curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
-    - bash /tmp/dotnet-install.sh --channel "$DOTNET_VERSION" --install-dir "$TOOLCHAINS/dotnet" --no-path
+    # `dotnet-install.sh` is what Microsoft offers instead, and this does not use it: it verifies
+    # nothing it downloads, which would leave the one toolchain here that most needs a digest as the
+    # only one without one, behind 63 KB of shell run as root.
+    - DOTNET_RELEASE="$(curl -fsSL --connect-timeout 30 --max-time 180 "https://builds.dotnet.microsoft.com/dotnet/release-metadata/${DOTNET_VERSION}/releases.json")"
+    - DOTNET_URL="$(echo "$DOTNET_RELEASE" | python3 -c 'import json,sys; r=json.load(sys.stdin)["releases"][0]["sdk"]; print(next(f["url"] for f in r["files"] if f["name"].endswith("linux-x64.tar.gz")))')"
+    - DOTNET_HASH="$(echo "$DOTNET_RELEASE" | python3 -c 'import json,sys; r=json.load(sys.stdin)["releases"][0]["sdk"]; print(next(f["hash"] for f in r["files"] if f["name"].endswith("linux-x64.tar.gz")))')"
+    - fetch "$DOTNET_URL" /tmp/dotnet-sdk.tar.gz
+    - verify /tmp/dotnet-sdk.tar.gz "$DOTNET_HASH"
+    - mkdir -p "$TOOLCHAINS/dotnet" && tar -xzf /tmp/dotnet-sdk.tar.gz -C "$TOOLCHAINS/dotnet"
     - ln -sf "$TOOLCHAINS/dotnet/dotnet" /usr/local/bin/dotnet
     # The caches above are inside the checkout, which is the only thing GitLab will carry between
     # runs, so every tool is pointed at them.

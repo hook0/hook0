@@ -25,11 +25,9 @@ clients.zig.check:
         # this client rather than the one language whoever edited it happened to be reading.
         - clients/conformance/**/*
   variables:
-    # The checksum of the tarball `$ZIG_VERSION` names, published beside it in Zig's release index.
-    # It lives here rather than beside the version because it is what the version is *verified*
-    # against: bumping one without the other stops this job at the checksum rather than somewhere
-    # further in, which is the failure worth having.
-    ZIG_SHA256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
+    # `$ZIG_SHA256` is the checksum of the tarball `$ZIG_VERSION` names, published beside it in
+    # Zig's release index. Both are root variables, because `documentation.examples` fetches the
+    # same archive and has to verify it against the same digest.
     ZIG_TARBALL: zig-x86_64-linux-$ZIG_VERSION.tar.xz
   before_script:
     - apt-get update && apt-get install --yes --no-install-recommends ca-certificates curl xz-utils

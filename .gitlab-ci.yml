@@ -26,7 +26,14 @@ variables:
   LUA_VERSION: "5.4.8-luarocks-trixie"
   # Zig makes no stability promise between releases, so the toolchain is pinned exactly rather than
   # by minor: a floating one would rewrite the meaning of the source under it without a commit.
+  #
+  # The digest is what that version is verified against, and it is here rather than beside either
+  # job because two jobs fetch this archive — `clients.zig.check` and `documentation.examples` —
+  # and a digest written twice is one that can be raised in one place and not the other. Bumping
+  # the version without the digest stops both jobs at the checksum rather than somewhere further
+  # in, which is the failure worth having.
   ZIG_VERSION: "0.16.0"
+  ZIG_SHA256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
   PROTOC_VERSION: "35.1"
   POSTGRES_DB: hook0-ci
   POSTGRES_USER: runner
