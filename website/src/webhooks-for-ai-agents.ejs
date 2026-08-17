@@ -1,0 +1,201 @@
+<%
+// Data-driven page: see scripts/build-i18n + locales/index.js for the engine.
+// Object.assign at the very top resets every page-meta key from locale strings,
+// killing the shared-locals bleed, and binds `t` to this page's strings.
+// Runs BEFORE any output so <html lang> sees pageLang.
+if (locals.i18nHelpers) { Object.assign(locals, locals.i18nHelpers.getPageLocals('webhooks-for-ai-agents', locals.lang || 'en')); }
+var t = locals.t;
+%><!DOCTYPE html>
+<html lang="<%= locals.pageLang %>">
+<head>
+    <title><%= locals.pageTitle %></title>
+    <%- include('./includes/_head.ejs') %>
+</head>
+<body>
+<%- include('./includes/_header.ejs') %>
+
+<!-- Hero Section -->
+<section class="relative gradient-hero overflow-hidden py-20 sm:py-28">
+    <div class="absolute inset-0 grid-pattern opacity-50"></div>
+    <div class="blur-circle blur-circle--indigo w-96 h-96 -top-48 -left-48"></div>
+    <div class="blur-circle blur-circle--green w-80 h-80 top-1/2 -right-40"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <span class="section__eyebrow"><%= t.hero.eyebrow %></span>
+        <h1 class="mt-4 text-display-xl text-white">
+            <%= t.hero.titleLine1 %>
+            <span class="block text-gradient-green"><%= t.hero.titleLine2 %></span>
+        </h1>
+        <p class="mt-6 text-body-lg text-gray-400 max-w-2xl mx-auto">
+            <%= t.hero.subtitle %>
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="https://app.hook0.com/register" class="btn btn--primary btn--lg group" onclick="trackEvent('CTA', 'Click', '<%= t.track %>-hero-register')">
+                <%= t.hero.ctaPrimary %>
+                <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+            <a href="<%= t.hero.ctaSecondaryHref %>" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', '<%= t.track %>-hero-docs')">
+                <%= t.hero.ctaSecondary %>
+            </a>
+        </div>
+        <p class="mt-4 text-sm text-gray-500"><%= t.hero.microcopy %></p>
+    </div>
+</section>
+
+<% if (t.socialProof) { %>
+<%- include('./includes/_social-proof-bar.ejs') %>
+<% } %>
+
+<!-- The two directions -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--green w-64 h-64 top-1/4 right-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.sides.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.sides.h2 %></h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto"><%= t.sides.subtitle %></p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8 stagger-children">
+            <% t.sides.cards.forEach(function (c) { %>
+            <div class="animate-on-scroll card card--glow p-8">
+                <h3 class="text-xl font-bold text-white mb-3"><%= c.title %></h3>
+                <p class="text-gray-400"><%- c.bodyHtml %></p>
+            </div>
+            <% }); %>
+        </div>
+
+        <p class="mt-8 text-center text-body text-gray-400 max-w-2xl mx-auto"><%= t.sides.note %></p>
+    </div>
+</section>
+
+<!-- What the assistant can do -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.tools.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.tools.h2 %></h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto"><%= t.tools.subtitle %></p>
+        </div>
+
+        <div class="animate-on-scroll overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/10">
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.tools.headers.tool %></th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.tools.headers.does %></th>
+                        <th class="py-4 px-6 text-sm font-semibold text-gray-400 uppercase tracking-wider"><%= t.tools.headers.say %></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    <% t.tools.groups.forEach(function (g) { %>
+                    <tr class="border-b border-white/10">
+                        <td colspan="3" class="pt-8 pb-2 px-6 text-sm font-semibold <%= g.highlight ? 'text-green-400' : 'text-gray-400' %> uppercase tracking-wider"><%= g.label %></td>
+                    </tr>
+                    <% g.rows.forEach(function (r) { %>
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-4 px-6"><code class="<%= g.highlight ? 'text-green-400' : 'text-gray-300' %>"><%= r.tool %></code></td>
+                        <td class="py-4 px-6 text-gray-400"><%- r.does %></td>
+                        <td class="py-4 px-6 text-gray-500"><%- r.say %></td>
+                    </tr>
+                    <% }); %>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+        <p class="mt-6 text-center text-sm text-gray-500"><%= t.tools.footnote %></p>
+        <p class="mt-4 text-center">
+            <a href="<%= t.tools.footHref %>" class="text-indigo-400 hover:text-indigo-300 underline"><%= t.tools.footLabel %></a>
+        </p>
+    </div>
+</section>
+
+<!-- Guardrails -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="blur-circle blur-circle--indigo w-64 h-64 top-1/3 left-0 opacity-10"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.guardrails.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.guardrails.h2 %></h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto"><%= t.guardrails.intro %></p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8 stagger-children">
+            <% t.guardrails.cards.forEach(function (c) { %>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-bold text-white mb-3"><%= c.title %></h3>
+                <p class="text-gray-400"><%- c.bodyHtml %></p>
+            </div>
+            <% }); %>
+        </div>
+    </div>
+</section>
+
+<!-- What runs underneath -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.platform.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.platform.h2 %></h2>
+            <p class="mt-4 text-body text-gray-400 max-w-2xl mx-auto"><%= t.platform.intro %></p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8 stagger-children">
+            <% t.platform.cards.forEach(function (c) { %>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-bold text-white mb-3"><%= c.title %></h3>
+                <p class="text-gray-400"><%- c.bodyHtml %></p>
+            </div>
+            <% }); %>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="section relative overflow-hidden">
+    <div class="absolute inset-0 grid-pattern opacity-20"></div>
+    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 animate-on-scroll">
+            <span class="section__eyebrow"><%= t.faq.eyebrow %></span>
+            <h2 class="mt-4 text-display font-bold text-white"><%= t.faq.h2 %></h2>
+        </div>
+
+        <div class="space-y-6 stagger-children">
+            <% t.faq.items.forEach(function (f) { %>
+            <div class="animate-on-scroll card card--glow p-6">
+                <h3 class="text-lg font-semibold text-white mb-2"><%= f.q %></h3>
+                <p class="text-gray-400"><%- f.a %></p>
+            </div>
+            <% }); %>
+        </div>
+    </div>
+</section>
+
+<!-- Related Pages -->
+<section class="py-12 relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-lg font-semibold text-gray-400 mb-6 text-center"><%= t.related.h2 %></h2>
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+            <% t.related.links.forEach(function (l) { %>
+            <a href="<%= l.href %>" class="text-indigo-400 hover:text-indigo-300 underline"><%= l.label %></a>
+            <% }); %>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<%- include('./includes/_cta-inline.ejs') %>
+
+<%- include('./includes/_footer.ejs') %>
+
+</body>
+</html>

@@ -36,6 +36,10 @@ module.exports = {
   'stripe-webhook-tester': {},
   'github-webhook-tester': {},
   'shopify-webhook-tester': {},
+  // EN-only: the "webhooks for AI agents" vocabulary is searched in English, and
+  // the page documents an MCP setup whose own config files are English. Localize
+  // once it earns impressions (test-and-scale, same rule as the pages above).
+  'webhooks-for-ai-agents': {},
   // EN + FR only (DE gate: no second DE cluster until paid DE proves demand).
   'webhook-cost-comparison': { fr: 'comparatif-cout-webhook' },
   'eu-webhook-infrastructure': { fr: 'infrastructure-webhook-europeenne' },
