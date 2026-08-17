@@ -18,7 +18,7 @@ pulsar = { version = "6.8.0", default-features = false }
 serde = "1.0.229"
 serde_json = "1.0.151"
 thiserror = "2.0.20"
-uuid = "1.24.0"
+uuid = "1.24.1"
 
 [build-dependencies]
 prost-build = "0.14.4"
