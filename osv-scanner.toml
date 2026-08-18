@@ -26,23 +26,67 @@ upstream — tracked at https://github.com/tikv/jemallocator/issues
 # in v2.3.0 names every entry whether or not it is doing anything — see the note
 # at the bottom of this file.
 
-# Rust transitive bumps deferred to a follow-up MR (require an upgrade of
-# aws-sdk-s3 to a version that pulls rustls 0.23+). Tracked separately.
+# The three rustls-webpki entries below are NOT deferred any further, and their dates
+# are deliberately left where they are.
+#
+# They used to say they were waiting on "aws-sdk-s3 → rustls 0.23", which was wrong on
+# both halves and had stopped describing anything. aws-sdk-s3 1.141.0 is the latest
+# published release and is what the lockfile holds, so there is no bump to wait for; and
+# it is already on rustls 0.23 for the client that actually runs — `default-https-client`
+# selects `rustls-aws-lc`, which is rustls 0.23.43 over rustls-webpki 0.103.13, at or
+# above the fixed line of all three advisories.
+#
+# What the scanner finds is a SECOND, legacy TLS stack compiled in beside it and never
+# reached. `aws-sdk-s3`'s default `rustls` feature turns on `aws-smithy-runtime/tls-rustls`,
+# which turns on `aws-smithy-http-client/legacy-rustls-ring`, which is rustls 0.21.12 over
+# rustls-webpki 0.101.7. Nothing here builds the hyper-0.14 connector that stack exists
+# for: both S3 clients are `Client::from_conf` with no HTTP client override, so both take
+# the SDK default. Newer smithy releases do not help — aws-smithy-http-client 1.3.0 still
+# declares the same optional `rustls ^0.21.8`.
+#
+# So this is a feature flag, not an upstream wait, and the fix is to stop asking for it:
+#
+#   aws-sdk-s3 = { version = "1.141.0", default-features = false, features = [
+#       "behavior-version-latest", "sigv4a", "http-1x", "default-https-client", "rt-tokio",
+#   ] }
+#
+# in api/Cargo.toml and output-worker/Cargo.toml — both, since a single member asking for
+# the default feature set brings the legacy stack back for the whole workspace. Resolving
+# that way was measured: rustls 0.23.43 and rustls-webpki 0.103.14, with no 0.101.x left
+# in the tree at all. Do that rather than moving these dates.
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0098"
 ignoreUntil = "2026-08-31T00:00:00Z"
-reason = "rustls-webpki 0.101.7 → 0.103.x deferred to follow-up MR (needs aws-sdk-s3 → rustls 0.23). Tracked."
+reason = """
+rustls-webpki 0.101.7: a URI name constraint is ignored rather than enforced. Reachable
+only after signature verification and only against a misissued certificate, and the copy
+carrying it is the unreachable legacy stack described above — the S3 clients verify
+certificates through rustls-webpki 0.103.13. Removable today by dropping aws-sdk-s3's
+default `rustls` feature; not deferred.
+"""
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0099"
 ignoreUntil = "2026-08-31T00:00:00Z"
-reason = "rustls-webpki 0.101.7 → 0.103.x deferred to follow-up MR (needs aws-sdk-s3 → rustls 0.23). Tracked."
+reason = """
+rustls-webpki 0.101.7: a permitted-subtree DNS name constraint is accepted for a
+certificate asserting a wildcard, so `*.example.com` passes a constraint of
+`accept.example.com`. Same gate and same unreachable copy as RUSTSEC-2026-0098, and the
+same one-line fix. Not deferred.
+"""
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0104"
 ignoreUntil = "2026-08-31T00:00:00Z"
-reason = "rustls-webpki 0.101.7 → 0.103.x deferred to follow-up MR (needs aws-sdk-s3 → rustls 0.23). Tracked."
+reason = """
+rustls-webpki 0.101.7: a reachable panic parsing a certificate revocation list, from an
+empty BIT STRING in the `onlySomeReasons` element of an `IssuingDistributionPoint`
+extension. It is the serious one of the three — the panic lands before the CRL's own
+signature is checked — but nothing here parses a CRL, and the copy carrying it is the
+unreachable legacy stack. Fixed in 0.103.13, which the reachable stack is already on.
+Removable today by dropping aws-sdk-s3's default `rustls` feature; not deferred.
+"""
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0173"
@@ -84,18 +128,27 @@ available upstream.
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0253"
-ignoreUntil = "2026-08-31T00:00:00Z"
+ignoreUntil = "2027-02-28T00:00:00Z"
 reason = """
-lru 0.16.4 is pulled only by aws-sdk-s3, which pins lru ^0.16.3 up to and
-including its latest release (1.141.0) — no published aws-sdk-s3 moves to the
-fixed 0.18.x line, so there is no bump available today. The fixed line is
-already vendored in the tree at 0.18.2 (via ratatui-core), so only the
+lru 0.16.4 is pulled only by aws-sdk-s3, and this is the one entry of the four
+that really is blocked on it. aws-sdk-s3 requires lru ^0.16.3 as a plain, non
+optional dependency, and 1.141.0 is its latest published release and what the
+lockfile holds — so there is no bump. Nor is there a backport to reach: the
+published line runs 0.16.4 → 0.17.0 → 0.18.0 → 0.18.1 → 0.18.2, the fix is
+0.18.2, and ^0.16.3 cannot cross either major-equivalent boundary. Unlike the
+rustls-webpki entries above, no feature flag turns this dependency off. It moves
+when aws-sdk-s3 relaxes the requirement, and not before.
+
+The fixed line is already in the tree at 0.18.2 (via ratatui-core), so only the
 aws-sdk-s3 copy is affected.
 
 The advisory needs a panic to unwind out of a key's Drop while inside
 LruCache::pop(), caught by std::panic::catch_unwind — the workspace contains no
-catch_unwind at all, so the unsound state cannot be observed here. Re-evaluated
-with the other aws-sdk-s3-blocked entries on 2026-08-31.
+catch_unwind at all, so the unsound state cannot be observed here.
+
+Re-verified on 2026-08-17 against crates.io and the lockfile: latest aws-sdk-s3,
+lru requirement, published lru versions and the absence of catch_unwind were all
+checked again rather than carried forward.
 """
 
 # Do not prune this file from the scanner's "unused ignores" list.
