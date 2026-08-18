@@ -52,6 +52,7 @@
     <ktlint.plugin.version>3.7.1</ktlint.plugin.version>
     <compiler.plugin.version>3.13.0</compiler.plugin.version>
     <surefire.plugin.version>3.5.2</surefire.plugin.version>
+    <jacoco.plugin.version>0.8.12</jacoco.plugin.version>
     <enforcer.plugin.version>3.5.0</enforcer.plugin.version>
     <resources.plugin.version>3.3.1</resources.plugin.version>
     <jar.plugin.version>3.4.2</jar.plugin.version>
@@ -245,6 +246,285 @@
           -->
           <forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
         </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.plugin.version}</version>
+        <executions>
+          <execution>
+            <id>coverage-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+            <configuration>
+              <!--
+                The agent appends to its execution data by default, so a second `verify` over a tree
+                that changed in between measures both runs at once and reports a coverage neither of
+                them reached — a floor that passes on data half of which describes source that is no
+                longer there. CI runs once in a fresh container and would never have seen it, which
+                is exactly what makes it the kind of thing that goes unnoticed.
+              -->
+              <append>false</append>
+            </configuration>
+          </execution>
+          <execution>
+            <id>coverage-report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+          <!--
+            The floor, so that the coverage this suite reaches is a property the pipeline holds
+            rather than a number somebody measured once. It rides in `verify`, which is the goal the
+            job already runs, rather than in a job or a script of its own.
+
+            Every number below is what this suite reaches today. They are not headroom: every suite
+            here talks to a loopback socket and draws nothing random, so there is no run-to-run noise
+            to leave room for, and room would only buy silent decay. Raise one when the suite covers
+            more; lowering one is a decision somebody has to write here.
+
+            Lines rather than instructions, which is the counter the java client's floor is written
+            in. The two are not interchangeable here: the Kotlin compiler emits instructions on lines
+            that are covered — null checks, the bodies a data class gets for free — which no caller
+            reaches, so the generated half sits at 100% of its lines and around 84% of its
+            instructions. An instruction floor for this client would have to be written at 0.80 to
+            pass at all, and a floor at 0.80 stops catching anything.
+
+            Source files rather than classes, for a reason of the same family: a line inside a
+            `companion object` is counted against both the companion and the class around it, so
+            `Options.Companion` reads as half covered while the file it lives in is whole. A
+            class-element rule would need an exclusion for an artefact of where a line was attributed
+            rather than for anything a test could reach.
+          -->
+          <execution>
+            <id>coverage-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <!--
+                  The whole client, at what this suite reaches today: 18 of its 2454 lines and 39 of
+                  its 715 branches uncovered. Counts rather than ratios, because a ratio rises on its
+                  own as covered code is added, so a regression can hide behind growth where a count
+                  cannot.
+                -->
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>18</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>39</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!--
+                  And every file at its own, which is what makes a failure name a culprit: a violated
+                  bundle rule says only that the bundle moved, while a violated source-file rule says
+                  which file and by how many lines. Every file this client ships is held to nothing
+                  uncovered at all, and the eight below carry an allowance for exactly what they miss
+                  today — each of which is unreachable from a test rather than merely unreached.
+                -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <excludes>
+                    <exclude>com/hook0/kotlin/Answer.kt</exclude>
+                    <exclude>com/hook0/kotlin/Hook0Client.kt</exclude>
+                    <exclude>com/hook0/kotlin/HttpTransport.kt</exclude>
+                    <exclude>com/hook0/kotlin/RetryPolicy.kt</exclude>
+                    <exclude>com/hook0/kotlin/Signature.kt</exclude>
+                    <exclude>com/hook0/kotlin/Suspending.kt</exclude>
+                    <exclude>com/hook0/kotlin/Wire.kt</exclude>
+                    <exclude>com/hook0/kotlin/generated/Problems.kt</exclude>
+                  </excludes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arm where a status is a redirection, which this transport never follows and so never
+                     reads -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/Answer.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>1</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the constructor that takes no options, the close guard around a transport that is not
+                     closeable and its catch, the `?: ""` arms on framework failures that always carry a
+                     message, the arms of reading a delay header that is not a number, and the interruption
+                     path -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/Hook0Client.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>8</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>13</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the interruption path, the body subscriber's cancel and error arms, the `User-Agent`
+                     filter, the empty-host guard, the second `URI.create` catch after every part has been
+                     escaped, a header line carrying no value, the cause-walk depth ceiling, and a failure
+                     with no message -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/HttpTransport.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>8</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>18</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arm where an attempt is numbered below zero, which the schedule never asks for -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/RetryPolicy.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>1</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the refusal of a runtime that cannot compute HmacSHA256, which every JVM this runs on
+                     can -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/Signature.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>2</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arms of unwrapping a `CompletionException` chain deeper or shallower than the
+                     framework builds -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/Suspending.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>3</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arms of `describe` where a value's `javaClass` is null, which it cannot be -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/Wire.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>2</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arm where a status is below 200, which the API answers for no operation -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/generated/Problems.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>1</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <plugin>
