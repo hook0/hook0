@@ -1,8 +1,4 @@
-# The package requires only extensions the interpreter already carries, so the autoloader Composer
-# already wrote beside the client is the whole setup.
+# The package requires only extensions the interpreter already carries and declares no dependency of
+# its own, so there is nothing to install: the smoke registers the autoloading rule `composer.json`
+# declares and reads the client's source straight out of this repository.
 run = ["php", "smoke.php"]
-
-# This smoke still asks only the three questions the run was first written for, and drives none of
-# the operations the API document declares. Delete this line the day it does: with it gone the run
-# holds this language to every one of them, and there is no way back to reporting nothing.
-drives_surface = false

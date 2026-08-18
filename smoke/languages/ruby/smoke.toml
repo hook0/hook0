@@ -1,8 +1,3 @@
 # The gem declares no runtime dependency, so there is nothing to install: the interpreter is
 # pointed at the client's source and that is the whole setup.
 run = ["ruby", "smoke.rb"]
-
-# This smoke still asks only the three questions the run was first written for, and drives none of
-# the operations the API document declares. Delete this line the day it does: with it gone the run
-# holds this language to every one of them, and there is no way back to reporting nothing.
-drives_surface = false
