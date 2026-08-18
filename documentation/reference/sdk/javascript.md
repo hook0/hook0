@@ -127,8 +127,8 @@ try {
 }
 ```
 
-:::caution The return type is wider than the behaviour
-`verifyWebhookSignature` is declared `boolean | Hook0ClientError`, but it returns `true` and nothing else. Every refusal is **thrown** as a `Hook0ClientError`. It never returns `false`, and it never returns an error value. A handler shaped `if (!isValid) { … }` therefore has a branch that cannot be reached, and one without a `try` treats every forged delivery as a crash.
+:::caution A refusal arrives as an exception
+`verifyWebhookSignature` returns `true` and nothing else, which is what its declared type now says. Every refusal is **thrown** as a `Hook0ClientError`, whether the signature failed to parse, did not match, arrived outside the clock window, or omitted a header the signature covers. There is no falsy value to test, so a handler needs a `try` around the call; one without it treats every forged delivery as a crash.
 :::
 
 `rawBody` is a `Buffer` of the bytes that arrived. A body that has been parsed and re-serialised no longer hashes to what was signed. `headers` is a `Headers`, which a framework will not hand you, so build one from the plain object it does. `tolerance` is a number of **seconds**.

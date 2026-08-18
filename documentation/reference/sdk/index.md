@@ -184,7 +184,7 @@ app.post('/webhook', express.json({
 });
 ```
 
-How a refusal reaches you differs by language, and each page says which. Rust and Go return a result; Python, Ruby, PHP, C#, Java and Kotlin raise; Lua raises a table you match with `Hook0.is`; Zig answers a closed error set. TypeScript raises too, despite a return type that says it might hand the failure back instead. Its page has the detail, because a handler written from the type alone has a branch that never runs.
+How a refusal reaches you differs by language, and each page says which. Rust and Go return a result; Python, Ruby, PHP, C#, Java, Kotlin and TypeScript raise; Lua raises a table you match with `Hook0.is`; Zig answers a closed error set. TypeScript carries one exception its page covers, `EventType.fromString`, which hands the failure back rather than throwing it.
 
 ## Managing subscriptions
 
