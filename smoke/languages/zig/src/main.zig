@@ -158,22 +158,43 @@ fn surface(
     };
     var organization_wide: Paced = .{ .inner = &reaching_organization, .io = io };
 
-    var applications: hook0.api.ApplicationsApi = .init(held.any());
-    var secrets: hook0.api.ApplicationSecretsApi = .init(held.any());
-    var event_types: hook0.api.EventTypesApi = .init(held.any());
-    var subscriptions: hook0.api.SubscriptionsApi = .init(held.any());
-    var events: hook0.api.EventsApi = .init(held.any());
-    var events_per_day: hook0.api.EventsPerDayApi = .init(held.any());
-    var instance: hook0.api.InstanceApi = .init(held.any());
-    var quotas: hook0.api.QuotasApi = .init(held.any());
-    var payload_content_types: hook0.api.PayloadContentTypesApi = .init(held.any());
-    var error_catalogue: hook0.api.ErrorsApi = .init(held.any());
+    // The allocator each group is built with is where what a failure of it reported is read into,
+    // which is why it is freed here rather than by the call that drew it: a call frees everything
+    // it allocated on its way out, and what the failure said has to be readable after that.
+    var applications: hook0.api.ApplicationsApi = .init(allocator, held.any());
+    var secrets: hook0.api.ApplicationSecretsApi = .init(allocator, held.any());
+    var event_types: hook0.api.EventTypesApi = .init(allocator, held.any());
+    var subscriptions: hook0.api.SubscriptionsApi = .init(allocator, held.any());
+    var events: hook0.api.EventsApi = .init(allocator, held.any());
+    var events_per_day: hook0.api.EventsPerDayApi = .init(allocator, held.any());
+    var instance: hook0.api.InstanceApi = .init(allocator, held.any());
+    var quotas: hook0.api.QuotasApi = .init(allocator, held.any());
+    var payload_content_types: hook0.api.PayloadContentTypesApi = .init(allocator, held.any());
+    var error_catalogue: hook0.api.ErrorsApi = .init(allocator, held.any());
 
-    var organization_applications: hook0.api.ApplicationsApi = .init(organization_wide.any());
-    var organization_events_per_day: hook0.api.EventsPerDayApi = .init(organization_wide.any());
-    var request_attempts: hook0.api.RequestAttemptsApi = .init(organization_wide.any());
-    var responses: hook0.api.ResponseApi = .init(organization_wide.any());
-    var service_tokens: hook0.api.ServiceTokenApi = .init(organization_wide.any());
+    var organization_applications: hook0.api.ApplicationsApi = .init(allocator, organization_wide.any());
+    var organization_events_per_day: hook0.api.EventsPerDayApi = .init(allocator, organization_wide.any());
+    var request_attempts: hook0.api.RequestAttemptsApi = .init(allocator, organization_wide.any());
+    var responses: hook0.api.ResponseApi = .init(allocator, organization_wide.any());
+    var service_tokens: hook0.api.ServiceTokenApi = .init(allocator, organization_wide.any());
+
+    defer {
+        applications.deinit();
+        secrets.deinit();
+        event_types.deinit();
+        subscriptions.deinit();
+        events.deinit();
+        events_per_day.deinit();
+        instance.deinit();
+        quotas.deinit();
+        payload_content_types.deinit();
+        error_catalogue.deinit();
+        organization_applications.deinit();
+        organization_events_per_day.deinit();
+        request_attempts.deinit();
+        responses.deinit();
+        service_tokens.deinit();
+    }
 
     // What the instance says about itself, which is what an application asks before it has anything
     // of its own: how it is configured, what it will let this account do, what a payload may be,

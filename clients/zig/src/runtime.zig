@@ -65,6 +65,30 @@ pub const max_payload_nesting: usize = 64;
 /// whatever the caller logs.
 pub const max_preview_bytes: usize = 256;
 
+/// An arena something is held in, which travels with what it holds rather than with the call.
+///
+/// The arena sits behind a pointer for the same reason [Owned]'s does: an allocator answered by an
+/// arena holds the address of that arena, so an arena that moved would hand out an allocator
+/// pointing at where it used to be.
+///
+/// Whoever asked for one frees it, once, with `deinit`. Nothing else refers to it.
+pub const Kept = struct {
+    arena: *std.heap.ArenaAllocator,
+
+    pub fn init(allocator: std.mem.Allocator) std.mem.Allocator.Error!Kept {
+        const arena = try allocator.create(std.heap.ArenaAllocator);
+        arena.* = .init(allocator);
+        return .{ .arena = arena };
+    }
+
+    /// Frees everything held in here, in one step.
+    pub fn deinit(self: Kept) void {
+        const child = self.arena.child_allocator;
+        self.arena.deinit();
+        child.destroy(self.arena);
+    }
+};
+
 /// A value together with the arena everything it points into was allocated from.
 ///
 /// The arena sits behind a pointer rather than inside this struct on purpose: an allocator answered
@@ -513,6 +537,15 @@ pub fn problemOf(
 pub fn preview(payload: []const u8) []const u8 {
     if (payload.len <= max_preview_bytes) return payload;
     return payload[0..max_preview_bytes];
+}
+
+/// As much of a response body as something outliving the request keeps a copy of.
+///
+/// A body arrives from a server this package does not control, so what is kept of it is cut at the
+/// same ceiling the parser reads at: past that, nothing further could be read out of it anyway.
+pub fn retained(payload: []const u8) []const u8 {
+    if (payload.len <= max_payload_bytes) return payload;
+    return payload[0..max_payload_bytes];
 }
 
 /// What to say about an answer the API document does not describe.

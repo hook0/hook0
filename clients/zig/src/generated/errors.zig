@@ -65,6 +65,10 @@ pub const Failure = error{
 };
 
 /// What one failure of the API said about itself, beyond which error it is.
+///
+/// Everything it points into is held in an arena of its own, which is what lets it be read
+/// after the call that drew it has freed everything that call allocated. The next failure
+/// written here frees what the last one held, and `deinit` frees the last one of all.
 pub const Reported = struct {
     /// What the API answered under.
     status: u16 = 0,
@@ -72,9 +76,17 @@ pub const Reported = struct {
     problem: ?models.Problem = null,
     /// What to say about the failure.
     detail: []const u8 = "",
+    /// Where `problem` and `detail` were read into, which nothing else refers to.
+    held: ?runtime.Kept = null,
 
     /// What a group carries before anything has failed.
     pub const empty: Reported = .{};
+
+    /// Frees what the last failure reported, leaving this as it started.
+    pub fn deinit(self: *Reported) void {
+        if (self.held) |held| held.deinit();
+        self.* = .empty;
+    }
 };
 
 /// The error each problem the API names is answered as.
@@ -127,10 +139,45 @@ pub const problems = [_]struct { id: []const u8, raised: Failure }{
     .{ .id = models.ProblemId.validation, .raised = error.Validation },
 };
 
+/// The error a problem document names, when what it names is one this client knows.
+fn raisedBy(problem: ?models.Problem) ?Failure {
+    const named = problem orelse return null;
+    for (problems) |entry| {
+        if (std.mem.eql(u8, entry.id, named.id)) return entry.raised;
+    }
+    return null;
+}
+
+/// What one failure said about itself, read into an arena of its own.
+///
+/// Everything the answer points into — the copy of the body, the document read out of it
+/// and the message written about it — is in that arena, so what the caller allocated for
+/// the request it drew is none of it.
+fn reportedOf(
+    allocator: std.mem.Allocator,
+    status: u16,
+    payload: []const u8,
+) std.mem.Allocator.Error!Reported {
+    const held: runtime.Kept = try .init(allocator);
+    errdefer held.deinit();
+
+    const into = held.arena.allocator();
+    const carried = try into.dupe(u8, runtime.retained(payload));
+    const problem = runtime.problemOf(models.Problem, into, carried);
+    const detail = if (raisedBy(problem) != null)
+        try runtime.reported(into, status, carried)
+    else
+        try runtime.unreadable(into, status, carried);
+
+    return .{ .status = status, .problem = problem, .detail = detail, .held = held };
+}
+
 /// Answer what the API reported, when what it answered was not a success.
 ///
 /// What the failure said about itself is written into `reported`, which is what a
-/// caller reads once the error has told it there is something to read.
+/// caller reads once the error has told it there is something to read. The allocator is
+/// the one that memory is taken from, and it has to be one outliving the call: what the
+/// call itself allocated is gone by the time the caller reads any of this.
 pub fn raiseForStatus(
     allocator: std.mem.Allocator,
     status: u16,
@@ -139,24 +186,9 @@ pub fn raiseForStatus(
 ) (Failure || std.mem.Allocator.Error)!void {
     if (status >= 200 and status < 300) return;
 
-    const problem = runtime.problemOf(models.Problem, allocator, payload);
-    if (problem) |named| {
-        for (problems) |entry| {
-            if (std.mem.eql(u8, entry.id, named.id)) {
-                reported.* = .{
-                    .status = status,
-                    .problem = named,
-                    .detail = try runtime.reported(allocator, status, payload),
-                };
-                return entry.raised;
-            }
-        }
-    }
+    const read = try reportedOf(allocator, status, payload);
+    reported.deinit();
+    reported.* = read;
 
-    reported.* = .{
-        .status = status,
-        .problem = problem,
-        .detail = try runtime.unreadable(allocator, status, payload),
-    };
-    return error.Unreadable;
+    return raisedBy(read.problem) orelse error.Unreadable;
 }

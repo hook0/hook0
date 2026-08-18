@@ -111,12 +111,19 @@ The tolerance is bilateral: a delivery dated too far ahead is refused exactly li
 ## The whole API
 
 ```zig
-var group: hook0.api.ApplicationSecretsApi = .{ .transport = client.transportOf() };
+var group: hook0.api.ApplicationSecretsApi = .init(allocator, client.transportOf());
+defer group.deinit();
+
 const secrets = try group.list(allocator, application_id);
 defer secrets.deinit();
 ```
 
-One group per entity the API declares, one method per operation. Both are generated: `src/generated/` is written by `hook0-sdkgen` from the OpenAPI snapshot the API crate commits, and nothing under it is edited by hand.
+One group per entity the API declares, one method per operation. The allocator a group is built with
+is not the one its calls are handed: a call frees everything it allocated on its way out, while
+`group.reported` — the status, the problem document and the message of the last call that failed — is
+read after the call has returned, so it is held apart from the call and let go of by `group.deinit()`.
+
+Both are generated: `src/generated/` is written by `hook0-sdkgen` from the OpenAPI snapshot the API crate commits, and nothing under it is edited by hand.
 
 ## Two halves
 

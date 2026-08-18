@@ -210,12 +210,18 @@ const group_names: []const []const u8 = found: {
 };
 
 /// Every operation one group carries, under the name it is called by.
+///
+/// What tells an operation from the two functions a group carries beside them is what it answers:
+/// an operation issues a request, so it answers an error union, while building a group and freeing
+/// what its last failure reported cannot fail. Found that way rather than by naming the two, so
+/// that an operation the API grows joins this by being one.
 fn operationsOf(comptime Group: type) []const []const u8 {
     comptime var held: []const []const u8 = &.{};
     comptime {
         for (@typeInfo(Group).@"struct".decls) |decl| {
-            if (std.mem.eql(u8, decl.name, "init")) continue;
-            if (@typeInfo(@TypeOf(@field(Group, decl.name))) != .@"fn") continue;
+            const declared = @typeInfo(@TypeOf(@field(Group, decl.name)));
+            if (declared != .@"fn") continue;
+            if (@typeInfo(declared.@"fn".return_type.?) != .error_union) continue;
             held = held ++ [_][]const u8{decl.name};
         }
     }
@@ -281,7 +287,8 @@ fn reachesEveryOperation(optionals: bool) !void {
     inline for (group_names) |group_name| {
         const Group = @field(hook0.api, group_name);
         inline for (comptime operationsOf(Group)) |name| {
-            var group: Group = .init(transport.any());
+            var group: Group = .init(held, transport.any());
+            defer group.deinit();
             const Fn = @TypeOf(@field(Group, name));
 
             var args: std.meta.ArgsTuple(Fn) = undefined;
@@ -438,6 +445,13 @@ test "every problem the API names is raised as the error of that name, and says 
     defer arena.deinit();
     const held = arena.allocator();
 
+    // What the calls below allocate from, so that what a failure reported is read out of memory
+    // that says whether the client still owns it. A call frees everything it took on its way out,
+    // and everything it freed reads as `written_over` from here on: the document below is the one
+    // the client kept hold of, or it is nothing this case can mistake for it.
+    var memory: helper.Poisoned = .{};
+    const poisoned = memory.allocator();
+
     const lists = try surface.listsOf(io, held);
 
     // One operation, found rather than named: which one it is does not matter, since what these
@@ -458,12 +472,16 @@ test "every problem the API names is raised as the error of that name, and says 
 
     var transport: hook0.Transport = .{ .io = io, .base_url = try api.baseUrl(held), .token = "token-xyz" };
 
-    for (hook0.models.ProblemId.values) |problem| {
-        var group: Group = .init(transport.any());
+    // One group for every problem rather than one each: what a group reports is what its *last*
+    // failure reported, so a group that only ever fails once would never say whether the one before
+    // was let go of. It is scoped so that it is gone before what it was allocating from is asked
+    // whether anything is still held.
+    var group: Group = .init(poisoned, transport.any());
 
+    for (hook0.models.ProblemId.values) |problem| {
         var args: std.meta.ArgsTuple(Fn) = undefined;
         args[0] = &group;
-        args[1] = held;
+        args[1] = poisoned;
         inline for (@typeInfo(Fn).@"fn".params, 0..) |param, index| {
             if (index >= 2) {
                 args[index] = try surface.valueOf(
@@ -491,8 +509,16 @@ test "every problem the API names is raised as the error of that name, and says 
             try std.testing.expectEqual(@as(u16, 400), group.reported.status);
             try std.testing.expectEqualStrings(problem, group.reported.problem.?.id);
             try std.testing.expectEqualStrings("what this case scripted", group.reported.problem.?.detail);
+            try std.testing.expectEqualStrings("refused", group.reported.problem.?.title);
+            try std.testing.expect(std.mem.indexOf(u8, group.reported.detail, problem) != null);
         }
     }
+    group.deinit();
+
+    // The other half of reading it after the call: what the client kept hold of, it also lets go
+    // of. A failure whose document outlived the call by never being freed would answer `.leak`,
+    // and so would every failure before the last one had this replaced it not let go of it.
+    try std.testing.expectEqual(std.heap.Check.ok, memory.deinit());
 }
 
 test "a problem the API grew after this package is still reported as a whole problem document" {
@@ -515,7 +541,8 @@ test "a problem the API grew after this package is still reported as a whole pro
     defer api.deinit();
 
     var transport: hook0.Transport = .{ .io = io, .base_url = try api.baseUrl(held), .token = "token-xyz" };
-    var group: Group = .init(transport.any());
+    var group: Group = .init(held, transport.any());
+    defer group.deinit();
 
     var args: std.meta.ArgsTuple(Fn) = undefined;
     args[0] = &group;
@@ -574,7 +601,10 @@ test "every operation frees what it had already taken when the API refuses it" {
     inline for (group_names) |group_name| {
         const Group = @field(hook0.api, group_name);
         inline for (comptime operationsOf(Group)) |name| {
-            var group: Group = .init(transport.any());
+            // Built with that same allocator, so that what the failure below reported is held to
+            // it too: read after the call has returned, and given back before the case is over.
+            var group: Group = .init(allocator, transport.any());
+            defer group.deinit();
             const Fn = @TypeOf(@field(Group, name));
 
             var args: std.meta.ArgsTuple(Fn) = undefined;

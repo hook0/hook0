@@ -11,11 +11,24 @@ const models = @import("models.zig");
 pub const ApplicationSecretsApi = struct {
     /// What one request is issued through.
     transport: runtime.Transport,
+    /// Where what a failure of this group reported is read into.
+    ///
+    /// Not the allocator a call is handed: that one frees what the call allocated on its way
+    /// out, and what the failure reported is read after the call has returned.
+    allocator: std.mem.Allocator,
     /// What the last failure of this group reported, which an error alone cannot carry.
     reported: errors.Reported = .empty,
 
-    pub fn init(transport: runtime.Transport) ApplicationSecretsApi {
-        return .{ .transport = transport };
+    pub fn init(
+        allocator: std.mem.Allocator,
+        transport: runtime.Transport,
+    ) ApplicationSecretsApi {
+        return .{ .allocator = allocator, .transport = transport };
+    }
+
+    /// Frees what the last failure of this group reported.
+    pub fn deinit(self: *ApplicationSecretsApi) void {
+        self.reported.deinit();
     }
 
     /// Create a new application secret
@@ -33,7 +46,12 @@ pub const ApplicationSecretsApi = struct {
             .path = "/api/v1/application_secrets/",
             .body = try runtime.written(arena, body),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.ApplicationSecret.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -61,7 +79,12 @@ pub const ApplicationSecretsApi = struct {
                 .{ .name = "application_id", .value = runtime.value(application_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
     }
 
     /// List application secrets
@@ -82,7 +105,12 @@ pub const ApplicationSecretsApi = struct {
                 .{ .name = "application_id", .value = runtime.value(application_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try runtime.list(models.ApplicationSecret.fromJson).read(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -107,7 +135,12 @@ pub const ApplicationSecretsApi = struct {
             }),
             .body = try runtime.written(arena, body),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.ApplicationSecret.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -118,11 +151,24 @@ pub const ApplicationSecretsApi = struct {
 pub const ApplicationsApi = struct {
     /// What one request is issued through.
     transport: runtime.Transport,
+    /// Where what a failure of this group reported is read into.
+    ///
+    /// Not the allocator a call is handed: that one frees what the call allocated on its way
+    /// out, and what the failure reported is read after the call has returned.
+    allocator: std.mem.Allocator,
     /// What the last failure of this group reported, which an error alone cannot carry.
     reported: errors.Reported = .empty,
 
-    pub fn init(transport: runtime.Transport) ApplicationsApi {
-        return .{ .transport = transport };
+    pub fn init(
+        allocator: std.mem.Allocator,
+        transport: runtime.Transport,
+    ) ApplicationsApi {
+        return .{ .allocator = allocator, .transport = transport };
+    }
+
+    /// Frees what the last failure of this group reported.
+    pub fn deinit(self: *ApplicationsApi) void {
+        self.reported.deinit();
     }
 
     /// Create a new application
@@ -140,7 +186,12 @@ pub const ApplicationsApi = struct {
             .path = "/api/v1/applications/",
             .body = try runtime.written(arena, body),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.Application.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -163,7 +214,12 @@ pub const ApplicationsApi = struct {
                 .{ .name = "application_id", .value = runtime.value(application_id) },
             }),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
     }
 
     /// Get an application by its ID
@@ -183,7 +239,12 @@ pub const ApplicationsApi = struct {
                 .{ .name = "application_id", .value = runtime.value(application_id) },
             }),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.ApplicationInfo.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -207,7 +268,12 @@ pub const ApplicationsApi = struct {
                 .{ .name = "organization_id", .value = runtime.value(organization_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try runtime.list(models.Application.fromJson).read(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -232,7 +298,12 @@ pub const ApplicationsApi = struct {
             }),
             .body = try runtime.written(arena, body),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.Application.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -243,11 +314,24 @@ pub const ApplicationsApi = struct {
 pub const ErrorsApi = struct {
     /// What one request is issued through.
     transport: runtime.Transport,
+    /// Where what a failure of this group reported is read into.
+    ///
+    /// Not the allocator a call is handed: that one frees what the call allocated on its way
+    /// out, and what the failure reported is read after the call has returned.
+    allocator: std.mem.Allocator,
     /// What the last failure of this group reported, which an error alone cannot carry.
     reported: errors.Reported = .empty,
 
-    pub fn init(transport: runtime.Transport) ErrorsApi {
-        return .{ .transport = transport };
+    pub fn init(
+        allocator: std.mem.Allocator,
+        transport: runtime.Transport,
+    ) ErrorsApi {
+        return .{ .allocator = allocator, .transport = transport };
+    }
+
+    /// Frees what the last failure of this group reported.
+    pub fn deinit(self: *ErrorsApi) void {
+        self.reported.deinit();
     }
 
     /// List errors
@@ -263,7 +347,12 @@ pub const ErrorsApi = struct {
             .method = "GET",
             .path = "/api/v1/errors/",
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try runtime.list(models.Problem.fromJson).read(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -274,11 +363,24 @@ pub const ErrorsApi = struct {
 pub const EventTypesApi = struct {
     /// What one request is issued through.
     transport: runtime.Transport,
+    /// Where what a failure of this group reported is read into.
+    ///
+    /// Not the allocator a call is handed: that one frees what the call allocated on its way
+    /// out, and what the failure reported is read after the call has returned.
+    allocator: std.mem.Allocator,
     /// What the last failure of this group reported, which an error alone cannot carry.
     reported: errors.Reported = .empty,
 
-    pub fn init(transport: runtime.Transport) EventTypesApi {
-        return .{ .transport = transport };
+    pub fn init(
+        allocator: std.mem.Allocator,
+        transport: runtime.Transport,
+    ) EventTypesApi {
+        return .{ .allocator = allocator, .transport = transport };
+    }
+
+    /// Frees what the last failure of this group reported.
+    pub fn deinit(self: *EventTypesApi) void {
+        self.reported.deinit();
     }
 
     /// Create a new event type
@@ -296,7 +398,12 @@ pub const EventTypesApi = struct {
             .path = "/api/v1/event_types/",
             .body = try runtime.written(arena, body),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.EventType.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -324,7 +431,12 @@ pub const EventTypesApi = struct {
                 .{ .name = "application_id", .value = runtime.value(application_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
     }
 
     /// Get an event type by its name
@@ -349,7 +461,12 @@ pub const EventTypesApi = struct {
                 .{ .name = "application_id", .value = runtime.value(application_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.EventType.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -373,7 +490,12 @@ pub const EventTypesApi = struct {
                 .{ .name = "application_id", .value = runtime.value(application_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try runtime.list(models.EventType.fromJson).read(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -384,11 +506,24 @@ pub const EventTypesApi = struct {
 pub const EventsApi = struct {
     /// What one request is issued through.
     transport: runtime.Transport,
+    /// Where what a failure of this group reported is read into.
+    ///
+    /// Not the allocator a call is handed: that one frees what the call allocated on its way
+    /// out, and what the failure reported is read after the call has returned.
+    allocator: std.mem.Allocator,
     /// What the last failure of this group reported, which an error alone cannot carry.
     reported: errors.Reported = .empty,
 
-    pub fn init(transport: runtime.Transport) EventsApi {
-        return .{ .transport = transport };
+    pub fn init(
+        allocator: std.mem.Allocator,
+        transport: runtime.Transport,
+    ) EventsApi {
+        return .{ .allocator = allocator, .transport = transport };
+    }
+
+    /// Frees what the last failure of this group reported.
+    pub fn deinit(self: *EventsApi) void {
+        self.reported.deinit();
     }
 
     /// Get an event by its ID
@@ -413,7 +548,12 @@ pub const EventsApi = struct {
                 .{ .name = "application_id", .value = runtime.value(application_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.EventWithPayload.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -434,7 +574,12 @@ pub const EventsApi = struct {
             .path = "/api/v1/event/",
             .body = try runtime.written(arena, body),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.IngestedEvent.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -458,7 +603,12 @@ pub const EventsApi = struct {
                 .{ .name = "application_id", .value = runtime.value(application_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try runtime.list(models.Event.fromJson).read(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -483,7 +633,12 @@ pub const EventsApi = struct {
             }),
             .body = try runtime.written(arena, body),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
     }
 };
 
@@ -491,11 +646,24 @@ pub const EventsApi = struct {
 pub const EventsPerDayApi = struct {
     /// What one request is issued through.
     transport: runtime.Transport,
+    /// Where what a failure of this group reported is read into.
+    ///
+    /// Not the allocator a call is handed: that one frees what the call allocated on its way
+    /// out, and what the failure reported is read after the call has returned.
+    allocator: std.mem.Allocator,
     /// What the last failure of this group reported, which an error alone cannot carry.
     reported: errors.Reported = .empty,
 
-    pub fn init(transport: runtime.Transport) EventsPerDayApi {
-        return .{ .transport = transport };
+    pub fn init(
+        allocator: std.mem.Allocator,
+        transport: runtime.Transport,
+    ) EventsPerDayApi {
+        return .{ .allocator = allocator, .transport = transport };
+    }
+
+    /// Frees what the last failure of this group reported.
+    pub fn deinit(self: *EventsPerDayApi) void {
+        self.reported.deinit();
     }
 
     /// List events per day for an application
@@ -522,7 +690,12 @@ pub const EventsPerDayApi = struct {
                 .{ .name = "to", .value = runtime.value(to) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try runtime.list(models.EventsPerDayEntry.fromJson).read(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -552,7 +725,12 @@ pub const EventsPerDayApi = struct {
                 .{ .name = "to", .value = runtime.value(to) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try runtime.list(models.EventsPerDayEntry.fromJson).read(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -563,11 +741,24 @@ pub const EventsPerDayApi = struct {
 pub const InstanceApi = struct {
     /// What one request is issued through.
     transport: runtime.Transport,
+    /// Where what a failure of this group reported is read into.
+    ///
+    /// Not the allocator a call is handed: that one frees what the call allocated on its way
+    /// out, and what the failure reported is read after the call has returned.
+    allocator: std.mem.Allocator,
     /// What the last failure of this group reported, which an error alone cannot carry.
     reported: errors.Reported = .empty,
 
-    pub fn init(transport: runtime.Transport) InstanceApi {
-        return .{ .transport = transport };
+    pub fn init(
+        allocator: std.mem.Allocator,
+        transport: runtime.Transport,
+    ) InstanceApi {
+        return .{ .allocator = allocator, .transport = transport };
+    }
+
+    /// Frees what the last failure of this group reported.
+    pub fn deinit(self: *InstanceApi) void {
+        self.reported.deinit();
     }
 
     /// Get instance configuration
@@ -583,7 +774,12 @@ pub const InstanceApi = struct {
             .method = "GET",
             .path = "/api/v1/instance/",
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.InstanceConfig.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -594,11 +790,24 @@ pub const InstanceApi = struct {
 pub const PayloadContentTypesApi = struct {
     /// What one request is issued through.
     transport: runtime.Transport,
+    /// Where what a failure of this group reported is read into.
+    ///
+    /// Not the allocator a call is handed: that one frees what the call allocated on its way
+    /// out, and what the failure reported is read after the call has returned.
+    allocator: std.mem.Allocator,
     /// What the last failure of this group reported, which an error alone cannot carry.
     reported: errors.Reported = .empty,
 
-    pub fn init(transport: runtime.Transport) PayloadContentTypesApi {
-        return .{ .transport = transport };
+    pub fn init(
+        allocator: std.mem.Allocator,
+        transport: runtime.Transport,
+    ) PayloadContentTypesApi {
+        return .{ .allocator = allocator, .transport = transport };
+    }
+
+    /// Frees what the last failure of this group reported.
+    pub fn deinit(self: *PayloadContentTypesApi) void {
+        self.reported.deinit();
     }
 
     /// List supported event payload content types
@@ -614,7 +823,12 @@ pub const PayloadContentTypesApi = struct {
             .method = "GET",
             .path = "/api/v1/payload_content_types/",
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try runtime.list(runtime.text).read(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -625,11 +839,24 @@ pub const PayloadContentTypesApi = struct {
 pub const QuotasApi = struct {
     /// What one request is issued through.
     transport: runtime.Transport,
+    /// Where what a failure of this group reported is read into.
+    ///
+    /// Not the allocator a call is handed: that one frees what the call allocated on its way
+    /// out, and what the failure reported is read after the call has returned.
+    allocator: std.mem.Allocator,
     /// What the last failure of this group reported, which an error alone cannot carry.
     reported: errors.Reported = .empty,
 
-    pub fn init(transport: runtime.Transport) QuotasApi {
-        return .{ .transport = transport };
+    pub fn init(
+        allocator: std.mem.Allocator,
+        transport: runtime.Transport,
+    ) QuotasApi {
+        return .{ .allocator = allocator, .transport = transport };
+    }
+
+    /// Frees what the last failure of this group reported.
+    pub fn deinit(self: *QuotasApi) void {
+        self.reported.deinit();
     }
 
     /// Get quotas
@@ -645,7 +872,12 @@ pub const QuotasApi = struct {
             .method = "GET",
             .path = "/api/v1/quotas/",
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.QuotasResponse.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -656,11 +888,24 @@ pub const QuotasApi = struct {
 pub const RequestAttemptsApi = struct {
     /// What one request is issued through.
     transport: runtime.Transport,
+    /// Where what a failure of this group reported is read into.
+    ///
+    /// Not the allocator a call is handed: that one frees what the call allocated on its way
+    /// out, and what the failure reported is read after the call has returned.
+    allocator: std.mem.Allocator,
     /// What the last failure of this group reported, which an error alone cannot carry.
     reported: errors.Reported = .empty,
 
-    pub fn init(transport: runtime.Transport) RequestAttemptsApi {
-        return .{ .transport = transport };
+    pub fn init(
+        allocator: std.mem.Allocator,
+        transport: runtime.Transport,
+    ) RequestAttemptsApi {
+        return .{ .allocator = allocator, .transport = transport };
+    }
+
+    /// Frees what the last failure of this group reported.
+    pub fn deinit(self: *RequestAttemptsApi) void {
+        self.reported.deinit();
     }
 
     /// Get a request attempt by its ID
@@ -685,7 +930,12 @@ pub const RequestAttemptsApi = struct {
                 .{ .name = "application_id", .value = runtime.value(application_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.RequestAttempt.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -727,7 +977,12 @@ pub const RequestAttemptsApi = struct {
                 .{ .name = "subscription_id", .value = runtime.value(subscription_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try runtime.list(models.RequestAttempt.fromJson).read(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -738,11 +993,24 @@ pub const RequestAttemptsApi = struct {
 pub const ResponseApi = struct {
     /// What one request is issued through.
     transport: runtime.Transport,
+    /// Where what a failure of this group reported is read into.
+    ///
+    /// Not the allocator a call is handed: that one frees what the call allocated on its way
+    /// out, and what the failure reported is read after the call has returned.
+    allocator: std.mem.Allocator,
     /// What the last failure of this group reported, which an error alone cannot carry.
     reported: errors.Reported = .empty,
 
-    pub fn init(transport: runtime.Transport) ResponseApi {
-        return .{ .transport = transport };
+    pub fn init(
+        allocator: std.mem.Allocator,
+        transport: runtime.Transport,
+    ) ResponseApi {
+        return .{ .allocator = allocator, .transport = transport };
+    }
+
+    /// Frees what the last failure of this group reported.
+    pub fn deinit(self: *ResponseApi) void {
+        self.reported.deinit();
     }
 
     /// Get a response by its ID
@@ -767,7 +1035,12 @@ pub const ResponseApi = struct {
                 .{ .name = "application_id", .value = runtime.value(application_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.Response.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -778,11 +1051,24 @@ pub const ResponseApi = struct {
 pub const ServiceTokenApi = struct {
     /// What one request is issued through.
     transport: runtime.Transport,
+    /// Where what a failure of this group reported is read into.
+    ///
+    /// Not the allocator a call is handed: that one frees what the call allocated on its way
+    /// out, and what the failure reported is read after the call has returned.
+    allocator: std.mem.Allocator,
     /// What the last failure of this group reported, which an error alone cannot carry.
     reported: errors.Reported = .empty,
 
-    pub fn init(transport: runtime.Transport) ServiceTokenApi {
-        return .{ .transport = transport };
+    pub fn init(
+        allocator: std.mem.Allocator,
+        transport: runtime.Transport,
+    ) ServiceTokenApi {
+        return .{ .allocator = allocator, .transport = transport };
+    }
+
+    /// Frees what the last failure of this group reported.
+    pub fn deinit(self: *ServiceTokenApi) void {
+        self.reported.deinit();
     }
 
     /// Create a new service token
@@ -800,7 +1086,12 @@ pub const ServiceTokenApi = struct {
             .path = "/api/v1/service_token/",
             .body = try runtime.written(arena, body),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.ServiceToken.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -828,7 +1119,12 @@ pub const ServiceTokenApi = struct {
                 .{ .name = "organization_id", .value = runtime.value(organization_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
     }
 
     /// Get a service token
@@ -853,7 +1149,12 @@ pub const ServiceTokenApi = struct {
                 .{ .name = "organization_id", .value = runtime.value(organization_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.ServiceToken.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -877,7 +1178,12 @@ pub const ServiceTokenApi = struct {
                 .{ .name = "organization_id", .value = runtime.value(organization_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try runtime.list(models.ServiceToken.fromJson).read(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -902,7 +1208,12 @@ pub const ServiceTokenApi = struct {
             }),
             .body = try runtime.written(arena, body),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.ServiceToken.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -913,11 +1224,24 @@ pub const ServiceTokenApi = struct {
 pub const SubscriptionsApi = struct {
     /// What one request is issued through.
     transport: runtime.Transport,
+    /// Where what a failure of this group reported is read into.
+    ///
+    /// Not the allocator a call is handed: that one frees what the call allocated on its way
+    /// out, and what the failure reported is read after the call has returned.
+    allocator: std.mem.Allocator,
     /// What the last failure of this group reported, which an error alone cannot carry.
     reported: errors.Reported = .empty,
 
-    pub fn init(transport: runtime.Transport) SubscriptionsApi {
-        return .{ .transport = transport };
+    pub fn init(
+        allocator: std.mem.Allocator,
+        transport: runtime.Transport,
+    ) SubscriptionsApi {
+        return .{ .allocator = allocator, .transport = transport };
+    }
+
+    /// Frees what the last failure of this group reported.
+    pub fn deinit(self: *SubscriptionsApi) void {
+        self.reported.deinit();
     }
 
     /// Create a new subscription
@@ -935,7 +1259,12 @@ pub const SubscriptionsApi = struct {
             .path = "/api/v1/subscriptions/",
             .body = try runtime.written(arena, body),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.Subscription.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -963,7 +1292,12 @@ pub const SubscriptionsApi = struct {
                 .{ .name = "application_id", .value = runtime.value(application_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
     }
 
     /// Get a subscription by its ID
@@ -983,7 +1317,12 @@ pub const SubscriptionsApi = struct {
                 .{ .name = "subscription_id", .value = runtime.value(subscription_id) },
             }),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.Subscription.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -1007,7 +1346,12 @@ pub const SubscriptionsApi = struct {
                 .{ .name = "application_id", .value = runtime.value(application_id) },
             },
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try runtime.list(models.Subscription.fromJson).read(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
@@ -1032,7 +1376,12 @@ pub const SubscriptionsApi = struct {
             }),
             .body = try runtime.written(arena, body),
         });
-        try errors.raiseForStatus(arena, answered.status, answered.payload, &self.reported);
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
 
         owned.value = try models.Subscription.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;

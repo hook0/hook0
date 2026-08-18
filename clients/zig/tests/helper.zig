@@ -28,6 +28,81 @@ pub const max_connections: usize = 64;
 /// Largest request one case sends, in bytes.
 pub const max_request_bytes: usize = 64 * 1024;
 
+/// An allocator that writes over what it frees, and keeps it readable afterwards.
+///
+/// Memory a case reads after the client freed it holds whatever it held before, until something
+/// else happens to be given the same address — so a case reading a value the client no longer owns
+/// passes or fails on where the pages of one run landed rather than on what the client did. Under
+/// this one it reads `written_over` instead, whatever the addresses did: what is freed is painted
+/// first, and the allocator underneath hands nothing back to the operating system before the case
+/// is over, so the paint stays where a dangling slice points.
+///
+/// `deinit` answers what it does because the other half of the same question is whether the client
+/// freed it at all: memory kept alive past the call it was allocated in and never freed is a leak
+/// rather than a fix, and this is what says which of the two happened.
+pub const Poisoned = struct {
+    holding: std.heap.DebugAllocator(.{
+        .safety = true,
+        .never_unmap = true,
+        .retain_metadata = true,
+    }) = .init,
+
+    /// What freed memory reads as. Not zero and not a byte any body of this suite carries, so a
+    /// slice pointing into freed memory is one no case can mistake for what it used to say.
+    pub const written_over: u8 = 0xA5;
+
+    pub fn allocator(self: *Poisoned) std.mem.Allocator {
+        return .{ .ptr = self, .vtable = &.{
+            .alloc = alloc,
+            .resize = resize,
+            .remap = remap,
+            .free = free,
+        } };
+    }
+
+    /// Frees everything still held, and answers whether anything was still held.
+    pub fn deinit(self: *Poisoned) std.heap.Check {
+        return self.holding.deinit();
+    }
+
+    fn alloc(context: *anyopaque, len: usize, alignment: std.mem.Alignment, at: usize) ?[*]u8 {
+        const self: *Poisoned = @ptrCast(@alignCast(context));
+        return self.holding.allocator().rawAlloc(len, alignment, at);
+    }
+
+    fn resize(
+        context: *anyopaque,
+        memory: []u8,
+        alignment: std.mem.Alignment,
+        new_len: usize,
+        at: usize,
+    ) bool {
+        const self: *Poisoned = @ptrCast(@alignCast(context));
+        if (!self.holding.allocator().rawResize(memory, alignment, new_len, at)) return false;
+        if (new_len < memory.len) @memset(memory[new_len..], written_over);
+        return true;
+    }
+
+    /// Nothing is ever moved in place: a caller told a move is not on answers it by allocating,
+    /// copying and freeing, and that last step is the one this exists to paint over.
+    fn remap(
+        context: *anyopaque,
+        memory: []u8,
+        alignment: std.mem.Alignment,
+        new_len: usize,
+        at: usize,
+    ) ?[*]u8 {
+        _ = .{ context, memory, alignment, new_len, at };
+        return null;
+    }
+
+    fn free(context: *anyopaque, memory: []u8, alignment: std.mem.Alignment, at: usize) void {
+        const self: *Poisoned = @ptrCast(@alignCast(context));
+        @memset(memory, written_over);
+        self.holding.allocator().rawFree(memory, alignment, at);
+    }
+};
+
 /// One document of the shared contract, read and parsed, owned by the caller.
 pub fn contract(
     io: std.Io,

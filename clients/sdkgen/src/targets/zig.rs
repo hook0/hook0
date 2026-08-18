@@ -20,6 +20,13 @@
 //! the allocator all the same and frees its arena on the way out. Nothing is reachable after its
 //! arena is gone, and nothing outlives it by accident.
 //!
+//! One thing outlives it on purpose: what a failure reported. A Zig error carries no payload, so the
+//! status, the problem document and the message of a failed call are written into the group that
+//! made it — which is read after the call has returned and everything the call allocated is gone.
+//! That is why a group is built with an allocator of its own and freed with `deinit`: what a failure
+//! said is read into an arena taken from there, the next failure frees the one before it, and the
+//! last one is freed with the group.
+//!
 //! What is written is already formatted. `zig fmt` is not run over the output — the emitter writes
 //! what `zig fmt` would write, and the pipeline checks that with `zig fmt --check`, so a difference
 //! is a defect in this file rather than something a pass downstream tidies up.
@@ -97,6 +104,9 @@ const TRANSPORT_FIELD: &str = "transport";
 
 /// What an emitted group holds the last failure the API reported under.
 const REPORTED_FIELD: &str = "reported";
+
+/// What an emitted group holds the allocator that failure is read into under.
+const ALLOCATOR_FIELD: &str = "allocator";
 
 /// What the argument carrying the body an operation reads is called.
 const BODY_ARGUMENT: &str = "body";
@@ -670,15 +680,26 @@ fn errors(
 
     source.push_str(&format!(
         "\n/// What one failure of the API said about itself, beyond which error it is.\n\
+         ///\n\
+         /// Everything it points into is held in an arena of its own, which is what lets it be read\n\
+         /// after the call that drew it has freed everything that call allocated. The next failure\n\
+         /// written here frees what the last one held, and `deinit` frees the last one of all.\n\
          pub const {REPORTED_TYPE} = struct {{\n    \
          /// What the API answered under.\n    \
          status: u16 = 0,\n    \
          /// The problem document it answered, when this client could read one.\n    \
          problem: ?{MODELS}.{schema} = null,\n    \
          /// What to say about the failure.\n    \
-         detail: []const u8 = \"\",\n\n    \
+         detail: []const u8 = \"\",\n    \
+         /// Where `problem` and `detail` were read into, which nothing else refers to.\n    \
+         held: ?{RUNTIME}.Kept = null,\n\n    \
          /// What a group carries before anything has failed.\n    \
-         pub const empty: {REPORTED_TYPE} = .{{}};\n\
+         pub const empty: {REPORTED_TYPE} = .{{}};\n\n    \
+         /// Frees what the last failure reported, leaving this as it started.\n    \
+         pub fn deinit(self: *{REPORTED_TYPE}) void {{\n        \
+         if (self.held) |held| held.deinit();\n        \
+         self.* = .empty;\n    \
+         }}\n\
          }};\n"
     ));
 
@@ -701,10 +722,50 @@ fn errors(
     // declare it as a member it does not require, so what it carries is looked up rather than
     // trusted to name an entry of the catalogue.
     source.push_str(&format!(
+        "\n/// The error a problem document names, when what it names is one this client knows.\n\
+         fn raisedBy(problem: ?{MODELS}.{schema}) ?{PROBLEM_SET} {{\n    \
+         const named = problem orelse return null;\n    \
+         for ({PROBLEMS_DECLARATION}) |entry| {{\n        \
+         if (std.mem.eql(u8, entry.id, named.{discriminant})) return entry.raised;\n    \
+         }}\n    \
+         return null;\n\
+         }}\n"
+    ));
+
+    // The body is copied before it is read rather than read where it lies: what a document is
+    // parsed into points into the bytes it was parsed from, and those bytes belong to the call,
+    // which frees them on its way out.
+    source.push_str(&format!(
+        "\n/// What one failure said about itself, read into an arena of its own.\n\
+         ///\n\
+         /// Everything the answer points into — the copy of the body, the document read out of it\n\
+         /// and the message written about it — is in that arena, so what the caller allocated for\n\
+         /// the request it drew is none of it.\n\
+         fn reportedOf(\n    \
+         {ALLOCATOR_ARGUMENT}: std.mem.Allocator,\n    \
+         status: u16,\n    \
+         payload: []const u8,\n\
+         ) std.mem.Allocator.Error!{REPORTED_TYPE} {{\n    \
+         const held: {RUNTIME}.Kept = try .init({ALLOCATOR_ARGUMENT});\n    \
+         errdefer held.deinit();\n\n    \
+         const into = held.arena.allocator();\n    \
+         const carried = try into.dupe(u8, {RUNTIME}.retained(payload));\n    \
+         const problem = {RUNTIME}.problemOf({MODELS}.{schema}, into, carried);\n    \
+         const detail = if (raisedBy(problem) != null)\n        \
+         try {RUNTIME}.reported(into, status, carried)\n    \
+         else\n        \
+         try {RUNTIME}.unreadable(into, status, carried);\n\n    \
+         return .{{ .status = status, .problem = problem, .detail = detail, .held = held }};\n\
+         }}\n"
+    ));
+
+    source.push_str(&format!(
         "\n/// Answer what the API reported, when what it answered was not a success.\n\
          ///\n\
          /// What the failure said about itself is written into `{REPORTED_FIELD}`, which is what a\n\
-         /// caller reads once the error has told it there is something to read.\n\
+         /// caller reads once the error has told it there is something to read. The allocator is\n\
+         /// the one that memory is taken from, and it has to be one outliving the call: what the\n\
+         /// call itself allocated is gone by the time the caller reads any of this.\n\
          pub fn {RAISE_FUNCTION}(\n    \
          {ALLOCATOR_ARGUMENT}: std.mem.Allocator,\n    \
          status: u16,\n    \
@@ -712,25 +773,10 @@ fn errors(
          {REPORTED_FIELD}: *{REPORTED_TYPE},\n\
          ) ({PROBLEM_SET} || std.mem.Allocator.Error)!void {{\n    \
          if (status >= {LOWEST_SUCCESS} and status < {LOWEST_REDIRECTION}) return;\n\n    \
-         const problem = {RUNTIME}.problemOf({MODELS}.{schema}, {ALLOCATOR_ARGUMENT}, payload);\n    \
-         if (problem) |named| {{\n        \
-         for ({PROBLEMS_DECLARATION}) |entry| {{\n            \
-         if (std.mem.eql(u8, entry.id, named.{discriminant})) {{\n                \
-         {REPORTED_FIELD}.* = .{{\n                    \
-         .status = status,\n                    \
-         .problem = named,\n                    \
-         .detail = try {RUNTIME}.reported({ALLOCATOR_ARGUMENT}, status, payload),\n                \
-         }};\n                \
-         return entry.raised;\n            \
-         }}\n        \
-         }}\n    \
-         }}\n\n    \
-         {REPORTED_FIELD}.* = .{{\n        \
-         .status = status,\n        \
-         .problem = problem,\n        \
-         .detail = try {RUNTIME}.unreadable({ALLOCATOR_ARGUMENT}, status, payload),\n    \
-         }};\n    \
-         return error.Unreadable;\n\
+         const read = try reportedOf({ALLOCATOR_ARGUMENT}, status, payload);\n    \
+         {REPORTED_FIELD}.deinit();\n    \
+         {REPORTED_FIELD}.* = read;\n\n    \
+         return raisedBy(read.problem) orelse error.Unreadable;\n\
          }}\n"
     ));
 
@@ -777,12 +823,33 @@ fn group(
          pub const {declared} = struct {{\n    \
          /// What one request is issued through.\n    \
          {TRANSPORT_FIELD}: {RUNTIME}.Transport,\n    \
+         /// Where what a failure of this group reported is read into.\n    \
+         ///\n    \
+         /// Not the allocator a call is handed: that one frees what the call allocated on its way\n    \
+         /// out, and what the failure reported is read after the call has returned.\n    \
+         {ALLOCATOR_FIELD}: std.mem.Allocator,\n    \
          /// What the last failure of this group reported, which an error alone cannot carry.\n    \
-         {REPORTED_FIELD}: {ERRORS}.{REPORTED_TYPE} = .empty,\n\n    \
-         pub fn init({TRANSPORT_FIELD}: {RUNTIME}.Transport) {declared} {{\n        \
-         return .{{ .{TRANSPORT_FIELD} = {TRANSPORT_FIELD} }};\n    \
+         {REPORTED_FIELD}: {ERRORS}.{REPORTED_TYPE} = .empty,\n\n\
+         {}        \
+         return .{{ \
+         .{ALLOCATOR_FIELD} = {ALLOCATOR_FIELD}, \
+         .{TRANSPORT_FIELD} = {TRANSPORT_FIELD} \
+         }};\n    \
+         }}\n\n    \
+         /// Frees what the last failure of this group reported.\n    \
+         pub fn deinit(self: *{declared}) void {{\n        \
+         self.{REPORTED_FIELD}.deinit();\n    \
          }}\n",
-        comment(&entity.name)
+        comment(&entity.name),
+        signature(
+            "    ",
+            "init",
+            &[
+                format!("{ALLOCATOR_FIELD}: std.mem.Allocator"),
+                format!("{TRANSPORT_FIELD}: {RUNTIME}.Transport"),
+            ],
+            declared,
+        )
     );
 
     for method in &entity.methods {
@@ -901,9 +968,16 @@ fn operation(
             ),
         }
     );
-    let raised = format!(
-        "        try {ERRORS}.{RAISE_FUNCTION}(arena, answered.status, answered.payload, \
-         &self.{REPORTED_FIELD});\n"
+    let raised = call(
+        "        ",
+        &format!("try {ERRORS}.{RAISE_FUNCTION}"),
+        &[
+            format!("self.{ALLOCATOR_FIELD}"),
+            "answered.status".to_owned(),
+            "answered.payload".to_owned(),
+            format!("&self.{REPORTED_FIELD}"),
+        ],
+        ";",
     );
 
     match answered.as_deref() {
