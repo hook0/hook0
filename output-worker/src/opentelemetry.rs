@@ -408,6 +408,40 @@ pub fn report_delivery_outcome(outcome: DeliveryOutcome) {
     DELIVERY_OUTCOMES.add(1, &[KeyValue::new("outcome", outcome.as_str())]);
 }
 
+static DELIVERIES_GIVEN_UP: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("webhook.delivery.given_up")
+        .with_description("Count of deliveries abandoned for good, by bounded reason")
+        .build()
+});
+
+/// Bounded set of reasons a delivery is abandoned for good: no further attempt
+/// will ever be scheduled for that event on that subscription. `RetriesExhausted`
+/// and `SignatureFailed` lose an event a subscriber was waiting for, while
+/// `SubscriptionGone` is the expected end of a subscription or application that
+/// no longer wants deliveries. Keeping the three apart is the point: only the
+/// first two are worth waking someone up for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GiveUpReason {
+    RetriesExhausted,
+    SubscriptionGone,
+    SignatureFailed,
+}
+
+impl GiveUpReason {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            GiveUpReason::RetriesExhausted => "retries_exhausted",
+            GiveUpReason::SubscriptionGone => "subscription_gone",
+            GiveUpReason::SignatureFailed => "signature_failed",
+        }
+    }
+}
+
+pub fn report_given_up(reason: GiveUpReason) {
+    DELIVERIES_GIVEN_UP.add(1, &[KeyValue::new("reason", reason.as_str())]);
+}
+
 /// Total mapping from a delivery `Response` to exactly one bounded `DeliveryOutcome`.
 /// A success maps to `Success`; an HTTP error with a 4xx/5xx code maps to the
 /// matching class; anything else falls back to the transport error (`Timeout` for a
@@ -435,6 +469,14 @@ mod tests {
     use super::*;
     use proptest::prelude::*;
     use std::collections::BTreeSet;
+
+    /// The complete, closed set of labels the `reason` attribute of a give-up may
+    /// ever take.
+    const GIVE_UP_LABELS: [&str; 3] = [
+        "retries_exhausted",
+        "subscription_gone",
+        "signature_failed",
+    ];
 
     /// The complete, closed set of labels the `outcome` attribute may ever take.
     const OUTCOME_LABELS: [&str; 6] = [
@@ -514,6 +556,22 @@ mod tests {
         assert_eq!(labels, expected);
         // Each variant maps to a distinct label (no collisions).
         assert_eq!(labels.len(), 6);
+    }
+
+    #[test]
+    fn give_up_reason_labels_are_the_closed_bounded_set() {
+        let labels: BTreeSet<&str> = [
+            GiveUpReason::RetriesExhausted,
+            GiveUpReason::SubscriptionGone,
+            GiveUpReason::SignatureFailed,
+        ]
+        .iter()
+        .map(GiveUpReason::as_str)
+        .collect();
+        let expected: BTreeSet<&str> = GIVE_UP_LABELS.into_iter().collect();
+        assert_eq!(labels, expected);
+        // Each variant maps to a distinct label (no collisions).
+        assert_eq!(labels.len(), 3);
     }
 
     #[test]
