@@ -327,15 +327,10 @@ fn reachesEveryOperation(optionals: bool) !void {
     try expectSameNames(try templatesOf(held, declared), reached.items);
 }
 
-/// What one operation put on the wire, held to what the document declares it as, and which
-/// operation of the document that was.
-fn heldTo(
-    held: std.mem.Allocator,
-    declared: []const surface.Declared,
-    request: helper.Received,
-    named: []const u8,
-    optionals: bool,
-) ![]const u8 {
+/// Which operation of the document a request is, refusing one that is none of them and one that is
+/// several. Both walks below resolve a request through here, so the two agree on what "the
+/// operation the document declares" means rather than each deciding for itself.
+fn matchedTo(declared: []const surface.Declared, request: helper.Received) !surface.Declared {
     var matched: ?surface.Declared = null;
     var found: usize = 0;
     for (declared) |one| {
@@ -352,7 +347,19 @@ fn heldTo(
         });
         return failed;
     };
-    const one = matched.?;
+    return matched.?;
+}
+
+/// What one operation put on the wire, held to what the document declares it as, and which
+/// operation of the document that was.
+fn heldTo(
+    held: std.mem.Allocator,
+    declared: []const surface.Declared,
+    request: helper.Received,
+    named: []const u8,
+    optionals: bool,
+) ![]const u8 {
+    const one = try matchedTo(declared, request);
 
     try std.testing.expectEqualStrings("Bearer token-xyz", request.get("authorization").?);
     try std.testing.expectEqualStrings("application/json", request.get("accept").?);
@@ -544,6 +551,7 @@ test "every operation frees what it had already taken when the API refuses it" {
     const held = arena.allocator();
 
     const lists = try surface.listsOf(io, held);
+    const declared = try surface.declaredOperations(io, held);
 
     var scripted: std.ArrayList(helper.Scripted) = .empty;
     for (0..operation_names.len) |_| {
@@ -560,6 +568,8 @@ test "every operation frees what it had already taken when the API refuses it" {
 
     var transport: hook0.Transport = .{ .io = io, .base_url = try api.baseUrl(held), .token = "token-xyz" };
     var refused: std.ArrayList([]const u8) = .empty;
+    var reached: std.ArrayList([]const u8) = .empty;
+    var at: usize = 0;
 
     inline for (group_names) |group_name| {
         const Group = @field(hook0.api, group_name);
@@ -600,8 +610,18 @@ test "every operation frees what it had already taken when the API refuses it" {
 
             try std.testing.expectEqual(@as(u16, 404), group.reported.status);
             try refused.append(held, named);
+
+            const request = api.at(at) orelse return error.AnOperationIssuedNoRequest;
+            const one = try matchedTo(declared, request);
+            try reached.append(held, try std.fmt.allocPrint(held, "{s} {s}", .{ one.verb, one.template }));
+            at += 1;
         }
     }
 
     try expectSameNames(operation_names, refused.items);
+    // The same subtraction the walk above makes, made again here against the document rather than
+    // against reflection alone. Reflection agreeing with itself would still agree if the generator
+    // stopped writing an operation, and either walk can be deleted; holding both of them to the
+    // document means what the API declares survives losing either one.
+    try expectSameNames(try templatesOf(held, declared), reached.items);
 }

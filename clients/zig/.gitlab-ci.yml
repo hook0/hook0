@@ -48,4 +48,17 @@ clients.zig.check:
     - zig fmt --check .
     # The suite drives this client against an API on a loopback socket in a thread of its own, so
     # every timeout it exercises is a real one; the run as a whole is bounded by the job's own.
+    #
+    # This is also where coverage is held, and it is held as exhaustiveness rather than as a
+    # percentage. A percentage would be the wrong instrument here: Zig emits only the code something
+    # references, so an operation nothing calls is absent from a report rather than uncovered in it,
+    # and the first test to call one *lowers* the score by enlarging the denominator. A floor over
+    # that rewards not testing. (kcov also reports zero covered lines under the default backend while
+    # still printing a green report, which is a second reason not to build a number on it.)
+    #
+    # What stands in its place: `tests/generated_test.zig` walks every model and every operation the
+    # generator wrote — found by reflection, never from a list kept by hand — and subtracts that set
+    # against the one the walk actually drove, in both directions, refusing an empty set either side.
+    # So a generated thing nothing exercises fails the job by name, which is what a percentage was
+    # only ever a proxy for. Do not add one here.
     - zig build test
