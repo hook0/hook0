@@ -178,12 +178,16 @@ An event type is written `service.resource_type.verb`. `hook0.EventType.parse` r
 Sending events is two methods out of the whole API. Every operation Hook0 declares is a method of a generated group, built on the transport the client already holds:
 
 ```zig example=api_group
-var group: hook0.api.ApplicationSecretsApi = .{ .transport = client.transportOf() };
+var group = hook0.api.ApplicationSecretsApi.init(allocator, client.transportOf());
+defer group.deinit();
+
 const secrets = try group.list(allocator, application_id);
 defer secrets.deinit();
 ```
 
 One group per entity, one method per operation, and one member of `hook0.errors.Failure` per problem the API can report. A group carries `reported`, which holds the status and the problem document of its last failure, since an error value alone cannot.
+
+That is why a group takes an allocator of its own and has to be released. What `reported` points at outlives the call that failed, so the group owns it: each failure frees what the previous one held, and `deinit` frees the last.
 
 ## Errors
 
