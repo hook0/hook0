@@ -390,6 +390,237 @@ public sealed class ClientTests : ApiCase
             $"the schedule spends {spent}ms where the header states a budget of {stated["budget"]}");
     }
 
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task AnEventSaysWhatElseItCarriesAndWhenItHappened(Surface surface)
+    {
+        Api.WillAnswer(Ingested(IngestedId));
+        using Hook0Client client = Client();
+
+        Event carrying = AnEvent() with
+        {
+            Metadata = new Dictionary<string, string>(StringComparer.Ordinal) { ["tenant"] = "acme" },
+            OccurredAt = DateTimeOffset.Parse("2026-01-02T03:04:05Z", CultureInfo.InvariantCulture),
+        };
+        await Send(client, carrying, surface);
+
+        JsonNode sent = Api.Received[0].Json();
+
+        Assert.Equal("acme", sent["metadata"]!["tenant"]!.GetValue<string>());
+
+        // The moment the caller named travels, rather than the one the send was made at. It is read
+        // back rather than matched as text: this client writes a zero offset as `+00:00` where the
+        // JVM clients write `Z`, and both are the same moment to anything reading RFC 3339.
+        Assert.Equal(
+            DateTimeOffset.Parse("2026-01-02T03:04:05Z", CultureInfo.InvariantCulture),
+            DateTimeOffset.Parse(Text(sent, "occurred_at"), CultureInfo.InvariantCulture));
+    }
+
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task ASendThatGaveUpSaysWhichEventItWasAndHowLongItWaited(Surface surface)
+    {
+        // What a caller catches has to say enough to act on: which event never landed, how many
+        // requests were spent on it, and how much of the wait was this client's own doing.
+        Api.WillAnswer(ServerError(), ServerError(), ServerError());
+        using Hook0Client client = Client(Options(maxAttempts: 3));
+
+        SendException gave = await Assert.ThrowsAsync<SendException>(
+            () => Send(client, AnEvent(new Guid(IngestedId)), surface));
+
+        Assert.Equal(IngestedId, gave.EventId);
+        Assert.Equal(3, gave.Attempts);
+        Assert.True(gave.Waited > TimeSpan.Zero, "a send that retried twice says it waited for nothing");
+        Assert.True(gave.Waited <= TimeSpan.FromSeconds(1), $"a send waited {gave.Waited} of a one-second budget");
+    }
+
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task AListOfEventTypesTheApiRefusesToAnswerIsReported(Surface surface)
+    {
+        Api.WillAnswer(ServerError());
+        using Hook0Client client = Client();
+
+        EventTypeException reported = await Assert.ThrowsAsync<EventTypeException>(
+            () => Upserted(client, ["auth.user.create"], surface));
+
+        Assert.StartsWith("Getting available event types failed", reported.Message, StringComparison.Ordinal);
+        // Nothing was created, since what is already declared was never learnt.
+        Assert.Single(Api.Received);
+    }
+
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task AnAnswerThatIsNotAListOfEventTypesIsReported(Surface surface)
+    {
+        Api.WillAnswer(new ScriptedResponse(200, new JsonObject { ["event_type_name"] = "auth.user.create" }));
+        using Hook0Client client = Client();
+
+        EventTypeException reported = await Assert.ThrowsAsync<EventTypeException>(
+            () => Upserted(client, ["auth.user.create"], surface));
+
+        Assert.Contains("did not answer a list of event types", reported.Message, StringComparison.Ordinal);
+        Assert.Single(Api.Received);
+    }
+
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task AnAnswerToAListOfEventTypesThatIsNotJsonAtAllIsReported(Surface surface)
+    {
+        Api.WillAnswer(new ScriptedResponse(200, null, Written: "<html>a proxy answered this</html>"));
+        using Hook0Client client = Client();
+
+        EventTypeException reported = await Assert.ThrowsAsync<EventTypeException>(
+            () => Upserted(client, ["auth.user.create"], surface));
+
+        Assert.StartsWith("Getting available event types failed", reported.Message, StringComparison.Ordinal);
+        Assert.Single(Api.Received);
+    }
+
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task AListOfEventTypesTheApiNeverAnswersIsReported(Surface surface)
+    {
+        // The request got no answer at all rather than one that could not be read, and a caller has
+        // to hear about it as the same failure whichever way the call was made.
+        Api.WillAnswer(new ScriptedResponse(200, new JsonArray(), TimeSpan.FromSeconds(1)));
+        using Hook0Client client = Client(Options(requestTimeout: 0.2));
+
+        EventTypeException reported = await Assert.ThrowsAsync<EventTypeException>(
+            () => Upserted(client, ["auth.user.create"], surface));
+
+        Assert.StartsWith("Getting available event types failed", reported.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task AskingForNoEventTypesDeclaresNoneAndIssuesNoRequest(Surface surface)
+    {
+        using Hook0Client client = Client();
+
+        Assert.Empty(await Upserted(client, [], surface));
+        Assert.Empty(Api.Received);
+    }
+
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task MoreEventTypesThanOneCallDeclaresIsRefusedBeforeAnyRequest(Surface surface)
+    {
+        string[] many = [.. Enumerable.Range(0, 257).Select(at => $"auth.user.create{at}")];
+        using Hook0Client client = Client();
+
+        EventTypeException refused = await Assert.ThrowsAsync<EventTypeException>(
+            () => Upserted(client, many, surface));
+
+        Assert.Contains("above the", refused.Message, StringComparison.Ordinal);
+        Assert.Empty(Api.Received);
+    }
+
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task AnEventTypeTheApiRefusesToCreateIsReported(Surface surface)
+    {
+        Api.WillAnswer(new ScriptedResponse(200, new JsonArray()), Refusal(409, "EventTypeAlreadyExist"));
+        using Hook0Client client = Client();
+
+        EventTypeException reported = await Assert.ThrowsAsync<EventTypeException>(
+            () => Upserted(client, ["auth.user.create"], surface));
+
+        Assert.StartsWith(
+            "Creating event type 'auth.user.create' failed",
+            reported.Message,
+            StringComparison.Ordinal);
+        Assert.Equal(2, Api.Received.Count);
+    }
+
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task AnAnswerTakingTheEventWithoutSayingWhichIsNotReadAsASuccess(Surface surface)
+    {
+        // Two ways an answer can take the event and not say which: a document carrying no
+        // `event_id`, and a body that is not a document at all.
+        foreach (ScriptedResponse taken in new[]
+        {
+            new ScriptedResponse(201, new JsonObject { ["application_id"] = "app-123" }),
+            new ScriptedResponse(201, null, Written: "<html>a proxy answered this</html>"),
+        })
+        {
+            Restarted();
+            Api.WillAnswer(taken, Ingested(IngestedId));
+            using Hook0Client client = Client();
+
+            SendException reported = await Assert.ThrowsAsync<SendException>(
+                () => Send(client, AnEvent(), surface));
+
+            Assert.Contains("without an event id", reported.Message, StringComparison.Ordinal);
+            // Repeating the request would meet the same answer, so the send stops rather than
+            // spending every attempt it had left on it.
+            Assert.Single(Api.Received);
+        }
+    }
+
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task AnAnswerCarryingNoDocumentAtAllIsStillReported(Surface surface)
+    {
+        Api.WillAnswer(new ScriptedResponse(500, null, Written: "<html>a proxy answered this</html>"));
+        using Hook0Client client = Client(Options(maxAttempts: 1));
+
+        SendException reported = await Assert.ThrowsAsync<SendException>(
+            () => Send(client, AnEvent(), surface));
+
+        Assert.Contains("a proxy answered this", reported.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task ADelayTheApiNamesInAnythingButSecondsLeavesTheScheduleInPlace(Surface surface)
+    {
+        // A `Retry-After` carrying a date is a clock this client would be comparing against its own;
+        // one carrying nothing, or more than a delay is ever written in, is a header nobody meant.
+        // None of them stops the send: it comes back on its own schedule rather than on one it read
+        // out of a spelling it does not understand.
+        foreach (string written in new[]
+        {
+            string.Empty,
+            "Wed, 21 Oct 2026 07:28:00 GMT",
+            new string('0', 64),
+            "9999999999",
+        })
+        {
+            Restarted();
+            Api.WillAnswer(
+                Refusal(503, "ServiceUnavailable", [new KeyValuePair<string, string>("Retry-After", written)]),
+                Ingested(IngestedId));
+            using Hook0Client client = Client(Options(maxAttempts: 2));
+
+            Assert.Equal(IngestedId, await Send(client, AnEvent(), surface));
+            Assert.Equal(2, Api.Received.Count);
+        }
+    }
+
+    [Fact]
+    public void AFailureThisClientMetSaysWhatWasReportedUnderneathIt()
+    {
+        InvalidOperationException underneath = new("what the socket said");
+        Hook0Exception reported = new("what this client says", underneath);
+
+        Assert.Equal("what this client says", reported.Message);
+        Assert.Same(underneath, reported.InnerException);
+    }
+
     [Fact]
     public void AnEventTypeThatDoesNotNameAllThreeOfItsPartsIsRefused()
     {
@@ -397,6 +628,17 @@ public sealed class ClientTests : ApiCase
         Assert.Throws<EventTypeException>(() => EventType.Parse("auth..create"));
         Assert.Throws<EventTypeException>(() => EventType.Parse("auth.user.create.extra"));
         Assert.Equal("auth.user.create", EventType.Parse("auth.user.create").Written());
+    }
+
+    [Fact]
+    public void AnEventTypeNobodyCouldHaveMeantIsRefusedRatherThanSpelledOut()
+    {
+        // Nothing, nothing at all, more than the API stores, and a segment carrying a character an
+        // event type is not written with.
+        Assert.Throws<EventTypeException>(() => EventType.Parse(null!));
+        Assert.Throws<EventTypeException>(() => EventType.Parse(string.Empty));
+        Assert.Throws<EventTypeException>(() => EventType.Parse(new string('a', EventType.MaxLength + 1)));
+        Assert.Throws<EventTypeException>(() => EventType.Parse("auth.user!.create"));
     }
 
     [Fact]

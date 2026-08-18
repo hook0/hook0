@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.hook0.client.generated.ApplicationsApi;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -262,6 +264,214 @@ final class ClientTest {
     try (FakeApi api = new FakeApi(); Hook0Client client = client(api, options(4))) {
       assertThrows(ClientException.class, () -> surface.upsertEventTypes(client, List.of("nope")));
       assertEquals(0, api.received().size());
+    }
+  }
+
+  @Test
+  void anEventTypeNobodyCouldHaveMeantIsRefusedRatherThanSpelledOut() {
+    // Nothing, nothing at all, and a segment carrying a character an event type is not written with.
+    assertThrows(ClientException.class, () -> EventType.parse(null));
+    assertThrows(ClientException.class, () -> EventType.parse(""));
+    assertThrows(ClientException.class, () -> EventType.parse("auth.user!.create"));
+    assertEquals("auth.user.create", EventType.parse("auth.user.create").toString());
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void anEventSaysWhatElseItCarriesAndWhenItHappened(Surface surface) {
+    OffsetDateTime happened = OffsetDateTime.parse("2026-01-02T03:04:05Z");
+    try (FakeApi api = new FakeApi(); Hook0Client client = client(api, options(4))) {
+      api.willAnswer(ingested(INGESTED_ID));
+      surface.send(client, anEvent().withMetadata(Map.of("tenant", "acme")).withOccurredAt(happened));
+
+      Map<?, ?> sent = (Map<?, ?>) api.received().get(0).json();
+
+      assertEquals(Map.of("tenant", "acme"), sent.get("metadata"));
+      // The moment the caller named, rather than the one the send was made at.
+      assertEquals("2026-01-02T03:04:05Z", sent.get("occurred_at"));
+    }
+  }
+
+  @Test
+  void aClientBuiltWithoutBoundsIsHeldToTheDefaultOnes() {
+    try (FakeApi api = new FakeApi();
+        Hook0Client client = new Hook0Client(api.baseUrl(), "app-123", "token-xyz")) {
+      api.willAnswer(ingested(INGESTED_ID));
+
+      assertEquals(Options.defaults(), client.options());
+      assertEquals(UUID.fromString(INGESTED_ID), client.sendEvent(anEvent()));
+    }
+  }
+
+  @Test
+  void aGeneratedGroupIssuesItsRequestsThroughTheTransportTheClientHolds() {
+    // What `transport()` is for: the same credential and the same bounds a send is held to are what
+    // a generated operation group is built on, rather than a second connection to the same API.
+    try (FakeApi api = new FakeApi();
+        Hook0Client client = new Hook0Client(api.baseUrl(), "app-123", "token-xyz")) {
+      api.willAnswer(FakeApi.Scripted.of(200, List.of()));
+
+      assertTrue(new ApplicationsApi(client.transport()).list("an-organization").isEmpty());
+      assertEquals("Bearer token-xyz", api.received().get(0).headers().get("authorization"));
+    }
+  }
+
+  @Test
+  void aTransportTheCallerOwnsOutlivesTheClientBuiltOnIt() {
+    try (FakeApi api = new FakeApi();
+        HttpTransport owned = new HttpTransport(api.baseUrl(), "token-xyz", options(4))) {
+      api.willAnswer(ingested(INGESTED_ID), ingested(INGESTED_ID));
+
+      try (Hook0Client first = new Hook0Client(owned, "app-123", options(4))) {
+        assertEquals(UUID.fromString(INGESTED_ID), first.sendEvent(anEvent()));
+      }
+
+      // The client did not build the transport, so closing the client did not close it: it is the
+      // caller's, and a second client built on it still reaches the API.
+      try (Hook0Client second = new Hook0Client(owned, "app-123", options(4))) {
+        assertEquals(UUID.fromString(INGESTED_ID), second.sendEvent(anEvent()));
+      }
+
+      assertEquals(2, api.received().size());
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void aListOfEventTypesTheApiRefusesToAnswerIsReported(Surface surface) {
+    try (FakeApi api = new FakeApi(); Hook0Client client = client(api, options(4))) {
+      api.willAnswer(refused(500, "InternalServerError"));
+
+      ClientException reported =
+          assertThrows(ClientException.class, () -> surface.upsertEventTypes(client, List.of("auth.user.create")));
+
+      assertTrue(reported.getMessage().startsWith("Getting available event types failed"), reported.getMessage());
+      // Nothing was created, since what is already declared was never learnt.
+      assertEquals(1, api.received().size());
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void anAnswerThatIsNotAListOfEventTypesIsReported(Surface surface) {
+    try (FakeApi api = new FakeApi(); Hook0Client client = client(api, options(4))) {
+      api.willAnswer(FakeApi.Scripted.of(200, Map.of("event_type_name", "auth.user.create")));
+
+      ClientException reported =
+          assertThrows(ClientException.class, () -> surface.upsertEventTypes(client, List.of("auth.user.create")));
+
+      assertTrue(reported.getMessage().contains("did not answer a list of event types"), reported.getMessage());
+      assertEquals(1, api.received().size());
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void askingForNoEventTypesDeclaresNoneAndIssuesNoRequest(Surface surface) {
+    try (FakeApi api = new FakeApi(); Hook0Client client = client(api, options(4))) {
+      assertEquals(List.of(), surface.upsertEventTypes(client, List.of()));
+      assertEquals(0, api.received().size());
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void aListOfEventTypesTheApiNeverAnswersIsReported(Surface surface) {
+    // The request got no answer at all rather than one that could not be read, and a caller has to
+    // hear about it as the same failure whichever way the call was made.
+    Options impatient = options(4).withRequestTimeout(Duration.ofMillis(200));
+    try (FakeApi api = new FakeApi(); Hook0Client client = client(api, impatient)) {
+      api.willAnswer(FakeApi.Scripted.of(200, List.of(), Duration.ofSeconds(1)));
+
+      ClientException reported =
+          assertThrows(ClientException.class, () -> surface.upsertEventTypes(client, List.of("auth.user.create")));
+
+      assertTrue(reported.getMessage().startsWith("Getting available event types failed"), reported.getMessage());
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void anEventTypeTheApiNeverAnswersAboutIsReported(Surface surface) {
+    Options impatient = options(4).withRequestTimeout(Duration.ofMillis(200));
+    try (FakeApi api = new FakeApi(); Hook0Client client = client(api, impatient)) {
+      api.willAnswer(
+          FakeApi.Scripted.of(200, List.of()),
+          FakeApi.Scripted.of(201, Map.of("event_type_name", "auth.user.create"), Duration.ofSeconds(1)));
+
+      ClientException reported =
+          assertThrows(ClientException.class, () -> surface.upsertEventTypes(client, List.of("auth.user.create")));
+
+      assertTrue(
+          reported.getMessage().startsWith("Creating event type 'auth.user.create' failed"), reported.getMessage());
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void anEventTypeTheApiRefusesToCreateIsReported(Surface surface) {
+    try (FakeApi api = new FakeApi(); Hook0Client client = client(api, options(4))) {
+      api.willAnswer(FakeApi.Scripted.of(200, List.of()), refused(409, "EventTypeAlreadyExist"));
+
+      ClientException reported =
+          assertThrows(ClientException.class, () -> surface.upsertEventTypes(client, List.of("auth.user.create")));
+
+      assertTrue(
+          reported.getMessage().startsWith("Creating event type 'auth.user.create' failed"), reported.getMessage());
+      assertEquals(2, api.received().size());
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void anAnswerTakingTheEventWithoutSayingWhichIsNotReadAsASuccess(Surface surface) {
+    try (FakeApi api = new FakeApi(); Hook0Client client = client(api, options(4))) {
+      api.willAnswer(FakeApi.Scripted.of(201, Map.of("application_id", "app-123")), ingested(INGESTED_ID));
+
+      ClientException reported = assertThrows(ClientException.class, () -> surface.send(client, anEvent()));
+
+      assertTrue(reported.getMessage().contains("without an event id"), reported.getMessage());
+      // Repeating the request would meet the same answer, so the send stops rather than spending
+      // every attempt it had left on it.
+      assertEquals(1, api.received().size());
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void anAnswerCarryingNoDocumentAtAllIsStillReported(Surface surface) {
+    Options once = options(4).withRetryPolicy(RetryPolicy.disabled());
+    try (FakeApi api = new FakeApi(); Hook0Client client = client(api, once)) {
+      api.willAnswer(new FakeApi.Scripted(500, "<html>a proxy answered this</html>", Duration.ZERO, Map.of()));
+
+      ClientException reported = assertThrows(ClientException.class, () -> surface.send(client, anEvent()));
+
+      assertTrue(reported.getMessage().contains("a proxy answered this"), reported.getMessage());
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface.class)
+  void aDelayTheApiNamesInAnythingButSecondsLeavesTheScheduleInPlace(Surface surface) {
+    // A `Retry-After` carrying a date is a clock this client would be comparing against its own; one
+    // carrying nothing, or more than a delay is ever written in, is a header nobody meant. None of
+    // them stops the send: it comes back on its own schedule rather than on one it read out of a
+    // spelling it does not understand.
+    for (String written : List.of("", "Wed, 21 Oct 2026 07:28:00 GMT", "0".repeat(64), "9999999999")) {
+      try (FakeApi api = new FakeApi(); Hook0Client client = client(api, options(2))) {
+        api.willAnswer(
+            FakeApi.Scripted.of(
+                503,
+                Map.of("id", "ServiceUnavailable", "status", Long.valueOf(503)),
+                Map.of("Retry-After", written)),
+            ingested(INGESTED_ID));
+
+        assertEquals(
+            UUID.fromString(INGESTED_ID),
+            surface.send(client, anEvent()),
+            "a send stopped on a `Retry-After: " + written + "` rather than keeping its own schedule");
+        assertEquals(2, api.received().size());
+      }
     }
   }
 

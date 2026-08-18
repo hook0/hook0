@@ -12,12 +12,19 @@ import com.hook0.client.generated.ApplicationInfo;
 import com.hook0.client.generated.ApplicationsApi;
 import com.hook0.client.generated.ApplicationsAsyncApi;
 import com.hook0.client.generated.NotFoundException;
-import com.hook0.client.generated.Problem;
 import com.hook0.client.generated.ProblemException;
 import com.hook0.client.generated.ProblemId;
+import com.hook0.client.generated.Problems;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.RecordComponent;
+import java.lang.reflect.Type;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,6 +34,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * What the generated request layer puts on the wire, and what it does with what comes back.
@@ -182,15 +191,40 @@ final class GeneratedTest {
   }
 
   @Test
-  void aMemberTheDocumentDoesNotRequireIsAbsentRatherThanWrittenBackAsNothing() {
-    Problem problem = Problem.fromJson(aProblem());
+  void everyMemberTheDocumentDoesNotRequireIsAbsentRatherThanWrittenBackAsNothing() {
+    // Every value, and every member of it, one member at a time: the document arrives without it and
+    // what happens next has to be one of two things. Either the member is required and the read stops,
+    // or it is not and the value reads — in which case writing it back leaves the member out rather
+    // than answering it as nothing, which is a difference the API can see.
+    int required = 0;
+    int optional = 0;
 
-    assertFalse(problem.toJson().containsKey("validation"), "a member the API answered none of was written back");
-    assertEquals(aProblem().keySet(), problem.toJson().keySet());
-    // What was written back reads as the same value, which is what says nothing was lost on the way
-    // out — the numbers travel as the widths the document declares rather than as the ones a reader
-    // happened to build them at.
-    assertEquals(problem, Problem.fromJson(problem.toJson()));
+    for (Class<?> declared : Generated.types()) {
+      if (!Generated.isAValue(declared)) {
+        continue;
+      }
+      Map<String, Object> whole = Generated.written(Generated.filled(declared));
+      for (String name : whole.keySet()) {
+        Map<String, Object> without = new LinkedHashMap<>(whole);
+        without.remove(name);
+
+        Object read = Generated.readOrNothing(declared, without);
+        if (read == null) {
+          required++;
+          continue;
+        }
+
+        Map<String, Object> back = Generated.written(read);
+        assertFalse(
+            back.containsKey(name),
+            declared.getSimpleName() + "." + name + " was answered none of and written back as nothing");
+        assertEquals(read, Generated.readOrNothing(declared, back), declared.getSimpleName() + " does not read back");
+        optional++;
+      }
+    }
+
+    assertTrue(required > 0, "no member the document requires was found, so this guard checked nothing");
+    assertTrue(optional > 0, "no member the document leaves out was found, so this guard checked nothing");
   }
 
   @Test
@@ -209,6 +243,103 @@ final class GeneratedTest {
     unreadable.put("onboarding_steps", Map.of("event", "Maybe", "event_type", "ToDo", "subscription", "ToDo"));
 
     assertThrows(DecodeException.class, () -> ApplicationInfo.fromJson(unreadable));
+  }
+
+  @Test
+  void aValueTravelsInARequestLineTheWayTheApiReadsOne() {
+    // What a generated operation hands the transport for a path segment or a query value. The
+    // spellings are the API's, not the platform's: a moment is RFC 3339 and a day is ISO 8601,
+    // whichever way the runtime would have printed either on its own.
+    assertEquals("", Wire.written(null));
+    assertEquals("what the caller passed", Wire.written("what the caller passed"));
+    assertEquals("true", Wire.written(Boolean.TRUE));
+    assertEquals("7", Wire.written(Integer.valueOf(7)));
+    assertEquals("2026-01-02", Wire.written(LocalDate.parse("2026-01-02")));
+    assertEquals("2026-01-02T03:04:05Z", Wire.written(OffsetDateTime.parse("2026-01-02T03:04:05Z")));
+    assertEquals("2026-01-02T03:04:05Z", Wire.queryValue(OffsetDateTime.parse("2026-01-02T03:04:05Z")));
+
+    // Every character a segment carries that could name another one travels encoded.
+    assertEquals("an%20application%2F..%2F..", Wire.pathSegment("an application/../.."));
+    assertEquals("what-the.caller_passed~", Wire.pathSegment("what-the.caller_passed~"));
+  }
+
+  @Test
+  void everyClosedListCarriesEveryStringTheApiAnswersAndNothingElse() {
+    // The constants are the wire values themselves, so a name moved out of the way of the language
+    // never reaches the wire. Every list the generator wrote is walked and every value of it read
+    // back from its own text, which is what says the whole list travels rather than the one value a
+    // case happened to name.
+    int exercised = 0;
+    for (Class<?> declared : Generated.types()) {
+      if (!declared.isEnum()) {
+        continue;
+      }
+      for (Object named : declared.getEnumConstants()) {
+        String carried = wireValue(named);
+
+        assertEquals(
+            named, read(declared, carried), declared.getSimpleName() + " does not read back `" + carried + "`");
+        exercised++;
+      }
+
+      assertThrows(
+          DecodeException.class,
+          () -> read(declared, "a value the API never declared"),
+          declared.getSimpleName() + " carried a value the API declares none of");
+    }
+
+    assertTrue(exercised > 0, "no closed list was found, so this guard checked nothing");
+  }
+
+  /** The text one value of a closed list travels as. */
+  private static String wireValue(Object named) {
+    try {
+      return (String) named.getClass().getMethod("wireValue").invoke(named);
+    } catch (ReflectiveOperationException unusable) {
+      throw new IllegalStateException(named + " does not say what it travels as", unusable);
+    }
+  }
+
+  /** The value of a closed list that text names. */
+  private static Object read(Class<?> declared, String carried) {
+    try {
+      return declared.getMethod("fromJson", Object.class).invoke(null, carried);
+    } catch (IllegalAccessException | NoSuchMethodException unusable) {
+      throw new IllegalStateException(declared.getSimpleName() + " reads nothing back", unusable);
+    } catch (InvocationTargetException raised) {
+      if (raised.getCause() instanceof RuntimeException reported) {
+        throw reported;
+      }
+      throw new IllegalStateException(declared.getSimpleName() + " refused with something no caller could catch",
+          raised);
+    }
+  }
+
+  @Test
+  void everyProblemTheCatalogueNamesIsRaisedAsItsOwnFailure() {
+    // Declaring one exception per problem is half of it; the other half is the dispatch, which is
+    // where a problem wired to the exception beside it in the catalogue would sit unnoticed until a
+    // caller caught the wrong type in production. The catalogue is walked rather than listed, so a
+    // problem the API grows is put through this the moment the generator writes it.
+    for (ProblemId named : ProblemId.values()) {
+      Map<String, Object> answered = new LinkedHashMap<>();
+      answered.put("id", named.wireValue());
+      answered.put("status", Long.valueOf(400));
+      answered.put("title", "refused");
+      answered.put("detail", "what this case scripted");
+      answered.put("type", "https://hook0.com/documentation/errors/" + named.wireValue());
+
+      ProblemException raised =
+          assertThrows(ProblemException.class, () -> Problems.raiseForStatus(400, Json.write(answered)));
+
+      assertEquals(
+          named.wireValue() + "Exception",
+          raised.getClass().getSimpleName(),
+          "`" + named.wireValue() + "` is not raised as the failure named after it");
+      assertEquals(400, raised.status());
+      assertEquals(named, raised.problem().id());
+      assertTrue(raised.getMessage().contains("what this case scripted"), raised.getMessage());
+    }
   }
 
   @Test
@@ -284,24 +415,215 @@ final class GeneratedTest {
 
   @Test
   void everyGeneratedValueReadsBackWhatItWrote() {
-    // Every record the generator wrote, discovered from what it wrote: a schema the document adds
-    // joins this case the moment the generated files carry it.
+    // Every value the generator wrote, discovered from what it wrote and built out of what it
+    // declares: a schema the document adds joins this case the moment the generated files carry it,
+    // and one whose reader and writer disagree about a member fails here rather than at the first
+    // answer that carries it.
     int exercised = 0;
     for (Class<?> declared : Generated.types()) {
-      if (!declared.isRecord()) {
+      if (!Generated.isAValue(declared)) {
         continue;
       }
-      Object read = Generated.readOrNothing(declared, anApplication());
-      if (read == null) {
-        continue;
-      }
-      Object written = Generated.written(read);
+      Object filled = Generated.filled(declared);
 
-      assertEquals(read, Generated.readOrNothing(declared, written), declared.getSimpleName() + " does not read back");
+      assertEquals(
+          filled,
+          Generated.readOrNothing(declared, Generated.written(filled)),
+          declared.getSimpleName() + " does not read back what it wrote");
       exercised++;
     }
 
-    assertTrue(exercised > 0, "no generated value could be read out of the document this case carries");
+    assertTrue(exercised > 0, "no value the generator wrote could be built, so this guard checked nothing");
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void everyOperationTheApiDeclaresIsIssuedByTheMethodWrittenForIt(boolean answeringAFuture) {
+    // What an SDK is for: the API declares an operation, and the generated half issues exactly that
+    // request for it and reads back exactly what the answer carried. Both sides are discovered — the
+    // operations out of the API's own description, the methods out of what the generator wrote — so
+    // an operation the document adds and the generator misses fails here rather than at whichever
+    // caller reached for it first.
+    Map<String, Generated.Operation> declared = Generated.declaredOperations();
+    TreeSet<String> issued = new TreeSet<>();
+
+    for (Class<?> group : Generated.groups(answeringAFuture)) {
+      for (Method operation : Generated.operations(group)) {
+        String named = group.getSimpleName() + "." + operation.getName();
+        Object[] arguments = argumentsOf(operation);
+        Object answer = answering(answers(operation, answeringAFuture));
+
+        try (FakeApi api = new FakeApi(); HttpTransport transport = transport(api)) {
+          api.willAnswer(FakeApi.Scripted.of(200, scripted(answer)), FakeApi.Scripted.of(200, scripted(answer)));
+          Object driven = driving(group, transport);
+
+          assertEquals(
+              answer,
+              answeredBy(operation, driven, arguments, answeringAFuture),
+              named + " answered something other than what the API carried");
+
+          FakeApi.Received sent = api.received().get(0);
+          Generated.Operation matched = matching(declared, sent.verb(), sent.target().split("\\?", 2)[0]);
+          assertNotNull(matched, named + " issued `" + sent.target() + "`, which the API declares no operation at");
+          issued.add(matched.named());
+
+          for (Object argument : arguments) {
+            if (argument instanceof String carried) {
+              assertTrue(sent.target().contains(carried), named + " dropped `" + carried + "` from " + sent.target());
+            } else {
+              assertEquals(
+                  Json.parse(Json.write(Generated.written(argument))),
+                  sent.json(),
+                  named + " sent something other than the value it was handed");
+            }
+          }
+          assertEquals(matched.query(), assembled(sent), named + " assembled a query the API declares nothing of");
+
+          if (matched.query().equals(matched.required())) {
+            continue;
+          }
+
+          // The same operation again, with everything the API does not ask for left out: a parameter
+          // a caller sends none of has to be absent from the query rather than sent as an empty one,
+          // which is a difference the API can see.
+          answeredBy(operation, driven, withoutTheOptional(arguments, sent, matched), answeringAFuture);
+
+          assertEquals(
+              matched.required(),
+              assembled(api.received().get(1)),
+              named + " sent a parameter the caller left out");
+        }
+      }
+    }
+
+    assertEquals(declared.keySet(), issued, "the API and the generated half do not name the same operations");
+  }
+
+  /** The parameters one request carried in its query string, by name. */
+  private static TreeSet<String> assembled(FakeApi.Received sent) {
+    TreeSet<String> named = new TreeSet<>();
+    String[] target = sent.target().split("\\?", 2);
+    if (target.length < 2 || target[1].isEmpty()) {
+      return named;
+    }
+    for (String parameter : target[1].split("&")) {
+      named.add(URLDecoder.decode(parameter.split("=", 2)[0], StandardCharsets.UTF_8));
+    }
+    return named;
+  }
+
+  /** The same arguments, less the ones that landed under a parameter the API does not ask for. */
+  private static Object[] withoutTheOptional(
+      Object[] arguments, FakeApi.Received sent, Generated.Operation matched) {
+    Object[] left = arguments.clone();
+    for (int at = 0; at < left.length; at++) {
+      if (!(left[at] instanceof String carried)) {
+        continue;
+      }
+      for (String parameter : matched.query()) {
+        if (!matched.required().contains(parameter) && sent.target().contains(parameter + "=" + carried)) {
+          left[at] = null;
+        }
+      }
+    }
+    return left;
+  }
+
+  /** The group, built on the transport this case hands it. */
+  private static Object driving(Class<?> group, Transport transport) {
+    try {
+      return group.getDeclaredConstructor(Transport.class).newInstance(transport);
+    } catch (ReflectiveOperationException unusable) {
+      throw new IllegalStateException(group.getSimpleName() + " is not built on a transport", unusable);
+    }
+  }
+
+  /** What one operation is called with: one distinct value per name it takes, and one value per body. */
+  private static Object[] argumentsOf(Method operation) {
+    Class<?>[] shape = operation.getParameterTypes();
+    Object[] arguments = new Object[shape.length];
+    for (int at = 0; at < shape.length; at++) {
+      arguments[at] = shape[at] == String.class ? "what-this-case-passed-" + at : Generated.filled(shape[at]);
+    }
+    return arguments;
+  }
+
+  /** What one operation of that flavour is declared to answer. */
+  private static Type answers(Method operation, boolean answeringAFuture) {
+    Type answered = operation.getGenericReturnType();
+    return answeringAFuture ? ((ParameterizedType) answered).getActualTypeArguments()[0] : answered;
+  }
+
+  /** A value of that shape for the API to answer, or {@code null} where the operation answers nothing. */
+  private static Object answering(Type answered) {
+    if (answered == void.class || answered == Void.class) {
+      return null;
+    }
+    if (answered instanceof ParameterizedType listed) {
+      return List.of(Generated.value(listed.getActualTypeArguments()[0]));
+    }
+    return Generated.filled((Class<?>) answered);
+  }
+
+  /** That value as the document the API writes it as. */
+  private static Object scripted(Object answered) {
+    if (answered == null) {
+      return null;
+    }
+    if (answered instanceof List<?> items) {
+      List<Object> written = new ArrayList<>(items.size());
+      for (Object item : items) {
+        written.add(Generated.isAValue(item.getClass()) ? Generated.written(item) : item);
+      }
+      return written;
+    }
+    return Generated.written(answered);
+  }
+
+  /** What one operation answered, whichever flavour it was called through. */
+  private static Object answeredBy(Method operation, Object group, Object[] arguments, boolean answeringAFuture) {
+    Object outcome;
+    try {
+      outcome = operation.invoke(group, arguments);
+    } catch (IllegalAccessException unusable) {
+      throw new IllegalStateException(operation.getName() + " cannot be called", unusable);
+    } catch (InvocationTargetException raised) {
+      if (raised.getCause() instanceof RuntimeException reported) {
+        throw reported;
+      }
+      throw new IllegalStateException(operation.getName() + " failed with something no caller could catch", raised);
+    }
+    return answeringAFuture ? Surface.joined(() -> ((CompletableFuture<?>) outcome).join()) : outcome;
+  }
+
+  /** The one operation the API declares under that verb and that path, or {@code null} when it declares none. */
+  private static Generated.Operation matching(
+      Map<String, Generated.Operation> declared, String verb, String path) {
+    Generated.Operation found = null;
+    for (Generated.Operation operation : declared.values()) {
+      if (!operation.verb().equals(verb) || !fills(operation.path(), path)) {
+        continue;
+      }
+      assertNull(found, "`" + verb + " " + path + "` reads as both `" + found + "` and `" + operation.named() + "`");
+      found = operation;
+    }
+    return found;
+  }
+
+  /** Whether that path is that template with every placeholder of it filled in. */
+  private static boolean fills(String template, String path) {
+    String[] declared = template.split("/", -1);
+    String[] issued = path.split("/", -1);
+    if (declared.length != issued.length) {
+      return false;
+    }
+    for (int at = 0; at < declared.length; at++) {
+      boolean placeholder = declared[at].startsWith("{") && declared[at].endsWith("}");
+      if (placeholder ? issued[at].isEmpty() : !declared[at].equals(issued[at])) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private static TreeSet<String> operationsOf(Class<?> group) {

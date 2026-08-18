@@ -218,6 +218,46 @@ final class SignatureTest {
     assertEquals(BODY_CODE, signed(MOMENT));
   }
 
+  @Test
+  void aDeliveryCarryingNothingWhereItsPartsGoIsRefusedRatherThanVerified() {
+    // Every way a caller can hand over nothing: no header list, no header map, a header carrying no
+    // name or no value, and no body at all. None of them verifies, and each says so as the refusal
+    // this client raises rather than as whatever the runtime would have raised first.
+    String signature = "t=" + MOMENT + ",v0=" + signed(MOMENT);
+    String covering = "t=" + MOMENT + ",h=x-event-id,v1=" + BODY_CODE;
+    Instant now = Instant.ofEpochSecond(MOMENT);
+
+    // A signature that covers a header, held against a delivery that carried none: the header it
+    // covers was not delivered, whichever way the caller passes them over.
+    ClientException uncovered =
+        assertThrows(
+            ClientException.class,
+            () ->
+                Webhooks.verifyAt(
+                    covering, PAYLOAD, (List<Map.Entry<String, String>>) null, SECRET, TOLERANCE, now));
+    assertTrue(uncovered.getMessage().contains("was not delivered"), uncovered.getMessage());
+    assertThrows(
+        ClientException.class,
+        () -> Webhooks.verify(covering, PAYLOAD, (Map<String, String>) null, SECRET, TOLERANCE));
+
+    ClientException nameless =
+        assertThrows(
+            ClientException.class,
+            () -> {
+              List<Map.Entry<String, String>> carried = new java.util.ArrayList<>();
+              carried.add(null);
+              verified(signature, carried, now);
+            });
+    assertTrue(nameless.getMessage().contains("no name or no value"), nameless.getMessage());
+
+    // A body-scheme signature covers the body, so no body at all is not the body it was signed over.
+    ClientException bodiless =
+        assertThrows(
+            ClientException.class,
+            () -> Webhooks.verifyAt(signature, null, delivered(), SECRET, TOLERANCE, now));
+    assertTrue(bodiless.getMessage().contains("does not match"), bodiless.getMessage());
+  }
+
   /**
    * The body-scheme code for that moment, computed here rather than by the client.
    *

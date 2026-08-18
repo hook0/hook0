@@ -178,6 +178,69 @@ public sealed class SignatureTests
         Assert.Equal(SignatureRefusal.CodeMismatch, refused.Refusal);
     }
 
+    [Fact]
+    public void AHeaderThatIsNothingAtAllIsRefusedRatherThanRead()
+    {
+        SignatureException refused = Assert.Throws<SignatureException>(() => Signature.Parse(null!));
+
+        Assert.Equal(SignatureRefusal.Malformed, refused.Refusal);
+    }
+
+    [Fact]
+    public void ADeliveryCarryingNoHeadersDoesNotCoverTheOnesTheSignatureNames()
+    {
+        // A caller that passes nothing where the delivery's headers go is refused rather than
+        // verified against an empty set: the signature names a header, and none arrived.
+        JsonNode vector = Accepted("a header-scheme signature verifies");
+
+        SignatureException refused = Assert.Throws<SignatureException>(
+            () => Webhooks.VerifyWebhookSignatureWithCurrentTime(
+                Text(vector, "signature"),
+                Encoding.UTF8.GetBytes(Text(vector, "payload")),
+                null!,
+                Text(vector, "secret"),
+                Tolerance(vector),
+                Moment(vector)));
+
+        Assert.Equal(SignatureRefusal.HeaderNotDelivered, refused.Refusal);
+    }
+
+    [Fact]
+    public void ADeliveredHeaderThatIsNothingIsRefusedWhileTheDeliveryIsRead()
+    {
+        JsonNode vector = Accepted("a header-scheme signature verifies");
+
+        SignatureException refused = Assert.Throws<SignatureException>(
+            () => Webhooks.VerifyWebhookSignatureWithCurrentTime(
+                Text(vector, "signature"),
+                Encoding.UTF8.GetBytes(Text(vector, "payload")),
+                [new KeyValuePair<string, string>("x-event-id", null!)],
+                Text(vector, "secret"),
+                Tolerance(vector),
+                Moment(vector)));
+
+        Assert.Equal(SignatureRefusal.Malformed, refused.Refusal);
+    }
+
+    [Fact]
+    public void ASecretThatIsNothingVerifiesNothing()
+    {
+        // A caller that passes no secret is not one that passes the right one: the code is computed
+        // over an empty key and does not match what the sender signed.
+        JsonNode vector = Accepted("a body-scheme signature verifies");
+
+        SignatureException refused = Assert.Throws<SignatureException>(
+            () => Webhooks.VerifyWebhookSignatureWithCurrentTime(
+                Text(vector, "signature"),
+                Encoding.UTF8.GetBytes(Text(vector, "payload")),
+                Delivered(vector),
+                null!,
+                Tolerance(vector),
+                Moment(vector)));
+
+        Assert.Equal(SignatureRefusal.CodeMismatch, refused.Refusal);
+    }
+
     /// <summary>One vector the corpus accepts, by the name it gives it.</summary>
     private static JsonNode Accepted(string name)
     {

@@ -25,11 +25,21 @@ using System.Threading.Tasks;
 namespace Hook0.Tests;
 
 /// <summary>What the API answers to one request, in the order the case scripted it.</summary>
+/// <param name="Status">What it answers under.</param>
+/// <param name="Body">The document it answers, or nothing at all.</param>
+/// <param name="HeldFor">How long it sits on the answer before writing it.</param>
+/// <param name="Headers">What it answers beside the body.</param>
+/// <param name="Written">
+/// The exact bytes it answers, whatever <paramref name="Body"/> says. A server the client does not
+/// control can answer something that is not JSON at all — a proxy's error page, a truncated
+/// document — and a case that can only script a <see cref="JsonNode"/> can never make it do so.
+/// </param>
 public sealed record ScriptedResponse(
     int Status,
     JsonNode? Body,
     TimeSpan HeldFor = default,
-    IReadOnlyList<KeyValuePair<string, string>>? Headers = null);
+    IReadOnlyList<KeyValuePair<string, string>>? Headers = null,
+    string? Written = null);
 
 /// <summary>A request the API received, in the order it received it.</summary>
 public sealed record ReceivedRequest(
@@ -178,7 +188,7 @@ public sealed class FakeApi : IDisposable
         }
 
         byte[] answer = Encoding.UTF8.GetBytes(
-            scripted.Body is null ? string.Empty : scripted.Body.ToJsonString());
+            scripted.Written ?? (scripted.Body is null ? string.Empty : scripted.Body.ToJsonString()));
         StringBuilder head = new();
         head.Append(CultureInfo.InvariantCulture, $"HTTP/1.1 {scripted.Status} Answer\r\n");
         head.Append("Content-Type: application/json\r\n");
@@ -307,6 +317,22 @@ public static class Corpus
     /// <param name="name">Its file name.</param>
     /// <returns>What it says.</returns>
     public static JsonNode Contract(string name) => Read(Path.Combine(Directory(), name));
+
+    /// <summary>
+    /// The API's own description, as the API crate commits it.
+    /// </summary>
+    /// <remarks>
+    /// It is what the generated half was written from, so it is what the generated half can be held
+    /// against: an operation the document declares and no method issues is a gap in the package
+    /// rather than a case somebody forgot to write.
+    /// </remarks>
+    /// <returns>What it declares.</returns>
+    public static JsonNode Description() => Read(
+        Path.Combine(
+            new DirectoryInfo(Directory()).Parent?.Parent?.FullName
+                ?? throw new DirectoryNotFoundException("the shared contract sits outside the repository"),
+            "api",
+            "openapi.snapshot.json"));
 
     /// <summary>The counter-examples worth keeping, committed beside the properties they broke.</summary>
     /// <remarks>

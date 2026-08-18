@@ -4,13 +4,19 @@ import com.hook0.kotlin.generated.ApplicationInfo
 import com.hook0.kotlin.generated.ApplicationsApi
 import com.hook0.kotlin.generated.ApplicationsSuspendingApi
 import com.hook0.kotlin.generated.NotFoundException
-import com.hook0.kotlin.generated.Problem
 import com.hook0.kotlin.generated.ProblemException
 import com.hook0.kotlin.generated.ProblemId
+import com.hook0.kotlin.generated.Problems
+import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Type
+import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.util.TreeSet
 import java.util.UUID
 import kotlin.coroutines.Continuation
@@ -23,6 +29,8 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 
 /**
  * What the generated request layer puts on the wire, and what it does with what comes back.
@@ -171,18 +179,38 @@ class GeneratedTest {
   }
 
   @Test
-  fun aMemberTheDocumentDoesNotRequireIsAbsentRatherThanWrittenBackAsNothing() {
-    val problem = Problem.fromJson(aProblem())
+  fun everyMemberTheDocumentDoesNotRequireIsAbsentRatherThanWrittenBackAsNothing() {
+    // Every value, and every member of it, one member at a time: the document arrives without it and
+    // what happens next has to be one of two things. Either the member is required and the read
+    // stops, or it is not and the value reads — in which case writing it back leaves the member out
+    // rather than answering it as nothing, which is a difference the API can see.
+    var required = 0
+    var optional = 0
 
-    assertFalse(
-      problem.toJson().containsKey("validation"),
-      "a member the API answered none of was written back"
-    )
-    assertEquals(aProblem().keys, problem.toJson().keys)
-    // What was written back reads as the same value, which is what says nothing was lost on the way
-    // out — the numbers travel as the widths the document declares rather than as the ones a reader
-    // happened to build them at.
-    assertEquals(problem, Problem.fromJson(problem.toJson()))
+    for (declared in Generated.types()) {
+      if (!Generated.isAValue(declared)) {
+        continue
+      }
+      val whole = Generated.written(Generated.filled(declared))
+      for (name in whole.keys) {
+        val read = Generated.readOrNothing(declared, whole - name)
+        if (read == null) {
+          required++
+          continue
+        }
+
+        val back = Generated.written(read)
+        assertFalse(
+          back.containsKey(name),
+          "${declared.simpleName}.$name was answered none of and written back as nothing"
+        )
+        assertEquals(read, Generated.readOrNothing(declared, back), "${declared.simpleName} does not read back")
+        optional++
+      }
+    }
+
+    assertTrue(required > 0, "no member the document requires was found, so this guard checked nothing")
+    assertTrue(optional > 0, "no member the document leaves out was found, so this guard checked nothing")
   }
 
   @Test
@@ -202,6 +230,84 @@ class GeneratedTest {
       mapOf("event" to "Maybe", "event_type" to "ToDo", "subscription" to "ToDo")
 
     assertThrows(DecodeException::class.java) { ApplicationInfo.fromJson(unreadable) }
+  }
+
+  @Test
+  fun everyProblemTheCatalogueNamesIsRaisedAsItsOwnFailure() {
+    // Declaring one exception per problem is half of it; the other half is the dispatch, which is
+    // where a problem wired to the exception beside it in the catalogue would sit unnoticed until a
+    // caller caught the wrong type in production. The catalogue is walked rather than listed, so a
+    // problem the API grows is put through this the moment the generator writes it.
+    for (named in ProblemId.entries) {
+      val answered = linkedMapOf<String, Any?>(
+        "id" to named.wireValue,
+        "status" to 400L,
+        "title" to "refused",
+        "detail" to "what this case scripted",
+        "type" to "https://hook0.com/documentation/errors/${named.wireValue}"
+      )
+
+      val raised =
+        assertThrows(ProblemException::class.java) { Problems.raiseForStatus(400, Json.write(answered)) }
+
+      assertEquals(
+        "${named.wireValue}Exception",
+        raised.javaClass.simpleName,
+        "`${named.wireValue}` is not raised as the failure named after it"
+      )
+      assertEquals(400, raised.status)
+      assertEquals(named, raised.problem?.id)
+      assertTrue(raised.message?.contains("what this case scripted") == true, raised.message)
+    }
+  }
+
+  @Test
+  fun aValueTravelsInARequestLineTheWayTheApiReadsOne() {
+    // What a generated operation hands the transport for a path segment or a query value. The
+    // spellings are the API's, not the platform's: a moment is RFC 3339 and a day is ISO 8601,
+    // whichever way the runtime would have printed either on its own.
+    assertEquals("", Wire.written(null))
+    assertEquals("what the caller passed", Wire.written("what the caller passed"))
+    assertEquals("true", Wire.written(true))
+    assertEquals("7", Wire.written(7))
+    assertEquals("2026-01-02", Wire.written(LocalDate.parse("2026-01-02")))
+    assertEquals("2026-01-02T03:04:05Z", Wire.written(OffsetDateTime.parse("2026-01-02T03:04:05Z")))
+    assertEquals(
+      "2026-01-02T03:04:05Z",
+      Wire.queryValue(OffsetDateTime.parse("2026-01-02T03:04:05Z"))
+    )
+
+    // Every character a segment carries that could name another one travels encoded.
+    assertEquals("an%20application%2F..%2F..", Wire.pathSegment("an application/../.."))
+    assertEquals("what-the.caller_passed~", Wire.pathSegment("what-the.caller_passed~"))
+  }
+
+  @Test
+  fun everyClosedListCarriesEveryStringTheApiAnswersAndNothingElse() {
+    // The constants are the wire values themselves, so a name moved out of the way of the language
+    // never reaches the wire. Every list the generator wrote is walked and every value of it read
+    // back from its own text, which is what says the whole list travels rather than the one value a
+    // case happened to name.
+    var exercised = 0
+    for (declared in Generated.types()) {
+      if (!declared.isEnum) {
+        continue
+      }
+      for (named in declared.enumConstants) {
+        val carried = wireValue(named)
+
+        assertEquals(named, Generated.read(declared, carried), "${declared.simpleName} does not read back `$carried`")
+        exercised++
+      }
+
+      assertThrows(
+        DecodeException::class.java,
+        { Generated.read(declared, "a value the API never declared") },
+        "${declared.simpleName} carried a value the API declares none of"
+      )
+    }
+
+    assertTrue(exercised > 0, "no closed list was found, so this guard checked nothing")
   }
 
   @Test
@@ -300,25 +406,152 @@ class GeneratedTest {
 
   @Test
   fun everyGeneratedValueReadsBackWhatItWrote() {
-    // Every value the generator wrote, discovered from what it wrote: a schema the document adds
-    // joins this case the moment the generated files carry it.
+    // Every value the generator wrote, discovered from what it wrote and built out of what it
+    // declares: a schema the document adds joins this case the moment the generated files carry it,
+    // and one whose reader and writer disagree about a member fails here rather than at the first
+    // answer that carries it.
     var exercised = 0
     for (declared in Generated.types()) {
       if (!Generated.isAValue(declared)) {
         continue
       }
-      val read = Generated.readOrNothing(declared, anApplication()) ?: continue
-      val written = Generated.written(read)
+      val filled = Generated.filled(declared)
 
       assertEquals(
-        read,
-        Generated.readOrNothing(declared, written),
-        "${declared.simpleName} does not read back"
+        filled,
+        Generated.readOrNothing(declared, Generated.written(filled)),
+        "${declared.simpleName} does not read back what it wrote"
       )
       exercised++
     }
 
-    assertTrue(exercised > 0, "no generated value could be read out of the document this case carries")
+    assertTrue(exercised > 0, "no value the generator wrote could be built, so this guard checked nothing")
+  }
+
+  @Test
+  fun everyMemberTheDocumentDoesNotRequireCanBeLeftOutByTheCallerToo() {
+    // The other side of an optional member. A caller writing `Problem(detail, id, status, title,
+    // type)` reaches the value through the bridge the compiler writes for a declaration carrying
+    // defaults, and what is asserted is that leaving a member out and answering none of it come to
+    // the same document — a default that was anything but nothing would show up here.
+    //
+    // Which positions may be left out is worked out from the value itself: a member is one the
+    // document does not require exactly when the read still succeeds without it.
+    var exercised = 0
+    for (declared in Generated.types()) {
+      if (!Generated.isAValue(declared) || Generated.defaulted(declared) == null) {
+        continue
+      }
+      val whole = Generated.written(Generated.filled(declared))
+      val names = whole.keys.toList()
+      val leftOut =
+        names.indices.filter { Generated.readOrNothing(declared, whole - names[it]) != null }.toSet()
+      if (leftOut.isEmpty()) {
+        continue
+      }
+
+      val written = Generated.written(Generated.filledLeavingOut(declared, leftOut))
+
+      assertEquals(
+        names.filterIndexed { at, _ -> at !in leftOut },
+        written.keys.toList(),
+        "${declared.simpleName} wrote back something other than the members the API requires"
+      )
+      exercised++
+    }
+
+    assertTrue(exercised > 0, "no value carrying a member a caller may leave out was found")
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = [false, true])
+  fun everyOperationTheApiDeclaresIsIssuedByTheMethodWrittenForIt(suspending: Boolean) {
+    // What an SDK is for: the API declares an operation, and the generated half issues exactly that
+    // request for it and reads back exactly what the answer carried. Both sides are discovered — the
+    // operations out of the API's own description, the methods out of what the generator wrote — so
+    // an operation the document adds and the generator misses fails here rather than at whichever
+    // caller reached for it first.
+    val declared = Generated.declaredOperations()
+    val issued = TreeSet<String>()
+
+    for (blocking in Generated.groups(false)) {
+      val group = if (suspending) checkNotNull(Generated.counterpart(blocking)) else blocking
+      for (operation in Generated.operations(blocking)) {
+        val named = "${group.simpleName}.${operation.name}"
+        val arguments = argumentsOf(operation)
+        val answer = answering(operation.genericReturnType)
+        val called = if (suspending) twin(group, operation) else operation
+
+        FakeApi().use { api ->
+          transport(api).use { transport ->
+            api.willAnswer(
+              FakeApi.Scripted.of(200, scripted(answer)),
+              FakeApi.Scripted.of(200, scripted(answer)),
+              FakeApi.Scripted.of(200, scripted(answer))
+            )
+            val driven = group.getDeclaredConstructor(Transport::class.java).newInstance(transport)
+            val read = calling(called, driven, arguments, suspending)
+
+            if (answer != null) {
+              assertEquals(answer, read, "$named answered something other than what the API carried")
+            }
+
+            val sent = api.received()[0]
+            val matched = matching(declared, sent.verb, sent.target.substringBefore('?'))
+            assertNotNull(matched, "$named issued `${sent.target}`, which the API declares no operation at")
+            issued.add(matched!!.named())
+
+            for (argument in arguments) {
+              if (argument is String) {
+                assertTrue(sent.target.contains(argument), "$named dropped `$argument` from ${sent.target}")
+              } else {
+                assertEquals(
+                  Json.parse(Json.write(Generated.written(argument!!))),
+                  sent.json(),
+                  "$named sent something other than the value it was handed"
+                )
+              }
+            }
+            assertEquals(matched.query, assembled(sent), "$named assembled a query the API declares nothing of")
+
+            if (matched.query != matched.required) {
+              // The same operation again, with everything the API does not ask for left out: a
+              // parameter a caller sends none of has to be absent from the query rather than sent as
+              // an empty one, which is a difference the API can see.
+              val optional = theOptional(arguments, sent, matched)
+              calling(
+                called,
+                driven,
+                arguments.mapIndexed { at, value -> if (at in optional) null else value }.toTypedArray(),
+                suspending
+              )
+
+              assertEquals(
+                matched.required,
+                assembled(api.received()[1]),
+                "$named sent a parameter the caller left out"
+              )
+
+              // And once more the way a caller who *omits* them reaches it, through the bridge the
+              // compiler writes for a function carrying defaults. A default that was anything but
+              // nothing would assemble a different query here than passing nothing did.
+              val bridge = checkNotNull(Generated.defaulted(group, called)) {
+                "$named takes an argument the API does not ask for and carries no default for it"
+              }
+              Generated.leavingOut(bridge, driven, arguments, optional, suspending)
+
+              assertEquals(
+                assembled(api.received()[1]),
+                assembled(api.received()[2]),
+                "$named assembled a different query for an argument left out than for one passed as nothing"
+              )
+            }
+          }
+        }
+      }
+    }
+
+    assertEquals(declared.keys, issued, "the API and the generated half do not name the same operations")
   }
 
   companion object {
@@ -349,6 +582,92 @@ class GeneratedTest {
       "status" to 404L,
       "type" to "https://documentation.hook0.com/problems"
     )
+
+    /** The text one value of a closed list travels as. */
+    private fun wireValue(named: Any): String = named.javaClass.getMethod("getWireValue").invoke(named) as String
+
+    /** What one operation is called with: one distinct value per name it takes, and one value per body. */
+    private fun argumentsOf(operation: Method): Array<Any?> = operation.parameterTypes
+      .mapIndexed { at, shape ->
+        if (shape == String::class.java) "what-this-case-passed-$at" else Generated.filled(shape)
+      }
+      .toTypedArray()
+
+    /** A value of that shape for the API to answer, or nothing where the operation answers none. */
+    private fun answering(answered: Type): Any? = when {
+      answered == Void.TYPE || answered == Unit::class.java -> null
+      answered is ParameterizedType -> listOf(Generated.value(answered.actualTypeArguments[0]))
+      else -> Generated.filled(answered as Class<*>)
+    }
+
+    /** That value as the document the API writes it as. */
+    private fun scripted(answered: Any?): Any? = when (answered) {
+      null -> null
+      is List<*> -> answered.map { if (Generated.isAValue(it!!.javaClass)) Generated.written(it) else it }
+      else -> Generated.written(answered)
+    }
+
+    /** The same operation on the flavour that suspends, which takes one more argument than it declares. */
+    private fun twin(group: Class<*>, operation: Method): Method = Generated.operations(group).single {
+      it.name == operation.name && it.parameterTypes.dropLast(1) == operation.parameterTypes.toList()
+    }
+
+    /** What one operation answered, whichever flavour it was called through. */
+    private fun calling(operation: Method, group: Any, arguments: Array<Any?>, suspending: Boolean): Any? =
+      if (suspending) {
+        Generated.awaiting(operation, group, arguments)
+      } else {
+        try {
+          operation.invoke(group, *arguments)
+        } catch (raised: InvocationTargetException) {
+          throw raised.cause ?: raised
+        }
+      }
+
+    /** The one operation the API declares under that verb and that path, or nothing when it declares none. */
+    private fun matching(declared: Map<String, Generated.Operation>, verb: String, path: String): Generated.Operation? {
+      var found: Generated.Operation? = null
+      for (operation in declared.values) {
+        if (operation.verb != verb || !fills(operation.path, path)) {
+          continue
+        }
+        assertNull(found, "`$verb $path` reads as both `$found` and `${operation.named()}`")
+        found = operation
+      }
+      return found
+    }
+
+    /** Whether that path is that template with every placeholder of it filled in. */
+    private fun fills(template: String, path: String): Boolean {
+      val declared = template.split("/")
+      val issued = path.split("/")
+      if (declared.size != issued.size) {
+        return false
+      }
+      return declared.zip(issued).all { (segment, carried) ->
+        if (segment.startsWith("{") && segment.endsWith("}")) carried.isNotEmpty() else segment == carried
+      }
+    }
+
+    /** The parameters one request carried in its query string, by name. */
+    private fun assembled(sent: FakeApi.Received): TreeSet<String> {
+      val named = TreeSet<String>()
+      val query = sent.target.substringAfter('?', "")
+      if (query.isEmpty()) {
+        return named
+      }
+      for (parameter in query.split("&")) {
+        named.add(URLDecoder.decode(parameter.substringBefore('='), StandardCharsets.UTF_8))
+      }
+      return named
+    }
+
+    /** Which arguments landed under a parameter the API does not ask for. */
+    private fun theOptional(arguments: Array<Any?>, sent: FakeApi.Received, matched: Generated.Operation): Set<Int> =
+      arguments.indices.filter { at ->
+        val carried = arguments[at] as? String
+        carried != null && matched.query.any { it !in matched.required && sent.target.contains("$it=$carried") }
+      }.toSet()
 
     private fun operationsOf(group: Class<*>): TreeSet<String> {
       val named = TreeSet<String>()

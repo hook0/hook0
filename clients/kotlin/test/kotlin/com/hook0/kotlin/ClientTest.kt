@@ -1,6 +1,8 @@
 package com.hook0.kotlin
 
+import com.hook0.kotlin.generated.ApplicationsApi
 import java.time.Duration
+import java.time.OffsetDateTime
 import java.util.UUID
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -267,6 +269,275 @@ class ClientTest {
           surface.upsertEventTypes(client, listOf("nope"))
         }
         assertEquals(0, api.received().size)
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun anEventSaysWhatElseItCarriesAndWhenItHappened(surface: Surface) {
+    val happened = OffsetDateTime.parse("2026-01-02T03:04:05Z")
+    FakeApi().use { api ->
+      client(api, options(4)).use { client ->
+        api.willAnswer(ingested(INGESTED_ID))
+        surface.send(
+          client,
+          anEvent().copy(metadata = mapOf("tenant" to "acme"), occurredAt = happened)
+        )
+
+        val sent = api.received()[0].json() as Map<*, *>
+
+        assertEquals(mapOf("tenant" to "acme"), sent["metadata"])
+        // The moment the caller named, rather than the one the send was made at.
+        assertEquals("2026-01-02T03:04:05Z", sent["occurred_at"])
+      }
+    }
+  }
+
+  @Test
+  fun aClientBuiltWithoutBoundsIsHeldToTheDefaultOnes() {
+    FakeApi().use { api ->
+      Hook0Client(api.baseUrl(), "app-123", "token-xyz").use { client ->
+        api.willAnswer(ingested(INGESTED_ID))
+
+        assertEquals(Options.defaults(), client.options)
+        assertEquals(UUID.fromString(INGESTED_ID), client.sendEvent(anEvent()))
+      }
+    }
+  }
+
+  @Test
+  fun aGeneratedGroupIssuesItsRequestsThroughTheTransportTheClientHolds() {
+    // What `transport` is for: the same credential and the same bounds a send is held to are what a
+    // generated operation group is built on, rather than a second connection to the same API.
+    FakeApi().use { api ->
+      Hook0Client(api.baseUrl(), "app-123", "token-xyz").use { client ->
+        api.willAnswer(FakeApi.Scripted.of(200, emptyList<Any?>()))
+
+        assertTrue(ApplicationsApi(client.transport).list("an-organization").isEmpty())
+        assertEquals("Bearer token-xyz", api.received()[0].headers["authorization"])
+      }
+    }
+  }
+
+  @Test
+  fun aTransportTheCallerOwnsOutlivesTheClientBuiltOnIt() {
+    FakeApi().use { api ->
+      HttpTransport(api.baseUrl(), "token-xyz", options(4)).use { owned ->
+        api.willAnswer(ingested(INGESTED_ID), ingested(INGESTED_ID))
+
+        Hook0Client(owned, "app-123", options(4)).use { first ->
+          assertEquals(UUID.fromString(INGESTED_ID), first.sendEvent(anEvent()))
+        }
+
+        // The client did not build the transport, so closing the client did not close it: it is the
+        // caller's, and a second client built on it still reaches the API.
+        Hook0Client(owned, "app-123", options(4)).use { second ->
+          assertEquals(UUID.fromString(INGESTED_ID), second.sendEvent(anEvent()))
+        }
+
+        assertEquals(2, api.received().size)
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun aListOfEventTypesTheApiRefusesToAnswerIsReported(surface: Surface) {
+    FakeApi().use { api ->
+      client(api, options(4)).use { client ->
+        api.willAnswer(refused(500, "InternalServerError"))
+
+        val reported = assertThrows(ClientException::class.java) {
+          surface.upsertEventTypes(client, listOf("auth.user.create"))
+        }
+
+        assertTrue(
+          reported.message?.startsWith("Getting available event types failed") == true,
+          reported.message
+        )
+        // Nothing was created, since what is already declared was never learnt.
+        assertEquals(1, api.received().size)
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun anAnswerThatIsNotAListOfEventTypesIsReported(surface: Surface) {
+    FakeApi().use { api ->
+      client(api, options(4)).use { client ->
+        api.willAnswer(FakeApi.Scripted.of(200, mapOf("event_type_name" to "auth.user.create")))
+
+        val reported = assertThrows(ClientException::class.java) {
+          surface.upsertEventTypes(client, listOf("auth.user.create"))
+        }
+
+        assertTrue(
+          reported.message?.contains("did not answer a list of event types") == true,
+          reported.message
+        )
+        assertEquals(1, api.received().size)
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun askingForNoEventTypesDeclaresNoneAndIssuesNoRequest(surface: Surface) {
+    FakeApi().use { api ->
+      client(api, options(4)).use { client ->
+        assertEquals(emptyList<String>(), surface.upsertEventTypes(client, emptyList()))
+        assertEquals(0, api.received().size)
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun aListOfEventTypesTheApiNeverAnswersIsReported(surface: Surface) {
+    // The request got no answer at all rather than one that could not be read, and a caller has to
+    // hear about it as the same failure whichever way the call was made.
+    val impatient = options(4).copy(requestTimeout = Duration.ofMillis(200))
+    FakeApi().use { api ->
+      client(api, impatient).use { client ->
+        api.willAnswer(
+          FakeApi.Scripted(200, Json.write(emptyList<Any?>()), Duration.ofSeconds(1))
+        )
+
+        val reported = assertThrows(ClientException::class.java) {
+          surface.upsertEventTypes(client, listOf("auth.user.create"))
+        }
+
+        assertTrue(
+          reported.message?.startsWith("Getting available event types failed") == true,
+          reported.message
+        )
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun anEventTypeTheApiNeverAnswersAboutIsReported(surface: Surface) {
+    val impatient = options(4).copy(requestTimeout = Duration.ofMillis(200))
+    FakeApi().use { api ->
+      client(api, impatient).use { client ->
+        api.willAnswer(
+          FakeApi.Scripted.of(200, emptyList<Any?>()),
+          FakeApi.Scripted(
+            201,
+            Json.write(mapOf("event_type_name" to "auth.user.create")),
+            Duration.ofSeconds(1)
+          )
+        )
+
+        val reported = assertThrows(ClientException::class.java) {
+          surface.upsertEventTypes(client, listOf("auth.user.create"))
+        }
+
+        assertTrue(
+          reported.message?.startsWith("Creating event type 'auth.user.create' failed") == true,
+          reported.message
+        )
+      }
+    }
+  }
+
+  @Test
+  fun anEventTypeNobodyCouldHaveMeantIsRefusedRatherThanSpelledOut() {
+    // Nothing at all, and a segment carrying a character an event type is not written with.
+    assertThrows(ClientException::class.java) { EventType.parse("") }
+    assertThrows(ClientException::class.java) { EventType.parse("auth.user!.create") }
+    assertEquals("auth.user.create", EventType.parse("auth.user.create").toString())
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun anEventTypeTheApiRefusesToCreateIsReported(surface: Surface) {
+    FakeApi().use { api ->
+      client(api, options(4)).use { client ->
+        api.willAnswer(
+          FakeApi.Scripted.of(200, emptyList<Any?>()),
+          refused(409, "EventTypeAlreadyExist")
+        )
+
+        val reported = assertThrows(ClientException::class.java) {
+          surface.upsertEventTypes(client, listOf("auth.user.create"))
+        }
+
+        assertTrue(
+          reported.message?.startsWith("Creating event type 'auth.user.create' failed") == true,
+          reported.message
+        )
+        assertEquals(2, api.received().size)
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun anAnswerTakingTheEventWithoutSayingWhichIsNotReadAsASuccess(surface: Surface) {
+    FakeApi().use { api ->
+      client(api, options(4)).use { client ->
+        api.willAnswer(
+          FakeApi.Scripted.of(201, mapOf("application_id" to "app-123")),
+          ingested(INGESTED_ID)
+        )
+
+        val reported = assertThrows(ClientException::class.java) { surface.send(client, anEvent()) }
+
+        assertTrue(reported.message?.contains("without an event id") == true, reported.message)
+        // Repeating the request would meet the same answer, so the send stops rather than spending
+        // every attempt it had left on it.
+        assertEquals(1, api.received().size)
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun anAnswerCarryingNoDocumentAtAllIsStillReported(surface: Surface) {
+    val once = options(4).copy(retryPolicy = RetryPolicy.disabled())
+    FakeApi().use { api ->
+      client(api, once).use { client ->
+        api.willAnswer(
+          FakeApi.Scripted(500, "<html>a proxy answered this</html>", Duration.ZERO, emptyMap())
+        )
+
+        val reported = assertThrows(ClientException::class.java) { surface.send(client, anEvent()) }
+
+        assertTrue(reported.message?.contains("a proxy answered this") == true, reported.message)
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun aDelayTheApiNamesInAnythingButSecondsLeavesTheScheduleInPlace(surface: Surface) {
+    // A `Retry-After` carrying a date is a clock this client would be comparing against its own; one
+    // carrying nothing, or more than a delay is ever written in, is a header nobody meant. None of
+    // them stops the send: it comes back on its own schedule rather than on one it read out of a
+    // spelling it does not understand.
+    for (written in listOf("", "Wed, 21 Oct 2026 07:28:00 GMT", "0".repeat(64), "9999999999")) {
+      FakeApi().use { api ->
+        client(api, options(2)).use { client ->
+          api.willAnswer(
+            FakeApi.Scripted.of(
+              503,
+              mapOf("id" to "ServiceUnavailable", "status" to 503L),
+              mapOf("Retry-After" to written)
+            ),
+            ingested(INGESTED_ID)
+          )
+
+          assertEquals(
+            UUID.fromString(INGESTED_ID),
+            surface.send(client, anEvent()),
+            "a send stopped on a `Retry-After: $written` rather than keeping its own schedule"
+          )
+          assertEquals(2, api.received().size)
+        }
       }
     }
   }
