@@ -1,3 +1,8 @@
 # A project reference to the client's own project, so the build compiles the source in this
 # repository rather than resolving a package off NuGet.
 run = ["dotnet", "run", "--verbosity", "quiet"]
+
+# This smoke still asks only the three questions the run was first written for, and drives none of
+# the operations the API document declares. Delete this line the day it does: with it gone the run
+# holds this language to every one of them, and there is no way back to reporting nothing.
+drives_surface = false

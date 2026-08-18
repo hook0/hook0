@@ -7,9 +7,14 @@
 //! ingestion is refused the way the client expects, and that a signature the *server* computed
 //! verifies. A client can pass everything it has and still fail on first contact.
 //!
-//! The parts live here rather than in the binary so that the one question worth asking without a
-//! Docker daemon — is every client the generator declares paired with a smoke — is asked by a
-//! plain `cargo test`.
+//! What each smoke drives against that instance is its whole generated surface, one line of report
+//! per operation, and [`surface`] is what holds the set of lines to the set of operations the API
+//! document declares. That bijection is what stops the flows rotting: an operation the API grows
+//! fails every language until somebody drives it.
+//!
+//! The parts live here rather than in the binary so that the questions worth asking without a
+//! Docker daemon — is every client the generator declares paired with a smoke, and does the
+//! bijection hold what it says it holds — are asked by a plain `cargo test`.
 
 pub mod api;
 pub mod compose;
@@ -18,4 +23,5 @@ pub mod error;
 pub mod process;
 pub mod receiver;
 pub mod stack;
+pub mod surface;
 pub mod worker;

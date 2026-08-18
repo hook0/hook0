@@ -5,3 +5,8 @@
 # `exports` map, the way a user reaches it, rather than by a path into the compiled layout, which
 # the package refuses on purpose.
 run = ["npm", "--silent", "run", "smoke"]
+
+# This smoke still asks only the three questions the run was first written for, and drives none of
+# the operations the API document declares. Delete this line the day it does: with it gone the run
+# holds this language to every one of them, and there is no way back to reporting nothing.
+drives_surface = false

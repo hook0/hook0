@@ -1,3 +1,8 @@
 # The MCP server's public interface is a protocol, not a library, so the smoke builds the server and
 # speaks to it over its own stdio transport rather than calling into its crate.
 run = ["cargo", "run", "--quiet"]
+
+# This smoke still asks only the three questions the run was first written for, and drives none of
+# the operations the API document declares. Delete this line the day it does: with it gone the run
+# holds this language to every one of them, and there is no way back to reporting nothing.
+drives_surface = false

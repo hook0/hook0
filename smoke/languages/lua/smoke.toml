@@ -3,6 +3,11 @@
 # its own, so the search path has to point at wherever they landed.
 run = ["lua5.4", "smoke.lua"]
 
+# This smoke still asks only the three questions the run was first written for, and drives none of
+# the operations the API document declares. Delete this line the day it does: with it gone the run
+# holds this language to every one of them, and there is no way back to reporting nothing.
+drives_surface = false
+
 # Where that is, asked rather than inherited. `luarocks path` is the authority on it, and the answer
 # differs by installation: a `--local` tree under the home directory, a system tree, or whatever
 # `--tree` was pointed at. Reading it from the environment instead would make this smoke pass or
@@ -11,6 +16,7 @@ run = ["lua5.4", "smoke.lua"]
 #
 # `;;` is Lua's own way of saying "and then the usual places", so the rocks come first and the
 # interpreter's compiled-in defaults still answer for everything else.
+
 [[requires]]
 run = ["luarocks", "--lua-version=5.4", "path", "--lr-path"]
 sets = "LUA_PATH"

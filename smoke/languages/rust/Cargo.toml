@@ -11,10 +11,16 @@ publish = false
 [dependencies]
 hook0-client = { path = "../../../clients/rust" }
 
-# The two vocabulary types the client's own signatures are written in, at the versions it declares.
+# The vocabulary types the client's own signatures are written in, at the versions it declares.
+chrono = "0.4"
+serde_json = "1.0"
 url = "2.5"
-uuid = "1.24"
+uuid = { version = "1.24", features = ["v7"] }
 
-# `send_event` is asynchronous, so something has to drive it. Nothing beyond a current-thread
-# runtime is needed to send two events.
-tokio = { version = "1", features = ["macros", "rt"] }
+# The generated half is handed a transport and implements none, which is the client's design: an
+# application brings its own. So this smoke brings the one an application would.
+reqwest = "0.13"
+
+# `send_event` and every generated method are asynchronous, so something has to drive them. Nothing
+# beyond a current-thread runtime is needed.
+tokio = { version = "1", features = ["macros", "rt", "time"] }

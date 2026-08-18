@@ -25,6 +25,16 @@ use crate::process;
 /// The file a smoke directory declares its command in.
 pub const MANIFEST: &str = "smoke.toml";
 
+/// The key a smoke says with when it does not yet drive the whole generated surface.
+///
+/// Absent means it does, which is the state every smoke ends up in and the only state a client
+/// added tomorrow can be in. It is written in the smoke's own manifest rather than as a list of
+/// ported languages in this crate for the reason everything else about a smoke is: the day a
+/// language starts driving the surface, the line saying it does not is deleted in the same
+/// directory as the code that drives it, and once deleted there is no way back to silence — a
+/// smoke with no such line and no reports fails the run.
+pub const DRIVES_SURFACE: &str = "drives_surface";
+
 /// The most smoke directories read in one run. Twelve exist today; a tree past this is one where
 /// somebody should be raising this deliberately.
 pub const MAX_SMOKES: usize = 64;
@@ -76,6 +86,9 @@ pub struct Smoke {
     pub command: Vec<String>,
     /// What has to hold before the command is run, in the order it is asked.
     pub requires: Vec<Requirement>,
+    /// Whether this smoke drives every operation the API document declares, which is what the run
+    /// holds it to. True unless its manifest says otherwise.
+    pub drives_surface: bool,
 }
 
 impl Smoke {
@@ -141,8 +154,9 @@ pub fn discover(targets: &[String], languages: &Path) -> Result<Vec<Smoke>, Erro
                 smokes.push(Smoke {
                     target: target.clone(),
                     directory,
-                    command: manifest.0,
-                    requires: manifest.1,
+                    command: manifest.command,
+                    requires: manifest.requires,
+                    drives_surface: manifest.drives_surface,
                 });
             }
             None => missing.push(target.clone()),
@@ -195,8 +209,16 @@ fn read_directories(languages: &Path) -> Result<Vec<String>, Error> {
     Ok(names)
 }
 
-/// The command one manifest declares, and what it needs before that command is run.
-fn read_manifest(manifest: &Path) -> Result<(Vec<String>, Vec<Requirement>), Error> {
+/// Everything one manifest declares about its smoke.
+struct Manifest {
+    command: Vec<String>,
+    requires: Vec<Requirement>,
+    drives_surface: bool,
+}
+
+/// The command one manifest declares, what it needs before that command is run, and whether it
+/// drives the whole generated surface.
+fn read_manifest(manifest: &Path) -> Result<Manifest, Error> {
     let size = fs::metadata(manifest)
         .map_err(|cause| Error::ReadManifest {
             path: manifest.display().to_string(),
@@ -247,7 +269,20 @@ fn read_manifest(manifest: &Path) -> Result<(Vec<String>, Vec<Requirement>), Err
         }
     };
 
-    Ok((command, requires))
+    let drives_surface = match document.get(DRIVES_SURFACE) {
+        None => true,
+        Some(declared) => declared.as_bool().ok_or_else(|| {
+            refuse(&format!(
+                "`{DRIVES_SURFACE}` is not `true` or `false`, and it is the only thing that tells a smoke still to be written from one that has stopped reporting"
+            ))
+        })?,
+    };
+
+    Ok(Manifest {
+        command,
+        requires,
+        drives_surface,
+    })
 }
 
 /// One `[[requires]]` entry.

@@ -54,6 +54,9 @@ fn a_target_is_paired_with_the_directory_answering_to_its_name() {
             directory: tree.path().join("brainfuck"),
             command: vec!["bf".to_owned(), "smoke.bf".to_owned()],
             requires: vec![],
+            // Absent from the manifest, so the smoke is held to every operation the API document
+            // declares. A client added tomorrow can be in no other state.
+            drives_surface: true,
         }]
     );
 }
@@ -242,4 +245,34 @@ fn what_this_repository_declares_today_is_paired_with_what_is_beside_it() {
         targets.len(),
         "one smoke per target the generator declares"
     );
+}
+
+#[test]
+fn a_smoke_that_does_not_drive_the_surface_yet_says_so_in_its_own_manifest() {
+    // The only thing that tells a language still to be written from one that has stopped
+    // reporting. It lives beside the smoke rather than in a list of ported languages the harness
+    // keeps, so porting a language and saying it has been ported are the same edit.
+    let tree = Tree::new();
+    tree.smoke(
+        "brainfuck",
+        "run = [\"bf\", \"smoke.bf\"]\ndrives_surface = false\n",
+    );
+
+    let found = discover(&names(&["brainfuck"]), tree.path()).expect("the pairing");
+
+    assert!(!found[0].drives_surface);
+}
+
+#[test]
+fn a_manifest_saying_something_other_than_true_or_false_about_the_surface_is_refused() {
+    let tree = Tree::new();
+    tree.smoke(
+        "brainfuck",
+        "run = [\"bf\", \"smoke.bf\"]\ndrives_surface = \"later\"\n",
+    );
+
+    let said = format!("{}", refusal(&["brainfuck"], &tree));
+
+    assert!(said.contains("drives_surface"), "{said}");
+    assert!(said.contains("true"), "{said}");
 }

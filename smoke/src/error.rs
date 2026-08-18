@@ -67,6 +67,15 @@ pub enum Error {
         address: String,
         seconds: u64,
     },
+    NoAttempt {
+        application: String,
+        seconds: u64,
+        expectation: String,
+    },
+    NoCounts {
+        organization: String,
+        seconds: u64,
+    },
     NoDelivery {
         seconds: u64,
         expectation: String,
@@ -100,6 +109,54 @@ pub enum Error {
     },
     SmokesFailed {
         failed: Vec<String>,
+    },
+    Document {
+        path: String,
+        detail: String,
+    },
+    TooManyReports {
+        target: String,
+        maximum: usize,
+    },
+    Unreportable {
+        target: String,
+        line: String,
+        detail: String,
+    },
+    SurfaceSilent {
+        target: String,
+    },
+    SurfaceUnannounced {
+        target: String,
+        reports: usize,
+    },
+    SurfaceAmbiguous {
+        target: String,
+        operation: String,
+        first: String,
+        second: String,
+    },
+    SurfaceUnknown {
+        target: String,
+        unknown: Vec<String>,
+    },
+    SurfaceThrottled {
+        target: String,
+        throttled: Vec<String>,
+    },
+    SurfaceMissing {
+        target: String,
+        missing: Vec<String>,
+        declared: usize,
+    },
+    ModelsUnknown {
+        target: String,
+        unknown: Vec<String>,
+    },
+    ModelsMissing {
+        target: String,
+        missing: Vec<String>,
+        answered: usize,
     },
 }
 
@@ -160,6 +217,21 @@ impl fmt::Display for Error {
                 f,
                 "no verification email for {address} reached Mailpit within {seconds}s"
             ),
+            Self::NoAttempt {
+                application,
+                seconds,
+                expectation,
+            } => write!(
+                f,
+                "waited {seconds}s for the output worker to finish one delivery attempt in application {application}, and it never did, so there is no response for a client to read back — and no client can decode the type the API answers one with.\n  {expectation}"
+            ),
+            Self::NoCounts {
+                organization,
+                seconds,
+            } => write!(
+                f,
+                "waited {seconds}s for the instance to refresh the per-day event counts of organization {organization}, and they stayed empty, so the operations that read them answer a list with nothing in it and no client can decode the type they are answered with.\n  Those counts are a materialized view the API refreshes on a cycle of its own; a run that never sees one is a run whose API is not doing its housekeeping"
+            ),
             Self::NoDelivery {
                 seconds,
                 expectation,
@@ -213,6 +285,105 @@ impl fmt::Display for Error {
             Self::SmokesFailed { failed } => {
                 write!(f, "{} failed: {}", failed.len(), failed.join(", "))
             }
+            Self::Document { path, detail } => write!(
+                f,
+                "`{path}` is what every client is generated from and what every smoke is held to, and {detail}"
+            ),
+            Self::TooManyReports { target, maximum } => write!(
+                f,
+                "the {target} smoke reported more than {maximum} operations, which is more than the API declares under any reading; it is printing `{}` in a loop rather than driving a surface",
+                crate::surface::PREFIX,
+            ),
+            Self::Unreportable {
+                target,
+                line,
+                detail,
+            } => write!(
+                f,
+                "the {target} smoke printed `{line}`, and {detail}. A report is `{} <operationId> {}` or `{} <operationId> {}<problemId>`, and nothing else",
+                crate::surface::PREFIX,
+                crate::surface::ACCEPTED,
+                crate::surface::PREFIX,
+                crate::surface::REFUSED,
+            ),
+            Self::SurfaceSilent { target } => write!(
+                f,
+                "the {target} smoke drove no operation and its `{}` says nothing about that. Either it does not drive the generated surface yet — say so with `{} = false` in `languages/{target}/{}` — or its reports are not reaching the output this harness reads",
+                crate::discovery::MANIFEST,
+                crate::discovery::DRIVES_SURFACE,
+                crate::discovery::MANIFEST,
+            ),
+            Self::SurfaceUnannounced { target, reports } => write!(
+                f,
+                "`languages/{target}/{}` says `{} = false`, and the smoke reported {reports} {}. Delete that line: with it gone the run holds {target} to every operation the API document declares, which is what those reports are for",
+                crate::discovery::MANIFEST,
+                crate::discovery::DRIVES_SURFACE,
+                if *reports == 1 {
+                    "operation"
+                } else {
+                    "operations"
+                },
+            ),
+            Self::SurfaceAmbiguous {
+                target,
+                operation,
+                first,
+                second,
+            } => write!(
+                f,
+                "the {target} smoke reported `{operation}` as `{first}` and as `{second}`. One operation answered two ways in one run is two call sites disagreeing about which operation they drove"
+            ),
+            Self::SurfaceThrottled { target, throttled } => write!(
+                f,
+                "the {target} smoke reported `{}` for {}: {}. That answer says the instance never looked at the request, so it proves nothing about the operation it was asking about — and a smoke that let it through would report every operation as driven while proving nothing about any of them. The answer names how long to wait in its `Retry-After` header: wait it out and ask again",
+                crate::surface::THROTTLED,
+                if throttled.len() == 1 {
+                    "an operation"
+                } else {
+                    "operations"
+                },
+                throttled.join(", "),
+            ),
+            Self::SurfaceUnknown { target, unknown } => write!(
+                f,
+                "the {target} smoke reported {} the API document does not declare: {}. A report naming an operation that does not exist satisfies nothing, which is what makes it worth refusing rather than ignoring",
+                if unknown.len() == 1 {
+                    "an operation"
+                } else {
+                    "operations"
+                },
+                unknown.join(", "),
+            ),
+            Self::SurfaceMissing {
+                target,
+                missing,
+                declared,
+            } => write!(
+                f,
+                "the {target} smoke drove {} of the {declared} operations the API document declares. It never drove: {}. Every one of them ships in the {target} client and has never been asked to talk to a real Hook0",
+                declared - missing.len(),
+                missing.join(", "),
+            ),
+            Self::ModelsUnknown { target, unknown } => write!(
+                f,
+                "the {target} smoke said it decoded {} the generator does not emit: {}. Report a model under the name the API document declares it with, not the name the language spells it with",
+                if unknown.len() == 1 {
+                    "a type"
+                } else {
+                    "types"
+                },
+                unknown.join(", "),
+            ),
+            Self::ModelsMissing {
+                target,
+                missing,
+                answered,
+            } => write!(
+                f,
+                "the {target} smoke decoded {} of the {answered} model types an operation answers. It never decoded: {}. Every operation could be reported and every one of them refused, and a client that decodes nothing at all would still satisfy the other bijection — this is the one that says a generated model was really parsed out of what Hook0 sent",
+                answered - missing.len(),
+                missing.join(", "),
+            ),
         }
     }
 }

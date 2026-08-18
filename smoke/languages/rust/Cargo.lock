@@ -1310,7 +1310,10 @@ dependencies = [
 name = "rust-smoke"
 version = "0.0.0"
 dependencies = [
+ "chrono",
  "hook0-client",
+ "reqwest",
+ "serde_json",
  "tokio",
  "url",
  "uuid",

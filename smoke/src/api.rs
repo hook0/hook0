@@ -31,13 +31,58 @@ const EMAIL_EVERY: Duration = Duration::from_millis(500);
 /// The most messages read out of Mailpit in one look.
 const MAX_MESSAGES: usize = 50;
 
-/// What the clients are handed, and what the signature they verify was produced with.
+/// How often the instance is asked whether something it does on its own has happened yet.
+const HOUSEKEEPING_EVERY: Duration = Duration::from_millis(500);
+
+/// How long the per-day counts are waited for.
+///
+/// They come out of a materialized view the API refreshes on a cycle of its own — sixty seconds by
+/// default — so an event ingested a moment ago is not in them yet. Three cycles, so one missed
+/// refresh is a slow run rather than a failed one.
+const COUNTED_WITHIN: Duration = Duration::from_secs(180);
+
+/// The account every application of a run belongs to, and the session that creates them.
 #[derive(Debug, Clone)]
-pub struct Provisioned {
+pub struct Account {
+    pub organization_id: String,
+    /// What an organization-scoped request is made with. It never reaches a smoke: an SDK
+    /// authenticates with an application secret, and handing the clients more than they are meant
+    /// to carry would prove the wrong thing.
+    session: String,
+}
+
+/// One application, everything a client needs to talk about it, and nothing that belongs to
+/// another.
+///
+/// There is one of these per language rather than one for the run. Deleting an application, an
+/// event type and a subscription are operations a client declares, so a smoke has to be able to
+/// drive them — and a single shared application would mean the first language to delete it took
+/// the eleven behind it with it.
+#[derive(Debug, Clone)]
+pub struct Application {
     pub application_id: String,
     /// An application secret, which is what an SDK authenticates with.
     pub token: String,
     pub event_type: String,
+}
+
+/// One delivery the output worker has finished with, as the ids a client can read it back by.
+///
+/// Provisioned here rather than left to the smokes because getting one means waiting on the worker,
+/// and a wait written twelve times is twelve chances to write it wrong. It is what makes
+/// `response.get` an operation a client can be *answered* by: a response row exists only once an
+/// attempt has been made, so without this every language could do no better than ask for one that
+/// is not there — and the type the API answers it with would never be decoded by anybody.
+#[derive(Debug, Clone)]
+pub struct Attempted {
+    pub request_attempt_id: String,
+    pub response_id: String,
+}
+
+/// What the delivery every client verifies was produced with.
+#[derive(Debug, Clone)]
+pub struct Provisioned {
+    pub application: Application,
     pub subscription_secret: String,
 }
 
@@ -81,10 +126,19 @@ fn post(what: &str, url: &str, token: Option<&str>, body: Value) -> Result<Value
     })
 }
 
-/// Reads a document, or refuses naming the status and the body.
+/// Reads a document with no credential, or refuses naming the status and the body.
 fn get(what: &str, url: &str) -> Result<Value, Error> {
+    get_with(what, url, None)
+}
+
+/// Reads a document, or refuses naming the status and the body.
+fn get_with(what: &str, url: &str, token: Option<&str>) -> Result<Value, Error> {
     let agent = agent();
-    let mut answer = agent.get(url).call().map_err(|cause| Error::Http {
+    let mut request = agent.get(url);
+    if let Some(token) = token {
+        request = request.header("authorization", &format!("Bearer {token}"));
+    }
+    let mut answer = request.call().map_err(|cause| Error::Http {
         what: what.to_owned(),
         cause: format!("{cause}"),
     })?;
@@ -148,7 +202,7 @@ fn string(document: &Value, name: &str, what: &str) -> Result<String, Error> {
 }
 
 /// Registers an account, verifies it out of Mailpit, and answers the session and organization.
-fn account(api: &str, mailpit: &str, nonce: &str) -> Result<(String, String), Error> {
+pub fn account(api: &str, mailpit: &str, nonce: &str) -> Result<Account, Error> {
     let address = format!("smoke-{nonce}@hook0.local");
     let password = format!("Sk-{nonce}-{nonce}");
 
@@ -175,7 +229,10 @@ fn account(api: &str, mailpit: &str, nonce: &str) -> Result<(String, String), Er
     )?;
     let access_token = string(&session, "access_token", "verifying the account's email")?;
 
-    Ok((organization_id, access_token))
+    Ok(Account {
+        organization_id,
+        session: access_token,
+    })
 }
 
 /// The verification token out of the email the instance really sent.
@@ -259,30 +316,25 @@ fn token_in(message: &str) -> Option<String> {
     longest.filter(|token| !token.is_empty()).map(str::to_owned)
 }
 
-/// Everything the smokes are run against, created through the API.
+/// One application of its own for one language, created through the API the way a user creates one.
 ///
-/// `receiver` is where the output worker is told to deliver, which is what makes the signature the
-/// clients verify one the instance produced rather than one this harness computed.
-pub fn provision(
-    api: &str,
-    mailpit: &str,
-    nonce: &str,
-    receiver: &str,
-) -> Result<Provisioned, Error> {
-    let (organization_id, session) = account(api, mailpit, nonce)?;
+/// The event type is named the same way in every application, so the name a smoke is handed is the
+/// same string whichever application it was created in.
+pub fn application(api: &str, account: &Account, name: &str) -> Result<Application, Error> {
+    let session = Some(account.session.as_str());
 
     let application = post(
         "creating an application",
         &format!("{api}/applications"),
-        Some(&session),
-        json!({ "name": format!("smoke-{nonce}"), "organization_id": organization_id }),
+        session,
+        json!({ "name": name, "organization_id": account.organization_id }),
     )?;
     let application_id = string(&application, "application_id", "creating an application")?;
 
     let secret = post(
         "creating an application secret",
         &format!("{api}/application_secrets"),
-        Some(&session),
+        session,
         json!({ "application_id": application_id, "name": "live smoke" }),
     )?;
     let token = string(&secret, "token", "creating an application secret")?;
@@ -290,7 +342,7 @@ pub fn provision(
     let event_type = post(
         "creating an event type",
         &format!("{api}/event_types"),
-        Some(&session),
+        session,
         json!({
             "application_id": application_id,
             "service": "smoke",
@@ -300,15 +352,140 @@ pub fn provision(
     )?;
     let event_type = string(&event_type, "event_type_name", "creating an event type")?;
 
+    println!("== provision: application {application_id} ({name}), event type {event_type}");
+
+    Ok(Application {
+        application_id,
+        token,
+        event_type,
+    })
+}
+
+/// An organization-scoped credential, minted through the API the way a user mints one.
+///
+/// Every SDK authenticates with a bearer token and the API takes two kinds: an application secret,
+/// scoped to one application, and this, scoped to the organization. Several operations the document
+/// declares are the organization's — listing applications, everything about service tokens, the
+/// per-organization event counts — and no application secret can perform them. A smoke holding only
+/// one of the two could report them, but only ever as refusals, and the types they answer would
+/// never be decoded.
+pub fn service_token(api: &str, account: &Account, name: &str) -> Result<String, Error> {
+    let minted = post(
+        "creating a service token",
+        &format!("{api}/service_token"),
+        Some(&account.session),
+        json!({ "name": name, "organization_id": account.organization_id }),
+    )?;
+    let biscuit = string(&minted, "biscuit", "creating a service token")?;
+
+    println!("== provision: an organization-scoped service token for the smokes to hold as well");
+    Ok(biscuit)
+}
+
+/// One finished delivery attempt of that application, waited for under the worker's own cadence.
+///
+/// Asked once, of the application the shared delivery was caught from, because that application has
+/// already had a webhook delivered by the time this is called — the run waited for it. Every
+/// language then reads the same attempt and the same response back with the organization credential
+/// it is handed, so no smoke has to wait on the worker itself.
+pub fn attempted(api: &str, account: &Account, application_id: &str) -> Result<Attempted, Error> {
+    let deadline = Instant::now() + crate::worker::DELIVERS_WITHIN;
+    while Instant::now() < deadline {
+        let listed = get_with(
+            "listing the attempts of an application",
+            &format!("{api}/request_attempts?application_id={application_id}"),
+            Some(&account.session),
+        )?;
+
+        let finished = listed
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+            .iter()
+            .find_map(|attempt| {
+                let response = attempt.get("response_id").and_then(Value::as_str)?;
+                let id = attempt.get("request_attempt_id").and_then(Value::as_str)?;
+                Some(Attempted {
+                    request_attempt_id: id.to_owned(),
+                    response_id: response.to_owned(),
+                })
+            });
+
+        if let Some(attempted) = finished {
+            println!(
+                "== provision: the worker finished attempt {}, so there is a response every client \
+                 can read back",
+                attempted.request_attempt_id
+            );
+            return Ok(attempted);
+        }
+        std::thread::sleep(HOUSEKEEPING_EVERY);
+    }
+
+    Err(Error::NoAttempt {
+        application: application_id.to_owned(),
+        seconds: crate::worker::DELIVERS_WITHIN.as_secs(),
+        expectation: crate::worker::expectation(),
+    })
+}
+
+/// Waits until the organization's per-day event counts are no longer empty.
+///
+/// Waited for rather than assumed, and waited for once. The counts are a materialized view the API
+/// refreshes on a cycle of its own, so an application created a moment ago has none — which would
+/// leave every language reporting the operation that reads them and no language ever decoding the
+/// type it answers. What is being waited for is the *instance's own housekeeping*, not anything
+/// this harness or a client does.
+pub fn counted(api: &str, account: &Account) -> Result<(), Error> {
+    let deadline = Instant::now() + COUNTED_WITHIN;
+    while Instant::now() < deadline {
+        let listed = get_with(
+            "listing an organization's events per day",
+            &format!(
+                "{api}/events_per_day/organization?organization_id={}",
+                account.organization_id
+            ),
+            Some(&account.session),
+        )?;
+
+        if listed.as_array().is_some_and(|counted| !counted.is_empty()) {
+            println!(
+                "== provision: the instance has refreshed its per-day counts, so what they are \
+                 answered with is a type a client can decode"
+            );
+            return Ok(());
+        }
+        std::thread::sleep(HOUSEKEEPING_EVERY);
+    }
+
+    Err(Error::NoCounts {
+        organization: account.organization_id.clone(),
+        seconds: COUNTED_WITHIN.as_secs(),
+    })
+}
+
+/// The application the one shared delivery is caught from, with a subscription pointing at the
+/// harness's own socket.
+///
+/// `receiver` is where the output worker is told to deliver, which is what makes the signature the
+/// clients verify one the instance produced rather than one this harness computed.
+pub fn provision(
+    api: &str,
+    account: &Account,
+    nonce: &str,
+    receiver: &str,
+) -> Result<Provisioned, Error> {
+    let application = application(api, account, &format!("smoke-{nonce}"))?;
+
     let subscription = post(
         "creating a subscription",
         &format!("{api}/subscriptions"),
-        Some(&session),
+        Some(&account.session),
         json!({
-            "application_id": application_id,
+            "application_id": application.application_id,
             "is_enabled": true,
             "description": "where the live smoke catches what the instance signs",
-            "event_types": [event_type],
+            "event_types": [application.event_type],
             "labels": { "smoke": nonce },
             "metadata": {},
             "target": { "type": "http", "method": "POST", "url": receiver, "headers": {} },
@@ -316,14 +493,10 @@ pub fn provision(
     )?;
     let subscription_secret = string(&subscription, "secret", "creating a subscription")?;
 
-    println!(
-        "== provision: application {application_id}, event type {event_type}, subscription pointing at {receiver}"
-    );
+    println!("== provision: subscription pointing at {receiver}");
 
     Ok(Provisioned {
-        application_id,
-        token,
-        event_type,
+        application,
         subscription_secret,
     })
 }
@@ -337,10 +510,10 @@ pub fn emit(api: &str, provisioned: &Provisioned, nonce: &str) -> Result<(), Err
     post(
         "sending the event the delivery is caught from",
         &format!("{api}/event"),
-        Some(&provisioned.token),
+        Some(&provisioned.application.token),
         json!({
-            "application_id": provisioned.application_id,
-            "event_type": provisioned.event_type,
+            "application_id": provisioned.application.application_id,
+            "event_type": provisioned.application.event_type,
             "payload": format!("{{\"smoke\":\"{nonce}\"}}"),
             "payload_content_type": "application/json",
             "labels": { "smoke": nonce },

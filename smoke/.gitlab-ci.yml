@@ -76,6 +76,15 @@ clients.live-smoke:
     ## The checksum of the tarball $ZIG_VERSION names, published beside it in Zig's release index.
     ZIG_SHA256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
   before_script:
+    # The two components this job's first three lines use. The base image is `rust:$RUST_VERSION`,
+    # which carries neither, and a job that runs `cargo fmt` without installing `rustfmt` dies on
+    # its first command with `'cargo-fmt' is not installed for the toolchain` — before the stack is
+    # composed, before anything is provisioned, before a single client has spoken to Hook0. Both
+    # Rust jobs beside this one install them the same way (`clients/rust/.gitlab-ci.yml`,
+    # `clients/mcp/.gitlab-ci.yml`); this one never did.
+    - rustc --version && cargo --version
+    - rustup component add clippy
+    - rustup component add rustfmt
     # `php-curl` is not an afterthought: Debian's `php-cli` ships without it and the PHP client
     # declares `ext-curl` as a requirement, so without it every send dies on an undefined
     # `curl_init` — a failure that says nothing about the client. `ext-hash` and `ext-json`, which
@@ -117,10 +126,13 @@ clients.live-smoke:
     # No `eval "$(luarocks path)"` here, deliberately. The Lua smoke derives its own search path
     # from `luarocks` and declares that in its manifest, so exporting one in this job would prove
     # nothing about a developer's machine — it would only hide the day the derivation broke.
-    # Three questions worth asking before anything is started, and none of them needs the stack: is
+    # Five questions worth asking before anything is started, and none of them needs the stack: is
     # every client the generator declares paired with a smoke, does the compose file still declare
-    # what the harness reads out of it, and is the deadline the harness waits for a delivery under
-    # still the output worker's own cadence rather than a number that has drifted away from it.
+    # what the harness reads out of it, is the deadline the harness waits for a delivery under still
+    # the output worker's own cadence rather than a number that has drifted away from it, does the
+    # bijection between what a smoke reports and what the API document declares refuse everything it
+    # says it refuses, and does a child's output still reach both this job's log and the run that
+    # parses it.
     # This crate declares its own workspace, so the repository-wide `cargo fmt --all` and
     # `cargo clippy --workspace` reach every other crate and never this one. It had drifted out of
     # format in four places before anybody noticed, which is what an unenforced rule does.
