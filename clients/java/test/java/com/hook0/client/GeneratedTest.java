@@ -264,6 +264,126 @@ final class GeneratedTest {
   }
 
   @Test
+  void aDocumentThatDoesNotSayWhatItWasDeclaredToSayStopsTheRead() {
+    // One reader per shape the document can declare, each handed something it was not declared to
+    // carry. What matters is that the read stops: a reader that widened, coerced or shrugged would
+    // hand a caller a value the API never sent, and nothing downstream would know.
+    assertThrows(DecodeException.class, () -> Wire.asText(Long.valueOf(42)));
+    assertThrows(DecodeException.class, () -> Wire.asUuid("not a uuid"));
+    assertThrows(DecodeException.class, () -> Wire.asLong("7"));
+    assertThrows(DecodeException.class, () -> Wire.asBoolean("true"));
+    assertThrows(DecodeException.class, () -> Wire.asMoment("2026-01-02"));
+    assertThrows(DecodeException.class, () -> Wire.asDay("2026-01-02T03:04:05Z"));
+    assertThrows(DecodeException.class, () -> Wire.asList(Wire::asText).apply("not an array"));
+    assertThrows(DecodeException.class, () -> Wire.asMap(Wire::asText).apply("not an object"));
+    assertThrows(DecodeException.class, () -> Wire.asFields("not an object", "a value"));
+
+    // A number is not a boolean and a boolean is not a number, here or on the wire.
+    assertThrows(DecodeException.class, () -> Wire.asLong(Boolean.TRUE));
+    assertThrows(DecodeException.class, () -> Wire.asDouble(Boolean.TRUE));
+
+    // And the same readers, handed what they were declared to carry.
+    assertEquals("what arrived", Wire.asText("what arrived"));
+    assertEquals(Long.valueOf(7), Wire.asLong(Integer.valueOf(7)));
+    assertEquals(Boolean.TRUE, Wire.asBoolean(Boolean.TRUE));
+    assertEquals(LocalDate.parse("2026-01-02"), Wire.asDay("2026-01-02"));
+    assertEquals(OffsetDateTime.parse("2026-01-02T03:04:05Z"), Wire.asMoment("2026-01-02T03:04:05Z"));
+    assertEquals(List.of("one"), Wire.asList(Wire::asText).apply(List.of("one")));
+    assertEquals(Map.of("a key", "one"), Wire.asMap(Wire::asText).apply(Map.of("a key", "one")));
+  }
+
+  @Test
+  void anIdentifierWrittenShortIsRefusedRatherThanWidened() {
+    // `UUID.fromString` reads a group written with fewer digits than it has and pads it, so two
+    // different texts would become one identifier and a caller comparing what it sent against what
+    // came back would see them agree. What the API wrote is held against what was read.
+    assertThrows(DecodeException.class, () -> Wire.asUuid("3f2504e0-4f89-41d3-9a0c-305e82c3310"));
+    assertThrows(DecodeException.class, () -> Wire.asUuid("3f2504e0-4f89-41d3-9a0c-0305e82c33100"));
+    assertEquals(
+        UUID.fromString("3f2504e0-4f89-41d3-9a0c-0305e82c3310"),
+        Wire.asUuid("3f2504e0-4f89-41d3-9a0c-0305e82c3310"));
+  }
+
+  @Test
+  void aWholeNumberIsRefusedWhenItIsWiderThanWhatItWasDeclaredAs() {
+    // The document declares a 32-bit member; the wire carries whatever the API wrote. A number that
+    // does not fit is refused rather than truncated into a different number.
+    assertEquals(Integer.valueOf(7), Wire.asInteger(Long.valueOf(7)));
+    assertEquals(Integer.valueOf(Integer.MAX_VALUE), Wire.asInteger(Long.valueOf(Integer.MAX_VALUE)));
+    assertEquals(Integer.valueOf(Integer.MIN_VALUE), Wire.asInteger(Long.valueOf(Integer.MIN_VALUE)));
+    assertThrows(DecodeException.class, () -> Wire.asInteger(Long.valueOf(Integer.MAX_VALUE) + 1L));
+    assertThrows(DecodeException.class, () -> Wire.asInteger(Long.valueOf(Integer.MIN_VALUE) - 1L));
+  }
+
+  @Test
+  void aNumberIsReadWhicheverWayTheDocumentWroteIt() {
+    // `asDouble` is published on this artefact and the snapshot happens to declare no member that
+    // uses it, so nothing else in this suite reaches it. A caller can, which is the whole reason it
+    // is asserted: what it promises is that a number reads as a number whether or not the document
+    // bothered to write a fractional part.
+    assertEquals(Double.valueOf(1.5), Wire.asDouble(Double.valueOf(1.5)));
+    assertEquals(Double.valueOf(7.0), Wire.asDouble(Long.valueOf(7)));
+    assertEquals(Double.valueOf(7.0), Wire.asDouble(Integer.valueOf(7)));
+    assertEquals(Double.valueOf(-1.5), Wire.asDouble(Double.valueOf(-1.5)));
+    assertEquals(Double.valueOf(0.0), Wire.asDouble(Integer.valueOf(0)));
+
+    assertThrows(DecodeException.class, () -> Wire.asDouble("1.5"));
+    assertThrows(DecodeException.class, () -> Wire.asDouble(null));
+  }
+
+  @Test
+  void everyValueOfACollectionIsWrittenBackTheWayOneOfThemIs() {
+    // `writeMap` is published beside `writeList` and, like `asDouble`, the snapshot declares no
+    // member that reaches it. Both promise the same thing: the writer of one value, applied to every
+    // value, and nothing written back for nothing at all.
+    assertEquals(
+        List.of("2026-01-02"),
+        Wire.writeList(List.of(LocalDate.parse("2026-01-02")), Wire::writeDay));
+    assertEquals(
+        Map.of("a key the document leaves open", "2026-01-02"),
+        Wire.writeMap(Map.of("a key the document leaves open", LocalDate.parse("2026-01-02")), Wire::writeDay));
+
+    assertNull(Wire.writeList(null, Wire::writeDay));
+    assertNull(Wire.writeMap(null, Wire::writeDay));
+    assertEquals(List.of(), Wire.writeList(List.of(), Wire::writeDay));
+    assertEquals(Map.of(), Wire.writeMap(Map.of(), Wire::writeDay));
+
+    // The same of every scalar writer they are given. A member the caller left out has to come back
+    // as nothing rather than as the word `null` written into the document, which is the difference
+    // between a member the API does not see and one it sees set to nothing.
+    assertNull(Wire.writeUuid(null));
+    assertNull(Wire.writeMoment(null));
+    assertNull(Wire.writeDay(null));
+  }
+
+  @Test
+  void anAnswerIsQuotedBackAtAFixedBudgetRatherThanWhole() {
+    // What goes into a failure message is written by a server this client does not control, so it is
+    // cut rather than echoed into whatever the caller logs.
+    String oversized = "x".repeat(Wire.MAX_PREVIEW_CHARS + 1);
+
+    assertEquals(Wire.MAX_PREVIEW_CHARS + 1, Wire.preview(oversized).length());
+    assertTrue(Wire.preview(oversized).endsWith("\u2026"), Wire.preview(oversized));
+    assertEquals("what the API answered", Wire.preview("what the API answered"));
+    assertEquals("", Wire.preview(null));
+  }
+
+  @Test
+  void anAnswerThatIsNotADocumentAtAllStopsTheRead() {
+    DecodeException refused =
+        assertThrows(DecodeException.class, () -> Wire.decodePayload("<html>a proxy answered this</html>"));
+
+    assertTrue(refused.getMessage().contains("a proxy answered this"), refused.getMessage());
+    assertEquals(Map.of("read", "back"), Wire.decodePayload("{\"read\": \"back\"}"));
+
+    // An answer carrying no body at all is the same read and the same refusal: an empty document is
+    // not an empty object, and reading it as one would hand a caller a value with every member
+    // missing rather than telling them the API answered nothing.
+    assertThrows(DecodeException.class, () -> Wire.decodePayload(null));
+    assertThrows(DecodeException.class, () -> Wire.decodePayload(""));
+  }
+
+  @Test
   void everyClosedListCarriesEveryStringTheApiAnswersAndNothingElse() {
     // The constants are the wire values themselves, so a name moved out of the way of the language
     // never reaches the wire. Every list the generator wrote is walked and every value of it read

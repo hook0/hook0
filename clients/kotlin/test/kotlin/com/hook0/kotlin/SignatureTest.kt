@@ -210,6 +210,21 @@ class SignatureTest {
     assertEquals(BODY_CODE, signed(MOMENT))
   }
 
+  @Test
+  fun aSecretNobodySetVerifiesNothing() {
+    // An empty key is one the runtime's HMAC refuses outright, so a caller that passed no secret
+    // hears that the delivery is refused rather than an error about key lengths — and, crucially,
+    // never hears that it verified.
+    val signature = "t=$MOMENT,v0=${signed(MOMENT)}"
+    val now = Instant.ofEpochSecond(MOMENT)
+
+    val refused = assertThrows(ClientException::class.java) {
+      Webhooks.verifyAt(signature, PAYLOAD, delivered(), "", TOLERANCE, now)
+    }
+
+    assertTrue(refused.message?.contains("no subscription secret") == true, refused.message)
+  }
+
   companion object {
     private const val SECRET = "a-subscription-secret"
     private const val PAYLOAD = "{\"event\":\"user.created\"}"

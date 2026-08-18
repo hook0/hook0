@@ -1,10 +1,12 @@
 package com.hook0.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +37,78 @@ final class TransportTest {
 
   private static TransportException refused(FakeApi api, Options options) {
     return assertThrows(TransportException.class, () -> issued(api, options));
+  }
+
+  @Test
+  void anApiUrlThatIsNotSomewhereARequestCanGoIsRefusedBeforeASocketIsOpened() {
+    // Each way a base URL can fail to be one this transport can reach: not a URL at all, a scheme
+    // nothing is sent over, no host to send it to, and a configuration value that was never read.
+    // All of them are refused when the request is built rather than when a connection is attempted,
+    // so a caller hears why rather than hearing that the network is down.
+    for (String written :
+        Arrays.asList("not a url at all", "ftp://example.test/api/v1", "http:///api/v1", "", null)) {
+      try (HttpTransport transport = new HttpTransport(written, "token-xyz", once())) {
+        TransportException refused =
+            assertThrows(
+                TransportException.class,
+                () -> transport.request("GET", "somewhere", List.of(), null),
+                "`" + written + "` was read as somewhere a request can go");
+
+        assertFalse(refused.retryable(), "`" + written + "` was reported as worth trying again");
+      }
+    }
+  }
+
+  @Test
+  void aBaseUrlIsExtendedByAPathRatherThanReplacedByIt() {
+    // With and without the trailing slash the API URL is written with, and against a base that
+    // already carries a path of its own: a request lands under the base either way, rather than at
+    // the root of the host.
+    for (String written : List.of("/api/v1", "/api/v1/")) {
+      try (FakeApi api = new FakeApi();
+          HttpTransport transport = new HttpTransport(api.baseUrl() + written, "token-xyz", once())) {
+        api.willAnswer(FakeApi.Scripted.of(200, Map.of()));
+        transport.request("GET", "somewhere", List.of(), null);
+
+        assertEquals("/api/v1/somewhere", api.received().get(0).target());
+      }
+    }
+  }
+
+  @Test
+  void aQueryIsAddedToWhateverThePathAlreadyCarried() {
+    try (FakeApi api = new FakeApi();
+        HttpTransport transport = new HttpTransport(api.baseUrl() + "/api/v1/", "token-xyz", once())) {
+      api.willAnswer(FakeApi.Scripted.of(200, Map.of()), FakeApi.Scripted.of(200, Map.of()));
+
+      transport.request(
+          "GET",
+          "somewhere",
+          List.of(new QueryParameter("first", "one"), new QueryParameter("second", null)),
+          null);
+
+      assertEquals("/api/v1/somewhere?first=one&second=", api.received().get(0).target());
+
+      // A path that already names something is extended rather than given a second `?`.
+      transport.request("GET", "somewhere?tenant=acme", List.of(new QueryParameter("first", "one")), null);
+
+      assertEquals("/api/v1/somewhere?tenant=acme&first=one", api.received().get(1).target());
+    }
+  }
+
+  @Test
+  void aQueryTheBaseUrlCarriesIsNotOneEveryRequestInherits() {
+    // What a base URL's own query string does to the requests issued under it: nothing. A relative
+    // path replaces it, which is what RFC 3986 says and not what a caller who put a parameter there
+    // would expect — so it is written down rather than left to be discovered.
+    try (FakeApi api = new FakeApi();
+        HttpTransport transport =
+            new HttpTransport(api.baseUrl() + "/api/v1/?tenant=acme", "token-xyz", once())) {
+      api.willAnswer(FakeApi.Scripted.of(200, Map.of()));
+      transport.request("GET", "somewhere", List.of(), null);
+
+      assertEquals("/api/v1/somewhere", api.received().get(0).target());
+    }
   }
 
   /** A head of roughly that many bytes, spread across as many lines as it takes. */

@@ -252,6 +252,37 @@ public sealed class GeneratedTests : ApiCase
         Assert.Equal(
             "2026-01-02T03:04:05Z",
             Runtime.Written(new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc)));
+
+        // A number is asserted by the promise rather than by the spelling: whatever text it travels
+        // as reads back as the same number under a culture that is not the machine's, across the
+        // range rather than at the one value a case picked. `1.5` above is the spelling; this is
+        // what would still hold if a runtime shortened `1E+21`.
+        foreach (double number in new[] { 1.5d, -1.5d, 0d, 0.1d, 1e21d, double.Epsilon, double.MaxValue })
+        {
+            string written = Runtime.Written(number);
+
+            Assert.Equal(number, double.Parse(written, NumberStyles.Float, CultureInfo.InvariantCulture));
+            Assert.DoesNotContain(",", written, StringComparison.Ordinal);
+        }
+
+        foreach (float number in new[] { 1.5f, -1.5f, 0f })
+        {
+            Assert.Equal(
+                number,
+                float.Parse(Runtime.Written(number), NumberStyles.Float, CultureInfo.InvariantCulture));
+        }
+
+        // A day, on the other hand, is parsed by the API, so its spelling is the contract — at the
+        // far edge of the range as much as at a date somebody picked.
+        Assert.Equal("0001-01-01", Runtime.Written(DateOnly.MinValue));
+        Assert.Equal("9999-12-31", Runtime.Written(DateOnly.MaxValue));
+
+        // And `Written` takes an `object?`, which promises text for whatever it is handed rather
+        // than only for the shapes it enumerates. A type this package has never heard of travels as
+        // what that type says it is, and never as nothing at all — a query value that came back
+        // null would be a request nobody could send.
+        Assert.Equal("a value of its own", Runtime.Written(new Unlisted()));
+        Assert.NotNull(Runtime.Written(new object()));
     }
 
     [Fact]
@@ -945,4 +976,10 @@ public sealed class GeneratedTests : ApiCase
         name.EndsWith(AsyncSuffix, StringComparison.Ordinal)
             ? name[..^AsyncSuffix.Length]
             : name;
+    /// <summary>A type this package has no arm for, which is every type a caller writes itself.</summary>
+    private sealed class Unlisted
+    {
+        /// <inheritdoc />
+        public override string ToString() => "a value of its own";
+    }
 }

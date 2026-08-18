@@ -2,6 +2,7 @@ package com.hook0.kotlin
 
 import java.time.Duration
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -183,6 +184,80 @@ class TransportTest {
         }
 
       assertEquals(TransportException.ANSWER_ABOVE_A_BOUND, refused.causeName)
+    }
+  }
+
+  @Test
+  fun anApiUrlThatIsNotSomewhereARequestCanGoIsRefusedBeforeASocketIsOpened() {
+    // Each of the ways a base URL can fail to be one this transport can reach: not a URL at all, a
+    // scheme nothing is sent over, and no host to send it to. All are refused when the request is
+    // built rather than when a connection is attempted, so a caller hears why.
+    for (written in listOf("not a url at all", "ftp://example.test/api/v1", "http:///api/v1", "")) {
+      HttpTransport(written, "token-xyz", once()).use { transport ->
+        val refused = assertThrows(TransportException::class.java) {
+          transport.request("GET", "somewhere", emptyList(), null)
+        }
+
+        assertFalse(refused.retryable, "`$written` was reported as worth trying again")
+      }
+    }
+  }
+
+  @Test
+  fun aBaseUrlIsExtendedByAPathRatherThanReplacedByIt() {
+    // With and without the trailing slash the API URL is written with: a request lands under the
+    // base either way, rather than at the root of the host.
+    for (written in listOf("/api/v1", "/api/v1/")) {
+      FakeApi().use { api ->
+        HttpTransport(api.baseUrl() + written, "token-xyz", once()).use { transport ->
+          api.willAnswer(FakeApi.Scripted.of(200, emptyMap<String, Any?>()))
+          transport.request("GET", "somewhere", emptyList(), null)
+
+          assertEquals("/api/v1/somewhere", api.received()[0].target)
+        }
+      }
+    }
+  }
+
+  @Test
+  fun aQueryIsAddedToWhateverThePathAlreadyCarried() {
+    FakeApi().use { api ->
+      HttpTransport(api.baseUrl() + "/api/v1/", "token-xyz", once()).use { transport ->
+        api.willAnswer(
+          FakeApi.Scripted.of(200, emptyMap<String, Any?>()),
+          FakeApi.Scripted.of(200, emptyMap<String, Any?>())
+        )
+
+        transport.request(
+          "GET",
+          "somewhere",
+          listOf(QueryParameter("first", "one"), QueryParameter("second", "")),
+          null
+        )
+
+        // A parameter carrying nothing travels as an empty value rather than as the word `null`.
+        assertEquals("/api/v1/somewhere?first=one&second=", api.received()[0].target)
+
+        // A path that already names something is extended rather than given a second `?`.
+        transport.request("GET", "somewhere?tenant=acme", listOf(QueryParameter("first", "one")), null)
+
+        assertEquals("/api/v1/somewhere?tenant=acme&first=one", api.received()[1].target)
+      }
+    }
+  }
+
+  @Test
+  fun aQueryTheBaseUrlCarriesIsNotOneEveryRequestInherits() {
+    // What a base URL's own query string does to the requests issued under it: nothing. A relative
+    // path replaces it, which is what RFC 3986 says and not what a caller who put a parameter there
+    // would expect — so it is written down rather than left to be discovered.
+    FakeApi().use { api ->
+      HttpTransport(api.baseUrl() + "/api/v1/?tenant=acme", "token-xyz", once()).use { transport ->
+        api.willAnswer(FakeApi.Scripted.of(200, emptyMap<String, Any?>()))
+        transport.request("GET", "somewhere", emptyList(), null)
+
+        assertEquals("/api/v1/somewhere", api.received()[0].target)
+      }
     }
   }
 

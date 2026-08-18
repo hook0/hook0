@@ -283,6 +283,114 @@ class GeneratedTest {
   }
 
   @Test
+  fun aDocumentThatDoesNotSayWhatItWasDeclaredToSayStopsTheRead() {
+    // One reader per shape the document can declare, each handed something it was not declared to
+    // carry. What matters is that the read stops: a reader that widened, coerced or shrugged would
+    // hand a caller a value the API never sent, and nothing downstream would know.
+    assertThrows(DecodeException::class.java) { Wire.asText(42L) }
+    assertThrows(DecodeException::class.java) { Wire.asUuid("not a uuid") }
+    assertThrows(DecodeException::class.java) { Wire.asLong("7") }
+    assertThrows(DecodeException::class.java) { Wire.asBoolean("true") }
+    assertThrows(DecodeException::class.java) { Wire.asMoment("2026-01-02") }
+    assertThrows(DecodeException::class.java) { Wire.asDay("2026-01-02T03:04:05Z") }
+    assertThrows(DecodeException::class.java) { Wire.asList(Wire::asText)("not an array") }
+    assertThrows(DecodeException::class.java) { Wire.asMap(Wire::asText)("not an object") }
+    assertThrows(DecodeException::class.java) { Wire.asFields("not an object", "a value") }
+    assertThrows(DecodeException::class.java) { Wire.asJson(null) }
+
+    // A number is not a boolean and a boolean is not a number, here or on the wire.
+    assertThrows(DecodeException::class.java) { Wire.asLong(true) }
+    assertThrows(DecodeException::class.java) { Wire.asDouble(true) }
+
+    // And the same readers, handed what they were declared to carry.
+    assertEquals("what arrived", Wire.asText("what arrived"))
+    assertEquals(7L, Wire.asLong(7))
+    assertEquals(true, Wire.asBoolean(true))
+    assertEquals(LocalDate.parse("2026-01-02"), Wire.asDay("2026-01-02"))
+    assertEquals(OffsetDateTime.parse("2026-01-02T03:04:05Z"), Wire.asMoment("2026-01-02T03:04:05Z"))
+    assertEquals(listOf("one"), Wire.asList(Wire::asText)(listOf("one")))
+    assertEquals(mapOf("a key" to "one"), Wire.asMap(Wire::asText)(mapOf("a key" to "one")))
+  }
+
+  @Test
+  fun anIdentifierWrittenShortIsRefusedRatherThanWidened() {
+    // `UUID.fromString` reads a group written with fewer digits than it has and pads it, so two
+    // different texts would become one identifier and a caller comparing what it sent against what
+    // came back would see them agree. What the API wrote is held against what was read.
+    assertThrows(DecodeException::class.java) { Wire.asUuid("3f2504e0-4f89-41d3-9a0c-305e82c3310") }
+    assertThrows(DecodeException::class.java) { Wire.asUuid("3f2504e0-4f89-41d3-9a0c-0305e82c33100") }
+    assertEquals(
+      UUID.fromString("3f2504e0-4f89-41d3-9a0c-0305e82c3310"),
+      Wire.asUuid("3f2504e0-4f89-41d3-9a0c-0305e82c3310")
+    )
+  }
+
+  @Test
+  fun aWholeNumberIsRefusedWhenItIsWiderThanWhatItWasDeclaredAs() {
+    // The document declares a 32-bit member; the wire carries whatever the API wrote. A number that
+    // does not fit is refused rather than truncated into a different number.
+    assertEquals(7, Wire.asInteger(7L))
+    assertEquals(Int.MAX_VALUE, Wire.asInteger(Int.MAX_VALUE.toLong()))
+    assertEquals(Int.MIN_VALUE, Wire.asInteger(Int.MIN_VALUE.toLong()))
+    assertThrows(DecodeException::class.java) { Wire.asInteger(Int.MAX_VALUE.toLong() + 1L) }
+    assertThrows(DecodeException::class.java) { Wire.asInteger(Int.MIN_VALUE.toLong() - 1L) }
+  }
+
+  @Test
+  fun aNumberIsReadWhicheverWayTheDocumentWroteIt() {
+    // `asDouble` is published on this artefact and the snapshot happens to declare no member that
+    // uses it, so nothing else in this suite reaches it. A caller can, which is the whole reason it
+    // is asserted: what it promises is that a number reads as a number whether or not the document
+    // bothered to write a fractional part.
+    assertEquals(1.5, Wire.asDouble(1.5))
+    assertEquals(7.0, Wire.asDouble(7L))
+    assertEquals(7.0, Wire.asDouble(7))
+    assertEquals(-1.5, Wire.asDouble(-1.5))
+    assertEquals(0.0, Wire.asDouble(0))
+
+    assertThrows(DecodeException::class.java) { Wire.asDouble("1.5") }
+    assertThrows(DecodeException::class.java) { Wire.asDouble(null) }
+  }
+
+  @Test
+  fun everyValueOfACollectionIsWrittenBackTheWayOneOfThemIs() {
+    // `writeMap` is published beside `writeList` and, like `asDouble`, the snapshot declares no
+    // member that reaches it. Both promise the same thing: the writer of one value, applied to
+    // every value.
+    assertEquals(
+      listOf("2026-01-02"),
+      Wire.writeList(listOf(LocalDate.parse("2026-01-02")), Wire::writeDay)
+    )
+    assertEquals(
+      mapOf("a key the document leaves open" to "2026-01-02"),
+      Wire.writeMap(mapOf("a key the document leaves open" to LocalDate.parse("2026-01-02")), Wire::writeDay)
+    )
+
+    assertEquals(emptyList<Any?>(), Wire.writeList(emptyList<LocalDate>(), Wire::writeDay))
+    assertEquals(emptyMap<String, Any?>(), Wire.writeMap(emptyMap<String, LocalDate>(), Wire::writeDay))
+  }
+
+  @Test
+  fun anAnswerIsQuotedBackAtAFixedBudgetRatherThanWhole() {
+    // What goes into a failure message is written by a server this client does not control, so it is
+    // cut rather than echoed into whatever the caller logs.
+    val oversized = "x".repeat(Wire.MAX_PREVIEW_CHARS + 1)
+
+    assertEquals(Wire.MAX_PREVIEW_CHARS + 1, Wire.preview(oversized).length)
+    assertTrue(Wire.preview(oversized).endsWith("\u2026"), Wire.preview(oversized))
+    assertEquals("what the API answered", Wire.preview("what the API answered"))
+  }
+
+  @Test
+  fun anAnswerThatIsNotADocumentAtAllStopsTheRead() {
+    val refused =
+      assertThrows(DecodeException::class.java) { Wire.decodePayload("<html>a proxy answered this</html>") }
+
+    assertTrue(refused.message?.contains("a proxy answered this") == true, refused.message)
+    assertEquals(mapOf("read" to "back"), Wire.decodePayload("{\"read\": \"back\"}"))
+  }
+
+  @Test
   fun everyClosedListCarriesEveryStringTheApiAnswersAndNothingElse() {
     // The constants are the wire values themselves, so a name moved out of the way of the language
     // never reaches the wire. Every list the generator wrote is walked and every value of it read

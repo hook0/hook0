@@ -219,6 +219,31 @@ final class SignatureTest {
   }
 
   @Test
+  void aHeaderThatIsNothingAtAllIsRefusedRatherThanRead() {
+    ClientException refused = assertThrows(ClientException.class, () -> Signature.parse(null));
+
+    assertTrue(refused.getMessage().contains("no signature to read"), refused.getMessage());
+  }
+
+  @Test
+  void aSecretNobodySetVerifiesNothing() {
+    // An empty key is one the runtime's HMAC refuses outright, so a caller that passed no secret
+    // hears that the delivery is refused rather than an error about key lengths — and, crucially,
+    // never hears that it verified.
+    String signature = "t=" + MOMENT + ",v0=" + signed(MOMENT);
+    Instant now = Instant.ofEpochSecond(MOMENT);
+
+    for (String secret : new String[] {null, ""}) {
+      ClientException refused =
+          assertThrows(
+              ClientException.class,
+              () -> Webhooks.verifyAt(signature, PAYLOAD, delivered(), secret, TOLERANCE, now));
+
+      assertTrue(refused.getMessage().contains("no subscription secret"), refused.getMessage());
+    }
+  }
+
+  @Test
   void aDeliveryCarryingNothingWhereItsPartsGoIsRefusedRatherThanVerified() {
     // Every way a caller can hand over nothing: no header list, no header map, a header carrying no
     // name or no value, and no body at all. None of them verifies, and each says so as the refusal
