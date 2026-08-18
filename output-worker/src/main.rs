@@ -35,6 +35,7 @@ use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 use crate::dns::{DnsResolver, DnsResolverOptions};
+use crate::opentelemetry::{GiveUpReason, report_given_up};
 use crate::pulsar::LoadMode;
 use crate::work::*;
 use hook0_protobuf::RequestAttempt;
@@ -1149,6 +1150,7 @@ async fn compute_next_retry(
                 .and_then(|bytes| str::from_utf8(bytes).ok())
                 .unwrap_or("???");
             error!(request_attempt_id = %attempt.request_attempt_id, "Could not construct signature ({msg}); giving up");
+            report_given_up(GiveUpReason::SignatureFailed);
             Ok(None)
         }
         _ => {
@@ -1177,14 +1179,19 @@ async fn compute_next_retry(
             .await?;
 
             if sub.is_some() {
-                Ok(policy.next_delay_honouring(
+                let next_delay = policy.next_delay_honouring(
                     attempt.retry_count,
                     rand::random::<f64>(),
                     response,
                     Utc::now(),
-                ))
+                );
+                if next_delay.is_none() {
+                    report_given_up(GiveUpReason::RetriesExhausted);
+                }
+                Ok(next_delay)
             } else {
                 // If the subscription was disabled or soft-deleted (or its application was deleted), we do not schedule a next attempt
+                report_given_up(GiveUpReason::SubscriptionGone);
                 Ok(None)
             }
         }
