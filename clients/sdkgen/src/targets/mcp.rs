@@ -16,7 +16,7 @@ use crate::error::{Error, preview};
 use crate::limits::Limits;
 use crate::model::{ApiModel, EntityModel};
 use crate::snapshot::{Operation, ParameterLocation, RequestBody};
-use crate::targets::{LanguageSpec, Target, rust, update_command};
+use crate::targets::{Contract, LanguageSpec, Target, rust, update_command};
 
 /// Tag an operation carries to become a tool of the MCP server.
 pub const MCP_TAG: &str = "mcp";
@@ -29,6 +29,16 @@ const ROOT: &str = "clients/mcp/src/server";
 
 /// The one file of that directory this target owns; everything beside it is hand-written.
 const FILE: &str = "generated.rs";
+
+/// The one document of the shared corpus the server this target lands in is held to.
+///
+/// The server sends requests to the Hook0 API, so what every request carries is a contract about
+/// it, and the client that sends them sits beside the tool table under `clients/mcp`. The other
+/// three documents are not: the server holds no retry policy, so a rule about what to repeat says
+/// nothing it could honour; it never receives a webhook, so it verifies no signature; and it
+/// applies none of the payload and response bounds the SDKs are configured with. Holding it to
+/// those would make the guard wrong rather than strict.
+const HELD_TO: [&str; 1] = ["request.json"];
 
 /// The line saying where the tool table comes from, which no command in it ever changes.
 const HEADER: &str =
@@ -97,6 +107,7 @@ pub(super) fn target() -> Target {
         // The module the tool table sits in is hand-written apart from that one file, so nothing
         // beside it is ever swept away as stale.
         ownership: Ownership::Files,
+        contract: Contract::Only(&HELD_TO),
         language: rust(),
         emit,
     }

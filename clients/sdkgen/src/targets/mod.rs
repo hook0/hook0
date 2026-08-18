@@ -90,6 +90,26 @@ pub struct LanguageSpec {
     pub extension: &'static str,
 }
 
+/// Which of the shared corpus a target's client is a contract for.
+///
+/// The corpus at `clients/conformance` is a set of documents about the things a client does: what
+/// it puts on the wire, what it repeats, what it verifies, what it bounds. Which of them hold a
+/// given target up is a property of that target, so it is stated here rather than guessed from
+/// something else — an SDK owning a whole tree happens to do all four today, and reading the
+/// contract off that coincidence held the MCP client to none of them while it was quietly dropping
+/// two of the headers every other client sends.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Contract {
+    /// Every document the corpus holds, whatever it comes to hold: a client that sends, repeats,
+    /// verifies and bounds is held to all of it, and to a document added tomorrow without this
+    /// entry being touched.
+    Whole,
+    /// Only the documents named, which is the whole of what this target's client takes part in. A
+    /// document it cannot honour would make the guard wrong rather than strict, and a document it
+    /// can is one nothing else would hold it to.
+    Only(&'static [&'static str]),
+}
+
 /// One thing the generator writes.
 #[derive(Debug)]
 pub struct Target {
@@ -100,6 +120,8 @@ pub struct Target {
     /// Where the target lands, relative to the root of the repository.
     pub root: &'static str,
     pub ownership: Ownership,
+    /// What of the shared corpus the client this target lands in is held to.
+    pub contract: Contract,
     pub language: LanguageSpec,
     /// Turns the model into the files the target is made of.
     ///

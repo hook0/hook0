@@ -862,9 +862,7 @@ mod refusals {
             let _ = connection.set_read_timeout(Some(PATIENCE));
             let _ = connection.set_write_timeout(Some(PATIENCE));
 
-            // Read the head, so the request is off the socket before it is answered. The body
-            // after it is not read: nothing here reads what was sent, and the answer is the same
-            // either way.
+            // Read the head, so the request is off the socket before it is answered.
             let mut held = Vec::new();
             let mut byte = [0u8; 1];
             while held.len() < MAX_REQUEST_BYTES && !held.ends_with(b"\r\n\r\n") {
@@ -872,6 +870,20 @@ mod refusals {
                     Ok(0) | Err(_) => break,
                     Ok(_) => held.push(byte[0]),
                 }
+            }
+
+            // And then the body, which nothing here reads for what it says. It is taken off the
+            // socket because leaving it there is what decides whether this answer arrives: a
+            // connection dropped with bytes still unread is reset rather than closed, and the
+            // client reads the reset in place of the refusal it was sent.
+            let announced = String::from_utf8_lossy(&held)
+                .lines()
+                .filter_map(|line| line.split_once(':'))
+                .find(|(name, _)| name.trim().eq_ignore_ascii_case("content-length"))
+                .and_then(|(_, counted)| counted.trim().parse::<usize>().ok());
+            if let Some(carried) = announced {
+                let mut body = vec![0u8; carried.min(MAX_REQUEST_BYTES)];
+                let _ = connection.read_exact(&mut body);
             }
 
             let _ = write!(

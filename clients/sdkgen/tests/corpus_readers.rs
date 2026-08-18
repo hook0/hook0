@@ -1,12 +1,13 @@
-//! Every target reads every document of the shared corpus.
+//! Every target reads every document of the shared corpus it is a contract for, and every document
+//! is a contract for somebody.
 //!
 //! The corpus at `clients/conformance` only holds a target up for as long as that target's own
 //! suite opens it. A document nobody reads is a contract nobody honours, and it fails in the
 //! quietest way there is: every suite stays green while the clients drift apart. That is the same
 //! silent divergence the corpus exists to kill, one level up.
 //!
-//! What this checks, exactly: for every target of the registry, the file name of every document of
-//! the corpus is written inside a literal — between quotes, or after a path separator and before a
+//! What this checks, exactly: for every target of the registry, the file name of every document it
+//! is held to is written inside a literal — between quotes, or after a path separator and before a
 //! quote — in a hand-written source file of that target's own language, under the client the target
 //! lands in; and the same suite writes the corpus directory the same way, so the documents are read
 //! from the one committed copy rather than transcribed into the suite. What surrounds the name is
@@ -21,15 +22,16 @@
 //! to the corpus and a target added to the registry are both carried without this file being
 //! touched.
 //!
-//! Which targets it applies to is derived the same way. The corpus is a contract about what a
-//! client does on the wire, so it is asked of the targets that *are* clients: the ones the
-//! generator owns a whole tree of ([`Ownership::Directory`]). A target that only lays files into a
-//! tree somebody else owns ([`Ownership::Files`]) is not one — the MCP server's tool table sends
-//! no request, repeats nothing and verifies no signature, and a retry rule holds nothing up there.
-//! That exemption is read off the registry and never off a name, so it cannot be widened by
-//! writing a target into a list: a client is exempt only by ceasing to own its own tree, which is
-//! the same thing as ceasing to be a client. Whichever targets it lets off, the run says so by
-//! name, and a run holding no target at all fails rather than passes.
+//! Which documents apply to which target is read off the registry, where each target states it as
+//! [`Contract`]. A client of its own is held to [`Contract::Whole`], which is whatever the corpus
+//! comes to hold rather than a list that has to be widened with it. A target whose client takes
+//! part in only some of the contract names the documents it does take part in, and the run says by
+//! name which those are: the MCP server sends requests like every other client and is held to what
+//! they carry, while a retry rule, a signature vector and a payload bound describe nothing it has —
+//! holding it to those would make this guard wrong rather than strict. What it cannot be is silent.
+//! A document no target is held to fails here, so a clause cannot be dropped by every target at
+//! once claiming it belongs to somebody else, and a target claiming a document its suite does not
+//! read fails as any other unread document does.
 //!
 //! What it deliberately does not check is that a suite *acts* on what it read: that is each
 //! target's own business, and each proves it by driving its client against a socket. This is the
@@ -46,8 +48,7 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use hook0_sdkgen::Ownership;
-use hook0_sdkgen::targets::{Target, targets};
+use hook0_sdkgen::targets::{Contract, Target, targets};
 use tempfile::TempDir;
 
 /// Where the corpus every target reads sits, from the crate this suite runs out of.
@@ -122,20 +123,41 @@ fn documents(corpus: &Path) -> BTreeSet<String> {
     documents
 }
 
-/// Whether the corpus is a contract about what that target does at all.
+/// Which documents of the corpus that target is held to.
 ///
-/// [`Ownership::Directory`] is a target the generator owns a whole tree of: a client, with a suite
-/// of its own, sending requests and reading answers — which is the behaviour the corpus pins.
-/// [`Ownership::Files`] is a target that drops files into code somebody else owns, which is what
-/// the MCP server's tool table is: it issues no request of its own, repeats nothing and verifies no
-/// signature, so a retry rule or a signature vector says nothing it could honour. Holding it to the
-/// corpus would make the guard wrong; naming it here to let it off would make the guard useless.
-///
-/// So the exemption is read off the registry rather than written down: a target added tomorrow is
-/// let off by what it *is* — files laid into a tree it does not own — and a client cannot be let
-/// off at all, since owning its tree is what makes it one.
-fn is_a_client(target: &Target) -> bool {
-    target.ownership == Ownership::Directory
+/// [`Contract::Whole`] is every document there is, so a client stating it picks up one added to the
+/// corpus tomorrow without its registry entry being touched. [`Contract::Only`] names them, and two
+/// ways of naming nothing are refused rather than quietly holding the target to nothing: a name
+/// that is not a document, which is a clause misspelled in the registry, and no name at all, which
+/// is the wholesale exemption that let the MCP client drop two headers unnoticed. Either would let
+/// a target off the part of the contract it was meant to be held to, which is the failure this
+/// whole guard exists to catch.
+fn held_to<'a>(
+    target: &Target,
+    documents: &'a BTreeSet<String>,
+) -> Result<BTreeSet<&'a str>, String> {
+    match target.contract {
+        Contract::Whole => Ok(documents.iter().map(String::as_str).collect()),
+        Contract::Only([]) => Err(format!(
+            "target `{}` is held to no document of the corpus at all, which is not something this \
+             guard can be told: name what its client does take part in, or say why the corpus is a \
+             contract about nothing it does and take this check apart deliberately",
+            target.name,
+        )),
+        Contract::Only(named) => named
+            .iter()
+            .map(|claimed| {
+                documents.get(*claimed).map(String::as_str).ok_or_else(|| {
+                    format!(
+                        "target `{}` is held to `{claimed}`, which is not a document of the \
+                         corpus: it holds {}",
+                        target.name,
+                        listed(&documents.iter().map(String::as_str).collect::<Vec<&str>>()),
+                    )
+                })
+            })
+            .collect(),
+    }
 }
 
 /// Where a target's own suite sits: the client its generated half lands in.
@@ -314,11 +336,11 @@ fn suite_of(
     Ok(read)
 }
 
-/// Which of the documents the suite never names.
-fn unread<'a>(documents: &'a BTreeSet<String>, suite: &[String]) -> Vec<&'a str> {
-    documents
+/// Which of the documents a target is held to the suite never names.
+fn unread<'a>(held_to: &BTreeSet<&'a str>, suite: &[String]) -> Vec<&'a str> {
+    held_to
         .iter()
-        .map(String::as_str)
+        .copied()
         .filter(|document| !names(suite, document))
         .collect()
 }
@@ -378,21 +400,18 @@ fn every_target_reads_every_document_of_the_shared_corpus() {
     let documents = documents(&corpus);
     let ignored = not_source(&repository, clients).unwrap_or_else(|reason| panic!("{reason}"));
 
-    // What each target's suite holds, and — the other way round — which targets read each document,
-    // so a refusal can point at the suites that already do.
-    let mut suites: Vec<(&Target, PathBuf, Vec<String>)> = Vec::new();
+    // What each target's suite holds and which documents it answers for, and — the other way round
+    // — which targets read each document, so a refusal can point at the suites that already do.
+    let mut suites: Vec<(&Target, PathBuf, BTreeSet<&str>, Vec<String>)> = Vec::new();
     let mut absent: Vec<&str> = Vec::new();
-    let mut dropped_in: Vec<&str> = Vec::new();
+    let mut partly: Vec<(&str, Vec<&str>)> = Vec::new();
+    let mut claimed: BTreeSet<&str> = BTreeSet::new();
     let mut readers: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
 
     for target in targets() {
-        if !is_a_client(target) {
-            dropped_in.push(target.name);
-            continue;
-        }
-
         let client =
             client_of(target, &repository, clients).unwrap_or_else(|reason| panic!("{reason}"));
+        let held_to = held_to(target, &documents).unwrap_or_else(|reason| panic!("{reason}"));
         if !client.is_dir() {
             absent.push(target.name);
             continue;
@@ -407,18 +426,22 @@ fn every_target_reads_every_document_of_the_shared_corpus() {
                 )
             });
 
-        for document in documents.iter() {
+        if held_to.len() < documents.len() {
+            partly.push((target.name, held_to.iter().copied().collect()));
+        }
+        for document in &held_to {
+            claimed.insert(document);
             if names(&suite, document) {
                 readers.entry(document).or_default().push(target.name);
             }
         }
-        suites.push((target, client, suite));
+        suites.push((target, client, held_to, suite));
     }
 
     // A target whose client is not written yet is not held to a contract it could not read, but it
     // is named here so that being absent is a thing somebody can see rather than a way out.
     println!(
-        "{} of the {} targets are held to the {} documents of {}",
+        "{} of the {} targets are held to what they answer for of the {} documents of {}",
         suites.len(),
         targets().len(),
         documents.len(),
@@ -431,16 +454,10 @@ fn every_target_reads_every_document_of_the_shared_corpus() {
             if absent.len() == 1 { "it" } else { "them" }
         );
     }
-    if !dropped_in.is_empty() {
+    for (target, held_to) in &partly {
         println!(
-            "{} lay files into a tree owned by hand rather than a client of their own, so the \
-             corpus is not a contract about what {}",
-            listed(&dropped_in),
-            if dropped_in.len() == 1 {
-                "it does"
-            } else {
-                "they do"
-            }
+            "`{target}` takes part in {} of the corpus and is held to nothing else",
+            listed(held_to)
         );
     }
     assert!(
@@ -450,9 +467,10 @@ fn every_target_reads_every_document_of_the_shared_corpus() {
     );
 
     let mut refused: Vec<(&str, String)> = Vec::new();
-    for (target, client, suite) in &suites {
+    for (target, client, held_to, suite) in &suites {
         let client = under_repository(client, &repository);
         let extension = target.language.extension;
+        let held_to_names: Vec<&str> = held_to.iter().copied().collect();
 
         if suite.is_empty() {
             refused.push((
@@ -463,14 +481,14 @@ fn every_target_reads_every_document_of_the_shared_corpus() {
                  Write its suite there and drive this client against the corpus, as the suites of \
                  the other targets do.",
                     target.name,
-                    listed(&documents.iter().map(String::as_str).collect::<Vec<&str>>()),
+                    listed(&held_to_names),
                 ),
             ));
             continue;
         }
 
-        let unread = unread(&documents, suite);
-        if unread.len() == documents.len() {
+        let unread = unread(held_to, suite);
+        if unread.len() == held_to.len() {
             refused.push((
                 target.name,
                 format!(
@@ -480,7 +498,7 @@ fn every_target_reads_every_document_of_the_shared_corpus() {
                  Read them there and hold this client against what they declare, as the suites of \
                  the targets that do read them.",
                     target.name,
-                    listed(&documents.iter().map(String::as_str).collect::<Vec<&str>>()),
+                    listed(&held_to_names),
                     under_repository(&corpus, &repository),
                 ),
             ));
@@ -534,7 +552,8 @@ fn every_target_reads_every_document_of_the_shared_corpus() {
     let held: BTreeSet<&str> = refused.iter().map(|(target, _)| *target).collect();
     assert!(
         refused.is_empty(),
-        "{} of the {} targets do not read the whole of the corpus at {}.\n\n{}",
+        "{} of the {} targets do not read the whole of what they answer for of the corpus at \
+         {}.\n\n{}",
         held.len(),
         suites.len(),
         under_repository(&corpus, &repository),
@@ -544,14 +563,30 @@ fn every_target_reads_every_document_of_the_shared_corpus() {
             .collect::<Vec<&str>>()
             .join("\n\n")
     );
+
+    // The other way a clause goes unheld: not one target failing to read it, but every target
+    // stating it answers for something else. Above, each target is held to what it claims; here,
+    // the corpus is held to being claimed.
+    let unclaimed: Vec<&str> = documents
+        .iter()
+        .map(String::as_str)
+        .filter(|document| !claimed.contains(document))
+        .collect();
+    assert!(
+        unclaimed.is_empty(),
+        "{} of {} is a contract for no target: no client states it takes part in {}, so nothing \
+         holds anybody to what it declares.\n  \
+         Either a client is held to it in the registry, or it says something no client does and \
+         does not belong in the corpus.",
+        listed(&unclaimed),
+        under_repository(&corpus, &repository),
+        if unclaimed.len() == 1 { "it" } else { "them" },
+    );
 }
 
 /// The documents a synthetic client is held to below.
-fn two_documents() -> BTreeSet<String> {
-    ["retry.json", "request.json"]
-        .map(str::to_owned)
-        .into_iter()
-        .collect()
+fn two_documents() -> BTreeSet<&'static str> {
+    ["retry.json", "request.json"].into_iter().collect()
 }
 
 /// What a suite of one file holds, as the walk would have handed it back.
@@ -567,7 +602,7 @@ fn suite(written: &str) -> Vec<String> {
 #[test]
 fn a_document_no_line_opens_is_reported_however_the_name_shows_up() {
     let documents = two_documents();
-    let every: Vec<&str> = documents.iter().map(String::as_str).collect();
+    let every: Vec<&str> = documents.iter().copied().collect();
 
     assert_eq!(
         unread(
@@ -619,7 +654,7 @@ fn a_document_no_line_opens_is_reported_however_the_name_shows_up() {
 #[test]
 fn only_a_hand_written_source_file_of_the_targets_own_language_counts_as_reading() {
     let documents = two_documents();
-    let every: Vec<&str> = documents.iter().map(String::as_str).collect();
+    let every: Vec<&str> = documents.iter().copied().collect();
     let opens = "corpus(\"../conformance\", \"retry.json\", \"request.json\")";
 
     let client = TempDir::new().expect("a temporary directory is available");
