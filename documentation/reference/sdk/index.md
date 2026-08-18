@@ -1,5 +1,5 @@
 ---
-title: "Hook0 SDKs, 11 official webhook client libraries"
+title: "Hook0 SDKs: 11 official webhook client libraries"
 description: "Official Hook0 clients for JavaScript, TypeScript, Rust, Python, Go, Ruby, PHP, C#, Java, Kotlin, Lua and Zig, plus an MCP server. Each sends events, verifies webhook signatures, and retries under bounds you set."
 keywords: [Hook0 SDK, webhook SDK, webhook client library, JavaScript webhook library, Python webhook client, Rust webhook SDK, Go webhook client, Java webhook SDK, C# webhook client, verify webhook signature, Hook0 MCP server]
 sdkTarget: none

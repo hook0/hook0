@@ -1,5 +1,5 @@
 ---
-title: "Kotlin webhook SDK — com.hook0:hook0-client-kotlin"
+title: "Kotlin webhook SDK: com.hook0:hook0-client-kotlin"
 description: "Send Hook0 events and verify webhook signatures from Kotlin 2.4 on Java 21. Blocking and suspending calls, kotlin-stdlib only. Not yet on Maven Central."
 keywords: [Kotlin webhook SDK, Hook0 Kotlin client, suspend function webhook, verify webhook signature Kotlin, Ktor webhook endpoint, send webhook event Kotlin]
 sdkTarget: kotlin

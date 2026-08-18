@@ -1,5 +1,5 @@
 ---
-title: "Zig webhook SDK — hook0_client"
+title: "Zig webhook SDK: hook0_client"
 description: "Send Hook0 events and verify webhook signatures from Zig 0.16. Blocking, no dependencies, clock and sockets injected through std.Io. Fetched by URL from a tagged archive, not a registry."
 keywords: [Zig webhook SDK, Hook0 Zig client, verify webhook signature Zig, zig fetch dependency, std.Io HTTP client, send webhook event Zig]
 sdkTarget: zig
@@ -24,7 +24,7 @@ zig fetch --save=hook0 https://github.com/hook0/hook0-zig/archive/refs/tags/v1.1
 That writes the URL and the hash of what it fetched into your `build.zig.zon`, and every later build is held to both.
 
 :::info Zig has no package registry
-There is nowhere to upload a Zig package to. `zig fetch` resolves a path, a tarball or a git ref and records the hash it got, so a version is never a thing this package announces — it is the tag you name in the URL above.
+There is nowhere to upload a Zig package to. `zig fetch` resolves a path, a tarball or a git ref and records the hash it got, so a version is never a thing this package announces. It is the tag you name in the URL above.
 
 That URL is a read-only mirror of `clients/zig` whose root is the package, which is what makes the archive fetchable at all. The release pipeline pushes it and tags it on every `sdk-vX.Y.Z` release of the Hook0 SDKs. Issues and merge requests belong on [the monorepo](https://gitlab.com/hook0/hook0); nothing merged into the mirror survives the next release.
 :::

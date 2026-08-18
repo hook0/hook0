@@ -1,5 +1,5 @@
 ---
-title: "PHP webhook SDK, the hook0/client package"
+title: "PHP webhook SDK: hook0/client"
 description: "Send Hook0 events and verify webhook signatures from PHP 8.2 or later. Retries, idempotent event IDs and payload bounds built in. Install with Composer."
 keywords: [PHP webhook SDK, Hook0 PHP client, verify webhook signature PHP, Laravel webhook endpoint, Symfony webhook, send webhook event PHP]
 sdkTarget: php

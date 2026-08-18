@@ -1,5 +1,5 @@
 ---
-title: "Java webhook SDK — com.hook0:hook0-client"
+title: "Java webhook SDK: com.hook0:hook0-client"
 description: "Send Hook0 events and verify webhook signatures from Java 21. Blocking and CompletableFuture methods, no transitive dependencies. Not yet on Maven Central."
 keywords: [Java webhook SDK, Hook0 Java client, verify webhook signature Java, Spring Boot webhook endpoint, CompletableFuture webhook, send webhook event Java]
 sdkTarget: java

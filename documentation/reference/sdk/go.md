@@ -1,5 +1,5 @@
 ---
-title: "Go webhook SDK — hook0 client"
+title: "Go webhook SDK: hook0 client"
 description: "Send Hook0 events and verify webhook signatures from Go. Standard library only, context on every call, retries and payload bounds built in. Go 1.24 or later."
 keywords: [Go webhook SDK, Hook0 Go client, verify webhook signature Go, send webhook event Go, golang webhook library, HMAC signature Go]
 sdkTarget: go

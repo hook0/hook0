@@ -1,5 +1,5 @@
 ---
-title: "Lua webhook SDK — hook0-client rock"
+title: "Lua webhook SDK: hook0-client rock"
 description: "Send Hook0 events and verify webhook signatures from Lua 5.3 or 5.4. Blocking, two dependencies, retries and payload bounds built in."
 keywords: [Lua webhook SDK, Hook0 Lua client, verify webhook signature Lua, OpenResty webhook, luarocks hook0-client, send webhook event Lua]
 sdkTarget: lua

@@ -1,5 +1,5 @@
 ---
-title: "Ruby webhook SDK — hook0-client gem"
+title: "Ruby webhook SDK: hook0-client gem"
 description: "Send Hook0 events and verify webhook signatures from Ruby. No runtime dependencies, retries and payload bounds built in, Ruby 3.1 or later."
 keywords: [Ruby webhook SDK, Hook0 Ruby client, hook0-client gem, verify webhook signature Ruby, Rails webhook endpoint, send webhook event Ruby]
 sdkTarget: ruby

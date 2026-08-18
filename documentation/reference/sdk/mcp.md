@@ -1,5 +1,5 @@
 ---
-title: "Hook0 MCP server for AI assistants"
+title: "Hook0 MCP server: webhook tools for AI assistants"
 description: "The hook0-mcp server exposes 23 Hook0 API operations as MCP tools over stdio. Generated from the same OpenAPI snapshot as the SDKs, with a read-only mode and no retrying of its own."
 keywords: [Hook0 MCP server, MCP webhook tools, Model Context Protocol Hook0, hook0-mcp crate, AI assistant webhooks, read-only MCP server]
 sdkTarget: mcp

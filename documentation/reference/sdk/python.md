@@ -1,5 +1,5 @@
 ---
-title: "Python webhook SDK — hook0-client"
+title: "Python webhook SDK: hook0-client"
 description: "Send Hook0 events and verify webhook signatures from Python, blocking or with asyncio. Install from PyPI, no third-party dependencies, Python 3.11 or later."
 keywords: [Python webhook SDK, Hook0 Python client, hook0-client PyPI, verify webhook signature Python, asyncio webhook client, send webhook event Python]
 sdkTarget: python

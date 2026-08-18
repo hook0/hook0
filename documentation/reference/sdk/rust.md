@@ -1,5 +1,5 @@
 ---
-title: "Rust webhook SDK, the hook0-client crate"
+title: "Rust webhook SDK: hook0-client crate"
 description: "Send Hook0 events and verify webhook signatures from Rust. Async on tokio and reqwest, idempotent event IDs, retries and payload bounds built in. Producer and consumer are separate features."
 keywords: [Rust webhook SDK, Hook0 Rust client, hook0-client crate, verify webhook signature Rust, actix-web webhook, async webhook client Rust]
 sdkTarget: rust

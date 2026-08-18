@@ -1,5 +1,5 @@
 ---
-title: "C# / .NET webhook SDK, Hook0.Client"
+title: "C# / .NET webhook SDK: Hook0.Client"
 description: "Send Hook0 events and verify webhook signatures from .NET 8. Blocking and Task-returning methods, zero runtime dependencies, retries and payload bounds built in."
 keywords: [C# webhook SDK, .NET webhook client, Hook0.Client NuGet, verify webhook signature C#, ASP.NET Core webhook endpoint, send webhook event dotnet]
 sdkTarget: csharp
