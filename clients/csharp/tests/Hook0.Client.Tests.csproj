@@ -31,6 +31,11 @@
       gets for free, the machinery a `switch` over a string compiles into — and it counts a branch
       the way JaCoCo counts one, so the figure beside java's and kotlin's is the same measurement
       rather than a different one wearing the same name.
+
+      The switch raises the reported figure, and the reason is worth having on the page rather than
+      in a review thread: the denominator falls by the 49 lines nothing can execute, 41 of them
+      compiler-written `init` accessors. The number rises because unreachable code left the
+      measurement, not because more of the client became covered.
     -->
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
   </ItemGroup>
