@@ -3052,7 +3052,7 @@ dependencies = [
 
 [[package]]
 name = "hook0-mcp"
-version = "1.0.2"
+version = "2.0.0"
 dependencies = [
  "reqwest",
  "rmcp",
