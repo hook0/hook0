@@ -151,6 +151,30 @@ lru requirement, published lru versions and the absence of catch_unwind were all
 checked again rather than carried forward.
 """
 
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0258"
+ignoreUntil = "2026-12-31T00:00:00Z"
+reason = """
+h2 0.3.27: empty HTTP/2 DATA frames are queued without limit, so a stream nobody
+drains grows memory without bound, or panics if the length overflows. Low
+severity upstream.
+
+The fix is 0.4.16 and no 0.3 release carries it: 0.3.27 is the last of that line
+on crates.io, checked on 2026-08-18. The copy in this tree is pulled by
+actix-http 3.13.3 under the actix-web stack the API is built on, and it moves when
+actix-http moves to the 0.4 line, not before.
+
+Nothing negotiates HTTP/2 against it. The server binds plaintext TCP
+(HttpServer::new(..).bind(..) in api/src/main.rs), and actix-web speaks HTTP/2
+only over ALPN under bind_rustls / bind_openssl, or in cleartext under an explicit
+bind_auto_h2c. None of the three appears anywhere in api/src, so the frame reader
+this advisory is about is compiled in and never entered.
+
+The 0.4 copies, which the same advisory covers and for which a fix does exist, are
+at 0.4.16 in both this lockfile and smoke/languages/rust — patched rather than
+ignored.
+"""
+
 # Do not prune this file from the scanner's "unused ignores" list.
 #
 # In osv-scanner v2.3.0 that list names every entry, working or not. `ShouldIgnore`
