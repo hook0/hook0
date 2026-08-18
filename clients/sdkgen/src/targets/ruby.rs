@@ -835,28 +835,42 @@ fn group(
         source.push_str(&operation(method, types, language, limits)?);
     }
 
-    source.push_str(&format!(
-        "\n      private\n\n      \
-         # Raise what the API reported, and answer nothing when it reported nothing.\n      \
-         #\n      \
-         # @param answered [Array] the status and the body the transport answered\n      \
-         # @return [void]\n      \
-         def {CHECK_HELPER}(answered)\n        \
-         status, payload = answered\n        \
-         {GENERATED_MODULE}.raise_for_status(status, payload)\n        \
-         nil\n      \
-         end\n\n      \
-         # Raise what the API reported, or read back the value it answered.\n      \
-         #\n      \
-         # @param answered [Array] the status and the body the transport answered\n      \
-         # @param reader [#call] what turns that body into the value the API declares\n      \
-         # @return [Object]\n      \
-         def {READ_HELPER}(answered, reader)\n        \
-         status, payload = answered\n        \
-         {GENERATED_MODULE}.raise_for_status(status, payload)\n        \
-         reader.call({RUNTIME_MODULE}.decode_payload(payload))\n      \
-         end\n    end\n"
-    ));
+    source.push_str("\n      private\n");
+
+    // A class carries the helper its own operations reach, and not the other one. Both were
+    // written out regardless of what the entity answers, which left `check_answer` private and
+    // uncalled in the seven groups the API only ever answers a value from — code nothing in the
+    // class can reach, and that a suite could only ever cover by naming it.
+    if entity.answers_nothing() {
+        source.push_str(&format!(
+            "\n      \
+             # Raise what the API reported, and answer nothing when it reported nothing.\n      \
+             #\n      \
+             # @param answered [Array] the status and the body the transport answered\n      \
+             # @return [void]\n      \
+             def {CHECK_HELPER}(answered)\n        \
+             status, payload = answered\n        \
+             {GENERATED_MODULE}.raise_for_status(status, payload)\n        \
+             nil\n      \
+             end\n"
+        ));
+    }
+    if entity.answers_a_value() {
+        source.push_str(&format!(
+            "\n      \
+             # Raise what the API reported, or read back the value it answered.\n      \
+             #\n      \
+             # @param answered [Array] the status and the body the transport answered\n      \
+             # @param reader [#call] what turns that body into the value the API declares\n      \
+             # @return [Object]\n      \
+             def {READ_HELPER}(answered, reader)\n        \
+             status, payload = answered\n        \
+             {GENERATED_MODULE}.raise_for_status(status, payload)\n        \
+             reader.call({RUNTIME_MODULE}.decode_payload(payload))\n      \
+             end\n"
+        ));
+    }
+    source.push_str("    end\n");
 
     Ok(source)
 }

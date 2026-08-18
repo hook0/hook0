@@ -828,29 +828,41 @@ fn group(
         source.push_str(&operation(method, types, language, limits)?);
     }
 
-    source.push_str(&format!(
-        "\n{MEMBER_INDENT}/**\n\
-         {MEMBER_INDENT} * Raise what the API reported, and answer nothing when it reported nothing.\n\
-         {MEMBER_INDENT} *\n\
-         {MEMBER_INDENT} * @param array{{0: int, 1: string}} $answered the status and the body the transport answered\n\
-         {MEMBER_INDENT} */\n\
-         {MEMBER_INDENT}private function {CHECK_HELPER}(array $answered): void\n\
-         {MEMBER_INDENT}{{\n\
-         {BODY_INDENT}{}::{RAISE_HELPER}($answered[0], $answered[1]);\n\
-         {MEMBER_INDENT}}}\n\n\
-         {MEMBER_INDENT}/**\n\
-         {MEMBER_INDENT} * Raise what the API reported, or read back the value it answered.\n\
-         {MEMBER_INDENT} *\n\
-         {MEMBER_INDENT} * @param array{{0: int, 1: string}} $answered the status and the body the transport answered\n\
-         {MEMBER_INDENT} * @param \\Closure $reader what turns that body into the value the API declares\n\
-         {MEMBER_INDENT} */\n\
-         {MEMBER_INDENT}private function {READ_HELPER}(array $answered, \\Closure $reader): mixed\n\
-         {MEMBER_INDENT}{{\n\
-         {BODY_INDENT}{}::{RAISE_HELPER}($answered[0], $answered[1]);\n\n\
-         {BODY_INDENT}return $reader({RUNTIME_CLASS}::decodePayload($answered[1]));\n\
-         {MEMBER_INDENT}}}\n}}\n",
-        types.problem_base, types.problem_base
-    ));
+    // A class carries the helper its own operations reach, and not the other one. Both were
+    // written out regardless of what the entity answers, which left `checkAnswer` private and
+    // uncalled in the seven groups the API only ever answers a value from — code nothing in the
+    // file can reach, and that a suite could only ever cover by naming it.
+    if entity.answers_nothing() {
+        source.push_str(&format!(
+            "\n{MEMBER_INDENT}/**\n\
+             {MEMBER_INDENT} * Raise what the API reported, and answer nothing when it reported nothing.\n\
+             {MEMBER_INDENT} *\n\
+             {MEMBER_INDENT} * @param array{{0: int, 1: string}} $answered the status and the body the transport answered\n\
+             {MEMBER_INDENT} */\n\
+             {MEMBER_INDENT}private function {CHECK_HELPER}(array $answered): void\n\
+             {MEMBER_INDENT}{{\n\
+             {BODY_INDENT}{}::{RAISE_HELPER}($answered[0], $answered[1]);\n\
+             {MEMBER_INDENT}}}\n",
+            types.problem_base
+        ));
+    }
+    if entity.answers_a_value() {
+        source.push_str(&format!(
+            "\n{MEMBER_INDENT}/**\n\
+             {MEMBER_INDENT} * Raise what the API reported, or read back the value it answered.\n\
+             {MEMBER_INDENT} *\n\
+             {MEMBER_INDENT} * @param array{{0: int, 1: string}} $answered the status and the body the transport answered\n\
+             {MEMBER_INDENT} * @param \\Closure $reader what turns that body into the value the API declares\n\
+             {MEMBER_INDENT} */\n\
+             {MEMBER_INDENT}private function {READ_HELPER}(array $answered, \\Closure $reader): mixed\n\
+             {MEMBER_INDENT}{{\n\
+             {BODY_INDENT}{}::{RAISE_HELPER}($answered[0], $answered[1]);\n\n\
+             {BODY_INDENT}return $reader({RUNTIME_CLASS}::decodePayload($answered[1]));\n\
+             {MEMBER_INDENT}}}\n",
+            types.problem_base
+        ));
+    }
+    source.push_str("}\n");
 
     Ok(source)
 }

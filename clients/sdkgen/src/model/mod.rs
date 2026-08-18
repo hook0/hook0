@@ -202,6 +202,26 @@ impl Entity {
             .iter()
             .find(|method| method.verb_text == verb_text)
     }
+
+    /// Whether any operation of this entity answers nothing at all.
+    ///
+    /// Asked here rather than once per target: a language emitting one class per entity has to
+    /// know which of the two ways of reading an answer that class actually reaches, and two
+    /// languages working it out for themselves could come to disagree about what the API answers.
+    pub fn answers_nothing(&self) -> bool {
+        self.methods
+            .iter()
+            .any(|method| !matches!(method.success, Some((_, Some(_)))))
+    }
+
+    /// Whether any operation of this entity answers a value.
+    ///
+    /// Not the negation of [`Entity::answers_nothing`]: an entity mixing the two answers both.
+    pub fn answers_a_value(&self) -> bool {
+        self.methods
+            .iter()
+            .any(|method| matches!(method.success, Some((_, Some(_)))))
+    }
 }
 
 /// Reads the entity and the verb out of an operation id, the leading segment naming the entity.

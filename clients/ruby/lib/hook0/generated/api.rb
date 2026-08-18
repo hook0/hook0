@@ -270,16 +270,6 @@ module Hook0
 
       private
 
-      # Raise what the API reported, and answer nothing when it reported nothing.
-      #
-      # @param answered [Array] the status and the body the transport answered
-      # @return [void]
-      def check_answer(answered)
-        status, payload = answered
-        Generated.raise_for_status(status, payload)
-        nil
-      end
-
       # Raise what the API reported, or read back the value it answered.
       #
       # @param answered [Array] the status and the body the transport answered
@@ -582,16 +572,6 @@ module Hook0
 
       private
 
-      # Raise what the API reported, and answer nothing when it reported nothing.
-      #
-      # @param answered [Array] the status and the body the transport answered
-      # @return [void]
-      def check_answer(answered)
-        status, payload = answered
-        Generated.raise_for_status(status, payload)
-        nil
-      end
-
       # Raise what the API reported, or read back the value it answered.
       #
       # @param answered [Array] the status and the body the transport answered
@@ -627,16 +607,6 @@ module Hook0
       end
 
       private
-
-      # Raise what the API reported, and answer nothing when it reported nothing.
-      #
-      # @param answered [Array] the status and the body the transport answered
-      # @return [void]
-      def check_answer(answered)
-        status, payload = answered
-        Generated.raise_for_status(status, payload)
-        nil
-      end
 
       # Raise what the API reported, or read back the value it answered.
       #
@@ -674,16 +644,6 @@ module Hook0
 
       private
 
-      # Raise what the API reported, and answer nothing when it reported nothing.
-      #
-      # @param answered [Array] the status and the body the transport answered
-      # @return [void]
-      def check_answer(answered)
-        status, payload = answered
-        Generated.raise_for_status(status, payload)
-        nil
-      end
-
       # Raise what the API reported, or read back the value it answered.
       #
       # @param answered [Array] the status and the body the transport answered
@@ -719,16 +679,6 @@ module Hook0
       end
 
       private
-
-      # Raise what the API reported, and answer nothing when it reported nothing.
-      #
-      # @param answered [Array] the status and the body the transport answered
-      # @return [void]
-      def check_answer(answered)
-        status, payload = answered
-        Generated.raise_for_status(status, payload)
-        nil
-      end
 
       # Raise what the API reported, or read back the value it answered.
       #
@@ -818,16 +768,6 @@ module Hook0
 
       private
 
-      # Raise what the API reported, and answer nothing when it reported nothing.
-      #
-      # @param answered [Array] the status and the body the transport answered
-      # @return [void]
-      def check_answer(answered)
-        status, payload = answered
-        Generated.raise_for_status(status, payload)
-        nil
-      end
-
       # Raise what the API reported, or read back the value it answered.
       #
       # @param answered [Array] the status and the body the transport answered
@@ -873,16 +813,6 @@ module Hook0
       end
 
       private
-
-      # Raise what the API reported, and answer nothing when it reported nothing.
-      #
-      # @param answered [Array] the status and the body the transport answered
-      # @return [void]
-      def check_answer(answered)
-        status, payload = answered
-        Generated.raise_for_status(status, payload)
-        nil
-      end
 
       # Raise what the API reported, or read back the value it answered.
       #

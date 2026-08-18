@@ -38,16 +38,6 @@ final class InstanceApi
     }
 
     /**
-     * Raise what the API reported, and answer nothing when it reported nothing.
-     *
-     * @param array{0: int, 1: string} $answered the status and the body the transport answered
-     */
-    private function checkAnswer(array $answered): void
-    {
-        ProblemError::raiseForStatus($answered[0], $answered[1]);
-    }
-
-    /**
      * Raise what the API reported, or read back the value it answered.
      *
      * @param array{0: int, 1: string} $answered the status and the body the transport answered
