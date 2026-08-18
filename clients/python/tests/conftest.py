@@ -57,6 +57,8 @@ class ScriptedResponse:
     held_for: float = 0.0
     # What the answer carries beside its body, such as the delay a paced instance names.
     headers: dict[str, str] = field(default_factory=dict)
+    # The body as bytes, for the cases whose point is that it is not a JSON document at all.
+    verbatim: bytes | None = None
 
 
 @dataclass
@@ -156,7 +158,7 @@ def _handler_for(api: FakeHook0Api) -> type[BaseHTTPRequestHandler]:
             if scripted.held_for:
                 time.sleep(scripted.held_for)
 
-            answer = json.dumps(scripted.body).encode("utf-8")
+            answer = scripted.verbatim if scripted.verbatim is not None else json.dumps(scripted.body).encode("utf-8")
             try:
                 self.send_response(scripted.status)
                 self.send_header("Content-Type", "application/json")

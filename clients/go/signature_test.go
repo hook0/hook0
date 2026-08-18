@@ -173,3 +173,102 @@ func TestAMomentThatIsNotANumberOfSeconds(t *testing.T) {
 		}
 	}
 }
+
+func TestASignatureLongerThanIsReadIsRefusedBeforeItIsSplit(t *testing.T) {
+	// The header is written by whoever delivers the webhook, so what it costs to read is bounded
+	// rather than left to them.
+	long := "t=" + strconv.Itoa(signedAt) + ",v0=" + strings.Repeat("a", 9*1024)
+
+	err := verify(long, deliveredHeaders(), signedMoment())
+
+	if !errors.Is(err, hook0.ErrSignatureUnreadable) {
+		t.Errorf("a signature of %d characters was read as %v", len(long), err)
+	}
+}
+
+func TestASignatureCarryingMoreThanTheAcceptedPartsIsRefused(t *testing.T) {
+	parts := []string{"t=" + strconv.Itoa(signedAt), "v0=" + bodyCode}
+	for index := range 64 {
+		parts = append(parts, "x"+strconv.Itoa(index)+"=a")
+	}
+
+	err := verify(strings.Join(parts, ","), deliveredHeaders(), signedMoment())
+
+	if !errors.Is(err, hook0.ErrSignatureUnreadable) {
+		t.Errorf("a signature of %d parts was read as %v", len(parts), err)
+	}
+}
+
+func TestASignatureCoveringMoreHeadersThanAreAcceptedIsRefused(t *testing.T) {
+	names := make([]string, 0, 128)
+	for index := range 128 {
+		names = append(names, "x-covered-"+strconv.Itoa(index))
+	}
+	signature := "t=" + strconv.Itoa(signedAt) + ",h=" + strings.Join(names, " ") + ",v1=" + headersCode
+
+	err := verify(signature, deliveredHeaders(), signedMoment())
+
+	if !errors.Is(err, hook0.ErrSignatureUnreadable) {
+		t.Errorf("a signature covering %d headers was read as %v", len(names), err)
+	}
+}
+
+func TestASignatureNamingNoMomentIsRefused(t *testing.T) {
+	err := verify("v0="+bodyCode, deliveredHeaders(), signedMoment())
+
+	if !errors.Is(err, hook0.ErrSignatureUnreadable) {
+		t.Errorf("a signature naming no moment was read as %v", err)
+	}
+}
+
+func TestAMomentFurtherFromTheEpochThanASignatureCanNameIsRefused(t *testing.T) {
+	// Beyond this a moment is not a delivery that happened, and the arithmetic that compares it
+	// against the clock is what a number this size is written to break.
+	for _, seconds := range []string{"9223372036854", "-9223372036854"} {
+		err := verify("t="+seconds+",v0="+bodyCode, deliveredHeaders(), signedMoment())
+
+		if !errors.Is(err, hook0.ErrSignatureUnreadable) {
+			t.Errorf("a signature naming %s seconds was read as %v", seconds, err)
+		}
+	}
+}
+
+func TestAHeaderDeliveredWithoutAValueIsNotOneASignatureCanCover(t *testing.T) {
+	// A header key carrying no value at all is not the same as one carrying the empty value, and
+	// signing over the first would let a sender drop a header and keep the signature valid.
+	headers := deliveredHeaders()
+	headers["X-Event-Id"] = nil
+
+	err := verify("t="+strconv.Itoa(signedAt)+",h=x-event-id x-delivery-id,v1="+headersCode, headers, signedMoment())
+
+	if !errors.Is(err, hook0.ErrHeaderNotDelivered) {
+		t.Errorf("a header delivered without a value was read as %v", err)
+	}
+}
+
+func TestASignatureNamingACodeButNoMomentIsRefused(t *testing.T) {
+	// Two parts, so the signature is not the empty one, and neither of them the moment a code is
+	// computed over.
+	err := verify("v0="+bodyCode+",h=x-event-id", deliveredHeaders(), signedMoment())
+
+	if !errors.Is(err, hook0.ErrSignatureUnreadable) {
+		t.Errorf("a signature naming no moment was read as %v", err)
+	}
+}
+
+func TestTheStrongerCodeIsAlsoRefusedWhenItIsNotWholeHexadecimal(t *testing.T) {
+	// Both codes are read, and neither is truncated to whatever prefix happened to decode.
+	err := verify("t="+strconv.Itoa(signedAt)+",h=x-event-id x-delivery-id,v1=not-hexadecimal", deliveredHeaders(), signedMoment())
+
+	if !errors.Is(err, hook0.ErrSignatureUnreadable) {
+		t.Errorf("a `v1` code that is not hexadecimal was read as %v", err)
+	}
+}
+
+func TestASignatureCoveringAHeaderNameThatIsNotOneIsRefused(t *testing.T) {
+	err := verify("t="+strconv.Itoa(signedAt)+",h=x-event@id x-delivery-id,v1="+headersCode, deliveredHeaders(), signedMoment())
+
+	if !errors.Is(err, hook0.ErrSignatureUnreadable) {
+		t.Errorf("a signature covering a name that is not a header name was read as %v", err)
+	}
+}

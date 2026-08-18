@@ -218,3 +218,88 @@ def test_headers_given_as_pairs_are_read_like_headers_given_as_a_mapping() -> No
 
     assert verify(signature, dict(covered))
     assert verify_webhook_signature_with_current_time(signature, PAYLOAD, covered, SECRET, TOLERANCE, NOW)
+
+
+def test_a_signature_that_is_not_a_header_value_is_refused() -> None:
+    """A header arrives as text; a caller handing over anything else is refused rather than read."""
+    with pytest.raises(Hook0ClientError) as refused:
+        verify(12, {})  # type: ignore[arg-type]
+
+    assert "not a header value" in str(refused.value)
+
+
+def test_a_signature_longer_than_is_read_is_refused_before_it_is_split() -> None:
+    # The header is written by whoever delivers the webhook, so what it costs to read is bounded
+    # rather than left to them.
+    timestamp = signed_at(NOW)
+    long = f"t={timestamp},v0={'a' * (9 * 1024)}"
+
+    with pytest.raises(Hook0ClientError) as refused:
+        verify(long, {})
+
+    assert "above the" in str(refused.value)
+
+
+def test_a_signature_carrying_more_parts_than_are_accepted_is_refused() -> None:
+    timestamp = signed_at(NOW)
+    parts = [f"t={timestamp}", f"v0={body_code(timestamp)}"]
+    parts.extend(f"x{index}=a" for index in range(64))
+
+    with pytest.raises(Hook0ClientError) as refused:
+        verify(",".join(parts), {})
+
+    assert "parts accepted" in str(refused.value)
+
+
+def test_a_moment_that_is_not_a_number_of_seconds_is_refused() -> None:
+    with pytest.raises(Hook0ClientError) as refused:
+        verify(f"t=this morning,v0={body_code(0)}", {})
+
+    assert "not a number of seconds" in str(refused.value)
+
+
+def test_a_signature_covering_more_headers_than_are_accepted_is_refused() -> None:
+    timestamp = signed_at(NOW)
+    covered = " ".join(f"x-covered-{index}" for index in range(128))
+
+    with pytest.raises(Hook0ClientError) as refused:
+        verify(f"t={timestamp},h={covered},v1={body_code(timestamp)}", {})
+
+    assert "headers accepted" in str(refused.value)
+
+
+def test_a_signature_naming_no_covered_headers_covers_none() -> None:
+    """A `v1` code may cover the body alone, whether the names are left out or written empty."""
+    timestamp = signed_at(NOW)
+    code = headers_code(timestamp, [])
+
+    assert verify(f"t={timestamp},v1={code}", {"x-event-id": "abc"})
+    assert verify(f"t={timestamp},h=,v1={code}", {"x-event-id": "abc"})
+
+
+def test_a_header_delivered_as_bytes_is_read_as_the_text_it_spells() -> None:
+    timestamp = signed_at(NOW)
+    covered = [("x-event-id", "abc")]
+    signature = f"t={timestamp},h=x-event-id,v1={headers_code(timestamp, covered)}"
+
+    assert verify(signature, {b"X-Event-Id": b"abc"})  # type: ignore[arg-type]
+
+
+def test_a_header_that_is_not_utf_8_is_refused_rather_than_signed_over() -> None:
+    timestamp = signed_at(NOW)
+    signature = f"t={timestamp},h=x-event-id,v1={headers_code(timestamp, [('x-event-id', 'abc')])}"
+
+    with pytest.raises(Hook0ClientError) as refused:
+        verify(signature, {b"x-event-id": b"\xff\xfe"})  # type: ignore[arg-type]
+
+    assert "not UTF-8" in str(refused.value)
+
+
+def test_a_header_that_is_not_a_header_value_at_all_is_refused() -> None:
+    timestamp = signed_at(NOW)
+    signature = f"t={timestamp},h=x-event-id,v1={headers_code(timestamp, [('x-event-id', 'abc')])}"
+
+    with pytest.raises(Hook0ClientError) as refused:
+        verify(signature, {"x-event-id": 12})  # type: ignore[arg-type]
+
+    assert "not a header value" in str(refused.value)

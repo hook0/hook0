@@ -1,7 +1,15 @@
 import { describe, expect, test, beforeEach, afterEach } from '@jest/globals';
 import * as http from 'http';
 
-import { Hook0Client, Event, Hook0ClientOptions, RetryPolicy } from '../src/index';
+import {
+  Hook0Client,
+  Hook0ClientError,
+  Event,
+  Hook0ClientOptions,
+  RetryPolicy,
+  DEFAULT_MAX_PAYLOAD_BYTES,
+  verifyWebhookSignature,
+} from '../src/index';
 
 /**
  * The client is exercised against a Hook0 API listening on a loopback port, so every case below
@@ -18,6 +26,7 @@ interface ScriptedResponse {
 /** The same, plus how long the API sits on it before writing anything. */
 interface HeldResponse extends ScriptedResponse {
   heldForMs: number;
+  headers?: Record<string, string>;
 }
 
 /** The shape a UUID has, whichever version it carries. */
@@ -151,7 +160,10 @@ class FakeHook0Api {
           this.received.push({ target, body, headers: request.headers });
           const scripted = this.nextResponse();
           return hold(scripted.heldForMs).then(() => {
-            response.writeHead(scripted.status, { 'Content-Type': 'application/json' });
+            response.writeHead(scripted.status, {
+              'Content-Type': 'application/json',
+              ...(scripted.headers ?? {}),
+            });
             response.end(JSON.stringify(scripted.body));
           });
         })
@@ -170,6 +182,11 @@ class FakeHook0Api {
   /** Queues one answer the API withholds long enough for a client to give up waiting for it. */
   willAnswerAfter(heldForMs: number, response: ScriptedResponse): void {
     this.responses.push({ ...response, heldForMs });
+  }
+
+  /** Queues one answer carrying what the case wrote beside its body. */
+  willAnswerWithHeaders(response: ScriptedResponse, headers: Record<string, string>): void {
+    this.responses.push({ ...response, heldForMs: 0, headers });
   }
 
   private nextResponse(): HeldResponse {
@@ -834,6 +851,461 @@ describe('Hook0Client', () => {
         requests: 2,
         within: true,
       });
+    },
+    TEST_TIMEOUT_MS
+  );
+});
+
+/**
+ * What a send and an upsert do with an answer the API should never give, over a real socket.
+ *
+ * These are the halves of the client a well-behaved API never reaches: a head or a body above what
+ * the client agrees to hold, a success carrying no identifier, a listing that is not one, an event
+ * type the API refuses to create. Nothing stands in for a part of the client; the answers are
+ * scripted and the sockets are real.
+ */
+describe('what the client refuses', () => {
+  let api: FakeHook0Api;
+  let client: Hook0Client;
+
+  beforeEach(async () => {
+    api = new FakeHook0Api();
+    await api.listen();
+    client = new Hook0Client(
+      api.baseUrl,
+      'app-123',
+      'token-xyz',
+      false,
+      withRetries(promptRetries(1))
+    );
+  });
+
+  afterEach(async () => {
+    await api.close();
+  });
+
+  test(
+    'reports an accepted event the API named no identifier for',
+    async () => {
+      // Repeating it would meet the same answer, so it is given up on rather than retried.
+      api.willAnswer({ status: 201, body: { application_id: 'app-123' } });
+
+      await expect(client.sendEvent(anEvent())).rejects.toThrow('without an event id');
+      expect(api.received).toHaveLength(1);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test.each([
+    ['a body that is not a document', 'a gateway wrote this'],
+    ['an identifier that is not text', { event_id: 12 }],
+    ['a document naming no identifier', { received_at: '2026-01-01' }],
+  ])('reports an accepted event answered with %s', async (_named, body) => {
+    api.willAnswer({ status: 201, body });
+
+    await expect(client.sendEvent(anEvent())).rejects.toThrow(Hook0ClientError);
+    expect(api.received).toHaveLength(1);
+  });
+
+  test.each([
+    ['a body that is not a document', 'a gateway wrote this'],
+    ['a document naming no problem', { detail: 'something happened' }],
+    ['a document naming another problem', { id: 'InternalServerError' }],
+  ])(
+    'does not take a conflict carrying %s for an event an earlier attempt ingested',
+    async (_named, body) => {
+      api.willAnswer({ status: 409, body });
+
+      await expect(client.sendEvent(anEvent())).rejects.toThrow(Hook0ClientError);
+    }
+  );
+
+  test(
+    'cuts a refusal body down rather than echoing the whole of it into a message',
+    async () => {
+      api.willAnswer({ status: 400, body: { detail: 'x'.repeat(4096) } });
+
+      const raised = await client.sendEvent(anEvent()).then(
+        () => undefined,
+        (thrown: unknown) => thrown
+      );
+
+      expect(raised).toBeInstanceOf(Hook0ClientError);
+      const said = (raised as Error).message;
+      expect(said.length).toBeLessThan(4096);
+      expect(said).toContain('characters in all');
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'refuses an answer whose body is above what it agrees to hold',
+    async () => {
+      api.willAnswer({ status: 201, body: { event_id: 'x'.repeat(2048) } });
+      const tight = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        new Hook0ClientOptions(promptRetries(4), 5_000, DEFAULT_MAX_PAYLOAD_BYTES, 512)
+      );
+
+      await expect(tight.sendEvent(anEvent())).rejects.toThrow(Hook0ClientError);
+      // An answer that crossed a ceiling this client set for itself draws the same answer the next
+      // time, so it is not repeated.
+      expect(api.received).toHaveLength(1);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'does not repeat a send whose answer carried a head nothing agreed to read',
+    async () => {
+      // The runtime refuses a head above its own ceiling before this client counts one, so what a
+      // send meets here is a rejected `fetch`. It is told apart by what caused it rather than by
+      // the type carrying it, and an answer that crossed a ceiling draws the same answer next time.
+      api.willAnswerWithHeaders(
+        { status: 201, body: { event_id: 'a5b4dd60-6ab4-4bd6-9f0b-1a4f8a2a0001' } },
+        Object.fromEntries(
+          Array.from({ length: 40 }, (_unused, index) => [`x-padding-${index}`, 'x'.repeat(500)])
+        )
+      );
+
+      await expect(client.sendEvent(anEvent())).rejects.toThrow(Hook0ClientError);
+      expect(api.received).toHaveLength(1);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'sends nothing at all for an event that cannot be written as JSON',
+    async () => {
+      const circular = anEvent();
+      const looping: Record<string, unknown> = {};
+      looping.itself = looping;
+      // A payload is text, so what cannot be written here is what an application put beside it.
+      (circular as unknown as { metadata?: unknown }).metadata = looping;
+
+      await expect(client.sendEvent(circular)).rejects.toThrow('cannot be written as JSON');
+      expect(api.received).toHaveLength(0);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'reaches the API for nothing when asked to upsert no event type at all',
+    async () => {
+      await expect(client.upsertEventTypes([])).resolves.toEqual([]);
+      expect(api.received).toHaveLength(0);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'reaches the API for nothing when one of the event types names no three parts',
+    async () => {
+      await expect(
+        client.upsertEventTypes(['auth.user.create', 'not-an-event-type'])
+      ).rejects.toThrow('is invalid');
+      expect(api.received).toHaveLength(0);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'reports a refused listing of event types with what the API said',
+    async () => {
+      api.willAnswer({
+        status: 403,
+        body: { id: 'Forbidden', detail: 'this token may not read them' },
+      });
+
+      await expect(client.upsertEventTypes(['auth.user.create'])).rejects.toThrow(
+        'Getting available event types failed'
+      );
+      // Nothing is created off a listing that never arrived.
+      expect(api.received).toHaveLength(1);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test.each([
+    ['a document that is not a list', { event_type_name: 'auth.user.create' }],
+    ['a body that is not a document', 'a gateway wrote this'],
+  ])('reports a listing of event types answered as %s', async (_named, body) => {
+    api.willAnswer({ status: 200, body });
+
+    await expect(client.upsertEventTypes(['auth.user.create'])).rejects.toThrow(
+      'without a list of event types'
+    );
+  });
+
+  test(
+    'reports a listing of event types whose body is above what it agrees to hold',
+    async () => {
+      api.willAnswer({ status: 200, body: [{ event_type_name: 'x'.repeat(2048) }] });
+      const tight = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        new Hook0ClientOptions(promptRetries(1), 5_000, DEFAULT_MAX_PAYLOAD_BYTES, 512)
+      );
+
+      await expect(tight.upsertEventTypes(['auth.user.create'])).rejects.toThrow(
+        'Getting available event types failed'
+      );
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'reports an event type the API refused to create, by name',
+    async () => {
+      api.willAnswer(
+        { status: 200, body: [] },
+        { status: 409, body: { id: 'EventTypeAlreadyExist', detail: 'it is already declared' } }
+      );
+
+      await expect(client.upsertEventTypes(['auth.user.create'])).rejects.toThrow(
+        'auth.user.create'
+      );
+      expect(api.received).toHaveLength(2);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'reports a failure carrying no message by the name of what it was',
+    async () => {
+      // An answer with no body at all leaves nothing to say about the failure but the status and
+      // what raised it, which is what a message naming neither would hide.
+      api.willAnswer({ status: 500, body: undefined });
+
+      const raised = await client.upsertEventTypes(['auth.user.create']).then(
+        () => undefined,
+        (thrown: unknown) => thrown
+      );
+
+      expect(raised).toBeInstanceOf(Hook0ClientError);
+      expect((raised as Error).message).toContain('500');
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'refuses a signature it cannot read before it verifies anything',
+    () => {
+      expect(() =>
+        verifyWebhookSignature(
+          'not a signature at all',
+          Buffer.from('a payload', 'utf8'),
+          new Headers(),
+          'a-secret',
+          300
+        )
+      ).toThrow('Could not parse signature');
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'leaves its own schedule in place when the API names a delay it cannot read',
+    async () => {
+      // Only a whole number of seconds is read: a date is a clock this client would be comparing
+      // against its own, and anything else is a header nobody meant.
+      for (const named of ['Wed, 01 Jan 2026 00:00:00 GMT', 'soon', '-3', '1.5']) {
+        api.willAnswerWithHeaders(
+          { status: 503, body: { id: 'ServiceUnavailable' } },
+          {
+            'retry-after': named,
+          }
+        );
+        api.willAnswer({ status: 201, body: { event_id: 'a5b4dd60-6ab4-4bd6-9f0b-1a4f8a2a0002' } });
+
+        const patient = new Hook0Client(
+          api.baseUrl,
+          'app-123',
+          'token-xyz',
+          false,
+          withRetries(promptRetries(2))
+        );
+        await expect(patient.sendEvent(anEvent())).resolves.toBe(
+          'a5b4dd60-6ab4-4bd6-9f0b-1a4f8a2a0002'
+        );
+      }
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'waits the whole number of seconds the API named before trying again',
+    async () => {
+      api.willAnswerWithHeaders(
+        { status: 429, body: { id: 'RateLimited' } },
+        { 'retry-after': '1' }
+      );
+      api.willAnswer({ status: 201, body: { event_id: 'a5b4dd60-6ab4-4bd6-9f0b-1a4f8a2a0003' } });
+
+      const started = Date.now();
+      await expect(
+        new Hook0Client(
+          api.baseUrl,
+          'app-123',
+          'token-xyz',
+          false,
+          withRetries(promptRetries(2))
+        ).sendEvent(anEvent())
+      ).resolves.toBe('a5b4dd60-6ab4-4bd6-9f0b-1a4f8a2a0003');
+
+      // The delay the API named wins over the one the schedule would have waited, which here is
+      // five milliseconds.
+      expect(Date.now() - started).toBeGreaterThanOrEqual(500);
+    },
+    TEST_TIMEOUT_MS
+  );
+});
+
+describe('what the client is bounded by', () => {
+  let api: FakeHook0Api;
+
+  beforeEach(async () => {
+    api = new FakeHook0Api();
+    await api.listen();
+  });
+
+  afterEach(async () => {
+    await api.close();
+  });
+
+  test(
+    'makes one attempt under a policy whose attempt count is not a number',
+    async () => {
+      api.willAnswer(ingested('a5b4dd60-6ab4-4bd6-9f0b-1a4f8a2a0004'));
+      const unreadable = new RetryPolicy(Number.NaN, 5, 5, 1_000);
+
+      expect(unreadable.attempts()).toBe(1);
+
+      await expect(
+        new Hook0Client(
+          api.baseUrl,
+          'app-123',
+          'token-xyz',
+          false,
+          withRetries(unreadable)
+        ).sendEvent(anEvent())
+      ).resolves.toBeTruthy();
+      expect(api.received).toHaveLength(1);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'still says what the API answered when the refusal names nothing this client reads',
+    async () => {
+      // A body that is a document, and says nothing under the members a message would quote.
+      api.willAnswer({ status: 400, body: { detail: 12, title: null, other: 'ignored' } });
+
+      const raised = await new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        withRetries(promptRetries(1))
+      )
+        .sendEvent(anEvent())
+        .then(
+          () => undefined,
+          (thrown: unknown) => thrown
+        );
+
+      expect(raised).toBeInstanceOf(Hook0ClientError);
+      expect((raised as Error).message).toContain('400');
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'leaves its own schedule in place when the delay named is past what a number holds',
+    async () => {
+      api.willAnswerWithHeaders(
+        { status: 503, body: { id: 'ServiceUnavailable' } },
+        {
+          'retry-after': '99999999999999999999',
+        }
+      );
+      api.willAnswer(ingested('a5b4dd60-6ab4-4bd6-9f0b-1a4f8a2a0005'));
+
+      await expect(
+        new Hook0Client(
+          api.baseUrl,
+          'app-123',
+          'token-xyz',
+          false,
+          withRetries(promptRetries(2))
+        ).sendEvent(anEvent())
+      ).resolves.toBe('a5b4dd60-6ab4-4bd6-9f0b-1a4f8a2a0005');
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'reads an answer that carries no body at all as an empty one',
+    async () => {
+      // A 204 carries no body, which is not the same as a body this client failed to read.
+      api.willAnswer({ status: 204, body: undefined });
+
+      await expect(
+        new Hook0Client(
+          api.baseUrl,
+          'app-123',
+          'token-xyz',
+          false,
+          withRetries(promptRetries(1))
+        ).sendEvent(anEvent())
+      ).rejects.toThrow('without an event id');
+      expect(api.received).toHaveLength(1);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'repeats a send that reached nothing at all',
+    async () => {
+      // A connection nothing accepted says nothing about whether Hook0 acted on the request, which
+      // is what the identifier this client chose makes safe to send again.
+      const closed = new Hook0Client(
+        'http://127.0.0.1:1',
+        'app-123',
+        'token-xyz',
+        false,
+        withRetries(promptRetries(3))
+      );
+
+      await expect(closed.sendEvent(anEvent())).rejects.toThrow(Hook0ClientError);
+    },
+    TEST_TIMEOUT_MS
+  );
+
+  test(
+    'says a refusal was above what it agrees to hold rather than quoting it',
+    async () => {
+      api.willAnswer({ status: 403, body: { detail: 'x'.repeat(4096) } });
+      const tight = new Hook0Client(
+        api.baseUrl,
+        'app-123',
+        'token-xyz',
+        false,
+        new Hook0ClientOptions(promptRetries(1), 5_000, DEFAULT_MAX_PAYLOAD_BYTES, 512)
+      );
+
+      const raised = await tight.upsertEventTypes(['auth.user.create']).then(
+        () => undefined,
+        (thrown: unknown) => thrown
+      );
+
+      expect(raised).toBeInstanceOf(Hook0ClientError);
+      expect((raised as Error).message).toContain('512');
     },
     TEST_TIMEOUT_MS
   );

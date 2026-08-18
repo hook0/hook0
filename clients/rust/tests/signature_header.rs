@@ -213,3 +213,31 @@ fn a_v1_signature_over_the_headers_it_names_verifies() {
         "expected the webhook to verify, got {result:?}"
     );
 }
+
+#[test]
+fn a_header_naming_no_moment_is_refused() {
+    // Two parts, so the header is not the empty one, and neither of them the moment a code covers.
+    // A header that cannot be read reaches a consumer as a webhook that did not verify, which is
+    // the one thing there is to do about it.
+    let refused = verify(&format!("v0={V0},h=x-test"), &SIGNED_HEADERS);
+
+    assert!(
+        matches!(refused, Err(Hook0ClientError::InvalidSignature)),
+        "a header naming no moment was read as {refused:?}"
+    );
+}
+
+#[test]
+fn a_header_covering_a_name_that_is_not_a_headers_is_refused() {
+    // A parenthesis has no place in a header name, and a name that is not one names no header the
+    // request could have carried.
+    let refused = verify(
+        &format!("t={SIGNED_AT},h=x-test(2),v1={V1}"),
+        &SIGNED_HEADERS,
+    );
+
+    assert!(
+        matches!(refused, Err(Hook0ClientError::InvalidSignature)),
+        "a header covering a name that is not one was read as {refused:?}"
+    );
+}

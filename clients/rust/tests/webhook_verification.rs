@@ -224,3 +224,114 @@ fn verifying_valid_signature_v1_with_current_time() {
         .is_ok()
     );
 }
+
+/// The payload, secret and moment the fixed vectors below were computed with.
+const A_PAYLOAD: &[u8] = b"hello !";
+const A_SECRET: &str = "secret";
+const SIGNED_AT: i64 = 1636936200;
+
+/// A `v1` signature, which covers the moment, the names and values of the headers it names, and
+/// the payload.
+const A_V1: &str = "493c35f05443fdb74cb99fd4f00e0e7653c2ab6b24fbc97f4a7bd4d56b31758a";
+
+fn at_signing_time() -> DateTime<chrono::Utc> {
+    DateTime::from_timestamp(SIGNED_AT, 0).expect("the moment the vectors were signed at")
+}
+
+#[test]
+fn a_header_whose_name_is_not_one_is_refused_rather_than_looked_up() {
+    let refused = verify_webhook_signature_with_current_time(
+        &format!("t={SIGNED_AT},h=x-test x-test2,v1={A_V1}"),
+        A_PAYLOAD,
+        // A request cannot carry this, and a client that let it through would be signing over a
+        // name no server can have sent.
+        &[("x-test(2)", "val1"), ("x-test2", "val2")],
+        A_SECRET,
+        StdDuration::from_secs(300),
+        at_signing_time(),
+    );
+
+    assert!(
+        matches!(refused, Err(Hook0ClientError::InvalidHeaderName { .. })),
+        "a header whose name is not one was read as {refused:?}"
+    );
+}
+
+#[test]
+fn a_header_whose_value_is_not_text_is_refused_rather_than_signed_over() {
+    let refused = verify_webhook_signature_with_current_time(
+        &format!("t={SIGNED_AT},h=x-test x-test2,v1={A_V1}"),
+        A_PAYLOAD,
+        &[
+            ("x-test", [0xff, 0xfe].as_slice()),
+            ("x-test2", b"val2".as_slice()),
+        ],
+        A_SECRET,
+        StdDuration::from_secs(300),
+        at_signing_time(),
+    );
+
+    assert!(
+        matches!(refused, Err(Hook0ClientError::InvalidHeaderValue { .. })),
+        "a header whose value is not text was read as {refused:?}"
+    );
+}
+
+#[test]
+fn a_code_that_is_not_the_one_the_secret_produces_is_refused() {
+    let refused = verify_webhook_signature_with_current_time(
+        &format!("t={SIGNED_AT},h=x-test x-test2,v1={A_V1}"),
+        A_PAYLOAD,
+        &[("x-test", "val1"), ("x-test2", "val2")],
+        "another secret entirely",
+        StdDuration::from_secs(300),
+        at_signing_time(),
+    );
+
+    assert!(
+        matches!(refused, Err(Hook0ClientError::InvalidSignature)),
+        "a code computed with another secret was read as {refused:?}"
+    );
+}
+
+#[test]
+fn a_tolerance_no_window_can_be_made_of_is_refused() {
+    // A window is compared against a moment as a signed count of milliseconds, and a duration past
+    // what that count reaches is not a window a webhook can be accepted inside of.
+    let refused = verify_webhook_signature_with_current_time::<&str, &str>(
+        "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98",
+        A_PAYLOAD,
+        &[],
+        A_SECRET,
+        StdDuration::MAX,
+        at_signing_time(),
+    );
+
+    assert!(
+        matches!(refused, Err(Hook0ClientError::InvalidTolerance(_))),
+        "a tolerance no window can be made of was read as {refused:?}"
+    );
+}
+
+#[test]
+fn a_moment_no_clock_reaches_is_refused_even_when_the_code_over_it_is_right() {
+    // A signature may name any whole number of seconds, and the code below really is the one the
+    // secret produces over this one. What decides the webhook is that no date can be made of the
+    // moment, so there is no window it could be compared against.
+    let refused = verify_webhook_signature_with_current_time::<&str, &str>(
+        &format!(
+            "t={},v0=76bf7fdcca5ceb6bddfa79dfc6cc2edaa4f735251473d898615fa6eaf54cf36c",
+            i64::MAX
+        ),
+        A_PAYLOAD,
+        &[],
+        A_SECRET,
+        StdDuration::from_secs(300),
+        at_signing_time(),
+    );
+
+    assert!(
+        matches!(refused, Err(Hook0ClientError::InvalidSignature)),
+        "a moment no clock reaches was read as {refused:?}"
+    );
+}

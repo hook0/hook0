@@ -46,6 +46,9 @@ type scriptedResponse struct {
 	// hangsUp says the API closes the connection without answering at all, which is the transport
 	// failure a send is supposed to ride out.
 	hangsUp bool
+	// stopsMidBody says the API announces a body and closes before it has written the whole of it,
+	// which is the answer a client gets nothing worth reading out of.
+	stopsMidBody bool
 }
 
 // receivedRequest is a request the API received, in the order it received it.
@@ -182,6 +185,22 @@ func (a *fakeAPI) serve(writer http.ResponseWriter, request *http.Request) {
 			panic(err)
 		}
 		_ = connection.(net.Conn).Close()
+		return
+	}
+
+	if scripted.stopsMidBody {
+		hijacker, ok := writer.(http.Hijacker)
+		if !ok {
+			panic("the test server cannot stop mid-answer")
+		}
+		connection, _, err := hijacker.Hijack()
+		if err != nil {
+			panic(err)
+		}
+		// A head announcing more than what follows it, and then a close: the client is left with a
+		// body that stopped where the connection did.
+		_, _ = connection.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 4096\r\n\r\n{}"))
+		_ = connection.Close()
 		return
 	}
 
