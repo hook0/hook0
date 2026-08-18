@@ -184,16 +184,91 @@ public sealed class TransportTests : ApiCase
         Assert.Contains("attempts=", Stated(Api.Received[0]), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task AnAnswerFarBelowTheCeilingIsReadWholeHoweverManyPiecesItArrivedIn(Surface surface)
+    {
+        // What bounds a body is how many bytes it is, and nothing else. How a server chose to flush
+        // it, and how the network broke it up on the way, is not something the caller decided and not
+        // something they can be refused over: the same document arrives in one read on loopback and
+        // in dozens across a link with a smaller segment size, and both are the same answer.
+        //
+        // The ceiling is set low here only so the case does not have to write a hundred pieces to
+        // make the point. The body is a small fraction of it either way.
+        string document = new('y', 800);
+        Api.WillAnswer(new ScriptedResponse(200, null, Written: $"\"{document}\"", Pieces: 8));
+        using HttpTransport transport = Reaching(maxResponseBytes: 64 * 1024);
+
+        TransportDelivery delivered = await Delivered(transport, surface);
+
+        Assert.Equal(200, delivered.Status);
+        Assert.Equal(document.Length + 2, delivered.Payload.Length);
+    }
+
+    [Theory]
+    [InlineData(Surface.Blocking)]
+    [InlineData(Surface.Awaiting)]
+    public async Task AnAnswerThatKeepsArrivingIsStoppedByTheCeilingItCrossed(Surface surface)
+    {
+        // The other half of that, and the reason there is a bound here at all: a server that writes
+        // and writes is cut off on the piece that crosses the ceiling, however many pieces it took to
+        // get there. Refused rather than repeated — the same request draws the same oversized answer.
+        Api.WillAnswer(new ScriptedResponse(200, null, Written: new string('y', 2048), Pieces: 16));
+        using HttpTransport transport = Reaching(maxResponseBytes: 512);
+
+        TransportException refused = surface == Surface.Blocking
+            ? Assert.Throws<TransportException>(() => transport.Deliver("GET", "somewhere", [], null))
+            : await Assert.ThrowsAsync<TransportException>(
+                () => transport.DeliverAsync("GET", "somewhere", [], null, CancellationToken.None));
+
+        Assert.Equal(AnswerAboveABound, refused.CauseName);
+        Assert.False(refused.Retryable);
+    }
+
+    [Fact]
+    public async Task AnAnswerThatStopsMidWayAndNeverEndsIsGivenUpOnRatherThanWaitedOutForever()
+    {
+        // A server that states a length, writes part of it and then holds the connection open is the
+        // case where nothing about the answer itself will ever end the read. What ends it is this
+        // transport's own deadline, and what the caller hears is that the API did not answer — a
+        // failure repeating the request could clear, rather than one about the answer's size.
+        //
+        // Awaited only. The blocking surface does not hold to the deadline here: `Stream.Read` on the
+        // response body does not observe the token the request was given, and the deadline is only
+        // looked at between reads, so a read that never returns is bounded by whatever the server
+        // eventually does. Asserting that from a case would mean waiting for the server rather than
+        // for the transport, which is not what this is about.
+        Api.WillAnswer(new ScriptedResponse(200, null, Written: new string('y', 500), Promising: 2000));
+        using HttpTransport transport = Reaching(timeout: TimeSpan.FromMilliseconds(500));
+
+        TransportException refused = await Assert.ThrowsAsync<TransportException>(
+            () => transport.DeliverAsync("GET", "somewhere", [], null, CancellationToken.None));
+
+        Assert.Equal(NoAnswer, refused.CauseName);
+        Assert.True(refused.Retryable);
+    }
+
     /// <summary>A transport reaching the API of this case, under the bounds a case names.</summary>
-    private HttpTransport Reaching(string? apiUrl = null, int maxHeaderBytes = HttpTransport.DefaultMaxHeaderBytes) =>
+    private HttpTransport Reaching(
+        string? apiUrl = null,
+        int maxHeaderBytes = HttpTransport.DefaultMaxHeaderBytes,
+        int maxResponseBytes = HttpTransport.DefaultMaxResponseBytes,
+        TimeSpan? timeout = null) =>
         new(
             apiUrl ?? Api.BaseUrl + "/api/v1",
             "token-xyz",
-            Patience,
-            HttpTransport.DefaultMaxResponseBytes,
+            timeout ?? Patience,
+            maxResponseBytes,
             HttpTransport.DefaultMaxResponseHeaders,
             HttpTransport.DefaultMaxHeadBytes,
             maxHeaderBytes);
+
+    /// <summary>One request, on whichever of the two surfaces the case is written for.</summary>
+    private static async Task<TransportDelivery> Delivered(HttpTransport transport, Surface surface) =>
+        surface == Surface.Blocking
+            ? transport.Deliver("GET", "somewhere", [], null)
+            : await transport.DeliverAsync("GET", "somewhere", [], null, CancellationToken.None);
 
     /// <summary>A URL that was somewhere a request could go until the API behind it stopped.</summary>
     private static string Closed()

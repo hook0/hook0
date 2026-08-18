@@ -34,12 +34,24 @@ namespace Hook0.Tests;
 /// control can answer something that is not JSON at all — a proxy's error page, a truncated
 /// document — and a case that can only script a <see cref="JsonNode"/> can never make it do so.
 /// </param>
+/// <param name="Pieces">
+/// How many writes the body is broken into, with a pause between them. One answer arrives in one
+/// read over loopback and in dozens over a network, and which of those a client is looking at is
+/// not something the client chose — so a case that cares has to be able to say.
+/// </param>
+/// <param name="Promising">
+/// The <c>Content-Length</c> it states, when that is not the number of bytes it goes on to write.
+/// A server that promises more than it sends and then holds the connection open is what a client's
+/// own deadline exists for.
+/// </param>
 public sealed record ScriptedResponse(
     int Status,
     JsonNode? Body,
     TimeSpan HeldFor = default,
     IReadOnlyList<KeyValuePair<string, string>>? Headers = null,
-    string? Written = null);
+    string? Written = null,
+    int Pieces = 1,
+    int? Promising = null);
 
 /// <summary>A request the API received, in the order it received it.</summary>
 public sealed record ReceivedRequest(
@@ -69,6 +81,18 @@ public sealed class FakeApi : IDisposable
 
     /// <summary>No case talks to anything but a loopback socket, so none takes this long.</summary>
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(20);
+
+    /// <summary>
+    /// How long the server waits between the pieces of a body it was asked to break up.
+    /// </summary>
+    /// <remarks>
+    /// Long enough that the client's read returns with the piece that has arrived rather than
+    /// coalescing the lot, short enough that a case spends milliseconds on it.
+    /// </remarks>
+    private static readonly TimeSpan BetweenPieces = TimeSpan.FromMilliseconds(25);
+
+    /// <summary>Most pieces one body is broken into, which bounds how long writing it can take.</summary>
+    private const int MaxPieces = 256;
 
     private readonly TcpListener _listener;
     private readonly List<ReceivedRequest> _received = [];
@@ -192,7 +216,9 @@ public sealed class FakeApi : IDisposable
         StringBuilder head = new();
         head.Append(CultureInfo.InvariantCulture, $"HTTP/1.1 {scripted.Status} Answer\r\n");
         head.Append("Content-Type: application/json\r\n");
-        head.Append(CultureInfo.InvariantCulture, $"Content-Length: {answer.Length}\r\n");
+        head.Append(
+            CultureInfo.InvariantCulture,
+            $"Content-Length: {scripted.Promising ?? answer.Length}\r\n");
         foreach (KeyValuePair<string, string> header in scripted.Headers ?? [])
         {
             head.Append(CultureInfo.InvariantCulture, $"{header.Key}: {header.Value}\r\n");
@@ -201,9 +227,45 @@ public sealed class FakeApi : IDisposable
         head.Append("Connection: close\r\n\r\n");
 
         await talking.WriteAsync(Encoding.UTF8.GetBytes(head.ToString())).ConfigureAwait(false);
-        await talking.WriteAsync(answer).ConfigureAwait(false);
+        await Wrote(talking, answer, scripted.Pieces, _closing.Token).ConfigureAwait(false);
         await talking.FlushAsync().ConfigureAwait(false);
+
+        // A server that promised more than it wrote holds the connection open rather than hanging
+        // up, since hanging up is what tells a client the answer ended.
+        if (scripted.Promising is not null)
+        {
+            await Task.Delay(Patience, _closing.Token).ConfigureAwait(false);
+        }
+
         socket.Client.Shutdown(SocketShutdown.Send);
+    }
+
+    /// <summary>Writes a body, in as many pieces as the case asked for.</summary>
+    private static async Task Wrote(
+        NetworkStream talking,
+        byte[] answer,
+        int pieces,
+        CancellationToken closing)
+    {
+        int broken = Math.Clamp(pieces, 1, MaxPieces);
+        if (broken == 1 || answer.Length == 0)
+        {
+            await talking.WriteAsync(answer).ConfigureAwait(false);
+            return;
+        }
+
+        int each = Math.Max(1, ((answer.Length - 1) / broken) + 1);
+        for (int at = 0; at < answer.Length; at += each)
+        {
+            await talking
+                .WriteAsync(answer.AsMemory(at, Math.Min(each, answer.Length - at)))
+                .ConfigureAwait(false);
+            await talking.FlushAsync().ConfigureAwait(false);
+
+            // Under the case's own cancellation, so that a case ending while the server is still
+            // paying out an answer the client already gave up on does not wait for the rest of it.
+            await Task.Delay(BetweenPieces, closing).ConfigureAwait(false);
+        }
     }
 
     private static async Task<ReceivedRequest> ReadAsync(NetworkStream talking)

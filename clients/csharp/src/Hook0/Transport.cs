@@ -597,12 +597,21 @@ public sealed class HttpTransport : ITransport, IAsyncTransport, IDisposable
     }
 
     /// <summary>The body of an answer, up to what this transport agrees to hold.</summary>
+    /// <remarks>
+    /// What ends this loop is bytes, never reads. How many reads a body arrives in is decided by the
+    /// server's flushes and by the segment size of whatever is between here and it — the same
+    /// document is one read over loopback and dozens over a link with a smaller MTU — so a loop
+    /// counting reads refuses answers well inside the ceiling it advertises, on the connections
+    /// where the ceiling matters most. <see cref="Fits"/> is the bound, and it is enough: a body
+    /// that keeps growing crosses it, a body that ended reads zero, and a server that goes quiet
+    /// mid-answer runs into the deadline the request carries.
+    /// </remarks>
     private byte[] Bounded(Stream reading, CancellationToken cancellationToken)
     {
         using MemoryStream held = new();
         byte[] chunk = new byte[ChunkBytes];
 
-        for (int read = 0; read <= Chunks(); read++)
+        while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
             int taken = reading.Read(chunk, 0, chunk.Length);
@@ -614,18 +623,15 @@ public sealed class HttpTransport : ITransport, IAsyncTransport, IDisposable
             Fits(held.Length + taken);
             held.Write(chunk, 0, taken);
         }
-
-        throw TransportException.AnswerAboveABound(
-            $"the API answered more than the {_maxResponseBytes} bytes read at most");
     }
 
-    /// <summary>The body of an answer, up to what this transport agrees to hold.</summary>
+    /// <inheritdoc cref="Bounded" />
     private async Task<byte[]> BoundedAsync(Stream reading, CancellationToken cancellationToken)
     {
         using MemoryStream held = new();
         byte[] chunk = new byte[ChunkBytes];
 
-        for (int read = 0; read <= Chunks(); read++)
+        while (true)
         {
             int taken = await reading.ReadAsync(chunk, cancellationToken).ConfigureAwait(false);
             if (taken == 0)
@@ -636,13 +642,7 @@ public sealed class HttpTransport : ITransport, IAsyncTransport, IDisposable
             Fits(held.Length + taken);
             await held.WriteAsync(chunk.AsMemory(0, taken), cancellationToken).ConfigureAwait(false);
         }
-
-        throw TransportException.AnswerAboveABound(
-            $"the API answered more than the {_maxResponseBytes} bytes read at most");
     }
-
-    /// <summary>How many reads it takes to reach the ceiling, which is what bounds the loop.</summary>
-    private int Chunks() => (_maxResponseBytes / ChunkBytes) + 1;
 
     /// <summary>Refuses a body that has grown past what this transport agreed to hold.</summary>
     private void Fits(long held)
