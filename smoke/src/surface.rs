@@ -44,6 +44,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
+use hook0_sdkgen::targets::Decoding;
 use hook0_sdkgen::{ApiModel, Limits, ObjectShape, Shape, Snapshot};
 
 use crate::error::Error;
@@ -239,7 +240,24 @@ pub struct Models {
 }
 
 /// Every model type a client carrying that tag is generated from, and which of them are decodable.
-pub fn models(snapshot: &Path, tag: &str) -> Result<Models, Error> {
+///
+/// `decoding` is what stops this holding a client to types it was never given. The tag says which
+/// operations a target covers and says nothing about whether that target writes their types, so
+/// deriving the set from the tag alone demands twenty-nine models of a client that emits none and
+/// hands its answers on untouched. For the eleven SDKs the two readings coincide, which is exactly
+/// why the mistake stays invisible until a target arrives where they do not.
+pub fn models(snapshot: &Path, tag: &str, decoding: Decoding) -> Result<Models, Error> {
+    // A target that writes no types decodes none, and there is nothing to derive: an empty pair
+    // here is what the rest of this module then holds it to, which is nothing. Returned before the
+    // document is read rather than after, so that the emptiness is a stated property of the target
+    // and not something the snapshot happened to produce.
+    if decoding == Decoding::PassThrough {
+        return Ok(Models {
+            emitted: BTreeSet::new(),
+            answered: BTreeSet::new(),
+        });
+    }
+
     let refuse = |detail: String| Error::Document {
         path: snapshot.display().to_string(),
         detail,

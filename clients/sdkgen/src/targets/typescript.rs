@@ -34,7 +34,7 @@ use crate::identifier::{Case, checked_words, escape, render, spell};
 use crate::limits::Limits;
 use crate::model::{ApiModel, Entity, ErrorModel, Field, Method, ObjectShape, Shape};
 use crate::snapshot::{PUBLIC_TAG, Parameter, ParameterLocation};
-use crate::targets::{Contract, LanguageSpec, ScalarNames, Target, update_command};
+use crate::targets::{Contract, Decoding, LanguageSpec, ScalarNames, Target, update_command};
 
 /// How the target is named, and what `UPDATE_SDK` accepts to rewrite it.
 pub const NAME: &str = "typescript";
@@ -99,6 +99,7 @@ pub(super) fn target() -> Target {
         // module with it instead of lingering as an orphan nothing imports.
         ownership: Ownership::Directory,
         contract: Contract::Whole,
+        decoding: Decoding::Modelled,
         language: super::typescript(),
         emit,
     }

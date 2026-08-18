@@ -110,6 +110,28 @@ pub enum Contract {
     Only(&'static [&'static str]),
 }
 
+/// Whether a target's client names the API's types or passes on what it was answered.
+///
+/// A target that writes one type per schema is one whose client reads an answer into a value, and
+/// can be held to having read one. A target that writes none hands the answer on as it arrived, and
+/// nothing can hold it to reading a type that was never written.
+///
+/// Which of the two a target is, is a property of the target — stated here for the same reason
+/// [`Contract`] is, and against the same mistake. A tag says which operations a target covers and
+/// says nothing about whether it names their types, so reading this off the tag holds a client that
+/// writes no types at all to every type the tag selects. It happens to be right for the eleven SDKs
+/// because for them the two sets coincide; for the MCP server the tag selects twenty-nine and the
+/// target writes none.
+// Ordered as well as compared, so that a cache keyed by a target's reading of an answer can be a
+// sorted map like every other in this crate. The order between the two variants means nothing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Decoding {
+    /// One type per schema the target reaches, so an answer becomes a value of a written type.
+    Modelled,
+    /// No types at all: the answer travels on in whatever shape it arrived.
+    PassThrough,
+}
+
 /// One thing the generator writes.
 #[derive(Debug)]
 pub struct Target {
@@ -122,6 +144,8 @@ pub struct Target {
     pub ownership: Ownership,
     /// What of the shared corpus the client this target lands in is held to.
     pub contract: Contract,
+    /// Whether this target writes the API's types or passes on what it was answered.
+    pub decoding: Decoding,
     pub language: LanguageSpec,
     /// Turns the model into the files the target is made of.
     ///

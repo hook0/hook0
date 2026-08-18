@@ -16,7 +16,7 @@ use crate::error::{Error, preview};
 use crate::limits::Limits;
 use crate::model::{ApiModel, EntityModel};
 use crate::snapshot::{Operation, ParameterLocation, RequestBody};
-use crate::targets::{Contract, LanguageSpec, Target, rust, update_command};
+use crate::targets::{Contract, Decoding, LanguageSpec, Target, rust, update_command};
 
 /// Tag an operation carries to become a tool of the MCP server.
 pub const MCP_TAG: &str = "mcp";
@@ -108,6 +108,7 @@ pub(super) fn target() -> Target {
         // beside it is ever swept away as stale.
         ownership: Ownership::Files,
         contract: Contract::Only(&HELD_TO),
+        decoding: Decoding::PassThrough,
         language: rust(),
         emit,
     }

@@ -9,6 +9,8 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use hook0_sdkgen::PUBLIC_TAG;
+use hook0_sdkgen::targets::Decoding;
+use hook0_sdkgen::{ApiModel, Limits, Snapshot};
 use hook0_smoke::surface::{
     MAX_REPORTS, Models, Outcome, Report, THROTTLED, declared, held, models, report, reported,
 };
@@ -26,7 +28,7 @@ fn document() -> PathBuf {
 
 /// The model types the rust client is generated from.
 fn types() -> Models {
-    models(&document(), PUBLIC_TAG).expect("the document declares models")
+    models(&document(), PUBLIC_TAG, Decoding::Modelled).expect("the document declares models")
 }
 
 /// Everything the document declares, reported as driven and decoded — a language that did all of
@@ -371,16 +373,84 @@ fn a_decoded_line_naming_something_that_is_not_a_model_is_refused() {
     assert!(said.contains("Subscriptions"), "{said}");
 }
 
+/// What each target is held to in the way of models is what it writes, not what its tag selects.
+///
+/// The two readings coincide for every target that writes one type per schema, which is why holding
+/// all of them to the tag alone looked right for as long as all of them did. A target that writes
+/// none is held to nothing: the tag it selects still declares twenty-nine types, and demanding them
+/// of a client that hands its answers on untouched would be demanding the smoke re-implement the
+/// model it is meant to be checking.
 #[test]
-fn every_target_the_registry_declares_answers_some_of_the_models_it_emits() {
+fn what_a_target_is_held_to_follows_from_whether_it_writes_the_types_at_all() {
+    let mut modelled = 0;
+    let mut pass_through = 0;
+
     for target in hook0_sdkgen::targets::targets() {
-        let types = models(&document(), target.tag)
+        let types = models(&document(), target.tag, target.decoding)
             .unwrap_or_else(|refused| panic!("{}: {refused}", target.name));
-        assert!(
-            !types.answered.is_empty(),
-            "{} decodes nothing at all",
-            target.name
-        );
-        assert!(types.answered.is_subset(&types.emitted), "{}", target.name);
+
+        // What the target really writes, emitted for this test rather than read off the tree it
+        // landed in, so the claim is about the generator and not about whatever is on disk.
+        let read = Snapshot::from_path(&document(), target.tag, &Limits::DEFAULT)
+            .unwrap_or_else(|refused| panic!("{}: {refused}", target.name));
+        let model = ApiModel::from_snapshot(&read, &Limits::DEFAULT)
+            .unwrap_or_else(|refused| panic!("{}: {refused}", target.name));
+        let written: String = (target.emit)(&target.language, &model)
+            .unwrap_or_else(|refused| panic!("{}: {refused}", target.name))
+            .files()
+            .iter()
+            .map(|file| file.contents.as_str())
+            .collect();
+
+        // Whether the emitted source names the API's types at all. Text rather than structure,
+        // because twelve languages spell a declaration twelve ways and all of them spell the name
+        // the same. `declared` here is the set the tag selects, taken independently of `types` so
+        // that a pass-through target is still measured against something.
+        let declared = models(&document(), target.tag, Decoding::Modelled)
+            .unwrap_or_else(|refused| panic!("{}: {refused}", target.name))
+            .emitted;
+        let named = declared
+            .iter()
+            .filter(|model| written.contains(model.as_str()))
+            .count();
+
+        match target.decoding {
+            Decoding::Modelled => {
+                modelled += 1;
+                assert!(
+                    named > 0,
+                    "{} says it writes the API's types and names none of the {} its tag selects",
+                    target.name,
+                    declared.len()
+                );
+                assert!(
+                    !types.answered.is_empty(),
+                    "{} writes the API's types and yet answers none of them",
+                    target.name
+                );
+                assert!(types.answered.is_subset(&types.emitted), "{}", target.name);
+            }
+            Decoding::PassThrough => {
+                pass_through += 1;
+                assert_eq!(
+                    named, 0,
+                    "{} says it writes no types and yet its emitted source names {named} of them",
+                    target.name
+                );
+                assert!(
+                    types.emitted.is_empty() && types.answered.is_empty(),
+                    "{} writes no types, so nothing can hold it to one",
+                    target.name
+                );
+            }
+        }
     }
+
+    // Both arms asserted non-vacuously. A registry that lost its one pass-through target, or that
+    // marked every target as one, would otherwise satisfy this by never entering the arm that
+    // matters.
+    assert!(
+        modelled > 0 && pass_through > 0,
+        "{modelled} / {pass_through}"
+    );
 }

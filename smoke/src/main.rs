@@ -26,6 +26,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::Duration;
 
+use hook0_sdkgen::targets::Decoding;
 use hook0_smoke::error::Error;
 use hook0_smoke::{api, discovery, process, receiver, stack, surface, worker};
 
@@ -148,15 +149,20 @@ fn declared_per_target(snapshot: &Path) -> Result<BTreeMap<String, BTreeSet<Stri
 
 /// What each target's client is generated from in the way of model types, keyed by target.
 fn models_per_target(snapshot: &Path) -> Result<BTreeMap<String, surface::Models>, Error> {
-    let mut per_tag: BTreeMap<&str, surface::Models> = BTreeMap::new();
+    // Keyed by the tag *and* how the target reads an answer, because the two together are what the
+    // set depends on. Keying by the tag alone would hand a pass-through target the set derived for
+    // the modelled ones that share its tag — which is the very mistake this argument exists to
+    // stop, reintroduced one layer up by a cache.
+    let mut per_reading: BTreeMap<(&str, Decoding), surface::Models> = BTreeMap::new();
     let mut per_target = BTreeMap::new();
 
     for target in hook0_sdkgen::targets::targets() {
-        let models = match per_tag.get(target.tag) {
+        let reading = (target.tag, target.decoding);
+        let models = match per_reading.get(&reading) {
             Some(read) => read.clone(),
             None => {
-                let read = surface::models(snapshot, target.tag)?;
-                per_tag.insert(target.tag, read.clone());
+                let read = surface::models(snapshot, target.tag, target.decoding)?;
+                per_reading.insert(reading, read.clone());
                 read
             }
         };
