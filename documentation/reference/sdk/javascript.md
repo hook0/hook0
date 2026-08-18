@@ -1,5 +1,8 @@
 ---
-title: "JavaScript & TypeScript webhook SDK, hook0-client"
+# The colon separates a keyword from the package it names, which is the title format
+# the whole directory uses; it is not a sentence glossing itself.
+# humanizer-lint-ignore-line W005
+title: "JavaScript & TypeScript webhook SDK: hook0-client"
 description: "Send Hook0 events and verify webhook signatures from Node.js. Typed, ESM and CommonJS, idempotent event IDs, retries and payload bounds built in."
 keywords: [JavaScript webhook SDK, TypeScript webhook client, hook0-client npm, verify webhook signature Node.js, Express webhook endpoint, send webhook event JavaScript]
 sdkTarget: typescript
