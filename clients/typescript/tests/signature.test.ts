@@ -1,4 +1,5 @@
 import { describe, expect, test } from '@jest/globals';
+import * as crypto from 'crypto';
 
 import {
   Hook0ClientError,
@@ -273,5 +274,85 @@ describe('Signature', () => {
         secret
       )
     ).toStrictEqual(true);
+  });
+});
+
+describe('verifyWebhookSignature', () => {
+  const secret = 'secret';
+
+  /**
+   * A `X-Hook0-Signature` header as Hook0 writes one, over a payload and at a moment.
+   *
+   * Built out of the wire format rather than out of the client, so these cases exercise the
+   * exported function the way a webhook receiver does: a header, a body and a secret in, an answer
+   * or a throw out. Nothing here reaches inside the module it is testing.
+   */
+  function signed(payload: Buffer, secret: string, at: Date): string {
+    const timestamp = Math.floor(at.getTime() / 1000);
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(Buffer.from(timestamp.toString()));
+    hmac.update(Buffer.from('.'));
+    hmac.update(payload);
+    return `t=${timestamp},v0=${hmac.digest('hex')}`;
+  }
+
+  test('answers true, and nothing but true, for a signature it accepts', () => {
+    const payload = Buffer.from('{"invoice":"in_123"}');
+
+    const answer = verifyWebhookSignature(
+      signed(payload, secret, new Date()),
+      payload,
+      new Headers(),
+      secret,
+      300
+    );
+
+    // `toBe(true)` rather than a truthiness check on purpose. The declared return type used to be
+    // `boolean | Hook0ClientError`, so a handler written from the type alone carried a branch for a
+    // falsy answer and a branch for a returned error, and neither could ever run.
+    expect(answer).toBe(true);
+  });
+
+  test('throws rather than returning a refusal, whatever the reason', () => {
+    const payload = Buffer.from('{"invoice":"in_123"}');
+    const now = new Date();
+
+    // A signature over a different body: the bytes that arrived are not the bytes that were signed.
+    expect(() =>
+      verifyWebhookSignature(
+        signed(Buffer.from('{"invoice":"in_456"}'), secret, now),
+        payload,
+        new Headers(),
+        secret,
+        300
+      )
+    ).toThrow(Hook0ClientError);
+
+    // A signature by somebody who does not hold the subscription secret.
+    expect(() =>
+      verifyWebhookSignature(
+        signed(payload, 'another secret', now),
+        payload,
+        new Headers(),
+        secret,
+        300
+      )
+    ).toThrow(Hook0ClientError);
+
+    // A signature far enough in the past to be outside any tolerance a receiver would set.
+    expect(() =>
+      verifyWebhookSignature(
+        signed(payload, secret, new Date(now.getTime() - 3600 * 1000)),
+        payload,
+        new Headers(),
+        secret,
+        300
+      )
+    ).toThrow(Hook0ClientError);
+
+    // A header that is not a signature at all.
+    expect(() =>
+      verifyWebhookSignature('not a signature', payload, new Headers(), secret, 300)
+    ).toThrow(Hook0ClientError);
   });
 });

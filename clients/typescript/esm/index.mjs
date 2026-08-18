@@ -11,12 +11,13 @@
  * down.
  *
  * It is a wrapper rather than a second compilation of `src` on purpose. Two compilations mean two
- * copies of every class at runtime whenever a dependency tree pulls the package in both ways —
- * Node's dual-package hazard — and this package cannot afford it: `verifyWebhookSignature` and
- * `EventType.fromString` both answer `boolean | Hook0ClientError` and `Hook0ClientError | …`, so a
- * caller has to write `instanceof Hook0ClientError` to tell an answer from a refusal. Against a
- * `Hook0ClientError` built by the other copy that test answers `false`, and a rejected signature
- * reads as a verified one. Re-exporting the single compiled module keeps one class per name, so
+ * copies of every class at runtime whenever a dependency tree pulls the package in both ways,
+ * Node's dual-package hazard, and this package cannot afford it: `EventType.fromString` answers
+ * `EventType | Hook0ClientError`, so a caller has to write `instanceof Hook0ClientError` to tell an
+ * answer from a refusal. Against a `Hook0ClientError` built by the other copy that test answers
+ * `false`, and a refused event type reads as a parsed one. Every `Hook0ClientError` this package
+ * throws is caught the same way and has the same problem.
+ * Re-exporting the single compiled module keeps one class per name, so
  * `instanceof` holds no matter which way each half of the dependency tree imported the package.
  *
  * `tests/packaging.test.ts` fails when this list and the compiled module disagree.

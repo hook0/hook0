@@ -75,10 +75,10 @@ TypeScript resolves the declarations for whichever half it picks, under `bundler
 
 The ES module half re-exports the compiled CommonJS instead of being a second compilation of it, so
 a dependency tree that reaches the package both ways still gets **one** `Hook0ClientError` class
-rather than two. That matters here: `verifyWebhookSignature` and `EventType.fromString` answer with
-either a value or a `Hook0ClientError`, so telling the two apart means writing
-`instanceof Hook0ClientError` — and against an error built by a second copy of the class, that test
-answers `false`, which would read a refused signature as a verified one.
+rather than two. That matters here: `EventType.fromString` answers with either an `EventType` or a
+`Hook0ClientError`, so telling the two apart means writing `instanceof Hook0ClientError`, and
+against an error built by a second copy of the class that test answers `false`, which would read a
+refused event type as a parsed one.
 
 The compiled layout is not part of the contract: reaching into `hook0-client/dist/…` is refused at
 resolution. Import the package.

@@ -748,11 +748,11 @@ readPayload<T>(status: number, payload: string): T
 ## function verifyWebhookSignature
 
 ```ts
-verifyWebhookSignature(signature: string, payload: Buffer, headers: Headers, subscriptionSecret: string, tolerance: number): boolean | Hook0ClientError
+verifyWebhookSignature(signature: string, payload: Buffer, headers: Headers, subscriptionSecret: string, tolerance: number): true
 ```
 
 ## function verifyWebhookSignatureWithCurrentTime
 
 ```ts
-verifyWebhookSignatureWithCurrentTime(signature: string, payload: Buffer, headers: Headers, subscriptionSecret: string, tolerance: number, currentTime: Date): boolean | Hook0ClientError
+verifyWebhookSignatureWithCurrentTime(signature: string, payload: Buffer, headers: Headers, subscriptionSecret: string, tolerance: number, currentTime: Date): true
 ```

@@ -1395,7 +1395,8 @@ export class EventType {
  * either direction. A timestamp that is too far in the future is rejected just like one that is
  * too far in the past, so that the acceptance window of any given webhook stays bounded.
  * @param currentTime - The current time (used to check the timestamp).
- * @returns Resolves if the signature is valid, otherwise throws an error.
+ * @returns `true`, and nothing else. Every reason a webhook is refused is thrown, never returned,
+ * so there is no falsy answer to branch on and `true` is the whole of what a caller can be handed.
  */
 export function verifyWebhookSignatureWithCurrentTime(
   signature: string,
@@ -1404,7 +1405,7 @@ export function verifyWebhookSignatureWithCurrentTime(
   subscriptionSecret: string,
   tolerance: number,
   currentTime: Date
-): boolean | Hook0ClientError {
+): true {
   const parsedSig = Signature.parse(signature);
   if (!parsedSig) {
     throw Hook0ClientError.SignatureParsing(signature);
@@ -1434,7 +1435,8 @@ export function verifyWebhookSignatureWithCurrentTime(
  * @param tolerance - The maximum allowed time difference for the timestamp, in seconds and in
  * either direction. A timestamp that is too far in the future is rejected just like one that is
  * too far in the past, so that the acceptance window of any given webhook stays bounded.
- * @returns Resolves if the signature is valid, otherwise throws an error.
+ * @returns `true`, and nothing else. Every reason a webhook is refused is thrown, never returned,
+ * so there is no falsy answer to branch on and `true` is the whole of what a caller can be handed.
  */
 export function verifyWebhookSignature(
   signature: string,
@@ -1442,7 +1444,7 @@ export function verifyWebhookSignature(
   headers: Headers,
   subscriptionSecret: string,
   tolerance: number
-): boolean | Hook0ClientError {
+): true {
   return verifyWebhookSignatureWithCurrentTime(
     signature,
     payload,
