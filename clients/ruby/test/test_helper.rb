@@ -18,9 +18,47 @@ require "time"
 
 require "simplecov"
 
+# Coverage is measured on every run rather than behind a flag, because the floors below are only
+# enforced when it is. That keeps the gate inside the command the pipeline already runs rather than
+# in a job or a script of its own. It has to be started before `hook0` is required, or the lines
+# loaded before it would count as unreachable.
 SimpleCov.start do
   enable_coverage :branch
+
+  # What the gem ships, and only that. The suite itself is not part of the gem, and holding it to a
+  # number would make the floor about the tests rather than about the client.
   add_filter %r{^/test/}
+
+  # Every file the gem ships, whether or not a run happened to load one. Without this the
+  # denominator is only what was required, so the last case that reaches a file going away would
+  # take the file out of the report rather than show it uncovered — and the percentage would rise.
+  # A floor over a denominator the suite can shrink is a floor that rewards deleting tests.
+  #
+  # One caveat, for a run on a laptop rather than in CI: SimpleCov merges results from repeated
+  # runs for ten minutes, so a second run over a source tree that changed in between reports a
+  # denominator belonging to neither. Delete `coverage/` before measuring. CI runs once in a fresh
+  # container, so it never sees this, and turning merging off here costs a warning on every run.
+  track_files "lib/**/*.rb"
+
+  # What this suite reaches today, each truncated to the hundredth rather than rounded, so that a
+  # floor can never sit above the run it was read from. Not headroom: every case here talks to a
+  # loopback socket and the property cases are derandomised, so there is no run-to-run noise to
+  # leave room for, and room would only buy silent decay.
+  #
+  # Everything the gem ships is at 100% but `runtime.rb`, which is short by seven lines: the arm
+  # that refuses a value that is neither an integer nor a float, the refusal of a body above the
+  # ceiling, and four arms of the `case` in `written` that no value the API declares reaches.
+  # Raise these when the suite covers more; lowering one is a decision somebody has to write here.
+  minimum_coverage line: 99.64, branch: 97.09
+
+  # The same run read per file, so that a drop names the file it happened in rather than only moving
+  # the total. One number applied to every file, so it is what the weakest of them reaches —
+  # `runtime.rb`, for the reasons above — and not a per-file figure for each.
+  #
+  # Written in the block form rather than as `minimum_coverage_by_file`, which the version pinned
+  # beside this file deprecates: the old spelling still works, and prints a deprecation on every
+  # run for as long as it does.
+  coverage(:line) { minimum_per_file 92.78 }
 end
 
 $LOAD_PATH.unshift(File.expand_path("../lib", __dir__))

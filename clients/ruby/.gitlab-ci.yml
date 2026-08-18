@@ -25,7 +25,9 @@ clients.ruby.check:
     # Pinned, so that a release of either is a change somebody made rather than a pipeline that
     # turned red on its own. Both are development dependencies and neither reaches the gem: what
     # the gem itself is allowed to require is settled by `test/gemspec_test.rb`, which runs below.
-    - gem install --no-document rubocop:1.89.0 minitest:6.0.6
+    # `simplecov` is what measures coverage at all, which is what makes the floors in
+    # `test/test_helper.rb` enforceable; 1.1.1 is the version they were measured with.
+    - gem install --no-document rubocop:1.89.0 minitest:6.0.6 simplecov:1.1.1
   script:
     - pushd clients/ruby
     # The generator emits already-formatted, already-linted source, so an offence here is a defect

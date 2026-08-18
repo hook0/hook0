@@ -1,4 +1,3 @@
-# What SimpleCov writes when the suite runs. It is the report of one run, not something a checkout
-# should carry — and without this rule it lands in the working tree the first time anybody runs the
-# tests, ready to be swept into an unrelated commit.
+# What SimpleCov writes so the floors in `test/test_helper.rb` have something to read. It is an
+# intermediate of one run, not something a checkout should carry.
 coverage/
