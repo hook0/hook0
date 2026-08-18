@@ -24,9 +24,13 @@ The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is an open 
 # Install via Cargo (Rust package manager)
 cargo install hook0-mcp
 
-# Verify installation
-hook0-mcp --version
+# Verify installation: which version cargo put on your PATH
+cargo install --list | grep hook0-mcp
 ```
+
+:::note The binary takes no arguments
+`hook0-mcp` reads its whole configuration from the environment and ignores everything on its command line, `--version` and `--help` included. Run it without `HOOK0_API_TOKEN` and it prints the variables it wants, then exits; run it with the token set and it starts serving on stdio and waits.
+:::
 
 :::tip Don't have Rust installed?
 Install Rust first: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
@@ -190,34 +194,19 @@ This is recommended for:
 
 ## Available Tools
 
-The MCP server provides 17 tools organized by operation type. In read-only mode, only read operations are available.
+Twenty-three, one per operation the API document marks for this server, named `<entity>.<operation>` — `applications.list`, `events.ingest`, `subscriptions.create`, `events.replay`. Thirteen read and ten write; read-only mode leaves the thirteen.
 
-### Read Operations
+The whole table, with the method and path each tool reaches, is on the [MCP server reference page](sdk/mcp.md#the-tools). It is kept in one place because the list is generated from the API document rather than written down: a second copy is a second thing to forget.
 
-| Tool | Description | Example Prompt |
-|------|-------------|----------------|
-| `list_organizations` | List all accessible organizations | "Show my organizations" |
-| `list_applications` | List applications in an organization | "What apps do I have?" |
-| `get_application` | Get detailed application info | "Show details for app X" |
-| `list_event_types` | List event types for an application | "What event types are registered?" |
-| `list_subscriptions` | List webhook subscriptions | "Show all my webhooks" |
-| `get_subscription` | Get subscription details | "Show webhook configuration for..." |
-| `list_events` | List events for an application | "Show recent events" |
-| `get_event` | Get event details with payload | "Show event abc123" |
-| `list_request_attempts` | List delivery attempts | "Show delivery history for event X" |
+You rarely name a tool yourself. You ask for what you want, and the assistant picks:
 
-### Write Operations
+> "What apps do I have?"
 
-| Tool | Description | Example Prompt |
-|------|-------------|----------------|
-| `create_application` | Create a new application | "Create an app called Order Service" |
-| `delete_application` | Delete an application | "Delete the test application" |
-| `create_event_type` | Register a new event type | "Add event type order.completed" |
-| `create_subscription` | Create a webhook subscription | "Create a webhook to https://..." |
-| `update_subscription` | Update subscription settings | "Disable the webhook for..." |
-| `delete_subscription` | Delete a subscription | "Remove the staging webhook" |
-| `ingest_event` | Send a new event | "Send a test user.created event" |
-| `retry_delivery` | Retry a failed delivery | "Retry the failed delivery for event X" |
+> "Show delivery history for event X"
+
+> "Retry the failed delivery for event X"
+
+> "Send a test user.created event"
 
 ---
 
@@ -292,7 +281,7 @@ You: Show me my applications
 
 Claude: I'll list your Hook0 applications.
 
-[Uses list_applications tool]
+[Uses applications.list tool]
 
 You have 3 applications:
 
@@ -312,8 +301,8 @@ You: Create a webhook for order events to https://api.myapp.com/webhooks
 
 Claude: I'll create a webhook subscription. Let me first check your applications...
 
-[Uses list_applications tool]
-[Uses list_event_types tool]
+[Uses applications.list tool]
+[Uses eventTypes.list tool]
 
 I found your "Order Service" application with these event types:
 - order.created
@@ -325,7 +314,7 @@ Which event types should trigger this webhook? Or should I subscribe to all of t
 
 You: All order events
 
-Claude: [Uses create_subscription tool]
+Claude: [Uses subscriptions.create tool]
 
 Done! Created webhook subscription:
 - **Target:** https://api.myapp.com/webhooks
@@ -343,9 +332,9 @@ You: Why are my webhooks failing?
 
 Claude: I'll investigate your recent delivery failures.
 
-[Uses list_applications tool]
-[Uses list_events tool with failed status]
-[Uses list_request_attempts tool]
+[Uses applications.list tool]
+[Uses events.list tool]
+[Uses requestAttempts.list tool]
 
 I found 3 failed deliveries in the last hour:
 
@@ -365,7 +354,7 @@ The 503 errors suggest your server is overloaded or down.
 
 You: The server is back up, retry them
 
-Claude: [Uses retry_delivery tool x3]
+Claude: [Uses events.replay tool x3]
 
 All 3 deliveries have been retried:
 - evt_123: ✅ 200 OK
@@ -384,14 +373,14 @@ Claude: I'll send a test event. Which application and event type?
 
 You: Order Service, order.created
 
-Claude: [Uses ingest_event tool]
+Claude: [Uses events.ingest tool]
 
 Test event sent:
 - **Event ID:** evt_test_abc123
 - **Type:** order.created
 - **Payload:** {"test": true, "timestamp": "2024-01-15T10:30:00Z"}
 
-[Uses list_request_attempts tool]
+[Uses requestAttempts.list tool]
 
 Delivery status:
 - **Subscription:** Production Webhook
@@ -450,7 +439,7 @@ When using MCP with AI assistants, always [attenuate your token](../how-to-guide
 **Cause:** The MCP server isn't running or not configured correctly.
 
 **Fix:**
-1. Verify installation: `hook0-mcp --version`
+1. Verify installation: `command -v hook0-mcp`
 2. Check the config file path is correct for your OS
 3. Restart your AI assistant after configuration changes
 
@@ -519,17 +508,7 @@ your transport of choice.
 
 ### Programmatic Integration
 
-The Hook0 MCP server can be used programmatically in your own applications:
-
-```rust
-use hook0_mcp::{Hook0McpServer, Hook0Client, Config};
-
-let config = Config::from_env()?;
-let client = Hook0Client::new(&config);
-let server = Hook0McpServer::new(client, config.read_only);
-
-// Use with rmcp runtime
-```
+`hook0-mcp` is a library as well as a binary, so a process you already run can serve the same tools instead of spawning one beside itself. The [MCP server reference page](sdk/mcp.md#embedding-it) has the code, compiled against the crate on every build.
 
 ### Docker Deployment
 

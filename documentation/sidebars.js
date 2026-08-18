@@ -114,6 +114,7 @@ const sidebars = {
             "reference/sdk/kotlin",
             "reference/sdk/lua",
             "reference/sdk/zig",
+            "reference/sdk/mcp",
           ],
         },
       ],

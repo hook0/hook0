@@ -1,0 +1,32 @@
+# How an MCP example of the SDK reference is proven.
+#
+# Every snippet becomes its own binary under `src/bin`, discovered by Cargo from the filesystem
+# rather than named in this manifest, so the page gaining another example costs this project
+# nothing. `cargo test --no-run` builds every one of them and stops the moment they have compiled
+# and linked; nothing runs, because everything on this page needs a live API and `smoke/` is where
+# a live API is stood up.
+#
+# What this catches is the half of the page a reader can paste: a field renamed on
+# `GeneratedToolInfo`, an argument added to `Hook0McpServer::new`, an export dropped from the
+# crate root. What it does not catch is the other half — the tool table itself. Those names come
+# from the OpenAPI snapshot and travel as string literals, so no compiler reads them; the guard
+# there is `UPDATE_SDK=mcp cargo test -p hook0-sdkgen sdk_targets`, which refuses the committed
+# table the moment the snapshot describes another one.
+proof = "compiled"
+proves = "assembled against clients/mcp and built; a renamed export, a changed signature or a dropped field on the generated tool table fails"
+
+path = "src/bin/{{name}}.rs"
+
+# The server pulls an HTTP client, an async runtime and the MCP SDK behind it, so a cold build here
+# has more to do than the one behind `clients/rust`, and this is the budget for the whole project
+# rather than for one example.
+timeout_seconds = 900
+
+run = [["cargo", "test", "--no-run", "--quiet"]]
+
+[environment]
+# Relative to this project's own root, so a `CARGO_TARGET_DIR` the checker that assembles this
+# project happens to be running under is never inherited into it — this project's build artefacts
+# stay inside the directory it was assembled in, never in the repository and never mixed into
+# another language's build.
+CARGO_TARGET_DIR = "target"

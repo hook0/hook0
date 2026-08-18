@@ -194,6 +194,10 @@ try {
 }
 ```
 
+:::note `Transport` is final, so a test cannot stand in for it
+A generated group takes a `Hook0\Transport`, the concrete class, and that class is `final`. There is no interface behind it and nothing to subclass, so a test cannot hand a group a fake, a recording double or a decorator that adds a header. Where the other SDKs declare a one-method seam a test satisfies without a socket, this one asks for the real HTTP client and a server to point it at. The `$baseUrl` its constructor takes is the whole of what a test can change.
+:::
+
 ## Errors
 
 | Class | Thrown when |

@@ -187,6 +187,16 @@ IReadOnlyList<Application> also = await awaiting.ListAsync("your-organization-id
 
 Each problem the API can report is an exception of its own under `ProblemException`, which carries the HTTP `Status` and the parsed `Problem`.
 
+:::note A closed list is not a closed type here
+Every list of values the API document closes — `ProblemId`, `RequestAttemptStatusType`, the onboarding steps — is written as a `static class` of `const string` members rather than as an `enum`, so `Problem.Id` is a plain `string`. Two things follow from that.
+
+**Nothing refuses a value the document does not declare.** An identifier the API grows tomorrow deserialises fine and lands in a `switch` with no arm for it, silently. Go and TypeScript are in the same position at runtime, for their own reasons. The other eight clients refuse the answer outright: Rust, PHP, Python, Java and Kotlin because the list is an enum, Ruby, Lua and Zig because they check membership as they read.
+
+**And there is no type to compare against.** Go still declares a `ProblemId` type and TypeScript a union its compiler checks; here a typo in a string literal is a comparison that is merely always false. Each of these classes exposes `Values` and `Contains(value)`, which is what checking looks like when the type will not do it for you.
+
+The typed exceptions above are unaffected: those *are* distinct types, and an identifier none of them names arrives as the base `ProblemException`.
+:::
+
 ## Errors
 
 | Type | Thrown when |

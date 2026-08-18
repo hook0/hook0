@@ -9,9 +9,26 @@
 // Every region becomes its own file under `src/bin`, which is why every region that is not
 // already a complete program supplies its own `fn main() {}`: a Rust binary refuses to build
 // without one, and none of these functions is ever meant to run.
+//
+// A region never brings a name the snippet dropped into it brings itself: two `use` lines naming
+// the same item is a file rustc refuses, so a region used by a snippet that shows its own imports
+// brings none of them.
 
 // HARNESS send
 EXAMPLE
+// END HARNESS
+
+// HARNESS event
+use hook0_client::Event;
+use std::borrow::Cow;
+use uuid::Uuid;
+
+fn main() {}
+
+// The identifier a send may be given, when the caller has one of its own to give.
+fn built(chosen: &Uuid) -> Event<'_> {
+    EXAMPLE
+}
 // END HARNESS
 
 // HARNESS bounds
@@ -38,14 +55,19 @@ fn main() {}
 EXAMPLE
 // END HARNESS
 
-// HARNESS configure
+// HARNESS matching
+use hook0_client::Hook0ClientError;
+
 fn main() {}
 
-fn configured() -> Result<(), Box<dyn std::error::Error>> {
+// What verification answered, when what it answered was not that the delivery is genuine.
+fn refused(error: Hook0ClientError) {
     EXAMPLE
-
-    Ok(())
 }
+// END HARNESS
+
+// HARNESS actix
+EXAMPLE
 // END HARNESS
 
 // HARNESS upsert
@@ -61,61 +83,38 @@ async fn declare(client: &Hook0Client) -> Result<(), Box<dyn std::error::Error>>
 }
 // END HARNESS
 
-// HARNESS actix
-EXAMPLE
-// END HARNESS
-
-// HARNESS error_handling
+// HARNESS transport
 fn main() {}
 
 EXAMPLE
 // END HARNESS
 
-// HARNESS consumer_errors
+// HARNESS api
 fn main() {}
 
-EXAMPLE
-// END HARNESS
-
-// HARNESS type_safety
-fn main() {}
-
-EXAMPLE
-// END HARNESS
-
-// HARNESS unit_test
-fn main() {}
-
-EXAMPLE
-// END HARNESS
-
-// HARNESS integration_test
-fn main() {}
-
-EXAMPLE
-// END HARNESS
-
-// HARNESS arc_share
-use reqwest::Url;
-use uuid::Uuid;
-
-fn main() {}
-
-// What this client was handed before it started.
-fn share(api_url: Url, application_id: Uuid, token: String) -> Result<(), Box<dyn std::error::Error>> {
+// The transport the section above writes, already built, and the application it is asked about.
+async fn read<T: hook0_client::generated::Transport>(
+    transport: T,
+    application_id: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     EXAMPLE
 
     Ok(())
 }
 // END HARNESS
 
-// HARNESS parallel
+// HARNESS errors
+use hook0_client::{Event, Hook0Client, Hook0ClientError};
+
 fn main() {}
 
-EXAMPLE
+// The client and the event this page assumes already exist.
+async fn attempt(client: &Hook0Client, event: Event<'_>) {
+    EXAMPLE
+}
 // END HARNESS
 
-// HARNESS reuse_client
+// HARNESS share
 use hook0_client::Hook0Client;
 use reqwest::Url;
 use std::sync::Arc;
@@ -123,58 +122,14 @@ use uuid::Uuid;
 
 fn main() {}
 
-// What this page was handed before it started.
-fn reuse(api_url: Url, application_id: Uuid, token: String) -> Result<(), Box<dyn std::error::Error>> {
+// What this client was handed before it started.
+fn share(
+    api_url: Url,
+    application_id: Uuid,
+    token: String,
+) -> Result<(), Box<dyn std::error::Error>> {
     EXAMPLE
 
     Ok(())
 }
-// END HARNESS
-
-// HARNESS strong_types
-fn main() {}
-
-fn strong_types() -> Result<(), Box<dyn std::error::Error>> {
-    EXAMPLE
-
-    Ok(())
-}
-// END HARNESS
-
-// HARNESS handle_errors
-use hook0_client::{Event, Hook0Client};
-
-fn main() {}
-
-// The client and the event this page assumes already exist.
-async fn handle(client: &Hook0Client, event: Event<'_>) {
-    EXAMPLE
-}
-// END HARNESS
-
-// HARNESS env_vars
-fn main() {
-    EXAMPLE
-}
-// END HARNESS
-
-// HARNESS custom_event_id
-fn main() {
-    EXAMPLE
-}
-// END HARNESS
-
-// HARNESS payload_mismatch
-use hook0_client::Event;
-use std::borrow::Cow;
-
-fn main() {
-    EXAMPLE
-}
-// END HARNESS
-
-// HARNESS async_runtime
-use hook0_client::Hook0Client;
-
-EXAMPLE
 // END HARNESS

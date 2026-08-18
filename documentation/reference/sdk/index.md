@@ -1,7 +1,7 @@
 ---
 title: "Hook0 SDKs — 11 official webhook client libraries"
-description: "Official Hook0 clients for JavaScript, TypeScript, Rust, Python, Go, Ruby, PHP, C#, Java, Kotlin, Lua and Zig. Each sends events, verifies webhook signatures, and retries under bounds you set."
-keywords: [Hook0 SDK, webhook SDK, webhook client library, JavaScript webhook library, Python webhook client, Rust webhook SDK, Go webhook client, Java webhook SDK, C# webhook client, verify webhook signature]
+description: "Official Hook0 clients for JavaScript, TypeScript, Rust, Python, Go, Ruby, PHP, C#, Java, Kotlin, Lua and Zig, plus an MCP server. Each sends events, verifies webhook signatures, and retries under bounds you set."
+keywords: [Hook0 SDK, webhook SDK, webhook client library, JavaScript webhook library, Python webhook client, Rust webhook SDK, Go webhook client, Java webhook SDK, C# webhook client, verify webhook signature, Hook0 MCP server]
 sdkTarget: none
 ---
 
@@ -31,6 +31,12 @@ Three of the clients — Java, Kotlin and Lua — are not on their language's re
 
 Go, PHP and Zig install from a repository rather than from a registry, because that is what those three ecosystems fetch from. Each client is pushed to a read-only mirror of its own on GitHub — `github.com/hook0/hook0-<language>` — tagged `vX.Y.Z` on every SDK release. The mirrors are derived from this monorepo, which stays the one place anything is changed.
 
+## Not a library: the MCP server
+
+The generator writes a twelfth thing from the same API document, and it is not a client library. [`hook0-mcp`](mcp.md) is a Model Context Protocol server: an assistant starts it, talks to it over stdio, and calls one of twenty-three generated tools on it. Nothing imports it to send an event — an assistant calls `events.ingest`.
+
+It shares the headers every client sends and none of the rest: it does not retry, verifies no signature, and applies none of the bounds below. Its page says why.
+
 ## Set up environment variables
 
 ```bash
@@ -56,7 +62,7 @@ The token goes to the client without a `Bearer` prefix. Every client adds it.
 
 ## What every client does without being asked
 
-Read this before you write anything around a client, because three of these will change what you write.
+Read this before you write anything around a client. The first three will change what you write; the fourth is what an instance sees you doing.
 
 ### It mints the event ID, so a retry cannot duplicate an event
 
@@ -85,6 +91,21 @@ Every client exposes a disabled policy that sends each event exactly once.
 ### It refuses what the API would refuse
 
 A payload above the maximum fails before any request goes out, so neither the round trip nor the retries after it are spent on a request the API would reject. A response body above the ceiling is refused rather than read into memory, and so are an oversized header, too many headers, and an oversized head.
+
+### It says which client it is, and what it will repeat
+
+Past the credential and the media types it declares, every request carries two more headers, and both are written for whoever is reading an instance's logs rather than for your code:
+
+```
+User-Agent: hook0-client-python/1.1.0 (CPython 3.13.1; Linux x86_64)
+Hook0-Client-Options: attempts=4,backoff=100,ceiling=2000,budget=5000
+```
+
+The first names the SDK, its version, the runtime and the machine. Without it an instance cannot tell a deprecation that has reached everybody from one that has reached nobody, and there is no way to go back and ask a client that shipped two years ago.
+
+The second is the retry policy behind the request, in milliseconds, in that fixed order. It is the only client setting the API can see the consequences of without being told: a burst of identical requests arriving inside a few seconds is one send being repeated, and without this header it is indistinguishable from an application in a loop. It states the policy **in force** rather than the one asked for — a policy that asked for a thousand attempts states the sixteen the client will actually make — and it states it on every request, including the one that succeeded first time.
+
+Both are composed the same way in every client, from parts cut to a fixed length so that neither can grow with whatever the platform feels like saying about itself.
 
 ## Sending an event
 
@@ -134,41 +155,36 @@ Two rules hold in all eleven. Verify against the **raw** request body: a body th
 // JavaScript/TypeScript
 import { verifyWebhookSignature } from 'hook0-client';
 
-// Note: Express.js normalizes all header names to lowercase
-// Capture raw body for signature verification
+// `verify` is the only place Express hands over the bytes before it parses them, and the bytes are
+// what was signed: a body already turned back into a string no longer hashes to it.
 app.post('/webhook', express.json({
-  verify: (req, res, buf) => { (req as any).rawBody = buf; }
+  verify: (req, _res, buf) => { (req as unknown as { rawBody: Buffer }).rawBody = buf; }
 }), (req, res) => {
-  const signature = req.headers['x-hook0-signature'] as string;
-  // Verify against the raw bytes, not a stringified copy: verifyWebhookSignature hashes the body it
-  // is handed, so a body already turned into a string would no longer match what Hook0 signed.
-  const rawBody = (req as any).rawBody as Buffer;
+  // Express lowercases every header name it received.
   const headers = new Headers();
-  Object.entries(req.headers).forEach(([key, value]) => {
-    if (typeof value === 'string') headers.set(key, value);
-  });
-  const secret = process.env.WEBHOOK_SECRET!;
+  for (const [name, value] of Object.entries(req.headers)) {
+    if (typeof value === 'string') headers.set(name, value);
+  }
 
   try {
-    const isValid = verifyWebhookSignature(
-      signature,
-      rawBody,
+    verifyWebhookSignature(
+      req.headers['x-hook0-signature'] as string,
+      (req as unknown as { rawBody: Buffer }).rawBody,
       headers,
-      secret,
-      300 // 5-minute tolerance
+      process.env.WEBHOOK_SECRET!,
+      300 // 5-minute tolerance, in seconds
     );
-
-    if (!isValid) {
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
-    // Process webhook (already parsed via req.body)...
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid signature' });
+  } catch {
+    res.status(401).json({ error: 'invalid signature' });
+    return;
   }
+
+  // act on the delivery, already parsed into req.body
+  res.json({ status: 'processed' });
 });
 ```
 
-How a refusal reaches you differs by language, and each page says which. Rust and Go return a result; Python, Ruby, PHP, C#, Java and Kotlin raise; Lua raises a table you match with `Hook0.is`; Zig answers a closed error set.
+How a refusal reaches you differs by language, and each page says which. Rust and Go return a result; Python, Ruby, PHP, C#, Java and Kotlin raise; Lua raises a table you match with `Hook0.is`; Zig answers a closed error set. TypeScript raises too, despite a return type that says it might hand the failure back instead — its page has the detail, because a handler written from the type alone has a branch that never runs.
 
 ## Managing subscriptions
 
@@ -192,7 +208,7 @@ Every client also reaches this through its generated API groups, one group per e
 
 ## Error handling
 
-SDKs return typed errors you can match on:
+Every client reports what it refused as a type, never as a message you are expected to read. Match on the type; a message is prose, and prose is rewritten.
 
 ```typescript example=usingEvent
 // JavaScript/TypeScript
@@ -200,20 +216,17 @@ import { Hook0ClientError } from 'hook0-client';
 
 try {
   const eventId = await hook0.sendEvent(event);
-} catch (error) {
-  if (error instanceof Hook0ClientError) {
-    console.error('Hook0 error:', error.message);
-
-    if (error.message.includes('Invalid event type')) {
-      // Handle invalid event type format
-    } else if (error.message.includes('failed')) {
-      // Retry logic
-    }
+  console.log(`ingested as ${eventId}`);
+} catch (refused) {
+  if (refused instanceof Hook0ClientError) {
+    console.error(`event not sent: ${refused.message}`);
+  } else {
+    throw refused;
   }
 }
 ```
 
-Every problem the API can report is its own type in the generated half of each client, under a common base, so a handler may name one problem or catch all of them.
+Every problem the API can report reaches you as something you can name, but not as the same shape everywhere. C#, Java, Kotlin, PHP, Python and Ruby give each problem a type of its own under a common base, so a handler names one or catches all of them. Lua does the same with error kinds. Rust, TypeScript and Go carry one type for every problem with the identifier beside it — a `kind` you compare, or a sentinel you match with `errors.Is` — and Zig answers one member of a closed error set. The identifiers themselves come from the API document and are the same everywhere; how strictly a client holds you to that list is its own page's business, and C# holds you to it least.
 
 ## Authentication and security
 

@@ -26,9 +26,21 @@ EXAMPLE
 
 // END HARNESS
 
+// HARNESS event
+// For the snippet that shows what the seven arguments of `Event` are, without building a client to
+// send one with.
+import { Event } from 'hook0-client';
+
+// The identifier a send may be given, when the caller has one of its own to give.
+const eventId = '018f7c1e-0000-7000-8000-000000000000';
+
+const built =
+  EXAMPLE
+
+// END HARNESS
+
 // HARNESS usingClient
-// For a snippet that calls a method on a client it never builds, and — in the two snippets that
-// batch sends or deduplicate one — reads a domain value it never declares either.
+// For a snippet that calls a method on a client it never builds.
 import { Event, Hook0Client } from 'hook0-client';
 
 const hook0 = new Hook0Client(
@@ -37,18 +49,12 @@ const hook0 = new Hook0Client(
   'a-service-token'
 );
 
-// What "Efficient Event Sending" iterates over.
-const users: Array<Record<string, unknown>> = [{ user_id: 'user_1' }, { user_id: 'user_2' }];
-
-// What "Use Unique Event IDs to Deduplicate Across Emitters" derives a stable event id from.
-const transaction_id = 'txn_9f2c9d3e';
-
 EXAMPLE
 
 // END HARNESS
 
 // HARNESS usingClientAndEvent
-// For the one snippet that reads a client, an event and `Hook0ClientError` without importing any of
+// For a snippet that reads a client, an event and `Hook0ClientError` without importing any of
 // them, and logs through whatever the reader's own logger is — `console` stands in for it, since any
 // object with an `error` method would do exactly as well here.
 import { Event, Hook0Client, Hook0ClientError } from 'hook0-client';
@@ -91,10 +97,19 @@ EXAMPLE
 
 // END HARNESS
 
-// HARNESS hook0ClientImport
-// For a snippet that builds its own client — and, since it is the constructor call itself being
-// shown, needs nothing beside the import that names the class.
-import { Hook0Client } from 'hook0-client';
+// HARNESS eventType
+// For the snippet that reads an event type back apart, which brings everything it names itself.
+EXAMPLE
+
+// END HARNESS
+
+// HARNESS verify
+// For the shortest form of a verification: the four values a delivery arrives with, and the
+// tolerance the caller picks.
+const signature = 't=1636936200,v0=00';
+const rawBody = Buffer.from('{}');
+const headers = new Headers();
+const subscriptionSecret = 'a-subscription-secret';
 
 EXAMPLE
 
@@ -123,9 +138,9 @@ EXAMPLE
 
 // END HARNESS
 
-// HARNESS retryTuning
-// For a snippet that builds its own client with its own retry policy, from an API URL, an
-// application id and a token none of which it declares.
+// HARNESS options
+// For a snippet that builds its own client with its own bounds, from an API URL, an application id
+// and a token none of which it declares.
 const apiUrl = 'https://app.hook0.com/api/v1';
 const applicationId = '0d0ea1e0-8b1f-4f4d-9c2a-1b5c9a3d7e21';
 const token = 'a-service-token';

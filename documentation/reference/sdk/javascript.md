@@ -5,178 +5,203 @@ keywords: [JavaScript webhook SDK, TypeScript webhook client, hook0-client npm, 
 sdkTarget: typescript
 ---
 
-# JavaScript/TypeScript SDK
+# JavaScript / TypeScript SDK
 
-The official Hook0 SDK for JavaScript and TypeScript applications, providing a type-safe and idiomatic interface to the Hook0 API.
+The Hook0 SDK for JavaScript and TypeScript sends events and verifies webhook signatures. It is written in TypeScript and ships its own declarations, so a JavaScript consumer gets the same completions a TypeScript one does.
+
+Every method that reaches the network returns a promise. The package declares no runtime dependencies: sending goes through `fetch` and `AbortSignal.timeout`, and signatures are computed with Node's own `crypto`.
 
 ## Installation
 
 ```bash
 npm install hook0-client
-# or
-yarn add hook0-client
-# or
-pnpm add hook0-client
 ```
 
-## Quick Start
+It publishes both module systems from one package, so `import` and `require` each resolve to the build meant for them:
 
 ```typescript example=program
-import { Hook0Client, Event } from 'hook0-client';
+import { Event, Hook0Client } from 'hook0-client';
+// or: const { Event, Hook0Client } = require('hook0-client');
 
 const hook0 = new Hook0Client(
-  'http://localhost:8081/api/v1',
-  'app_1234567890', // Your application ID
-  '{YOUR_TOKEN}'
+  'https://app.hook0.com/api/v1',
+  '0d0ea1e0-8b1f-4f4d-9c2a-1b5c9a3d7e21',
+  process.env.HOOK0_TOKEN!
 );
 
-// Send an event
-const event = new Event(
-  'user.account.created',
-  JSON.stringify({
-    user_id: 'user_123',
-    email: 'john.doe@example.com'
-  }),
-  'application/json',
-  { environment: 'production' }
-);
-
-const eventId = await hook0.sendEvent(event);
-```
-
-## Sending an Event Is Idempotent, and Retried
-
-`sendEvent` sends every event under an ID it knows: the one set on the `Event`, or a UUIDv7 it
-generates when the event carries none. **Passing no ID no longer means the ID comes from Hook0** —
-the interface is unchanged, but the value now comes from the client, is sent with the request, and
-is what `sendEvent` resolves to.
-
-That is what makes retrying safe. Hook0 keys events on their ID, so a request repeated after a
-network failure or a server error ingests the event once rather than twice; without a
-client-chosen ID, a repeated request would create a second event and deliver it to every
-subscriber.
-
-A network failure, a server error, and a `429` whose body names the `RateLimited` problem are
-retried; a `Retry-After` header is honoured and clamped to what is left of the delay budget. An
-answer Hook0 would repeat (a bad request, an exhausted daily quota) is reported as is. A retried
-request Hook0 answers with `EventAlreadyIngested` resolves, because an earlier attempt of that same
-send reached the API; the same answer to a *first* attempt is a genuine conflict and rejects.
-
-Every send is bounded, and every bound is configurable:
-
-```typescript example=program
-import { Hook0Client, Hook0ClientOptions, RetryPolicy } from 'hook0-client';
-
-const hook0 = new Hook0Client(
-  'http://localhost:8081/api/v1',
-  'app_1234567890',
-  '{YOUR_TOKEN}',
-  false,
-  new Hook0ClientOptions(
-    new RetryPolicy(
-      4,    // attempts, the first one included
-      100,  // ceiling of the delay before the first retry, in milliseconds
-      2000, // ceiling no single delay ever exceeds, in milliseconds
-      5000  // budget all the delays of one send share, in milliseconds
-    ),
-    10000,       // longest one attempt is given, in milliseconds
-    1024 * 1024  // largest event payload the client sends, in bytes
+const eventId = await hook0.sendEvent(
+  new Event(
+    'billing.invoice.paid',
+    JSON.stringify({ invoice: 'in_123' }),
+    'application/json',
+    { environment: 'production' }
   )
 );
 ```
 
-Those are the defaults. `RetryPolicy.disabled()` sends each event exactly once. A payload above the
-maximum is refused before any request is issued, so neither the round trip nor the retries after it
-are spent on a request the API would refuse.
+Node is what it is written for. The module imports `node:url`, and verification takes a `Buffer`, so a browser or an edge runtime needs both of those resolved before anything here loads — the client does allow for it, naming neither the runtime nor the machine in its `User-Agent` when there is no `process` to read them off.
 
-## Configuration
+## The event
 
-### Client Initialization
+`Event` takes four required arguments and three optional ones, positionally:
 
-```typescript example=program
-import { Hook0Client } from 'hook0-client';
-
-const hook0 = new Hook0Client(
-  'http://localhost:8081/api/v1',     // API URL
-  'app_1234567890',            // Your application ID
-  '{YOUR_TOKEN}',   // Authentication token
-  false                        // Debug mode (optional)
-);
-```
-
-### Environment Variables
-
-:::note Environment Variable Configuration
-The current TypeScript SDK implementation requires explicit configuration and does not automatically read from environment variables.
-:::
-
-## Core Features
-
-### Event Management
-
-#### Send Single Event
-
-```typescript example=program
-import { Hook0Client, Event } from 'hook0-client';
-
-const hook0 = new Hook0Client(
-  'http://localhost:8081/api/v1',
-  'app_1234567890',
-  '{YOUR_TOKEN}'
-);
-
-const event = new Event(
-  'order.checkout.completed',
-  JSON.stringify({
-    order_id: 'ord_123',
-    customer_id: 'cust_456',
-    total: 99.99,
-    items: [
-      { product_id: 'prod_789', quantity: 2 }
-    ]
-  }),
+```typescript example=event
+new Event(
+  'billing.invoice.paid',
+  JSON.stringify({ invoice: 'in_123' }),
   'application/json',
-  {
-    environment: 'production',
-    region: 'us-west'
-  }
+  { environment: 'production' },
+  { emitter: 'billing-worker' }, // metadata
+  new Date(), // occurredAt; the current moment when absent
+  eventId // the client mints a UUIDv7 when absent
 );
-
-const eventId = await hook0.sendEvent(event);
-console.log('Event ID:', eventId);
 ```
 
-:::note Batch Events Not Available
-The batch events functionality is not currently implemented. Please send events individually using the single event method above.
+`labels` is required and `metadata` is not, which is the one place the positional order is worth reading twice. Labels are what a subscription routes on, and the API declares the field required — pass `{}` for an event nothing filters on, never skip the argument.
+
+The token goes in without a `Bearer` prefix; the client adds it.
+
+## Sending an event is idempotent, and retried
+
+`sendEvent` sends every event under an ID it knows: the one set on the `Event`, or a UUIDv7 it generates when the event carries none. Passing no ID does not mean the ID comes from Hook0. The value comes from the client, is sent with the request, and is what `sendEvent` resolves to.
+
+That is what makes retrying safe. Hook0 keys events on their ID, so a request repeated after a network failure or a server error ingests the event once rather than twice. Without a client-chosen ID, a repeated request would create a second event and deliver it to every subscriber.
+
+A network failure, a server error, and a `429` whose body names the `RateLimited` problem are retried. A `429` that names a spent daily quota is not, because a quota clears when a plan changes or a day turns and no send can wait for that. A `Retry-After` header is honoured and clamped to what is left of the delay budget.
+
+A retried request that Hook0 answers with `EventAlreadyIngested` resolves, because an earlier attempt of that same send reached the API. The same answer to a *first* attempt is a genuine conflict and rejects.
+
+## Bounds, and how to change them
+
+`Hook0ClientOptions` is the fifth argument, after the debug flag:
+
+```typescript example=options
+import { Hook0Client, Hook0ClientOptions, RetryPolicy } from 'hook0-client';
+
+const hook0 = new Hook0Client(apiUrl, applicationId, token, false, new Hook0ClientOptions(
+  new RetryPolicy(
+    4,    // attempts, the first one included
+    100,  // ceiling of the delay before the first retry, in milliseconds
+    2000, // ceiling no single delay ever exceeds, in milliseconds
+    5000  // budget all the delays of one send share, in milliseconds
+  ),
+  10_000,          // longest one attempt is given, in milliseconds
+  1024 * 1024,     // largest event payload the client sends, in bytes
+  8 * 1024 * 1024  // largest answer it reads off the socket, in bytes
+));
+```
+
+Those are the defaults, and every argument of both constructors has one, so `new Hook0ClientOptions()` and `new RetryPolicy()` are the table below.
+
+| Bound | Default |
+|-------|---------|
+| `maxAttempts` (the first attempt included) | `4`, capped at `MAX_ATTEMPTS_CAP` = 16 |
+| `initialBackoffMs` | 100 |
+| `maxBackoffMs` | 2 000 |
+| `maxTotalDelayMs`, the budget all delays of one send share | 5 000 |
+| `DEFAULT_REQUEST_TIMEOUT_MS`, per attempt | 10 000 |
+| `DEFAULT_MAX_PAYLOAD_BYTES` | 1 MiB |
+| `DEFAULT_MAX_RESPONSE_BYTES` | 8 MiB |
+| `MAX_RESPONSE_HEADERS` | 64 |
+| `MAX_HEADER_BYTES` | 64 KiB |
+| `MAX_HEAD_BYTES` | 16 KiB |
+
+The last three are exported but not configurable. They bound the head of an answer, which is written by whatever is on the other end: a line count and a size per line multiply, so the whole head is capped as well as each line of it.
+
+`RetryPolicy.disabled()` sends each event exactly once. A payload above the maximum rejects before any request is issued, so neither the round trip nor the retries after it are spent on a request the API would refuse.
+
+A duration that is not a finite number falls back to that field's own default rather than to zero: a zero would delete the spacing between attempts and turn a mistyped policy into a burst.
+
+## Verify a webhook signature
+
+```typescript example=verify
+import { verifyWebhookSignature } from 'hook0-client';
+
+try {
+  verifyWebhookSignature(signature, rawBody, headers, subscriptionSecret, 300);
+} catch (refused) {
+  // answer 400, and do not act on the delivery
+}
+```
+
+:::caution The return type is wider than the behaviour
+`verifyWebhookSignature` is declared `boolean | Hook0ClientError`, but it returns `true` and nothing else. Every refusal is **thrown** as a `Hook0ClientError` — it never returns `false`, and it never returns an error value. A handler shaped `if (!isValid) { … }` therefore has a branch that cannot be reached, and one without a `try` treats every forged delivery as a crash.
 :::
 
-Listing and querying events goes through the generated API groups rather than through `Hook0Client`. See [Calling the rest of the API](#calling-the-rest-of-the-api).
+`rawBody` is a `Buffer` of the bytes that arrived. A body that has been parsed and re-serialised no longer hashes to what was signed. `headers` is a `Headers`, not the plain object a framework hands you, so build one from what arrived. `tolerance` is a number of **seconds**.
 
-### Event Type Management
+The clock window is bilateral: a delivery dated too far ahead is refused exactly like one dated too far behind, since a window that only looked backwards is one a sender widens by dating its own delivery ahead. A header the signature covers but the request did not carry is refused before any code is computed.
+
+`verifyWebhookSignatureWithCurrentTime` takes the same arguments followed by a `Date`, for holding a signature against a moment you choose.
+
+### Express
+
+```typescript example=webhookHandlerFull
+import { verifyWebhookSignature } from 'hook0-client';
+import express from 'express';
+
+const app = express();
+
+// `verify` is the only place Express hands over the bytes before it parses them.
+app.post('/webhook', express.json({
+  verify: (req, _res, buf) => { (req as unknown as { rawBody: Buffer }).rawBody = buf; }
+}), (req, res) => {
+  // Express lowercases every header name it received.
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(req.headers)) {
+    if (typeof value === 'string') headers.set(name, value);
+  }
+
+  try {
+    verifyWebhookSignature(
+      req.headers['x-hook0-signature'] as string,
+      (req as unknown as { rawBody: Buffer }).rawBody,
+      headers,
+      process.env.WEBHOOK_SECRET!,
+      300
+    );
+  } catch {
+    res.status(400).json({ error: 'invalid signature' });
+    return;
+  }
+
+  processWebhook(req.body);
+  res.json({ status: 'processed' });
+});
+```
+
+## Upsert event types
+
+An event whose type the application does not declare is refused. `upsertEventTypes` creates the ones that are missing and resolves to only those it created:
 
 ```typescript example=usingClient
-// Upsert event types (creates if not exists)
-const addedEventTypes = await hook0.upsertEventTypes([
-  'user.account.created',
-  'user.account.updated',
-  'order.checkout.completed'
+const created = await hook0.upsertEventTypes([
+  'billing.invoice.paid',
+  'billing.invoice.voided',
 ]);
+```
 
-console.log('Added event types:', addedEventTypes);
+An event type is written `service.resource_type.verb`. `EventType.fromString` reads one and — unlike every refusal in the signature half — *returns* the failure rather than throwing it, so the result is a union you have to narrow:
+
+```typescript example=eventType
+import { EventType, Hook0ClientError } from 'hook0-client';
+
+const parsed = EventType.fromString('billing.invoice.paid');
+
+if (parsed instanceof Hook0ClientError) {
+  throw parsed;
+}
+
+console.log(parsed.service, parsed.resourceType, parsed.verb);
 ```
 
 ## Calling the rest of the API
 
-`Hook0Client` covers sending events and declaring event types. Every other operation Hook0 declares is a method on a generated group, exported under the `generated` namespace:
+`Hook0Client` covers sending events and declaring event types. Every other operation Hook0 declares is a method on a generated group under the `generated` namespace — `ApplicationsApi`, `SubscriptionsApi`, `EventsApi`, `RequestAttemptsApi` and nine more, one per entity, one method per operation.
 
-```typescript example=restApiGroup
-import { generated } from 'hook0-client';
+They sit under `generated` rather than at the top level because the API document declares its own `Event` and `EventType`, which are the API's resources and not the `Event` an emitter fills in.
 
-const applications = new generated.ApplicationsApi(transport);
-const application = await applications.get(applicationId);
-```
-
-The generated half declares the transport it issues requests through and does not implement one, so nothing in it carries a socket. Supply your own:
+The generated half declares the transport it issues requests through and implements none, so nothing in it carries a socket. Nine of the eleven clients hand you one anyway, built from the client you already have; this one and the Rust one do not, so supply your own:
 
 ```typescript example=restApiTransport
 import { generated } from 'hook0-client';
@@ -203,295 +228,62 @@ const transport: generated.Transport = {
 };
 ```
 
-Every problem the API can report is its own subclass of `generated.ProblemError`, which carries the HTTP status and the parsed problem.
+With one in hand, every group is one line:
 
-The names the API document declares live under `generated` rather than at the top level because the document itself declares an `Event` and an `EventType`, which are the API's resources and not the `Event` an emitter fills in.
+```typescript example=restApiGroup
+import { generated } from 'hook0-client';
 
-## Advanced Features
+const applications = new generated.ApplicationsApi(transport);
 
-### Webhook Verification
-
-```typescript example=webhookHandlerFull
-import { verifyWebhookSignature } from 'hook0-client';
-import express from 'express';
-
-const app = express();
-
-// Note: Express.js normalizes all header names to lowercase
-// Capture raw body for signature verification
-app.post('/webhook', express.json({
-  verify: (req, res, buf) => { (req as any).rawBody = buf; }
-}), (req, res) => {
-  const signature = req.headers['x-hook0-signature'] as string;
-  const secret = process.env.WEBHOOK_SECRET!;
-  // Verify against the raw bytes, not a stringified copy: verifyWebhookSignature hashes the body it
-  // is handed, so a body already turned into a string would no longer match what Hook0 signed.
-  const rawBody = (req as any).rawBody as Buffer;
-
-  try {
-    // Verify the signature with headers
-    const headers = new Headers();
-    Object.entries(req.headers).forEach(([key, value]) => {
-      if (typeof value === 'string') {
-        headers.set(key, value);
-      }
-    });
-
-    const isValid = verifyWebhookSignature(
-      signature,
-      rawBody,
-      headers,
-      secret,
-      300 // 5-minute tolerance
-    );
-
-    if (!isValid) {
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
-
-    // Process the webhook (already parsed via req.body)
-    console.log('Webhook received:', req.body);
-    processWebhook(req.body);
-
-    res.json({ status: 'processed' });
-  } catch (error) {
-    console.error('Webhook processing error:', error);
-    res.status(500).json({ error: 'Processing failed' });
+try {
+  const application = await applications.get(applicationId);
+  console.log(application.name);
+} catch (failed) {
+  if (failed instanceof generated.ProblemError && failed.kind === 'NotFound') {
+    // the API named a problem, and this is which one
   }
-});
+}
 ```
 
-### Error Handling
+Every failure the API can report is one `generated.ProblemError` carrying a `kind`, not a class of its own. `kind` is a `generated.ProblemId`, the closed union of the identifiers the API document declares, so comparing against a string it does not declare is a compile error rather than a branch that never runs. Beside it sit `status` and the whole RFC 9457 `problem` the API answered, when it answered one the client could read.
 
-```typescript example=usingClient
+That union is checked where you write it and nowhere else: the answer is parsed and cast, not validated, so an identifier the API grows before you upgrade arrives as a `kind` no arm of yours matches. Eight of the eleven clients refuse such an answer outright; this one, Go and C# do not.
+
+## Errors
+
+Everything the client itself refuses is a `Hook0ClientError`, built through one of its static constructors, and carries its detail in the message:
+
+| Constructor | Built when |
+|-------------|------------|
+| `EventSending` | A send failed. Carries the event ID it went out under |
+| `RetriesExhausted` | Every attempt failed. Carries the attempts made, the milliseconds waited and the last failure |
+| `PayloadTooLarge` | The payload crossed `maxPayloadBytes`, before any request went out |
+| `InvalidEventType` | An event type is not `service.resource_type.verb` |
+| `GetAvailableEventTypes` | Listing the application's event types failed |
+| `InvalidSignature`, `ExpiredWebhook`, `MissingHeader` | A delivery was refused |
+| `SignatureParsing`, `TimestampParsingInSignature` | The signature header, or the timestamp in it, could not be read |
+
+```typescript example=usingEvent
 import { Hook0ClientError } from 'hook0-client';
 
 try {
-  const event = new Event(
-    'user.account.created',
-    JSON.stringify({ user_id: 'user_123' }),
-    'application/json',
-    { source: 'api' }
-  );
-
   const eventId = await hook0.sendEvent(event);
-} catch (error) {
-  if (error instanceof Hook0ClientError) {
-    console.error('Hook0 error:', error.message);
-
-    // Handle specific error types
-    if (error.message.includes('Invalid event type')) {
-      console.error('Event type format is invalid');
-    } else if (error.message.includes('Sending event') && error.message.includes('failed')) {
-      console.error('Failed to send event, retry later');
-    }
+  console.log(`ingested as ${eventId}`);
+} catch (refused) {
+  if (refused instanceof Hook0ClientError) {
+    console.error(`event not sent: ${refused.message}`);
   } else {
-    console.error('Unexpected error:', error);
+    throw refused;
   }
 }
 ```
 
-:::note Advanced Features Not Available
-Middleware system and event streaming are not available in the current SDK implementation. These features may be added in future versions.
-:::
+A `ProblemError` from a generated group is not a `Hook0ClientError`: the two halves of the package report failures separately, so a `catch` around a generated call names the one it means.
 
-## TypeScript Support
+## Links
 
-The SDK is written in TypeScript and provides type definitions:
-
-```typescript example=program
-import { Hook0Client, Event, EventType, Hook0ClientError } from 'hook0-client';
-
-// Type-safe event creation
-const event = new Event(
-  'user.account.created',
-  JSON.stringify({
-    user_id: 'user_123',
-    email: 'john@example.com'
-  }),
-  'application/json',
-  { source: 'api' }
-);
-
-// EventType helper for parsing event types
-const eventType = EventType.fromString('auth.user.create');
-if (eventType instanceof Hook0ClientError) {
-  console.error('Invalid event type format');
-} else {
-  console.log(`Service: ${eventType.service}`);
-  console.log(`Resource: ${eventType.resourceType}`);
-  console.log(`Verb: ${eventType.verb}`);
-}
-```
-
-## Testing
-
-### Testing
-
-```typescript example=program
-import { Hook0Client, Event } from 'hook0-client';
-import { describe, expect, jest, test } from '@jest/globals';
-
-describe('Event Handler', () => {
-  test('should send user created event', async () => {
-    // Mock the fetch function; typing the mock as `typeof fetch` is what lets
-    // mockResolvedValueOnce take a Response-shaped value instead of rejecting the call outright.
-    global.fetch = jest.fn<typeof fetch>().mockResolvedValueOnce({
-      ok: true,
-      text: async () => '',
-    } as Response);
-
-    const client = new Hook0Client(
-      'http://localhost:8081/api/v1',
-      'app_test',
-      'test_token'
-    );
-
-    const event = new Event(
-      'user.account.created',
-      JSON.stringify({ email: 'test@example.com' }),
-      'application/json',
-      {}
-    );
-
-    const eventId = await client.sendEvent(event);
-
-    // Verify fetch was called correctly
-    expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:8081/api/v1/event',
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          'Authorization': 'Bearer test_token',
-          'Content-Type': 'application/json'
-        })
-      })
-    );
-  });
-});
-```
-
-## Best Practices
-
-### 1. Use Environment Variables
-
-```typescript example=hook0ClientImport
-{
-  // Bad - hardcoded credentials
-  const hook0 = new Hook0Client(
-    'http://localhost:8081/api/v1',
-    'app_1234567890',
-    'hardcoded_token_here'
-  );
-}
-
-// Good - use environment variables
-const hook0 = new Hook0Client(
-  process.env.HOOK0_API_URL!,
-  process.env.HOOK0_APP_ID!,
-  process.env.HOOK0_TOKEN!
-);
-```
-
-### 2. Implement Proper Error Handling
-
-```typescript example=usingClientAndEvent
-// Bad
-await hook0.sendEvent(event);
-
-// Good
-try {
-  await hook0.sendEvent(event);
-} catch (error) {
-  if (error instanceof Hook0ClientError) {
-    logger.error('Failed to send event', {
-      message: error.message,
-      event
-    });
-    // Implement retry or fallback logic
-  }
-  throw error;
-}
-```
-
-### 3. Efficient Event Sending
-
-```typescript example=usingClient
-// When sending multiple events, consider using Promise.all for parallelization
-const eventPromises = users.map(user => {
-  const event = new Event(
-    'user.account.created',
-    JSON.stringify(user),
-    'application/json',
-    { source: 'bulk_import' }
-  );
-  return hook0.sendEvent(event);
-});
-
-const eventIds = await Promise.all(eventPromises);
-console.log(`Sent ${eventIds.length} events`);
-```
-
-### 4. Use Unique Event IDs to Deduplicate Across Emitters
-
-```typescript example=usingClient
-import { v5 as uuidv5 } from 'uuid';
-
-// The client already sends an id of its own, so retries are idempotent without you doing anything.
-// Set an id yourself when the *same* event can be produced more than once by your application — a
-// payment webhook replayed by your provider, a job that can run twice.
-// Hook0 requires event_id to be a UUID, so derive a stable one from your domain key.
-const event = new Event(
-  'payment.transaction.processed',
-  JSON.stringify({ amount: 100.00 }),
-  'application/json',
-  { transaction_id },
-  undefined, // metadata
-  new Date(), // occurredAt
-  uuidv5(transaction_id, uuidv5.URL) // Your own event ID (stable UUID derived from transaction_id)
-);
-
-const eventId = await hook0.sendEvent(event);
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**Authentication Errors**
-```typescript example=hook0ClientImport
-// Ensure token is passed correctly (without Bearer prefix - SDK adds it)
-const hook0 = new Hook0Client(
-  'http://localhost:8081/api/v1',
-  'app_1234567890',
-  '{YOUR_TOKEN}' // ✓ Correct - just the token, SDK adds "Bearer " automatically
-);
-```
-
-**CORS Issues in Browser**
-```typescript example=program
-// The SDK uses fetch() which handles CORS automatically
-// Ensure your Hook0 application is configured to accept
-// requests from your domain
-```
-
-**Network Errors**
-```typescript example=retryTuning
-// The client already retries network failures and server errors on its own, under the same event
-// id, so a retry cannot ingest the event twice. Change how it does so rather than wrapping it:
-import { Hook0Client, Hook0ClientOptions, RetryPolicy } from 'hook0-client';
-
-const patient = new Hook0Client(apiUrl, applicationId, token, false, new Hook0ClientOptions(
-  new RetryPolicy(6, 200, 5000, 20000)
-));
-
-// A `sendEvent` that rejects with "gave up after N attempts" has already exhausted them.
-```
-
-## Support
-
-- **Documentation**: [Hook0 API Docs](/api)
-- **Getting Started**: [Tutorial](/tutorials/getting-started)
-- **GitHub Issues**: [Report Issues](https://github.com/hook0/hook0/issues)
-- **Discord**: [Join Community](https://www.hook0.com/community)
-- **NPM Package**: hook0-client
+- **Package**: [hook0-client on npm](https://www.npmjs.com/package/hook0-client)
+- **Source**: [clients/typescript](https://gitlab.com/hook0/hook0/-/tree/master/clients/typescript)
+- **Public surface**: [api-surface.md](https://gitlab.com/hook0/hook0/-/blob/master/clients/typescript/api-surface.md), every export with its signature, regenerated and held against the code by the test suite
+- **API reference**: [Hook0 API](../../openapi/intro)
+- **Other SDKs**: [SDKs & client libraries](index.md)
