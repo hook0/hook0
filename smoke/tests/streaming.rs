@@ -78,8 +78,19 @@ fn a_child_saying_more_than_a_pipe_holds_still_finishes() {
     // The property the threads are there for. A child whose output nobody drains stops when the
     // pipe buffer fills, and a deadline that only fires between polls would never be reached — so
     // this would hang rather than fail, which is the worst way for a harness to break.
+    //
+    // Written as a few long lines rather than many short ones, and that is not cosmetic. What is
+    // written through goes to this process's own stdout — `Through::wrote` writes the file
+    // descriptor directly — so the test runner cannot capture it and every byte lands in whatever
+    // log the suite ran under. This used to be twenty thousand lines, which is what a CI job's
+    // trace was mostly made of and what buried a real failure in it. The volume is what the
+    // property needs; the line count is not, so only the volume is kept: a quarter of a megabyte,
+    // four times the 64 KiB a pipe holds on Linux and macOS alike, in two hundred and fifty-six
+    // lines instead of twenty thousand.
     let kept = said(
-        "for i in $(seq 1 20000); do printf 'a line of noise nobody keeps, number %s\\n' \"$i\"; \
+        "filler=abcdefgh; for _ in 1 2 3 4 5 6 7; do filler=\"$filler$filler\"; done; \
+         for _ in $(seq 1 256); do \
+         printf 'a line the streaming test writes to fill a pipe buffer %s\\n' \"$filler\"; \
          done; printf 'keep last\\n'",
         16,
     );
