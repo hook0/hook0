@@ -35,7 +35,36 @@ testpaths = ["tests"]
 # A suite that talks to a loopback socket has no reason to run long, and one that hangs has to
 # fail rather than hold the pipeline until the runner gives up on it.
 timeout = 120
-addopts = "--strict-markers --strict-config"
+# Coverage is measured on every run rather than behind a flag of its own, because the floor under
+# `[tool.coverage.report]` is only enforced when it is measured. That keeps the gate inside
+# `pytest`, the command the pipeline already runs, rather than in a job or a script beside it.
+addopts = "--strict-markers --strict-config --cov --cov-branch"
+
+[tool.coverage.run]
+# What is shipped. The suites themselves are not part of the package, and holding them to a number
+# would make the floor about the tests rather than about the client.
+source = ["hook0"]
+
+[tool.coverage.report]
+# Two decimals, because the floor is stated to two and a figure rounded to none would let a
+# hundredth of a percent of decay through without a word.
+precision = 2
+show_missing = true
+
+# What this suite reaches today, exactly. Not headroom: every case here talks to a loopback socket
+# and the property suites are derandomised, so there is no run-to-run noise to leave room for, and
+# room would only buy silent decay. It is the same figure on 3.12 and on the 3.13 the job runs.
+#
+# It is not 100% because five statements cannot be reached from a test. `signature.py` carries the
+# arm a signature naming neither a `v0` nor a `v1` code would take, which parsing refuses first —
+# making that state unrepresentable is a change across every client and the generator, not a test.
+# In `transport.py`: a header line above the ceiling, which both readers under this package refuse
+# earlier for their own reasons; the truncated-body arm of the blocking transport, which cannot be
+# reached because `HTTPResponse.read(amt)` answers a short read instead of raising; and the two
+# lines that run when closing a connection itself fails.
+#
+# Raise this when the suite covers more. Lowering it is a decision somebody has to write down here.
+fail_under = 99.74
 
 [tool.ruff]
 line-length = 120

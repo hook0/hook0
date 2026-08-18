@@ -41,6 +41,12 @@ variables:
   POSTGRES_HOST_AUTH_METHOD: trust
   GIT_CLIFF_VERSION: "2.12.0"
   CARGO_RELEASE_VERSION: "0.25.18"
+  # What the rust client's coverage floors were measured with. The version and the digest travel
+  # together for the reason the Zig pair does: a release that counted regions differently would
+  # move those floors without a line of the client changing, and moving the version without the
+  # digest stops the job at the checksum rather than somewhere further in.
+  CARGO_LLVM_COV_VERSION: "0.9.0"
+  CARGO_LLVM_COV_SHA256: b068f7c98841aacb9c4f382b4a0c184ae82f49b56a32d442b429b2961c73be15
   ALPINE_VERSION: "3.24"
   BUILDKIT_VERSION: "v0.27.0-rootless"
   TRIVY_VERSION: "0.68.2"

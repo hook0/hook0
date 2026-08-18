@@ -23,9 +23,12 @@ clients.python.check:
         - clients/conformance/**/*
   before_script:
     - python --version
-    # Pinned, so that a release of any of the three is a change somebody made rather than a
+    # Pinned, so that a release of any of them is a change somebody made rather than a
     # pipeline that turned red on its own.
-    - pip install --no-cache-dir ruff==0.15.0 pytest==9.0.1 pytest-timeout==2.4.0 hypothesis==6.145.1
+    # `pytest-cov` is what measures coverage at all, which is what makes the floor in
+    # `pyproject.toml` enforceable; 7.1.0 is the version that floor was measured with, and the one
+    # that works against the pytest pinned beside it.
+    - pip install --no-cache-dir ruff==0.15.0 pytest==9.0.1 pytest-timeout==2.4.0 hypothesis==6.145.1 pytest-cov==7.1.0
   script:
     - pushd clients/python
     - ruff format --check .
