@@ -50,6 +50,7 @@
     <checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
     <checkstyle.version>10.21.0</checkstyle.version>
     <enforcer.plugin.version>3.5.0</enforcer.plugin.version>
+    <jacoco.plugin.version>0.8.12</jacoco.plugin.version>
     <resources.plugin.version>3.3.1</resources.plugin.version>
     <jar.plugin.version>3.4.2</jar.plugin.version>
     <install.plugin.version>3.1.3</install.plugin.version>
@@ -205,6 +206,274 @@
           -->
           <forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
         </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.plugin.version}</version>
+        <executions>
+          <execution>
+            <id>coverage-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+            <configuration>
+              <!--
+                One run, never a union of several. The agent appends to its execution data by
+                default, so a second `mvn verify` over a tree that still holds the first one's file
+                reports the two together — which reads exactly like a real coverage move and hides a
+                deleted test completely. CI builds in a fresh container and never sees it; this is
+                here so that a run on a laptop means what it says without needing `clean` first.
+              -->
+              <append>false</append>
+            </configuration>
+          </execution>
+          <execution>
+            <id>coverage-report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+          <!--
+            The floor, so that the coverage this suite reaches is a property the pipeline holds
+            rather than a number somebody measured once. It rides in `verify`, which is the goal the
+            job already runs, rather than in a job or a script of its own.
+
+            Every number below is what this suite reaches today. They are not headroom: every suite
+            here talks to a loopback socket and draws nothing random, so there is no run-to-run noise
+            to leave room for, and room would only buy silent decay. Raise one when the suite covers
+            more; lowering one is a decision somebody has to write here.
+
+            Lines and branches, not instructions — and the choice is deliberate, so that nobody
+            restores the stricter-looking counter later. JaCoCo counts instructions too, and on this
+            client an instruction floor would be tighter. It is not used for two reasons. The first
+            is that it does not survive the sibling language: the Kotlin compiler emits instructions
+            on lines that are covered — null checks, the bodies a data class gets for free — which no
+            caller reaches, so `clients/kotlin` sits at 100% of its lines and around 84% of its
+            instructions, and an instruction floor there would have to be written at 0.80 to pass at
+            all. A floor at 0.80 catches nothing. The second is that lines and branches are what
+            every other client in this repository reports — rust lines and regions, python, ruby and
+            typescript lines and branches, csharp lines and branches under coverlet — and a figure
+            that is not the same measurement as the ones beside it is a figure nobody can compare.
+
+            Source files rather than classes. A source-file rule folds a file's nested classes into
+            the file they live in, which is how a reader thinks about coverage and which is what lets
+            `ClientExceptionInterrupted` — thrown only when a caller interrupts the thread inside the
+            sleep between two attempts, so reaching it from a test means winning a race rather than
+            asking for a behaviour — be counted inside `Hook0Client.java`'s allowance instead of
+            needing an exclusion of its own. What that gives up is narrow and worth naming: two
+            classes in one file, one degrading exactly as much as the other improves, would leave the
+            file's total unmoved. The bundle rule above would not see it either.
+          -->
+          <execution>
+            <id>coverage-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <!--
+                  The whole client, at what this suite reaches today: 21 of its 2340 lines and 30 of
+                  its 723 branches uncovered. Counts rather than ratios, because a ratio rises on its
+                  own as covered code is added, so a regression can hide behind growth where a count
+                  cannot.
+                -->
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>21</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>30</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!--
+                  And every file at its own, which is what makes a failure name a culprit: a violated
+                  bundle rule says only that the bundle moved, while a violated source-file rule says
+                  which file and by how many lines. Every file this client ships is held to nothing
+                  uncovered at all, and the seven below carry an allowance for exactly what they miss
+                  today — each of which is unreachable from a test rather than merely unreached.
+                -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <excludes>
+                    <exclude>com/hook0/client/Answer.java</exclude>
+                    <exclude>com/hook0/client/Hook0Client.java</exclude>
+                    <exclude>com/hook0/client/HttpTransport.java</exclude>
+                    <exclude>com/hook0/client/RetryPolicy.java</exclude>
+                    <exclude>com/hook0/client/Signature.java</exclude>
+                    <exclude>com/hook0/client/Webhooks.java</exclude>
+                    <exclude>com/hook0/client/generated/Problems.java</exclude>
+                  </excludes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arm where a status is below 200, which the API answers for no operation -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/Answer.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>1</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the guard around closing a transport that is not closeable and its catch, an event type
+                     list that is nothing at all, the arms where an event carries no payload, no labels or no
+                     body, unwrapping a completion failure that is not one or is nested deeper than the
+                     framework builds it, reading an identifier out of an answer that is not a document, and
+                     the interruption path with the exception class it throws -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/Hook0Client.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>12</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>12</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the interruption path, the body subscriber's error arm, the `User-Agent` filter, the
+                     empty-host guard, the second `URI.create` catch after every part has been escaped, a
+                     header line carrying no value, the cause-walk depth ceiling, and a failure with no
+                     message -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/HttpTransport.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>7</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>12</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arms where a schedule has no draws at all or an attempt is numbered below zero,
+                     neither of which the scheduler produces -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/RetryPolicy.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>2</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the refusal of a runtime that cannot compute HmacSHA256, which every JVM this runs on
+                     can -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/Signature.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>2</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arms where a delivered header is nothing at all or carries no name, which no header
+                     list reaching it holds -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/Webhooks.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>2</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arm where a status is below 200, which the API answers for no operation -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/generated/Problems.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>1</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <plugin>
