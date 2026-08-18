@@ -977,44 +977,194 @@ async fn a_body_above_what_a_message_quotes_is_cut_rather_than_echoed_whole() {
     walk.stop().await;
 }
 
-#[test]
-fn every_value_a_closed_list_names_is_a_value_the_generated_types_carry() {
-    // What a closed list carries is the document's business. A value it names that the generated
-    // types do not carry is an answer the API is entitled to give and this crate would refuse,
-    // which is a target that has drifted from the API it was generated against.
-    let document = api_document();
+/// Every closed list of strings the document declares, by the name the generator writes it under,
+/// with the values the document says it carries.
+///
+/// The generator names a list after the schema it was found in and every member walked through to
+/// reach it, so `ApplicationInfo.onboarding_steps.event` becomes
+/// `ApplicationInfoOnboardingStepsEvent`. That rule is applied here rather than assumed: it is what
+/// makes the set below comparable against the types written out further down.
+fn closed_lists_of(document: &Value) -> BTreeMap<String, Vec<String>> {
+    let mut found = BTreeMap::new();
     let schemas = document
         .pointer("/components/schemas")
         .and_then(Value::as_object)
         .expect("the document declares schemas");
+    for (named, schema) in schemas {
+        walk_closed_lists(schema, named, 0, &mut found);
+    }
+    found
+}
 
-    let written = std::fs::read_to_string(
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("src")
-            .join("generated")
-            .join("models.rs"),
-    )
-    .expect("the generated types are readable");
+/// One schema, and everything nested under it, looking for the closed lists it carries.
+fn walk_closed_lists(
+    node: &Value,
+    named: &str,
+    depth: usize,
+    found: &mut BTreeMap<String, Vec<String>>,
+) {
+    if depth > MAX_DEPTH {
+        return;
+    }
 
-    let mut walked = 0;
-    for (name, schema) in schemas {
-        let Some(properties) = schema.get("properties").and_then(Value::as_object) else {
-            continue;
-        };
+    if let Some(values) = node.get("enum").and_then(Value::as_array) {
+        let carried: Vec<String> = values
+            .iter()
+            .filter_map(Value::as_str)
+            .map(str::to_owned)
+            .collect();
+        if !carried.is_empty() {
+            found.insert(named.to_owned(), carried);
+        }
+        return;
+    }
+
+    if let Some(properties) = node.get("properties").and_then(Value::as_object) {
         for (member, property) in properties {
-            let Some(values) = property.get("enum").and_then(Value::as_array) else {
-                continue;
-            };
-            for value in values.iter().filter_map(Value::as_str) {
-                assert!(
-                    written.contains(&format!("#[serde(rename = \"{value}\")]")),
-                    "`{name}.{member}` may be answered as `{value}`, which the generated types do not carry"
-                );
-                walked += 1;
-            }
+            let reached = format!("{named}{}", pascal(member));
+            walk_closed_lists(property, &reached, depth + 1, found);
         }
     }
-    assert!(walked > 0, "the document names no closed list at all");
+    // A list carried by the values of an array or of an open-keyed object is named after what holds
+    // it rather than after a member of its own, since there is no member to name it after.
+    if let Some(items) = node.get("items") {
+        walk_closed_lists(items, named, depth + 1, found);
+    }
+    if let Some(values) = node.get("additionalProperties")
+        && values.is_object()
+    {
+        walk_closed_lists(values, named, depth + 1, found);
+    }
+}
+
+/// A member of the document as the generator spells it in a type name.
+fn pascal(member: &str) -> String {
+    member
+        .split(['_', '-'])
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            let mut letters = part.chars();
+            match letters.next() {
+                Some(first) => first.to_uppercase().collect::<String>() + letters.as_str(),
+                None => String::new(),
+            }
+        })
+        .collect()
+}
+
+/// A closed list of strings the generator wrote.
+///
+/// `as_str` is an inherent method on each of them rather than a trait method, so there is no way to
+/// walk them all without one. This is that trait, and the macro below is the only thing that
+/// implements it.
+trait ClosedList: DeserializeOwned + Serialize + std::fmt::Display {
+    /// The text this value travels as.
+    fn text(&self) -> &'static str;
+}
+
+macro_rules! closed_lists {
+    ($($named:ty),+ $(,)?) => {
+        $(
+            impl ClosedList for $named {
+                fn text(&self) -> &'static str {
+                    self.as_str()
+                }
+            }
+        )+
+
+        /// Drives every list named below, and answers the names it drove.
+        fn every_closed_list_driven(declared: &BTreeMap<String, Vec<String>>) -> BTreeSet<String> {
+            let mut driven = BTreeSet::new();
+            $(
+                driven.insert(drives_one::<$named>(declared));
+            )+
+            driven
+        }
+    };
+}
+
+// Rust cannot be asked what a module declares, so the types are written out. What they are held to
+// is not: each is looked up under the name `closed_lists_of` builds for it out of the document, by
+// the generator's own naming rule, so a type spelled anything else fails to find its values — and
+// the case below says every list the document declares was driven. A list the API grows therefore
+// fails this suite until it is named here, rather than going unnoticed.
+closed_lists!(
+    generated::ApplicationInfoOnboardingStepsEvent,
+    generated::ApplicationInfoOnboardingStepsEventType,
+    generated::ApplicationInfoOnboardingStepsSubscription,
+    generated::OrganizationInfoOnboardingStepsApplication,
+    generated::OrganizationInfoOnboardingStepsEvent,
+    generated::OrganizationInfoOnboardingStepsEventType,
+    generated::OrganizationInfoOnboardingStepsSubscription,
+    generated::ProblemId,
+    generated::RequestAttemptStatusType,
+);
+
+/// One closed list, driven against every value the document declares it carries.
+fn drives_one<T: ClosedList>(declared: &BTreeMap<String, Vec<String>>) -> String {
+    let named = std::any::type_name::<T>()
+        .rsplit("::")
+        .next()
+        .expect("a type is named")
+        .to_owned();
+    let values = declared.get(&named).unwrap_or_else(|| {
+        panic!(
+            "`{named}` is driven here, but the document declares no closed list the generator \
+             would have written under that name"
+        )
+    });
+
+    for value in values {
+        let read: T = serde_json::from_value(json!(value)).unwrap_or_else(|refused| {
+            panic!("`{named}` refuses `{value}`, which the document says it carries: {refused}")
+        });
+        assert_eq!(
+            read.text(),
+            value,
+            "`{named}` read `{value}` back as a value that says it travels as `{}`",
+            read.text()
+        );
+        assert_eq!(
+            read.to_string(),
+            read.text(),
+            "`{named}` writes `{value}` as `{read}` when displayed and as `{}` when asked for its \
+             text, which are the same thing said twice",
+            read.text()
+        );
+        let written = serde_json::to_value(&read).expect("a closed list writes back");
+        assert_eq!(
+            written,
+            json!(value),
+            "`{named}` read `{value}` and wrote it back as `{written}`"
+        );
+    }
+
+    named
+}
+
+#[test]
+fn every_closed_list_the_document_declares_carries_the_text_it_declares() {
+    // A closed list is the one place the generated types spell text out themselves rather than
+    // handing a value to serde: `as_str` writes each value, and `Display` is written on top of it.
+    // Both are what a caller logging a value gets, so both are held to the document rather than to
+    // each other alone — every value read back, the two spellings agreeing, and what was read
+    // written back as what it came from.
+    let document = api_document();
+    let declared = closed_lists_of(&document);
+    assert!(
+        !declared.is_empty(),
+        "the document names no closed list at all"
+    );
+
+    // Driving a list the document does not declare fails inside this call, under the name that was
+    // driven, so only the other direction is left to say here.
+    let driven = every_closed_list_driven(&declared);
+    for named in declared.keys() {
+        assert!(
+            driven.contains(named),
+            "`{named}` is a closed list the document declares and nothing here drives"
+        );
+    }
 }
 
 #[actix_web::test]

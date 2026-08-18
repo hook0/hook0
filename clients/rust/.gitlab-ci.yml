@@ -58,18 +58,18 @@ client.rust.check:
     # of its own. The two feature-gated legs further down stay plain: they compile a subset of what
     # this one does, so measuring them again would only re-measure the same lines more slowly.
     #
-    # The floors are what this suite reaches today: 94.4183% of lines and 95.1423% of regions, each
+    # The floors are what this suite reaches today: 98.9240% of lines and 98.2922% of regions, each
     # truncated to the hundredth rather than rounded. Truncated on purpose — llvm-cov rounds the
-    # figure it prints, so it shows the line coverage as 94.42%, and a floor set at what it printed
-    # would fail the very run it was read from. They are not headroom either: these tests talk to a
-    # loopback socket and the property suites are derandomised, so there is no run-to-run noise to
-    # leave room for. One line or one region going uncovered still falls through (94.35% and
-    # 95.10%), which is as tight as two decimals can be made.
+    # figure it prints, so it shows the line coverage as 98.92%, and a floor set at what it printed
+    # would fail the very run it was read from when the rounding goes up. They are not headroom
+    # either: these tests talk to a loopback socket and the property suites are derandomised, so
+    # there is no run-to-run noise to leave room for. One line or one region going uncovered still
+    # falls through (98.85% and 98.25%), which is as tight as two decimals can be made.
     #
     # Regions rather than branches because llvm-cov reports no branch figure for this crate at all —
     # the branch column it prints is empty, and regions are what stand in for it.
     #
-    # Where the remainder is, honestly, because two of these are gaps and the rest are not:
+    # What is left is sixteen lines, and none of them is reachable from a test:
     #  - `signature.rs`: the arm a signature carrying neither a v0 nor a v1 code would take, which
     #    parsing refuses first. It is commented as unreachable in the source and is left alone.
     #  - `errors.rs`: `unwritable`, and the `Display` arm for the variant it builds — the answer for
@@ -77,12 +77,13 @@ client.rust.check:
     #  - `lib.rs`: a `debug!` line; the walk that gives up after eight links of an error chain; the
     #    answer for an error carrying no chain at all; and the wording used when a send that ran out
     #    of attempts has no last response body to quote.
-    #  - `generated/models.rs`, which is most of the shortfall and is a GAP rather than an
-    #    impossibility: `as_str` and `Display` on eight of the nine generated closed lists are never
-    #    called. The suite walks those lists through serde, which reaches neither. Writing that walk
-    #    to call both would close it and raise these floors; nothing stops it but the writing.
+    #
+    # `generated/models.rs` used to be most of the shortfall, at 43.70% of its lines and 2 of its 18
+    # functions, because nothing called `as_str` or `Display` on the closed lists the generator
+    # wrote — the suite reached those types through serde, which touches neither. It is at 100% of
+    # both now, driven against the values the document declares.
     - >-
-      cargo llvm-cov --all-features --all-targets --fail-under-lines 94.41 --fail-under-regions 95.14
+      cargo llvm-cov --all-features --all-targets --fail-under-lines 98.92 --fail-under-regions 98.29
       || (echo "ERROR - the instrumented run did not pass: either a test above failed, or coverage fell below the floor this suite reaches - the table above names every file and what it covers, which is where to look for what went" && exit 1)
     - cargo clippy --all-targets --no-default-features --features consumer -- -D warnings
     - cargo test --all-targets --no-default-features --features consumer
