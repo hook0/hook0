@@ -171,8 +171,8 @@ bind_auto_h2c. None of the three appears anywhere in api/src, so the frame reade
 this advisory is about is compiled in and never entered.
 
 The 0.4 copies, which the same advisory covers and for which a fix does exist, are
-at 0.4.16 in both this lockfile and smoke/languages/rust — patched rather than
-ignored.
+at 0.4.16 in both this lockfile and smoke/languages/rust, so they are patched
+rather than ignored.
 """
 
 # Do not prune this file from the scanner's "unused ignores" list.

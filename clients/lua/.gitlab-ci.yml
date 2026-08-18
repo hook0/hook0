@@ -59,8 +59,8 @@ clients.lua.check:
     # left unhit.
     #
     # A ratio was tried here first and it does not survive the interpreter. This suite hits exactly
-    # 2913 lines under Lua 5.4.6 and under the 5.4.8 the pipeline runs — the same lines, the same
-    # specs — but 5.4.8 reports 17 more lines of `src/generated/api.lua` as executable-and-unhit,
+    # 2913 lines under Lua 5.4.6 and under the 5.4.8 the pipeline runs, the same lines and the same
+    # specs, yet 5.4.8 reports 17 more lines of `src/generated/api.lua` as executable-and-unhit,
     # which 5.4.6 does not count at all. Same coverage, 98.35% one side and 97.78% the other, so a
     # ratio read off a laptop fails every pipeline. Hits are what the two agree on.
     #
