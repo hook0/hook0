@@ -351,12 +351,23 @@ its generated layer at, it points it at the origin — `HOOK0_API_URL` with that
 language that passes the variable through unchanged reaches `/api/v1/api/v1/...` and gets a 404 back
 for every operation.
 
-`HOOK0_ORGANIZATION_ID` is there because several operations the document declares are the
-organization's rather than the application's — `applications.list`, `serviceToken.*`,
-`events_per_day.list_for_organization`. An application secret cannot perform them, and the answer
-that comes back is a problem the client reads, which is a report and not a failure. No smoke is
-handed an organization-scoped credential: an SDK authenticates with an application secret, and
-handing the clients more than a consumer has would prove the wrong thing.
+**Two credentials, because the API takes two.** `HOOK0_TOKEN` is an application secret, scoped to
+one application; `HOOK0_SERVICE_TOKEN` is scoped to the organization. Several operations the
+document declares are the organization's — `applications.list`, every `serviceToken.*`,
+`events_per_day.list_for_organization` — and no application secret can perform them. A smoke holding
+only the first could report them, but only ever as refusals, and the types they answer would go
+undecoded by every language. Both are bearer tokens and the generated layer is credential-agnostic,
+so this is one more transport, not a second client.
+
+**Three ids for what only the instance can produce.** A request attempt exists once the output
+worker has picked one up, and a response once it has finished with it; the per-day counts come out
+of a view the API refreshes on a cycle of its own. None of that is a client's business, and no
+language should be waiting on a worker inside its own flow. So the harness waits once, in the
+application it caught the shared delivery from, and hands `HOOK0_SEEDED_APPLICATION_ID` with the
+attempt and response ids. Read them with the organization credential — they belong to another
+application of the same organization. `events_per_day.list_for_organization` is likewise non-empty
+by the time any smoke runs, and is where `EventsPerDayEntry` gets decoded; a smoke's own
+`events_per_day.list_for_application` answers an empty list, which is an answer and still a report.
 
 The delivery is one plain file per part — `signature`, `body`, `headers`, `secret`, `tolerance` —
 rather than one document, because eleven of the twelve languages would otherwise spend most of a
