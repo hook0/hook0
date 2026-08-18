@@ -143,6 +143,34 @@
               <fail>true</fail>
             </configuration>
           </execution>
+          <execution>
+            <id>coverage-measured</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <!--
+                  What makes the coverage floor able to run at all. JaCoCo skips itself rather than
+                  failing when either of its inputs is missing: no execution data, or no directory
+                  of classes to attribute it to. Both print `Skipping JaCoCo execution` at INFO and
+                  leave the build green with no rule evaluated, so the floor stops existing without
+                  anything red saying so. The realistic way to arrive there is an `<argLine>`
+                  configured on surefire, which replaces the one `prepare-agent` sets and detaches
+                  the agent silently. These sit in `prepare-package`, after `test` has written the
+                  file and before `verify` reads it, so neither is a matter of plugin ordering.
+                -->
+                <requireFilesExist>
+                  <files>
+                    <file>${project.build.directory}/jacoco.exec</file>
+                    <file>${project.build.outputDirectory}</file>
+                  </files>
+                </requireFilesExist>
+              </rules>
+              <fail>true</fail>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
 
@@ -293,6 +321,23 @@
                       <counter>BRANCH</counter>
                       <value>MISSEDCOUNT</value>
                       <maximum>30</maximum>
+                    </limit>
+                    <!--
+                      And a floor under the measurement itself, which neither maximum above can
+                      provide: a `MISSEDCOUNT` maximum is satisfied by a bundle containing nothing,
+                      because nothing missed is zero missed. A run that analysed no class at all
+                      therefore prints `All coverage checks have been met.` and passes, which is an
+                      affirmative claim made by a build that measured nothing, and a guard that
+                      reassures is worse than one that stays quiet. One covered line is the whole
+                      assertion here: that a measurement happened. It stays at 1 deliberately rather
+                      than at today's covered count, because a minimum set at today's figure fires
+                      when somebody correctly deletes dead code, and a guard whose false failure is
+                      a correct change is a guard somebody deletes.
+                    -->
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDCOUNT</value>
+                      <minimum>1</minimum>
                     </limit>
                   </limits>
                 </rule>
