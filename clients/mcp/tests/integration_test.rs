@@ -1107,3 +1107,96 @@ mod query_parameters {
         }
     }
 }
+
+// =============================================================================
+// Documented Tools
+// =============================================================================
+
+/// The tool table the README publishes, held against the tools a running server offers.
+///
+/// This needs no credentials for the reason `protocol` does not: `tools/list` is answered from the
+/// generated table and never reaches the Hook0 API.
+mod documented_tools {
+    use super::*;
+
+    /// Where the README lists the tools this server exposes.
+    const TOOLS_HEADING: &str = "## Available Tools";
+
+    /// The tools the README lists under [`TOOLS_HEADING`], sorted.
+    ///
+    /// Read out of the file rather than restated here, for the reason the protocol revisions are:
+    /// a copy of the list beside the one readers see is a copy that goes stale in silence. This one
+    /// did, and for a whole release the README sent readers to fifteen tools under names that had
+    /// been renamed out from under it.
+    ///
+    /// Only whole rows of the shape ``| `<tool>` | … |`` count, so the prose around the tables can
+    /// name a tool without being read as listing it.
+    fn documented_tools() -> Vec<String> {
+        let readme = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("README.md"),
+        )
+        .expect("the README this crate publishes");
+
+        let mut listed: Vec<String> = readme
+            .lines()
+            .skip_while(|line| line.trim() != TOOLS_HEADING)
+            .skip(1)
+            .take_while(|line| !line.starts_with("## "))
+            .filter_map(|line| line.trim().strip_prefix("| `"))
+            .filter_map(|row| row.split_once("` |"))
+            .map(|(named, _)| named.to_owned())
+            .collect();
+        listed.sort();
+
+        assert!(
+            !listed.is_empty(),
+            "no tool is listed under `{TOOLS_HEADING}` in the README, so this suite would be \
+             checking the server against nothing"
+        );
+        listed
+    }
+
+    /// The tools a running server offers, sorted.
+    fn offered_tools() -> Vec<String> {
+        let mut server = McpServerProcess::start_without_credentials();
+        server.initialize();
+
+        let result = server
+            .send_request("tools/list", json!({}))
+            .result
+            .expect("tools/list returns a result");
+
+        let mut offered: Vec<String> = result
+            .get("tools")
+            .and_then(Value::as_array)
+            .expect("tools/list returns a list of tools")
+            .iter()
+            .map(|tool| {
+                tool.get("name")
+                    .and_then(Value::as_str)
+                    .expect("every tool carries a name")
+                    .to_owned()
+            })
+            .collect();
+        offered.sort();
+
+        assert!(!offered.is_empty(), "the server offered no tool at all");
+        offered
+    }
+
+    /// What the server offers and what its README says it offers are one fact.
+    ///
+    /// Measured rather than restated, so the drift is caught in both directions: a tool gained
+    /// without a row in the file, and a row in the file for a tool the server no longer has. The
+    /// second is the one that shipped, and it is invisible from the inside. A reader follows the
+    /// README, calls a name that is not there, and the only thing that says so is the answer.
+    #[test]
+    fn test_the_tools_offered_are_the_tools_documented() {
+        assert_eq!(
+            offered_tools(),
+            documented_tools(),
+            "the tools this server offers are not the ones its README lists under \
+             `{TOOLS_HEADING}`, so whoever reads it would call a name that is not there"
+        );
+    }
+}

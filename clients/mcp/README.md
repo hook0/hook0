@@ -29,7 +29,7 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that l
 - **List & inspect** - Browse organizations, applications, event types, and delivery history
 - **Send events** - Ingest webhook events directly via Claude
 - **Manage subscriptions** - Create, enable, disable webhook endpoints
-- **Retry deliveries** - Retry failed webhook attempts
+- **Replay events** - Send an event to its subscriptions again
 - **Guided workflows** - Step-by-step prompts for common tasks
 - **Read-only mode** - Safe observability access without write permissions
 
@@ -86,7 +86,7 @@ Create a **Service Token** from the Hook0 dashboard:
 
 ### Read-Only Mode
 
-Set `HOOK0_READ_ONLY=true` for safe observability access. Only list/get operations are exposed - no modifications allowed.
+Set `HOOK0_READ_ONLY=true` for safe observability access. The thirteen read tools stay and the ten write tools are not listed at all, so an assistant cannot call one it cannot see.
 
 ---
 
@@ -109,28 +109,47 @@ That list is not prose kept up by hand. `tests/integration_test.rs` reads it out
 
 ## Available Tools
 
+Twenty-three tools, one per operation the API declares under the `mcp` tag. Each is named
+`<group>.<operation>`, and the group is the entity the operation belongs to.
+
+The names below are read out of this file by `tests/integration_test.rs` and held against the tools
+the server actually exposes, so a tool renamed, gained or lost fails the suite rather than leaving
+this table behind. It has been left behind before.
+
 ### Read Operations
 | Tool | Description |
 |------|-------------|
-| `list_organizations` | List accessible organizations |
-| `list_applications` | List applications |
-| `get_application` | Get application details |
-| `list_event_types` | List event types for an app |
-| `list_subscriptions` | List webhook subscriptions |
-| `list_events` | List events for an app |
-| `get_event` | Get event details |
-| `list_request_attempts` | List delivery attempts |
+| `applications.get` | Get an application by its ID |
+| `applications.list` | List applications |
+| `eventTypes.get` | Get an event type by its name |
+| `eventTypes.list` | List event types |
+| `events.get` | Get an event by its ID |
+| `events.list` | List latest events |
+| `organizations.get` | Get an organization's info by its ID |
+| `organizations.list` | List organizations |
+| `payload_content_types.list` | List supported event payload content types |
+| `requestAttempts.get` | Get a request attempt by its ID |
+| `requestAttempts.list` | List request attempts |
+| `subscriptions.get` | Get a subscription by its ID |
+| `subscriptions.list` | List subscriptions |
 
 ### Write Operations
 | Tool | Description |
 |------|-------------|
-| `create_application` | Create a new application |
-| `delete_application` | Delete an application |
-| `create_event_type` | Register a new event type |
-| `create_subscription` | Create a webhook subscription |
-| `delete_subscription` | Delete a subscription |
-| `ingest_event` | Send a new event |
-| `retry_delivery` | Retry a failed delivery |
+| `applications.create` | Create a new application |
+| `applications.delete` | Delete an application |
+| `applications.update` | Edit an application |
+| `eventTypes.create` | Create a new event type |
+| `eventTypes.delete` | Delete an event type |
+| `events.ingest` | Ingest an event |
+| `events.replay` | Replay an event |
+| `subscriptions.create` | Create a new subscription |
+| `subscriptions.delete` | Delete a subscription |
+| `subscriptions.update` | Update a subscription |
+
+Retrying one delivery attempt on its own is not among them. `requestAttempts.get` and
+`requestAttempts.list` read attempts; sending an event to its subscriptions again is
+`events.replay`, which takes the event rather than the attempt.
 
 ---
 
@@ -164,7 +183,7 @@ That list is not prose kept up by hand. `tests/integration_test.rs` reads it out
 ```
 User: List my Hook0 applications
 
-Claude: [Uses list_applications tool]
+Claude: [Uses applications.list tool]
 Here are your Hook0 applications:
 1. Order Notifications (app_123...)
 2. User Events (app_456...)
@@ -176,7 +195,7 @@ should receive the subscription?
 
 User: Use Order Notifications, send to https://api.example.com/webhooks
 
-Claude: [Uses create_subscription tool]
+Claude: [Uses subscriptions.create tool]
 Created subscription successfully! It will now receive order.* events
 at https://api.example.com/webhooks
 ```

@@ -94,10 +94,10 @@ impl Hook0Client {
             header::ACCEPT,
             header::HeaderValue::from_static("application/json"),
         );
-        headers.insert(
-            header::CONTENT_TYPE,
-            header::HeaderValue::from_static("application/json"),
-        );
+        // `Content-Type` is deliberately absent. The shared contract scopes it to a request
+        // carrying a body, and a default header travels on every request, so declaring it here made
+        // every GET announce a JSON body it did not have. The requests that do carry one declare it
+        // where the body is attached.
         // Said once here rather than per request: nothing this server does changes the policy
         // behind its requests, since it holds none to change.
         headers.insert(
@@ -521,20 +521,18 @@ mod tests {
             .collect()
     }
 
-    /// What this server puts on the wire, read back off a socket and held against the shared
-    /// conformance corpus.
+    /// The two occasions the shared contract scopes a header to, as it words them.
+    const EVERY_REQUEST: &str = "every request";
+    const CARRYING_A_BODY: &str = "a request carrying a body";
+
+    /// A socket that reads one request head, drains whatever body follows it and answers.
     ///
-    /// The corpus at `clients/conformance` is what the eleven SDKs are driven against, and
-    /// `request.json` is the document of it this server can honour: it holds no retry policy to
-    /// vary, receives no webhook to verify, and applies none of the payload and response bounds.
-    /// Nothing held it to that one document either, which is how it went a whole release stating
-    /// neither which client it is nor the policy behind its requests while every SDK stated both.
-    /// The header table is read out of the committed contract rather than written down here, so a
-    /// header renamed there, or added, fails here rather than at the first API that notices.
+    /// The body is drained before the answer goes back: a socket closed with bytes still unread is
+    /// reset rather than closed, and the client reads the reset in place of the answer.
     ///
-    /// The request carries a body, so every occasion the corpus declares applies to this one send.
-    #[tokio::test]
-    async fn every_request_carries_what_the_shared_contract_says_it_does() {
+    /// Returns where to reach it and the head it read, so a case holds what arrived against the
+    /// contract instead of reimplementing the client that sent it.
+    async fn listening() -> (std::net::SocketAddr, tokio::task::JoinHandle<String>) {
         let listener = TcpListener::bind("127.0.0.1:0")
             .await
             .expect("a loopback port is available to bind");
@@ -558,9 +556,6 @@ mod tests {
             }
             let head = String::from_utf8_lossy(&read).into_owned();
 
-            // The body is drained before the answer goes back: a socket closed with bytes still
-            // unread is reset rather than closed, and the client reads the reset in place of the
-            // answer.
             if let Some(carried) = announced_body_bytes(&head) {
                 let mut body = vec![0u8; carried.min(MAX_BODY_BYTES)];
                 let _ = stream.read_exact(&mut body).await;
@@ -573,6 +568,11 @@ mod tests {
             head
         });
 
+        (address, served)
+    }
+
+    /// A client of this server built against `address`, with the credential the contract expects.
+    fn built_against(address: std::net::SocketAddr) -> Hook0Client {
         let config = Config {
             api_url: Url::parse(&format!("http://{address}"))
                 .expect("a loopback address makes a parsable base URL"),
@@ -580,33 +580,67 @@ mod tests {
             transport: Transport::Stdio,
             read_only: false,
         };
-        let client = Hook0Client::new(&config).expect("the client accepts a loopback API URL");
+        Hook0Client::new(&config).expect("the client accepts a loopback API URL")
+    }
 
-        tokio::time::timeout(
-            EXCHANGE_TIMEOUT,
-            client.post(
-                "/applications",
-                &[],
-                Some(json!({ "name": "an application" })),
-            ),
-        )
-        .await
-        .expect("the exchange finishes inside its deadline")
-        .expect("the API answers the request");
-
-        let head = tokio::time::timeout(EXCHANGE_TIMEOUT, served)
-            .await
-            .expect("the socket finishes reading inside its deadline")
-            .expect("the listening task ran to the end");
-        let carried = headers_of(&head);
-
+    /// What this server put on the wire, held against the shared conformance corpus.
+    ///
+    /// The corpus at `clients/conformance` is what the eleven SDKs are driven against, and
+    /// `request.json` is the document of it this server can honour: it holds no retry policy to
+    /// vary, receives no webhook to verify, and applies none of the payload and response bounds.
+    /// Nothing held it to that one document either, which is how it went a whole release stating
+    /// neither which client it is nor the policy behind its requests while every SDK stated both.
+    /// The header table is read out of the committed contract rather than written down here, so a
+    /// header renamed there, or added, fails here rather than at the first API that notices.
+    ///
+    /// `with_a_body` decides what happens to the headers the contract scopes to a request carrying
+    /// one: they have to arrive when the request carries a body and to be absent when it does not.
+    /// Reading `when` at all is the point. A suite that asserts every declared header on every
+    /// request passes just as happily when a bodied-request header travels on all of them, which is
+    /// how `Content-Type` rode along on every GET this server made.
+    fn held_against_the_contract(carried: &HashMap<String, String>, with_a_body: bool) {
         let contract = corpus("request.json");
         let composed_at_most = count(&contract, "max_composed_bytes");
+
+        // Read out of the document rather than assumed, so an occasion renamed or added there fails
+        // here instead of quietly becoming `every request`.
+        let occasions = entries(&contract, "/occasions")
+            .iter()
+            .map(|occasion| {
+                occasion
+                    .as_str()
+                    .expect("an occasion of the contract is text")
+                    .to_owned()
+            })
+            .collect::<Vec<String>>();
+        assert_eq!(
+            occasions,
+            vec![EVERY_REQUEST.to_owned(), CARRYING_A_BODY.to_owned()],
+            "the shared contract declares occasions this suite does not know how to honour",
+        );
 
         for header in entries(&contract, "/headers") {
             let name = text(&header, "name").to_lowercase();
             let template = text(&header, "value");
+            let when = text(&header, "when");
             let written = carried.get(&name).map(String::as_str).unwrap_or("");
+
+            let travels = match when {
+                EVERY_REQUEST => true,
+                CARRYING_A_BODY => with_a_body,
+                other => panic!("the shared contract scopes `{name}` to an unknown `{other}`"),
+            };
+
+            if !travels {
+                assert!(
+                    !carried.contains_key(&name),
+                    "the request carried `{name}: {written}` while carrying no body, and the \
+                     shared contract sends that header on {CARRYING_A_BODY}: {}",
+                    text(&header, "reason"),
+                );
+                continue;
+            }
+
             let chunks = template_chunks(
                 template,
                 &[
@@ -637,6 +671,55 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// A request carrying a body carries every header the shared contract declares.
+    #[tokio::test]
+    async fn a_request_carrying_a_body_carries_what_the_shared_contract_says_it_does() {
+        let (address, served) = listening().await;
+        let client = built_against(address);
+
+        tokio::time::timeout(
+            EXCHANGE_TIMEOUT,
+            client.post(
+                "/applications",
+                &[],
+                Some(json!({ "name": "an application" })),
+            ),
+        )
+        .await
+        .expect("the exchange finishes inside its deadline")
+        .expect("the API answers the request");
+
+        let head = tokio::time::timeout(EXCHANGE_TIMEOUT, served)
+            .await
+            .expect("the socket finishes reading inside its deadline")
+            .expect("the listening task ran to the end");
+
+        held_against_the_contract(&headers_of(&head), true);
+    }
+
+    /// A request carrying no body declares no representation for the one it does not have.
+    ///
+    /// Thirteen of this server's twenty-three tools are GETs, so this is the shape most of its
+    /// traffic takes, and it was the shape nothing exercised: the case above sends a body, and a
+    /// header declared on the HTTP client rather than on the request travels on both.
+    #[tokio::test]
+    async fn a_request_with_no_body_declares_no_content_type() {
+        let (address, served) = listening().await;
+        let client = built_against(address);
+
+        tokio::time::timeout(EXCHANGE_TIMEOUT, client.get("/applications", &[]))
+            .await
+            .expect("the exchange finishes inside its deadline")
+            .expect("the API answers the request");
+
+        let head = tokio::time::timeout(EXCHANGE_TIMEOUT, served)
+            .await
+            .expect("the socket finishes reading inside its deadline")
+            .expect("the listening task ran to the end");
+
+        held_against_the_contract(&headers_of(&head), false);
     }
 
     /// The problem document Hook0 answers a duplicated ingestion with, as its API writes it.
