@@ -23,6 +23,16 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <!--
+      The last release of the 6.x line, which is the line built for the .NET 8 the pinned image
+      carries; 8.x and 10.x are built for later SDKs. Coverlet rather than the Microsoft collector
+      that ships with the test SDK for two reasons, both about the number meaning something: it
+      leaves out the sequence points nothing can reach — the `init` accessors a positional record
+      gets for free, the machinery a `switch` over a string compiles into — and it counts a branch
+      the way JaCoCo counts one, so the figure beside java's and kotlin's is the same measurement
+      rather than a different one wearing the same name.
+    -->
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
   </ItemGroup>
 
   <ItemGroup>
