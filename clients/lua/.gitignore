@@ -1,0 +1,4 @@
+# What luacov writes for the threshold in this client's CI job to read. It is an intermediate of
+# one run, not something a checkout should carry.
+luacov.report.out
+luacov.stats.out

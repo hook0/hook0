@@ -33,6 +33,10 @@ clients.lua.check:
     # rock itself is allowed to require is settled by `spec/rockspec_spec.lua`, which runs below.
     - luarocks install luacheck 1.2.0
     - luarocks install busted 2.3.0
+    # `luacov` is what measures coverage at all, which is what makes the floor below
+    # enforceable; 0.17.0 is the version it was measured with. It reads `.luacov` beside this
+    # file for what to count and for writing its report as the run ends.
+    - luarocks install luacov 0.17.0
     - luarocks install luasocket 3.1.0
     - luarocks install luasec 1.3.2
   script:
@@ -43,4 +47,52 @@ clients.lua.check:
     - luacheck .
     # The suite drives this client against an API in a second process over a loopback socket, so
     # every timeout it exercises is a real one; the run as a whole is bounded by the job's own.
-    - busted --output=plainTerminal
+    #
+    # `--coverage` rather than a run of its own: `.luacov` asks luacov to write its report as this
+    # ends, so the one run both proves the client works and leaves the figure the floor below reads.
+    # It costs roughly five times the wall clock of the same run without it — measured as a multiple
+    # rather than in seconds, since the absolute figure says more about the machine than about this
+    # suite. Nothing against this job's timeout either way.
+    - busted --coverage --output=plainTerminal
+    # Lua ships no coverage threshold, so the comparison is made here rather than in a job or a
+    # script of its own. The floor is what this suite reaches today, 2913 of 2962 lines, truncated
+    # to the hundredth rather than rounded so that it can never sit above the run it was read from;
+    # luacov prints that same figure as 98.35% because it rounds. It is not headroom: these specs
+    # talk to a loopback socket and draw nothing random, so room below would only buy silent decay.
+    # One line going uncovered lands at 98.31%, which falls through.
+    #
+    # Lines only. luacov measures nothing else, and no branch tool exists for this language, so a
+    # branch figure here would be invented rather than measured.
+    #
+    # One thing to know before hunting for a deleted test when this goes red: luacov's DENOMINATOR
+    # moves with execution. A line becomes countable once something reaches it, so a case that
+    # reaches into code nothing had reached before enlarges the total, and a case that covers only
+    # part of what it newly reaches can push the ratio down while genuinely improving the suite.
+    # Compare the hit and total counts across the two runs, not the percentages, before concluding
+    # anything went missing. All twelve files the rock ships are in the report today — the suite
+    # loads every one — so a whole file cannot silently leave the denominator, which is the failure
+    # this would otherwise share with a coverage floor over a shrinking total.
+    #
+    # This ratio is the second guard, not the first. What actually holds the generated half is the
+    # bijection in `spec/`: the set of operations the suite issued equals the set the document
+    # declares, so an operation the API grows fails there by name rather than by a percentage
+    # drifting. That one cannot be satisfied by a test that asserts nothing.
+    #
+    # It is not 100% mostly because of one thing: `transport.lua` carries the whole `https` leg —
+    # loading luasec, wrapping the socket, naming the host, the handshake and each way those fail —
+    # and the suite reaches its API over plain HTTP on loopback, so none of it is taken. The rest is
+    # refusals of bodies and query lists above their ceilings, and type guards no value the API
+    # declares can trip.
+    - >-
+      awk -v floor=98.34 '
+      /^Summary/ { summary = 1; next }
+      summary && $1 == "Total" { hits = $2 + 0; missed = $3 + 0; counted = 1; next }
+      summary && $NF ~ /%$/ && $NF != "100.00%" { short[++n] = $0 }
+      END {
+      if (counted != 1 || hits + missed == 0) { print "the coverage report carried no counted line at all, so nothing was measured"; exit 1 }
+      total = hits * 100 / (hits + missed);
+      if (total >= floor) { printf "coverage is %.2f%%, at or above the %.2f%% floor\n", total, floor; exit 0 }
+      printf "coverage is %.2f%%, below the %.2f%% floor this suite reaches\n", total, floor;
+      printf "the files still short of 100%% are:\n";
+      for (i = 1; i <= n; i++) print "  " short[i];
+      exit 1 }' luacov.report.out
