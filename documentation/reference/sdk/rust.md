@@ -1,5 +1,5 @@
 ---
-title: "Rust webhook SDK — hook0-client crate"
+title: "Rust webhook SDK, the hook0-client crate"
 description: "Send Hook0 events and verify webhook signatures from Rust. Async on tokio and reqwest, idempotent event IDs, retries and payload bounds built in. Producer and consumer are separate features."
 keywords: [Rust webhook SDK, Hook0 Rust client, hook0-client crate, verify webhook signature Rust, actix-web webhook, async webhook client Rust]
 sdkTarget: rust
@@ -9,7 +9,7 @@ sdkTarget: rust
 
 The Hook0 SDK for Rust sends events and verifies webhook signatures. Sending is `async` on `tokio` and `reqwest`; verifying is a plain function that computes an HMAC and touches nothing.
 
-The crate is split in two features, both on by default. `producer` is everything that reaches the API — the client, the retry policy, the generated API groups. `consumer` is signature verification alone, and pulls in no HTTP stack at all.
+The crate is split in two features, both on by default. `producer` is everything that reaches the API, meaning the client, the retry policy and the generated API groups. `consumer` is signature verification alone, and pulls in no HTTP stack at all.
 
 ## Installation
 
@@ -60,7 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-`Event` has no builder and no `Default`: every field is written at every call site, which is what keeps a new one from being silently left out the day the API grows another.
+`Event` has no builder and no `Default`, so every field is written at every call site, which is what keeps a new one from being silently left out the day the API grows another.
 
 ```rust example=event
 Event {
@@ -80,7 +80,7 @@ The token goes in without a `Bearer` prefix; the client adds it.
 
 ## Sending an event is idempotent, and retried
 
-`send_event` sends every event under an ID it knows: the one set on the `Event`, or a UUIDv7 it generates when the event carries none. Passing no ID does not mean the ID comes from Hook0. The value comes from the client, is sent with the request, and is what `send_event` returns.
+`send_event` sends every event under an ID it knows, either the one set on the `Event` or a UUIDv7 it generates when the event carries none. Passing no ID does not mean the ID comes from Hook0. The value comes from the client, is sent with the request, and is what `send_event` returns.
 
 That is what makes retrying safe. Hook0 keys events on their ID, so a request repeated after a network failure or a server error ingests the event once rather than twice. Without a client-chosen ID, a repeated request would create a second event and deliver it to every subscriber.
 
@@ -123,11 +123,11 @@ Those are the defaults: the first four are what `RetryPolicy::default()` returns
 | `MAX_HEADER_BYTES` | 64 KiB |
 | `MAX_HEAD_BYTES` | 16 KiB |
 
-The last three are not configurable. They bound the head of an answer, which is written by whatever is on the other end: a line count and a size per line multiply, so the whole head is capped as well as each line of it, and the line that crosses either one stops the read before the body is touched.
+The last three are not configurable. They bound the head of an answer, which is written by whatever is on the other end. A line count and a size per line multiply, so the whole head is capped as well as each line of it, and the line that crosses either one stops the read before the body is touched.
 
 `RetryPolicy::disabled()` sends each event exactly once. A payload above the maximum is refused before any request is issued, so neither the round trip nor the retries after it are spent on a request the API would refuse.
 
-The delay before a retry doubles from `initial_backoff`, is capped by `max_backoff`, and the actual wait is drawn anywhere between zero and that ceiling — so emitters that failed at the same moment do not come back at the same moment. `RetryPolicy::delays` computes that series from the draws it is handed, which is what makes the schedule testable without waiting for it.
+The delay before a retry doubles from `initial_backoff`, is capped by `max_backoff`, and the actual wait is drawn anywhere between zero and that ceiling, so emitters that failed at the same moment do not come back at the same moment. `RetryPolicy::delays` computes that series from the draws it is handed, which is what makes the schedule testable without waiting for it.
 
 ## Verify a webhook signature
 
@@ -152,11 +152,11 @@ fn accept(
 }
 ```
 
-It answers `Ok(())` when the delivery is genuine and a `Hook0ClientError` for every reason it is not. Pass the raw body: a body that has been parsed and re-serialised no longer hashes to what was signed.
+It answers `Ok(())` when the delivery is genuine and a `Hook0ClientError` for every reason it is not. Pass the raw body, since a body that has been parsed and re-serialised no longer hashes to what was signed.
 
 `headers` is a slice of pairs, generic over anything that is `AsRef<[u8]>` on both sides, so a `Vec<(&str, &str)>`, an `actix_web::HeaderMap` collected into pairs and a list read off a socket all fit without being converted first.
 
-The clock window is bilateral: a delivery dated too far ahead is refused exactly like one dated too far behind, since a window that only looked backwards is one a sender widens by dating its own delivery ahead. A header the signature covers but the request did not carry is refused before any code is computed.
+The clock window is bilateral, so a delivery dated too far ahead is refused exactly like one dated too far behind, since a window that only looked backwards is one a sender widens by dating its own delivery ahead. A header the signature covers but the request did not carry is refused before any code is computed.
 
 `verify_webhook_signature_with_current_time` takes the same arguments followed by a `DateTime<Utc>`, for holding a signature against a moment you choose.
 
@@ -252,11 +252,11 @@ let created = client
     .await?;
 ```
 
-An event type is written `service.resource_type.verb`, and one that is not is refused as `InvalidEventType` before anything is sent. Unlike the other clients, this one exposes no type for parsing an event type on its own: the check happens inside `upsert_event_types` and nowhere a caller can reach.
+An event type is written `service.resource_type.verb`, and one that is not is refused as `InvalidEventType` before anything is sent. Unlike the other clients, this one exposes no type for parsing an event type on its own, so the check happens inside `upsert_event_types` and nowhere a caller can reach.
 
 ## Calling the rest of the API
 
-Sending events is two methods out of the whole API. Every operation Hook0 declares is a method of a generated group under `hook0_client::generated` — `ApplicationsApi`, `SubscriptionsApi`, `EventsApi`, `RequestAttemptsApi` and nine more, one per entity, one method per operation.
+Sending events is two methods out of the whole API. Every operation Hook0 declares is a method of a generated group under `hook0_client::generated`, one group per entity and one method per operation: `ApplicationsApi`, `SubscriptionsApi`, `EventsApi`, `RequestAttemptsApi` and nine more.
 
 They live under a module rather than at the crate root because the API document declares its own `Event` and `EventType`, which are the API's resources and not the `Event` an emitter fills in.
 
@@ -312,7 +312,7 @@ impl Transport for Reqwest {
 }
 ```
 
-That is the whole seam: one method, a status and some bytes. A test satisfies it without opening a socket, which is what the trait is for.
+That is the whole seam, one method taking a request and answering a status and some bytes. A test satisfies it without opening a socket, which is what the trait is for.
 
 With one in hand, every group is one line:
 
@@ -330,9 +330,9 @@ match applications.get(application_id).await {
 }
 ```
 
-Every failure the API can report is one `ProblemError` carrying a `kind`, not a type of its own — the closed list of identifiers is the `ProblemId` enum, so a `match` over it is checked and an identifier the crate has never heard of fails to deserialise rather than arriving as a string nobody looks at. Beside `kind` sits the whole RFC 9457 `Problem` the API answered, when it answered one this crate can read.
+Every failure the API can report arrives as one `ProblemError` carrying a `kind`. The closed list of identifiers is the `ProblemId` enum, so a `match` over it is checked, and an identifier the crate has never heard of fails to deserialise rather than arriving as a string nobody looks at. Beside `kind` sits the whole RFC 9457 `Problem` the API answered, when it answered one this crate can read.
 
-`RequestError` is the four ways a call can end other than with what it asked for: `Transport` when the request never got an answer, `Api` when the API described a failure, `Unreadable` when the answer was not the shape the document declares, and `Unwritable` when the request body could not be written.
+`RequestError` is the four ways a call can end other than with what it asked for. `Transport` says the request never got an answer, `Api` that the API described a failure, `Unreadable` that the answer was not the shape the document declares, and `Unwritable` that the request body could not be written.
 
 ## Errors
 
@@ -348,7 +348,7 @@ Every failure the API can report is one `ProblemError` carrying a `kind`, not a 
 | `InvalidHeaderName`, `InvalidHeaderValue`, `InvalidTolerance` | What the caller handed in could not be used |
 | `AuthHeader`, `ReqwestClient`, `Url` | The client could not be built at all |
 
-`event_id` on `EventSending` is always the ID the request went out under, whether the caller chose it or the client generated it, so a failed send is still traceable in the instance's logs:
+`event_id` on `EventSending` is always the ID the request went out under, the caller's own or the one the client generated, so a failed send is still traceable in the instance's logs:
 
 ```rust example=errors
 match client.send_event(&event).await {

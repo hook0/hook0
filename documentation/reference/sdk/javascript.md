@@ -1,5 +1,5 @@
 ---
-title: "JavaScript & TypeScript webhook SDK — hook0-client"
+title: "JavaScript & TypeScript webhook SDK, hook0-client"
 description: "Send Hook0 events and verify webhook signatures from Node.js. Typed, ESM and CommonJS, idempotent event IDs, retries and payload bounds built in."
 keywords: [JavaScript webhook SDK, TypeScript webhook client, hook0-client npm, verify webhook signature Node.js, Express webhook endpoint, send webhook event JavaScript]
 sdkTarget: typescript
@@ -9,7 +9,7 @@ sdkTarget: typescript
 
 The Hook0 SDK for JavaScript and TypeScript sends events and verifies webhook signatures. It is written in TypeScript and ships its own declarations, so a JavaScript consumer gets the same completions a TypeScript one does.
 
-Every method that reaches the network returns a promise. The package declares no runtime dependencies: sending goes through `fetch` and `AbortSignal.timeout`, and signatures are computed with Node's own `crypto`.
+Every method that reaches the network returns a promise. The package declares no runtime dependencies, since sending goes through `fetch` and `AbortSignal.timeout`, and signatures are computed with Node's own `crypto`.
 
 ## Installation
 
@@ -39,7 +39,7 @@ const eventId = await hook0.sendEvent(
 );
 ```
 
-Node is what it is written for. The module imports `node:url`, and verification takes a `Buffer`, so a browser or an edge runtime needs both of those resolved before anything here loads — the client does allow for it, naming neither the runtime nor the machine in its `User-Agent` when there is no `process` to read them off.
+Node is what it is written for. The module imports `node:url`, and verification takes a `Buffer`, so a browser or an edge runtime needs both of those resolved before anything here loads. The client does allow for it, naming neither the runtime nor the machine in its `User-Agent` when there is no `process` to read them off.
 
 ## The event
 
@@ -57,13 +57,13 @@ new Event(
 );
 ```
 
-`labels` is required and `metadata` is not, which is the one place the positional order is worth reading twice. Labels are what a subscription routes on, and the API declares the field required — pass `{}` for an event nothing filters on, never skip the argument.
+`labels` is required and `metadata` is not, which is the one place the positional order is worth reading twice. Labels are what a subscription routes on, and the API declares the field required, so pass `{}` for an event nothing filters on rather than skipping the argument.
 
 The token goes in without a `Bearer` prefix; the client adds it.
 
 ## Sending an event is idempotent, and retried
 
-`sendEvent` sends every event under an ID it knows: the one set on the `Event`, or a UUIDv7 it generates when the event carries none. Passing no ID does not mean the ID comes from Hook0. The value comes from the client, is sent with the request, and is what `sendEvent` resolves to.
+`sendEvent` sends every event under an ID it knows, either the one set on the `Event` or a UUIDv7 it generates when the event carries none. Passing no ID does not mean the ID comes from Hook0. The value comes from the client, is sent with the request, and is what `sendEvent` resolves to.
 
 That is what makes retrying safe. Hook0 keys events on their ID, so a request repeated after a network failure or a server error ingests the event once rather than twice. Without a client-chosen ID, a repeated request would create a second event and deliver it to every subscriber.
 
@@ -106,11 +106,11 @@ Those are the defaults, and every argument of both constructors has one, so `new
 | `MAX_HEADER_BYTES` | 64 KiB |
 | `MAX_HEAD_BYTES` | 16 KiB |
 
-The last three are exported but not configurable. They bound the head of an answer, which is written by whatever is on the other end: a line count and a size per line multiply, so the whole head is capped as well as each line of it.
+The last three are exported but not configurable. They bound the head of an answer, which is written by whatever is on the other end. A line count and a size per line multiply, so the whole head is capped as well as each line of it.
 
 `RetryPolicy.disabled()` sends each event exactly once. A payload above the maximum rejects before any request is issued, so neither the round trip nor the retries after it are spent on a request the API would refuse.
 
-A duration that is not a finite number falls back to that field's own default rather than to zero: a zero would delete the spacing between attempts and turn a mistyped policy into a burst.
+A duration that is not a finite number falls back to that field's own default rather than to zero, since a zero would delete the spacing between attempts and turn a mistyped policy into a burst.
 
 ## Verify a webhook signature
 
@@ -125,12 +125,12 @@ try {
 ```
 
 :::caution The return type is wider than the behaviour
-`verifyWebhookSignature` is declared `boolean | Hook0ClientError`, but it returns `true` and nothing else. Every refusal is **thrown** as a `Hook0ClientError` — it never returns `false`, and it never returns an error value. A handler shaped `if (!isValid) { … }` therefore has a branch that cannot be reached, and one without a `try` treats every forged delivery as a crash.
+`verifyWebhookSignature` is declared `boolean | Hook0ClientError`, but it returns `true` and nothing else. Every refusal is **thrown** as a `Hook0ClientError`. It never returns `false`, and it never returns an error value. A handler shaped `if (!isValid) { … }` therefore has a branch that cannot be reached, and one without a `try` treats every forged delivery as a crash.
 :::
 
-`rawBody` is a `Buffer` of the bytes that arrived. A body that has been parsed and re-serialised no longer hashes to what was signed. `headers` is a `Headers`, not the plain object a framework hands you, so build one from what arrived. `tolerance` is a number of **seconds**.
+`rawBody` is a `Buffer` of the bytes that arrived. A body that has been parsed and re-serialised no longer hashes to what was signed. `headers` is a `Headers`, which a framework will not hand you, so build one from the plain object it does. `tolerance` is a number of **seconds**.
 
-The clock window is bilateral: a delivery dated too far ahead is refused exactly like one dated too far behind, since a window that only looked backwards is one a sender widens by dating its own delivery ahead. A header the signature covers but the request did not carry is refused before any code is computed.
+The clock window is bilateral, so a delivery dated too far ahead is refused exactly like one dated too far behind, since a window that only looked backwards is one a sender widens by dating its own delivery ahead. A header the signature covers but the request did not carry is refused before any code is computed.
 
 `verifyWebhookSignatureWithCurrentTime` takes the same arguments followed by a `Date`, for holding a signature against a moment you choose.
 
@@ -181,7 +181,7 @@ const created = await hook0.upsertEventTypes([
 ]);
 ```
 
-An event type is written `service.resource_type.verb`. `EventType.fromString` reads one and — unlike every refusal in the signature half — *returns* the failure rather than throwing it, so the result is a union you have to narrow:
+An event type is written `service.resource_type.verb`. `EventType.fromString` reads one and *returns* the failure rather than throwing it, which is the opposite of every refusal in the signature half, so the result is a union you have to narrow:
 
 ```typescript example=eventType
 import { EventType, Hook0ClientError } from 'hook0-client';
@@ -197,7 +197,7 @@ console.log(parsed.service, parsed.resourceType, parsed.verb);
 
 ## Calling the rest of the API
 
-`Hook0Client` covers sending events and declaring event types. Every other operation Hook0 declares is a method on a generated group under the `generated` namespace — `ApplicationsApi`, `SubscriptionsApi`, `EventsApi`, `RequestAttemptsApi` and nine more, one per entity, one method per operation.
+`Hook0Client` covers sending events and declaring event types. Every other operation Hook0 declares is a method on a generated group under the `generated` namespace, one group per entity and one method per operation: `ApplicationsApi`, `SubscriptionsApi`, `EventsApi`, `RequestAttemptsApi` and nine more.
 
 They sit under `generated` rather than at the top level because the API document declares its own `Event` and `EventType`, which are the API's resources and not the `Event` an emitter fills in.
 
@@ -245,9 +245,9 @@ try {
 }
 ```
 
-Every failure the API can report is one `generated.ProblemError` carrying a `kind`, not a class of its own. `kind` is a `generated.ProblemId`, the closed union of the identifiers the API document declares, so comparing against a string it does not declare is a compile error rather than a branch that never runs. Beside it sit `status` and the whole RFC 9457 `problem` the API answered, when it answered one the client could read.
+Every failure the API can report arrives as one `generated.ProblemError` carrying a `kind`. That `kind` is a `generated.ProblemId`, the closed union of the identifiers the API document declares, so comparing against a string it does not declare is a compile error rather than a branch that never runs. Beside it sit `status` and the whole RFC 9457 `problem` the API answered, when it answered one the client could read.
 
-That union is checked where you write it and nowhere else: the answer is parsed and cast, not validated, so an identifier the API grows before you upgrade arrives as a `kind` no arm of yours matches. Eight of the eleven clients refuse such an answer outright; this one, Go and C# do not.
+The union is checked where you write it and nowhere else. The answer is parsed and cast rather than validated, so an identifier the API grows before you upgrade arrives as a `kind` no arm of yours matches. Eight of the eleven clients refuse such an answer outright; this one, Go and C# do not.
 
 ## Errors
 
@@ -278,7 +278,7 @@ try {
 }
 ```
 
-A `ProblemError` from a generated group is not a `Hook0ClientError`: the two halves of the package report failures separately, so a `catch` around a generated call names the one it means.
+A `ProblemError` from a generated group is not a `Hook0ClientError`. The two halves of the package report failures separately, so a `catch` around a generated call names the one it means.
 
 ## Links
 

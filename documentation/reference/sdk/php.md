@@ -1,5 +1,5 @@
 ---
-title: "PHP webhook SDK — hook0/client"
+title: "PHP webhook SDK, the hook0/client package"
 description: "Send Hook0 events and verify webhook signatures from PHP 8.2 or later. Retries, idempotent event IDs and payload bounds built in. Install with Composer."
 keywords: [PHP webhook SDK, Hook0 PHP client, verify webhook signature PHP, Laravel webhook endpoint, Symfony webhook, send webhook event PHP]
 sdkTarget: php
@@ -61,7 +61,7 @@ The token goes in without a `Bearer` prefix; the client adds it.
 
 ## Sending an event is idempotent, and retried
 
-`sendEvent` sends every event under an ID it knows: the one set on the `Event`, or a UUIDv7 it generates when the event carries none. Passing no ID does not mean the ID comes from Hook0. The value comes from the client, is sent with the request, and is what `sendEvent` returns.
+`sendEvent` sends every event under an ID it knows, either the one set on the `Event` or a UUIDv7 it generates when the event carries none. Passing no ID does not mean the ID comes from Hook0. The value comes from the client, is sent with the request, and is what `sendEvent` returns.
 
 That is what makes retrying safe. Hook0 keys events on their ID, so a request repeated after a network failure or a server error ingests the event once rather than twice. Without a client-chosen ID, a repeated request would create a second event and deliver it to every subscriber.
 
@@ -131,7 +131,7 @@ try {
 
 Pass the raw request body. A body that has been parsed and re-serialised no longer hashes to what was signed. `$headers` accepts a map or a list of pairs, and `$tolerance` is seconds.
 
-The clock window is bilateral: a webhook signed too far in the future is refused exactly like one signed too long ago. A header the signature covers but the request did not carry is refused before any code is computed.
+The clock window is bilateral, so a webhook signed too far in the future is refused exactly like one signed too long ago. A header the signature covers but the request did not carry is refused before any code is computed.
 
 `Signature::verifyWithCurrentTime` takes the same arguments followed by a `DateTimeImmutable`, for holding a signature against a moment you choose.
 

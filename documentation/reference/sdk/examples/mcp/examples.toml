@@ -8,7 +8,7 @@
 #
 # What this catches is the half of the page a reader can paste: a field renamed on
 # `GeneratedToolInfo`, an argument added to `Hook0McpServer::new`, an export dropped from the
-# crate root. What it does not catch is the other half — the tool table itself. Those names come
+# crate root. What it does not catch is the other half, the tool table itself. Those names come
 # from the OpenAPI snapshot and travel as string literals, so no compiler reads them; the guard
 # there is `UPDATE_SDK=mcp cargo test -p hook0-sdkgen sdk_targets`, which refuses the committed
 # table the moment the snapshot describes another one.
@@ -26,7 +26,7 @@ run = [["cargo", "test", "--no-run", "--quiet"]]
 
 [environment]
 # Relative to this project's own root, so a `CARGO_TARGET_DIR` the checker that assembles this
-# project happens to be running under is never inherited into it — this project's build artefacts
+# project happens to be running under is never inherited into it, so this project's build artefacts
 # stay inside the directory it was assembled in, never in the repository and never mixed into
 # another language's build.
 CARGO_TARGET_DIR = "target"

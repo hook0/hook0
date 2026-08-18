@@ -45,7 +45,7 @@ Service tokens authenticate the MCP server with your Hook0 organization.
 3. Click **Service Tokens** in the left sidebar
 4. Click **Create Service Token**
 5. Name it (e.g., "Claude MCP" or "Cursor AI")
-6. **Copy the token** — this is your `HOOK0_API_TOKEN`
+6. **Copy the token**, which is your `HOOK0_API_TOKEN`
 
 :::warning Security Best Practice
 Service tokens have full access to your organization. For production environments, consider using [token attenuation](../how-to-guides/manage-service-tokens.md#token-attenuation) to restrict permissions to specific applications.
@@ -165,7 +165,7 @@ For self-hosted Hook0 instances, set the API URL:
 
 ### Read-Only Mode
 
-Enable read-only mode for safe observability access. Only query operations are available — no modifications possible:
+Enable read-only mode for safe observability access. Only query operations are available, and no modification is possible:
 
 ```json
 {
@@ -194,9 +194,9 @@ This is recommended for:
 
 ## Available Tools
 
-Twenty-three, one per operation the API document marks for this server, named `<entity>.<operation>` — `applications.list`, `events.ingest`, `subscriptions.create`, `events.replay`. Thirteen read and ten write; read-only mode leaves the thirteen.
+Twenty-three, one per operation the API document marks for this server, named `<entity>.<operation>`, as in `applications.list`, `events.ingest`, `subscriptions.create` and `events.replay`. Thirteen read and ten write; read-only mode leaves the thirteen.
 
-The whole table, with the method and path each tool reaches, is on the [MCP server reference page](sdk/mcp.md#the-tools). It is kept in one place because the list is generated from the API document rather than written down: a second copy is a second thing to forget.
+The whole table, with the method and path each tool reaches, is on the [MCP server reference page](sdk/mcp.md#the-tools). It is kept in one place because the list is generated from the API document rather than written down, and a second copy is a second thing to forget.
 
 You rarely name a tool yourself. You ask for what you want, and the assistant picks:
 
@@ -487,7 +487,7 @@ lsof -i :3000
 
 ### Your Assistant Connects On a Different Protocol Revision Than It Asked For
 
-**Cause:** MCP is versioned by dated revisions, and the client and the server settle on one when they connect. If your assistant asks for a revision this server has not implemented, the server answers with the newest one it has rather than refusing, and the session continues on that. `2026-07-28` is the revision currently not implemented: it asks for a stateless lifecycle, `subscriptions/listen` and input-required tool handling the server does not provide.
+**Cause:** MCP is versioned by dated revisions, and the client and the server settle on one when they connect. If your assistant asks for a revision this server has not implemented, the server answers with the newest one it has rather than refusing, and the session continues on that. `2026-07-28` is the revision currently not implemented, since it asks for a stateless lifecycle, `subscriptions/listen` and input-required tool handling the server does not provide.
 
 **Fix:**
 - Usually nothing. Assistants negotiate down on their own and every tool keeps working.
@@ -525,7 +525,7 @@ CMD ["hook0-mcp"]
 
 ### Is my data sent to the AI?
 
-The AI assistant only sees the data returned by the tools it calls. Hook0 does not send your data to any third party — the MCP server runs locally on your machine and communicates directly with the Hook0 API.
+The AI assistant only sees the data returned by the tools it calls. Hook0 does not send your data to any third party. The MCP server runs locally on your machine and communicates directly with the Hook0 API.
 
 ### Can I use this with ChatGPT?
 

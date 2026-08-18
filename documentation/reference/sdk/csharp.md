@@ -1,5 +1,5 @@
 ---
-title: "C# / .NET webhook SDK — Hook0.Client"
+title: "C# / .NET webhook SDK, Hook0.Client"
 description: "Send Hook0 events and verify webhook signatures from .NET 8. Blocking and Task-returning methods, zero runtime dependencies, retries and payload bounds built in."
 keywords: [C# webhook SDK, .NET webhook client, Hook0.Client NuGet, verify webhook signature C#, ASP.NET Core webhook endpoint, send webhook event dotnet]
 sdkTarget: csharp
@@ -7,7 +7,7 @@ sdkTarget: csharp
 
 # C# SDK
 
-The Hook0 SDK for .NET sends events and verifies webhook signatures. Every operation comes in two forms: a blocking one, and a `Task`-returning one that takes a `CancellationToken`.
+The Hook0 SDK for .NET sends events and verifies webhook signatures. Every operation comes in two forms, a blocking one and a `Task`-returning one that takes a `CancellationToken`.
 
 The package has zero runtime dependencies. It reaches the network, verifies signatures and reads what the API answers with nothing but the framework.
 
@@ -61,7 +61,7 @@ new Event
 
 ## Sending an event is idempotent, and retried
 
-`SendEvent` sends every event under an ID it knows: the one set on `EventId`, or a UUIDv7 it mints when the event carries none. Passing no ID does not mean the ID comes from Hook0. The value comes from the client, is sent with the request, and is what `SendEvent` returns.
+`SendEvent` sends every event under an ID it knows, either the one set on `EventId` or a UUIDv7 it mints when the event carries none. Passing no ID does not mean the ID comes from Hook0. The value comes from the client, is sent with the request, and is what `SendEvent` returns.
 
 That is what makes retrying safe. Hook0 keys events on their ID, so a request repeated after a network failure or a server error ingests the event once rather than twice. Without a client-chosen ID, a repeated request would create a second event and deliver it to every subscriber.
 
@@ -124,7 +124,7 @@ catch (SignatureException refused)
 }
 ```
 
-The payload is `byte[]` rather than text on purpose: a signature covers what arrived, and re-encoding a string before hashing it is how a valid delivery comes to be refused.
+The payload is `byte[]` rather than text on purpose. A signature covers what arrived, and re-encoding a string before hashing it is how a valid delivery comes to be refused.
 
 The clock window is bilateral, so a delivery dated too far ahead is refused exactly like one dated too far behind. It defaults to `Webhooks.DefaultTolerance`, five minutes. Pass `tolerance` to widen or narrow it, or `VerifyWebhookSignatureWithCurrentTime` to hold a delivery against a moment you name.
 
@@ -175,7 +175,7 @@ IReadOnlyList<string> created = client.UpsertEventTypes(
 
 ## Calling the rest of the API
 
-Sending events is two methods out of the whole API. Every operation Hook0 declares is a method on a generated group, in both idioms, over the transport the client already built — `using Hook0.Generated;` reaches them:
+Sending events is two methods out of the whole API. Every operation Hook0 declares is a method on a generated group, in both idioms, over the transport the client already built, and `using Hook0.Generated;` reaches them:
 
 ```csharp example=generated
 ApplicationsApi applications = new(client.Transport);
@@ -188,13 +188,13 @@ IReadOnlyList<Application> also = await awaiting.ListAsync("your-organization-id
 Each problem the API can report is an exception of its own under `ProblemException`, which carries the HTTP `Status` and the parsed `Problem`.
 
 :::note A closed list is not a closed type here
-Every list of values the API document closes — `ProblemId`, `RequestAttemptStatusType`, the onboarding steps — is written as a `static class` of `const string` members rather than as an `enum`, so `Problem.Id` is a plain `string`. Two things follow from that.
+Every list of values the API document closes, `ProblemId` and `RequestAttemptStatusType` and the onboarding steps among them, is written as a `static class` of `const string` members rather than as an `enum`, so `Problem.Id` is a plain `string`. Two things follow from that.
 
 **Nothing refuses a value the document does not declare.** An identifier the API grows tomorrow deserialises fine and lands in a `switch` with no arm for it, silently. Go and TypeScript are in the same position at runtime, for their own reasons. The other eight clients refuse the answer outright: Rust, PHP, Python, Java and Kotlin because the list is an enum, Ruby, Lua and Zig because they check membership as they read.
 
 **And there is no type to compare against.** Go still declares a `ProblemId` type and TypeScript a union its compiler checks; here a typo in a string literal is a comparison that is merely always false. Each of these classes exposes `Values` and `Contains(value)`, which is what checking looks like when the type will not do it for you.
 
-The typed exceptions above are unaffected: those *are* distinct types, and an identifier none of them names arrives as the base `ProblemException`.
+The typed exceptions above are unaffected. Those *are* distinct types, and an identifier none of them names arrives as the base `ProblemException`.
 :::
 
 ## Errors

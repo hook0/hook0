@@ -55,7 +55,7 @@ EXAMPLE
 
 // HARNESS usingClientAndEvent
 // For a snippet that reads a client, an event and `Hook0ClientError` without importing any of
-// them, and logs through whatever the reader's own logger is — `console` stands in for it, since any
+// them, and logs through whatever the reader's own logger is. `console` stands in for it, since any
 // object with an `error` method would do exactly as well here.
 import { Event, Hook0Client, Hook0ClientError } from 'hook0-client';
 
@@ -161,8 +161,8 @@ EXAMPLE
 // END HARNESS
 
 // HARNESS webhookHandlerUsingApp
-// For the overview's webhook handler, which is shown without the Express app it is registered on —
-// the SDK page beside it is where a reader meets that part.
+// For the overview's webhook handler, which is shown without the Express app it is registered on.
+// The SDK page beside it is where a reader meets that part.
 import express from 'express';
 
 const app = express();
