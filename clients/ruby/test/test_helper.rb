@@ -58,7 +58,16 @@ SimpleCov.start do
   # Written in the block form rather than as `minimum_coverage_by_file`, which the version pinned
   # beside this file deprecates: the old spelling still works, and prints a deprecation on every
   # run for as long as it does.
-  coverage(:line) { minimum_per_file 92.78 }
+  #
+  # The figure is what the OLDEST-counting Ruby reports, not what the machine it was written on did,
+  # because the denominator moves with the interpreter. `runtime.rb` is 90 of 97 lines on 3.2 and 89
+  # of 96 on the 3.4 the pipeline runs: the same seven arms go uncovered either way, but one line 3.2
+  # counts as relevant and covered is not counted at all by 3.4. Read off 3.2 this is 92.7835, off
+  # 3.4 it is 92.7083, and a floor at the first fails every pipeline while passing every laptop.
+  #
+  # So it is the lower of the two, truncated to the hundredth. Anyone raising it has to check it
+  # against the Ruby in `RUBY_VERSION`, not against the one they happen to have.
+  coverage(:line) { minimum_per_file 92.70 }
 end
 
 $LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
