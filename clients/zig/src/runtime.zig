@@ -539,15 +539,6 @@ pub fn preview(payload: []const u8) []const u8 {
     return payload[0..max_preview_bytes];
 }
 
-/// As much of a response body as something outliving the request keeps a copy of.
-///
-/// A body arrives from a server this package does not control, so what is kept of it is cut at the
-/// same ceiling the parser reads at: past that, nothing further could be read out of it anyway.
-pub fn retained(payload: []const u8) []const u8 {
-    if (payload.len <= max_payload_bytes) return payload;
-    return payload[0..max_payload_bytes];
-}
-
 /// What to say about an answer the API document does not describe.
 pub fn unreadable(
     allocator: std.mem.Allocator,

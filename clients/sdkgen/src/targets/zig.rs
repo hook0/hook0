@@ -732,15 +732,12 @@ fn errors(
          }}\n"
     ));
 
-    // The body is copied before it is read rather than read where it lies: what a document is
-    // parsed into points into the bytes it was parsed from, and those bytes belong to the call,
-    // which frees them on its way out.
     source.push_str(&format!(
         "\n/// What one failure said about itself, read into an arena of its own.\n\
          ///\n\
-         /// Everything the answer points into — the copy of the body, the document read out of it\n\
-         /// and the message written about it — is in that arena, so what the caller allocated for\n\
-         /// the request it drew is none of it.\n\
+         /// The body is read where it lies and nothing points back into it afterwards: every\n\
+         /// string the document carries is copied out of it as it is parsed, and the message is\n\
+         /// written out. Both land in the arena this answers, and the body stays the call's.\n\
          fn reportedOf(\n    \
          {ALLOCATOR_ARGUMENT}: std.mem.Allocator,\n    \
          status: u16,\n    \
@@ -749,12 +746,11 @@ fn errors(
          const held: {RUNTIME}.Kept = try .init({ALLOCATOR_ARGUMENT});\n    \
          errdefer held.deinit();\n\n    \
          const into = held.arena.allocator();\n    \
-         const carried = try into.dupe(u8, {RUNTIME}.retained(payload));\n    \
-         const problem = {RUNTIME}.problemOf({MODELS}.{schema}, into, carried);\n    \
+         const problem = {RUNTIME}.problemOf({MODELS}.{schema}, into, payload);\n    \
          const detail = if (raisedBy(problem) != null)\n        \
-         try {RUNTIME}.reported(into, status, carried)\n    \
+         try {RUNTIME}.reported(into, status, payload)\n    \
          else\n        \
-         try {RUNTIME}.unreadable(into, status, carried);\n\n    \
+         try {RUNTIME}.unreadable(into, status, payload);\n\n    \
          return .{{ .status = status, .problem = problem, .detail = detail, .held = held }};\n\
          }}\n"
     ));

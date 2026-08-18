@@ -150,9 +150,9 @@ fn raisedBy(problem: ?models.Problem) ?Failure {
 
 /// What one failure said about itself, read into an arena of its own.
 ///
-/// Everything the answer points into — the copy of the body, the document read out of it
-/// and the message written about it — is in that arena, so what the caller allocated for
-/// the request it drew is none of it.
+/// The body is read where it lies and nothing points back into it afterwards: every
+/// string the document carries is copied out of it as it is parsed, and the message is
+/// written out. Both land in the arena this answers, and the body stays the call's.
 fn reportedOf(
     allocator: std.mem.Allocator,
     status: u16,
@@ -162,12 +162,11 @@ fn reportedOf(
     errdefer held.deinit();
 
     const into = held.arena.allocator();
-    const carried = try into.dupe(u8, runtime.retained(payload));
-    const problem = runtime.problemOf(models.Problem, into, carried);
+    const problem = runtime.problemOf(models.Problem, into, payload);
     const detail = if (raisedBy(problem) != null)
-        try runtime.reported(into, status, carried)
+        try runtime.reported(into, status, payload)
     else
-        try runtime.unreadable(into, status, carried);
+        try runtime.unreadable(into, status, payload);
 
     return .{ .status = status, .problem = problem, .detail = detail, .held = held };
 }
