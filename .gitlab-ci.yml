@@ -50,6 +50,19 @@ variables:
   ALPINE_VERSION: "3.24"
   BUILDKIT_VERSION: "v0.27.0-rootless"
   TRIVY_VERSION: "0.68.2"
+  # How long the runner waits on one cache request before giving up on it, in minutes. The default
+  # is ten, and the runner retries, so a cache backend that accepts a connection and then stops
+  # answering costs half an hour before the script has run a line.
+  #
+  # That is not hypothetical here. `sdk.packages` spent 12:08 to 12:36 on three ten-minute stalls
+  # against the cache store, got fifty seconds of script, and was killed by its own thirty-minute
+  # timeout; `sentry_integration.check` died the same way at thirty-six minutes. Neither had
+  # anything wrong with it.
+  #
+  # Two minutes because a cache is an optimisation and a job that cannot fetch one should compile
+  # from scratch rather than fail. Raising the job timeouts instead would buy the same green at the
+  # price of runners held for half an hour doing nothing.
+  CACHE_REQUEST_TIMEOUT: "2"
 
 stages:
   - build
