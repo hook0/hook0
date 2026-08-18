@@ -338,6 +338,157 @@ final class ClientTest extends ApiCase
         self::assertCount(2, $this->api->received());
     }
 
+    public function testAPayloadThatIsNotTextStopsTheSendRatherThanReachingTheWireMangled(): void
+    {
+        // A payload is bytes the caller handed over, and a request body is a JSON document: bytes
+        // that are not text cannot be written as one, and what must not happen is a send that puts
+        // whatever the language made of them on the wire.
+        $this->expectException(\Hook0\DecodeError::class);
+
+        try {
+            $this->client()->sendEvent($this->anEvent(payload: "\xff\xfe not a document"));
+        } finally {
+            self::assertSame(0, $this->api->count(), 'a payload that is not text reached the API');
+        }
+    }
+
+    public function testUpsertingNoEventTypeAtAllReachesTheApiForNothing(): void
+    {
+        self::assertSame([], $this->client()->upsertEventTypes([]));
+        self::assertSame(0, $this->api->count());
+    }
+
+    public function testAnEventCarryingMetadataSendsItBesideTheLabels(): void
+    {
+        $this->api->willAnswer($this->ingested(self::INGESTED_ID));
+
+        $this->client()->sendEvent($this->anEvent(metadata: ['tenant' => 'acme']));
+
+        self::assertSame(['tenant' => 'acme'], $this->api->received()[0]->json()['metadata']);
+    }
+
+    public function testAnAcceptedEventTheApiNamedNoIdentifierForIsReportedRatherThanRepeated(): void
+    {
+        // The event was ingested, so repeating the request would meet the same answer; what the
+        // caller cannot be given is the identifier it was ingested under.
+        $this->api->willAnswer(new ScriptedResponse(201, ['received_at' => '2026-01-01']));
+
+        try {
+            $this->client()->sendEvent($this->anEvent());
+            self::fail('an answer naming no event id was read as a send that succeeded');
+        } catch (ClientError $refused) {
+            self::assertStringContainsString('without an event id', $refused->getMessage());
+        }
+
+        self::assertSame(1, $this->api->count());
+    }
+
+    public function testARefusalTheApiWroteNoProblemDocumentForFallsBackToWhatItsStatusSays(): void
+    {
+        // The one status that says both a spent quota and a paced instance is told apart by the
+        // problem the body names. A body naming none — here, one that is not a document at all —
+        // leaves the status to decide, and that status is one a repeat cannot clear.
+        $this->api->willAnswer(new ScriptedResponse(429, 'a gateway wrote this, and it is not JSON'));
+
+        try {
+            $this->client()->sendEvent($this->anEvent());
+            self::fail('a refusal with no problem document was read as a send that succeeded');
+        } catch (ClientError $refused) {
+            self::assertStringContainsString('a gateway wrote this', $refused->getMessage());
+        }
+
+        self::assertSame(1, $this->api->count());
+    }
+
+    public function testEventTypesTheApiCouldNotBeAskedForAreReportedRatherThanTakenAsNone(): void
+    {
+        // Nothing is created off a list that was never read: taking a failure for an empty list
+        // would have this client declare every event type the application already has.
+        $this->api->willAnswer(new ScriptedResponse(503, ['id' => 'ServiceUnavailable', 'status' => 503]));
+
+        try {
+            $this->client()->upsertEventTypes(['auth.user.create']);
+            self::fail('a list of event types that was refused was read as a list');
+        } catch (ClientError $refused) {
+            self::assertStringContainsString('Getting available event types failed', $refused->getMessage());
+        }
+
+        self::assertSame(1, $this->api->count());
+    }
+
+    public function testAListOfEventTypesTheApiCouldNotAnswerAtAllIsReportedAsTheAskItWas(): void
+    {
+        // The answer crosses a ceiling this client set for itself, so no list ever arrives. What the
+        // caller is told is what was being asked for, rather than the transport's own words.
+        $this->api->willAnswer(new ScriptedResponse(200, [['event_type_name' => str_repeat('a', 2048)]]));
+
+        try {
+            $this->client($this->options(maxResponseBytes: 256))->upsertEventTypes(['auth.user.create']);
+            self::fail('a list of event types that never arrived was read as a list');
+        } catch (ClientError $refused) {
+            self::assertStringContainsString('Getting available event types failed', $refused->getMessage());
+            self::assertStringContainsString('more than the 256 bytes read at most', $refused->getMessage());
+        }
+    }
+
+    public function testAnEventTypeTheApiNeverAnsweredForIsReportedUnderTheNameItWasAskedFor(): void
+    {
+        $this->api->willAnswer(
+            new ScriptedResponse(200, []),
+            new ScriptedResponse(201, ['padding' => str_repeat('a', 2048)])
+        );
+
+        try {
+            $this->client($this->options(maxResponseBytes: 256))->upsertEventTypes(['auth.user.create']);
+            self::fail('an event type whose creation never answered was read as created');
+        } catch (ClientError $refused) {
+            self::assertStringContainsString("Creating event type 'auth.user.create' failed", $refused->getMessage());
+            self::assertStringContainsString('more than the 256 bytes read at most', $refused->getMessage());
+        }
+    }
+
+    public function testAListOfEventTypesThatIsNotAListIsReportedRatherThanWalked(): void
+    {
+        $this->api->willAnswer(new ScriptedResponse(200, ['event_type_name' => 'auth.user.create']));
+
+        try {
+            $this->client()->upsertEventTypes(['auth.user.create']);
+            self::fail('an answer that is not a list of event types was walked as one');
+        } catch (ClientError $refused) {
+            self::assertStringContainsString('did not answer a list of event types', $refused->getMessage());
+        }
+    }
+
+    public function testAnEntryOfTheListNamingNoEventTypeIsPassedOverRatherThanStoppingTheRead(): void
+    {
+        // The application declares one of the two, under an entry beside one this client cannot
+        // read: the one it can read is still matched, and the other is still created.
+        $this->api->willAnswer(
+            new ScriptedResponse(200, [['no name here' => true], ['event_type_name' => 'auth.user.create']]),
+            new ScriptedResponse(201, ['event_type_name' => 'billing.invoice.paid'])
+        );
+
+        $created = $this->client()->upsertEventTypes(['auth.user.create', 'billing.invoice.paid']);
+
+        self::assertSame(['billing.invoice.paid'], $created);
+    }
+
+    public function testAnEventTypeTheApiRefusedToCreateIsReportedUnderTheNameItWasAskedFor(): void
+    {
+        $this->api->willAnswer(
+            new ScriptedResponse(200, []),
+            new ScriptedResponse(409, ['id' => 'EventTypeAlreadyExist', 'status' => 409])
+        );
+
+        try {
+            $this->client()->upsertEventTypes(['auth.user.create']);
+            self::fail('an event type the API refused was read as created');
+        } catch (ClientError $refused) {
+            self::assertStringContainsString("Creating event type 'auth.user.create' failed", $refused->getMessage());
+            self::assertStringContainsString('EventTypeAlreadyExist', $refused->getMessage());
+        }
+    }
+
     public function testAnEventTypeThatDoesNotReadAsThreePartsIsRefused(): void
     {
         try {

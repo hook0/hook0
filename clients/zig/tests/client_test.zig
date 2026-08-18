@@ -267,3 +267,97 @@ test "an event type that does not name all three of its parts is refused" {
     const read = try hook0.EventType.parse("auth.user.create");
     try std.testing.expectEqualStrings("auth", read.service);
 }
+
+test "declaring no event type at all reaches the API for nothing" {
+    var arena: std.heap.ArenaAllocator = .init(allocator);
+    defer arena.deinit();
+    const held = arena.allocator();
+
+    const api = try helper.FakeApi.init(io, held, &.{});
+    defer api.deinit();
+
+    var built = try helper.client(io, held, api, helper.options(1));
+    const owned = try built.upsertEventTypes(held, &.{});
+    defer owned.deinit();
+
+    try std.testing.expectEqual(@as(usize, 0), owned.value.len);
+    try std.testing.expectEqual(@as(usize, 0), api.count());
+}
+
+test "an accepted event the API named no identifier for is reported rather than repeated" {
+    // The event was ingested, so repeating the request would meet the same answer; what the caller
+    // cannot be given is the identifier it was ingested under.
+    var arena: std.heap.ArenaAllocator = .init(allocator);
+    defer arena.deinit();
+    const held = arena.allocator();
+
+    const scripted = [_]helper.Scripted{.{ .status = 201, .body = "{\"received_at\":\"2026-01-01\"}" }};
+    const api = try helper.FakeApi.init(io, held, &scripted);
+    defer api.deinit();
+
+    var built = try helper.client(io, held, api, helper.options(4));
+    try std.testing.expectError(error.Refused, built.sendEvent(held, helper.anEvent()));
+
+    try std.testing.expectEqual(@as(usize, 1), api.count());
+    try std.testing.expect(std.mem.indexOf(u8, built.detail, "without an event id") != null);
+}
+
+test "event types the API refused to answer are reported rather than taken as none" {
+    // Nothing is created off a list that was never read: taking a refusal for an empty list would
+    // have this client declare every event type the application already has.
+    var arena: std.heap.ArenaAllocator = .init(allocator);
+    defer arena.deinit();
+    const held = arena.allocator();
+
+    const scripted = [_]helper.Scripted{try helper.refusal(held, 503, "ServiceUnavailable", &.{})};
+    const api = try helper.FakeApi.init(io, held, &scripted);
+    defer api.deinit();
+
+    var built = try helper.client(io, held, api, helper.options(1));
+    try std.testing.expectError(error.Refused, built.upsertEventTypes(held, &.{"auth.user.create"}));
+
+    try std.testing.expectEqual(@as(usize, 1), api.count());
+    try std.testing.expect(std.mem.indexOf(u8, built.detail, "ServiceUnavailable") != null);
+}
+
+test "an event type the API refused to create is reported rather than answered as created" {
+    var arena: std.heap.ArenaAllocator = .init(allocator);
+    defer arena.deinit();
+    const held = arena.allocator();
+
+    const scripted = [_]helper.Scripted{
+        .{ .status = 200, .body = "[]" },
+        try helper.refusal(held, 409, "EventTypeAlreadyExist", &.{}),
+    };
+    const api = try helper.FakeApi.init(io, held, &scripted);
+    defer api.deinit();
+
+    var built = try helper.client(io, held, api, helper.options(1));
+    try std.testing.expectError(error.Refused, built.upsertEventTypes(held, &.{"auth.user.create"}));
+
+    try std.testing.expectEqual(@as(usize, 2), api.count());
+    try std.testing.expect(std.mem.indexOf(u8, built.detail, "EventTypeAlreadyExist") != null);
+}
+
+test "a refusal too long to report whole is cut rather than carried into what a caller logs" {
+    // What a refusal carries is written by a server this client does not control, so what reaches
+    // whatever the caller logs is cut to a budget rather than passed on whole.
+    var arena: std.heap.ArenaAllocator = .init(allocator);
+    defer arena.deinit();
+    const held = arena.allocator();
+
+    const padding = try held.alloc(u8, hook0.runtime.max_preview_bytes * 2);
+    @memset(padding, 'e');
+    const scripted = [_]helper.Scripted{
+        .{ .status = 500, .body = padding },
+        .{ .status = 500, .body = padding },
+    };
+    const api = try helper.FakeApi.init(io, held, &scripted);
+    defer api.deinit();
+
+    var built = try helper.client(io, held, api, helper.options(2));
+    try std.testing.expectError(error.RetriesExhausted, built.sendEvent(held, helper.anEvent()));
+
+    try std.testing.expect(built.detail.len < padding.len);
+    try std.testing.expect(std.mem.indexOf(u8, built.detail, "gave up") != null);
+}

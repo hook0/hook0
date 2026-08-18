@@ -146,3 +146,19 @@ test "a header longer than this client reads is refused before any of it is spli
 
     try std.testing.expectError(error.Unreadable, hook0.signature.parse(held));
 }
+
+test "a delivery signed at the moment the clock reads verifies against that clock" {
+    // The other cases hand the moment in so that a window can be looked at from both sides. This one
+    // is what a caller actually writes: the client asks the clock itself.
+    var buffer: [128]u8 = undefined;
+    const now = std.Io.Timestamp.now(std.testing.io, .real).toSeconds();
+
+    try hook0.verifyWebhookSignature(
+        std.testing.io,
+        try bodyScheme(&buffer, now),
+        payload,
+        &headers,
+        secret,
+        tolerance,
+    );
+}

@@ -224,23 +224,83 @@ module Hook0Test
       end
     end
 
-    def test_event_types_the_application_already_declares_are_not_created
-      @api.will_answer(
-        ScriptedResponse.new(200, [{ "event_type_name" => "auth.user.create" }]),
-        ScriptedResponse.new(201, { "event_type_name" => "billing.invoice.paid" })
-      )
+    def test_an_event_carrying_a_moment_of_its_own_is_sent_under_it_rather_than_under_now
+      @api.will_answer(ingested(INGESTED_ID))
+      occurred_at = Time.utc(2026, 1, 2, 3, 4, 5)
 
-      created = client.upsert_event_types(["auth.user.create", "billing.invoice.paid"])
+      client.send_event(an_event(occurred_at: occurred_at))
 
-      assert_equal ["billing.invoice.paid"], created
-      assert_equal 2, @api.received.size
+      assert_equal occurred_at.iso8601, @api.received[0].json["occurred_at"]
     end
 
-    def test_an_event_type_that_does_not_read_as_three_parts_is_refused
-      refused = assert_raises(Hook0::ClientError) { client.upsert_event_types(["not-an-event-type"]) }
+    # A document that is nothing but brackets would grow the stack of whatever reads it, so a body
+    # nested deeper than this client reads is one it cannot find an identifier in — and an event it
+    # cannot name is one whose send has to be reported rather than repeated.
+    def test_an_answer_nested_deeper_than_this_client_reads_is_reported_rather_than_repeated
+      deep = Hook0::Runtime::MAX_PAYLOAD_NESTING + 4
+      @api.will_answer(ScriptedResponse.new(201, deep.times.reduce("bottom") { |held, _| [held] }))
 
-      assert_includes refused.message, "does not have a valid syntax"
-      assert_empty @api.received
+      refused = assert_raises(Hook0::ClientError) { client.send_event(an_event) }
+
+      assert_includes refused.message, "without an event id"
+      assert_equal 1, @api.received.size
+    end
+
+    # The header is written by the other end, so a delay further out than any schedule could hold is
+    # one this client leaves its own schedule in place for rather than waiting out.
+    def test_a_delay_the_api_named_further_out_than_any_schedule_could_hold_is_left_unwaited
+      named = ScriptedResponse.new(503, { "id" => "ServiceUnavailable", "status" => 503 }, 0.0,
+                                   { "retry-after" => "4294967295" })
+      @api.will_answer(named, ingested(INGESTED_ID))
+
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      event_id = client(options(max_attempts: 2)).send_event(an_event)
+
+      assert_equal INGESTED_ID, event_id
+      assert_operator Process.clock_gettime(Process::CLOCK_MONOTONIC) - started, :<, 1.0,
+                      "the client waited out a delay no schedule could hold"
+    end
+
+    # The one status that says both a spent quota and a paced instance is told apart by the problem
+    # the body names, and a body naming one that is not even text names none.
+    def test_a_refusal_naming_a_problem_that_is_not_text_falls_back_to_what_its_status_says
+      @api.will_answer(ScriptedResponse.new(429, { "id" => 42, "status" => 429 }))
+
+      refused = assert_raises(Hook0::ClientError) { client.send_event(an_event) }
+
+      assert_includes refused.message, "42"
+      assert_equal 1, @api.received.size
+    end
+
+    def test_an_event_carrying_metadata_sends_it_beside_the_labels
+      @api.will_answer(ingested(INGESTED_ID))
+
+      client.send_event(an_event(metadata: { "tenant" => "acme" }))
+
+      assert_equal({ "tenant" => "acme" }, @api.received[0].json["metadata"])
+    end
+
+    # The event was ingested, so repeating the request would meet the same answer; what the caller
+    # cannot be given is the identifier it was ingested under.
+    def test_an_accepted_event_the_api_named_no_identifier_for_is_reported_rather_than_repeated
+      @api.will_answer(ScriptedResponse.new(201, { "received_at" => "2026-01-01" }))
+
+      refused = assert_raises(Hook0::ClientError) { client.send_event(an_event) }
+
+      assert_includes refused.message, "without an event id"
+      assert_equal 1, @api.received.size
+    end
+
+    # The one status that says both a spent quota and a paced instance is told apart by the problem
+    # the body names. A body naming none — here, one that is not a document at all — leaves the
+    # status to decide, and that status is one a repeat cannot clear.
+    def test_a_refusal_the_api_wrote_no_problem_document_for_falls_back_to_what_its_status_says
+      @api.will_answer(ScriptedResponse.new(429, "a gateway wrote this, and it is not JSON"))
+
+      refused = assert_raises(Hook0::ClientError) { client.send_event(an_event) }
+
+      assert_includes refused.message, "a gateway wrote this"
+      assert_equal 1, @api.received.size
     end
 
     def test_the_default_schedule_doubles_up_to_its_ceiling

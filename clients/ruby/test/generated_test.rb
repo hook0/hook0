@@ -10,6 +10,8 @@
 # generated namespace, so an operation that stops being declared takes its case with it rather than
 # leaving one that runs against nothing.
 
+require_relative "api_document"
+require_relative "generated_surface"
 require_relative "test_helper"
 
 module Hook0Test
@@ -191,6 +193,188 @@ module Hook0Test
       assert_equal Hook0::Generated::ProblemId::VALUES.sort, catalogue.keys.sort
       assert_equal catalogue.values.uniq.size, catalogue.size
       catalogue.each_value { |declared| assert_operator declared, :<, Hook0::Generated::ProblemError }
+    end
+
+    # A value written out and read back in is the value it started as, member for member.
+    #
+    # Run once with every member the schema may leave out set and once with none of them, which is
+    # what tells a member that was read apart from one that was defaulted to the same thing.
+    def test_every_schema_the_document_declares_reads_back_what_it_wrote
+      [true, false].each do |optionals|
+        GeneratedSurface.models.each do |declared|
+          held = GeneratedSurface.model(declared, optionals)
+          written = held.to_h
+
+          assert_kind_of Hash, written, "#{declared} does not write itself as a JSON object"
+          assert_equal held, declared.from_json(written), "#{declared} does not read back what it wrote"
+          assert_equal written, declared.from_json(written).to_h, "#{declared} does not write back what it read"
+
+          unset_of(declared, held).each do |absent|
+            refute_includes written, absent, "#{declared} wrote `#{absent}` out although it holds nothing"
+          end
+
+          # A value object overriding `==` without `eql?` and `hash` is one two equal instances
+          # cannot key a hash with, which is why the generator writes all three.
+          other = declared.from_json(written)
+
+          assert_equal held.hash, other.hash, "#{declared} gives two equal values two different keys"
+          assert_equal 1, { held => 1 }.fetch(other), "#{declared} cannot key a hash"
+        end
+      end
+    end
+
+    def test_a_schema_refuses_a_document_that_is_not_the_object_it_declares
+      GeneratedSurface.models.each do |declared|
+        [1, "text", true, [], nil].each do |answered|
+          refused = assert_raises(Hook0::Runtime::DecodeError) { declared.from_json(answered) }
+
+          assert_includes refused.message, declared.name.split("::").last,
+                          "#{declared} did not say what it was that could not be read"
+        end
+      end
+    end
+
+    # Everything a schema describes is refused when it arrives as something else, and says which
+    # member it was. What it leaves undescribed is kept as it arrived and so is refused by nothing,
+    # and there are exactly as many members that accept anything as it leaves undescribed.
+    def test_a_schema_refuses_a_member_the_document_does_not_declare_it_as
+      GeneratedSurface.models.each do |declared|
+        written = GeneratedSurface.model(declared, true).to_h
+        accepted = written.keys.reject { |name| refuses?(declared, written, name) }
+
+        assert_equal opaque_count(declared), accepted.size,
+                     "#{declared} read #{accepted.join(", ")} although it describes what they hold"
+      end
+    end
+
+    # Which members carry a list is read off what each value wrote rather than named here, so a
+    # schema that grows one is held to this the moment it does.
+    def test_a_member_that_carries_a_list_refuses_a_document_that_is_not_one
+      walked = 0
+      GeneratedSurface.models.each do |declared|
+        written = GeneratedSurface.model(declared, true).to_h
+        written.each do |name, value|
+          next unless value.is_a?(Array)
+
+          refused = assert_raises(Hook0::Runtime::DecodeError) do
+            declared.from_json(written.merge(name => "not a list at all"))
+          end
+
+          assert_includes refused.message, "expected an array"
+          assert_includes refused.message, name
+          walked += 1
+        end
+      end
+
+      assert_operator walked, :>, 0, "no value the API declares carries a list"
+    end
+
+    # Which members carry a moment is not named here: it is read off what each value wrote, so a
+    # schema that grows one is held to this the moment it does.
+    def test_a_moment_is_refused_when_it_names_no_moment_and_when_it_names_no_day
+      walked = 0
+      GeneratedSurface.models.each do |declared|
+        written = GeneratedSurface.model(declared, true).to_h
+        written.each do |name, value|
+          whole = value.is_a?(String) && value.match?(/\A\d{4}-\d{2}-\d{2}T/)
+          day = value.is_a?(String) && value.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+          next unless whole || day
+
+          # A day that never existed is refused where the reader can tell — `Date.iso8601` does,
+          # and `Time.iso8601` rolls `2026-02-31` forward to March instead of refusing it.
+          wrong_ones = whole ? ["not a moment at all"] : ["not a moment at all", "2026-02-31"]
+          wrong_ones.each do |wrong|
+            refused = assert_raises(Hook0::Runtime::DecodeError) { declared.from_json(written.merge(name => wrong)) }
+
+            assert_includes refused.message, name
+            walked += 1
+          end
+        end
+      end
+
+      assert_operator walked, :>, 0, "no value the API declares carries a moment"
+    end
+
+    # A document that is nothing but brackets would grow the stack of whatever reads it, so how deep
+    # one may nest is bounded and a deeper one is refused rather than parsed.
+    def test_a_success_nested_deeper_than_this_gem_reads_is_refused_rather_than_parsed
+      deep = Hook0::Runtime::MAX_PAYLOAD_NESTING + 4
+      @api.will_answer(ScriptedResponse.new(200, deep.times.reduce("bottom") { |held, _| [held] }))
+
+      refused = assert_raises(Hook0::Runtime::DecodeError) { applications.get(APPLICATION_ID) }
+
+      assert_includes refused.message, "the response is not JSON"
+    end
+
+    def test_every_closed_list_reads_the_values_it_declares_and_no_other
+      GeneratedSurface.enumerations.each do |declared|
+        refute_empty declared::VALUES, "#{declared} declares no value at all"
+        declared::VALUES.each do |value|
+          assert declared.member?(value), "#{declared} does not declare `#{value}`, which it lists"
+        end
+        refute declared.member?("a value the API never declared")
+      end
+    end
+
+    # A caller may rescue the one problem it cares about, or every problem, and both work.
+    def test_every_problem_the_catalogue_names_is_raised_as_the_failure_it_is
+      catalogue = Hook0::Generated::PROBLEMS
+
+      refute_empty catalogue, "the generator mapped no problem at all"
+      catalogue.each do |problem, expected|
+        @api.will_answer(
+          ScriptedResponse.new(400, { "id" => problem, "status" => 400, "title" => "refused",
+                                      "detail" => "what this case scripted",
+                                      "type" => "https://hook0.com/documentation/errors/#{problem}" })
+        )
+
+        reported = assert_raises(expected) { applications.get(APPLICATION_ID) }
+
+        assert_equal 400, reported.status
+        assert_equal problem, reported.problem.id
+        assert_equal "what this case scripted", reported.problem.detail
+        assert_kind_of Hook0::Generated::ProblemError, reported
+      end
+    end
+
+    # What a failure carries is written by a server this gem does not control and is cut to a budget
+    # in bytes, which lands wherever it lands inside a character. What is reported is held to being
+    # text all the same, rather than travelling half a character into what a caller logs.
+    def test_a_failure_too_long_to_report_whole_is_cut_without_breaking_a_character_in_two
+      answered = "#{"e" * (Hook0::Runtime::MAX_PREVIEW_BYTES - 1)}éclat, and not a problem document"
+      @api.will_answer(ScriptedResponse.new(500, answered))
+
+      reported = assert_raises(Hook0::Generated::ProblemError) { applications.get(APPLICATION_ID) }
+
+      assert_equal 500, reported.status
+      assert_nil reported.problem
+      assert reported.message.valid_encoding?, "the report is not text"
+      assert_includes reported.message, "…", "the report was not cut"
+      refute_includes reported.message, "éclat"
+    end
+
+    private
+
+    # Every member of a value that holds nothing, which is every one the case left out.
+    def unset_of(declared, held)
+      GeneratedSurface.wire_names_of(declared.instance_method(:initialize)).filter_map do |name, wire|
+        wire if held.public_send(name).nil?
+      end
+    end
+
+    # Whether a member answered as neither an object nor a scalar any reader accepts stops the read.
+    def refuses?(declared, written, name)
+      declared.from_json(written.merge(name => [{ "neither" => "a scalar" }]))
+      false
+    rescue Hook0::Runtime::DecodeError => e
+      assert_includes e.message, name, "#{declared} did not say which member it could not read"
+      true
+    end
+
+    # How many members of a value the document describes nothing about.
+    def opaque_count(declared)
+      GeneratedSurface.params_of(declared.instance_method(:initialize))
+                      .count { |_, documented| documented.type.start_with?("Object") }
     end
   end
 end

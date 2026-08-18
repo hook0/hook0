@@ -16,6 +16,13 @@ require "minitest/autorun"
 require "socket"
 require "time"
 
+require "simplecov"
+
+SimpleCov.start do
+  enable_coverage :branch
+  add_filter %r{^/test/}
+end
+
 $LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
 
 require "hook0"

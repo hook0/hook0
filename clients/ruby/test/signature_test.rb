@@ -197,6 +197,52 @@ module Hook0Test
       )
     end
 
+    # The header is written by whoever reached the endpoint, so how much of it is read at all is
+    # this gem's to bound rather than the sender's to decide.
+    def test_a_signature_above_the_accepted_size_is_refused_before_it_is_split
+      oversized = "t=#{NOW.to_i},v0=#{"0" * (Hook0::Signature::MAX_SIGNATURE_BYTES * 2)}"
+
+      refused = assert_raises(Hook0::ClientError) { verify(oversized, {}) }
+
+      assert_includes refused.message, "above the #{Hook0::Signature::MAX_SIGNATURE_BYTES} accepted"
+    end
+
+    def test_a_signature_that_is_not_a_header_value_at_all_is_refused
+      refused = assert_raises(Hook0::ClientError) { verify(42, {}) }
+
+      assert_includes refused.message, "not a header value"
+    end
+
+    def test_a_signature_covering_more_headers_than_accepted_is_refused
+      covered = Array.new(Hook0::Signature::MAX_COVERED_HEADERS + 1) { |index| "x-header-#{index}" }
+
+      refused = assert_raises(Hook0::ClientError) { verify("t=#{NOW.to_i},h=#{covered.join(" ")},v1=00", {}) }
+
+      assert_includes refused.message, "more than the #{Hook0::Signature::MAX_COVERED_HEADERS} headers accepted"
+    end
+
+    def test_a_delivered_header_that_is_not_a_header_value_is_refused
+      timestamp = NOW.to_i
+      covered = [%w[x-event-id abc]]
+      signature = "t=#{timestamp},h=x-event-id,v1=#{headers_code(timestamp, covered)}"
+
+      refused = assert_raises(Hook0::ClientError) { verify(signature, { "x-event-id" => 42 }) }
+
+      assert_includes refused.message, "not a header value"
+    end
+
+    # What is signed is a message built out of these bytes, so a value that is not text at all stops
+    # the verification rather than reaching the hash as whatever Ruby made of it.
+    def test_a_delivered_header_that_is_not_utf8_is_refused_rather_than_signed
+      timestamp = NOW.to_i
+      covered = [%w[x-event-id abc]]
+      signature = "t=#{timestamp},h=x-event-id,v1=#{headers_code(timestamp, covered)}"
+
+      refused = assert_raises(Hook0::ClientError) { verify(signature, { "x-event-id" => "\xFF\xFE".b }) }
+
+      assert_includes refused.message, "not UTF-8"
+    end
+
     def test_headers_given_as_pairs_are_read_like_headers_given_as_a_mapping
       timestamp = NOW.to_i
       covered = [%w[x-event-id abc]]

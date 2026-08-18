@@ -171,6 +171,12 @@ describe("a schedule", function()
       Hook0.RetryPolicy.new({ max_attempts = 10000 }):attempts())
     assert.are.equal(1, Hook0.RetryPolicy.new({ max_attempts = -4 }):attempts())
     assert.are.equal(1, Hook0.RetryPolicy.disabled():attempts())
+
+    -- A number of attempts that names no number at all is one attempt rather than none: a policy
+    -- that made no attempt would report a send that never left as a send that failed.
+    for _, unusable in ipairs({ 0 / 0, "four", {} }) do
+      assert.are.equal(1, Hook0.RetryPolicy.new({ max_attempts = unusable }):attempts())
+    end
   end)
 
   it("is in force with the default for a duration no schedule could be built on", function()
@@ -197,6 +203,42 @@ describe("a schedule", function()
   end)
 end)
 
+describe("a send that every attempt of failed", function()
+  it("is given up on with what the last attempt answered and how long it took", function()
+    -- One attempt failing says what the API answered; several say that as well as how many were
+    -- made and how long the client spent before it stopped, which is what a caller reading a log
+    -- needs to tell a slow API from a refusing one.
+    local api = Helper.FakeApi.new({
+      Helper.refusal(503, "ServiceUnavailable"),
+      Helper.refusal(503, "ServiceUnavailable"),
+    })
+    local raised = Helper.refused(function()
+      return Helper.client(api, Helper.options({ max_attempts = 2 })):send_event(Helper.an_event())
+    end)
+    local received = api:stop()
+
+    assert.are.equal(2, #received)
+    assert.is_truthy(Hook0.message(raised):find("2 attempts", 1, true), Hook0.message(raised))
+    assert.is_truthy(Hook0.message(raised):find("ServiceUnavailable", 1, true), Hook0.message(raised))
+  end)
+end)
+
+describe("an accepted event the API named no identifier for", function()
+  it("is reported rather than repeated", function()
+    -- The event was ingested, so repeating the request would meet the same answer; what the caller
+    -- cannot be given is the identifier it was ingested under.
+    local api = Helper.FakeApi.new({ { status = 201, body = Json.object({ received_at = "2026-01-01" }) } })
+    local raised = Helper.refused(function()
+      return Helper.client(api):send_event(Helper.an_event())
+    end)
+    local received = api:stop()
+
+    assert.is_true(Hook0.is(raised, Hook0.ClientError))
+    assert.is_truthy(Hook0.message(raised):find("without an event id", 1, true), Hook0.message(raised))
+    assert.are.equal(1, #received)
+  end)
+end)
+
 describe("upserting event types", function()
   it("creates only the ones the application does not declare yet", function()
     local api = Helper.FakeApi.new({
@@ -211,6 +253,89 @@ describe("upserting event types", function()
     assert.are.equal("GET", received[1].verb)
     assert.are.equal("POST", received[2].verb)
     assert.are.equal("billing", Json.decode(received[2].body).service)
+  end)
+
+  it("reaches the API for nothing when it is asked for nothing", function()
+    local api = Helper.FakeApi.new({})
+    local created = Helper.client(api):upsert_event_types({})
+    local received = api:stop()
+
+    assert.are.same({}, created)
+    assert.are.equal(0, #received)
+  end)
+
+  -- Nothing is created off a list that was never read: taking a refusal for an empty list would
+  -- have this client declare every event type the application already has.
+  it("reports a list the API refused rather than taking it for none", function()
+    local api = Helper.FakeApi.new({ Helper.refusal(503, "ServiceUnavailable") })
+    local raised = Helper.refused(function()
+      return Helper.client(api):upsert_event_types({ "auth.user.create" })
+    end)
+    local received = api:stop()
+
+    assert.is_true(Hook0.is(raised, Hook0.ClientError))
+    assert.is_truthy(Hook0.message(raised):find("reading the available event types failed", 1, true),
+      Hook0.message(raised))
+    assert.are.equal(1, #received)
+  end)
+
+  -- The answer crosses a ceiling this client set for itself, so no list ever arrives. What the
+  -- caller is told is what was being asked for, rather than the transport's own words.
+  it("reports a list the API could not answer at all as the ask it was", function()
+    local api = Helper.FakeApi.new({
+      { status = 200, body = Json.array({ Json.object({ event_type_name = string.rep("a", 2048) }) }) },
+    })
+    local raised = Helper.refused(function()
+      return Helper.client(api, Helper.options({ max_response_bytes = 256 })):upsert_event_types({
+        "auth.user.create",
+      })
+    end)
+    api:stop()
+
+    assert.is_truthy(Hook0.message(raised):find("reading the available event types failed", 1, true),
+      Hook0.message(raised))
+  end)
+
+  it("reports an event type the API never answered for, under the name it was asked for", function()
+    local api = Helper.FakeApi.new({
+      { status = 200, body = Json.array({}) },
+      { status = 201, body = Json.object({ padding = string.rep("a", 2048) }) },
+    })
+    local raised = Helper.refused(function()
+      return Helper.client(api, Helper.options({ max_response_bytes = 256 })):upsert_event_types({
+        "auth.user.create",
+      })
+    end)
+    api:stop()
+
+    assert.is_truthy(Hook0.message(raised):find("creating event type auth.user.create failed", 1, true),
+      Hook0.message(raised))
+  end)
+
+  it("reports an answer that is not a list of event types rather than walking it", function()
+    local api = Helper.FakeApi.new({ { status = 200, body = Json.object({ event_type_name = "auth.user.create" }) } })
+    local raised = Helper.refused(function()
+      return Helper.client(api):upsert_event_types({ "auth.user.create" })
+    end)
+    api:stop()
+
+    assert.is_truthy(Hook0.message(raised):find("did not answer a list", 1, true), Hook0.message(raised))
+  end)
+
+  it("reports an event type the API refused to create, under the name it was asked for", function()
+    local api = Helper.FakeApi.new({
+      { status = 200, body = Json.array({}) },
+      Helper.refusal(409, "EventTypeAlreadyExist"),
+    })
+    local raised = Helper.refused(function()
+      return Helper.client(api):upsert_event_types({ "auth.user.create" })
+    end)
+    local received = api:stop()
+
+    assert.is_truthy(Hook0.message(raised):find("creating event type auth.user.create failed", 1, true),
+      Hook0.message(raised))
+    assert.is_truthy(Hook0.message(raised):find("EventTypeAlreadyExist", 1, true), Hook0.message(raised))
+    assert.are.equal(2, #received)
   end)
 
   it("refuses an event type that does not name all three of its parts", function()

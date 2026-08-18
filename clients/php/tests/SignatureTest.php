@@ -113,6 +113,60 @@ final class SignatureTest extends TestCase
         );
     }
 
+    public function testADeliveryCarryingMoreHeadersThanAcceptedIsRefusedBeforeAnyIsRead(): void
+    {
+        // The headers are whatever reached the endpoint, so how many of them are read at all is this
+        // client's to bound rather than the sender's to decide.
+        $delivered = [];
+        for ($index = 0; $index <= Signature::MAX_DELIVERED_HEADERS; $index++) {
+            $delivered['x-header-' . $index] = 'a value';
+        }
+
+        $this->expectException(ClientError::class);
+        $this->expectExceptionMessageMatches('/more than the \d+ headers accepted/');
+
+        Signature::verifyWithCurrentTime(
+            $this->signed(self::MOMENT, ['x-event-id'], self::PAYLOAD),
+            self::PAYLOAD,
+            $delivered,
+            self::SECRET,
+            self::TOLERANCE,
+            new \DateTimeImmutable('@' . self::MOMENT)
+        );
+    }
+
+    public function testAHeaderHeldAsPairsThatIsNotANameAndAValueIsRefused(): void
+    {
+        $this->expectException(ClientError::class);
+        $this->expectExceptionMessageMatches('/not a name and a value/');
+
+        Signature::verifyWithCurrentTime(
+            $this->signed(self::MOMENT, ['x-event-id'], self::PAYLOAD),
+            self::PAYLOAD,
+            [['x-event-id', 'evt-1', 'and something else']],
+            self::SECRET,
+            self::TOLERANCE,
+            new \DateTimeImmutable('@' . self::MOMENT)
+        );
+    }
+
+    public function testAHeaderThatIsNotUtf8IsRefusedRatherThanSigned(): void
+    {
+        // What is signed is a message built out of these bytes, so a value that is not text at all
+        // stops the verification rather than reaching the hash as whatever the language made of it.
+        $this->expectException(ClientError::class);
+        $this->expectExceptionMessageMatches('/not UTF-8/');
+
+        Signature::verifyWithCurrentTime(
+            $this->signed(self::MOMENT, ['x-event-id'], self::PAYLOAD),
+            self::PAYLOAD,
+            ['x-event-id' => "\xff\xfe"],
+            self::SECRET,
+            self::TOLERANCE,
+            new \DateTimeImmutable('@' . self::MOMENT)
+        );
+    }
+
     public function testHeadersReadTheSameWayWhetherTheyAreAMapOrPairs(): void
     {
         $header = $this->signed(self::MOMENT, ['x-event-id', 'x-delivery-id'], self::PAYLOAD);

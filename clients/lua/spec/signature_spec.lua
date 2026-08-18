@@ -56,6 +56,27 @@ describe("SHA-256", function()
     assert.are.equal("60e431591ee0b67f0d8a26aacbf5b77f8e0bc6213728c5140546040f0ee37f54",
       Sha256.hexhmac(string.rep("\170", 131), "Test Using Larger Than Block-Size Key - Hash Key First"))
   end)
+
+  it("refuses to hash anything that is not bytes", function()
+    -- What is hashed is a message built out of a body and headers a sender wrote. Hashing whatever
+    -- Lua would have printed instead would answer a digest over text nobody sent.
+    for _, unusable in ipairs({ 42, {}, true }) do
+      assert.is_truthy(tostring(Helper.refused(function() return Sha256.digest(unusable) end))
+        :find("not text", 1, true))
+      assert.is_truthy(tostring(Helper.refused(function() return Sha256.hmac(unusable, "a message") end))
+        :find("not text", 1, true))
+    end
+  end)
+
+  it("refuses a message longer than it hashes", function()
+    -- The bound exists so that a body a server this client does not control answered cannot decide
+    -- how much work one verification is.
+    local raised = Helper.refused(function()
+      return Sha256.digest(string.rep("e", Sha256.MAX_MESSAGE_BYTES + 1))
+    end)
+
+    assert.is_truthy(tostring(raised):find(tostring(Sha256.MAX_MESSAGE_BYTES), 1, true), tostring(raised))
+  end)
 end)
 
 describe("a signature", function()
@@ -129,6 +150,72 @@ describe("a signature", function()
     assert.is_false(Signature.same_code("abcd", "abce"))
     assert.is_false(Signature.same_code("abcd", "abcde"))
     assert.is_false(Signature.same_code("", "a"))
+  end)
+
+  it("refuses a signature that is not a header value at all", function()
+    local raised = Helper.refused(function() return Signature.parse(42) end)
+    assert.is_truthy(Hook0.message(raised):find("not a header value", 1, true), Hook0.message(raised))
+  end)
+
+  it("refuses a signature carrying a code and no moment", function()
+    -- A code alone says what was signed but not when, and a delivery no moment can be read out of
+    -- is one no window can be applied to.
+    local raised = Helper.refused(function()
+      return Signature.parse("h=x-event-id,v1=" .. string.rep("0", 64))
+    end)
+    assert.is_truthy(Hook0.message(raised):find("carries no `t` part", 1, true), Hook0.message(raised))
+  end)
+
+  it("refuses a signature covering more headers than it reads", function()
+    local named = {}
+    for index = 1, Signature.MAX_COVERED_HEADERS + 1 do
+      named[index] = "x-header-" .. index
+    end
+    local raised = Helper.refused(function()
+      return Signature.parse("t=" .. MOMENT .. ",h=" .. table.concat(named, " ") .. ",v1=00")
+    end)
+    assert.is_truthy(Hook0.message(raised):find(tostring(Signature.MAX_COVERED_HEADERS), 1, true),
+      Hook0.message(raised))
+  end)
+
+  -- The headers are whatever reached the endpoint, so how many of them are read at all is this
+  -- client's to bound rather than the sender's to decide.
+  it("refuses a delivery carrying more headers than it reads", function()
+    local delivered = {}
+    for index = 1, Signature.MAX_DELIVERED_HEADERS + 1 do
+      delivered["x-header-" .. index] = "a value"
+    end
+    local raised = Helper.refused(function() return verified(body_scheme(MOMENT), delivered) end)
+    assert.is_truthy(Hook0.message(raised):find(tostring(Signature.MAX_DELIVERED_HEADERS), 1, true),
+      Hook0.message(raised))
+  end)
+
+  it("refuses headers that are not a table at all", function()
+    local raised = Helper.refused(function() return verified(body_scheme(MOMENT), "not a table") end)
+    assert.is_truthy(Hook0.message(raised):find("not a table", 1, true), Hook0.message(raised))
+  end)
+
+  -- What is signed is a message built out of these bytes, so a value that is not text at all stops
+  -- the verification rather than reaching the hash as whatever Lua made of it.
+  it("refuses a delivered header that is not a header value", function()
+    local raised = Helper.refused(function() return verified(body_scheme(MOMENT), { ["x-event-id"] = 42 }) end)
+    assert.is_truthy(Hook0.message(raised):find("not a header value", 1, true), Hook0.message(raised))
+  end)
+
+  it("refuses a delivered header that is not UTF-8", function()
+    local raised = Helper.refused(function()
+      return verified(body_scheme(MOMENT), { ["x-event-id"] = "\xFF\xFE" })
+    end)
+    assert.is_truthy(Hook0.message(raised):find("not UTF-8", 1, true), Hook0.message(raised))
+  end)
+
+  it("verifies a delivery signed at the moment the clock reads, against that clock", function()
+    -- The other cases hand the moment in so that a window can be looked at from both sides. This one
+    -- is what a caller actually writes: the client asks the clock itself.
+    local now = os.time()
+    assert.has_no.errors(function()
+      return Signature.verify(body_scheme(now), PAYLOAD, HEADERS, SECRET, TOLERANCE + 0.0)
+    end)
   end)
 
   it("refuses a header longer than it reads, before any of it is split", function()

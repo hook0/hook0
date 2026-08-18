@@ -65,6 +65,55 @@ final class GeneratedSurface
     }
 
     /**
+     * Every group of operations the generator wrote, which is every class it hands a transport to.
+     *
+     * @return list<class-string>
+     */
+    public static function groups(): array
+    {
+        $found = array_values(array_filter(self::declared(), static function (string $name): bool {
+            if (!class_exists($name)) {
+                return false;
+            }
+            $constructor = (new \ReflectionClass($name))->getConstructor();
+            if ($constructor === null) {
+                return false;
+            }
+            $parameters = $constructor->getParameters();
+            $carried = count($parameters) === 1 ? $parameters[0]->getType() : null;
+
+            return $carried instanceof \ReflectionNamedType && $carried->getName() === \Hook0\Transport::class;
+        }));
+        if ($found === []) {
+            throw new \RuntimeException('the generator wrote no group of operations at all');
+        }
+
+        return $found;
+    }
+
+    /**
+     * Every operation one group carries, under the name it is called by.
+     *
+     * @param class-string $group
+     * @return list<\ReflectionMethod>
+     */
+    public static function operationsOf(string $group): array
+    {
+        $found = array_values(array_filter(
+            (new \ReflectionClass($group))->getMethods(\ReflectionMethod::IS_PUBLIC),
+            static fn (\ReflectionMethod $method): bool => !$method->isConstructor()
+                && $method->getDeclaringClass()->getName() === $group
+        ));
+        usort(
+            $found,
+            static fn (\ReflectionMethod $one, \ReflectionMethod $other): int
+                => strcmp($one->getName(), $other->getName())
+        );
+
+        return $found;
+    }
+
+    /**
      * Every closed list of strings the API declares.
      *
      * @return list<class-string<\BackedEnum>>

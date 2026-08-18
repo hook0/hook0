@@ -14,9 +14,12 @@ use Hook0\Generated\RequestAttemptStatus;
 use Hook0\Generated\SubscriptionTarget;
 use Hook0\Runtime;
 use Hook0\Tests\Support\ApiCase;
+use Hook0\Tests\Support\ApiDocument;
 use Hook0\Tests\Support\GeneratedSurface;
 use Hook0\Tests\Support\ScriptedResponse;
+use Hook0\Tests\Support\Synthesis;
 use Hook0\Transport;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * What the generated request layer puts on the wire, and what it does with what comes back.
@@ -229,6 +232,377 @@ final class GeneratedTest extends ApiCase
         ])->toArray());
 
         self::assertStringContainsString('"labels":{}', $written);
+    }
+
+    /**
+     * Whether a case asks for everything an operation or a value may carry, or only what it must.
+     *
+     * @return iterable<string, array{0: bool}>
+     */
+    public static function optionality(): iterable
+    {
+        yield 'with everything it may carry' => [true];
+        yield 'with only what it requires' => [false];
+    }
+
+    /**
+     * Every operation the document declares issues the request it is declared as, and reads it back.
+     *
+     * Run twice: once giving every argument the operation may be asked with, once giving only the
+     * ones it requires, which is what says an argument left out leaves the query it would have
+     * filled empty. The last assertion is the one that grows: an operation the API adds fails this
+     * case until something drives it.
+     */
+    #[DataProvider('optionality')]
+    public function testEveryOperationTheDocumentDeclaresIsReachedTheWayItDeclaresIt(bool $optionals): void
+    {
+        $reached = [];
+
+        foreach (GeneratedSurface::groups() as $group) {
+            $reaching = new $group(new Transport($this->api->baseUrl(), self::TOKEN));
+            foreach (GeneratedSurface::operationsOf($group) as $operation) {
+                $named = sprintf('%s::%s', $group, $operation->getName());
+                $given = Synthesis::arguments($operation, $optionals);
+                [$answered, $expected] = $this->answerFor($operation, $optionals);
+                $this->api->willAnswer(new ScriptedResponse(200, $answered));
+
+                $read = $operation->invokeArgs($reaching, $given);
+
+                $received = $this->api->received();
+                $request = $received[count($received) - 1];
+                $declared = ApiDocument::reached($request);
+
+                self::assertSame(
+                    Synthesis::written($expected),
+                    Synthesis::written($read),
+                    $named . ' did not read back what the API answered'
+                );
+                self::assertSame('Bearer ' . self::TOKEN, $request->headers['authorization'], $named);
+                self::assertSame('application/json', $request->headers['accept'], $named);
+                $this->assertPathFilledIn($declared, $request, $named);
+                $this->assertQueryAssembled($declared, $request, $operation, $given, $optionals, $named);
+                $this->assertBodySent($request, $given, $named);
+
+                $reached[] = $declared->named();
+            }
+        }
+
+        $wanted = array_map(
+            static fn (\Hook0\Tests\Support\DeclaredOperation $one): string => $one->named(),
+            ApiDocument::operations()
+        );
+        sort($wanted);
+        $reached = array_values(array_unique($reached));
+        sort($reached);
+
+        self::assertSame($wanted, $reached, 'the generated groups reach other operations than the document declares');
+    }
+
+    /**
+     * A value written out and read back in is the value it started as, member for member.
+     *
+     * Run once with every member the schema may leave out set and once with none of them, which is
+     * what tells a member that was read apart from one that was defaulted to the same thing.
+     */
+    #[DataProvider('optionality')]
+    public function testEverySchemaTheDocumentDeclaresReadsBackWhatItWrote(bool $optionals): void
+    {
+        $walked = 0;
+        foreach (GeneratedSurface::models() as $declared) {
+            $held = Synthesis::model($declared, $optionals);
+            $written = $held->toArray();
+
+            $read = $declared::fromJson($written);
+            self::assertTrue($read->equals($held), $declared . ' does not read back what it wrote');
+            self::assertSame($written, $read->toArray(), $declared . ' does not write back what it read');
+
+            foreach ($this->unset($declared, $held) as $absent) {
+                self::assertArrayNotHasKey(
+                    $absent,
+                    $written,
+                    sprintf('%s wrote `%s` out although it holds nothing', $declared, $absent)
+                );
+            }
+            $walked++;
+        }
+
+        self::assertGreaterThan(0, $walked, 'the generator wrote no schema at all');
+    }
+
+    public function testASchemaRefusesADocumentThatIsNotTheObjectItDeclares(): void
+    {
+        foreach (GeneratedSurface::models() as $declared) {
+            foreach ([1, 'text', true, [1, 2], null] as $answered) {
+                try {
+                    $declared::fromJson($answered);
+                    self::fail(sprintf('%s read `%s` as a document', $declared, get_debug_type($answered)));
+                } catch (\Hook0\DecodeError $refused) {
+                    self::assertStringContainsString(
+                        (new \ReflectionClass($declared))->getShortName(),
+                        $refused->getMessage(),
+                        $declared . ' did not say what it was that could not be read'
+                    );
+                }
+            }
+        }
+    }
+
+    public function testASchemaRefusesAMemberTheDocumentDoesNotDeclareItAs(): void
+    {
+        // Everything a schema describes is refused when it arrives as something else, and says which
+        // member it was. What it leaves undescribed is kept as it arrived and so is refused by
+        // nothing, and there are exactly as many members that accept anything as it leaves undescribed.
+        foreach (GeneratedSurface::models() as $declared) {
+            $written = Synthesis::model($declared, true)->toArray();
+            $accepted = [];
+
+            foreach (array_keys($written) as $name) {
+                // Neither an object nor a scalar any of the readers accept, whichever the member is.
+                $wrong = $written;
+                $wrong[$name] = [['neither' => 'a scalar']];
+                try {
+                    $declared::fromJson($wrong);
+                    $accepted[] = $name;
+                } catch (\Hook0\DecodeError $refused) {
+                    self::assertStringContainsString(
+                        $name,
+                        $refused->getMessage(),
+                        $declared . ' did not say which member it could not read'
+                    );
+                }
+            }
+
+            self::assertCount(
+                $this->opaque($declared),
+                $accepted,
+                sprintf('%s read %s although it describes what they hold', $declared, implode(', ', $accepted))
+            );
+        }
+    }
+
+    public function testAMemberThatCarriesAListRefusesADocumentThatIsNotOne(): void
+    {
+        // Which members carry a list is read off what each value wrote rather than named here, so a
+        // schema that grows one is held to this the moment it does.
+        $walked = 0;
+        foreach (GeneratedSurface::models() as $declared) {
+            $written = Synthesis::model($declared, true)->toArray();
+            foreach ($written as $name => $value) {
+                if (!is_array($value) || !array_is_list($value)) {
+                    continue;
+                }
+
+                try {
+                    $declared::fromJson([$name => 'not a list at all'] + $written);
+                    self::fail(sprintf('%s read a string as the list `%s` carries', $declared, $name));
+                } catch (\Hook0\DecodeError $refused) {
+                    self::assertStringContainsString('expected an array', $refused->getMessage());
+                    self::assertStringContainsString((string) $name, $refused->getMessage());
+                }
+                $walked++;
+            }
+        }
+
+        self::assertGreaterThan(0, $walked, 'no value the API declares carries a list');
+    }
+
+    public function testAMomentIsRefusedWhenItNamesNoMomentAndWhenItNamesNoDay(): void
+    {
+        // Which members carry a moment is not named here: it is read off what each value wrote, so a
+        // schema that grows one is held to this the moment it does.
+        $walked = 0;
+        foreach (GeneratedSurface::models() as $declared) {
+            $written = Synthesis::model($declared, true)->toArray();
+            foreach ($written as $name => $value) {
+                $whole = is_string($value) && str_contains($value, 'T');
+                $day = is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $value) === 1;
+                if (!$whole && !$day) {
+                    continue;
+                }
+
+                foreach (['not a moment at all', $whole ? '2026-02-31T00:00:00+00:00' : '2026-02-31'] as $wrong) {
+                    try {
+                        $declared::fromJson([$name => $wrong] + $written);
+                        self::fail(sprintf('%s read `%s` as a moment under `%s`', $declared, $wrong, $name));
+                    } catch (\Hook0\DecodeError $refused) {
+                        self::assertStringContainsString((string) $name, $refused->getMessage());
+                    }
+                    $walked++;
+                }
+            }
+        }
+
+        self::assertGreaterThan(0, $walked, 'no value the API declares carries a moment');
+    }
+
+    public function testEveryProblemTheCatalogueNamesIsRaisedAsTheFailureItIs(): void
+    {
+        /** @var array<string, class-string<ProblemError>> $catalogue */
+        $catalogue = (new \ReflectionClass(ProblemError::class))->getConstant('PROBLEMS');
+        self::assertNotSame([], $catalogue, 'the generator mapped no problem at all');
+
+        foreach ($catalogue as $problem => $expected) {
+            $this->api->willAnswer(new ScriptedResponse(400, [
+                'id' => $problem,
+                'status' => 400,
+                'title' => 'refused',
+                'detail' => 'what this case scripted',
+                'type' => 'https://hook0.com/documentation/errors/' . $problem,
+            ]));
+
+            try {
+                $this->applications()->get(self::APPLICATION_UUID);
+                self::fail($problem . ' was read as a success');
+            } catch (ProblemError $reported) {
+                self::assertInstanceOf($expected, $reported, $problem . ' was not raised as the failure it names');
+                self::assertSame(400, $reported->status);
+                self::assertSame($problem, $reported->problem?->id->value);
+                self::assertSame('what this case scripted', $reported->problem?->detail);
+            }
+        }
+    }
+
+    public function testAFailureTooLongToReportWholeIsCutWithoutBreakingACharacterInTwo(): void
+    {
+        // What a failure carries is written by a server this client does not control and is cut to a
+        // budget in bytes, which lands wherever it lands inside a character. What is reported is held
+        // to being text all the same, rather than travelling half a character into what a caller logs.
+        $answered = str_repeat('e', Runtime::MAX_PREVIEW_BYTES - 1) . 'éclat, and not a problem document';
+        $this->api->willAnswer(new ScriptedResponse(500, $answered));
+
+        try {
+            $this->applications()->get(self::APPLICATION_UUID);
+            self::fail('a body that is not a problem document was read as a success');
+        } catch (ProblemError $reported) {
+            self::assertSame(500, $reported->status);
+            self::assertNull($reported->problem);
+            self::assertSame(1, preg_match('//u', $reported->getMessage()), 'the report is not text');
+            self::assertStringContainsString('…', $reported->getMessage(), 'the report was not cut');
+            self::assertStringNotContainsString('éclat', $reported->getMessage());
+        }
+    }
+
+    /**
+     * What the API answers one operation, and the value that operation is expected to read out of it.
+     *
+     * @return array{0: mixed, 1: mixed}
+     */
+    private function answerFor(\ReflectionMethod $operation, bool $optionals): array
+    {
+        $answers = Synthesis::answered($operation);
+        if ($answers === null) {
+            return [null, null];
+        }
+
+        [$type, $listed] = $answers;
+        $held = Synthesis::valueFor($type, $optionals);
+
+        return $listed
+            ? [[Synthesis::written($held)], [$held]]
+            : [Synthesis::written($held), $held];
+    }
+
+    /**
+     * @param array<string, mixed> $given
+     */
+    private function assertPathFilledIn(
+        \Hook0\Tests\Support\DeclaredOperation $declared,
+        \Hook0\Tests\Support\ReceivedRequest $request,
+        string $named
+    ): void {
+        $sent = $declared->segmentsOf($request);
+        foreach (explode('/', $declared->template) as $index => $segment) {
+            if (!str_starts_with($segment, '{')) {
+                continue;
+            }
+            // The value lands in the path escaped, so that nothing in it can name a segment the
+            // operation never had.
+            self::assertSame(
+                rawurlencode(Synthesis::ARGUMENT_TEXT),
+                $sent[$index],
+                sprintf('%s left `%s` unescaped', $named, $segment)
+            );
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $given
+     */
+    private function assertQueryAssembled(
+        \Hook0\Tests\Support\DeclaredOperation $declared,
+        \Hook0\Tests\Support\ReceivedRequest $request,
+        \ReflectionMethod $operation,
+        array $given,
+        bool $optionals,
+        string $named
+    ): void {
+        $carried = \Hook0\Tests\Support\DeclaredOperation::queryOf($request);
+        $names = array_keys($carried);
+        sort($names);
+
+        self::assertSame(
+            $declared->queryNames($optionals),
+            $names,
+            $named . ' assembled a query the document does not declare'
+        );
+
+        foreach (Synthesis::wireNames($operation) as $argument => $wire) {
+            if (!isset($carried[$wire]) || !array_key_exists($argument, $given)) {
+                continue;
+            }
+            self::assertSame([$given[$argument]], $carried[$wire], sprintf('%s carried `%s` altered', $named, $wire));
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $given
+     */
+    private function assertBodySent(
+        \Hook0\Tests\Support\ReceivedRequest $request,
+        array $given,
+        string $named
+    ): void {
+        foreach ($given as $value) {
+            if (!is_object($value) || !method_exists($value, 'toArray')) {
+                continue;
+            }
+            self::assertSame(
+                Runtime::encode($value->toArray()),
+                Runtime::encode($request->json()),
+                $named . ' sent a body the API cannot read back'
+            );
+        }
+    }
+
+    /**
+     * Every member of a value that holds nothing, which is every one the case left out.
+     *
+     * @return list<string>
+     */
+    private function unset(string $declared, object $held): array
+    {
+        $absent = [];
+        foreach (Synthesis::wireNames((new \ReflectionClass($declared))->getConstructor()) as $name => $wire) {
+            if ($held->{$name} === null) {
+                $absent[] = $wire;
+            }
+        }
+
+        return $absent;
+    }
+
+    /** How many members of a value the document describes nothing about. */
+    private function opaque(string $declared): int
+    {
+        $constructor = (new \ReflectionClass($declared))->getConstructor();
+        $opaque = 0;
+        foreach (Synthesis::declaredTypes($constructor) as $type) {
+            if (Synthesis::peeled($type) === 'mixed') {
+                $opaque++;
+            }
+        }
+
+        return $opaque;
     }
 
     private function applications(): ApplicationsApi
