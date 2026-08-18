@@ -52,8 +52,12 @@ function setting(name) {
 // The instance without the path the hand-written half is built with.
 //
 // The generated half composes paths that already carry `/api/v1`, since the API document's own
-// server URL is the bare origin. Handing it the whole of `HOOK0_API_URL` reaches `/api/v1/api/v1`
-// and answers 404 for every operation.
+// server URL is the bare origin. Every SDK's own transport resolves a path against its base, so
+// handing one the whole of `HOOK0_API_URL` reaches the same request either way. `Reaching` below is
+// this smoke's own and joins the two by concatenating, so for it the origin is the only form that
+// works — and pointing at the origin is what the contract says in both cases. The day that stopped
+// being followed is on record: this client resolved its base with `new URL` and was posting to
+// `/api/event` until the first live run found it.
 function originOf(apiUrl) {
   const parsed = new URL(apiUrl);
   return `${parsed.protocol}//${parsed.host}`;

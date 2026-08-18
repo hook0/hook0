@@ -112,6 +112,11 @@ impl Settings {
     fn read() -> Result<Self, String> {
         let api_url = url(&setting("HOOK0_API_URL")?)?;
 
+        // The instance without the path the hand-written half is built with. The generated half
+        // composes paths that already carry `/api/v1`, since the API document's own server URL is
+        // the bare origin. Every SDK's own transport resolves a path against its base and would
+        // reach the same request either way; `Reaching` below is this smoke's own and joins the two
+        // by concatenating, so for it the origin is the only form that works.
         let mut origin = api_url.clone();
         origin.set_path("");
         origin.set_query(None);

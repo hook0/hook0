@@ -347,9 +347,22 @@ event type in every application, so it is the same string whichever smoke reads 
 `HOOK0_API_URL` ends in `/api/v1` because that is what the hand-written half of every client is
 built with. The generated half is not built with it: the paths it composes already carry `/api/v1`,
 since the API document's own server URL is the bare origin. Whichever of the two a language points
-its generated layer at, it points it at the origin — `HOOK0_API_URL` with that path taken off. A
-language that passes the variable through unchanged reaches `/api/v1/api/v1/...` and gets a 404 back
-for every operation.
+its generated layer at, it points it at the origin — `HOOK0_API_URL` with that path taken off.
+
+Not because the variable would otherwise 404. Every SDK's own transport resolves a path against its
+base the way RFC 3986 says, so an absolute path replaces whatever the base carried and both forms
+reach the same request — measured, on the JVM's `URI.resolve`, on .NET's `Uri`, on Python's
+`urljoin`, on Go's `ResolveReference`, on Ruby's `URI.join`, and on what PHP, Lua and Zig write by
+hand. Three do not resolve: the transports the rust and typescript smokes write for themselves, and
+the MCP server's own client, which joins its base path to a tool's path by concatenating them. Those
+three reach `/api/v1/api/v1/...` if handed the variable unchanged, so for them the origin is not a
+convention but the only form that works. It is what the contract says either way, and the day that
+stopped being followed is on record below: the TypeScript client resolved its base with `new URL`
+and was posting to `/api/event`.
+
+What the convention does **not** buy is an instance mounted under a path prefix. The generated paths
+are absolute, so a prefix in the base is discarded whichever form is handed in, and no client here
+supports one today.
 
 **Two credentials, because the API takes two.** `HOOK0_TOKEN` is an application secret, scoped to
 one application; `HOOK0_SERVICE_TOKEN` is scoped to the organization. Several operations the

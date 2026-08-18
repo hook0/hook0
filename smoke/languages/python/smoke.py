@@ -89,7 +89,12 @@ def origin_of(api_url: str) -> str:
     """The instance without the path the hand-written half is built with.
 
     The generated half composes paths that already carry `/api/v1`, since the API document's own
-    server URL is the bare origin. Handing it the whole of `HOOK0_API_URL` reaches `/api/v1/api/v1`.
+    server URL is the bare origin. Handing this client's transport the whole of `HOOK0_API_URL`
+    happens to reach the same request: it resolves with `urljoin`, so an absolute path replaces the
+    base's as RFC 3986 says, and what the base carried is discarded whichever of the two it was
+    given. That is how one language joins two URLs rather than a contract — the TypeScript client
+    resolved its base with `new URL` and was posting to `/api/event` until the first live run found
+    it — so this points at the origin, which is what the contract says.
     """
     parts = urlsplit(api_url)
     return urlunsplit((parts.scheme, parts.netloc, "", "", ""))

@@ -195,9 +195,12 @@ func setting(name string) (string, error) {
 // The instance without the path the hand-written half is built with.
 //
 // The generated half composes paths that already carry /api/v1, since the API document's own server
-// URL is the bare origin. This client's transport happens to tolerate being handed the whole of
-// HOOK0_API_URL — an absolute path replaces the base's under RFC 3986 — but pointing it at the
-// origin is what the contract says and what keeps an instance mounted under a sub-path working.
+// URL is the bare origin. Handing this client's transport the whole of HOOK0_API_URL happens to
+// reach the same request: url.ResolveReference lets an absolute path replace the base's, as RFC 3986
+// says, and what the base carried is discarded whichever of the two it was given. That is how one
+// language joins two URLs rather than a contract — the TypeScript client resolved its base with
+// new URL and was posting to /api/event until the first live run found it — so this points at the
+// origin, which is what the contract says.
 func originOf(apiURL string) (string, error) {
 	parsed, err := url.Parse(apiURL)
 	if err != nil {
