@@ -953,3 +953,157 @@ mod refusals {
         );
     }
 }
+
+// =============================================================================
+// Query Parameter Tests
+// =============================================================================
+
+/// What an operation's query parameters do between the tool call and the request line.
+///
+/// Driven the same way as the refusals above — over stdio, against a socket this test listens on —
+/// but what is read off that socket here is the request line rather than the answer. A tool
+/// declares an argument required, an assistant supplies it, and the only place the value can
+/// legitimately end up for a `GET` is the query string; these say so by looking at the bytes.
+///
+/// Not `#[ignore]`d, for the same reason the refusals are not: what they are about is what this
+/// server composes, and nothing about that needs an instance to be reachable.
+mod query_parameters {
+    use super::*;
+    use std::io::Read;
+    use std::net::TcpListener;
+    use std::sync::mpsc::{self, Receiver};
+    use std::thread;
+
+    /// Longest request this listener reads before it answers, in bytes.
+    const MAX_REQUEST_BYTES: usize = 64 * 1024;
+
+    /// Longest this listener waits on a socket that has stopped saying anything.
+    const PATIENCE: Duration = Duration::from_secs(10);
+
+    /// Longest a case waits for the request line to come back off the listener.
+    const DELIVERY: Duration = Duration::from_secs(20);
+
+    /// A Hook0 that answers an empty list, and hands back the request line it was asked with.
+    fn recording_hook0() -> (String, Receiver<String>) {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to listen");
+        let at = format!(
+            "http://{}",
+            listener.local_addr().expect("Failed to read the port")
+        );
+        let (asked, heard) = mpsc::channel();
+
+        thread::spawn(move || {
+            let Ok((mut connection, _)) = listener.accept() else {
+                return;
+            };
+            let _ = connection.set_read_timeout(Some(PATIENCE));
+            let _ = connection.set_write_timeout(Some(PATIENCE));
+
+            let mut held = Vec::new();
+            let mut byte = [0u8; 1];
+            while held.len() < MAX_REQUEST_BYTES && !held.ends_with(b"\r\n\r\n") {
+                match connection.read(&mut byte) {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => held.push(byte[0]),
+                }
+            }
+
+            let head = String::from_utf8_lossy(&held).into_owned();
+            let _ = asked.send(head.lines().next().unwrap_or_default().to_owned());
+
+            let body = "[]";
+            let _ = write!(
+                connection,
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            let _ = connection.flush();
+        });
+
+        (at, heard)
+    }
+
+    /// The request line one tool call put on the wire.
+    fn asked_with(arguments: Value) -> String {
+        let (at, heard) = recording_hook0();
+        let mut server = McpServerProcess::spawn("placeholder-token-never-used", &at);
+        server.initialize();
+        server.send_request("tools/call", arguments);
+
+        heard
+            .recv_timeout(DELIVERY)
+            .expect("the server never reached the Hook0 it was pointed at")
+    }
+
+    /// An argument the tool declares required reaches the API, rather than being asked for and
+    /// dropped. `applications.list` takes one, and it is the whole of what the operation selects
+    /// on, so a request without it is not a narrower question — it is a different one.
+    #[test]
+    fn applications_list_carries_the_organization_it_was_given() {
+        let organization = "6f8a3e1c-9a2b-4d5e-8f70-1c2d3e4f5a6b";
+
+        let asked = asked_with(json!({
+            "name": "applications.list",
+            "arguments": { "organization_id": organization },
+        }));
+
+        assert!(
+            asked.contains(&format!("organization_id={organization}")),
+            "the organization the tool was given reached nothing: {asked}"
+        );
+    }
+
+    /// A value travels percent-encoded, and a space travels as `%20` rather than as `+`.
+    ///
+    /// Pinned rather than left to the encoder, because it is a decision: `+` is a literal plus
+    /// under RFC 3986 and reads as a space only to something decoding the query as a form. A
+    /// cursor is opaque text the API hands out, so it is the argument most likely to carry one.
+    #[test]
+    fn a_query_value_travels_percent_encoded() {
+        let asked = asked_with(json!({
+            "name": "requestAttempts.list",
+            "arguments": {
+                "application_id": "6f8a3e1c-9a2b-4d5e-8f70-1c2d3e4f5a6b",
+                "pagination_cursor": "one two",
+            },
+        }));
+
+        assert!(
+            asked.contains("pagination_cursor=one%20two"),
+            "a space has to travel as `%20`: {asked}"
+        );
+    }
+
+    /// Every argument reaches the API, not merely the first one. `requestAttempts.list` declares
+    /// seven, where every other tool declares one, so it is the case that tells composing a query
+    /// string apart from filling in a single value and calling it done.
+    #[test]
+    fn request_attempts_list_carries_every_filter_it_was_given() {
+        let filters = [
+            ("application_id", "6f8a3e1c-9a2b-4d5e-8f70-1c2d3e4f5a6b"),
+            ("event.event_type_names", "smoke.event.sent"),
+            ("event_id", "0195c0de-0000-7000-8000-000000000001"),
+            ("max_created_at", "2026-01-02T00:00:00Z"),
+            ("min_created_at", "2026-01-01T00:00:00Z"),
+            ("pagination_cursor", "cursor-1"),
+            ("subscription_id", "0195c0de-0000-7000-8000-000000000002"),
+        ];
+
+        let mut arguments = serde_json::Map::new();
+        for (name, value) in filters {
+            arguments.insert(name.to_owned(), json!(value));
+        }
+
+        let asked = asked_with(json!({
+            "name": "requestAttempts.list",
+            "arguments": Value::Object(arguments),
+        }));
+
+        for (name, _) in filters {
+            assert!(
+                asked.contains(&format!("{name}=")),
+                "`{name}` was asked for and reached nothing: {asked}"
+            );
+        }
+    }
+}

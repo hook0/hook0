@@ -56,6 +56,26 @@ fn clipped_part(part: &str) -> String {
         .collect()
 }
 
+/// One name or one value of a query string, with everything that is not RFC 3986's unreserved set
+/// written as a percent escape.
+///
+/// A space therefore travels as `%20` and never as `+`. The SDK family is split on this — five of
+/// the nine that compose a query string of their own write `+`, four write `%20` — so this is a
+/// choice rather than a convention being followed. It is made on the rule: `+` is a literal plus
+/// under RFC 3986 and means a space only to a reader decoding the query as a form, where `%20`
+/// says the same thing to both. What the other clients do is settled where they are, not here.
+fn escaped(text: &str) -> String {
+    let mut written = String::with_capacity(text.len());
+    for byte in text.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+            written.push(char::from(byte));
+        } else {
+            written.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    written
+}
+
 /// HTTP client for Hook0 API
 #[derive(Debug, Clone)]
 pub struct Hook0Client {
@@ -120,9 +140,29 @@ impl Hook0Client {
         url
     }
 
+    /// The same URL, carrying the query string the operation asked for.
+    fn asked(&self, path: &str, query: &[(String, String)]) -> Url {
+        let mut url = self.url(path);
+        if query.is_empty() {
+            return url;
+        }
+
+        let composed = query
+            .iter()
+            .map(|(name, value)| format!("{}={}", escaped(name), escaped(value)))
+            .collect::<Vec<String>>()
+            .join("&");
+        url.set_query(Some(&composed));
+        url
+    }
+
     /// Execute a GET request
-    pub async fn get(&self, path: &str) -> Result<Value, Hook0McpError> {
-        let url = self.url(path);
+    pub async fn get(
+        &self,
+        path: &str,
+        query: &[(String, String)],
+    ) -> Result<Value, Hook0McpError> {
+        let url = self.asked(path, query);
         debug!("GET {}", url);
 
         let response = self
@@ -137,8 +177,13 @@ impl Hook0Client {
     }
 
     /// Execute a POST request
-    pub async fn post(&self, path: &str, body: Option<Value>) -> Result<Value, Hook0McpError> {
-        let url = self.url(path);
+    pub async fn post(
+        &self,
+        path: &str,
+        query: &[(String, String)],
+        body: Option<Value>,
+    ) -> Result<Value, Hook0McpError> {
+        let url = self.asked(path, query);
         debug!("POST {}", url);
 
         let mut request = self.client.post(url.clone()).bearer_auth(&self.token);
@@ -153,8 +198,13 @@ impl Hook0Client {
     }
 
     /// Execute a PUT request
-    pub async fn put(&self, path: &str, body: Option<Value>) -> Result<Value, Hook0McpError> {
-        let url = self.url(path);
+    pub async fn put(
+        &self,
+        path: &str,
+        query: &[(String, String)],
+        body: Option<Value>,
+    ) -> Result<Value, Hook0McpError> {
+        let url = self.asked(path, query);
         debug!("PUT {}", url);
 
         let mut request = self.client.put(url.clone()).bearer_auth(&self.token);
@@ -169,8 +219,13 @@ impl Hook0Client {
     }
 
     /// Execute a PATCH request
-    pub async fn patch(&self, path: &str, body: Option<Value>) -> Result<Value, Hook0McpError> {
-        let url = self.url(path);
+    pub async fn patch(
+        &self,
+        path: &str,
+        query: &[(String, String)],
+        body: Option<Value>,
+    ) -> Result<Value, Hook0McpError> {
+        let url = self.asked(path, query);
         debug!("PATCH {}", url);
 
         let mut request = self.client.patch(url.clone()).bearer_auth(&self.token);
@@ -185,8 +240,12 @@ impl Hook0Client {
     }
 
     /// Execute a DELETE request
-    pub async fn delete(&self, path: &str) -> Result<Value, Hook0McpError> {
-        let url = self.url(path);
+    pub async fn delete(
+        &self,
+        path: &str,
+        query: &[(String, String)],
+    ) -> Result<Value, Hook0McpError> {
+        let url = self.asked(path, query);
         debug!("DELETE {}", url);
 
         let response = self
@@ -525,7 +584,11 @@ mod tests {
 
         tokio::time::timeout(
             EXCHANGE_TIMEOUT,
-            client.post("/applications", Some(json!({ "name": "an application" }))),
+            client.post(
+                "/applications",
+                &[],
+                Some(json!({ "name": "an application" })),
+            ),
         )
         .await
         .expect("the exchange finishes inside its deadline")

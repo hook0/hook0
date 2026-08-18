@@ -114,23 +114,38 @@ impl Hook0McpServer {
         // Interpolate path template with parameters
         let path = interpolate_path(tool_info.path_template, &path_params);
 
+        // What the tool declares travels in the query string, in the order the table states it, so
+        // two calls asking the same thing put the same request line on the wire. The values come
+        // out of the map built above, which is every argument this server can write as text: one
+        // named here and not passed is simply not asked for, which is what an optional filter left
+        // out has to mean.
+        let query: Vec<(String, String)> = tool_info
+            .query_parameters
+            .iter()
+            .filter_map(|name| {
+                path_params
+                    .get(*name)
+                    .map(|value| ((*name).to_owned(), value.clone()))
+            })
+            .collect();
+
         // Execute the appropriate HTTP method
         let result = match tool_info.method {
-            "GET" => self.client.get(&path).await,
+            "GET" => self.client.get(&path, &query).await,
             "POST" => {
                 // Build request body from non-path args
-                let body = self.build_request_body(args, tool_info.path_template);
-                self.client.post(&path, body).await
+                let body = self.build_request_body(args, tool_info);
+                self.client.post(&path, &query, body).await
             }
             "PUT" => {
-                let body = self.build_request_body(args, tool_info.path_template);
-                self.client.put(&path, body).await
+                let body = self.build_request_body(args, tool_info);
+                self.client.put(&path, &query, body).await
             }
             "PATCH" => {
-                let body = self.build_request_body(args, tool_info.path_template);
-                self.client.patch(&path, body).await
+                let body = self.build_request_body(args, tool_info);
+                self.client.patch(&path, &query, body).await
             }
-            "DELETE" => self.client.delete(&path).await,
+            "DELETE" => self.client.delete(&path, &query).await,
             _ => {
                 return Err(McpError::internal_error(
                     format!("Unknown HTTP method: {}", tool_info.method),
@@ -146,19 +161,29 @@ impl Hook0McpServer {
         Ok(CallToolResult::success(vec![ContentBlock::text(content)]))
     }
 
-    /// Build request body from arguments, excluding path parameters
-    fn build_request_body(&self, args: &Map<String, Value>, path_template: &str) -> Option<Value> {
+    /// Build request body from arguments, excluding those that travel somewhere else
+    ///
+    /// An argument travels in exactly one place: the path, the query string, or the body. The
+    /// first two are taken out here, so a parameter that reaches the API in the request line is
+    /// not also written into the document beside it.
+    fn build_request_body(
+        &self,
+        args: &Map<String, Value>,
+        tool_info: &GeneratedToolInfo,
+    ) -> Option<Value> {
         // Extract path parameter names from template (e.g., {application_id})
-        let path_param_names: Vec<&str> = path_template
+        let path_param_names: Vec<&str> = tool_info
+            .path_template
             .split('/')
             .filter(|s| s.starts_with('{') && s.ends_with('}'))
             .map(|s| &s[1..s.len() - 1])
             .collect();
 
-        // Filter out path parameters from args to build body
+        // Filter out everything that travels in the request line to build body
         let body_args: Map<String, Value> = args
             .iter()
             .filter(|(key, _)| !path_param_names.contains(&key.as_str()))
+            .filter(|(key, _)| !tool_info.query_parameters.contains(&key.as_str()))
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
 
@@ -267,8 +292,8 @@ impl ServerHandler for Hook0McpServer {
         info!("Reading resource: {}", request.uri);
 
         let content = match request.uri.as_str() {
-            "hook0://organizations" => self.client.get("/organizations/").await,
-            "hook0://applications" => self.client.get("/applications/").await,
+            "hook0://organizations" => self.client.get("/organizations/", &[]).await,
+            "hook0://applications" => self.client.get("/applications/", &[]).await,
             uri => {
                 // The prefix is stripped where it is tested, rather than tested in a match guard
                 // and stripped again in the arm: the second reading is what has to be kept in step
@@ -276,26 +301,28 @@ impl ServerHandler for Hook0McpServer {
                 if let Some(rest) = uri.strip_prefix("hook0://applications/") {
                     if let Some(app_id) = rest.strip_suffix("/events") {
                         self.client
-                            .get(&format!("/applications/{}/events/", app_id))
+                            .get(&format!("/applications/{}/events/", app_id), &[])
                             .await
                     } else if let Some(app_id) = rest.strip_suffix("/subscriptions") {
                         self.client
-                            .get(&format!("/applications/{}/subscriptions/", app_id))
+                            .get(&format!("/applications/{}/subscriptions/", app_id), &[])
                             .await
                     } else if let Some(app_id) = rest.strip_suffix("/event_types") {
                         self.client
-                            .get(&format!("/applications/{}/event_types/", app_id))
+                            .get(&format!("/applications/{}/event_types/", app_id), &[])
                             .await
                     } else {
-                        self.client.get(&format!("/applications/{}/", rest)).await
+                        self.client
+                            .get(&format!("/applications/{}/", rest), &[])
+                            .await
                     }
                 } else if let Some(rest) = uri.strip_prefix("hook0://events/") {
                     if let Some(event_id) = rest.strip_suffix("/attempts") {
                         self.client
-                            .get(&format!("/events/{}/request_attempts/", event_id))
+                            .get(&format!("/events/{}/request_attempts/", event_id), &[])
                             .await
                     } else {
-                        self.client.get(&format!("/events/{}/", rest)).await
+                        self.client.get(&format!("/events/{}/", rest), &[]).await
                     }
                 } else {
                     return Err(McpError::resource_not_found(

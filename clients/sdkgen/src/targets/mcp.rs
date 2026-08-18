@@ -54,6 +54,14 @@ pub struct GeneratedToolInfo {
     pub method: &'static str,
     pub path_template: &'static str,
     pub input_schema: &'static str,
+    /// Which of the arguments travel in the query string, under the names the API reads them by.
+    ///
+    /// Stated rather than worked out from the schema: the schema says what a caller fills in and
+    /// not where any of it goes, and a path parameter is only recognisable by the placeholder it
+    /// fills. Every other argument would have to be sorted by a rule about the method, which holds
+    /// for the operations the API declares today and would put an argument in the body the day one
+    /// of them answers a query string and a body at once.
+    pub query_parameters: &'static [&'static str],
 }
 
 impl GeneratedToolInfo {
@@ -188,13 +196,55 @@ fn tool(name: &str, operation: &Operation) -> Result<String, Error> {
         .unwrap_or_default();
 
     Ok(format!(
-        "    GeneratedToolInfo {{\n        name: \"{}\",\n        description: \"{}\",\n        method: \"{}\",\n        path_template: \"{}\",\n        input_schema: \"{}\",\n    }},\n",
+        "    GeneratedToolInfo {{\n        name: \"{}\",\n        description: \"{}\",\n        method: \"{}\",\n        path_template: \"{}\",\n        input_schema: \"{}\",\n{}    }},\n",
         escape(name),
         description,
         operation.method,
         escape(&operation.path),
-        escape(&input_schema(name, operation)?)
+        escape(&input_schema(name, operation)?),
+        query_parameters(operation)
     ))
+}
+
+/// Longest line the emitted table carries, which is what the committed format check enforces.
+const MAX_LINE_CHARS: usize = 100;
+
+/// How far the members of a tool sit in, and how far the items of a list of theirs sit in again.
+const MEMBER_INDENT: &str = "        ";
+const ITEM_INDENT: &str = "            ";
+
+/// The arguments this operation carries in its query string, as the table states them.
+///
+/// The document already says where every parameter travels, and the schema a caller fills in is
+/// the one place that says nothing about it: it is one flat object holding the path, the query and
+/// the body at once. Writing the query names out here is what lets the server put each argument
+/// where the API reads it, without inferring anything from the method.
+///
+/// Written on one line while one line fits, and one name per line once it does not, because that
+/// is what the formatter would do to it either way — and a generated file the formatter would
+/// rewrite is one the format check fails on source nobody typed.
+fn query_parameters(operation: &Operation) -> String {
+    let names: Vec<String> = operation
+        .parameters
+        .iter()
+        .filter(|parameter| parameter.location == ParameterLocation::Query)
+        .map(|parameter| format!("\"{}\"", escape(&parameter.name)))
+        .collect();
+
+    let together = format!(
+        "{MEMBER_INDENT}query_parameters: &[{}],\n",
+        names.join(", ")
+    );
+    if together.trim_end().chars().count() <= MAX_LINE_CHARS {
+        return together;
+    }
+
+    let mut apart = format!("{MEMBER_INDENT}query_parameters: &[\n");
+    for name in &names {
+        apart.push_str(&format!("{ITEM_INDENT}{name},\n"));
+    }
+    apart.push_str(&format!("{MEMBER_INDENT}],\n"));
+    apart
 }
 
 /// The schema a caller fills in: the parameters of the operation, plus the fields of its body.

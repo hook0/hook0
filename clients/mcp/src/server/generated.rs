@@ -9,6 +9,14 @@ pub struct GeneratedToolInfo {
     pub method: &'static str,
     pub path_template: &'static str,
     pub input_schema: &'static str,
+    /// Which of the arguments travel in the query string, under the names the API reads them by.
+    ///
+    /// Stated rather than worked out from the schema: the schema says what a caller fills in and
+    /// not where any of it goes, and a path parameter is only recognisable by the placeholder it
+    /// fills. Every other argument would have to be sorted by a rule about the method, which holds
+    /// for the operations the API declares today and would put an argument in the body the day one
+    /// of them answers a query string and a body at once.
+    pub query_parameters: &'static [&'static str],
 }
 
 impl GeneratedToolInfo {
@@ -26,6 +34,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "POST",
         path_template: "/api/v1/applications/",
         input_schema: "{\"properties\":{\"name\":{\"description\":\"Name of the application. Length: 2-50 characters.\",\"type\":\"string\"},\"organization_id\":{\"description\":\"UUID of the organization this application belongs to.\",\"format\":\"uuid\",\"type\":\"string\"}},\"required\":[\"name\",\"organization_id\"],\"type\":\"object\"}",
+        query_parameters: &[],
     },
     GeneratedToolInfo {
         name: "applications.delete",
@@ -33,6 +42,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "DELETE",
         path_template: "/api/v1/applications/{application_id}",
         input_schema: "{\"properties\":{\"application_id\":{\"type\":\"string\"}},\"required\":[\"application_id\"],\"type\":\"object\"}",
+        query_parameters: &[],
     },
     GeneratedToolInfo {
         name: "applications.get",
@@ -40,6 +50,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "GET",
         path_template: "/api/v1/applications/{application_id}",
         input_schema: "{\"properties\":{\"application_id\":{\"type\":\"string\"}},\"required\":[\"application_id\"],\"type\":\"object\"}",
+        query_parameters: &[],
     },
     GeneratedToolInfo {
         name: "applications.list",
@@ -47,6 +58,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "GET",
         path_template: "/api/v1/applications/",
         input_schema: "{\"properties\":{\"organization_id\":{\"type\":\"string\"}},\"required\":[\"organization_id\"],\"type\":\"object\"}",
+        query_parameters: &["organization_id"],
     },
     GeneratedToolInfo {
         name: "applications.update",
@@ -54,6 +66,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "PUT",
         path_template: "/api/v1/applications/{application_id}",
         input_schema: "{\"properties\":{\"application_id\":{\"type\":\"string\"},\"name\":{\"description\":\"Name of the application. Length: 2-50 characters.\",\"type\":\"string\"},\"organization_id\":{\"description\":\"UUID of the organization this application belongs to.\",\"format\":\"uuid\",\"type\":\"string\"}},\"required\":[\"application_id\",\"name\",\"organization_id\"],\"type\":\"object\"}",
+        query_parameters: &[],
     },
     GeneratedToolInfo {
         name: "eventTypes.create",
@@ -61,6 +74,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "POST",
         path_template: "/api/v1/event_types/",
         input_schema: "{\"properties\":{\"application_id\":{\"format\":\"uuid\",\"type\":\"string\"},\"resource_type\":{\"type\":\"string\"},\"service\":{\"type\":\"string\"},\"verb\":{\"type\":\"string\"}},\"required\":[\"application_id\",\"resource_type\",\"service\",\"verb\"],\"type\":\"object\"}",
+        query_parameters: &[],
     },
     GeneratedToolInfo {
         name: "eventTypes.delete",
@@ -68,6 +82,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "DELETE",
         path_template: "/api/v1/event_types/{event_type_name}",
         input_schema: "{\"properties\":{\"application_id\":{\"type\":\"string\"},\"event_type_name\":{\"type\":\"string\"}},\"required\":[\"event_type_name\",\"application_id\"],\"type\":\"object\"}",
+        query_parameters: &["application_id"],
     },
     GeneratedToolInfo {
         name: "eventTypes.get",
@@ -75,6 +90,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "GET",
         path_template: "/api/v1/event_types/{event_type_name}",
         input_schema: "{\"properties\":{\"application_id\":{\"type\":\"string\"},\"event_type_name\":{\"type\":\"string\"}},\"required\":[\"event_type_name\",\"application_id\"],\"type\":\"object\"}",
+        query_parameters: &["application_id"],
     },
     GeneratedToolInfo {
         name: "eventTypes.list",
@@ -82,6 +98,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "GET",
         path_template: "/api/v1/event_types/",
         input_schema: "{\"properties\":{\"application_id\":{\"type\":\"string\"}},\"required\":[\"application_id\"],\"type\":\"object\"}",
+        query_parameters: &["application_id"],
     },
     GeneratedToolInfo {
         name: "events.get",
@@ -89,6 +106,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "GET",
         path_template: "/api/v1/events/{event_id}",
         input_schema: "{\"properties\":{\"application_id\":{\"type\":\"string\"},\"event_id\":{\"type\":\"string\"}},\"required\":[\"event_id\",\"application_id\"],\"type\":\"object\"}",
+        query_parameters: &["application_id"],
     },
     GeneratedToolInfo {
         name: "events.ingest",
@@ -96,6 +114,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "POST",
         path_template: "/api/v1/event/",
         input_schema: "{\"properties\":{\"application_id\":{\"description\":\"UUID of the application this event belongs to.\",\"format\":\"uuid\",\"type\":\"string\"},\"event_id\":{\"description\":\"Optional unique identifier for this event (client-generated UUID). If not provided, a UUIDv7 will be generated by the server.\",\"format\":\"uuid\",\"type\":\"string\"},\"event_type\":{\"description\":\"The type of event (e.g., 'user.created', 'order.completed'). Length: 1-200 characters.\",\"type\":\"string\"},\"labels\":{\"additionalProperties\":{\"type\":\"string\"},\"description\":\"Labels for event filtering and routing to subscriptions.\",\"type\":\"object\"},\"metadata\":{\"additionalProperties\":{\"type\":\"string\"},\"description\":\"Optional metadata key-value pairs associated with the event.\",\"type\":\"object\"},\"occurred_at\":{\"description\":\"Timestamp when the event occurred.\",\"format\":\"date-time\",\"type\":\"string\"},\"payload\":{\"description\":\"The event payload. For binary content, use base64 encoding. Max length: 699050 characters (512 KiB base64-encoded).\",\"type\":\"string\"},\"payload_content_type\":{\"description\":\"Content type of the payload. Valid values: text/plain, application/json, application/octet-stream+base64. Length: 1-100 characters.\",\"type\":\"string\"}},\"required\":[\"application_id\",\"event_type\",\"labels\",\"occurred_at\",\"payload\",\"payload_content_type\"],\"type\":\"object\"}",
+        query_parameters: &[],
     },
     GeneratedToolInfo {
         name: "events.list",
@@ -103,6 +122,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "GET",
         path_template: "/api/v1/events/",
         input_schema: "{\"properties\":{\"application_id\":{\"type\":\"string\"}},\"required\":[\"application_id\"],\"type\":\"object\"}",
+        query_parameters: &["application_id"],
     },
     GeneratedToolInfo {
         name: "events.replay",
@@ -110,6 +130,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "POST",
         path_template: "/api/v1/events/{event_id}/replay",
         input_schema: "{\"properties\":{\"application_id\":{\"format\":\"uuid\",\"type\":\"string\"},\"event_id\":{\"type\":\"string\"}},\"required\":[\"event_id\",\"application_id\"],\"type\":\"object\"}",
+        query_parameters: &[],
     },
     GeneratedToolInfo {
         name: "organizations.get",
@@ -117,6 +138,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "GET",
         path_template: "/api/v1/organizations/{organization_id}/",
         input_schema: "{\"properties\":{\"organization_id\":{\"type\":\"string\"}},\"required\":[\"organization_id\"],\"type\":\"object\"}",
+        query_parameters: &[],
     },
     GeneratedToolInfo {
         name: "organizations.list",
@@ -124,6 +146,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "GET",
         path_template: "/api/v1/organizations/",
         input_schema: "{\"properties\":{},\"required\":[],\"type\":\"object\"}",
+        query_parameters: &[],
     },
     GeneratedToolInfo {
         name: "payload_content_types.list",
@@ -131,6 +154,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "GET",
         path_template: "/api/v1/payload_content_types/",
         input_schema: "{\"properties\":{},\"required\":[],\"type\":\"object\"}",
+        query_parameters: &[],
     },
     GeneratedToolInfo {
         name: "requestAttempts.get",
@@ -138,6 +162,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "GET",
         path_template: "/api/v1/request_attempts/{request_attempt_id}",
         input_schema: "{\"properties\":{\"application_id\":{\"type\":\"string\"},\"request_attempt_id\":{\"type\":\"string\"}},\"required\":[\"application_id\",\"request_attempt_id\"],\"type\":\"object\"}",
+        query_parameters: &["application_id"],
     },
     GeneratedToolInfo {
         name: "requestAttempts.list",
@@ -145,6 +170,15 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "GET",
         path_template: "/api/v1/request_attempts/",
         input_schema: "{\"properties\":{\"application_id\":{\"type\":\"string\"},\"event.event_type_names\":{\"description\":\"Comma-separated event types\",\"type\":\"string\"},\"event_id\":{\"type\":\"string\"},\"max_created_at\":{\"type\":\"string\"},\"min_created_at\":{\"type\":\"string\"},\"pagination_cursor\":{\"type\":\"string\"},\"subscription_id\":{\"type\":\"string\"}},\"required\":[\"application_id\"],\"type\":\"object\"}",
+        query_parameters: &[
+            "application_id",
+            "event.event_type_names",
+            "event_id",
+            "max_created_at",
+            "min_created_at",
+            "pagination_cursor",
+            "subscription_id",
+        ],
     },
     GeneratedToolInfo {
         name: "subscriptions.create",
@@ -152,6 +186,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "POST",
         path_template: "/api/v1/subscriptions/",
         input_schema: "{\"properties\":{\"application_id\":{\"format\":\"uuid\",\"type\":\"string\"},\"dedicated_workers\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"description\":{\"type\":\"string\"},\"event_types\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"is_enabled\":{\"type\":\"boolean\"},\"label_key\":{\"description\":\"_Kept for backward compatibility, you should use `labels`_\",\"type\":\"string\"},\"label_value\":{\"description\":\"_Kept for backward compatibility, you should use `labels`_\",\"type\":\"string\"},\"labels\":{\"additionalProperties\":{\"type\":\"string\"},\"type\":\"object\"},\"metadata\":{\"additionalProperties\":{\"type\":\"string\"},\"type\":\"object\"},\"target\":{\"properties\":{\"headers\":{\"type\":\"object\"},\"method\":{\"type\":\"string\"},\"type\":{\"example\":\"http\",\"type\":\"string\"},\"url\":{\"format\":\"url\",\"type\":\"string\"}},\"required\":[\"headers\",\"method\",\"type\",\"url\"],\"type\":\"object\"}},\"required\":[\"application_id\",\"event_types\",\"is_enabled\",\"target\"],\"type\":\"object\"}",
+        query_parameters: &[],
     },
     GeneratedToolInfo {
         name: "subscriptions.delete",
@@ -159,6 +194,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "DELETE",
         path_template: "/api/v1/subscriptions/{subscription_id}",
         input_schema: "{\"properties\":{\"application_id\":{\"type\":\"string\"},\"subscription_id\":{\"type\":\"string\"}},\"required\":[\"subscription_id\",\"application_id\"],\"type\":\"object\"}",
+        query_parameters: &["application_id"],
     },
     GeneratedToolInfo {
         name: "subscriptions.get",
@@ -166,6 +202,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "GET",
         path_template: "/api/v1/subscriptions/{subscription_id}",
         input_schema: "{\"properties\":{\"subscription_id\":{\"type\":\"string\"}},\"required\":[\"subscription_id\"],\"type\":\"object\"}",
+        query_parameters: &[],
     },
     GeneratedToolInfo {
         name: "subscriptions.list",
@@ -173,6 +210,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "GET",
         path_template: "/api/v1/subscriptions/",
         input_schema: "{\"properties\":{\"application_id\":{\"type\":\"string\"}},\"required\":[\"application_id\"],\"type\":\"object\"}",
+        query_parameters: &["application_id"],
     },
     GeneratedToolInfo {
         name: "subscriptions.update",
@@ -180,6 +218,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         method: "PUT",
         path_template: "/api/v1/subscriptions/{subscription_id}",
         input_schema: "{\"properties\":{\"application_id\":{\"format\":\"uuid\",\"type\":\"string\"},\"dedicated_workers\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"description\":{\"type\":\"string\"},\"event_types\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"is_enabled\":{\"type\":\"boolean\"},\"label_key\":{\"description\":\"_Kept for backward compatibility, you should use `labels`_\",\"type\":\"string\"},\"label_value\":{\"description\":\"_Kept for backward compatibility, you should use `labels`_\",\"type\":\"string\"},\"labels\":{\"additionalProperties\":{\"type\":\"string\"},\"type\":\"object\"},\"metadata\":{\"additionalProperties\":{\"type\":\"string\"},\"type\":\"object\"},\"subscription_id\":{\"type\":\"string\"},\"target\":{\"properties\":{\"headers\":{\"type\":\"object\"},\"method\":{\"type\":\"string\"},\"type\":{\"example\":\"http\",\"type\":\"string\"},\"url\":{\"format\":\"url\",\"type\":\"string\"}},\"required\":[\"headers\",\"method\",\"type\",\"url\"],\"type\":\"object\"}},\"required\":[\"subscription_id\",\"application_id\",\"event_types\",\"is_enabled\",\"target\"],\"type\":\"object\"}",
+        query_parameters: &[],
     },
 ];
 
