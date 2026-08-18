@@ -55,11 +55,22 @@ clients.lua.check:
     # suite. Nothing against this job's timeout either way.
     - busted --coverage --output=plainTerminal
     # Lua ships no coverage threshold, so the comparison is made here rather than in a job or a
-    # script of its own. The floor is what this suite reaches today, 2913 of 2962 lines, truncated
-    # to the hundredth rather than rounded so that it can never sit above the run it was read from;
-    # luacov prints that same figure as 98.35% because it rounds. It is not headroom: these specs
-    # talk to a loopback socket and draw nothing random, so room below would only buy silent decay.
-    # One line going uncovered lands at 98.31%, which falls through.
+    # script of its own. Two counts rather than one ratio: at least 2913 lines hit, and at most 66
+    # left unhit.
+    #
+    # A ratio was tried here first and it does not survive the interpreter. This suite hits exactly
+    # 2913 lines under Lua 5.4.6 and under the 5.4.8 the pipeline runs — the same lines, the same
+    # specs — but 5.4.8 reports 17 more lines of `src/generated/api.lua` as executable-and-unhit,
+    # which 5.4.6 does not count at all. Same coverage, 98.35% one side and 97.78% the other, so a
+    # ratio read off a laptop fails every pipeline. Hits are what the two agree on.
+    #
+    # What each count is for. The hit floor catches a deleted case: a suite that stops reaching code
+    # hits fewer lines, whatever the denominator does. The missed ceiling catches code added and left
+    # uncovered, which a hit floor alone would not see, and it is written at what 5.4.8 reports
+    # because the older reading cannot fail a pipeline the newer one passes.
+    #
+    # Neither is headroom: these specs talk to a loopback socket and draw nothing random. One case
+    # deleted drops the hits below 2913 and one uncovered line added pushes the missed above 66.
     #
     # Lines only. luacov measures nothing else, and no branch tool exists for this language, so a
     # branch figure here would be invented rather than measured.
@@ -84,15 +95,15 @@ clients.lua.check:
     # refusals of bodies and query lists above their ceilings, and type guards no value the API
     # declares can trip.
     - >-
-      awk -v floor=98.34 '
+      awk -v hits_floor=2913 -v missed_ceiling=66 '
       /^Summary/ { summary = 1; next }
       summary && $1 == "Total" { hits = $2 + 0; missed = $3 + 0; counted = 1; next }
       summary && $NF ~ /%$/ && $NF != "100.00%" { short[++n] = $0 }
       END {
       if (counted != 1 || hits + missed == 0) { print "the coverage report carried no counted line at all, so nothing was measured"; exit 1 }
-      total = hits * 100 / (hits + missed);
-      if (total >= floor) { printf "coverage is %.2f%%, at or above the %.2f%% floor\n", total, floor; exit 0 }
-      printf "coverage is %.2f%%, below the %.2f%% floor this suite reaches\n", total, floor;
+      if (hits >= hits_floor && missed <= missed_ceiling) { printf "%d lines hit and %d left unhit, at or better than the floor of %d hit and the ceiling of %d unhit\n", hits, missed, hits_floor, missed_ceiling; exit 0 }
+      if (hits < hits_floor) { printf "the suite reached less code than it did: %d lines hit against a floor of %d, so something stopped being exercised\n", hits, hits_floor }
+      if (missed > missed_ceiling) { printf "more code is left unhit than before: %d lines against a ceiling of %d\n", missed, missed_ceiling }
       printf "the files still short of 100%% are:\n";
       for (i = 1; i <= n; i++) print "  " short[i];
       exit 1 }' luacov.report.out
