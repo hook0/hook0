@@ -18,6 +18,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Put the hand-written tests where the generator cannot reach (client)
+- **Breaking.** Verifying a webhook signature declares `true` instead of
+  `boolean | Hook0ClientError` (typescript)
+
+  Nothing changes at runtime: neither function ever returned `false`, and neither ever returned a
+  `Hook0ClientError`. Every reason a webhook is refused was already thrown. What changes is your
+  code. `result instanceof Hook0ClientError` no longer compiles, with `TS2358`, and a branch on a
+  falsy result is now unreachable. Catch the refusal instead of testing the answer:
+
+  ```ts
+  try {
+    verifyWebhookSignature(signature, rawBody, headers, secret, 300);
+  } catch (refused) {
+    // every refusal arrives here; answer 400 and do not act on the delivery
+  }
+  ```
+
+  Both `verifyWebhookSignature` and `verifyWebhookSignatureWithCurrentTime` are affected.
 
 ### Fixed
 
