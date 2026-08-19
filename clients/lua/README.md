@@ -24,8 +24,14 @@ Everything else Lua's standard library also lacks is written out here rather tha
 
 ## Install
 
+`luarocks install hook0-client` does not resolve. No release job publishes this rock, so the only
+version that exists is the one in this repository. Build it from the rockspec instead:
+
 ```sh
-luarocks install hook0-client
+git clone https://gitlab.com/hook0/hook0.git
+cd hook0/clients/lua
+luarocks install --deps-only hook0-client-1.1.0-1.rockspec
+luarocks make hook0-client-1.1.0-1.rockspec
 ```
 
 ## Send an event

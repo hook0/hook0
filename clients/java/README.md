@@ -8,6 +8,21 @@ Every call comes in two flavours: one that blocks, and one that answers a `Compl
 
 ## Installing
 
+`com.hook0:hook0-client` does not resolve from Maven Central. The `com.hook0` namespace has not been
+claimed on the Central Portal, which is not something a pipeline can do;
+[`ci/release-no-publish-job.toml`](https://gitlab.com/hook0/hook0/-/blob/master/ci/release-no-publish-job.toml) records what is missing. The
+pom already carries everything else a Central release needs, under a `release` profile.
+
+Until the namespace is claimed, build the jar from a checkout and install it into your local
+repository:
+
+```bash
+git clone https://gitlab.com/hook0/hook0.git
+mvn -f hook0/clients/java/pom.xml install
+```
+
+That puts `com.hook0:hook0-client:1.1.0` in `~/.m2`, where your own build resolves it:
+
 ```xml
 <dependency>
   <groupId>com.hook0</groupId>

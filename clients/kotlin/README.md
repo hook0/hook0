@@ -8,6 +8,19 @@ Every call comes in two flavours: one that blocks, and one that suspends.
 
 ## Installing
 
+`com.hook0:hook0-client-kotlin` does not resolve from Maven Central. No release job publishes it,
+and the `com.hook0` namespace has not been claimed on the Central Portal;
+[`ci/release-no-publish-job.toml`](https://gitlab.com/hook0/hook0/-/blob/master/ci/release-no-publish-job.toml) records what is missing.
+
+Until then, build the jar from a checkout and install it into your local repository:
+
+```bash
+git clone https://gitlab.com/hook0/hook0.git
+mvn -f hook0/clients/kotlin/pom.xml install
+```
+
+That puts `com.hook0:hook0-client-kotlin:1.1.0` in `~/.m2`, where your own build resolves it:
+
 ```xml
 <dependency>
   <groupId>com.hook0</groupId>

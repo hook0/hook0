@@ -16,7 +16,7 @@ The SDK brings nothing with it. It reaches the network, verifies signatures and 
 Java 21 or later is required.
 
 :::warning Not published to Maven Central yet
-`com.hook0:hook0-client` does not resolve from Maven Central. The `com.hook0` namespace has not been claimed on the Central Portal, and the build does not yet carry the signing and javadoc plugins a Central release needs.
+`com.hook0:hook0-client` does not resolve from Maven Central. The `com.hook0` namespace has not been claimed on the Central Portal, which is not something a pipeline can do. The pom already carries the rest under a `release` profile, the signing and javadoc plugins included, so the claim and four CI variables are all that stand in the way.
 
 Until then, build the jar from a checkout and install it into your local repository.
 :::
