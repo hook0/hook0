@@ -1,7 +1,8 @@
 // Per-page strings for self-hosted-webhooks (DE).
 // /humanizer pro + legal-reviewer applied.
-// Hook0 selbst = « Open Source (SSPL-1.0) », NIE « Open Source » (SSPL von der
-// OSI abgelehnt, UWG §5 DACH-Risiko).
+// Hook0 selbst = « Open Source (SSPL-1.0) », Klammerzusatz obligatorisch, NIE
+// « Open Source » allein (SSPL nicht von der OSI anerkannt, UWG §5
+// DACH-Risiko).
 // Souveränität: CDN Cloudflare (USA) offen genannt, Anwendungsdaten bei
 // Clever Cloud (Frankreich). NIE «kein US-Konzern im Stack /
 // keine Daten verlassen die EU / 100 % souverän / CLOUD Act free».

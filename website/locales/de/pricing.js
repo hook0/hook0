@@ -1,5 +1,5 @@
 // Per-page strings for pricing (DE).
-// /humanizer pro + legal-reviewer applied. DSGVO als Prozess-Claim; SSPL = Open Source.
+// /humanizer pro + legal-reviewer applied. DSGVO als Prozess-Claim; SSPL = « Open Source (SSPL-1.0) », nie « Open Source » allein.
 // Verbotene Strings (CLAUDE.local.md): «100% souverän», «kein US-Konzern im
 // Stack», «keine Daten verlassen die EU», «CLOUD Act free». NIS2/DORA nur als
 // Kunden-Kontext, niemals als Zertifizierung.

@@ -1,6 +1,7 @@
 // Per-page strings for hook0-vs-svix (DE).
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Middle-Dot.
-// Hook0 = « Open Source (SSPL-1.0) », NIEMALS « Open Source » (SSPL nicht OSI, UWG §5 Risiko).
+// Hook0 = « Open Source (SSPL-1.0) », Klammerzusatz obligatorisch, NIEMALS
+// « Open Source » allein (SSPL nicht OSI-anerkannt, UWG §5 Risiko).
 // Svix Kern MIT = OSI, also « Open Source » OK für Svix.
 // Keine absoluten DSGVO-Claims im Body. Keine Behauptung « kein US-Konzern im Stack ».
 module.exports = {

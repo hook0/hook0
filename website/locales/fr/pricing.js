@@ -1,6 +1,6 @@
 // Per-page strings for pricing (FR).
 // /humanizer pro + legal-reviewer applied.
-// SSPL = «open source (SSPL-1.0)», jamais «open source» (L121-1).
+// SSPL = «open source (SSPL-1.0)», jamais «open source» seul (L121-1).
 module.exports = {
   pageTitle: 'Tarifs Hook0 : offre gratuite, cloud UE | Webhooks',
   pageDescription: 'Developer gratuit à vie. Cloud dès 59 € HT/mois, open source (SSPL-1.0), auto-hébergeable. Aucun frais caché.',

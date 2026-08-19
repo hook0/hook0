@@ -1,7 +1,8 @@
 // Per-page strings for self-hosted-webhooks (FR).
 // /humanizer pro + legal-reviewer applied.
-// Hook0 lui-même = « open source (SSPL-1.0) », JAMAIS « Open Source »
-// (SSPL rejetée par l'OSI, risque L121-1 C. conso).
+// Hook0 lui-même = « open source (SSPL-1.0) », la parenthèse est obligatoire,
+// JAMAIS « open source » seul (SSPL non approuvée par l'OSI, risque L121-1
+// C. conso).
 // Souveraineté : CDN Cloudflare (USA) divulgué, data plane Clever Cloud (France).
 // JAMAIS « 100 % souverain / no data sharing / CLOUD Act free ».
 module.exports = {

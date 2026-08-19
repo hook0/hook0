@@ -1,6 +1,7 @@
 // Per-page strings for mediakit (DE).
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Pivot-Doppelpunkt.
-// Hook0 = « Open Source (SSPL-1.0) », jamais « Open Source ».
+// Hook0 = « Open Source (SSPL-1.0) », Klammerzusatz obligatorisch, niemals
+// « Open Source » allein.
 // DSGVO = process claim (« auf DSGVO-Konformität ausgelegt »), nicht absolut.
 // Founder-Namen verbatim. Hex-Codes verbatim.
 module.exports = {

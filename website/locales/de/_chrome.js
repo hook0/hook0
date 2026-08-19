@@ -2,8 +2,8 @@
 // Duzen, Tech-Begriffe auf Englisch (Webhooks, Endpoint, Payload, HMAC,
 // Dashboard, Play). SSPL = « Open Source (SSPL-1.0) », Klammerzusatz
 // obligatorisch, NIE « Open Source » allein. Der englische Begriff ist
-// « Open Source » vorzuziehen: die Umschreibung liest sich umgangssprachlich
-// und weitet die wahrgenommene Freiheit aus. Verbotene
+// « quelloffen » vorzuziehen, denn die Umschreibung liest sich
+// umgangssprachlich und weitet die wahrgenommene Freiheit aus. Verbotene
 // Claims: « 100% souverän », « kein US-Konzern im Stack », « keine Daten
 // verlassen die EU », « CLOUD Act free ». DSGVO = Prozess-Claim.
 module.exports = {

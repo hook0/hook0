@@ -1,6 +1,7 @@
 // Per-page strings for hook0-vs-hookdeck (DE).
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Middle-Dot.
-// Hook0 = « Open Source (SSPL-1.0) », NIEMALS « Open Source » (SSPL nicht OSI, UWG §5 Risiko).
+// Hook0 = « Open Source (SSPL-1.0) », Klammerzusatz obligatorisch, NIEMALS
+// « Open Source » allein (SSPL nicht OSI-anerkannt, UWG §5 Risiko).
 // Hookdeck: Outpost (Zustellung) unter Apache-2.0 und selbst-hostbar, Event Gateway (Ingestion) geschlossen.
 // Keine absoluten DSGVO-Claims im Body. Keine Behauptung « kein US-Konzern im Stack ».
 module.exports = {

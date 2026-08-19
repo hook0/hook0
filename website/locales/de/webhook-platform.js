@@ -1,5 +1,5 @@
 // Per-page strings for webhook-platform (DE).
-// /humanizer pro + legal-reviewer applied. DSGVO claims as process; SSPL = Open Source.
+// /humanizer pro + legal-reviewer applied. DSGVO claims as process; SSPL = « Open Source (SSPL-1.0) », nie « Open Source » allein.
 module.exports = {
   pageTitle: 'Webhook-Plattform in Europa, DSGVO-konform betrieben',
   pageDescription: 'Open-Source-Webhook-Plattform (SSPL-1.0): HMAC, Retries, Failed-Queue, Subscriber-Portal. Daten in Frankreich (Clever Cloud).',

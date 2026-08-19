@@ -4,7 +4,8 @@
 // Mittelpunkt. Hook0 Rechtsdaten verbatim, nie übersetzt (Firma, Kapital,
 // RCS, USt-ID, SIRET, Adresse, Telefon, Verantwortlicher, Hosting-Anbieter,
 // CDN). Nur die Labels drumherum werden übersetzt.
-// Hook0 = « Open Source (SSPL-1.0) », niemals « Open Source ».
+// Hook0 = « Open Source (SSPL-1.0) », Klammerzusatz obligatorisch, niemals
+// « Open Source » allein.
 // DSGVO-Anspruch nur als Prozess-Claim («gemäß den geltenden ... DSGVO»),
 // nicht als zertifiziertes Attribut.
 module.exports = {
