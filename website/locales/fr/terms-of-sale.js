@@ -4,8 +4,8 @@
 // document contractuel commercial. Pas de tutoiement. /humanizer pro applique.
 // Pas d'em-dash, pas de double tiret pivot, pas de point median.
 //
-// SSPL = « code source ouvert (SSPL-1.0) », jamais « open source » seul
-// (rejet OSI, risque L121-1 C. conso).
+// SSPL = « open source (SSPL-1.0) », parenthèse obligatoire, jamais « open
+// source » seul (risque L121-1 C. conso) — même règle que l'article 6.5 des CGU.
 //
 // Faits durs Hook0 conserves verbatim entre locales : FGRibreau SARL,
 // capital 2 000 EUR, RCS La Roche-sur-Yon 850 824 350, TVA FR27850824350,
@@ -57,7 +57,7 @@ module.exports = {
         '<strong class="text-white">2.4. Offres On-Premise</strong>, à titre indicatif à la date de la dernière mise à jour :',
       ],
       onPremisePlans: [
-        '<strong class="text-white">Self-hosted</strong> : gratuit, code source ouvert sous licence Server Side Public License v1 (SSPL-1.0).',
+        '<strong class="text-white">Self-hosted</strong> : gratuit, open source sous licence Server Side Public License v1 (SSPL-1.0).',
         '<strong class="text-white">Pro</strong> : 1 000 EUR de frais de mise en service + 500 EUR/mois ou 6 000 EUR/an HT.',
         '<strong class="text-white">Enterprise</strong> : devis sur mesure.',
       ],
