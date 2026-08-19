@@ -78,7 +78,18 @@ clients.go.check:
       for (i = 1; i <= n; i++) print "  " short[i];
       exit 1 }'
     # The corpus committed beside the properties runs above, as ordinary cases. This is the search
-    # itself, under a deadline, so a pipeline can never be held by one.
-    - go test -run '^$' -fuzz FuzzRetryScheduleStaysWithinEveryBound -fuzztime 20s .
-    - go test -run '^$' -fuzz FuzzReadingASignatureAnswersOneOfTheDeclaredRefusals -fuzztime 20s .
-    - go test -run '^$' -fuzz FuzzAGeneratedTypeWritesBackWhatItRead -fuzztime 20s .
+    # itself, bounded so a pipeline can never be held by one.
+    #
+    # Bounded by a count of executions rather than by a stretch of time. A time budget is a deadline
+    # on the coordinator, and one run of the first target below reported `context deadline exceeded`
+    # at 20.09s having just executed 312,003 cases at a steady rate, on a runner shared with the
+    # rest of the pipeline. None of these three targets can be slow for any input: each is
+    # arithmetic over a policy whose attempt count is capped, so the loop inside runs a bounded
+    # number of times whatever the fuzzer draws. What expired was the budget, not an execution.
+    #
+    # A hundred thousand executions is about five seconds here, so this is also cheaper than the
+    # twenty seconds it replaces, and it is the same amount of searching on a busy runner as on an
+    # idle one.
+    - go test -run '^$' -fuzz FuzzRetryScheduleStaysWithinEveryBound -fuzztime 100000x .
+    - go test -run '^$' -fuzz FuzzReadingASignatureAnswersOneOfTheDeclaredRefusals -fuzztime 100000x .
+    - go test -run '^$' -fuzz FuzzAGeneratedTypeWritesBackWhatItRead -fuzztime 100000x .
