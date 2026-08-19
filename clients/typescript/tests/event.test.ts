@@ -70,7 +70,9 @@ describe('Event labels round trip', () => {
     }
     for (const [name, value] of Object.entries(labels)) {
       if (typeof value !== 'string') {
-        throw new Error(`the label ${name} is a ${typeof value}, which the API refuses on the way in`);
+        throw new Error(
+          `the label ${name} is a ${typeof value}, which the API refuses on the way in`
+        );
       }
     }
     return labels as Record<string, string>;

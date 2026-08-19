@@ -455,7 +455,7 @@ fn watched_by_gitlab(glob: &str, path: &str) -> bool {
     fn segments(pattern: &[&str], path: &[&str]) -> bool {
         match pattern.split_first() {
             None => path.is_empty(),
-            Some((&"**", rest)) if rest.is_empty() => path.len() == 1,
+            Some((&"**", [])) => path.len() == 1,
             Some((&"**", rest)) => (0..=path.len()).any(|taken| segments(rest, &path[taken..])),
             Some((head, rest)) => path
                 .split_first()

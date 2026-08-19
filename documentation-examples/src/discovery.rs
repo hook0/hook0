@@ -178,10 +178,7 @@ pub fn discover(targets: &[TargetRoot], sdk: &Path) -> Result<Documentation, Err
             page,
             regions: harness::read(&harness)?,
             manifest: manifest::read(&directory.join(MANIFEST))?,
-            examples: match examples.remove(name) {
-                Some(examples) => examples,
-                None => Vec::new(),
-            },
+            examples: examples.remove(name).unwrap_or_default(),
             harness,
             directory,
         });
