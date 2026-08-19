@@ -124,4 +124,4 @@ limitations:
 © Hook0 SAS
 
 
-[![Star History Chart](https://api.star-history.com/svg?repos=hook0/hook0&type=Date)](https://www.star-history.com/#hook0/hook0&Date)
+[![Star History Chart](https://api.star-history.com/chart?repos=hook0/hook0&type=date&legend=top-left&sealed_token=vQ6rTKXEtAa_eCtofnOs0ZL_nzLDCzjhFsbaYklpRi8ONH-9wNnRWTCrpRGeDHsH6PxA-xkMAeeKNBNIM2D7UYrJKTKTyoQXYQoRYQqykj9aT0ACp9-1Vg)](https://www.star-history.com/?type=date&repos=hook0%2Fhook0)
