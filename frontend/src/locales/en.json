@@ -135,7 +135,17 @@
       "testimonialQuote": "Hook0 replaced our homegrown webhook system in a day. Delivery reliability went from 94% to 99.9%.",
       "testimonialRole": "CTO, SaaS Startup",
       "title": "Create your free account",
-      "trustedBy": "Trusted by teams at"
+      "trustedBy": "Trusted by teams at",
+      "originLabel": "How did you hear about Hook0?",
+      "originHint": "Optional. We could not tell where you came from, and knowing helps us stop guessing.",
+      "originUnanswered": "Prefer not to say",
+      "originSearch": "A search engine",
+      "originAi": "An AI assistant",
+      "originSocial": "Social media",
+      "originFriend": "A colleague or friend",
+      "originBlog": "An article or newsletter",
+      "originEvent": "An event or conference",
+      "originOther": "Somewhere else"
     },
     "resetPassword": {
       "backToLogin": "Back to sign in",
