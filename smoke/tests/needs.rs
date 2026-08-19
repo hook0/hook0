@@ -155,17 +155,19 @@ fn jobs(root: &Path) -> BTreeMap<String, Declared> {
     declared
 }
 
-/// The rules a job runs under, following `extends:` for a job that declares none of its own.
-fn rules<'a>(
+/// What a job says under one key, following `extends:` for a job that says nothing of its own.
+fn inherited<'a>(
     declared: &'a BTreeMap<String, Declared>,
     name: &str,
+    key: &str,
     left: usize,
-) -> Option<&'a Vec<Yaml>> {
+) -> Option<&'a Yaml> {
     if left == 0 {
         return None;
     }
     let body = &declared.get(name)?.body;
-    if let Some(own) = body["rules"].as_vec() {
+    let own = &body[key];
+    if !own.is_badvalue() {
         return Some(own);
     }
 
@@ -176,7 +178,38 @@ fn rules<'a>(
     };
     parents
         .filter_map(|parent| parent.as_str())
-        .find_map(|parent| rules(declared, parent, left - 1))
+        .find_map(|parent| inherited(declared, parent, key, left - 1))
+}
+
+/// The rules a job runs under, following `extends:` for a job that declares none of its own.
+fn rules<'a>(
+    declared: &'a BTreeMap<String, Declared>,
+    name: &str,
+    left: usize,
+) -> Option<&'a Vec<Yaml>> {
+    inherited(declared, name, "rules", left)?.as_vec()
+}
+
+/// Whether one job waits for another, however many jobs stand between the two.
+fn reaches(declared: &BTreeMap<String, Declared>, from: &str, to: &str) -> bool {
+    let mut seen = BTreeSet::new();
+    let mut pending = vec![from.to_owned()];
+    // Every job at most once, so a cycle somebody wrote is answered rather than followed.
+    while let Some(name) = pending.pop() {
+        if !seen.insert(name.clone()) {
+            continue;
+        }
+        let Some(job) = declared.get(&name) else {
+            continue;
+        };
+        for (target, _) in needed(&job.body) {
+            if target == to {
+                return true;
+            }
+            pending.push(target);
+        }
+    }
+    false
 }
 
 /// The paths that make a job run. A rule that names none contributes none, because on a branch
@@ -238,6 +271,13 @@ fn needed(body: &Yaml) -> Vec<(String, bool)> {
         })
         .collect()
 }
+
+/// The pipeline file the SDK release is declared in. Every job it puts in the release stage
+/// publishes something, to a registry or by writing a tag a fetch resolves.
+const SDK_RELEASE: &str = "ci/release-sdk.gitlab-ci.yml";
+
+/// The job that drives every client against a Hook0 that is really running.
+const LIVE_SMOKE: &str = "clients.live-smoke";
 
 /// The repository this crate sits in.
 fn repository() -> PathBuf {
@@ -344,4 +384,34 @@ fn a_directory_wildcard_covers_what_is_under_it_and_nothing_beside_it() {
     assert!(!covers("smoke/**/*", "api/openapi.snapshot.json"));
     // A wildcard is not read as one anywhere but at the end, so this is only itself.
     assert!(!covers("clients/*/src/**", "clients/rust/src/lib.rs"));
+}
+
+#[test]
+fn nothing_is_published_before_every_client_has_talked_to_a_real_hook0() {
+    let declared = jobs(&repository());
+
+    let ungated: Vec<String> = declared
+        .iter()
+        .filter(|(name, job)| {
+            !name.starts_with('.')
+                && job.file == SDK_RELEASE
+                && inherited(&declared, name, "stage", MAX_EXTENDS).and_then(Yaml::as_str)
+                    == Some("release")
+        })
+        .filter(|(name, _)| !reaches(&declared, name, LIVE_SMOKE))
+        .map(|(name, _)| format!("  {name}"))
+        .collect();
+
+    assert!(
+        !declared.contains_key(LIVE_SMOKE) || ungated.is_empty(),
+        "`{SDK_RELEASE}` says nothing is published without `{LIVE_SMOKE}` having passed for every \
+         client at once. These jobs publish without waiting for it, directly or through anything \
+         they wait for, so what they put on a registry is whatever the tag happened to hold:\n{}",
+        ungated.join("\n")
+    );
+    assert!(
+        declared.contains_key(LIVE_SMOKE),
+        "`{LIVE_SMOKE}` is gone, and with it the only thing every publish job was made to wait \
+         for. Whatever replaced it is what this guard should name."
+    );
 }

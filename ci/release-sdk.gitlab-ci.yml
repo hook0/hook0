@@ -111,6 +111,8 @@ sdk-release.npm:
       artifacts: true
     - job: clients.typescript.check
       artifacts: false
+    - job: clients.live-smoke
+      artifacts: false
   variables:
     PUBLISHES: clients/typescript
   script:
@@ -133,6 +135,8 @@ sdk-release.cargo:
       artifacts: false
     - job: client.rust.check
       artifacts: false
+    - job: clients.live-smoke
+      artifacts: false
   variables:
     PUBLISHES: clients/rust
   script:
@@ -150,6 +154,8 @@ sdk-release.pypi:
     - job: sdk.packages
       artifacts: false
     - job: clients.python.check
+      artifacts: false
+    - job: clients.live-smoke
       artifacts: false
   variables:
     PUBLISHES: clients/python
@@ -183,6 +189,8 @@ sdk-release.rubygems:
       artifacts: false
     - job: clients.ruby.check
       artifacts: false
+    - job: clients.live-smoke
+      artifacts: false
   variables:
     PUBLISHES: clients/ruby
     # What `gem push` reads instead of ~/.gem/credentials, so no key is ever
@@ -208,6 +216,8 @@ sdk-release.nuget:
     - job: sdk.packages
       artifacts: false
     - job: clients.csharp.check
+      artifacts: false
+    - job: clients.live-smoke
       artifacts: false
   variables:
     PUBLISHES: clients/csharp
@@ -239,9 +249,42 @@ sdk-release.mirrors:
   # No `dependencies:` here, deliberately: setting it — even to the empty list the
   # other publish jobs use — is what decides which artefacts are downloaded, and
   # an empty one would leave this job without the list it iterates.
+  # For Go, Packagist and Zig, pushing a tag to a mirror is the publication rather than
+  # a step towards one, since each of the three resolves a version by reading the
+  # repository this job writes to. So everything that could still say no has to have said
+  # yes first. Before this, the push waited only on the inventory, which meant a
+  # client whose own suite was about to fail was already fetchable, and the three jobs
+  # below were left waiting for a registry to notice code that should never have left.
+  #
+  # One entry per mirrored client, which is the list `release-packages mirrors` prints;
+  # `smoke/tests/needs.rs` refuses a publish job that cannot reach the live smoke.
   needs:
     - job: sdk.packages
       artifacts: true
+    - job: clients.live-smoke
+      artifacts: false
+    - job: client.rust.check
+      artifacts: false
+    - job: clients.typescript.check
+      artifacts: false
+    - job: clients.python.check
+      artifacts: false
+    - job: clients.ruby.check
+      artifacts: false
+    - job: clients.php.check
+      artifacts: false
+    - job: clients.csharp.check
+      artifacts: false
+    - job: clients.java.check
+      artifacts: false
+    - job: clients.kotlin.check
+      artifacts: false
+    - job: clients.lua.check
+      artifacts: false
+    - job: clients.go.check
+      artifacts: false
+    - job: clients.zig.check
+      artifacts: false
   # Eleven splits over the whole history, then twenty-two pushes. Measured at
   # seconds per split on a warm checkout; this is the point past which the job is
   # stuck rather than slow, and it is above the twenty minutes a publish job gets
