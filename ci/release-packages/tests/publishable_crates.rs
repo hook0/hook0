@@ -9,8 +9,8 @@
 //! never reads it, so `cargo publish` in any of those directories went through. The two crates that
 //! did not even carry that line, `hook0-protobuf` and `hook0-sentry-integration`, went through in
 //! the same silence. Six crates of server code were one command away from crates.io, which is a
-//! place nothing comes back from: a published version cannot be withdrawn, only yanked, and the
-//! source stays readable either way.
+//! place nothing comes back from, since a published version cannot be withdrawn, only yanked, and
+//! the source stays readable either way.
 //!
 //! The distance between the two keys is one word in a table header, and reading a manifest does not
 //! show it. Both spell `publish = false`, and the eye that has just read the right one reads the
@@ -98,8 +98,8 @@ fn repository() -> Option<PathBuf> {
 
 /// Every manifest the repository tracks.
 ///
-/// Tracked rather than found on disk: a manifest git does not know about is not one a release could
-/// ever reach, and a build directory holds a great many of them.
+/// Tracked rather than found on disk, because a manifest git does not know about is not one a
+/// release could ever reach, and a build directory holds a great many of them.
 fn manifests(root: &Path) -> Vec<String> {
     let finished = Command::new("git")
         .args(["ls-files", "-z", "--", "*Cargo.toml", "Cargo.toml"])
