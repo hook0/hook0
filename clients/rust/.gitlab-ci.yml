@@ -20,9 +20,16 @@ client.rust.check:
         # that has one, under a `lib` for a language that keeps its sources
         # there, and directly under the client for a language that keeps a
         # package's tests beside it and so has neither.
-        - clients/*/src/**
-        - clients/*/lib/**
-        - clients/*/generated/**
+        #
+        # The trailing `/*` is what makes these recursive. GitLab matches with
+        # Ruby's `File.fnmatch?` under `FNM_PATHNAME`, where a `**` at the end
+        # of a pattern stands for a single path segment like `*` does, and only
+        # a `**/` in the middle walks down. Written `clients/*/src/**` these
+        # three matched no generated tree at all, so a hand edit anywhere in
+        # them skipped the only job that runs the drift guard.
+        - clients/*/src/**/*
+        - clients/*/lib/**/*
+        - clients/*/generated/**/*
         # Retry classification, the bounds of a send and signature verification are hand-written
         # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
         # this client rather than the one language whoever edited it happened to be reading.

@@ -52,6 +52,10 @@ clients.live-smoke:
       changes: &contract
         - api/**/*
         - output-worker/**/*
+        # The wire format the API and the output worker exchange request attempts through. It
+        # is a workspace member neither watches by name, so a field renumbered in a `.proto`
+        # skipped every job that compiles either binary and shipped on a green pipeline.
+        - protobuf/**/*
         - docker-compose.yaml
         - smoke/**/*
         # Where a client is declared, which is what makes a new one arrive here on its first commit

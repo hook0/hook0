@@ -279,6 +279,11 @@ const SDK_RELEASE: &str = "ci/release-sdk.gitlab-ci.yml";
 /// The job that drives every client against a Hook0 that is really running.
 const LIVE_SMOKE: &str = "clients.live-smoke";
 
+/// Fewest publish jobs `SDK_RELEASE` is expected to hold. One per registry the SDKs go out on,
+/// and the number only falls when a registry is dropped, which is a change somebody makes on
+/// purpose and can adjust here.
+const MIN_PUBLISH_JOBS: usize = 9;
+
 /// The repository this crate sits in.
 fn repository() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -390,7 +395,7 @@ fn a_directory_wildcard_covers_what_is_under_it_and_nothing_beside_it() {
 fn nothing_is_published_before_every_client_has_talked_to_a_real_hook0() {
     let declared = jobs(&repository());
 
-    let ungated: Vec<String> = declared
+    let publishing: Vec<&String> = declared
         .iter()
         .filter(|(name, job)| {
             !name.starts_with('.')
@@ -398,8 +403,25 @@ fn nothing_is_published_before_every_client_has_talked_to_a_real_hook0() {
                 && inherited(&declared, name, "stage", MAX_EXTENDS).and_then(Yaml::as_str)
                     == Some("release")
         })
-        .filter(|(name, _)| !reaches(&declared, name, LIVE_SMOKE))
-        .map(|(name, _)| format!("  {name}"))
+        .map(|(name, _)| name)
+        .collect();
+
+    // The filter above is three conditions, and every one of them can stop matching without the
+    // publishing stopping: the file renamed, a job moved out of it, a stage spelled differently.
+    // Any of those leaves nothing to check and this test passing while nothing waits for the live
+    // smoke at all, which is the failure it exists to prevent rather than one it may report.
+    assert!(
+        publishing.len() >= MIN_PUBLISH_JOBS,
+        "only {} release-stage jobs were found in `{SDK_RELEASE}`, fewer than the \
+         {MIN_PUBLISH_JOBS} this repository publishes, so this guard just held nothing. Either \
+         the publishing moved and this has to follow it, or a registry lost its job.",
+        publishing.len()
+    );
+
+    let ungated: Vec<String> = publishing
+        .iter()
+        .filter(|name| !reaches(&declared, name, LIVE_SMOKE))
+        .map(|name| format!("  {name}"))
         .collect();
 
     assert!(
@@ -413,5 +435,132 @@ fn nothing_is_published_before_every_client_has_talked_to_a_real_hook0() {
         declared.contains_key(LIVE_SMOKE),
         "`{LIVE_SMOKE}` is gone, and with it the only thing every publish job was made to wait \
          for. Whatever replaced it is what this guard should name."
+    );
+}
+
+/// What runs the guard that compares every generated tree to what the generator writes.
+///
+/// Named by what it runs rather than by the job it sits in, so moving the guard to another job
+/// keeps this test pointed at it.
+const DRIFT_GUARD_COMMAND: &str = "cargo test -p hook0-sdkgen";
+
+/// Whether GitLab would consider `path` changed by a job watching `glob`.
+///
+/// GitLab asks Ruby's `File.fnmatch?` under `FNM_PATHNAME`, and one rule of that is worth
+/// spelling out because reading the pattern does not give it away. A `**` walks down only when
+/// it is followed by a `/`. Written at the end of a pattern it stands for a single segment,
+/// exactly as `*` does. So `clients/*/src/**` matches `clients/rust/src/lib.rs` and nothing
+/// deeper, while `clients/*/src/**/*` matches all the way down.
+fn watched_by_gitlab(glob: &str, path: &str) -> bool {
+    fn segments(pattern: &[&str], path: &[&str]) -> bool {
+        match pattern.split_first() {
+            None => path.is_empty(),
+            Some((&"**", rest)) if rest.is_empty() => path.len() == 1,
+            Some((&"**", rest)) => {
+                (0..=path.len()).any(|taken| segments(rest, &path[taken..]))
+            }
+            Some((head, rest)) => path
+                .split_first()
+                .is_some_and(|(first, tail)| one_segment(head, first) && segments(rest, tail)),
+        }
+    }
+
+    /// `*` within a segment, which never reaches across a `/`.
+    fn one_segment(pattern: &str, name: &str) -> bool {
+        match pattern.split_once('*') {
+            None => pattern == name,
+            Some((before, after)) => {
+                name.len() >= before.len()
+                    && name.starts_with(before)
+                    && (before.len()..=name.len())
+                        .any(|at| one_segment(after, &name[at..]))
+            }
+        }
+    }
+
+    segments(
+        &glob.split('/').collect::<Vec<_>>(),
+        &path.split('/').collect::<Vec<_>>(),
+    )
+}
+
+/// The end of a pattern decides how far down it reaches, and reading it does not say so.
+#[test]
+fn a_trailing_double_star_reaches_one_level_and_a_middle_one_reaches_all_of_them() {
+    // What the pipeline used to watch, and what it missed.
+    assert!(watched_by_gitlab(
+        "clients/*/src/**",
+        "clients/rust/src/lib.rs"
+    ));
+    assert!(!watched_by_gitlab(
+        "clients/*/src/**",
+        "clients/rust/src/generated/models.rs"
+    ));
+
+    // What it watches now.
+    assert!(watched_by_gitlab(
+        "clients/*/src/**/*",
+        "clients/rust/src/generated/models.rs"
+    ));
+    assert!(watched_by_gitlab(
+        "clients/*/src/**/*",
+        "clients/java/src/main/java/com/hook0/client/generated/Models.java"
+    ));
+
+    // A wildcard segment stops at a separator either way.
+    assert!(!watched_by_gitlab("clients/*/src/**/*", "clients/go/generated/api.go"));
+    assert!(!watched_by_gitlab("clients/*", "clients/rust/src/lib.rs"));
+    assert!(watched_by_gitlab("Cargo.*", "Cargo.lock"));
+}
+
+#[test]
+fn a_hand_edit_of_any_generated_tree_faces_the_guard_that_wrote_it() {
+    let declared = jobs(&repository());
+
+    let running: Vec<(&String, BTreeSet<String>)> = declared
+        .iter()
+        .filter(|(name, job)| {
+            !name.starts_with('.')
+                && job.body["script"]
+                    .as_vec()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Yaml::as_str)
+                    .any(|line| line.contains(DRIFT_GUARD_COMMAND))
+        })
+        .map(|(name, _)| {
+            let watched = rules(&declared, name, MAX_EXTENDS)
+                .map(|rules| triggering_paths(rules))
+                .unwrap_or_default();
+            (name, watched)
+        })
+        .collect();
+
+    // Were the command spelled differently, nothing below would be checked and this would pass
+    // having looked at no job at all.
+    assert!(
+        !running.is_empty(),
+        "no job runs `{DRIFT_GUARD_COMMAND}`, so nothing compares a generated tree to what the \
+         generator writes. If the guard moved, point this test at what runs it now."
+    );
+
+    let unwatched: Vec<String> = hook0_sdkgen::targets::targets()
+        .iter()
+        .filter(|target| {
+            let edited = format!("{}/a-file-somebody-edited", target.root);
+            !running.iter().any(|(_, watched)| {
+                watched.iter().any(|glob| watched_by_gitlab(glob, &edited))
+            })
+        })
+        .map(|target| format!("  {} writes {}", target.name, target.root))
+        .collect();
+
+    assert!(
+        unwatched.is_empty(),
+        "a hand edit under these generated trees triggers no job that runs \
+         `{DRIFT_GUARD_COMMAND}`, so nothing would compare the edit to what the generator writes \
+         and it would merge green:\n{}\n\nWatch them from the job that runs the guard. Mind that \
+         a `**` at the end of a pattern reaches one level only.",
+        unwatched.join("\n")
     );
 }

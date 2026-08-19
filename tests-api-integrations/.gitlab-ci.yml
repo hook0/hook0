@@ -11,6 +11,10 @@ api-integration-tests.build:
         - frontend/**/*
         - output-worker/**/*
         - cli/**/*
+        # The wire format the API and the output worker exchange request attempts through. It
+        # is a workspace member neither watches by name, so a field renumbered in a `.proto`
+        # skipped every job that compiles either binary and shipped on a green pipeline.
+        - protobuf/**/*
         - Cargo.*
         # Not sources of this build. `clients.live-smoke` needs the two binaries it leaves behind,
         # and these three trigger that job on top of the paths above. GitLab refuses to create a

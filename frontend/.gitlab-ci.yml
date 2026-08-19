@@ -8,6 +8,13 @@ frontend.build:
         - frontend/**/*
         - api/**/*
         - output-worker/**/*
+        # No source of this build. `e2e-playwright.test` needs the bundle this job leaves behind
+        # and runs on these two on top of the paths above; GitLab refuses to create a pipeline in
+        # which a job needs a job the rules left out, so a change confined to either of them would
+        # take the whole repository's pipeline down rather than skipping a job.
+        # `smoke/tests/needs.rs` holds the two lists to each other.
+        - protobuf/**/*
+        - Cargo.*
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/node:$NODE_VERSION
   variables:
     # API endpoint for E2E tests - must match the port used in tests-e2e/.gitlab-ci.yml
