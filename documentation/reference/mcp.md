@@ -25,11 +25,13 @@ The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is an open 
 cargo install hook0-mcp
 
 # Verify installation: which version cargo put on your PATH
-cargo install --list | grep hook0-mcp
+hook0-mcp --version
 ```
 
-:::note The binary takes no arguments
-`hook0-mcp` reads its whole configuration from the environment and ignores everything on its command line, `--version` and `--help` included. Run it without `HOOK0_API_TOKEN` and it prints the variables it wants, then exits; run it with the token set and it starts serving on stdio and waits.
+:::note Two flags, and everything else in the environment
+`hook0-mcp --version` prints the version and `hook0-mcp --help` prints the variables it reads; both answer before any configuration is loaded, so they work on a machine with no token set. Everything else is an environment variable, which is what an MCP client can set in the block it launches a server from. An argument the binary has no meaning for is reported and exits in failure rather than being dropped, so a mistyped flag does not silently start a server.
+
+Run it with no argument and no `HOOK0_API_TOKEN` and it prints what it wants, then exits; run it with the token set and it starts serving on stdio and waits.
 :::
 
 :::tip Don't have Rust installed?
