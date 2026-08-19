@@ -9,7 +9,6 @@ repository = "https://gitlab.com/hook0/hook0"
 keywords = ["webhooks", "cli", "hook0"]
 categories = ["command-line-utilities", "web-programming"]
 build = "build.rs"
-publish = false
 
 [package.metadata.release]
 release = true

@@ -6,7 +6,6 @@ license = "SSPL-1.0"
 description = "Hook0 Webhook Relay Server - webhook.site-like inspection + local tunneling"
 authors = ["François-Guillaume Ribreau <fg@hook0.com>"]
 repository = "https://gitlab.com/hook0/hook0"
-publish = false
 
 [package.metadata.release]
 release = true
