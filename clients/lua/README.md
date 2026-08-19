@@ -1,6 +1,6 @@
 # Hook0 Lua Client
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../../LICENSE.txt)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
 This is the Lua SDK for [Hook0](https://www.hook0.com), an open source Webhooks-as-a-Service platform designed for SaaS applications.
 

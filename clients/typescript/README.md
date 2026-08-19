@@ -1,6 +1,6 @@
 # Hook0 TypeScript/JavaScript Client
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Latest Version](https://img.shields.io/npm/v/hook0-client)](https://www.npmjs.com/package/hook0-client)
 [![Documentation](https://img.shields.io/badge/docs-documentation-blue)](https://documentation.hook0.com/docs/sdk-javascript-typescript)
 
@@ -104,8 +104,8 @@ Want to know more? Check out our [detailed documentation](https://documentation.
 For more information, visit our [homepage](https://www.hook0.com/), join our [Discord community](https://www.hook0.com/community) or contact us at [support@hook0.com](mailto:support@hook0.com)
 
 ### LICENSE  
-Hook0 TypeScript SDK is free and open-source. It is released under the [MIT License](./LICENSE.md).  
+Hook0 TypeScript SDK is free and open-source. It is released under the [MIT License](./LICENSE).  
 
 This license grants you the freedom to use, modify, distribute, and sublicense the SDK with minimal restrictions. You may use it in both open-source and commercial projects, as long as you include the original copyright notice.  
 
-For more details, refer to the full [LICENSE.md](./LICENSE.md) file.
+For more details, refer to the full [LICENSE](./LICENSE) file.

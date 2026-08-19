@@ -1,6 +1,6 @@
 # Hook0 Go Client
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../../LICENSE.txt)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Go Reference](https://pkg.go.dev/badge/github.com/hook0/hook0-go.svg)](https://pkg.go.dev/github.com/hook0/hook0-go)
 
 This is the Go SDK for [Hook0](https://www.hook0.com), an open source Webhooks-as-a-Service platform designed for SaaS applications.
@@ -139,6 +139,6 @@ For more information, visit our [homepage](https://www.hook0.com/), join our [Di
 
 ### LICENSE
 
-Hook0 Go SDK is free and open-source. It is released under the [MIT License](../../LICENSE.txt).
+Hook0 Go SDK is free and open-source. It is released under the [MIT License](./LICENSE).
 
 This license grants you the freedom to use, modify, distribute, and sublicense the SDK with minimal restrictions. You may use it in both open-source and commercial projects, as long as you include the original copyright notice.

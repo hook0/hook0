@@ -1,6 +1,6 @@
 # Hook0 Python Client
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../../LICENSE.txt)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Latest Version](https://img.shields.io/pypi/v/hook0-client)](https://pypi.org/project/hook0-client/)
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/hook0-client)](https://pypi.org/project/hook0-client/)
 
@@ -137,6 +137,6 @@ For more information, visit our [homepage](https://www.hook0.com/), join our [Di
 
 ### LICENSE
 
-Hook0 Python SDK is free and open-source. It is released under the [MIT License](../../LICENSE.txt).
+Hook0 Python SDK is free and open-source. It is released under the [MIT License](./LICENSE).
 
 This license grants you the freedom to use, modify, distribute, and sublicense the SDK with minimal restrictions. You may use it in both open-source and commercial projects, as long as you include the original copyright notice.
