@@ -1,4 +1,12 @@
 # GitLab CI configuration for Hook0 MCP client
+#
+# Every job below watches `clients/sdkgen` and `clients/conformance` on top of its own sources,
+# because neither of those is external to this crate. The generator writes the tool table from the
+# API's committed surface, and `src/client.rs` reads the conformance corpus to hold what this
+# server puts on the wire against the same clauses the eleven SDKs answer to. A verdict edited in
+# either place has to face this client, rather than only the one language whoever edited it
+# happened to have open. `client.mcp.semver-checks` additionally watches the snapshot itself,
+# since the surface it compares against is written from that document.
 
 client.mcp.check:
   stage: test
@@ -7,6 +15,8 @@ client.mcp.check:
   rules:
     - changes:
         - clients/mcp/**/*
+        - clients/sdkgen/**/*
+        - clients/conformance/**/*
         - api/**/*
         - Cargo.*
   before_script:
@@ -35,6 +45,8 @@ mcp.build:
   rules:
     - changes:
         - clients/mcp/**/*
+        - clients/sdkgen/**/*
+        - clients/conformance/**/*
         - api/**/*
         - Cargo.*
   before_script:
@@ -56,6 +68,8 @@ client.mcp.integration:
   rules:
     - changes:
         - clients/mcp/**/*
+        - clients/sdkgen/**/*
+        - clients/conformance/**/*
         - api/**/*
         - Cargo.*
   services:
@@ -99,6 +113,9 @@ client.mcp.semver-checks:
   rules:
     - changes:
         - clients/mcp/**/*
+        - clients/sdkgen/**/*
+        - clients/conformance/**/*
+        - api/openapi.snapshot.json
         - Cargo.*
   before_script:
     - rustc --version && cargo --version

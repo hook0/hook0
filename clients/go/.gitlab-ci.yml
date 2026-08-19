@@ -18,11 +18,21 @@ clients.go.check:
         - clients/conformance/**/*
   before_script:
     - go version
-    # The module requires nothing, so nothing is downloaded and nothing has to be pinned. A
-    # `require` appearing here is a dependency somebody added, and it stops the job.
-    - test -z "$(go list -m -f '{{ .Path }}' all | tail -n +2)" || { go list -m all; echo 'the Go SDK has grown a dependency; it is meant to reach for the standard library alone'; exit 1; }
   script:
     - pushd clients/go
+    # The module requires nothing, so nothing is downloaded and nothing has to be pinned. A
+    # `require` appearing here is a dependency somebody added, and it stops the job.
+    #
+    # Inside the module, which is why this is here and not in `before_script`. Run before the
+    # `pushd` above, it reached no module at all. `go list` failed, the command substitution kept
+    # its exit code to itself, and the empty output it left behind satisfied `test -z`. The branch
+    # below could not be taken, so the invariant `go.mod` states was held by nothing.
+    #
+    # Asking the template to drop the main module, rather than piping through `tail -n +2`, is the
+    # other half of that: a pipe answers with its last stage, so a `go list` that cannot answer
+    # would read here as a module with no dependencies.
+    - dependencies="$(go list -m -f '{{if not .Main}}{{.Path}}{{end}}' all)"
+    - test -z "$dependencies" || { echo "$dependencies"; echo 'the Go SDK has grown a dependency; it is meant to reach for the standard library alone'; exit 1; }
     # `gofmt -l` names the files it would rewrite and exits successfully either way, so what it
     # named is what decides.
     - gofmt -l .

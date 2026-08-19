@@ -5,6 +5,11 @@ clients.typescript.build:
     - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
     - changes:
         - clients/typescript/**/*
+        # The generated half of this client is written from the API's committed surface, and
+        # `tests/generated.test.ts` reads that document to hold the client against it, so a
+        # change to either arrives here or the assertion never runs.
+        - clients/sdkgen/**/*
+        - api/openapi.snapshot.json
         # Retry classification, the bounds of a send and signature verification are hand-written
         # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
         # this client rather than the one language whoever edited it happened to be reading.
@@ -32,6 +37,11 @@ clients.typescript.check:
     - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
     - changes:
         - clients/typescript/**/*
+        # The generated half of this client is written from the API's committed surface, and
+        # `tests/generated.test.ts` reads that document to hold the client against it, so a
+        # change to either arrives here or the assertion never runs.
+        - clients/sdkgen/**/*
+        - api/openapi.snapshot.json
         # Retry classification, the bounds of a send and signature verification are hand-written
         # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
         # this client rather than the one language whoever edited it happened to be reading.
