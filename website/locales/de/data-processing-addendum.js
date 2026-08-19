@@ -9,7 +9,7 @@
 //     (« auf DSGVO-Konformität ausgelegt »).
 //   - Verboten : « 100 % souverän », « keine Daten verlassen die EU »,
 //     « kein US-Konzern im Stack », « CLOUD Act free ».
-//   - SSPL = « quelloffen (SSPL-1.0) » (auf dieser Seite nicht erwähnt).
+//   - SSPL = « Open Source (SSPL-1.0) » (auf dieser Seite nicht erwähnt).
 //
 // Hook0 Hardfacts verbatim über alle Locales :
 //   - Auftragsverarbeiter (Processor) : FGRibreau SARL, Stammkapital 2 000 EUR,

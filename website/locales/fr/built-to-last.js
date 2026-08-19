@@ -1,9 +1,9 @@
 // Per-page strings for built-to-last (FR).
 // /humanizer pro appliqué. Tutoiement. Pas d'em-dash, pas de pivot colon.
-// SSPL = « code source ouvert (SSPL-1.0) » si tu en parles dans la description.
+// SSPL = « open source (SSPL-1.0) » si tu en parles dans la description.
 module.exports = {
   pageTitle: 'Construit pour durer, le manifeste Hook0 | Hook0',
-  pageDescription: '100% bootstrappé, zéro VC, zéro exit. Hook0 est bâti pour te servir pour les décennies à venir. Code source ouvert (SSPL-1.0).',
+  pageDescription: '100% bootstrappé, zéro VC, zéro exit. Hook0 est bâti pour te servir pour les décennies à venir. Open source (SSPL-1.0).',
   hero: {
     badge: '100% bootstrappé',
     badgeNote: 'Pas de VC, pas d\'exit, pas de compromis',
@@ -23,7 +23,7 @@ module.exports = {
     cards: [
       {
         title: 'Une techno construite pour durer',
-        body: 'Chez Hook0, on s\'engage à construire un logiciel qui résiste au temps. À une époque où l\'information est souvent éphémère, garantir la longévité des données est essentiel. Notre mission, c\'est de fournir une infrastructure webhook au code source ouvert (SSPL-1.0), fiable et durable, pour que les intégrations que tu construis aujourd\'hui restent opérationnelles dans le futur.',
+        body: 'Chez Hook0, on s\'engage à construire un logiciel qui résiste au temps. À une époque où l\'information est souvent éphémère, garantir la longévité des données est essentiel. Notre mission, c\'est de fournir une infrastructure webhook open source (SSPL-1.0), fiable et durable, pour que les intégrations que tu construis aujourd\'hui restent opérationnelles dans le futur.',
       },
       {
         title: 'Comment on construit notre boîte',

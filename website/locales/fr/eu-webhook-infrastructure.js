@@ -5,7 +5,7 @@
 //   - JAMAIS « 100 % souverain », « aucune donnée ne quitte l'UE », « hors CLOUD Act ».
 //   - RGPD/NIS2/DORA = claims de processus (« conçu pour », « soutient tes
 //     exigences »), jamais « certifié ».
-//   - Licence = « code source ouvert (SSPL-1.0) », jamais « open source » nu.
+//   - Licence = « open source (SSPL-1.0) », jamais « open source » nu.
 // Faits concurrents sourcés des snapshots business.md du 2026-07-08. Prix
 // on-premise géré vérifié dans src/includes/_pricing.ejs (1 000 € setup +
 // 500 €/mois HT, ou 0 € setup + 6 000 €/an HT).
@@ -18,7 +18,7 @@ module.exports = {
     "eyebrow": "Infrastructure webhook européenne",
     "titleLine1": "L'Europe par défaut,",
     "titleLine2": "pas en option payante",
-    "subtitle": "Le data plane webhook de Hook0 tourne chez Clever Cloud, en France, dès le tier gratuit. L'éditeur est une société de droit français, sans maison-mère américaine. Et si un jour tu veux partir, le même code s'auto-héberge — code source ouvert (SSPL-1.0).",
+    "subtitle": "Le data plane webhook de Hook0 tourne chez Clever Cloud, en France, dès le tier gratuit. L'éditeur est une société de droit français, sans maison-mère américaine. Et si un jour tu veux partir, le même code s'auto-héberge — open source (SSPL-1.0).",
     "ctaPrimary": "Démarrer gratuitement",
     "ctaSecondary": "Voir les tarifs",
     "ctaSecondaryHref": "/fr/tarifs",
@@ -91,7 +91,7 @@ module.exports = {
     "cards": [
       {
         "title": "Auto-héberge-le toi-même",
-        "bodyHtml": "Le code complet de Hook0 est en code source ouvert (SSPL-1.0). Docker Compose ou Kubernetes, PostgreSQL en dessous. Tes payloads webhook restent dans ton propre réseau. Voir <a href=\"/fr/webhooks-auto-heberges\" class=\"text-green-400 hover:text-green-300 transition-colors\">webhooks auto-hébergés</a>."
+        "bodyHtml": "Le code complet de Hook0 est open source (SSPL-1.0). Docker Compose ou Kubernetes, PostgreSQL en dessous. Tes payloads webhook restent dans ton propre réseau. Voir <a href=\"/fr/webhooks-auto-heberges\" class=\"text-green-400 hover:text-green-300 transition-colors\">webhooks auto-hébergés</a>."
       },
       {
         "title": "On-premise géré",
@@ -136,7 +136,7 @@ module.exports = {
       },
       {
         "q": "Est-ce que je peux quitter le cloud Hook0 plus tard ?",
-        "a": "Oui. Le cloud, le self-host et l'on-premise partagent un seul code, en code source ouvert (SSPL-1.0). Tu peux t'auto-héberger avec Docker Compose ou Kubernetes, ou nous demander d'opérer une instance dédiée dans ton environnement pour 1 000 € de setup + 500 €/mois HT. Dans les deux cas tu gardes la même API, donc ton code d'intégration ne change pas."
+        "a": "Oui. Le cloud, le self-host et l'on-premise partagent un seul code, open source (SSPL-1.0). Tu peux t'auto-héberger avec Docker Compose ou Kubernetes, ou nous demander d'opérer une instance dédiée dans ton environnement pour 1 000 € de setup + 500 €/mois HT. Dans les deux cas tu gardes la même API, donc ton code d'intégration ne change pas."
       },
       {
         "q": "Quels fournisseurs de webhooks proposent une résidence EU sur leur cloud managé ?",
