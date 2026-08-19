@@ -15,10 +15,13 @@ export const DEFAULT_REQUEST_TIMEOUT_MS: number = 10_000;
  * Largest event payload the client agrees to send, unless it is built with another
  * `Hook0ClientOptions`.
  *
- * Hook0's API refuses request bodies above 2 MiB, so a payload above 1 MiB is already at risk of
- * being refused once the JSON envelope around it (metadata, labels, identifiers) is counted. The
- * client rules such an event out rather than spending a round trip, and every retry after it, on a
- * request that cannot be accepted.
+ * The API holds a payload to 699,050 characters, and its body to 2 MiB. Neither is this number,
+ * and the difference is worth knowing before changing it. That character limit counts characters
+ * rather than bytes, so text that is one byte per character is refused by the API well before this
+ * cap is reached, and the cap costs nothing. Text that is not, such as a payload written in a
+ * script outside ASCII, reaches a megabyte while still being far short of 699,050 characters, and
+ * there this cap is what refuses it. The client rules the event out rather than spending a round
+ * trip, and every retry after it, on a request it expects the body limit to reject.
  */
 export const DEFAULT_MAX_PAYLOAD_BYTES: number = 1024 * 1024;
 

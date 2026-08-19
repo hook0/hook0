@@ -47,11 +47,12 @@ describe('Event', () => {
 
 describe('Event labels round trip', () => {
   // The shape every forwarder, replayer and migration script has: read an event, build the next one
-  // from it. It only works if both sides of the document agree on what a label is, so nothing below
-  // casts, re-parses, or reaches for `as` — the record the read model hands over is the record the
-  // write models take. Were the read side to go back to being free-form, this stops type-checking,
-  // which is the failure worth having: a caller finds out at build time rather than by casting
-  // until the compiler relents.
+  // from it. The document describes a label differently on each side, so this is also what that
+  // difference costs a caller. Reading gives a free-form object, because a stored row is only held
+  // to being an object and older rows were written when a value could be any JSON at all; sending
+  // takes a record of string to string, because that is what the ingestion endpoint has accepted
+  // since it was tightened. A forwarder therefore converts, and the conversion is the thing that
+  // can fail on an event whose labels the ingestion endpoint did not write.
   const read: generated.Event = {
     event_id: '00000000-0000-0000-0000-000000000000',
     event_type_name: 'service.resource.verb',
@@ -62,11 +63,24 @@ describe('Event labels round trip', () => {
     received_at: '2026-01-01T00:00:00Z',
   };
 
+  /** What a forwarder has to do with what it read, since the two sides are typed differently. */
+  const carried = (labels: unknown): Record<string, string> => {
+    if (typeof labels !== 'object' || labels === null) {
+      throw new Error(`labels read back as ${typeof labels}, which cannot be sent on`);
+    }
+    for (const [name, value] of Object.entries(labels)) {
+      if (typeof value !== 'string') {
+        throw new Error(`the label ${name} is a ${typeof value}, which the API refuses on the way in`);
+      }
+    }
+    return labels as Record<string, string>;
+  };
+
   test('labels read off an event fit the event posted back', () => {
     const posted: generated.EventPost = {
       application_id: '00000000-0000-0000-0000-000000000000',
       event_type: read.event_type_name,
-      labels: read.labels,
+      labels: carried(read.labels),
       occurred_at: read.occurred_at,
       payload: '{"hello":"world"}',
       payload_content_type: read.payload_content_type,
@@ -80,9 +94,9 @@ describe('Event labels round trip', () => {
       read.event_type_name,
       '{"hello":"world"}',
       read.payload_content_type,
-      read.labels
+      carried(read.labels)
     );
 
-    expect(forwarded.labels).toEqual(read.labels);
+    expect(forwarded.labels).toEqual(carried(read.labels));
   });
 });
