@@ -57,6 +57,11 @@ clients.live-smoke:
         # Where a client is declared, which is what makes a new one arrive here on its first commit
         # rather than at the next release.
         - clients/sdkgen/src/targets/**/*
+        # This is no source of the stack. It is the file declaring the job this one needs, and
+        # `smoke/tests/needs.rs` compares the two rule sets, so the guard has to run on the edit
+        # able to break it. The cost is this job on a change to one rarely-touched file, against a
+        # pipeline nobody can create.
+        - tests-api-integrations/.gitlab-ci.yml
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes: *contract
   services:
