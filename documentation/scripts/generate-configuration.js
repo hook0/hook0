@@ -90,6 +90,15 @@ hook0-output-worker --help
 This documentation may not cover all options or reflect recent changes.
 :::
 
+:::note The dashboard is not here
+Everything below is read by \`hook0-api\` and \`hook0-output-worker\` at startup. The dashboard is a
+separate build with variables of its own, named \`VITE_*\` and compiled into the bundle rather than
+read when anything starts; they are listed under
+[bare metal self-hosting](../self-hosting/bare-metal.md#ui-building). The \`Frontend\` group below is
+API configuration about the dashboard, such as the URL to link to in an email, not the dashboard's
+own build.
+:::
+
 ## API
 
 `;
