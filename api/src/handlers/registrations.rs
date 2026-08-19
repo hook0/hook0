@@ -45,6 +45,15 @@ pub struct RegistrationPost {
     /// abuse — real gclid values are ~50–60 chars.
     #[validate(non_control_character, length(max = 256))]
     gclid: Option<String>,
+    /// Optional label saying where this signup came from
+    /// (`organic:google`, `social:linkedin`, `referral:<host>`, `direct`, …),
+    /// derived in the browser from the referrer and campaign parameters. It
+    /// carries no URL and no identifier, and it is re-validated server-side
+    /// against a closed vocabulary, so a caller cannot write arbitrary text
+    /// into the column. Anything unrecognised — including nothing at all — is
+    /// stored as `unknown`.
+    #[validate(non_control_character, length(max = 72))]
+    signup_channel: Option<String>,
 }
 
 #[api_v2_operation(
@@ -103,8 +112,8 @@ pub async fn register(
     // mail that really left.
     let user_insert = query!(
         "
-                INSERT INTO iam.user (user__id, email, password, first_name, last_name, email_verification_sent_at)
-                VALUES ($1, $2, $3, $4, $5, statement_timestamp())
+                INSERT INTO iam.user (user__id, email, password, first_name, last_name, email_verification_sent_at, signup_channel)
+                VALUES ($1, $2, $3, $4, $5, statement_timestamp(), $6)
                 ON CONFLICT (email) DO NOTHING
             ",
         &user_id,
@@ -112,6 +121,7 @@ pub async fn register(
         password_hash.as_str(),
         &body.first_name,
         &body.last_name,
+        crate::signup_channel::normalize(body.signup_channel.as_deref()),
     )
     .execute(&mut *tx)
     .await?;
