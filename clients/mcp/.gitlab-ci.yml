@@ -23,13 +23,54 @@ client.mcp.check:
     - rustc --version && cargo --version
     - rustup component add clippy
     - rustup component add rustfmt
+    # What `cargo llvm-cov` reads the instrumented run back with. It ships with the toolchain but
+    # is not installed by default, and without it the coverage leg below cannot start.
+    - rustup component add llvm-tools-preview
+    # Pinned, verified, and fetched exactly as `clients/rust/.gitlab-ci.yml` fetches it. The floors
+    # below were measured with this release, and one that counted regions differently would move
+    # them without a line of this crate changing.
+    - curl --fail --silent --show-error --location --connect-timeout 30 --max-time 300 --output cargo-llvm-cov.tar.gz "https://github.com/taiki-e/cargo-llvm-cov/releases/download/v$CARGO_LLVM_COV_VERSION/cargo-llvm-cov-x86_64-unknown-linux-gnu.tar.gz"
+    - echo "$CARGO_LLVM_COV_SHA256  cargo-llvm-cov.tar.gz" | sha256sum --check --strict
+    - tar --extract --gzip --file cargo-llvm-cov.tar.gz --directory /usr/local/bin cargo-llvm-cov
+    - cargo llvm-cov --version
   script:
     - pushd clients/mcp
     - cargo fmt --all -- --check
     - cargo clippy --all-targets --all-features -- -D warnings
-    # Runs unit tests plus the protocol negotiation tests, which need no API.
-    # The API-dependent integration tests are #[ignore]d and run in client.mcp.integration.
-    - cargo test --all-features
+    # The run this job already made, now instrumented, so the floors are enforced by the command
+    # that was here rather than by a job or a script of its own. It runs the unit tests plus the
+    # protocol negotiation tests, which need no API; the API-dependent ones are `#[ignore]`d and
+    # run in `client.mcp.integration`.
+    #
+    # The floors are what this suite reaches today, 59.505988% of lines and 60.867321% of regions,
+    # each truncated to the hundredth rather than rounded. Truncated on purpose, because llvm-cov
+    # rounds what it prints, showing these as 59.51% and 60.87%, and a floor set at the printed
+    # figure fails the very run it was read from. They are not headroom either. These tests draw
+    # nothing random and talk to no network, and one line or one region going uncovered already
+    # falls through, at 59.43% and 60.81%.
+    #
+    # The figures are low, and they are honest. What this job runs is the half of the suite that
+    # needs no Hook0. `error.rs` is at nothing, `config.rs`, `main.rs` and `server.rs` around a
+    # third, because what drives those is the ignored suite that `client.mcp.integration` runs
+    # against a real instance, and coverage measured in one job says nothing about a run in
+    # another. What the floor does is stop the figure falling further under 2599 lines published
+    # to crates.io that until now carried no instrument at all.
+    #
+    # Written to a file rather than through a pipe, since a pipe answers with its last stage and
+    # this command's own exit code is the whole point of running it.
+    - >-
+      cargo llvm-cov --all-features --fail-under-lines 59.50 --fail-under-regions 60.86 > coverage.txt 2>&1
+      || { cat coverage.txt; echo "ERROR - the instrumented run did not pass: either a test above failed, or coverage fell below the floor this suite reaches - the table above names every file and what it covers, which is where to look for what went"; exit 1; }
+    - cat coverage.txt
+    # A floor compared against nothing passes. `--fail-under-lines` is a comparison, and a run that
+    # instrumented no code at all has nothing to compare, so what the table counted is checked
+    # before what it concluded is believed.
+    - >-
+      awk '$1 == "TOTAL" { seen = 1; if ($2 + 0 == 0 || $8 + 0 == 0) { print "the instrumented run counted no region and no line, so the floors were compared against nothing"; exit 1 } } END { if (seen != 1) { print "the coverage table carried no TOTAL row, so nothing was measured"; exit 1 } }' coverage.txt
+    # `cargo package` below refuses a package directory carrying anything git does not know about,
+    # and this report is written into one. Removed rather than ignored, so that what the packaging
+    # step sees is what a fresh checkout holds.
+    - rm -f coverage.txt
     - cargo build --release
     # This crate is published to crates.io, where nothing of the repository is left around it.
     # `cargo package` builds the crate from the tarball it just wrote, so a file the package does
