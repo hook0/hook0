@@ -25,7 +25,7 @@ That is what makes retrying safe. Hook0 keys events on their ID, so a request re
 
 A network failure, a server error, and a `429` whose body names the `RateLimited` problem are retried. A `429` naming a spent quota is not, because a quota clears when a plan changes or a day turns and no send can wait for that. A `Retry-After` the answer carries is honoured and clamped to what is left of the delay budget. A retried request Hook0 answers with `EventAlreadyIngested` reports success, because an earlier attempt of that same send reached the API. The same answer to a *first* attempt is a genuine conflict and is reported as an error.
 
-Every send is bounded, and every bound is configurable:
+Every send is bounded. The bounds below are yours to set. Three more are not. The head of an answer is held to `MAX_HEADERS`, `MAX_LINE_BYTES` and `MAX_HEAD_BYTES` in `hook0.transport`, constants rather than options, since nothing a caller sets makes an oversized head safe to read.
 
 ```python
 from hook0 import Event, Hook0Client, Hook0ClientOptions, RetryPolicy
@@ -43,6 +43,7 @@ client = Hook0Client(
         ),
         request_timeout=10.0,
         max_payload_bytes=1024 * 1024,
+        max_response_bytes=8 * 1024 * 1024,
     ),
 )
 

@@ -41,7 +41,11 @@ client = Hook0::Client.new(
       max_total_delay: 5.0
     ),
     request_timeout: 10.0,
-    max_payload_bytes: 1024 * 1024
+    max_payload_bytes: 1024 * 1024,
+    max_response_bytes: 8 * 1024 * 1024,
+    max_response_headers: 64,
+    max_header_bytes: 64 * 1024,
+    max_head_bytes: 16 * 1024
   )
 )
 

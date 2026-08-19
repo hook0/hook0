@@ -31,7 +31,9 @@ what is left of the delay budget. A retried request Hook0 answers with `EventAlr
 reports success, because an earlier attempt of that same send reached the API. The same answer to a
 *first* attempt is a genuine conflict and is reported as an error.
 
-Every send is bounded, and every bound is configurable:
+Every send is bounded. The bounds below are yours to set. Three more are not. The head of an answer
+is held to `MAX_RESPONSE_HEADERS`, `MAX_HEADER_BYTES` and `MAX_HEAD_BYTES`, which are constants of
+the crate rather than options, since nothing a caller sets makes an oversized head safe to read.
 
 ```rust
 use hook0_client::{Hook0Client, RetryPolicy};
@@ -45,7 +47,8 @@ let client = Hook0Client::new(api_url, application_id, &token)?
         max_total_delay: Duration::from_secs(5),
     })
     .with_request_timeout(Duration::from_secs(10))
-    .with_max_payload_bytes(1024 * 1024);
+    .with_max_payload_bytes(1024 * 1024)
+    .with_max_response_bytes(8 * 1024 * 1024);
 ```
 
 Those are the defaults. `RetryPolicy::disabled()` sends each event exactly once. A payload above

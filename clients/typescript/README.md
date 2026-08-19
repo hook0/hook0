@@ -31,7 +31,10 @@ what is left of the delay budget. A retried request Hook0 answers with `EventAlr
 resolves, because an earlier attempt of that same send reached the API. The same answer to a *first*
 attempt is a genuine conflict and rejects.
 
-Every send is bounded, and every bound is configurable:
+Every send is bounded. The bounds below are yours to set. Three more are not. The head of an answer
+is held to `MAX_RESPONSE_HEADERS`, `MAX_HEADER_BYTES` and `MAX_HEAD_BYTES`, which the package
+exports as constants rather than options, since nothing a caller sets makes an oversized head safe
+to read.
 
 ```typescript
 import { Hook0Client, Hook0ClientOptions, RetryPolicy } from 'hook0-client';
@@ -43,8 +46,9 @@ const client = new Hook0Client(apiUrl, applicationId, token, false, new Hook0Cli
     2000, // ceiling no single delay ever exceeds, in milliseconds
     5000  // budget all the delays of one send share, in milliseconds
   ),
-  10000,          // longest one attempt is given, in milliseconds
-  1024 * 1024     // largest event payload the client sends, in bytes
+  10000,           // longest one attempt is given, in milliseconds
+  1024 * 1024,     // largest event payload the client sends, in bytes
+  8 * 1024 * 1024  // largest answer the client reads off the socket, in bytes
 ));
 ```
 
