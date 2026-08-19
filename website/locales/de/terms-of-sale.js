@@ -4,8 +4,8 @@
 // vertragsrechtlichen Text. Kein Duzen. /humanizer pro angewendet. Kein Em-Dash,
 // kein Doppel-Bindestrich als Pivot, kein Mittel-Punkt.
 //
-// SSPL = « quelloffen (SSPL-1.0) », niemals « Open Source » allein
-// (von OSI abgelehnt, UWG-§5-Risiko in DACH).
+// SSPL = « Open Source (SSPL-1.0) », Klammerzusatz obligatorisch, niemals
+// « Open Source » allein (UWG-§5-Risiko in DACH) — dieselbe Regel wie Ziffer 6.5 der AGB.
 // Verboten : « 100% souveraen », « keine Daten verlassen die EU »,
 // « kein US-Konzern im Stack », « CLOUD Act free ».
 //
@@ -60,7 +60,7 @@ module.exports = {
         '<strong class="text-white">2.4. On-Premise-Pläne</strong>, zum Stand der letzten Aktualisierung zur Information:',
       ],
       onPremisePlans: [
-        '<strong class="text-white">Self-hosted</strong>: kostenlos, quelloffen unter der Server Side Public License v1 (SSPL-1.0).',
+        '<strong class="text-white">Self-hosted</strong>: kostenlos, Open Source unter der Server Side Public License v1 (SSPL-1.0).',
         '<strong class="text-white">Pro</strong>: 1 000 EUR Einrichtungsgebühr zuzüglich 500 EUR/Monat oder 6 000 EUR/Jahr netto.',
         '<strong class="text-white">Enterprise</strong>: Angebot auf Anfrage.',
       ],

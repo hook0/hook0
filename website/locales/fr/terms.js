@@ -5,8 +5,10 @@
 // pages marketing). /humanizer pro applique. Pas d'em-dash, pas de double tiret
 // pivot, pas de point median.
 //
-// SSPL = « code source ouvert (SSPL-1.0) », jamais « open source » seul
-// (rejet OSI, risque L121-1 C. conso).
+// SSPL = « open source (SSPL-1.0) », parenthèse obligatoire, jamais « open
+// source » seul (risque L121-1 C. conso). La SSPL-1.0 n'est pas approuvée par
+// l'OSI et son article 13 restreint la mise à disposition du logiciel comme
+// service : l'article 6.5 énonce les deux.
 //
 // Faits durs Hook0 conserves verbatim entre locales : FGRibreau SARL,
 // capital 2 000 EUR, RCS La Roche-sur-Yon 850 824 350, TVA FR27850824350,
@@ -94,7 +96,7 @@ module.exports = {
         '<strong class="text-white">6.2. Licence d\'utilisation du Service.</strong> Sous réserve du respect des présentes Conditions et du paiement des redevances applicables, Hook0 vous concède un droit limité, non exclusif, non transférable et non sous-licenciable d\'accéder au Service et de l\'utiliser pour vos besoins professionnels internes pendant la durée de votre abonnement.',
         '<strong class="text-white">6.3. Votre Contenu.</strong> Vous conservez l\'intégralité des droits de propriété sur votre Contenu. En soumettant du Contenu via le Service, vous concédez à Hook0 une licence limitée, mondiale, pour traiter et stocker votre Contenu uniquement dans la mesure nécessaire à la fourniture du Service. Hook0 n\'utilisera pas votre Contenu à d\'autres fins.',
         '<strong class="text-white">6.4. Retours et suggestions.</strong> Si vous communiquez des suggestions, commentaires ou autres retours sur le Service (les « Retours »), vous concédez à Hook0 une licence mondiale, perpétuelle, irrévocable et libre de redevance pour utiliser et intégrer ces Retours au Service ou à tout autre produit ou service de Hook0, sans obligation de compensation ni d\'attribution.',
-        '<strong class="text-white">6.5. Composants au code source ouvert.</strong> Le serveur Hook0 est publié sous licence Server Side Public License v1 (SSPL-1.0), une licence au code source ouvert. Certains autres composants du Service sont régis par des licences tierces distinctes, au code source ouvert ou non. Aucune disposition des présentes Conditions ne restreint les droits dont vous bénéficiez au titre de ces licences, qui prévalent en cas de conflit.',
+        '<strong class="text-white">6.5. Licence.</strong> Le logiciel serveur Hook0 est publié sous licence Server Side Public License v1 (SSPL-1.0), une licence open source (SSPL-1.0). La SSPL-1.0 n\'est pas approuvée par l\'Open Source Initiative (OSI) et impose une condition spécifique (article 13) à toute partie qui met le logiciel à disposition de tiers sous forme de service. Les droits et obligations du Client relatifs au logiciel serveur Hook0 sont exclusivement régis par le texte intégral de la SSPL-1.0, qui prévaut sur le présent résumé en cas de contradiction. Certains autres composants du Service sont régis par des licences tierces distinctes, au code source ouvert ou non. Aucune disposition des présentes Conditions ne restreint les droits dont vous bénéficiez au titre de ces licences, qui prévalent en cas de conflit.',
       ],
     },
     {
@@ -189,6 +191,7 @@ module.exports = {
         '<strong class="text-white">14.6. Renonciation.</strong> Le défaut, pour l\'une ou l\'autre partie, d\'exiger l\'exécution d\'un droit ou d\'une disposition des présentes Conditions ne saurait valoir renonciation à ce droit ou à cette disposition pour l\'avenir.',
         '<strong class="text-white">14.7. Relation entre les parties.</strong> Aucune disposition des présentes Conditions ne crée ni ne saurait être interprétée comme créant un partenariat, une coentreprise, un mandat ou une relation de travail entre les parties. Chaque partie agit en qualité de prestataire indépendant.',
         '<strong class="text-white">14.8. Notifications.</strong> Les notifications juridiques à Hook0 doivent être adressées par écrit, par courrier électronique à <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a> ou par courrier postal à FGRibreau SARL, 3 rue de l\'Aubépine, 85110 Chantonnay, France. Hook0 peut vous notifier par courrier électronique à l\'adresse associée à votre Compte. Les notifications électroniques sont réputées reçues le jour de leur transmission, sauf accusé de non-remise.',
+        '<strong class="text-white">14.9. Langue faisant foi.</strong> Les présentes Conditions sont publiées en anglais, en français et en allemand. La version anglaise est la version de référence : en cas de divergence ou de contradiction entre les versions linguistiques, la version anglaise prévaut. Les versions française et allemande sont fournies pour votre commodité.',
       ],
     },
     {
