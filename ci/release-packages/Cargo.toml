@@ -22,3 +22,6 @@ toml = "1.1"
 # Real directories, since discovery is a question about a filesystem and answering it against a
 # fabricated one would only prove the fabrication.
 tempfile = "3.27"
+# The pipeline files are read rather than described, for the same reason. What gates the mirror
+# push is what the pipeline says, and a test that carried its own copy would agree with itself.
+yaml-rust2 = "0.10"
