@@ -91,6 +91,47 @@ const SOCIAL: ReadonlyArray<readonly [string, string]> = [
   ['stackoverflow.com', 'stackoverflow'],
 ];
 
+/**
+ * Campaign parameters, in the order they are read. Hook0 tags its own links for
+ * Matomo, which reads `mtm_*` (and still honours the Piwik-era `pk_*`), while
+ * anything coming from an external tool arrives tagged `utm_*`. Reading only
+ * one family would silently drop the campaigns we tag ourselves.
+ *
+ * The source is preferred over the campaign name because it answers the
+ * question this column exists for. A link that only carries a campaign name
+ * falls back to it rather than being counted as a plain referral.
+ */
+const CAMPAIGN_SOURCE_KEYS = ['utm_source', 'mtm_source', 'pk_source'] as const;
+const CAMPAIGN_NAME_KEYS = ['utm_campaign', 'mtm_campaign', 'pk_campaign'] as const;
+
+/**
+ * What the sign-up form offers when nothing could be detected. Kept short on
+ * purpose: a list nobody reads to the end gets answered at random, and a
+ * random answer is worse than `unknown`.
+ *
+ * Answers live under their own `declared:` family so a declaration is never
+ * mistaken for an observation — someone saying they came from a search engine
+ * is weaker evidence than a referrer that says so.
+ */
+export const DECLARED_ORIGINS = [
+  'search',
+  'ai',
+  'social',
+  'friend',
+  'blog',
+  'event',
+  'other',
+] as const;
+
+export type DeclaredOrigin = (typeof DECLARED_ORIGINS)[number];
+
+/** Turn an answer from the form into a label the API accepts. */
+export function declaredChannel(origin: string): string {
+  return (DECLARED_ORIGINS as readonly string[]).includes(origin)
+    ? `declared:${origin}`
+    : UNKNOWN_CHANNEL;
+}
+
 export type SignupChannelSource = {
   /** `document.referrer` — the empty string when the browser sends none. */
   referrer: string;
@@ -111,7 +152,7 @@ export function deriveSignupChannel(source: SignupChannelSource): string {
     return 'ads:google';
   }
 
-  const campaign = slugify(params.get('utm_source'));
+  const campaign = campaignOf(params);
   if (campaign !== '') {
     return `campaign:${campaign}`;
   }
@@ -206,6 +247,17 @@ export function currentPageSource(): SignupChannelSource {
     search: window.location.search,
     host: window.location.hostname,
   };
+}
+
+/** First campaign label the URL carries, source first, then campaign name. */
+function campaignOf(params: URLSearchParams): string {
+  for (const key of [...CAMPAIGN_SOURCE_KEYS, ...CAMPAIGN_NAME_KEYS]) {
+    const value = slugify(params.get(key));
+    if (value !== '') {
+      return value;
+    }
+  }
+  return '';
 }
 
 function classify(host: string): string {

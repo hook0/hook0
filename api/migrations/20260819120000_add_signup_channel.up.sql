@@ -13,7 +13,10 @@
 -- campaign parameters onto a closed vocabulary (`organic:google`,
 -- `social:linkedin`, `referral:<host>`, `direct`, …) and the API re-validates
 -- that label against the same grammar as the CHECK below, storing 'unknown'
--- for anything else. No URL, no query string, no identifier and no personal
+-- for anything else. The `declared:` family is the one case the browser cannot
+-- observe: when nothing could be detected, the sign-up form asks the person
+-- where they came from, and their answer is kept apart from the detected
+-- families so the two are never read as the same kind of evidence. No URL, no query string, no identifier and no personal
 -- data is persisted, which is what keeps this free of the minimisation and
 -- retention machinery the gclid needs (see
 -- documentation/hook0-cloud/legitimate-interest-balance-test-google-ads.md).
@@ -31,5 +34,5 @@ ALTER TABLE iam.user
 -- column that silently becomes unqueryable.
 ALTER TABLE iam.user
     ADD CONSTRAINT user_signup_channel_grammar CHECK (
-        signup_channel ~ '^(unknown|direct|(ads|organic|ai|social|referral|campaign):[a-z0-9][a-z0-9.-]{0,63})$'
+        signup_channel ~ '^(unknown|direct|(ads|organic|ai|social|referral|campaign|declared):[a-z0-9][a-z0-9.-]{0,63})$'
     );

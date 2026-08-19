@@ -1,4 +1,6 @@
 import {
+  declaredChannel,
+  DECLARED_ORIGINS,
   deriveSignupChannel,
   readSignupChannel,
   rememberSignupChannel,
@@ -40,7 +42,7 @@ function landingFrom(referrer: string, search = ''): SignupChannelSource {
  * exists to capture.
  */
 const STORED_GRAMMAR =
-  /^(unknown|direct|(ads|organic|ai|social|referral|campaign):[a-z0-9][a-z0-9.-]{0,63})$/;
+  /^(unknown|direct|(ads|organic|ai|social|referral|campaign|declared):[a-z0-9][a-z0-9.-]{0,63})$/;
 
 describe('deriveSignupChannel', () => {
   it('reads an ad click from the landing URL', () => {
@@ -57,6 +59,35 @@ describe('deriveSignupChannel', () => {
     expect(deriveSignupChannel(landingFrom('', '?utm_source=Newsletter'))).toBe(
       'campaign:newsletter'
     );
+  });
+
+  it('reads the campaign Matomo tags, not only the utm_ family', () => {
+    expect(deriveSignupChannel(landingFrom('', '?mtm_source=Newsletter'))).toBe(
+      'campaign:newsletter'
+    );
+    expect(deriveSignupChannel(landingFrom('', '?mtm_campaign=launch-week'))).toBe(
+      'campaign:launch-week'
+    );
+    expect(deriveSignupChannel(landingFrom('', '?pk_campaign=legacy'))).toBe('campaign:legacy');
+  });
+
+  it('prefers the source over the campaign name, whichever family tagged it', () => {
+    expect(
+      deriveSignupChannel(landingFrom('', '?mtm_campaign=launch-week&mtm_source=newsletter'))
+    ).toBe('campaign:newsletter');
+    expect(
+      deriveSignupChannel(landingFrom('', '?mtm_campaign=launch-week&utm_source=partner'))
+    ).toBe('campaign:partner');
+  });
+
+  it('keeps a campaign tag ahead of the referrer that carried it', () => {
+    expect(
+      deriveSignupChannel({
+        referrer: 'https://www.linkedin.com/feed/',
+        search: '?mtm_campaign=launch-week',
+        host: 'app.hook0.com',
+      })
+    ).toBe('campaign:launch-week');
   });
 
   it('calls a visit with no referrer direct', () => {
@@ -147,6 +178,8 @@ describe('deriveSignupChannel', () => {
       landingFrom('', '?gclid=abc'),
       landingFrom('', '?utm_source=Newsletter'),
       landingFrom('', '?utm_source=<script>alert(1)</script>'),
+      landingFrom('', '?mtm_campaign=Launch Week'),
+      landingFrom('', `?pk_source=${'a'.repeat(80)}`),
       landingFrom('https://www.google.fr/'),
       landingFrom('https://gemini.google.com/'),
       landingFrom('https://openalternative.co/'),
@@ -158,6 +191,31 @@ describe('deriveSignupChannel', () => {
 
     for (const source of sources) {
       expect(deriveSignupChannel(source)).toMatch(STORED_GRAMMAR);
+    }
+  });
+});
+
+describe('declaredChannel', () => {
+  it('keeps every answer the form can offer', () => {
+    for (const origin of DECLARED_ORIGINS) {
+      expect(declaredChannel(origin)).toBe(`declared:${origin}`);
+    }
+  });
+
+  it('marks a declaration as such, so it is never read as a detection', () => {
+    expect(declaredChannel('search')).toBe('declared:search');
+    expect(declaredChannel('search')).not.toBe('organic:google');
+  });
+
+  it('refuses anything the form did not offer', () => {
+    expect(declaredChannel('')).toBe(UNKNOWN_CHANNEL);
+    expect(declaredChannel('whatever')).toBe(UNKNOWN_CHANNEL);
+    expect(declaredChannel("'; DROP TABLE iam.user; --")).toBe(UNKNOWN_CHANNEL);
+  });
+
+  it('only emits labels the API and the database accept', () => {
+    for (const origin of [...DECLARED_ORIGINS, 'nonsense', '']) {
+      expect(declaredChannel(origin)).toMatch(STORED_GRAMMAR);
     }
   });
 });

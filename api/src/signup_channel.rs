@@ -27,7 +27,12 @@ const DIRECT: &str = "direct";
 /// Source families accepted before the `:` separator. A label whose family is
 /// not one of these is dropped rather than stored: the point of the column is
 /// that `GROUP BY signup_channel` stays readable.
-const FAMILIES: [&str; 6] = ["ads", "organic", "ai", "social", "referral", "campaign"];
+const FAMILIES: [&str; 7] = [
+    "ads", "organic", "ai", "social", "referral", "campaign",
+    // Answered by the person signing up, when nothing could be detected. Kept
+    // as its own family so a declaration is never counted as an observation.
+    "declared",
+];
 
 /// Longest accepted suffix after the `:`. Hostnames stay well under this, and
 /// the bound is what keeps an oversized payload from reaching the DB CHECK.
@@ -87,6 +92,7 @@ mod tests {
             "social:linkedin",
             "referral:openalternative.co",
             "campaign:newsletter",
+            "declared:friend",
         ] {
             assert_eq!(normalize(Some(label)), label);
         }
