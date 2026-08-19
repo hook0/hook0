@@ -236,15 +236,60 @@ pub fn get_tool_info(name: &str) -> Option<&'static GeneratedToolInfo> {
     GENERATED_TOOLS.iter().find(|t| t.name == name)
 }
 
-/// Interpolate path parameters into a path template
+/// Writes the values an assistant supplied into a path template.
+///
+/// The template is walked once, left to right, and each placeholder is answered from the map as
+/// it is met. Nothing that lands is looked at again, so a value that happens to spell another
+/// placeholder is never substituted a second time, and what comes out depends on the template
+/// and the values rather than on the order a hash map happened to hand them over.
+///
+/// Every value lands escaped, so that nothing in it can name a segment the operation never had.
+/// The arguments reach this server from a model, which read them somewhere, so they are the
+/// least trustworthy input this process has.
 pub fn interpolate_path(
     template: &str,
     params: &std::collections::HashMap<String, String>,
 ) -> String {
-    let mut result = template.to_string();
-    for (key, value) in params {
-        let placeholder = format!("{{{key}}}");
-        result = result.replace(&placeholder, value);
+    let mut written = String::with_capacity(template.len());
+    let mut rest = template;
+
+    while let Some(opens) = rest.find('{') {
+        let Some(closes) = rest[opens..].find('}').map(|at| opens + at) else {
+            break;
+        };
+        written.push_str(&rest[..opens]);
+        match params.get(&rest[opens + 1..closes]) {
+            Some(value) => written.push_str(&path_segment(value)),
+            // A placeholder nothing answers is left as it is: an operation asking for a value it
+            // was not given is a question for the caller, not a path to invent half of.
+            None => written.push_str(&rest[opens..=closes]),
+        }
+        rest = &rest[closes + 1..];
     }
-    result
+
+    written.push_str(rest);
+    written
+}
+
+/// One value, written so that it is one segment.
+///
+/// Everything outside the unreserved set of RFC 3986 is percent-encoded, which is what stops a
+/// slash in a value from ending the segment it was written into.
+///
+/// The dot stays bare, because an event type is named `service.resource_type.verb` and encoding
+/// that would ask the API for a name nobody has. That leaves the two values that mean something
+/// to a URL rather than to Hook0, `.` and `..`, which no encoding can neutralise: the URL standard
+/// reads `%2e` as a dot when it removes dot segments, so `%2E%2E` is resolved away exactly as `..`
+/// is. Those are refused before they arrive here, where refusing is possible, rather than written
+/// into a path that then means something else.
+fn path_segment(value: &str) -> String {
+    let mut escaped = String::with_capacity(value.len());
+    for byte in value.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+            escaped.push(char::from(byte));
+        } else {
+            escaped.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    escaped
 }

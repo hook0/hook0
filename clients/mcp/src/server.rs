@@ -61,6 +61,24 @@ pub struct Hook0McpServer {
     read_only: bool,
 }
 
+/// The names a path template asks to have filled in.
+fn placeholders_of(template: &str) -> impl Iterator<Item = &str> {
+    template
+        .split('/')
+        .filter(|segment| segment.starts_with('{') && segment.ends_with('}'))
+        .map(|segment| &segment[1..segment.len() - 1])
+}
+
+/// Whether a value is one of the two segments a URL resolves away rather than keeps.
+///
+/// The spellings are the URL standard's own: a dot is written `.` or `%2e` in either case, and a
+/// segment is a dot segment when it is one dot or two. That is why this cannot be left to
+/// escaping, which would write `%2E%2E` and change nothing about what the path then means.
+fn is_dot_segment(value: &str) -> bool {
+    let dots = value.to_ascii_lowercase().replace("%2e", ".");
+    dots == "." || dots == ".."
+}
+
 /// Helper to create a Tool from generated info
 fn make_tool_from_generated(info: &GeneratedToolInfo) -> Tool {
     let schema: Value = serde_json::from_str(info.input_schema)
@@ -108,6 +126,27 @@ impl Hook0McpServer {
             };
             if let Some(s) = string_value {
                 path_params.insert(key.clone(), s);
+            }
+        }
+
+        // A value that is a dot segment is refused rather than written.
+        //
+        // Escaping answers a separator, and it does not answer this. The URL standard reads `%2e`
+        // as a dot when it removes dot segments, so every spelling of `..` collapses the same way
+        // and the request would reach a path this tool never declared. Nothing Hook0 names is `.`
+        // or `..`, so refusing costs a caller nothing, and it tells the model its call was not
+        // made where a quietly rewritten path would have looked like an answer.
+        for name in placeholders_of(tool_info.path_template) {
+            let Some(value) = path_params.get(name) else {
+                continue;
+            };
+            if is_dot_segment(value) {
+                return Err(McpError::invalid_params(
+                    format!(
+                        "`{name}` is `{value}`, which names a path segment rather than a value, so the request was not made"
+                    ),
+                    None,
+                ));
             }
         }
 
@@ -366,9 +405,12 @@ impl ServerHandler for Hook0McpServer {
 
 #[cfg(test)]
 mod tests {
-    use super::GENERATED_TOOLS;
+    use super::{
+        GENERATED_TOOLS, get_tool_info, interpolate_path, is_dot_segment, placeholders_of,
+    };
     use serde_json::Value;
-    use std::collections::BTreeSet;
+    use std::collections::{BTreeSet, HashMap};
+    use url::Url;
 
     /// The document the tools are generated from, read here on its own terms: the committed tool
     /// table is compared against what the snapshot says, not against another reading by the code
@@ -462,5 +504,158 @@ mod tests {
                 tool.name
             );
         }
+    }
+
+    /// A real template, so that a placeholder renamed in the document is a failure here rather
+    /// than a case that quietly stops testing anything.
+    fn a_real_template() -> &'static str {
+        let tool =
+            get_tool_info("eventTypes.get").expect("the tool table carries `eventTypes.get`");
+        assert!(
+            tool.path_template.contains("{event_type_name}"),
+            "`eventTypes.get` no longer names `event_type_name` in its path"
+        );
+        tool.path_template
+    }
+
+    /// Two placeholders, which no tool declares today. The helper has to be right about the second
+    /// one before an operation grows one, and a case that waits for that operation to arrive is a
+    /// case that tests nothing until the day it is needed.
+    const TWO_PLACEHOLDERS: &str =
+        "/api/v1/applications/{application_id}/event_types/{event_type_name}";
+
+    fn written_into(template: &str, values: &[(&str, &str)]) -> String {
+        let params: HashMap<String, String> = values
+            .iter()
+            .map(|(name, value)| ((*name).to_owned(), (*value).to_owned()))
+            .collect();
+        interpolate_path(template, &params)
+    }
+
+    fn written(values: &[(&str, &str)]) -> String {
+        written_into(a_real_template(), values)
+    }
+
+    /// Where a value ends up once the client has set it on a URL, which is the only reading that
+    /// decides whether a request went where its tool said it would.
+    fn asked_for(value: &str) -> String {
+        let mut url = Url::parse("https://app.hook0.com").expect("the origin parses");
+        url.set_path(&written(&[("event_type_name", value)]));
+        url.path().to_owned()
+    }
+
+    /// An argument reaches this server from a model, which read it somewhere. A slash in one used
+    /// to end the segment it was written into and start another.
+    #[test]
+    fn a_value_carrying_a_separator_stays_one_segment() {
+        let path = written(&[("event_type_name", "../../organizations/DEADBEEF")]);
+        assert!(
+            !path.contains("/organizations/"),
+            "a value naming another segment reached the path as one: {path}"
+        );
+        assert!(
+            path.contains("..%2F..%2Forganizations%2FDEADBEEF"),
+            "the separators in the value were not escaped: {path}"
+        );
+    }
+
+    /// The half escaping cannot answer, which is why the dispatcher refuses it instead.
+    ///
+    /// Measured rather than assumed: `%2E%2E` is written into the path and the URL still resolves
+    /// it away, because the standard reads an encoded dot as a dot when it removes dot segments.
+    /// A reader who "fixes" the refusal by escaping harder can run this and watch it fail.
+    #[test]
+    fn escaping_a_dot_segment_does_not_stop_it_moving_the_request() {
+        let mut url = Url::parse("https://app.hook0.com").expect("the origin parses");
+        url.set_path("/api/v1/event_types/%2E%2E");
+        assert_eq!(
+            url.path(),
+            "/api/v1/",
+            "an encoded dot segment is no longer resolved away, so the refusal below could be \
+             replaced by escaping"
+        );
+    }
+
+    /// Every spelling the URL standard treats as a dot segment, and the ordinary values that must
+    /// not be caught with them.
+    #[test]
+    fn a_dot_segment_is_recognised_in_every_spelling_it_has() {
+        for refused in [".", "..", "%2e", "%2E%2E", ".%2e", "%2e."] {
+            assert!(
+                is_dot_segment(refused),
+                "`{refused}` names a path segment and was not recognised"
+            );
+        }
+        for kept in [
+            "billing.invoice.paid",
+            "...",
+            "a%2eb",
+            "",
+            "0198f3c1-0000-7000-8000-000000000000",
+        ] {
+            assert!(
+                !is_dot_segment(kept),
+                "`{kept}` is an ordinary value and was refused"
+            );
+        }
+    }
+
+    /// The refusal only looks at what the template will actually write into the path. An argument
+    /// of the same name travelling in the body or the query is not this rule's business.
+    #[test]
+    fn only_what_the_template_asks_for_is_held_to_the_rule() {
+        assert_eq!(
+            placeholders_of(TWO_PLACEHOLDERS).collect::<Vec<_>>(),
+            vec!["application_id", "event_type_name"]
+        );
+        assert_eq!(
+            placeholders_of("/api/v1/applications/").count(),
+            0,
+            "a template with no placeholder asked for one"
+        );
+    }
+
+    /// An event type is named `service.resource_type.verb`, so the dots that are part of a name
+    /// have to survive. Escaping them would ask the API for a name nobody has.
+    #[test]
+    fn a_name_carrying_dots_reaches_the_api_as_it_was_written() {
+        let reached = asked_for("billing.invoice.paid");
+        assert!(
+            reached.ends_with("/billing.invoice.paid"),
+            "an ordinary event type name did not survive: {reached}"
+        );
+    }
+
+    /// The map this is handed has no order, so a value spelling another placeholder used to
+    /// produce one path or another depending on which key came out first.
+    #[test]
+    fn what_is_written_never_depends_on_the_order_of_the_map() {
+        let values = [
+            ("application_id", "{event_type_name}"),
+            ("event_type_name", "SECOND"),
+        ];
+        let once = written_into(TWO_PLACEHOLDERS, &values);
+        for _ in 0..64 {
+            let again = written_into(TWO_PLACEHOLDERS, &values);
+            assert_eq!(once, again, "the same call wrote two different paths");
+        }
+        assert!(
+            once.contains("%7Bevent_type_name%7D"),
+            "a value spelling a placeholder was substituted a second time: {once}"
+        );
+    }
+
+    /// A tool asking for a value it was not given is a question for its caller. Inventing half a
+    /// path would send the request somewhere nobody asked about.
+    #[test]
+    fn a_placeholder_nothing_answers_is_left_alone() {
+        let path = written_into(
+            TWO_PLACEHOLDERS,
+            &[("event_type_name", "billing.invoice.paid")],
+        );
+        assert!(
+            path.contains("{application_id}"),
+            "an unanswered placeholder was not left in place: {path}"
+        );
     }
 }
