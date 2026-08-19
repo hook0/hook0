@@ -209,6 +209,20 @@ fn report(language: &Language, proven: &Proven) {
     println!();
 }
 
+/// How many of one language's examples a failure leaves unproven.
+///
+/// A toolchain that refused particular examples names them, and the rest of what it carries still
+/// stands. One that failed before it reached any of them names none, and there nothing was proven:
+/// counting only what was blamed reported every example of that language as proven on a run that
+/// proved none of them. A resolver conflict in the Rust project printed `103 proven, 0 refused`
+/// under the word `refused: rust`, which is the one summary a gate must never print.
+fn unproven(proven: &Proven) -> usize {
+    match proven.blamed().len() {
+        0 => proven.assembled.len(),
+        blamed => blamed,
+    }
+}
+
 /// The last thing printed, and the verdict.
 fn summarise(documentation: &Documentation, results: &[Proven], partial: bool) -> bool {
     let examples: usize = results.iter().map(|proven| proven.assembled.len()).sum();
@@ -217,19 +231,14 @@ fn summarise(documentation: &Documentation, results: &[Proven], partial: bool) -
         .filter(|proven| !proven.succeeded())
         .collect();
 
+    let refused: usize = failed.iter().copied().map(unproven).sum();
+
     println!("─────────────────────────────────────────────────────────────");
     println!(
         "{examples} examples across {} languages, {} proven, {} refused",
         results.len(),
-        examples
-            - failed
-                .iter()
-                .map(|proven| proven.blamed().len())
-                .sum::<usize>(),
-        failed
-            .iter()
-            .map(|proven| proven.blamed().len())
-            .sum::<usize>(),
+        examples - refused,
+        refused,
     );
 
     if !documentation.undocumented.is_empty() {
