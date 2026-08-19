@@ -17,7 +17,7 @@ use crate::limits::Limits;
 use crate::model::shape::{IGNORED_KEYWORDS, MODELLED_KEYWORDS};
 
 /// Tag an operation carries to be part of the surface SDKs expose.
-pub const PUBLIC_TAG: &str = "public";
+pub const SDK_TAG: &str = "sdk";
 
 /// Where a parameter reference is looked up.
 const PARAMETER_REFERENCE_PREFIX: &str = "#/components/parameters/";

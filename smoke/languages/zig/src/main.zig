@@ -276,7 +276,7 @@ fn surface(
     defer minted.deinit();
     try decoded(out, "ApplicationSecret", minted.value);
 
-    try exercised(out, "applicationSecrets.list", secrets.list(allocator, application));
+    try exercised(out, "applicationSecrets.read", secrets.read(allocator, application));
     try exercised(out, "applicationSecrets.update", secrets.update(
         allocator,
         minted.value.token,
@@ -425,7 +425,7 @@ fn surface(
     // An attempt and a response exist only once the output worker has finished a delivery. The
     // harness waited for one, in the application it caught the shared delivery from, and handed the
     // ids on — so this reads them back with the organization credential rather than waiting again.
-    try exercised(out, "requestAttempts.list", request_attempts.list(
+    try exercised(out, "requestAttempts.read", request_attempts.read(
         allocator,
         seeded,
         null,
@@ -472,7 +472,7 @@ fn surface(
         "serviceToken.get",
         service_tokens.get(allocator, issued.value.token_id, organization),
     );
-    try exercised(out, "serviceToken.update", service_tokens.update(
+    try exercised(out, "serviceToken.edit", service_tokens.edit(
         allocator,
         issued.value.token_id,
         .{ .name = "a token the zig smoke renamed", .organization_id = organization },

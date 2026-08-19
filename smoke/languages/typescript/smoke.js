@@ -339,7 +339,7 @@ function surface() {
     .then((minted) => {
       decoded('ApplicationSecret', minted);
       carried.minted = minted.token;
-      return exercised('applicationSecrets.list', secrets.list(application));
+      return exercised('applicationSecrets.read', secrets.read(application));
     })
     .then(() =>
       exercised(
@@ -459,7 +459,7 @@ function surface() {
       // An attempt and a response exist only once the output worker has finished a delivery. The
       // harness waited for one, in the application it caught the shared delivery from, and handed
       // the ids on — so this reads them back with the organization credential.
-      return exercised('requestAttempts.list', requestAttempts.list(seeded));
+      return exercised('requestAttempts.read', requestAttempts.read(seeded));
     })
     .then(() => read('requestAttempts.get', requestAttempts.get(attempt, seeded)))
     .then((attempted) => {
@@ -492,8 +492,8 @@ function surface() {
     .then(() => exercised('serviceToken.get', serviceTokens.get(carried.token, organization)))
     .then(() =>
       exercised(
-        'serviceToken.update',
-        serviceTokens.update(carried.token, {
+        'serviceToken.edit',
+        serviceTokens.edit(carried.token, {
           name: 'a token the typescript smoke renamed',
           organization_id: organization,
         })

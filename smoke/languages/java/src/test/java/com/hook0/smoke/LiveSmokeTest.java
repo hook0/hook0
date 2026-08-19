@@ -246,7 +246,7 @@ final class LiveSmokeTest {
       decoded("ApplicationSecret", minted);
       String mintedToken = minted.token().toString();
 
-      exercised("applicationSecrets.list", () -> secrets.list(application));
+      exercised("applicationSecrets.read", () -> secrets.read(application));
       exercised(
           "applicationSecrets.update",
           () -> secrets.update(mintedToken, new ApplicationSecretPost(owning, "a secret the java smoke renamed")));
@@ -349,7 +349,7 @@ final class LiveSmokeTest {
       // one, in the application it caught the shared delivery from, and handed the ids on — so this reads them back
       // with the organization credential rather than waiting again.
       exercised(
-          "requestAttempts.list", () -> requestAttempts.list(seeded, null, null, null, null, null, null));
+          "requestAttempts.read", () -> requestAttempts.read(seeded, null, null, null, null, null, null));
 
       RequestAttempt attempted = read("requestAttempts.get", () -> requestAttempts.get(attempt, seeded));
       decoded("RequestAttemptEvent", attempted.event());
@@ -373,9 +373,9 @@ final class LiveSmokeTest {
       exercised("serviceToken.list", () -> serviceTokens.list(organization.toString()));
       exercised("serviceToken.get", () -> serviceTokens.get(issuedId, organization.toString()));
       exercised(
-          "serviceToken.update",
+          "serviceToken.edit",
           () ->
-              serviceTokens.update(
+              serviceTokens.edit(
                   issuedId, new ServiceTokenPost("a token the java smoke renamed", organization)));
       exercised("serviceToken.delete", () -> serviceTokens.delete(issuedId, organization.toString()));
 

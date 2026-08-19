@@ -43,7 +43,7 @@ pub struct ApplicationSecretPost {
     operation_id = "applicationSecrets.create",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "public")
+    tags("Applications Management", "sdk")
 )]
 pub async fn create(
     state: Data<crate::State>,
@@ -104,10 +104,10 @@ pub async fn create(
 #[api_v2_operation(
     summary = "List application secrets",
     description = "Retrieves all active API tokens for a given application.",
-    operation_id = "applicationSecrets.list",
+    operation_id = "applicationSecrets.read",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "public")
+    tags("Applications Management", "sdk")
 )]
 pub async fn list(
     state: Data<crate::State>,
@@ -149,7 +149,7 @@ pub async fn list(
     operation_id = "applicationSecrets.update",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "public")
+    tags("Applications Management", "sdk")
 )]
 pub async fn edit(
     state: Data<crate::State>,
@@ -220,7 +220,7 @@ pub async fn edit(
     operation_id = "applicationSecrets.delete",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "public")
+    tags("Applications Management", "sdk")
 )]
 pub async fn delete(
     state: Data<crate::State>,

@@ -8,8 +8,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use hook0_sdkgen::{
-    ApiModel, Error, IGNORED_KEYWORDS, Limits, MODELLED_KEYWORDS, PUBLIC_TAG, Scalar, Scheme,
-    Shape, Snapshot,
+    ApiModel, Error, IGNORED_KEYWORDS, Limits, MODELLED_KEYWORDS, SDK_TAG, Scalar, Scheme, Shape,
+    Snapshot,
 };
 use serde_json::{Value, json};
 
@@ -21,14 +21,14 @@ const FAILURE_STATUS: u64 = 400;
 fn built(bytes: &[u8]) -> ApiModel {
     let limits = Limits::default();
     let snapshot =
-        Snapshot::from_bytes(bytes, PUBLIC_TAG, &limits).expect("the document under test parses");
+        Snapshot::from_bytes(bytes, SDK_TAG, &limits).expect("the document under test parses");
     ApiModel::from_snapshot(&snapshot, &limits).expect("the document under test yields a model")
 }
 
 fn refused(bytes: &[u8]) -> Error {
     let limits = Limits::default();
     let snapshot =
-        Snapshot::from_bytes(bytes, PUBLIC_TAG, &limits).expect("the document under test parses");
+        Snapshot::from_bytes(bytes, SDK_TAG, &limits).expect("the document under test parses");
     ApiModel::from_snapshot(&snapshot, &limits).expect_err("the document under test is refused")
 }
 

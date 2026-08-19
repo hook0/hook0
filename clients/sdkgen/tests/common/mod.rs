@@ -4,9 +4,7 @@
 
 use std::collections::BTreeSet;
 
-use hook0_sdkgen::{
-    EntityModel, HttpMethod, Limits, Nonconformity, Operation, PUBLIC_TAG, Snapshot,
-};
+use hook0_sdkgen::{EntityModel, HttpMethod, Limits, Nonconformity, Operation, SDK_TAG, Snapshot};
 use serde_json::{Value, json};
 
 /// The snapshot the Hook0 API serves, committed so the suites never reach the network.
@@ -25,7 +23,7 @@ pub fn fixture_bytes() -> Vec<u8> {
 /// The operations the document marks as the surface generated clients are built from.
 pub fn declared_public_operations(bytes: &[u8]) -> Vec<DeclaredOperation> {
     let mut declared = declared_operations(bytes);
-    declared.retain(|operation| operation.tags.iter().any(|tag| tag == PUBLIC_TAG));
+    declared.retain(|operation| operation.tags.iter().any(|tag| tag == SDK_TAG));
     declared
 }
 

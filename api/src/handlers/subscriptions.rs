@@ -188,7 +188,7 @@ pub struct Qs {
     operation_id = "subscriptions.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management", "mcp", "public")
+    tags("Subscriptions Management", "mcp", "sdk")
 )]
 pub async fn list(
     state: Data<crate::State>,
@@ -303,7 +303,7 @@ pub async fn list(
     operation_id = "subscriptions.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management", "mcp", "public")
+    tags("Subscriptions Management", "mcp", "sdk")
 )]
 pub async fn get(
     state: Data<crate::State>,
@@ -463,7 +463,7 @@ pub struct SubscriptionPost {
     operation_id = "subscriptions.create",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management", "mcp", "public")
+    tags("Subscriptions Management", "mcp", "sdk")
 )]
 pub async fn create(
     state: Data<crate::State>,
@@ -686,7 +686,7 @@ pub async fn create(
     operation_id = "subscriptions.update",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management", "mcp", "public")
+    tags("Subscriptions Management", "mcp", "sdk")
 )]
 pub async fn edit(
     state: Data<crate::State>,
@@ -976,7 +976,7 @@ pub async fn edit(
     operation_id = "subscriptions.delete",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management", "mcp", "public")
+    tags("Subscriptions Management", "mcp", "sdk")
 )]
 pub async fn delete(
     state: Data<crate::State>,

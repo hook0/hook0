@@ -127,11 +127,11 @@ export class ApplicationSecretsApi {
   }
 
   /**
-   * `applicationSecrets.list`, `GET /api/v1/application_secrets/`.
+   * `applicationSecrets.read`, `GET /api/v1/application_secrets/`.
    *
    * List application secrets
    */
-  async list(applicationId: string): Promise<ApplicationSecret[]> {
+  async read(applicationId: string): Promise<ApplicationSecret[]> {
     const path = '/api/v1/application_secrets/';
     const query: [string, string][] = [['application_id', queryValue(applicationId)]];
     const issued = await this.transport.request({
@@ -662,11 +662,11 @@ export class RequestAttemptsApi {
   }
 
   /**
-   * `requestAttempts.list`, `GET /api/v1/request_attempts/`.
+   * `requestAttempts.read`, `GET /api/v1/request_attempts/`.
    *
    * List request attempts
    */
-  async list(
+  async read(
     applicationId: string,
     eventEventTypeNames?: string,
     eventId?: string,
@@ -786,6 +786,25 @@ export class ServiceTokenApi {
   }
 
   /**
+   * `serviceToken.edit`, `PUT /api/v1/service_token/{service_token_id}`.
+   *
+   * Edit a service token
+   */
+  async edit(serviceTokenId: string, body: ServiceTokenPost): Promise<ServiceToken> {
+    let path = '/api/v1/service_token/{service_token_id}';
+    path = path.replace('{service_token_id}', pathSegment(serviceTokenId));
+    const query: [string, string][] = [];
+    const issued = await this.transport.request({
+      method: 'PUT',
+      path,
+      query,
+      body: JSON.stringify(body),
+    });
+    raiseForStatus(issued.status, issued.payload);
+    return readPayload<ServiceToken>(issued.status, issued.payload);
+  }
+
+  /**
    * `serviceToken.get`, `GET /api/v1/service_token/{service_token_id}`.
    *
    * Get a service token
@@ -818,25 +837,6 @@ export class ServiceTokenApi {
     });
     raiseForStatus(issued.status, issued.payload);
     return readPayload<ServiceToken[]>(issued.status, issued.payload);
-  }
-
-  /**
-   * `serviceToken.update`, `PUT /api/v1/service_token/{service_token_id}`.
-   *
-   * Update a service token
-   */
-  async update(serviceTokenId: string, body: ServiceTokenPost): Promise<ServiceToken> {
-    let path = '/api/v1/service_token/{service_token_id}';
-    path = path.replace('{service_token_id}', pathSegment(serviceTokenId));
-    const query: [string, string][] = [];
-    const issued = await this.transport.request({
-      method: 'PUT',
-      path,
-      query,
-      body: JSON.stringify(body),
-    });
-    raiseForStatus(issued.status, issued.payload);
-    return readPayload<ServiceToken>(issued.status, issued.payload);
   }
 }
 

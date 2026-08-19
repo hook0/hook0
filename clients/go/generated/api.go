@@ -76,10 +76,10 @@ func (group *ApplicationSecretsAPI) Delete(
 	return problemFor(status, payload)
 }
 
-// List is what the API declares as `applicationSecrets.list`, `GET /api/v1/application_secrets/`.
+// Read is what the API declares as `applicationSecrets.read`, `GET /api/v1/application_secrets/`.
 //
 // List application secrets
-func (group *ApplicationSecretsAPI) List(
+func (group *ApplicationSecretsAPI) Read(
 	ctx context.Context,
 	applicationId string,
 ) ([]ApplicationSecret, error) {
@@ -745,10 +745,10 @@ func (group *RequestAttemptsAPI) Get(
 	return &out, nil
 }
 
-// List is what the API declares as `requestAttempts.list`, `GET /api/v1/request_attempts/`.
+// Read is what the API declares as `requestAttempts.read`, `GET /api/v1/request_attempts/`.
 //
 // List request attempts
-func (group *RequestAttemptsAPI) List(
+func (group *RequestAttemptsAPI) Read(
 	ctx context.Context,
 	applicationId string,
 	eventEventTypeNames *string,
@@ -891,6 +891,33 @@ func (group *ServiceTokenAPI) Delete(
 	return problemFor(status, payload)
 }
 
+// Edit is what the API declares as `serviceToken.edit`, `PUT /api/v1/service_token/{service_token_id}`.
+//
+// Edit a service token
+func (group *ServiceTokenAPI) Edit(
+	ctx context.Context,
+	serviceTokenId string,
+	body ServiceTokenPost,
+) (*ServiceToken, error) {
+	path := "/api/v1/service_token/{service_token_id}"
+	path = strings.ReplaceAll(path, "{service_token_id}", pathSegment(serviceTokenId))
+	query := url.Values{}
+
+	var out ServiceToken
+	status, payload, err := group.transport.Request(ctx, "PUT", path, query, body)
+	if err != nil {
+		return nil, err
+	}
+	if failure := problemFor(status, payload); failure != nil {
+		return nil, failure
+	}
+
+	if err := json.Unmarshal(payload, &out); err != nil {
+		return nil, unreadable(status, payload, err)
+	}
+	return &out, nil
+}
+
 // Get is what the API declares as `serviceToken.get`, `GET /api/v1/service_token/{service_token_id}`.
 //
 // Get a service token
@@ -943,33 +970,6 @@ func (group *ServiceTokenAPI) List(
 		return out, unreadable(status, payload, err)
 	}
 	return out, nil
-}
-
-// Update is what the API declares as `serviceToken.update`, `PUT /api/v1/service_token/{service_token_id}`.
-//
-// Update a service token
-func (group *ServiceTokenAPI) Update(
-	ctx context.Context,
-	serviceTokenId string,
-	body ServiceTokenPost,
-) (*ServiceToken, error) {
-	path := "/api/v1/service_token/{service_token_id}"
-	path = strings.ReplaceAll(path, "{service_token_id}", pathSegment(serviceTokenId))
-	query := url.Values{}
-
-	var out ServiceToken
-	status, payload, err := group.transport.Request(ctx, "PUT", path, query, body)
-	if err != nil {
-		return nil, err
-	}
-	if failure := problemFor(status, payload); failure != nil {
-		return nil, failure
-	}
-
-	if err := json.Unmarshal(payload, &out); err != nil {
-		return nil, unreadable(status, payload, err)
-	}
-	return &out, nil
 }
 
 // SubscriptionsAPI is what the API declares under `subscriptions`.

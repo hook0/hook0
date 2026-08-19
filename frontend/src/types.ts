@@ -15,7 +15,7 @@ export interface paths {
      * List application secrets
      * @description Retrieves all active API tokens for a given application.
      */
-    get: operations['applicationSecrets.list'];
+    get: operations['applicationSecrets.read'];
     put?: never;
     /**
      * Create a new application secret
@@ -643,7 +643,7 @@ export interface paths {
      * List request attempts
      * @description Retrieves webhook delivery attempts for an application. Each attempt shows the delivery status (pending, in_progress, successful, failed, waiting), retry count, and timestamps. Filter by event_id, subscription_id, date range, or event types. Paginated via Link header.
      */
-    get: operations['requestAttempts.list'];
+    get: operations['requestAttempts.read'];
     put?: never;
     post?: never;
     delete?: never;
@@ -732,7 +732,7 @@ export interface paths {
      * Edit a service token
      * @description Updates the name of an existing service token. The token must belong to the specified organization and still be active (not expired or revoked).
      */
-    put: operations['serviceToken.update'];
+    put: operations['serviceToken.edit'];
     post?: never;
     /**
      * Delete a service token
@@ -1304,7 +1304,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  'applicationSecrets.list': {
+  'applicationSecrets.read': {
     parameters: {
       query: {
         application_id: string;
@@ -3680,7 +3680,7 @@ export interface operations {
       };
     };
   };
-  'requestAttempts.list': {
+  'requestAttempts.read': {
     parameters: {
       query: {
         application_id: string;
@@ -4037,7 +4037,7 @@ export interface operations {
       };
     };
   };
-  'serviceToken.update': {
+  'serviceToken.edit': {
     parameters: {
       query?: never;
       header?: never;

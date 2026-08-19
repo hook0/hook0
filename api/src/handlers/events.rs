@@ -108,7 +108,7 @@ impl PayloadContentType {
     operation_id = "payload_content_types.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management", "mcp", "public")
+    tags("Events Management", "mcp", "sdk")
 )]
 pub async fn payload_content_types() -> Result<Json<Vec<&'static str>>, Hook0Problem> {
     Ok(Json(PayloadContentType::VARIANTS.to_vec()))
@@ -180,7 +180,7 @@ pub struct Event {
     operation_id = "events.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management", "mcp", "public")
+    tags("Events Management", "mcp", "sdk")
 )]
 pub async fn list(
     state: Data<crate::State>,
@@ -271,7 +271,7 @@ pub struct EventWithPayload {
     operation_id = "events.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management", "mcp", "public")
+    tags("Events Management", "mcp", "sdk")
 )]
 pub async fn get(
     state: Data<crate::State>,
@@ -396,7 +396,7 @@ pub struct IngestedEvent {
     operation_id = "events.ingest",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management", "mcp", "public")
+    tags("Events Management", "mcp", "sdk")
 )]
 pub async fn ingest(
     state: Data<crate::State>,
@@ -713,7 +713,7 @@ pub struct ReplayEvent {
     description = "Re-triggers webhook deliveries for an existing event. All active subscriptions matching the event type and labels will receive the event again. Useful for retrying failed deliveries or testing webhooks.",
     operation_id = "events.replay",
     consumes = "application/json",
-    tags("Events Management", "mcp", "public")
+    tags("Events Management", "mcp", "sdk")
 )]
 pub async fn replay(
     state: Data<crate::State>,

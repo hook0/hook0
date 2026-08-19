@@ -67,6 +67,31 @@ final class ServiceTokenApi
     }
 
     /**
+     * Edit a service token
+     *
+     * @param string $serviceTokenId carries `service_token_id`.
+     * @param ServiceTokenPost $body what the operation reads
+     * @return ServiceToken
+     */
+    public function edit(string $serviceTokenId, ServiceTokenPost $body): ServiceToken
+    {
+        return $this->readAnswer(
+            $this->transport->request(
+                'PUT',
+                Runtime::path(
+                    '/api/v1/service_token/{service_token_id}',
+                    [
+                        'service_token_id' => $serviceTokenId,
+                    ],
+                ),
+                [],
+                $body->toArray(),
+            ),
+            ServiceToken::fromJson(...),
+        );
+    }
+
+    /**
      * Get a service token
      *
      * @param string $serviceTokenId carries `service_token_id`.
@@ -117,31 +142,6 @@ final class ServiceTokenApi
                 null,
             ),
             Runtime::listOf(ServiceToken::fromJson(...)),
-        );
-    }
-
-    /**
-     * Update a service token
-     *
-     * @param string $serviceTokenId carries `service_token_id`.
-     * @param ServiceTokenPost $body what the operation reads
-     * @return ServiceToken
-     */
-    public function update(string $serviceTokenId, ServiceTokenPost $body): ServiceToken
-    {
-        return $this->readAnswer(
-            $this->transport->request(
-                'PUT',
-                Runtime::path(
-                    '/api/v1/service_token/{service_token_id}',
-                    [
-                        'service_token_id' => $serviceTokenId,
-                    ],
-                ),
-                [],
-                $body->toArray(),
-            ),
-            ServiceToken::fromJson(...),
         );
     }
 

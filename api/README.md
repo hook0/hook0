@@ -25,20 +25,20 @@ cargo sqlx prepare
 Two mechanics apply to every handler of this crate. Both are enforced by tests, so ignoring them
 fails the pipeline.
 
-## The `public` tag
+## The `sdk` tag
 
 An operation reaches the generated clients only when its `#[api_v2_operation(...)]` carries the
-`public` tag:
+`sdk` tag:
 
 ```rust
 #[api_v2_operation(
     summary = "List subscriptions",
     operation_id = "subscriptions.list",
-    tags("Subscriptions Management", "mcp", "public")
+    tags("Subscriptions Management", "mcp", "sdk")
 )]
 ```
 
-Nothing is public by default and no list is maintained anywhere: the tag written on the handler is
+Nothing is in the SDK surface by default and no list is maintained anywhere: the tag written on the handler is
 the only thing that decides. A handler added without it is served by the API and exists for no
 client.
 
@@ -68,7 +68,7 @@ A tagged operation also has to:
 - answer every error with the `Problem` schema, which is what generated clients turn into a typed
   error.
 
-Those checks live in `src/handlers/public_surface.rs` and run against the document the application
+Those checks live in `src/handlers/sdk_surface.rs` and run against the document the application
 actually serves, never against a list kept by hand.
 
 ## The OpenAPI snapshot
@@ -85,10 +85,10 @@ UPDATE_OPENAPI_SNAPSHOT=1 cargo test -p hook0-api openapi_snapshot
 ```
 
 Run it and commit the rewritten snapshot along with your change. Read the report before you do: it
-is the only place an unintended change to the public surface shows up. An operation you did not mean
+is the only place an unintended change to the SDK surface shows up. An operation you did not mean
 to touch, or one you did not mean to publish, is a defect in the handler and not in the snapshot.
 
-Only `public` and `mcp` operations enter the snapshot, so work on the control plane leaves it
+Only `sdk` and `mcp` operations enter the snapshot, so work on the control plane leaves it
 untouched.
 
 ### LICENSE

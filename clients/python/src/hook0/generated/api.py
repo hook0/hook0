@@ -81,7 +81,7 @@ class ApplicationSecretsApi:
         raise_for_status(status, payload)
         return None
 
-    def list(
+    def read(
         self,
         application_id: str,
     ) -> list[ApplicationSecret]:
@@ -530,7 +530,7 @@ class RequestAttemptsApi:
         raise_for_status(status, payload)
         return RequestAttempt.from_json(decode_payload(payload))
 
-    def list(
+    def read(
         self,
         application_id: str,
         event_event_type_names: str | None = None,
@@ -633,6 +633,24 @@ class ServiceTokenApi:
         raise_for_status(status, payload)
         return None
 
+    def edit(
+        self,
+        service_token_id: str,
+        body: ServiceTokenPost,
+    ) -> ServiceToken:
+        """Edit a service token"""
+        path = "/api/v1/service_token/{service_token_id}"
+        path = path.replace("{service_token_id}", path_segment(service_token_id))
+        query: list[tuple[str, str]] = []
+        status, payload = self._transport.request(
+            "PUT",
+            path,
+            query,
+            body.to_json(),
+        )
+        raise_for_status(status, payload)
+        return ServiceToken.from_json(decode_payload(payload))
+
     def get(
         self,
         service_token_id: str,
@@ -668,24 +686,6 @@ class ServiceTokenApi:
         )
         raise_for_status(status, payload)
         return as_list(ServiceToken.from_json)(decode_payload(payload))
-
-    def update(
-        self,
-        service_token_id: str,
-        body: ServiceTokenPost,
-    ) -> ServiceToken:
-        """Update a service token"""
-        path = "/api/v1/service_token/{service_token_id}"
-        path = path.replace("{service_token_id}", path_segment(service_token_id))
-        query: list[tuple[str, str]] = []
-        status, payload = self._transport.request(
-            "PUT",
-            path,
-            query,
-            body.to_json(),
-        )
-        raise_for_status(status, payload)
-        return ServiceToken.from_json(decode_payload(payload))
 
 
 class SubscriptionsApi:

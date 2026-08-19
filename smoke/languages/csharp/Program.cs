@@ -227,7 +227,7 @@ internal static class Program
         Decoded("ApplicationSecret", minted);
         string mintedToken = minted.Token.ToString();
 
-        Exercised("applicationSecrets.list", () => secrets.List(application));
+        Exercised("applicationSecrets.read", () => secrets.Read(application));
         Exercised(
             "applicationSecrets.update",
             () => secrets.Update(mintedToken, new Generated.ApplicationSecretPost
@@ -344,7 +344,7 @@ internal static class Program
         // harness waited for one, in the application it caught the shared delivery from, and handed
         // the ids on — so this reads them back with the organization credential rather than waiting
         // again.
-        Exercised("requestAttempts.list", () => requestAttempts.List(seeded));
+        Exercised("requestAttempts.read", () => requestAttempts.Read(seeded));
 
         Generated.RequestAttempt attempted = Read(
             "requestAttempts.get",
@@ -374,8 +374,8 @@ internal static class Program
         Exercised("serviceToken.list", () => serviceTokens.List(organization));
         Exercised("serviceToken.get", () => serviceTokens.Get(issuedId, organization));
         Exercised(
-            "serviceToken.update",
-            () => serviceTokens.Update(issuedId, new Generated.ServiceTokenPost
+            "serviceToken.edit",
+            () => serviceTokens.Edit(issuedId, new Generated.ServiceTokenPost
             {
                 Name = "a token the csharp smoke renamed",
                 OrganizationId = owner,

@@ -336,7 +336,7 @@ Claude: I'll investigate your recent delivery failures.
 
 [Uses applications.list tool]
 [Uses events.list tool]
-[Uses requestAttempts.list tool]
+[Uses requestAttempts.read tool]
 
 I found 3 failed deliveries in the last hour:
 
@@ -382,7 +382,7 @@ Test event sent:
 - **Type:** order.created
 - **Payload:** {"test": true, "timestamp": "2024-01-15T10:30:00Z"}
 
-[Uses requestAttempts.list tool]
+[Uses requestAttempts.read tool]
 
 Delivery status:
 - **Subscription:** Production Webhook

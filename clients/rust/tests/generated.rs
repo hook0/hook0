@@ -42,7 +42,7 @@ const MAX_DEPTH: usize = 8;
 /// The tag that marks an operation as part of the surface an SDK exposes. A document that marks none
 /// of its operations with it declares the whole of itself public, which is the rule the generator
 /// applies and therefore the rule this suite holds it to.
-const PUBLIC_TAG: &str = "public";
+const SDK_TAG: &str = "sdk";
 
 /// The methods a request line can carry, which is what tells an operation apart from the rest of
 /// what a path item holds.
@@ -234,7 +234,7 @@ fn declared_operations(document: &Value) -> BTreeMap<String, Declared> {
             if operation
                 .get("tags")
                 .and_then(Value::as_array)
-                .is_some_and(|tags| tags.iter().any(|tag| tag.as_str() == Some(PUBLIC_TAG)))
+                .is_some_and(|tags| tags.iter().any(|tag| tag.as_str() == Some(SDK_TAG)))
             {
                 public.insert(id.to_owned(), declared.clone());
             }
@@ -710,8 +710,8 @@ async fn every_operation_the_document_declares_is_reached_the_way_it_declares_it
         );
         reach!(
             walk,
-            "applicationSecrets.list",
-            application_secrets.list(A_STRING)
+            "applicationSecrets.read",
+            application_secrets.read(A_STRING)
         );
         reach!(
             walk,
@@ -790,8 +790,8 @@ async fn every_operation_the_document_declares_is_reached_the_way_it_declares_it
         );
         reach!(
             walk,
-            "requestAttempts.list",
-            request_attempts.list(A_STRING, named, named, named, named, named, named)
+            "requestAttempts.read",
+            request_attempts.read(A_STRING, named, named, named, named, named, named)
         );
 
         reach!(walk, "response.get", response.get(A_STRING, A_STRING));
@@ -814,8 +814,8 @@ async fn every_operation_the_document_declares_is_reached_the_way_it_declares_it
         reach!(walk, "serviceToken.list", service_token.list(A_STRING));
         reach!(
             walk,
-            "serviceToken.update",
-            service_token.update(A_STRING, walk.body("serviceToken.update"))
+            "serviceToken.edit",
+            service_token.edit(A_STRING, walk.body("serviceToken.edit"))
         );
 
         reach!(

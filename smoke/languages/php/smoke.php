@@ -369,7 +369,7 @@ function surface(): void
     ));
     decoded('ApplicationSecret', $minted);
 
-    exercised('applicationSecrets.list', static fn() => $secrets->list($application));
+    exercised('applicationSecrets.read', static fn() => $secrets->read($application));
     exercised('applicationSecrets.update', static fn() => $secrets->update(
         $minted->token,
         new ApplicationSecretPost(
@@ -491,7 +491,7 @@ function surface(): void
     // An attempt and a response exist only once the output worker has finished a delivery. The
     // harness waited for one, in the application it caught the shared delivery from, and handed the
     // ids on — so this reads them back with the organization credential rather than waiting again.
-    exercised('requestAttempts.list', static fn() => $requestAttempts->list($seeded));
+    exercised('requestAttempts.read', static fn() => $requestAttempts->read($seeded));
 
     $attempted = read('requestAttempts.get', static fn() => $requestAttempts->get(
         setting('HOOK0_REQUEST_ATTEMPT_ID'),
@@ -524,7 +524,7 @@ function surface(): void
         'serviceToken.get',
         static fn() => $serviceTokens->get($issued->tokenId, $organization),
     );
-    exercised('serviceToken.update', static fn() => $serviceTokens->update(
+    exercised('serviceToken.edit', static fn() => $serviceTokens->edit(
         $issued->tokenId,
         new ServiceTokenPost(
             name: 'a token the php smoke renamed',

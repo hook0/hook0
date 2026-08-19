@@ -32,13 +32,6 @@ a caller, and each says what to do about it.
   library stops compiling; pass `&[]` where there is nothing to send. This is what took the crate to
   `2.0.0`, and `cargo semver-checks` reads it as `v1.0.2 -> v2.0.0 (major change)`.
 
-- **Breaking.** The tool `requestAttempts.read` is now `requestAttempts.list` (api)
-
-  The API renamed the operation, and a tool is named after the operation it calls. The eight other
-  collection reads of the surface were already spelled `list`, and request attempts already had a
-  `get` for the single item, so `read` was its `list` under another name. Nothing else in the table
-  of twenty-three moved.
-
 - Tool definitions are read from the committed API document instead of the network (mcp)
 
   The build script fetched the live swagger at compile time and, whenever that fetch failed, wrote

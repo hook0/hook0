@@ -1,6 +1,6 @@
 //! Guards over the slice of the API that generated clients are built from.
 //!
-//! An operation joins that slice only when someone writes the `public` tag on
+//! An operation joins that slice only when someone writes the `sdk` tag on
 //! it, so a handler added later stays out of generated clients until somebody
 //! decides otherwise. Generators split each `operation_id` into an entity and
 //! one of its methods, and map error responses onto a typed error hierarchy, so
@@ -13,7 +13,7 @@
 use serde_json::Value;
 
 /// Tag that opts an operation into the surface exposed to generated clients.
-const PUBLIC_TAG: &str = "public";
+const SDK_TAG: &str = "sdk";
 
 /// Schema every error response of an opted-in operation answers with.
 const PROBLEM_SCHEMA_REF: &str = "#/components/schemas/Problem";
@@ -38,7 +38,7 @@ struct Operation<'a> {
 impl<'a> Operation<'a> {
     fn is_public(&self) -> bool {
         match self.body["tags"].as_array() {
-            Some(tags) => tags.iter().any(|tag| tag == PUBLIC_TAG),
+            Some(tags) => tags.iter().any(|tag| tag == SDK_TAG),
             None => false,
         }
     }
@@ -130,7 +130,7 @@ mod tests {
 
         assert!(
             !opted_in.is_empty(),
-            "no served operation carries the `{PUBLIC_TAG}` tag"
+            "no served operation carries the `{SDK_TAG}` tag"
         );
 
         let offenders = opted_in
@@ -144,7 +144,7 @@ mod tests {
 
         assert!(
             offenders.is_empty(),
-            "these `{PUBLIC_TAG}` operations do not spell their identifier as `entity.verb`: {}",
+            "these `{SDK_TAG}` operations do not spell their identifier as `entity.verb`: {}",
             offenders.join(", ")
         );
     }
@@ -163,7 +163,7 @@ mod tests {
 
         assert!(
             !opted_in.is_empty(),
-            "no served operation carries the `{PUBLIC_TAG}` tag"
+            "no served operation carries the `{SDK_TAG}` tag"
         );
 
         let mut checked = 0_usize;
@@ -230,7 +230,7 @@ mod tests {
             "paths": {
                 "/applications": {
                     "parameters": [{"name": "organization_id"}],
-                    "get": {"operationId": "applications.list", "tags": ["public"]},
+                    "get": {"operationId": "applications.list", "tags": ["sdk"]},
                     "post": {"operationId": "applications.create", "tags": ["mcp"]},
                 }
             }

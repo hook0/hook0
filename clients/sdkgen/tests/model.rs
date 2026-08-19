@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use hook0_sdkgen::{
-    EntityModel, Error, HttpMethod, Limits, MCP_TAG, Nonconformity, PUBLIC_TAG, ParameterLocation,
+    EntityModel, Error, HttpMethod, Limits, MCP_TAG, Nonconformity, ParameterLocation, SDK_TAG,
     Snapshot, Verb,
 };
 use serde_json::{Value, json};
@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 mod common;
 
 fn model_of(bytes: &[u8], limits: &Limits) -> Result<(Snapshot, EntityModel), Error> {
-    let snapshot = Snapshot::from_bytes(bytes, PUBLIC_TAG, limits)?;
+    let snapshot = Snapshot::from_bytes(bytes, SDK_TAG, limits)?;
     let model = EntityModel::from_snapshot(&snapshot, limits)?;
     Ok((snapshot, model))
 }
@@ -66,9 +66,9 @@ fn the_committed_snapshot_is_rebuilt_identically() {
 #[test]
 fn a_snapshot_read_from_disk_matches_the_one_read_from_memory() {
     let limits = Limits::default();
-    let from_disk = Snapshot::from_path(Path::new(common::FIXTURE_PATH), PUBLIC_TAG, &limits)
+    let from_disk = Snapshot::from_path(Path::new(common::FIXTURE_PATH), SDK_TAG, &limits)
         .expect("the fixture parses");
-    let from_memory = Snapshot::from_bytes(&common::fixture_bytes(), PUBLIC_TAG, &limits)
+    let from_memory = Snapshot::from_bytes(&common::fixture_bytes(), SDK_TAG, &limits)
         .expect("the fixture parses");
 
     assert_eq!(from_disk, from_memory);
@@ -193,10 +193,10 @@ fn an_operation_id_missing_its_entity_or_its_verb_is_reported() {
 }
 
 #[test]
-fn the_public_tag_narrows_the_snapshot_to_what_it_marks() {
+fn the_sdk_tag_narrows_the_snapshot_to_what_it_marks() {
     let (snapshot, model) = built(&common::spec_with_paths(json!({
         "/things": {
-            "get": {"operationId": "things.list", "tags": ["public"]},
+            "get": {"operationId": "things.list", "tags": ["sdk"]},
             "post": {"operationId": "things.create", "tags": ["mcp"]},
         },
         "/secrets": {"get": {"operationId": "secrets.list"}},
@@ -215,10 +215,10 @@ fn the_public_tag_narrows_the_snapshot_to_what_it_marks() {
 fn a_snapshot_is_narrowed_to_whichever_tag_a_target_names() {
     let document = common::spec_with_paths(json!({
         "/things": {
-            "get": {"operationId": "things.list", "tags": ["public"]},
+            "get": {"operationId": "things.list", "tags": ["sdk"]},
             "post": {"operationId": "things.create", "tags": ["mcp"]},
         },
-        "/secrets": {"get": {"operationId": "secrets.list", "tags": ["public", "mcp"]}},
+        "/secrets": {"get": {"operationId": "secrets.list", "tags": ["sdk", "mcp"]}},
     }));
     let limits = Limits::default();
 
@@ -232,7 +232,7 @@ fn a_snapshot_is_narrowed_to_whichever_tag_a_target_names() {
             .collect::<Vec<_>>()
     };
 
-    assert_eq!(selected(PUBLIC_TAG), ["secrets.list", "things.list"]);
+    assert_eq!(selected(SDK_TAG), ["secrets.list", "things.list"]);
     assert_eq!(selected(MCP_TAG), ["secrets.list", "things.create"]);
     assert!(
         selected("absent").len() == 3,
@@ -241,7 +241,7 @@ fn a_snapshot_is_narrowed_to_whichever_tag_a_target_names() {
 }
 
 #[test]
-fn a_snapshot_without_the_public_tag_keeps_every_operation() {
+fn a_snapshot_without_the_sdk_tag_keeps_every_operation() {
     let (snapshot, _) = built(&common::spec_with_paths(json!({
         "/things": {"get": {"operationId": "things.list"}},
         "/secrets": {"get": {"operationId": "secrets.list"}},
@@ -255,7 +255,7 @@ fn a_snapshot_without_the_public_tag_keeps_every_operation() {
 /// The committed snapshot carries the tag, so the generator sees the curated surface rather than
 /// the whole API: the private control plane the dashboard drives stays out of generated clients.
 #[test]
-fn the_committed_snapshot_narrows_down_to_its_public_tag() {
+fn the_committed_snapshot_narrows_down_to_its_sdk_tag() {
     let bytes = common::fixture_bytes();
     let declared = common::declared_operations(&bytes);
     let public = common::declared_public_operations(&bytes);
@@ -455,14 +455,14 @@ fn a_snapshot_above_the_byte_ceiling_is_rejected() {
 
     assert!(
         matches!(
-            Snapshot::from_bytes(&bytes, PUBLIC_TAG, &limits),
+            Snapshot::from_bytes(&bytes, SDK_TAG, &limits),
             Err(Error::SnapshotTooLarge { .. })
         ),
         "an oversized snapshot was accepted"
     );
     assert!(
         matches!(
-            Snapshot::from_path(Path::new(common::FIXTURE_PATH), PUBLIC_TAG, &limits),
+            Snapshot::from_path(Path::new(common::FIXTURE_PATH), SDK_TAG, &limits),
             Err(Error::SnapshotTooLarge { .. })
         ),
         "an oversized snapshot was accepted from disk"
@@ -615,7 +615,7 @@ fn a_parameter_schema_in_words_the_reader_does_not_model_is_refused() {
     for written in both {
         let refused = Snapshot::from_bytes(
             &written(json!({"type": "string", "nullable": true})),
-            PUBLIC_TAG,
+            SDK_TAG,
             &limits,
         )
         .expect_err("`nullable` is not a word this reader models");
@@ -631,7 +631,7 @@ fn a_parameter_schema_in_words_the_reader_does_not_model_is_refused() {
         // rather than about parameters having a schema at all.
         Snapshot::from_bytes(
             &written(json!({"type": "string", "format": "uuid"})),
-            PUBLIC_TAG,
+            SDK_TAG,
             &limits,
         )
         .expect("a format is a word the reader models");
@@ -648,7 +648,7 @@ fn a_malformed_snapshot_is_rejected() {
     ] {
         assert!(
             matches!(
-                Snapshot::from_bytes(bytes, PUBLIC_TAG, &Limits::default()),
+                Snapshot::from_bytes(bytes, SDK_TAG, &Limits::default()),
                 Err(Error::MalformedSnapshot(_))
             ),
             "a malformed snapshot was accepted"
@@ -663,7 +663,7 @@ fn a_snapshot_that_cannot_be_read_is_reported() {
             env!("CARGO_MANIFEST_DIR"),
             "/tests/fixtures/absent.json"
         )),
-        PUBLIC_TAG,
+        SDK_TAG,
         &Limits::default(),
     )
     .expect_err("an absent file is reported");

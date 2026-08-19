@@ -55,7 +55,7 @@ pub struct FormbricksConfig {
     operation_id = "instance.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Hook0", "public")
+    tags("Hook0", "sdk")
 )]
 pub async fn get(state: Data<crate::State>) -> Result<Json<InstanceConfig>, Hook0Problem> {
     let matomo =

@@ -56,7 +56,7 @@ public sealed class ApplicationSecretsAsyncApi(IAsyncTransport transport)
     /// <param name="applicationId">Carries <c>application_id</c>.</param>
     /// <param name="cancellationToken">What abandons the request before it is answered.</param>
     /// <returns>What the API answered, once it has.</returns>
-    public async Task<IReadOnlyList<ApplicationSecret>> ListAsync(
+    public async Task<IReadOnlyList<ApplicationSecret>> ReadAsync(
         string applicationId,
         CancellationToken cancellationToken = default)
     {
@@ -513,7 +513,7 @@ public sealed class RequestAttemptsAsyncApi(IAsyncTransport transport)
     /// <param name="subscriptionId">Carries <c>subscription_id</c>, when the caller passes one.</param>
     /// <param name="cancellationToken">What abandons the request before it is answered.</param>
     /// <returns>What the API answered, once it has.</returns>
-    public async Task<IReadOnlyList<RequestAttempt>> ListAsync(
+    public async Task<IReadOnlyList<RequestAttempt>> ReadAsync(
         string applicationId,
         string? eventEventTypeNames = null,
         string? eventId = null,
@@ -609,6 +609,25 @@ public sealed class ServiceTokenAsyncApi(IAsyncTransport transport)
         ).ConfigureAwait(false));
     }
 
+    /// <summary>Edit a service token</summary>
+    /// <param name="serviceTokenId">Carries <c>service_token_id</c>.</param>
+    /// <param name="body">What the operation reads.</param>
+    /// <param name="cancellationToken">What abandons the request before it is answered.</param>
+    /// <returns>What the API answered, once it has.</returns>
+    public async Task<ServiceToken> EditAsync(
+        string serviceTokenId,
+        ServiceTokenPost body,
+        CancellationToken cancellationToken = default)
+    {
+        return Problems.ReadAnswer<ServiceToken>(await _transport.RequestAsync(
+            "PUT",
+            Runtime.Path("/api/v1/service_token/{service_token_id}", [("service_token_id", serviceTokenId)]),
+            Runtime.Query([], []),
+            body,
+            cancellationToken
+        ).ConfigureAwait(false));
+    }
+
     /// <summary>Get a service token</summary>
     /// <param name="serviceTokenId">Carries <c>service_token_id</c>.</param>
     /// <param name="organizationId">Carries <c>organization_id</c>.</param>
@@ -641,25 +660,6 @@ public sealed class ServiceTokenAsyncApi(IAsyncTransport transport)
             "/api/v1/service_token/",
             Runtime.Query([("organization_id", organizationId)], []),
             null,
-            cancellationToken
-        ).ConfigureAwait(false));
-    }
-
-    /// <summary>Update a service token</summary>
-    /// <param name="serviceTokenId">Carries <c>service_token_id</c>.</param>
-    /// <param name="body">What the operation reads.</param>
-    /// <param name="cancellationToken">What abandons the request before it is answered.</param>
-    /// <returns>What the API answered, once it has.</returns>
-    public async Task<ServiceToken> UpdateAsync(
-        string serviceTokenId,
-        ServiceTokenPost body,
-        CancellationToken cancellationToken = default)
-    {
-        return Problems.ReadAnswer<ServiceToken>(await _transport.RequestAsync(
-            "PUT",
-            Runtime.Path("/api/v1/service_token/{service_token_id}", [("service_token_id", serviceTokenId)]),
-            Runtime.Query([], []),
-            body,
             cancellationToken
         ).ConfigureAwait(false));
     }

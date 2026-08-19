@@ -754,7 +754,7 @@ impl Quotas {
     operation_id = "quotas.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Hook0", "public")
+    tags("Hook0", "sdk")
 )]
 pub async fn get(state: Data<crate::State>) -> Result<Json<QuotasResponse>, Hook0Problem> {
     Ok(Json(QuotasResponse {

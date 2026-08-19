@@ -43,6 +43,20 @@ class ServiceTokenApi(private val transport: Transport) {
   }
 
   /**
+   * Edit a service token
+   *
+   * @param serviceTokenId carries `service_token_id`.
+   * @param body the ServiceTokenPost the operation reads
+   * @return what the API answered
+   */
+  fun edit(serviceTokenId: String, body: ServiceTokenPost): ServiceToken {
+    var path = "/api/v1/service_token/{service_token_id}"
+    path = path.replace("{service_token_id}", Wire.pathSegment(serviceTokenId))
+    val query = ArrayList<QueryParameter>()
+    return Problems.readAnswer(transport.request("PUT", path, query, body.toJson()), ServiceToken.Companion::fromJson)
+  }
+
+  /**
    * Get a service token
    *
    * @param serviceTokenId carries `service_token_id`.
@@ -71,19 +85,5 @@ class ServiceTokenApi(private val transport: Transport) {
       transport.request("GET", path, query, null),
       Wire.asList(ServiceToken.Companion::fromJson)
     )
-  }
-
-  /**
-   * Update a service token
-   *
-   * @param serviceTokenId carries `service_token_id`.
-   * @param body the ServiceTokenPost the operation reads
-   * @return what the API answered
-   */
-  fun update(serviceTokenId: String, body: ServiceTokenPost): ServiceToken {
-    var path = "/api/v1/service_token/{service_token_id}"
-    path = path.replace("{service_token_id}", Wire.pathSegment(serviceTokenId))
-    val query = ArrayList<QueryParameter>()
-    return Problems.readAnswer(transport.request("PUT", path, query, body.toJson()), ServiceToken.Companion::fromJson)
   }
 }

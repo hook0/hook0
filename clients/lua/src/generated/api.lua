@@ -73,7 +73,7 @@ end
 --- List application secrets
 --- @param application_id string carries `application_id`.
 --- @return ApplicationSecret[]
-function Api.ApplicationSecretsApi:list(application_id)
+function Api.ApplicationSecretsApi:read(application_id)
   return read_answer(
     Runtime.list(Models.ApplicationSecret.from_json),
     self.transport:request(
@@ -545,7 +545,7 @@ end
 --- @param pagination_cursor string|nil carries `pagination_cursor`.
 --- @param subscription_id string|nil carries `subscription_id`.
 --- @return RequestAttempt[]
-function Api.RequestAttemptsApi:list(
+function Api.RequestAttemptsApi:read(
   application_id,
   event_event_type_names,
   event_id,
@@ -647,6 +647,24 @@ function Api.ServiceTokenApi:delete(service_token_id, organization_id)
   )
 end
 
+--- Edit a service token
+--- @param service_token_id string carries `service_token_id`.
+--- @param body ServiceTokenPost what the operation reads
+--- @return ServiceToken
+function Api.ServiceTokenApi:edit(service_token_id, body)
+  return read_answer(
+    Models.ServiceToken.from_json,
+    self.transport:request(
+      "PUT",
+      Runtime.path("/api/v1/service_token/{service_token_id}", {
+        ["service_token_id"] = service_token_id,
+      }),
+      nil,
+      Runtime.written(body)
+    )
+  )
+end
+
 --- Get a service token
 --- @param service_token_id string carries `service_token_id`.
 --- @param organization_id string carries `organization_id`.
@@ -680,24 +698,6 @@ function Api.ServiceTokenApi:list(organization_id)
         { "organization_id", organization_id },
       }),
       nil
-    )
-  )
-end
-
---- Update a service token
---- @param service_token_id string carries `service_token_id`.
---- @param body ServiceTokenPost what the operation reads
---- @return ServiceToken
-function Api.ServiceTokenApi:update(service_token_id, body)
-  return read_answer(
-    Models.ServiceToken.from_json,
-    self.transport:request(
-      "PUT",
-      Runtime.path("/api/v1/service_token/{service_token_id}", {
-        ["service_token_id"] = service_token_id,
-      }),
-      nil,
-      Runtime.written(body)
     )
   )
 end

@@ -126,7 +126,7 @@ fn run() -> Result<(), Error> {
 ///
 /// Per target rather than one set for the run, and read off the generator's registry rather than
 /// decided here: the registry says which tag each target selects out of the document, and they do
-/// not all select the same one — the eleven SDKs are generated from the public surface and the MCP
+/// not all select the same one — the eleven SDKs are generated from the SDK surface and the MCP
 /// server from its own. A single set written down here would hold one of them to the wrong thing.
 fn declared_per_target(snapshot: &Path) -> Result<BTreeMap<String, BTreeSet<String>>, Error> {
     let mut per_tag: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();

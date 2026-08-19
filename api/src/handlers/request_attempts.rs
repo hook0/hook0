@@ -229,7 +229,7 @@ pub struct GetQs {
     operation_id = "requestAttempts.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management", "mcp", "public")
+    tags("Subscriptions Management", "mcp", "sdk")
 )]
 pub async fn get(
     state: Data<crate::State>,
@@ -346,10 +346,10 @@ pub struct Qs {
 #[api_v2_operation(
     summary = "List request attempts",
     description = "Retrieves webhook delivery attempts for an application. Each attempt shows the delivery status (pending, in_progress, successful, failed, waiting), retry count, and timestamps. Filter by event_id, subscription_id, date range, or event types. Paginated via Link header.",
-    operation_id = "requestAttempts.list",
+    operation_id = "requestAttempts.read",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management", "mcp", "public")
+    tags("Subscriptions Management", "mcp", "sdk")
 )]
 pub async fn list(
     state: Data<crate::State>,

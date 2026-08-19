@@ -165,7 +165,7 @@ pub const GENERATED_TOOLS: &[GeneratedToolInfo] = &[
         query_parameters: &["application_id"],
     },
     GeneratedToolInfo {
-        name: "requestAttempts.list",
+        name: "requestAttempts.read",
         description: "List request attempts",
         method: "GET",
         path_template: "/api/v1/request_attempts/",

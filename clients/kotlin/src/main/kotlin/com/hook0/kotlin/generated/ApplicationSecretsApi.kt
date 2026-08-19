@@ -51,7 +51,7 @@ class ApplicationSecretsApi(private val transport: Transport) {
    * @param applicationId carries `application_id`.
    * @return what the API answered
    */
-  fun list(applicationId: String): List<ApplicationSecret> {
+  fun read(applicationId: String): List<ApplicationSecret> {
     val path = "/api/v1/application_secrets/"
     val query = ArrayList<QueryParameter>()
     query.add(QueryParameter("application_id", Wire.queryValue(applicationId)))

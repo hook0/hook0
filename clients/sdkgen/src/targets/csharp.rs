@@ -34,7 +34,7 @@ use crate::error::{Error, preview};
 use crate::identifier::{Case, spell};
 use crate::limits::Limits;
 use crate::model::{ApiModel, Entity, ErrorModel, Field, Method, ObjectShape, Scalar, Shape};
-use crate::snapshot::{PUBLIC_TAG, Parameter, ParameterLocation};
+use crate::snapshot::{Parameter, ParameterLocation, SDK_TAG};
 use crate::targets::{Contract, Decoding, LanguageSpec, ScalarNames, Target, update_command};
 
 /// How the target is named, and what `UPDATE_SDK` accepts to rewrite it.
@@ -142,7 +142,7 @@ const SCAFFOLDING: [&str; 5] = [
 pub(super) fn target() -> Target {
     Target {
         name: NAME,
-        tag: PUBLIC_TAG,
+        tag: SDK_TAG,
         root: ROOT,
         // The whole directory is generated, so a type the document stopped declaring takes its file
         // with it instead of lingering as an orphan the compiler still reads.

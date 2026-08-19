@@ -129,7 +129,7 @@ this table behind. It has been left behind before.
 | `organizations.list` | List organizations |
 | `payload_content_types.list` | List supported event payload content types |
 | `requestAttempts.get` | Get a request attempt by its ID |
-| `requestAttempts.list` | List request attempts |
+| `requestAttempts.read` | List request attempts |
 | `subscriptions.get` | Get a subscription by its ID |
 | `subscriptions.list` | List subscriptions |
 
@@ -148,7 +148,7 @@ this table behind. It has been left behind before.
 | `subscriptions.update` | Update a subscription |
 
 Retrying one delivery attempt on its own is not among them. `requestAttempts.get` and
-`requestAttempts.list` read attempts; sending an event to its subscriptions again is
+`requestAttempts.read` read attempts; sending an event to its subscriptions again is
 `events.replay`, which takes the event rather than the attempt.
 
 ---

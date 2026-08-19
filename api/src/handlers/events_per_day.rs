@@ -56,7 +56,7 @@ pub struct ApplicationQs {
     operation_id = "events_per_day.list_for_application",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management", "public")
+    tags("Events Management", "sdk")
 )]
 pub async fn application(
     state: Data<crate::State>,
@@ -138,7 +138,7 @@ pub struct OrganizationQs {
     operation_id = "events_per_day.list_for_organization",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management", "public")
+    tags("Events Management", "sdk")
 )]
 pub async fn organization(
     state: Data<crate::State>,

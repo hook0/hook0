@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeSet, HashSet};
 
-use hook0_sdkgen::{EntityModel, Error, HttpMethod, Limits, PUBLIC_TAG, Snapshot};
+use hook0_sdkgen::{EntityModel, Error, HttpMethod, Limits, SDK_TAG, Snapshot};
 use proptest::prelude::*;
 use proptest::test_runner::FileFailurePersistence;
 use serde_json::{Map, Value, json};
@@ -93,7 +93,7 @@ fn document(operations: &[GeneratedOperation]) -> Vec<u8> {
             body.insert("operationId".to_owned(), json!(operation_id));
         }
         if operation.public {
-            body.insert("tags".to_owned(), json!([PUBLIC_TAG]));
+            body.insert("tags".to_owned(), json!([SDK_TAG]));
         }
 
         let item = paths
@@ -112,22 +112,20 @@ fn document(operations: &[GeneratedOperation]) -> Vec<u8> {
 }
 
 fn build(bytes: &[u8], limits: &Limits) -> Result<(Snapshot, EntityModel), Error> {
-    let snapshot = Snapshot::from_bytes(bytes, PUBLIC_TAG, limits)?;
+    let snapshot = Snapshot::from_bytes(bytes, SDK_TAG, limits)?;
     let model = EntityModel::from_snapshot(&snapshot, limits)?;
     Ok((snapshot, model))
 }
 
-/// The operations a document exposes once the public tag has had its say.
+/// The operations a document exposes once the SDK tag has had its say.
 fn expected_surface(declared: &[common::DeclaredOperation]) -> BTreeSet<(HttpMethod, String)> {
-    let public_tag_applied = declared
+    let sdk_tag_applied = declared
         .iter()
-        .any(|operation| operation.tags.iter().any(|tag| tag == PUBLIC_TAG));
+        .any(|operation| operation.tags.iter().any(|tag| tag == SDK_TAG));
 
     declared
         .iter()
-        .filter(|operation| {
-            !public_tag_applied || operation.tags.iter().any(|tag| tag == PUBLIC_TAG)
-        })
+        .filter(|operation| !sdk_tag_applied || operation.tags.iter().any(|tag| tag == SDK_TAG))
         .map(common::DeclaredOperation::identity)
         .collect()
 }
@@ -221,7 +219,7 @@ proptest! {
         let bytes = document(&operations);
         let declared = common::declared_operations(&bytes);
         let limits = Limits { max_operations: ceiling, ..Limits::DEFAULT };
-        let result = Snapshot::from_bytes(&bytes, PUBLIC_TAG, &limits);
+        let result = Snapshot::from_bytes(&bytes, SDK_TAG, &limits);
 
         if declared.len() > ceiling {
             prop_assert_eq!(

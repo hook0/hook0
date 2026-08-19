@@ -1,7 +1,7 @@
 //! Reads a Hook0 OpenAPI snapshot and derives the entity model the targets are built from.
 //!
 //! Entities and their methods come out of the `entity.verb` convention the operation ids already
-//! follow, narrowed to the operations carrying the tag a target selects — [`PUBLIC_TAG`] for the
+//! follow, narrowed to the operations carrying the tag a target selects — [`SDK_TAG`] for the
 //! SDKs, [`MCP_TAG`] for the MCP server. Nothing about the API surface is written down here:
 //! entities, methods and parameters are only ever what the snapshot declares.
 //!
@@ -35,7 +35,7 @@ pub use model::{
     UnconventionalOperation, Verb,
 };
 pub use snapshot::{
-    HttpMethod, Operation, PUBLIC_TAG, Parameter, ParameterLocation, RequestBody, Snapshot,
+    HttpMethod, Operation, Parameter, ParameterLocation, RequestBody, SDK_TAG, Snapshot,
 };
 /// The MCP target, under the path it answered to before it joined the registry.
 pub use targets::mcp;

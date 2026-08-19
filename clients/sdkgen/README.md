@@ -21,7 +21,7 @@ gives it — `events.replay` stays `replay` — and is never dropped. An operati
 cannot place at all, such as one without a separator or without an `operationId`, lands in
 `EntityModel::unconventional` with the reason it could not be placed.
 
-Each target names the tag it is built from: `PUBLIC_TAG` for the SDKs, `MCP_TAG` for the MCP
+Each target names the tag it is built from: `SDK_TAG` for the SDKs, `MCP_TAG` for the MCP
 server. When the snapshot carries that tag, the model is narrowed to the operations marked with it;
 otherwise every operation of the snapshot is kept. The tag itself is written on the handler, in
 `api/src/handlers`; `api/README.md` says when it is warranted and what it commits the API to.
@@ -29,11 +29,11 @@ otherwise every operation of the snapshot is kept. The tag itself is written on 
 ## Using it
 
 ```rust
-use hook0_sdkgen::{EntityModel, Limits, PUBLIC_TAG, Snapshot};
+use hook0_sdkgen::{EntityModel, Limits, SDK_TAG, Snapshot};
 
 let limits = Limits::default();
 let path = std::path::Path::new("openapi.snapshot.json");
-let snapshot = Snapshot::from_path(path, PUBLIC_TAG, &limits)?;
+let snapshot = Snapshot::from_path(path, SDK_TAG, &limits)?;
 let model = EntityModel::from_snapshot(&snapshot, &limits)?;
 
 for entity in model.entities() {

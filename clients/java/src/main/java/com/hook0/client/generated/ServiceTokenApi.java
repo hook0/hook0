@@ -54,6 +54,20 @@ public final class ServiceTokenApi {
   }
 
   /**
+   * Edit a service token
+   *
+   * @param serviceTokenId carries `service_token_id`.
+   * @param body the ServiceTokenPost the operation reads
+   * @return what the API answered
+   */
+  public ServiceToken edit(String serviceTokenId, ServiceTokenPost body) {
+    String path = "/api/v1/service_token/{service_token_id}";
+    path = path.replace("{service_token_id}", Wire.pathSegment(serviceTokenId));
+    List<QueryParameter> query = new ArrayList<>();
+    return Problems.readAnswer(transport.request("PUT", path, query, body.toJson()), ServiceToken::fromJson);
+  }
+
+  /**
    * Get a service token
    *
    * @param serviceTokenId carries `service_token_id`.
@@ -79,19 +93,5 @@ public final class ServiceTokenApi {
     List<QueryParameter> query = new ArrayList<>();
     query.add(new QueryParameter("organization_id", Wire.queryValue(organizationId)));
     return Problems.readAnswer(transport.request("GET", path, query, null), Wire.asList(ServiceToken::fromJson));
-  }
-
-  /**
-   * Update a service token
-   *
-   * @param serviceTokenId carries `service_token_id`.
-   * @param body the ServiceTokenPost the operation reads
-   * @return what the API answered
-   */
-  public ServiceToken update(String serviceTokenId, ServiceTokenPost body) {
-    String path = "/api/v1/service_token/{service_token_id}";
-    path = path.replace("{service_token_id}", Wire.pathSegment(serviceTokenId));
-    List<QueryParameter> query = new ArrayList<>();
-    return Problems.readAnswer(transport.request("PUT", path, query, body.toJson()), ServiceToken::fromJson);
   }
 }

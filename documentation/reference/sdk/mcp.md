@@ -71,7 +71,7 @@ The two tags are not the same set. The SDKs are generated from `public`, which i
 | `organizations.list` | GET | `/api/v1/organizations/` |
 | `payload_content_types.list` | GET | `/api/v1/payload_content_types/` |
 | `requestAttempts.get` | GET | `/api/v1/request_attempts/{request_attempt_id}` |
-| `requestAttempts.list` | GET | `/api/v1/request_attempts/` |
+| `requestAttempts.read` | GET | `/api/v1/request_attempts/` |
 | `subscriptions.create` | POST | `/api/v1/subscriptions/` |
 | `subscriptions.delete` | DELETE | `/api/v1/subscriptions/{subscription_id}` |
 | `subscriptions.get` | GET | `/api/v1/subscriptions/{subscription_id}` |
@@ -84,7 +84,7 @@ That table is not maintained by hand and is not read off the running server eith
 
 An assistant fills in one flat JSON object per call, and the server sorts it. A name the path template holds a placeholder for is interpolated into the path. A name the tool declares as a query parameter goes in the request line. Everything left over becomes the request body.
 
-Which names are query parameters is stated on each tool rather than worked out from its schema, because a schema says what a caller fills in and not where any of it goes. `requestAttempts.list` is where that shows. Seven of its arguments are filters travelling in the query string, namely `application_id`, `event.event_type_names`, `event_id`, `max_created_at`, `min_created_at`, `pagination_cursor` and `subscription_id`. An argument left out is simply not asked for, which is what an optional filter has to mean.
+Which names are query parameters is stated on each tool rather than worked out from its schema, because a schema says what a caller fills in and not where any of it goes. `requestAttempts.read` is where that shows. Seven of its arguments are filters travelling in the query string, namely `application_id`, `event.event_type_names`, `event_id`, `max_created_at`, `min_created_at`, `pagination_cursor` and `subscription_id`. An argument left out is simply not asked for, which is what an optional filter has to mean.
 
 An object, an array or `null` is a value the server cannot write as text, so it fills neither a path nor a query parameter. It reaches the API in the body or not at all.
 

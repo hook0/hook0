@@ -60,7 +60,7 @@ module Hook0
       #
       # @param application_id [String] carries `application_id`.
       # @return [Array<ApplicationSecret>]
-      def list(application_id)
+      def read(application_id)
         read_answer(
           @transport.request(
             "GET",
@@ -734,7 +734,7 @@ module Hook0
       # @param pagination_cursor [String, nil] carries `pagination_cursor`.
       # @param subscription_id [String, nil] carries `subscription_id`.
       # @return [Array<RequestAttempt>]
-      def list(
+      def read(
         application_id,
         event_event_type_names: nil,
         event_id: nil,
@@ -873,6 +873,26 @@ module Hook0
         )
       end
 
+      # Edit a service token
+      #
+      # @param service_token_id [String] carries `service_token_id`.
+      # @param body [ServiceTokenPost] what the operation reads
+      # @return [ServiceToken]
+      def edit(service_token_id, body)
+        read_answer(
+          @transport.request(
+            "PUT",
+            Runtime.path(
+              "/api/v1/service_token/{service_token_id}",
+              "service_token_id" => service_token_id
+            ),
+            [],
+            body.to_h
+          ),
+          ServiceToken.method(:from_json)
+        )
+      end
+
       # Get a service token
       #
       # @param service_token_id [String] carries `service_token_id`.
@@ -916,26 +936,6 @@ module Hook0
             nil
           ),
           Runtime.list(ServiceToken.method(:from_json))
-        )
-      end
-
-      # Update a service token
-      #
-      # @param service_token_id [String] carries `service_token_id`.
-      # @param body [ServiceTokenPost] what the operation reads
-      # @return [ServiceToken]
-      def update(service_token_id, body)
-        read_answer(
-          @transport.request(
-            "PUT",
-            Runtime.path(
-              "/api/v1/service_token/{service_token_id}",
-              "service_token_id" => service_token_id
-            ),
-            [],
-            body.to_h
-          ),
-          ServiceToken.method(:from_json)
         )
       end
 

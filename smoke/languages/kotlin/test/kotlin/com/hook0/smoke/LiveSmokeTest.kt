@@ -233,7 +233,7 @@ class LiveSmokeTest {
     decoded("ApplicationSecret", minted)
     val mintedToken = minted.token.toString()
 
-    exercised("applicationSecrets.list") { secrets.list(application) }
+    exercised("applicationSecrets.read") { secrets.read(application) }
     exercised("applicationSecrets.update") {
       secrets.update(mintedToken, ApplicationSecretPost(owning, "a secret the kotlin smoke renamed"))
     }
@@ -332,7 +332,7 @@ class LiveSmokeTest {
     // An attempt and a response exist only once the output worker has finished a delivery. The
     // harness waited for one, in the application it caught the shared delivery from, and handed the
     // ids on — so this reads them back with the organization credential rather than waiting again.
-    exercised("requestAttempts.list") { requestAttempts.list(seeded) }
+    exercised("requestAttempts.read") { requestAttempts.read(seeded) }
 
     val attempted = read("requestAttempts.get") { requestAttempts.get(setting("HOOK0_REQUEST_ATTEMPT_ID"), seeded) }
     decoded("RequestAttemptEvent", attempted.event)
@@ -355,8 +355,8 @@ class LiveSmokeTest {
 
     exercised("serviceToken.list") { serviceTokens.list(organization) }
     exercised("serviceToken.get") { serviceTokens.get(issuedId, organization) }
-    exercised("serviceToken.update") {
-      serviceTokens.update(issuedId, ServiceTokenPost("a token the kotlin smoke renamed", owner))
+    exercised("serviceToken.edit") {
+      serviceTokens.edit(issuedId, ServiceTokenPost("a token the kotlin smoke renamed", owner))
     }
     exercised("serviceToken.delete") { serviceTokens.delete(issuedId, organization) }
 

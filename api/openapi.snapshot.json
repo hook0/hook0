@@ -1217,7 +1217,7 @@
     "/api/v1/application_secrets/": {
       "get": {
         "description": "Retrieves all active API tokens for a given application.",
-        "operationId": "applicationSecrets.list",
+        "operationId": "applicationSecrets.read",
         "parameters": [
           {
             "in": "query",
@@ -1353,7 +1353,7 @@
         "summary": "List application secrets",
         "tags": [
           "Applications Management",
-          "public"
+          "sdk"
         ]
       },
       "post": {
@@ -1489,7 +1489,7 @@
         "summary": "Create a new application secret",
         "tags": [
           "Applications Management",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -1632,7 +1632,7 @@
         "summary": "Delete an application secret",
         "tags": [
           "Applications Management",
-          "public"
+          "sdk"
         ]
       },
       "put": {
@@ -1780,7 +1780,7 @@
         "summary": "Update an application secret",
         "tags": [
           "Applications Management",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -1924,11 +1924,11 @@
         "tags": [
           "Applications Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       },
       "post": {
-        "description": "Creates a new Hook0 application within an organization. An application is the container for event types, subscriptions, and events. Use this when setting up a new service that will emit or receive webhook events. Creation also provisions an application secret named 'Default', so there is no need to create a first API key afterwards: read it with applicationSecrets.list. That secret is scoped to this application alone, but within it grants full control (sending events, and managing event types, subscriptions and secrets), so it must be handled as a credential.",
+        "description": "Creates a new Hook0 application within an organization. An application is the container for event types, subscriptions, and events. Use this when setting up a new service that will emit or receive webhook events. Creation also provisions an application secret named 'Default', so there is no need to create a first API key afterwards: read it with applicationSecrets.read. That secret is scoped to this application alone, but within it grants full control (sending events, and managing event types, subscriptions and secrets), so it must be handled as a credential.",
         "operationId": "applications.create",
         "requestBody": {
           "content": {
@@ -2061,7 +2061,7 @@
         "tags": [
           "Applications Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -2195,7 +2195,7 @@
         "tags": [
           "Applications Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       },
       "get": {
@@ -2334,7 +2334,7 @@
         "tags": [
           "Applications Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       },
       "put": {
@@ -2483,7 +2483,7 @@
         "tags": [
           "Applications Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -2609,7 +2609,7 @@
         "summary": "List errors",
         "tags": [
           "Hook0",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -2748,7 +2748,7 @@
         "tags": [
           "Events Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -2892,7 +2892,7 @@
         "tags": [
           "Events Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       },
       "post": {
@@ -3029,7 +3029,7 @@
         "tags": [
           "Events Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -3172,7 +3172,7 @@
         "tags": [
           "Events Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       },
       "get": {
@@ -3320,7 +3320,7 @@
         "tags": [
           "Events Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -3464,7 +3464,7 @@
         "tags": [
           "Events Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -3615,7 +3615,7 @@
         "tags": [
           "Events Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -3759,7 +3759,7 @@
         "tags": [
           "Events Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -3922,7 +3922,7 @@
         "summary": "List events per day for an application",
         "tags": [
           "Events Management",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -4085,7 +4085,7 @@
         "summary": "List events per day for an organization",
         "tags": [
           "Events Management",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -4208,7 +4208,7 @@
         "summary": "Get instance configuration",
         "tags": [
           "Hook0",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -4606,7 +4606,7 @@
         "tags": [
           "Events Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -4729,14 +4729,14 @@
         "summary": "Get quotas",
         "tags": [
           "Hook0",
-          "public"
+          "sdk"
         ]
       }
     },
     "/api/v1/request_attempts/": {
       "get": {
         "description": "Retrieves webhook delivery attempts for an application. Each attempt shows the delivery status (pending, in_progress, successful, failed, waiting), retry count, and timestamps. Filter by event_id, subscription_id, date range, or event types. Paginated via Link header.",
-        "operationId": "requestAttempts.list",
+        "operationId": "requestAttempts.read",
         "parameters": [
           {
             "in": "query",
@@ -4926,7 +4926,7 @@
         "tags": [
           "Subscriptions Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -5077,7 +5077,7 @@
         "tags": [
           "Subscriptions Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -5227,7 +5227,7 @@
         "summary": "Get a response by its ID",
         "tags": [
           "Subscriptions Management",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -5370,7 +5370,7 @@
         "summary": "List service tokens",
         "tags": [
           "Service Tokens Management",
-          "public"
+          "sdk"
         ]
       },
       "post": {
@@ -5506,7 +5506,7 @@
         "summary": "Create a new service token",
         "tags": [
           "Service Tokens Management",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -5649,7 +5649,7 @@
         "summary": "Delete a service token",
         "tags": [
           "Service Tokens Management",
-          "public"
+          "sdk"
         ]
       },
       "get": {
@@ -5797,12 +5797,12 @@
         "summary": "Get a service token",
         "tags": [
           "Service Tokens Management",
-          "public"
+          "sdk"
         ]
       },
       "put": {
         "description": "Updates the name of an existing service token. The token must belong to the specified organization and still be active (not expired or revoked).",
-        "operationId": "serviceToken.update",
+        "operationId": "serviceToken.edit",
         "parameters": [
           {
             "in": "path",
@@ -5942,10 +5942,10 @@
             "biscuit": []
           }
         ],
-        "summary": "Update a service token",
+        "summary": "Edit a service token",
         "tags": [
           "Service Tokens Management",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -6089,7 +6089,7 @@
         "tags": [
           "Subscriptions Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       },
       "post": {
@@ -6226,7 +6226,7 @@
         "tags": [
           "Subscriptions Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       }
     },
@@ -6370,7 +6370,7 @@
         "tags": [
           "Subscriptions Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       },
       "get": {
@@ -6509,7 +6509,7 @@
         "tags": [
           "Subscriptions Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       },
       "put": {
@@ -6658,7 +6658,7 @@
         "tags": [
           "Subscriptions Management",
           "mcp",
-          "public"
+          "sdk"
         ]
       }
     }

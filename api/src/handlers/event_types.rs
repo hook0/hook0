@@ -45,7 +45,7 @@ pub struct EventTypePost {
     operation_id = "eventTypes.create",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management", "mcp", "public")
+    tags("Events Management", "mcp", "sdk")
 )]
 pub async fn create(
     state: Data<crate::State>,
@@ -164,7 +164,7 @@ pub async fn create(
     operation_id = "eventTypes.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management", "mcp", "public")
+    tags("Events Management", "mcp", "sdk")
 )]
 pub async fn list(
     state: Data<crate::State>,
@@ -206,7 +206,7 @@ pub async fn list(
     operation_id = "eventTypes.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management", "mcp", "public")
+    tags("Events Management", "mcp", "sdk")
 )]
 pub async fn get(
     state: Data<crate::State>,
@@ -252,7 +252,7 @@ pub async fn get(
     operation_id = "eventTypes.delete",
     consumes = "application/json",
     produces = "application/json",
-    tags("Events Management", "mcp", "public")
+    tags("Events Management", "mcp", "sdk")
 )]
 pub async fn delete(
     state: Data<crate::State>,

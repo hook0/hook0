@@ -1,6 +1,6 @@
 //! Invariants the API model holds whatever document it was built from.
 
-use hook0_sdkgen::{ApiModel, Error, Limits, PUBLIC_TAG, Snapshot};
+use hook0_sdkgen::{ApiModel, Error, Limits, SDK_TAG, Snapshot};
 use proptest::prelude::*;
 use proptest::test_runner::FileFailurePersistence;
 use serde_json::{Map, Value, json};
@@ -231,7 +231,7 @@ fn reference(name: &str) -> Value {
 }
 
 fn build(bytes: &[u8], limits: &Limits) -> Result<(Snapshot, ApiModel), Error> {
-    let snapshot = Snapshot::from_bytes(bytes, PUBLIC_TAG, limits)?;
+    let snapshot = Snapshot::from_bytes(bytes, SDK_TAG, limits)?;
     let model = ApiModel::from_snapshot(&snapshot, limits)?;
     Ok((snapshot, model))
 }

@@ -46,7 +46,7 @@ pub struct ServiceTokenPost {
     operation_id = "serviceToken.create",
     consumes = "application/json",
     produces = "application/json",
-    tags("Service Tokens Management", "public")
+    tags("Service Tokens Management", "sdk")
 )]
 pub async fn create(
     state: Data<crate::State>,
@@ -123,7 +123,7 @@ pub async fn create(
     operation_id = "serviceToken.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Service Tokens Management", "public")
+    tags("Service Tokens Management", "sdk")
 )]
 pub async fn list(
     state: Data<crate::State>,
@@ -161,14 +161,14 @@ pub async fn list(
 }
 
 #[api_v2_operation(
-    summary = "Update a service token",
+    summary = "Edit a service token",
     description = "Updates the name of an existing service token. The token must belong to the specified organization and still be active (not expired or revoked).",
-    operation_id = "serviceToken.update",
+    operation_id = "serviceToken.edit",
     consumes = "application/json",
     produces = "application/json",
-    tags("Service Tokens Management", "public")
+    tags("Service Tokens Management", "sdk")
 )]
-pub async fn update(
+pub async fn edit(
     state: Data<crate::State>,
     _: OaBiscuit,
     biscuit: ReqData<Biscuit>,
@@ -240,7 +240,7 @@ pub async fn update(
     operation_id = "serviceToken.delete",
     consumes = "application/json",
     produces = "application/json",
-    tags("Service Tokens Management", "public")
+    tags("Service Tokens Management", "sdk")
 )]
 pub async fn delete(
     state: Data<crate::State>,
@@ -323,7 +323,7 @@ pub async fn delete(
     operation_id = "serviceToken.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Service Tokens Management", "public")
+    tags("Service Tokens Management", "sdk")
 )]
 pub async fn get(
     state: Data<crate::State>,

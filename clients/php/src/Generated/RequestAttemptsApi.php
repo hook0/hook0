@@ -61,7 +61,7 @@ final class RequestAttemptsApi
      * @param string|null $subscriptionId carries `subscription_id`.
      * @return list<RequestAttempt>
      */
-    public function list(
+    public function read(
         string $applicationId,
         ?string $eventEventTypeNames = null,
         ?string $eventId = null,

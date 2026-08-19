@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 use bolero::check;
-use hook0_sdkgen::{ApiModel, EntityModel, Limits, MCP_TAG, PUBLIC_TAG, Snapshot, mcp};
+use hook0_sdkgen::{ApiModel, EntityModel, Limits, MCP_TAG, SDK_TAG, Snapshot, mcp};
 
 mod common;
 
@@ -29,7 +29,7 @@ fn parsing_a_snapshot_never_panics_and_yields_a_sound_model() {
         .for_each(|input: &[u8]| {
             let limits = Limits::default();
 
-            for tag in [PUBLIC_TAG, MCP_TAG] {
+            for tag in [SDK_TAG, MCP_TAG] {
                 let Ok(snapshot) = Snapshot::from_bytes(input, tag, &limits) else {
                     continue;
                 };

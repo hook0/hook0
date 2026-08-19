@@ -83,11 +83,11 @@ pub struct ApplicationPost {
 
 #[api_v2_operation(
     summary = "Create a new application",
-    description = "Creates a new Hook0 application within an organization. An application is the container for event types, subscriptions, and events. Use this when setting up a new service that will emit or receive webhook events. Creation also provisions an application secret named 'Default', so there is no need to create a first API key afterwards: read it with applicationSecrets.list. That secret is scoped to this application alone, but within it grants full control (sending events, and managing event types, subscriptions and secrets), so it must be handled as a credential.",
+    description = "Creates a new Hook0 application within an organization. An application is the container for event types, subscriptions, and events. Use this when setting up a new service that will emit or receive webhook events. Creation also provisions an application secret named 'Default', so there is no need to create a first API key afterwards: read it with applicationSecrets.read. That secret is scoped to this application alone, but within it grants full control (sending events, and managing event types, subscriptions and secrets), so it must be handled as a credential.",
     operation_id = "applications.create",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "mcp", "public")
+    tags("Applications Management", "mcp", "sdk")
 )]
 pub async fn create(
     state: Data<crate::State>,
@@ -195,7 +195,7 @@ pub async fn create(
     operation_id = "applications.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "mcp", "public")
+    tags("Applications Management", "mcp", "sdk")
 )]
 pub async fn get(
     state: Data<crate::State>,
@@ -286,7 +286,7 @@ pub async fn get(
     operation_id = "applications.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "mcp", "public")
+    tags("Applications Management", "mcp", "sdk")
 )]
 pub async fn list(
     state: Data<crate::State>,
@@ -320,7 +320,7 @@ pub async fn list(
     operation_id = "applications.update",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "mcp", "public")
+    tags("Applications Management", "mcp", "sdk")
 )]
 pub async fn edit(
     state: Data<crate::State>,
@@ -390,7 +390,7 @@ pub async fn edit(
     operation_id = "applications.delete",
     consumes = "application/json",
     produces = "application/json",
-    tags("Applications Management", "mcp", "public")
+    tags("Applications Management", "mcp", "sdk")
 )]
 pub async fn delete(
     state: Data<crate::State>,

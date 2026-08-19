@@ -13,7 +13,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use hook0_sdkgen::conformance::ConformanceError;
-use hook0_sdkgen::{ApiModel, Corpus, CorpusLimits, Limits, PUBLIC_TAG, Snapshot};
+use hook0_sdkgen::{ApiModel, Corpus, CorpusLimits, Limits, SDK_TAG, Snapshot};
 use serde_json::{Value, json};
 use tempfile::TempDir;
 
@@ -25,7 +25,7 @@ const CORPUS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../conformance");
 /// The API contract the committed snapshot describes.
 fn api() -> ApiModel {
     let limits = Limits::default();
-    let snapshot = Snapshot::from_bytes(&common::fixture_bytes(), PUBLIC_TAG, &limits)
+    let snapshot = Snapshot::from_bytes(&common::fixture_bytes(), SDK_TAG, &limits)
         .expect("the committed snapshot parses");
     ApiModel::from_snapshot(&snapshot, &limits).expect("the committed snapshot yields a model")
 }

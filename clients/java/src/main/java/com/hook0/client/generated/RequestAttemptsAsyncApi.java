@@ -57,7 +57,7 @@ public final class RequestAttemptsAsyncApi {
    * @param subscriptionId carries `subscription_id`, or nothing when the caller sends none.
    * @return what the API will answer
    */
-  public CompletableFuture<List<RequestAttempt>> list(
+  public CompletableFuture<List<RequestAttempt>> read(
       String applicationId,
       String eventEventTypeNames,
       String eventId,

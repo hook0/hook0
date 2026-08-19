@@ -298,7 +298,7 @@ def surface
   end
   decoded("ApplicationSecret", minted)
 
-  exercised("applicationSecrets.list") { secrets.list(application) }
+  exercised("applicationSecrets.read") { secrets.read(application) }
   exercised("applicationSecrets.update") do
     secrets.update(
       minted.token,
@@ -411,7 +411,7 @@ def surface
   # An attempt and a response exist only once the output worker has finished a delivery. The harness
   # waited for one, in the application it caught the shared delivery from, and handed the ids on — so
   # this reads them back with the organization credential rather than waiting again.
-  exercised("requestAttempts.list") { request_attempts.list(seeded) }
+  exercised("requestAttempts.read") { request_attempts.read(seeded) }
 
   attempted = read("requestAttempts.get") do
     request_attempts.get(setting("HOOK0_REQUEST_ATTEMPT_ID"), seeded)
@@ -439,8 +439,8 @@ def surface
 
   exercised("serviceToken.list") { service_tokens.list(organization) }
   exercised("serviceToken.get") { service_tokens.get(issued.token_id, organization) }
-  exercised("serviceToken.update") do
-    service_tokens.update(
+  exercised("serviceToken.edit") do
+    service_tokens.edit(
       issued.token_id,
       Hook0::Generated::ServiceTokenPost.new(
         name: "a token the ruby smoke renamed",

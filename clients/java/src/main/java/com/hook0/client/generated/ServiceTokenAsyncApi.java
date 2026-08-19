@@ -58,6 +58,21 @@ public final class ServiceTokenAsyncApi {
   }
 
   /**
+   * Edit a service token
+   *
+   * @param serviceTokenId carries `service_token_id`.
+   * @param body the ServiceTokenPost the operation reads
+   * @return what the API will answer
+   */
+  public CompletableFuture<ServiceToken> edit(String serviceTokenId, ServiceTokenPost body) {
+    String path = "/api/v1/service_token/{service_token_id}";
+    path = path.replace("{service_token_id}", Wire.pathSegment(serviceTokenId));
+    List<QueryParameter> query = new ArrayList<>();
+    return transport.requestAsync("PUT", path, query, body.toJson())
+        .thenApply(Problems.readingWith(ServiceToken::fromJson));
+  }
+
+  /**
    * Get a service token
    *
    * @param serviceTokenId carries `service_token_id`.
@@ -85,20 +100,5 @@ public final class ServiceTokenAsyncApi {
     query.add(new QueryParameter("organization_id", Wire.queryValue(organizationId)));
     return transport.requestAsync("GET", path, query, null)
         .thenApply(Problems.readingWith(Wire.asList(ServiceToken::fromJson)));
-  }
-
-  /**
-   * Update a service token
-   *
-   * @param serviceTokenId carries `service_token_id`.
-   * @param body the ServiceTokenPost the operation reads
-   * @return what the API will answer
-   */
-  public CompletableFuture<ServiceToken> update(String serviceTokenId, ServiceTokenPost body) {
-    String path = "/api/v1/service_token/{service_token_id}";
-    path = path.replace("{service_token_id}", Wire.pathSegment(serviceTokenId));
-    List<QueryParameter> query = new ArrayList<>();
-    return transport.requestAsync("PUT", path, query, body.toJson())
-        .thenApply(Problems.readingWith(ServiceToken::fromJson));
   }
 }

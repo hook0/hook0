@@ -312,7 +312,7 @@ pub fn build_app(
                         .service(
                             web::resource("/{service_token_id}")
                                 .route(web::get().to(handlers::service_token::get))
-                                .route(web::put().to(handlers::service_token::update))
+                                .route(web::put().to(handlers::service_token::edit))
                                 .route(web::delete().to(handlers::service_token::delete)),
                         ),
                 )
@@ -562,12 +562,12 @@ mod tests {
     /// Committed so neither has to reach a running instance.
     const SNAPSHOT_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/openapi.snapshot.json");
 
-    /// Tags that keep an operation in the snapshot. `public` is the surface
+    /// Tags that keep an operation in the snapshot. `sdk` is the surface
     /// generated clients expose to their users; `mcp` is what the MCP server
     /// turns into tools, and it covers a couple of operations the SDKs do not.
     /// Everything else is the control plane the dashboard drives, and it stays
     /// out: nobody generates a client for it.
-    const RETAINED_TAGS: [&str; 2] = ["public", "mcp"];
+    const RETAINED_TAGS: [&str; 2] = ["sdk", "mcp"];
 
     /// Keys of a path item that describe an operation rather than the path.
     const HTTP_METHODS: [&str; 8] = [

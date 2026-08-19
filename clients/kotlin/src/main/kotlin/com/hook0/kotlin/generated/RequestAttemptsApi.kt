@@ -44,7 +44,7 @@ class RequestAttemptsApi(private val transport: Transport) {
    * @param subscriptionId carries `subscription_id`, or nothing when the caller sends none.
    * @return what the API answered
    */
-  fun list(
+  fun read(
     applicationId: String,
     eventEventTypeNames: String? = null,
     eventId: String? = null,

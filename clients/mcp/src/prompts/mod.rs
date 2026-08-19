@@ -27,7 +27,7 @@ const EVENTS_LIST: &str = "events.list";
 const EVENTS_REPLAY: &str = "events.replay";
 const ORGANIZATIONS_LIST: &str = "organizations.list";
 const REQUEST_ATTEMPTS_GET: &str = "requestAttempts.get";
-const REQUEST_ATTEMPTS_LIST: &str = "requestAttempts.list";
+const REQUEST_ATTEMPTS_READ: &str = "requestAttempts.read";
 const SUBSCRIPTIONS_CREATE: &str = "subscriptions.create";
 
 /// Every tool the prompts of this module name, indexed for the suite below.
@@ -48,7 +48,7 @@ const CITED_TOOLS: &[&str] = &[
     EVENTS_REPLAY,
     ORGANIZATIONS_LIST,
     REQUEST_ATTEMPTS_GET,
-    REQUEST_ATTEMPTS_LIST,
+    REQUEST_ATTEMPTS_READ,
     SUBSCRIPTIONS_CREATE,
 ];
 
@@ -163,7 +163,7 @@ pub fn get_prompt(
                     "Debugging event: {eid}\n\n\
                      To investigate this event:\n\
                      1. Use `{EVENTS_GET}` to see the event details and payload\n\
-                     2. Use `{REQUEST_ATTEMPTS_LIST}` to see all delivery attempts\n\
+                     2. Use `{REQUEST_ATTEMPTS_READ}` to see all delivery attempts\n\
                      3. Use `{REQUEST_ATTEMPTS_GET}` on any attempt whose outcome you need in full\n\
                      4. Check the HTTP status codes and response times\n\n",
                 ));
@@ -194,7 +194,7 @@ pub fn get_prompt(
                  - **Connection errors**: DNS or network issues\n\n\
                  Use `{EVENTS_REPLAY}` with the event_id and its application_id to send the event \
                  to its subscriptions again. Retrying one delivery attempt on its own is not \
-                 something this server can do: `{REQUEST_ATTEMPTS_LIST}` and \
+                 something this server can do: `{REQUEST_ATTEMPTS_READ}` and \
                  `{REQUEST_ATTEMPTS_GET}` read attempts, they do not repeat them.",
             ));
 

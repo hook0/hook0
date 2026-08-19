@@ -72,7 +72,7 @@ final class ApplicationSecretsApi
      * @param string $applicationId carries `application_id`.
      * @return list<ApplicationSecret>
      */
-    public function list(string $applicationId): array
+    public function read(string $applicationId): array
     {
         return $this->readAnswer(
             $this->transport->request(

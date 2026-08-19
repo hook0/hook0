@@ -36,7 +36,7 @@
 //! emits that some operation really answers.
 //!
 //! What the set of lines is held against is not written here. It is the operations the API document
-//! declares under the tag that target's client is generated from — [`hook0_sdkgen::PUBLIC_TAG`] for
+//! declares under the tag that target's client is generated from — [`hook0_sdkgen::SDK_TAG`] for
 //! the SDKs, and whatever else the registry says for a target that selects differently — read
 //! through the generator itself, so an operation the API grows fails every language until somebody
 //! drives it.
@@ -180,7 +180,7 @@ fn decoded<'a>(mut words: impl Iterator<Item = &'a str>) -> Result<Report, Strin
 /// Read through the generator rather than out of the document by hand, and narrowed by the tag the
 /// generator's own registry says the target selects, so that the set a language is held to and the
 /// set it was generated from cannot come apart. The tag is a parameter rather than a constant here
-/// because the registry already answers it per target: the eleven SDKs select the public surface
+/// because the registry already answers it per target: the eleven SDKs select the SDK surface
 /// and the MCP server selects its own, and a set written down here would make that a special case.
 pub fn declared(snapshot: &Path, tag: &str) -> Result<BTreeSet<String>, Error> {
     let read =

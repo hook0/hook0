@@ -43,7 +43,7 @@ public sealed class ApplicationSecretsApi(ITransport transport)
     /// <summary>List application secrets</summary>
     /// <param name="applicationId">Carries <c>application_id</c>.</param>
     /// <returns>What the API answered.</returns>
-    public IReadOnlyList<ApplicationSecret> List(string applicationId)
+    public IReadOnlyList<ApplicationSecret> Read(string applicationId)
     {
         return Problems.ReadAnswer<IReadOnlyList<ApplicationSecret>>(_transport.Request(
             "GET",
@@ -425,7 +425,7 @@ public sealed class RequestAttemptsApi(ITransport transport)
     /// <param name="paginationCursor">Carries <c>pagination_cursor</c>, when the caller passes one.</param>
     /// <param name="subscriptionId">Carries <c>subscription_id</c>, when the caller passes one.</param>
     /// <returns>What the API answered.</returns>
-    public IReadOnlyList<RequestAttempt> List(
+    public IReadOnlyList<RequestAttempt> Read(
         string applicationId,
         string? eventEventTypeNames = null,
         string? eventId = null,
@@ -506,6 +506,20 @@ public sealed class ServiceTokenApi(ITransport transport)
         ));
     }
 
+    /// <summary>Edit a service token</summary>
+    /// <param name="serviceTokenId">Carries <c>service_token_id</c>.</param>
+    /// <param name="body">What the operation reads.</param>
+    /// <returns>What the API answered.</returns>
+    public ServiceToken Edit(string serviceTokenId, ServiceTokenPost body)
+    {
+        return Problems.ReadAnswer<ServiceToken>(_transport.Request(
+            "PUT",
+            Runtime.Path("/api/v1/service_token/{service_token_id}", [("service_token_id", serviceTokenId)]),
+            Runtime.Query([], []),
+            body
+        ));
+    }
+
     /// <summary>Get a service token</summary>
     /// <param name="serviceTokenId">Carries <c>service_token_id</c>.</param>
     /// <param name="organizationId">Carries <c>organization_id</c>.</param>
@@ -530,20 +544,6 @@ public sealed class ServiceTokenApi(ITransport transport)
             "/api/v1/service_token/",
             Runtime.Query([("organization_id", organizationId)], []),
             null
-        ));
-    }
-
-    /// <summary>Update a service token</summary>
-    /// <param name="serviceTokenId">Carries <c>service_token_id</c>.</param>
-    /// <param name="body">What the operation reads.</param>
-    /// <returns>What the API answered.</returns>
-    public ServiceToken Update(string serviceTokenId, ServiceTokenPost body)
-    {
-        return Problems.ReadAnswer<ServiceToken>(_transport.Request(
-            "PUT",
-            Runtime.Path("/api/v1/service_token/{service_token_id}", [("service_token_id", serviceTokenId)]),
-            Runtime.Query([], []),
-            body
         ));
     }
 }

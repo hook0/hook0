@@ -219,7 +219,7 @@ and if there is none, at least print the line from the same scope as the value.
 The harness reads those lines off both of a smoke's streams while writing them through, so a smoke
 that hangs still shows what it managed to say. It then holds the language to a **bijection** with the
 operations its own client is generated from: the API document, narrowed through `hook0_sdkgen` by
-the tag that target's entry in the generator's registry selects — `PUBLIC_TAG` for the eleven SDKs,
+the tag that target's entry in the generator's registry selects — `SDK_TAG` for the eleven SDKs,
 and its own for the MCP server, which is generated from a different set. It refuses, naming what is
 wrong:
 

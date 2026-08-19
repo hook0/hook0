@@ -1061,7 +1061,7 @@ mod query_parameters {
     #[test]
     fn a_query_value_travels_percent_encoded() {
         let asked = asked_with(json!({
-            "name": "requestAttempts.list",
+            "name": "requestAttempts.read",
             "arguments": {
                 "application_id": "6f8a3e1c-9a2b-4d5e-8f70-1c2d3e4f5a6b",
                 "pagination_cursor": "one two",
@@ -1074,7 +1074,7 @@ mod query_parameters {
         );
     }
 
-    /// Every argument reaches the API, not merely the first one. `requestAttempts.list` declares
+    /// Every argument reaches the API, not merely the first one. `requestAttempts.read` declares
     /// seven, where every other tool declares one, so it is the case that tells composing a query
     /// string apart from filling in a single value and calling it done.
     #[test]
@@ -1095,7 +1095,7 @@ mod query_parameters {
         }
 
         let asked = asked_with(json!({
-            "name": "requestAttempts.list",
+            "name": "requestAttempts.read",
             "arguments": Value::Object(arguments),
         }));
 

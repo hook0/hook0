@@ -8,7 +8,7 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use hook0_sdkgen::PUBLIC_TAG;
+use hook0_sdkgen::SDK_TAG;
 use hook0_sdkgen::targets::Decoding;
 use hook0_sdkgen::{ApiModel, Limits, Snapshot};
 use hook0_smoke::surface::{
@@ -28,7 +28,7 @@ fn document() -> PathBuf {
 
 /// The model types the rust client is generated from.
 fn types() -> Models {
-    models(&document(), PUBLIC_TAG, Decoding::Modelled).expect("the document declares models")
+    models(&document(), SDK_TAG, Decoding::Modelled).expect("the document declares models")
 }
 
 /// Everything the document declares, reported as driven and decoded — a language that did all of
@@ -48,7 +48,7 @@ fn every(operations: &BTreeSet<String>, types: &Models) -> Vec<String> {
 
 #[test]
 fn the_operations_come_from_the_document_rather_than_from_here() {
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
 
     // Not a count and not a list: what is held is that the set is the document's, so the only
     // claims here are ones that stay true as the API grows.
@@ -66,7 +66,7 @@ fn the_operations_come_from_the_document_rather_than_from_here() {
 fn a_document_that_is_not_one_is_refused_naming_where_it_was_looked_for() {
     let missing = Path::new("/where/no/api/document/is/openapi.snapshot.json");
 
-    let refused = declared(missing, PUBLIC_TAG).expect_err("a refusal");
+    let refused = declared(missing, SDK_TAG).expect_err("a refusal");
 
     let said = format!("{refused}");
     assert!(said.contains("openapi.snapshot.json"), "{said}");
@@ -74,7 +74,7 @@ fn a_document_that_is_not_one_is_refused_naming_where_it_was_looked_for() {
 
 #[test]
 fn every_target_the_registry_declares_is_generated_from_operations_the_document_declares() {
-    // Not every target selects the same tag — the SDKs are generated from the public surface and
+    // Not every target selects the same tag — the SDKs are generated from the SDK surface and
     // the MCP server from its own — so the set a language is held to is the one its own client was
     // generated from, read off the registry rather than decided anywhere.
     for target in hook0_sdkgen::targets::targets() {
@@ -90,7 +90,7 @@ fn every_target_the_registry_declares_is_generated_from_operations_the_document_
 
 #[test]
 fn a_language_that_drove_everything_is_held_to_have_driven_everything() {
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
 
     let types = types();
 
@@ -111,7 +111,7 @@ fn a_language_that_drove_everything_is_held_to_have_driven_everything() {
 fn an_operation_that_was_never_driven_is_named_and_so_is_every_other_one() {
     // Two left out rather than one: the refusal has to name every one of them, since a language
     // told about the first would otherwise come back for the second.
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
     let left_out: Vec<String> = operations.iter().take(2).cloned().collect();
     let types = types();
     let reports: Vec<String> = every(&operations, &types)
@@ -137,7 +137,7 @@ fn a_report_naming_an_operation_the_document_does_not_declare_is_refused() {
     // What a typo looks like from here. Left unrefused it would satisfy nothing while looking like
     // work, and the operation it was meant to name would be reported as never driven — which sends
     // whoever reads it looking at the wrong call site.
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
     let types = types();
     let mut reports = every(&operations, &types);
     reports.push("exercised events.injest accepted".to_owned());
@@ -150,7 +150,7 @@ fn a_report_naming_an_operation_the_document_does_not_declare_is_refused() {
 
 #[test]
 fn one_operation_answered_two_ways_in_one_run_is_refused() {
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
     let types = types();
     let mut reports = every(&operations, &types);
     reports.push("exercised events.ingest refused:EventAlreadyIngested".to_owned());
@@ -164,7 +164,7 @@ fn one_operation_answered_two_ways_in_one_run_is_refused() {
 
 #[test]
 fn one_operation_reported_twice_the_same_way_is_a_flow_that_read_a_list_twice() {
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
     let types = types();
     let mut reports = every(&operations, &types);
     reports.push("exercised events.list accepted".to_owned());
@@ -178,7 +178,7 @@ fn one_operation_reported_twice_the_same_way_is_a_flow_that_read_a_list_twice() 
 fn a_language_that_reports_nothing_and_says_nothing_about_that_is_refused() {
     // The hole this closes: without it, deleting every report from a language that had them would
     // leave the run green and the client untested against a real instance.
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
 
     let refused = held(A_TARGET, true, &operations, &types(), &[]).expect_err("a refusal");
 
@@ -189,7 +189,7 @@ fn a_language_that_reports_nothing_and_says_nothing_about_that_is_refused() {
 
 #[test]
 fn a_language_whose_manifest_says_it_drives_nothing_yet_is_allowed_to_drive_nothing() {
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
 
     let held = held(A_TARGET, false, &operations, &types(), &[]).expect("no bijection to hold");
 
@@ -201,7 +201,7 @@ fn a_language_whose_manifest_says_it_drives_nothing_yet_is_allowed_to_drive_noth
 fn a_language_that_drives_the_surface_while_saying_it_does_not_is_refused() {
     // The mirror of the case above, and what keeps the manifest honest: a smoke ported without its
     // manifest being updated would otherwise be held to nothing at all.
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
 
     let types = types();
     let refused = held(
@@ -219,7 +219,7 @@ fn a_language_that_drives_the_surface_while_saying_it_does_not_is_refused() {
 
 #[test]
 fn more_reports_than_the_ceiling_allows_is_refused_at_the_ceiling() {
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
     let reports: Vec<String> = (0..MAX_REPORTS + 2)
         .map(|_| "exercised events.list accepted".to_owned())
         .collect();
@@ -232,7 +232,7 @@ fn more_reports_than_the_ceiling_allows_is_refused_at_the_ceiling() {
 
 #[test]
 fn a_line_that_opens_with_the_word_and_is_malformed_is_refused_rather_than_passed_over() {
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
     let types = types();
     let mut reports = every(&operations, &types);
     reports.push("exercised events.list".to_owned());
@@ -291,7 +291,7 @@ fn an_operation_the_instance_only_paced_is_refused_rather_than_counted() {
     // The one way this whole exercise could pass and mean nothing: an instance pacing a flow that
     // asks for three dozen operations in a row answers every one of them without looking at any of
     // them, and a smoke reporting that would look exactly like a smoke that drove them.
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
     let types = types();
     let reports: Vec<String> = every(&operations, &types)
         .into_iter()
@@ -330,7 +330,7 @@ fn a_model_no_operation_answers_is_not_one_a_language_is_held_to() {
 fn a_model_the_generator_emits_and_nothing_answers_may_still_be_reported() {
     // An instance that populates one of the optional ones is right to say so, and a language that
     // decoded it should not be refused for being on a richer instance than the next one.
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
     let types = types();
     let mut reports = every(&operations, &types);
     reports.push("decoded InstanceConfigMatomo".to_owned());
@@ -345,7 +345,7 @@ fn a_model_that_was_never_decoded_is_named_and_so_is_every_other_one() {
     // The hole the model bijection closes: every operation below is reported, and reported as
     // refused, which the operation bijection is perfectly happy with. A client that decoded nothing
     // at all would pass it.
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
     let types = types();
     let reports: Vec<String> = operations
         .iter()
@@ -362,7 +362,7 @@ fn a_model_that_was_never_decoded_is_named_and_so_is_every_other_one() {
 
 #[test]
 fn a_decoded_line_naming_something_that_is_not_a_model_is_refused() {
-    let operations = declared(&document(), PUBLIC_TAG).expect("the document declares operations");
+    let operations = declared(&document(), SDK_TAG).expect("the document declares operations");
     let types = types();
     let mut reports = every(&operations, &types);
     reports.push("decoded Subscriptions".to_owned());

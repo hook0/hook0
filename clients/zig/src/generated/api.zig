@@ -89,7 +89,7 @@ pub const ApplicationSecretsApi = struct {
 
     /// List application secrets
     /// `application_id` carries `application_id`.
-    pub fn list(
+    pub fn read(
         self: *ApplicationSecretsApi,
         allocator: std.mem.Allocator,
         application_id: []const u8,
@@ -949,7 +949,7 @@ pub const RequestAttemptsApi = struct {
     /// `min_created_at` carries `min_created_at`.
     /// `pagination_cursor` carries `pagination_cursor`.
     /// `subscription_id` carries `subscription_id`.
-    pub fn list(
+    pub fn read(
         self: *RequestAttemptsApi,
         allocator: std.mem.Allocator,
         application_id: []const u8,
@@ -1127,6 +1127,36 @@ pub const ServiceTokenApi = struct {
         );
     }
 
+    /// Edit a service token
+    /// `service_token_id` carries `service_token_id`.
+    pub fn edit(
+        self: *ServiceTokenApi,
+        allocator: std.mem.Allocator,
+        service_token_id: []const u8,
+        body: models.ServiceTokenPost,
+    ) !runtime.Owned(models.ServiceToken) {
+        var owned: runtime.Owned(models.ServiceToken) = try .init(allocator);
+        errdefer owned.deinit();
+        const arena = owned.arena.allocator();
+
+        const answered = try self.transport.request(arena, .{
+            .method = "PUT",
+            .path = try runtime.path(arena, "/api/v1/service_token/{service_token_id}", &.{
+                .{ .name = "service_token_id", .value = runtime.value(service_token_id) },
+            }),
+            .body = try runtime.written(arena, body),
+        });
+        try errors.raiseForStatus(
+            self.allocator,
+            answered.status,
+            answered.payload,
+            &self.reported,
+        );
+
+        owned.value = try models.ServiceToken.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
+        return owned;
+    }
+
     /// Get a service token
     /// `service_token_id` carries `service_token_id`.
     /// `organization_id` carries `organization_id`.
@@ -1186,36 +1216,6 @@ pub const ServiceTokenApi = struct {
         );
 
         owned.value = try runtime.list(models.ServiceToken.fromJson).read(arena, try runtime.decodePayload(arena, answered.payload));
-        return owned;
-    }
-
-    /// Update a service token
-    /// `service_token_id` carries `service_token_id`.
-    pub fn update(
-        self: *ServiceTokenApi,
-        allocator: std.mem.Allocator,
-        service_token_id: []const u8,
-        body: models.ServiceTokenPost,
-    ) !runtime.Owned(models.ServiceToken) {
-        var owned: runtime.Owned(models.ServiceToken) = try .init(allocator);
-        errdefer owned.deinit();
-        const arena = owned.arena.allocator();
-
-        const answered = try self.transport.request(arena, .{
-            .method = "PUT",
-            .path = try runtime.path(arena, "/api/v1/service_token/{service_token_id}", &.{
-                .{ .name = "service_token_id", .value = runtime.value(service_token_id) },
-            }),
-            .body = try runtime.written(arena, body),
-        });
-        try errors.raiseForStatus(
-            self.allocator,
-            answered.status,
-            answered.payload,
-            &self.reported,
-        );
-
-        owned.value = try models.ServiceToken.fromJson(arena, try runtime.decodePayload(arena, answered.payload));
         return owned;
     }
 };

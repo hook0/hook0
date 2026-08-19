@@ -331,7 +331,7 @@ local function surface()
   end)
   decoded("ApplicationSecret", minted)
 
-  exercised("applicationSecrets.list", function() return secrets:list(application) end)
+  exercised("applicationSecrets.read", function() return secrets:read(application) end)
   exercised("applicationSecrets.update", function()
     return secrets:update(minted.token, Models.ApplicationSecretPost.new({
       application_id = application,
@@ -446,7 +446,7 @@ local function surface()
   -- An attempt and a response exist only once the output worker has finished a delivery. The
   -- harness waited for one, in the application it caught the shared delivery from, and handed the
   -- ids on — so this reads them back with the organization credential rather than waiting again.
-  exercised("requestAttempts.list", function() return request_attempts:list(seeded) end)
+  exercised("requestAttempts.read", function() return request_attempts:read(seeded) end)
 
   local attempted = read("requestAttempts.get", function()
     return request_attempts:get(setting("HOOK0_REQUEST_ATTEMPT_ID"), seeded)
@@ -476,8 +476,8 @@ local function surface()
   exercised("serviceToken.get", function()
     return service_tokens:get(issued.token_id, organization)
   end)
-  exercised("serviceToken.update", function()
-    return service_tokens:update(issued.token_id, Models.ServiceTokenPost.new({
+  exercised("serviceToken.edit", function()
+    return service_tokens:edit(issued.token_id, Models.ServiceTokenPost.new({
       name = "a token the lua smoke renamed",
       organization_id = organization,
     }))

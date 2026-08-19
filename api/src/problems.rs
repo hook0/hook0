@@ -125,8 +125,19 @@ impl Hook0ProblemId {
     ///
     /// Built here rather than at each place a body is produced, so what the API sends and what it
     /// publishes cannot say two different things.
+    ///
+    /// It points at the anchor of this problem on the error reference, which is one page listing
+    /// every identifier rather than a page each. The address this used to send people to,
+    /// `hook0.com/documentation/errors/<id>`, answered 404 for every problem the API can return:
+    /// the documentation is served from its own host, and it never had a page per error.
+    ///
+    /// The anchor is the identifier lowercased, which is what the documentation generator makes of
+    /// a heading.
     pub fn type_url(&self) -> String {
-        format!("https://hook0.com/documentation/errors/{}", self.0)
+        format!(
+            "https://documentation.hook0.com/reference/error-codes#{}",
+            self.0.to_lowercase()
+        )
     }
 
     /// Every identifier the API can answer with, in variant declaration order.
@@ -967,7 +978,13 @@ mod tests {
             );
             assert_eq!(
                 json["type"].as_str(),
-                Some(format!("https://hook0.com/documentation/errors/{expected}").as_str()),
+                Some(
+                    format!(
+                        "https://documentation.hook0.com/reference/error-codes#{}",
+                        expected.0.to_lowercase()
+                    )
+                    .as_str()
+                ),
                 "unexpected `type` member for {problem}"
             );
         }

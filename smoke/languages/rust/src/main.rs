@@ -294,7 +294,7 @@ async fn surface(settings: &Settings) -> Result<(), String> {
     decoded("ApplicationSecret", &minted);
     let minted_token = minted.token.to_string();
 
-    exercised("applicationSecrets.list", secrets.list(&application).await)?;
+    exercised("applicationSecrets.read", secrets.read(&application).await)?;
     exercised(
         "applicationSecrets.update",
         secrets
@@ -462,7 +462,7 @@ async fn surface(settings: &Settings) -> Result<(), String> {
     // harness waited for one, in the application it caught the shared delivery from, and handed the
     // ids on — so this reads them back with the organization credential rather than waiting again.
     exercised(
-        "requestAttempts.list",
+        "requestAttempts.read",
         request_attempts
             .list(&seeded, None, None, None, None, None, None)
             .await,
@@ -511,7 +511,7 @@ async fn surface(settings: &Settings) -> Result<(), String> {
         service_tokens.get(&minted_id, &organization).await,
     )?;
     exercised(
-        "serviceToken.update",
+        "serviceToken.edit",
         service_tokens
             .update(
                 &minted_id,

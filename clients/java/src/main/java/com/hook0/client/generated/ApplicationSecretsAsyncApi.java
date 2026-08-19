@@ -63,7 +63,7 @@ public final class ApplicationSecretsAsyncApi {
    * @param applicationId carries `application_id`.
    * @return what the API will answer
    */
-  public CompletableFuture<List<ApplicationSecret>> list(String applicationId) {
+  public CompletableFuture<List<ApplicationSecret>> read(String applicationId) {
     String path = "/api/v1/application_secrets/";
     List<QueryParameter> query = new ArrayList<>();
     query.add(new QueryParameter("application_id", Wire.queryValue(applicationId)));

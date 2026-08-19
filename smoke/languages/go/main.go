@@ -446,8 +446,8 @@ func surface(apiURL string) error {
 	decoded("ApplicationSecret", minted)
 	mintedToken := string(minted.Token)
 
-	_, failed = secrets.List(ctx, application)
-	if err := exercised("applicationSecrets.list", failed); err != nil {
+	_, failed = secrets.Read(ctx, application)
+	if err := exercised("applicationSecrets.read", failed); err != nil {
 		return err
 	}
 
@@ -596,8 +596,8 @@ func surface(apiURL string) error {
 	// An attempt and a response exist only once the output worker has finished a delivery. The
 	// harness waited for one, in the application it caught the shared delivery from, and handed the
 	// ids on — so this reads them back with the organization credential rather than waiting again.
-	_, failed = requestAttempts.List(ctx, seeded, nil, nil, nil, nil, nil, nil)
-	if err := exercised("requestAttempts.list", failed); err != nil {
+	_, failed = requestAttempts.Read(ctx, seeded, nil, nil, nil, nil, nil, nil)
+	if err := exercised("requestAttempts.read", failed); err != nil {
 		return err
 	}
 
@@ -638,11 +638,11 @@ func surface(apiURL string) error {
 	if err := exercised("serviceToken.get", failed); err != nil {
 		return err
 	}
-	_, failed = serviceTokens.Update(ctx, issuedID, generated.ServiceTokenPost{
+	_, failed = serviceTokens.Edit(ctx, issuedID, generated.ServiceTokenPost{
 		Name:           "a token the go smoke renamed",
 		OrganizationId: generated.UUID(organization),
 	})
-	if err := exercised("serviceToken.update", failed); err != nil {
+	if err := exercised("serviceToken.edit", failed); err != nil {
 		return err
 	}
 	if err := exercised(

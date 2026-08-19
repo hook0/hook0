@@ -54,7 +54,7 @@ impl From<ProblemDetails> for Problem {
     operation_id = "errors.list",
     consumes = "application/json",
     produces = "application/json",
-    tags("Hook0", "public")
+    tags("Hook0", "sdk")
 )]
 pub async fn list() -> Result<Json<Vec<Problem>>, Hook0Problem> {
     Ok(Json(

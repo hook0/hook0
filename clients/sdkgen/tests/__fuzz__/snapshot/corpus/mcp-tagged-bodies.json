@@ -21,7 +21,7 @@
     "summary": "Get a thing",
     "tags": [
      "mcp",
-     "public"
+     "sdk"
     ],
     "parameters": [
      {
@@ -82,7 +82,7 @@
    "get": {
     "operationId": "things.list",
     "tags": [
-     "public"
+     "sdk"
     ],
     "responses": {}
    }

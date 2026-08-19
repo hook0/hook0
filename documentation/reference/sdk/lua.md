@@ -174,7 +174,7 @@ Sending events is two methods out of the whole API. `Hook0.api` builds one group
 
 ```lua example=api
 local api = Hook0.api(client.transport)
-local secrets = api.ApplicationSecretsApi:list(application_id)
+local secrets = api.ApplicationSecretsApi:read(application_id)
 ```
 
 One group per entity the API declares, one method per operation, and one error kind per problem it can report.

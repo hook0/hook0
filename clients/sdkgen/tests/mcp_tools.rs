@@ -5,7 +5,7 @@
 //! under `clients/mcp` is a different question, and the one `tests/targets.rs` answers for every
 //! target at once.
 
-use hook0_sdkgen::{EntityModel, Limits, MCP_TAG, PUBLIC_TAG, Snapshot, mcp};
+use hook0_sdkgen::{EntityModel, Limits, MCP_TAG, SDK_TAG, Snapshot, mcp};
 
 mod common;
 
@@ -28,9 +28,9 @@ fn emitting_twice_yields_the_same_bytes() {
 /// The MCP server selects its own tag, not the one the SDKs are built from: operations the API
 /// exposes to the server alone would disappear from the tool list if the two were confused.
 #[test]
-fn the_mcp_tag_selects_operations_the_public_tag_leaves_out() {
+fn the_mcp_tag_selects_operations_the_sdk_tag_leaves_out() {
     let mcp = common::tool_names(&emitted());
-    let public: Vec<String> = ids(&model_of(PUBLIC_TAG));
+    let public: Vec<String> = ids(&model_of(SDK_TAG));
 
     let mcp_only: Vec<&String> = mcp.iter().filter(|name| !public.contains(name)).collect();
 

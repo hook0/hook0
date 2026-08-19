@@ -55,7 +55,7 @@ public final class RequestAttemptsApi {
    * @param subscriptionId carries `subscription_id`, or nothing when the caller sends none.
    * @return what the API answered
    */
-  public List<RequestAttempt> list(
+  public List<RequestAttempt> read(
       String applicationId,
       String eventEventTypeNames,
       String eventId,

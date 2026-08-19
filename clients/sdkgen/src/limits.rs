@@ -9,7 +9,7 @@ pub struct Limits {
     pub max_snapshot_bytes: usize,
     /// Longest chain of `$ref` hops followed before giving up. Also what stops a reference cycle.
     pub max_reference_depth: usize,
-    /// Largest number of operations a snapshot may declare, counted before the public tag filter.
+    /// Largest number of operations a snapshot may declare, counted before the SDK tag filter.
     pub max_operations: usize,
     /// Largest number of entities a model may carry.
     pub max_entities: usize,

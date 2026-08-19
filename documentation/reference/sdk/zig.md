@@ -181,7 +181,7 @@ Sending events is two methods out of the whole API. Every operation Hook0 declar
 var group = hook0.api.ApplicationSecretsApi.init(allocator, client.transportOf());
 defer group.deinit();
 
-const secrets = try group.list(allocator, application_id);
+const secrets = try group.read(allocator, application_id);
 defer secrets.deinit();
 ```
 

@@ -332,7 +332,7 @@ def surface() -> None:
     )
     decoded("ApplicationSecret", minted)
 
-    exercised("applicationSecrets.list", lambda: secrets.list(application))
+    exercised("applicationSecrets.read", lambda: secrets.read(application))
     exercised(
         "applicationSecrets.update",
         lambda: secrets.update(
@@ -459,7 +459,7 @@ def surface() -> None:
     # An attempt and a response exist only once the output worker has finished a delivery. The
     # harness waited for one, in the application it caught the shared delivery from, and handed the
     # ids on — so this reads them back with the organization credential rather than waiting again.
-    exercised("requestAttempts.list", lambda: request_attempts.list(seeded))
+    exercised("requestAttempts.read", lambda: request_attempts.read(seeded))
     attempted = read("requestAttempts.get", lambda: request_attempts.get(attempt, seeded))
     decoded("RequestAttemptEvent", attempted.event)
     decoded("RequestAttemptSubscription", attempted.subscription)
@@ -487,8 +487,8 @@ def surface() -> None:
     exercised("serviceToken.list", lambda: service_tokens.list(organization))
     exercised("serviceToken.get", lambda: service_tokens.get(minted_id, organization))
     exercised(
-        "serviceToken.update",
-        lambda: service_tokens.update(
+        "serviceToken.edit",
+        lambda: service_tokens.edit(
             minted_id,
             ServiceTokenPost(
                 name="a token the python smoke renamed",

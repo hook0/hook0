@@ -134,10 +134,10 @@ impl<T: Transport> ApplicationSecretsApi<T> {
         Ok(())
     }
 
-    /// `applicationSecrets.list`, `GET /api/v1/application_secrets/`.
+    /// `applicationSecrets.read`, `GET /api/v1/application_secrets/`.
     ///
     /// List application secrets
-    pub async fn list(&self, application_id: &str) -> Result<Vec<ApplicationSecret>, RequestError> {
+    pub async fn read(&self, application_id: &str) -> Result<Vec<ApplicationSecret>, RequestError> {
         let path = "/api/v1/application_secrets/".to_owned();
         let query: Vec<(&str, String)> = vec![("application_id", query_value(&application_id))];
         let issued = self.transport.request("GET", &path, &query, None);
@@ -705,10 +705,10 @@ impl<T: Transport> RequestAttemptsApi<T> {
         read.map_err(|cause| RequestError::unreadable(status, &payload, &cause))
     }
 
-    /// `requestAttempts.list`, `GET /api/v1/request_attempts/`.
+    /// `requestAttempts.read`, `GET /api/v1/request_attempts/`.
     ///
     /// List request attempts
-    pub async fn list(
+    pub async fn read(
         &self,
         application_id: &str,
         event_event_type_names: Option<&str>,
@@ -843,6 +843,29 @@ impl<T: Transport> ServiceTokenApi<T> {
         Ok(())
     }
 
+    /// `serviceToken.edit`, `PUT /api/v1/service_token/{service_token_id}`.
+    ///
+    /// Edit a service token
+    pub async fn edit(
+        &self,
+        service_token_id: &str,
+        body: ServiceTokenPost,
+    ) -> Result<ServiceToken, RequestError> {
+        let mut path = "/api/v1/service_token/{service_token_id}".to_owned();
+        path = path.replace("{service_token_id}", &path_segment(&service_token_id));
+        let query: Vec<(&str, String)> = Vec::new();
+        let body = serde_json::to_vec(&body).map_err(RequestError::unwritable)?;
+        let issued = self.transport.request("PUT", &path, &query, Some(body));
+        let (status, payload) = issued.await.map_err(RequestError::transport)?;
+
+        if let Some(failure) = problem_for(status, &payload) {
+            return Err(RequestError::Api(Box::new(failure)));
+        }
+
+        let read = serde_json::from_slice(&payload);
+        read.map_err(|cause| RequestError::unreadable(status, &payload, &cause))
+    }
+
     /// `serviceToken.get`, `GET /api/v1/service_token/{service_token_id}`.
     ///
     /// Get a service token
@@ -872,29 +895,6 @@ impl<T: Transport> ServiceTokenApi<T> {
         let path = "/api/v1/service_token/".to_owned();
         let query: Vec<(&str, String)> = vec![("organization_id", query_value(&organization_id))];
         let issued = self.transport.request("GET", &path, &query, None);
-        let (status, payload) = issued.await.map_err(RequestError::transport)?;
-
-        if let Some(failure) = problem_for(status, &payload) {
-            return Err(RequestError::Api(Box::new(failure)));
-        }
-
-        let read = serde_json::from_slice(&payload);
-        read.map_err(|cause| RequestError::unreadable(status, &payload, &cause))
-    }
-
-    /// `serviceToken.update`, `PUT /api/v1/service_token/{service_token_id}`.
-    ///
-    /// Update a service token
-    pub async fn update(
-        &self,
-        service_token_id: &str,
-        body: ServiceTokenPost,
-    ) -> Result<ServiceToken, RequestError> {
-        let mut path = "/api/v1/service_token/{service_token_id}".to_owned();
-        path = path.replace("{service_token_id}", &path_segment(&service_token_id));
-        let query: Vec<(&str, String)> = Vec::new();
-        let body = serde_json::to_vec(&body).map_err(RequestError::unwritable)?;
-        let issued = self.transport.request("PUT", &path, &query, Some(body));
         let (status, payload) = issued.await.map_err(RequestError::transport)?;
 
         if let Some(failure) = problem_for(status, &payload) {
