@@ -51,7 +51,7 @@ public sealed class GeneratedTests : ApiCase
     private const string AsyncSuffix = "Async";
 
     /// <summary>The tag the API marks the operations an SDK is written for with.</summary>
-    private const string PublicTag = "public";
+    private const string SdkTag = "sdk";
 
     /// <summary>How far a value is built into itself before this suite reads it as one it cannot build.</summary>
     private const int MaxNesting = 16;
@@ -642,7 +642,7 @@ public sealed class GeneratedTests : ApiCase
             foreach (KeyValuePair<string, JsonNode?> operation in path.Value!.AsObject())
             {
                 JsonArray tags = operation.Value!["tags"]?.AsArray() ?? [];
-                if (!tags.Any(tag => tag!.GetValue<string>() == PublicTag))
+                if (!tags.Any(tag => tag!.GetValue<string>() == SdkTag))
                 {
                     continue;
                 }

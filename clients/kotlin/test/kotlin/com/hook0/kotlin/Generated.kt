@@ -56,7 +56,7 @@ object Generated {
   const val WRITE_MEMBER = "toJson"
 
   /** The tag the API marks the operations an SDK is written for with. */
-  private const val PUBLIC_TAG = "public"
+  private const val SDK_TAG = "sdk"
 
   /** What the compiler names the bridge and the marker it writes for a declaration carrying defaults. */
   private const val DEFAULT_SUFFIX = "\$default"
@@ -202,7 +202,7 @@ object Generated {
     val found = sortedMapOf<String, Operation>()
     for ((path, operations) in paths()) {
       for ((verb, operation) in asObject(operations)) {
-        if (PUBLIC_TAG !in tags(operation)) {
+        if (SDK_TAG !in tags(operation)) {
           continue
         }
         val read =

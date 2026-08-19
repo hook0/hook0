@@ -273,7 +273,7 @@ pub fn pathOf(target: []const u8) []const u8 {
 
 /// The tag that marks an operation as part of the surface an SDK exposes, which is the rule the
 /// generator applies — see `PUBLIC_TAG` in `clients/sdkgen/src/snapshot.rs`.
-pub const public_tag = "public";
+pub const sdk_tag = "sdk";
 
 /// The methods a request line can carry, which is what tells an operation from the rest.
 const verbs = [_][]const u8{ "get", "put", "post", "delete", "options", "head", "patch", "trace" };
@@ -302,7 +302,7 @@ pub fn declaredOperations(io: std.Io, allocator: std.mem.Allocator) ![]const Dec
                 operation_entry.value_ptr.*,
             );
             try found.append(allocator, declared);
-            if (carriesTag(operation_entry.value_ptr.*, public_tag)) try public.append(allocator, declared);
+            if (carriesTag(operation_entry.value_ptr.*, sdk_tag)) try public.append(allocator, declared);
         }
     }
     if (found.items.len == 0) return error.TheDocumentDeclaresNoOperation;

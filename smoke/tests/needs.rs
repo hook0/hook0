@@ -456,9 +456,7 @@ fn watched_by_gitlab(glob: &str, path: &str) -> bool {
         match pattern.split_first() {
             None => path.is_empty(),
             Some((&"**", rest)) if rest.is_empty() => path.len() == 1,
-            Some((&"**", rest)) => {
-                (0..=path.len()).any(|taken| segments(rest, &path[taken..]))
-            }
+            Some((&"**", rest)) => (0..=path.len()).any(|taken| segments(rest, &path[taken..])),
             Some((head, rest)) => path
                 .split_first()
                 .is_some_and(|(first, tail)| one_segment(head, first) && segments(rest, tail)),
@@ -472,8 +470,7 @@ fn watched_by_gitlab(glob: &str, path: &str) -> bool {
             Some((before, after)) => {
                 name.len() >= before.len()
                     && name.starts_with(before)
-                    && (before.len()..=name.len())
-                        .any(|at| one_segment(after, &name[at..]))
+                    && (before.len()..=name.len()).any(|at| one_segment(after, &name[at..]))
             }
         }
     }
@@ -508,7 +505,10 @@ fn a_trailing_double_star_reaches_one_level_and_a_middle_one_reaches_all_of_them
     ));
 
     // A wildcard segment stops at a separator either way.
-    assert!(!watched_by_gitlab("clients/*/src/**/*", "clients/go/generated/api.go"));
+    assert!(!watched_by_gitlab(
+        "clients/*/src/**/*",
+        "clients/go/generated/api.go"
+    ));
     assert!(!watched_by_gitlab("clients/*", "clients/rust/src/lib.rs"));
     assert!(watched_by_gitlab("Cargo.*", "Cargo.lock"));
 }
@@ -548,9 +548,9 @@ fn a_hand_edit_of_any_generated_tree_faces_the_guard_that_wrote_it() {
         .iter()
         .filter(|target| {
             let edited = format!("{}/a-file-somebody-edited", target.root);
-            !running.iter().any(|(_, watched)| {
-                watched.iter().any(|glob| watched_by_gitlab(glob, &edited))
-            })
+            !running
+                .iter()
+                .any(|(_, watched)| watched.iter().any(|glob| watched_by_gitlab(glob, &edited)))
         })
         .map(|target| format!("  {} writes {}", target.name, target.root))
         .collect();

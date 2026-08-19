@@ -246,10 +246,10 @@ const maxDepth = 8
 // maxAncestors bounds the walk up to the repository holding the API document.
 const maxAncestors = 8
 
-// publicTag marks an operation as part of the surface an SDK exposes. A document marking none of
-// its operations with it declares the whole of itself public, which is what the generator does with
+// sdkTag marks an operation as part of the surface an SDK exposes. A document marking none of
+// its operations with it declares the whole of itself part of that surface, which is what the generator does with
 // the tag and therefore what this suite holds a target to.
-const publicTag = "public"
+const sdkTag = "sdk"
 
 // aMoment is what every instant-shaped member is given: a fixed one, so that what is written back
 // is compared against what was sent rather than against the clock.
@@ -419,7 +419,7 @@ func declaredOperations(t *testing.T) []declaredOperation {
 			}
 
 			all = append(all, read)
-			if slices.Contains(operation.Tags, publicTag) {
+			if slices.Contains(operation.Tags, sdkTag) {
 				public = append(public, read)
 			}
 		}

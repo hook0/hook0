@@ -50,7 +50,7 @@ final class Generated {
   private static final String ASYNC_GROUP_SUFFIX = "AsyncApi";
 
   /** The tag the API marks the operations an SDK is written for with. */
-  private static final String PUBLIC_TAG = "public";
+  private static final String SDK_TAG = "sdk";
 
   /** The API's own description, from the directory this suite runs out of. */
   private static final Path SNAPSHOT =
@@ -253,7 +253,7 @@ final class Generated {
       Map<String, Operation> found = new TreeMap<>();
       for (Map.Entry<String, Object> path : paths().entrySet()) {
         for (Map.Entry<String, Object> operation : asObject(path.getValue()).entrySet()) {
-          if (!tags(operation.getValue()).contains(PUBLIC_TAG)) {
+          if (!tags(operation.getValue()).contains(SDK_TAG)) {
             continue;
           }
           Operation read =

@@ -15,9 +15,9 @@ final class ApiDocument
 {
     /**
      * The tag that marks an operation as part of the surface an SDK exposes, which is the rule the
-     * generator applies — see `PUBLIC_TAG` in `clients/sdkgen/src/snapshot.rs`.
+     * generator applies — see `SDK_TAG` in `clients/sdkgen/src/snapshot.rs`.
      */
-    private const PUBLIC_TAG = 'public';
+    private const SDK_TAG = 'sdk';
 
     /** The methods a request line can carry, which is what tells an operation from the rest. */
     private const VERBS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'];
@@ -53,7 +53,7 @@ final class ApiDocument
                     continue;
                 }
                 $found[] = [
-                    in_array(self::PUBLIC_TAG, $operation['tags'] ?? [], true),
+                    in_array(self::SDK_TAG, $operation['tags'] ?? [], true),
                     self::declared((string) $template, $verb, $operation),
                 ];
             }

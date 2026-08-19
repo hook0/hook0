@@ -40,7 +40,7 @@ const MAX_ANCESTORS: usize = 8;
 const MAX_DEPTH: usize = 8;
 
 /// The tag that marks an operation as part of the surface an SDK exposes. A document that marks none
-/// of its operations with it declares the whole of itself public, which is the rule the generator
+/// of its operations with it declares the whole of itself part of that surface, which is the rule the generator
 /// applies and therefore the rule this suite holds it to.
 const SDK_TAG: &str = "sdk";
 
@@ -169,7 +169,7 @@ fn api_document() -> Value {
     panic!("no `api/openapi.snapshot.json` within {MAX_ANCESTORS} directories of this crate");
 }
 
-/// Every operation an SDK is built out of, which is what the document marks as public.
+/// Every operation an SDK is built out of, which is what the document marks with the SDK tag.
 fn declared_operations(document: &Value) -> BTreeMap<String, Declared> {
     let paths = document
         .get("paths")

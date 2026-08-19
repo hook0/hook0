@@ -12,8 +12,8 @@ local Json = Helper.Json
 local Document = {}
 
 --- The tag that marks an operation as part of the surface an SDK exposes, which is the rule the
---- generator applies — see `PUBLIC_TAG` in `clients/sdkgen/src/snapshot.rs`.
-Document.PUBLIC_TAG = "public"
+--- generator applies — see `SDK_TAG` in `clients/sdkgen/src/snapshot.rs`.
+Document.SDK_TAG = "sdk"
 
 --- The methods a request line can carry, which is what tells an operation from the rest.
 local VERBS = {
@@ -147,7 +147,7 @@ function Document.operations()
         }, Declared)
         found[#found + 1] = declared
         for _, tag in ipairs(operation.tags or {}) do
-          if tag == Document.PUBLIC_TAG then
+          if tag == Document.SDK_TAG then
             public[#public + 1] = declared
           end
         end

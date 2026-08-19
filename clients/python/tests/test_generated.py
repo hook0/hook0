@@ -52,9 +52,9 @@ MAX_DEPTH = 8
 VERBS = frozenset({"get", "put", "post", "delete", "options", "head", "patch", "trace"})
 
 # The tag that marks an operation as part of the surface an SDK exposes. A document that marks none
-# of its operations with it declares the whole of itself public, which is the rule the generator
+# of its operations with it declares the whole of itself part of that surface, which is the rule the generator
 # applies and therefore the rule this suite holds it to.
-PUBLIC_TAG = "public"
+SDK_TAG = "sdk"
 
 # What every string-shaped argument is given. It carries the two characters a path segment may not
 # leave as they are, so that a value reaching a path proves it was escaped rather than pasted.
@@ -105,7 +105,7 @@ class Operation:
 
 
 def _declared_operations() -> list[Operation]:
-    """Every operation an SDK is built out of, which is what the document marks as public."""
+    """Every operation an SDK is built out of, which is what the document marks with the SDK tag."""
     document = _api_document()
     found = []
     for template, item in document["paths"].items():
@@ -116,7 +116,7 @@ def _declared_operations() -> list[Operation]:
             query = [parameter for parameter in declared if parameter.get("in") == "query"]
             found.append(
                 (
-                    PUBLIC_TAG in operation.get("tags", []),
+                    SDK_TAG in operation.get("tags", []),
                     Operation(
                         method=verb.upper(),
                         template=template,

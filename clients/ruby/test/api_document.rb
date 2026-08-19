@@ -40,8 +40,8 @@ module Hook0Test
   # Everything the OpenAPI snapshot says about the operations an SDK is built out of.
   module ApiDocument
     # The tag that marks an operation as part of the surface an SDK exposes, which is the rule the
-    # generator applies — see `PUBLIC_TAG` in `clients/sdkgen/src/snapshot.rs`.
-    PUBLIC_TAG = "public"
+    # generator applies — see `SDK_TAG` in `clients/sdkgen/src/snapshot.rs`.
+    SDK_TAG = "sdk"
 
     # The methods a request line can carry, which is what tells an operation from the rest.
     VERBS = %w[get put post delete options head patch trace].freeze
@@ -81,7 +81,7 @@ module Hook0Test
         item.filter_map do |verb, operation|
           next unless VERBS.include?(verb)
 
-          [(operation["tags"] || []).include?(PUBLIC_TAG), of(template, verb, operation)]
+          [(operation["tags"] || []).include?(SDK_TAG), of(template, verb, operation)]
         end
       end
     end
