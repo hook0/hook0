@@ -32,6 +32,7 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0AuthTrustBadges from '@/components/Hook0AuthTrustBadges.vue';
 
 import CustomerLogo from '@/components/logos/CustomerLogo.vue';
+import { browserSessionStorage, readSignupChannel } from '@/utils/signupChannel';
 
 const { t } = useI18n();
 
@@ -125,7 +126,8 @@ const onSubmit = handleSubmit((values) => {
       values.lastName,
       values.password,
       captchaToken.value !== '' ? captchaToken.value : undefined,
-      gclid.value !== '' ? gclid.value : undefined
+      gclid.value !== '' ? gclid.value : undefined,
+      readSignupChannel(browserSessionStorage())
     )
     .then(() => {
       trackEvent('signup', 'form-success', 'register');
