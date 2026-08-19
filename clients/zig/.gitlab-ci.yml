@@ -53,8 +53,21 @@ clients.zig.check:
     # percentage. A percentage would be the wrong instrument here: Zig emits only the code something
     # references, so an operation nothing calls is absent from a report rather than uncovered in it,
     # and the first test to call one *lowers* the score by enlarging the denominator. A floor over
-    # that rewards not testing. (kcov also reports zero covered lines under the default backend while
-    # still printing a green report, which is a second reason not to build a number on it.)
+    # that rewards not testing.
+    #
+    # kcov is the only instrument that reads Zig's debug information, and it was measured rather
+    # than assumed, in this job's own image. Four findings. The Debian package exists, so installing
+    # it is possible. Without `SYS_PTRACE` and a relaxed seccomp profile it stops at `Can't set
+    # personality: Operation not permitted` and still writes a report saying `covered_lines: 0`,
+    # which is a floor of zero wearing the clothes of a measurement. Permitted, it does read the
+    # line table, mapping 214 files and 3228 lines. And the suite driven under it reaches 46 of
+    # those 3228, because a Zig test binary run by kcov rather than by its own build runner barely
+    # executes. The runner here is a Kubernetes executor, whose default seccomp profile blocks the
+    # `personality` call kcov needs, so the first of those is where it would stop today.
+    #
+    # `ci/release-packages/tests/coverage_floors.rs` holds every client to stating a floor and
+    # carries this one as the single exception, with the same reasoning. That test also fails if
+    # this package ever does state a floor, so the exception cannot outlive its reason.
     #
     # What stands in its place: `tests/generated_test.zig` walks every model and every operation the
     # generator wrote — found by reflection, never from a list kept by hand — and subtracts that set
