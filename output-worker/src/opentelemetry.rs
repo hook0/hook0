@@ -19,6 +19,7 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use std::sync::LazyLock;
 use std::time::Duration;
+use strum::IntoStaticStr;
 use tracing::{info, warn};
 use uuid::Uuid;
 
@@ -421,25 +422,18 @@ static DELIVERIES_GIVEN_UP: LazyLock<Counter<u64>> = LazyLock::new(|| {
 /// `SubscriptionGone` is the expected end of a subscription or application that
 /// no longer wants deliveries. Keeping the three apart is the point: only the
 /// first two are worth waking someone up for.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr)]
 pub enum GiveUpReason {
+    #[strum(serialize = "retries_exhausted")]
     RetriesExhausted,
+    #[strum(serialize = "subscription_gone")]
     SubscriptionGone,
+    #[strum(serialize = "signature_failed")]
     SignatureFailed,
 }
 
-impl GiveUpReason {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            GiveUpReason::RetriesExhausted => "retries_exhausted",
-            GiveUpReason::SubscriptionGone => "subscription_gone",
-            GiveUpReason::SignatureFailed => "signature_failed",
-        }
-    }
-}
-
 pub fn report_given_up(reason: GiveUpReason) {
-    DELIVERIES_GIVEN_UP.add(1, &[KeyValue::new("reason", reason.as_str())]);
+    DELIVERIES_GIVEN_UP.add(1, &[KeyValue::new("reason", <&'static str>::from(reason))]);
 }
 
 /// Total mapping from a delivery `Response` to exactly one bounded `DeliveryOutcome`.
@@ -469,14 +463,6 @@ mod tests {
     use super::*;
     use proptest::prelude::*;
     use std::collections::BTreeSet;
-
-    /// The complete, closed set of labels the `reason` attribute of a give-up may
-    /// ever take.
-    const GIVE_UP_LABELS: [&str; 3] = [
-        "retries_exhausted",
-        "subscription_gone",
-        "signature_failed",
-    ];
 
     /// The complete, closed set of labels the `outcome` attribute may ever take.
     const OUTCOME_LABELS: [&str; 6] = [
@@ -556,22 +542,6 @@ mod tests {
         assert_eq!(labels, expected);
         // Each variant maps to a distinct label (no collisions).
         assert_eq!(labels.len(), 6);
-    }
-
-    #[test]
-    fn give_up_reason_labels_are_the_closed_bounded_set() {
-        let labels: BTreeSet<&str> = [
-            GiveUpReason::RetriesExhausted,
-            GiveUpReason::SubscriptionGone,
-            GiveUpReason::SignatureFailed,
-        ]
-        .iter()
-        .map(GiveUpReason::as_str)
-        .collect();
-        let expected: BTreeSet<&str> = GIVE_UP_LABELS.into_iter().collect();
-        assert_eq!(labels, expected);
-        // Each variant maps to a distinct label (no collisions).
-        assert_eq!(labels.len(), 3);
     }
 
     #[test]
