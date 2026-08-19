@@ -12,7 +12,7 @@ Every call comes in two flavours: one that blocks, and one that suspends.
 <dependency>
   <groupId>com.hook0</groupId>
   <artifactId>hook0-client-kotlin</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
 </dependency>
 ```
 

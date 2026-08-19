@@ -49,10 +49,10 @@ of entry points. Each entry names itself, the tag it selects out of the snapshot
 relative to the root of the repository, what it owns there, how its language spells things, and the
 one function turning the model into files.
 
-Today it carries one entry, `mcp`: `hook0-mcp` is published to crates.io with no copy of the
-snapshot beside it, so its tool table is a committed source file —
-`clients/mcp/src/server/generated.rs` — that this crate writes and the server merely compiles. The
-MCP crate depends on nothing here, not even at build time.
+Today it carries twelve entries, the eleven client libraries and `mcp`. The MCP one is the odd one
+out. `hook0-mcp` is published to crates.io with no copy of the snapshot beside it, so its tool table
+is a committed source file, `clients/mcp/src/server/generated.rs`, that this crate writes and the
+server merely compiles. The MCP crate depends on nothing here, not even at build time.
 
 Every target is emitted and checked through one driver, `tests/targets.rs`:
 

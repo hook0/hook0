@@ -24,9 +24,12 @@ network failure or a server error ingests the event once rather than twice; with
 client-chosen ID, a repeated request would create a second event and deliver it to every
 subscriber.
 
-Only a network failure or a server error is retried. A retried request Hook0 answers with
-`EventAlreadyIngested` resolves — an earlier attempt of that same send reached the API. The same
-answer to a *first* attempt is a genuine conflict and rejects.
+A network failure, a server error, and a `429` whose body names the `RateLimited` problem are
+retried. A `429` naming a spent quota is not, because a quota clears when a plan changes or a day
+turns and no send can wait for that. A `Retry-After` the answer carries is honoured and clamped to
+what is left of the delay budget. A retried request Hook0 answers with `EventAlreadyIngested`
+resolves, because an earlier attempt of that same send reached the API. The same answer to a *first*
+attempt is a genuine conflict and rejects.
 
 Every send is bounded, and every bound is configurable:
 

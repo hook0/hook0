@@ -34,8 +34,8 @@ Complete API specification with all endpoints, request/response formats, and aut
 | Applications | Create, list, get, delete |
 | Event Types | Create, list, get, delete |
 | Subscriptions | Create, list, get, update, delete |
-| Events | Ingest, list, get |
-| Request Attempts | List, get, retry |
+| Events | Ingest, list, get, replay |
+| Request Attempts | List, get |
 
 ---
 
@@ -50,12 +50,12 @@ Client libraries for integrating Hook0 into your applications.
 | Python | [`hook0-client`](sdk/python.md) | PyPI |
 | Ruby | [`hook0-client`](sdk/ruby.md) | RubyGems |
 | C# / .NET | [`Hook0.Client`](sdk/csharp.md) | NuGet |
-| Go | [`clients/go`](sdk/go.md) | source |
-| PHP | [`hook0/client`](sdk/php.md) | source |
+| Go | [`github.com/hook0/hook0-go`](sdk/go.md) | Go module proxy |
+| PHP | [`hook0/client`](sdk/php.md) | Packagist |
 | Java | [`com.hook0:hook0-client`](sdk/java.md) | source |
 | Kotlin | [`com.hook0:hook0-client-kotlin`](sdk/kotlin.md) | source |
 | Lua | [`hook0-client`](sdk/lua.md) | source |
-| Zig | [`hook0_client`](sdk/zig.md) | source |
+| Zig | [`hook0_client`](sdk/zig.md) | tagged archive |
 
 Each page says how to install the client, how to send an event, and how to verify a webhook signature. See [SDKs & client libraries](sdk/index.md) for what they share.
 

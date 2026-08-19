@@ -30,7 +30,7 @@ The package is `hook0` while the module path ends in `go`, so import it under it
 import hook0 "github.com/hook0/hook0-go"
 ```
 
-Go 1.24 or later is required.
+Go 1.25.13 or later is required, which is the floor `go.mod` declares.
 
 ## Sending an event is idempotent, and retried
 
@@ -38,7 +38,7 @@ Go 1.24 or later is required.
 
 That is what makes retrying safe. Hook0 keys events on their ID, so a request repeated after a network failure or a server error ingests the event once rather than twice; without a client-chosen ID, a repeated request would create a second event and deliver it to every subscriber.
 
-Only a network failure or a server error is retried. A retried request Hook0 answers with `EventAlreadyIngested` reports success — an earlier attempt of that same send reached the API. The same answer to a *first* attempt is a genuine conflict and is answered as an error.
+A network failure, a server error, and a `429` whose body names the `RateLimited` problem are retried. A `429` naming a spent quota is not, because a quota clears when a plan changes or a day turns and no send can wait for that. A `Retry-After` the answer carries is honoured and clamped to what is left of the delay budget. A retried request Hook0 answers with `EventAlreadyIngested` reports success, because an earlier attempt of that same send reached the API. The same answer to a *first* attempt is a genuine conflict and is answered as an error.
 
 Every send is bounded, and every bound is configurable:
 
