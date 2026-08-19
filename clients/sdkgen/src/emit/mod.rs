@@ -263,17 +263,7 @@ pub fn write_target(
         }
     }
 
-    let mut to_remove = Vec::new();
-    if ownership == Ownership::Directory {
-        let kept: BTreeSet<&str> = tree.files().iter().map(|file| file.path.as_str()).collect();
-        for absolute in &walked.files {
-            let relative = relative_of(root, absolute, limits)?;
-            if !kept.contains(relative.as_str()) {
-                to_remove.push((relative, absolute.clone()));
-            }
-        }
-        to_remove.sort_by(|left, right| left.0.cmp(&right.0));
-    }
+    let to_remove = stale(&walked, root, ownership, tree, limits)?;
 
     let mut report = WriteReport {
         unchanged,
@@ -299,6 +289,53 @@ pub fn write_target(
     }
 
     Ok(report)
+}
+
+/// What the target root holds that the tree does not.
+///
+/// Under [`Ownership::Directory`] this is what a write removes. It is also what tells a committed
+/// tree apart from the one the snapshot dictates. Comparing only the emitted paths answers whether
+/// each of them is right and says nothing about a file that should no longer be there at all. A
+/// renamed entity leaves one behind, and it is published for as long as nobody looks.
+///
+/// Empty under [`Ownership::Files`], where the emitted paths are the whole of what the generator
+/// owns and everything beside them was written by hand.
+pub fn stale_under(
+    root: &Path,
+    ownership: Ownership,
+    tree: &FileTree,
+    limits: &Limits,
+) -> Result<Vec<RelativePath>, Error> {
+    let walked = walk(root, limits)?;
+    Ok(stale(&walked, root, ownership, tree, limits)?
+        .into_iter()
+        .map(|(relative, _)| relative)
+        .collect())
+}
+
+/// The one place the rule lives, so what a write removes and what a check reports cannot drift
+/// apart.
+fn stale(
+    walked: &Walked,
+    root: &Path,
+    ownership: Ownership,
+    tree: &FileTree,
+    limits: &Limits,
+) -> Result<Vec<(RelativePath, PathBuf)>, Error> {
+    if ownership != Ownership::Directory {
+        return Ok(Vec::new());
+    }
+
+    let kept: BTreeSet<&str> = tree.files().iter().map(|file| file.path.as_str()).collect();
+    let mut found = Vec::new();
+    for absolute in &walked.files {
+        let relative = relative_of(root, absolute, limits)?;
+        if !kept.contains(relative.as_str()) {
+            found.push((relative, absolute.clone()));
+        }
+    }
+    found.sort_by(|left, right| left.0.cmp(&right.0));
+    Ok(found)
 }
 
 /// What is already under the target root, walked to a bounded depth and breadth.

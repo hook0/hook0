@@ -23,7 +23,8 @@ pub mod targets;
 
 pub use conformance::{ConformanceError, Corpus, CorpusLimits};
 pub use emit::{
-    CommentStyle, EmittedFile, FileTree, Ownership, RelativePath, WriteReport, banner, write_target,
+    CommentStyle, EmittedFile, FileTree, Ownership, RelativePath, WriteReport, banner, stale_under,
+    write_target,
 };
 pub use error::Error;
 pub use identifier::{Case, Casing, Escape, ReservedWords};

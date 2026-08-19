@@ -11,12 +11,14 @@
 //! UPDATE_SDK=mcp cargo test -p hook0-sdkgen sdk_targets  # rewrite one, still check the rest
 //! ```
 
+use std::collections::BTreeSet;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use hook0_sdkgen::targets::{EVERY_TARGET, Target, UPDATE_VARIABLE, targets, update_command};
-use hook0_sdkgen::{ApiModel, FileTree, Limits, RelativePath, Snapshot, write_target};
+use hook0_sdkgen::{ApiModel, FileTree, Limits, RelativePath, Snapshot, stale_under, write_target};
 use proptest::prelude::*;
 
 mod common;
@@ -35,6 +37,9 @@ const MAX_REPORTED_LINES: usize = 20;
 
 /// How much of a differing line a report prints.
 const MAX_RENDERED_LINE_CHARS: usize = 120;
+
+/// The most bytes read back from the index listing under one target.
+const MAX_GIT_OUTPUT_BYTES: usize = 4 * 1024 * 1024;
 
 /// Which targets a run rewrites rather than checks.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -118,7 +123,7 @@ fn sdk_targets_match_the_openapi_snapshot() {
             continue;
         }
 
-        if let Some(report) = drift(target, &root, &tree) {
+        if let Some(report) = drift(target, &root, &tree, &limits) {
             drifted.push(report);
         }
     }
@@ -286,9 +291,26 @@ fn root_of(target: &Target) -> PathBuf {
 }
 
 /// How the committed target differs from what the snapshot dictates, or nothing when it does not.
-fn drift(target: &Target, root: &Path, tree: &FileTree) -> Option<String> {
+///
+/// Two questions, and the second is the one that used to go unasked. Walking the emitted files
+/// answers whether each of them holds what it should. It cannot answer whether a file is committed
+/// that the target no longer emits, since nothing in the tree points at it: rename an entity and
+/// the file named after the old one stays where it is, published, until somebody happens to look.
+/// So what is on disk is read as well, under the same rule a write removes by.
+fn drift(target: &Target, root: &Path, tree: &FileTree, limits: &Limits) -> Option<String> {
     let mut differing = Vec::new();
     let mut further = 0usize;
+
+    for path in &orphaned(target, root, tree, limits) {
+        if differing.len() == MAX_REPORTED_FILES {
+            further += 1;
+            continue;
+        }
+        differing.push(format!(
+            "  {}/{}\n    committed, and the snapshot no longer describes it",
+            target.root, path
+        ));
+    }
 
     for file in tree.files() {
         let committed = committed(&file.path.under(root));
@@ -326,6 +348,74 @@ fn drift(target: &Target, root: &Path, tree: &FileTree) -> Option<String> {
     }
 
     Some(report)
+}
+
+/// The files committed under the target root that the snapshot no longer describes.
+///
+/// Held to what the index carries rather than to what the directory holds. The two differ by
+/// whatever the ecosystem left behind. Running the Python suite once writes bytecode into the
+/// generated package, and a guard reading the directory alone would call ten `.pyc` files a drift
+/// on every machine that had run the tests. What a commit would carry is the only thing a
+/// published tree is made of.
+fn orphaned(target: &Target, root: &Path, tree: &FileTree, limits: &Limits) -> Vec<RelativePath> {
+    let Some(tracked) = tracked_under(root) else {
+        // Printed rather than passed over in silence, since a guard nobody notices has stopped
+        // running is the failure this whole suite is written against.
+        println!(
+            "target `{}`: no git to ask what is committed, so a file left behind by a rename is \
+             not looked for",
+            target.name
+        );
+        return Vec::new();
+    };
+
+    stale_under(root, target.ownership, tree, limits)
+        .unwrap_or_else(|err| {
+            panic!(
+                "what target `{}` has already written cannot be read back: {err}",
+                target.name
+            )
+        })
+        .into_iter()
+        .filter(|path| tracked.contains(path.as_str()))
+        .collect()
+}
+
+/// Every path the index carries under one directory, or nothing when there is no git to ask.
+fn tracked_under(root: &Path) -> Option<BTreeSet<String>> {
+    if !root.is_dir() {
+        return Some(BTreeSet::new());
+    }
+
+    // Run from the directory itself, which is what makes git answer with paths relative to it, and
+    // `-z` so a name carrying a newline stays one name.
+    let answer = match Command::new("git")
+        .args(["ls-files", "-z"])
+        .current_dir(root)
+        .output()
+    {
+        Ok(answer) => answer,
+        Err(err) if err.kind() == ErrorKind::NotFound => return None,
+        Err(err) => panic!("could not ask git what is committed under {root:?}: {err}"),
+    };
+    if !answer.status.success() {
+        return None;
+    }
+
+    assert!(
+        answer.stdout.len() <= MAX_GIT_OUTPUT_BYTES,
+        "git listed more than the {MAX_GIT_OUTPUT_BYTES} bytes read back under {}",
+        root.display()
+    );
+
+    Some(
+        answer
+            .stdout
+            .split(|byte| *byte == 0)
+            .filter(|path| !path.is_empty())
+            .map(|path| String::from_utf8_lossy(path).into_owned())
+            .collect(),
+    )
 }
 
 /// What is committed at that path, or nothing when no file is.
