@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO iam.user (user__id, email, password, first_name, last_name, email_verification_sent_at, signup_channel)\n                VALUES ($1, $2, $3, $4, $5, statement_timestamp(), $6)\n                ON CONFLICT (email) DO NOTHING\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6be729b75993cb897bc2d95fbac203d932c38ca9a3bddc9715acecc7bcdc1ba2"
+}

@@ -139,3 +139,29 @@ LruCache::pop(), caught by std::panic::catch_unwind — the workspace contains n
 catch_unwind at all, so the unsound state cannot be observed here. Re-evaluated
 with the other aws-sdk-s3-blocked entries on 2026-08-31.
 """
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0258"
+ignoreUntil = "2026-11-30T00:00:00Z"
+reason = """
+h2 unbounded empty DATA frames (denial of service, severity Low). Fixed in
+0.4.16, and the tree already carries 0.4.16 — reqwest 0.13 is what sends
+webhooks and every other outbound call, so the code paths that talk to
+addresses a third party chooses are already on the fixed line.
+
+The 0.3.27 copy that remains is reachable two ways, neither of them exposed:
+
+  - actix-http 3.13 (the API server). actix-web 4 only negotiates HTTP/2
+    through ALPN over TLS, and the server binds in clear text
+    (`.bind()` in api/src/main.rs, never `bind_rustls`/`bind_openssl`) with
+    TLS terminated upstream, so it never speaks HTTP/2 and the frame handling
+    this advisory covers is never entered.
+  - hyper 0.14, via aws-smithy-http-client and hyper-rustls 0.24 — the S3
+    client. Triggering it needs the object storage endpoint itself to send the
+    empty frames, and that endpoint is operator configuration, not attacker
+    input.
+
+No bump is available: 0.3.27 is the last release of the 0.3 line, and moving
+to 0.4 means actix-web 5, which is unreleased. Re-evaluate when actix-web
+ships a release built on h2 0.4.
+"""
