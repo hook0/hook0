@@ -9,7 +9,7 @@
 //     (« auf DSGVO-Konformitaet ausgelegt »).
 //   - Verboten : « 100% souveraen », « keine Daten verlassen die EU »,
 //     « kein US-Konzern im Stack », « CLOUD Act free ».
-//   - SSPL = « quelloffen (SSPL-1.0) » (auf dieser Seite nicht erwaehnt).
+//   - SSPL = « Open Source (SSPL-1.0) » (auf dieser Seite nicht erwaehnt).
 //
 // Hook0 Hardfacts verbatim ueber alle Locales :
 //   - FGRibreau SARL (Verantwortlicher Auftragsverarbeiter fuer Kundendaten)
