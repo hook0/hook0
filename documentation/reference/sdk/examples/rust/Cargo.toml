@@ -25,13 +25,13 @@ hook0-client = { path = "{{client}}", features = ["producer", "consumer"] }
 # `use` line names to be a direct dependency, not merely one reached through another crate.
 actix-web = { version = "=4.14.1", default-features = false, features = ["macros"] }
 chrono = { version = "=0.4.45", features = ["serde"] }
-futures = "=0.3.33"
+futures = "=0.3.34"
 log = "=0.4.33"
 reqwest = "=0.13.4"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
 tokio = { version = "=1.53.1", features = ["macros", "rt-multi-thread", "time"] }
-uuid = { version = "=1.24.0", features = ["v4", "v7", "serde"] }
+uuid = { version = "=1.24.1", features = ["v4", "v7", "serde"] }
 
 [profile.dev]
 # Every example is built, never run, so the information a debugger would read off it is spent for
