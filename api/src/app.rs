@@ -17,7 +17,7 @@ use tracing_actix_web::TracingLogger;
 use url::Url;
 use uuid::Uuid;
 
-use crate::client_options::Hook0RootSpanBuilder;
+use crate::client_options::{CLIENT_OPTIONS_HEADER, Hook0RootSpanBuilder};
 use crate::rate_limiting::Hook0RateLimiters;
 use crate::{
     State, WEBAPP_INDEX_FILE, handlers, middleware_biscuit, middleware_get_user_ip, openapi,
@@ -79,6 +79,11 @@ pub fn build_app(
                 http::header::ACCEPT,
                 http::header::AUTHORIZATION,
                 http::header::CONTENT_TYPE,
+                // Every published SDK sends this on every request, so leaving it out of the
+                // allow-list makes a browser refuse the preflight and the request never leaves.
+                // It is the constant the request handler reads the header with, so the two
+                // cannot drift into naming it differently.
+                CLIENT_OPTIONS_HEADER,
             ])
             .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
             .max_age(3600);
@@ -526,6 +531,48 @@ pub(crate) mod test_support {
             disable_serving_webapp: true,
             webapp_path: String::new(),
         }
+    }
+
+    /// A browser can send what the SDKs send.
+    ///
+    /// Every published client puts `Hook0-Client-Options` on every request, and the header is not
+    /// one the fetch specification safelists, so a browser asks permission for it before the
+    /// request is made. A header missing from the allow-list makes that preflight fail, and the
+    /// request the caller wrote never leaves the page. The SDK works from a server and stops
+    /// working from a browser, with nothing in the API log to say why.
+    ///
+    /// The preflight is driven rather than the allow-list read, because what decides is what
+    /// `actix-cors` does with the list rather than what the list contains.
+    #[actix_web::test]
+    async fn a_browser_may_send_the_header_every_sdk_sends() {
+        let mut config = inert_app_factory_config().await;
+        const ORIGIN: &str = "https://dashboard.hook0.test";
+        config.cors_allowed_origins = vec![ORIGIN.to_owned()];
+        let app = test::init_service(build_app(&config)).await;
+
+        let response = test::call_service(
+            &app,
+            test::TestRequest::default()
+                .method(actix_web::http::Method::OPTIONS)
+                .uri("/api/v1/events/")
+                .insert_header(("Origin", ORIGIN))
+                .insert_header(("Access-Control-Request-Method", "POST"))
+                .insert_header((
+                    "Access-Control-Request-Headers",
+                    CLIENT_OPTIONS_HEADER.as_str(),
+                ))
+                .peer_addr(SocketAddr::from(([127, 0, 0, 1], 5678)))
+                .to_request(),
+        )
+        .await;
+
+        assert!(
+            response.status().is_success(),
+            "the preflight for `{}` was answered {}, so a browser would refuse to send the \
+             request; add the header to the allow-list in `build_app`",
+            CLIENT_OPTIONS_HEADER.as_str(),
+            response.status()
+        );
     }
 
     /// Build the application and read back the OpenAPI document it serves.
