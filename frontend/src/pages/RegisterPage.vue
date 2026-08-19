@@ -32,6 +32,13 @@ import Hook0Stack from '@/components/Hook0Stack.vue';
 import Hook0AuthTrustBadges from '@/components/Hook0AuthTrustBadges.vue';
 
 import CustomerLogo from '@/components/logos/CustomerLogo.vue';
+import {
+  browserSessionStorage,
+  declaredChannel,
+  readSignupChannel,
+  UNKNOWN_CHANNEL,
+} from '@/utils/signupChannel';
+import Hook0Select from '@/components/Hook0Select.vue';
 
 const { t } = useI18n();
 
@@ -83,6 +90,37 @@ function handleFormStart() {
   }
 }
 
+// Where this tab came from, read once so the form can tell whether it needs to
+// ask. Detection happens at bootstrap, before the router rewrote the URL.
+const detectedChannel = ref<string>(UNKNOWN_CHANNEL);
+
+// Asking everyone would tax the whole funnel to learn what the browser already
+// knows most of the time. The question appears only where the answer is the
+// only way to know.
+const asksForOrigin = computed(() => detectedChannel.value === UNKNOWN_CHANNEL);
+
+/** Empty until the person picks something; empty means they did not answer. */
+const declaredOrigin = ref<string>('');
+
+const originOptions = computed(() => [
+  { value: '', label: t('auth.register.originUnanswered') },
+  { value: 'search', label: t('auth.register.originSearch') },
+  { value: 'ai', label: t('auth.register.originAi') },
+  { value: 'social', label: t('auth.register.originSocial') },
+  { value: 'friend', label: t('auth.register.originFriend') },
+  { value: 'blog', label: t('auth.register.originBlog') },
+  { value: 'event', label: t('auth.register.originEvent') },
+  { value: 'other', label: t('auth.register.originOther') },
+]);
+
+/** The answer when there is one, the detected channel otherwise. */
+function signupChannelToSend(): string {
+  if (declaredOrigin.value === '') {
+    return detectedChannel.value;
+  }
+  return declaredChannel(declaredOrigin.value);
+}
+
 function readGclidCookie(): string {
   const match = document.cookie.match(/(?:^|;\s*)hook0_gclid=([^;]+)/);
   if (!match) return '';
@@ -96,6 +134,7 @@ function readGclidCookie(): string {
 onMounted(() => {
   trackPageWithDimensions('auth', 'view', 'signup-form');
   trackEvent('signup', 'page-view', 'register');
+  detectedChannel.value = readSignupChannel(browserSessionStorage());
   // URL gclid wins (fresh ad click in this session). Fall back to the
   // .hook0.com parent-domain cookie set on www.hook0.com after consent —
   // bridges deferred signups (user clicked an ad earlier, returns to app
@@ -125,7 +164,8 @@ const onSubmit = handleSubmit((values) => {
       values.lastName,
       values.password,
       captchaToken.value !== '' ? captchaToken.value : undefined,
-      gclid.value !== '' ? gclid.value : undefined
+      gclid.value !== '' ? gclid.value : undefined,
+      signupChannelToSend()
     )
     .then(() => {
       trackEvent('signup', 'form-success', 'register');
@@ -264,6 +304,18 @@ const onSubmit = handleSubmit((values) => {
           >
             {{ isLoading ? t('auth.register.submitting') : t('auth.register.submit') }}
           </Hook0Button>
+
+          <div v-if="asksForOrigin" class="register-origin" data-test="register-origin">
+            <Hook0Select
+              id="signupOrigin"
+              v-model="declaredOrigin"
+              :options="originOptions"
+              :label="t('auth.register.originLabel')"
+              data-test="register-origin-select"
+              :disabled="isLoading"
+            />
+            <p class="register-origin__hint">{{ t('auth.register.originHint') }}</p>
+          </div>
 
           <p v-if="gclid" class="register-gclid-notice" data-test="register-gclid-notice">
             {{ t('auth.register.gclidNotice') }}
@@ -409,6 +461,17 @@ const onSubmit = handleSubmit((values) => {
 
 .register-captcha {
   margin-top: 0.5rem;
+}
+
+.register-origin {
+  margin-top: 0.75rem;
+}
+
+.register-origin__hint {
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
 }
 
 .register-gclid-notice {
