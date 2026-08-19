@@ -1052,7 +1052,16 @@ fn method_name(text: &str, language: &LanguageSpec, limits: &Limits) -> Result<S
     let words = checked_words(text, limits)?;
     let rendered = render(&words, language.casing.method);
 
-    Ok(escape(&rendered, super::typescript_method_reserved()))
+    escape(&rendered, super::typescript_method_reserved()).map_err(|failure| match failure {
+        Error::UnspellableName {
+            identifier, reason, ..
+        } => Error::UnspellableName {
+            name: preview(text),
+            identifier,
+            reason,
+        },
+        other => other,
+    })
 }
 
 /// The name that text is spelled under, out of the way of the language's own vocabulary.

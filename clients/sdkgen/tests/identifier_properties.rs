@@ -44,6 +44,22 @@ fn name() -> impl Strategy<Value = String> {
     ]
 }
 
+/// Whether text is a name every one of the twelve languages reads.
+///
+/// The same rule the crate applies, written again rather than reached for, so the property is
+/// answering the question rather than asking the code under test to agree with itself.
+fn is_an_identifier(text: &str) -> bool {
+    let mut characters = text.chars();
+    let Some(first) = characters.next() else {
+        return false;
+    };
+    if !first.is_ascii_alphabetic() && first != '_' {
+        return false;
+    }
+    characters
+        .all(|character| character.is_ascii_alphanumeric() || character == '_' || character == '-')
+}
+
 fn case() -> impl Strategy<Value = Case> {
     prop_oneof![
         Just(Case::Snake),
@@ -81,17 +97,48 @@ fn reserved() -> impl Strategy<Value = ReservedWords> {
 proptest! {
     #![proptest_config(config())]
 
-    /// Whatever a name is, the identifier it ends up as can be written down and compiled: it spells
-    /// something, and it is not one of the words the language keeps for itself.
+    /// Whatever a name is, it either yields an identifier that can be written down and compiled, or
+    /// it is refused. It never yields something in between.
+    ///
+    /// The three assertions this used to carry were that the identifier spells something, that it
+    /// is not a keyword, and that escaping it again leaves it alone. None of them can fail on a
+    /// rendering that is no identifier at all, which is what the docstring was already claiming
+    /// they covered: `2fa` spells something, is nobody's keyword, and is stable under escaping, and
+    /// it compiles in none of the twelve languages. What is asserted below is the claim itself,
+    /// character by character.
     #[test]
     fn a_name_always_yields_an_identifier_the_language_accepts(
         name in name(),
         case in case(),
         reserved in reserved(),
     ) {
-        let identifier = escape(&render(&words(&name), case), &reserved);
+        let rendered = render(&words(&name), case);
+        let Ok(identifier) = escape(&rendered, &reserved) else {
+            // A refusal is an answer, and it is only allowed to be the answer when the rendering
+            // really is no identifier. Checked here rather than trusted, so a refusal cannot become
+            // the easy way out of a name that was perfectly usable.
+            prop_assert!(
+                !is_an_identifier(&rendered),
+                "`{}` rendered `{}`, which is an identifier, and it was refused anyway",
+                name,
+                rendered
+            );
+            return Ok(());
+        };
 
         prop_assert!(!identifier.is_empty(), "`{}` yielded no identifier", name);
+        // C# spells an escaped keyword `@type`, so a vocabulary that prefixes is allowed one
+        // marker in front of what is otherwise a name. Dropped by characters rather than by bytes,
+        // since a marker is a `char` and slicing one off by index splits it.
+        let mut past_marker = identifier.chars();
+        past_marker.next();
+        let unmarked: String = past_marker.collect();
+        prop_assert!(
+            is_an_identifier(&identifier) || is_an_identifier(&unmarked),
+            "`{}` yielded `{}`, which no language reads as a name",
+            name,
+            identifier
+        );
         prop_assert!(
             !reserved.contains(&identifier),
             "`{}` yielded the keyword `{}`",
@@ -99,8 +146,8 @@ proptest! {
             identifier
         );
         prop_assert_eq!(
-            escape(&identifier, &reserved),
-            identifier.clone(),
+            escape(&identifier, &reserved).ok(),
+            Some(identifier.clone()),
             "escaping `{}` again moved it",
             identifier
         );

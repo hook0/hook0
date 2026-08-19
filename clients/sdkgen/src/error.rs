@@ -136,6 +136,13 @@ pub enum Error {
     #[error("no identifier can be rendered from words that carry no character")]
     EmptyIdentifier,
 
+    #[error("`{name}` spells `{identifier}`, which no identifier can be: {reason}")]
+    UnspellableName {
+        name: String,
+        identifier: String,
+        reason: String,
+    },
+
     #[error("`{path}` is emitted as a file, yet `{nested}` needs it to be a directory")]
     EmittedPathCollision { path: String, nested: String },
 

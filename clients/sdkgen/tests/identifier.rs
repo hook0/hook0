@@ -90,19 +90,48 @@ fn an_empty_word_is_dropped_rather_than_spelled_as_a_bare_separator() {
     assert_eq!(render(&[], Case::Snake), "");
 }
 
+/// What a rendering escapes to, for the cases where it escapes to anything at all.
+fn spelled(rendered: &str, reserved: &ReservedWords) -> String {
+    escape(rendered, reserved).expect("this rendering is an identifier")
+}
+
+#[test]
+fn a_rendering_that_is_no_identifier_is_refused_rather_than_written_out() {
+    let reserved = reserved();
+
+    // A digit first. Eleven of the twelve languages spell a field straight into their source, so
+    // this used to travel as far as `pub 2fa: String` and `2fa string `json:"2fa"``.
+    let refused = escape("2fa", &reserved).expect_err("a digit opens no identifier");
+    assert!(format!("{refused}").contains("2fa"), "{refused}");
+    assert!(format!("{refused}").contains('2'), "{refused}");
+
+    // A character no language reads in a name, wherever it sits.
+    escape("foo$bar", &reserved).expect_err("a dollar sign belongs to no identifier");
+    // A letter, but not one every target reads.
+    escape("並", &reserved).expect_err("a name spans twelve languages, so it spans what all read");
+
+    // And what is an identifier still is one. A leading underscore opens a name, a digit inside a
+    // name is a digit inside a name, and a hyphen is what `Case::Kebab` puts there.
+    for accepted in ["_private", "sha256", "event-type", "a"] {
+        escape(accepted, &reserved).unwrap_or_else(|failure| {
+            panic!("`{accepted}` is an identifier, and was refused: {failure}")
+        });
+    }
+}
+
 #[test]
 fn a_name_landing_on_a_keyword_is_stepped_around_until_it_no_longer_does() {
     let reserved = reserved();
 
-    assert_eq!(escape("application", &reserved), "application");
-    assert_eq!(escape("const", &reserved), "const_");
+    assert_eq!(spelled("application", &reserved), "application");
+    assert_eq!(spelled("const", &reserved), "const_");
     // `type_` is reserved too, so one step is not enough.
-    assert_eq!(escape("type", &reserved), "type__");
+    assert_eq!(spelled("type", &reserved), "type__");
 }
 
 #[test]
 fn a_name_that_rendered_to_nothing_comes_back_as_the_placeholder() {
-    assert_eq!(escape("", &reserved()), "value");
+    assert_eq!(spelled("", &reserved()), "value");
 }
 
 #[test]
@@ -110,8 +139,8 @@ fn the_escape_strategy_travels_with_the_list_it_escapes_against() {
     let prefixing = ReservedWords::build(&RESERVED, Escape::Prefix('@'), "value")
         .expect("the keyword list is usable");
 
-    assert_eq!(escape("const", &prefixing), "@const");
-    assert_eq!(escape("", &prefixing), "value");
+    assert_eq!(spelled("const", &prefixing), "@const");
+    assert_eq!(spelled("", &prefixing), "value");
 }
 
 #[test]

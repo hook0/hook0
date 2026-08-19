@@ -5,10 +5,12 @@
 //! it is built from happens once, here, and each casing is rendered from those words rather than
 //! from a name-mangling routine written again per target.
 //!
-//! Escaping travels with the vocabulary it guards: Rust spells an escaped `type` as `type_` and C#
+//! Escaping travels with the vocabulary it guards. Rust spells an escaped `type` as `type_` and C#
 //! spells it `@type`, so a caller names the vocabulary that applies and never how to get out of it.
-//! [`escape`] is total — whatever it is handed, including a name that rendered to nothing, it comes
-//! back as an identifier the language will accept.
+//! [`escape`] answers for every name it is handed. One that rendered to nothing comes back as the
+//! vocabulary's fallback, one that collides with a keyword comes back out of its way, and one that
+//! is no identifier at all is refused rather than passed through. It used to be passed through, and
+//! a property named `2fa` became `pub 2fa: String` in eleven languages that compile no such thing.
 
 use crate::error::{Error, preview};
 use crate::limits::Limits;
@@ -233,18 +235,51 @@ pub fn spell(
     limits: &Limits,
 ) -> Result<String, Error> {
     let words = checked_words(text, limits)?;
-    Ok(escape(&render(&words, case), reserved))
+    escape(&render(&words, case), reserved).map_err(|failure| match failure {
+        // Re-raised against the name the snapshot spells, which is what somebody would have to
+        // change, rather than against the rendering of it that this function happened to try.
+        Error::UnspellableName {
+            identifier, reason, ..
+        } => Error::UnspellableName {
+            name: preview(text),
+            identifier,
+            reason,
+        },
+        other => other,
+    })
 }
 
-/// Spells a rendered identifier out of the way of a language's vocabulary.
+/// Spells a rendered identifier out of the way of a language's vocabulary, or says it cannot.
 ///
 /// Escaping is applied again as long as it keeps landing on a keyword, which is what covers a
 /// vocabulary holding both `type` and `type_`. Every application grows the identifier, so the
 /// candidates are all distinct and the vocabulary runs out of words before the loop runs out of
 /// steps.
-pub fn escape(rendered: &str, reserved: &ReservedWords) -> String {
+///
+/// A rendering that no language reads as an identifier is refused here rather than mangled into
+/// one. Mangling would invent a name, and an invented name is published. It becomes the public
+/// surface of twelve packages, and moving it afterwards is a breaking change to all of them. The
+/// document is committed, so a refusal stops the generator on the commit that introduced the name,
+/// where the fix belongs.
+pub fn escape(rendered: &str, reserved: &ReservedWords) -> Result<String, Error> {
     if rendered.is_empty() {
-        return reserved.placeholder.clone();
+        return Ok(reserved.placeholder.clone());
+    }
+
+    // A vocabulary that steps around a keyword by prefixing spells `@type`, and in the language
+    // that does it that is a name. So the marker is allowed in front and what has to read as a
+    // name is the rest, which is also what leaves an already-escaped identifier alone when it comes
+    // back through here.
+    let bare = match reserved.escape {
+        Escape::Prefix(marker) => rendered.strip_prefix(marker).unwrap_or(rendered),
+        Escape::Suffix(_) => rendered,
+    };
+    if let Some(reason) = unspellable(bare) {
+        return Err(Error::UnspellableName {
+            name: preview(rendered),
+            identifier: preview(rendered),
+            reason,
+        });
     }
 
     let mut escaped = rendered.to_owned();
@@ -255,7 +290,37 @@ pub fn escape(rendered: &str, reserved: &ReservedWords) -> String {
         escaped = reserved.escape.applied_to(&escaped);
     }
 
-    escaped
+    Ok(escaped)
+}
+
+/// Why a rendering is no identifier, or nothing when it is one.
+///
+/// Held to ASCII rather than to what any one language allows. Go and C# read a letter from any
+/// script, Zig and Lua read none, and one name is written into twelve languages at once, so what
+/// all twelve read is the whole of what can be used.
+///
+/// A hyphen passes anywhere but first, because [`Case::Kebab`] is the only thing that can put one
+/// there. [`words`] reads a hyphen as a separator, so no word carries one, and what kebab spells is
+/// a file name or a package fragment rather than a name in the source.
+fn unspellable(rendered: &str) -> Option<String> {
+    let mut characters = rendered.chars();
+    let Some(first) = characters.next() else {
+        // Reached by a rendering that was nothing but an escape marker. The empty rendering itself
+        // never arrives here, having already come back as the vocabulary's fallback.
+        return Some("it spells nothing at all".to_owned());
+    };
+    if !first.is_ascii_alphabetic() && first != '_' {
+        return Some(format!(
+            "it opens on `{first}`, where an identifier opens on an ASCII letter or an underscore"
+        ));
+    }
+
+    let stray = characters.find(|character| {
+        !character.is_ascii_alphanumeric() && *character != '_' && *character != '-'
+    })?;
+    Some(format!(
+        "it carries `{stray}`, where an identifier carries ASCII letters, digits and underscores"
+    ))
 }
 
 fn lowercased(rendered: &mut String, word: &str) {
