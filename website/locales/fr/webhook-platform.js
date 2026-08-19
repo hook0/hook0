@@ -2,17 +2,17 @@
 // /humanizer pro + legal-reviewer applied.
 module.exports = {
   pageTitle: 'Plateforme webhooks en Europe, alignée RGPD | Hook0',
-  pageDescription: 'Plateforme webhooks à code source ouvert (SSPL-1.0) : HMAC, relances, file des échecs, portail abonnés. Données en France (Clever Cloud).',
+  pageDescription: 'Plateforme webhooks open source (SSPL-1.0) : HMAC, relances, file des échecs, portail abonnés. Données en France (Clever Cloud).',
   "pageModified": "2026-06-25",
   "track": "fr-webhook-plateforme",
   "hero": {
     "eyebrow": "Plateforme de webhooks",
     "titleLine1": "Des webhooks qui arrivent",
     "titleLine2": "fiables, vérifiables, en Europe",
-    "subtitle": "Relances automatiques, signatures HMAC et logs complets. Les données applicatives sont traitées en France (Clever Cloud). Code source ouvert (SSPL-1.0), auto-hébergeable. Éditeur sans maison-mère américaine.",
+    "subtitle": "Relances automatiques, signatures HMAC et logs complets. Les données applicatives sont traitées en France (Clever Cloud). Open source (SSPL-1.0), auto-hébergeable. Éditeur sans maison-mère américaine.",
     "ctaPrimary": "Commencer gratuitement",
     "ctaSecondary": "Tester le Playground",
-    "microcopy": "100 events/jour gratuits. Sans carte bancaire. Code source ouvert (SSPL-1.0)."
+    "microcopy": "100 events/jour gratuits. Sans carte bancaire. Open source (SSPL-1.0)."
   },
   "socialProof": false,
   "capabilities": {
@@ -71,9 +71,9 @@ module.exports = {
     ]
   },
   "openSource": {
-    "eyebrow": "Code source ouvert",
+    "eyebrow": "Open source",
     "h2": "Tu gardes le contrôle",
-    "html": "Hook0 est à code source ouvert sous licence <a href=\"https://spdx.org/licenses/SSPL-1.0.html\" target=\"_blank\" rel=\"noopener\" class=\"text-indigo-400 hover:text-indigo-300 underline\">SSPL-1.0</a> (Server Side Public License). Tu peux faire tourner la même plateforme sur ta propre infrastructure dans l'UE, quand tu veux. C'est ta porte de sortie garantie. Le code source est consultable à tout moment sur <a href=\"{{GITHUB}}\" target=\"_blank\" rel=\"noopener\" class=\"text-indigo-400 hover:text-indigo-300 underline\">GitHub</a>."
+    "html": "Hook0 est open source sous licence <a href=\"https://spdx.org/licenses/SSPL-1.0.html\" target=\"_blank\" rel=\"noopener\" class=\"text-indigo-400 hover:text-indigo-300 underline\">SSPL-1.0</a> (Server Side Public License). Tu peux faire tourner la même plateforme sur ta propre infrastructure dans l'UE, quand tu veux. C'est ta porte de sortie garantie. Le code source est consultable à tout moment sur <a href=\"{{GITHUB}}\" target=\"_blank\" rel=\"noopener\" class=\"text-indigo-400 hover:text-indigo-300 underline\">GitHub</a>."
   },
   "buildVsBuy": {
     "eyebrow": "Faire soi-même vs Hook0",
@@ -144,7 +144,7 @@ module.exports = {
       },
       {
         "q": "Puis-je auto-héberger Hook0 ?",
-        "a": "Oui. Toute la plateforme est à code source ouvert sous SSPL-1.0 et fournie avec Docker Compose et des manifestes Kubernetes. L'auto-hébergement est gratuit, sans édition entreprise, et l'édition auto-hébergée a les mêmes fonctionnalités que le cloud."
+        "a": "Oui. Toute la plateforme est open source sous SSPL-1.0 et fournie avec Docker Compose et des manifestes Kubernetes. L'auto-hébergement est gratuit, sans édition entreprise, et l'édition auto-hébergée a les mêmes fonctionnalités que le cloud."
       },
       {
         "q": "Hook0 fournit-il une webhook API complète ?",
@@ -152,7 +152,7 @@ module.exports = {
       },
       {
         "q": "Hook0 est-il un webhook service managé ?",
-        "a": "Oui. Hook0 Cloud est un webhook service managé : nous opérons pour toi l'infrastructure de livraison, les relances, les signatures HMAC et le monitoring, avec des données applicatives traitées en France (Clever Cloud). Si tu préfères l'opérer toi-même, le même code est à code source ouvert (SSPL-1.0) et auto-hébergeable."
+        "a": "Oui. Hook0 Cloud est un webhook service managé : nous opérons pour toi l'infrastructure de livraison, les relances, les signatures HMAC et le monitoring, avec des données applicatives traitées en France (Clever Cloud). Si tu préfères l'opérer toi-même, le même code est open source (SSPL-1.0) et auto-hébergeable."
       }
     ]
   },
@@ -191,7 +191,7 @@ module.exports = {
     "badges": [
       "Sans carte bancaire",
       "En route en 5 minutes",
-      "Code source ouvert (SSPL-1.0), migrable à tout moment"
+      "Open source (SSPL-1.0), migrable à tout moment"
     ]
   }
 };

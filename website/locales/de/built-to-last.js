@@ -1,9 +1,9 @@
 // Per-page strings for built-to-last (DE).
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Pivot-Doppelpunkt.
-// SSPL = « quelloffen (SSPL-1.0) » falls erwähnt. Keine pauschalen Souveränitäts-Claims.
+// SSPL = « Open Source (SSPL-1.0) » falls erwähnt. Keine pauschalen Souveränitäts-Claims.
 module.exports = {
   pageTitle: 'Gebaut, um zu bleiben, das Hook0-Manifest | Hook0',
-  pageDescription: '100% bootstrappt, kein VC-Funding, keine Exit-Strategie. Hook0 dient dir über Jahrzehnte, nachhaltig und quelloffen.',
+  pageDescription: '100% bootstrappt, kein VC-Funding, keine Exit-Strategie. Hook0 dient dir über Jahrzehnte, nachhaltig und Open Source (SSPL-1.0).',
   hero: {
     badge: '100% bootstrappt',
     badgeNote: 'Kein VC, keine Exit-Strategie, keine Kompromisse',
@@ -23,7 +23,7 @@ module.exports = {
     cards: [
       {
         title: 'Technologie, die bleibt',
-        body: 'Bei Hook0 verpflichten wir uns, Software zu bauen, die der Zeit standhält. In einer Zeit, in der Informationen oft flüchtig sind, ist die Langlebigkeit von Daten entscheidend. Unsere Mission ist es, eine quelloffene, zuverlässige und langlebige Webhook-Infrastruktur bereitzustellen, damit deine heute gebauten Integrationen auch in Zukunft funktionieren.',
+        body: 'Bei Hook0 verpflichten wir uns, Software zu bauen, die der Zeit standhält. In einer Zeit, in der Informationen oft flüchtig sind, ist die Langlebigkeit von Daten entscheidend. Unsere Mission ist es, eine zuverlässige und langlebige Open-Source-Webhook-Infrastruktur bereitzustellen, damit deine heute gebauten Integrationen auch in Zukunft funktionieren.',
       },
       {
         title: 'Wie wir unser Unternehmen bauen',
