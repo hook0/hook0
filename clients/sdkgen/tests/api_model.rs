@@ -171,6 +171,33 @@ fn every_schema_keyword_of_the_committed_snapshot_is_modelled_or_knowingly_ignor
     );
 }
 
+/// The census reads a parameter wherever a parameter may be written.
+///
+/// Asked of a document written for it rather than of the committed one, since the committed one
+/// declares no shared parameter today and a guard proven only against a document that cannot
+/// exercise it is proven against nothing.
+#[test]
+fn the_census_reads_a_parameter_written_on_the_path_item() {
+    let document: Value = serde_json::from_slice(&common::spec_with_paths(json!({
+        "/things/{thing_id}": {
+            "parameters": [{
+                "name": "thing_id",
+                "in": "path",
+                "required": true,
+                "schema": {"type": "string", "deprecated": true},
+            }],
+            "get": {"operationId": "things.read"},
+        },
+    })))
+    .expect("the document under test is JSON");
+
+    let census = schema_keywords(&document);
+    assert!(
+        census.contains("deprecated"),
+        "a keyword on a shared parameter went uncounted; the census saw {census:?}"
+    );
+}
+
 /// A schema written where it is used is declared under the name of what owns it followed by the
 /// member it sits in, so a language that has to name every type has one for it.
 #[test]
@@ -693,6 +720,19 @@ fn declared_catalogue(document: &Value, schema: &str) -> (String, BTreeSet<Strin
     found.into_iter().next().expect("one enum was found")
 }
 
+/// The path items the raw document declares, which are where a parameter shared by the operations
+/// under one path is written.
+fn path_items(document: &Value) -> Vec<Value> {
+    let Some(paths) = document.get("paths").and_then(Value::as_object) else {
+        return Vec::new();
+    };
+    paths
+        .iter()
+        .filter(|(path, _)| path.starts_with('/'))
+        .filter_map(|(_, item)| item.as_object().map(|_| item.clone()))
+        .collect()
+}
+
 /// The operations the raw document declares, whatever the tag says about them.
 fn operations(document: &Value) -> Vec<Value> {
     let mut declared = Vec::new();
@@ -720,6 +760,20 @@ fn schema_keywords(document: &Value) -> BTreeSet<String> {
 
     for (_, schema) in declared_schemas(document) {
         walk_schema(&schema, &mut census);
+    }
+
+    // Both places a parameter may be written. The reader takes them from the path item as well as
+    // from the operation, and this walked the operations alone, so a keyword written on a shared
+    // parameter was invisible to the one guard whose whole job is to see every keyword.
+    for item in path_items(document) {
+        for parameter in item
+            .get("parameters")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+        {
+            walk_schema(&parameter["schema"], &mut census);
+        }
     }
 
     for operation in operations(document) {

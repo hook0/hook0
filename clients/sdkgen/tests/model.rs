@@ -6,7 +6,7 @@ use hook0_sdkgen::{
     EntityModel, Error, HttpMethod, Limits, MCP_TAG, Nonconformity, PUBLIC_TAG, ParameterLocation,
     Snapshot, Verb,
 };
-use serde_json::json;
+use serde_json::{Value, json};
 
 mod common;
 
@@ -572,6 +572,70 @@ fn an_identifier_above_the_ceiling_is_rejected() {
         matches!(error, Error::IdentifierTooLong { limit: 4, .. }),
         "unexpected error: {error}"
     );
+}
+
+/// A parameter's schema is held to the vocabulary the reader understands, as a body's already was.
+///
+/// `nullable` is the one that matters. The document declares none today, and the whole point of
+/// refusing an unmodelled keyword is that the day one appears the read stops rather than the
+/// meaning quietly going missing. Read as a plain string, a nullable parameter would reach twelve
+/// clients as one, with nothing anywhere saying it can be absent.
+///
+/// Asked at both levels a parameter can be written at. The reader takes them from the path item as
+/// well as from the operation, and only one of the two used to be looked at by the census beside
+/// this.
+#[test]
+fn a_parameter_schema_in_words_the_reader_does_not_model_is_refused() {
+    let limits = Limits::default();
+
+    let on_the_operation = |schema: Value| {
+        common::spec_with_paths(json!({
+            "/things/{thing_id}": {
+                "get": {
+                    "operationId": "things.read",
+                    "parameters": [
+                        {"name": "thing_id", "in": "path", "required": true, "schema": schema},
+                    ],
+                },
+            },
+        }))
+    };
+    let on_the_path_item = |schema: Value| {
+        common::spec_with_paths(json!({
+            "/things/{thing_id}": {
+                "parameters": [
+                    {"name": "thing_id", "in": "path", "required": true, "schema": schema},
+                ],
+                "get": {"operationId": "things.read"},
+            },
+        }))
+    };
+
+    let both: [&dyn Fn(Value) -> Vec<u8>; 2] = [&on_the_operation, &on_the_path_item];
+    for written in both {
+        let refused = Snapshot::from_bytes(
+            &written(json!({"type": "string", "nullable": true})),
+            PUBLIC_TAG,
+            &limits,
+        )
+        .expect_err("`nullable` is not a word this reader models");
+        assert!(
+            matches!(
+                &refused,
+                Error::UnmodelledSchemaKeyword { keyword, .. } if keyword == "nullable"
+            ),
+            "unexpected error: {refused}"
+        );
+
+        // What the reader does model still goes through, so the refusal is about the vocabulary
+        // rather than about parameters having a schema at all.
+        Snapshot::from_bytes(
+            &written(json!({"type": "string", "format": "uuid"})),
+            PUBLIC_TAG,
+            &limits,
+        )
+        .expect("a format is a word the reader models");
+    }
 }
 
 #[test]

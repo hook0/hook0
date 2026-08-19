@@ -12,6 +12,9 @@ use serde_json::Value;
 
 use crate::error::{Error, preview};
 use crate::limits::Limits;
+// The vocabulary a schema may be written in is one question, asked of a body, of a component and
+// of a parameter alike, so it is answered in one place rather than three.
+use crate::model::shape::{IGNORED_KEYWORDS, MODELLED_KEYWORDS};
 
 /// Tag an operation carries to be part of the surface SDKs expose.
 pub const PUBLIC_TAG: &str = "public";
@@ -659,6 +662,13 @@ fn read_parameter(
 ///
 /// A parameter that names no type, or reaches its schema through a reference, falls back to
 /// [`DEFAULT_PARAMETER_TYPE`] rather than being dropped.
+///
+/// What the schema says beyond its type is not modelled here, and saying nothing about it is not
+/// the same as accepting it. A body and a component are held to the vocabulary the reader
+/// understands, and a parameter was not. `{"type": "string", "nullable": true}` was read as a
+/// plain string, and twelve clients would have been handed a parameter that can be null with no
+/// sign of it anywhere. So the same census runs here, and a keyword this cannot answer for stops
+/// the read.
 fn parameter_type(data: &SpecParameterData) -> Result<String, Error> {
     let ParameterSchemaOrContent::Schema(schema) = &data.format else {
         return Ok(DEFAULT_PARAMETER_TYPE.to_owned());
@@ -669,7 +679,21 @@ fn parameter_type(data: &SpecParameterData) -> Result<String, Error> {
         reason: err.to_string(),
     })?;
 
-    Ok(schema
+    let members = schema.as_object().ok_or_else(|| Error::UnreadableSchema {
+        subject: preview(&data.name),
+    })?;
+    for keyword in members.keys() {
+        let modelled = MODELLED_KEYWORDS.contains(&keyword.as_str())
+            || IGNORED_KEYWORDS.contains(&keyword.as_str());
+        if !modelled {
+            return Err(Error::UnmodelledSchemaKeyword {
+                subject: preview(&data.name),
+                keyword: preview(keyword),
+            });
+        }
+    }
+
+    Ok(members
         .get("type")
         .and_then(Value::as_str)
         .unwrap_or(DEFAULT_PARAMETER_TYPE)
