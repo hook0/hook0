@@ -1222,8 +1222,30 @@ pub struct AuthorizedRefreshToken {
     pub user_id: Uuid,
 }
 
+/// Authorize a refresh token.
+///
+/// Running out of the datalog wall-clock budget says nothing about whether the
+/// token is valid, so it surfaces as a retryable 503 rather than telling a user
+/// with a perfectly good session that their refresh failed — the rule
+/// [`is_transient_authorization_error`] already states for every other path.
 pub fn authorize_refresh_token(
     biscuit: &Biscuit,
+    max_authorization_time: Duration,
+) -> Result<AuthorizedRefreshToken, Hook0Problem> {
+    authorize_refresh_token_datalog(biscuit, max_authorization_time).map_err(|e| {
+        if is_transient_authorization_error(&e) {
+            warn!("Refresh token authorization timed out under load");
+            Hook0Problem::ServiceUnavailable
+        } else {
+            trace!("Refresh token authorization denied: {e:?}");
+            Hook0Problem::AuthFailedRefresh
+        }
+    })
+}
+
+fn authorize_refresh_token_datalog(
+    biscuit: &Biscuit,
+    max_authorization_time: Duration,
 ) -> Result<AuthorizedRefreshToken, biscuit_auth::error::Token> {
     let mut authorizer = authorizer!(
         r#"
@@ -1238,8 +1260,11 @@ pub fn authorize_refresh_token(
     authorizer = authorizer.time();
     authorizer = authorizer.allow_all();
 
+    // Same budget as every other authorization path. It used to be a hardcoded
+    // 5 ms — half of what the tests allowed and a sixth of production's default —
+    // so a saturated instance failed to authorize perfectly valid refresh tokens.
     authorizer = authorizer.set_limits(AuthorizerLimits {
-        max_time: Duration::from_millis(5),
+        max_time: max_authorization_time,
         ..Default::default()
     });
     let mut authorizer = authorizer.build(biscuit)?;
@@ -1389,7 +1414,18 @@ mod tests {
 
     use super::*;
 
-    const MAX_DURATION_TIME: Duration = Duration::from_millis(10);
+    /// Budget handed to the Biscuit authorizer in these tests.
+    ///
+    /// It exists to stop a runaway Datalog evaluation from hanging the suite,
+    /// not to measure how fast authorization runs — no test here asserts
+    /// anything about the timeout, they all assert which policies allow or deny.
+    /// So it is deliberately far larger than production's 30 ms default
+    /// (`--max-authorization-time`): a budget tighter than production turns
+    /// every contended CI runner into a red suite, which is exactly what
+    /// happened when the Kubernetes runner ran out of CPU and
+    /// `user_access_token_authorization_roles` came back `RunLimit(Timeout)`.
+    /// A real runaway still trips this in a second instead of hanging forever.
+    const MAX_DURATION_TIME: Duration = Duration::from_secs(5);
 
     #[test_log::test]
     #[test_log(default_log_filter = "trace")]
@@ -1857,7 +1893,7 @@ mod tests {
         let RootToken { biscuit, .. } =
             create_refresh_token(&keypair.private(), token_id, session_id, user_id).unwrap();
 
-        let rt = dbg!(authorize_refresh_token(&biscuit)).unwrap();
+        let rt = dbg!(authorize_refresh_token(&biscuit, MAX_DURATION_TIME)).unwrap();
 
         assert_eq!(rt.token_id, token_id);
         assert_eq!(rt.session_id, session_id);
@@ -1887,8 +1923,61 @@ mod tests {
             )
             .unwrap();
 
-        assert!(dbg!(authorize_refresh_token(&not_yet_expired_biscuit)).is_ok());
-        assert!(dbg!(authorize_refresh_token(&expired_biscuit)).is_err());
+        assert!(
+            dbg!(authorize_refresh_token(
+                &not_yet_expired_biscuit,
+                MAX_DURATION_TIME
+            ))
+            .is_ok()
+        );
+        assert!(dbg!(authorize_refresh_token(&expired_biscuit, MAX_DURATION_TIME)).is_err());
+    }
+
+    /// A refresh that ran out of wall-clock budget must not read as "your
+    /// session is over": the token is untouched, only the instance was busy.
+    #[test]
+    fn refresh_token_timeout_maps_to_service_unavailable() {
+        let keypair = KeyPair::new();
+        let token_id = Uuid::new_v4();
+        let session_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_refresh_token(&keypair.private(), token_id, session_id, user_id).unwrap();
+
+        let problem = authorize_refresh_token(&biscuit, Duration::ZERO)
+            .expect_err("a 0ms authorizer budget must time out");
+
+        assert!(
+            matches!(problem, Hook0Problem::ServiceUnavailable),
+            "a refresh authorization timeout must map to ServiceUnavailable (503), got: {problem:?}"
+        );
+    }
+
+    /// An expired refresh token is a genuine denial and must stay one, so the
+    /// 503 above cannot be reached by simply presenting a dead token.
+    #[test]
+    fn expired_refresh_token_stays_an_auth_failure() {
+        let keypair = KeyPair::new();
+        let token_id = Uuid::new_v4();
+        let session_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_refresh_token(&keypair.private(), token_id, session_id, user_id).unwrap();
+
+        let expired_biscuit = biscuit
+            .append(
+                BlockBuilder::new()
+                    .check_expiration_date(SystemTime::now() - Duration::from_secs(1)),
+            )
+            .unwrap();
+
+        let problem = authorize_refresh_token(&expired_biscuit, MAX_DURATION_TIME)
+            .expect_err("an expired refresh token must be refused");
+
+        assert!(
+            matches!(problem, Hook0Problem::AuthFailedRefresh),
+            "an expired refresh token must stay an auth failure, got: {problem:?}"
+        );
     }
 
     #[test]
@@ -1970,7 +2059,7 @@ mod tests {
 
         assert!(dbg!(authorize_reset_password(&biscuit)).is_err());
         assert!(dbg!(authorize_email_verification(&biscuit)).is_err());
-        assert!(dbg!(authorize_refresh_token(&biscuit)).is_err());
+        assert!(dbg!(authorize_refresh_token(&biscuit, MAX_DURATION_TIME)).is_err());
         assert!(
             dbg!(authorize(
                 &biscuit,

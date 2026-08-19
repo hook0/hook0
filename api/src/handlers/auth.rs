@@ -412,23 +412,24 @@ pub async fn refresh(
     _: OaBiscuitRefresh,
     biscuit: ReqData<Biscuit>,
 ) -> Result<CreatedJson<LoginResponse>, Hook0Problem> {
-    if let Ok(token) = authorize_refresh_token(&biscuit) {
-        let mut tx = state.db.begin().await?;
+    let token = authorize_refresh_token(&biscuit, state.max_authorization_time)?;
 
-        query!(
-            "
+    let mut tx = state.db.begin().await?;
+
+    query!(
+        "
                 UPDATE iam.token
                 SET expired_at = statement_timestamp()
                 WHERE token__id = $1
                     AND type = 'refresh'
                     AND expired_at > statement_timestamp()
             ",
-            &token.token_id,
-        )
-        .execute(&mut *tx)
-        .await?;
+        &token.token_id,
+    )
+    .execute(&mut *tx)
+    .await?;
 
-        let user = query_as!(
+    let user = query_as!(
             UserLookup,
             "
                 SELECT user__id AS user_id, password AS password_hash, email, first_name, last_name, email_verified_at
@@ -441,18 +442,15 @@ pub async fn refresh(
         .await
         .map_err(Hook0Problem::from)?;
 
-        let res = do_login(
-            &mut tx,
-            &state.biscuit_private_key,
-            user,
-            Some(token.session_id),
-        )
-        .await?;
-        tx.commit().await?;
-        Ok(res)
-    } else {
-        Err(Hook0Problem::AuthFailedRefresh)
-    }
+    let res = do_login(
+        &mut tx,
+        &state.biscuit_private_key,
+        user,
+        Some(token.session_id),
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(res)
 }
 
 #[api_v2_operation(
