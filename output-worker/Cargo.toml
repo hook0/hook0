@@ -8,6 +8,7 @@ description = "Worker for Hook0 Open-Source Webhooks as a service for SaaS"
 edition = "2024"
 license = "SSPL-1.0"
 keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
+publish = false
 
 [package.metadata.release]
 release = true

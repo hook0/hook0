@@ -8,6 +8,7 @@ authors = ["David Sferruzza <david@hook0.com>", "François-Guillaume Ribreau <fg
 keywords = ["webhooks", "webhook", "webhook-server", "sentry", "saas"]
 edition = "2024"
 license = "SSPL-1.0"
+publish = false
 
 [dependencies]
 tracing = "0.1.44"

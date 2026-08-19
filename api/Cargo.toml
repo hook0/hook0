@@ -8,6 +8,7 @@ edition = "2024"
 authors = ["David Sferruzza <david@hook0.com>", "François-Guillaume Ribreau <fg@hook0.com>"]
 license = "SSPL-1.0"
 keywords = ["webhooks", "webhook", "webhook-server", "events", "saas"]
+publish = false
 
 [package.metadata.release]
 release = true
