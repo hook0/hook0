@@ -464,7 +464,7 @@ async fn surface(settings: &Settings) -> Result<(), String> {
     exercised(
         "requestAttempts.read",
         request_attempts
-            .list(&seeded, None, None, None, None, None, None)
+            .read(&seeded, None, None, None, None, None, None)
             .await,
     )?;
     let attempted = read(
@@ -513,7 +513,7 @@ async fn surface(settings: &Settings) -> Result<(), String> {
     exercised(
         "serviceToken.edit",
         service_tokens
-            .update(
+            .edit(
                 &minted_id,
                 ServiceTokenPost {
                     name: "a token the rust smoke renamed".to_owned(),

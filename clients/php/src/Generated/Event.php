@@ -18,7 +18,7 @@ final class Event
      * @param string $eventId carries `event_id`.
      * @param string $eventTypeName carries `event_type_name`.
      * @param string $ip carries `ip`.
-     * @param array<string, string> $labels carries `labels`: Labels for event filtering and routing to subscriptions.
+     * @param mixed $labels carries `labels`.
      * @param \DateTimeImmutable $occurredAt carries `occurred_at`.
      * @param string $payloadContentType carries `payload_content_type`.
      * @param \DateTimeImmutable $receivedAt carries `received_at`.
@@ -28,7 +28,7 @@ final class Event
         public readonly string $eventId,
         public readonly string $eventTypeName,
         public readonly string $ip,
-        public readonly array $labels,
+        public readonly mixed $labels,
         public readonly \DateTimeImmutable $occurredAt,
         public readonly string $payloadContentType,
         public readonly \DateTimeImmutable $receivedAt,
@@ -53,7 +53,7 @@ final class Event
             'eventId' => Runtime::read($fields, 'event_id', Runtime::uuid(...)),
             'eventTypeName' => Runtime::read($fields, 'event_type_name', Runtime::text(...)),
             'ip' => Runtime::read($fields, 'ip', Runtime::text(...)),
-            'labels' => Runtime::read($fields, 'labels', Runtime::mapOf(Runtime::text(...))),
+            'labels' => Runtime::read($fields, 'labels', Runtime::jsonValue(...)),
             'occurredAt' => Runtime::read($fields, 'occurred_at', Runtime::dateTime(...)),
             'payloadContentType' => Runtime::read($fields, 'payload_content_type', Runtime::text(...)),
             'receivedAt' => Runtime::read($fields, 'received_at', Runtime::dateTime(...)),
@@ -74,7 +74,7 @@ final class Event
         $out['event_id'] = $this->eventId;
         $out['event_type_name'] = $this->eventTypeName;
         $out['ip'] = $this->ip;
-        $out['labels'] = Runtime::mapping($this->labels);
+        $out['labels'] = $this->labels;
         $out['occurred_at'] = Runtime::moment($this->occurredAt);
         $out['payload_content_type'] = $this->payloadContentType;
         $out['received_at'] = Runtime::moment($this->receivedAt);

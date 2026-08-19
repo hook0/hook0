@@ -517,14 +517,16 @@ async fn the_delays_of_one_send_stay_inside_the_configured_budget() {
     api.stop().await;
 }
 
-/// An event read back out of the API and sent on again, with its labels carried across untouched.
+/// An event read back out of the API and sent on again, with its labels carried across.
 ///
 /// This is the shape every forwarder, replayer and migration script has: read an event, build the
-/// next one from it. It only works if both sides of the document agree on what a label is, so the
-/// assignments below carry no cast, no re-parse and no `serde_json::from_value` — the map the read
-/// model hands over is the map the write models take. Were the read side to go back to being
-/// free-form, this stops compiling, which is the failure worth having: a caller finds out at build
-/// time rather than by casting until it type-checks.
+/// next one from it. The document describes a label differently on each side, so this is also what
+/// that difference costs a caller. Reading gives a free-form object, because a stored row is only
+/// held to being an object and older rows were written when a value could be any JSON at all;
+/// sending takes a map of string to string, because that is what the ingestion endpoint has
+/// accepted since it was tightened. A forwarder therefore converts, and the conversion is the
+/// thing that can fail: an event whose labels the ingestion endpoint did not write does not
+/// survive the trip, and it fails here rather than being silently reshaped.
 #[actix_web::test]
 async fn labels_read_off_an_event_are_carried_into_the_next_one() {
     let read: generated::Event = serde_json::from_value(json!({
@@ -538,18 +540,23 @@ async fn labels_read_off_an_event_are_carried_into_the_next_one() {
     }))
     .expect("an event as the API serializes it parses into the model generated from the document");
 
+    let carried: std::collections::HashMap<String, String> =
+        serde_json::from_value(read.labels.clone())
+            .expect("the labels of an event the ingestion endpoint wrote are strings");
+
     let posted = generated::EventPost {
         application_id: Uuid::nil(),
         event_id: None,
         event_type: read.event_type_name.clone(),
-        labels: read.labels.clone(),
+        labels: carried.clone(),
         metadata: None,
         occurred_at: read.occurred_at,
         payload: r#"{"hello":"world"}"#.to_owned(),
         payload_content_type: read.payload_content_type.clone(),
     };
     assert_eq!(
-        posted.labels, read.labels,
+        serde_json::to_value(&posted.labels).expect("a map of strings serializes"),
+        read.labels,
         "the labels of the event posted back are the ones read off the first"
     );
 
@@ -564,7 +571,7 @@ async fn labels_read_off_an_event_are_carried_into_the_next_one() {
             payload_content_type: &posted.payload_content_type,
             metadata: None,
             occurred_at: None,
-            labels: read.labels.into_iter().collect(),
+            labels: carried.into_iter().collect(),
         })
         .await
         .expect("the API accepts the event built from the one that was read");

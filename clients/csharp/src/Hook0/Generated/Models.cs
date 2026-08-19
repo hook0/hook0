@@ -519,9 +519,9 @@ public sealed record Event
     [JsonPropertyName("ip")]
     public required string Ip { get; init; }
 
-    /// <summary>Carries <c>labels</c>: Labels for event filtering and routing to subscriptions.</summary>
+    /// <summary>Carries <c>labels</c>.</summary>
     [JsonPropertyName("labels")]
-    public required IReadOnlyDictionary<string, string> Labels { get; init; }
+    public required JsonNode Labels { get; init; }
 
     /// <summary>Carries <c>occurred_at</c>.</summary>
     [JsonPropertyName("occurred_at")]
@@ -646,9 +646,9 @@ public sealed record EventWithPayload
     [JsonPropertyName("ip")]
     public required string Ip { get; init; }
 
-    /// <summary>Carries <c>labels</c>: Labels for event filtering and routing to subscriptions.</summary>
+    /// <summary>Carries <c>labels</c>.</summary>
     [JsonPropertyName("labels")]
-    public required IReadOnlyDictionary<string, string> Labels { get; init; }
+    public required JsonNode Labels { get; init; }
 
     /// <summary>Carries <c>occurred_at</c>.</summary>
     [JsonPropertyName("occurred_at")]

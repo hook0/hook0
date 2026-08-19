@@ -566,9 +566,9 @@ pub struct Event {
     /// `ip`.
     #[serde(rename = "ip")]
     pub ip: String,
-    /// `labels`: Labels for event filtering and routing to subscriptions.
+    /// `labels`.
     #[serde(rename = "labels")]
-    pub labels: HashMap<String, String>,
+    pub labels: Value,
     /// `metadata`.
     #[serde(rename = "metadata")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -661,9 +661,9 @@ pub struct EventWithPayload {
     /// `ip`.
     #[serde(rename = "ip")]
     pub ip: String,
-    /// `labels`: Labels for event filtering and routing to subscriptions.
+    /// `labels`.
     #[serde(rename = "labels")]
-    pub labels: HashMap<String, String>,
+    pub labels: Value,
     /// `metadata`.
     #[serde(rename = "metadata")]
     #[serde(skip_serializing_if = "Option::is_none")]

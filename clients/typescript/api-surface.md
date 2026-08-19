@@ -226,7 +226,7 @@ name?: string
 constructor(transport: Transport): ApplicationSecretsApi
 create(body: ApplicationSecretPost): Promise<ApplicationSecret>
 delete(applicationSecretToken: string, applicationId: string): Promise<void>
-list(applicationId: string): Promise<ApplicationSecret[]>
+read(applicationId: string): Promise<ApplicationSecret[]>
 update(applicationSecretToken: string, body: ApplicationSecretPost): Promise<ApplicationSecret>
 ```
 
@@ -254,7 +254,7 @@ list(): Promise<Problem[]>
 event_id: string
 event_type_name: string
 ip: string
-labels: Record<string, string>
+labels: unknown
 metadata?: unknown
 occurred_at: string
 payload_content_type: string
@@ -308,7 +308,7 @@ list(applicationId: string): Promise<EventType[]>
 event_id: string
 event_type_name: string
 ip: string
-labels: Record<string, string>
+labels: unknown
 metadata?: unknown
 occurred_at: string
 payload: string
@@ -600,7 +600,7 @@ subscription_id: string
 ```ts
 constructor(transport: Transport): RequestAttemptsApi
 get(requestAttemptId: string, applicationId: string): Promise<RequestAttempt>
-list(applicationId: string, eventEventTypeNames?: string, eventId?: string, maxCreatedAt?: string, minCreatedAt?: string, paginationCursor?: string, subscriptionId?: string): Promise<RequestAttempt[]>
+read(applicationId: string, eventEventTypeNames?: string, eventId?: string, maxCreatedAt?: string, minCreatedAt?: string, paginationCursor?: string, subscriptionId?: string): Promise<RequestAttempt[]>
 ```
 
 ## interface generated.Response
@@ -636,9 +636,9 @@ token_id: string
 constructor(transport: Transport): ServiceTokenApi
 create(body: ServiceTokenPost): Promise<ServiceToken>
 delete(serviceTokenId: string, organizationId: string): Promise<void>
+edit(serviceTokenId: string, body: ServiceTokenPost): Promise<ServiceToken>
 get(serviceTokenId: string, organizationId: string): Promise<ServiceToken>
 list(organizationId: string): Promise<ServiceToken[]>
-update(serviceTokenId: string, body: ServiceTokenPost): Promise<ServiceToken>
 ```
 
 ## interface generated.ServiceTokenPost

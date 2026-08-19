@@ -43,10 +43,10 @@ const AN_ANSWER = { 'a member': 'the API answered this' };
 
 /**
  * The tag that marks an operation as part of the surface an SDK exposes. A document that marks none
- * of its operations with it declares the whole of itself public, which is the rule the generator
- * applies and therefore the rule this suite holds it to.
+ * of its operations with it declares the whole of itself part of that surface, which is the rule the
+ * generator applies and therefore the rule this suite holds it to.
  */
-const PUBLIC_TAG = 'public';
+const SDK_TAG = 'sdk';
 
 /** The methods a request line can carry, which is what tells an operation apart in a path item. */
 const VERBS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'];
@@ -92,10 +92,10 @@ function apiDocument(): Record<string, unknown> {
   );
 }
 
-/** Every operation an SDK is built out of, which is what the document marks as public. */
+/** Every operation an SDK is built out of, which is what the document marks with the SDK tag. */
 function declaredOperations(): DeclaredOperation[] {
   const paths = apiDocument().paths as Record<string, Record<string, unknown>>;
-  const found: { public: boolean; operation: DeclaredOperation }[] = [];
+  const found: { sdk: boolean; operation: DeclaredOperation }[] = [];
 
   for (const [template, item] of Object.entries(paths)) {
     for (const verb of VERBS) {
@@ -116,7 +116,7 @@ function declaredOperations(): DeclaredOperation[] {
       );
 
       found.push({
-        public: (declared.tags ?? []).includes(PUBLIC_TAG),
+        sdk: (declared.tags ?? []).includes(SDK_TAG),
         operation: {
           method: verb.toUpperCase(),
           template,
@@ -131,7 +131,7 @@ function declaredOperations(): DeclaredOperation[] {
   if (found.length === 0) {
     throw new Error('The API document declares no operation at all');
   }
-  const marked = found.filter((entry) => entry.public);
+  const marked = found.filter((entry) => entry.sdk);
   return (marked.length > 0 ? marked : found).map((entry) => entry.operation);
 }
 

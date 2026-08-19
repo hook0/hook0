@@ -225,8 +225,8 @@ export interface Event {
   readonly event_type_name: string;
   /** `ip`. */
   readonly ip: string;
-  /** `labels`: Labels for event filtering and routing to subscriptions. */
-  readonly labels: Record<string, string>;
+  /** `labels`. */
+  readonly labels: unknown;
   /** `metadata`. */
   readonly metadata?: unknown;
   /** `occurred_at`. */
@@ -289,8 +289,8 @@ export interface EventWithPayload {
   readonly event_type_name: string;
   /** `ip`. */
   readonly ip: string;
-  /** `labels`: Labels for event filtering and routing to subscriptions. */
-  readonly labels: Record<string, string>;
+  /** `labels`. */
+  readonly labels: unknown;
   /** `metadata`. */
   readonly metadata?: unknown;
   /** `occurred_at`. */

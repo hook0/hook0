@@ -729,8 +729,7 @@ module Hook0
       # @param event_id [String] carries `event_id`.
       # @param event_type_name [String] carries `event_type_name`.
       # @param ip [String] carries `ip`.
-      # @param labels [Hash{String => String}] carries `labels`: Labels for event filtering and routing to
-      #   subscriptions.
+      # @param labels [Object] carries `labels`.
       # @param occurred_at [Time] carries `occurred_at`.
       # @param payload_content_type [String] carries `payload_content_type`.
       # @param received_at [Time] carries `received_at`.
@@ -766,7 +765,7 @@ module Hook0
           event_id: Runtime.read(fields, "event_id", Runtime::UUID),
           event_type_name: Runtime.read(fields, "event_type_name", Runtime::TEXT),
           ip: Runtime.read(fields, "ip", Runtime::TEXT),
-          labels: Runtime.read(fields, "labels", Runtime.map(Runtime::TEXT)),
+          labels: Runtime.read(fields, "labels", Runtime::JSON_VALUE),
           occurred_at: Runtime.read(fields, "occurred_at", Runtime::DATE_TIME),
           payload_content_type: Runtime.read(fields, "payload_content_type", Runtime::TEXT),
           received_at: Runtime.read(fields, "received_at", Runtime::DATE_TIME),
@@ -1043,8 +1042,7 @@ module Hook0
       # @param event_id [String] carries `event_id`.
       # @param event_type_name [String] carries `event_type_name`.
       # @param ip [String] carries `ip`.
-      # @param labels [Hash{String => String}] carries `labels`: Labels for event filtering and routing to
-      #   subscriptions.
+      # @param labels [Object] carries `labels`.
       # @param occurred_at [Time] carries `occurred_at`.
       # @param payload [String] carries `payload`.
       # @param payload_content_type [String] carries `payload_content_type`.
@@ -1083,7 +1081,7 @@ module Hook0
           event_id: Runtime.read(fields, "event_id", Runtime::UUID),
           event_type_name: Runtime.read(fields, "event_type_name", Runtime::TEXT),
           ip: Runtime.read(fields, "ip", Runtime::TEXT),
-          labels: Runtime.read(fields, "labels", Runtime.map(Runtime::TEXT)),
+          labels: Runtime.read(fields, "labels", Runtime::JSON_VALUE),
           occurred_at: Runtime.read(fields, "occurred_at", Runtime::DATE_TIME),
           payload: Runtime.read(fields, "payload", Runtime::TEXT),
           payload_content_type: Runtime.read(fields, "payload_content_type", Runtime::TEXT),
