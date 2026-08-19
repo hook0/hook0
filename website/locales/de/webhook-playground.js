@@ -3,7 +3,7 @@
 // SSPL = « quelloffen (SSPL-1.0) » in pageDescription.
 module.exports = {
   pageTitle: 'Kostenloser Webhook-Tester online | Hook0',
-  pageDescription: 'Kostenloser Webhook-Tester ohne Anmeldung. Sende Test-Events, prüfe Payloads, verifiziere HMAC. Stripe, GitHub, Shopify. Quelloffen.',
+  pageDescription: 'Kostenloser Webhook-Tester ohne Anmeldung. Sende Test-Events, prüfe Payloads, verifiziere HMAC. Stripe, GitHub, Shopify. Open Source (SSPL-1.0).',
   hero: {
     badge: 'Kostenlos, ohne Anmeldung',
     titleBefore: 'Teste deine Webhooks',

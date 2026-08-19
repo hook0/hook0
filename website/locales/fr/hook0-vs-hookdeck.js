@@ -4,7 +4,7 @@
 // Hookdeck : Outpost (livraison) sous Apache-2.0 et auto-hébergeable, Event Gateway (ingestion) fermé.
 module.exports = {
   pageTitle: 'Hook0 vs Hookdeck, plateforme webhook vs gateway | Hook0',
-  pageDescription: 'Compare Hook0 et Hookdeck : une plateforme webhook à code source ouvert face à une gateway plus un produit de livraison séparé. Licences, auto-hébergement, tarifs.',
+  pageDescription: 'Compare Hook0 et Hookdeck : une plateforme webhook open source (SSPL-1.0) face à une gateway plus un produit de livraison séparé. Licences, auto-hébergement, tarifs.',
   pageModified: '2026-07-16',
   breadcrumb: 'Hook0 vs Hookdeck',
   hero: {

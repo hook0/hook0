@@ -1,6 +1,9 @@
 // Chrome DE. /humanizer pro + legal-reviewer angewendet.
 // Duzen, Tech-Begriffe auf Englisch (Webhooks, Endpoint, Payload, HMAC,
-// Dashboard, Play). SSPL = « quelloffen », NIE « Open Source ». Verbotene
+// Dashboard, Play). SSPL = « Open Source (SSPL-1.0) », Klammerzusatz
+// obligatorisch, NIE « Open Source » allein. Der englische Begriff ist
+// « quelloffen » vorzuziehen: die Umschreibung liest sich umgangssprachlich
+// und weitet die wahrgenommene Freiheit aus. Verbotene
 // Claims: « 100% souverän », « kein US-Konzern im Stack », « keine Daten
 // verlassen die EU », « CLOUD Act free ». DSGVO = Prozess-Claim.
 module.exports = {
@@ -39,7 +42,7 @@ module.exports = {
         solutions: {
           label: 'Lösungen',
           items: [
-            { enSlug: 'open-source-webhooks',      icon: 'code',   label: 'Quelloffene Webhooks',       description: 'Quelloffen (SSPL-1.0)' },
+            { enSlug: 'open-source-webhooks',      icon: 'code',   label: 'Open-Source-Webhooks',       description: 'Open Source (SSPL-1.0)' },
             { enSlug: 'self-hosted-webhooks',      icon: 'server', label: 'Selbst-gehostete Webhooks',  description: 'Deine Infrastruktur, deine Daten' },
             { enSlug: 'migrate-from-webhook-site', icon: 'move',   label: 'Von webhook.site migrieren', description: 'Produktions-Traffic verschieben' },
           ],
@@ -59,7 +62,7 @@ module.exports = {
   },
   footer: {
     srTitle: 'Fußbereich',
-    tagline: 'Quelloffene Webhooks-as-a-Service. Von Entwicklern für Entwickler.',
+    tagline: 'Open-Source-Webhooks-as-a-Service (SSPL-1.0). Von Entwicklern für Entwickler.',
     madeInEurope: 'In Europa entwickelt',
     copyright: 'Alle Rechte vorbehalten.',
     bootstrapped: '100% bootstrappt, kein VC. Wir bleiben.',
@@ -113,15 +116,15 @@ module.exports = {
     githubStarsTitle: 'GitHub-Sterne',
   },
   schema: {
-    organizationDescription: 'Hook0 ist eine quelloffene Webhook-Plattform. Du sendest deine Events über eine REST-API, Hook0 übernimmt Zustellversuche, HMAC-Signaturen und die Subscriber-Verwaltung. EU-Hosting oder Self-Hosting unter SSPL-1.0.',
-    applicationDescription: 'Hook0 ist eine quelloffene Webhook-Plattform. Du sendest deine Events über eine REST-API, Hook0 übernimmt Zustellversuche, HMAC-Signaturen und die Subscriber-Verwaltung. EU-Hosting oder Self-Hosting unter SSPL-1.0.',
+    organizationDescription: 'Hook0 ist eine Open-Source-Webhook-Plattform (SSPL-1.0). Du sendest deine Events über eine REST-API, Hook0 übernimmt Zustellversuche, HMAC-Signaturen und die Subscriber-Verwaltung. EU-Hosting oder Self-Hosting unter SSPL-1.0.',
+    applicationDescription: 'Hook0 ist eine Open-Source-Webhook-Plattform (SSPL-1.0). Du sendest deine Events über eine REST-API, Hook0 übernimmt Zustellversuche, HMAC-Signaturen und die Subscriber-Verwaltung. EU-Hosting oder Self-Hosting unter SSPL-1.0.',
     applicationSubCategory: 'Webhook-Zustellplattform',
     offerFreeName: 'Kostenlos',
     offerFreeCategory: 'Kostenlose Stufe',
     offerFreeDescription: 'Dauerhaft kostenlos, ohne Kreditkarte. Self-Hosting oder Hook0 Cloud.',
     offerSelfHostedName: 'Selbst gehostet',
-    offerSelfHostedCategory: 'Quelloffen',
-    offerSelfHostedDescription: 'Quelloffen unter SSPL-1.0. Auf deiner eigenen Infrastruktur betreiben.',
+    offerSelfHostedCategory: 'Open Source (SSPL-1.0)',
+    offerSelfHostedDescription: 'Open Source (SSPL-1.0). Auf deiner eigenen Infrastruktur betreiben.',
   },
   includes: {
     howItWorks: {

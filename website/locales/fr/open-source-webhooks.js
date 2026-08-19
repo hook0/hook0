@@ -1,15 +1,16 @@
 // Per-page strings for open-source-webhooks (FR).
 // /humanizer pro + legal-reviewer applied.
-// Hook0 lui-même = « code source ouvert (SSPL-1.0) », JAMAIS « Open Source »
-// (SSPL rejetée par l'OSI, risque L121-1 C. conso). Le titre/slug
+// Hook0 lui-même = « open source (SSPL-1.0) », la parenthèse est obligatoire,
+// JAMAIS « open source » seul (SSPL non approuvée par l'OSI, risque L121-1
+// C. conso). Le titre/slug
 // « open-source-webhooks » reste un terme CATÉGORIE/SEO qui couvre l'écosystème
 // (Svix open-core, Convoy Elastic License 2.0, Hook0 SSPL), la règle s'applique aux claims
 // sur Hook0 lui-même dans le corps.
 // Souveraineté : CDN Cloudflare (USA) divulgué, data plane Clever Cloud (France).
 // JAMAIS « 100 % souverain / no data sharing / CLOUD Act free ».
 module.exports = {
-  pageTitle: 'Webhooks à code source ouvert : Hook0 SSPL-1.0',
-  pageDescription: 'Hook0 est une plateforme webhooks à code source ouvert sous SSPL-1.0. Cloud UE managé ou auto-hébergement libre.',
+  pageTitle: 'Webhooks open source (SSPL-1.0) : Hook0',
+  pageDescription: 'Hook0 est une plateforme webhooks open source (SSPL-1.0). Cloud UE managé ou auto-hébergement libre.',
   "pageModified": "2026-07-16",
   "track": "fr-oss-webhooks",
   "hero": {

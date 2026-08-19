@@ -1,7 +1,8 @@
 // Per-page strings for open-source-webhooks (DE).
 // /humanizer pro + legal-reviewer applied.
-// Hook0 selbst = « quelloffen (SSPL-1.0) », NIE « Open Source » (SSPL von der
-// OSI abgelehnt, UWG §5 DACH-Risiko). Der Titel/Slug «open-source-webhooks»
+// Hook0 selbst = « Open Source (SSPL-1.0) », Klammerzusatz obligatorisch, NIE
+// « Open Source » allein (SSPL nicht von der OSI anerkannt, UWG §5
+// DACH-Risiko). Der Titel/Slug «open-source-webhooks»
 // bleibt als KATEGORIE/SEO-Begriff für das Ökosystem (Svix open-core, Convoy
 // Elastic License 2.0, Hook0 SSPL) erhalten, die Regel gilt für Claims über Hook0 selbst.
 // Souveränität: CDN Cloudflare (USA) offen genannt, Anwendungsdaten bei
@@ -10,8 +11,8 @@
 // DSGVO als Prozess-Claim («auf DSGVO-Konformität ausgelegt»),
 // keine absoluten Zertifizierungsaussagen.
 module.exports = {
-  "pageTitle": "Bester quelloffener Webhook-Server (2026) | Hook0",
-  "pageDescription": "Quelloffene Webhook-Server im Vergleich: Hook0 (SSPL, voll funktional), Svix (Open Core), Convoy (Elastic License 2.0). Cloud ab 59 €/Monat oder selbst gehostet für Compliance.",
+  "pageTitle": "Bester Open-Source-Webhook-Server (2026) | Hook0",
+  "pageDescription": "Open-Source-Webhook-Server im Vergleich: Hook0 (SSPL-1.0, voll funktional), Svix (Open Core), Convoy (Elastic License 2.0). Cloud ab 59 €/Monat oder selbst gehostet für Compliance.",
   "pageModified": "2026-07-16",
   "track": "de-oss-webhooks",
   "hero": {

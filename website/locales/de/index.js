@@ -1,11 +1,12 @@
 // Startseite DE. /humanizer pro + legal-reviewer angewendet.
-// SSPL = « quelloffen », NIE « Open Source ». DSGVO als Prozess-Claim
+// SSPL = « Open Source (SSPL-1.0) », Klammerzusatz obligatorisch, NIE
+// « Open Source » allein. DSGVO als Prozess-Claim
 // (« auf DSGVO-Konformität ausgelegt » / « DSGVO-konform betrieben »).
 // Verbotene Claims: « 100% souverän », « kein US-Konzern im Stack »,
 // « keine Daten verlassen die EU », « CLOUD Act free ».
 module.exports = {
-  pageTitle: 'Hook0 | Quelloffene Webhook-Plattform (SSPL)',
-  pageDescription: 'Kostenlose, quelloffene Webhook-Plattform. Ein API-Aufruf, Hook0 übernimmt Retries, HMAC-Signaturen, Zustell-Monitoring. Ohne Kreditkarte.',
+  pageTitle: 'Hook0 | Open-Source-Webhook-Plattform (SSPL-1.0)',
+  pageDescription: 'Kostenlose Open-Source-Webhook-Plattform (SSPL-1.0). Ein API-Aufruf, Hook0 übernimmt Retries, HMAC-Signaturen, Zustell-Monitoring. Ohne Kreditkarte.',
   pageModified: '2026-07-16',
   hero: {
     badgePillBootstrapped: '100% bootstrappt',

@@ -1,8 +1,8 @@
 // Page d'accueil FR. /humanizer pro + legal-reviewer appliqués.
 // SSPL = « code source ouvert (SSPL-1.0) », jamais « open source ».
 module.exports = {
-  pageTitle: 'Hook0 | Plateforme webhooks à code source ouvert (SSPL)',
-  pageDescription: 'Plateforme webhooks gratuite, à code source ouvert. Un appel API, on gère relances, signatures HMAC et monitoring. Sans carte bancaire.',
+  pageTitle: 'Hook0 | Plateforme webhooks open source (SSPL-1.0)',
+  pageDescription: 'Plateforme webhooks gratuite, open source (SSPL-1.0). Un appel API, on gère relances, signatures HMAC et monitoring. Sans carte bancaire.',
   pageModified: '2026-07-16',
   hero: {
     badgePillBootstrapped: '100% bootstrappé',
