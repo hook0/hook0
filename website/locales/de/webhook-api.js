@@ -1,5 +1,5 @@
 // Per-page strings for webhook-api (DE).
-// /humanizer pro + legal-reviewer applied. DSGVO claims as process; SSPL = quelloffen.
+// /humanizer pro + legal-reviewer applied. DSGVO claims as process; SSPL = Open Source.
 module.exports = {
   pageTitle: 'Webhook-API: ein POST liefert ein Event | Hook0',
   pageDescription: 'Schlanke REST-API: ein POST löst ein Event aus, automatische HMAC-Signatur, konfigurierbare Retries, Python- und Node.js-SDKs.',
@@ -9,10 +9,10 @@ module.exports = {
     "eyebrow": "Webhook-API",
     "titleLine1": "Die Webhook-API, die einfach läuft",
     "titleLine2": "in 30 Minuten",
-    "subtitle": "Ein POST aus deinem Backend. Hook0 erledigt HMAC, Wiederholungsversuche, DLQ und die Zustellprotokolle. SDKs für Python und Node.js. Quelloffen (SSPL-1.0), kostenloser Tarif, keine Kreditkarte.",
+    "subtitle": "Ein POST aus deinem Backend. Hook0 erledigt HMAC, Wiederholungsversuche, DLQ und die Zustellprotokolle. SDKs für Python und Node.js. Open Source (SSPL-1.0), kostenloser Tarif, keine Kreditkarte.",
     "ctaPrimary": "Kostenlos starten",
     "ctaSecondary": "API-Referenz lesen",
-    "microcopy": "100 Events/Tag kostenlos. Keine Kreditkarte. Quelloffen (SSPL-1.0)."
+    "microcopy": "100 Events/Tag kostenlos. Keine Kreditkarte. Open Source (SSPL-1.0)."
   },
   "socialProof": true,
   "codeExample": {
@@ -47,7 +47,7 @@ module.exports = {
         "body": "Header, Body, Statuscode, Latenz. Pro Versuch gespeichert. Jedes Event lässt sich per ID erneut zustellen, aus dem Dashboard oder per API."
       },
       {
-        "title": "Quelloffene SDKs",
+        "title": "Open-Source-SDKs",
         "body": "Python und Node.js. Aus der OpenAPI-Spezifikation generiert, damit Client und API synchron bleiben."
       },
       {

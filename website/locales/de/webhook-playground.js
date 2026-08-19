@@ -1,6 +1,6 @@
 // Per-page strings for webhook-playground (DE).
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Pivot-Doppelpunkt.
-// SSPL = « quelloffen (SSPL-1.0) » in pageDescription.
+// SSPL = « Open Source (SSPL-1.0) » in pageDescription.
 module.exports = {
   pageTitle: 'Kostenloser Webhook-Tester online | Hook0',
   pageDescription: 'Kostenloser Webhook-Tester ohne Anmeldung. Sende Test-Events, prüfe Payloads, verifiziere HMAC. Stripe, GitHub, Shopify. Open Source (SSPL-1.0).',

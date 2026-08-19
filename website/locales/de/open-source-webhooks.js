@@ -16,25 +16,25 @@ module.exports = {
   "pageModified": "2026-07-16",
   "track": "de-oss-webhooks",
   "hero": {
-    "eyebrow": "Quelloffen",
-    "titleLine1": "Bester quelloffener",
+    "eyebrow": "Open Source",
+    "titleLine1": "Bester Open Source",
     "titleLine2": "Webhook-Server",
-    "subtitle": "Hook0 ist vollständig quelloffen unter SSPL-1.0, prüfe jede Zeile, hoste selbst für deine Compliance oder nimm Hook0 Cloud für gemanagte Infrastruktur, automatische Updates und Anwendungs-Hosting in Frankreich (CDN Cloudflare in den USA offen genannt). Bootstrapped, ohne Open-Core-Tricks.",
+    "subtitle": "Hook0 ist vollständig Open Source unter SSPL-1.0, prüfe jede Zeile, hoste selbst für deine Compliance oder nimm Hook0 Cloud für gemanagte Infrastruktur, automatische Updates und Anwendungs-Hosting in Frankreich (CDN Cloudflare in den USA offen genannt). Bootstrapped, ohne Open-Core-Tricks.",
     "ctaPrimary": "Kostenlos in der Cloud starten",
     "ctaPrimaryTrack": "de-oss-webhooks-hero-cloud-signup",
     "ctaSecondary": "Playground testen",
     "ctaSecondaryHref": "https://play.hook0.com",
     "ctaSecondaryTrack": "de-oss-webhooks-hero-playground",
     "trustIndicators": [
-      "Quelloffen SSPL-1.0",
+      "Open Source SSPL-1.0",
       "Selbst hosten möglich (Docker / K8s)",
       "Bootstrapped, ohne VC"
     ]
   },
   "socialProof": true,
   "whyOss": {
-    "eyebrow": "Warum quelloffen",
-    "h2": "Warum dein Webhook-Server quelloffen sein sollte",
+    "eyebrow": "Warum Open Source",
+    "h2": "Warum dein Webhook-Server Open Source sein sollte",
     "cards": [
       {
         "icon": "audit",
@@ -49,12 +49,12 @@ module.exports = {
       {
         "icon": "selfhost",
         "title": "Überall selbst hosten",
-        "body": "Deploye auf deinen Servern, in deiner Cloud oder in Air-gapped-Netzen. Quelloffen heißt, du entscheidest, wo deine Daten leben, nicht der Anbieter."
+        "body": "Deploye auf deinen Servern, in deiner Cloud oder in Air-gapped-Netzen. Open Source heißt, du entscheidest, wo deine Daten leben, nicht der Anbieter."
       },
       {
         "icon": "community",
         "title": "Community und Beiträge",
-        "body": "Melde Bugs, schicke PRs, schlage Funktionen vor. Quelloffene Projekte richten die Interessen aus, das Produkt wird besser, weil die Nutzer es direkt formen."
+        "body": "Melde Bugs, schicke PRs, schlage Funktionen vor. Open-Source-Projekte richten die Interessen aus, das Produkt wird besser, weil die Nutzer es direkt formen."
       }
     ]
   },
@@ -153,12 +153,12 @@ module.exports = {
     "h2": "Häufige Fragen",
     "items": [
       {
-        "q": "Ist Hook0 quelloffen?",
-        "a": "Ja. Hook0 ist vollständig quelloffen unter der SSPL-1.0-Lizenz. Jede Codezeile liegt auf GitHub und GitLab. Es gibt keine proprietäre Enterprise-Edition."
+        "q": "Ist Hook0 Open Source?",
+        "a": "Ja. Hook0 ist vollständig Open Source unter der SSPL-1.0-Lizenz. Jede Codezeile liegt auf GitHub und GitLab. Es gibt keine proprietäre Enterprise-Edition."
       },
       {
         "q": "Welche Lizenz nutzt Hook0?",
-        "a": "SSPL-1.0 (Server Side Public License). Du kannst den Code frei selbst hosten, anpassen und prüfen. Die einzige Einschränkung ist, Hook0 als gemanagten Dienst an Dritte anzubieten, ohne deine eigene Stack quelloffen zu machen."
+        "a": "SSPL-1.0 (Server Side Public License). Du kannst den Code frei selbst hosten, anpassen und prüfen. Die einzige Einschränkung ist, Hook0 als gemanagten Dienst an Dritte anzubieten, ohne deine eigene Stack Open Source zu machen."
       },
       {
         "q": "Was braucht das Selbst-Hosten von Hook0?",
@@ -170,9 +170,9 @@ module.exports = {
       },
       {
         "q": "Ist Hook0 wirklich kostenlos selbst hostbar?",
-        "a": "Ja. Hook0 ist quelloffen und ohne Lizenzkosten selbst hostbar. Hook0 Cloud ergänzt gemanagte Infrastruktur, automatische Updates, EU-Hosting, vorrangigen Support und ein SLA, damit du dich auf dein Produkt konzentrierst statt auf den Betrieb einer Webhook-Infrastruktur. Starte im kostenlosen Cloud-Tarif (100 Events/Tag, keine Kreditkarte)."
+        "a": "Ja. Hook0 ist Open Source und ohne Lizenzkosten selbst hostbar. Hook0 Cloud ergänzt gemanagte Infrastruktur, automatische Updates, EU-Hosting, vorrangigen Support und ein SLA, damit du dich auf dein Produkt konzentrierst statt auf den Betrieb einer Webhook-Infrastruktur. Starte im kostenlosen Cloud-Tarif (100 Events/Tag, keine Kreditkarte)."
       },
-      { "q": "Gibt es eine quelloffene Webhook-Plattform, die auch in der EU gehostet wird?", "a": "Ja. Hook0 ist quelloffen (SSPL-1.0), und Hook0 Cloud betreibt seine Datenebene in jedem Tarif auf Clever Cloud in Frankreich (innerhalb der EU). Viele in der EU gehostete Webhook-Dienste sind proprietär und rein cloudbasiert, sodass Sie den Code weder lesen noch selbst betreiben können. Mit Hook0 können Sie den Code prüfen, ihn selbst hosten oder die EU-Cloud nutzen; das vorgelagerte CDN der Cloud ist Cloudflare (US), offengelegt in unserer öffentlichen Unterauftragsverarbeiter-Liste." }
+      { "q": "Gibt es eine Open-Source-Webhook-Plattform, die auch in der EU gehostet wird?", "a": "Ja. Hook0 ist Open Source (SSPL-1.0), und Hook0 Cloud betreibt seine Datenebene in jedem Tarif auf Clever Cloud in Frankreich (innerhalb der EU). Viele in der EU gehostete Webhook-Dienste sind proprietär und rein cloudbasiert, sodass Sie den Code weder lesen noch selbst betreiben können. Mit Hook0 können Sie den Code prüfen, ihn selbst hosten oder die EU-Cloud nutzen; das vorgelagerte CDN der Cloud ist Cloudflare (US), offengelegt in unserer öffentlichen Unterauftragsverarbeiter-Liste." }
     ]
   },
   "related": {

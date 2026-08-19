@@ -1,6 +1,6 @@
 // Per-page strings for mediakit (FR).
 // /humanizer pro appliqué. Tutoiement. Pas d'em-dash, pas de pivot colon.
-// Hook0 = « code source ouvert (SSPL-1.0) », jamais « open source ».
+// Hook0 = « open source (SSPL-1.0) », jamais « open source » seul.
 // Noms des fondateurs verbatim. Codes hex verbatim.
 module.exports = {
   pageTitle: 'Hook0 - Media kit, ressources de marque et presse',
@@ -103,17 +103,17 @@ module.exports = {
     eyebrow: 'Informations presse',
     h2: 'À propos de Hook0',
     overviewH3: 'Présentation de la société',
-    overviewP: 'Hook0 est une plateforme Webhooks-as-a-Service au code source ouvert (SSPL-1.0) qui aide les développeurs à envoyer, recevoir et gérer les webhooks à grande échelle. Fondée à Nantes, France, Hook0 est 100% bootstrappée, sans financement par capital-risque.',
+    overviewP: 'Hook0 est une plateforme Webhooks-as-a-Service open source (SSPL-1.0) qui aide les développeurs à envoyer, recevoir et gérer les webhooks à grande échelle. Fondée à Nantes, France, Hook0 est 100% bootstrappée, sans financement par capital-risque.',
     keyFactsH3: 'Faits clés',
     facts: [
       { labelHtml: 'Fondation :', valueHtml: 'Nantes, France' },
       { labelHtml: 'Financement :', valueHtml: '100% bootstrappée, sans VC' },
-      { labelHtml: 'Produit :', valueHtml: 'Webhooks-as-a-Service au code source ouvert (SSPL-1.0)' },
+      { labelHtml: 'Produit :', valueHtml: 'Webhooks-as-a-Service open source (SSPL-1.0)' },
       { labelHtml: 'Mission :', valueHtml: 'Construire une infrastructure webhook fiable qui dure' },
       { labelHtml: 'RGPD :', valueHtml: 'conçu pour la conformité RGPD, plan de données en UE (Clever Cloud FR), CDN Cloudflare US divulgué dans le <a href="/fr/accord-traitement-donnees">DPA</a>' },
     ],
     boilerplateH3: 'Texte de présentation',
-    boilerplateQuote: '« Hook0 est une plateforme webhook au code source ouvert (SSPL-1.0) qui permet aux développeurs de bâtir des intégrations event-driven fiables et passant à l\'échelle. Basée en France et 100% bootstrappée, Hook0 s\'engage à construire un logiciel qui dure. »',
+    boilerplateQuote: '« Hook0 est une plateforme webhook open source (SSPL-1.0) qui permet aux développeurs de bâtir des intégrations event-driven fiables et passant à l\'échelle. Basée en France et 100% bootstrappée, Hook0 s\'engage à construire un logiciel qui dure. »',
   },
   usage: {
     eyebrow: 'Guidelines',

@@ -1,5 +1,5 @@
 // Per-page strings for webhook-api (FR).
-// /humanizer pro + legal-reviewer applied. SSPL = code source ouvert (SSPL-1.0).
+// /humanizer pro + legal-reviewer applied. SSPL = open source (SSPL-1.0).
 module.exports = {
   pageTitle: 'API Webhook : un POST suffit pour livrer un event | Hook0',
   pageDescription: 'API REST sobre Hook0 : un POST déclenche un event, signature HMAC auto, relances configurables, SDK Python et Node.js. Gratuit.',
@@ -9,10 +9,10 @@ module.exports = {
     "eyebrow": "API Webhook",
     "titleLine1": "L'API webhook qui marche",
     "titleLine2": "en 30 minutes",
-    "subtitle": "Un POST depuis ton backend. Hook0 gère HMAC, relances, DLQ et les logs de livraison. SDK Python et Node.js. Code source ouvert (SSPL-1.0), tier gratuit, sans carte bancaire.",
+    "subtitle": "Un POST depuis ton backend. Hook0 gère HMAC, relances, DLQ et les logs de livraison. SDK Python et Node.js. Open source (SSPL-1.0), tier gratuit, sans carte bancaire.",
     "ctaPrimary": "Démarrer gratuitement",
     "ctaSecondary": "Lire la référence API",
-    "microcopy": "100 events/jour gratuits. Sans carte bancaire. Code source ouvert (SSPL-1.0)."
+    "microcopy": "100 events/jour gratuits. Sans carte bancaire. Open source (SSPL-1.0)."
   },
   "socialProof": true,
   "codeExample": {
@@ -47,7 +47,7 @@ module.exports = {
         "body": "Headers, body, code HTTP, latence. Stockés par tentative. Rejoue n'importe quel event par ID, depuis le dashboard ou l'API."
       },
       {
-        "title": "SDK à code source ouvert",
+        "title": "SDK open source",
         "body": "Python et Node.js. Générés depuis la spec OpenAPI, donc le client et l'API restent alignés."
       },
       {

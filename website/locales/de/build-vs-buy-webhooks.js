@@ -1,6 +1,6 @@
 // Per-page strings for build-vs-buy-webhooks (DE).
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Pivot-Doppelpunkt.
-// Hook0 = « quelloffen (SSPL-1.0) ».
+// Hook0 = « Open Source (SSPL-1.0) ».
 module.exports = {
   pageTitle: 'Build vs Buy Webhooks: Produktion in 30 Min | Hook0',
   pageDescription: 'Webhooks von Grund auf zu bauen kostet 3+ Sprints. Wiederholungen, Signaturen, Monitoring: nimm Hook0 und liefere in 30 Minuten.',
@@ -10,7 +10,7 @@ module.exports = {
     eyebrow: 'Build vs Buy',
     titleBefore: 'Hör auf, Webhooks',
     titleAccent: 'von Grund auf zu bauen',
-    subtitle: 'Dein Backlog ist voll mit Features, die deine User wirklich wollen. Wiederholungen, Signaturen, Monitoring, Dead Letter Queues, das sind 3 Sprints oder mehr an Klempnerei. Hook0 ist ein quelloffener (SSPL-1.0) Webhook-Service, der alles davon erledigt. 100 Events/Tag kostenlos, ohne Kreditkarte. Lieferung in 30 Minuten.',
+    subtitle: 'Dein Backlog ist voll mit Features, die deine User wirklich wollen. Wiederholungen, Signaturen, Monitoring, Dead Letter Queues, das sind 3 Sprints oder mehr an Klempnerei. Hook0 ist ein Open-Source-Webhook-Service (SSPL-1.0), der alles davon erledigt. 100 Events/Tag kostenlos, ohne Kreditkarte. Lieferung in 30 Minuten.',
     ctaPrimary: 'Kostenlos starten',
     ctaSecondary: 'Playground ausprobieren',
     stats: [
@@ -44,7 +44,7 @@ module.exports = {
       { aspect: 'Sicherheit (HMAC)', diyHtml: 'Implementieren und warten', hook0Html: 'Automatisch bei jedem Event', diyDim: false },
       { aspect: 'Monitoring und Logs', diyHtml: 'Dashboards bauen', hook0Html: 'Standardmäßig enthalten', diyDim: false },
       { aspect: 'Abonnement-Verwaltung', diyHtml: 'Komplettes UI bauen', hook0Html: 'Einbettbares Portal enthalten', diyDim: false },
-      { aspect: 'Anbieter-Bindung', diyHtml: 'Keine (aber an deinen Code gebunden)', hook0Html: 'Keine (quelloffen, selbst-hostbar)', diyDim: true },
+      { aspect: 'Anbieter-Bindung', diyHtml: 'Keine (aber an deinen Code gebunden)', hook0Html: 'Keine (Open Source, selbst-hostbar)', diyDim: true },
     ],
   },
   integration: {

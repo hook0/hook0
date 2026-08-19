@@ -168,7 +168,7 @@ module.exports = {
       h2: "Ce qu'on dit de nous",
       sub: 'Des développeurs et des équipes qui font confiance à Hook0 pour leur infra webhooks',
       items: [
-        { quote: "Avec assez de temps, le code source ouvert finit toujours par gagner !", author: 'François-Guillaume Ribreau', role: 'Co-fondateur Hook0' },
+        { quote: "Avec assez de temps, l'open source finit toujours par gagner !", author: 'François-Guillaume Ribreau', role: 'Co-fondateur Hook0' },
         { quote: "On le construit comme on aimerait l'utiliser nous-mêmes", author: 'David Sferruzza, PhD', role: 'Co-fondateur Hook0' },
         { quote: "De loin le meilleur logiciel de webhooks du marché", author: 'Kieron Wiltshire', role: 'Senior Software Engineer' },
         { quote: "Hook0 change la donne pour les développeurs qui cherchent une solution webhooks fiable. Un seul appel API gère tout : livraison, relances, sécurité. Fiable, efficace, et un solide 5/5 largement mérité.", author: 'Platon Samuel', role: 'Avis ★★★★★ sur Product Hunt' },
@@ -181,7 +181,7 @@ module.exports = {
       eyebrow: 'À propos de Hook0',
       h2: "Qu'est-ce que Hook0 ?",
       paragraphs: [
-        "Chez Hook0, on est une société européenne indépendante, fondée sur des principes de durabilité logicielle et de pratiques éthiques autour des données. Notre code est entièrement à code source ouvert.",
+        "Chez Hook0, on est une société européenne indépendante, fondée sur des principes de durabilité logicielle et de pratiques éthiques autour des données. Notre code est entièrement open source.",
         "On croit profondément à la transparence et à la souveraineté des données. Contrairement à d'autres solutions, Hook0 ne verrouille ni tes données ni ton logiciel. Si tu choisis la version SaaS de Hook0, le plan de données applicatif reste en France chez Clever Cloud (CDN Cloudflare US divulgué dans le DPA), en cohérence avec la réglementation locale.",
         "Notre modèle économique repose entièrement sur le revenu de nos clients payants, sans levée de fonds. Depuis notre lancement, on sert nos clients avec engagement, en se concentrant sur la qualité et la fiabilité.",
       ],
@@ -216,9 +216,9 @@ module.exports = {
     apiAndDoc: {
       eyebrow: 'Expérience développeur',
       h2: 'API et docs',
-      sub: "Construit par des développeurs au code source ouvert dans le monde entier, pour tout le monde",
+      sub: "Construit par des développeurs open source dans le monde entier, pour tout le monde",
       h3OneApiFullControl: 'Une API, contrôle total',
-      h3Lead: "Hook0 est construit par des développeurs au code source ouvert dans le monde entier, pour tout le monde.",
+      h3Lead: "Hook0 est construit par des développeurs open source dans le monde entier, pour tout le monde.",
       quickLinks: { apiRef: 'Référence API', guides: 'Guides', mcp: 'Serveur MCP', sdks: 'SDKs' },
       items: [
         { title: 'Documentation API solide', body: 'API JSON RESTful entièrement documentée avec des exemples', linkLabel: 'Lire la doc' },
@@ -273,7 +273,7 @@ module.exports = {
       startupDescription: 'Passe à la vitesse supérieure avec nos nouvelles fonctionnalités et fais grandir ta startup.',
       proDescription: 'Libère la connectivité de tes données avec des fonctionnalités entreprise et un support renforcé.',
       enterpriseDescription: 'Tu as besoin de plus ? De quelque chose de différent ? Dis-le nous, on te construit un plan sur mesure.',
-      selfHostedDescription: 'Code source ouvert (SSPL-1.0), sur ton infrastructure. Contrôle complet sur tes données, aligné sécurité et vie privée.',
+      selfHostedDescription: 'Open source (SSPL-1.0), sur ton infrastructure. Contrôle complet sur tes données, aligné sécurité et vie privée.',
       onPremiseProDescription: 'On déploie une instance Hook0 dédiée dans ton environnement et on t\'aide à la maintenir et la mettre à jour.',
       onPremiseEnterpriseDescription: 'On t\'aide exactement comme tu en as besoin pour offrir une expérience webhooks de qualité à tes utilisateurs.',
       planNameDeveloper: 'Developer',
@@ -339,8 +339,8 @@ module.exports = {
   features: [
     {
       primary: true,
-      title: 'Code source ouvert',
-      description: "Contrairement aux alternatives, Hook0 est entièrement <a href='https://github.com/hook0' target='_blank' rel='noopener noreferrer'>à code source ouvert</a>. Pas de verrouillage fournisseur, on est là pour durer, pas d'investisseurs, on est totalement viables depuis le jour 1.",
+      title: 'Open source',
+      description: "Contrairement aux alternatives, Hook0 est entièrement <a href='https://github.com/hook0' target='_blank' rel='noopener noreferrer'>open source</a>. Pas de verrouillage fournisseur, on est là pour durer, pas d'investisseurs, on est totalement viables depuis le jour 1.",
     },
     {
       primary: true,
@@ -466,7 +466,7 @@ module.exports = {
         { label: 'Alternatives à Hookdeck', href: './alternatives-a-hookdeck' },
         { label: 'Build vs Buy Webhooks', href: './build-vs-buy-webhooks' },
         { label: 'Webhooks auto-hébergés', href: './webhooks-auto-heberges' },
-        { label: 'Webhooks à code source ouvert', href: './webhooks-open-source' },
+        { label: 'Webhooks open source', href: './webhooks-open-source' },
       ],
     },
     guides: {

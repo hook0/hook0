@@ -1,6 +1,6 @@
 // Per-page strings for self-hosted-webhooks (DE).
 // /humanizer pro + legal-reviewer applied.
-// Hook0 selbst = « quelloffen (SSPL-1.0) », NIE « Open Source » (SSPL von der
+// Hook0 selbst = « Open Source (SSPL-1.0) », NIE « Open Source » (SSPL von der
 // OSI abgelehnt, UWG §5 DACH-Risiko).
 // Souveränität: CDN Cloudflare (USA) offen genannt, Anwendungsdaten bei
 // Clever Cloud (Frankreich). NIE «kein US-Konzern im Stack /
@@ -9,14 +9,14 @@
 // keine absoluten Zertifizierungsaussagen.
 module.exports = {
   pageTitle: 'Selbst-gehostete Webhooks: Hook0 auf deiner Infra',
-  pageDescription: 'Hostet Hook0 selbst auf eurer Infrastruktur. Quelloffen (SSPL-1.0), Docker, Kubernetes, Postgres und S3 unterstützt.',
+  pageDescription: 'Hostet Hook0 selbst auf eurer Infrastruktur. Open Source (SSPL-1.0), Docker, Kubernetes, Postgres und S3 unterstützt.',
   "pageModified": "2026-07-16",
   "track": "de-self-hosted",
   "hero": {
     "eyebrow": "Selbst gehostet",
     "titleLine1": "Selbst gehostete",
     "titleLine2": "Webhook-Plattform",
-    "subtitle": "Hoste deine Webhooks selbst, mit derselben Codebasis wie unsere Cloud. Deine Webhook-Payloads verlassen dein Netz nie. Docker Compose oder Kubernetes. Quelloffen unter SSPL-1.0, kein Anbieter-Lock-in.",
+    "subtitle": "Hoste deine Webhooks selbst, mit derselben Codebasis wie unsere Cloud. Deine Webhook-Payloads verlassen dein Netz nie. Docker Compose oder Kubernetes. Open Source unter SSPL-1.0, kein Anbieter-Lock-in.",
     "ctaPrimary": "Kostenlos starten",
     "ctaPrimaryTrack": "de-self-hosted-hero-register",
     "ctaSecondary": "Installations-Guide",
@@ -40,7 +40,7 @@ module.exports = {
       },
       {
         "icon": "code",
-        "title": "Quelloffen unter SSPL-1.0",
+        "title": "Open Source unter SSPL-1.0",
         "body": "Unter SSPL-1.0 lizenziert. Keine Open-Core-Tricks, keine abgeschotteten Funktionen. Jede Codezeile liegt auf GitHub und GitLab. Du kannst sie prüfen, forken oder eine PR schicken."
       },
       {

@@ -1,9 +1,9 @@
 // Per-page strings for pricing (FR).
 // /humanizer pro + legal-reviewer applied.
-// SSPL = «code source ouvert (SSPL-1.0)», jamais «open source» (L121-1).
+// SSPL = «open source (SSPL-1.0)», jamais «open source» (L121-1).
 module.exports = {
   pageTitle: 'Tarifs Hook0 : offre gratuite, cloud UE | Webhooks',
-  pageDescription: 'Developer gratuit à vie. Cloud dès 59 € HT/mois, code source ouvert (SSPL-1.0), auto-hébergeable. Aucun frais caché.',
+  pageDescription: 'Developer gratuit à vie. Cloud dès 59 € HT/mois, open source (SSPL-1.0), auto-hébergeable. Aucun frais caché.',
   "pageModified": "2026-06-27",
   "track": "fr-tarifs",
   "hero": {
@@ -18,7 +18,7 @@ module.exports = {
         "body": "Aucune pression pour faire grimper les prix. On grandit avec toi, jamais contre toi."
       },
       {
-        "title": "Code source ouvert, zéro lock-in",
+        "title": "Open source, zéro lock-in",
         "body": "Audite chaque ligne de code. Auto-héberge pour la conformité. Commence sur le Cloud pour aller en production très vite."
       },
       {
@@ -40,15 +40,15 @@ module.exports = {
       },
       {
         "q": "Hook0 est-il gratuit ?",
-        "a": "Oui. Hook0 a une offre Developer gratuite qui inclut 100 webhook events par jour, les signatures HMAC, et le monitoring de livraison. Aucune carte bancaire requise. Hook0 est aussi à code source ouvert et auto-hébergeable quand tu as besoin de souveraineté des données ou de contraintes d'infrastructure spécifiques. Hook0 Cloud tourne sur une <a href=\"/fr/infrastructure-webhook-europeenne\">infrastructure webhook européenne</a>, hébergée en France par défaut."
+        "a": "Oui. Hook0 a une offre Developer gratuite qui inclut 100 webhook events par jour, les signatures HMAC, et le monitoring de livraison. Aucune carte bancaire requise. Hook0 est aussi open source et auto-hébergeable quand tu as besoin de souveraineté des données ou de contraintes d'infrastructure spécifiques. Hook0 Cloud tourne sur une <a href=\"/fr/infrastructure-webhook-europeenne\">infrastructure webhook européenne</a>, hébergée en France par défaut."
       },
       {
         "q": "Puis-je auto-héberger Hook0 gratuitement ?",
-        "a": "Oui. Hook0 est entièrement à code source ouvert sous licence SSPL-1.0. Tu peux l'auto-héberger avec Docker Compose ou Kubernetes. En auto-hébergement, tu gères ta propre infrastructure, ton scaling, tes mises à jour et ton monitoring. La plupart des équipes démarrent sur Hook0 Cloud pour aller en production très vite."
+        "a": "Oui. Hook0 est entièrement open source sous licence SSPL-1.0. Tu peux l'auto-héberger avec Docker Compose ou Kubernetes. En auto-hébergement, tu gères ta propre infrastructure, ton scaling, tes mises à jour et ton monitoring. La plupart des équipes démarrent sur Hook0 Cloud pour aller en production très vite."
       },
       {
         "q": "Comment se compare le tarif Hook0 à Svix et Hookdeck ?",
-        "a": "Hook0 Cloud démarre à 59 € HT/mois face à Svix à 490 $/mois pour des fonctions comparables. Svix verrouille l'auto-hébergement derrière un tarif entreprise. Hookdeck publie Outpost, sa brique d'envoi, sous Apache-2.0, l'auto-hébergement y est donc possible aussi. La différence tient à ce que Hook0 fait tourner le même code dans le cloud et sur tes serveurs, sans palier entreprise qui retient des fonctions. Hook0 est entièrement à code source ouvert sous SSPL-1.0, donc tu peux auto-héberger quand tu as besoin de souveraineté des données. Pour les chiffres détaillés de 100k à 10M d'events par mois, consulte le <a href=\"/fr/comparatif-cout-webhook\">comparatif de coût webhook</a>."
+        "a": "Hook0 Cloud démarre à 59 € HT/mois face à Svix à 490 $/mois pour des fonctions comparables. Svix verrouille l'auto-hébergement derrière un tarif entreprise. Hookdeck publie Outpost, sa brique d'envoi, sous Apache-2.0, l'auto-hébergement y est donc possible aussi. La différence tient à ce que Hook0 fait tourner le même code dans le cloud et sur tes serveurs, sans palier entreprise qui retient des fonctions. Hook0 est entièrement open source sous SSPL-1.0, donc tu peux auto-héberger quand tu as besoin de souveraineté des données. Pour les chiffres détaillés de 100k à 10M d'events par mois, consulte le <a href=\"/fr/comparatif-cout-webhook\">comparatif de coût webhook</a>."
       }
     ]
   }

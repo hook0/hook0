@@ -1,19 +1,19 @@
 // Per-page strings for migrate-from-webhook-site (FR).
 // /humanizer pro appliqué. Tutoiement. Pas d'em-dash, pas de pivot colon.
-// SSPL pour Hook0 = « code source ouvert (SSPL-1.0) », JAMAIS « open source » seul.
+// SSPL pour Hook0 = « open source (SSPL-1.0) », JAMAIS « open source » seul.
 module.exports = {
   pageTitle: 'Alternative à webhook.site : passe à Hook0 en 30 min | Hook0',
-  pageDescription: 'Upgrade prod-ready de webhook.site : signatures HMAC, relances configurables, portail abonné, code source ouvert (SSPL-1.0).',
+  pageDescription: 'Upgrade prod-ready de webhook.site : signatures HMAC, relances configurables, portail abonné, open source (SSPL-1.0).',
   pageModified: '2026-06-27',
   breadcrumb: 'Migrer depuis webhook.site',
   hero: {
     eyebrow: 'Alternative à webhook.site',
     titleBefore: 'Au-delà de webhook.site ?',
     titleAccent: 'Passe à Hook0',
-    subtitle: 'webhook.site capte du HTTP entrant pour debug. Hook0 envoie tes webhooks vers tes clients, signés HMAC, avec relances, logs de livraison et portail abonné. Métier différent, même domaine. Code source ouvert (SSPL-1.0).',
+    subtitle: 'webhook.site capte du HTTP entrant pour debug. Hook0 envoie tes webhooks vers tes clients, signés HMAC, avec relances, logs de livraison et portail abonné. Métier différent, même domaine. Open source (SSPL-1.0).',
     ctaPrimary: 'Passer à Hook0',
     ctaSecondary: 'Essayer le Playground',
-    ctaNote: '100 events/jour gratuit. Sans carte bancaire. Code source ouvert.',
+    ctaNote: '100 events/jour gratuit. Sans carte bancaire. Open source.',
   },
   vsTable: {
     eyebrow: 'Deux outils adjacents',
@@ -48,7 +48,7 @@ module.exports = {
       { q: 'Hook0 est-il une alternative à webhook.site ?', a: 'Oui. Hook0 est l\'alternative prod-ready quand tu dépasses webhook.site. Là où webhook.site est un inspecteur de requêtes (« quel payload j\'ai reçu ? »), Hook0 est une plateforme webhook qui envoie des events à tes abonnés, les signe en HMAC, relance en cas d\'échec et stocke les logs de livraison. webhook.site sert au debug, Hook0 sert en prod.' },
       { q: 'Comment migrer de webhook.site vers Hook0 ?', a: 'Inscris-toi sur Hook0 (gratuit, sans carte bancaire), crée une application, remplace l\'URL webhook.site dans ton code par un seul appel REST à l\'API Hook0. Tu obtiens livraison signée HMAC, relances, dead letter queues et portail abonné, sans modifier ton code au-delà de l\'endpoint API.' },
       { q: 'Puis-je encore inspecter les payloads webhook bruts avec Hook0 ?', a: 'Oui. Chaque event envoyé via Hook0 est loggé avec la requête complète, la réponse, le code de statut et la latence. Tu peux rejouer n\'importe quel event depuis le dashboard. Pour des tests à la volée sans compte, play.hook0.com te permet de générer des URLs webhook jetables comme le fait webhook.site.' },
-      { q: 'Hook0 est-il en code source ouvert contrairement à webhook.site ?', a: 'Oui. Hook0 est entièrement en code source ouvert (SSPL-1.0) et auto-hébergeable via Docker Compose ou Kubernetes. webhook.site est un SaaS au code fermé. Si tu dois garder le trafic sur ta propre infrastructure, Hook0 est la réponse.' },
+      { q: 'Hook0 est-il open source contrairement à webhook.site ?', a: 'Oui. Hook0 est entièrement open source (SSPL-1.0) et auto-hébergeable via Docker Compose ou Kubernetes. webhook.site est un SaaS au code fermé. Si tu dois garder le trafic sur ta propre infrastructure, Hook0 est la réponse.' },
     ],
   },
   related: {
