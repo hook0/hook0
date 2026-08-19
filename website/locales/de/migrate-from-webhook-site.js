@@ -1,19 +1,19 @@
 // Per-page strings for migrate-from-webhook-site (DE).
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Pivot-Doppelpunkt.
-// SSPL für Hook0 = « quelloffen (SSPL-1.0) », NIE « Open Source » allein.
+// SSPL für Hook0 = « Open Source (SSPL-1.0) », NIE « Open Source » allein.
 module.exports = {
   pageTitle: 'webhook.site-Alternative: in 30 Min zu Hook0 | Hook0',
-  pageDescription: 'Production-Upgrade von webhook.site: HMAC-Signaturen, konfigurierbare Wiederholungen, Subscriber-Portal, quelloffen (SSPL-1.0).',
+  pageDescription: 'Production-Upgrade von webhook.site: HMAC-Signaturen, konfigurierbare Wiederholungen, Subscriber-Portal, Open Source (SSPL-1.0).',
   pageModified: '2026-06-27',
   breadcrumb: 'Von webhook.site migrieren',
   hero: {
     eyebrow: 'webhook.site-Alternative',
     titleBefore: 'Über webhook.site hinaus?',
     titleAccent: 'Wechsel zu Hook0',
-    subtitle: 'webhook.site fängt eingehendes HTTP zum Debuggen ab. Hook0 sendet deine Webhooks an deine Kunden, mit HMAC-Signaturen, Wiederholungen, Zustelllogs und Abonnenten-Portal. Anderer Job, gleiche Domäne. Quelloffen (SSPL-1.0).',
+    subtitle: 'webhook.site fängt eingehendes HTTP zum Debuggen ab. Hook0 sendet deine Webhooks an deine Kunden, mit HMAC-Signaturen, Wiederholungen, Zustelllogs und Abonnenten-Portal. Anderer Job, gleiche Domäne. Open Source (SSPL-1.0).',
     ctaPrimary: 'Zu Hook0 wechseln',
     ctaSecondary: 'Playground ausprobieren',
-    ctaNote: '100 Events/Tag kostenlos. Ohne Kreditkarte. Quelloffen.',
+    ctaNote: '100 Events/Tag kostenlos. Ohne Kreditkarte. Open Source.',
   },
   vsTable: {
     eyebrow: 'Zwei verwandte Werkzeuge',
@@ -48,7 +48,7 @@ module.exports = {
       { q: 'Ist Hook0 eine Alternative zu webhook.site?', a: 'Ja. Hook0 ist die produktionsreife Alternative, wenn du webhook.site entwachsen bist. Während webhook.site ein Request-Inspektor ist (« welchen Payload habe ich erhalten? »), ist Hook0 eine Webhook-Plattform: sie sendet Events an deine Abonnenten, signiert sie mit HMAC, wiederholt bei Fehlern und speichert Zustelllogs. webhook.site nutzt du zum Debuggen, Hook0 in der Produktion.' },
       { q: 'Wie migriere ich von webhook.site zu Hook0?', a: 'Registriere dich bei Hook0 (kostenlos, ohne Kreditkarte), lege eine Anwendung an, ersetze die webhook.site-URL in deinem Code durch einen einzigen Hook0-REST-API-Aufruf. Du erhältst HMAC-signierte Zustellung, Wiederholungen, Dead Letter Queues und Abonnenten-Portal, ohne Code-Änderung über den API-Endpunkt hinaus.' },
       { q: 'Kann ich rohe Webhook-Payloads weiterhin mit Hook0 prüfen?', a: 'Ja. Jedes über Hook0 gesendete Event wird mit vollständigem Request, Response, Statuscode und Latenz geloggt. Du kannst jedes Event aus dem Dashboard replayen. Für Ad-hoc-Tests ohne Account erzeugst du auf play.hook0.com Wegwerf-Webhook-URLs wie bei webhook.site.' },
-      { q: 'Ist Hook0 quelloffen, anders als webhook.site?', a: 'Ja. Hook0 ist vollständig quelloffen unter SSPL-1.0 und selbst-hostbar auf Docker Compose oder Kubernetes. webhook.site ist ein Closed-Source-SaaS. Wenn du den Traffic auf deiner eigenen Infrastruktur halten musst, ist Hook0 die Antwort.' },
+      { q: 'Ist Hook0 Open Source, anders als webhook.site?', a: 'Ja. Hook0 ist vollständig Open Source unter SSPL-1.0 und selbst-hostbar auf Docker Compose oder Kubernetes. webhook.site ist ein Closed-Source-SaaS. Wenn du den Traffic auf deiner eigenen Infrastruktur halten musst, ist Hook0 die Antwort.' },
     ],
   },
   related: {

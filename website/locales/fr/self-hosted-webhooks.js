@@ -1,19 +1,20 @@
 // Per-page strings for self-hosted-webhooks (FR).
 // /humanizer pro + legal-reviewer applied.
-// Hook0 lui-même = « code source ouvert (SSPL-1.0) », JAMAIS « Open Source »
-// (SSPL rejetée par l'OSI, risque L121-1 C. conso).
+// Hook0 lui-même = « open source (SSPL-1.0) », la parenthèse est obligatoire,
+// JAMAIS « open source » seul (SSPL non approuvée par l'OSI, risque L121-1
+// C. conso).
 // Souveraineté : CDN Cloudflare (USA) divulgué, data plane Clever Cloud (France).
 // JAMAIS « 100 % souverain / no data sharing / CLOUD Act free ».
 module.exports = {
   pageTitle: 'Webhooks auto-hébergés : déploie Hook0 chez toi | Hook0',
-  pageDescription: 'Auto-héberge Hook0 sur ton infra. Code source ouvert (SSPL-1.0), Docker, Kubernetes, support Postgres et S3.',
+  pageDescription: 'Auto-héberge Hook0 sur ton infra. Open source (SSPL-1.0), Docker, Kubernetes, support Postgres et S3.',
   "pageModified": "2026-07-16",
   "track": "fr-self-hosted",
   "hero": {
     "eyebrow": "Auto-hébergé",
     "titleLine1": "Plateforme webhook",
     "titleLine2": "auto-hébergée",
-    "subtitle": "Déploie tes webhooks sur ton infra avec la même base de code que notre Cloud. Tes payloads webhook ne quittent jamais ton réseau. Docker Compose ou Kubernetes. Code source ouvert sous SSPL-1.0, sans verrou éditeur.",
+    "subtitle": "Déploie tes webhooks sur ton infra avec la même base de code que notre Cloud. Tes payloads webhook ne quittent jamais ton réseau. Docker Compose ou Kubernetes. Open source sous SSPL-1.0, sans verrou éditeur.",
     "ctaPrimary": "Démarrer gratuitement",
     "ctaPrimaryTrack": "fr-self-hosted-hero-register",
     "ctaSecondary": "Guide d'installation",
@@ -37,7 +38,7 @@ module.exports = {
       },
       {
         "icon": "code",
-        "title": "Code source ouvert SSPL-1.0",
+        "title": "Open source SSPL-1.0",
         "body": "Sous licence SSPL-1.0. Pas d'astuce open-core, pas de fonctions cloisonnées. Chaque ligne est sur GitHub et GitLab. Tu peux l'auditer, le forker, ou envoyer une PR."
       },
       {

@@ -1,6 +1,6 @@
 // Per-page strings for hook0-vs-convoy (DE).
 // /humanizer pro angewendet. Duzen. Kein Em-Dash, kein Pivot-Doppelpunkt.
-// SSPL für Hook0 = « quelloffen (SSPL-1.0) ». Convoy = Elastic License v2.0 (nicht OSI),
+// SSPL für Hook0 = « Open Source (SSPL-1.0) ». Convoy = Elastic License v2.0 (nicht OSI),
 // also « quellverfügbar », niemals « Open Source » ohne Einschränkung.
 // Fakten aktualisiert 2026-07-08 (Wettbewerbs-Snapshot): Convoy AKTIV (v26.6.2 vom 08.07.2026),
 // Cloud ohne öffentliche Preise und ohne Managed-EU-Residenz, Preise 0 $ -> 999 $/Monat flat.
