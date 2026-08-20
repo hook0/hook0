@@ -99,11 +99,11 @@ MCP is versioned by dated revisions, and a client and a server settle on one dur
 - `2025-06-18`
 - `2025-11-25`
 
-`2025-11-25` is the one it advertises, and the one it answers with when a client asks for a revision that is not on that list — so a client pinned to something else negotiates down rather than being turned away. A request whose inline `_meta` names an unlisted revision is refused outright, with `-32022 Unsupported protocol version`.
+`2025-11-25` is the one it advertises, and the one it answers with when a client asks for a revision that is not on that list, so a client pinned to something else negotiates down rather than being turned away. A request whose inline `_meta` names an unlisted revision is refused outright, with `-32022 Unsupported protocol version`.
 
 `2026-07-28` is deliberately absent. It asks for a stateless lifecycle, `subscriptions/listen` and input-required tool handling that this server does not provide, and a server claiming a revision it has not implemented is worse for a client than one that does not claim it. If your client speaks `2026-07-28` and nothing older, this server is not usable with it yet.
 
-That list is not prose kept up by hand. `tests/integration_test.rs` reads it out of this file, asks a running server which revisions it actually answers on, and fails if the two have come apart — so a revision the server gains or loses cannot leave this section behind.
+That list is not prose kept up by hand. `tests/integration_test.rs` reads it out of this file, asks a running server which revisions it actually answers on, and fails if the two have come apart, so a revision the server gains or loses cannot leave this section behind.
 
 ---
 
@@ -222,9 +222,9 @@ cargo package --locked
 ### Tool definitions
 
 The tools this server exposes are derived from `api/openapi.snapshot.json` and committed as
-`src/server/generated.rs`. Nothing generates them at build time: the crate is published to
+`src/server/generated.rs`. Nothing generates them at build time, and the crate is published to
 crates.io, where the snapshot is not around, so the definitions have to travel inside the package.
-This crate depends on nothing that reads the snapshot, not even at build time — `hook0-sdkgen`
+This crate depends on nothing that reads the snapshot, not even at build time. `hook0-sdkgen`
 writes that file, and this crate merely compiles it.
 
 The emission driver in `hook0-sdkgen` compares the committed file with what the snapshot describes,
@@ -234,7 +234,7 @@ and touching a handler tagged `mcp` makes it fail. Adopt the change with:
 UPDATE_SDK=mcp cargo test -p hook0-sdkgen sdk_targets
 ```
 
-Commit the rewritten `src/server/generated.rs` along with your change, and read the diff: a tool
+Commit the rewritten `src/server/generated.rs` along with your change, and read the diff, because a tool
 that appeared, disappeared or changed shape without you meaning it to is a defect in the handler.
 
 ## License

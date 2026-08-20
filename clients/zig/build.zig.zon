@@ -21,6 +21,7 @@
         "src",
         "tests",
         "README.md",
+        "assets",
         "CHANGELOG.md",
         "LICENSE",
     },

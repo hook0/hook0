@@ -19,7 +19,8 @@
   },
   "files": [
     "/dist",
-    "/esm"
+    "/esm",
+    "/assets"
   ],
   "scripts": {
     "build": "tsc",

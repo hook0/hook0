@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" width="900" height="340">
+  <defs>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="indigoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+
+    <linearGradient id="flowRight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.15"/>
+      <stop offset="45%" stop-color="#6366f1" stop-opacity="0.15"/>
+      <stop offset="50%" stop-color="#6366f1" stop-opacity="1"/>
+      <stop offset="55%" stop-color="#6366f1" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0.15"/>
+      <animateTransform attributeName="gradientTransform" type="translate" from="-1 0" to="1 0" dur="2s" repeatCount="indefinite"/>
+    </linearGradient>
+    <linearGradient id="flowOut" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.15"/>
+      <stop offset="45%" stop-color="#a855f7" stop-opacity="0.15"/>
+      <stop offset="50%" stop-color="#a855f7" stop-opacity="1"/>
+      <stop offset="55%" stop-color="#a855f7" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0.15"/>
+      <animateTransform attributeName="gradientTransform" type="translate" from="-1 0" to="1 0" dur="2s" repeatCount="indefinite" begin="0.6s"/>
+    </linearGradient>
+    <linearGradient id="flowBack" x1="100%" y1="0%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.15"/>
+      <stop offset="45%" stop-color="#f59e0b" stop-opacity="0.15"/>
+      <stop offset="50%" stop-color="#f59e0b" stop-opacity="1"/>
+      <stop offset="55%" stop-color="#f59e0b" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.15"/>
+      <animateTransform attributeName="gradientTransform" type="translate" from="1 0" to="-1 0" dur="3s" repeatCount="indefinite" begin="1.2s"/>
+    </linearGradient>
+
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <text x="450" y="28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" letter-spacing="1" fill="#64748b">Hook0 TypeScript SDK</text>
+  <g transform="translate(90, 58)"><rect x="-51.800000000000004" y="-12" width="103.60000000000001" height="20" rx="10" fill="#10b981" fill-opacity="0.1"/><text x="0" y="4" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="600" fill="#059669">YOUR CODE</text></g>
+  <g transform="translate(20, 75)" filter="url(#cardShadow)">
+    <rect width="140" height="100" rx="16" fill="white"/>
+    <rect width="140" height="40" rx="16" fill="url(#greenGrad)"/>
+    <rect y="28" width="140" height="12" fill="url(#greenGrad)"/>
+    <g transform="translate(50, 8)">
+      <rect x="0" y="0" width="40" height="24" rx="4" fill="none" stroke="white" stroke-width="2"/>
+      <path d="M 12 8 L 8 12 L 12 16" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M 28 8 L 32 12 L 28 16" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="70" y="62" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" fill="#1e293b">Your app</text>
+    <text x="70" y="80" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" fill="#64748b">Something happened</text>
+  </g>
+
+  <g>
+    <path d="M 165 125 L 215 125" stroke="#e2e8f0" stroke-width="2" fill="none"/>
+    <path d="M 165 125 L 215 125" stroke="url(#flowRight)" stroke-width="3" fill="none"/>
+    <path d="M 210 120 L 220 125 L 210 130" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  <g transform="translate(220, 55)" filter="url(#cardShadow)">
+    <rect width="190" height="140" rx="16" fill="white"/>
+    <rect width="190" height="45" rx="16" fill="url(#indigoGrad)"/>
+    <rect y="33" width="190" height="12" fill="url(#indigoGrad)"/>
+    <g transform="translate(80, 8)">
+      <path d="M 15 3 L 28 10 L 28 22 L 15 29 L 2 22 L 2 10 Z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M 2 10 L 15 16 L 28 10 M 15 16 L 15 29" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+    </g>
+    <text x="95" y="68" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#1e293b">TypeScript SDK</text>
+    <text x="95" y="86" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b">hook0-client</text>
+    <g transform="translate(14, 96)"><rect width="76" height="18" rx="9" fill="#6366f1" fill-opacity="0.12"/><text x="38.0" y="13" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9" fill="#4f46e5">Idempotent</text></g>
+    <g transform="translate(100, 96)"><rect width="76" height="18" rx="9" fill="#6366f1" fill-opacity="0.12"/><text x="38.0" y="13" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9" fill="#4f46e5">Retried</text></g>
+    <g transform="translate(52, 118)"><rect width="86" height="18" rx="9" fill="#6366f1" fill-opacity="0.12"/><text x="43.0" y="13" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9" fill="#4f46e5">Bounded</text></g>
+  </g>
+
+  <g>
+    <path d="M 415 125 L 465 125" stroke="#e2e8f0" stroke-width="2" fill="none"/>
+    <path d="M 415 125 L 465 125" stroke="url(#flowRight)" stroke-width="3" fill="none"/>
+    <path d="M 460 120 L 470 125 L 460 130" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" begin="0.3s"/>
+    </path>
+  </g>
+  <g transform="translate(470, 70)" filter="url(#cardShadow)">
+    <rect width="160" height="110" rx="16" fill="white"/>
+    <rect width="160" height="40" rx="16" fill="url(#indigoGrad)"/>
+    <rect y="28" width="160" height="12" fill="url(#indigoGrad)"/>
+    <g transform="translate(66, 6) scale(0.06981) translate(-64.194, -69.194)">
+      <path d="M308.629 398.482L287.416 419.696L110.64 242.919L131.853 221.706L308.629 398.482ZM393.482 398.482C416.914 375.051 416.914 337.061 393.482 313.63L216.706 136.853C193.274 113.421 155.284 113.421 131.853 136.853C108.421 160.284 108.421 198.274 131.853 221.706L110.64 242.919L109.823 242.091C75.4948 206.882 75.7669 150.512 110.64 115.64C145.512 80.767 201.882 80.4949 237.091 114.823L237.919 115.64L414.695 292.416C449.843 327.563 449.843 384.548 414.695 419.696C379.548 454.843 322.563 454.843 287.416 419.696L308.629 398.482C332.061 421.914 370.051 421.914 393.482 398.482Z" fill="white"/>
+      <path d="M266.544 186.938L181.691 271.791L181.571 271.671L160.358 292.885L160.477 293.004L135.852 317.63C112.421 341.061 112.421 379.051 135.852 402.483C159.284 425.914 197.274 425.914 220.706 402.483L245.33 377.858L266.543 399.07L241.919 423.695L241.091 424.513C205.882 458.84 149.512 458.568 114.639 423.695C80.1531 389.209 79.506 333.699 112.696 298.422L112.546 298.272L229.817 181L229.935 181.118L245.331 165.725L266.544 186.938ZM291.416 119.64C326.563 84.4927 383.548 84.4929 418.695 119.64C453.842 154.787 453.842 211.772 418.695 246.919L412.606 253.007L412.812 253.213L295.541 370.484L295.335 370.278L287.757 377.857L266.544 356.644L351.396 271.791L351.602 271.997L372.815 250.784L372.609 250.578L397.482 225.706C420.914 202.275 420.914 164.284 397.482 140.853C374.051 117.422 336.061 117.422 312.63 140.853L287.757 165.725L266.544 144.512L291.416 119.64Z" fill="white"/>
+      <path d="M181.5 271.5L160 293L168 300.5L190 280L181.5 271.5Z" fill="white"/>
+      <path d="M352.5 272.5L373.5 251.5L366 244L344 264.5L352.5 272.5Z" fill="white"/>
+      <path d="M267 356.5L288 377.5L295.5 370L275 348L267 356.5Z" fill="white"/>
+      <path d="M139.5 272L161 250.5L153 243L131 263.5L139.5 272Z" fill="white"/>
+    </g>
+    <text x="80" y="62" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#1e293b">Hook0</text>
+    <text x="80" y="79" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b">Webhooks-as-a-Service</text>
+    <g transform="translate(20, 88)"><rect width="120" height="18" rx="9" fill="#6366f1" fill-opacity="0.12"/><text x="60.0" y="13" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9" fill="#4f46e5">Fan-out, retries, history</text></g>
+  </g>
+
+  <g>
+    <path d="M 635 125 L 685 125" stroke="#e2e8f0" stroke-width="2" fill="none"/>
+    <path d="M 635 125 L 685 125" stroke="url(#flowOut)" stroke-width="3" fill="none"/>
+    <path d="M 680 120 L 690 125 L 680 130" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  <g transform="translate(785, 58)"><rect x="-57.0" y="-12" width="114.0" height="20" rx="10" fill="#a855f7" fill-opacity="0.1"/><text x="0" y="4" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="600" fill="#7c3aed">YOUR USERS</text></g>
+  <g transform="translate(690, 75)" filter="url(#cardShadow)">
+    <rect width="190" height="100" rx="16" fill="white"/>
+    <rect width="190" height="40" rx="16" fill="url(#purpleGrad)"/>
+    <rect y="28" width="190" height="12" fill="url(#purpleGrad)"/>
+    <g transform="translate(75, 8)">
+      <path d="M 4 6 L 36 6 L 36 22 L 4 22 Z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M 4 6 L 20 17 L 36 6" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+    </g>
+    <text x="95" y="62" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" fill="#1e293b">Their endpoints</text>
+    <g transform="translate(35, 72)"><rect width="120" height="18" rx="9" fill="#a855f7" fill-opacity="0.12"/><text x="60.0" y="13" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9" fill="#7c3aed">Signature verified</text></g>
+  </g>
+
+  <g>
+    <path d="M 785 180 L 785 210 L 260 210 L 260 201" stroke="#e2e8f0" stroke-width="2" fill="none"/>
+    <path d="M 785 180 L 785 210 L 260 210 L 260 201" stroke="url(#flowBack)" stroke-width="3" fill="none"/>
+    <path d="M 255 206 L 260 197 L 265 206" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite" begin="1.2s"/>
+    </path>
+    <rect x="418" y="198" width="244" height="14" fill="white"/>
+    <text x="540" y="209" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#94a3b8">the same package verifies what comes back</text>
+  </g>
+  <rect x="20" y="226" width="860" height="98" rx="14" fill="#f8fafc"/>
+  <text x="450" y="247" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9" font-weight="600" letter-spacing="1.5" fill="#94a3b8">IN THE PACKAGE</text>
+  <text x="106.0" y="272" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#334155">Send</text>
+  <text x="106.0" y="290" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b">Events, under an ID</text>
+  <text x="106.0" y="304" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b">the client minted</text>
+  <text x="278.0" y="272" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#334155">Retry</text>
+  <text x="278.0" y="290" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b">Only what could end</text>
+  <text x="278.0" y="304" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b">differently, bounded</text>
+  <text x="450.0" y="272" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#334155">Declare</text>
+  <text x="450.0" y="290" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b">Upsert the event types</text>
+  <text x="450.0" y="304" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b">your application uses</text>
+  <text x="622.0" y="272" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#334155">Verify</text>
+  <text x="622.0" y="290" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b">HMAC-SHA256, on a</text>
+  <text x="622.0" y="304" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b">bilateral clock window</text>
+  <text x="794.0" y="272" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#334155">Call</text>
+  <text x="794.0" y="290" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b">Every operation the</text>
+  <text x="794.0" y="304" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" fill="#64748b">API declares, typed</text>
+</svg>

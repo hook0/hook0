@@ -25,7 +25,7 @@ Gem::Specification.new do |spec|
 
   spec.required_ruby_version = ">= 3.1"
 
-  spec.files = Dir["lib/**/*.rb"] + ["README.md"]
+  spec.files = Dir["lib/**/*.rb"] + Dir["assets/*.svg"] + ["README.md"]
   spec.require_paths = ["lib"]
 
   # The SDK reaches the network, verifies signatures and decodes what the API answers with nothing
