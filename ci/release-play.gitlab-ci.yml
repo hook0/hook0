@@ -88,7 +88,7 @@ play.container:
         --opt platform=linux/amd64 \
         --local context="${CI_PROJECT_DIR}" \
         --local dockerfile="${CI_PROJECT_DIR}/play" \
-        --output "type=image,\"name=$CI_REGISTRY_IMAGE/play:$VERSION,$CI_REGISTRY_IMAGE/play:latest\",push=true"
+        --output "type=image,name=$CI_REGISTRY_IMAGE/play:$VERSION,push=true"
 
 play.container-scan:
   extends:
@@ -100,6 +100,17 @@ play.container-scan:
     IMAGE_REPO: play
     TAG_PREFIX: play/v
 
+play.container-promote:
+  extends:
+    - .play-release-rules
+    - .release-container-promote
+  needs:
+    - job: play.container-scan
+  variables:
+    IMAGE_REPO: play
+    TAG_PREFIX: play/v
+    PROMOTE_TO: "$CI_REGISTRY_IMAGE/play"
+
 play.github:
   extends: .play-release-rules
   stage: release
@@ -107,7 +118,7 @@ play.github:
   needs:
     - job: play.extract-notes
       artifacts: true
-    - job: play.container
+    - job: play.container-promote
   variables:
     GH_TOKEN: $GITHUB_TOKEN
   before_script:
@@ -125,7 +136,7 @@ play.gitlab:
   needs:
     - job: play.extract-notes
       artifacts: true
-    - job: play.container
+    - job: play.container-promote
   script:
     - echo "Creating GitLab release for $CI_COMMIT_TAG"
   release:

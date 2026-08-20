@@ -50,6 +50,15 @@ variables:
   ALPINE_VERSION: "3.24"
   BUILDKIT_VERSION: "v0.27.0-rootless"
   TRIVY_VERSION: "0.68.2"
+  # What moves a scanned image out of the project registry. It copies a manifest between registries
+  # by digest and builds nothing, which is the whole point: what reaches Docker Hub and GHCR is the
+  # bytes trivy read rather than a second build of the same source.
+  #
+  # Version and digest travel together, for the reason the Zig and llvm-cov pairs do — a release
+  # that changed what a copy does would change what is published without a line here changing, and
+  # bumping the version alone stops the job at the checksum rather than somewhere further in.
+  CRANE_VERSION: "0.21.9"
+  CRANE_SHA256: 5c16d8ddb971cb1d5e6ed8b1e743da8224414eeba2c2762d8f1a61b2f095699e
   # How long the runner waits on one cache request before giving up on it, in minutes. The default
   # is ten, and the runner retries, so a cache backend that accepts a connection and then stops
   # answering costs half an hour before the script has run a line.

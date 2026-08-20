@@ -661,3 +661,87 @@ fn every_included_pipeline_file_is_there_and_every_file_there_is_included() {
         "these pipeline files declare jobs nothing includes: {orphans:?}"
     );
 }
+
+/// The three halves of publishing a container image, told apart by the one thing that survives a
+/// job being moved to another file: its name.
+const BUILDS_IMAGE: &str = ".container";
+const SCANS_IMAGE: &str = ".container-scan";
+const PROMOTES_IMAGE: &str = ".container-promote";
+
+/// Where the project's own registry lives, which is the one place an unscanned image may sit.
+const PROJECT_REGISTRY: &str = "$CI_REGISTRY_IMAGE";
+
+/// Every image name a job pushes, read out of the build command rather than out of a list.
+fn pushed_names(body: &Yaml) -> Vec<String> {
+    let Some(script) = body["script"].as_vec() else {
+        return Vec::new();
+    };
+    let mut names = Vec::new();
+    for line in script.iter().filter_map(Yaml::as_str) {
+        let Some((_, output)) = line.split_once("type=image,") else {
+            continue;
+        };
+        let Some((listed, _)) = output.split_once(",push=") else {
+            continue;
+        };
+        names.extend(
+            listed
+                .replace(['\\', '"'], "")
+                .trim_start_matches("name=")
+                .split(',')
+                .map(str::to_owned),
+        );
+    }
+    names
+}
+
+/// Nothing a user can pull exists before trivy has read it.
+///
+/// The build used to push to Docker Hub, GHCR and `:latest` in the same command that built the
+/// image, and the scan came after — in the same stage, needed by nobody. A HIGH with a fix
+/// available failed a job that stopped nothing: the image was already public, already tagged
+/// `latest`, and the release was announced beside it.
+#[test]
+fn no_image_leaves_the_project_registry_before_the_scan_has_read_it() {
+    let declared = jobs(&repository());
+
+    let builds: Vec<String> = declared
+        .keys()
+        .filter(|name| name.ends_with(BUILDS_IMAGE))
+        .cloned()
+        .collect();
+    assert!(
+        !builds.is_empty(),
+        "no job in the pipeline builds an image, so this proves nothing"
+    );
+
+    for build in &builds {
+        let flow = build
+            .strip_suffix(BUILDS_IMAGE)
+            .expect("the flow the job belongs to");
+        let scan = format!("{flow}{SCANS_IMAGE}");
+        let promote = format!("{flow}{PROMOTES_IMAGE}");
+
+        assert!(declared.contains_key(&scan), "nothing scans {build}");
+        assert!(
+            declared.contains_key(&promote),
+            "nothing publishes what {scan} passed, so either the image never reaches anybody or \
+             something else publishes it without waiting"
+        );
+        assert!(
+            reaches(&declared, &scan, build),
+            "{scan} runs beside {build} rather than after it"
+        );
+        assert!(
+            reaches(&declared, &promote, &scan),
+            "{promote} runs beside {scan} rather than after it"
+        );
+
+        for name in pushed_names(&declared[build].body) {
+            assert!(
+                name.starts_with(PROJECT_REGISTRY),
+                "{build} pushes {name} before {scan} has read a byte of it"
+            );
+        }
+    }
+}
