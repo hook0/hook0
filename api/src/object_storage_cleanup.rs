@@ -308,7 +308,7 @@ async fn collect_prefixes_for_application(
     bucket: &str,
     application_id: Uuid,
     oldest_event_date: NaiveDate,
-) -> Result<Vec<String>, SdkError<ListObjectsV2Error>> {
+) -> Result<Vec<String>, Box<SdkError<ListObjectsV2Error>>> {
     let (mut event_prefixes, response_prefixes) = tokio::try_join!(
         list_prefixes_for_kind(client, bucket, application_id, oldest_event_date, "event"),
         list_prefixes_for_kind(
@@ -329,7 +329,7 @@ async fn list_prefixes_for_kind(
     application_id: Uuid,
     oldest_event_date: NaiveDate,
     kind: &str,
-) -> Result<Vec<String>, SdkError<ListObjectsV2Error>> {
+) -> Result<Vec<String>, Box<SdkError<ListObjectsV2Error>>> {
     let mut dates = Vec::new();
     let mut continuation_token = Some(String::new());
     let pfx = format!("{application_id}/{kind}/");
