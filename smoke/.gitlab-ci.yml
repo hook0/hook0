@@ -66,6 +66,7 @@ clients.live-smoke:
         # able to break it. The cost is this job on a change to one rarely-touched file, against a
         # pipeline nobody can create.
         - tests-api-integrations/.gitlab-ci.yml
+        - .gitlab-ci.yml
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes: *contract
   services:

@@ -72,6 +72,7 @@ sdk.packages:
         # the frontend — so watching only the paths above would leave the guard
         # blind to the commit that introduces the contradiction.
         - "**/.gitignore"
+        - .gitlab-ci.yml
   before_script:
     - rustc --version && cargo --version
     - rustup component add clippy rustfmt

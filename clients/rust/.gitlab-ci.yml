@@ -35,6 +35,7 @@ client.rust.check:
         # this client rather than the one language whoever edited it happened to be reading.
         - clients/conformance/**/*
         - Cargo.*
+        - .gitlab-ci.yml
   before_script:
     - rustc --version && cargo --version
     - rustup component add clippy

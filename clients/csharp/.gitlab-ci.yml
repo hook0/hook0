@@ -20,6 +20,7 @@ clients.csharp.check:
         # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
         # this client rather than the one language whoever edited it happened to be reading.
         - clients/conformance/**/*
+        - .gitlab-ci.yml
   variables:
     # The suite reaches loopback sockets and nothing else, and the toolchain has no reason to reach
     # anything either beyond the restore it is told to do.

@@ -35,6 +35,7 @@ documentation.examples:
         - clients/**/*
         # The checker itself.
         - documentation-examples/**/*
+        - .gitlab-ci.yml
   variables:
     # Where the toolchains this image does not carry are unpacked.
     TOOLCHAINS: /opt/documentation-examples

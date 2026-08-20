@@ -30,6 +30,7 @@ output_worker.check:
         # skipped every job that compiles either binary and shipped on a green pipeline.
         - protobuf/**/*
         - Cargo.*
+        - .gitlab-ci.yml
   variables:
     SQLX_OFFLINE: "true"
   services:

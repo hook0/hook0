@@ -14,6 +14,7 @@ clients.typescript.build:
         # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
         # this client rather than the one language whoever edited it happened to be reading.
         - clients/conformance/**/*
+        - .gitlab-ci.yml
   image: node:$NODE_VERSION
   script:
     - pushd clients/typescript/
@@ -46,6 +47,7 @@ clients.typescript.check:
         # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
         # this client rather than the one language whoever edited it happened to be reading.
         - clients/conformance/**/*
+        - .gitlab-ci.yml
   image: node:$NODE_VERSION
   script:
     - pushd clients/typescript/

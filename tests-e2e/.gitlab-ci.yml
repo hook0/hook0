@@ -52,6 +52,7 @@ e2e-playwright.test:
         # The binaries this suite drives are built from the whole workspace, so a
         # dependency bump alone reached the build and never the browser suite.
         - Cargo.*
+        - .gitlab-ci.yml
   before_script:
     - cd tests-e2e
     - npm ci
@@ -121,11 +122,13 @@ documentation-e2e-playwright.test:
         - documentation/**/*
         - website/data.js
         - tests-e2e/**/*
+        - .gitlab-ci.yml
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - documentation/**/*
         - website/data.js
         - tests-e2e/**/*
+        - .gitlab-ci.yml
   before_script:
     - cd tests-e2e
     - npm ci

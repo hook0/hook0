@@ -24,6 +24,7 @@ clients.zig.check:
         # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
         # this client rather than the one language whoever edited it happened to be reading.
         - clients/conformance/**/*
+        - .gitlab-ci.yml
   variables:
     # `$ZIG_SHA256` is the checksum of the tarball `$ZIG_VERSION` names, published beside it in
     # Zig's release index. Both are root variables, because `documentation.examples` fetches the

@@ -564,3 +564,100 @@ fn a_hand_edit_of_any_generated_tree_faces_the_guard_that_wrote_it() {
         unwatched.join("\n")
     );
 }
+
+/// The file the whole pipeline is assembled in.
+///
+/// It pins the version of every toolchain the jobs run on — the compilers, the runtimes, the
+/// package managers, the scanners — declares the stages, and pulls in the other thirty-odd files.
+/// There is no change to it that leaves the jobs it configures alone.
+const ROOT_PIPELINE: &str = ".gitlab-ci.yml";
+
+/// A job gated on paths runs on a change to the file that configures it.
+///
+/// A `changes:` rule is a claim about what can affect the job, and two files can always affect it:
+/// the one that pins the toolchain it runs on, and the one it is written in. Neither was named
+/// anywhere, so raising a compiler version, or editing the rules of a job, was a change that ran
+/// none of what it changed — the pipeline came back green over a job that never started.
+#[test]
+fn a_job_gated_on_paths_runs_on_a_change_to_what_configures_it() {
+    let root = repository();
+    let declared = jobs(&root);
+    let mut blind = Vec::new();
+    let mut gated = 0usize;
+
+    for (name, job) in &declared {
+        let Some(rules) = rules(&declared, name, MAX_EXTENDS) else {
+            continue;
+        };
+        let watched = triggering_paths(rules);
+        // A job no path gates is one every pipeline considers, so there is nothing to miss.
+        if watched.is_empty() {
+            continue;
+        }
+        gated += 1;
+
+        for configuring in [ROOT_PIPELINE, job.file.as_str()] {
+            if !watched
+                .iter()
+                .any(|glob| watched_by_gitlab(glob, configuring))
+            {
+                blind.push(format!("{name} does not watch {configuring}"));
+            }
+        }
+    }
+
+    assert!(
+        gated > 0,
+        "no job in the pipeline is gated on paths, so this proves nothing"
+    );
+    assert!(
+        blind.is_empty(),
+        "these jobs would sit out a change to what configures them:\n{}",
+        blind.join("\n")
+    );
+}
+
+/// Both directions of the one list that decides which pipeline files exist.
+///
+/// GitLab resolves `include:` before anything else, so a `local:` naming a file that is not there
+/// is not a job that fails: it is a pipeline that cannot be created, landing on whoever pushes next.
+/// The other direction is quieter still — a pipeline file nobody includes declares jobs that never
+/// run, and looks from the inside exactly like one that does.
+#[test]
+fn every_included_pipeline_file_is_there_and_every_file_there_is_included() {
+    let root = repository();
+    let body = fs::read_to_string(root.join(ROOT_PIPELINE)).expect("the root pipeline");
+    let document = YamlLoader::load_from_str(&body).expect("the root pipeline parses");
+    let includes = document
+        .first()
+        .map(|it| &it["include"])
+        .and_then(Yaml::as_vec)
+        .expect("the includes");
+
+    let included: BTreeSet<String> = includes
+        .iter()
+        .filter_map(|include| include["local"].as_str())
+        .map(|path| path.trim_start_matches('/').to_owned())
+        .collect();
+    assert!(!included.is_empty(), "the root pipeline includes no file");
+
+    let missing: Vec<&String> = included
+        .iter()
+        .filter(|path| !root.join(path).is_file())
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "the root pipeline includes files that are not there: {missing:?}"
+    );
+
+    let orphans: Vec<String> = pipeline_files(&root)
+        .iter()
+        .filter_map(|path| path.strip_prefix(&root).ok())
+        .map(|path| path.to_string_lossy().replace('\\', "/"))
+        .filter(|path| path != ROOT_PIPELINE && !included.contains(path))
+        .collect();
+    assert!(
+        orphans.is_empty(),
+        "these pipeline files declare jobs nothing includes: {orphans:?}"
+    );
+}

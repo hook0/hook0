@@ -36,6 +36,7 @@ api.check:
         # against still name the operations the API serves, so a change to
         # those types alone has to run it too.
         - frontend/src/types.ts
+        - .gitlab-ci.yml
   variables:
     SQLX_OFFLINE: "true"
     # DB-backed tests (`#[sqlx::test]`) provision an ephemeral database per test
