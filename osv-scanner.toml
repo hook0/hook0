@@ -6,33 +6,6 @@
 # replacement, drop the corresponding entry.
 
 [[IgnoredVulns]]
-id = "RUSTSEC-2026-0258"
-ignoreUntil = "2026-11-30T00:00:00Z"
-reason = """
-h2 0.3.27: denial of service — empty DATA frames are accepted and queued
-without limit, so a stream that is not actively processed can grow memory
-without bound or panic on integer overflow. Severity Low, fixed in 0.4.16.
-
-No bump is available today. h2 0.3.27 is compiled (via actix-http 3.13.1 ->
-actix-web -> hook0-api), so this is not a Cargo.lock-only false positive, but
-the whole actix-web 4.x line pins the 0.3 series; 4.14.1, its latest release,
-still does. Moving to the fixed 0.4 line means actix-web 5. The tree already
-carries h2 0.4.15 for the hyper-based clients, so only the actix copy is
-affected.
-
-The vulnerable path is the HTTP/2 server codec, and hook0-api never negotiates
-HTTP/2. It calls HttpServer::bind() in cleartext — not bind_rustls nor
-bind_openssl — and actix-web only offers HTTP/2 through ALPN over TLS, which
-the process does not terminate. TLS and HTTP/2 are terminated by the platform
-edge, which speaks HTTP/1.1 to the application, so no attacker-controlled
-HTTP/2 stream reaches this codec.
-
-Re-evaluate when actix-web ships a release on the h2 0.4 line, or on
-2026-11-30, whichever comes first. If hook0-api ever starts terminating TLS
-itself, this entry must be dropped and the exposure reassessed first.
-"""
-
-[[IgnoredVulns]]
 id = "RUSTSEC-2024-0436"
 ignoreUntil = "2026-12-31T00:00:00Z"
 reason = """
@@ -190,5 +163,7 @@ The 0.3.27 copy that remains is reachable two ways, neither of them exposed:
 
 No bump is available: 0.3.27 is the last release of the 0.3 line, and moving
 to 0.4 means actix-web 5, which is unreleased. Re-evaluate when actix-web
-ships a release built on h2 0.4.
+ships a release built on h2 0.4, or on 2026-11-30, whichever comes first. If
+hook0-api ever starts terminating TLS itself, drop this entry and reassess the
+exposure first — the reasoning above rests on the process never speaking HTTP/2.
 """
