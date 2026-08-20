@@ -4,7 +4,8 @@
 // Mittelpunkt. Hook0 Rechtsdaten verbatim, nie übersetzt (Firma, Kapital,
 // RCS, USt-ID, SIRET, Adresse, Telefon, Verantwortlicher, Hosting-Anbieter,
 // CDN). Nur die Labels drumherum werden übersetzt.
-// Hook0 = « quelloffen (SSPL-1.0) », niemals « Open Source ».
+// Hook0 = « Open Source (SSPL-1.0) », Klammerzusatz obligatorisch, niemals
+// « Open Source » allein.
 // DSGVO-Anspruch nur als Prozess-Claim («gemäß den geltenden ... DSGVO»),
 // nicht als zertifiziertes Attribut.
 module.exports = {
@@ -63,7 +64,7 @@ module.exports = {
     h2: 'Geistiges Eigentum',
     p1: 'Sämtliche auf dieser Website veröffentlichten Inhalte, insbesondere Texte, Grafiken, Logos, Symbole, Bilder und Software, sind ausschließliches Eigentum der FGRibreau SARL oder ihrer Lieferanten und durch das französische sowie internationale Recht des geistigen Eigentums geschützt.',
     p2: 'Jegliche Vervielfältigung, Verbreitung, Bearbeitung oder Nutzung dieser Inhalte ohne vorherige schriftliche Zustimmung der FGRibreau SARL ist strikt untersagt.',
-    p3: 'Die Hook0-Software wird quelloffen (SSPL-1.0) unter ihrer eigenen Lizenz veröffentlicht; die Lizenz ist im Projekt-Repository verfügbar.',
+    p3: 'Die Hook0-Software wird Open Source (SSPL-1.0) unter ihrer eigenen Lizenz veröffentlicht; die Lizenz ist im Projekt-Repository verfügbar.',
   },
   personalData: {
     h2: 'Personenbezogene Daten',

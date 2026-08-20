@@ -15,7 +15,8 @@
 //     (art. L441-10 + D441-5 C. com.)
 //   - Jurisdiction: tribunaux de La Roche-sur-Yon (art. 48 CPC, merchants)
 //   - Custom SLA only (no implicit guaranteed SLA)
-//   - SSPL framing: "source-available (SSPL-1.0)" — NEVER "open-source"
+//   - SSPL framing: "open-source (SSPL-1.0)" — the parenthetical is mandatory,
+//     never "open-source" bare (same rule as terms.js 6.5)
 //
 // EN prose stays close to the live template; the /humanizer pro pass applies
 // to FR/DE only. HTML markup inside body fields is preserved and emitted via
@@ -50,8 +51,9 @@ module.exports = {
     // Section 2
     {
       id: 'pricing',
-      // [LEGAL-CORRECTION L98] Self-hosted line re-qualified as source-available (SSPL-1.0).
-      // Original src said "Free (SSPL license)" without the source-available qualifier — kept "Free" but added explicit SSPL-1.0 framing.
+      // [LEGAL-CORRECTION L98] Self-hosted line qualified as open-source (SSPL-1.0).
+      // Original src said "Free (SSPL license)" without any licence qualifier — kept "Free"
+      // and named the licence in full, so the qualifier never appears without SSPL-1.0.
       title: '2. Pricing',
       paragraphs: [
         '<strong class="text-white">2.1.</strong> All prices are stated exclusive of taxes (excl. VAT, "HT"). Applicable VAT or equivalent taxes are added automatically at the time of invoicing in accordance with the applicable legislation, based on the customer\'s country of establishment.',
@@ -68,7 +70,7 @@ module.exports = {
         '<strong class="text-white">2.4. On-Premise plans</strong>: indicative pricing at the date of last update:',
       ],
       onPremisePlans: [
-        '<strong class="text-white">Self-hosted</strong>: Free, source-available under the Server Side Public License v1 (SSPL-1.0).',
+        '<strong class="text-white">Self-hosted</strong>: Free, open-source under the Server Side Public License v1 (SSPL-1.0).',
         '<strong class="text-white">Pro</strong>: EUR 1,000 setup fee + EUR 500/month or EUR 6,000/year excl. VAT.',
         '<strong class="text-white">Enterprise</strong>: Custom quote.',
       ],

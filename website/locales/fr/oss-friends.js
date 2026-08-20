@@ -2,7 +2,7 @@
 // /humanizer pro appliqué. Tutoiement. Pas d'em-dash, pas de pivot colon.
 // Le terme « open source » est conservé ici parce qu'il décrit les
 // partenaires (auto-désignation), pas Hook0 lui-même. Hook0 reste
-// « à code source ouvert (SSPL-1.0) » dans les contextes propres.
+// « open source (SSPL-1.0) » dans les contextes propres.
 module.exports = {
   pageTitle: 'Nos amis open source | Communauté webhook | Hook0',
   pageDescription: 'Découvre les projets open source amis de Hook0. On bosse avec des projets qui partagent les valeurs de transparence et communauté.',

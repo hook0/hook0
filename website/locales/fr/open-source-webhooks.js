@@ -1,29 +1,30 @@
 // Per-page strings for open-source-webhooks (FR).
 // /humanizer pro + legal-reviewer applied.
-// Hook0 lui-même = « code source ouvert (SSPL-1.0) », JAMAIS « Open Source »
-// (SSPL rejetée par l'OSI, risque L121-1 C. conso). Le titre/slug
+// Hook0 lui-même = « open source (SSPL-1.0) », la parenthèse est obligatoire,
+// JAMAIS « open source » seul (SSPL non approuvée par l'OSI, risque L121-1
+// C. conso). Le titre/slug
 // « open-source-webhooks » reste un terme CATÉGORIE/SEO qui couvre l'écosystème
 // (Svix open-core, Convoy Elastic License 2.0, Hook0 SSPL), la règle s'applique aux claims
 // sur Hook0 lui-même dans le corps.
 // Souveraineté : CDN Cloudflare (USA) divulgué, data plane Clever Cloud (France).
 // JAMAIS « 100 % souverain / no data sharing / CLOUD Act free ».
 module.exports = {
-  pageTitle: 'Webhooks à code source ouvert : Hook0 SSPL-1.0',
-  pageDescription: 'Hook0 est une plateforme webhooks à code source ouvert sous SSPL-1.0. Cloud UE managé ou auto-hébergement libre.',
+  pageTitle: 'Webhooks open source (SSPL-1.0) : Hook0',
+  pageDescription: 'Hook0 est une plateforme webhooks open source (SSPL-1.0). Cloud UE managé ou auto-hébergement libre.',
   "pageModified": "2026-07-16",
   "track": "fr-oss-webhooks",
   "hero": {
-    "eyebrow": "Code source ouvert",
+    "eyebrow": "Open source",
     "titleLine1": "Le meilleur serveur",
     "titleLine2": "webhook à code ouvert",
-    "subtitle": "Hook0 est entièrement à code source ouvert sous SSPL-1.0, audite chaque ligne, auto-héberge pour la conformité, ou prends Hook0 Cloud pour l'infra managée, les mises à jour automatiques et l'hébergement applicatif en France (CDN Cloudflare US divulgué). Bootstrappé, sans astuce open-core.",
+    "subtitle": "Hook0 est entièrement open source sous SSPL-1.0, audite chaque ligne, auto-héberge pour la conformité, ou prends Hook0 Cloud pour l'infra managée, les mises à jour automatiques et l'hébergement applicatif en France (CDN Cloudflare US divulgué). Bootstrappé, sans astuce open-core.",
     "ctaPrimary": "Démarrer gratuitement sur le Cloud",
     "ctaPrimaryTrack": "fr-oss-webhooks-hero-cloud-signup",
     "ctaSecondary": "Tester le Playground",
     "ctaSecondaryHref": "https://play.hook0.com",
     "ctaSecondaryTrack": "fr-oss-webhooks-hero-playground",
     "trustIndicators": [
-      "Code source ouvert SSPL-1.0",
+      "Open source SSPL-1.0",
       "Auto-hébergement dispo (Docker / K8s)",
       "Bootstrappé, sans VC"
     ]
@@ -31,12 +32,12 @@ module.exports = {
   "socialProof": true,
   "whyOss": {
     "eyebrow": "Pourquoi le code ouvert",
-    "h2": "Pourquoi ton serveur webhook devrait être à code source ouvert",
+    "h2": "Pourquoi ton serveur webhook devrait être open source",
     "cards": [
       {
         "icon": "audit",
         "title": "Auditer chaque ligne de code",
-        "body": "Les webhooks transportent des payloads sensibles. Avec du code source ouvert, ton équipe sécurité audite précisément comment la donnée est manipulée, signée et livrée. Pas de boîte noire."
+        "body": "Les webhooks transportent des payloads sensibles. Avec du open source, ton équipe sécurité audite précisément comment la donnée est manipulée, signée et livrée. Pas de boîte noire."
       },
       {
         "icon": "lock",
@@ -150,8 +151,8 @@ module.exports = {
     "h2": "Questions courantes",
     "items": [
       {
-        "q": "Hook0 est-il à code source ouvert ?",
-        "a": "Oui. Hook0 est entièrement à code source ouvert sous la licence SSPL-1.0. Chaque ligne de code est sur GitHub et GitLab. Il n'y a pas d'édition enterprise propriétaire."
+        "q": "Hook0 est-il open source ?",
+        "a": "Oui. Hook0 est entièrement open source sous la licence SSPL-1.0. Chaque ligne de code est sur GitHub et GitLab. Il n'y a pas d'édition enterprise propriétaire."
       },
       {
         "q": "Quelle licence Hook0 utilise-t-il ?",
@@ -167,11 +168,11 @@ module.exports = {
       },
       {
         "q": "Hook0 est-il vraiment gratuit en auto-hébergement ?",
-        "a": "Oui. Hook0 est à code source ouvert et auto-hébergeable sans coût de licence. Hook0 Cloud ajoute l'infra managée, les mises à jour automatiques, l'hébergement UE, le support prioritaire et un SLA, pour que tu te concentres sur ton produit plutôt que sur l'exploitation d'une infra webhook. Démarre sur le tier gratuit du Cloud (100 events/jour, sans carte bancaire)."
+        "a": "Oui. Hook0 est open source et auto-hébergeable sans coût de licence. Hook0 Cloud ajoute l'infra managée, les mises à jour automatiques, l'hébergement UE, le support prioritaire et un SLA, pour que tu te concentres sur ton produit plutôt que sur l'exploitation d'une infra webhook. Démarre sur le tier gratuit du Cloud (100 events/jour, sans carte bancaire)."
       },
       {
-        "q": "Existe-t-il une plateforme de webhooks à code source ouvert qui soit aussi hébergée dans l'UE ?",
-        "a": "Oui. Hook0 est à code source ouvert (SSPL-1.0), et Hook0 Cloud fait tourner son plan de données sur Clever Cloud en France (dans l'UE) sur chaque offre. Beaucoup de services de webhooks hébergés dans l'UE sont fermés et cloud-only, donc vous ne pouvez ni lire le code ni le faire tourner vous-même. Avec Hook0, vous pouvez auditer le code, l'auto-héberger ou utiliser le cloud UE ; le CDN en frontal du cloud est Cloudflare (US), divulgué dans notre liste publique de sous-traitants."
+        "q": "Existe-t-il une plateforme de webhooks open source qui soit aussi hébergée dans l'UE ?",
+        "a": "Oui. Hook0 est open source (SSPL-1.0), et Hook0 Cloud fait tourner son plan de données sur Clever Cloud en France (dans l'UE) sur chaque offre. Beaucoup de services de webhooks hébergés dans l'UE sont fermés et cloud-only, donc vous ne pouvez ni lire le code ni le faire tourner vous-même. Avec Hook0, vous pouvez auditer le code, l'auto-héberger ou utiliser le cloud UE ; le CDN en frontal du cloud est Cloudflare (US), divulgué dans notre liste publique de sous-traitants."
       }
     ]
   },
