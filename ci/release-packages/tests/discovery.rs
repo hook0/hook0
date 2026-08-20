@@ -1260,3 +1260,185 @@ fn paths_are_reported_with_forward_slashes() {
     assert!(!package.manifest.contains(std::path::MAIN_SEPARATOR) || cfg!(unix));
     assert_eq!(PathBuf::from(&package.manifest).components().count(), 3);
 }
+
+// --- The release this repository actually ships -------------------------------------------------
+
+/// The most manifests read out of the tree in one walk. This repository holds a few dozen; past
+/// this the bound is raised deliberately rather than crossed quietly.
+const MAX_MANIFESTS: usize = 512;
+
+/// How deep the walk goes. Every manifest here sits within a handful of directories of the root.
+const MAX_DEPTH: usize = 8;
+
+/// Directories a manifest of ours is never in: build output and dependency caches, which hold
+/// thousands of manifests belonging to somebody else.
+const NOT_OURS: [&str; 4] = [".git", "target", "node_modules", "vendor"];
+
+/// The tables a dependency can be declared in, including the ones a workspace declares once.
+const DEPENDENCY_TABLES: [&str; 3] = ["dependencies", "dev-dependencies", "build-dependencies"];
+
+/// The tree this crate lives in.
+fn repository() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("two directories above this crate")
+        .to_path_buf()
+}
+
+/// What the generator says it writes, which is the only thing that knows a client exists.
+fn registry() -> Vec<TargetRoot> {
+    hook0_sdkgen::targets::targets()
+        .iter()
+        .map(|target| TargetRoot {
+            name: target.name.to_owned(),
+            root: target.root.to_owned(),
+        })
+        .collect()
+}
+
+/// One dependency asking for a released client by a version number.
+struct Pin {
+    manifest: String,
+    dependency: String,
+    pinned: String,
+}
+
+/// Every Cargo manifest in the tree, symlinks not followed.
+fn manifests(root: &Path) -> Vec<PathBuf> {
+    let mut found = Vec::new();
+    let mut pending = vec![(root.to_path_buf(), 0usize)];
+
+    while let Some((directory, depth)) = pending.pop() {
+        if depth > MAX_DEPTH {
+            continue;
+        }
+        let Ok(entries) = fs::read_dir(&directory) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let Some(name) = name.to_str() else {
+                continue;
+            };
+            let Ok(kind) = entry.file_type() else {
+                continue;
+            };
+            if kind.is_dir() {
+                if !NOT_OURS.contains(&name) {
+                    pending.push((entry.path(), depth + 1));
+                }
+            } else if kind.is_file() && name == "Cargo.toml" {
+                found.push(entry.path());
+            }
+        }
+    }
+
+    assert!(
+        found.len() < MAX_MANIFESTS,
+        "{} manifests is at the ceiling of {MAX_MANIFESTS}, so the walk may have stopped short of \
+         one that pins a client",
+        found.len()
+    );
+    found.sort();
+    found
+}
+
+/// Every dependency in the tree that names a released client by path and asks for it by version.
+///
+/// The release rewrites those pins by substituting the version it is bumping from, so a pin that
+/// has drifted off the release is not rewritten and nothing says so: the workspace goes on asking
+/// for a version that was never published. The walk finds them rather than a list naming them,
+/// since a pin added to a new crate tomorrow has the same problem.
+fn pins_on(root: &Path, train: &[Package]) -> Vec<Pin> {
+    let homes: Vec<PathBuf> = train
+        .iter()
+        .filter_map(|package| root.join(&package.directory).canonicalize().ok())
+        .collect();
+    let mut pins = Vec::new();
+
+    for manifest in manifests(root) {
+        let Ok(body) = fs::read_to_string(&manifest) else {
+            continue;
+        };
+        let Ok(document) = body.parse::<toml::Table>() else {
+            continue;
+        };
+        let Some(directory) = manifest.parent() else {
+            continue;
+        };
+
+        let mut tables = Vec::new();
+        for name in DEPENDENCY_TABLES {
+            tables.extend(document.get(name).and_then(toml::Value::as_table));
+            tables.extend(
+                document
+                    .get("workspace")
+                    .and_then(toml::Value::as_table)
+                    .and_then(|workspace| workspace.get(name))
+                    .and_then(toml::Value::as_table),
+            );
+        }
+
+        for table in tables {
+            for (name, declared) in table {
+                let Some(declared) = declared.as_table() else {
+                    continue;
+                };
+                let (Some(path), Some(version)) = (
+                    declared.get("path").and_then(toml::Value::as_str),
+                    declared.get("version").and_then(toml::Value::as_str),
+                ) else {
+                    continue;
+                };
+                let Ok(asked) = directory.join(path).canonicalize() else {
+                    continue;
+                };
+                if homes.contains(&asked) {
+                    pins.push(Pin {
+                        manifest: manifest
+                            .strip_prefix(root)
+                            .unwrap_or(&manifest)
+                            .to_string_lossy()
+                            .replace('\\', "/"),
+                        dependency: name.clone(),
+                        pinned: version.to_owned(),
+                    });
+                }
+            }
+        }
+    }
+
+    pins
+}
+
+/// What `ci/pre-release-sdk.sh` takes for granted before it writes a single file: one version
+/// across the whole release, and every pin on a released client sitting at it.
+///
+/// Both only fail today at release time, on master, after the script has already refused or — worse
+/// for the pin — after it has quietly rewritten nothing.
+#[test]
+fn the_release_this_tree_ships_agrees_on_one_version_and_every_pin_sits_at_it() {
+    let root = repository();
+    let packages = discover(&registry(), &root).expect("the packages the registry resolves to");
+    let train = sdk_train(&packages);
+
+    let version = current_version(&train).unwrap_or_else(|refusal| panic!("{refusal}"));
+
+    let pins = pins_on(&root, &train);
+    assert!(
+        !pins.is_empty(),
+        "nothing in the tree pins a released client by version, so this proves nothing"
+    );
+    for pin in &pins {
+        assert_eq!(
+            pin.pinned,
+            version.to_string(),
+            "{} asks for {} at {} while the release is at {version}; the release rewrites pins by \
+             substituting the version it bumps from, so this one is left behind in silence",
+            pin.manifest,
+            pin.dependency,
+            pin.pinned
+        );
+    }
+}
