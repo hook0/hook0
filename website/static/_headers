@@ -18,10 +18,16 @@
   # GTM custom templates, re-add 'unsafe-eval' with a referenced ticket.
   Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self' https://app.hook0.com; upgrade-insecure-requests; script-src 'self' 'unsafe-inline' https://matomo.hook0.com https://*.crisp.chat https://www.googletagmanager.com https://api.producthunt.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://matomo.hook0.com https://*.crisp.chat wss://*.crisp.chat https://www.googletagmanager.com https://www.google-analytics.com https://googleads.g.doubleclick.net https://api.producthunt.com; frame-src 'self' https://*.crisp.chat https://api.producthunt.com; manifest-src 'self'; worker-src 'self'
 
-# Self-hosted Inter font files — 1 year immutable cache (the filename is the
-# version; if we change Inter, we change the filename).
+# Self-hosted Inter font files. Their names carry no content hash — static/ is
+# copied verbatim into dist/, outside Parcel's hashing — so the URL stays the
+# same when the bytes change. `immutable` would therefore be a promise we
+# cannot keep: swapping Inter would never reach anyone who already had it
+# cached, and a reload would not dislodge it either. A long freshness window
+# plus revalidation costs the same in practice and leaves a way to push a fix.
+# scripts/i18n-gate fails the build if `immutable` comes back without hashed
+# filenames to back it.
 /fonts/*
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
   Access-Control-Allow-Origin: *
 
 # Static assets get a long cache too.
