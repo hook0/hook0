@@ -19,6 +19,7 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use std::sync::LazyLock;
 use std::time::Duration;
+use strum::IntoStaticStr;
 use tracing::{info, warn};
 use uuid::Uuid;
 
@@ -406,6 +407,33 @@ impl DeliveryOutcome {
 
 pub fn report_delivery_outcome(outcome: DeliveryOutcome) {
     DELIVERY_OUTCOMES.add(1, &[KeyValue::new("outcome", outcome.as_str())]);
+}
+
+static DELIVERIES_GIVEN_UP: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("webhook.delivery.given_up")
+        .with_description("Count of deliveries abandoned for good, by bounded reason")
+        .build()
+});
+
+/// Bounded set of reasons a delivery is abandoned for good: no further attempt
+/// will ever be scheduled for that event on that subscription. `RetriesExhausted`
+/// and `SignatureFailed` lose an event a subscriber was waiting for, while
+/// `SubscriptionGone` is the expected end of a subscription or application that
+/// no longer wants deliveries. Keeping the three apart is the point: only the
+/// first two are worth waking someone up for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr)]
+pub enum GiveUpReason {
+    #[strum(serialize = "retries_exhausted")]
+    RetriesExhausted,
+    #[strum(serialize = "subscription_gone")]
+    SubscriptionGone,
+    #[strum(serialize = "signature_failed")]
+    SignatureFailed,
+}
+
+pub fn report_given_up(reason: GiveUpReason) {
+    DELIVERIES_GIVEN_UP.add(1, &[KeyValue::new("reason", <&'static str>::from(reason))]);
 }
 
 /// Total mapping from a delivery `Response` to exactly one bounded `DeliveryOutcome`.
