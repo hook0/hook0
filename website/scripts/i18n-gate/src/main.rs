@@ -337,6 +337,11 @@ fn main() {
     // hand-edited, so a mismatch means someone edited one without the other.
     check_entitymap(&dist, &mut failures);
 
+    // `immutable` is a promise that a URL's bytes never change. Files copied
+    // verbatim out of static/ keep stable names, so the promise can only be
+    // kept by a content hash in the filename.
+    check_immutable_assets_are_versioned(&dist, &mut failures);
+
     if failures.is_empty() {
         println!("i18n-gate: PASS");
         exit(0);
@@ -786,4 +791,129 @@ fn scan_reduced_motion_offenses(css: &str) -> (Vec<String>, bool) {
         cursor = i;
     }
     (kills, has_restore)
+}
+
+// A mistakenly broad pattern must not walk the whole site, so the scan is
+// bounded. Well over the file count any single cache rule legitimately covers.
+const MAX_IMMUTABLE_FILES_SCANNED: usize = 5_000;
+
+/// `Cache-Control: immutable` promises a response will never change, so
+/// browsers and CDNs may keep it for the whole `max-age` without ever
+/// revalidating — even a reload does not dislodge it. That promise only holds
+/// when the URL changes as soon as the bytes do, which in practice means a
+/// content hash in the filename.
+///
+/// `static/` is copied verbatim into `dist/` by
+/// parcel-reporter-static-files-copy, so anything shipped from there keeps a
+/// stable name for its whole life. Marking such a path `immutable` strands
+/// every returning visitor on the old bytes, with no deploy able to reach them.
+///
+/// Asserts that every file matched by an `immutable` rule in `dist/_headers`
+/// carries a content-hash-looking segment in its name.
+fn check_immutable_assets_are_versioned(dist: &Path, failures: &mut Vec<String>) {
+    let headers = match fs::read_to_string(dist.join("_headers")) {
+        Ok(s) => s,
+        Err(_) => return, // no _headers on this site
+    };
+
+    for pattern in immutable_patterns(&headers) {
+        let matched = files_matching(dist, &pattern);
+        if matched.is_empty() {
+            failures.push(format!(
+                "_headers: `{pattern}` is marked immutable but matches no file in dist/ — a rule that caches nothing only hides intent"
+            ));
+            continue;
+        }
+        for name in matched {
+            if !looks_content_addressed(&name) {
+                failures.push(format!(
+                    "_headers: `{pattern}` serves `{name}` as immutable, but its name carries no content hash. The URL cannot change when the bytes do, so returning visitors keep the old file for the whole max-age and no deploy reaches them. Either hash the filename or drop `immutable` so the response stays revalidatable."
+                ));
+            }
+        }
+    }
+}
+
+/// Collect the path patterns whose `Cache-Control` carries `immutable`.
+/// A `_headers` block opens on an unindented path line; the indented lines
+/// that follow belong to it.
+fn immutable_patterns(headers: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut current = String::new();
+    for line in headers.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        if !line.starts_with([' ', '\t']) {
+            current = trimmed.to_string();
+            continue;
+        }
+        let Some((name, value)) = trimmed.split_once(':') else {
+            continue;
+        };
+        if name.trim().eq_ignore_ascii_case("cache-control")
+            && value.to_ascii_lowercase().contains("immutable")
+            && !current.is_empty()
+        {
+            out.push(current.clone());
+        }
+    }
+    out
+}
+
+/// Expand a Netlify `_headers` path pattern to the filenames it serves from
+/// `dist/`. Only the trailing-wildcard form (`/dir/*`) and exact paths are
+/// used by this site.
+fn files_matching(dist: &Path, pattern: &str) -> Vec<String> {
+    let Some(rest) = pattern.strip_prefix('/') else {
+        return Vec::new();
+    };
+    match rest.strip_suffix('*') {
+        Some(prefix) => collect_files(&dist.join(prefix), MAX_IMMUTABLE_FILES_SCANNED),
+        None => {
+            let p = dist.join(rest);
+            match p.is_file() {
+                true => vec![rest.to_string()],
+                false => Vec::new(),
+            }
+        }
+    }
+}
+
+/// Recursively list filenames under `dir`, bounded by `limit`.
+fn collect_files(dir: &Path, limit: usize) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(d) = stack.pop() {
+        if out.len() >= limit {
+            break;
+        }
+        let entries = match fs::read_dir(&d) {
+            Ok(it) => it,
+            Err(_) => continue, // a pattern may name a directory that never shipped
+        };
+        for e in entries.flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                stack.push(p);
+                continue;
+            }
+            if let Some(n) = p.file_name().and_then(|x| x.to_str()) {
+                out.push(n.to_string());
+                if out.len() >= limit {
+                    break;
+                }
+            }
+        }
+    }
+    out
+}
+
+/// A filename is content-addressed when one of its separated segments is a run
+/// of at least 8 hex characters — the shape every content-hash pipeline emits,
+/// Parcel's `index.4f3a91c2.js` included.
+fn looks_content_addressed(name: &str) -> bool {
+    name.split(['.', '-', '_'])
+        .any(|seg| seg.len() >= 8 && seg.chars().all(|c| c.is_ascii_hexdigit()))
 }
