@@ -21,7 +21,7 @@ actix-web = "4.14.1"
 anyhow = "1.0.104"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
-aws-sdk-s3 = { version = "1.141.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.142.0", features = ["behavior-version-latest"] }
 base64 = "0.23.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.45", features = ["serde"] }
