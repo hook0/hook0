@@ -1,6 +1,6 @@
 // Per-page strings for webhook-cost-comparison (FR).
 // /humanizer pro appliqué. Tutoiement. Pas d'em-dash, pas de middle-dot.
-// Hook0 = « code source ouvert (SSPL-1.0) », JAMAIS « open source » nu (SSPL hors OSI, risque L121-1).
+// Hook0 = « open source (SSPL-1.0) », JAMAIS « open source » nu (SSPL hors OSI, risque L121-1).
 // Chiffres Hook0 vérifiés dans locales/en/pricing.js + src/includes/_pricing.ejs.
 // Chiffres concurrents relevés sur leurs pages tarifs publiques le 2026-08-07.
 module.exports = {
@@ -16,7 +16,7 @@ module.exports = {
     subtitle: 'Quatre services webhook, quatre modèles de facturation. On a posé les prix publics de Hook0, Svix, Hookdeck Outpost et Convoy sur les mêmes volumes, de 100 000 à 10 millions d\'events par mois, avec les astérisques que les pages tarifs ont tendance à oublier.',
     ctaPrimary: 'Démarrer gratuitement',
     ctaSecondary: 'Voir les tarifs Hook0',
-    microcopy: '100 events/jour gratuits. Sans carte bancaire. Code source ouvert (SSPL-1.0).',
+    microcopy: '100 events/jour gratuits. Sans carte bancaire. Open source (SSPL-1.0).',
   },
   socialProof: true,
   costTable: {
@@ -87,7 +87,7 @@ module.exports = {
     cards: [
       {
         title: 'Hook0 (SSPL-1.0)',
-        body: 'Code source ouvert (SSPL-1.0) : le serveur complet est publié, rien n\'est retenu pour un palier enterprise. Licence à 0 €. Tourne sur Docker Compose ou Kubernetes avec PostgreSQL.',
+        body: 'Open source (SSPL-1.0) : le serveur complet est publié, rien n\'est retenu pour un palier enterprise. Licence à 0 €. Tourne sur Docker Compose ou Kubernetes avec PostgreSQL.',
       },
       {
         title: 'Svix (MIT, open-core)',
@@ -114,7 +114,7 @@ module.exports = {
     items: [
       {
         q: 'Combien coûte Hook0 ?',
-        a: 'Hook0 Cloud a un tier Developer gratuit : 100 events/jour, sans carte bancaire. Startup coûte 59 €/mois pour jusqu\'à 30 000 events/jour, puis 0,003 €/event. Pro coûte 190 €/mois pour jusqu\'à 100 000 events/jour, puis 0,0001 €/event, ou 1 824 €/an avec la remise annuelle de 20%. Enterprise est sur devis. Auto-héberger le code source ouvert (SSPL-1.0) est gratuit.',
+        a: 'Hook0 Cloud a un tier Developer gratuit : 100 events/jour, sans carte bancaire. Startup coûte 59 €/mois pour jusqu\'à 30 000 events/jour, puis 0,003 €/event. Pro coûte 190 €/mois pour jusqu\'à 100 000 events/jour, puis 0,0001 €/event, ou 1 824 €/an avec la remise annuelle de 20%. Enterprise est sur devis. Auto-héberger le open source (SSPL-1.0) est gratuit.',
       },
       {
         q: 'Combien coûte un service webhook à 1 million d\'events par mois ?',

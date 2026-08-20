@@ -7,6 +7,7 @@ import { routes } from '@/routes';
 import type { components } from '@/types';
 import formbricks from '@formbricks/js';
 import { initializeFormbricks, trackFormbricksRoute } from '@/composables/useFormbricksInit';
+import { UNKNOWN_CHANNEL } from '@/utils/signupChannel';
 
 type LoginResponse = components['schemas']['LoginResponse'];
 
@@ -186,7 +187,10 @@ export const useAuthStore = defineStore('auth', () => {
     lastName: string,
     password: string,
     turnstile_token?: string,
-    gclid?: string
+    gclid?: string,
+    // Always a value of the channel vocabulary — `unknown` when this tab's
+    // entry page said nothing — so the account records an origin either way.
+    signup_channel: string = UNKNOWN_CHANNEL
   ): Promise<void> {
     return http.unauthenticated
       .post<void>('/register', {
@@ -196,6 +200,7 @@ export const useAuthStore = defineStore('auth', () => {
         password,
         turnstile_token,
         gclid,
+        signup_channel,
       })
       .then(() => {});
   }

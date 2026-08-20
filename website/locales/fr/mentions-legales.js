@@ -4,7 +4,7 @@
 // Faits Hook0 verbatim, jamais traduits : raison sociale, capital, RCS, TVA,
 // SIRET, adresse, téléphone, identité directeur de la publication, identité
 // hébergeur et CDN. Seuls les libellés autour sont traduits.
-// Hook0 = « code source ouvert (SSPL-1.0) », jamais « open source ».
+// Hook0 = « open source (SSPL-1.0) », jamais « open source » seul.
 module.exports = {
   pageTitle: 'Hook0 - Mentions légales',
   pageDescription: 'Mentions légales Hook0 : éditeur, hébergeur et informations légales exigées par l\'article 6 de la LCEN.',
@@ -61,7 +61,7 @@ module.exports = {
     h2: 'Propriété intellectuelle',
     p1: 'L\'ensemble des contenus publiés sur ce site, notamment les textes, graphismes, logos, icônes, images et logiciels, sont la propriété exclusive de FGRibreau SARL ou de ses fournisseurs de contenu et sont protégés par les lois françaises et internationales relatives à la propriété intellectuelle.',
     p2: 'Toute reproduction, distribution, modification ou utilisation de ces éléments sans autorisation écrite préalable de FGRibreau SARL est strictement interdite.',
-    p3: 'Le logiciel Hook0 est diffusé à code source ouvert (SSPL-1.0) sous sa propre licence, disponible dans le dépôt du projet.',
+    p3: 'Le logiciel Hook0 est diffusé open source (SSPL-1.0) sous sa propre licence, disponible dans le dépôt du projet.',
   },
   personalData: {
     h2: 'Données personnelles',

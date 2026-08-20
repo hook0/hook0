@@ -25,6 +25,11 @@ import { useAuthStore } from './stores/auth';
 import App from './App.vue';
 
 import { LOCAL_STORAGE_KEY_THEME, resolveIsDark } from './constants/theme';
+import {
+  browserSessionStorage,
+  currentPageSource,
+  rememberSignupChannel,
+} from './utils/signupChannel';
 
 // Apply color mode from localStorage before app renders to prevent flash
 {
@@ -32,6 +37,11 @@ import { LOCAL_STORAGE_KEY_THEME, resolveIsDark } from './constants/theme';
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   document.documentElement.classList.toggle('dark', resolveIsDark(theme, prefersDark));
 }
+
+// Remember where this tab came from while the referrer still points outside
+// Hook0: once the router has navigated once, the browser reports the previous
+// in-app page and the origin of the signup is lost.
+rememberSignupChannel(currentPageSource(), browserSessionStorage());
 
 // Create app
 const app = createApp(App);

@@ -1,18 +1,19 @@
 // Startseite DE. /humanizer pro + legal-reviewer angewendet.
-// SSPL = « quelloffen », NIE « Open Source ». DSGVO als Prozess-Claim
+// SSPL = « Open Source (SSPL-1.0) », Klammerzusatz obligatorisch, NIE
+// « Open Source » allein. DSGVO als Prozess-Claim
 // (« auf DSGVO-Konformität ausgelegt » / « DSGVO-konform betrieben »).
 // Verbotene Claims: « 100% souverän », « kein US-Konzern im Stack »,
 // « keine Daten verlassen die EU », « CLOUD Act free ».
 module.exports = {
-  pageTitle: 'Hook0 | Quelloffene Webhook-Plattform (SSPL)',
-  pageDescription: 'Kostenlose, quelloffene Webhook-Plattform. Ein API-Aufruf, Hook0 übernimmt Retries, HMAC-Signaturen, Zustell-Monitoring. Ohne Kreditkarte.',
+  pageTitle: 'Hook0 | Open-Source-Webhook-Plattform (SSPL-1.0)',
+  pageDescription: 'Kostenlose Open-Source-Webhook-Plattform (SSPL-1.0). Ein API-Aufruf, Hook0 übernimmt Retries, HMAC-Signaturen, Zustell-Monitoring. Ohne Kreditkarte.',
   pageModified: '2026-07-16',
   hero: {
     badgePillBootstrapped: '100% bootstrappt',
-    badgeOpenSource: 'Hook0 ist quelloffen',
+    badgeOpenSource: 'Hook0 ist Open Source',
     headlineLine1: 'Webhooks',
     headlineLine2: 'als Service',
-    description: 'Hook0 ist eine quelloffene Webhooks-as-a-Service-Plattform, die Entwicklern das Senden von Webhooks leicht macht. Ein API-Aufruf, und Hook0 kümmert sich um Zustellbarkeit, Retries, Sicherheit und mehr.',
+    description: 'Hook0 ist eine Open-Source-Webhooks-as-a-Service-Plattform, die Entwicklern das Senden von Webhooks leicht macht. Ein API-Aufruf, und Hook0 kümmert sich um Zustellbarkeit, Retries, Sicherheit und mehr.',
     ctaPrimary: 'Kostenlos starten',
     ctaSecondary: 'Schnellstart-Anleitung',
     trustFreePlan: 'Kostenloser Plan',
@@ -30,7 +31,7 @@ module.exports = {
       { label: 'Sicherheit', href: './sicherheit', color: 'indigo' },
       { label: 'Schnellstart', href: 'https://documentation.hook0.com/tutorials/getting-started', color: 'yellow' },
       { label: 'Alternativen vergleichen', href: 'https://documentation.hook0.com/comparisons', color: 'purple' },
-      { label: 'Quelloffene Freunde', href: './open-source-freunde', color: 'pink' },
+      { label: 'Open-Source-Freunde', href: './open-source-freunde', color: 'pink' },
       { label: 'Webhook-Tester', href: 'https://play.hook0.com', color: 'emerald', external: true },
       { label: 'Preise', href: './preise', color: 'indigo', icon: 'tag' },
     ],
@@ -45,7 +46,7 @@ module.exports = {
         alternateName: ['hook0', 'Hook Zero'],
         url: 'https://www.hook0.com',
         logo: 'https://www.hook0.com/mediakit/logo/110x110-white.png',
-        description: 'Kostenlose Webhook-Plattform, quelloffen. Du sendest deine Webhooks mit einem API-Aufruf, Hook0 übernimmt Retries, HMAC-Signaturen und Zustell-Monitoring. Für immer kostenlos, ohne Kreditkarte. Selbst hosten oder Cloud nutzen.',
+        description: 'Kostenlose Webhook-Plattform, Open Source. Du sendest deine Webhooks mit einem API-Aufruf, Hook0 übernimmt Retries, HMAC-Signaturen und Zustell-Monitoring. Für immer kostenlos, ohne Kreditkarte. Selbst hosten oder Cloud nutzen.',
         foundingDate: '2021',
         founders: [
           { '@type': 'Person', name: 'Francois-Guillaume Ribreau' },
@@ -73,7 +74,7 @@ module.exports = {
         applicationCategory: 'DeveloperApplication',
         operatingSystem: 'Any',
         url: 'https://www.hook0.com',
-        description: 'Quelloffene Webhook-Infrastruktur. Du sendest deine Webhooks mit einem API-Aufruf, Retries, HMAC-Signaturen und Zustell-Monitoring inklusive.',
+        description: 'Open-Source-Webhook-Infrastruktur. Du sendest deine Webhooks mit einem API-Aufruf, Retries, HMAC-Signaturen und Zustell-Monitoring inklusive.',
         offers: {
           '@type': 'Offer',
           price: '0',
@@ -90,13 +91,13 @@ module.exports = {
   },
   faq: {
     items: [
-      { q: 'Bietet Hook0 einen kostenlosen Plan?', a: 'Ja. Hook0 hat einen kostenlosen Plan mit 100 Webhook-Events pro Tag, HMAC-Signaturen und Zustell-Monitoring. Keine Kreditkarte nötig. Hook0 ist außerdem quelloffen, du kannst es kostenlos selbst hosten.' },
+      { q: 'Bietet Hook0 einen kostenlosen Plan?', a: 'Ja. Hook0 hat einen kostenlosen Plan mit 100 Webhook-Events pro Tag, HMAC-Signaturen und Zustell-Monitoring. Keine Kreditkarte nötig. Hook0 ist außerdem Open Source, du kannst es kostenlos selbst hosten.' },
       { q: 'Was bedeutet „Webhooks als Service"?', a: 'Eine Webhook-Plattform als Service (Webhooks-as-a-Service) heißt, du sendest deine Events per REST-API an Hook0, und Hook0 stellt sie an die Endpoints deiner Nutzer zu. Die Plattform übernimmt Retries, kryptografische Signaturen, Zustell-Logs und Subscriber-Verwaltung. Du musst diese Infrastruktur nicht selbst bauen.' },
-      { q: 'Ist Hook0 quelloffen?', a: 'Ja. Der Quellcode ist auf GitHub und GitLab unter der SSPL-1.0-Lizenz verfügbar (die Client-SDKs unter MIT). Du kannst Hook0 mit Docker Compose oder Kubernetes selbst hosten oder den verwalteten Cloud-Service nutzen, der in Europa gehostet wird.' },
-      { q: 'Ist SSPL wirklich Open Source?', a: 'Der vollständige Server-Quellcode von Hook0 wird unter SSPL-1.0 veröffentlicht, die Client-SDKs unter MIT. SSPL ist eine Source-Available-Copyleft-Lizenz, du kannst Hook0 lesen, modifizieren, selbst hosten und frei betreiben. Sie ist in einem einzigen Fall strenger als MIT. Wenn du Hook0 als verwalteten Service weiterverkaufst, musst du deine eigene Infrastruktur quelloffen veröffentlichen. Wenn du auf Hook0 baust oder es selbst hostest, fügt SSPL gegenüber MIT keine Pflicht hinzu.' },
+      { q: 'Ist Hook0 Open Source?', a: 'Ja. Der Quellcode ist auf GitHub und GitLab unter der SSPL-1.0-Lizenz verfügbar (die Client-SDKs unter MIT). Du kannst Hook0 mit Docker Compose oder Kubernetes selbst hosten oder den verwalteten Cloud-Service nutzen, der in Europa gehostet wird.' },
+      { q: 'Ist SSPL wirklich Open Source?', a: 'Der vollständige Server-Quellcode von Hook0 wird unter SSPL-1.0 veröffentlicht, die Client-SDKs unter MIT. SSPL ist eine Source-Available-Copyleft-Lizenz, du kannst Hook0 lesen, modifizieren, selbst hosten und frei betreiben. Sie ist in einem einzigen Fall strenger als MIT. Wenn du Hook0 als verwalteten Service weiterverkaufst, musst du deine eigene Infrastruktur Open Source veröffentlichen. Wenn du auf Hook0 baust oder es selbst hostest, fügt SSPL gegenüber MIT keine Pflicht hinzu.' },
       { q: 'Kann ich Hook0 selbst hosten?', a: 'Ja. Hook0 unterstützt Selbst-Hosting per Docker Compose oder Kubernetes. Die selbst gehostete Version hat dieselben Features wie die Cloud-Version. Die Dokumentation findest du unter documentation.hook0.com/self-hosting.' },
       { q: 'Wie vergleicht sich Hook0 mit Svix, Hookdeck oder HostedHooks?', a: 'Hook0 veröffentlicht den vollständigen Server-Quellcode unter SSPL-1.0 ohne proprietären Enterprise-Tier, und Selbst-Hosting ist in jedem Plan kostenlos. Der Kern von Svix ist MIT, aber mehrere Features sind kostenpflichtigen Plänen vorbehalten. Hookdeck ist ein Webhook-Gateway und HostedHooks ist closed-source. Hook0 ist bootstrappt, ohne VC-Finanzierung, und läuft sowohl in der Cloud (in der EU gehostet) als auch on-premise.' },
-      { q: 'Wo hostet Hook0 Webhook-Daten, und werden die Unterauftragsverarbeiter genannt?', a: "Die Webhook-Datenebene von Hook0 läuft auf Clever Cloud in Frankreich, innerhalb der EU, im Gratis-Tarif und in jedem kostenpflichtigen Tarif; optionale dedizierte Worker laufen auf Scaleway, ebenfalls in Frankreich. Die vorgelagerte CDN- und DDoS-Schicht stellt Cloudflare (ein US-Unternehmen), was wir offenlegen statt es zu verbergen. Jeder Unterauftragsverarbeiter und sein Datenübermittlungsmechanismus sind öffentlich auf unserer DSGVO-Unterauftragsverarbeiter-Seite aufgeführt. Hook0 ist quelloffen (SSPL-1.0), sodass Sie den Code auch lesen oder selbst hosten können, was viele in der EU gehostete Webhook-Dienste nicht erlauben." },
+      { q: 'Wo hostet Hook0 Webhook-Daten, und werden die Unterauftragsverarbeiter genannt?', a: "Die Webhook-Datenebene von Hook0 läuft auf Clever Cloud in Frankreich, innerhalb der EU, im Gratis-Tarif und in jedem kostenpflichtigen Tarif; optionale dedizierte Worker laufen auf Scaleway, ebenfalls in Frankreich. Die vorgelagerte CDN- und DDoS-Schicht stellt Cloudflare (ein US-Unternehmen), was wir offenlegen statt es zu verbergen. Jeder Unterauftragsverarbeiter und sein Datenübermittlungsmechanismus sind öffentlich auf unserer DSGVO-Unterauftragsverarbeiter-Seite aufgeführt. Hook0 ist Open Source (SSPL-1.0), sodass Sie den Code auch lesen oder selbst hosten können, was viele in der EU gehostete Webhook-Dienste nicht erlauben." },
     ],
   },
 };

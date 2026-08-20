@@ -1,6 +1,6 @@
 // Per-page strings for build-vs-buy-webhooks (FR).
 // /humanizer pro appliqué. Tutoiement. Pas d'em-dash, pas de pivot colon.
-// Hook0 = « code source ouvert (SSPL-1.0) ».
+// Hook0 = « open source (SSPL-1.0) ».
 module.exports = {
   pageTitle: 'Build vs Buy webhooks, prod en 30 min | Hook0',
   pageDescription: 'Construire un système webhook coûte 3 sprints. Relances, signatures, monitoring : prends Hook0 et livre en 30 minutes.',
@@ -10,7 +10,7 @@ module.exports = {
     eyebrow: 'Build vs Buy',
     titleBefore: 'Arrête de construire des webhooks',
     titleAccent: 'de zéro',
-    subtitle: 'Ton backlog est plein de features que tes users veulent vraiment. Relances, signatures, monitoring, dead letter queues, c\'est 3 sprints ou plus de plomberie. Hook0 est un service webhook en code source ouvert (SSPL-1.0) qui gère tout ça. 100 events/jour gratuits, sans carte bancaire. Livre en 30 minutes.',
+    subtitle: 'Ton backlog est plein de features que tes users veulent vraiment. Relances, signatures, monitoring, dead letter queues, c\'est 3 sprints ou plus de plomberie. Hook0 est un service webhook open source (SSPL-1.0) qui gère tout ça. 100 events/jour gratuits, sans carte bancaire. Livre en 30 minutes.',
     ctaPrimary: 'Démarrer gratuitement',
     ctaSecondary: 'Essayer le Playground',
     stats: [
@@ -44,7 +44,7 @@ module.exports = {
       { aspect: 'Sécurité (HMAC)', diyHtml: 'À implémenter et maintenir', hook0Html: 'Automatique sur chaque event', diyDim: false },
       { aspect: 'Monitoring et logs', diyHtml: 'Dashboards à construire', hook0Html: 'Inclus dès le départ', diyDim: false },
       { aspect: 'Gestion des abonnements', diyHtml: 'Toute une UI à construire', hook0Html: 'Portail embarquable inclus', diyDim: false },
-      { aspect: 'Vendor lock-in', diyHtml: 'Aucun (mais coincé avec ton code)', hook0Html: 'Aucun (code source ouvert, auto-hébergeable)', diyDim: true },
+      { aspect: 'Vendor lock-in', diyHtml: 'Aucun (mais coincé avec ton code)', hook0Html: 'Aucun (open source, auto-hébergeable)', diyDim: true },
     ],
   },
   integration: {
