@@ -1297,6 +1297,36 @@ fn registry() -> Vec<TargetRoot> {
         .collect()
 }
 
+/// A path under the tree, written the one way every file that quotes one writes it.
+fn shown(root: &Path, path: &Path) -> String {
+    path.strip_prefix(root)
+        .unwrap_or(path)
+        .to_string_lossy()
+        .replace('\\', "/")
+}
+
+/// Every table a dependency can be declared in: the package's own, the ones a workspace declares
+/// once for the crates under it, and the ones a platform narrows.
+fn dependency_tables(document: &toml::Table) -> Vec<&toml::Table> {
+    let mut holders = vec![document];
+    holders.extend(document.get("workspace").and_then(toml::Value::as_table));
+    holders.extend(
+        document
+            .get("target")
+            .and_then(toml::Value::as_table)
+            .into_iter()
+            .flat_map(|targets| targets.values().filter_map(toml::Value::as_table)),
+    );
+
+    let mut tables = Vec::new();
+    for holder in holders {
+        for name in DEPENDENCY_TABLES {
+            tables.extend(holder.get(name).and_then(toml::Value::as_table));
+        }
+    }
+    tables
+}
+
 /// One dependency asking for a released client by a version number.
 struct Pin {
     manifest: String,
@@ -1368,19 +1398,7 @@ fn pins_on(root: &Path, train: &[Package]) -> Vec<Pin> {
             continue;
         };
 
-        let mut tables = Vec::new();
-        for name in DEPENDENCY_TABLES {
-            tables.extend(document.get(name).and_then(toml::Value::as_table));
-            tables.extend(
-                document
-                    .get("workspace")
-                    .and_then(toml::Value::as_table)
-                    .and_then(|workspace| workspace.get(name))
-                    .and_then(toml::Value::as_table),
-            );
-        }
-
-        for table in tables {
+        for table in dependency_tables(&document) {
             for (name, declared) in table {
                 let Some(declared) = declared.as_table() else {
                     continue;
@@ -1396,11 +1414,7 @@ fn pins_on(root: &Path, train: &[Package]) -> Vec<Pin> {
                 };
                 if homes.contains(&asked) {
                     pins.push(Pin {
-                        manifest: manifest
-                            .strip_prefix(root)
-                            .unwrap_or(&manifest)
-                            .to_string_lossy()
-                            .replace('\\', "/"),
+                        manifest: shown(root, &manifest),
                         dependency: name.clone(),
                         pinned: version.to_owned(),
                     });
@@ -1441,4 +1455,69 @@ fn the_release_this_tree_ships_agrees_on_one_version_and_every_pin_sits_at_it() 
             pin.pinned
         );
     }
+}
+
+/// Whether cargo would let this manifest be published, which is `[package] publish` and nothing
+/// else. The key of the same name under `[package.metadata.release]` is read by cargo-release
+/// alone, and the two spellings sitting in one tree is how a crate comes to look settled either way
+/// while only one of them decides.
+fn cargo_would_publish(document: &toml::Table) -> bool {
+    let Some(package) = document.get("package").and_then(toml::Value::as_table) else {
+        return false;
+    };
+    match package.get("publish") {
+        Some(toml::Value::Boolean(allowed)) => *allowed,
+        Some(toml::Value::Array(registries)) => !registries.is_empty(),
+        _ => true,
+    }
+}
+
+/// A crate left publishable has to be one cargo can actually package, and a dependency asked for by
+/// path alone is one it cannot.
+///
+/// Cargo refuses the whole crate over it, since the path is dropped on upload and what remains asks
+/// for nothing in particular. It refuses at `cargo publish` and nowhere earlier, so a crate can sit
+/// unpublishable for as long as nobody tries — which is what three of them had done here.
+#[test]
+fn a_crate_left_publishable_asks_for_every_path_dependency_by_version() {
+    let root = repository();
+    let mut refused = Vec::new();
+    let mut publishable = 0usize;
+
+    for manifest in manifests(&root) {
+        let Ok(body) = fs::read_to_string(&manifest) else {
+            continue;
+        };
+        let Ok(document) = body.parse::<toml::Table>() else {
+            continue;
+        };
+        if !cargo_would_publish(&document) {
+            continue;
+        }
+        publishable += 1;
+
+        for table in dependency_tables(&document) {
+            for (name, declared) in table {
+                let Some(declared) = declared.as_table() else {
+                    continue;
+                };
+                if declared.contains_key("path") && !declared.contains_key("version") {
+                    refused.push(format!(
+                        "{} asks for {name} by path alone",
+                        shown(&root, &manifest)
+                    ));
+                }
+            }
+        }
+    }
+
+    assert!(
+        publishable > 0,
+        "no manifest in the tree is publishable, so this proves nothing"
+    );
+    assert!(
+        refused.is_empty(),
+        "cargo will not package these until the dependency is asked for by version too:\n{}",
+        refused.join("\n")
+    );
 }
