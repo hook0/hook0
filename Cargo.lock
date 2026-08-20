@@ -61,9 +61,9 @@ dependencies = [
 
 [[package]]
 name = "actix-files"
-version = "0.6.10"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df8c4f30e3272d7c345f88ae0aac3848507ef5ba871f9cc2a41c8085a0f0523b"
+checksum = "ed87c765e9e5be096cc29b43d04b932209892ec871d05fe255f0ae1ccfed9a06"
 dependencies = [
  "actix-http",
  "actix-service",
@@ -627,9 +627,9 @@ dependencies = [
 
 [[package]]
 name = "aws-sdk-s3"
-version = "1.142.0"
+version = "1.143.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9e15a5c55e05f4b0b7e483160b3c85cccdf77cff02c95504f3e71d460855cd2"
+checksum = "a0ade5433c9561daac7c0c6bc910f1240b4f8ec0d6148b0b463aac0691d747c9"
 dependencies = [
  "arc-swap",
  "aws-credential-types",
@@ -764,7 +764,7 @@ dependencies = [
  "aws-smithy-runtime-api",
  "aws-smithy-types",
  "h2 0.3.27",
- "h2 0.4.17",
+ "h2 0.4.18",
  "http 0.2.12",
  "http 1.5.0",
  "http-body 0.4.6",
@@ -1783,12 +1783,12 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88490bf1b990d87eaaa7ac8aa887f629a08e7359765b4911faf63c3763347d23"
+checksum = "ed17f5901b6630b993ca003def43f2f8ef4014fc13b047b57aad617ff32bc2ec"
 dependencies = [
- "darling_core 0.24.0",
- "darling_macro 0.24.0",
+ "darling_core 0.24.1",
+ "darling_macro 0.24.1",
 ]
 
 [[package]]
@@ -1806,9 +1806,9 @@ dependencies = [
 
 [[package]]
 name = "darling_core"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "084e274f91c482280130e1e34e0b8d6e66776a060d7b6de7b84289ca778868c4"
+checksum = "6837e2cf7485aaae18f86181d2f0e9a7ed297a025e220aeabf63fdebd3a2ddff"
 dependencies = [
  "ident_case",
  "proc-macro2",
@@ -1830,11 +1830,11 @@ dependencies = [
 
 [[package]]
 name = "darling_macro"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68f5792fa0d41cd2325ce0ffa64f0a340eaebd4971a3a0c5e1ffd2cc488a355e"
+checksum = "2ac7135c3ef02b2f7833bbeb1be5ba7f966dcde8a87c6b87f65a778d71a02785"
 dependencies = [
- "darling_core 0.24.0",
+ "darling_core 0.24.1",
  "quote",
  "syn 3.0.3",
 ]
@@ -2086,9 +2086,9 @@ dependencies = [
 
 [[package]]
 name = "either"
-version = "1.17.0"
+version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e5e8f6c15a24b9a3ee5efec809ccd006d3b30e8b3bb63c39af737c7f87daa1d"
+checksum = "252afb9ae5eaa683babdc6a068b3f5726eb19e05070c731f9b2a23a7c3e8ed34"
 dependencies = [
  "serde",
 ]
@@ -2646,9 +2646,9 @@ dependencies = [
 
 [[package]]
 name = "h2"
-version = "0.4.17"
+version = "0.4.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f877e75f39e9827ec50a572dd592684ac28c029578726c85f1b2aa6ab807449"
+checksum = "839c0e8a181239723652be9062bb56ca5bf5f64011f73b623f6f4fc59086a228"
 dependencies = [
  "atomic-waker",
  "bytes",
@@ -3249,7 +3249,7 @@ dependencies = [
  "bytes",
  "futures-channel",
  "futures-core",
- "h2 0.4.17",
+ "h2 0.4.18",
  "http 1.5.0",
  "http-body 1.1.0",
  "httparse",
@@ -3519,7 +3519,7 @@ version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bf84e73fa6f27f299dec58e13223cf70db80da872eb921d4f6138342a0eabc8"
 dependencies = [
- "darling 0.24.0",
+ "darling 0.24.1",
  "indoc",
  "proc-macro2",
  "quote",
@@ -5961,7 +5961,7 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "futures-util",
- "h2 0.4.17",
+ "h2 0.4.18",
  "hickory-resolver",
  "http 1.5.0",
  "http-body 1.1.0",
@@ -8049,10 +8049,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "v_htmlescape"
-version = "0.15.8"
+name = "v_escape-base"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e8257fbc510f0a46eb602c10215901938b5c2a7d5e70fc11483b1d3c9b5b18c"
+checksum = "f1212fce830b75af194b578e55b3db9049f2c8c45f58d397fb25602fdb50fb3d"
+
+[[package]]
+name = "v_htmlescape"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "befb3d53c9e3ec641417685896cbc8cc5bd264d6a2e190c56aaef1af24740d99"
+dependencies = [
+ "v_escape-base",
+]
 
 [[package]]
 name = "validate-dockerfiles"
