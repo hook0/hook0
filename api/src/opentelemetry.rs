@@ -132,6 +132,15 @@ static DB_ACTIVE_CONNECTIONS: LazyLock<Gauge<u64>> = LazyLock::new(|| {
         .build()
 });
 
+/// `size()` and `num_idle()` are two separate reads of a pool that other tasks
+/// keep mutating, so they never form a consistent snapshot: a connection
+/// returned between the two makes `num_idle()` the larger of the pair. A plain
+/// subtraction then wraps and records a `u64` gauge near `2^64`, which reads as
+/// a saturation spike that never happened.
+fn checked_out_connections(opened: u64, idle: u64) -> u64 {
+    opened.saturating_sub(idle)
+}
+
 pub fn gather_pools_metrics(pools: &[(&'static str, PgPool)]) {
     for (name, pool) in pools {
         let max_connections = u64::from(pool.options().get_max_connections());
@@ -139,7 +148,8 @@ pub fn gather_pools_metrics(pools: &[(&'static str, PgPool)]) {
         let idle_connections = u64::try_from(pool.num_idle())
             .inspect_err(|e| warn!("Could not convert {} to u64: {e}", pool.num_idle()))
             .ok();
-        let active_connections = idle_connections.map(|idle| opened_connections - idle);
+        let active_connections =
+            idle_connections.map(|idle| checked_out_connections(opened_connections, idle));
 
         let attributes = [KeyValue::new("pool_name", *name)];
 
@@ -374,6 +384,20 @@ fn ingestion_phase_duration_view(instrument: &Instrument) -> Option<Stream> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn idle_connections_above_opened_do_not_wrap_the_active_gauge() {
+        // `size()` and `num_idle()` are read one after the other, so a connection
+        // returned in between yields idle > opened. Subtracting would record a
+        // gauge near `2^64` instead of an idle pool.
+        assert_eq!(checked_out_connections(3, 5), 0);
+    }
+
+    #[test]
+    fn checked_out_connections_are_opened_minus_idle() {
+        assert_eq!(checked_out_connections(60, 0), 60);
+        assert_eq!(checked_out_connections(27, 21), 6);
+    }
 
     #[test]
     fn detected_instance_id_wins() {
