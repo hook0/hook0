@@ -1521,3 +1521,83 @@ fn a_crate_left_publishable_asks_for_every_path_dependency_by_version() {
         refused.join("\n")
     );
 }
+
+/// The version a semver-looking run of characters spells, if it spells one.
+fn semver_at(text: &str, from: usize) -> Option<String> {
+    let rest = &text[from..];
+    let end = rest
+        .find(|character: char| !character.is_ascii_digit() && character != '.')
+        .unwrap_or(rest.len());
+    // A version at the end of a sentence, or before a file extension, is followed by the dot that
+    // ends it: `/v1.1.0.tar.gz` reads one character too far without this, and answers nothing.
+    let candidate = rest[..end].trim_end_matches('.');
+    let parts: Vec<&str> = candidate.split('.').collect();
+    let spelled = parts.len() == 3
+        && parts
+            .iter()
+            .all(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()));
+    spelled.then(|| candidate.to_owned())
+}
+
+/// Every version this text names right after one of these markers.
+fn versions_after(text: &str, markers: &[String]) -> Vec<String> {
+    let mut found = Vec::new();
+    for marker in markers {
+        let mut at = 0;
+        while let Some(offset) = text[at..].find(marker.as_str()) {
+            let after = at + offset + marker.len();
+            if let Some(version) = semver_at(text, after) {
+                found.push(version);
+            }
+            at = after;
+        }
+    }
+    found
+}
+
+/// A README naming a version of its own package names the one the release is at.
+///
+/// The four SDKs no registry resolves tell a reader to build from a checkout or to fetch a tag, so
+/// they spell a version out in prose. `set-version` writes manifests and a README is not one, which
+/// is how those four came to advertise a release that was already two behind. `pre-release-sdk.sh`
+/// rewrites them now, in the shapes below, and this is what says so.
+#[test]
+fn a_readme_naming_a_version_of_its_own_package_names_the_one_the_release_is_at() {
+    let root = repository();
+    let packages = discover(&registry(), &root).expect("the packages the registry resolves to");
+    let train = sdk_train(&packages);
+    let version = current_version(&train).unwrap_or_else(|refusal| panic!("{refusal}"));
+
+    let mut stale = Vec::new();
+    let mut named = 0usize;
+
+    for package in &train {
+        let readme = root.join(&package.directory).join("README.md");
+        let Ok(body) = fs::read_to_string(&readme) else {
+            continue;
+        };
+        // How a version of this package is written where a reader is told to fetch or build it:
+        // an XML element, after the coordinates, after the name, or as the tag of an archive.
+        let markers = [
+            "<version>".to_owned(),
+            format!("{}:", package.name),
+            format!("{}-", package.name),
+            "/v".to_owned(),
+        ];
+        for found in versions_after(&body, &markers) {
+            named += 1;
+            if found != version.to_string() {
+                stale.push(format!(
+                    "{}/README.md tells a reader to use {found} while the release is at {version}",
+                    package.directory
+                ));
+            }
+        }
+    }
+
+    assert!(
+        named > 0,
+        "no README names a version of its own package, so this proves nothing"
+    );
+    assert!(stale.is_empty(), "{}", stale.join("\n"));
+}

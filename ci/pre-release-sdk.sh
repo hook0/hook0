@@ -116,6 +116,19 @@ while IFS= read -r directory; do
         --tag "$TAG" \
         --output "${directory}/CHANGELOG.md"
 
+    # The four SDKs no registry resolves tell a reader to build from a checkout or to fetch a tag,
+    # and so they name a version in prose. `set-version` writes manifests, and a README is not one,
+    # so those four went on advertising the release before last until somebody noticed. The shapes
+    # below are the ones a version appears in there, and the guard in release-packages holds the
+    # tree to them: a version written some other way is caught rather than quietly left behind.
+    [ -f "${directory}/README.md" ] || continue
+    sed -i \
+        -e "s|<version>${CURRENT}</version>|<version>${NEW_VERSION}</version>|g" \
+        -e "s|:${CURRENT}\([^0-9]\)|:${NEW_VERSION}\1|g" \
+        -e "s|-${CURRENT}-|-${NEW_VERSION}-|g" \
+        -e "s|/v${CURRENT}\.|/v${NEW_VERSION}.|g" \
+        "${directory}/README.md"
+
 done <<< "$DIRECTORIES"
 
 # Everything the two steps above touched, which is what a clean working directory
