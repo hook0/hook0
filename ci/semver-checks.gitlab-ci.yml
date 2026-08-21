@@ -14,11 +14,18 @@ semver-checks:
   before_script:
     - rustc --version && cargo --version
     - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-    - cargo binstall --target x86_64-unknown-linux-musl --no-confirm cargo-semver-checks@0.46.0
+    # This pin travels with RUST_VERSION rather than independently of it. The tool reads the
+    # rustdoc JSON the toolchain emits, and that document has a format version of its own:
+    # 0.46.0 reads v55 to v57 and refuses v60, which is what rust 1.98 writes. Raising one
+    # without the other is a job that cannot run at all.
+    - cargo binstall --target x86_64-unknown-linux-musl --no-confirm cargo-semver-checks@0.50.0
     - git fetch origin master
   script:
     - echo "Checking semver compliance against origin/master..."
-    - >-
-      cargo semver-checks --package hook0-client --baseline-rev origin/master
-      || (echo "WARNING - SDK has breaking changes, ensure MAJOR version bump" && exit 1)
+    # Nothing renames the failure. This used to answer every non-zero exit with "SDK has
+    # breaking changes", so the day the tool refused to read the toolchain's rustdoc format
+    # the job reported a break in the published surface that did not exist, and the reader
+    # went looking for it in the client rather than in the pin above. What the tool finds is
+    # what the tool says; what a release is held to is `required-bump`.
+    - cargo semver-checks --package hook0-client --baseline-rev origin/master
   allow_failure: false
