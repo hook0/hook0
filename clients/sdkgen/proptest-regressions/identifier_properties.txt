@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 59b250b0e581731639e0f0bd3691d99d8b2f5ddbdb608c4206a6c19f4050ec39 # shrinks to name = "L", case = Kebab, reserved = ReservedWords { words: ["l"], escape: Prefix('@'), placeholder: "value0" }

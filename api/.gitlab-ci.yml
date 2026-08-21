@@ -27,7 +27,16 @@ api.check:
         - api/**/*
         - sentry-integration/**/*
         - clients/rust/**/*
+        # The wire format the API and the output worker exchange request attempts through. It
+        # is a workspace member neither watches by name, so a field renumbered in a `.proto`
+        # skipped every job that compiles either binary and shipped on a green pipeline.
+        - protobuf/**/*
         - Cargo.*
+        # The suite also checks that the types the dashboard is generated
+        # against still name the operations the API serves, so a change to
+        # those types alone has to run it too.
+        - frontend/src/types.ts
+        - .gitlab-ci.yml
   variables:
     SQLX_OFFLINE: "true"
     # DB-backed tests (`#[sqlx::test]`) provision an ephemeral database per test
@@ -51,4 +60,8 @@ api.check:
     - cargo fmt --all -- --check
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
+    # From inside `api`, cargo still resolves the workspace, and this is the only place the
+    # protobuf crate's own tests run: every other `cargo test` in this pipeline is scoped to
+    # the package it was launched from, so the wire format had two tests nothing executed.
+    - cargo test -p hook0-protobuf
 

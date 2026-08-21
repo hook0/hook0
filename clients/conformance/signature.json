@@ -1,0 +1,214 @@
+{
+  "$comment": [
+    "The shared contract: what a webhook has to carry to be accepted, and every way one is refused.",
+    "A change here is a change to every SDK. Each target reads this file from its own suite and runs",
+    "every vector through its own verification, so a vector added here is exercised by every target",
+    "without any of them being edited, and a target that accepts what the others refuse fails.",
+    "The codes were computed outside every implementation, with a general-purpose HMAC tool. A suite",
+    "that signed with the module it is testing and verified with the same module would pass whatever",
+    "the two agreed on; these hold each implementation against an answer it had no say in.",
+    "A vector is self-contained: the secret, the body, the headers as delivered, the signature header,",
+    "the moment to hold it against and the tolerance to hold it within. `verdict` is `accepted` or",
+    "`refused`; a refused one names which of `refusals` it is refused as, so a client that refuses",
+    "the right vector for the wrong reason — computing a code over a header that never arrived, and",
+    "reporting a mismatch — fails as well. A target maps those names onto its own failures.",
+    "The message a code is computed over is the moment, then `.`, then for the header scheme the",
+    "covered names joined by a space, `.`, their values in that same order joined by `.`, `.`, and",
+    "then the body; the body scheme is the moment, `.`, and the body."
+  ],
+  "refusals": [
+    "code_not_hexadecimal",
+    "header_not_delivered",
+    "code_mismatch",
+    "outside_tolerance"
+  ],
+  "vectors": [
+    {
+      "name": "a body-scheme signature verifies",
+      "secret": "a-subscription-secret",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1800000000,v0=d17d66b66fca89390c5b967c45e8928fc732db07a0aabe8167b1e98213081ffe",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "accepted",
+      "reason": "the older scheme covers the moment and the body, which is what this code was computed over"
+    },
+    {
+      "name": "a header-scheme signature verifies",
+      "secret": "a-subscription-secret",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1800000000,h=x-event-id x-delivery-id,v1=19a6fb8f6581715b241a93af02a58611c3b0ac7b747a8d2a5b120ee418d0c347",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "accepted",
+      "reason": "the newer scheme also covers the headers it names, and their values arrived as signed"
+    },
+    {
+      "name": "the header scheme is the one verified when both are offered",
+      "secret": "a-subscription-secret",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1800000000,h=x-event-id x-delivery-id,v0=bf5f4e5fe0c9143510ae192f983316a09ed392d0104d2ce0faa3d7bce3687acb,v1=19a6fb8f6581715b241a93af02a58611c3b0ac7b747a8d2a5b120ee418d0c347",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "accepted",
+      "reason": "the stronger code is the right one, and the weaker one beside it is never looked at"
+    },
+    {
+      "name": "a right weaker code does not rescue a wrong stronger one",
+      "secret": "a-subscription-secret",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1800000000,h=x-event-id x-delivery-id,v0=d17d66b66fca89390c5b967c45e8928fc732db07a0aabe8167b1e98213081ffe,v1=bf5f4e5fe0c9143510ae192f983316a09ed392d0104d2ce0faa3d7bce3687acb",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "refused",
+      "refusal": "code_mismatch",
+      "reason": "accepting the weaker of two schemes because the sender also offered it is how a downgrade works"
+    },
+    {
+      "name": "the order the covered headers are named in is part of what is signed",
+      "secret": "a-subscription-secret",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1800000000,h=x-delivery-id x-event-id,v1=19a6fb8f6581715b241a93af02a58611c3b0ac7b747a8d2a5b120ee418d0c347",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "refused",
+      "refusal": "code_mismatch",
+      "reason": "the same two headers named the other way round cover their values the other way round, which is a different message"
+    },
+    {
+      "name": "the covered headers are read in the order the signature names them",
+      "secret": "a-subscription-secret",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1800000000,h=x-delivery-id x-event-id,v1=bf5f4e5fe0c9143510ae192f983316a09ed392d0104d2ce0faa3d7bce3687acb",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "accepted",
+      "reason": "the same two headers, signed in the order this signature names them, verify"
+    },
+    {
+      "name": "a header the signature covers that the request did not carry",
+      "secret": "a-subscription-secret",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1800000000,h=x-event-id x-missing,v1=19a6fb8f6581715b241a93af02a58611c3b0ac7b747a8d2a5b120ee418d0c347",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "refused",
+      "refusal": "header_not_delivered",
+      "reason": "signing over an absent value would let a sender drop a header and keep the signature valid, so it is refused before any code is computed"
+    },
+    {
+      "name": "a code that is not hexadecimal",
+      "secret": "a-subscription-secret",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1800000000,v0=d17d66b66fca89390c5b967c45e8928fc732db07a0aabe8167b1e98213081ffz",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "refused",
+      "refusal": "code_not_hexadecimal",
+      "reason": "a decoder that stops at the first character it cannot read compares a prefix, and a prefix of the right code is not the right code"
+    },
+    {
+      "name": "a code that is not whole",
+      "secret": "a-subscription-secret",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1800000000,v0=d17d66b66fca89390c5b967c45e8928fc732db07a0aabe8167b1e98213081ff",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "refused",
+      "refusal": "code_not_hexadecimal",
+      "reason": "half a byte is missing from the code, and reading the rest of it would compare something shorter than what was signed"
+    },
+    {
+      "name": "a moment older than the tolerance",
+      "secret": "a-subscription-secret",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1799999699,v0=4168cc6c683357e103055b48584715f12e2baa4e679b8e076254247f11edf34d",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "refused",
+      "refusal": "outside_tolerance",
+      "reason": "the code is the right one for that moment, and the moment is one second past the window, which is what bounds how long a captured delivery can be replayed"
+    },
+    {
+      "name": "a moment further ahead than the tolerance",
+      "secret": "a-subscription-secret",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1800000301,v0=ba4b79e449ae52edb505b6baa07380be2baa6e0c4c6fec3b9a01c85d47a4935f",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "refused",
+      "refusal": "outside_tolerance",
+      "reason": "a window that only looks backwards is one a sender widens by dating its own delivery in the future"
+    },
+    {
+      "name": "a moment at the edge of the window",
+      "secret": "a-subscription-secret",
+      "payload": "{\"event\":\"user.created\"}",
+      "headers": [
+        ["x-event-id", "evt-1"],
+        ["x-delivery-id", "dlv-1"],
+        ["content-type", "application/json"]
+      ],
+      "signature": "t=1799999700,v0=f9689580483e051113d28de23c1658c509da2b00e7bc15a5aaa83b8bdf83ff81",
+      "current_time": 1800000000,
+      "tolerance_seconds": 300,
+      "verdict": "accepted",
+      "reason": "the tolerance is the width a delivery is accepted within, so its own edge is inside it"
+    }
+  ]
+}

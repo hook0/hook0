@@ -1,0 +1,32 @@
+# What the formatter prints, stated rather than left to whichever default the toolchain ships.
+#
+# `dotnet format --verify-no-changes` reads this file, and the generator emits source that already
+# satisfies it: a job that reformatted what it was checking would report success on source nobody
+# wrote.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csproj,sln,props,targets}]
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,md}]
+indent_style = space
+indent_size = 2
+
+[*.cs]
+# A file-scoped namespace is one level of indentation the whole file does not pay for.
+csharp_style_namespace_declarations = file_scoped:warning
+
+# `using` directives sit outside the namespace, which is where the generator writes them.
+csharp_using_directive_placement = outside_namespace:warning
+
+# The framework's own surface is written this way, and the generated half follows it.
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false

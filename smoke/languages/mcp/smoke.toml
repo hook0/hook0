@@ -1,0 +1,21 @@
+# The MCP server's public interface is a protocol, not a library, so the smoke builds the server and
+# speaks to it over its own stdio transport rather than calling into its crate.
+run = ["cargo", "run", "--quiet"]
+
+# Unlike the others still carrying this line, mcp does not merely await a port: it cannot be held to
+# the surface until the client it drives changes, and two things have to change.
+#
+# The server decodes nothing into a generated type. This target emits one file — the tool table —
+# and every verb of `Hook0McpClient` answers `serde_json::Value`, which the server re-serialises to
+# a string for the tool result. So no smoke speaking to it over stdio can honestly report
+# `decoded <ModelName>`, and deserialising the result here into structs written beside this file
+# would be the smoke re-implementing the model rather than the client proving it decoded one.
+#
+# And ten of its twenty-three tools cannot work at all. The server composes no query string, so a
+# tool that declares a required query parameter asks the caller for it and drops the value; the
+# instance answers `400 Query deserialize error: missing field ...` with no problem id in it, which
+# is neither an acceptance nor a refusal this protocol can name. Confirmed against a running Hook0,
+# not inferred.
+#
+# Delete this line the day both are fixed, and not before.
+drives_surface = false

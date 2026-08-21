@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"application_id\":\"3f2504e0-4f89-41d3-9a0c-0305e82c3301\",\"name\":\"an application\",\"organization_id\":\"3f2504e0-4f89-41d3-9a0c-0305e82c3302\",\"consumption\":{\"events_per_day\":12},\"onboarding_steps\":{\"event\":\"Done\",\"event_type\":\"ToDo\",\"subscription\":\"ToDo\"},\"quotas\":{\"days_of_events_retention_limit\":7,\"events_per_day_limit\":100}}")

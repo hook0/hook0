@@ -92,8 +92,12 @@ mcp.publish:
       artifacts: true
     - job: client.mcp.check
       artifacts: false
+  variables:
+    # Which package this publishes, declared where `ci/release-packages` reads it
+    # and used where the job needs it, so the two cannot come apart.
+    PUBLISHES: clients/mcp
   script:
-    - cd clients/mcp
+    - cd "$PUBLISHES"
     - cargo publish --token "$CARGO_TOKEN"
 
 mcp.github:

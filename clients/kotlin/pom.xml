@@ -1,0 +1,719 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.hook0</groupId>
+  <artifactId>hook0-client-kotlin</artifactId>
+  <version>1.1.0</version>
+  <packaging>jar</packaging>
+
+  <name>hook0-client-kotlin</name>
+  <description>Kotlin SDK for Hook0, open-source Webhooks as a service for SaaS</description>
+  <url>https://www.hook0.com/</url>
+
+  <licenses>
+    <license>
+      <name>MIT</name>
+      <url>https://opensource.org/licenses/MIT</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>David Sferruzza</name>
+      <email>david@hook0.com</email>
+    </developer>
+    <developer>
+      <name>François-Guillaume Ribreau</name>
+      <email>fg@hook0.com</email>
+    </developer>
+  </developers>
+
+  <scm>
+    <url>https://gitlab.com/hook0/hook0</url>
+    <connection>scm:git:https://gitlab.com/hook0/hook0.git</connection>
+  </scm>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>21</maven.compiler.release>
+    <kotlin.compiler.jvmTarget>21</kotlin.compiler.jvmTarget>
+
+    <!--
+      Every version below is pinned. Nothing here is a range and nothing is a snapshot, so what the
+      build resolves is decided by this file rather than by the day it runs; `maven-enforcer-plugin`
+      below refuses the pipeline if that ever stops being true. The build tool itself comes from the
+      image the job runs in, pinned beside the job, so nothing downloads a distribution of its own on
+      first use either.
+    -->
+    <kotlin.version>2.4.10</kotlin.version>
+    <ktlint.plugin.version>3.7.1</ktlint.plugin.version>
+    <compiler.plugin.version>3.13.0</compiler.plugin.version>
+    <surefire.plugin.version>3.5.2</surefire.plugin.version>
+    <jacoco.plugin.version>0.8.12</jacoco.plugin.version>
+    <enforcer.plugin.version>3.5.0</enforcer.plugin.version>
+    <resources.plugin.version>3.3.1</resources.plugin.version>
+    <jar.plugin.version>3.4.2</jar.plugin.version>
+    <install.plugin.version>3.1.3</install.plugin.version>
+    <!--
+      Named although nothing here runs them: the default lifecycle binds them, and an unpinned
+      binding is exactly what `requirePluginVersions` refuses.
+    -->
+    <clean.plugin.version>3.4.0</clean.plugin.version>
+    <site.plugin.version>3.21.0</site.plugin.version>
+    <deploy.plugin.version>3.1.3</deploy.plugin.version>
+    <junit.version>5.11.4</junit.version>
+    <!--
+      What only a release runs, pinned here beside everything else rather than in the profile that
+      uses them: a version is a version whether or not today's build resolves it.
+    -->
+    <source.plugin.version>3.4.0</source.plugin.version>
+    <dokka.plugin.version>2.0.0</dokka.plugin.version>
+    <gpg.plugin.version>3.2.8</gpg.plugin.version>
+    <central.publishing.plugin.version>0.11.0</central.publishing.plugin.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <!--
+    One runtime dependency, and it is the language rather than a library: `kotlin-stdlib` is what
+    every Kotlin class file links against — `Intrinsics`, `Metadata`, the collection type aliases —
+    and no Kotlin artefact exists without it, exactly as no Java artefact exists without `java.base`.
+    Everything else this SDK does it does with the standard library: it reaches the network, verifies
+    signatures, reads and writes JSON and suspends without naming a second artefact.
+    `PackagingTest` is what keeps that sentence true rather than aspirational, and it is written as a
+    subtraction: any runtime dependency other than the language's own runtime fails it, so an added
+    one is a red build rather than a line nobody reads.
+    Two absences are worth naming. `kotlinx.serialization` is not here — the API speaks a small,
+    closed subset of JSON, and a bounded reader of our own costs an application less than
+    reconciling its pinned version, and its compiler plugin, with ours. `kotlinx.coroutines` is not
+    here either — `suspend` is a feature of the language and its machinery lives in the standard
+    library, so the suspending surface works inside whichever coroutine runtime the caller already
+    brought, at the version the caller pinned.
+  -->
+  <dependencies>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-stdlib</artifactId>
+      <version>${kotlin.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!--
+      Test scope, and the same compiler the build above uses. What the language refuses where the
+      generator puts a name is a claim, and `ReservedWordsTest` settles it by compiling sources it
+      writes rather than by carrying a list somebody remembered. Java gets the same measurement for
+      nothing, out of the compiler the JDK ships; Kotlin's has to be asked for, and this is the
+      artefact the build has already resolved to compile the SDK with.
+    -->
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-compiler-embeddable</artifactId>
+      <version>${kotlin.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <!--
+      The generator owns `src/main/kotlin/com/hook0/kotlin/generated` and rewrites it wholesale, so
+      the hand-written suite sits outside `src` entirely: a directory named `test` anywhere under a
+      target's `src` is what the layout guard beside the generator refuses, because a test file there
+      would be deleted without a word at the next regeneration, and the coverage it carries with it.
+    -->
+    <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
+    <testSourceDirectory>${project.basedir}/test/kotlin</testSourceDirectory>
+    <testResources>
+      <testResource>
+        <directory>${project.basedir}/test/resources</directory>
+      </testResource>
+    </testResources>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>${enforcer.plugin.version}</version>
+        <executions>
+          <execution>
+            <id>pinned</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <!--
+                  What bounds the build's reach: every plugin and every dependency resolves to one
+                  version this file names. Without these, a range or a missing plugin version lets
+                  the build pull whatever was published since the last run.
+                -->
+                <requirePluginVersions/>
+                <banDynamicVersions>
+                  <allowSnapshots>false</allowSnapshots>
+                </banDynamicVersions>
+                <requireReleaseDeps/>
+                <requireJavaVersion>
+                  <version>[21,)</version>
+                </requireJavaVersion>
+              </rules>
+              <fail>true</fail>
+            </configuration>
+          </execution>
+          <execution>
+            <id>coverage-measured</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <!--
+                  What makes the coverage floor able to run at all. JaCoCo skips itself rather than
+                  failing when either of its inputs is missing: no execution data, or no directory
+                  of classes to attribute it to. Both print `Skipping JaCoCo execution` at INFO and
+                  leave the build green with no rule evaluated, so the floor stops existing without
+                  anything red saying so. The realistic way to arrive there is an `<argLine>`
+                  configured on surefire, which replaces the one `prepare-agent` sets and detaches
+                  the agent silently. These sit in `prepare-package`, after `test` has written the
+                  file and before `verify` reads it, so neither is a matter of plugin ordering.
+                -->
+                <requireFilesExist>
+                  <files>
+                    <file>${project.build.directory}/jacoco.exec</file>
+                    <file>${project.build.outputDirectory}</file>
+                  </files>
+                </requireFilesExist>
+              </rules>
+              <fail>true</fail>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-maven-plugin</artifactId>
+        <version>${kotlin.version}</version>
+        <configuration>
+          <jvmTarget>${kotlin.compiler.jvmTarget}</jvmTarget>
+          <args>
+            <!--
+              Warnings are failures. The generator emits source that already compiles clean, so a
+              warning here is a defect in it or a hand edit beside it.
+            -->
+            <arg>-Werror</arg>
+          </args>
+        </configuration>
+        <executions>
+          <execution>
+            <id>compile</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <sourceDirs>
+                <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
+              </sourceDirs>
+            </configuration>
+          </execution>
+          <execution>
+            <id>test-compile</id>
+            <phase>test-compile</phase>
+            <goals>
+              <goal>test-compile</goal>
+            </goals>
+            <configuration>
+              <sourceDirs>
+                <sourceDir>${project.basedir}/test/kotlin</sourceDir>
+              </sourceDirs>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>com.github.gantsign.maven</groupId>
+        <artifactId>ktlint-maven-plugin</artifactId>
+        <version>${ktlint.plugin.version}</version>
+        <configuration>
+          <!--
+            A check rather than a format, and for the same reason Checkstyle guards the Java client
+            and RuboCop the Ruby one: this validates, it never corrects. A job that rewrote what it
+            was checking would report success on source nobody wrote, and the emitter — not a pass
+            after it — stays the one place that decides what the generated half looks like.
+          -->
+          <failOnViolation>true</failOnViolation>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${surefire.plugin.version}</version>
+        <configuration>
+          <!--
+            Every suite talks to a loopback socket and finishes in seconds. A run past this is one
+            that is stuck rather than one that is slow, and a stuck run has to fail rather than hold
+            the pipeline until the runner gives up on it.
+          -->
+          <forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.plugin.version}</version>
+        <executions>
+          <execution>
+            <id>coverage-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+            <configuration>
+              <!--
+                The agent appends to its execution data by default, so a second `verify` over a tree
+                that changed in between measures both runs at once and reports a coverage neither of
+                them reached — a floor that passes on data half of which describes source that is no
+                longer there. CI runs once in a fresh container and would never have seen it, which
+                is exactly what makes it the kind of thing that goes unnoticed.
+              -->
+              <append>false</append>
+            </configuration>
+          </execution>
+          <execution>
+            <id>coverage-report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+          <!--
+            The floor, so that the coverage this suite reaches is a property the pipeline holds
+            rather than a number somebody measured once. It rides in `verify`, which is the goal the
+            job already runs, rather than in a job or a script of its own.
+
+            Every number below is what this suite reaches today. They are not headroom: every suite
+            here talks to a loopback socket and draws nothing random, so there is no run-to-run noise
+            to leave room for, and room would only buy silent decay. Raise one when the suite covers
+            more; lowering one is a decision somebody has to write here.
+
+            Lines rather than instructions, which is the counter the java client's floor is written
+            in. The two are not interchangeable here: the Kotlin compiler emits instructions on lines
+            that are covered — null checks, the bodies a data class gets for free — which no caller
+            reaches, so the generated half sits at 100% of its lines and around 84% of its
+            instructions. An instruction floor for this client would have to be written at 0.80 to
+            pass at all, and a floor at 0.80 stops catching anything.
+
+            Source files rather than classes, for a reason of the same family: a line inside a
+            `companion object` is counted against both the companion and the class around it, so
+            `Options.Companion` reads as half covered while the file it lives in is whole. A
+            class-element rule would need an exclusion for an artefact of where a line was attributed
+            rather than for anything a test could reach.
+          -->
+          <execution>
+            <id>coverage-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <!--
+                  The whole client, at what this suite reaches today: 18 of its 2454 lines and 39 of
+                  its 715 branches uncovered. Counts rather than ratios, because a ratio rises on its
+                  own as covered code is added, so a regression can hide behind growth where a count
+                  cannot.
+                -->
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>18</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>39</maximum>
+                    </limit>
+                    <!--
+                      And a floor under the measurement itself, which neither maximum above can
+                      provide: a `MISSEDCOUNT` maximum is satisfied by a bundle containing nothing,
+                      because nothing missed is zero missed. A run that analysed no class at all
+                      therefore prints `All coverage checks have been met.` and passes, which is an
+                      affirmative claim made by a build that measured nothing, and a guard that
+                      reassures is worse than one that stays quiet. One covered line is the whole
+                      assertion here: that a measurement happened. It stays at 1 deliberately rather
+                      than at today's covered count, because a minimum set at today's figure fires
+                      when somebody correctly deletes dead code, and a guard whose false failure is
+                      a correct change is a guard somebody deletes.
+                    -->
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDCOUNT</value>
+                      <minimum>1</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!--
+                  And every file at its own, which is what makes a failure name a culprit: a violated
+                  bundle rule says only that the bundle moved, while a violated source-file rule says
+                  which file and by how many lines. Every file this client ships is held to nothing
+                  uncovered at all, and the eight below carry an allowance for exactly what they miss
+                  today — each of which is unreachable from a test rather than merely unreached.
+                -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <excludes>
+                    <exclude>com/hook0/kotlin/Answer.kt</exclude>
+                    <exclude>com/hook0/kotlin/Hook0Client.kt</exclude>
+                    <exclude>com/hook0/kotlin/HttpTransport.kt</exclude>
+                    <exclude>com/hook0/kotlin/RetryPolicy.kt</exclude>
+                    <exclude>com/hook0/kotlin/Signature.kt</exclude>
+                    <exclude>com/hook0/kotlin/Suspending.kt</exclude>
+                    <exclude>com/hook0/kotlin/Wire.kt</exclude>
+                    <exclude>com/hook0/kotlin/generated/Problems.kt</exclude>
+                  </excludes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arm where a status is a redirection, which this transport never follows and so never
+                     reads -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/Answer.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>1</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the constructor that takes no options, the close guard around a transport that is not
+                     closeable and its catch, the `?: ""` arms on framework failures that always carry a
+                     message, the arms of reading a delay header that is not a number, and the interruption
+                     path -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/Hook0Client.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>8</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>13</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the interruption path, the body subscriber's cancel and error arms, the `User-Agent`
+                     filter, the empty-host guard, the second `URI.create` catch after every part has been
+                     escaped, a header line carrying no value, the cause-walk depth ceiling, and a failure
+                     with no message -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/HttpTransport.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>8</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>18</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arm where an attempt is numbered below zero, which the schedule never asks for -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/RetryPolicy.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>1</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the refusal of a runtime that cannot compute HmacSHA256, which every JVM this runs on
+                     can -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/Signature.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>2</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arms of unwrapping a `CompletionException` chain deeper or shallower than the
+                     framework builds -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/Suspending.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>3</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arms of `describe` where a value's `javaClass` is null, which it cannot be -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/Wire.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>2</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arm where a status is below 200, which the API answers for no operation -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/kotlin/generated/Problems.kt</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>1</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${compiler.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>${resources.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>${jar.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-install-plugin</artifactId>
+        <version>${install.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>${clean.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>${site.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <version>${deploy.plugin.version}</version>
+      </plugin>
+    </plugins>
+  </build>
+
+  <!--
+    What a release does and a check does not.
+    Central takes no release without a sources jar, a javadoc jar and a detached OpenPGP signature
+    over every file of it, and none of the three is anything a test run needs. They sit behind a
+    profile so that `mvn ktlint:check verify` resolves none of these plugins, builds no jar it will
+    not test, and reaches for no signing key that only the release job has: the check on a merge
+    request is the same build it was before this file learned to publish.
+  -->
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>${source.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>sources</id>
+                <goals>
+                  <!--
+                    `jar-no-fork` rather than `jar`: the forking goal runs the generate-sources
+                    phase a second time, and what generates sources here is the SDK generator.
+                  -->
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!--
+            Kotlin produces no javadoc of its own: `javadoc` reads Java sources, and there are none
+            here. Dokka reads the Kotlin and writes the javadoc-shaped documentation Central expects
+            beside a jar, so the artefact carries documentation of the API it actually has rather
+            than an empty jar put there to satisfy a validator.
+          -->
+          <plugin>
+            <groupId>org.jetbrains.dokka</groupId>
+            <artifactId>dokka-maven-plugin</artifactId>
+            <version>${dokka.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>javadoc</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>javadocJar</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <sourceDirectories>
+                <dir>${project.basedir}/src/main/kotlin</dir>
+              </sourceDirectories>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>${gpg.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>sign</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <!--
+                There is nobody at the runner to answer a prompt, so the passphrase is handed to
+                gpg on the pipe rather than asked for on a terminal that does not exist. A build
+                that asked would hang until the job timed out.
+              -->
+              <gpgArguments>
+                <arg>--pinentry-mode</arg>
+                <arg>loopback</arg>
+              </gpgArguments>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>${central.publishing.plugin.version}</version>
+            <!-- Replaces the deploy binding, so `deploy` uploads to the Portal and nowhere else. -->
+            <extensions>true</extensions>
+            <configuration>
+              <!-- The `<server>` the job writes into `settings.xml`, holding the token pair. -->
+              <publishingServerId>central</publishingServerId>
+              <autoPublish>true</autoPublish>
+              <!--
+                Waiting for `validated` rather than for `published`: validation is what can fail and
+                what the job has to report, and it answers in minutes. Publication is Central's own
+                queue, and a job holding a runner open until it drains is a job with no bound on how
+                long it runs.
+              -->
+              <waitUntil>validated</waitUntil>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

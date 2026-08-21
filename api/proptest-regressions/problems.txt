@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc ea112587e14768fc2994760c9985bb9129594775e4bc6618519113ba8408a0f4 # shrinks to problem = PasswordTooShort(9)

@@ -1,0 +1,3 @@
+# How this smoke is started. The harness discovers the directory by the target's name and reads the
+# command out of here, so the toolchain of one language never reaches the orchestrator.
+run = ["cargo", "run", "--quiet"]

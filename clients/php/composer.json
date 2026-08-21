@@ -1,0 +1,50 @@
+{
+    "name": "hook0/client",
+    "description": "PHP SDK for Hook0, open-source Webhooks as a service for SaaS",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://www.hook0.com/",
+    "keywords": ["webhooks", "webhook", "sdk", "hook0"],
+    "authors": [
+        {
+            "name": "David Sferruzza",
+            "email": "david@hook0.com"
+        },
+        {
+            "name": "François-Guillaume Ribreau",
+            "email": "fg@hook0.com"
+        }
+    ],
+    "support": {
+        "docs": "https://documentation.hook0.com/",
+        "source": "https://gitlab.com/hook0/hook0",
+        "issues": "https://gitlab.com/hook0/hook0/-/issues"
+    },
+    "require": {
+        "php": ">=8.2",
+        "ext-curl": "*",
+        "ext-hash": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5",
+        "squizlabs/php_codesniffer": "^3.11"
+    },
+    "autoload": {
+        "psr-4": {
+            "Hook0\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Hook0\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "lint": "phpcs",
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

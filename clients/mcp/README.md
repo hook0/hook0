@@ -12,7 +12,7 @@
 <br/>
 
 [![Crates.io](https://img.shields.io/crates/v/hook0-mcp.svg)](https://crates.io/crates/hook0-mcp)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](../../LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
 [![MCP](https://img.shields.io/badge/MCP-compatible-green.svg)](https://modelcontextprotocol.io/)
 
@@ -29,7 +29,7 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that l
 - **List & inspect** - Browse organizations, applications, event types, and delivery history
 - **Send events** - Ingest webhook events directly via Claude
 - **Manage subscriptions** - Create, enable, disable webhook endpoints
-- **Retry deliveries** - Retry failed webhook attempts
+- **Replay events** - Send an event to its subscriptions again
 - **Guided workflows** - Step-by-step prompts for common tasks
 - **Read-only mode** - Safe observability access without write permissions
 
@@ -81,39 +81,75 @@ Create a **Service Token** from the Hook0 dashboard:
 | `HOOK0_API_TOKEN` | *required* | Your Hook0 API token |
 | `HOOK0_API_URL` | `https://app.hook0.com` | Hook0 API base URL |
 | `HOOK0_READ_ONLY` | `false` | Enable read-only mode |
-| `MCP_TRANSPORT` | `stdio` | Transport: `stdio` or `sse` |
-| `MCP_SSE_PORT` | `3000` | Port for SSE transport |
+| `MCP_TRANSPORT` | `stdio` | Transport. Only `stdio` is supported; `sse` is reserved and not implemented |
+| `MCP_SSE_PORT` | `3000` | Reserved for SSE transport, which is not implemented |
 
 ### Read-Only Mode
 
-Set `HOOK0_READ_ONLY=true` for safe observability access. Only list/get operations are exposed - no modifications allowed.
+Set `HOOK0_READ_ONLY=true` for safe observability access. The thirteen read tools stay and the ten write tools are not listed at all, so an assistant cannot call one it cannot see.
+
+---
+
+## Protocol revisions
+
+MCP is versioned by dated revisions, and a client and a server settle on one during `initialize`. This server implements:
+
+- `2024-11-05`
+- `2025-03-26`
+- `2025-06-18`
+- `2025-11-25`
+
+`2025-11-25` is the one it advertises, and the one it answers with when a client asks for a revision that is not on that list, so a client pinned to something else negotiates down rather than being turned away. A request whose inline `_meta` names an unlisted revision is refused outright, with `-32022 Unsupported protocol version`.
+
+`2026-07-28` is deliberately absent. It asks for a stateless lifecycle, `subscriptions/listen` and input-required tool handling that this server does not provide, and a server claiming a revision it has not implemented is worse for a client than one that does not claim it. If your client speaks `2026-07-28` and nothing older, this server is not usable with it yet.
+
+That list is not prose kept up by hand. `tests/integration_test.rs` reads it out of this file, asks a running server which revisions it actually answers on, and fails if the two have come apart, so a revision the server gains or loses cannot leave this section behind.
 
 ---
 
 ## Available Tools
 
+Twenty-three tools, one per operation the API declares under the `mcp` tag. Each is named
+`<group>.<operation>`, and the group is the entity the operation belongs to.
+
+The names below are read out of this file by `tests/integration_test.rs` and held against the tools
+the server actually exposes, so a tool renamed, gained or lost fails the suite rather than leaving
+this table behind. It has been left behind before.
+
 ### Read Operations
 | Tool | Description |
 |------|-------------|
-| `list_organizations` | List accessible organizations |
-| `list_applications` | List applications |
-| `get_application` | Get application details |
-| `list_event_types` | List event types for an app |
-| `list_subscriptions` | List webhook subscriptions |
-| `list_events` | List events for an app |
-| `get_event` | Get event details |
-| `list_request_attempts` | List delivery attempts |
+| `applications.get` | Get an application by its ID |
+| `applications.list` | List applications |
+| `eventTypes.get` | Get an event type by its name |
+| `eventTypes.list` | List event types |
+| `events.get` | Get an event by its ID |
+| `events.list` | List latest events |
+| `organizations.get` | Get an organization's info by its ID |
+| `organizations.list` | List organizations |
+| `payload_content_types.list` | List supported event payload content types |
+| `requestAttempts.get` | Get a request attempt by its ID |
+| `requestAttempts.read` | List request attempts |
+| `subscriptions.get` | Get a subscription by its ID |
+| `subscriptions.list` | List subscriptions |
 
 ### Write Operations
 | Tool | Description |
 |------|-------------|
-| `create_application` | Create a new application |
-| `delete_application` | Delete an application |
-| `create_event_type` | Register a new event type |
-| `create_subscription` | Create a webhook subscription |
-| `delete_subscription` | Delete a subscription |
-| `ingest_event` | Send a new event |
-| `retry_delivery` | Retry a failed delivery |
+| `applications.create` | Create a new application |
+| `applications.delete` | Delete an application |
+| `applications.update` | Edit an application |
+| `eventTypes.create` | Create a new event type |
+| `eventTypes.delete` | Delete an event type |
+| `events.ingest` | Ingest an event |
+| `events.replay` | Replay an event |
+| `subscriptions.create` | Create a new subscription |
+| `subscriptions.delete` | Delete a subscription |
+| `subscriptions.update` | Update a subscription |
+
+Retrying one delivery attempt on its own is not among them. `requestAttempts.get` and
+`requestAttempts.read` read attempts; sending an event to its subscriptions again is
+`events.replay`, which takes the event rather than the attempt.
 
 ---
 
@@ -147,7 +183,7 @@ Set `HOOK0_READ_ONLY=true` for safe observability access. Only list/get operatio
 ```
 User: List my Hook0 applications
 
-Claude: [Uses list_applications tool]
+Claude: [Uses applications.list tool]
 Here are your Hook0 applications:
 1. Order Notifications (app_123...)
 2. User Events (app_456...)
@@ -159,7 +195,7 @@ should receive the subscription?
 
 User: Use Order Notifications, send to https://api.example.com/webhooks
 
-Claude: [Uses create_subscription tool]
+Claude: [Uses subscriptions.create tool]
 Created subscription successfully! It will now receive order.* events
 at https://api.example.com/webhooks
 ```
@@ -178,8 +214,29 @@ cargo test
 # Lint
 cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
+
+# Check the crate builds from the tarball published to crates.io
+cargo package --locked
 ```
+
+### Tool definitions
+
+The tools this server exposes are derived from `api/openapi.snapshot.json` and committed as
+`src/server/generated.rs`. Nothing generates them at build time, and the crate is published to
+crates.io, where the snapshot is not around, so the definitions have to travel inside the package.
+This crate depends on nothing that reads the snapshot, not even at build time. `hook0-sdkgen`
+writes that file, and this crate merely compiles it.
+
+The emission driver in `hook0-sdkgen` compares the committed file with what the snapshot describes,
+and touching a handler tagged `mcp` makes it fail. Adopt the change with:
+
+```bash
+UPDATE_SDK=mcp cargo test -p hook0-sdkgen sdk_targets
+```
+
+Commit the rewritten `src/server/generated.rs` along with your change, and read the diff, because a tool
+that appeared, disappeared or changed shape without you meaning it to is a defect in the handler.
 
 ## License
 
-[MIT](../../LICENSE)
+[MIT](./LICENSE)

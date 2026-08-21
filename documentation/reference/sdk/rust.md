@@ -1,203 +1,233 @@
+---
+title: "Rust webhook SDK: hook0-client crate"
+description: "Send Hook0 events and verify webhook signatures from Rust. Async on tokio and reqwest, idempotent event IDs, retries and payload bounds built in. Producer and consumer are separate features."
+keywords: [Rust webhook SDK, Hook0 Rust client, hook0-client crate, verify webhook signature Rust, actix-web webhook, async webhook client Rust]
+sdkTarget: rust
+---
+
 # Rust SDK
 
-The official Hook0 SDK for Rust applications, providing a safe, performant, and idiomatic interface to the Hook0 API.
+The Hook0 SDK for Rust sends events and verifies webhook signatures. Sending is `async` on `tokio` and `reqwest`; verifying is a plain function that computes an HMAC and touches nothing.
+
+The crate is split in two features, both on by default. `producer` is everything that reaches the API, meaning the client, the retry policy and the generated API groups. `consumer` is signature verification alone, and pulls in no HTTP stack at all.
 
 ## Installation
-
-Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
 hook0-client = "1"
 ```
 
-## Quick Start
-
-The Rust SDK (`hook0-client`) supports both webhook production (sending events) and consumption (verifying webhook signatures).
-
-### Send Events (Producer)
-
-```rust
-use hook0_client::{Hook0Client, Event};
-use reqwest::Url;
-use uuid::Uuid;
-use std::borrow::Cow;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize the client
-    let api_url = Url::parse("http://localhost:8081/api/v1")?;
-    let application_id = Uuid::parse_str("{APP_ID}-here")?;
-    let token = "{YOUR_TOKEN}";
-
-    let client = Hook0Client::new(api_url, application_id, token)?;
-
-    // Create an event
-    let event = Event {
-        event_id: &None,
-        event_type: "user.account.created",
-        payload: Cow::Borrowed(r#"{"user_id": "123", "email": "john@example.com"}"#),
-        payload_content_type: "application/json",
-        metadata: None,
-        occurred_at: None,
-        labels: vec![
-            ("environment".to_string(), "production".to_string()),
-        ],
-    };
-
-    // Send the event
-    let event_id = client.send_event(&event).await?;
-    println!("Event sent: {}", event_id);
-
-    Ok(())
-}
-```
-
-### Verify Webhook Signatures (Consumer)
-
-```rust
-use hook0_client::verify_webhook_signature;
-use std::time::Duration;
-
-fn verify_incoming_webhook(
-    signature_header: &str,
-    body: &[u8],
-    headers: &[(&str, &str)],
-    subscription_secret: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // 5 minutes tolerance for timestamp validation
-    let tolerance = Duration::from_secs(300);
-
-    verify_webhook_signature(
-        signature_header,
-        body,
-        headers,
-        subscription_secret,
-        tolerance,
-    )?;
-
-    println!("Webhook signature verified successfully");
-    Ok(())
-}
-```
-
-## Features
-
-The SDK supports optional features that can be enabled in your `Cargo.toml`:
-
-```toml
-[dependencies]
-hook0-client = { version = "1", features = ["producer", "consumer"] }
-```
-
-### Available Features
-
-- **`producer`** (default): Enable features for sending events to Hook0 and upserting event types
-- **`consumer`** (default): Enable features for verifying webhook signatures
-
-### Minimal Producer-Only Installation
-
-```toml
-[dependencies]
-hook0-client = { version = "1", default-features = false, features = ["producer"] }
-```
-
-### Minimal Consumer-Only Installation
+A consumer that only verifies deliveries takes the half it needs and nothing else:
 
 ```toml
 [dependencies]
 hook0-client = { version = "1", default-features = false, features = ["consumer"] }
 ```
 
-## Configuration
+That drops `reqwest`, `tokio`, `serde_json`, `url` and `uuid` from the dependency graph. `producer` alone is the mirror image, for an emitter that never receives a webhook. Enabling neither is a compile error rather than a crate that builds and does nothing.
 
-Initialize the client with your Hook0 credentials:
+## Send an event
 
-```rust
-use hook0_client::Hook0Client;
+```rust example=send
+use hook0_client::{Event, Hook0Client};
 use reqwest::Url;
+use std::borrow::Cow;
 use uuid::Uuid;
 
-let api_url = Url::parse("http://localhost:8081/api/v1")?;
-let application_id = Uuid::parse_str("your-application-id")?;
-let token = std::env::var("HOOK0_TOKEN")?;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = Hook0Client::new(
+        Url::parse("https://app.hook0.com/api/v1")?,
+        Uuid::parse_str("0d0ea1e0-8b1f-4f4d-9c2a-1b5c9a3d7e21")?,
+        &std::env::var("HOOK0_TOKEN")?,
+    )?;
 
-let client = Hook0Client::new(api_url, application_id, &token)?;
+    let event_id = client
+        .send_event(&Event {
+            event_id: None,
+            event_type: "billing.invoice.paid",
+            payload: Cow::Borrowed(r#"{"invoice": "in_123"}"#),
+            payload_content_type: "application/json",
+            metadata: None,
+            occurred_at: None,
+            labels: vec![("environment".to_owned(), "production".to_owned())],
+        })
+        .await?;
+
+    println!("ingested as {event_id}");
+    Ok(())
+}
 ```
 
-## Upserting Event Types
+`Event` has no builder and no `Default`, so every field is written at every call site, which is what keeps a new one from being silently left out the day the API grows another.
 
-Ensure your application has the required event types defined:
-
-```rust
-let event_types = vec![
-    "user.account.created",
-    "user.account.updated",
-    "user.account.deleted",
-    "order.checkout.completed",
-    "order.shipped",
-];
-
-let created_types = client.upsert_event_types(&event_types).await?;
-println!("Created {} new event types", created_types.len());
+```rust example=event
+Event {
+    event_id: Some(chosen), // None means the client mints a UUIDv7
+    event_type: "billing.invoice.paid",
+    payload: Cow::Borrowed(r#"{"invoice": "in_123"}"#),
+    payload_content_type: "application/json",
+    metadata: Some(vec![("emitter".to_owned(), "billing-worker".to_owned())]),
+    occurred_at: None, // the current moment when absent
+    labels: vec![("environment".to_owned(), "production".to_owned())],
+}
 ```
 
-## Webhook Verification
+`payload` is a `Cow`, so a payload borrowed from a literal costs no allocation and one built by `serde_json::to_string` is moved in as `Cow::Owned`. Labels and metadata are pairs rather than a map because the API reads them in the order they were written.
 
-The SDK provides built-in webhook signature verification:
+The token goes in without a `Bearer` prefix; the client adds it.
 
-### Example: Actix-web Integration
+## Sending an event is idempotent, and retried
 
-```rust
-use actix_web::{web, App, HttpRequest, HttpServer, Responder};
-use hook0_client::{verify_webhook_signature, Hook0ClientError};
+`send_event` sends every event under an ID it knows, either the one set on the `Event` or a UUIDv7 it generates when the event carries none. Passing no ID does not mean the ID comes from Hook0. The value comes from the client, is sent with the request, and is what `send_event` returns.
+
+That is what makes retrying safe. Hook0 keys events on their ID, so a request repeated after a network failure or a server error ingests the event once rather than twice. Without a client-chosen ID, a repeated request would create a second event and deliver it to every subscriber.
+
+A network failure, a server error, and a `429` whose body names the `RateLimited` problem are retried. A `429` that names a spent daily quota is not, because a quota clears when a plan changes or a day turns and no send can wait for that. A `Retry-After` header is honoured and clamped to what is left of the delay budget.
+
+A retried request that Hook0 answers with `EventAlreadyIngested` reports success, because an earlier attempt of that same send reached the API. The same answer to a *first* attempt is a genuine conflict and is returned as an error.
+
+## Bounds, and how to change them
+
+Every builder method takes the client by value and gives it back, so the bounds are set where the client is built:
+
+```rust example=bounds
+use hook0_client::{Hook0Client, RetryPolicy};
+use std::time::Duration;
+
+let client = Hook0Client::new(api_url, application_id, &token)?
+    .with_retry_policy(RetryPolicy {
+        max_attempts: 4,
+        initial_backoff: Duration::from_millis(100),
+        max_backoff: Duration::from_secs(2),
+        max_total_delay: Duration::from_secs(5),
+    })
+    .with_request_timeout(Duration::from_secs(10))
+    .with_max_payload_bytes(1024 * 1024)
+    .with_max_response_bytes(8 * 1024 * 1024);
+```
+
+Those are the defaults: the first four are what `RetryPolicy::default()` returns, and the rest are public constants of the crate.
+
+| Bound | Default |
+|-------|---------|
+| `max_attempts` (the first attempt included) | `4`, capped at `MAX_ATTEMPTS_CAP` = 16 |
+| `initial_backoff` | 100 ms |
+| `max_backoff` | 2 s |
+| `max_total_delay`, the budget all delays of one send share | 5 s |
+| `DEFAULT_REQUEST_TIMEOUT`, per attempt | 10 s |
+| `DEFAULT_MAX_PAYLOAD_BYTES` | 1 MiB |
+| `DEFAULT_MAX_RESPONSE_BYTES` | 8 MiB |
+| `MAX_RESPONSE_HEADERS` | 64 |
+| `MAX_HEADER_BYTES` | 64 KiB |
+| `MAX_HEAD_BYTES` | 16 KiB |
+
+The last three are not configurable. They bound the head of an answer, which is written by whatever is on the other end. A line count and a size per line multiply, so the whole head is capped as well as each line of it, and the line that crosses either one stops the read before the body is touched.
+
+`RetryPolicy::disabled()` sends each event exactly once. A payload above the maximum is refused before any request is issued, so neither the round trip nor the retries after it are spent on a request the API would refuse.
+
+The delay before a retry doubles from `initial_backoff`, is capped by `max_backoff`, and the actual wait is drawn anywhere between zero and that ceiling, so emitters that failed at the same moment do not come back at the same moment. `RetryPolicy::delays` computes that series from the draws it is handed, which is what makes the schedule testable without waiting for it.
+
+## Verify a webhook signature
+
+```rust example=verify
+use hook0_client::verify_webhook_signature;
+use std::time::Duration;
+
+fn accept(
+    signature: &str,
+    body: &[u8],
+    headers: &[(&str, &str)],
+    subscription_secret: &str,
+) -> bool {
+    verify_webhook_signature(
+        signature,
+        body,
+        headers,
+        subscription_secret,
+        Duration::from_secs(300),
+    )
+    .is_ok()
+}
+```
+
+It answers `Ok(())` when the delivery is genuine and a `Hook0ClientError` for every reason it is not. Pass the raw body, since a body that has been parsed and re-serialised no longer hashes to what was signed.
+
+`headers` is a slice of pairs, generic over anything that is `AsRef<[u8]>` on both sides, so a `Vec<(&str, &str)>`, an `actix_web::HeaderMap` collected into pairs and a list read off a socket all fit without being converted first.
+
+The clock window is bilateral, so a delivery dated too far ahead is refused exactly like one dated too far behind, since a window that only looked backwards is one a sender widens by dating its own delivery ahead. A header the signature covers but the request did not carry is refused before any code is computed.
+
+`verify_webhook_signature_with_current_time` takes the same arguments followed by a `DateTime<Utc>`, for holding a signature against a moment you choose.
+
+Refusals are variants rather than one opaque error, so a handler can tell a forgery from a clock:
+
+```rust example=matching
+match error {
+    Hook0ClientError::InvalidSignature => {
+        // the body or a covered header changed in flight, or the secret is wrong
+    }
+    Hook0ClientError::ExpiredWebhook { signed_at, tolerance, current_time } => {
+        // too old, dated too far ahead, or a clock is off
+        eprintln!("signed at {signed_at}, now {current_time}, tolerance {tolerance}");
+    }
+    Hook0ClientError::MissingHeader(name) => {
+        // a header the signature covers did not arrive
+        eprintln!("{name} was signed but not delivered");
+    }
+    Hook0ClientError::SignatureHeaderParsing(header) => {
+        // the header is not a Hook0 signature
+        eprintln!("unreadable: {header}");
+    }
+    other => eprintln!("refused: {other}"),
+}
+```
+
+### Actix Web
+
+```rust example=actix
+use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder, web};
+use hook0_client::verify_webhook_signature;
 use std::time::Duration;
 
 async fn handle_webhook(
     subscription_secret: web::Data<String>,
-    req: HttpRequest,
+    request: HttpRequest,
     body: web::Bytes,
 ) -> impl Responder {
-    let signature = req.headers().get("X-Hook0-Signature");
+    let Some(signature) = request.headers().get("X-Hook0-Signature") else {
+        return HttpResponse::BadRequest().finish();
+    };
+    let Ok(signature) = signature.to_str() else {
+        return HttpResponse::BadRequest().finish();
+    };
 
-    if let Some(signature) = signature {
-        let signature: &str = signature.to_str().unwrap();
-        let tolerance = Duration::from_secs(300);
+    let delivered: Vec<(&str, &[u8])> = request
+        .headers()
+        .iter()
+        .map(|(name, value)| (name.as_str(), value.as_bytes()))
+        .collect();
 
-        // Collect headers as a Vec of tuples for the verification function
-        match verify_webhook_signature(
-            signature,
-            &body,
-            &req.headers().iter().collect::<Vec<_>>(),
-            subscription_secret.into_inner().as_str(),
-            tolerance,
-        ) {
-            Ok(_) => println!("Signature verification successful!"),
-            Err(Hook0ClientError::InvalidSignature) => {
-                println!("Signature verification failed: Invalid signature.")
-            }
-            Err(Hook0ClientError::ExpiredWebhook {
-                signed_at,
-                tolerance,
-                current_time,
-            }) => {
-                println!(
-                    "Signature verification failed: expired (signed_at={signed_at}, tolerance={tolerance}, current_time={current_time})"
-                )
-            }
-            Err(e) => {
-                println!("Signature verification failed: {e}")
-            }
-        }
+    if verify_webhook_signature(
+        signature,
+        &body,
+        &delivered,
+        &subscription_secret,
+        Duration::from_secs(300),
+    )
+    .is_err()
+    {
+        return HttpResponse::BadRequest().finish();
     }
 
-    "Ok"
+    // act on the delivery
+    HttpResponse::Ok().finish()
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let subscription_secret = std::env::var("SUBSCRIPTION_SECRET")
-        .expect("You must define a SUBSCRIPTION_SECRET environment variable");
+    let subscription_secret =
+        std::env::var("SUBSCRIPTION_SECRET").expect("SUBSCRIPTION_SECRET must be set");
 
     HttpServer::new(move || {
         App::new()
@@ -210,371 +240,146 @@ async fn main() -> std::io::Result<()> {
 }
 ```
 
-See the `examples/actix-web.rs` file in the [repository](https://github.com/hook0/hook0/tree/master/clients/rust) for a complete example with logging.
+`web::Bytes` is the body as it arrived. Extracting into a type that deserialises it gives you something that no longer hashes to what was signed.
 
-## Error Handling
+## Upsert event types
 
-The SDK uses the `Hook0ClientError` enum for comprehensive error handling:
+An event whose type the application does not declare is refused. `upsert_event_types` creates the ones that are missing and returns only those it created:
 
-```rust
-use hook0_client::{Hook0Client, Hook0ClientError, Event};
+```rust example=upsert
+let created = client
+    .upsert_event_types(&["billing.invoice.paid", "billing.invoice.voided"])
+    .await?;
+```
 
-async fn send_event_with_handling(client: &Hook0Client, event: &Event<'_>) {
-    match client.send_event(event).await {
-        Ok(event_id) => {
-            println!("Event sent successfully: {}", event_id);
-        }
-        Err(Hook0ClientError::EventSending { event_id, error, body }) => {
-            eprintln!("Failed to send event {}: {}", event_id, error);
+An event type is written `service.resource_type.verb`, and one that is not is refused as `InvalidEventType` before anything is sent. Unlike the other clients, this one exposes no type for parsing an event type on its own, so the check happens inside `upsert_event_types` and nowhere a caller can reach.
+
+## Calling the rest of the API
+
+Sending events is two methods out of the whole API. Every operation Hook0 declares is a method of a generated group under `hook0_client::generated`, one group per entity and one method per operation: `ApplicationsApi`, `SubscriptionsApi`, `EventsApi`, `RequestAttemptsApi` and nine more.
+
+They live under a module rather than at the crate root because the API document declares its own `Event` and `EventType`, which are the API's resources and not the `Event` an emitter fills in.
+
+The groups declare the seam they issue requests through and implement none, so nothing in them carries a socket. Nine of the eleven clients hand you one anyway, built from the client you already have; this one and the TypeScript one do not. `Hook0Client` reaches the API for sending events, but it does not implement `Transport` and exposes nothing that does, so a caller of the generated groups writes one:
+
+```rust example=transport
+use hook0_client::generated::Transport;
+use reqwest::{Client, Method, Url};
+
+struct Reqwest {
+    base: Url,
+    token: String,
+    http: Client,
+}
+
+impl Transport for Reqwest {
+    type Error = reqwest::Error;
+
+    fn request(
+        &self,
+        method: &str,
+        path: &str,
+        query: &[(&str, String)],
+        body: Option<Vec<u8>>,
+    ) -> impl std::future::Future<Output = Result<(u16, Vec<u8>), Self::Error>> + Send {
+        // The path arrives written whole, escaping included, so it is carried as it was built
+        // rather than parsed apart and put back together.
+        let target = format!("{}{path}", self.base.as_str().trim_end_matches('/'));
+        let method = Method::from_bytes(method.as_bytes()).unwrap_or(Method::GET);
+        let query: Vec<(String, String)> = query
+            .iter()
+            .map(|(name, value)| ((*name).to_owned(), value.clone()))
+            .collect();
+        let http = self.http.clone();
+        let token = self.token.clone();
+
+        async move {
+            let mut issued = http
+                .request(method, target)
+                .bearer_auth(token)
+                .header("Accept", "application/json")
+                .query(&query);
             if let Some(body) = body {
-                eprintln!("Response body: {}", body);
+                issued = issued.header("Content-Type", "application/json").body(body);
             }
-        }
-        Err(Hook0ClientError::InvalidEventType(event_type)) => {
-            eprintln!("Invalid event type: {}", event_type);
-        }
-        Err(e) => {
-            eprintln!("Unexpected error: {}", e);
-        }
-    }
-}
-```
 
-### Consumer Errors
-
-```rust
-use hook0_client::{Hook0ClientError, verify_webhook_signature};
-use std::time::Duration;
-
-fn handle_webhook_verification(
-    signature: &str,
-    payload: &[u8],
-    headers: &[(&str, &str)],
-    subscription_secret: &str,
-) {
-    match verify_webhook_signature(signature, payload, headers, subscription_secret, Duration::from_secs(300)) {
-        Ok(()) => println!("Valid webhook"),
-        Err(Hook0ClientError::InvalidSignature) => {
-            eprintln!("Invalid signature - webhook may be forged");
-        }
-        Err(Hook0ClientError::ExpiredWebhook { signed_at, tolerance, current_time }) => {
-            eprintln!("Webhook expired: signed at {}, current time {}, tolerance {}",
-                signed_at, current_time, tolerance);
-        }
-        Err(Hook0ClientError::MissingHeader(header_name)) => {
-            eprintln!("Missing required header: {}", header_name);
-        }
-        Err(e) => {
-            eprintln!("Verification error: {}", e);
+            let answered = issued.send().await?;
+            let status = answered.status().as_u16();
+            let payload = answered.bytes().await?;
+            Ok((status, payload.to_vec()))
         }
     }
 }
 ```
 
-## Type Safety
+That is the whole seam, one method taking a request and answering a status and some bytes. A test satisfies it without opening a socket, which is what the trait is for.
 
-Use strongly-typed payloads with serde:
+With one in hand, every group is one line:
 
-```rust
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
-use hook0_client::{Hook0Client, Event};
-use std::borrow::Cow;
+```rust example=api
+use hook0_client::generated::{ApplicationsApi, ProblemId, RequestError};
 
-// Define strongly-typed payloads
-#[derive(Serialize, Deserialize, Debug)]
-struct UserCreatedPayload {
-    user_id: String,
-    email: String,
-    created_at: DateTime<Utc>,
-}
+let applications = ApplicationsApi::new(transport);
 
-#[derive(Serialize, Deserialize, Debug)]
-struct OrderPlacedPayload {
-    order_id: String,
-    customer_id: String,
-    total: f64,
-    items: Vec<OrderItem>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct OrderItem {
-    product_id: String,
-    quantity: u32,
-    price: f64,
-}
-
-// Type-safe event creation
-async fn create_and_send_user_event(
-    client: &Hook0Client,
-    user: UserCreatedPayload,
-) -> Result<uuid::Uuid, Box<dyn std::error::Error>> {
-    let payload = serde_json::to_string(&user)?;
-
-    let event = Event {
-        event_id: &None,
-        event_type: "user.account.created",
-        payload: Cow::Owned(payload),
-        payload_content_type: "application/json",
-        metadata: None,
-        occurred_at: None,
-        labels: vec![
-            ("source".to_string(), "api".to_string()),
-            ("version".to_string(), "1.0".to_string()),
-        ],
-    };
-
-    let event_id = client.send_event(&event).await?;
-    Ok(event_id)
-}
-```
-
-## Testing
-
-### Unit Testing Webhook Verification
-
-```rust
-#[cfg(test)]
-mod tests {
-    use hook0_client::verify_webhook_signature;
-    use std::time::Duration;
-
-    #[test]
-    fn test_valid_signature_v1() {
-        // v1 signature includes headers in the HMAC computation
-        let signature = "t=1636936200,h=x-test x-test2,v1=493c35f05443fdb74cb99fd4f00e0e7653c2ab6b24fbc97f4a7bd4d56b31758a";
-        let payload = "hello !".as_bytes();
-        let subscription_secret = "secret";
-        let tolerance = Duration::from_secs((i64::MAX / 1000) as u64);
-
-        let headers = vec![
-            ("x-test", "val1"),
-            ("x-test2", "val2"),
-        ];
-
-        assert!(verify_webhook_signature(
-            signature,
-            payload,
-            &headers,
-            subscription_secret,
-            tolerance,
-        ).is_ok());
+match applications.get(application_id).await {
+    Ok(application) => println!("{}", application.name),
+    Err(RequestError::Api(failure)) if failure.kind == Some(ProblemId::NotFound) => {
+        // the API named a problem, and this is which one
     }
+    Err(other) => return Err(other.into()),
 }
 ```
 
-### Integration Testing
+Every failure the API can report arrives as one `ProblemError` carrying a `kind`. The closed list of identifiers is the `ProblemId` enum, so a `match` over it is checked, and an identifier the crate has never heard of fails to deserialise rather than arriving as a string nobody looks at. Beside `kind` sits the whole RFC 9457 `Problem` the API answered, when it answered one this crate can read.
 
-```rust
-#[cfg(test)]
-mod integration_tests {
-    use hook0_client::{Hook0Client, Event};
-    use reqwest::Url;
-    use uuid::Uuid;
-    use std::borrow::Cow;
+`RequestError` is the four ways a call can end other than with what it asked for. `Transport` says the request never got an answer, `Api` that the API described a failure, `Unreadable` that the answer was not the shape the document declares, and `Unwritable` that the request body could not be written.
 
-    #[tokio::test]
-    #[ignore] // Run with: cargo test -- --ignored
-    async fn test_end_to_end() {
-        let api_url = Url::parse("http://localhost:8081/api/v1").unwrap();
-        let application_id = Uuid::parse_str(&std::env::var("TEST_APP_ID").unwrap()).unwrap();
-        let token = std::env::var("TEST_HOOK0_TOKEN").expect("TEST_HOOK0_TOKEN not set");
+## Errors
 
-        let client = Hook0Client::new(api_url, application_id, &token).unwrap();
+`Hook0ClientError` is one enum across both halves of the crate, and the producer and consumer variants are behind their own features.
 
-        // Ensure event type exists
-        client.upsert_event_types(&["test.integration"]).await.unwrap();
+| Variant | Returned when |
+|---------|---------------|
+| `EventSending` | A send failed or ran out of attempts. Carries `event_id`, the last `error`, and a `body` that says why the client gave up |
+| `InvalidEventType` | An event type is not `service.resource_type.verb` |
+| `GetAvailableEventTypes`, `CreatingEventType` | Listing or creating event types failed |
+| `InvalidSignature`, `ExpiredWebhook`, `MissingHeader` | A delivery was refused |
+| `SignatureHeaderParsing`, `TimestampParsing`, `V0SignatureParsing`, `V1SignatureParsing`, `HeaderNameParsing` | The signature header, or something it names, could not be read |
+| `InvalidHeaderName`, `InvalidHeaderValue`, `InvalidTolerance` | What the caller handed in could not be used |
+| `AuthHeader`, `ReqwestClient`, `Url` | The client could not be built at all |
 
-        // Send test event
-        let event = Event {
-            event_id: &None,
-            event_type: "test.integration",
-            payload: Cow::Borrowed(r#"{"test": true}"#),
-            payload_content_type: "application/json",
-            metadata: None,
-            occurred_at: None,
-            labels: vec![("test".to_string(), "integration".to_string())],
-        };
+`event_id` on `EventSending` is always the ID the request went out under, the caller's own or the one the client generated, so a failed send is still traceable in the instance's logs:
 
-        let event_id = client.send_event(&event).await.unwrap();
-        assert!(!event_id.to_string().is_empty());
-    }
-}
-```
-
-## Performance Optimization
-
-### Connection Reuse
-
-The `Hook0Client` uses `reqwest::Client` internally, which maintains a connection pool. Reuse the client instance:
-
-```rust
-use hook0_client::Hook0Client;
-use std::sync::Arc;
-
-// Create once, share across threads
-let client = Arc::new(Hook0Client::new(api_url, application_id, &token)?);
-
-// Clone Arc for different async tasks
-let client_clone = client.clone();
-tokio::spawn(async move {
-    let event = /* ... */;
-    client_clone.send_event(&event).await.unwrap();
-});
-```
-
-### Parallel Event Processing
-
-```rust
-use futures::future::join_all;
-use hook0_client::{Hook0Client, Event};
-use std::sync::Arc;
-
-async fn send_events_parallel(
-    client: Arc<Hook0Client>,
-    events: Vec<Event<'_>>,
-) -> Vec<Result<uuid::Uuid, hook0_client::Hook0ClientError>> {
-    let futures: Vec<_> = events
-        .iter()
-        .map(|event| {
-            let client = client.clone();
-            async move {
-                client.send_event(event).await
-            }
-        })
-        .collect();
-
-    join_all(futures).await
-}
-```
-
-## Best Practices
-
-### 1. Reuse Client Instances
-
-```rust
-// Initialize once at application startup
-let client = Hook0Client::new(api_url, application_id, &token)?;
-
-// Share across your application (use Arc for thread-safety)
-let client = Arc::new(client);
-```
-
-### 2. Use Strong Types
-
-```rust
-use serde::Serialize;
-
-#[derive(Serialize)]
-struct UserPayload {
-    user_id: String,
-    email: String,
-}
-
-let payload = UserPayload {
-    user_id: "123".to_string(),
-    email: "test@example.com".to_string(),
-};
-
-let payload_str = serde_json::to_string(&payload)?;
-```
-
-### 3. Handle Errors Properly
-
-```rust
-use log::{info, error};
-
+```rust example=errors
 match client.send_event(&event).await {
-    Ok(event_id) => {
-        info!("Event sent: {}", event_id);
+    Ok(event_id) => println!("ingested as {event_id}"),
+    Err(Hook0ClientError::EventSending { event_id, error, body }) => {
+        eprintln!("event {event_id:?} not sent: {error} ({})", body.unwrap_or_default());
     }
-    Err(e) => {
-        error!("Failed to send event: {:?}", e);
-        // Implement retry or fallback logic
-    }
+    Err(other) => eprintln!("refused before sending: {other}"),
 }
 ```
 
-### 4. Use Environment Variables
+`Hook0ClientError::log_and_return` writes the error through `tracing` and hands it back, for a `?` chain that should leave a trace on the way out.
 
-```rust
-let token = std::env::var("HOOK0_TOKEN")
-    .expect("HOOK0_TOKEN environment variable not set");
-let application_id = std::env::var("HOOK0_APP_ID")
-    .expect("HOOK0_APP_ID environment variable not set");
-```
+## Sharing one client
 
-### 5. Provide Custom Event IDs for Idempotency
+`Hook0Client` holds a `reqwest::Client`, which is a connection pool. Build one for the life of the process and share it rather than building one per send:
 
-```rust
-use uuid::Uuid;
-use std::borrow::Cow;
-use hook0_client::Event;
-
-let custom_event_id = Uuid::new_v4();
-let event_id_opt = Some(&custom_event_id);
-
-let event = Event {
-    event_id: &event_id_opt,
-    event_type: "payment.processed",
-    payload: Cow::Borrowed(r#"{"amount": 100.00}"#),
-    payload_content_type: "application/json",
-    metadata: None,
-    occurred_at: None,
-    labels: vec![],
-};
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**Lifetime Issues with Async**
-```rust
-use std::sync::Arc;
-use hook0_client::Hook0Client;
-
-// Wrap client in Arc for sharing across async tasks
+```rust example=share
 let client = Arc::new(Hook0Client::new(api_url, application_id, &token)?);
-let client_clone = client.clone();
 
+let sending = client.clone();
 tokio::spawn(async move {
-    let event = /* ... */;
-    client_clone.send_event(&event).await.unwrap();
+    let event = /* build the event to send */ todo!();
+    let _ = sending.send_event(&event).await;
 });
-```
-
-**Payload Content Type Mismatch**
-```rust
-// Ensure payload string matches content type
-let event = Event {
-    event_id: &None,
-    event_type: "user.account.created",
-    payload: Cow::Borrowed(r#"{"user_id": "123"}"#),  // JSON string
-    payload_content_type: "application/json",  // Must match
-    metadata: None,
-    occurred_at: None,
-    labels: vec![],
-};
-```
-
-**Async Runtime Issues**
-```rust
-// Use tokio::main for simple cases
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = /* ... */;
-    client.send_event(&event).await?;
-    Ok(())
-}
 ```
 
 ## Links
 
 - **Crate**: [hook0-client on crates.io](https://crates.io/crates/hook0-client)
 - **Documentation**: [docs.rs/hook0-client](https://docs.rs/hook0-client)
-- **Source Code**: [GitHub Repository](https://github.com/hook0/hook0/tree/master/clients/rust)
-- **Examples**: [examples/actix-web.rs](https://github.com/hook0/hook0/tree/master/clients/rust/examples)
-- **API Docs**: [Hook0 API Reference](../../openapi/intro)
-- **Issues**: [GitHub Issues](https://github.com/hook0/hook0/issues)
-- **Discord**: [Join Community](https://www.hook0.com/community)
+- **Source**: [clients/rust](https://gitlab.com/hook0/hook0/-/tree/master/clients/rust)
+- **API reference**: [Hook0 API](../../openapi/intro)
+- **Other SDKs**: [SDKs & client libraries](index.md)

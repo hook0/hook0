@@ -10,9 +10,11 @@ website.build:
     - if: $CI_COMMIT_BRANCH == "master"
       changes:
         - website/**/*
+        - .gitlab-ci.yml
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - website/**/*
+        - .gitlab-ci.yml
   image: node:$NODE_VERSION
   timeout: 15 minutes
   variables:
@@ -71,6 +73,7 @@ website.deploy:
     - if: $CI_COMMIT_BRANCH == "master"
       changes:
         - website/**/*
+        - .gitlab-ci.yml
 
 # Preview deployment to Netlify (MR)
 website.deploy.preview:
@@ -96,3 +99,4 @@ website.deploy.preview:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - website/**/*
+        - .gitlab-ci.yml

@@ -1,0 +1,5 @@
+# What `zig build` writes beside the source it was given. Both are derived from what is committed
+# here and are rebuilt on demand, so committing them would only be a way to disagree with the source
+# later. The cache in particular is content-addressed and grows without bound as the source changes.
+.zig-cache/
+zig-out/

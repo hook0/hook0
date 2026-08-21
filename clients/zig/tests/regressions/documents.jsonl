@@ -1,0 +1,27 @@
+{"application_id": "01961234-5678-7abc-8def-0123456789ac", "event_id": "01961234-5678-7abc-8def-0123456789ad", "received_at": "2026-01-01T00:00:00Z"}
+{"name": "billing", "organization_id": "01961234-5678-7abc-8def-0123456789ae"}
+{"created_at": "2026-01-01T00:00:00Z", "token": "tok_live", "deleted_at": null, "name": "production"}
+{"created_at": "2026-01-01T00:00:00Z", "token": "tok_live"}
+{"detail": "the event identifier is already taken", "id": "EventAlreadyIngested", "status": 409, "title": "Conflict", "type": "https://hook0.com/documentation/errors/EventAlreadyIngested", "validation": null}
+{"detail": "one of the submitted values was rejected", "id": "Validation", "status": 422, "title": "Unprocessable entity", "type": "https://hook0.com/documentation/errors/Validation", "validation": {"payload": ["is not valid JSON"]}}
+{"detail": "d", "id": "NotAProblemHook0Declares", "status": 409, "title": "t", "type": "u", "validation": null}
+{"detail": "d", "id": "EventAlreadyIngested", "status": "409", "title": "t", "type": "u"}
+{"detail": "d", "id": "EventAlreadyIngested", "status": 409.5, "title": "t", "type": "u"}
+{"detail": "d", "id": "EventAlreadyIngested", "status": 9223372036854775807, "title": "t", "type": "u"}
+{"detail": "d", "id": "EventAlreadyIngested", "status": true, "title": "t", "type": "u"}
+{"application_id": "a", "event_id": null, "received_at": "r"}
+{"application_id": "a", "event_id": 1, "received_at": "r"}
+{"application_id": "a", "event_id": ["a"], "received_at": "r"}
+{"application_id": "a", "event_id": {"nested": "a"}, "received_at": "r"}
+{"application_id": "é 😀", "event_id": "e", "received_at": "r"}
+{"application_id": "a\"b\\c\nd", "event_id": "e", "received_at": "r"}
+{}
+{"": ""}
+[]
+["application_id"]
+null
+true
+0
+-0
+1e400
+"a document that is only a string"

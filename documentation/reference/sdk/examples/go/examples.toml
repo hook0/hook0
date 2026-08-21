@@ -1,0 +1,22 @@
+# How a Go example of the SDK reference is proven.
+#
+# Every snippet becomes a package of one module, and that module reaches the client in this
+# repository through the `replace` in `go.mod` rather than through a published version. `go build`
+# then builds all of them: a method renamed in `clients/go`, a field dropped from `Event`, an
+# argument added to `NewClient` all stop this job at the page that shows the old spelling.
+#
+# Nothing is run. Every send in these pages needs a live API, and `smoke/` is where a live API is
+# stood up; repeating it here would buy a slower job and the same answer.
+proof = "compiled"
+proves = "assembled against clients/go and built; a renamed method or a changed signature fails"
+
+path = "{{name}}/main.go"
+timeout_seconds = 300
+
+run = [["go", "build", "./..."]]
+
+[environment]
+# Every import resolves through the `replace`, so the build has nothing to fetch. Turning the
+# proxy off keeps a red pipeline a statement about the documentation rather than about the network.
+GOPROXY = "off"
+GOFLAGS = "-mod=mod"

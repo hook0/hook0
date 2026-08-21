@@ -4,6 +4,11 @@
 # secrets
 .envrc
 .env
+# Committed on purpose, and the rule above stays as it is so the next `.env` is still caught.
+# Vite compiles every `VITE_*` value into the browser bundle, so these three reach anyone who
+# loads the page whether or not they are in the repository: they are public by construction, and
+# nothing that is actually a secret belongs in this file.
+!frontend/.env
 
 # js/nodejs
 node_modules

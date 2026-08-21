@@ -1,0 +1,3 @@
+# A project reference to the client's own project, so the build compiles the source in this
+# repository rather than resolving a package off NuGet.
+run = ["dotnet", "run", "--verbosity", "quiet"]

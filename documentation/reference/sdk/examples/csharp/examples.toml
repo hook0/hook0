@@ -1,0 +1,25 @@
+# How a C# example of the SDK reference is proven.
+#
+# Every snippet becomes its own file, under a namespace of its own so that none of the nine
+# collide, and `examples.csproj` compiles all of them in one project together with the real client
+# — read straight from its source rather than through `Hook0.Client.csproj`, which exists to
+# publish the package, not to prove a snippet still compiles against it. `dotnet build` then builds
+# the lot: a method renamed in `clients/csharp`, a field dropped from `Event`, an argument added to
+# `Hook0Client`'s constructor all stop this job at the page that shows the old spelling.
+#
+# Nothing is run. Every send in these pages needs a live API, and `smoke/` is where a live API is
+# stood up; repeating it here would buy a slower job and the same answer.
+proof = "compiled"
+proves = "assembled against the source of clients/csharp and built; a renamed method or a changed signature fails"
+
+path = "{{name}}.cs"
+timeout_seconds = 300
+
+run = [["dotnet", "build", "--nologo"]]
+
+[environment]
+# Every reference this project needs is either the .NET SDK's own shared framework or read directly
+# off this checkout — no `<PackageReference>` appears anywhere below — so restore asks NuGet for
+# nothing and needs no cache of its own.
+DOTNET_NOLOGO = "1"
+DOTNET_CLI_TELEMETRY_OPTOUT = "1"

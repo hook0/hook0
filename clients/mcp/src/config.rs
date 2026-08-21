@@ -16,7 +16,8 @@ pub enum Transport {
     /// Standard I/O transport (default, for local IDE integration)
     #[default]
     Stdio,
-    /// Server-Sent Events transport (for remote/containerized deployment)
+    /// Server-Sent Events transport. Reserved but not implemented: the server
+    /// rejects this at startup rather than silently serving stdio instead.
     Sse { port: u16 },
 }
 
@@ -42,8 +43,9 @@ impl Config {
     /// Optional environment variables:
     /// - `HOOK0_API_URL`: API base URL (default: https://app.hook0.com)
     /// - `HOOK0_READ_ONLY`: Set to "true" or "1" to enable read-only mode (default: false)
-    /// - `MCP_TRANSPORT`: Transport type: "stdio" or "sse" (default: stdio)
-    /// - `MCP_SSE_PORT`: Port for SSE server (default: 3000)
+    /// - `MCP_TRANSPORT`: Transport type (default: stdio). Only "stdio" is supported;
+    ///   "sse" parses but the server exits with an error rather than starting.
+    /// - `MCP_SSE_PORT`: Reserved for SSE transport, which is not implemented
     pub fn from_env() -> Result<Self, Hook0McpError> {
         // Required: API token
         let api_token = env::var("HOOK0_API_TOKEN").map_err(|_| {

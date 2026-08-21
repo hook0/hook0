@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Not a build: nothing here is compiled by Maven. This file exists so that
+  `mvn dependency:copy-dependencies` has a dependency to resolve — Ktor's, for the one snippet that
+  shows a Ktor route. `clients/kotlin` itself is reached by pointing `kotlinc` straight at its
+  source, never through this file, which is what lets the same checkout prove the documentation
+  whether or not `com.hook0:hook0-client-kotlin` has ever been installed anywhere.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>hook0.example</groupId>
+  <artifactId>documentation-examples-kotlin</artifactId>
+  <version>0.0.0</version>
+  <packaging>pom</packaging>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.ktor</groupId>
+      <artifactId>ktor-server-core-jvm</artifactId>
+      <version>3.5.2</version>
+    </dependency>
+  </dependencies>
+</project>

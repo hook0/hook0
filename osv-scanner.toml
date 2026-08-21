@@ -16,78 +16,74 @@ paste. Migration to pastey (drop-in fork) depends on tikv-jemallocator
 upstream — tracked at https://github.com/tikv/jemallocator/issues
 """
 
-[[IgnoredVulns]]
-id = "RUSTSEC-2023-0071"
-ignoreUntil = "2026-12-31T00:00:00Z"
-reason = """
-rsa 0.9.10 Marvin attack timing sidechannel only affects code that
-performs RSA decryption with PKCS#1 v1.5 padding. The crate is in
-Cargo.lock via sqlx-mysql, which we do NOT compile (hook0 only enables
-the postgres feature of sqlx). `cargo tree -i rsa` returns "nothing to
-print" — confirming no compile-time pull. False positive for this
-codebase.
-"""
+# Two migrations this file was waiting on have landed, and their entries are gone
+# with the crates that needed them: `validator` is at 0.21.0, which dropped the
+# five `unic-*` crates (RUSTSEC-2025-0075, -0080, -0081, -0098, -0101), and
+# `hickory-proto` is at 0.26.1, which is the bump RUSTSEC-2026-0118 and -0119
+# were deferred against. `rsa` (RUSTSEC-2023-0071) came in through `sqlx-mysql`
+# and is no longer in `Cargo.lock` at all. Each was removed after checking the
+# lockfile rather than after reading the scanner's "unused ignores" list, which
+# in v2.3.0 names every entry whether or not it is doing anything — see the note
+# at the bottom of this file.
 
-# unic-* 0.9.0 are all unmaintained warnings, transitively pulled by
-# validator 0.20.0. Migration plan: bump to validator 0.21+ once it
-# ships its `unicode-properties`/`icu` rewrite. Tracking upstream.
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0081"
-ignoreUntil = "2026-12-31T00:00:00Z"
-reason = "unic-char-property: unmaintained warning, transitively via validator 0.20"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0075"
-ignoreUntil = "2026-12-31T00:00:00Z"
-reason = "unic-char-range: unmaintained warning, transitively via validator 0.20"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0080"
-ignoreUntil = "2026-12-31T00:00:00Z"
-reason = "unic-common: unmaintained warning, transitively via validator 0.20"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0101"
-ignoreUntil = "2026-12-31T00:00:00Z"
-reason = "unic-ucd-common: unmaintained warning, transitively via validator 0.20"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2025-0098"
-ignoreUntil = "2026-12-31T00:00:00Z"
-reason = "unic-ucd-version: unmaintained warning, transitively via validator 0.20"
-
-# The two hickory-proto entries that used to sit here, RUSTSEC-2026-0118 and
-# -0119, are gone rather than renewed: the reqwest major bump they were waiting
-# on has landed, and the tree now resolves hickory-proto 0.26.1 only — at or
-# past both fixed versions (0.26.0-beta.1 and 0.26.1). They suppressed nothing.
+# The three rustls-webpki entries below suppress the legacy TLS stack the AWS SDK compiles in
+# beside the one that actually runs, and there are two ways out of them rather than one.
 #
-# rustls-webpki 0.101.7 reaches the tree only through the AWS SDK:
-#   rustls-webpki 0.101.7 ← rustls 0.21.12 ← aws-smithy-http-client 1.4.0
-#   ← aws-smithy-runtime 1.14.0 ← aws-runtime 1.9.1 ← aws-sdk-s3 1.142.0
-#   ← hook0-api, hook0-output-worker
-# aws-smithy-http-client 1.4.0 and aws-sdk-s3 1.142.0 are each both the latest
-# published release and the version already locked, and they still pin the
-# rustls 0.21 line — so no bump lifts the three entries below today. The fixed
-# line is already in the tree at rustls-webpki 0.103.14 for the hyper-based
-# clients; only the AWS SDK copy is affected.
+# No bump lifts them. `rustls-webpki 0.101.7` arrives as
+#   rustls-webpki 0.101.7 <- rustls 0.21.12 <- aws-smithy-http-client 1.4.0
+#   <- aws-smithy-runtime <- aws-runtime <- aws-sdk-s3 1.143.0 <- hook0-api, hook0-output-worker
+# and aws-smithy-http-client 1.4.0 still declares the same optional `rustls ^0.21.8`, so waiting
+# for a release does nothing.
 #
-# Verified 2026-08-20 against Cargo.lock, crates.io and api.osv.dev.
+# The stack is never reached. `aws-sdk-s3`'s default `rustls` feature turns on
+# `aws-smithy-runtime/tls-rustls`, which turns on `aws-smithy-http-client/legacy-rustls-ring`, and
+# nothing here builds the hyper-0.14 connector that stack exists for: both S3 clients are
+# `Client::from_conf` with no HTTP client override, so both take the SDK default, which is
+# `default-https-client` -> `rustls-aws-lc` -> rustls 0.23.43 over rustls-webpki 0.103.14, at or
+# above the fixed line of all three advisories.
+#
+# So this is a feature flag rather than an upstream wait, and it can be turned off today:
+#
+#   aws-sdk-s3 = { version = "1.143.0", default-features = false, features = [
+#       "behavior-version-latest", "sigv4a", "http-1x", "default-https-client", "rt-tokio",
+#   ] }
+#
+# in api/Cargo.toml and output-worker/Cargo.toml, both, since a single member asking for the
+# default feature set brings the legacy stack back for the whole workspace. Resolving that way was
+# measured: rustls 0.23.43 and rustls-webpki 0.103.14, with no 0.101.x left in the tree at all.
+# Doing that is what removes these three entries; the dates below are the fallback, not the plan.
+#
+# Verified 2026-08-21 against Cargo.lock and crates.io.
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0098"
 ignoreUntil = "2026-11-30T00:00:00Z"
-reason = "rustls-webpki 0.101.7 → 0.103.12: no bump available, aws-smithy-http-client 1.4.0 (latest, locked) still pins rustls 0.21."
+reason = """
+rustls-webpki 0.101.7: a URI name constraint is ignored rather than enforced. Reachable only after
+signature verification and only against a misissued certificate, and the copy carrying it is the
+unreachable legacy stack described above. The S3 clients verify certificates through
+rustls-webpki 0.103.14. Removable today by dropping aws-sdk-s3's default `rustls` feature.
+"""
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0099"
 ignoreUntil = "2026-11-30T00:00:00Z"
-reason = "rustls-webpki 0.101.7 → 0.103.12: no bump available, aws-smithy-http-client 1.4.0 (latest, locked) still pins rustls 0.21."
+reason = """
+rustls-webpki 0.101.7: a permitted-subtree DNS name constraint is accepted for a certificate
+asserting a wildcard, so `*.example.com` passes a constraint of `accept.example.com`. Same gate and
+same unreachable copy as RUSTSEC-2026-0098, and the same one-line fix.
+"""
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0104"
 ignoreUntil = "2026-11-30T00:00:00Z"
-reason = "rustls-webpki 0.101.7 → 0.103.13: no bump available, aws-smithy-http-client 1.4.0 (latest, locked) still pins rustls 0.21."
+reason = """
+rustls-webpki 0.101.7: a reachable panic parsing a certificate revocation list, from an empty BIT
+STRING in the `onlySomeReasons` element of an `IssuingDistributionPoint` extension. It is the
+serious one of the three, since the panic lands before the CRL's own signature is checked, but
+nothing here parses a CRL and the copy carrying it is the unreachable legacy stack. Fixed in
+0.103.13, which the reachable stack is already past at 0.103.14.
+"""
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0173"
@@ -131,42 +127,65 @@ available upstream.
 id = "RUSTSEC-2026-0253"
 ignoreUntil = "2026-11-30T00:00:00Z"
 reason = """
-lru 0.16.4 is pulled only by aws-sdk-s3, which pins lru ^0.16.3 up to and
-including its latest release (1.142.0, the one locked) — no published
-aws-sdk-s3 moves to the fixed 0.18.x line, so there is no bump available today.
-The fixed line is already vendored in the tree at 0.18.2 (via ratatui-core), so
-only the aws-sdk-s3 copy is affected.
+lru 0.16.4 is pulled only by aws-sdk-s3, and this is the one entry of the set that really is
+blocked on it. aws-sdk-s3 requires lru ^0.16.3 as a plain, non-optional dependency, up to and
+including 1.143.0, its latest published release and the one locked, so there is no bump. Nor is
+there a backport to reach: the published line runs 0.16.4 -> 0.17.0 -> 0.18.0 -> 0.18.1 -> 0.18.2,
+the fix is 0.18.2, and ^0.16.3 cannot cross either major-equivalent boundary. Unlike the
+rustls-webpki entries above, no feature flag turns this dependency off. It moves when aws-sdk-s3
+relaxes the requirement, and not before.
 
-The advisory needs a panic to unwind out of a key's Drop while inside
-LruCache::pop(), caught by std::panic::catch_unwind — the workspace contains no
-catch_unwind at all, so the unsound state cannot be observed here. Re-evaluated
-with the other aws-sdk-s3-blocked entries on 2026-11-30.
+The fixed line is already in the tree at 0.18.2 (via ratatui-core), so only the aws-sdk-s3 copy is
+affected.
+
+The advisory needs a panic to unwind out of a key's Drop while inside LruCache::pop(), caught by
+std::panic::catch_unwind. The workspace contains no catch_unwind at all, so the unsound state
+cannot be observed here.
+
+Re-verified 2026-08-21 against crates.io and the lockfile: the latest aws-sdk-s3, the lru
+requirement, the published lru versions and the absence of catch_unwind were each checked again
+rather than carried forward.
 """
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0258"
 ignoreUntil = "2026-11-30T00:00:00Z"
 reason = """
-h2 unbounded empty DATA frames (denial of service, severity Low). Fixed in
-0.4.16, and the tree already carries 0.4.16 — reqwest 0.13 is what sends
-webhooks and every other outbound call, so the code paths that talk to
-addresses a third party chooses are already on the fixed line.
+h2 0.3.27: empty HTTP/2 DATA frames are queued without limit, so a stream nobody drains grows
+memory without bound, or panics if the length overflows. Low severity upstream.
 
-The 0.3.27 copy that remains is reachable two ways, neither of them exposed:
+The fix is 0.4.16 and no 0.3 release carries it: 0.3.27 is the last of that line on crates.io. The
+0.4 copies the same advisory covers are at 0.4.18 in this lockfile and in smoke/languages/rust, so
+they are patched rather than ignored, and reqwest, which sends every webhook and every other
+outbound call, is on that line.
 
-  - actix-http 3.13 (the API server). actix-web 4 only negotiates HTTP/2
-    through ALPN over TLS, and the server binds in clear text
-    (`.bind()` in api/src/main.rs, never `bind_rustls`/`bind_openssl`) with
-    TLS terminated upstream, so it never speaks HTTP/2 and the frame handling
-    this advisory covers is never entered.
-  - hyper 0.14, via aws-smithy-http-client and hyper-rustls 0.24 — the S3
-    client. Triggering it needs the object storage endpoint itself to send the
-    empty frames, and that endpoint is operator configuration, not attacker
-    input.
+The 0.3.27 copy is reachable two ways, neither of them exposed:
 
-No bump is available: 0.3.27 is the last release of the 0.3 line, and moving
-to 0.4 means actix-web 5, which is unreleased. Re-evaluate when actix-web
-ships a release built on h2 0.4, or on 2026-11-30, whichever comes first. If
-hook0-api ever starts terminating TLS itself, drop this entry and reassess the
-exposure first — the reasoning above rests on the process never speaking HTTP/2.
+  - actix-http 3.13, the API server. actix-web 4 negotiates HTTP/2 only over ALPN under
+    bind_rustls / bind_openssl, or in cleartext under an explicit bind_auto_h2c. None of the three
+    appears anywhere in api/src: the server binds plaintext TCP with TLS terminated upstream, so
+    the frame reader this advisory is about is compiled in and never entered.
+  - hyper 0.14, via aws-smithy-http-client and hyper-rustls 0.24, the S3 client. Triggering it
+    needs the object storage endpoint itself to send the empty frames, and that endpoint is
+    operator configuration rather than attacker input.
+
+It moves when actix-http moves to the 0.4 line, which means actix-web 5, unreleased. If hook0-api
+ever starts terminating TLS itself, drop this entry and reassess the exposure first: the reasoning
+above rests on the process never speaking HTTP/2.
 """
+
+# Do not prune this file from the scanner's "unused ignores" list.
+#
+# In osv-scanner v2.3.0 that list names every entry, working or not. `ShouldIgnore`
+# hands back a copy of the entry (internal/config/config.go), the filter calls
+# `MarkAsUsed()` on that copy (pkg/osvscanner/filter.go), and the copy is dropped
+# on the next line — so the flag the list reads is never set on the entry the
+# config holds. A run that filters eleven findings still reports all of its
+# ignores as unused, which is what this repository's own output shows.
+#
+# What does say an entry is live is the `<id> has been filtered out because:` line
+# the same run prints, and what says one is dead is the crate being absent from
+# the lockfile. Both were checked before anything was removed here.
+#
+# The list is also harmless: it is logged at warning level, and only an
+# error-level log sets the exit code to 127.

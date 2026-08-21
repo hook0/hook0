@@ -1,15 +1,17 @@
 #!/bin/bash
-# SDK Release script for Hook0
+# SDK release script for Hook0.
+#
 # Usage: ./ci/pre-release-sdk.sh <patch|minor|major>
+#
+# Every client that does not own a release flow goes out together under one tag,
+# `sdk-vX.Y.Z` (grandfathered by adr/0004-monorepo-tag-convention.md).
+#
+# Which packages that is, where each of them keeps its version, and what each is
+# published as are read out of the tree by ci/release-packages. Nothing is named
+# here on purpose: this script used to bump three files by name, so a client that
+# was not one of those three shipped at whatever version it was born with and
+# nothing ever went red about it.
 set -euo pipefail
-
-# Check required tools
-for cmd in jq git sed awk cargo; do
-    if ! command -v "$cmd" &> /dev/null; then
-        echo "ERROR: Required command '$cmd' not found"
-        exit 1
-    fi
-done
 
 BUMP_TYPE="${1:-}"
 
@@ -19,10 +21,16 @@ if [ -z "$BUMP_TYPE" ]; then
     exit 1
 fi
 
-# Change to repo root (script is in ci/ folder)
+for cmd in git awk sed cargo git-cliff; do
+    if ! command -v "$cmd" &> /dev/null; then
+        echo "ERROR: Required command '$cmd' not found"
+        exit 1
+    fi
+done
+
+# Run from repo root (script is in ci/)
 cd "$(dirname "$0")/.."
 
-# Safety checks
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ "$CURRENT_BRANCH" != "master" ]; then
     echo "ERROR: SDK releases must be created from master branch (currently on '$CURRENT_BRANCH')"
@@ -34,61 +42,100 @@ if [ -n "$(git status --porcelain)" ]; then
     exit 1
 fi
 
-# Get current version from clients/rust/Cargo.toml
-CURRENT=$(grep '^version = ' clients/rust/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+PACKAGES="cargo run --quiet --locked -p release-packages --"
 
-# Validate version was extracted
-if [ -z "$CURRENT" ] || ! [[ "$CURRENT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo "ERROR: Could not extract valid semver from clients/rust/Cargo.toml"
-    echo "Found: '$CURRENT'"
-    exit 1
-fi
+echo "=== What this release covers ==="
+$PACKAGES list
 
-# Calculate new version
+# The version to bump from is the one every SDK is at. Two of them disagreeing is
+# a release that already went wrong, and the tool refuses rather than picking one.
+CURRENT=$($PACKAGES current)
+
+# The directory of every package this tag covers. It scopes each changelog below,
+# and it scopes the commits the guard reads: a commit touching none of them says
+# nothing about this release.
+DIRECTORIES=$($PACKAGES directories)
+
+# Before anything is written: hold the release to the commits it is made of.
+#
+# The bump is an argument, and the version below is computed by adding one to the
+# last release — so nothing here knows what happened since, and a change that
+# breaks a client goes out as a patch the moment somebody asks for one. What
+# happened since is in the commit messages, and release-packages reads them: a
+# bump smaller than they demand is refused naming the commits that demand more.
+# A larger one is left alone, since deciding a release is a major is a decision
+# no commit log can overrule.
+#
+# Unquoted on purpose: one path per package, which is one argument per package.
+# shellcheck disable=SC2086
+$PACKAGES required-bump "$BUMP_TYPE" 'sdk-v*' $DIRECTORIES
+
 case "$BUMP_TYPE" in
-    patch)
-        NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1"."$2"."$3+1}')
-        ;;
-    minor)
-        NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1"."$2+1".0"}')
-        ;;
-    major)
-        NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1+1".0.0"}')
-        ;;
+    patch) NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1"."$2"."$3+1}') ;;
+    minor) NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1"."$2+1".0"}') ;;
+    major) NEW_VERSION=$(echo "$CURRENT" | awk -F. '{print $1+1".0.0"}') ;;
     *)
         echo "ERROR: Invalid bump type '$BUMP_TYPE'. Use patch, minor, or major."
         exit 1
         ;;
 esac
 
-echo "=== Starting SDK $BUMP_TYPE release: $CURRENT -> $NEW_VERSION ==="
+TAG="sdk-v${NEW_VERSION}"
 
-# Update clients/rust/Cargo.toml
-echo "Updating clients/rust/Cargo.toml..."
-sed -i.bak "s/^version = \"$CURRENT\"/version = \"$NEW_VERSION\"/" clients/rust/Cargo.toml
-rm -f clients/rust/Cargo.toml.bak
-echo "  ✓ clients/rust/Cargo.toml updated"
+echo "=== Starting SDK $BUMP_TYPE release: $CURRENT -> $NEW_VERSION (tag: $TAG) ==="
 
-# Update clients/typescript/package.json
-echo "Updating clients/typescript/package.json..."
-jq ".version = \"${NEW_VERSION}\"" clients/typescript/package.json > clients/typescript/package.json.tmp && mv clients/typescript/package.json.tmp clients/typescript/package.json
-echo "  ✓ clients/typescript/package.json updated"
+# Every package that declares a version, written and read back. A package the
+# host versions by its tag — a Go module, a Composer package — says so and is
+# left alone.
+$PACKAGES set-version "$NEW_VERSION"
 
-# Update api/Cargo.toml hook0-client dependency version
+# The API depends on the Rust client by version, so it follows the release rather
+# than resolving to a crate that is not published yet.
 echo "Updating api/Cargo.toml hook0-client dependency..."
 sed -i.bak "s/\(hook0-client.*version = \"\)$CURRENT/\1$NEW_VERSION/" api/Cargo.toml
 rm -f api/Cargo.toml.bak
-echo "  ✓ api/Cargo.toml updated"
+cargo update --workspace
 
-# Regenerate Cargo.lock
-echo "Updating Cargo.lock..."
-cargo update -p hook0-client
-echo "  ✓ Cargo.lock updated"
+# One changelog per package, scoped to the package's own directory and to the
+# tags this release uses, as ADR 0004 requires. The set of packages is the one
+# read above rather than a list written here.
+#
+# Each file is written whole rather than prepended to. `--prepend` inserts the
+# document it just generated at byte zero, header and all, so a file that has
+# been through two releases carries two `# Changelog` headings and a third is on
+# the way — which is what api/CHANGELOG.md and clients/mcp/CHANGELOG.md look like
+# today. Regenerating is idempotent instead: the same commits produce the same
+# file, and the pending ones move from `[Unreleased]` into the section the tag
+# names.
+while IFS= read -r directory; do
+    [ -n "$directory" ] || continue
 
-# Commit all changes, tag, and push
-git add clients/rust/Cargo.toml clients/typescript/package.json api/Cargo.toml Cargo.lock
+    git-cliff \
+        --include-path "${directory}/**" \
+        --tag-pattern '^sdk-v[0-9]+\.[0-9]+\.[0-9]+$' \
+        --tag "$TAG" \
+        --output "${directory}/CHANGELOG.md"
+
+    # The four SDKs no registry resolves tell a reader to build from a checkout or to fetch a tag,
+    # and so they name a version in prose. `set-version` writes manifests, and a README is not one,
+    # so those four went on advertising the release before last until somebody noticed. The shapes
+    # below are the ones a version appears in there, and the guard in release-packages holds the
+    # tree to them: a version written some other way is caught rather than quietly left behind.
+    [ -f "${directory}/README.md" ] || continue
+    sed -i \
+        -e "s|<version>${CURRENT}</version>|<version>${NEW_VERSION}</version>|g" \
+        -e "s|:${CURRENT}\([^0-9]\)|:${NEW_VERSION}\1|g" \
+        -e "s|-${CURRENT}-|-${NEW_VERSION}-|g" \
+        -e "s|/v${CURRENT}\.|/v${NEW_VERSION}.|g" \
+        "${directory}/README.md"
+
+done <<< "$DIRECTORIES"
+
+# Everything the two steps above touched, which is what a clean working directory
+# at the top of this script makes safe to stage without naming a single file.
+git add -A -- clients api/Cargo.toml Cargo.lock
 git commit -m "chore(release): bump SDK version to ${NEW_VERSION}"
-git tag -a "sdk-v${NEW_VERSION}" -m "SDK Release ${NEW_VERSION}"
-git push origin HEAD "sdk-v${NEW_VERSION}"
+git tag -a "$TAG" -m "SDK Release ${NEW_VERSION}"
+git push origin HEAD "$TAG"
 
 echo "=== SDK Release $NEW_VERSION completed ==="

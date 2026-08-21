@@ -25,6 +25,23 @@ cargo build
 cargo run
 ```
 
+## Working on the API
+
+Two rules apply to every endpoint of the API, and tests enforce both:
+
+- An endpoint reaches the generated SDKs only if its `#[api_v2_operation(...)]` carries the `public`
+  tag. That tag publishes it into the twelve SDKs we generate and freezes its shape: renaming it
+  or changing its responses afterwards breaks code we do not control. Leave it off unless the
+  endpoint is part of the product our users integrate against. Tagged operations name themselves
+  `entity.verb`, with `list`, `get`, `create`, `update` and `delete` as the expected verbs.
+- The OpenAPI document is committed in `api/openapi.snapshot.json`, and a test compares it with the
+  one the application serves. Touching a handler makes that test fail; adopt the change with
+  `UPDATE_OPENAPI_SNAPSHOT=1 cargo test -p hook0-api openapi_snapshot` and commit the rewritten
+  snapshot.
+
+[`api/README.md`](./api/README.md) explains when the tag is warranted and what to read in the
+snapshot report.
+
 ## Code of Conduct
 
 **The Hook0 [Code of Conduct](CODE_OF_CONDUCT.md) is one of the ways

@@ -1,0 +1,8 @@
+# `presmoke` compiles the client and links it into `node_modules` before `smoke` runs. Compiling is
+# not optional: what the package publishes is `dist/`, which is not committed, so a smoke that
+# skipped the build would exercise whatever a previous build happened to leave behind — or nothing
+# at all on a fresh checkout. Linking makes the package reachable by its name and through its
+# `exports` map, the way a user reaches it, rather than by a path into the compiled layout, which
+# the package refuses on purpose.
+run = ["npm", "--silent", "run", "smoke"]
+

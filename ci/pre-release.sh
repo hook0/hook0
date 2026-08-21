@@ -94,6 +94,20 @@ case "$PACKAGE" in
         ;;
 esac
 
+TAG_PREFIX="${PACKAGE}/v"
+
+# Before anything is written: hold the release to the commits it is made of.
+#
+# The bump is an argument, and the version below is computed by adding one to
+# whatever the manifest says the last release was — so nothing here knows what
+# happened since, and a change that breaks the wire goes out as a patch the
+# moment somebody asks for one. What happened since is written in the commit
+# messages, and release-packages reads them: a bump smaller than they demand is
+# refused naming the commits that demand more. A larger one is left alone, since
+# deciding a release is a major is a decision no commit log can overrule.
+cargo run --quiet --locked -p release-packages -- \
+    required-bump "$BUMP_TYPE" "${TAG_PREFIX}*" "$INCLUDE_PATH"
+
 # Read current version
 case "$VERSION_TYPE" in
     cargo)
@@ -128,7 +142,6 @@ case "$BUMP_TYPE" in
         ;;
 esac
 
-TAG_PREFIX="${PACKAGE}/v"
 TAG="${TAG_PREFIX}${NEW_VERSION}"
 
 echo "=== Releasing $PACKAGE: $CURRENT -> $NEW_VERSION (tag: $TAG) ==="

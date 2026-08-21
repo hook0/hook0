@@ -1,0 +1,82 @@
+{
+  "uid": "cf485b748dts0d",
+  "orgID": 1,
+  "folderUID": "ff485ab4jp6gwc",
+  "ruleGroup": "Every minute",
+  "title": "Unfinished request attempts",
+  "condition": "C",
+  "for": "0s",
+  "keep_firing_for": "0s",
+  "noDataState": "Alerting",
+  "execErrState": "Alerting",
+  "isPaused": false,
+  "annotations": {
+    "__dashboardUid__": "7234fdd7-36fb-4477-abe3-32f94ad90463",
+    "__panelId__": "1",
+    "summary": "There are too much unfinished request attempts, which may bloat partial index `webhook.request_attempt_waiting_idx`. They should be marked as failed. NOTE: this rule only counts attempts on DISABLED/DELETED subscriptions; live-subscription backlog is covered by 'Delivery backlog — past-due request attempts'. noData/execErr set to Alerting so a broken query pages instead of going silent."
+  },
+  "notification_settings": { "receiver": "Better Uptime" },
+  "data": [
+    {
+      "refId": "A",
+      "queryType": "",
+      "relativeTimeRange": { "from": 3600, "to": 0 },
+      "datasourceUid": "bev6em79t7jlsc",
+      "model": {
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "bev6em79t7jlsc" },
+        "editorMode": "code",
+        "format": "table",
+        "instant": false,
+        "intervalMs": 60000,
+        "maxDataPoints": 43200,
+        "range": true,
+        "rawQuery": true,
+        "rawSql": "select count(ra.request_attempt__id)\r\nfrom webhook.request_attempt as ra\r\ninner join webhook.subscription as s on s.subscription__id = ra.subscription__id\r\ninner join event.application as a on a.application__id = s.application__id\r\nwhere\r\n  ra.failed_at is null and ra.succeeded_at is null\r\n  and (s.is_enabled = false or s.deleted_at is not null or a.deleted_at is not null)",
+        "refId": "A",
+        "sql": {
+          "columns": [ { "parameters": [], "type": "function" } ],
+          "groupBy": [ { "property": { "type": "string" }, "type": "groupBy" } ],
+          "limit": 50
+        }
+      }
+    },
+    {
+      "refId": "B",
+      "queryType": "",
+      "relativeTimeRange": { "from": 0, "to": 0 },
+      "datasourceUid": "__expr__",
+      "model": {
+        "datasource": { "type": "__expr__", "uid": "__expr__" },
+        "expression": "A",
+        "reducer": "last",
+        "type": "reduce",
+        "refId": "B",
+        "intervalMs": 1000,
+        "maxDataPoints": 43200
+      }
+    },
+    {
+      "refId": "C",
+      "queryType": "",
+      "relativeTimeRange": { "from": 0, "to": 0 },
+      "datasourceUid": "__expr__",
+      "model": {
+        "datasource": { "type": "__expr__", "uid": "__expr__" },
+        "expression": "B",
+        "type": "threshold",
+        "conditions": [
+          {
+            "evaluator": { "params": [1000], "type": "gt" },
+            "operator": { "type": "and" },
+            "query": { "params": ["C"] },
+            "reducer": { "params": [], "type": "last" },
+            "type": "query"
+          }
+        ],
+        "refId": "C",
+        "intervalMs": 1000,
+        "maxDataPoints": 43200
+      }
+    }
+  ]
+}

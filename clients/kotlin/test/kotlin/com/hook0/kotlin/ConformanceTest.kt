@@ -1,0 +1,597 @@
+package com.hook0.kotlin
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Path
+import java.time.Duration
+import java.time.Instant
+import java.util.Locale
+import java.util.TreeSet
+import kotlin.math.max
+import kotlin.math.min
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Timeout
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
+
+/**
+ * The cases the shared conformance corpus dictates, run against this client through both surfaces.
+ *
+ * Nothing below writes down a verdict, a bound, a header or a signature of its own. Everything is
+ * read out of the committed documents at `clients/conformance` and this client is driven against
+ * them over a real socket, so a case added there is exercised here without this file being touched.
+ */
+@Timeout(300)
+class ConformanceTest {
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun theCorpusSaysWhatEveryProblemDoesToASend(surface: Surface) {
+    // The status is not what decides: the corpus carries problems answering the same status with
+    // opposite verdicts, and a client reading the status alone fails half of them.
+    for (rule in Corpus.entries(RETRY, "problems")) {
+      val retryable = rule["retryable"] as Boolean
+      val expected = if (retryable) 2 else 1
+      val outcome = issuedFor(surface, refusal(status(rule), rule["problem"] as String))
+
+      assertEquals(
+        expected,
+        outcome.issued,
+        "`${rule["problem"]}` under ${status(rule)} issued ${outcome.issued} requests where the " +
+          "corpus expects $expected: ${rule["reason"]}"
+      )
+      assertEquals(retryable, outcome.ingested)
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun theCorpusSaysWhatEveryStatusDoesToASend(surface: Surface) {
+    // A body naming no problem this client could read is also what an older client meets when the
+    // API names a problem it has never heard of.
+    for (rule in Corpus.entries(RETRY, "statuses")) {
+      val retryable = rule["retryable"] as Boolean
+      val expected = if (retryable) 2 else 1
+      val outcome =
+        issuedFor(surface, refusal(status(rule), "AProblemThisClientHasNeverHeardOf"))
+
+      assertEquals(
+        expected,
+        outcome.issued,
+        "a status of ${status(rule)} issued ${outcome.issued} requests where the corpus expects " +
+          "$expected: ${rule["reason"]}"
+      )
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun theCorpusSaysWhatARequestTheApiNeverAnsweredDoes(surface: Surface) {
+    // Every cause the corpus names is provoked for real rather than reported: a server that sits on
+    // an answer past the timeout, an answer above a ceiling this client set for itself, and a URL
+    // nothing can be sent to.
+    @Suppress("UNCHECKED_CAST")
+    val transport = RETRY["transport"] as Map<String, Any?>
+    for (rule in Corpus.entries(transport, "causes")) {
+      val cause = rule["cause"] as String
+      val retryable = rule["retryable"] as Boolean
+      val expected = if (retryable) 2 else 1
+      val outcome = provoked(surface, cause)
+
+      assertEquals(
+        expected,
+        outcome.issued,
+        "`$cause` issued ${outcome.issued} requests where the corpus expects $expected: " +
+          "${rule["reason"]}"
+      )
+      assertEquals(retryable, outcome.ingested)
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun theDelayTheApiNamesIsHonouredAndBounded(surface: Surface) {
+    // The header is written by the other end, so honouring it whole would hand a stranger the length
+    // of this client's send. What the corpus asks for is that a delay be waited out when the budget
+    // can afford it and cut down to what is left of the budget when it cannot.
+    @Suppress("UNCHECKED_CAST")
+    val retryAfter = RETRY["retry_after"] as Map<String, Any?>
+    val header = retryAfter["header"] as String
+
+    for (delay in Corpus.entries(retryAfter, "cases")) {
+      val honoured = delay["honoured"] as Boolean
+      val asked = if (honoured) (delay["seconds"] as Long) * 1000 else 0
+      val expected = min(asked, DELAY_BUDGET.toMillis())
+      val waited = waitedFor(surface, header, delay["header"] as String)
+
+      assertTrue(
+        waited >= expected - CLOCK_SLACK.toMillis(),
+        "`$header: ${delay["header"]}` was retried after ${waited}ms, sooner than the ${expected}ms " +
+          "it asked for"
+      )
+      assertTrue(
+        waited <= expected + DELAY_SLACK.toMillis(),
+        "`$header: ${delay["header"]}` held the send for ${waited}ms, above the ${expected}ms it is " +
+          "bounded to"
+      )
+    }
+  }
+
+  @Test
+  fun theBoundsAreTheOnesTheCorpusNames() {
+    // This client's defaults, held against the one place the numbers are written down. What is
+    // asserted is read from the corpus rather than listed here, so a bound added there and left
+    // unapplied fails instead of passing unnoticed.
+    val built = Options.defaults()
+    val policy = built.retryPolicy
+
+    val applied =
+      linkedMapOf(
+        "max_attempts" to policy.maxAttempts.toLong(),
+        "max_attempts_cap" to RetryPolicy.MAX_ATTEMPTS_CAP.toLong(),
+        "initial_backoff_ms" to policy.initialBackoff.toMillis(),
+        "max_backoff_ms" to policy.maxBackoff.toMillis(),
+        "max_total_delay_ms" to policy.maxTotalDelay.toMillis(),
+        "request_timeout_ms" to built.requestTimeout.toMillis(),
+        "max_payload_bytes" to built.maxPayloadBytes.toLong(),
+        "max_response_bytes" to built.maxResponseBytes,
+        "max_head_bytes" to built.maxHeadBytes.toLong(),
+        "max_response_headers" to built.maxResponseHeaders.toLong(),
+        "max_header_bytes" to built.maxHeaderBytes.toLong()
+      )
+
+    @Suppress("UNCHECKED_CAST")
+    val bounds = Corpus.document("bounds.json")["bounds"] as Map<String, Any?>
+
+    val unapplied = TreeSet(bounds.keys)
+    unapplied.removeAll(applied.keys)
+
+    assertTrue(unapplied.isEmpty(), "the corpus names bounds this client does not apply: $unapplied")
+
+    val text = Corpus.text("bounds.json")
+    for ((name, bound) in bounds) {
+      assertEquals(bound as Long, applied[name], name)
+      // Read once more straight out of the committed text, so the number this suite asserts is the
+      // number somebody wrote down rather than whatever the reader made of it.
+      assertTrue(
+        text.contains("\"$name\": $bound"),
+        "`$name` was not read out of the corpus as it is written there"
+      )
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(Surface::class)
+  fun everyRequestCarriesWhatTheCorpusPins(surface: Surface) {
+    val headers = Corpus.entries(REQUEST, "headers")
+    val occasions = Corpus.values(REQUEST, "occasions")
+
+    val unknown = TreeSet<String>()
+    for (header in headers) {
+      if (!occasions.contains(header["when"])) {
+        unknown.add(header["when"] as String)
+      }
+    }
+    assertTrue(
+      unknown.isEmpty(),
+      "the corpus pins a header for an occasion it does not declare: $unknown"
+    )
+
+    val built = options(1)
+    FakeApi().use { api ->
+      Hook0Client(api.baseUrl(), "app-123", TOKEN, built).use { client ->
+        api.willAnswer(FakeApi.Scripted.of(201, mapOf("event_id" to INGESTED_ID)))
+        surface.send(client, anEvent())
+
+        // A send carries a body, so every occasion the corpus declares applies to this one request.
+        val composedAtMost = REQUEST["max_composed_bytes"] as Long
+        // The schedule is the one this client was built with a few lines up, so what the corpus
+        // writes about the retry policy is an exact string rather than a shape with something in it.
+        val policy = built.retryPolicy
+        val bound = mapOf(
+          "token" to TOKEN,
+          "language" to "kotlin",
+          "version" to publishedVersion(),
+          "attempts" to policy.attempts().toString(),
+          "backoff_ms" to policy.initialBackoff.toMillis().toString(),
+          "ceiling_ms" to policy.maxBackoff.toMillis().toString(),
+          "budget_ms" to policy.maxTotalDelay.toMillis().toString()
+        )
+
+        val sent = api.received()[0]
+        for (header in headers) {
+          val name = (header["name"] as String).lowercase(Locale.ROOT)
+          val template = header["value"] as String
+          val written = sent.headers[name] ?: ""
+          val chunks = templateChunks(template, bound)
+
+          assertTrue(
+            matchesChunks(chunks, written),
+            "the request carried `$name: $written` where the shared contract says `$template`: " +
+              "${header["reason"]}"
+          )
+
+          // A value with a hole this suite cannot fill is one the client composed out of what the
+          // platform told it, and what the platform says is as long as it feels like.
+          if (chunks.size > 1) {
+            val spent = written.toByteArray(StandardCharsets.UTF_8).size
+            assertTrue(
+              spent <= composedAtMost,
+              "the request carried $spent bytes of `$name`, above the $composedAtMost the shared " +
+                "contract cuts a composed value to"
+            )
+          }
+        }
+      }
+    }
+  }
+
+  @Test
+  fun everyRefusalTheCorpusDeclaresReadsAsOneOfThisClients() {
+    // A refusal named in the corpus and mapped to nothing here would pass under any wording.
+    val unmapped = TreeSet<String>()
+    for (refusal in Corpus.values(SIGNATURE, "refusals")) {
+      if (!REFUSALS.containsKey(refusal)) {
+        unmapped.add(refusal.toString())
+      }
+    }
+    assertTrue(
+      unmapped.isEmpty(),
+      "the corpus declares refusals this suite maps to nothing: $unmapped"
+    )
+  }
+
+  @Test
+  fun everyDeliveryOfTheCorpusIsVerifiedAsItSays() {
+    // A refused delivery has to be refused for the reason the corpus names: a client that computed a
+    // code over a header that never arrived and reported a mismatch would otherwise look right.
+    for (vector in Corpus.entries(SIGNATURE, "vectors")) {
+      if (vector["verdict"] == "accepted") {
+        verified(vector)
+        continue
+      }
+
+      val refused =
+        assertThrows(ClientException::class.java, { verified(vector) }, vector["name"] as String)
+      val wanted = REFUSALS[vector["refusal"]]
+
+      assertTrue(
+        refused.message?.contains(wanted.toString()) == true,
+        "a delivery the corpus refuses as `${vector["refusal"]}` was answered " +
+          "`${refused.message}`: ${vector["reason"]}"
+      )
+    }
+  }
+
+  /** How many requests a send issued, and whether it ended up ingesting the event. */
+  private data class Outcome(val issued: Int, val ingested: Boolean)
+
+  companion object {
+    private val RETRY = Corpus.document("retry.json")
+    private val REQUEST = Corpus.document("request.json")
+    private val SIGNATURE = Corpus.document("signature.json")
+
+    private const val INGESTED_ID = "01961234-5678-7abc-8def-0123456789ac"
+    private const val TOKEN = "token-xyz"
+
+    /** The schedule a case that is not about waiting spends between attempts. */
+    private val PROMPT_BACKOFF: Duration = Duration.ofMillis(5)
+
+    /**
+     * The budget the delay cases share. A delay the API names above it is expected to be cut down to
+     * it, so this also bounds what those cases cost.
+     */
+    private val DELAY_BUDGET: Duration = Duration.ofMillis(1100)
+
+    /**
+     * What a wait may overshoot by before it is read as more than what was asked for: a loopback
+     * round trip, a timer and a scheduler all sit inside it.
+     */
+    private val DELAY_SLACK: Duration = Duration.ofMillis(900)
+
+    /**
+     * What a wait may come back early by before it is read as a wait that did not happen.
+     *
+     * A delay is scheduled on one clock and measured on another — the wait goes through a timer,
+     * and what this suite reads is `System.nanoTime()` — so the two disagree by a fraction of a
+     * millisecond in either direction, and the millisecond this suite counts in is truncated rather
+     * than rounded. A send that waited its whole delay can therefore read one millisecond short of
+     * it, which is not a defect and which no client can fix.
+     *
+     * It is deliberately a small fraction of the shortest delay any case asserts, which is a
+     * second: a client that shortened a delay, skipped it, or ignored the header still reads
+     * hundreds of milliseconds below what it asked for, and still fails. Measured rather than
+     * assumed, on the shortest case, against a client mutated to wait nine tenths of what it was
+     * told: eleven settled runs came back between 90ms and 93ms short, so this floor sits some
+     * 40ms clear of catching that. What eats into the margin is the round trips inside the measured
+     * window, which give back what the mutation removes — so a run cold enough to widen them is the
+     * one to distrust, not a run that waited.
+     */
+    private val CLOCK_SLACK: Duration = Duration.ofMillis(50)
+
+    /** What a send says it did, out of the message it failed with. */
+    private val GAVE_UP = Regex("gave up after (\\d+) attempts")
+
+    /** What the build file publishes this artefact at, read beside the coordinates it publishes it under. */
+    private val PUBLISHED =
+      Regex("<artifactId>hook0-client-kotlin</artifactId>\\s*<version>([^<]+)</version>")
+
+    /**
+     * How a refusal the corpus names reads in this client's own words.
+     *
+     * Every name the corpus declares is looked up here, so one added there stops this suite until it
+     * is mapped rather than passing under whatever the client happened to say.
+     */
+    private val REFUSALS =
+      mapOf(
+        "code_not_hexadecimal" to "not hexadecimal",
+        "header_not_delivered" to "was not delivered",
+        "code_mismatch" to "does not match",
+        "outside_tolerance" to "outside the"
+      )
+
+    private fun status(rule: Map<String, Any?>): Int = (rule["status"] as Long).toInt()
+
+    private fun options(maxAttempts: Int): Options = Options.defaults()
+      .copy(
+        retryPolicy =
+        RetryPolicy(maxAttempts, PROMPT_BACKOFF, PROMPT_BACKOFF, Duration.ofSeconds(1)),
+        requestTimeout = Duration.ofSeconds(5)
+      )
+
+    private fun anEvent(): Event = Event("auth.user.create", "{\"email\": \"test@example.com\"}", "application/json")
+
+    private fun ingested(): FakeApi.Scripted = FakeApi.Scripted.of(
+      201,
+      mapOf("application_id" to "app-123", "event_id" to INGESTED_ID)
+    )
+
+    /** What the API says when it refuses a request, in the shape every Hook0 failure takes. */
+    private fun refusal(status: Int, problem: String, headers: Map<String, String> = emptyMap()): FakeApi.Scripted =
+      FakeApi.Scripted.of(
+        status,
+        mapOf(
+          "id" to problem,
+          "status" to status.toLong(),
+          "title" to "refused",
+          "detail" to "what the corpus scripted",
+          "type" to "https://hook0.com/documentation/errors/$problem"
+        ),
+        headers
+      )
+
+    /**
+     * How many requests a send made when the API answered that way and then took the event.
+     *
+     * One API per case rather than one per suite: what is counted is what this send issued, and a
+     * count carried over from the case before it would say nothing.
+     */
+    private fun issuedFor(surface: Surface, answer: FakeApi.Scripted): Outcome = FakeApi().use { api ->
+      Hook0Client(api.baseUrl(), "app-123", TOKEN, options(4)).use { client ->
+        api.willAnswer(answer, ingested())
+        counted(api) { surface.send(client, anEvent()) }
+      }
+    }
+
+    /** One cause of a request the API never answered, provoked over a real socket. */
+    private fun provoked(surface: Surface, cause: String): Outcome = when (cause) {
+      "no_answer" -> provokedByNoAnswer(surface)
+
+      "answer_above_a_bound" -> provokedByAnAnswerAboveABound(surface)
+
+      "unusable_api_url" -> provokedByAnUnusableApiUrl(surface)
+
+      else ->
+        throw IllegalStateException(
+          "the corpus names a cause `$cause` this suite does not know how to provoke"
+        )
+    }
+
+    /** An attempt that runs out of time before the API writes anything. */
+    private fun provokedByNoAnswer(surface: Surface): Outcome {
+      val impatient = options(4).copy(requestTimeout = Duration.ofMillis(200))
+      return FakeApi().use { api ->
+        Hook0Client(api.baseUrl(), "app-123", TOKEN, impatient).use { client ->
+          api.willAnswer(
+            FakeApi.Scripted(
+              201,
+              Json.write(mapOf("event_id" to INGESTED_ID)),
+              Duration.ofSeconds(1)
+            ),
+            ingested()
+          )
+          counted(api) { surface.send(client, anEvent()) }
+        }
+      }
+    }
+
+    /** An answer larger than what this client agreed to read off the socket. */
+    private fun provokedByAnAnswerAboveABound(surface: Surface): Outcome {
+      val small = options(4).copy(maxResponseBytes = 256)
+      return FakeApi().use { api ->
+        Hook0Client(api.baseUrl(), "app-123", TOKEN, small).use { client ->
+          api.willAnswer(
+            FakeApi.Scripted.of(
+              201,
+              mapOf("event_id" to INGESTED_ID, "padding" to "x".repeat(2048))
+            ),
+            ingested()
+          )
+          counted(api) { surface.send(client, anEvent()) }
+        }
+      }
+    }
+
+    /** A base URL nothing can be sent to, which means nothing is ever sent. */
+    private fun provokedByAnUnusableApiUrl(surface: Surface): Outcome = FakeApi().use { api ->
+      Hook0Client("gopher://nowhere.invalid", "app-123", TOKEN, options(4)).use { client ->
+        api.willAnswer(ingested())
+        counted(api) { surface.send(client, anEvent()) }
+      }
+    }
+
+    /**
+     * How many attempts a send made, and whether it ended up ingesting the event.
+     *
+     * A send that reached a server is counted by what that server received. One that never reached
+     * anything — an API URL nothing can be sent to is the corpus's own example — is counted by what
+     * the client says it did, which is also the message a caller is left holding: a misconfiguration
+     * retried four times reads as a network that would not answer.
+     */
+    private fun counted(api: FakeApi, send: () -> Unit): Outcome = try {
+      send()
+      Outcome(api.received().size, true)
+    } catch (refused: Hook0Exception) {
+      Outcome(max(api.received().size, attemptsOf(refused.message)), false)
+    }
+
+    private fun attemptsOf(message: String?): Int = GAVE_UP.find(message ?: "")?.groupValues?.get(1)?.toInt() ?: 1
+
+    /** How long a send spent waiting when the API named that delay beside a paced answer. */
+    private fun waitedFor(surface: Surface, header: String, written: String): Long {
+      val paced = pacedProblem()
+      val budgeted =
+        Options.defaults()
+          .copy(
+            retryPolicy = RetryPolicy(4, PROMPT_BACKOFF, PROMPT_BACKOFF, DELAY_BUDGET),
+            requestTimeout = Duration.ofSeconds(5)
+          )
+
+      return FakeApi().use { api ->
+        Hook0Client(api.baseUrl(), "app-123", TOKEN, budgeted).use { client ->
+          api.willAnswer(
+            refusal(status(paced), paced["problem"] as String, mapOf(header to written)),
+            ingested()
+          )
+
+          val started = System.nanoTime()
+          surface.send(client, anEvent())
+          val waited = (System.nanoTime() - started) / 1_000_000
+
+          assertEquals(2, api.received().size, "a paced answer was not retried")
+          waited
+        }
+      }
+    }
+
+    /**
+     * A problem the corpus says is worth repeating, sharing its status with one it says is not.
+     *
+     * That pair is the whole reason the corpus classifies problems rather than statuses, and the
+     * retryable one is the answer the API names a delay beside.
+     */
+    private fun pacedProblem(): Map<String, Any?> {
+      val problems = Corpus.entries(RETRY, "problems")
+      for (rule in problems) {
+        if (rule["retryable"] != true) {
+          continue
+        }
+        if (problems.any { status(it) == status(rule) && it["retryable"] == false }) {
+          return rule
+        }
+      }
+      throw IllegalStateException("no status of the corpus carries opposite verdicts")
+    }
+
+    /**
+     * What a value of the request document is made of, once the holes this suite can speak for are
+     * filled in.
+     *
+     * A value is a template: `${name}` is a hole and everything around it is literal. A hole named
+     * in [bound] becomes part of the literal text around it; one that is not is a hole no suite can
+     * fill without reimplementing the client it is testing, and it separates two chunks. A template
+     * whose holes are all bound is therefore one chunk, and the whole value is that chunk.
+     */
+    private fun templateChunks(template: String, bound: Map<String, String>): List<String> {
+      val chunks = mutableListOf("")
+      var rest = template
+
+      while (true) {
+        val opened = rest.indexOf("\${")
+        if (opened < 0) {
+          break
+        }
+        val closed = rest.indexOf('}', opened)
+        if (closed < 0) {
+          break
+        }
+        val last = chunks.size - 1
+        chunks[last] += rest.substring(0, opened)
+
+        val name = rest.substring(opened + 2, closed)
+        val filled = bound[name]
+        if (filled == null) {
+          chunks.add("")
+        } else {
+          chunks[last] += filled
+        }
+        rest = rest.substring(closed + 1)
+      }
+
+      chunks[chunks.size - 1] += rest
+      return chunks.toList()
+    }
+
+    /**
+     * Whether what arrived is what those chunks describe: the literal text in order, anchored at
+     * both ends, with something non-empty standing in every hole between them.
+     */
+    private fun matchesChunks(chunks: List<String>, carried: String): Boolean {
+      val first = chunks.first()
+      if (chunks.size == 1) {
+        return carried == first
+      }
+      if (!carried.startsWith(first)) {
+        return false
+      }
+
+      var rest = carried.substring(first.length)
+      for (chunk in chunks.subList(1, chunks.size - 1)) {
+        // A hole stands before this chunk, and nothing is not something, so the search starts past
+        // whatever fills it.
+        val found = rest.indexOf(chunk, 1)
+        if (found < 0) {
+          return false
+        }
+        rest = rest.substring(found + chunk.length)
+      }
+
+      val last = chunks.last()
+      return rest.length > last.length && rest.endsWith(last)
+    }
+
+    /**
+     * The version this artefact is published at, which is the one hole of the `User-Agent` this
+     * suite can speak for.
+     *
+     * A jar carries no build file to read it back out of at runtime, so the client writes the
+     * number down beside the transport; reading it here out of `pom.xml` is what keeps the two from
+     * drifting apart.
+     */
+    private fun publishedVersion(): String {
+      val pom = Path.of("pom.xml").toAbsolutePath()
+      val published =
+        PUBLISHED.find(Files.readString(pom, StandardCharsets.UTF_8))
+          ?: throw IllegalStateException("the build file publishes this artefact at no version: $pom")
+      return published.groupValues[1].trim()
+    }
+
+    private fun verified(vector: Map<String, Any?>) {
+      @Suppress("UNCHECKED_CAST")
+      val delivered = vector["headers"] as List<List<String>>
+      val headers = delivered.map { it[0] to it[1] }
+
+      Webhooks.verifyAt(
+        vector["signature"] as String,
+        vector["payload"] as String,
+        headers,
+        vector["secret"] as String,
+        Duration.ofSeconds(vector["tolerance_seconds"] as Long),
+        Instant.ofEpochSecond(vector["current_time"] as Long)
+      )
+    }
+  }
+}

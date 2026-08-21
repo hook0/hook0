@@ -108,7 +108,7 @@ api.container:
         --opt platform=linux/amd64 \
         --local context=build-context \
         --local dockerfile=build-context \
-        --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-api:$VERSION,$CI_REGISTRY_IMAGE/hook0-api:latest,${DOCKERHUB_PREFIX}/hook0-api:$VERSION,${DOCKERHUB_PREFIX}/hook0-api:latest,${GHCR_PREFIX}/hook0-api:$VERSION,${GHCR_PREFIX}/hook0-api:latest\",push=true"
+        --output "type=image,name=$CI_REGISTRY_IMAGE/hook0-api:$VERSION,push=true"
 
 api.container-scan:
   extends:
@@ -120,6 +120,17 @@ api.container-scan:
     IMAGE_REPO: hook0-api
     TAG_PREFIX: api/v
 
+api.container-promote:
+  extends:
+    - .api-release-rules
+    - .release-container-promote
+  needs:
+    - job: api.container-scan
+  variables:
+    IMAGE_REPO: hook0-api
+    TAG_PREFIX: api/v
+    PROMOTE_TO: "$CI_REGISTRY_IMAGE/hook0-api ${DOCKERHUB_PREFIX}/hook0-api ${GHCR_PREFIX}/hook0-api"
+
 api.github:
   extends: .api-release-rules
   stage: release
@@ -129,7 +140,7 @@ api.github:
       artifacts: true
     - job: api.build-amd64
       artifacts: true
-    - job: api.container
+    - job: api.container-promote
   variables:
     GH_TOKEN: $GITHUB_TOKEN
   before_script:
@@ -150,7 +161,7 @@ api.gitlab:
       artifacts: true
     - job: api.build-amd64
       artifacts: true
-    - job: api.container
+    - job: api.container-promote
   script:
     - apk --no-cache add curl
     - |
