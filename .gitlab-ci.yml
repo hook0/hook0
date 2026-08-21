@@ -8,7 +8,7 @@ workflow:
 
 variables:
   PG_VERSION: "18"
-  RUST_VERSION: "1.97-trixie"
+  RUST_VERSION: "1.98-trixie"
   NODE_VERSION: "24-trixie"
   PYTHON_VERSION: "3.13-trixie"
   GO_VERSION: "1.26-trixie"

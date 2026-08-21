@@ -19,6 +19,7 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use std::sync::LazyLock;
 use std::time::Duration;
+use strum::IntoStaticStr;
 use tracing::{info, warn};
 use uuid::Uuid;
 
@@ -174,13 +175,23 @@ static DB_ACTIVE_CONNECTIONS: LazyLock<Gauge<u64>> = LazyLock::new(|| {
         .build()
 });
 
+/// `size()` and `num_idle()` are two separate reads of a pool that other tasks
+/// keep mutating, so they never form a consistent snapshot: a connection
+/// returned between the two makes `num_idle()` the larger of the pair. A plain
+/// subtraction then wraps and records a `u64` gauge near `2^64`, which reads as
+/// a saturation spike that never happened.
+fn checked_out_connections(opened: u64, idle: u64) -> u64 {
+    opened.saturating_sub(idle)
+}
+
 pub fn gather_pool_metrics(pool: &PgPool) {
     let max_connections = u64::from(pool.options().get_max_connections());
     let opened_connections = u64::from(pool.size());
     let idle_connections = u64::try_from(pool.num_idle())
         .inspect_err(|e| warn!("Could not convert {} to u64: {e}", pool.num_idle()))
         .ok();
-    let active_connections = idle_connections.map(|idle| opened_connections - idle);
+    let active_connections =
+        idle_connections.map(|idle| checked_out_connections(opened_connections, idle));
 
     DB_MAX_CONNECTIONS.record(max_connections, &[]);
     DB_OPENED_CONNECTIONS.record(opened_connections, &[]);
@@ -408,6 +419,33 @@ pub fn report_delivery_outcome(outcome: DeliveryOutcome) {
     DELIVERY_OUTCOMES.add(1, &[KeyValue::new("outcome", outcome.as_str())]);
 }
 
+static DELIVERIES_GIVEN_UP: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter(crate_name!())
+        .u64_counter("webhook.delivery.given_up")
+        .with_description("Count of deliveries abandoned for good, by bounded reason")
+        .build()
+});
+
+/// Bounded set of reasons a delivery is abandoned for good: no further attempt
+/// will ever be scheduled for that event on that subscription. `RetriesExhausted`
+/// and `SignatureFailed` lose an event a subscriber was waiting for, while
+/// `SubscriptionGone` is the expected end of a subscription or application that
+/// no longer wants deliveries. Keeping the three apart is the point: only the
+/// first two are worth waking someone up for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr)]
+pub enum GiveUpReason {
+    #[strum(serialize = "retries_exhausted")]
+    RetriesExhausted,
+    #[strum(serialize = "subscription_gone")]
+    SubscriptionGone,
+    #[strum(serialize = "signature_failed")]
+    SignatureFailed,
+}
+
+pub fn report_given_up(reason: GiveUpReason) {
+    DELIVERIES_GIVEN_UP.add(1, &[KeyValue::new("reason", <&'static str>::from(reason))]);
+}
+
 /// Total mapping from a delivery `Response` to exactly one bounded `DeliveryOutcome`.
 /// A success maps to `Success`; an HTTP error with a 4xx/5xx code maps to the
 /// matching class; anything else falls back to the transport error (`Timeout` for a
@@ -467,6 +505,20 @@ mod tests {
             6 => Some(ResponseError::Timeout),
             _ => Some(ResponseError::Http),
         }
+    }
+
+    #[test]
+    fn idle_connections_above_opened_do_not_wrap_the_active_gauge() {
+        // `size()` and `num_idle()` are read one after the other, so a connection
+        // returned in between yields idle > opened. Subtracting would record a
+        // gauge near `2^64` instead of an idle pool.
+        assert_eq!(checked_out_connections(3, 5), 0);
+    }
+
+    #[test]
+    fn checked_out_connections_are_opened_minus_idle() {
+        assert_eq!(checked_out_connections(40, 0), 40);
+        assert_eq!(checked_out_connections(20, 14), 6);
     }
 
     #[test]

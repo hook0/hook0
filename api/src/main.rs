@@ -51,6 +51,7 @@ mod quotas;
 mod rate_limiting;
 mod reactivation_emails;
 mod signup_attribution_cleanup;
+mod signup_channel;
 mod soft_deleted_applications_cleanup;
 mod unverified_users_cleanup;
 mod validators;

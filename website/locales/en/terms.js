@@ -12,7 +12,9 @@
 //   - B2B only (no consumer right of withdrawal)
 //   - Prices HT (excl. VAT); late-payment penalties = 3x ECB legal rate + EUR 40
 //   - Custom SLA only (no implicit guaranteed SLA)
-//   - SSPL framing: "source-available (SSPL-1.0)" — NEVER "open-source"
+//   - SSPL framing: "open-source (SSPL-1.0)" — the parenthetical is mandatory,
+//     never "open-source" bare. SSPL-1.0 is not OSI-approved and its Section 13
+//     restricts offering the software as a service; 6.5 discloses both.
 //
 // EN prose stays close to the live template; the /humanizer pro pass applies
 // to FR/DE only. HTML markup inside body fields is preserved and emitted via
@@ -103,13 +105,15 @@ module.exports = {
     {
       id: 'ip',
       title: '6. Intellectual Property',
-      // [LEGAL-CORRECTION L1] SSPL framing: source-available, never "open-source".
+      // [LEGAL-CORRECTION L1] SSPL framing: "open-source (SSPL-1.0)". The OSI
+      // non-approval and the Section 13 service condition are disclosed in 6.5,
+      // and the full licence text prevails over that summary.
       paragraphs: [
         '<strong class="text-white">6.1. Hook0 intellectual property.</strong> Hook0 and its licensors own all intellectual property rights in and to the Service, including the software, source code, interfaces, Documentation, trademarks, logos, and trade dress. Nothing in these Terms grants you any rights in the Service other than the limited right to use it in accordance with these Terms.',
         '<strong class="text-white">6.2. License to use the Service.</strong> Subject to your compliance with these Terms and payment of applicable fees, Hook0 grants you a limited, non-exclusive, non-transferable, non-sublicensable right to access and use the Service for your internal business purposes during the term of your subscription.',
         '<strong class="text-white">6.3. Your Content.</strong> You retain all ownership rights in and to your Content. By submitting Content through the Service, you grant Hook0 a limited, worldwide license to process and store your Content solely to the extent necessary to provide the Service. Hook0 will not use your Content for any other purpose.',
         '<strong class="text-white">6.4. Feedback.</strong> If you provide suggestions, comments, or other feedback about the Service ("Feedback"), you grant Hook0 a worldwide, perpetual, irrevocable, royalty-free license to use and incorporate such Feedback into the Service or any other Hook0 product or service, without any obligation of compensation or attribution to you.',
-        '<strong class="text-white">6.5. Source-available components.</strong> The Hook0 server software is published under the Server Side Public License v1 (SSPL-1.0), a source-available license. Certain other components of the Service are licensed under separate third-party open-source or source-available licenses. Nothing in these Terms limits any rights you may have under those licenses, which prevail to the extent of any conflict.',
+        '<strong class="text-white">6.5. License.</strong> The Hook0 server software is published under the Server Side Public License v1 (SSPL-1.0), an open-source (SSPL-1.0) license. The SSPL-1.0 has not been approved by the Open Source Initiative (OSI) and imposes a specific condition (Section 13) on any party that makes the software available to third parties as a service. Customer\'s rights and obligations regarding the Hook0 server software are governed exclusively by the full text of the SSPL-1.0, which prevails over this summary in the event of any inconsistency. Certain other components of the Service are licensed under separate third-party open-source or source-available licenses. Nothing in these Terms limits any rights you may have under those licenses, which prevail to the extent of any conflict.',
       ],
     },
     // Section 7
@@ -216,6 +220,7 @@ module.exports = {
         '<strong class="text-white">14.6. Waiver.</strong> The failure of either party to enforce any right or provision of these Terms shall not constitute a waiver of that right or provision for the future.',
         '<strong class="text-white">14.7. Relationship of the parties.</strong> Nothing in these Terms creates or shall be deemed to create any partnership, joint venture, agency, or employment relationship between the parties. Each party acts as an independent contractor.',
         '<strong class="text-white">14.8. Notices.</strong> Legal notices to Hook0 must be sent in writing by email to <a href="mailto:legal@hook0.com" class="text-green-400 hover:text-green-300 transition-colors">legal@hook0.com</a> or by post to FGRibreau SARL, 3 rue de l\'Aubepine, 85110 Chantonnay, France. Hook0 may send notices to you by email to the address associated with your Account. Electronic notices are deemed received on the day of transmission unless a delivery failure notification is received.',
+        '<strong class="text-white">14.9. Prevailing language.</strong> These Terms are published in English, French, and German. The English version is the reference version: in the event of any discrepancy or inconsistency between the language versions, the English version prevails. The French and German versions are provided for convenience.',
       ],
     },
     // Section 15

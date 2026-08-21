@@ -308,9 +308,17 @@ test.describe("Logs", () => {
     await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/logs`);
     await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
 
-    // Poll for at least one row to appear (webhook might take a moment to be processed)
-    // Use expect with longer timeout instead of arbitrary waitForTimeout
-    await expect(page.locator('[data-test="logs-table"] [row-id]').first()).toBeVisible({ timeout: 15000 });
+    // The logs view fetches once on mount and has no refetch interval, so waiting
+    // on the table only ever observes the result of that first request: when the
+    // webhook has not been delivered yet, no timeout is long enough to save the
+    // test. Reload until the row shows up — the wait log-detail.spec.ts already
+    // uses for the same reason.
+    await expect(async () => {
+      await page.reload();
+      await expect(page.locator('[data-test="logs-table"] [row-id]').first()).toBeVisible({
+        timeout: 10000,
+      });
+    }).toPass({ timeout: 60000, intervals: [2000] });
 
     // The logs table should have at least 1 row (the webhook request)
     const rows = page.locator('[data-test="logs-table"] [row-id]');
