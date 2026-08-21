@@ -1,6 +1,6 @@
 [package]
 name = "hook0-mcp"
-version = "1.0.2"
+version = "2.0.0"
 edition = "2024"
 description = "MCP Server for Hook0 Open-Source Webhooks as a Service"
 authors = ["François-Guillaume Ribreau <fg@hook0.com>","David Sferruzza <david@hook0.com>"]
@@ -20,7 +20,7 @@ path = "src/main.rs"
 
 [dependencies]
 # MCP SDK
-rmcp = { version = "2.2", features = ["server", "transport-io", "macros"] }
+rmcp = { version = "3.1", default-features = false, features = ["server", "transport-io"] }
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }
@@ -40,17 +40,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # URL handling
 url = "2.5"
-
-[build-dependencies]
-# OpenAPI parsing
-openapiv3 = "2.2"
-
-# Serialization for metadata output
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-
-# HTTP client for fetching OpenAPI spec at build time
-reqwest = { version = "0.13.4", features = ["blocking"] }
 
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }

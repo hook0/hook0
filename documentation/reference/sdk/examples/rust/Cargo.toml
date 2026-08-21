@@ -1,0 +1,40 @@
+# The project every Rust example of the SDK reference is built inside.
+#
+# It reaches the client through a path dependency rather than a version on purpose: what these
+# pages must agree with is the client in this commit, not whatever last got published to
+# crates.io. Every other dependency below is pinned to the exact version this repository already
+# resolves for `clients/rust` itself (see the root `Cargo.lock`), so proving the documentation
+# offline needs nothing this checkout has not already fetched to build the client.
+[package]
+name = "hook0-documentation-examples-rust"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Detached from the repository's own workspace for the reason the client's path dependency is
+# below: this project is not part of what the repository builds or releases, it proves what its
+# documentation shows, and folding it into the root workspace would make every `cargo build` there
+# resolve dependencies for a Cargo.toml that does not exist yet at scaffold time.
+[workspace]
+
+[dependencies]
+hook0-client = { path = "{{client}}", features = ["producer", "consumer"] }
+
+# None of these are the client's own dependencies as far as this project is concerned: a page's
+# `use reqwest::Url;` or `use uuid::Uuid;` is a use of this crate, and Rust requires the crate a
+# `use` line names to be a direct dependency, not merely one reached through another crate.
+actix-web = { version = "=4.14.1", default-features = false, features = ["macros"] }
+chrono = { version = "=0.4.45", features = ["serde"] }
+futures = "=0.3.34"
+log = "=0.4.33"
+reqwest = "=0.13.4"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+tokio = { version = "=1.53.1", features = ["macros", "rt-multi-thread", "time"] }
+uuid = { version = "=1.24.1", features = ["v4", "v7", "serde"] }
+
+[profile.dev]
+# Every example is built, never run, so the information a debugger would read off it is spent for
+# nothing; skipping it is the difference between a job that waits on the linker and one that does
+# not.
+debug = false

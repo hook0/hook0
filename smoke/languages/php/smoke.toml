@@ -1,0 +1,4 @@
+# The package requires only extensions the interpreter already carries and declares no dependency of
+# its own, so there is nothing to install: the smoke registers the autoloading rule `composer.json`
+# declares and reads the client's source straight out of this repository.
+run = ["php", "smoke.php"]

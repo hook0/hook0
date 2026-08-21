@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Rate limiting answers a problem document instead of a sentence (api)
+
+  A 429 used to carry `text/plain` and the words `Too many requests, retry in Ns`. It now
+  carries `application/problem+json`, like every other error the API answers. The status,
+  `retry-after` and the `x-ratelimit-*` headers are unchanged, so a caller reading those is
+  unaffected; one reading the body has to parse it as a problem document.
+
+- The `type` member of every problem points at the error reference (api)
+
+  It read `hook0.com/documentation/errors/<id>`, which answered 404 for every problem the API
+  can return: the documentation is served from its own host and never had a page per error. It
+  now points at that problem's anchor on the error reference. The `id` member is unchanged and
+  remains the member to match on.
+
+- `Problem.id` is published as a closed enumeration (api)
+
+  The document used to declare it a plain string. The values are the same, so nothing breaks
+  today, but a client generated from this document knows only the problems that existed when it
+  was generated. A newer instance answering a problem it does not know degrades rather than
+  failing: the caller still gets the status and the raw body, and loses the structured members.
+
+### Fixed
+
+- Browsers may send the header every SDK sends (api)
+
+  The published clients put `Hook0-Client-Options` on every request. It is not a header the
+  fetch specification safelists, so a browser asks permission for it first, and the API's
+  allow-list did not carry it. The preflight was answered 400 and the request never left the
+  page. An SDK worked from a server and not from a browser, with nothing in the API log saying
+  why.
+
 ## [api/v1.0.2] - 2026-05-13
 
 ### Added

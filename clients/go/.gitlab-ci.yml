@@ -1,0 +1,96 @@
+# A job of its own, unlike the generator guards that ride along with the Rust client: this is
+# another toolchain and another image, so there is nothing here an existing job could have run.
+clients.go.check:
+  stage: test
+  dependencies: []
+  image: golang:$GO_VERSION
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
+    - changes:
+        - clients/go/**/*
+        # The generated half of the module is written from the API's OpenAPI snapshot, so a change
+        # of the generator or of the API surface has to face the suites that exercise what it wrote.
+        - clients/sdkgen/**/*
+        - api/openapi.snapshot.json
+        # Retry classification, the bounds of a send and signature verification are hand-written
+        # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
+        # this client rather than the one language whoever edited it happened to be reading.
+        - clients/conformance/**/*
+        - .gitlab-ci.yml
+  before_script:
+    - go version
+  script:
+    - pushd clients/go
+    # The module requires nothing, so nothing is downloaded and nothing has to be pinned. A
+    # `require` appearing here is a dependency somebody added, and it stops the job.
+    #
+    # Inside the module, which is why this is here and not in `before_script`. Run before the
+    # `pushd` above, it reached no module at all. `go list` failed, the command substitution kept
+    # its exit code to itself, and the empty output it left behind satisfied `test -z`. The branch
+    # below could not be taken, so the invariant `go.mod` states was held by nothing.
+    #
+    # Asking the template to drop the main module, rather than piping through `tail -n +2`, is the
+    # other half of that: a pipe answers with its last stage, so a `go list` that cannot answer
+    # would read here as a module with no dependencies.
+    - dependencies="$(go list -m -f '{{if not .Main}}{{.Path}}{{end}}' all)"
+    - test -z "$dependencies" || { echo "$dependencies"; echo 'the Go SDK has grown a dependency; it is meant to reach for the standard library alone'; exit 1; }
+    # `gofmt -l` names the files it would rewrite and exits successfully either way, so what it
+    # named is what decides.
+    - gofmt -l .
+    - test -z "$(gofmt -l .)" || { echo 'the files above are not what gofmt writes; the generator emits already-formatted source, so a difference here is a defect in it or a hand edit beside it'; exit 1; }
+    - go vet ./...
+    # `-coverpkg=./...` is what makes the generated half visible. The generator's 485 statements
+    # live in a package with no test file of its own; without this flag they are instrumented only
+    # for the tests that package has, which is none, so they land at 0% and the total reads 42.2%
+    # even though the suites here drive 484 of them. With it, the test binary carries the generated
+    # package's instrumentation too and what is actually driven is what is counted.
+    - go test -covermode=atomic -coverpkg=./... -coverprofile=coverage.out ./...
+    # Go ships no coverage threshold, so the comparison is made here rather than in a job or a
+    # script of its own. The floor is what this suite reaches today — 843 of 850 statements — and
+    # it is not headroom: these tests talk to a loopback socket and draw nothing random, so room
+    # below the achieved figure would only buy silent decay.
+    #
+    # Both sides of the comparison are the figure `go tool cover` prints, to the tenth it prints it
+    # to. That is deliberate rather than sloppy: the true ratio is 99.1765%, which the tool rounds
+    # up when it prints 99.2%, so a floor written as the true ratio and checked against the printed
+    # one — or the reverse — would be wrong by a rounding in one direction or the other. A tenth is
+    # fine enough here because one statement is worth more than that: lose a single one and the
+    # printed figure is 99.1%, which falls through.
+    #
+    # It is not 100% because four functions cannot be reached from a test: `queryValue`'s
+    # non-string arm, which no parameter the API document declares can produce; `Verify`'s arm for
+    # a signature carrying neither code, which parsing refuses first; and `moduleVersion` and
+    # `clipped`, which read what the build recorded and what the runtime calls itself, neither of
+    # which a test can put a value into. A drop lists every function still short of 100%, which is
+    # where to look for what went.
+    #
+    # The figure read is the one `go tool cover` prints, which merges each block. Summing the same
+    # profile line by line gives 63.2% for this very run, because `-coverpkg` writes each block once
+    # per package view that compiled it — 1335 lines standing for 850 statements. Only the merged
+    # one is a coverage figure; do not "fix" this into the other convention.
+    - >-
+      go tool cover -func=coverage.out | awk -v floor=99.2 '
+      $1 == "total:" { percentage = $NF; gsub("%", "", percentage); total = percentage + 0; next }
+      { line = $0; percentage = $NF; gsub("%", "", percentage); if (percentage + 0 < 100) short[++n] = line }
+      END {
+      if (total >= floor) { printf "coverage is %.1f%%, at or above the %.1f%% floor\n", total, floor; exit 0 }
+      printf "coverage is %.1f%%, below the %.1f%% floor this suite reaches\n", total, floor;
+      printf "the functions still short of 100%% are:\n";
+      for (i = 1; i <= n; i++) print "  " short[i];
+      exit 1 }'
+    # The corpus committed beside the properties runs above, as ordinary cases. This is the search
+    # itself, bounded so a pipeline can never be held by one.
+    #
+    # Bounded by a count of executions rather than by a stretch of time. A time budget is a deadline
+    # on the coordinator, and one run of the first target below reported `context deadline exceeded`
+    # at 20.09s having just executed 312,003 cases at a steady rate, on a runner shared with the
+    # rest of the pipeline. None of these three targets can be slow for any input: each is
+    # arithmetic over a policy whose attempt count is capped, so the loop inside runs a bounded
+    # number of times whatever the fuzzer draws. What expired was the budget, not an execution.
+    #
+    # A hundred thousand executions is about five seconds here, so this is also cheaper than the
+    # twenty seconds it replaces, and it is the same amount of searching on a busy runner as on an
+    # idle one.
+    - go test -run '^$' -fuzz FuzzRetryScheduleStaysWithinEveryBound -fuzztime 100000x .
+    - go test -run '^$' -fuzz FuzzReadingASignatureAnswersOneOfTheDeclaredRefusals -fuzztime 100000x .
+    - go test -run '^$' -fuzz FuzzAGeneratedTypeWritesBackWhatItRead -fuzztime 100000x .

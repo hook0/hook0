@@ -22,7 +22,7 @@ futures = "0.3.34"
 hex = "0.4.3"
 hickory-resolver = "0.26.1"
 hmac = "0.13.0"
-hook0-protobuf = { path = "../protobuf" }
+hook0-protobuf = { path = "../protobuf", version = "0.1.0" }
 hook0-sentry-integration = { path = "../sentry-integration", version = "0.1.0" }
 humantime = "2.4.0"
 itertools = "0.15.0"

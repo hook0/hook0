@@ -1,0 +1,11 @@
+# What a run writes and what each toolchain builds. None of it is source.
+/delivery/
+target/
+node_modules/
+package-lock.json
+.zig-cache/
+zig-out/
+bin/
+obj/
+__pycache__/
+/languages/go/go

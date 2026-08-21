@@ -1,0 +1,3 @@
+# The coverage profile the test job writes for the threshold beside it to read. It is an
+# intermediate of one run, not something a checkout should carry.
+coverage.out

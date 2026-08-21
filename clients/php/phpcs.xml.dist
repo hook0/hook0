@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<ruleset name="hook0-client">
+    <description>
+        What the emitted source and the hand-written source are both held to.
+
+        The generator writes source that already satisfies this file: nothing reformats what it
+        wrote, so a difference reported here is a defect in the generator or a hand edit beside it.
+    </description>
+
+    <file>src</file>
+    <file>tests</file>
+    <exclude-pattern>vendor/*</exclude-pattern>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="ps"/>
+
+    <rule ref="PSR12"/>
+
+    <!--
+        An error rather than a warning, and the same number the generator folds its comments and
+        argument lists at: a line past it is a defect somebody can fix rather than a note nobody
+        reads. `absoluteLineLimit` is what makes the sniff fail the job.
+    -->
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="120"/>
+            <property name="absoluteLineLimit" value="120"/>
+        </properties>
+    </rule>
+</ruleset>

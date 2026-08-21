@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Hook0</RootNamespace>
+    <AssemblyName>Hook0.Client</AssemblyName>
+
+    <!--
+      The generator emits already-formatted, already-documented source, so a diagnostic here is a
+      defect in it or a hand edit beside it rather than something to be waved through. Every public
+      declaration carries a documentation comment, and the build says so by asking for the file that
+      is written out of them.
+    -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+
+    <PackageId>Hook0.Client</PackageId>
+    <Version>1.1.0</Version>
+    <Authors>David Sferruzza,François-Guillaume Ribreau</Authors>
+    <Description>
+      Send events to Hook0, upsert the event types your application uses, verify the signature of an
+      incoming webhook, and call every operation the API declares through generated, documented
+      types — in both the blocking and the Task-returning idiom. Sending is idempotent and retried
+      under bounds the caller sets.
+    </Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://www.hook0.com/</PackageProjectUrl>
+    <RepositoryUrl>https://gitlab.com/hook0/hook0</RepositoryUrl>
+    <PackageTags>webhooks;webhook;webhook-server;events;saas</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!--
+    Nothing is referenced here, and that is the point: the SDK reaches the network, verifies
+    signatures and decodes what the API answers with nothing but the framework, so installing it can
+    never drag a transitive dependency into an application that only wanted to send an event. A
+    `PackageReference` appearing in this file fails `tests/PackagingTests.cs`, which is what keeps
+    that sentence true rather than aspirational.
+  -->
+
+</Project>

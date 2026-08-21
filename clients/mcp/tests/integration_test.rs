@@ -3,7 +3,9 @@
 //! These tests are BLACKBOX tests - they test the MCP server by spawning it as a
 //! subprocess and communicating via the MCP protocol (JSON-RPC over stdio).
 //!
-//! Tests run against the production Hook0 API using MCP_SERVICE_TOKEN.
+//! Most tests run against a Hook0 API using MCP_SERVICE_TOKEN and are `#[ignore]`d
+//! so they only run where one is available. The `protocol` module is the exception:
+//! it covers the MCP handshake, which never reaches the API, and always runs.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -55,7 +57,7 @@ struct McpServerProcess {
 }
 
 impl McpServerProcess {
-    /// Start the MCP server process
+    /// Start the MCP server process using credentials from the environment
     fn start() -> Self {
         // Get the token from environment
         let token = env::var("MCP_SERVICE_TOKEN")
@@ -65,6 +67,19 @@ impl McpServerProcess {
         let api_url =
             env::var("HOOK0_API_URL").unwrap_or_else(|_| "https://app.hook0.com".to_string());
 
+        Self::spawn(&token, &api_url)
+    }
+
+    /// Start the MCP server with a placeholder token.
+    ///
+    /// Protocol-level requests (`initialize`, `tools/list`) never reach the Hook0
+    /// API, and the server only checks at startup that the token is non-empty, so
+    /// these tests need neither credentials nor a reachable API.
+    fn start_without_credentials() -> Self {
+        Self::spawn("placeholder-token-never-used", "https://app.hook0.com")
+    }
+
+    fn spawn(token: &str, api_url: &str) -> Self {
         // Find the binary - it's in the workspace target directory
         let binary = env::var("CARGO_BIN_EXE_hook0-mcp")
             .unwrap_or_else(|_| "../../target/debug/hook0-mcp".to_string());
@@ -135,10 +150,15 @@ impl McpServerProcess {
 
     /// Send initialize request (required by MCP protocol)
     fn initialize(&mut self) -> JsonRpcResponse {
+        self.initialize_with_version("2024-11-05")
+    }
+
+    /// Send initialize request requesting a specific protocol version
+    fn initialize_with_version(&mut self, protocol_version: &str) -> JsonRpcResponse {
         let response = self.send_request(
             "initialize",
             json!({
-                "protocolVersion": "2024-11-05",
+                "protocolVersion": protocol_version,
                 "capabilities": {},
                 "clientInfo": {
                     "name": "test-client",
@@ -173,6 +193,143 @@ impl Drop for McpServerProcess {
     fn drop(&mut self) {
         let _ = self.child.kill();
         let _ = self.child.wait();
+    }
+}
+
+// =============================================================================
+// Protocol Negotiation Tests
+// =============================================================================
+
+/// These tests exercise the MCP protocol handshake only, so unlike the rest of
+/// this file they need no credentials and no reachable Hook0 API, and are
+/// therefore not `#[ignore]`d.
+mod protocol {
+    use super::*;
+    use rmcp::model::ProtocolVersion;
+
+    /// Where the README states which revisions this server answers on.
+    const REVISIONS_HEADING: &str = "## Protocol revisions";
+
+    /// What `get_info()` advertises, and what a client asking for an unimplemented revision is
+    /// answered with: the newest revision the README lists.
+    ///
+    /// Derived rather than stated, for the reason the list itself is derived — a server that
+    /// advertised a revision its own README does not list would be sending clients towards
+    /// something they cannot have, and a constant here saying otherwise would agree with it.
+    fn advertised_revision() -> String {
+        documented_revisions()
+            .pop()
+            .expect("documented_revisions refuses an empty list")
+    }
+
+    /// The revisions the README lists under [`REVISIONS_HEADING`], sorted.
+    ///
+    /// Read out of the file rather than restated here, because a copy of the list beside the one
+    /// users read is a copy that goes stale silently — which is exactly what a client discovering
+    /// the difference at `initialize` time would be paying for.
+    ///
+    /// Only whole bullets of the shape ``- `<revision>` `` count, so the prose around the list can
+    /// name a revision without being read as claiming it.
+    fn documented_revisions() -> Vec<String> {
+        let readme = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("README.md"),
+        )
+        .expect("the README this crate publishes");
+
+        let mut listed: Vec<String> = readme
+            .lines()
+            .skip_while(|line| line.trim() != REVISIONS_HEADING)
+            .skip(1)
+            .take_while(|line| !line.starts_with("## "))
+            .filter_map(|line| line.trim().strip_prefix("- `"))
+            .filter_map(|listed| listed.strip_suffix('`'))
+            .map(str::to_string)
+            .collect();
+        listed.sort();
+
+        assert!(
+            !listed.is_empty(),
+            "no revision is listed under `{REVISIONS_HEADING}` in the README, so this suite would \
+             be checking the server against nothing"
+        );
+        listed
+    }
+
+    fn negotiated_version(response: &JsonRpcResponse) -> String {
+        response
+            .result
+            .as_ref()
+            .expect("Initialize should return a result")
+            .get("protocolVersion")
+            .expect("Result should have protocolVersion")
+            .as_str()
+            .expect("protocolVersion should be a string")
+            .to_string()
+    }
+
+    /// What the server answers on and what the README says it answers on are one fact, and this is
+    /// what keeps them one.
+    ///
+    /// Every revision rmcp knows is offered to a running server, and what comes back says whether
+    /// the server took it: the requested revision means yes, the advertised one means it negotiated
+    /// down. So the supported set is measured rather than restated, and holding it against the
+    /// README catches the drift in both directions — a revision gained without a line in the file,
+    /// and a line in the file for a revision the server has dropped.
+    ///
+    /// This covers the `initialize` path. The other entry point needs no test of ours: rmcp checks
+    /// a request's inline `_meta` revision against the same list and answers `-32022 Unsupported
+    /// protocol version` when it is absent from it.
+    #[test]
+    fn test_the_revisions_answered_are_the_revisions_documented() {
+        let advertised = advertised_revision();
+        let mut answered = Vec::new();
+        for revision in ProtocolVersion::KNOWN_VERSIONS {
+            let mut server = McpServerProcess::start_without_credentials();
+            let negotiated = negotiated_version(&server.initialize_with_version(revision.as_str()));
+
+            match negotiated == revision.as_str() {
+                true => answered.push(negotiated),
+                false => assert_eq!(
+                    negotiated,
+                    advertised,
+                    "a revision this server does not implement ({}) should negotiate down to the \
+                     newest one it documents, not to something else",
+                    revision.as_str()
+                ),
+            }
+        }
+        answered.sort();
+
+        assert_eq!(
+            answered,
+            documented_revisions(),
+            "the revisions this server answers on are not the ones its README lists under \
+             `{REVISIONS_HEADING}`, so whoever reads it would point a client at the wrong thing"
+        );
+    }
+
+    /// `resultType` (SEP-2322) exists only from 2026-07-28. rmcp strips it for
+    /// older peers, and every version this server supports is older, so it must
+    /// never appear on the wire. Guards the `with_all_items` constructors, which
+    /// set `result_type: Some(ResultType::COMPLETE)` before stripping.
+    #[test]
+    fn test_results_carry_no_result_type() {
+        for version in documented_revisions() {
+            let mut server = McpServerProcess::start_without_credentials();
+            server.initialize_with_version(&version);
+
+            let response = server.send_request("tools/list", json!({}));
+            let result = response
+                .result
+                .expect("tools/list should return a result even with no tools");
+
+            assert!(
+                result.get("resultType").is_none(),
+                "tools/list must not carry resultType at protocol version {}, got: {}",
+                version,
+                result
+            );
+        }
     }
 }
 
@@ -261,20 +418,20 @@ mod tools {
             .as_array()
             .expect("tools should be an array");
 
-        // Tools are generated from OpenAPI spec at build time.
-        // If no tools are available, the build is broken - fail fast!
+        // Tools come from src/server/generated.rs, derived from the OpenAPI snapshot.
+        // If no tools are available, that file is broken - fail fast!
         assert!(
             !tools.is_empty(),
-            "No tools available! OpenAPI spec may not be accessible at build time. \
-             Check that HOOK0_API_URL is reachable during build or verify build.rs fallback. \
-             NEVER silently skip - fix the build configuration."
+            "No tools available! Regenerate them with \
+             UPDATE_SDK=mcp cargo test -p hook0-sdkgen sdk_targets. \
+             NEVER silently skip - fix the tool definitions."
         );
 
         // Should have at least the core tools (list_organizations, list_applications, etc.)
         assert!(
             tools.len() >= 5,
             "Should have at least 5 tools, got {}. \
-             OpenAPI spec may be incomplete or build.rs filtering is too aggressive.",
+             The OpenAPI snapshot may be incomplete or its `mcp` tag too sparse.",
             tools.len()
         );
 
@@ -661,6 +818,385 @@ mod prompts {
         assert!(
             error.code != 0 || !error.message.is_empty(),
             "Error should have code or message"
+        );
+    }
+}
+
+// =============================================================================
+// Refusal Tests
+// =============================================================================
+
+/// What reaches an assistant when Hook0 refuses one of its tool calls.
+///
+/// The server is driven over its stdio transport, as everywhere else here, but the Hook0 it is
+/// pointed at is a socket this test listens on and answers a real problem document from. No
+/// credentials and no instance are needed, so unlike the tests above these are not `#[ignore]`d:
+/// what they are about is how an answer is read, and the answer is right here.
+mod refusals {
+    use super::*;
+    use std::io::Read;
+    use std::net::TcpListener;
+    use std::thread;
+
+    /// The problem document Hook0 answers a duplicated ingestion with, as its API writes it.
+    const ALREADY_INGESTED: &str = r#"{"id":"EventAlreadyIngested","title":"Event already Ingested","detail":"This event was previously ingested and recorded inside Hook0 service.","status":409}"#;
+
+    /// Longest request this listener reads before it answers, in bytes.
+    const MAX_REQUEST_BYTES: usize = 64 * 1024;
+
+    /// Longest this listener waits on a socket that has stopped saying anything.
+    const PATIENCE: Duration = Duration::from_secs(10);
+
+    /// A Hook0 that refuses the first request it is sent, and answers where it is listening.
+    fn refusing_hook0(status: &'static str, body: &'static str) -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to listen");
+        let at = format!(
+            "http://{}",
+            listener.local_addr().expect("Failed to read the port")
+        );
+
+        thread::spawn(move || {
+            let Ok((mut connection, _)) = listener.accept() else {
+                return;
+            };
+            let _ = connection.set_read_timeout(Some(PATIENCE));
+            let _ = connection.set_write_timeout(Some(PATIENCE));
+
+            // Read the head, so the request is off the socket before it is answered.
+            let mut held = Vec::new();
+            let mut byte = [0u8; 1];
+            while held.len() < MAX_REQUEST_BYTES && !held.ends_with(b"\r\n\r\n") {
+                match connection.read(&mut byte) {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => held.push(byte[0]),
+                }
+            }
+
+            // And then the body, which nothing here reads for what it says. It is taken off the
+            // socket because leaving it there is what decides whether this answer arrives: a
+            // connection dropped with bytes still unread is reset rather than closed, and the
+            // client reads the reset in place of the refusal it was sent.
+            let announced = String::from_utf8_lossy(&held)
+                .lines()
+                .filter_map(|line| line.split_once(':'))
+                .find(|(name, _)| name.trim().eq_ignore_ascii_case("content-length"))
+                .and_then(|(_, counted)| counted.trim().parse::<usize>().ok());
+            if let Some(carried) = announced {
+                let mut body = vec![0u8; carried.min(MAX_REQUEST_BYTES)];
+                let _ = connection.read_exact(&mut body);
+            }
+
+            let _ = write!(
+                connection,
+                "HTTP/1.1 {status}\r\nContent-Type: application/problem+json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            let _ = connection.flush();
+        });
+
+        at
+    }
+
+    /// One ingestion, with every argument the generated tool declares it needs.
+    fn an_ingestion() -> Value {
+        json!({
+            "name": "events.ingest",
+            "arguments": {
+                "application_id": "6f8a3e1c-9a2b-4d5e-8f70-1c2d3e4f5a6b",
+                "event_id": "0195c0de-0000-7000-8000-000000000001",
+                "event_type": "smoke.event.sent",
+                "labels": { "language": "mcp" },
+                "occurred_at": "2026-01-01T00:00:00Z",
+                "payload": "{\"from\":\"a test\"}",
+                "payload_content_type": "application/json",
+            },
+        })
+    }
+
+    #[test]
+    fn a_refused_tool_call_names_the_problem_hook0_named() {
+        let mut server = McpServerProcess::spawn(
+            "placeholder-token-never-used",
+            &refusing_hook0("409 Conflict", ALREADY_INGESTED),
+        );
+        server.initialize();
+
+        let response = server.send_request("tools/call", an_ingestion());
+
+        let error = response.error.expect("A refused call should return error");
+        // Its stable name is the only part of a refusal an assistant can act on: it is what tells
+        // an ingestion that already happened, and must not be tried again, from any other conflict.
+        assert!(
+            error.message.contains("EventAlreadyIngested"),
+            "A refusal has to name the problem Hook0 named: {}",
+            error.message
+        );
+    }
+
+    #[test]
+    fn a_refused_tool_call_says_what_the_problem_said() {
+        let mut server = McpServerProcess::spawn(
+            "placeholder-token-never-used",
+            &refusing_hook0("409 Conflict", ALREADY_INGESTED),
+        );
+        server.initialize();
+
+        let response = server.send_request("tools/call", an_ingestion());
+
+        let error = response.error.expect("A refused call should return error");
+        assert!(
+            error
+                .message
+                .contains("This event was previously ingested and recorded inside Hook0 service."),
+            "A refusal has to carry what Hook0 said about it: {}",
+            error.message
+        );
+    }
+}
+
+// =============================================================================
+// Query Parameter Tests
+// =============================================================================
+
+/// What an operation's query parameters do between the tool call and the request line.
+///
+/// Driven the same way as the refusals above — over stdio, against a socket this test listens on —
+/// but what is read off that socket here is the request line rather than the answer. A tool
+/// declares an argument required, an assistant supplies it, and the only place the value can
+/// legitimately end up for a `GET` is the query string; these say so by looking at the bytes.
+///
+/// Not `#[ignore]`d, for the same reason the refusals are not: what they are about is what this
+/// server composes, and nothing about that needs an instance to be reachable.
+mod query_parameters {
+    use super::*;
+    use std::io::Read;
+    use std::net::TcpListener;
+    use std::sync::mpsc::{self, Receiver};
+    use std::thread;
+
+    /// Longest request this listener reads before it answers, in bytes.
+    const MAX_REQUEST_BYTES: usize = 64 * 1024;
+
+    /// Longest this listener waits on a socket that has stopped saying anything.
+    const PATIENCE: Duration = Duration::from_secs(10);
+
+    /// Longest a case waits for the request line to come back off the listener.
+    const DELIVERY: Duration = Duration::from_secs(20);
+
+    /// A Hook0 that answers an empty list, and hands back the request line it was asked with.
+    fn recording_hook0() -> (String, Receiver<String>) {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to listen");
+        let at = format!(
+            "http://{}",
+            listener.local_addr().expect("Failed to read the port")
+        );
+        let (asked, heard) = mpsc::channel();
+
+        thread::spawn(move || {
+            let Ok((mut connection, _)) = listener.accept() else {
+                return;
+            };
+            let _ = connection.set_read_timeout(Some(PATIENCE));
+            let _ = connection.set_write_timeout(Some(PATIENCE));
+
+            let mut held = Vec::new();
+            let mut byte = [0u8; 1];
+            while held.len() < MAX_REQUEST_BYTES && !held.ends_with(b"\r\n\r\n") {
+                match connection.read(&mut byte) {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => held.push(byte[0]),
+                }
+            }
+
+            let head = String::from_utf8_lossy(&held).into_owned();
+            let _ = asked.send(head.lines().next().unwrap_or_default().to_owned());
+
+            let body = "[]";
+            let _ = write!(
+                connection,
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            let _ = connection.flush();
+        });
+
+        (at, heard)
+    }
+
+    /// The request line one tool call put on the wire.
+    fn asked_with(arguments: Value) -> String {
+        let (at, heard) = recording_hook0();
+        let mut server = McpServerProcess::spawn("placeholder-token-never-used", &at);
+        server.initialize();
+        server.send_request("tools/call", arguments);
+
+        heard
+            .recv_timeout(DELIVERY)
+            .expect("the server never reached the Hook0 it was pointed at")
+    }
+
+    /// An argument the tool declares required reaches the API, rather than being asked for and
+    /// dropped. `applications.list` takes one, and it is the whole of what the operation selects
+    /// on, so a request without it is not a narrower question — it is a different one.
+    #[test]
+    fn applications_list_carries_the_organization_it_was_given() {
+        let organization = "6f8a3e1c-9a2b-4d5e-8f70-1c2d3e4f5a6b";
+
+        let asked = asked_with(json!({
+            "name": "applications.list",
+            "arguments": { "organization_id": organization },
+        }));
+
+        assert!(
+            asked.contains(&format!("organization_id={organization}")),
+            "the organization the tool was given reached nothing: {asked}"
+        );
+    }
+
+    /// A value travels percent-encoded, and a space travels as `%20` rather than as `+`.
+    ///
+    /// Pinned rather than left to the encoder, because it is a decision: `+` is a literal plus
+    /// under RFC 3986 and reads as a space only to something decoding the query as a form. A
+    /// cursor is opaque text the API hands out, so it is the argument most likely to carry one.
+    #[test]
+    fn a_query_value_travels_percent_encoded() {
+        let asked = asked_with(json!({
+            "name": "requestAttempts.read",
+            "arguments": {
+                "application_id": "6f8a3e1c-9a2b-4d5e-8f70-1c2d3e4f5a6b",
+                "pagination_cursor": "one two",
+            },
+        }));
+
+        assert!(
+            asked.contains("pagination_cursor=one%20two"),
+            "a space has to travel as `%20`: {asked}"
+        );
+    }
+
+    /// Every argument reaches the API, not merely the first one. `requestAttempts.read` declares
+    /// seven, where every other tool declares one, so it is the case that tells composing a query
+    /// string apart from filling in a single value and calling it done.
+    #[test]
+    fn request_attempts_list_carries_every_filter_it_was_given() {
+        let filters = [
+            ("application_id", "6f8a3e1c-9a2b-4d5e-8f70-1c2d3e4f5a6b"),
+            ("event.event_type_names", "smoke.event.sent"),
+            ("event_id", "0195c0de-0000-7000-8000-000000000001"),
+            ("max_created_at", "2026-01-02T00:00:00Z"),
+            ("min_created_at", "2026-01-01T00:00:00Z"),
+            ("pagination_cursor", "cursor-1"),
+            ("subscription_id", "0195c0de-0000-7000-8000-000000000002"),
+        ];
+
+        let mut arguments = serde_json::Map::new();
+        for (name, value) in filters {
+            arguments.insert(name.to_owned(), json!(value));
+        }
+
+        let asked = asked_with(json!({
+            "name": "requestAttempts.read",
+            "arguments": Value::Object(arguments),
+        }));
+
+        for (name, _) in filters {
+            assert!(
+                asked.contains(&format!("{name}=")),
+                "`{name}` was asked for and reached nothing: {asked}"
+            );
+        }
+    }
+}
+
+// =============================================================================
+// Documented Tools
+// =============================================================================
+
+/// The tool table the README publishes, held against the tools a running server offers.
+///
+/// This needs no credentials for the reason `protocol` does not: `tools/list` is answered from the
+/// generated table and never reaches the Hook0 API.
+mod documented_tools {
+    use super::*;
+
+    /// Where the README lists the tools this server exposes.
+    const TOOLS_HEADING: &str = "## Available Tools";
+
+    /// The tools the README lists under [`TOOLS_HEADING`], sorted.
+    ///
+    /// Read out of the file rather than restated here, for the reason the protocol revisions are:
+    /// a copy of the list beside the one readers see is a copy that goes stale in silence. This one
+    /// did, and for a whole release the README sent readers to fifteen tools under names that had
+    /// been renamed out from under it.
+    ///
+    /// Only whole rows of the shape ``| `<tool>` | … |`` count, so the prose around the tables can
+    /// name a tool without being read as listing it.
+    fn documented_tools() -> Vec<String> {
+        let readme = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("README.md"),
+        )
+        .expect("the README this crate publishes");
+
+        let mut listed: Vec<String> = readme
+            .lines()
+            .skip_while(|line| line.trim() != TOOLS_HEADING)
+            .skip(1)
+            .take_while(|line| !line.starts_with("## "))
+            .filter_map(|line| line.trim().strip_prefix("| `"))
+            .filter_map(|row| row.split_once("` |"))
+            .map(|(named, _)| named.to_owned())
+            .collect();
+        listed.sort();
+
+        assert!(
+            !listed.is_empty(),
+            "no tool is listed under `{TOOLS_HEADING}` in the README, so this suite would be \
+             checking the server against nothing"
+        );
+        listed
+    }
+
+    /// The tools a running server offers, sorted.
+    fn offered_tools() -> Vec<String> {
+        let mut server = McpServerProcess::start_without_credentials();
+        server.initialize();
+
+        let result = server
+            .send_request("tools/list", json!({}))
+            .result
+            .expect("tools/list returns a result");
+
+        let mut offered: Vec<String> = result
+            .get("tools")
+            .and_then(Value::as_array)
+            .expect("tools/list returns a list of tools")
+            .iter()
+            .map(|tool| {
+                tool.get("name")
+                    .and_then(Value::as_str)
+                    .expect("every tool carries a name")
+                    .to_owned()
+            })
+            .collect();
+        offered.sort();
+
+        assert!(!offered.is_empty(), "the server offered no tool at all");
+        offered
+    }
+
+    /// What the server offers and what its README says it offers are one fact.
+    ///
+    /// Measured rather than restated, so the drift is caught in both directions: a tool gained
+    /// without a row in the file, and a row in the file for a tool the server no longer has. The
+    /// second is the one that shipped, and it is invisible from the inside. A reader follows the
+    /// README, calls a name that is not there, and the only thing that says so is the answer.
+    #[test]
+    fn test_the_tools_offered_are_the_tools_documented() {
+        assert_eq!(
+            offered_tools(),
+            documented_tools(),
+            "the tools this server offers are not the ones its README lists under \
+             `{TOOLS_HEADING}`, so whoever reads it would call a name that is not there"
         );
     }
 }

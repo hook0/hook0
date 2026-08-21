@@ -1,0 +1,73 @@
+{
+  "$comment": [
+    "The shared contract: what every SDK puts on the wire, beyond the body itself.",
+    "A change here is a change to every SDK. Each target reads this file from its own suite, sends a",
+    "real request to a listening socket and holds what arrived against the list below, so a header",
+    "dropped or renamed in one target fails there rather than at the first API that notices.",
+    "Header names are matched without regard to case, as HTTP compares them.",
+    "A value is a template: `${name}` is a hole and everything around it is literal. A suite fills",
+    "the holes it can speak for — `${token}` is the credential the client was built with, and",
+    "`${language}` is the target reading the file — and what is left over is a hole no suite can fill",
+    "without reimplementing the client it is testing. Those are matched rather than compared: the",
+    "literal text has to arrive in order, anchored at both ends, with something non-empty in each",
+    "hole. A template whose holes are all filled is an exact string, which is what the first three",
+    "below are, so nothing about how they are checked has changed.",
+    "`max_composed_bytes` bounds any value a client composes rather than repeats — one carrying a",
+    "hole no suite fills, which is one built out of what the platform said rather than out of what",
+    "is written here. Those parts are as long as the platform feels like making them, so a client",
+    "cuts them to fit rather than sending whatever it was handed.",
+    "`when` says which requests carry the header, and is one of the `occasions` below.",
+    "This is the smallest thing worth pinning and the easiest to let drift: a client that omits the",
+    "representation it accepts works perfectly until the API serves a second one.",
+    "`Hook0-Client-Options` reuses the grammar of `X-Hook0-Signature` rather than inventing a",
+    "second one: parts joined by `,`, each part cut at its FIRST `=`, so a value containing `=`",
+    "stays whole. Every client already emits and reads that shape, so this header costs no new",
+    "parser and offers no new way to get parsing wrong.",
+    "Its four parts are the retry policy the client was built with, in this fixed order, each an",
+    "integer with no unit suffix and every duration in milliseconds. Fixed order is what lets a",
+    "suite compare the whole value as one string instead of parsing it back apart.",
+    "It reports the policy IN FORCE, not what this particular send did with it. A policy allowing",
+    "four attempts says `attempts=4` on a send that succeeded on the first, because four is what it",
+    "would have allowed; and a policy allowing one still states the delays it holds, because they",
+    "are what it holds, and a reader seeing `attempts=1` already knows none will be waited.",
+    "In force also means AFTER the client's own clamps. A client asked for a thousand attempts and",
+    "capped at sixteen states sixteen, because sixteen is what its traffic will show and a thousand",
+    "would send a reader looking for a burst that cannot happen. This is the one place the two",
+    "readings of `configured` come apart, and getting it wrong in one target puts two Hook0 SDKs on",
+    "the wire describing the same setup differently."
+  ],
+  "occasions": ["every request", "a request carrying a body"],
+  "max_composed_bytes": 256,
+  "headers": [
+    {
+      "name": "Authorization",
+      "value": "Bearer ${token}",
+      "when": "every request",
+      "reason": "the credential the API authenticates the application with"
+    },
+    {
+      "name": "Accept",
+      "value": "application/json",
+      "when": "every request",
+      "reason": "the representation every SDK is written to read; a client that asks for nothing is at the mercy of whatever the API decides to serve the day it serves more than one"
+    },
+    {
+      "name": "Content-Type",
+      "value": "application/json",
+      "when": "a request carrying a body",
+      "reason": "what the body is written as, which a request carrying no body has nothing to declare"
+    },
+    {
+      "name": "User-Agent",
+      "value": "hook0-client-${language}/${version} (${runtime}; ${os})",
+      "when": "every request",
+      "reason": "which SDK, at which version, on which runtime and operating system, is talking to the API; an instance can otherwise not tell a deprecation that has reached everybody from one that has reached nobody, and nothing can go back and ask a client that shipped two years ago"
+    },
+    {
+      "name": "Hook0-Client-Options",
+      "value": "attempts=${attempts},backoff=${backoff_ms},ceiling=${ceiling_ms},budget=${budget_ms}",
+      "when": "every request",
+      "reason": "the retry policy behind the request, which is the only client setting the API can see the consequences of without being told: a burst of identical requests arriving inside a few seconds is a client repeating one send, and without this header it is indistinguishable from a client in a loop. It also makes the far commoner mistake legible — a client left at one attempt reports a flaky API for failures a single retry would have absorbed, and nothing on the API side can tell that today"
+    }
+  ]
+}

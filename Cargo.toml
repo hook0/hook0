@@ -2,12 +2,14 @@
 members = [
   "api",
   "cli",
+  "ci/release-packages",
   "ci/validate-dockerfiles",
   "play",
   "output-worker",
   "sentry-integration",
   "clients/rust",
   "clients/mcp",
+  "clients/sdkgen",
   "protobuf"
 ]
 resolver = "3"

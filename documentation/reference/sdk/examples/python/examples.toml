@@ -1,0 +1,29 @@
+# How a Python example of the SDK reference is proven.
+#
+# `clients/python` ships no `py.typed` marker, but that marker only governs how a package
+# *installed from a wheel* is read — it says nothing about a package mypy is pointed at directly.
+# The scaffolded `mypy.ini` sets `mypy_path` to the client's own `src`, so every assembled example
+# is resolved against the real classes and functions rather than against stubs: a method renamed on
+# the client, a dataclass field dropped from `Event`, an argument handed the wrong type all fail
+# mypy, on the page and line the example came from, the same way a renamed method fails `go build`
+# for the Go examples.
+#
+# Nothing here is executed, so this proves less than running the snippet would: a signature that
+# type-checks but does the wrong thing at runtime is outside what this level catches. And an import
+# this page shows that is not part of the client — `flask`, in the one snippet that uses it — is
+# read as `Any` rather than installed, since only `clients/python` is what these examples are held
+# against; an argument that only reaches a `hook0` type is still checked there.
+proof = "type-checked"
+proves = "assembled against clients/python and resolved with mypy against its real declared types; a renamed method, a dropped field, or an argument of the wrong type fails wherever the client's types reach"
+
+path = "{{name}}/main.py"
+timeout_seconds = 300
+
+# A venv rather than the system interpreter: this sandbox (and several CI images) refuse
+# `pip install` outside one, and a venv is the one thing that behaves the same whether or not that
+# refusal is in force.
+run = [
+    ["python3", "-m", "venv", ".venv"],
+    [".venv/bin/pip", "install", "--quiet", "--disable-pip-version-check", "mypy==1.13.0"],
+    [".venv/bin/mypy", "."],
+]

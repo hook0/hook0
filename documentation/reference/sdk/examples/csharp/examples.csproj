@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The project every C# example of the SDK reference is built inside.
+
+    The real client is compiled straight from its own source below rather than through
+    `Hook0.Client.csproj` or a package reference: that project enables analyzers and doc-comment
+    generation that belong to publishing the package, not to proving a documentation snippet still
+    compiles against it, and referencing it as a project would build its `obj`/`bin` inside
+    `clients/csharp` itself — this project's job is to read that source, never to write beside it.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- A library, not an executable: nothing here is ever meant to run, only to compile, and a
+         library is the one output type that asks for no entry point. -->
+    <OutputType>Library</OutputType>
+    <IsPackable>false</IsPackable>
+    <!-- A page shows a variable it never reads again on purpose, to keep a snippet short; that is
+         a fact about the page, not a defect this build should fail over. -->
+    <NoWarn>CS0219;CS0414</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The ASP.NET Core example imports `HttpRequest`, `WebApplication` and `Results` without
+         hosting a server: a `FrameworkReference` is how a project outside `Microsoft.NET.Sdk.Web`
+         reaches those types. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="{{client}}/src/Hook0/**/*.cs" />
+  </ItemGroup>
+
+</Project>

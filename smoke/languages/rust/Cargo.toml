@@ -1,0 +1,26 @@
+[package]
+name = "rust-smoke"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Detached from the root workspace, like the harness above it: this is not something the repository
+# builds or releases.
+[workspace]
+
+[dependencies]
+hook0-client = { path = "../../../clients/rust" }
+
+# The vocabulary types the client's own signatures are written in, at the versions it declares.
+chrono = "0.4"
+serde_json = "1.0"
+url = "2.5"
+uuid = { version = "1.24", features = ["v7"] }
+
+# The generated half is handed a transport and implements none, which is the client's design: an
+# application brings its own. So this smoke brings the one an application would.
+reqwest = "0.13"
+
+# `send_event` and every generated method are asynchronous, so something has to drive them. Nothing
+# beyond a current-thread runtime is needed.
+tokio = { version = "1", features = ["macros", "rt", "time"] }

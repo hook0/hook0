@@ -67,6 +67,10 @@ const config = {
             "**/.docusaurus/**",
             "**/scripts/**",
             "**/CLAUDE.md",
+            // The harnesses the SDK examples are assembled into, and the note explaining them.
+            // They live beside the pages so that whoever edits a snippet can see what it stands
+            // on, and they are addressed to that person rather than to a reader of the product.
+            "**/reference/sdk/examples/**",
           ],
         },
         sitemap: {
@@ -147,7 +151,7 @@ const config = {
   markdown: {
     mermaid: true,
     hooks: {
-      onBrokenMarkdownLinks: "warn",
+      onBrokenMarkdownLinks: "throw",
     },
   },
 
@@ -248,7 +252,24 @@ const config = {
       prism: {
         theme: prismThemes.github,
         darkTheme: poimandresTheme,
-        additionalLanguages: ["rust", "bash", "json", "yaml", "toml"],
+        // One entry per language an SDK page shows code in; a language absent here
+        // renders as plain text.
+        additionalLanguages: [
+          "rust",
+          "bash",
+          "json",
+          "yaml",
+          "toml",
+          "python",
+          "go",
+          "ruby",
+          "php",
+          "csharp",
+          "java",
+          "kotlin",
+          "lua",
+          "zig",
+        ],
       },
       // announcementBar: {
       //   id: "hook0_v2",

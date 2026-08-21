@@ -1,3 +1,6 @@
+# Also covers the hook0-sdkgen crate: same image, same stage, same cadence, so it rides
+# along here instead of paying for a job of its own. Its fuzz smoke is a plain #[test]
+# and runs with the rest.
 client.rust.check:
   extends: .rust-cache-pull-only
   stage: test
@@ -7,18 +10,94 @@ client.rust.check:
     - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
     - changes:
         - clients/rust/**/*
+        - clients/sdkgen/**/*
+        # The generator suites read the API's OpenAPI snapshot, so a change of
+        # the API surface has to run them even when no generator file moved.
+        - api/openapi.snapshot.json
+        # Generated trees are written here, so a hand edit of any of them has to
+        # face the drift guard that wrote it. Three shapes, because where a
+        # target lands is the target's business: under a `src` for a language
+        # that has one, under a `lib` for a language that keeps its sources
+        # there, and directly under the client for a language that keeps a
+        # package's tests beside it and so has neither.
+        #
+        # The trailing `/*` is what makes these recursive. GitLab matches with
+        # Ruby's `File.fnmatch?` under `FNM_PATHNAME`, where a `**` at the end
+        # of a pattern stands for a single path segment like `*` does, and only
+        # a `**/` in the middle walks down. Written `clients/*/src/**` these
+        # three matched no generated tree at all, so a hand edit anywhere in
+        # them skipped the only job that runs the drift guard.
+        - clients/*/src/**/*
+        - clients/*/lib/**/*
+        - clients/*/generated/**/*
+        # Retry classification, the bounds of a send and signature verification are hand-written
+        # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
+        # this client rather than the one language whoever edited it happened to be reading.
+        - clients/conformance/**/*
         - Cargo.*
+        - .gitlab-ci.yml
   before_script:
     - rustc --version && cargo --version
     - rustup component add clippy
     - rustup component add rustfmt
+    # What `cargo llvm-cov` reads the instrumented run back with. It ships with the toolchain but
+    # is not installed by default, and without it the coverage leg below cannot start.
+    - rustup component add llvm-tools-preview
+    # Pinned for the same reason the semver check beside it pins its own subcommand: a release of
+    # this tool is a change somebody made rather than a pipeline that turned red on its own. 0.9.0
+    # is the version the floors below were measured with, which is what makes them mean anything —
+    # a release that counted regions differently would move them without a line of this client
+    # changing.
+    #
+    # Taken from the release as an archive rather than bootstrapped through an installer script,
+    # and verified, because every other download in this pipeline is. The project publishes no
+    # checksum a job can fetch, so this one was taken from the archive itself; a release that
+    # replaced the bytes under the same tag stops here rather than running.
+    - curl --fail --silent --show-error --location --connect-timeout 30 --max-time 300 --output cargo-llvm-cov.tar.gz "https://github.com/taiki-e/cargo-llvm-cov/releases/download/v$CARGO_LLVM_COV_VERSION/cargo-llvm-cov-x86_64-unknown-linux-gnu.tar.gz"
+    - echo "$CARGO_LLVM_COV_SHA256  cargo-llvm-cov.tar.gz" | sha256sum --check --strict
+    - tar --extract --gzip --file cargo-llvm-cov.tar.gz --directory /usr/local/bin cargo-llvm-cov
+    - cargo llvm-cov --version
   script:
     - pushd clients/rust
     - cargo fmt --all -- --check
     - cargo clippy --all-targets --all-features -- -D warnings
-    - cargo test --all-targets --all-features
+    # The same run as `cargo test --all-targets --all-features`, under instrumentation, so that the
+    # floors below are enforced by the command the job already had rather than by a job or a script
+    # of its own. The two feature-gated legs further down stay plain: they compile a subset of what
+    # this one does, so measuring them again would only re-measure the same lines more slowly.
+    #
+    # The floors are what this suite reaches today: 98.9240% of lines and 98.2922% of regions, each
+    # truncated to the hundredth rather than rounded. Truncated on purpose — llvm-cov rounds the
+    # figure it prints, so it shows the line coverage as 98.92%, and a floor set at what it printed
+    # would fail the very run it was read from when the rounding goes up. They are not headroom
+    # either: these tests talk to a loopback socket and the property suites are derandomised, so
+    # there is no run-to-run noise to leave room for. One line or one region going uncovered still
+    # falls through (98.85% and 98.25%), which is as tight as two decimals can be made.
+    #
+    # Regions rather than branches because llvm-cov reports no branch figure for this crate at all —
+    # the branch column it prints is empty, and regions are what stand in for it.
+    #
+    # What is left is sixteen lines, and none of them is reachable from a test:
+    #  - `signature.rs`: the arm a signature carrying neither a v0 nor a v1 code would take, which
+    #    parsing refuses first. It is commented as unreachable in the source and is left alone.
+    #  - `errors.rs`: `unwritable`, and the `Display` arm for the variant it builds — the answer for
+    #    a request body this crate could not serialise, which no type it sends can produce.
+    #  - `lib.rs`: a `debug!` line; the walk that gives up after eight links of an error chain; the
+    #    answer for an error carrying no chain at all; and the wording used when a send that ran out
+    #    of attempts has no last response body to quote.
+    #
+    # `generated/models.rs` used to be most of the shortfall, at 43.70% of its lines and 2 of its 18
+    # functions, because nothing called `as_str` or `Display` on the closed lists the generator
+    # wrote — the suite reached those types through serde, which touches neither. It is at 100% of
+    # both now, driven against the values the document declares.
+    - >-
+      cargo llvm-cov --all-features --all-targets --fail-under-lines 98.92 --fail-under-regions 98.29
+      || (echo "ERROR - the instrumented run did not pass: either a test above failed, or coverage fell below the floor this suite reaches - the table above names every file and what it covers, which is where to look for what went" && exit 1)
     - cargo clippy --all-targets --no-default-features --features consumer -- -D warnings
     - cargo test --all-targets --no-default-features --features consumer
     - cargo clippy --all-targets --no-default-features --features producer -- -D warnings
     - cargo test --all-targets --no-default-features --features producer
+    - cargo fmt -p hook0-sdkgen -- --check
+    - cargo clippy -p hook0-sdkgen --all-targets -- -D warnings
+    - cargo test -p hook0-sdkgen
 

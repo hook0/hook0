@@ -2,6 +2,26 @@ import * as crypto from 'crypto';
 import { Hook0ClientError } from './index';
 
 /**
+ * Decode a hex-encoded signature field, refusing anything that is not entirely valid hex.
+ *
+ * `Buffer.from(value, 'hex')` stops at the first character it cannot decode and returns what it
+ * managed to read, so a malformed field would otherwise become a shorter, plausible-looking
+ * signature instead of an error. Every byte accounts for exactly two input characters, so a
+ * decoded length that does not cover the whole input means the input was not valid hex.
+ * @param value - The hex-encoded value
+ * @param signature - The whole signature header, reported when the value cannot be decoded
+ * @returns The decoded bytes
+ * @throws Hook0ClientError if the value is not entirely valid hex
+ */
+function decodeHexField(value: string, signature: string): Buffer {
+  const decoded = Buffer.from(value, 'hex');
+  if (decoded.length * 2 !== value.length) {
+    throw Hook0ClientError.SignatureParsing(signature);
+  }
+  return decoded;
+}
+
+/**
  * Signature class to parse and verify signatures
  */
 class Signature {
@@ -37,12 +57,16 @@ class Signature {
    * @throws Hook0ClientError if parsing fails
    */
   static parse(signature: string): Signature {
-    const parts = new Map(
-      signature.split(Signature.SIGNATURE_PART_SEPARATOR).map((part) => {
-        const terms = part.split(Signature.SIGNATURE_PART_ASSIGNATOR, 2).map((term) => term.trim());
-        return [terms[0], terms[1]] as [string, string];
-      })
-    );
+    const parts = new Map<string, string>();
+    for (const part of signature.split(Signature.SIGNATURE_PART_SEPARATOR)) {
+      // Only the first assignator separates the key from the value; the value keeps everything
+      // that follows so that a stray `=` inside it makes the field invalid rather than truncating
+      // it silently.
+      const assignatorIndex = part.indexOf(Signature.SIGNATURE_PART_ASSIGNATOR);
+      if (assignatorIndex >= 0) {
+        parts.set(part.slice(0, assignatorIndex).trim(), part.slice(assignatorIndex + 1).trim());
+      }
+    }
 
     const tStr = parts.get('t');
     if (typeof tStr !== 'string') {
@@ -53,16 +77,19 @@ class Signature {
       throw Hook0ClientError.TimestampParsingInSignature(tStr);
     }
 
-    const v0Str = parts.get('v0') ?? null;
-    const v0 = typeof v0Str === 'string' ? (Buffer.from(v0Str, 'hex') ?? null) : null;
+    const v0Str = parts.get('v0');
+    const v0 = typeof v0Str === 'string' ? decodeHexField(v0Str, signature) : null;
 
-    const hStr = (parts.get('h') ?? '').trim().toLowerCase();
-    const h = hStr.length > 0 ? hStr.split(Signature.SIGNATURE_PART_HEADER_NAMES_SEPARATOR) : [];
+    const hStr = parts.get('h');
+    const h =
+      typeof hStr === 'string' && hStr.length > 0
+        ? hStr.toLowerCase().split(Signature.SIGNATURE_PART_HEADER_NAMES_SEPARATOR)
+        : [];
 
-    const v1Str = parts.get('v1') ?? null;
-    const v1 = typeof v1Str === 'string' ? (Buffer.from(v1Str, 'hex') ?? null) : null;
+    const v1Str = parts.get('v1');
+    const v1 = typeof v1Str === 'string' ? decodeHexField(v1Str, signature) : null;
 
-    if (typeof v0 !== 'object' && typeof v1 !== 'object') {
+    if (v0 === null && v1 === null) {
       throw Hook0ClientError.SignatureParsing(signature);
     }
 
@@ -74,8 +101,20 @@ class Signature {
    * @param payload - The payload to verify the signature against
    * @param secret - The secret key used to generate the HMAC signature
    * @returns true if the signature is valid, false otherwise
+   * @throws Hook0ClientError if a header the signature covers is absent from the request
    */
   verify(payload: Buffer, headers: Headers, secret: string): boolean {
+    // Resolved before any HMAC work, so that a header the signature covers but the request does
+    // not carry is reported as such instead of quietly shortening the signed string and surfacing
+    // as an invalid signature.
+    const resolvedHeaderValues = this.h.map((name) => {
+      const value = headers.get(name);
+      if (typeof value !== 'string') {
+        throw Hook0ClientError.MissingHeader(name);
+      }
+      return value;
+    });
+
     const timestampStr = this.timestamp.toString();
 
     const hmac = crypto.createHmac('sha256', secret);
@@ -84,10 +123,7 @@ class Signature {
 
     if (this.v1 !== null) {
       const header_names = this.h.join(Signature.SIGNATURE_PART_HEADER_NAMES_SEPARATOR);
-      const header_values = this.h
-        .map((name) => headers.get(name))
-        .filter((v) => typeof v === 'string')
-        .join(Signature.PAYLOAD_SEPARATOR);
+      const header_values = resolvedHeaderValues.join(Signature.PAYLOAD_SEPARATOR);
 
       hmac.update(Buffer.from(header_names));
       hmac.update(Signature.PAYLOAD_SEPARATOR_BYTES);

@@ -1,0 +1,26 @@
+# The style the generator writes and the hand-written half is held to.
+#
+# ktlint reads this file, so the settings below are the whole style configuration: there is no
+# second place where a rule is turned on or off. The repository's own `.editorconfig` sits above it
+# and is inherited, which is where the two-space indentation and the trailing-newline rules come
+# from — the emitted source follows the repository rather than the language's own default, for the
+# same reason the Java client's does.
+#
+# Every setting below is one the emitter satisfies as it emits: the margin it folds comments and
+# calls at, the import block it sorts, and the trailing comma it does not write.
+
+[*.{kt,kts}]
+ktlint_code_style = intellij_idea
+
+# Nothing is written past the margin the emitter folds at.
+max_line_length = 120
+
+# One block, sorted the way a plain string comparison sorts it, with no blank line inside it. The
+# emitter writes its imports out of a sorted set, so this is what it already produces.
+ij_kotlin_imports_layout = *
+
+# No trailing comma, at either site. A generated argument list is folded by the emitter when it does
+# not fit, and a trailing comma would be one more token for the emitter to get right for no reader's
+# benefit.
+ij_kotlin_allow_trailing_comma = false
+ij_kotlin_allow_trailing_comma_on_call_site = false

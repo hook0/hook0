@@ -1,0 +1,78 @@
+# A job of its own, unlike the generator guards that ride along with the Rust client: this is
+# another runtime, with another toolchain and another image, so there is nothing here an existing
+# job could have run.
+clients.zig.check:
+  stage: test
+  dependencies: []
+  # Zig publishes no container image of its own, so the toolchain is fetched rather than pulled and
+  # the base is whatever can fetch it. That is also why the checksum below exists: a tarball taken
+  # off the network is pinned by what it contains, not only by the name it was asked for.
+  image: debian:trixie-slim
+  # Compiling the package and its suite from cold takes a few minutes on a shared runner, and the
+  # suite itself talks to loopback sockets and finishes in seconds; anything past this is a run that
+  # is stuck rather than one that is slow.
+  timeout: 20m
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
+    - changes:
+        - clients/zig/**/*
+        # The generated half of the package is written from the API's OpenAPI snapshot, so a change
+        # of the generator or of the API surface has to face the suites that exercise what it wrote.
+        - clients/sdkgen/**/*
+        - api/openapi.snapshot.json
+        # Retry classification, the bounds of a send and signature verification are hand-written
+        # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
+        # this client rather than the one language whoever edited it happened to be reading.
+        - clients/conformance/**/*
+        - .gitlab-ci.yml
+  variables:
+    # `$ZIG_SHA256` is the checksum of the tarball `$ZIG_VERSION` names, published beside it in
+    # Zig's release index. Both are root variables, because `documentation.examples` fetches the
+    # same archive and has to verify it against the same digest.
+    ZIG_TARBALL: zig-x86_64-linux-$ZIG_VERSION.tar.xz
+  before_script:
+    - apt-get update && apt-get install --yes --no-install-recommends ca-certificates curl xz-utils
+    # Every step of the fetch is bounded: a mirror that accepts the connection and then stops
+    # sending would otherwise hold the job for its whole timeout.
+    - curl --fail --silent --show-error --location --connect-timeout 30 --max-time 300
+      --output "$ZIG_TARBALL" "https://ziglang.org/download/$ZIG_VERSION/$ZIG_TARBALL"
+    - echo "$ZIG_SHA256  $ZIG_TARBALL" | sha256sum --check --strict
+    - mkdir -p /opt/zig && tar --extract --xz --file "$ZIG_TARBALL" --directory /opt/zig --strip-components 1
+    - export PATH="/opt/zig:$PATH"
+    - zig version
+  script:
+    - export PATH="/opt/zig:$PATH"
+    - cd clients/zig
+    # The generator emits already-formatted source, so a file named here is a defect in it or a hand
+    # edit beside it. `zig fmt --check` reports rather than rewrites: a job that reformatted what it
+    # was checking would report success on source nobody wrote.
+    - zig fmt --check .
+    # The suite drives this client against an API on a loopback socket in a thread of its own, so
+    # every timeout it exercises is a real one; the run as a whole is bounded by the job's own.
+    #
+    # This is also where coverage is held, and it is held as exhaustiveness rather than as a
+    # percentage. A percentage would be the wrong instrument here: Zig emits only the code something
+    # references, so an operation nothing calls is absent from a report rather than uncovered in it,
+    # and the first test to call one *lowers* the score by enlarging the denominator. A floor over
+    # that rewards not testing.
+    #
+    # kcov is the only instrument that reads Zig's debug information, and it was measured rather
+    # than assumed, in this job's own image. Four findings. The Debian package exists, so installing
+    # it is possible. Without `SYS_PTRACE` and a relaxed seccomp profile it stops at `Can't set
+    # personality: Operation not permitted` and still writes a report saying `covered_lines: 0`,
+    # which is a floor of zero wearing the clothes of a measurement. Permitted, it does read the
+    # line table, mapping 214 files and 3228 lines. And the suite driven under it reaches 46 of
+    # those 3228, because a Zig test binary run by kcov rather than by its own build runner barely
+    # executes. The runner here is a Kubernetes executor, whose default seccomp profile blocks the
+    # `personality` call kcov needs, so the first of those is where it would stop today.
+    #
+    # `ci/release-packages/tests/coverage_floors.rs` holds every client to stating a floor and
+    # carries this one as the single exception, with the same reasoning. That test also fails if
+    # this package ever does state a floor, so the exception cannot outlive its reason.
+    #
+    # What stands in its place: `tests/generated_test.zig` walks every model and every operation the
+    # generator wrote — found by reflection, never from a list kept by hand — and subtracts that set
+    # against the one the walk actually drove, in both directions, refusing an empty set either side.
+    # So a generated thing nothing exercises fails the job by name, which is what a percentage was
+    # only ever a proxy for. Do not add one here.
+    - zig build test

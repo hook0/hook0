@@ -1,0 +1,15 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+#
+# The seeds below come from mutating the model builder — dropping operations
+# the convention cannot place, ignoring the public tag, setting an operation
+# aside for the wrong reason, accepting an operation id declared twice — and
+# keeping the input that caught each one.
+cc 3d03e6b21eadf25b06f9e1caf53bad6705ef7523ec88d7b1c52049d66ccb9750 # shrinks to operations = [GeneratedOperation { operation_id: None, method: 0, path: 0, public: true }, GeneratedOperation { operation_id: None, method: 0, path: 1, public: false }]
+cc 1dd6e90ef403c3a16bbee8cfbbe09089cbd6a6b6e8178bb465647cd0cf72a106 # shrinks to operations = [GeneratedOperation { operation_id: None, method: 0, path: 0, public: false }], limits = Limits { max_snapshot_bytes: 8388608, max_reference_depth: 8, max_operations: 1, max_entities: 0, max_methods_per_entity: 0, max_parameters_per_operation: 64, max_identifier_bytes: 128 }
+cc c93900374342ccfa1184d994fcc9f1fbd3314eb23e06e1464c1f385b40f40fbf # shrinks to operations = [GeneratedOperation { operation_id: None, method: 0, path: 0, public: false }]
+cc 51c7858a02f1f7ece28c9a9970285e6148edc52420bc7258a9e3ea77d89daa9d # shrinks to operations = [GeneratedOperation { operation_id: Some("a."), method: 0, path: 0, public: false }], limits = Limits { max_snapshot_bytes: 8388608, max_reference_depth: 8, max_operations: 1, max_entities: 0, max_methods_per_entity: 0, max_parameters_per_operation: 64, max_identifier_bytes: 128 }

@@ -7,6 +7,7 @@ play.check:
     - changes:
         - play/**/*
         - Cargo.*
+        - .gitlab-ci.yml
   before_script:
     - rustc --version && cargo --version
     - rustup component add clippy rustfmt
@@ -25,6 +26,7 @@ play.e2e:
         - play/**/*
         - cli/**/*
         - Cargo.*
+        - .gitlab-ci.yml
   before_script:
     - rustc --version && cargo --version
   script:
@@ -42,6 +44,7 @@ play.e2e-playwright:
         - tests-e2e/tests/play/**/*
         - tests-e2e/playwright.play.config.ts
         - Cargo.*
+        - .gitlab-ci.yml
   variables:
     CARGO_HOME: /builds/hook0/hook0/.cargo
     RUSTUP_HOME: /builds/hook0/hook0/.rustup
@@ -104,6 +107,7 @@ play.docker:
     - changes:
         - play/**/*
         - Cargo.*
+        - .gitlab-ci.yml
   variables:
     BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
   before_script:
@@ -137,6 +141,7 @@ play.deploy:
       changes:
         - play/**/*
         - Cargo.*
+        - .gitlab-ci.yml
       when: manual
   environment:
     name: production
@@ -157,6 +162,7 @@ play.smoke-test:
       changes:
         - play/**/*
         - Cargo.*
+        - .gitlab-ci.yml
   before_script:
     - apk add --no-cache curl
   script:

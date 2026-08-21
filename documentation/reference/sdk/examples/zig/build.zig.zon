@@ -1,0 +1,19 @@
+// The project every Zig example of the SDK reference is built inside.
+//
+// It declares no dependency on `clients/zig` here: a path dependency in this file has to be
+// relative to this file's own directory, and where this project ends up being assembled is not
+// known until then. `build.zig` reaches the client directly instead, by the absolute path this
+// checker substitutes into every scaffold file.
+.{
+    .name = .hook0_documentation_examples_zig,
+    .version = "0.0.0",
+    .minimum_zig_version = "0.16.0",
+    .fingerprint = 0xd873d0992436c8bf,
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "examples",
+        "install-check",
+    },
+}

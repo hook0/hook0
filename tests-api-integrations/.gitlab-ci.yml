@@ -11,7 +11,20 @@ api-integration-tests.build:
         - frontend/**/*
         - output-worker/**/*
         - cli/**/*
+        # The wire format the API and the output worker exchange request attempts through. It
+        # is a workspace member neither watches by name, so a field renumbered in a `.proto`
+        # skipped every job that compiles either binary and shipped on a green pipeline.
+        - protobuf/**/*
         - Cargo.*
+        # Not sources of this build. `clients.live-smoke` needs the two binaries it leaves behind,
+        # and these three trigger that job on top of the paths above. GitLab refuses to create a
+        # pipeline in which a job needs a job the rules left out, so a change confined to any of
+        # them took the whole repository's pipeline down rather than skipping a job.
+        # `smoke/tests/needs.rs` holds the two lists to each other.
+        - docker-compose.yaml
+        - smoke/**/*
+        - clients/sdkgen/src/targets/**/*
+        - .gitlab-ci.yml
   before_script:
     - rustc --version && cargo --version
     - wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/protoc-$PROTOC_VERSION-linux-x86_64.zip && mkdir protoc && unzip protoc.zip -d protoc/
@@ -34,6 +47,7 @@ api-integration-tests.test:
         - api/**/*
         - output-worker/**/*
         - Cargo.*
+        - .gitlab-ci.yml
   services:
     - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/postgres:$PG_VERSION
       alias: postgres

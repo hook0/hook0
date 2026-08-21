@@ -7,6 +7,7 @@ sentry_integration.check:
     - changes:
         - sentry-integration/**/*
         - Cargo.*
+        - .gitlab-ci.yml
   before_script:
     - rustc --version && cargo --version
     - rustup component add clippy

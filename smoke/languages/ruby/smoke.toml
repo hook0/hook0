@@ -1,0 +1,3 @@
+# The gem declares no runtime dependency, so there is nothing to install: the interpreter is
+# pointed at the client's source and that is the whole setup.
+run = ["ruby", "smoke.rb"]
