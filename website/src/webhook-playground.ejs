@@ -1,6 +1,13 @@
 <%
 if (locals.i18nHelpers) { Object.assign(locals, locals.i18nHelpers.getPageLocals('webhook-playground', locals.lang || 'en')); }
 var t = locals.t;
+// Locale-aware path to /pricing, same rule as _header.ejs: this page renders in
+// fr and de too, so a hardcoded /pricing would drop the visitor into English.
+var __pricingHref = '/pricing';
+if (locals.i18nHelpers && locals.pageLang) {
+  var __p = locals.i18nHelpers.getPath('pricing', locals.pageLang);
+  if (__p) __pricingHref = __p;
+}
 %><!DOCTYPE html>
 <html lang="<%= locals.pageLang %>">
 <head>
@@ -33,7 +40,7 @@ var t = locals.t;
                     <%= t.hero.ctaPrimary %>
                     <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                 </a>
-                <a href="/pricing" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'See Pricing')">
+                <a href="<%= __pricingHref %>" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'See Pricing')">
                     <%= t.hero.ctaSecondary %>
                 </a>
             </div>
@@ -86,7 +93,7 @@ var t = locals.t;
                     <%= t.toProduction.ctaPrimary %>
                     <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                 </a>
-                <a href="/pricing" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'View Pricing Bottom')">
+                <a href="<%= __pricingHref %>" class="btn btn--secondary btn--lg" onclick="trackEvent('CTA', 'Click', 'View Pricing Bottom')">
                     <%= t.toProduction.ctaSecondary %>
                 </a>
             </div>

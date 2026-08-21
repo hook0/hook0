@@ -1,5 +1,12 @@
 <%
 var __c = (locals.chrome && locals.chrome.includes && locals.chrome.includes.customers) ? locals.chrome.includes.customers : null;
+// Locale-aware path to /pricing, same rule as _header.ejs: converted pages with
+// a localized pricing slug get it, everyone else falls back to the EN root.
+var __pricingHref = '/pricing';
+if (locals.i18nHelpers && locals.pageLang) {
+  var __p = locals.i18nHelpers.getPath('pricing', locals.pageLang);
+  if (__p) __pricingHref = __p;
+}
 %>
 <a name="customers" id="customers"></a>
 <section class="relative bg-surface-secondary py-24 sm:py-32 overflow-hidden">
@@ -18,7 +25,7 @@ var __c = (locals.chrome && locals.chrome.includes && locals.chrome.includes.cus
                     <%= __c ? __c.lead : 'These teams chose Hook0 over competitors because Hook0 publishes its full server source (SSPL-1.0) and also offers production-ready SaaS support. They gain a competitive advantage by embracing extensibility, reversibility, and future-proofness in their integration strategies.' %>
                 </p>
                 <div class="mt-8">
-                    <a href="/pricing" class="link link--arrow text-indigo-400 hover:text-indigo-300">
+                    <a href="<%= __pricingHref %>" class="link link--arrow text-indigo-400 hover:text-indigo-300">
                         <%= __c ? __c.joinThemCta : 'Join them today' %>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
