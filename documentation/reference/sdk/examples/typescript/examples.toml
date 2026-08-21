@@ -1,0 +1,33 @@
+# How a TypeScript example of the SDK reference is proven.
+#
+# Every snippet becomes its own module under `tsconfig.json`'s `include`, and `hook0-client` is
+# redirected, through that file's `paths`, straight at `clients/typescript/src/index.ts` — this
+# commit's source, not a published version and not a build of it. `dist` and `esm` are gitignored
+# build output that a fresh checkout does not carry, so resolving through them (or through the
+# package's own `exports`, which points at both) would make this job depend on somebody having run
+# a build first, for reasons that have nothing to do with whether a page's snippets are still true.
+# A renamed method, a dropped field on `Event`, an argument added to `NewClient`'s TypeScript
+# equivalent all stop `tsc` at the page that still shows the old spelling, the same way `go build`
+# does for the Go examples.
+#
+# This is narrower than `compiled` in one way worth saying plainly: it never asks whether
+# `clients/typescript` actually builds, or whether what a consumer's bundler resolves through its
+# published `exports` map matches what its source declares — `clients/typescript`'s own `npm run
+# build` and its packaging test are what stand behind that. What this level buys instead is a check
+# that runs on a checkout alone, that a stale or half-built `dist` cannot quietly pass, and that
+# fails on the exact source line a fix belongs on.
+#
+# `tsc` is this project's own, not the one `clients/typescript` happens to have built for its test
+# suite: a fresh checkout may not have run that build at all, so nothing here can depend on it having
+# happened. Nothing is executed — every send in these pages needs a live API, and `smoke/` is where
+# a live API is stood up.
+proof = "type-checked"
+proves = "assembled against clients/typescript's own TypeScript source at this commit (via a tsconfig path, not a build, not a published version, and not the package's exports map) and resolved with tsc --noEmit; a renamed method, a dropped field, or an argument of the wrong type fails wherever the client's types reach"
+
+path = "{{name}}/index.ts"
+timeout_seconds = 300
+
+run = [
+    ["npm", "install", "--no-audit", "--no-fund", "--loglevel=error"],
+    ["./node_modules/.bin/tsc", "--noEmit", "-p", "tsconfig.json"],
+]

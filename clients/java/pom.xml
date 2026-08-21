@@ -1,0 +1,651 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.hook0</groupId>
+  <artifactId>hook0-client</artifactId>
+  <version>1.1.0</version>
+  <packaging>jar</packaging>
+
+  <name>hook0-client</name>
+  <description>Java SDK for Hook0, open-source Webhooks as a service for SaaS</description>
+  <url>https://www.hook0.com/</url>
+
+  <licenses>
+    <license>
+      <name>MIT</name>
+      <url>https://opensource.org/licenses/MIT</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>David Sferruzza</name>
+      <email>david@hook0.com</email>
+    </developer>
+    <developer>
+      <name>François-Guillaume Ribreau</name>
+      <email>fg@hook0.com</email>
+    </developer>
+  </developers>
+
+  <scm>
+    <url>https://gitlab.com/hook0/hook0</url>
+    <connection>scm:git:https://gitlab.com/hook0/hook0.git</connection>
+  </scm>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>21</maven.compiler.release>
+
+    <!--
+      Every version below is pinned. Nothing here is a range and nothing is a snapshot, so what the
+      build resolves is decided by this file rather than by the day it runs; `maven-enforcer-plugin`
+      below refuses the pipeline if that ever stops being true.
+    -->
+    <compiler.plugin.version>3.13.0</compiler.plugin.version>
+    <surefire.plugin.version>3.5.2</surefire.plugin.version>
+    <checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
+    <checkstyle.version>10.21.0</checkstyle.version>
+    <enforcer.plugin.version>3.5.0</enforcer.plugin.version>
+    <jacoco.plugin.version>0.8.12</jacoco.plugin.version>
+    <resources.plugin.version>3.3.1</resources.plugin.version>
+    <jar.plugin.version>3.4.2</jar.plugin.version>
+    <install.plugin.version>3.1.3</install.plugin.version>
+    <!--
+      Named although nothing here runs them: the default lifecycle binds them, and an unpinned
+      binding is exactly what `requirePluginVersions` refuses.
+    -->
+    <clean.plugin.version>3.4.0</clean.plugin.version>
+    <site.plugin.version>3.21.0</site.plugin.version>
+    <deploy.plugin.version>3.1.3</deploy.plugin.version>
+    <junit.version>5.11.4</junit.version>
+    <!--
+      What only a release runs, pinned here beside everything else rather than in the profile that
+      uses them: a version is a version whether or not today's build resolves it.
+    -->
+    <source.plugin.version>3.4.0</source.plugin.version>
+    <javadoc.plugin.version>3.12.0</javadoc.plugin.version>
+    <gpg.plugin.version>3.2.8</gpg.plugin.version>
+    <central.publishing.plugin.version>0.11.0</central.publishing.plugin.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <!--
+    The SDK reaches the network, verifies signatures and reads what the API answers with nothing but
+    the standard library, so adding it to an application can never drag a transitive dependency onto
+    that application's classpath. Java ships no JSON parser, so this artefact carries a small
+    bounded one of its own rather than pulling in Jackson or Gson and asking every consumer to
+    reconcile its pinned version with ours. `DependenciesTest` is what keeps that sentence true
+    rather than aspirational: a runtime dependency appearing here fails it.
+  -->
+  <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <!--
+      The generator owns `src/main/java/com/hook0/client/generated` and rewrites it wholesale, so
+      the hand-written suite sits outside `src` entirely: a test file under a generated tree would
+      be deleted without a word at the next regeneration, and the coverage it carries with it.
+    -->
+    <testSourceDirectory>${project.basedir}/test/java</testSourceDirectory>
+    <testResources>
+      <testResource>
+        <directory>${project.basedir}/test/resources</directory>
+      </testResource>
+    </testResources>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>${enforcer.plugin.version}</version>
+        <executions>
+          <execution>
+            <id>pinned</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <!--
+                  What bounds the build's reach: every plugin and every dependency resolves to one
+                  version this file names. Without these, a range or a missing plugin version lets
+                  the build pull whatever was published since the last run.
+                -->
+                <requirePluginVersions/>
+                <banDynamicVersions>
+                  <allowSnapshots>false</allowSnapshots>
+                </banDynamicVersions>
+                <requireReleaseDeps/>
+                <requireJavaVersion>
+                  <version>[21,)</version>
+                </requireJavaVersion>
+              </rules>
+              <fail>true</fail>
+            </configuration>
+          </execution>
+          <execution>
+            <id>coverage-measured</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <!--
+                  What makes the coverage floor able to run at all. JaCoCo skips itself rather than
+                  failing when either of its inputs is missing: no execution data, or no directory
+                  of classes to attribute it to. Both print `Skipping JaCoCo execution` at INFO and
+                  leave the build green with no rule evaluated, so the floor stops existing without
+                  anything red saying so. The realistic way to arrive there is an `<argLine>`
+                  configured on surefire, which replaces the one `prepare-agent` sets and detaches
+                  the agent silently. These sit in `prepare-package`, after `test` has written the
+                  file and before `verify` reads it, so neither is a matter of plugin ordering.
+                -->
+                <requireFilesExist>
+                  <files>
+                    <file>${project.build.directory}/jacoco.exec</file>
+                    <file>${project.build.outputDirectory}</file>
+                  </files>
+                </requireFilesExist>
+              </rules>
+              <fail>true</fail>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${compiler.plugin.version}</version>
+        <configuration>
+          <!--
+            Warnings are failures. The generator emits source that already compiles clean, so a
+            warning here is a defect in it or a hand edit beside it.
+          -->
+          <failOnWarning>true</failOnWarning>
+          <compilerArgs>
+            <arg>-Xlint:all</arg>
+            <!--
+              Off on purpose: `this-escape` reports every constructor of a non-final class, which is
+              what every exception of a hierarchy is. It says nothing about this code and cannot be
+              silenced per declaration without an annotation on all of them.
+            -->
+            <arg>-Xlint:-this-escape</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>${checkstyle.plugin.version}</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>${checkstyle.version}</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <configLocation>${project.basedir}/checkstyle.xml</configLocation>
+          <sourceDirectories>
+            <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
+          </sourceDirectories>
+          <testSourceDirectories>
+            <testSourceDirectory>${project.basedir}/test/java</testSourceDirectory>
+          </testSourceDirectories>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <consoleOutput>true</consoleOutput>
+          <failOnViolation>true</failOnViolation>
+          <violationSeverity>warning</violationSeverity>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${surefire.plugin.version}</version>
+        <configuration>
+          <!--
+            Every suite talks to a loopback socket and finishes in seconds. A run past this is one
+            that is stuck rather than one that is slow, and a stuck run has to fail rather than hold
+            the pipeline until the runner gives up on it.
+          -->
+          <forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.plugin.version}</version>
+        <executions>
+          <execution>
+            <id>coverage-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+            <configuration>
+              <!--
+                One run, never a union of several. The agent appends to its execution data by
+                default, so a second `mvn verify` over a tree that still holds the first one's file
+                reports the two together — which reads exactly like a real coverage move and hides a
+                deleted test completely. CI builds in a fresh container and never sees it; this is
+                here so that a run on a laptop means what it says without needing `clean` first.
+              -->
+              <append>false</append>
+            </configuration>
+          </execution>
+          <execution>
+            <id>coverage-report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+          <!--
+            The floor, so that the coverage this suite reaches is a property the pipeline holds
+            rather than a number somebody measured once. It rides in `verify`, which is the goal the
+            job already runs, rather than in a job or a script of its own.
+
+            Every number below is what this suite reaches today. They are not headroom: every suite
+            here talks to a loopback socket and draws nothing random, so there is no run-to-run noise
+            to leave room for, and room would only buy silent decay. Raise one when the suite covers
+            more; lowering one is a decision somebody has to write here.
+
+            Lines and branches, not instructions — and the choice is deliberate, so that nobody
+            restores the stricter-looking counter later. JaCoCo counts instructions too, and on this
+            client an instruction floor would be tighter. It is not used for two reasons. The first
+            is that it does not survive the sibling language: the Kotlin compiler emits instructions
+            on lines that are covered — null checks, the bodies a data class gets for free — which no
+            caller reaches, so `clients/kotlin` sits at 100% of its lines and around 84% of its
+            instructions, and an instruction floor there would have to be written at 0.80 to pass at
+            all. A floor at 0.80 catches nothing. The second is that lines and branches are what
+            every other client in this repository reports — rust lines and regions, python, ruby and
+            typescript lines and branches, csharp lines and branches under coverlet — and a figure
+            that is not the same measurement as the ones beside it is a figure nobody can compare.
+
+            Source files rather than classes. A source-file rule folds a file's nested classes into
+            the file they live in, which is how a reader thinks about coverage and which is what lets
+            `ClientExceptionInterrupted` — thrown only when a caller interrupts the thread inside the
+            sleep between two attempts, so reaching it from a test means winning a race rather than
+            asking for a behaviour — be counted inside `Hook0Client.java`'s allowance instead of
+            needing an exclusion of its own. What that gives up is narrow and worth naming: two
+            classes in one file, one degrading exactly as much as the other improves, would leave the
+            file's total unmoved. The bundle rule above would not see it either.
+          -->
+          <execution>
+            <id>coverage-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <!--
+                  The whole client, at what this suite reaches today: 21 of its 2340 lines and 30 of
+                  its 723 branches uncovered. Counts rather than ratios, because a ratio rises on its
+                  own as covered code is added, so a regression can hide behind growth where a count
+                  cannot.
+                -->
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>21</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>30</maximum>
+                    </limit>
+                    <!--
+                      And a floor under the measurement itself, which neither maximum above can
+                      provide: a `MISSEDCOUNT` maximum is satisfied by a bundle containing nothing,
+                      because nothing missed is zero missed. A run that analysed no class at all
+                      therefore prints `All coverage checks have been met.` and passes, which is an
+                      affirmative claim made by a build that measured nothing, and a guard that
+                      reassures is worse than one that stays quiet. One covered line is the whole
+                      assertion here: that a measurement happened. It stays at 1 deliberately rather
+                      than at today's covered count, because a minimum set at today's figure fires
+                      when somebody correctly deletes dead code, and a guard whose false failure is
+                      a correct change is a guard somebody deletes.
+                    -->
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDCOUNT</value>
+                      <minimum>1</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!--
+                  And every file at its own, which is what makes a failure name a culprit: a violated
+                  bundle rule says only that the bundle moved, while a violated source-file rule says
+                  which file and by how many lines. Every file this client ships is held to nothing
+                  uncovered at all, and the seven below carry an allowance for exactly what they miss
+                  today — each of which is unreachable from a test rather than merely unreached.
+                -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <excludes>
+                    <exclude>com/hook0/client/Answer.java</exclude>
+                    <exclude>com/hook0/client/Hook0Client.java</exclude>
+                    <exclude>com/hook0/client/HttpTransport.java</exclude>
+                    <exclude>com/hook0/client/RetryPolicy.java</exclude>
+                    <exclude>com/hook0/client/Signature.java</exclude>
+                    <exclude>com/hook0/client/Webhooks.java</exclude>
+                    <exclude>com/hook0/client/generated/Problems.java</exclude>
+                  </excludes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arm where a status is below 200, which the API answers for no operation -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/Answer.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>1</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the guard around closing a transport that is not closeable and its catch, an event type
+                     list that is nothing at all, the arms where an event carries no payload, no labels or no
+                     body, unwrapping a completion failure that is not one or is nested deeper than the
+                     framework builds it, reading an identifier out of an answer that is not a document, and
+                     the interruption path with the exception class it throws -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/Hook0Client.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>12</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>12</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the interruption path, the body subscriber's error arm, the `User-Agent` filter, the
+                     empty-host guard, the second `URI.create` catch after every part has been escaped, a
+                     header line carrying no value, the cause-walk depth ceiling, and a failure with no
+                     message -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/HttpTransport.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>7</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>12</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arms where a schedule has no draws at all or an attempt is numbered below zero,
+                     neither of which the scheduler produces -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/RetryPolicy.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>2</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the refusal of a runtime that cannot compute HmacSHA256, which every JVM this runs on
+                     can -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/Signature.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>2</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arms where a delivered header is nothing at all or carries no name, which no header
+                     list reaching it holds -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/Webhooks.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>2</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+                <!-- the arm where a status is below 200, which the API answers for no operation -->
+                <rule>
+                  <element>SOURCEFILE</element>
+                  <includes>
+                    <include>com/hook0/client/generated/Problems.java</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>0</maximum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>MISSEDCOUNT</value>
+                      <maximum>1</maximum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>${resources.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>${jar.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-install-plugin</artifactId>
+        <version>${install.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>${clean.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>${site.plugin.version}</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <version>${deploy.plugin.version}</version>
+      </plugin>
+    </plugins>
+  </build>
+
+  <!--
+    What a release does and a check does not.
+    Central takes no release without a sources jar, a javadoc jar and a detached OpenPGP signature
+    over every file of it, and none of the three is anything a test run needs. They sit behind a
+    profile so that `mvn checkstyle:check verify` resolves none of these plugins, builds no jar it
+    will not test, and reaches for no signing key that only the release job has: the check on a
+    merge request is the same build it was before this file learned to publish.
+  -->
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>${source.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>sources</id>
+                <goals>
+                  <!--
+                    `jar-no-fork` rather than `jar`: the forking goal runs the generate-sources
+                    phase a second time, and what generates sources here is the SDK generator.
+                  -->
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>${javadoc.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>javadoc</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>${gpg.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>sign</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <!--
+                There is nobody at the runner to answer a prompt, so the passphrase is handed to
+                gpg on the pipe rather than asked for on a terminal that does not exist. A build
+                that asked would hang until the job timed out.
+              -->
+              <gpgArguments>
+                <arg>--pinentry-mode</arg>
+                <arg>loopback</arg>
+              </gpgArguments>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>${central.publishing.plugin.version}</version>
+            <!-- Replaces the deploy binding, so `deploy` uploads to the Portal and nowhere else. -->
+            <extensions>true</extensions>
+            <configuration>
+              <!-- The `<server>` the job writes into `settings.xml`, holding the token pair. -->
+              <publishingServerId>central</publishingServerId>
+              <autoPublish>true</autoPublish>
+              <!--
+                Waiting for `validated` rather than for `published`: validation is what can fail and
+                what the job has to report, and it answers in minutes. Publication is Central's own
+                queue, and a job holding a runner open until it drains is a job with no bound on how
+                long it runs.
+              -->
+              <waitUntil>validated</waitUntil>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

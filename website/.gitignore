@@ -8,7 +8,17 @@ build
 docs
 
 src/mediakit/
-static/mediakit/
+
+# The mediakit is generated, except for the two logos the site serves to visitors, which are
+# committed on purpose. Written as a ladder rather than as `static/mediakit/` plus a negation
+# because git never looks inside an excluded directory: a `!` under one is silently inert, so the
+# contents are excluded step by step to leave somewhere for the exception to apply. What is ignored
+# is unchanged apart from the two files named — anything else added here, at any depth, is ignored.
+static/mediakit/*
+!static/mediakit/logo/
+static/mediakit/logo/*
+!static/mediakit/logo/110x110-white.png
+!static/mediakit/logo/1920x1920-banner.png
 
 
 # Runtime data

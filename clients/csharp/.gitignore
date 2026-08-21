@@ -1,0 +1,9 @@
+bin/
+obj/
+# What a coverage run leaves behind, and nothing else keeps. The collector writes one report per
+# run under a directory named after the run, and the MSBuild integration writes one beside the
+# project it measured; both are an intermediate of the run that produced them, read by the floor in
+# `.gitlab-ci.yml` and then finished with. A checkout carrying either is carrying somebody's local
+# run, and a `git add` that sweeps one up puts it in a commit it has nothing to do with.
+TestResults/
+coverage.cobertura.xml

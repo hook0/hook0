@@ -1,0 +1,18 @@
+# Bytecode caches land beside the sources, generated ones included. The generator owns
+# `src/hook0/generated/` outright and sweeps away whatever it did not write, so a cache left there
+# is reported as removed on the next regeneration — harmless, since Python rebuilds it, but noise
+# in a report whose whole point is to be empty. `PYTHONDONTWRITEBYTECODE=1` keeps it from appearing
+# at all.
+__pycache__/
+*.py[cod]
+
+# Tool, test and property-search state
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+
+# Build artefacts
+build/
+dist/
+*.egg-info/

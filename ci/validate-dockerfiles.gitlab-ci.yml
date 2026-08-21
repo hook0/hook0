@@ -12,6 +12,7 @@ validate.dockerfiles:
         - Cargo.lock
         - ci/validate-dockerfiles/**/*
         - ci/validate-dockerfiles.gitlab-ci.yml
+        - .gitlab-ci.yml
   script:
     - rustc --version && cargo --version
     - cargo run --release -p validate-dockerfiles
@@ -24,6 +25,8 @@ lint.dockerfiles:
     - changes:
         - "**/Dockerfile"
         - "**/Dockerfile.*"
+        - ci/validate-dockerfiles.gitlab-ci.yml
+        - .gitlab-ci.yml
   before_script:
     - hadolint --version
   script:

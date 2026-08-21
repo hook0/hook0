@@ -1,0 +1,35 @@
+# How a PHP example of the SDK reference is proven.
+#
+# Every snippet becomes a file under `generated/`, in a project that reaches the client through a
+# Composer `path` repository pointing at `clients/php` rather than through the version Packagist
+# serves: what the pages must agree with is the client in this commit, not the one that happened to
+# be published last. The same `use Hook0\Client;` a reader would write resolves to the same class
+# this checker analyses either way. PHPStan then reads the whole project's declared types without
+# producing an artefact -- a renamed method, a changed argument or a dropped constructor parameter
+# all stop this job at the page that shows the old spelling, wherever the client's types reach.
+#
+# PHP has no compiler to hand a snippet to, and `php -l` only parses syntax: it has never loaded a
+# single class, so it would wave through a call to a method the client dropped a release ago.
+# PHPStan resolved against the client's real, installed autoloader is the strongest check genuinely
+# available here.
+#
+# One example -- the Laravel integration under "Verify a webhook signature" -- also reaches four
+# Laravel symbols (`config()`, `response()`, `dispatch()`, the base CSRF middleware) that live in
+# `illuminate/foundation`, a package Composer no longer distributes on its own past v1.1.2 (Laravel
+# ships it bundled inside `laravel/framework` today). `stubs/laravel-bootstrap.php` declares those
+# four with their real Laravel signatures so the example keeps being checked; every other symbol it
+# reaches, Hook0's and Laravel's alike, is the real, installed class, and a change to the Hook0
+# client under any example still fails this job.
+proof = "type-checked"
+proves = "assembled against clients/php through a Composer path repository, and resolved by PHPStan; a renamed method, a changed argument or a dropped constructor parameter fails wherever the client's declared types reach, but nothing is executed, so a value merely wrong at runtime is not caught"
+
+path = "generated/{{name}}.php"
+timeout_seconds = 300
+
+run = [
+    ["composer", "install", "--no-interaction", "--no-progress"],
+    ["vendor/bin/phpstan", "analyse", "--no-progress", "--error-format=raw"],
+]
+
+[environment]
+COMPOSER_NO_INTERACTION = "1"

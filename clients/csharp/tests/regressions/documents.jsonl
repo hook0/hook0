@@ -1,0 +1,12 @@
+{}
+{"application_id": "00000000-0000-4000-8000-000000000001", "name": "an application", "organization_id": "00000000-0000-4000-8000-000000000002"}
+{"id": "EventAlreadyIngested", "status": 409, "title": "refused", "detail": "already there", "type": "https://hook0.com/documentation/errors/EventAlreadyIngested"}
+{"event_type_name": "auth.user.create", "service_name": "auth", "resource_type_name": "user", "verb_name": "create", "event_type": "auth.user.create"}
+{"application_id": "00000000-0000-4000-8000-000000000001", "event_id": "01961234-5678-7abc-8def-0123456789ac", "received_at": "2026-01-01T00:00:00Z"}
+{"name": "an application", "organization_id": "00000000-0000-4000-8000-000000000002"}
+{"application_id": null, "name": null, "organization_id": null}
+{"date": "2026-01-01", "amount": 12}
+{"consumption": {"events_per_day": 3}, "quotas": {"events_per_day": 100}}
+{"http_code": 200, "elapsed_time_ms": 12.5, "body": "answered", "headers": {"content-type": "application/json"}}
+{"enabled": true, "is_enabled": false, "is_provisional": true}
+{"payload": "{}", "payload_content_type": "application/json", "labels": {"environment": "production"}, "metadata": {"trace": "1"}}

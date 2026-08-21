@@ -84,7 +84,9 @@ All API errors follow this structure (RFC 7807):
 
     for (const error of statusErrors) {
       const errorObj = {
-        type: `https://hook0.com/documentation/errors/${error.id}`,
+        // Taken from the API rather than rebuilt here, so the page shows the address the
+        // API actually sends. Rebuilding it is how the old, dead address survived on this page.
+        type: error.type,
         id: error.id,
         title: error.title,
         detail: error.detail,

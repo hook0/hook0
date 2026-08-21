@@ -10,6 +10,30 @@ variables:
   PG_VERSION: "18"
   RUST_VERSION: "1.98-trixie"
   NODE_VERSION: "24-trixie"
+  PYTHON_VERSION: "3.13-trixie"
+  GO_VERSION: "1.26-trixie"
+  RUBY_VERSION: "3.4-trixie"
+  # The release the Java and Kotlin SDKs are built for, and the runtime half of the image their jobs
+  # run in; the build-tool half is pinned beside each job, since a build tool is not a runtime. The
+  # Kotlin compiler is a plugin of that build tool rather than an image, so it is pinned in
+  # `clients/kotlin/pom.xml` where a test refuses it unpinned, and both artefacts are built for one
+  # release — which is what lets them sit on one classpath.
+  JAVA_VERSION: "21"
+  PHP_VERSION: "8.4-cli-trixie"
+  DOTNET_VERSION: "8.0"
+  # Lua ships no image of its own, so this pins the interpreter, the rock manager beside it and the
+  # distribution all three, which is what the other language jobs get from an official image.
+  LUA_VERSION: "5.4.8-luarocks-trixie"
+  # Zig makes no stability promise between releases, so the toolchain is pinned exactly rather than
+  # by minor: a floating one would rewrite the meaning of the source under it without a commit.
+  #
+  # The digest is what that version is verified against, and it is here rather than beside either
+  # job because two jobs fetch this archive — `clients.zig.check` and `documentation.examples` —
+  # and a digest written twice is one that can be raised in one place and not the other. Bumping
+  # the version without the digest stops both jobs at the checksum rather than somewhere further
+  # in, which is the failure worth having.
+  ZIG_VERSION: "0.16.0"
+  ZIG_SHA256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
   PROTOC_VERSION: "35.1"
   POSTGRES_DB: hook0-ci
   POSTGRES_USER: runner
@@ -17,9 +41,37 @@ variables:
   POSTGRES_HOST_AUTH_METHOD: trust
   GIT_CLIFF_VERSION: "2.12.0"
   CARGO_RELEASE_VERSION: "0.25.18"
+  # What the rust client's coverage floors were measured with. The version and the digest travel
+  # together for the reason the Zig pair does: a release that counted regions differently would
+  # move those floors without a line of the client changing, and moving the version without the
+  # digest stops the job at the checksum rather than somewhere further in.
+  CARGO_LLVM_COV_VERSION: "0.9.0"
+  CARGO_LLVM_COV_SHA256: b068f7c98841aacb9c4f382b4a0c184ae82f49b56a32d442b429b2961c73be15
   ALPINE_VERSION: "3.24"
   BUILDKIT_VERSION: "v0.27.0-rootless"
   TRIVY_VERSION: "0.68.2"
+  # What moves a scanned image out of the project registry. It copies a manifest between registries
+  # by digest and builds nothing, which is the whole point: what reaches Docker Hub and GHCR is the
+  # bytes trivy read rather than a second build of the same source.
+  #
+  # Version and digest travel together, for the reason the Zig and llvm-cov pairs do — a release
+  # that changed what a copy does would change what is published without a line here changing, and
+  # bumping the version alone stops the job at the checksum rather than somewhere further in.
+  CRANE_VERSION: "0.21.9"
+  CRANE_SHA256: 5c16d8ddb971cb1d5e6ed8b1e743da8224414eeba2c2762d8f1a61b2f095699e
+  # How long the runner waits on one cache request before giving up on it, in minutes. The default
+  # is ten, and the runner retries, so a cache backend that accepts a connection and then stops
+  # answering costs half an hour before the script has run a line.
+  #
+  # That is not hypothetical here. `sdk.packages` spent 12:08 to 12:36 on three ten-minute stalls
+  # against the cache store, got fifty seconds of script, and was killed by its own thirty-minute
+  # timeout; `sentry_integration.check` died the same way at thirty-six minutes. Neither had
+  # anything wrong with it.
+  #
+  # Two minutes because a cache is an optimisation and a job that cannot fetch one should compile
+  # from scratch rather than fail. Raising the job timeouts instead would buy the same green at the
+  # price of runners held for half an hour doing nothing.
+  CACHE_REQUEST_TIMEOUT: "2"
 
 stages:
   - build
@@ -48,9 +100,20 @@ include:
   - local: "clients/rust/.gitlab-ci.yml"
   - local: "clients/mcp/.gitlab-ci.yml"
   - local: "clients/typescript/.gitlab-ci.yml"
+  - local: "clients/python/.gitlab-ci.yml"
+  - local: "clients/go/.gitlab-ci.yml"
+  - local: "clients/ruby/.gitlab-ci.yml"
+  - local: "clients/java/.gitlab-ci.yml"
+  - local: "clients/kotlin/.gitlab-ci.yml"
+  - local: "clients/php/.gitlab-ci.yml"
+  - local: "clients/csharp/.gitlab-ci.yml"
+  - local: "clients/lua/.gitlab-ci.yml"
+  - local: "clients/zig/.gitlab-ci.yml"
   - local: "documentation/.gitlab-ci.yml"
+  - local: "documentation-examples/.gitlab-ci.yml"
   - local: "tests-api-integrations/.gitlab-ci.yml"
   - local: "tests-e2e/.gitlab-ci.yml"
+  - local: "smoke/.gitlab-ci.yml"
   - local: "frontend/.gitlab-ci.yml"
   - local: "play/.gitlab-ci.yml"
   - local: "cli/.gitlab-ci.yml"

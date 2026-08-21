@@ -1,0 +1,100 @@
+# A job of its own, unlike the generator guards that ride along with the Rust client: this is
+# another runtime, with another toolchain and another image, so there is nothing here an existing
+# job could have run.
+clients.csharp.check:
+  stage: test
+  dependencies: []
+  image: mcr.microsoft.com/dotnet/sdk:$DOTNET_VERSION
+  # The whole suite talks to loopback sockets and finishes in seconds; anything past this is a run
+  # that is stuck rather than one that is slow.
+  timeout: 15m
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
+    - changes:
+        - clients/csharp/**/*
+        # The generated half of the package is written from the API's OpenAPI snapshot, so a change
+        # of the generator or of the API surface has to face the suites that exercise what it wrote.
+        - clients/sdkgen/**/*
+        - api/openapi.snapshot.json
+        # Retry classification, the bounds of a send and signature verification are hand-written
+        # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
+        # this client rather than the one language whoever edited it happened to be reading.
+        - clients/conformance/**/*
+        - .gitlab-ci.yml
+  variables:
+    # The suite reaches loopback sockets and nothing else, and the toolchain has no reason to reach
+    # anything either beyond the restore it is told to do.
+    DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    DOTNET_NOLOGO: "1"
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+  before_script:
+    - dotnet --version
+  script:
+    - cd clients/csharp
+    # The generator emits already-formatted source, so a difference here is a defect in it or a hand
+    # edit beside it. Nothing is corrected: a job that rewrote what it was checking would report
+    # success on source nobody wrote.
+    - dotnet format --verify-no-changes
+    # Every public declaration carries a documentation comment and the analysers are on, so a
+    # warning is a defect rather than something to read past.
+    - dotnet build --configuration Release -warnaserror
+    # Coverage is collected on the run that was going to happen anyway, by coverlet rather than by
+    # the collector the test SDK ships. Two reasons, and the second is why it is worth a dependency:
+    # coverlet leaves out the sequence points nothing can reach — the `init` accessors a positional
+    # record gets for free, the machinery a `switch` over a string compiles into, 105 of them here —
+    # and it counts a branch the way JaCoCo counts one, so this figure and the ones the java and
+    # kotlin jobs print are the same measurement rather than two wearing the same name.
+    - dotnet test --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory TestResults
+    # The floor, held here rather than in a job or a script of its own. It is counts and not
+    # percentages: a percentage floor rises on its own as covered code is added, so a regression can
+    # hide behind growth, where a count of what is uncovered cannot.
+    #
+    # 4 lines and 15 branches are what this suite leaves uncovered today, and none of them is
+    # reachable from a test: in `Transport`, the empty-host guard that `Uri` will not produce — it
+    # refuses every http URL without one before the guard is asked — the two arms of the assembly's
+    # own version stamp, and the `User-Agent` filter, which fires only if the platform describes
+    # itself with a parenthesis, a semicolon, a control character or more than 64 of them; in
+    # `Client`, the arms reachable only by fabricating a framework failure; and one branch each in
+    # `Runtime` and `Signature` that the source itself documents as defensive. They are not
+    # headroom: this suite talks to loopback sockets and draws nothing random, so room below the
+    # floor would only buy silent decay.
+    #
+    # The counts come from the report's own `lines-valid`/`lines-covered` attributes, which coverlet
+    # writes already deduplicated — one entry per line of a file, the same convention JaCoCo uses
+    # and the one the java and kotlin floors are written in. Summing the `<line>` elements instead
+    # doubles both totals, because cobertura repeats every line once under its method and once under
+    # its class.
+    - >-
+      awk -v lines_floor=4 -v branches_floor=15 '
+      /<coverage / {
+      covered_lines = value($0, "lines-covered"); valid_lines = value($0, "lines-valid");
+      covered_branches = value($0, "branches-covered"); valid_branches = value($0, "branches-valid") }
+      /<class / { file = text($0, "filename"); if (!(file in seen)) { seen[file] = 1; order[++files] = file } }
+      /<line number=/ {
+      at = file "#" value($0, "number");
+      if (value($0, "hits") == 0 && !(at in cold)) { cold[at] = 1; cold_lines[file]++ }
+      if (match($0, /condition-coverage="[0-9.]+% \([0-9]+\/[0-9]+\)"/)) {
+      split(substr($0, RSTART, RLENGTH), part, "[(/)]");
+      if (part[2] + 0 < part[3] + 0 && !(at in partial)) { partial[at] = 1; cold_branches[file] += part[3] - part[2] } } }
+      END {
+      if (valid_lines == 0) { print "the coverage report counted no line at all, so nothing was measured"; exit 1 }
+      missed_lines = valid_lines - covered_lines; missed_branches = valid_branches - covered_branches;
+      if (missed_lines <= lines_floor && missed_branches <= branches_floor) {
+      printf "%d of %d lines and %d of %d branches uncovered, at or under the floors of %d and %d\n",
+      missed_lines, valid_lines, missed_branches, valid_branches, lines_floor, branches_floor; exit 0 }
+      printf "coverage fell below the floor: %d lines uncovered against a floor of %d, and %d branches against %d\n",
+      missed_lines, lines_floor, missed_branches, branches_floor;
+      print "what is uncovered, by file:";
+      for (at = 1; at <= files; at++) { name = order[at];
+      if (cold_lines[name] == 0 && cold_branches[name] == 0) { continue }
+      printf "  %-24s %d %s never run, %d %s never taken\n", name,
+      cold_lines[name], cold_lines[name] == 1 ? "line" : "lines",
+      cold_branches[name], cold_branches[name] == 1 ? "branch" : "branches" }
+      exit 1 }
+      function value(line, name) {
+      if (!match(line, name "=\"[0-9]+\"")) { return 0 }
+      return substr(line, RSTART + length(name) + 2, RLENGTH - length(name) - 3) + 0 }
+      function text(line, name) {
+      if (!match(line, name "=\"[^\"]*\"")) { return "" }
+      return substr(line, RSTART + length(name) + 2, RLENGTH - length(name) - 3) }
+      ' TestResults/*/coverage.cobertura.xml

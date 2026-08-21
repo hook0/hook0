@@ -25,7 +25,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/ApplicationNameMissing",
+  "type": "https://documentation.hook0.com/reference/error-codes#applicationnamemissing",
   "id": "ApplicationNameMissing",
   "title": "Application name cannot be empty",
   "detail": "Application name length must have more than 1 character.",
@@ -37,7 +37,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/AuthInvalidAuthorizationHeader",
+  "type": "https://documentation.hook0.com/reference/error-codes#authinvalidauthorizationheader",
   "id": "AuthInvalidAuthorizationHeader",
   "title": "`Authorization` header is invalid",
   "detail": "`Authorization` header value could not be decoded as a valid UTF-8 string containing `Bearer {UUID}`.",
@@ -49,7 +49,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/EventInvalidBase64Payload",
+  "type": "https://documentation.hook0.com/reference/error-codes#eventinvalidbase64payload",
   "id": "EventInvalidBase64Payload",
   "title": "Invalid event base64 payload",
   "detail": "Event payload is not encoded in valid base64 format: ",
@@ -61,7 +61,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/EventInvalidJsonPayload",
+  "type": "https://documentation.hook0.com/reference/error-codes#eventinvalidjsonpayload",
   "id": "EventInvalidJsonPayload",
   "title": "Invalid event JSON payload",
   "detail": "Event payload is not encoded in valid JSON format: .",
@@ -73,7 +73,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/EventInvalidPayloadContentType",
+  "type": "https://documentation.hook0.com/reference/error-codes#eventinvalidpayloadcontenttype",
   "id": "EventInvalidPayloadContentType",
   "title": "Invalid event payload content type",
   "detail": "The specified event payload content type is not handled. Valid content types are: text/plain, application/json, application/octet-stream+base64",
@@ -85,7 +85,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/EventTypeDoesNotExist",
+  "type": "https://documentation.hook0.com/reference/error-codes#eventtypedoesnotexist",
   "id": "EventTypeDoesNotExist",
   "title": "Invalid event type",
   "detail": "Event type does not exist or was deactivated. You should (re)create it.",
@@ -97,7 +97,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/InvalidRole",
+  "type": "https://documentation.hook0.com/reference/error-codes#invalidrole",
   "id": "InvalidRole",
   "title": "Provided role does not exist",
   "detail": "Valid roles are: viewer, editor.",
@@ -109,7 +109,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/JsonPayload",
+  "type": "https://documentation.hook0.com/reference/error-codes#jsonpayload",
   "id": "JsonPayload",
   "title": "Provided body could not be decoded as JSON",
   "detail": "",
@@ -121,7 +121,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/LabelsAmbiguity",
+  "type": "https://documentation.hook0.com/reference/error-codes#labelsambiguity",
   "id": "LabelsAmbiguity",
   "title": "Ambiguous labels specification",
   "detail": "You must specify either the `labels` property as an object with a least one property (recommended) or separated `label_key` and `label_value` properties as strings (legacy), but not both.",
@@ -133,7 +133,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/OrganizationNameMissing",
+  "type": "https://documentation.hook0.com/reference/error-codes#organizationnamemissing",
   "id": "OrganizationNameMissing",
   "title": "Organization name cannot be empty",
   "detail": "Organization name length must have more than 1 character.",
@@ -145,7 +145,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/PasswordTooShort",
+  "type": "https://documentation.hook0.com/reference/error-codes#passwordtooshort",
   "id": "PasswordTooShort",
   "title": "Provided password is too short",
   "detail": "Password must be at least 0 characters long.",
@@ -157,7 +157,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/PasswordTooLong",
+  "type": "https://documentation.hook0.com/reference/error-codes#passwordtoolong",
   "id": "PasswordTooLong",
   "title": "Provided password is too long",
   "detail": "Password must be at most 100 characters long.",
@@ -169,7 +169,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/PasswordSimilarToEmail",
+  "type": "https://documentation.hook0.com/reference/error-codes#passwordsimilartoemail",
   "id": "PasswordSimilarToEmail",
   "title": "Provided password is too close to the email address",
   "detail": "Password must not be built from the email address of the account: anyone who knows the address would guess it. Please pick something unrelated.",
@@ -181,7 +181,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/PasswordSimilarToName",
+  "type": "https://documentation.hook0.com/reference/error-codes#passwordsimilartoname",
   "id": "PasswordSimilarToName",
   "title": "Provided password is too close to the user name",
   "detail": "Password must not be built from the first or last name of the account. Please pick something unrelated.",
@@ -193,7 +193,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/PasswordTooCommon",
+  "type": "https://documentation.hook0.com/reference/error-codes#passwordtoocommon",
   "id": "PasswordTooCommon",
   "title": "Provided password is too common",
   "detail": "This password (or a lightly disguised version of it) is among the most frequently used ones, so it is one of the first an attacker tries. Please pick another one.",
@@ -205,7 +205,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/PasswordNotDiverseEnough",
+  "type": "https://documentation.hook0.com/reference/error-codes#passwordnotdiverseenough",
   "id": "PasswordNotDiverseEnough",
   "title": "Provided password is not diverse enough",
   "detail": "Password is made of too few different characters, which makes it easy to guess despite its length. Please pick another one.",
@@ -217,7 +217,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/UnauthorizedWorkers",
+  "type": "https://documentation.hook0.com/reference/error-codes#unauthorizedworkers",
   "id": "UnauthorizedWorkers",
   "title": "Some of the provided dedicated workers are not authorized for your organization",
   "detail": "You do not have access to the following workers: ",
@@ -231,7 +231,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/AuthEmailExpired",
+  "type": "https://documentation.hook0.com/reference/error-codes#authemailexpired",
   "id": "AuthEmailExpired",
   "title": "Could not verify your link",
   "detail": "The link you clicked might be expired. Please retry the whole process or contact support.",
@@ -243,7 +243,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/AuthEmailNotVerified",
+  "type": "https://documentation.hook0.com/reference/error-codes#authemailnotverified",
   "id": "AuthEmailNotVerified",
   "title": "Email not verified",
   "detail": "Your email has not been verified yet. Please check your inbox.",
@@ -255,7 +255,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/AuthFailedLogin",
+  "type": "https://documentation.hook0.com/reference/error-codes#authfailedlogin",
   "id": "AuthFailedLogin",
   "title": "Login failed",
   "detail": "The provided credentials do not match ones of a valid user.",
@@ -267,7 +267,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/AuthFailedRefresh",
+  "type": "https://documentation.hook0.com/reference/error-codes#authfailedrefresh",
   "id": "AuthFailedRefresh",
   "title": "Refreshing access token failed",
   "detail": "The provided refresh token is probably invalid or expired.",
@@ -279,7 +279,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/AuthNoAuthorizationHeader",
+  "type": "https://documentation.hook0.com/reference/error-codes#authnoauthorizationheader",
   "id": "AuthNoAuthorizationHeader",
   "title": "No `Authorization` header was found in the HTTP request",
   "detail": "`Authorization` header must be provided and must contain a bearer token.",
@@ -293,7 +293,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/AuthInvalidApplicationSecret",
+  "type": "https://documentation.hook0.com/reference/error-codes#authinvalidapplicationsecret",
   "id": "AuthInvalidApplicationSecret",
   "title": "Invalid application secret",
   "detail": "The provided application secret does not exist.",
@@ -305,7 +305,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/AuthInvalidBiscuit",
+  "type": "https://documentation.hook0.com/reference/error-codes#authinvalidbiscuit",
   "id": "AuthInvalidBiscuit",
   "title": "Invalid Biscuit",
   "detail": "The provided authentication token (Biscuit) is not valid, was not created using the current private key or is expired.",
@@ -317,7 +317,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/Forbidden",
+  "type": "https://documentation.hook0.com/reference/error-codes#forbidden",
   "id": "Forbidden",
   "title": "Insufficient rights",
   "detail": "You don't have the right to access or edit this resource.",
@@ -331,7 +331,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/InvitedUserDoesNotExist",
+  "type": "https://documentation.hook0.com/reference/error-codes#inviteduserdoesnotexist",
   "id": "InvitedUserDoesNotExist",
   "title": "Invited user does not exist",
   "detail": "The user you are trying to invite does not exist. Please make sure the user is already register in Hook0.",
@@ -343,7 +343,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/NotFound",
+  "type": "https://documentation.hook0.com/reference/error-codes#notfound",
   "id": "NotFound",
   "title": "Item not found",
   "detail": "Could not find the item. Check the identifier or that you have the right to access it.",
@@ -357,7 +357,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/AuthEmailAlreadyVerified",
+  "type": "https://documentation.hook0.com/reference/error-codes#authemailalreadyverified",
   "id": "AuthEmailAlreadyVerified",
   "title": "Email already verified",
   "detail": "This address has already been verified, so this link has nothing left to do. Sign in to continue.",
@@ -369,7 +369,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/EventAlreadyIngested",
+  "type": "https://documentation.hook0.com/reference/error-codes#eventalreadyingested",
   "id": "EventAlreadyIngested",
   "title": "Event already Ingested",
   "detail": "This event was previously ingested and recorded inside Hook0 service.",
@@ -381,7 +381,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/EventTypeAlreadyExist",
+  "type": "https://documentation.hook0.com/reference/error-codes#eventtypealreadyexist",
   "id": "EventTypeAlreadyExist",
   "title": "This event type already exist",
   "detail": "An event type with this name is already present.",
@@ -393,7 +393,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/InvitedUserAlreadyInOrganization",
+  "type": "https://documentation.hook0.com/reference/error-codes#inviteduseralreadyinorganization",
   "id": "InvitedUserAlreadyInOrganization",
   "title": "Invited user is already in the organization",
   "detail": "The user you are trying to invite has already access to the organization.",
@@ -405,7 +405,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/OrganizationIsNotEmpty",
+  "type": "https://documentation.hook0.com/reference/error-codes#organizationisnotempty",
   "id": "OrganizationIsNotEmpty",
   "title": "Organization is not empty",
   "detail": "Organizations that contain at least an application cannot be deleted; applications must be deleted first. If you believe this is a mistake, please contact the Hook0 support team.",
@@ -417,7 +417,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/UserAlreadyExist",
+  "type": "https://documentation.hook0.com/reference/error-codes#useralreadyexist",
   "id": "UserAlreadyExist",
   "title": "This user already exist",
   "detail": "This email is already registered.",
@@ -431,7 +431,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/RegistrationDisabled",
+  "type": "https://documentation.hook0.com/reference/error-codes#registrationdisabled",
   "id": "RegistrationDisabled",
   "title": "Registrations are disabled",
   "detail": "Registration was disabled by an administrator.",
@@ -445,7 +445,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/Validation",
+  "type": "https://documentation.hook0.com/reference/error-codes#validation",
   "id": "Validation",
   "title": "Provided input is malformed",
   "detail": "",
@@ -459,7 +459,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/TooManyApplicationsPerOrganization",
+  "type": "https://documentation.hook0.com/reference/error-codes#toomanyapplicationsperorganization",
   "id": "TooManyApplicationsPerOrganization",
   "title": "Exceeded number of applications that can be created in this organization",
   "detail": "This organization cannot have more than 0 applications. You might want to upgrade to a better plan.",
@@ -471,7 +471,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/TooManyEventsToday",
+  "type": "https://documentation.hook0.com/reference/error-codes#toomanyeventstoday",
   "id": "TooManyEventsToday",
   "title": "Exceeded number of events that can be ingested in this organization today",
   "detail": "This organization cannot ingest more than 0 events per day. You might want to upgrade to a better plan.",
@@ -485,7 +485,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/TooManyEventTypesPerApplication",
+  "type": "https://documentation.hook0.com/reference/error-codes#toomanyeventtypesperapplication",
   "id": "TooManyEventTypesPerApplication",
   "title": "Exceeded number of event types that can be created in this application",
   "detail": "This application cannot have more than 0 event types. You might want to upgrade to a better plan.",
@@ -497,7 +497,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/TooManyMembersPerOrganization",
+  "type": "https://documentation.hook0.com/reference/error-codes#toomanymembersperorganization",
   "id": "TooManyMembersPerOrganization",
   "title": "Exceeded number of users that can be invited in this organization",
   "detail": "This organization cannot have more than 0 users. You might want to upgrade to a better plan.",
@@ -509,7 +509,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/TooManySubscriptionsPerApplication",
+  "type": "https://documentation.hook0.com/reference/error-codes#toomanysubscriptionsperapplication",
   "id": "TooManySubscriptionsPerApplication",
   "title": "Exceeded number of subscriptions that can be created in this application",
   "detail": "This application cannot have more than 0 subscriptions. You might want to upgrade to a better plan.",
@@ -523,7 +523,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/AuthApplicationSecretLookupError",
+  "type": "https://documentation.hook0.com/reference/error-codes#authapplicationsecretlookuperror",
   "id": "AuthApplicationSecretLookupError",
   "title": "Could not check database to verify the provided application secret",
   "detail": "This is likely to be caused by database unavailability.",
@@ -535,7 +535,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/AuthBiscuitLookupError",
+  "type": "https://documentation.hook0.com/reference/error-codes#authbiscuitlookuperror",
   "id": "AuthBiscuitLookupError",
   "title": "Could not check database to verify if the provided Biscuit was revoked",
   "detail": "This is likely to be caused by database unavailability.",
@@ -547,7 +547,7 @@ All API errors follow this structure (RFC 7807):
 
 ```json
 {
-  "type": "https://hook0.com/documentation/errors/InternalServerError",
+  "type": "https://documentation.hook0.com/reference/error-codes#internalservererror",
   "id": "InternalServerError",
   "title": "Something wrong happened",
   "detail": "Hook0 server had issue handling your request. Our team was notified.",

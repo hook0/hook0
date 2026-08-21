@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Hook0.Tests</RootNamespace>
+    <AssemblyName>Hook0.Client.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Pinned, so that a release of any of them is a change somebody made rather than a pipeline that
+      turned red on its own. None of these reaches the package: what the package itself is allowed to
+      depend on is settled by `PackagingTests.cs`, which runs below.
+    -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <!--
+      The last release of the 6.x line, which is the line built for the .NET 8 the pinned image
+      carries; 8.x and 10.x are built for later SDKs. Coverlet rather than the Microsoft collector
+      that ships with the test SDK for two reasons, both about the number meaning something: it
+      leaves out the sequence points nothing can reach — the `init` accessors a positional record
+      gets for free, the machinery a `switch` over a string compiles into — and it counts a branch
+      the way JaCoCo counts one, so the figure beside java's and kotlin's is the same measurement
+      rather than a different one wearing the same name.
+
+      The switch raises the reported figure, and the reason is worth having on the page rather than
+      in a review thread: the denominator falls by the 49 lines nothing can execute, 41 of them
+      compiler-written `init` accessors. The number rises because unreachable code left the
+      measurement, not because more of the client became covered.
+    -->
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../src/Hook0.Client.csproj" />
+  </ItemGroup>
+
+</Project>

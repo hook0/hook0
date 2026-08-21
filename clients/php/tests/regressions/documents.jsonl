@@ -1,0 +1,24 @@
+{}
+{"id":"NotFound","title":"Not found","detail":"This application does not exist.","status":404,"type":"https://documentation.hook0.com/problems"}
+{"id":"Validation","title":"t","detail":"d","status":400,"type":"u","validation":{"name":["is required"]}}
+{"id":"Validation","title":"t","detail":"d","status":400,"type":"u","validation":null}
+{"id":"NotFound","title":"t","detail":"d","status":404,"type":"u","unexpected":"a member the document does not declare"}
+{"application_id":"3f2504e0-4f89-41d3-9a0c-0305e82c3301","name":"an application","organization_id":"3f2504e0-4f89-41d3-9a0c-0305e82c3302","consumption":{"events_per_day":12},"onboarding_steps":{"event":"Done","event_type":"ToDo","subscription":"ToDo"},"quotas":{"days_of_events_retention_limit":7,"events_per_day_limit":100}}
+{"application_id":"not-an-identifier","name":"an application","organization_id":"3f2504e0-4f89-41d3-9a0c-0305e82c3302"}
+{"application_id":"3f2504e0-4f89-41d3-9a0c-0305e82c3301","name":"an application","organization_id":"3f2504e0-4f89-41d3-9a0c-0305e82c3302"}
+{"events_per_day":12}
+{"events_per_day":1e308}
+{"days_of_events_retention_limit":7,"events_per_day_limit":100}
+{"event":"Done","event_type":"ToDo","subscription":"ToDo"}
+{"event":"Maybe","event_type":"ToDo","subscription":"ToDo"}
+{"status":"404"}
+{"status":404,"validation":1e308}
+{"type":"waiting","since":"2026-08-14T12:00:00Z","until":"2026-08-14T12:05:00Z"}
+{"type":"waiting","since":"2026-08-14T12:00:00.123456Z"}
+{"type":"successful","since":"2026-08-14T12:00:00+02:00","full_processing_ms":12}
+{"method":"POST","url":"https://example.com/hook","headers":{"x-event-id":"abc"},"type":"http"}
+{"date":"2026-08-14","amount":3}
+{"date":"2026-02-31","amount":3}
+{"application_id":"3f2504e0-4f89-41d3-9a0c-0305e82c3301","event_type":"auth.user.create","labels":{},"occurred_at":"2026-08-14T12:00:00Z","payload":"{}","payload_content_type":"application/json"}
+{"application_id":"3f2504e0-4f89-41d3-9a0c-0305e82c3301","event_type":"auth.user.create","labels":{"environment":"production"},"metadata":{},"occurred_at":"2026-08-14T12:00:00+00:00","payload":"{}","payload_content_type":"application/json"}
+{"application_id":"3f2504e0-4f89-41d3-9a0c-0305e82c3301","event_type":"auth.user.create","labels":[],"occurred_at":"2026-08-14T12:00:00Z","payload":"{}","payload_content_type":"application/json"}

@@ -1,0 +1,32 @@
+# How a Rust example of the SDK reference is proven.
+#
+# Every snippet becomes its own binary under `src/bin`, discovered by Cargo from the filesystem
+# rather than named in this manifest, so a page gaining its twenty-second example costs this
+# project nothing. `cargo test --no-run` builds every one of them: the ordinary code a snippet
+# shows, and — for the two snippets that are `#[cfg(test)] mod { ... }` blocks — the test code
+# itself, which plain `cargo build` would silently skip, because `cfg(test)` only turns on inside
+# a test build. Nothing runs; `--no-run` stops the moment everything has compiled and linked. A
+# method renamed in `clients/rust`, a field dropped from `Event`, an argument added to
+# `Hook0Client::new` all stop this job at the page that shows the old spelling.
+#
+# Every send in these pages needs a live API, and `smoke/` is where a live API is stood up;
+# repeating that here would buy a slower job and the same answer.
+#
+# The third-party crates a few of these snippets reach for are pinned in `Cargo.toml` to the
+# versions the repository already resolves for `clients/rust`, and Cargo fetches them: a fresh
+# container has no registry cache to resolve them out of, and a job that refused the network would
+# be red about connectivity rather than about the documentation.
+proof = "compiled"
+proves = "assembled against clients/rust and built, cfg(test) code included; a renamed method or a changed signature fails"
+
+path = "src/bin/{{name}}.rs"
+timeout_seconds = 600
+
+run = [["cargo", "test", "--no-run", "--quiet"]]
+
+[environment]
+# Relative to this project's own root, so a `CARGO_TARGET_DIR` the checker that assembles this
+# project happens to be running under is never inherited into it — this project's build artefacts
+# stay inside the directory it was assembled in, never in the repository and never mixed into
+# another language's build.
+CARGO_TARGET_DIR = "target"

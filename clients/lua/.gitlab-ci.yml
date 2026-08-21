@@ -1,0 +1,110 @@
+# A job of its own, unlike the generator guards that ride along with the Rust client: this is
+# another runtime, with another toolchain and another image, so there is nothing here an existing
+# job could have run.
+clients.lua.check:
+  stage: test
+  dependencies: []
+  image: nickblah/lua:$LUA_VERSION
+  # The whole suite talks to loopback sockets and finishes in seconds; anything past this is a run
+  # that is stuck rather than one that is slow.
+  timeout: 15m
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
+    - changes:
+        - clients/lua/**/*
+        # The generated half of the rock is written from the API's OpenAPI snapshot, so a change of
+        # the generator or of the API surface has to face the suites that exercise what it wrote.
+        - clients/sdkgen/**/*
+        - api/openapi.snapshot.json
+        # Retry classification, the bounds of a send and signature verification are hand-written
+        # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
+        # this client rather than the one language whoever edited it happened to be reading.
+        - clients/conformance/**/*
+        - .gitlab-ci.yml
+  before_script:
+    - lua -v
+    - luarocks --version
+    # `luasocket` and `luasec` are the two runtime dependencies this rock declares — a socket is the
+    # one thing Lua's standard library cannot open at all — and they are built from source here,
+    # which is what the compiler and the headers are for. Everything else the SDK needs, JSON and
+    # SHA-256 included, is written out under `src` and installs nothing.
+    - apt-get update && apt-get install --yes --no-install-recommends build-essential libssl-dev
+    # Pinned, so that a release of either is a change somebody made rather than a pipeline that
+    # turned red on its own. Both are development dependencies and neither reaches the rock: what the
+    # rock itself is allowed to require is settled by `spec/rockspec_spec.lua`, which runs below.
+    - luarocks install luacheck 1.2.0
+    - luarocks install busted 2.3.0
+    # `luacov` is what measures coverage at all, which is what makes the floor below
+    # enforceable; 0.17.0 is the version it was measured with. It reads `.luacov` beside this
+    # file for what to count and for writing its report as the run ends.
+    - luarocks install luacov 0.17.0
+    - luarocks install luasocket 3.1.0
+    - luarocks install luasec 1.3.2
+  script:
+    - cd clients/lua
+    # The generator emits already-formatted, already-linted source, so a warning here is a defect in
+    # it or a hand edit beside it. Nothing is corrected: a job that rewrote what it was checking
+    # would report success on source nobody wrote.
+    - luacheck .
+    # The suite drives this client against an API in a second process over a loopback socket, so
+    # every timeout it exercises is a real one; the run as a whole is bounded by the job's own.
+    #
+    # `--coverage` rather than a run of its own: `.luacov` asks luacov to write its report as this
+    # ends, so the one run both proves the client works and leaves the figure the floor below reads.
+    # It costs roughly five times the wall clock of the same run without it — measured as a multiple
+    # rather than in seconds, since the absolute figure says more about the machine than about this
+    # suite. Nothing against this job's timeout either way.
+    - busted --coverage --output=plainTerminal
+    # Lua ships no coverage threshold, so the comparison is made here rather than in a job or a
+    # script of its own. Two counts rather than one ratio: at least 2913 lines hit, and at most 66
+    # left unhit.
+    #
+    # A ratio was tried here first and it does not survive the interpreter. This suite hits exactly
+    # 2913 lines under Lua 5.4.6 and under the 5.4.8 the pipeline runs, the same lines and the same
+    # specs, yet 5.4.8 reports 17 more lines of `src/generated/api.lua` as executable-and-unhit,
+    # which 5.4.6 does not count at all. Same coverage, 98.35% one side and 97.78% the other, so a
+    # ratio read off a laptop fails every pipeline. Hits are what the two agree on.
+    #
+    # What each count is for. The hit floor catches a deleted case: a suite that stops reaching code
+    # hits fewer lines, whatever the denominator does. The missed ceiling catches code added and left
+    # uncovered, which a hit floor alone would not see, and it is written at what 5.4.8 reports
+    # because the older reading cannot fail a pipeline the newer one passes.
+    #
+    # Neither is headroom: these specs talk to a loopback socket and draw nothing random. One case
+    # deleted drops the hits below 2913 and one uncovered line added pushes the missed above 66.
+    #
+    # Lines only. luacov measures nothing else, and no branch tool exists for this language, so a
+    # branch figure here would be invented rather than measured.
+    #
+    # One thing to know before hunting for a deleted test when this goes red: luacov's DENOMINATOR
+    # moves with execution. A line becomes countable once something reaches it, so a case that
+    # reaches into code nothing had reached before enlarges the total, and a case that covers only
+    # part of what it newly reaches can push the ratio down while genuinely improving the suite.
+    # Compare the hit and total counts across the two runs, not the percentages, before concluding
+    # anything went missing. All twelve files the rock ships are in the report today — the suite
+    # loads every one — so a whole file cannot silently leave the denominator, which is the failure
+    # this would otherwise share with a coverage floor over a shrinking total.
+    #
+    # This ratio is the second guard, not the first. What actually holds the generated half is the
+    # bijection in `spec/`: the set of operations the suite issued equals the set the document
+    # declares, so an operation the API grows fails there by name rather than by a percentage
+    # drifting. That one cannot be satisfied by a test that asserts nothing.
+    #
+    # It is not 100% mostly because of one thing: `transport.lua` carries the whole `https` leg —
+    # loading luasec, wrapping the socket, naming the host, the handshake and each way those fail —
+    # and the suite reaches its API over plain HTTP on loopback, so none of it is taken. The rest is
+    # refusals of bodies and query lists above their ceilings, and type guards no value the API
+    # declares can trip.
+    - >-
+      awk -v hits_floor=2913 -v missed_ceiling=66 '
+      /^Summary/ { summary = 1; next }
+      summary && $1 == "Total" { hits = $2 + 0; missed = $3 + 0; counted = 1; next }
+      summary && $NF ~ /%$/ && $NF != "100.00%" { short[++n] = $0 }
+      END {
+      if (counted != 1 || hits + missed == 0) { print "the coverage report carried no counted line at all, so nothing was measured"; exit 1 }
+      if (hits >= hits_floor && missed <= missed_ceiling) { printf "%d lines hit and %d left unhit, at or better than the floor of %d hit and the ceiling of %d unhit\n", hits, missed, hits_floor, missed_ceiling; exit 0 }
+      if (hits < hits_floor) { printf "the suite reached less code than it did: %d lines hit against a floor of %d, so something stopped being exercised\n", hits, hits_floor }
+      if (missed > missed_ceiling) { printf "more code is left unhit than before: %d lines against a ceiling of %d\n", missed, missed_ceiling }
+      printf "the files still short of 100%% are:\n";
+      for (i = 1; i <= n; i++) print "  " short[i];
+      exit 1 }' luacov.report.out

@@ -1,0 +1,32 @@
+# How a Java example of the SDK reference is proven.
+#
+# Every snippet becomes its own top-level class in one file, and `javac` is pointed at `clients/java`
+# through `-sourcepath` rather than at a built jar or an installed one: an import that resolves is one
+# `javac` found and compiled straight out of this checkout, on demand, the same classes an application
+# depending on this client from source would compile. A method renamed in `clients/java`, a field
+# dropped from `Event`, an argument added to `Hook0Client`'s constructor all stop this job at the page
+# that still shows the old spelling. `-d classes` is shared across every example, so a client class one
+# snippet already pulled in is not recompiled for the next.
+#
+# One snippet on the page is a Spring MVC handler, and Spring is not a dependency this SDK carries —
+# `DependenciesTest` in `clients/java` is what keeps that true. It is resolved once, into `deps/`, so
+# that snippet proves against a real `@RestController` method the way an application embedding it
+# would, without the client gaining a dependency it does not have.
+#
+# Nothing is run. Every send in these pages needs a live API, and `smoke/` is where a live API is
+# stood up; repeating it here would buy a slower job and the same answer.
+proof = "compiled"
+proves = "assembled against clients/java and built with javac; a renamed method or a changed signature fails"
+
+path = "{{Name}}.java"
+timeout_seconds = 300
+
+# Resolved once for the whole project: the one snippet reaching for Spring needs its jars on the
+# classpath, and every other snippet is unaffected by a directory it never imports from.
+run = [["mvn", "--batch-mode", "--quiet", "dependency:copy-dependencies", "-DoutputDirectory=deps"]]
+
+# javac takes one file at a time, so each example is its own command rather than one for the whole
+# project — the way `ruby -c` and PHP's linter are proven in their own directories. The classpath
+# wildcard `deps/*` is expanded by javac itself, not by a shell, so it costs nothing when a snippet
+# never reaches for what it names.
+each = [["javac", "-d", "classes", "-cp", "deps/*:classes", "-sourcepath", "{{client}}/src/main/java", "{{file}}"]]

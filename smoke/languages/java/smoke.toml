@@ -1,0 +1,4 @@
+# The client's own sources are this project's main sources, so nothing has to be installed into a
+# local repository first and what is exercised is the source in this repository. The client declares
+# no runtime dependency, which is what makes that possible.
+run = ["mvn", "--batch-mode", "--quiet", "test"]

@@ -59,7 +59,7 @@ tui = ["dep:ratatui", "dep:crossterm", "dep:axum", "dep:portpicker"]
 assert_cmd = "2.2"
 axum = { version = "0.8", features = ["macros"] }
 clap-markdown = "0.1.5"
-hook0-play = { path = "../play" }
+hook0-play = { path = "../play", version = "1.0.4" }
 portpicker = "0.1"
 predicates = "3.1"
 tempfile = "3.27"

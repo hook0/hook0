@@ -41,7 +41,7 @@ pub struct Qs {
     operation_id = "response.get",
     consumes = "application/json",
     produces = "application/json",
-    tags("Subscriptions Management")
+    tags("Subscriptions Management", "sdk")
 )]
 pub async fn get(
     state: Data<crate::State>,

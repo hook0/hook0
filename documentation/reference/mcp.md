@@ -24,9 +24,15 @@ The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is an open 
 # Install via Cargo (Rust package manager)
 cargo install hook0-mcp
 
-# Verify installation
+# Verify installation: which version cargo put on your PATH
 hook0-mcp --version
 ```
+
+:::note Two flags, and everything else in the environment
+`hook0-mcp --version` prints the version and `hook0-mcp --help` prints the variables it reads; both answer before any configuration is loaded, so they work on a machine with no token set. Everything else is an environment variable, which is what an MCP client can set in the block it launches a server from. An argument the binary has no meaning for is reported and exits in failure rather than being dropped, so a mistyped flag does not silently start a server.
+
+Run it with no argument and no `HOOK0_API_TOKEN` and it prints what it wants, then exits; run it with the token set and it starts serving on stdio and waits.
+:::
 
 :::tip Don't have Rust installed?
 Install Rust first: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
@@ -41,7 +47,7 @@ Service tokens authenticate the MCP server with your Hook0 organization.
 3. Click **Service Tokens** in the left sidebar
 4. Click **Create Service Token**
 5. Name it (e.g., "Claude MCP" or "Cursor AI")
-6. **Copy the token** — this is your `HOOK0_API_TOKEN`
+6. **Copy the token**, which is your `HOOK0_API_TOKEN`
 
 :::warning Security Best Practice
 Service tokens have full access to your organization. For production environments, consider using [token attenuation](../how-to-guides/manage-service-tokens.md#token-attenuation) to restrict permissions to specific applications.
@@ -138,8 +144,8 @@ Restart your AI assistant, then try these prompts:
 | `HOOK0_API_TOKEN` | *required* | Your Hook0 service token |
 | `HOOK0_API_URL` | `https://app.hook0.com` | Hook0 API base URL (change for self-hosted) |
 | `HOOK0_READ_ONLY` | `false` | Restrict to read-only operations |
-| `MCP_TRANSPORT` | `stdio` | Transport protocol: `stdio` or `sse` |
-| `MCP_SSE_PORT` | `3000` | Port for SSE transport mode |
+| `MCP_TRANSPORT` | `stdio` | Transport protocol. Only `stdio` is supported; `sse` is reserved and not implemented |
+| `MCP_SSE_PORT` | `3000` | Reserved for SSE transport, which is not implemented |
 
 ### Self-Hosted Configuration
 
@@ -161,7 +167,7 @@ For self-hosted Hook0 instances, set the API URL:
 
 ### Read-Only Mode
 
-Enable read-only mode for safe observability access. Only query operations are available — no modifications possible:
+Enable read-only mode for safe observability access. Only query operations are available, and no modification is possible:
 
 ```json
 {
@@ -190,34 +196,19 @@ This is recommended for:
 
 ## Available Tools
 
-The MCP server provides 17 tools organized by operation type. In read-only mode, only read operations are available.
+Twenty-three, one per operation the API document marks for this server, named `<entity>.<operation>`, as in `applications.list`, `events.ingest`, `subscriptions.create` and `events.replay`. Thirteen read and ten write; read-only mode leaves the thirteen.
 
-### Read Operations
+The whole table, with the method and path each tool reaches, is on the [MCP server reference page](sdk/mcp.md#the-tools). It is kept in one place because the list is generated from the API document rather than written down, and a second copy is a second thing to forget.
 
-| Tool | Description | Example Prompt |
-|------|-------------|----------------|
-| `list_organizations` | List all accessible organizations | "Show my organizations" |
-| `list_applications` | List applications in an organization | "What apps do I have?" |
-| `get_application` | Get detailed application info | "Show details for app X" |
-| `list_event_types` | List event types for an application | "What event types are registered?" |
-| `list_subscriptions` | List webhook subscriptions | "Show all my webhooks" |
-| `get_subscription` | Get subscription details | "Show webhook configuration for..." |
-| `list_events` | List events for an application | "Show recent events" |
-| `get_event` | Get event details with payload | "Show event abc123" |
-| `list_request_attempts` | List delivery attempts | "Show delivery history for event X" |
+You rarely name a tool yourself. You ask for what you want, and the assistant picks:
 
-### Write Operations
+> "What apps do I have?"
 
-| Tool | Description | Example Prompt |
-|------|-------------|----------------|
-| `create_application` | Create a new application | "Create an app called Order Service" |
-| `delete_application` | Delete an application | "Delete the test application" |
-| `create_event_type` | Register a new event type | "Add event type order.completed" |
-| `create_subscription` | Create a webhook subscription | "Create a webhook to https://..." |
-| `update_subscription` | Update subscription settings | "Disable the webhook for..." |
-| `delete_subscription` | Delete a subscription | "Remove the staging webhook" |
-| `ingest_event` | Send a new event | "Send a test user.created event" |
-| `retry_delivery` | Retry a failed delivery | "Retry the failed delivery for event X" |
+> "Show delivery history for event X"
+
+> "Retry the failed delivery for event X"
+
+> "Send a test user.created event"
 
 ---
 
@@ -292,7 +283,7 @@ You: Show me my applications
 
 Claude: I'll list your Hook0 applications.
 
-[Uses list_applications tool]
+[Uses applications.list tool]
 
 You have 3 applications:
 
@@ -312,8 +303,8 @@ You: Create a webhook for order events to https://api.myapp.com/webhooks
 
 Claude: I'll create a webhook subscription. Let me first check your applications...
 
-[Uses list_applications tool]
-[Uses list_event_types tool]
+[Uses applications.list tool]
+[Uses eventTypes.list tool]
 
 I found your "Order Service" application with these event types:
 - order.created
@@ -325,7 +316,7 @@ Which event types should trigger this webhook? Or should I subscribe to all of t
 
 You: All order events
 
-Claude: [Uses create_subscription tool]
+Claude: [Uses subscriptions.create tool]
 
 Done! Created webhook subscription:
 - **Target:** https://api.myapp.com/webhooks
@@ -343,9 +334,9 @@ You: Why are my webhooks failing?
 
 Claude: I'll investigate your recent delivery failures.
 
-[Uses list_applications tool]
-[Uses list_events tool with failed status]
-[Uses list_request_attempts tool]
+[Uses applications.list tool]
+[Uses events.list tool]
+[Uses requestAttempts.read tool]
 
 I found 3 failed deliveries in the last hour:
 
@@ -365,7 +356,7 @@ The 503 errors suggest your server is overloaded or down.
 
 You: The server is back up, retry them
 
-Claude: [Uses retry_delivery tool x3]
+Claude: [Uses events.replay tool x3]
 
 All 3 deliveries have been retried:
 - evt_123: ✅ 200 OK
@@ -384,14 +375,14 @@ Claude: I'll send a test event. Which application and event type?
 
 You: Order Service, order.created
 
-Claude: [Uses ingest_event tool]
+Claude: [Uses events.ingest tool]
 
 Test event sent:
 - **Event ID:** evt_test_abc123
 - **Type:** order.created
 - **Payload:** {"test": true, "timestamp": "2024-01-15T10:30:00Z"}
 
-[Uses list_request_attempts tool]
+[Uses requestAttempts.read tool]
 
 Delivery status:
 - **Subscription:** Production Webhook
@@ -450,7 +441,7 @@ When using MCP with AI assistants, always [attenuate your token](../how-to-guide
 **Cause:** The MCP server isn't running or not configured correctly.
 
 **Fix:**
-1. Verify installation: `hook0-mcp --version`
+1. Verify installation: `command -v hook0-mcp`
 2. Check the config file path is correct for your OS
 3. Restart your AI assistant after configuration changes
 
@@ -496,33 +487,30 @@ lsof -i :3000
 2. Check for JSON syntax errors in the config file
 3. Verify the `command` path is correct (try absolute path)
 
+### Your Assistant Connects On a Different Protocol Revision Than It Asked For
+
+**Cause:** MCP is versioned by dated revisions, and the client and the server settle on one when they connect. If your assistant asks for a revision this server has not implemented, the server answers with the newest one it has rather than refusing, and the session continues on that. `2026-07-28` is the revision currently not implemented, since it asks for a stateless lifecycle, `subscriptions/listen` and input-required tool handling the server does not provide.
+
+**Fix:**
+- Usually nothing. Assistants negotiate down on their own and every tool keeps working.
+- If yours refuses to negotiate down, pin it to a revision the server answers on. The list is in the [`hook0-mcp` README](https://crates.io/crates/hook0-mcp#protocol-revisions), which ships with the binary you installed and is kept honest by the server's own test suite.
+
 ---
 
 ## Advanced Usage
 
-### SSE Transport Mode
+### SSE / HTTP Transport Mode
 
-For web-based integrations or scenarios where stdio isn't available:
+Not implemented. The server speaks MCP over stdio only.
 
-```bash
-HOOK0_API_TOKEN=your-token MCP_TRANSPORT=sse MCP_SSE_PORT=3001 hook0-mcp
-```
-
-The server will listen on `http://localhost:3001/sse` for MCP connections.
+`MCP_TRANSPORT=sse` is accepted as a configuration value but the server exits with
+an error rather than starting, so there is no HTTP or SSE endpoint to connect to.
+For web-based integrations, run `hook0-mcp` behind a process that bridges stdio to
+your transport of choice.
 
 ### Programmatic Integration
 
-The Hook0 MCP server can be used programmatically in your own applications:
-
-```rust
-use hook0_mcp::{Hook0McpServer, Hook0Client, Config};
-
-let config = Config::from_env()?;
-let client = Hook0Client::new(&config);
-let server = Hook0McpServer::new(client, config.read_only);
-
-// Use with rmcp runtime
-```
+`hook0-mcp` is a library as well as a binary, so a process you already run can serve the same tools instead of spawning one beside itself. The [MCP server reference page](sdk/mcp.md#embedding-it) has the code, compiled against the crate on every build.
 
 ### Docker Deployment
 
@@ -539,7 +527,7 @@ CMD ["hook0-mcp"]
 
 ### Is my data sent to the AI?
 
-The AI assistant only sees the data returned by the tools it calls. Hook0 does not send your data to any third party — the MCP server runs locally on your machine and communicates directly with the Hook0 API.
+The AI assistant only sees the data returned by the tools it calls. Hook0 does not send your data to any third party. The MCP server runs locally on your machine and communicates directly with the Hook0 API.
 
 ### Can I use this with ChatGPT?
 

@@ -1,0 +1,15 @@
+// What this smoke is. Nothing is fetched: the client is a module rooted at its source in this
+// repository, which is what makes the smoke exercise the package as it stands rather than as it was
+// last published.
+.{
+    .name = .zig_smoke,
+    .version = "0.0.0",
+    .minimum_zig_version = "0.16.0",
+    .fingerprint = 0x708d305b4d3d5dcf,
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

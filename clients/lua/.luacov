@@ -1,0 +1,13 @@
+-- What the rock ships, and only that. The suite's own helpers, the rockspec and busted's machinery
+-- all execute during a run, and counting them would make the floor about the harness rather than
+-- about the client.
+include = { "src/" }
+
+-- Write the report as the run ends rather than leaving the raw stats for a second command to turn
+-- into one. The threshold in this client's CI job reads the report, so this is what lets that job
+-- add one command rather than two.
+runreport = true
+
+-- The raw stats are an intermediate of the run that just ended; the report beside them is what is
+-- read. Keeping both would leave two files behind where one is used.
+deletestats = true

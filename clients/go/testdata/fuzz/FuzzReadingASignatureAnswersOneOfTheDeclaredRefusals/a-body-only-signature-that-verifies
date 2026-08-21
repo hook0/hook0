@@ -1,0 +1,3 @@
+go test fuzz v1
+string("t=1800000000,v0=d17d66b66fca89390c5b967c45e8928fc732db07a0aabe8167b1e98213081ffe")
+[]byte("{\"event\":\"user.created\"}")

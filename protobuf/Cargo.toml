@@ -14,7 +14,10 @@ chrono = "0.4.45"
 prost = "0.14.4"
 prost-wkt = "0.7.1"
 prost-wkt-types = "0.7.1"
-pulsar = { version = "6.8.0", default-features = false }
+# The runtime feature its two consumers both ask for. Without it this crate only ever
+# compiled because building the API or the worker unified the feature in for it: on its
+# own, `cargo test -p hook0-protobuf` and `cargo publish` both failed inside `pulsar`.
+pulsar = { version = "6.8.0", default-features = false, features = ["tokio-rustls-runtime"] }
 serde = "1.0.229"
 serde_json = "1.0.151"
 thiserror = "2.0.20"

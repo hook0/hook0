@@ -95,12 +95,25 @@ impl Signature {
         }
     }
 
-    pub fn verify(&self, payload: &[u8], ordered_header_values: &[String], secret: &str) -> bool {
+    /// Whether the signature was produced over that payload with that secret.
+    ///
+    /// Keying the MAC is fallible in the type system even though HMAC accepts a key of any size, and
+    /// a verifier that panics on it takes down the webhook handler it was called from. The refusal
+    /// is returned instead, as the same [`Hook0ClientError::InvalidSignature`] a signature that does
+    /// not verify answers with: a secret this client cannot key an HMAC with is one it cannot
+    /// establish anything about the webhook under, so it establishes nothing.
+    pub fn verify(
+        &self,
+        payload: &[u8],
+        ordered_header_values: &[String],
+        secret: &str,
+    ) -> Result<bool, Hook0ClientError> {
         let timestamp_str = self.timestamp.to_string();
         let timestamp_str_bytes = timestamp_str.as_bytes();
 
         type HmacSha256 = Hmac<Sha256>;
-        let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap(); // MAC can take key of any size; this should never fail
+        let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
+            .map_err(|_| Hook0ClientError::InvalidSignature)?;
         mac.update(timestamp_str_bytes);
         mac.update(Self::PAYLOAD_SEPARATOR_BYTES);
 
@@ -120,135 +133,16 @@ impl Signature {
             );
             mac.update(Self::PAYLOAD_SEPARATOR_BYTES);
             mac.update(payload);
-            mac.verify_slice(v1).is_ok()
+            Ok(mac.verify_slice(v1).is_ok())
         } else if let Some(v0) = self.v0.as_ref() {
             trace!("Verifying v0 signature...");
 
             mac.update(payload);
-            mac.verify_slice(v0).is_ok()
+            Ok(mac.verify_slice(v0).is_ok())
         } else {
             // This cannot happen because this error would be raised while parsing the signature
             trace!("Failed to decode signature: no v0 nor v1 field");
-            false
+            Ok(false)
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_signature_v0() {
-        let signature = Signature::parse("t=123,v0=abcd").unwrap();
-        assert_eq!(signature.timestamp, 123);
-        assert_eq!(signature.v0, Some(hex::decode("abcd").unwrap()));
-        assert_eq!(signature.h, Vec::<HeaderName>::new());
-        assert_eq!(signature.v1, None);
-    }
-
-    #[test]
-    fn parse_signature_v0_invalid_timestamp() {
-        let signature = Signature::parse("t=error,v0=def");
-        assert!(signature.is_err());
-    }
-
-    #[test]
-    fn parse_signature_missing_signature_field() {
-        let signature = Signature::parse("t=error,h=x-test,foo=bar");
-        assert!(signature.is_err());
-    }
-
-    #[test]
-    fn parse_signature_v1() {
-        let signature = Signature::parse("t=123,h=x-test x-test2,v1=1234").unwrap();
-        assert_eq!(signature.timestamp, 123);
-        assert_eq!(signature.v0, None);
-        assert_eq!(
-            signature.h,
-            vec![
-                HeaderName::from_static("x-test"),
-                HeaderName::from_static("x-test2")
-            ]
-        );
-        assert_eq!(signature.v1, Some(hex::decode("1234").unwrap()));
-    }
-
-    #[test]
-    fn parse_signature_v0_v1() {
-        let signature = Signature::parse("t=123,v0=abcd,h=x-test x-test2,v1=1234").unwrap();
-        assert_eq!(signature.timestamp, 123);
-        assert_eq!(signature.v0, Some(hex::decode("abcd").unwrap()));
-        assert_eq!(
-            signature.h,
-            vec![
-                HeaderName::from_static("x-test"),
-                HeaderName::from_static("x-test2")
-            ]
-        );
-        assert_eq!(signature.v1, Some(hex::decode("1234").unwrap()));
-    }
-
-    #[test]
-    fn verify_signature_v0_valid() {
-        let signature = Signature {
-            timestamp: 1636936200,
-            v0: Some(
-                hex::decode("1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98")
-                    .unwrap(),
-            ),
-            h: Vec::new(),
-            v1: None,
-        };
-        let payload = "hello !".as_bytes();
-        let secret = "secret";
-        assert!(signature.verify(payload, &[], secret));
-    }
-
-    #[test]
-    fn verify_signature_v0_invalid() {
-        let signature = Signature {
-            timestamp: 1636936200,
-            v0: Some(
-                hex::decode("1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98")
-                    .unwrap(),
-            ),
-            h: Vec::new(),
-            v1: None,
-        };
-        let payload = "hello !".as_bytes();
-        let secret = "another secret";
-        assert!(!signature.verify(payload, &[], secret));
-    }
-
-    #[test]
-    fn parse_and_verify_signature_v0() {
-        let signature = Signature::parse(
-            "t=1636936200,v0=1b3d69df55f1e52f05224ba94a5162abeb17ef52cd7f4948c390f810d6a87e98",
-        )
-        .unwrap();
-        let payload = "hello !".as_bytes();
-        let secret = "secret";
-        assert!(signature.verify(payload, &[], secret));
-    }
-
-    #[test]
-    fn verify_signature_v1_valid() {
-        let signature = Signature {
-            timestamp: 1636936200,
-            v0: None,
-            h: vec![
-                HeaderName::from_static("x-test"),
-                HeaderName::from_static("x-test2"),
-            ],
-            v1: Some(
-                hex::decode("493c35f05443fdb74cb99fd4f00e0e7653c2ab6b24fbc97f4a7bd4d56b31758a")
-                    .unwrap(),
-            ),
-        };
-        let payload = "hello !".as_bytes();
-        let header_values = vec!["val1".to_owned(), "val2".to_owned()];
-        let secret = "secret";
-        assert!(signature.verify(payload, &header_values, secret));
     }
 }

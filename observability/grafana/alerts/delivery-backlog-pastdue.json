@@ -1,0 +1,80 @@
+{
+  "uid": "hook0-backlog-pastdue",
+  "orgID": 1,
+  "folderUID": "ff485ab4jp6gwc",
+  "ruleGroup": "Every minute",
+  "title": "Delivery backlog — past-due request attempts",
+  "condition": "C",
+  "for": "10m",
+  "noDataState": "Alerting",
+  "execErrState": "Alerting",
+  "isPaused": false,
+  "labels": { "severity": "warning", "team": "hook0" },
+  "annotations": {
+    "summary": "Webhook delivery is lagging: request attempts are past their scheduled delivery time (delay_until) by more than 10 minutes and still not delivered. Healthy baseline is ~0. This counts only genuinely-overdue attempts (delay_until past-due), NOT the ~78k scheduled future retries. noData/execErr are set to Alerting so a broken query pages instead of going silent (the Aug 2026 root-cause: the only alert was silent on NoData)."
+  },
+  "notification_settings": { "receiver": "Better Uptime" },
+  "data": [
+    {
+      "refId": "A",
+      "queryType": "",
+      "relativeTimeRange": { "from": 600, "to": 0 },
+      "datasourceUid": "bev6em79t7jlsc",
+      "model": {
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "bev6em79t7jlsc" },
+        "editorMode": "code",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "select count(*) as past_due\nfrom webhook.request_attempt\nwhere succeeded_at is null and failed_at is null\n  and delay_until <= now() - interval '10 minutes'",
+        "refId": "A",
+        "instant": false,
+        "range": true,
+        "intervalMs": 60000,
+        "maxDataPoints": 43200,
+        "sql": {
+          "columns": [ { "parameters": [], "type": "function" } ],
+          "groupBy": [ { "property": { "type": "string" }, "type": "groupBy" } ],
+          "limit": 50
+        }
+      }
+    },
+    {
+      "refId": "B",
+      "queryType": "",
+      "relativeTimeRange": { "from": 0, "to": 0 },
+      "datasourceUid": "__expr__",
+      "model": {
+        "datasource": { "type": "__expr__", "uid": "__expr__" },
+        "expression": "A",
+        "reducer": "last",
+        "type": "reduce",
+        "refId": "B",
+        "intervalMs": 1000,
+        "maxDataPoints": 43200
+      }
+    },
+    {
+      "refId": "C",
+      "queryType": "",
+      "relativeTimeRange": { "from": 0, "to": 0 },
+      "datasourceUid": "__expr__",
+      "model": {
+        "datasource": { "type": "__expr__", "uid": "__expr__" },
+        "expression": "B",
+        "type": "threshold",
+        "conditions": [
+          {
+            "evaluator": { "params": [100], "type": "gt" },
+            "operator": { "type": "and" },
+            "query": { "params": ["C"] },
+            "reducer": { "params": [], "type": "last" },
+            "type": "query"
+          }
+        ],
+        "refId": "C",
+        "intervalMs": 1000,
+        "maxDataPoints": 43200
+      }
+    }
+  ]
+}
