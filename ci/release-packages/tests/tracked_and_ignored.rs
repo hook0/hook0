@@ -200,8 +200,9 @@ fn contradictions(root: &Path, paths: &[String]) -> Vec<Contradiction> {
     // The output ends with a terminator, so the split leaves one empty field past the last record.
     let complete = fields.len() / FIELDS_PER_MATCH * FIELDS_PER_MATCH;
 
-    let mut found = fields[..complete]
-        .chunks_exact(FIELDS_PER_MATCH)
+    let (records, _) = fields[..complete].as_chunks::<FIELDS_PER_MATCH>();
+    let mut found = records
+        .iter()
         // A pattern written `\!` is a file whose name begins with one, and it is still an exclusion.
         .filter(|record| !record[2].starts_with('!'))
         .map(|record| Contradiction {
