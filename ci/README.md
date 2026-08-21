@@ -187,6 +187,16 @@ to the generator's registry reaches a repository of its own without this file or
 directory, and the run refuses past a ceiling of mirrors rather than discovering
 one in a runner.
 
+The repositories themselves are a prerequisite rather than something a release
+creates. Nothing in this pipeline calls the GitHub API, and `git push` does not
+bring a repository into being, so `sdk-release.mirrors` fails against a name that
+is not there yet. Create all of them before the first release rather than most of
+them: the job walks the list under `set -e`, and for Go, Packagist and Zig the
+push is the publication, so stopping halfway leaves some languages published at a
+version the others never reach, with the tag already spent. Each one is public,
+since those three ecosystems all resolve a version by reading the repository
+anonymously.
+
 Three ecosystems can be published no other way, and their publish jobs are what
 the mirrors are for:
 
