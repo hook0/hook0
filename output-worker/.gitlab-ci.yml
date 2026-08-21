@@ -14,6 +14,25 @@ include:
       app_id: $CLEVERCLOUD_PRODUCTION_OUTPUT_WORKER_ID
       when: manual
 
+# A bare `clever deploy` refuses to act when the remote already carries the commit being pushed,
+# which is the state a failed deploy leaves behind: the push landed, the remote build died, and
+# every retry stops at "Remote HEAD has the same commit" without touching the application, so the
+# only way back is another commit on the default branch. `rebuild` builds the pushed commit again,
+# which is what recovery wants. `restart` would bring back the instance that is already running,
+# and after a failed build that instance still carries the previous release.
+#
+# Overriding `script` alone leaves the image, the clever-tools install and the branch rules coming
+# from the component.
+"deploy output_worker to staging":
+  script:
+    - clever link $CLEVERCLOUD_STAGING_OUTPUT_WORKER_ID
+    - clever deploy --same-commit-policy rebuild
+
+"deploy output_worker to production":
+  script:
+    - clever link $CLEVERCLOUD_PRODUCTION_OUTPUT_WORKER_ID
+    - clever deploy --same-commit-policy rebuild
+
 output_worker.check:
   extends: .rust-cache-pull-only
   stage: test
