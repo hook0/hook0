@@ -187,6 +187,12 @@ output-worker.gitlab:
 # DRY home for the Clever Cloud git-build deploy loop. clever-tools authenticates
 # from CLEVER_TOKEN / CLEVER_SECRET. Subclasses set DEPLOY_APP_IDS (space-separated
 # Clever app ids) — no hardcoded app ids here.
+#
+# The deploy carries a same-commit policy because this loop walks several applications. Without
+# one, an application that already carries the released commit stops the whole loop with an error,
+# so a run that deployed the first app and lost the second could never be replayed: the retry would
+# die on the first app before reaching the one that still needs the release. `rebuild` builds the
+# commit again on an application that already has it, which keeps the loop replayable end to end.
 .clever-deploy:
   extends: .output-worker-release-rules
   stage: release
@@ -206,7 +212,7 @@ output-worker.gitlab:
       for app_id in $DEPLOY_APP_IDS; do
         echo "Deploying released commit to Clever app $app_id"
         clever link "$app_id" --alias target
-        clever deploy --alias target --force
+        clever deploy --alias target --force --same-commit-policy rebuild
         clever unlink target
       done
 
