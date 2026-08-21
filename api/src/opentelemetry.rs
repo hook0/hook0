@@ -277,13 +277,18 @@ pub fn report_health_check_duration(
 }
 
 // SDK default boundaries are tuned for milliseconds; this metric is in seconds.
+// The object storage probe alone runs into the seconds, so the top boundaries go
+// well past it: once the highest finite bucket is reached, every quantile above
+// it reports that same boundary and the tail stops being readable.
+const HEALTH_CHECK_DURATION_BOUNDARIES: &[f64] = &[
+    0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 7.5, 10.0, 15.0, 30.0, 60.0,
+];
+
 fn health_check_duration_view(instrument: &Instrument) -> Option<Stream> {
     if instrument.name() == "health_check.duration" {
         Stream::builder()
             .with_aggregation(Aggregation::ExplicitBucketHistogram {
-                boundaries: vec![
-                    0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 7.5, 10.0,
-                ],
+                boundaries: HEALTH_CHECK_DURATION_BOUNDARIES.to_vec(),
                 record_min_max: true,
             })
             .build()
@@ -333,13 +338,15 @@ pub fn report_ingestion_duration(duration: Duration) {
     INGESTION_DURATION.record(duration.as_secs_f64(), &[]);
 }
 
+const INGESTION_DURATION_BOUNDARIES: &[f64] = &[
+    0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 15.0, 30.0, 60.0,
+];
+
 fn ingestion_duration_view(instrument: &Instrument) -> Option<Stream> {
     if instrument.name() == "events.ingestion.duration" {
         Stream::builder()
             .with_aggregation(Aggregation::ExplicitBucketHistogram {
-                boundaries: vec![
-                    0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0,
-                ],
+                boundaries: INGESTION_DURATION_BOUNDARIES.to_vec(),
                 record_min_max: true,
             })
             .build()
@@ -364,14 +371,21 @@ pub fn report_ingestion_phase_durations(phases: &[(&'static str, Duration)]) {
 }
 
 // Boundaries start lower than the ones of the whole ingestion: some phases are a
-// single fast query and would otherwise all fall into the first bucket.
+// single fast query and would otherwise all fall into the first bucket. They also
+// have to end no earlier, because a phase is by construction shorter than the
+// ingestion that contains it: stopping short would make the slowest phase drop
+// into the overflow bucket while the whole request is still being measured, and
+// the phase that carries the tail would be exactly the one we could not read.
+const INGESTION_PHASE_DURATION_BOUNDARIES: &[f64] = &[
+    0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 15.0,
+    30.0, 60.0,
+];
+
 fn ingestion_phase_duration_view(instrument: &Instrument) -> Option<Stream> {
     if instrument.name() == "events.ingestion.phase.duration" {
         Stream::builder()
             .with_aggregation(Aggregation::ExplicitBucketHistogram {
-                boundaries: vec![
-                    0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0,
-                ],
+                boundaries: INGESTION_PHASE_DURATION_BOUNDARIES.to_vec(),
                 record_min_max: true,
             })
             .build()
@@ -397,6 +411,63 @@ mod tests {
     fn checked_out_connections_are_opened_minus_idle() {
         assert_eq!(checked_out_connections(60, 0), 60);
         assert_eq!(checked_out_connections(27, 21), 6);
+    }
+
+    #[test]
+    fn every_phase_of_an_ingestion_stays_measurable_up_to_the_whole_request() {
+        // A phase is contained in the ingestion it belongs to, so it can never be
+        // the longer of the two. If the phase histogram stopped earlier than the
+        // whole-request one, a slow phase would land in the overflow bucket while
+        // the request itself was still being measured — and every quantile above
+        // that point would report the top boundary instead of the real duration,
+        // hiding precisely the phase that carries the tail.
+        let phase_ceiling = *INGESTION_PHASE_DURATION_BOUNDARIES.last().unwrap();
+        let request_ceiling = *INGESTION_DURATION_BOUNDARIES.last().unwrap();
+
+        assert!(
+            phase_ceiling >= request_ceiling,
+            "phase histogram stops at {phase_ceiling}s, whole request at {request_ceiling}s"
+        );
+    }
+
+    #[test]
+    fn duration_histograms_outlast_a_backend_that_hangs_for_ten_seconds() {
+        // Object storage is on the request path of both an ingestion and a health
+        // probe, and it is the slowest thing either of them waits on. Boundaries
+        // that ended at ten seconds put a hung backend in the overflow bucket,
+        // where its duration is no longer readable at all.
+        for (name, boundaries) in [
+            ("ingestion", INGESTION_DURATION_BOUNDARIES),
+            ("ingestion phase", INGESTION_PHASE_DURATION_BOUNDARIES),
+            ("health check", HEALTH_CHECK_DURATION_BOUNDARIES),
+        ] {
+            let ceiling = *boundaries.last().unwrap();
+            assert!(
+                ceiling > 10.0,
+                "{name} histogram stops at {ceiling}s, too early to read a stalled backend"
+            );
+        }
+    }
+
+    #[test]
+    fn duration_histogram_boundaries_are_strictly_increasing() {
+        // The SDK takes the boundaries as given; an unordered or duplicated list
+        // yields buckets that silently never match, so the guard above could pass
+        // on a ceiling no sample can ever reach.
+        for (name, boundaries) in [
+            ("ingestion", INGESTION_DURATION_BOUNDARIES),
+            ("ingestion phase", INGESTION_PHASE_DURATION_BOUNDARIES),
+            ("health check", HEALTH_CHECK_DURATION_BOUNDARIES),
+        ] {
+            assert!(
+                boundaries.windows(2).all(|pair| pair[0] < pair[1]),
+                "{name} histogram boundaries are not strictly increasing: {boundaries:?}"
+            );
+            assert!(
+                boundaries.first().is_some_and(|first| *first > 0.0),
+                "{name} histogram starts at a non-positive boundary: {boundaries:?}"
+            );
+        }
     }
 
     #[test]
