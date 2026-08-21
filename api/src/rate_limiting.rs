@@ -1,10 +1,11 @@
+use actix_governor::governor::NotUntil;
+use actix_governor::governor::clock::QuantaInstant;
 use actix_governor::governor::middleware::NoOpMiddleware;
-use actix_governor::{
-    GlobalKeyExtractor, Governor, GovernorConfig, GovernorConfigBuilder, KeyExtractor,
-};
-use actix_web::HttpMessage;
+use actix_governor::{Governor, GovernorConfig, GovernorConfigBuilder, KeyExtractor};
 use actix_web::middleware::Condition;
 use actix_web::rt::time::sleep;
+use actix_web::{HttpMessage, HttpResponse, HttpResponseBuilder};
+use http_api_problem::{HttpApiProblem, PROBLEM_JSON_MEDIA_TYPE};
 use std::net::IpAddr;
 use std::time::Duration;
 use tracing::{debug, trace, warn};
@@ -12,13 +13,54 @@ use tracing::{debug, trace, warn};
 use crate::opentelemetry::report_rate_limiters_metrics;
 use crate::problems::Hook0Problem;
 
+/// Answer of every rate limiter once its quota is exhausted.
+///
+/// These limiters sit outside the handlers, so their response never goes through
+/// [`Hook0Problem`]'s own [`actix_web::ResponseError`] implementation and has to be built here to
+/// stay the RFC 7807 body every other Hook0 error answers with. The `Retry-After` header the
+/// middleware already put on the builder is what tells a client how long to wait.
+fn rate_limited_response(mut response: HttpResponseBuilder) -> HttpResponse {
+    let problem: HttpApiProblem = Hook0Problem::RateLimited.into();
+    response
+        .content_type(PROBLEM_JSON_MEDIA_TYPE)
+        .body(problem.json_bytes())
+}
+
+/// Keys every request the same way, so a single quota covers the whole instance.
+///
+/// [`actix_governor::GlobalKeyExtractor`] does exactly this, but a foreign type cannot be taught
+/// to answer Hook0's problem body, and an SDK cannot type an error it is the only one not to
+/// receive in that shape.
+#[derive(Debug, Clone, Copy)]
+pub struct InstanceKeyExtractor;
+
+impl KeyExtractor for InstanceKeyExtractor {
+    type Key = ();
+    type KeyExtractionError = Hook0Problem;
+
+    fn extract(
+        &self,
+        _req: &actix_web::dev::ServiceRequest,
+    ) -> Result<Self::Key, Self::KeyExtractionError> {
+        Ok(())
+    }
+
+    fn exceed_rate_limit_response(
+        &self,
+        _negative: &NotUntil<QuantaInstant>,
+        response: HttpResponseBuilder,
+    ) -> HttpResponse {
+        rate_limited_response(response)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Hook0RateLimiters {
     disable_api_rate_limiting: bool,
     disable_api_rate_limiting_global: bool,
     disable_api_rate_limiting_ip: bool,
     disable_api_rate_limiting_token: bool,
-    global: GovernorConfig<GlobalKeyExtractor, NoOpMiddleware>,
+    global: GovernorConfig<InstanceKeyExtractor, NoOpMiddleware>,
     ip: GovernorConfig<UserIpKeyExtractor, NoOpMiddleware>,
     token: GovernorConfig<TokenKeyExtractor, NoOpMiddleware>,
 }
@@ -38,7 +80,7 @@ impl Hook0RateLimiters {
         api_rate_limiting_token_replenish_period_in_ms: u64,
     ) -> Self {
         let global = GovernorConfigBuilder::default()
-            .key_extractor(GlobalKeyExtractor)
+            .key_extractor(InstanceKeyExtractor)
             .burst_size(api_rate_limiting_global_burst_size)
             .milliseconds_per_request(api_rate_limiting_global_replenish_period_in_ms)
             .finish()
@@ -81,7 +123,7 @@ impl Hook0RateLimiters {
         }
     }
 
-    pub fn global(&self) -> Condition<Governor<GlobalKeyExtractor, NoOpMiddleware>> {
+    pub fn global(&self) -> Condition<Governor<InstanceKeyExtractor, NoOpMiddleware>> {
         Condition::new(
             !self.disable_api_rate_limiting && !self.disable_api_rate_limiting_global,
             Governor::new(&self.global),
@@ -153,6 +195,14 @@ impl KeyExtractor for UserIpKeyExtractor {
             .copied()
             .ok_or(Hook0Problem::InternalServerError)
     }
+
+    fn exceed_rate_limit_response(
+        &self,
+        _negative: &NotUntil<QuantaInstant>,
+        response: HttpResponseBuilder,
+    ) -> HttpResponse {
+        rate_limited_response(response)
+    }
 }
 
 /// Represents the key used for per-token rate limiting.
@@ -186,6 +236,14 @@ impl KeyExtractor for TokenKeyExtractor {
             .get::<RateLimiterTokenKey>()
             .cloned()
             .ok_or(Hook0Problem::InternalServerError)
+    }
+
+    fn exceed_rate_limit_response(
+        &self,
+        _negative: &NotUntil<QuantaInstant>,
+        response: HttpResponseBuilder,
+    ) -> HttpResponse {
+        rate_limited_response(response)
     }
 
     fn whitelisted_keys(&self) -> Vec<Self::Key> {

@@ -1,0 +1,29 @@
+{
+  // What every assembled example of the SDK reference is resolved against.
+  //
+  // `moduleDetection: force` is what lets one example that never imports anything sit beside forty
+  // others in the same `tsc` run without its top-level names leaking into theirs: without it, a
+  // file with no `import` or `export` of its own is a script sharing the global scope with every
+  // other script, and two examples both declaring `const hook0` would collide as the same binding.
+  //
+  // `hook0-client` resolves to the client's own TypeScript source rather than to `dist` or to a
+  // published version: `dist` and `esm` are build output, gitignored, and not something a fresh
+  // checkout carries, and a published version is not this commit. Redirecting straight to `src`
+  // means no build of the client is a precondition of this job, and a renamed method, a dropped
+  // field or an argument of the wrong type still fails here — the type-checker follows the source
+  // the same way it would follow a `.d.ts`, it just does the extra work of reading it from `.ts`.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "hook0-client": ["{{client}}/src/index.ts"]
+    }
+  },
+  "include": ["**/*.ts"]
+}

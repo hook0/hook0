@@ -1,0 +1,71 @@
+# A package this repository releases that no job publishes, and why it has none.
+#
+# `ci/release-packages` reads what the release flows under `ci/` declare they publish and matches it
+# against the inventory it reads out of the tree, in both directions. A package that reaches neither
+# a job nor an entry here fails the build. So does an entry naming a package that does not exist, an
+# entry whose registry or published name is not the one that package's manifest resolves to, and an
+# entry for a package a job does publish — a reason cannot be written about nothing, cannot go on
+# describing a package this one has stopped being, and cannot outlive the absence it explains.
+#
+# The tool only checks that somebody decided. What is written here is for whoever has to close the
+# gap, so each reason says what is missing and what closing it would take.
+
+[[package]]
+directory = "clients/java"
+published_as = "com.hook0:hook0-client"
+registry = "Maven-Central"
+reason = """
+What is left is not a job: it is an account nobody can open from a pipeline. The `com.hook0`
+namespace is unclaimed on the Central Portal, and claiming it means proving control of the domain by
+publishing the TXT record Sonatype asks for. Nothing may be uploaded under coordinates the Portal has
+not granted, so the job would have nowhere to upload to.
+
+Four CI variables follow from the claim and are the only other thing missing. `MAVEN_GPG_PRIVATE_KEY`
+is the OpenPGP secret key, ASCII-armoured and base64-encoded so it survives being a variable, and
+`MAVEN_GPG_PASSPHRASE` is what unlocks it: Central takes no release without a detached signature over
+every file of it, and the public half has to reach a keyserver Central reads. `MAVEN_CENTRAL_USERNAME`
+and `MAVEN_CENTRAL_TOKEN` are the user-token pair the Portal issues once the namespace is granted —
+they are not the account's own credentials, and they are what the job writes into the `central`
+server entry `central-publishing-maven-plugin` reads. None of the four is invented here.
+
+The build is ready for all of it: `clients/java/pom.xml` carries a `release` profile holding
+`central-publishing-maven-plugin`, `maven-gpg-plugin` and the source and javadoc jars Central rejects
+a release without, engaged by `-Prelease` and by nothing the merge-request check runs.
+"""
+
+[[package]]
+directory = "clients/kotlin"
+published_as = "com.hook0:hook0-client-kotlin"
+registry = "Maven-Central"
+reason = """
+A second package on Central beside `com.hook0:hook0-client`, waiting on exactly what that one waits
+on and on nothing of its own: the unclaimed `com.hook0` namespace, and the four variables recorded
+against the Java client. One claim covers both artefacts and one set of credentials publishes both,
+so there is no second thing to supply here.
+
+Publishing one of the two and leaving the other is worse than publishing neither. They are built for
+one Java release so that they can sit on one classpath, and a user who found only one on Central
+would be reaching for a pair that never went out together.
+
+The build is ready: `clients/kotlin/pom.xml` carries the same `release` profile as the Java client,
+with Dokka writing the javadoc jar Central will not take a release without — Kotlin sources produce
+no javadoc of their own.
+"""
+
+[[package]]
+directory = "clients/lua"
+published_as = "hook0-client"
+registry = "LuaRocks"
+reason = """
+A rock is uploaded as a file whose name states its version — LuaRocks reads a rockspec as
+`<package>-<version>-<revision>.rockspec` — and carries inside it the source it is built from. A
+bump writes the version and stops there: `hook0-client-1.1.0-1.rockspec` keeps the name it was born
+with, and its `source.tag = "sdk-v1.1.0"` keeps pointing at the release before. The first upload
+after a bump would therefore be a file whose name, whose contents and whose source disagree three
+ways, and it would either be refused or publish a rock that fetches the previous release.
+
+Closing this means teaching the bump to rename a rockspec and to move the source tag inside it,
+which would be the first thing `ci/release-packages` writes that is not a version. The upload then
+needs a luarocks.org account and the `LUAROCKS_API_KEY` that comes with it.
+"""
+

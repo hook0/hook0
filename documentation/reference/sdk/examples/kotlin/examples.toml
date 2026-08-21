@@ -1,0 +1,42 @@
+# How a Kotlin example of the SDK reference is proven.
+#
+# `kotlinc` has no `-sourcepath`-style lazy resolution the way `javac` does: everything a
+# compilation unit reaches has to already be class files on its classpath, or be handed to the same
+# invocation as source. `clients/kotlin` is compiled once, whole, straight out of this checkout —
+# `kotlinc {{client}}/src/main/kotlin -d classes` takes a directory and finds every `.kt` file under
+# it itself, so this project names no file of that client either. Every example is then its own
+# `kotlinc` invocation against the classes that step produced: a method renamed in `clients/kotlin`,
+# a field dropped from `Event`, an argument added to `Hook0Client`'s constructor all stop this job at
+# the page that still shows the old spelling.
+#
+# `${kotlin.version}` in `clients/kotlin/pom.xml` is what this project's `kotlinc` has to match —
+# `maven-enforcer-plugin` there refuses a plugin version that is not pinned, which is what pins the
+# compiler this documentation is held to as well; a `kotlinc` of a different version proves against
+# a compiler nobody has committed to.
+#
+# One snippet on the page is a Ktor route, and Ktor is not a dependency this SDK carries — the
+# suspending half is written against `kotlin.coroutines` alone, so it suspends inside whichever
+# runtime a caller brought. Ktor's jars are resolved once and unpacked into `deps/`, so that snippet
+# proves against a real `routing { }` block without the client gaining a dependency it does not have.
+# Unpacked rather than copied: `kotlinc`, unlike `javac`, has no classpath wildcard that expands a
+# directory of jars on its own, so a single directory of loose class files is the one form of
+# "everything Maven resolved" a static classpath entry can name without listing a jar per line.
+#
+# Nothing is run. Every send in these pages needs a live API, and `smoke/` is where a live API is
+# stood up; repeating it here would buy a slower job and the same answer.
+proof = "compiled"
+proves = "assembled against clients/kotlin and built with kotlinc; a renamed method or a changed signature fails"
+
+path = "{{Name}}.kt"
+timeout_seconds = 300
+
+run = [
+    ["mvn", "--batch-mode", "--quiet", "dependency:unpack-dependencies", "-DoutputDirectory=deps"],
+    ["kotlinc", "-jvm-target", "21", "-cp", "deps", "-d", "classes", "{{client}}/src/main/kotlin"],
+]
+
+# kotlinc takes one file at a time here, so each example is its own command rather than one for the
+# whole project: the classes step above already paid for compiling the client itself, and reusing
+# `-d classes` across every invocation means a page's second example never repeats what its first
+# one already produced.
+each = [["kotlinc", "-jvm-target", "21", "-cp", "deps:classes", "-d", "classes", "{{file}}"]]

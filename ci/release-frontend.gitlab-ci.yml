@@ -123,7 +123,7 @@ frontend.container:
         --opt platform=linux/amd64 \
         --local context=build-context \
         --local dockerfile=build-context \
-        --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-frontend:$VERSION,$CI_REGISTRY_IMAGE/hook0-frontend:latest,${DOCKERHUB_PREFIX}/hook0-frontend:$VERSION,${DOCKERHUB_PREFIX}/hook0-frontend:latest,${GHCR_PREFIX}/hook0-frontend:$VERSION,${GHCR_PREFIX}/hook0-frontend:latest\",push=true"
+        --output "type=image,name=$CI_REGISTRY_IMAGE/hook0-frontend:$VERSION,push=true"
 
 frontend.container-scan:
   extends:
@@ -135,6 +135,17 @@ frontend.container-scan:
     IMAGE_REPO: hook0-frontend
     TAG_PREFIX: frontend/v
 
+frontend.container-promote:
+  extends:
+    - .frontend-release-rules
+    - .release-container-promote
+  needs:
+    - job: frontend.container-scan
+  variables:
+    IMAGE_REPO: hook0-frontend
+    TAG_PREFIX: frontend/v
+    PROMOTE_TO: "$CI_REGISTRY_IMAGE/hook0-frontend ${DOCKERHUB_PREFIX}/hook0-frontend ${GHCR_PREFIX}/hook0-frontend"
+
 frontend.github:
   extends: .frontend-release-rules
   stage: release
@@ -144,7 +155,7 @@ frontend.github:
       artifacts: true
     - job: frontend.release-build
       artifacts: true
-    - job: frontend.container
+    - job: frontend.container-promote
   variables:
     GH_TOKEN: $GITHUB_TOKEN
   before_script:
@@ -165,7 +176,7 @@ frontend.gitlab:
       artifacts: true
     - job: frontend.release-build
       artifacts: true
-    - job: frontend.container
+    - job: frontend.container-promote
   script:
     - apk --no-cache add curl
     - |

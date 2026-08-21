@@ -1,0 +1,38 @@
+# A job of its own, unlike the generator guards that ride along with the Rust client: this is
+# another runtime, with another toolchain and another image, so there is nothing here an existing
+# job could have run.
+clients.ruby.check:
+  stage: test
+  dependencies: []
+  image: ruby:$RUBY_VERSION
+  # The whole suite talks to loopback sockets and finishes in seconds; anything past this is a run
+  # that is stuck rather than one that is slow.
+  timeout: 10m
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
+    - changes:
+        - clients/ruby/**/*
+        # The generated half of the gem is written from the API's OpenAPI snapshot, so a change of
+        # the generator or of the API surface has to face the suites that exercise what it wrote.
+        - clients/sdkgen/**/*
+        - api/openapi.snapshot.json
+        # Retry classification, the bounds of a send and signature verification are hand-written
+        # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
+        # this client rather than the one language whoever edited it happened to be reading.
+        - clients/conformance/**/*
+        - .gitlab-ci.yml
+  before_script:
+    - ruby --version
+    # Pinned, so that a release of either is a change somebody made rather than a pipeline that
+    # turned red on its own. Both are development dependencies and neither reaches the gem: what
+    # the gem itself is allowed to require is settled by `test/gemspec_test.rb`, which runs below.
+    # `simplecov` is what measures coverage at all, which is what makes the floors in
+    # `test/test_helper.rb` enforceable; 1.1.1 is the version they were measured with.
+    - gem install --no-document rubocop:1.89.0 minitest:6.0.6 simplecov:1.1.1
+  script:
+    - pushd clients/ruby
+    # The generator emits already-formatted, already-linted source, so an offence here is a defect
+    # in it or a hand edit beside it. Nothing is corrected: a job that rewrote what it was checking
+    # would report success on source nobody wrote.
+    - rubocop --format progress
+    - ruby -Ilib -Itest -e 'Dir["test/**/*_test.rb"].sort.each { |f| require File.expand_path(f) }'

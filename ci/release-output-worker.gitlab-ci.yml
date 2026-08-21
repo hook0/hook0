@@ -108,7 +108,7 @@ output-worker.container:
         --opt platform=linux/amd64 \
         --local context=build-context \
         --local dockerfile=build-context \
-        --output "type=image,\"name=$CI_REGISTRY_IMAGE/hook0-output-worker:$VERSION,$CI_REGISTRY_IMAGE/hook0-output-worker:latest,${DOCKERHUB_PREFIX}/hook0-output-worker:$VERSION,${DOCKERHUB_PREFIX}/hook0-output-worker:latest,${GHCR_PREFIX}/hook0-output-worker:$VERSION,${GHCR_PREFIX}/hook0-output-worker:latest\",push=true"
+        --output "type=image,name=$CI_REGISTRY_IMAGE/hook0-output-worker:$VERSION,push=true"
 
 output-worker.container-scan:
   extends:
@@ -120,6 +120,17 @@ output-worker.container-scan:
     IMAGE_REPO: hook0-output-worker
     TAG_PREFIX: output-worker/v
 
+output-worker.container-promote:
+  extends:
+    - .output-worker-release-rules
+    - .release-container-promote
+  needs:
+    - job: output-worker.container-scan
+  variables:
+    IMAGE_REPO: hook0-output-worker
+    TAG_PREFIX: output-worker/v
+    PROMOTE_TO: "$CI_REGISTRY_IMAGE/hook0-output-worker ${DOCKERHUB_PREFIX}/hook0-output-worker ${GHCR_PREFIX}/hook0-output-worker"
+
 output-worker.github:
   extends: .output-worker-release-rules
   stage: release
@@ -129,7 +140,7 @@ output-worker.github:
       artifacts: true
     - job: output-worker.build-amd64
       artifacts: true
-    - job: output-worker.container
+    - job: output-worker.container-promote
   variables:
     GH_TOKEN: $GITHUB_TOKEN
   before_script:
@@ -150,7 +161,7 @@ output-worker.gitlab:
       artifacts: true
     - job: output-worker.build-amd64
       artifacts: true
-    - job: output-worker.container
+    - job: output-worker.container-promote
   script:
     - apk --no-cache add curl
     - |

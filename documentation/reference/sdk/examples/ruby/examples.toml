@@ -1,0 +1,23 @@
+# How a Ruby example of the SDK reference is proven.
+#
+# Ruby resolves a method or a constant name at the moment it runs, not while it is being read, and
+# `clients/ruby` ships no RBS signatures a static checker could hold an example against instead —
+# there is no `sig/` directory and no `Steepfile`, nothing `steep` or `rbs` could point at the
+# client's own types the way `mypy` is pointed at `clients/python`'s under `mypy_path`. What is left
+# is what `ruby` itself reads without running the file: its grammar. A renamed method, a dropped
+# keyword argument, an argument in the wrong position all parse exactly as cleanly as the version
+# that calls something real, and this check cannot tell them apart. What it does catch is a
+# mismatched `end`, an unclosed string, a stray comma — the shape a snippet loses most often when it
+# is trimmed by hand for a page rather than pasted whole out of a program that ran.
+#
+# Getting past `parsed` would mean the gem writing RBS signatures for its own public surface first;
+# nothing here can hold an example against types the client does not declare.
+proof = "parsed"
+proves = "read whole by `ruby -c`, one file at a time; catches broken syntax and nothing about the client, since clients/ruby carries no RBS signatures a static checker could resolve a name against"
+
+path = "{{name}}.rb"
+timeout_seconds = 300
+
+# `ruby -c` takes one file and says nothing that names another, so each example is its own command
+# rather than one command for the whole project.
+each = [["ruby", "-c", "{{file}}"]]

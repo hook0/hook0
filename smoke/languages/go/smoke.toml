@@ -1,0 +1,4 @@
+# The module replaces the published path with the one in this repository, so what is exercised is
+# the client beside this file rather than whatever is on the proxy.
+run = ["go", "run", "."]
+

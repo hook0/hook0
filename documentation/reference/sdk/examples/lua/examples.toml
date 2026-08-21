@@ -1,0 +1,32 @@
+# How a Lua example of the SDK reference is proven.
+#
+# Lua has no compiler and no static type system: a bare `luac -p` reads a snippet's syntax and
+# nothing else. It would wave through a stand-in variable misspelled by one letter, and it says
+# nothing at all about a call the real client answers differently than the example assumes.
+#
+# luacheck is the strongest check genuinely available here without executing anything. It parses
+# every assembled example the same way `luac -p` would -- a syntax error still fails this job -- and
+# on top of that resolves every name against what each file's own scope actually declares. Every
+# harness region below introduces what a snippet assumes through a `local`, the way a reader's own
+# file would, so a name luacheck cannot resolve is a name neither the snippet nor the harness ever
+# declared: a stand-in misspelled, an accidental global, a leftover import.
+#
+# What it cannot do is look inside `require("hook0")`: Lua's module system hands back an opaque
+# table, and luacheck has no notion of what that table declares. A method the real client renamed or
+# an argument it dropped is invisible here. `smoke/` is where the client itself is exercised against
+# a live API, and this job is not trying to repeat that more slowly -- it is proving the page's prose
+# is internally consistent with itself, not with the client's source.
+proof = "parsed"
+proves = "parsed by luacheck the way luac -p would -- a syntax error fails this job -- and every name resolved against what the example's own file actually declares, so a misspelled stand-in or a stray global fails too; a method the real client renamed or an argument it dropped is not caught, since luacheck cannot see inside a required module"
+
+path = "generated/{{name}}.lua"
+timeout_seconds = 300
+
+# luacheck is installed into the assembled project rather than assumed on the PATH, so that the
+# version these pages are held to is pinned here, beside them, rather than in whatever image
+# happens to run the job. It is the same version `clients/lua` is linted with, which is what keeps
+# a warning on a page and a warning in the client meaning the same thing.
+run = [
+    ["luarocks", "install", "--tree", ".luarocks", "luacheck", "1.2.0"],
+    [".luarocks/bin/luacheck", "generated"],
+]

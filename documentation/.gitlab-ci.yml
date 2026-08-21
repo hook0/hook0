@@ -16,6 +16,7 @@ documentation.build:
     - npm config set cache .npm --global
     - npm ci --prefer-offline --no-audit
   script:
+    - npm run test:scripts
     - npm run validate
     - DOCUMENTATION_URL=https://documentation.hook0.com npm run build
   artifacts:
@@ -30,11 +31,13 @@ documentation.build:
         - documentation/**/*
         - website/data.js
         - tests-e2e/**/*
+        - .gitlab-ci.yml
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - documentation/**/*
         - website/data.js
         - tests-e2e/**/*
+        - .gitlab-ci.yml
 
 # Production deployment to Netlify (master branch)
 documentation.deploy:
@@ -53,6 +56,7 @@ documentation.deploy:
     - if: $CI_COMMIT_BRANCH == "master"
       changes:
         - documentation/**/*
+        - .gitlab-ci.yml
 
 # Preview deployment to Netlify (MR)
 documentation.deploy.preview:
@@ -78,3 +82,4 @@ documentation.deploy.preview:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - documentation/**/*
+        - .gitlab-ci.yml

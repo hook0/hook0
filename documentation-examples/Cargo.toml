@@ -1,0 +1,30 @@
+[package]
+name = "hook0-documentation-examples"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Its own workspace, for the reason smoke's is: this crate is not part of what the repository
+# builds or releases — it drives the eleven client toolchains to prove what the documentation
+# shows — and the root workspace is the list of what is. Detaching it keeps that list meaning what
+# it says, and keeps eleven toolchains out of every `cargo build` at the root.
+[workspace]
+
+[package.metadata.release]
+release = false
+publish = false
+
+[dependencies]
+# The registry of what the repository generates, which is where the set of languages an example
+# may be written in comes from. Nothing here names a language: this dependency is the only thing
+# that knows they exist.
+hook0-sdkgen = { path = "../clients/sdkgen" }
+
+# Each language declares how its examples are proven in a manifest beside them.
+toml = "1.1"
+thiserror = "2.0"
+
+# Projects are assembled outside the repository, so that proving the documentation never writes
+# into a client. Also used by the suite, where discovery is a question about a filesystem and
+# answering it against a fabricated one would only prove the fabrication.
+tempfile = "3.27"

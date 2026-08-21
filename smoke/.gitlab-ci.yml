@@ -1,0 +1,155 @@
+# One job, holding every client the generator declares against an instance that is really running.
+#
+# WHY IT IS NOT `docker compose up` HERE
+#
+# The stack this exercises is the repository's `docker-compose.yaml`, and that is what the harness
+# brings up on a developer's machine. It cannot be what CI does: the note at the top of
+# `tests-e2e/.gitlab-ci.yml` says this runner is a Kubernetes executor with no Docker-in-Docker, and
+# that job accordingly runs Postgres and Mailpit as GitLab services with the API as a process. This
+# job is that same shape.
+#
+# WHAT KEEPS THE TWO FROM DRIFTING
+#
+# Only the *way* the API is started differs. It is started by the harness either way, and the
+# environment it is started with is read out of `docker-compose.yaml` by the harness rather than
+# transcribed here — which is why this file declares no DATABASE_URL, no BISCUIT_PRIVATE_KEY and no
+# port. What is below is only what belongs to the job: the credentials its services are built with,
+# and where the two binaries are. `HOOK0_SMOKE_BINARIES` is the whole of the choice; without it the
+# harness composes.
+#
+# The service aliases are the names the compose file already uses, which is what lets the API's own
+# `DATABASE_URL` and `SMTP_CONNECTION_URL` work here unchanged. `smoke/tests/composition.rs` holds
+# the compose file to declaring what the harness reads out of it.
+#
+# WHY IT DOES NOT RUN ON EVERY CHANGE
+#
+# It costs a Postgres, a Mailpit, two Rust binaries and ten language toolchains. What it can newly
+# fail for is narrow: the server side moving (the API, the output worker, the composition), the
+# harness moving, or the set of clients changing — which is a change to the generator's registry,
+# since that is where a new client is declared. A change confined to one client's own internals is
+# what that client's suite already covers exhaustively against a loopback server.
+#
+# The trade-off, stated rather than hidden: a client edit that breaks first contact without touching
+# any of the paths below — a mis-spelled authorization header, say — is caught at the release tag
+# rather than in the merge request that introduced it. The tag rule has no `changes:`, so nothing
+# reaches a registry without every client having talked to a real Hook0 once.
+clients.live-smoke:
+  stage: test
+  # Rust is the harness's own language and the base carries Debian trixie, which is where the other
+  # toolchains come from. The two that Debian does not carry are fetched: Zig, pinned by checksum
+  # exactly as `clients/zig/.gitlab-ci.yml` does it, and .NET, from its vendor's installer.
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/rust:$RUST_VERSION
+  # Twelve toolchains resolve, ten of them compile something, and the stack has to settle first.
+  # Anything past this is a run that is stuck rather than one that is slow.
+  timeout: 60m
+  needs:
+    - job: api-integration-tests.build
+      artifacts: true
+  rules:
+    # Nothing is published without this having passed for every client at once.
+    - if: $CI_COMMIT_TAG =~ /^sdk-v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes: &contract
+        - api/**/*
+        - output-worker/**/*
+        # The wire format the API and the output worker exchange request attempts through. It
+        # is a workspace member neither watches by name, so a field renumbered in a `.proto`
+        # skipped every job that compiles either binary and shipped on a green pipeline.
+        - protobuf/**/*
+        - docker-compose.yaml
+        - smoke/**/*
+        # Where a client is declared, which is what makes a new one arrive here on its first commit
+        # rather than at the next release.
+        - clients/sdkgen/src/targets/**/*
+        # This is no source of the stack. It is the file declaring the job this one needs, and
+        # `smoke/tests/needs.rs` compares the two rule sets, so the guard has to run on the edit
+        # able to break it. The cost is this job on a change to one rarely-touched file, against a
+        # pipeline nobody can create.
+        - tests-api-integrations/.gitlab-ci.yml
+        - .gitlab-ci.yml
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes: *contract
+  services:
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/library/postgres:$PG_VERSION
+      alias: postgres
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/axllent/mailpit:v1.28
+      alias: mailpit
+  variables:
+    ## What the Postgres service is built with. These are the job's, not the API's: the API is
+    ## handed the compose file's own DATABASE_URL, and it expects to find this database behind it.
+    POSTGRES_DB: hook0
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    ## Where `api-integration-tests.build` leaves the two binaries. Setting this is what tells the
+    ## harness there is no Docker daemon here.
+    HOOK0_SMOKE_BINARIES: target/release
+    ## The checksum of the tarball $ZIG_VERSION names, published beside it in Zig's release index.
+    ZIG_SHA256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
+  before_script:
+    # The two components this job's first three lines use. The base image is `rust:$RUST_VERSION`,
+    # which carries neither, and a job that runs `cargo fmt` without installing `rustfmt` dies on
+    # its first command with `'cargo-fmt' is not installed for the toolchain` — before the stack is
+    # composed, before anything is provisioned, before a single client has spoken to Hook0. Both
+    # Rust jobs beside this one install them the same way (`clients/rust/.gitlab-ci.yml`,
+    # `clients/mcp/.gitlab-ci.yml`); this one never did.
+    - rustc --version && cargo --version
+    - rustup component add clippy
+    - rustup component add rustfmt
+    # `php-curl` is not an afterthought: Debian's `php-cli` ships without it and the PHP client
+    # declares `ext-curl` as a requirement, so without it every send dies on an undefined
+    # `curl_init` — a failure that says nothing about the client. `ext-hash` and `ext-json`, which
+    # it also declares, are built into PHP itself.
+    #
+    # Node, Go and Ruby come from Debian rather than from the images the per-client jobs use, so
+    # they are the release Debian carries rather than the one pinned at the top of the root
+    # pipeline. Each is above what its client declares as a floor, and what is being asked here is
+    # whether the client can talk to Hook0 at all — the pinned runtime is what the client's own job
+    # holds it to.
+    - apt-get update
+    - >-
+      apt-get install --yes --no-install-recommends
+      build-essential ca-certificates curl xz-utils pkg-config libssl-dev
+      golang-go nodejs npm python3 ruby-full php-cli php-curl
+      openjdk-21-jdk-headless maven
+      lua5.4 liblua5.4-dev luarocks
+    # The two runtime dependencies of the Lua rock, which is the one client that cannot open a
+    # socket without help. Pinned, so that a release of either is a change somebody made rather than
+    # a pipeline that turned red on its own.
+    - luarocks --lua-version=5.4 install luasocket 3.1.0
+    - luarocks --lua-version=5.4 install luasec 1.3.2
+    # Zig publishes no image, so the toolchain is fetched and held to what it contains. Every step is
+    # bounded: a mirror that accepts the connection and then stops sending would otherwise hold the
+    # job for its whole timeout.
+    - curl --fail --silent --show-error --location --connect-timeout 30 --max-time 300
+      --output zig.tar.xz "https://ziglang.org/download/$ZIG_VERSION/zig-x86_64-linux-$ZIG_VERSION.tar.xz"
+    - echo "$ZIG_SHA256  zig.tar.xz" | sha256sum --check --strict
+    - mkdir -p /opt/zig && tar --extract --xz --file zig.tar.xz --directory /opt/zig --strip-components 1
+    # .NET is not in Debian at all, so it comes from its vendor's installer, at the release the root
+    # pipeline pins. `bash` rather than `sh`: the installer is written against bash and a POSIX
+    # shell stops on its first redirection.
+    - curl --fail --silent --show-error --location --connect-timeout 30 --max-time 300
+      --output dotnet-install.sh https://dot.net/v1/dotnet-install.sh
+    - bash dotnet-install.sh --channel "$DOTNET_VERSION" --install-dir /opt/dotnet --no-path
+  script:
+    - export PATH="/opt/zig:/opt/dotnet:$PATH"
+    - export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+    # No `eval "$(luarocks path)"` here, deliberately. The Lua smoke derives its own search path
+    # from `luarocks` and declares that in its manifest, so exporting one in this job would prove
+    # nothing about a developer's machine — it would only hide the day the derivation broke.
+    # Five questions worth asking before anything is started, and none of them needs the stack: is
+    # every client the generator declares paired with a smoke, does the compose file still declare
+    # what the harness reads out of it, is the deadline the harness waits for a delivery under still
+    # the output worker's own cadence rather than a number that has drifted away from it, does the
+    # bijection between what a smoke reports and what the API document declares refuse everything it
+    # says it refuses, and does a child's output still reach both this job's log and the run that
+    # parses it.
+    # This crate declares its own workspace, so the repository-wide `cargo fmt --all` and
+    # `cargo clippy --workspace` reach every other crate and never this one. It had drifted out of
+    # format in four places before anybody noticed, which is what an unenforced rule does.
+    - cargo fmt --manifest-path smoke/Cargo.toml --check
+    - cargo clippy --manifest-path smoke/Cargo.toml --all-targets -- -D warnings
+    - cargo test --manifest-path smoke/Cargo.toml
+    - chmod +x target/release/hook0-api target/release/hook0-output-worker
+    # The harness starts the API and the worker, waits for them under its own deadline, provisions,
+    # runs every smoke, and stops them again — the same code that composes them elsewhere.
+    - cargo run --manifest-path smoke/Cargo.toml

@@ -135,7 +135,9 @@ app.listen(3000);
 ```
 
 :::tip Using the Official SDK
-For production use, we recommend using the official `hook0-client` npm package which handles signature verification automatically:
+For production use, reach for the official client for your language rather than the code above. All eleven verify signatures, and each page shows the call: [JavaScript](../reference/sdk/javascript.md), [Rust](../reference/sdk/rust.md), [Python](../reference/sdk/python.md), [Go](../reference/sdk/go.md), [Ruby](../reference/sdk/ruby.md), [PHP](../reference/sdk/php.md), [C#](../reference/sdk/csharp.md), [Java](../reference/sdk/java.md), [Kotlin](../reference/sdk/kotlin.md), [Lua](../reference/sdk/lua.md), [Zig](../reference/sdk/zig.md).
+
+In Node.js, that is the `hook0-client` npm package:
 
 ```javascript
 const { verifyWebhookSignature } = require('hook0-client');
@@ -159,6 +161,10 @@ app.post('/webhooks', express.json({
 :::
 
 ### Python Implementation
+
+:::tip The Python SDK does this for you
+`hook0-client` ships `verify_webhook_signature`, which handles both signature schemes, the bilateral clock window and the covered headers. The code below is here to show what it computes. See the [Python SDK](../reference/sdk/python.md).
+:::
 
 ```python
 import hmac
@@ -191,6 +197,10 @@ if __name__ == '__main__':
 ```
 
 ### Go Implementation
+
+:::tip The Go SDK does this for you
+`hook0.VerifyWebhookSignature` handles both signature schemes, the bilateral clock window and the covered headers, and returns errors you match with `errors.Is`. The code below is here to show what it computes. See the [Go SDK](../reference/sdk/go.md).
+:::
 
 ```go
 package main

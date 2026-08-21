@@ -1,0 +1,5 @@
+# What building the checker leaves behind. None of it is source.
+#
+# The projects the examples are assembled into are written to a temporary directory outside the
+# repository, so nothing of a run lands here — only this crate's own build.
+target/

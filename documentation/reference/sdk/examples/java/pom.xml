@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The project every Java example of the SDK reference is resolved inside.
+
+  It names no dependency on the client itself: `clients/java` is reached through `-sourcepath`
+  rather than through this file, which is what lets the same checkout prove the documentation
+  whether or not `com.hook0:hook0-client` has ever been installed anywhere. The one dependency
+  below is Spring's, for the single snippet that shows a Spring MVC handler — not the client's own,
+  which `clients/java`'s `DependenciesTest` holds at zero.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>hook0.example</groupId>
+  <artifactId>documentation-examples-java</artifactId>
+  <version>0.0.0</version>
+  <packaging>pom</packaging>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+      <version>6.2.19</version>
+    </dependency>
+  </dependencies>
+</project>

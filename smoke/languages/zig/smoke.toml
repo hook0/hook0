@@ -1,0 +1,3 @@
+# The module is rooted straight at the client's source, so what is exercised is the package in this
+# repository rather than a fetched tarball.
+run = ["zig", "build", "run"]

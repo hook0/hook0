@@ -1,0 +1,113 @@
+{
+ "openapi": "3.0.0",
+ "info": {
+  "title": "mcp-tagged surface",
+  "version": "0.0.0"
+ },
+ "paths": {
+  "/things/{thing_id}": {
+   "parameters": [
+    {
+     "name": "thing_id",
+     "in": "path",
+     "required": true,
+     "schema": {
+      "type": "string"
+     }
+    }
+   ],
+   "get": {
+    "operationId": "things.get",
+    "summary": "Get a thing",
+    "tags": [
+     "mcp",
+     "sdk"
+    ],
+    "parameters": [
+     {
+      "name": "verbose",
+      "in": "query",
+      "required": false,
+      "description": "whether the answer spells everything out",
+      "schema": {
+       "type": "boolean"
+      }
+     }
+    ],
+    "responses": {}
+   },
+   "put": {
+    "operationId": "things.update",
+    "description": "Replace a thing",
+    "tags": [
+     "mcp"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ThingPost"
+       }
+      }
+     }
+    },
+    "responses": {}
+   }
+  },
+  "/things/": {
+   "post": {
+    "operationId": "things.create",
+    "tags": [
+     "mcp"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "name": {
+          "type": "string"
+         }
+        },
+        "required": [
+         "name"
+        ]
+       }
+      }
+     }
+    },
+    "responses": {}
+   },
+   "get": {
+    "operationId": "things.list",
+    "tags": [
+     "sdk"
+    ],
+    "responses": {}
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "ThingPost": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "what it is called"
+     },
+     "labels": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      }
+     }
+    },
+    "required": [
+     "name"
+    ]
+   }
+  }
+ }
+}

@@ -25,8 +25,9 @@
 //!
 //! - `HOOK0_API_TOKEN` (required): Your Hook0 API token
 //! - `HOOK0_API_URL` (optional): API base URL (default: https://app.hook0.com)
-//! - `MCP_TRANSPORT` (optional): Transport type: "stdio" or "sse" (default: stdio)
-//! - `MCP_SSE_PORT` (optional): Port for SSE server (default: 3000)
+//! - `MCP_TRANSPORT` (optional): Transport type (default: stdio). Only "stdio" is
+//!   supported; "sse" is reserved and the server exits with an error if it is set.
+//! - `MCP_SSE_PORT` (optional): Reserved for SSE transport, which is not implemented
 
 pub mod client;
 pub mod config;

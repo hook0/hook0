@@ -1,0 +1,13 @@
+[package]
+name = "mcp-smoke"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Detached from the root workspace, like the harness above it: this is not something the repository
+# builds or releases. The server it drives *is* a member of that workspace, and is built through its
+# own manifest rather than linked into this one.
+[workspace]
+
+[dependencies]
+serde_json = "1.0"

@@ -44,8 +44,18 @@ conventional_commits = true
 filter_unconventional = false
 split_commits = false
 commit_parsers = [
-    { message = "^.*!", group = "Breaking Changes" },
-    { body = "BREAKING CHANGE", group = "Breaking Changes" },
+    # The two ways a Conventional Commit says it broke something, and only those two. They are the
+    # ones `ci/release-packages` reads to decide how big a release has to be, so a commit grouped
+    # here and a commit that forces a major have to be the same commit.
+    #
+    # `!` immediately before the colon. Written out rather than as `^.*!`, which matched an
+    # exclamation mark anywhere and filed `feat(api): let a caller say no!` under Breaking Changes.
+    { message = "^[a-zA-Z]+(\\(.+\\))?!:", group = "Breaking Changes" },
+    # The footer, in both spellings the specification gives it, read through `footer` rather than
+    # `body`. With `conventional_commits = true` a footer is not part of the body, so the body form
+    # matched nothing, and a commit breaking the wire through its footer was published under
+    # Changed while the release it forced was a major.
+    { footer = "^BREAKING[ -]CHANGE", group = "Breaking Changes" },
     { message = "^feat", group = "Added" },
     { message = "^fix", group = "Fixed" },
     { message = "^doc", group = "Documentation" },

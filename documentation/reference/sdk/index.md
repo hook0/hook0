@@ -1,12 +1,41 @@
 ---
-title: "Hook0 SDKs — JavaScript, Python, Rust"
-description: "Client libraries that wrap the Hook0 REST API. Each SDK handles auth and sends webhook events in under 10 lines of code. Available for JS/TS, Python, and Rust."
-keywords: [Hook0 SDK, webhook SDK, JavaScript webhook library, Python webhook client, Rust webhook SDK, webhook API client]
+title: "Hook0 SDKs: 11 official webhook client libraries"
+description: "Official Hook0 clients for JavaScript, TypeScript, Rust, Python, Go, Ruby, PHP, C#, Java, Kotlin, Lua and Zig, plus an MCP server. Each sends events, verifies webhook signatures, and retries under bounds you set."
+keywords: [Hook0 SDK, webhook SDK, webhook client library, JavaScript webhook library, Python webhook client, Rust webhook SDK, Go webhook client, Java webhook SDK, C# webhook client, verify webhook signature, Hook0 MCP server]
+sdkTarget: none
 ---
 
 # SDKs & client libraries
 
-Hook0 has official SDKs for several programming languages. They share the same design patterns but stay idiomatic to each language.
+Hook0 has eleven official clients. They share the same behaviour and the same defaults, and each one is written in the idiom of its language rather than a translation of another.
+
+Every client does four things. It sends events, it declares the event types your application uses, it verifies the signature of an incoming webhook, and it exposes the rest of the API as generated, typed operations.
+
+## The clients
+
+| Language | Page | Package | Install from | Surfaces |
+|----------|------|---------|--------------|----------|
+| JavaScript / TypeScript | [JavaScript SDK](javascript.md) | `hook0-client` | npm | promises |
+| Rust | [Rust SDK](rust.md) | `hook0-client` | crates.io | async |
+| Python | [Python SDK](python.md) | `hook0-client` | PyPI | blocking and `asyncio` |
+| Ruby | [Ruby SDK](ruby.md) | `hook0-client` | RubyGems | blocking |
+| C# / .NET | [C# SDK](csharp.md) | `Hook0.Client` | NuGet | blocking and `Task` |
+| Go | [Go SDK](go.md) | `github.com/hook0/hook0-go` | Go module proxy | blocking |
+| PHP | [PHP SDK](php.md) | `hook0/client` | Packagist | blocking |
+| Java | [Java SDK](java.md) | `com.hook0:hook0-client` | source | blocking and `CompletableFuture` |
+| Kotlin | [Kotlin SDK](kotlin.md) | `com.hook0:hook0-client-kotlin` | source | blocking and suspending |
+| Lua | [Lua SDK](lua.md) | `hook0-client` | source | blocking |
+| Zig | [Zig SDK](zig.md) | `hook0_client` | tagged archive | blocking |
+
+Java, Kotlin and Lua are not on their language's registry yet. Nothing is wrong with the code; each one is waiting on something a pipeline cannot supply on its own, such as a namespace to claim. Each page says what stands in the way and how to depend on the client today. The rest install with one command.
+
+Go, PHP and Zig install from a repository rather than from a registry, because that is what those three ecosystems fetch from. Each client is pushed to a read-only mirror of its own on GitHub, `github.com/hook0/hook0-<language>`, tagged `vX.Y.Z` on every SDK release. The mirrors are derived from this monorepo, which stays the one place anything is changed.
+
+## Not a library: the MCP server
+
+The generator writes a twelfth thing from the same API document, and it is not a client library. [`hook0-mcp`](mcp.md) is a Model Context Protocol server. An assistant starts it, talks to it over stdio, and calls one of twenty-three generated tools on it. Nothing imports it to send an event. An assistant calls `events.ingest`.
+
+It shares the headers every client sends and none of the rest. It does not retry, verifies no signature, and applies none of the bounds below. Its page says why.
 
 ## Set up environment variables
 
@@ -29,168 +58,58 @@ APP_ID=$APP_ID
 EOF
 ```
 
-## Official SDKs
+The token goes to the client without a `Bearer` prefix. Every client adds it.
 
-### [JavaScript/TypeScript SDK](javascript.md)
-TypeScript SDK for Node.js with event sending.
+## What every client does without being asked
 
-**Features:**
-- Event sending with type definitions
-- Event type management (upsert)
-- Webhook signature verification
-- Node.js compatibility
+Read this before you write anything around a client. The first three will change what you write; the fourth is what an instance sees you doing.
 
-**Installation:**
-```bash
-npm install hook0-client
+### It mints the event ID, so a retry cannot duplicate an event
+
+A send goes out under an ID the client knows, either the one you set on the event or a UUIDv7 it generates when you set none. Passing no ID does not mean the ID comes from Hook0. The value comes from the client, travels with the request, and is what the send returns.
+
+Hook0 keys events on that ID, so a request repeated after a failure ingests the event once rather than twice. Set an ID yourself only when the *same* event can be produced more than once by your own application, a payment webhook replayed by your provider or a job that can run twice, by deriving a stable UUID from your domain key.
+
+### It already retries
+
+A network failure, a server error, and a `429` whose body names the `RateLimited` problem are retried. A `429` that names a spent daily quota is not, because a quota clears when a plan changes or a day turns and no send can wait for that. A `Retry-After` header is honoured and clamped to what is left of the delay budget.
+
+A second retry loop wrapped around a client is a loop around a loop. Change the client's policy instead, or disable it and own the retry yourself.
+
+| Bound | Default |
+|-------|---------|
+| Attempts, the first one included | 4, capped at 16 |
+| Delay before the first retry | 100 ms |
+| Ceiling no single delay exceeds | 2 s |
+| Budget all delays of one send share | 5 s |
+| Timeout, per attempt | 10 s |
+| Largest event payload sent | 1 MiB |
+| Largest response body read | 8 MiB |
+
+Every client exposes a disabled policy that sends each event exactly once.
+
+### It refuses what the API would refuse
+
+A payload above the maximum fails before any request goes out, so neither the round trip nor the retries after it are spent on a request the API would reject. A response body above the ceiling is refused rather than read into memory, and so are an oversized header, too many headers, and an oversized head.
+
+### It says which client it is, and what it will repeat
+
+Past the credential and the media types it declares, every request carries two more headers, and both are written for whoever is reading an instance's logs rather than for your code:
+
+```
+User-Agent: hook0-client-python/1.1.0 (CPython 3.13.1; Linux x86_64)
+Hook0-Client-Options: attempts=4,backoff=100,ceiling=2000,budget=5000
 ```
 
-**Quick start:**
-```typescript
-import { Hook0Client, Event } from 'hook0-client';
+The first names the SDK, its version, the runtime and the machine. Without it an instance cannot tell a deprecation that has reached everybody from one that has reached nobody, and there is no way to go back and ask a client that shipped two years ago.
 
-const hook0 = new Hook0Client(
-  'http://localhost:8081/api/v1',
-  'app_1234567890',
-  '{YOUR_TOKEN}'
-);
+The second is the retry policy behind the request, in milliseconds, in that fixed order. It is the only client setting the API can see the consequences of without being told. A burst of identical requests arriving inside a few seconds is one send being repeated, and without this header it is indistinguishable from an application in a loop. It states the policy **in force** rather than the one asked for, so a policy that asked for a thousand attempts states the sixteen the client will actually make, and it states it on every request, including the one that succeeded first time.
 
-const event = new Event(
-  'user.account.created',
-  JSON.stringify({ user_id: 123 }),
-  'application/json',
-  { source: 'api' }
-);
+Both are composed the same way in every client, from parts cut to a fixed length so that neither can grow with whatever the platform feels like saying about itself.
 
-await hook0.sendEvent(event);
-```
+## Sending an event
 
-[View full documentation](javascript.md)
-
----
-
-### [Rust SDK](rust.md)
-Native Rust SDK for sending events and verifying webhook signatures.
-
-**Features:**
-- Event sending with typed payloads
-- Event type management (upsert)
-- Webhook signature verification (v0 and v1)
-- Optional feature flags (`producer`, `consumer`)
-
-**Installation:**
-```toml
-[dependencies]
-hook0-client = "1"
-```
-
-**Quick start:**
-```rust
-use hook0_client::{Hook0Client, Event};
-use reqwest::Url;
-use uuid::Uuid;
-use std::borrow::Cow;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_url = Url::parse("http://localhost:8081/api/v1")?;
-    let application_id = Uuid::parse_str("your-app-id-here")?;
-    let client = Hook0Client::new(api_url, application_id, "{YOUR_TOKEN}")?;
-
-    let event = Event {
-        event_id: &None,
-        event_type: "user.account.created",
-        payload: Cow::Borrowed(r#"{"user_id": "123"}"#),
-        payload_content_type: "application/json",
-        metadata: None,
-        occurred_at: None,
-        labels: vec![("environment".to_string(), "production".to_string())],
-    };
-
-    let event_id = client.send_event(&event).await?;
-    println!("Event sent: {}", event_id);
-    Ok(())
-}
-```
-
-[View full documentation](rust.md)
-
----
-
-## Additional language support
-
-:::info SDKs coming soon
-Official SDKs for Python, Go, PHP, Ruby, Java, and .NET are planned. In the meantime, use the REST API directly with your language's HTTP client.
-:::
-
-### Using the REST API
-
-Everything Hook0 does is available through the REST API. Here is how to send events in a few languages:
-
-**Python Example:**
-```python
-import requests
-
-response = requests.post(
-    'http://localhost:8081/api/v1/event',
-    headers={
-        'Authorization': 'Bearer {YOUR_TOKEN}',
-        'Content-Type': 'application/json'
-    },
-    json={
-        'event_type': 'user.account.created',
-        'payload': {'user_id': 123}
-    }
-)
-```
-
-**Go Example:**
-```go
-import "net/http"
-import "encoding/json"
-
-event := map[string]interface{}{
-    "event_type": "user.account.created",
-    "payload": map[string]interface{}{"user_id": 123},
-}
-
-data, _ := json.Marshal(event)
-req, _ := http.NewRequest("POST", "https://app.hook0.com/api/v1/event", bytes.NewBuffer(data))
-req.Header.Set("Authorization", "Bearer {YOUR_TOKEN}")
-req.Header.Set("Content-Type", "application/json")
-
-client := &http.Client{}
-resp, _ := client.Do(req)
-```
-
-## Core SDK features
-
-All official Hook0 SDKs provide:
-
-### Authentication and security
-- Authentication via Biscuit tokens (user sessions) and Service tokens (programmatic access)
-- Webhook signature verification
-- TLS/SSL support
-- Secure credential management
-
-### API operations
-- Event sending (single events)
-- Application management (via REST API)
-- Subscription CRUD operations (via REST API)
-- Event type management
-- Delivery status tracking (via REST API)
-
-### Developer experience
-- Type safety and auto-completion
-- Error handling with typed errors
-- Structured logging
-- Documentation with examples
-
-## Common usage patterns
-
-### Sending events
-
-```typescript
+```typescript example=usingClient
 // JavaScript/TypeScript
 const event = new Event(
   'order.checkout.completed',
@@ -226,7 +145,48 @@ curl -X POST $HOOK0_API/event \
   }'
 ```
 
-### Managing subscriptions
+## Verifying a webhook
+
+This is the half most readers need, and the half most often got wrong by hand. Every client ships it.
+
+Two rules hold in all eleven. Verify against the **raw** request body, since a body that has been parsed and re-serialised no longer hashes to what was signed. And keep the tolerance bilateral, which every client does, so a delivery dated too far ahead is refused exactly like one dated too far behind.
+
+```typescript example=webhookHandlerUsingApp
+// JavaScript/TypeScript
+import { verifyWebhookSignature } from 'hook0-client';
+
+// `verify` is the only place Express hands over the bytes before it parses them, and the bytes are
+// what was signed: a body already turned back into a string no longer hashes to it.
+app.post('/webhook', express.json({
+  verify: (req, _res, buf) => { (req as unknown as { rawBody: Buffer }).rawBody = buf; }
+}), (req, res) => {
+  // Express lowercases every header name it received.
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(req.headers)) {
+    if (typeof value === 'string') headers.set(name, value);
+  }
+
+  try {
+    verifyWebhookSignature(
+      req.headers['x-hook0-signature'] as string,
+      (req as unknown as { rawBody: Buffer }).rawBody,
+      headers,
+      process.env.WEBHOOK_SECRET!,
+      300 // 5-minute tolerance, in seconds
+    );
+  } catch {
+    res.status(401).json({ error: 'invalid signature' });
+    return;
+  }
+
+  // act on the delivery, already parsed into req.body
+  res.json({ status: 'processed' });
+});
+```
+
+How a refusal reaches you differs by language, and each page says which. Rust and Go return a result; Python, Ruby, PHP, C#, Java, Kotlin and TypeScript raise; Lua raises a table you match with `Hook0.is`; Zig answers a closed error set. TypeScript carries one exception its page covers, `EventType.fromString`, which hands the failure back rather than throwing it.
+
+## Managing subscriptions
 
 ```bash
 # Using the REST API
@@ -244,159 +204,38 @@ curl -X POST $HOOK0_API/subscriptions \
   }'
 ```
 
-### Webhook verification
-
-```typescript
-// JavaScript/TypeScript
-import { verifyWebhookSignature } from 'hook0-client';
-
-// Note: Express.js normalizes all header names to lowercase
-// Capture raw body for signature verification
-app.post('/webhook', express.json({
-  verify: (req, res, buf) => { req.rawBody = buf; }
-}), (req, res) => {
-  const signature = req.headers['x-hook0-signature'];
-  // Use raw body for signature verification, not JSON.stringify(req.body)
-  const rawBodyString = req.rawBody.toString('utf8');
-  const headers = new Headers();
-  Object.entries(req.headers).forEach(([key, value]) => {
-    if (typeof value === 'string') headers.set(key, value);
-  });
-  const secret = process.env.WEBHOOK_SECRET;
-
-  try {
-    const isValid = verifyWebhookSignature(
-      signature,
-      rawBodyString,
-      headers,
-      secret,
-      300 // 5-minute tolerance
-    );
-
-    if (!isValid) {
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
-    // Process webhook (already parsed via req.body)...
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid signature' });
-  }
-});
-```
+Every client also reaches this through its generated API groups, one group per entity and one method per operation, so you do not have to drop to `curl`. See the "Calling the rest of the API" section of each page.
 
 ## Error handling
 
-SDKs return typed errors you can match on:
+Every client reports what it refused as a type, never as a message you are expected to read. Match on the type; a message is prose, and prose is rewritten.
 
-```typescript
+```typescript example=usingEvent
 // JavaScript/TypeScript
 import { Hook0ClientError } from 'hook0-client';
 
 try {
   const eventId = await hook0.sendEvent(event);
-} catch (error) {
-  if (error instanceof Hook0ClientError) {
-    console.error('Hook0 error:', error.message);
-    
-    if (error.message.includes('Invalid event type')) {
-      // Handle invalid event type format
-    } else if (error.message.includes('failed')) {
-      // Retry logic
-    }
+  console.log(`ingested as ${eventId}`);
+} catch (refused) {
+  if (refused instanceof Hook0ClientError) {
+    console.error(`event not sent: ${refused.message}`);
+  } else {
+    throw refused;
   }
 }
 ```
 
-```javascript
-// REST API error handling
-fetch('http://localhost:8081/api/v1/event', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer {YOUR_TOKEN}',
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify(event)
-})
-.then(response => {
-  if (response.status === 429) {
-    // Rate limited - check X-RateLimit-Reset header
-    const resetTime = response.headers.get('X-RateLimit-Reset');
-    // Implement retry logic
-  } else if (!response.ok) {
-    // Handle other errors
-  }
-});
-```
+Every problem the API can report reaches you as something you can name, but not as the same shape everywhere. C#, Java, Kotlin, PHP, Python and Ruby give each problem a type of its own under a common base, so a handler names one or catches all of them. Lua does the same with error kinds. Rust, TypeScript and Go carry one type for every problem with the identifier beside it, either a `kind` you compare or a sentinel you match with `errors.Is`, and Zig answers one member of a closed error set. The identifiers themselves come from the API document and are the same everywhere; how strictly a client holds you to that list is its own page's business, and C# holds you to it least.
 
-## Configuration
+## Authentication and security
 
-### TypeScript SDK configuration
-```typescript
-const hook0 = new Hook0Client(
-  'http://localhost:8081',     // API URL
-  'app_1234567890',            // Application ID
-  '{YOUR_TOKEN}',   // Authentication token
-  false                        // Debug mode (optional)
-);
-```
+- Authentication via Biscuit tokens (user sessions) and Service tokens (programmatic access)
+- Webhook signature verification, `v0` over the body and `v1` over the covered headers and the body
+- TLS for every request
+- The token is never logged, and never exposed by a client's accessors
 
-### REST API configuration
-When using the REST API directly, configure your HTTP client:
-
-```javascript
-// Example with axios
-const apiClient = axios.create({
-  baseURL: 'http://localhost:8081',
-  headers: {
-    'Authorization': 'Bearer {YOUR_TOKEN}',
-    'Content-Type': 'application/json'
-  },
-  timeout: 30000
-});
-```
-
-## Testing
-
-### Testing with TypeScript SDK
-
-
-```typescript
-// Mock fetch for testing
-import { Hook0Client, Event } from 'hook0-client';
-import { jest } from '@jest/globals';
-
-test('should send event', async () => {
-  global.fetch = jest.fn().mockResolvedValueOnce({
-    ok: true,
-    text: async () => ''
-  });
-  
-  const client = new Hook0Client(
-    'http://localhost:8081/api/v1',
-    'app_test',
-    'test_token'
-  );
-  
-  const event = new Event(
-    'test.event',
-    JSON.stringify({ test: true }),
-    'application/json',
-    {}
-  );
-  
-  await client.sendEvent(event);
-  
-  expect(fetch).toHaveBeenCalledWith(
-    'http://localhost:8081/api/v1/event',
-    expect.objectContaining({
-      method: 'POST'
-    })
-  );
-});
-```
-
-## SDK development guidelines
-
-Want to contribute an SDK? Here is what we expect:
+## Contributing an SDK
 
 ### Requirements checklist
 
@@ -429,12 +268,3 @@ Want to contribute an SDK? Here is what we expect:
 - [Discord](https://www.hook0.com/community) - Community support
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/hook0) - #hook0 tag
 - support@hook0.com - For critical issues
-
-### Contributing
-
-To contribute to our SDK:
-
-1. Open an issue to discuss your proposal
-2. Follow the requirements checklist above
-3. Submit for review
-4. Enjoy :)
