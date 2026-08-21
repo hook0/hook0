@@ -11,7 +11,7 @@ use pulsar::{
     Consumer, ConsumerOptions, DeserializeMessage, Executor, Producer, ProducerOptions, SubType,
     TokioExecutor,
 };
-use sqlx::{PgPool, query, query_as};
+use sqlx::{PgPool, query, query_as, query_scalar};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc::error::SendError;
@@ -39,6 +39,9 @@ use hook0_protobuf::ObjectStorageResponse;
 use hook0_sentry_integration::log_object_storage_error_with_context;
 
 const DELAY_TOLERANCE: Duration = Duration::from_secs(3);
+
+/// Number of waiting request attempts fetched per pass when loading the backlog into Pulsar.
+const LOAD_BATCH_SIZE: i64 = 1000;
 
 #[derive(Debug, Clone, Copy)]
 pub enum LoadMode {
@@ -148,6 +151,14 @@ pub async fn load_waiting_request_attempts_from_db(
 ) -> anyhow::Result<u64> {
     let only_due_now = matches!(mode, LoadMode::DueNow);
 
+    // Upper bound of the backlog this run is responsible for. It is taken from the database clock
+    // (like `created_at` itself) so that no clock skew between this worker and Postgres can let
+    // attempts created *after* the load started slip into a later batch: those are already enqueued
+    // into Pulsar by the API and would be delivered twice.
+    let started_at = query_scalar!(r#"SELECT statement_timestamp() AS "started_at!""#)
+        .fetch_one(pool)
+        .await?;
+
     let hp_topic = format!(
         "persistent://{}/{}/{}.request_attempt",
         pulsar.tenant, pulsar.namespace, worker_id,
@@ -185,156 +196,192 @@ pub async fn load_waiting_request_attempts_from_db(
         .build()
         .await?;
 
-    let mut request_attempts_stream = query_as!(
-        RequestAttemptWithOptionalPayload,
-        "
-            SELECT
-                e.application__id AS application_id,
-                ra.request_attempt__id AS request_attempt_id,
-                ra.event__id AS event_id,
-                e.received_at AS event_received_at,
-                ra.subscription__id AS subscription_id,
-                ra.created_at,
-                ra.retry_count,
-                ra.delay_until,
-                t_http.method as http_method,
-                t_http.url as http_url,
-                t_http.headers as http_headers,
-                e.event_type__name AS event_type_name,
-                e.payload,
-                e.payload_content_type,
-                s.secret
-            FROM webhook.request_attempt AS ra
-            INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
-            INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
-            INNER JOIN event.event AS e ON e.event__id = ra.event__id
-            LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id
-            INNER JOIN event.application AS a ON a.application__id = s.application__id
-            LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
-            WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL
-                AND a.deleted_at IS NULL
-                AND COALESCE(sw.worker__id, ow.worker__id) = $1
-                AND (
-                    NOT $2
-                    OR ra.delay_until IS NULL
-                    OR ra.delay_until <= NOW() + interval '10 seconds'
-                )
-        ",
-        worker_id.as_ref(),
-        only_due_now,
-    )
-    .fetch(pool);
-
+    // Keyset cursor over `(created_at, request_attempt__id)`; the primary key is only a tiebreaker
+    // because rows created before the switch to UUIDv7 are not time-ordered.
+    let mut cursor = (DateTime::<Utc>::UNIX_EPOCH, Uuid::nil());
     let mut counter = 0u64;
-    let mut receipt_futures = Vec::new();
-    while let Some(ra) = request_attempts_stream.try_next().await? {
-        let payload = if let Some(p) = ra.payload {
-            Some(p)
-        } else if let Some(os) = &object_storage {
-            let key = format!(
-                "{}/event/{}/{}",
-                ra.application_id,
-                ra.event_received_at.naive_utc().date(),
-                ra.event_id
-            );
-            match os
-                .client
-                .get_object()
-                .bucket(&os.bucket)
-                .key(&key)
-                .send()
-                .await
-            {
-                Ok(obj) => match obj.body.collect().await {
-                    Ok(ab) => Some(ab.to_vec()),
-                    Err(e) => {
-                        log_object_storage_error_with_context!(
-                            "S3 GET OBJECT body collect failed",
-                            error_chain = format!("{e}"),
-                            object_key = &key,
-                        );
-                        None
-                    }
-                },
-                Err(e) => {
-                    log_object_storage_error_with_context!(
-                        "S3 GET OBJECT failed",
-                        error_chain = DisplayErrorContext(&e).to_string(),
-                        object_key = &key,
+    let mut running = true;
+
+    while running {
+        let batch_start = Instant::now();
+        let rows = query_as!(
+            RequestAttemptWithOptionalPayload,
+            "
+                SELECT
+                    e.application__id AS application_id,
+                    ra.request_attempt__id AS request_attempt_id,
+                    ra.event__id AS event_id,
+                    e.received_at AS event_received_at,
+                    ra.subscription__id AS subscription_id,
+                    ra.created_at,
+                    ra.retry_count,
+                    ra.delay_until,
+                    t_http.method as http_method,
+                    t_http.url as http_url,
+                    t_http.headers as http_headers,
+                    e.event_type__name AS event_type_name,
+                    e.payload,
+                    e.payload_content_type,
+                    s.secret
+                FROM webhook.request_attempt AS ra
+                INNER JOIN webhook.subscription AS s ON s.subscription__id = ra.subscription__id
+                INNER JOIN webhook.target_http AS t_http ON t_http.target__id = s.target__id
+                INNER JOIN event.event AS e ON e.event__id = ra.event__id
+                LEFT JOIN webhook.subscription__worker AS sw ON sw.subscription__id = ra.subscription__id
+                INNER JOIN event.application AS a ON a.application__id = s.application__id
+                LEFT JOIN iam.organization__worker AS ow ON ow.organization__id = a.organization__id AND ow.default = true
+                WHERE ra.succeeded_at IS NULL AND ra.failed_at IS NULL
+                    AND a.deleted_at IS NULL
+                    AND s.is_enabled
+                    AND s.deleted_at IS NULL
+                    AND COALESCE(sw.worker__id, ow.worker__id) = $1
+                    AND ra.created_at <= $3::timestamptz
+                    AND (ra.created_at, ra.request_attempt__id) > ($4::timestamptz, $5::uuid)
+                    AND (
+                        NOT $2
+                        OR ra.delay_until IS NULL
+                        OR ra.delay_until <= $3::timestamptz + interval '10 seconds'
+                    )
+                ORDER BY ra.created_at ASC, ra.request_attempt__id ASC
+                LIMIT $6::bigint
+            ",
+            worker_id.as_ref(),
+            only_due_now,
+            started_at,
+            cursor.0,
+            cursor.1,
+            LOAD_BATCH_SIZE,
+        )
+        .fetch_all(pool)
+        .await
+        .inspect_err(|e| {
+            error!(loaded = counter, ?cursor, error = %e, "Could not fetch a batch of waiting request attempts");
+        })?;
+
+        let next_cursor = rows
+            .last()
+            .map(|last| (last.created_at, last.request_attempt_id));
+
+        if let Some(next_cursor) = next_cursor {
+            let rows_len = rows.len();
+            let mut receipt_futures = Vec::with_capacity(rows_len);
+            for ra in rows {
+                let payload = if let Some(p) = ra.payload {
+                    Some(p)
+                } else if let Some(os) = &object_storage {
+                    let key = format!(
+                        "{}/event/{}/{}",
+                        ra.application_id,
+                        ra.event_received_at.naive_utc().date(),
+                        ra.event_id
                     );
+                    match os
+                        .client
+                        .get_object()
+                        .bucket(&os.bucket)
+                        .key(&key)
+                        .send()
+                        .await
+                    {
+                        Ok(obj) => match obj.body.collect().await {
+                            Ok(ab) => Some(ab.to_vec()),
+                            Err(e) => {
+                                log_object_storage_error_with_context!(
+                                    "S3 GET OBJECT body collect failed",
+                                    error_chain = format!("{e}"),
+                                    object_key = &key,
+                                );
+                                None
+                            }
+                        },
+                        Err(e) => {
+                            log_object_storage_error_with_context!(
+                                "S3 GET OBJECT failed",
+                                error_chain = DisplayErrorContext(&e).to_string(),
+                                object_key = &key,
+                            );
+                            None
+                        }
+                    }
+                } else {
                     None
+                };
+
+                if let Some(p) = payload {
+                    let request_attempt = RequestAttempt {
+                        application_id: ra.application_id,
+                        request_attempt_id: ra.request_attempt_id,
+                        event_id: ra.event_id,
+                        event_received_at: ra.event_received_at,
+                        subscription_id: ra.subscription_id,
+                        created_at: ra.created_at,
+                        retry_count: ra.retry_count,
+                        http_method: ra.http_method,
+                        http_url: ra.http_url,
+                        http_headers: ra.http_headers,
+                        event_type_name: ra.event_type_name,
+                        payload: p,
+                        payload_content_type: ra.payload_content_type,
+                        secret: ra.secret,
+                    };
+
+                    let producer = if SlotRole::is_hp(ra.retry_count, hp_retry_cutoff) {
+                        &mut hp_producer
+                    } else {
+                        &mut lp_producer
+                    };
+                    let mut msg_builder = producer
+                        .create_message()
+                        .event_time(request_attempt.created_at.timestamp_micros() as u64);
+                    if let Some(delay_until) = ra.delay_until
+                        && delay_until > (Utc::now() + DELAY_TOLERANCE)
+                    {
+                        msg_builder = msg_builder.deliver_at(delay_until.into())?;
+                    }
+
+                    let request_attempt_id = ra.request_attempt_id;
+                    let send_future = timeout(
+                        pulsar_send_receipt_timeout,
+                        msg_builder.with_content(request_attempt).send_non_blocking(),
+                    )
+                    .await
+                    .map_err(|_| {
+                        error!(%request_attempt_id, loaded = counter, ?cursor, "Timed out enqueuing Pulsar message while loading request attempts");
+                        anyhow!("Timed out enqueuing Pulsar message")
+                    })?
+                    .inspect_err(|e| {
+                        error!(%request_attempt_id, loaded = counter, ?cursor, error = %e, "Could not enqueue Pulsar message while loading request attempts");
+                    })?;
+                    receipt_futures.push(await_receipt(
+                        send_future,
+                        pulsar_send_receipt_timeout,
+                        request_attempt_id,
+                    ));
+
+                    counter += 1;
+                } else {
+                    warn!(event_id = %ra.event_id, "Could not get event's payload");
                 }
             }
-        } else {
-            None
-        };
 
-        if let Some(p) = payload {
-            let request_attempt = RequestAttempt {
-                application_id: ra.application_id,
-                request_attempt_id: ra.request_attempt_id,
-                event_id: ra.event_id,
-                event_received_at: ra.event_received_at,
-                subscription_id: ra.subscription_id,
-                created_at: ra.created_at,
-                retry_count: ra.retry_count,
-                http_method: ra.http_method,
-                http_url: ra.http_url,
-                http_headers: ra.http_headers,
-                event_type_name: ra.event_type_name,
-                payload: p,
-                payload_content_type: ra.payload_content_type,
-                secret: ra.secret,
-            };
-
-            let producer = if SlotRole::is_hp(ra.retry_count, hp_retry_cutoff) {
-                &mut hp_producer
-            } else {
-                &mut lp_producer
-            };
-            let mut msg_builder = producer
-                .create_message()
-                .event_time(request_attempt.created_at.timestamp_micros() as u64);
-            if let Some(delay_until) = ra.delay_until
-                && delay_until > (Utc::now() + DELAY_TOLERANCE)
-            {
-                msg_builder = msg_builder.deliver_at(delay_until.into())?;
+            if !receipt_futures.is_empty() {
+                try_join_all(receipt_futures).await.inspect_err(|e| {
+                    error!(loaded = counter, ?cursor, error = %e, "Could not get all receipts from Pulsar while loading request attempts");
+                })?;
             }
 
-            let request_attempt_id = ra.request_attempt_id;
-            let send_future = timeout(
-                pulsar_send_receipt_timeout,
-                msg_builder.with_content(request_attempt).send_non_blocking(),
-            )
-            .await
-            .map_err(|_| {
-                error!(%request_attempt_id, loaded = counter, "Timed out enqueuing Pulsar message while loading request attempts");
-                anyhow!("Timed out enqueuing Pulsar message")
-            })?
-            .inspect_err(|e| {
-                error!(%request_attempt_id, loaded = counter, error = %e, "Could not enqueue Pulsar message while loading request attempts");
-            })?;
-            receipt_futures.push(await_receipt(
-                send_future,
-                pulsar_send_receipt_timeout,
-                request_attempt_id,
-            ));
+            // Advance only after the whole batch is acknowledged.
+            cursor = next_cursor;
 
-            counter += 1;
+            info!(
+                rows = rows_len,
+                elapsed_s = batch_start.elapsed().as_secs_f64(),
+                loaded = counter,
+                "Loaded a batch of waiting request attempts into Pulsar"
+            );
         } else {
-            warn!(event_id = %ra.event_id, "Could not get event's payload");
+            running = false;
         }
-    }
-
-    if !receipt_futures.is_empty() {
-        let start = Instant::now();
-        let amount = receipt_futures.len();
-        try_join_all(receipt_futures).await?;
-        trace!(
-            amount,
-            elapsed_ms = start.elapsed().as_millis(),
-            "Got all receipts from Pulsar"
-        );
     }
 
     Ok(counter)
@@ -728,7 +775,7 @@ async fn handle_message(
                     RawRequestAttemptStatus,
                     r#"
                         SELECT
-                            (s.is_enabled AND a.deleted_at IS NULL) AS "not_cancelled!",
+                            (s.is_enabled AND s.deleted_at IS NULL AND a.deleted_at IS NULL) AS "not_cancelled!",
                             (ra.succeeded_at IS NULL AND ra.failed_at IS NULL) AS "not_done!",
                             ra.delay_until,
                             (
