@@ -745,3 +745,121 @@ fn no_image_leaves_the_project_registry_before_the_scan_has_read_it() {
         }
     }
 }
+
+/// The component that turns an application id into a deploy job, named by the part of its path
+/// that survives a version bump.
+const DEPLOY_COMPONENT: &str = "clever-cloud-pipeline/deploy-to-prod";
+
+/// The command that pushes a commit to Clever Cloud and then watches the build.
+const DEPLOY_COMMAND: &str = "clever deploy";
+
+/// What lets that command be run a second time. It defaults to refusing when the remote already
+/// carries the commit being pushed, and that refusal is what a half-finished deploy leaves behind.
+const REPLAYABLE: &str = "--same-commit-policy rebuild";
+
+/// Every `clever deploy` a job runs, read out of its script rather than out of a list. One script
+/// entry can be a block scalar holding a whole loop, so entries are split into lines before being
+/// read.
+fn deploy_commands(body: &Yaml) -> Vec<String> {
+    let Some(script) = body["script"].as_vec() else {
+        return Vec::new();
+    };
+    script
+        .iter()
+        .filter_map(Yaml::as_str)
+        .flat_map(str::lines)
+        .map(str::trim)
+        .filter(|line| line.contains(DEPLOY_COMMAND))
+        .map(str::to_owned)
+        .collect()
+}
+
+/// Every deploy job the Clever Cloud component is asked to create, against the file that asked.
+/// Those jobs are written in the component rather than here, so the include is the only place in
+/// this repository where they can be found at all.
+fn component_deploy_jobs(root: &Path) -> BTreeMap<String, String> {
+    let mut asked = BTreeMap::new();
+
+    for path in pipeline_files(root) {
+        let body = fs::read_to_string(&path).expect("a readable pipeline file");
+        let documents = YamlLoader::load_from_str(&body)
+            .unwrap_or_else(|cause| panic!("{} is unreadable: {cause}", path.display()));
+        let Some(document) = documents.first() else {
+            continue;
+        };
+        let Some(includes) = document["include"].as_vec() else {
+            continue;
+        };
+        let shown = path
+            .strip_prefix(root)
+            .unwrap_or(&path)
+            .display()
+            .to_string();
+
+        for include in includes {
+            let Some(component) = include["component"].as_str() else {
+                continue;
+            };
+            if !component.contains(DEPLOY_COMPONENT) {
+                continue;
+            }
+            let step = include["inputs"]["step_name"].as_str().unwrap_or_else(|| {
+                panic!("{shown} includes {DEPLOY_COMPONENT} without naming the job it creates")
+            });
+            asked.insert(step.to_owned(), shown.clone());
+        }
+    }
+
+    asked
+}
+
+/// A deploy whose build died can be run again.
+///
+/// `clever deploy` pushes the commit first and watches the build afterwards, and it refuses to act
+/// at all when the remote already carries the commit being pushed. Together those mean a deploy
+/// whose push landed and whose build then died cannot be replayed: the retry stops at `Remote HEAD
+/// has the same commit as the one to push` without touching the application, and the release can
+/// only be deployed by landing a further commit on the default branch.
+///
+/// That bare command is what the upstream component runs, so every job it is asked to create has
+/// to be given a script here. The loop that walks the worker fleet is the sharper case: an
+/// application that already carries the release stops the loop before it reaches the ones that do
+/// not, so a partial run could never be finished.
+#[test]
+fn a_deploy_whose_build_failed_can_be_run_a_second_time() {
+    let root = repository();
+    let declared = jobs(&root);
+
+    let mut deploys = 0;
+    for (name, job) in &declared {
+        for command in deploy_commands(&job.body) {
+            deploys += 1;
+            assert!(
+                command.contains(REPLAYABLE),
+                "`{name}` in {} runs `{command}`, which stops at the push it already made rather \
+                 than building the release, so a deploy that failed once cannot be run again",
+                job.file
+            );
+        }
+    }
+
+    for (step, file) in component_deploy_jobs(&root) {
+        let job = declared.get(&step).unwrap_or_else(|| {
+            panic!(
+                "{file} asks {DEPLOY_COMPONENT} for `{step}` and leaves it the bare `{DEPLOY_COMMAND}` \
+                 the component ships, so a deploy of it that failed cannot be run again"
+            )
+        });
+        assert!(
+            !deploy_commands(&job.body).is_empty(),
+            "`{step}` is declared in {} without a deploy command of its own, so what runs is the \
+             bare one the component ships",
+            job.file
+        );
+    }
+
+    assert!(
+        deploys > 0,
+        "nothing in the pipeline deploys to Clever Cloud, so this guard checked nothing"
+    );
+}
