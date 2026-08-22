@@ -145,11 +145,19 @@ describe('deriveSignupChannel', () => {
     expect(channel).toBe('referral:example.com');
   });
 
-  it('says unknown rather than pointing at our own pages', () => {
-    expect(deriveSignupChannel(landingFrom('https://www.hook0.com/pricing'))).toBe(UNKNOWN_CHANNEL);
+  it('says unknown for the host the form itself is served from', () => {
     expect(deriveSignupChannel(landingFrom('https://app.hook0.com/login'))).toBe(UNKNOWN_CHANNEL);
+  });
+
+  it('names the sibling Hook0 property that handed the visitor over', () => {
+    expect(deriveSignupChannel(landingFrom('https://www.hook0.com/pricing'))).toBe(
+      'referral:hook0.com'
+    );
     expect(deriveSignupChannel(landingFrom('https://documentation.hook0.com/'))).toBe(
-      UNKNOWN_CHANNEL
+      'referral:documentation.hook0.com'
+    );
+    expect(deriveSignupChannel(landingFrom('https://play.hook0.com/'))).toBe(
+      'referral:play.hook0.com'
     );
   });
 
