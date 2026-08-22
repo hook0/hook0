@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO infrastructure.state (key, value_uuid)\n                VALUES ('instance_id', uuidv7())\n                ON CONFLICT (key) DO NOTHING\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "20d5691d08351bbae1042c9045cbe821d81ded589a7ae55376c23c9ca5974fea"
+}

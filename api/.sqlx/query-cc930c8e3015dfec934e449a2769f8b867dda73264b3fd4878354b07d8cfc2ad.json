@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO infrastructure.state (key, value_timestamptz)\n                    VALUES ('last_refresh_events_per_day', transaction_timestamp())\n                    ON CONFLICT (key) DO UPDATE\n                        SET value_timestamptz = EXCLUDED.value_timestamptz\n                        WHERE state.value_timestamptz IS NULL\n                            OR state.value_timestamptz < EXCLUDED.value_timestamptz\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "cc930c8e3015dfec934e449a2769f8b867dda73264b3fd4878354b07d8cfc2ad"
+}

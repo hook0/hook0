@@ -15,6 +15,7 @@ use pulsar::{
 };
 use sqlx::AssertSqlSafe;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
+use sqlx::query;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -1080,6 +1081,15 @@ async fn main() -> anyhow::Result<()> {
                 .run(&housekeeping_pool)
                 .await?;
         }
+        let _ = query!(
+            "
+                INSERT INTO infrastructure.state (key, value_uuid)
+                VALUES ('instance_id', uuidv7())
+                ON CONFLICT (key) DO NOTHING
+            "
+        )
+        .execute(&housekeeping_pool)
+        .await;
 
         // Create Pulsar client
         let pulsar_config = if let (
