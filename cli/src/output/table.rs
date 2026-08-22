@@ -10,7 +10,7 @@ impl TableOutput {
     pub fn print_one<T: Outputable>(item: &T) {
         let mut table = Table::new();
         table
-            .load_preset(UTF8_FULL_CONDENSED)
+            .load_style(UTF8_FULL_CONDENSED)
             .set_content_arrangement(ContentArrangement::Dynamic);
 
         table.set_header(T::table_headers());
@@ -28,7 +28,7 @@ impl TableOutput {
 
         let mut table = Table::new();
         table
-            .load_preset(UTF8_FULL_CONDENSED)
+            .load_style(UTF8_FULL_CONDENSED)
             .set_content_arrangement(ContentArrangement::Dynamic);
 
         // Add headers
@@ -51,7 +51,7 @@ impl TableOutput {
 
         let mut table = Table::new();
         table
-            .load_preset(UTF8_FULL_CONDENSED)
+            .load_style(UTF8_FULL_CONDENSED)
             .set_content_arrangement(ContentArrangement::Dynamic);
 
         table.set_header(headers);
@@ -67,7 +67,7 @@ impl TableOutput {
     pub fn print_details(pairs: Vec<(&str, String)>) {
         let mut table = Table::new();
         table
-            .load_preset(UTF8_FULL_CONDENSED)
+            .load_style(UTF8_FULL_CONDENSED)
             .set_content_arrangement(ContentArrangement::Dynamic);
 
         table.set_header(vec!["Field", "Value"]);
