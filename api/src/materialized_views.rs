@@ -43,13 +43,28 @@ async fn refresh_materialized_views(db: &PgPool, timeout: Duration) -> Result<()
             )))
             .execute(&mut *tx)
             .await?;
+
             query!("REFRESH MATERIALIZED VIEW CONCURRENTLY event.events_per_day")
                 .execute(&mut *tx)
                 .await?;
+
+            query!(
+                "
+                    INSERT INTO infrastructure.state (key, value_timestamptz)
+                    VALUES ('last_refresh_events_per_day', transaction_timestamp())
+                    ON CONFLICT (key) DO UPDATE
+                        SET value_timestamptz = EXCLUDED.value_timestamptz
+                        WHERE state.value_timestamptz IS NULL
+                            OR state.value_timestamptz < EXCLUDED.value_timestamptz
+                "
+            )
+            .execute(&mut *tx)
+            .await?;
+
             tx.commit().await?;
             cx.span().add_event("events_per_day.refreshed", Vec::new());
 
-            query!("VACUUM ANALYZE event.events_per_day")
+            query!("VACUUM ANALYZE event.events_per_day, infrastructure.state")
                 .execute(db)
                 .await?;
             cx.span().add_event("events_per_day.vacuumed", Vec::new());

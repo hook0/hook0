@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "VACUUM ANALYZE event.events_per_day, infrastructure.state",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "7286f8c54c4104f93886567d76c10a9439e8f12914df61b997d3685110394c89"
+}
