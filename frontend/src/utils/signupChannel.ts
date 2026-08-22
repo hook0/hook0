@@ -165,20 +165,25 @@ export function deriveSignupChannel(source: SignupChannelSource): string {
     return UNKNOWN_CHANNEL;
   }
 
-  const host = hostOf(source.referrer);
-  if (host === '') {
+  const referrerHost = hostOf(source.referrer);
+  if (referrerHost === '') {
     return UNKNOWN_CHANNEL;
   }
 
-  // Our own pages say nothing about where the visitor came from — the answer
-  // was on the page that led them to www.hook0.com, which this tab never saw.
-  // Claiming `referral:www.hook0.com` would fill the column with a fact
-  // everyone already knows and hide the ones nobody does.
-  if (isOwnHost(host, source.host)) {
+  // Only the host the form is served from is folded away: reloading it is
+  // navigation, not an origin, and `referral:app.hook0.com` would say nothing.
+  //
+  // Sibling Hook0 properties are kept. The marketing site, the documentation
+  // and the playground are separate acquisition surfaces, and which of them
+  // handed the visitor over is precisely what this column exists to answer.
+  // Folding them into `unknown` merged "came from one of our own pages" with
+  // "no idea where this came from" — two different facts, and once merged
+  // there is nothing left to tell them apart by.
+  if (referrerHost === currentHost(source.host)) {
     return UNKNOWN_CHANNEL;
   }
 
-  return classify(host);
+  return classify(referrerHost);
 }
 
 /**
@@ -306,11 +311,9 @@ function hostOf(referrer: string): string {
   }
 }
 
-function isOwnHost(referrerHost: string, currentHost: string): boolean {
-  const own = stripWww(currentHost.toLowerCase());
-  return (
-    referrerHost === own || referrerHost.endsWith('.hook0.com') || referrerHost === 'hook0.com'
-  );
+/** The host the form is served from, normalised the way a referrer host is. */
+function currentHost(host: string): string {
+  return stripWww(host.toLowerCase());
 }
 
 function stripWww(host: string): string {
