@@ -25,7 +25,7 @@ hook0-mcp = { path = "{{client}}" }
 # be a direct dependency, not merely one reached through another crate. The features are the ones
 # `clients/mcp` declares, so an example serving over stdio resolves the same transport the binary
 # does.
-rmcp = { version = "=3.1.2", default-features = false, features = ["server", "transport-io"] }
+rmcp = { version = "=3.1.4", default-features = false, features = ["server", "transport-io"] }
 tokio = { version = "=1.53.1", features = ["full"] }
 
 [profile.dev]
