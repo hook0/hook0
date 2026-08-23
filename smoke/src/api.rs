@@ -9,6 +9,7 @@
 //!
 //! Every request is bounded in time and every answer is bounded in size.
 
+use std::cell::RefCell;
 use std::io::Read;
 use std::time::{Duration, Instant};
 
@@ -34,6 +35,17 @@ const MAX_MESSAGES: usize = 50;
 /// How often the instance is asked whether something it does on its own has happened yet.
 const HOUSEKEEPING_EVERY: Duration = Duration::from_millis(500);
 
+/// How long a session the API mints stays valid.
+///
+/// `USER_ACCESS_TOKEN_EXPIRATION` in `api/src/iam.rs`. Restated here because the harness reaches
+/// the instance over HTTP and has no way to read a constant out of it; `smoke/tests/cadence.rs`
+/// holds the two to the same value.
+const SESSION_LASTS: Duration = Duration::from_secs(60 * 5);
+
+/// How much of a session is left unspent, so a call cannot land after the expiry of a session that
+/// was still valid when it was picked up.
+const SESSION_MARGIN: Duration = Duration::from_secs(60);
+
 /// How long the per-day counts are waited for.
 ///
 /// They come out of a materialized view the API refreshes on a cycle of its own — sixty seconds by
@@ -42,13 +54,56 @@ const HOUSEKEEPING_EVERY: Duration = Duration::from_millis(500);
 const COUNTED_WITHIN: Duration = Duration::from_secs(180);
 
 /// The account every application of a run belongs to, and the session that creates them.
+///
+/// A session lasts five minutes and a run lasts longer than that: twelve languages are provisioned
+/// one after another, and each one needs three calls only a user session can make. Nothing a smoke
+/// is handed can stand in — an application secret is scoped to one application, and an
+/// organization-scoped service token is refused `applications.create` — so the account keeps what
+/// it registered with and logs back in when the session in hand is close to its expiry.
 #[derive(Debug, Clone)]
 pub struct Account {
     pub organization_id: String,
+    /// What the account was registered with, kept so a session can be minted again.
+    email: String,
+    password: String,
     /// What an organization-scoped request is made with. It never reaches a smoke: an SDK
     /// authenticates with an application secret, and handing the clients more than they are meant
     /// to carry would prove the wrong thing.
-    session: String,
+    session: RefCell<Held>,
+}
+
+/// A session and when it was minted, which is what says whether it is still worth using.
+#[derive(Debug, Clone)]
+struct Held {
+    token: String,
+    minted: Instant,
+}
+
+impl Account {
+    /// The session an organization-scoped request is made with, minted again when the one in hand
+    /// is close enough to its expiry that the call about to be made could land after it.
+    fn session(&self, api: &str) -> Result<String, Error> {
+        {
+            let held = self.session.borrow();
+            if held.minted.elapsed() + SESSION_MARGIN < SESSION_LASTS {
+                return Ok(held.token.clone());
+            }
+        }
+
+        let logged = post(
+            "logging the account back in",
+            &format!("{api}/auth/login"),
+            None,
+            json!({ "email": self.email, "password": self.password }),
+        )?;
+        let token = string(&logged, "access_token", "logging the account back in")?;
+
+        *self.session.borrow_mut() = Held {
+            token: token.clone(),
+            minted: Instant::now(),
+        };
+        Ok(token)
+    }
 }
 
 /// One application, everything a client needs to talk about it, and nothing that belongs to
@@ -231,7 +286,12 @@ pub fn account(api: &str, mailpit: &str, nonce: &str) -> Result<Account, Error> 
 
     Ok(Account {
         organization_id,
-        session: access_token,
+        email: address,
+        password,
+        session: RefCell::new(Held {
+            token: access_token,
+            minted: Instant::now(),
+        }),
     })
 }
 
@@ -321,7 +381,8 @@ fn token_in(message: &str) -> Option<String> {
 /// The event type is named the same way in every application, so the name a smoke is handed is the
 /// same string whichever application it was created in.
 pub fn application(api: &str, account: &Account, name: &str) -> Result<Application, Error> {
-    let session = Some(account.session.as_str());
+    let held = account.session(api)?;
+    let session = Some(held.as_str());
 
     let application = post(
         "creating an application",
@@ -370,10 +431,11 @@ pub fn application(api: &str, account: &Account, name: &str) -> Result<Applicati
 /// one of the two could report them, but only ever as refusals, and the types they answer would
 /// never be decoded.
 pub fn service_token(api: &str, account: &Account, name: &str) -> Result<String, Error> {
+    let held = account.session(api)?;
     let minted = post(
         "creating a service token",
         &format!("{api}/service_token"),
-        Some(&account.session),
+        Some(&held),
         json!({ "name": name, "organization_id": account.organization_id }),
     )?;
     let biscuit = string(&minted, "biscuit", "creating a service token")?;
@@ -391,10 +453,11 @@ pub fn service_token(api: &str, account: &Account, name: &str) -> Result<String,
 pub fn attempted(api: &str, account: &Account, application_id: &str) -> Result<Attempted, Error> {
     let deadline = Instant::now() + crate::worker::DELIVERS_WITHIN;
     while Instant::now() < deadline {
+        let held = account.session(api)?;
         let listed = get_with(
             "listing the attempts of an application",
             &format!("{api}/request_attempts?application_id={application_id}"),
-            Some(&account.session),
+            Some(&held),
         )?;
 
         let finished = listed
@@ -439,13 +502,14 @@ pub fn attempted(api: &str, account: &Account, application_id: &str) -> Result<A
 pub fn counted(api: &str, account: &Account) -> Result<(), Error> {
     let deadline = Instant::now() + COUNTED_WITHIN;
     while Instant::now() < deadline {
+        let held = account.session(api)?;
         let listed = get_with(
             "listing an organization's events per day",
             &format!(
                 "{api}/events_per_day/organization?organization_id={}",
                 account.organization_id
             ),
-            Some(&account.session),
+            Some(&held),
         )?;
 
         if listed.as_array().is_some_and(|counted| !counted.is_empty()) {
@@ -477,10 +541,11 @@ pub fn provision(
 ) -> Result<Provisioned, Error> {
     let application = application(api, account, &format!("smoke-{nonce}"))?;
 
+    let held = account.session(api)?;
     let subscription = post(
         "creating a subscription",
         &format!("{api}/subscriptions"),
-        Some(&account.session),
+        Some(&held),
         json!({
             "application_id": application.application_id,
             "is_enabled": true,
