@@ -7,6 +7,9 @@
 //!
 //! So both are read back out of the worker's source. What fails is not the run, it is this, with
 //! the two numbers side by side.
+//!
+//! The same holds for the session lifetime `smoke/src/api.rs` quotes out of the API: shorten it
+//! there and a run stops halfway down the language list, on a token that expired under it.
 
 use std::fs;
 use std::path::Path;
@@ -42,12 +45,23 @@ fn constant(source: &str, name: &str) -> Duration {
         .and_then(|(_, rest)| rest.split_once(')'))
         .map(|(seconds, _)| seconds)
         .unwrap_or_else(|| panic!("{name} is no longer a whole number of seconds: {line}"));
-    Duration::from_secs(
-        seconds
-            .trim()
-            .parse()
-            .unwrap_or_else(|cause| panic!("{name} reads `{seconds}`: {cause}")),
-    )
+    Duration::from_secs(whole_seconds(name, seconds))
+}
+
+/// The value of a `from_secs` argument written either as a number or as a product of them.
+///
+/// `api/src/iam.rs` writes its five minutes as `60 * 5`, which reads better than `300` and is the
+/// form this has to accept for the quote of it to be checkable at all.
+fn whole_seconds(name: &str, written: &str) -> u64 {
+    written
+        .split('*')
+        .map(|factor| {
+            factor
+                .trim()
+                .parse::<u64>()
+                .unwrap_or_else(|cause| panic!("{name} reads `{written}`: {cause}"))
+        })
+        .product()
 }
 
 /// The `default_value` of the command line option backing a field declared exactly as `field`.
@@ -128,4 +142,36 @@ fn the_deadline_is_longer_than_one_cycle_and_says_how_it_was_reached() {
             "the refusal claims to derive its bound but does not show {number}s: {said}"
         );
     }
+}
+
+/// Holds the harness's quote of the session lifetime to the API that mints it.
+///
+/// A run provisions twelve languages one after another, and each one needs three calls only a user
+/// session can make. The harness logs the account back in before the session in hand lapses, and it
+/// can only know when that is by quoting the API. Shorten the session there and this fails here,
+/// rather than a run failing partway down the list on a token that expired under it.
+#[test]
+fn the_harness_quotes_the_session_the_api_really_mints() {
+    let declared = constant(&source("../api/src/iam.rs"), "USER_ACCESS_TOKEN_EXPIRATION");
+    let quoted = constant(&source("src/api.rs"), "SESSION_LASTS");
+
+    assert_eq!(
+        declared, quoted,
+        "the API mints a session lasting {declared:?} and the harness still assumes {quoted:?}"
+    );
+}
+
+/// The margin has to leave the run somewhere to stand.
+///
+/// At or above the lifetime every call would re-mint, and at zero a call could be handed a session
+/// that expires while it is in flight — which is the failure this margin exists to remove.
+#[test]
+fn the_session_margin_sits_inside_the_session() {
+    let lasts = constant(&source("src/api.rs"), "SESSION_LASTS");
+    let margin = constant(&source("src/api.rs"), "SESSION_MARGIN");
+
+    assert!(
+        margin > Duration::ZERO && margin < lasts,
+        "a margin of {margin:?} against a session of {lasts:?} leaves the run nowhere to stand"
+    );
 }
