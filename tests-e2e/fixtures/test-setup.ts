@@ -167,5 +167,28 @@ async function expectToast(
   }
 }
 
-export { loginAsNewUser, loginAndCreateApp, loginAndCreateAppWithEventType, expectToast, fromItsOwnAddress, API_BASE_URL };
+/**
+ * Tick an event type on the subscription form and make sure the choice survived.
+ *
+ * The list does not own its selection: the box is bound to an array the parent
+ * rebuilds from whatever the event-types request last returned, so a click that
+ * lands while that request is still in flight is dropped with nothing to show
+ * for it. The subscription is then saved matching no event type, and nothing
+ * says so — an event sent afterwards matches nothing, no attempt is recorded,
+ * and the first sign of it is another test waiting a minute for a log row that
+ * was never going to come.
+ *
+ * So click until the box is ticked rather than once, and leave it ticked.
+ */
+async function selectEventType(checkbox: import("@playwright/test").Locator): Promise<void> {
+  await expect(checkbox).toBeVisible({ timeout: 15000 });
+  await expect(async () => {
+    if (!(await checkbox.isChecked())) {
+      await checkbox.click();
+    }
+    await expect(checkbox).toBeChecked({ timeout: 1000 });
+  }).toPass({ timeout: 20000, intervals: [250, 500, 1000] });
+}
+
+export { loginAsNewUser, loginAndCreateApp, loginAndCreateAppWithEventType, expectToast, fromItsOwnAddress, selectEventType, API_BASE_URL };
 export { test, expect } from "@playwright/test";
