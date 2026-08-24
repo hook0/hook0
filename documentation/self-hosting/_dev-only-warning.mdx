@@ -8,6 +8,38 @@ This setup does not address production concerns such as:
 - **High availability** - minimizing downtime
 - **Observability** - monitoring, logging, and alerting
 - **24/7 operations** - on-call support and incident management
+- **Security** - the ready-made deployment files turn off webhook target address checking, and the
+  Docker Compose file loosens two more guards
+
+The Docker Compose file, the Kubernetes `deployments.yaml` and the Helm chart all set
+[`DISABLE_TARGET_IP_CHECK`](../reference/configuration.md) to `true`. That switches off the check
+which refuses a webhook target whose address is not globally reachable, and it is what lets a local
+stack deliver to `localhost`. It also lets a webhook from these deployments reach anything else the
+worker can reach on your network. On any deployment that accepts subscriptions you do not control,
+leave the flag at its default of `false`.
+
+The Docker Compose file sets two more values that belong to a development stack alone:
+
+- [`REVERSE_PROXY_IPS`](../reference/configuration.md) holds `172.16.0.1/32`, the address of this
+  stack's own bridge gateway. A request that reaches a published port from the host arrives as that
+  gateway rather than as the caller, and this setting tells the API to read the caller's address out
+  of a proxy header instead. It is held to one address on purpose, since the gateway is the only
+  address on the network that no container can be given, and anything wider would cover every
+  sibling container and whatever an operator adds to the network next. Set it to the address of your
+  own reverse proxy, and to nothing wider.
+- [`API_RATE_LIMITING_EMAIL_BURST_SIZE`](../reference/configuration.md) is raised from 5 to 20, the
+  headroom the browser-driven end-to-end tests need. That quota is what bounds an
+  address-enumeration sweep against the endpoints that send an email to an address the caller names,
+  so a deployment that keeps the raised value hands an attacker four times the sweep for free.
+
+The two interact, and the first one decides how much the second is worth. A quota keyed on the
+caller's IP bounds a sweep only while the caller is stuck with one address, and anyone the trusted
+range covers can pick a fresh one per request. Here that is every process on the host, which is what
+a development stack is for. Widen the range in a real deployment and you take the per-IP bound off
+the mail-sending endpoints altogether, whatever the burst size says. The per-account cooldown and
+daily allowance held in the database survive either way, but they bound what a single mailbox
+receives and see nothing of a sweep across many addresses. See
+[Security](../resources/security.md) for what each limiter covers.
 
 For production workloads, use [Hook0 Cloud](https://www.hook0.com) which provides a fully managed, production-ready infrastructure.
 

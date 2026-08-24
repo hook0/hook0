@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { fromItsOwnAddress } from "../fixtures/test-setup";
 
 /**
  * Command Palette E2E tests for Hook0.
@@ -28,6 +29,7 @@ test.describe("Command Palette", () => {
 
     // Register via API
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: {
         email,
         first_name: "Test",

@@ -7,6 +7,98 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- `POST /api/v1/auth/password` now requires the current password (api)
+
+  The body carries a `current_password` member alongside `new_password`, and a request that
+  omits it is refused as malformed. Holding a session used to be enough to replace an
+  account's password, which made a borrowed or stolen token a full account takeover. A wrong
+  current password answers 403, the same answer an unusable session gets, so a caller cannot
+  learn which of the two it got wrong. Anything that drives the account settings page has to
+  send the extra member.
+
+- `current_password` is bounded at 100 characters (api)
+
+  The same endpoint sized `new_password` through the password policy and left
+  `current_password` unbounded, so one of any length went all the way to Argon2 before being
+  refused. It is now validated like the password the login endpoint takes, at between 1 and
+  100 characters, by a validator that does not hand the refused value back in the response.
+  A caller sending a longer one used to get a 403 once the hash had run; it now gets a 422
+  naming the field, which no password over 100 characters could ever have got past anyway.
+
+- `POST /api/v1/auth/begin-reset-password` answers 204 for every address (api)
+
+  It used to answer 204 for an address it knew and 401 for one it did not, which turned the
+  forgotten-password form into an account-existence oracle. It now answers 204 whatever it
+  finds, including when the mail cannot be sent at all. Minting and sending happen off the
+  request path, so the time it takes to answer gives nothing away either. A caller that told
+  204, 401 and 500 apart has nothing left to tell apart, since the endpoint no longer
+  reports whether a mail went out.
+
+- `POST /api/v1/auth/reset-password` answers 401 where it used to answer 403 (api)
+
+  A link the authorizer refuses now comes back as `AuthEmailExpired` with a 401. It used to
+  come back as `Forbidden` with a 403 and the words "Insufficient rights", which is what a
+  user read on the one page a locked-out account has left. Both a link past its lifetime and
+  a link minted before this version take that path. A caller matching on 403 to detect a dead
+  link has to match on 401 and on `AuthEmailExpired` instead.
+
+- Reset links minted before this version stop working the moment it is deployed (api)
+
+  Reset tokens are now version 2 and the API accepts no other version. Version 1 carried
+  nothing but the account it was minted for, so accepting both versions would have left
+  every link already in circulation replayable, which is the whole of what version 2 is
+  there to stop. Whoever is holding a link when this ships gets the same expired-link answer
+  a spent link gets, which is the 401 described above, and has to ask for a new one. Worth
+  warning support beforehand, and worth not deploying in the minutes after a wave of reset
+  mail. Nothing else needs doing, since the two migrations add columns that fill themselves in.
+
+### Security
+
+- A reset mail that fails to send no longer leaves the link already in the mailbox dead (api)
+
+  The statement that claims the right to send rotates the nonce, and rotating it retires
+  whatever link was outstanding. When the send then failed, the allowance it had spent was
+  handed back but the nonce was not, so the link the account holder was already holding
+  stayed dead with nothing to replace it. Against a mail server that is down or refusing,
+  anyone who knew an address could repeat the request and keep the legitimate link
+  permanently invalid, and see the same 204 every time while doing it. Releasing the claim
+  now puts the previous nonce back as well, so a send that never happened leaves the account
+  as it found it.
+
+- A reset link works once, and only the newest one works (api)
+
+  The link now carries a nonce the account row holds. Asking for a new link rotates it,
+  spending one rotates it, and changing the password from the account settings rotates it
+  too. So a link that has already reset a password is dead, a link superseded by a later
+  request is dead, and no link outlives the password change that follows it. All three cases
+  answer `AuthEmailExpired`.
+
+- A cooldown and a daily allowance bound the reset mail one address can be sent (api)
+
+  An address gets at most one reset mail per minute and five per 24 hours. Both bounds live
+  in the account row, so they hold across API replicas and survive a caller rotating its
+  source address, which a per-IP limiter cannot. Past either bound the endpoint still answers
+  204 and quietly sends nothing, so a throttled address and an unknown one look the same from
+  outside. An allowance spent on a mail that SMTP then refuses is put back.
+
+- A per-IP quota on the two endpoints that mail an address the caller names (api)
+
+  `begin-reset-password` and `resend-verification-email` sit behind a limiter of their own,
+  keyed on the caller's address, allowing five calls with one restored every 60 seconds. The
+  `/api/v1` scope was already covered per IP, but that quota is sized for API traffic, and an
+  enumeration sweep of a few hundred addresses stays well under it while costing a mail every
+  time. Tune it with `API_RATE_LIMITING_EMAIL_BURST_SIZE` and
+  `API_RATE_LIMITING_EMAIL_REPLENISH_PERIOD_IN_MS`, or switch it off with
+  `DISABLE_API_RATE_LIMITING_EMAIL`. It answers 429, so a caller can see it; what that
+  reveals is the caller's own rate, never whether an account exists.
+
+  If the API sits behind a reverse proxy, `REVERSE_PROXY_IPS` has to name that proxy or every
+  request arrives wearing the proxy's address and the whole internet shares one quota. Set it
+  wider than the proxy, and anyone inside the range gets to claim whatever address they like
+  and walk past this limiter along with the per-IP one.
+
 ### Changed
 
 - Rate limiting answers a problem document instead of a sentence (api)
@@ -39,6 +131,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   allow-list did not carry it. The preflight was answered 400 and the request never left the
   page. An SDK worked from a server and not from a browser, with nothing in the API log saying
   why.
+
+- The reset mail announced a lifetime the link did not have (api)
+
+  It promised five minutes where the link was good for thirty. The figure now comes from the
+  same constant the server enforces, so the two cannot drift apart again. The mail now also
+  says that the link works once and that a newer reset mail retires it, so a reader who asked
+  twice knows the most recent message is the one to open.
 
 ## [api/v1.0.2] - 2026-05-13
 

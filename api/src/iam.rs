@@ -355,12 +355,22 @@ pub fn create_reactivation_unsubscribe_token(
     })
 }
 
-const RESET_PASSWORD_TOKEN_VERSION: i64 = 1;
-const RESET_PASSWORD_TOKEN_EXPIRATION: Duration = Duration::from_secs(60 * 30);
+/// Version 1 carried nothing but the user it was minted for, so a link could be
+/// replayed for as long as it was valid and issuing a new one retired nothing.
+/// Version 2 carries the account's `password_reset_nonce`, which every password
+/// write rotates. The old version is deliberately not accepted alongside it:
+/// keeping it would leave the links already in circulation replayable, which is
+/// the whole of what the nonce is there to stop.
+const RESET_PASSWORD_TOKEN_VERSION: i64 = 2;
+
+/// How long a reset link stays usable. Read by the mail templates so what the
+/// message announces cannot drift away from what the server enforces.
+pub const RESET_PASSWORD_TOKEN_EXPIRATION: Duration = Duration::from_secs(60 * 30);
 
 pub fn create_reset_password_token(
     private_key: &PrivateKey,
     user_id: Uuid,
+    nonce: Uuid,
 ) -> Result<RootToken, biscuit_auth::error::Token> {
     let keypair = KeyPair::from(private_key);
     let created_at = SystemTime::now();
@@ -371,6 +381,7 @@ pub fn create_reset_password_token(
             type("password_reset");
             version({RESET_PASSWORD_TOKEN_VERSION});
             user_id({user_id});
+            nonce({nonce});
             created_at({created_at});
             expired_at({expired_at});
         "#,
@@ -917,6 +928,10 @@ pub struct AuthorizedReactivationUnsubscribeToken {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthorizedResetPasswordToken {
     pub user_id: Uuid,
+    /// The account's `password_reset_nonce` as it stood when the link was
+    /// issued. The write that sets the password matches on it, which is what
+    /// makes the link usable once and only until another one is issued.
+    pub nonce: Uuid,
 }
 
 fn authorize(
@@ -1186,7 +1201,7 @@ pub fn authorize_reset_password(
 ) -> Result<AuthorizedResetPasswordToken, biscuit_auth::error::Token> {
     let mut authorizer = authorizer!(
         r#"
-            supported_version("password_reset", 1);
+            supported_version("password_reset", 2);
             valid_version($t, $v) <- type($t), version($v), supported_version($t, $v);
             check if valid_version($t, $v);
 
@@ -1212,7 +1227,13 @@ pub fn authorize_reset_password(
         .and_then(|(str,)| Uuid::from_slice(str).ok())
         .ok_or(biscuit_auth::error::Token::InternalError)?;
 
-    Ok(AuthorizedResetPasswordToken { user_id })
+    let raw_nonce: Vec<(Vec<u8>,)> = authorizer.query(rule!("data($n) <- nonce($n)"))?;
+    let nonce = raw_nonce
+        .first()
+        .and_then(|(str,)| Uuid::from_slice(str).ok())
+        .ok_or(biscuit_auth::error::Token::InternalError)?;
+
+    Ok(AuthorizedResetPasswordToken { user_id, nonce })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1410,6 +1431,7 @@ mod tests {
     use biscuit_auth::builder::BlockBuilder;
     use biscuit_auth::builder_ext::BuilderExt;
     use biscuit_auth::macros::block;
+    use proptest::prelude::*;
     use std::time::{Duration, SystemTime};
 
     use super::*;
@@ -2070,6 +2092,193 @@ mod tests {
             ))
             .is_err()
         );
+    }
+
+    /// Mint a password reset token the way `create_reset_password_token` does,
+    /// with the version and the expiry the test needs — the two things a token
+    /// cannot be asked to be after it has been signed.
+    fn forge_reset_password_token(
+        private_key: &PrivateKey,
+        version: i64,
+        user_id: Uuid,
+        nonce: Uuid,
+        expired_at: SystemTime,
+    ) -> Biscuit {
+        let keypair = KeyPair::from(private_key);
+        let created_at = SystemTime::now();
+
+        biscuit!(
+            r#"
+                type("password_reset");
+                version({version});
+                user_id({user_id});
+                nonce({nonce});
+                created_at({created_at});
+                expired_at({expired_at});
+            "#,
+        )
+        .build(&keypair)
+        .unwrap()
+    }
+
+    /// The link carries the account it is for AND the value the account held
+    /// when it was issued. Both have to survive the round trip: the handler
+    /// matches its write on the second one, so a nonce that came back wrong
+    /// would turn every reset into an expired link — or, worse, a nonce silently
+    /// dropped would turn the guard into no guard at all.
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn reset_password_token_authorization() {
+        let keypair = KeyPair::new();
+        let user_id = Uuid::new_v4();
+        let nonce = Uuid::new_v4();
+        let RootToken { biscuit, .. } =
+            create_reset_password_token(&keypair.private(), user_id, nonce).unwrap();
+
+        assert_eq!(
+            dbg!(authorize_reset_password(&biscuit)),
+            Ok(AuthorizedResetPasswordToken { user_id, nonce })
+        );
+    }
+
+    /// Links minted before the nonce existed carry no value to match a write
+    /// against, so accepting them would leave every link already in circulation
+    /// replayable — the whole of what the nonce is there to stop. They are
+    /// refused outright rather than accepted alongside the current shape.
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn a_reset_password_token_of_the_superseded_version_is_refused() {
+        let keypair = KeyPair::new();
+        let user_id = Uuid::new_v4();
+        let created_at = SystemTime::now();
+        let expired_at = created_at + Duration::from_secs(60 * 30);
+
+        let superseded = biscuit!(
+            r#"
+                type("password_reset");
+                version(1);
+                user_id({user_id});
+                created_at({created_at});
+                expired_at({expired_at});
+            "#,
+        )
+        .build(&KeyPair::from(&keypair.private()))
+        .unwrap();
+
+        assert!(dbg!(authorize_reset_password(&superseded)).is_err());
+    }
+
+    /// A token whose stated expiry has gone by is refused, and by the token's own
+    /// `expired_at` fact rather than by an attenuation block a caller would have
+    /// had to add. Nothing enforced that before: the link's lifetime was
+    /// announced in the email and checked nowhere a test could see.
+    #[test_log::test]
+    #[test_log(default_log_filter = "trace")]
+    fn reset_password_token_authorization_expiration() {
+        let keypair = KeyPair::new();
+        let user_id = Uuid::new_v4();
+        let nonce = Uuid::new_v4();
+
+        let live = forge_reset_password_token(
+            &keypair.private(),
+            2,
+            user_id,
+            nonce,
+            SystemTime::now() + Duration::from_secs(60),
+        );
+        let expired = forge_reset_password_token(
+            &keypair.private(),
+            2,
+            user_id,
+            nonce,
+            SystemTime::now() - Duration::from_secs(60),
+        );
+
+        assert_eq!(
+            dbg!(authorize_reset_password(&live)),
+            Ok(AuthorizedResetPasswordToken { user_id, nonce })
+        );
+        assert!(dbg!(authorize_reset_password(&expired)).is_err());
+    }
+
+    proptest! {
+        /// Whatever account and whatever nonce a link is minted for, that exact
+        /// pair is what comes back out — including out of a token somebody has
+        /// added a block to. The write that sets the password matches on the
+        /// nonce, so a pair that came back crossed would let a link for one
+        /// account present the nonce of another.
+        ///
+        /// The crossed pair is worth a test rather than an argument because
+        /// nothing here forces the two halves to come from the same place:
+        /// `authorize_reset_password` reads the account and the nonce with two
+        /// separate queries and takes the first answer of each, so anything that
+        /// puts a second `user_id` or a second `nonce` in front of them decides
+        /// the pairing by result order. Holding a link is enough to append a
+        /// block to it — that is what biscuit tokens are for — so the second
+        /// fact is within reach of whoever received the mail. What keeps it out
+        /// is that an authorizer query only ever sees the authority block, which
+        /// is a default of the library rather than anything this code states.
+        #[test]
+        fn a_reset_password_token_carries_back_the_pair_it_was_minted_for(
+            raw_user_id in any::<u128>(),
+            raw_nonce in any::<u128>(),
+            raw_other_user_id in any::<u128>(),
+            raw_other_nonce in any::<u128>(),
+        ) {
+            let keypair = KeyPair::new();
+            let user_id = Uuid::from_u128(raw_user_id);
+            let nonce = Uuid::from_u128(raw_nonce);
+            let other_user_id = Uuid::from_u128(raw_other_user_id);
+            let other_nonce = Uuid::from_u128(raw_other_nonce);
+
+            let RootToken { biscuit, .. } =
+                create_reset_password_token(&keypair.private(), user_id, nonce).unwrap();
+            let authorized = authorize_reset_password(&biscuit).unwrap();
+
+            prop_assert_eq!(authorized.user_id, user_id);
+            prop_assert_eq!(authorized.nonce, nonce);
+
+            // The same link with a second pair bolted on, the way a bearer can
+            // attenuate any biscuit they hold. Either the token stops
+            // authorizing or it comes back with the pair it was minted for;
+            // what it must never do is hand back one half of each.
+            let attenuated = biscuit
+                .append(
+                    BlockBuilder::new()
+                        .fact(fact!("user_id({other_user_id})"))
+                        .unwrap()
+                        .fact(fact!("nonce({other_nonce})"))
+                        .unwrap(),
+                )
+                .unwrap();
+            if let Ok(authorized) = authorize_reset_password(&attenuated) {
+                prop_assert_eq!(
+                    (authorized.user_id, authorized.nonce),
+                    (user_id, nonce)
+                );
+            }
+        }
+
+        /// And it is only ever a reset link: no version but the current one
+        /// authorizes, whatever pair it carries. Anything else would be a way to
+        /// mint a link the nonce guard cannot retire.
+        #[test]
+        fn no_other_version_of_a_reset_password_token_authorizes(
+            version in prop_oneof![Just(0i64), Just(1i64), 3i64..64],
+            raw_user_id in any::<u128>(),
+            raw_nonce in any::<u128>(),
+        ) {
+            let keypair = KeyPair::new();
+            let forged = forge_reset_password_token(
+                &keypair.private(),
+                version,
+                Uuid::from_u128(raw_user_id),
+                Uuid::from_u128(raw_nonce),
+                SystemTime::now() + Duration::from_secs(60),
+            );
+
+            prop_assert!(authorize_reset_password(&forged).is_err());
+        }
     }
 
     #[test_log::test]

@@ -879,6 +879,7 @@ export interface components {
       email: string;
     };
     ChangePasswordPost: {
+      current_password: string;
       new_password: string;
     };
     EmailVerificationPost: {

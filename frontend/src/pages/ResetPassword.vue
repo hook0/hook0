@@ -10,7 +10,7 @@ import { routes } from '@/routes';
 import router from '@/router';
 import { stripTokenFromUrl } from '@/utils/stripTokenFromUrl';
 import { useI18n } from 'vue-i18n';
-import { ArrowLeft } from 'lucide-vue-next';
+import { ArrowLeft, Send } from 'lucide-vue-next';
 
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
@@ -158,7 +158,6 @@ function isDeadLink(err: unknown): boolean {
 }
 
 function displayError(err: Problem) {
-  console.error(err);
   alert.value.visible = true;
   alert.value.type = err.status >= 500 ? 'alert' : 'warning';
   alert.value.title = err.title;
@@ -194,6 +193,31 @@ onMounted(() => {
     <Hook0Card v-if="alert.visible" variant="glow">
       <Hook0CardContent>
         <Hook0Alert :type="alert.type" :title="alert.title" :description="alert.description" />
+
+        <!-- A link now dies in more ways than one, and every one of them ends
+             here: spent, replaced by a newer one, or retired by the password
+             change that followed. Telling someone to start over is only worth
+             saying with a way to start over — the page that mints a new link
+             is reachable from exactly one place in the whole app, a small
+             link under the sign-in form.
+
+             Offered only once the link is beyond saving. A server that was
+             busy says nothing about the link, and swapping a working one for
+             a fresh mail would be the reader losing their reset to an outage
+             that lasted a second. -->
+        <Hook0Button
+          v-if="!linkIsUsable"
+          variant="primary"
+          size="lg"
+          :to="{ name: routes.BeginResetPassword }"
+          full-width
+          data-test="reset-password-request-new-link"
+        >
+          <template #left>
+            <Send :size="16" aria-hidden="true" />
+          </template>
+          {{ t('auth.resetPassword.requestNewLink') }}
+        </Hook0Button>
 
         <Hook0Button variant="ghost" size="lg" :to="{ name: routes.Login }" full-width>
           <template #left>

@@ -1,3 +1,5 @@
+import { problemCarriedBy, validationErrorsFor, type ProblemLike } from '@/utils/problem';
+
 /**
  * The API errors that mean "this password was refused", as opposed to "the
  * request failed". Two of the six rules — the blocklist and the length ceiling
@@ -25,19 +27,12 @@ export type PasswordRejection =
 
 const NOT_A_REJECTION: PasswordRejection = { refused: false };
 
-interface ProblemLike {
-  readonly id: string;
-  readonly detail: string;
-}
-
-function isProblemLike(value: unknown): value is ProblemLike {
-  if (value === null || typeof value !== 'object') {
-    return false;
-  }
-  const candidate = value as Record<string, unknown>;
-  return typeof candidate.id === 'string' && typeof candidate.detail === 'string';
-}
-
+/**
+ * The policy's verdict on the password a request carried. It names the rule
+ * that refused it and no field at all — the API has no reason to, since only
+ * one password per request is ever run through the policy — so the caller is
+ * the one that knows which field it belongs under.
+ */
 function verdictFor(problem: ProblemLike): PasswordRejection {
   if (!REJECTION_IDS.has(problem.id)) {
     return NOT_A_REJECTION;
@@ -56,15 +51,11 @@ function verdictFor(problem: ProblemLike): PasswordRejection {
  * validators leave it null and their raw code would mean nothing to a user.
  */
 function validationMessageFor(problem: ProblemLike, field: string): PasswordRejection {
-  const validation: unknown = (problem as unknown as Record<string, unknown>).validation;
-  if (validation === null || typeof validation !== 'object') {
+  const errors = validationErrorsFor(problem, field);
+  if (!errors.named) {
     return NOT_A_REJECTION;
   }
-  const entries: unknown = (validation as Record<string, unknown>)[field];
-  if (!Array.isArray(entries)) {
-    return NOT_A_REJECTION;
-  }
-  for (const entry of entries as unknown[]) {
+  for (const entry of errors.entries) {
     if (entry === null || typeof entry !== 'object') {
       continue;
     }
@@ -76,38 +67,66 @@ function validationMessageFor(problem: ProblemLike, field: string): PasswordReje
   return NOT_A_REJECTION;
 }
 
-function verdict(problem: ProblemLike, field: string): PasswordRejection {
-  const rejection = verdictFor(problem);
+/**
+ * Read a failed password request, for the field the policy ran on.
+ *
+ * `field` scopes the `Validation` 422 half of the answer — it is the name the
+ * API knows the password by on this endpoint, `password` on registration,
+ * `new_password` on reset and change — so a validation error about somebody's
+ * first name is never blamed on it.
+ *
+ * It does not scope the policy half, which carries no field to scope by. On an
+ * endpoint sending two passwords that makes this the wrong thing to ask about
+ * the one that only proves who is asking: it would answer with the *other*
+ * field's reason. `validationRejection` is that question.
+ */
+export function passwordRejection(error: unknown, field: string): PasswordRejection {
+  const carrier = problemCarriedBy(error);
+  if (!carrier.carries) {
+    return NOT_A_REJECTION;
+  }
+  const rejection = verdictFor(carrier.problem);
   if (rejection.refused) {
     return rejection;
   }
-  return validationMessageFor(problem, field);
+  return validationMessageFor(carrier.problem, field);
 }
 
 /**
- * Read a failed password request. Accepts either shape the app rejects with:
- * a Problem already unwrapped by `unwrapResponse`, or the raw Axios error that
- * still carries it in `response.data`. Anything else is a failed request, and
- * says nothing about the password.
- *
- * `field` is the name the API knows the password by on this endpoint —
- * `password` on registration, `new_password` on reset and change — so a
- * validation error about somebody's first name is never blamed on it.
+ * Read a failed password request for a field the policy never runs on — the
+ * current password of a change, which is compared rather than checked against
+ * the rules. Only refusals the API pinned on that exact field come back, so
+ * the new password's reason can never be shown under it.
  */
-export function passwordRejection(error: unknown, field: string): PasswordRejection {
-  if (isProblemLike(error)) {
-    return verdict(error, field);
-  }
-  if (error === null || typeof error !== 'object') {
+export function validationRejection(error: unknown, field: string): PasswordRejection {
+  const carrier = problemCarriedBy(error);
+  if (!carrier.carries) {
     return NOT_A_REJECTION;
   }
-  const response: unknown = (error as Record<string, unknown>).response;
-  if (response === null || typeof response !== 'object') {
-    return NOT_A_REJECTION;
-  }
-  const data: unknown = (response as Record<string, unknown>).data;
-  if (isProblemLike(data)) {
-    return verdict(data, field);
-  }
-  return NOT_A_REJECTION;
+  return validationMessageFor(carrier.problem, field);
+}
+
+/**
+ * How `POST /auth/password` refuses to change the password. The API answers
+ * `Forbidden` — the same problem it raises for a caller with no right to make
+ * the request, on purpose: a distinct error would tell an attacker holding a
+ * stolen session which half of the request it got wrong.
+ *
+ * So this is *a* refusal, not proof of a mistyped password. `authorize_only_user`
+ * (api/src/iam.rs) raises the same `Forbidden` before the password is ever
+ * checked, for a service or master token, or a user token the authorizer
+ * attenuated. The dashboard sends none of those — it holds a plain user access
+ * token — which is why the verdict is shown on the field rather than in a
+ * toast; but the message that goes there says the password was not accepted,
+ * never that it was wrong, because that is the part this cannot know.
+ *
+ * An expired session is not in the ambiguity: the middleware checks the
+ * token row's `expired_at` and answers `AuthInvalidBiscuit`
+ * (api/src/middleware_biscuit.rs), so a stale tab never blames the password.
+ */
+const CURRENT_PASSWORD_REFUSAL_ID = 'Forbidden';
+
+export function isCurrentPasswordRefused(error: unknown): boolean {
+  const carrier = problemCarriedBy(error);
+  return carrier.carries && carrier.problem.id === CURRENT_PASSWORD_REFUSAL_ID;
 }

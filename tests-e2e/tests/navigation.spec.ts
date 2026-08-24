@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { fromItsOwnAddress } from "../fixtures/test-setup";
 
 /**
  * Navigation E2E tests for Hook0.
@@ -22,6 +23,7 @@ test.describe("Navigation", () => {
 
       // Register via API
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        headers: fromItsOwnAddress(),
         data: {
           email,
           first_name: "Test",
@@ -189,6 +191,7 @@ test.describe("Navigation", () => {
 
       // Register and verify
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        headers: fromItsOwnAddress(),
         data: { email, first_name: "Test", last_name: "User", password },
       });
       expect(registerResponse.status()).toBeLessThan(400);
@@ -272,6 +275,7 @@ test.describe("Navigation", () => {
 
       // Register and verify
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        headers: fromItsOwnAddress(),
         data: { email, first_name: "Test", last_name: "User", password },
       });
       expect(registerResponse.status()).toBeLessThan(400);
@@ -361,6 +365,7 @@ test.describe("Navigation", () => {
 
       // Register and verify
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        headers: fromItsOwnAddress(),
         data: { email, first_name: "Test", last_name: "User", password },
       });
       expect(registerResponse.status()).toBeLessThan(400);
@@ -420,6 +425,7 @@ test.describe("Navigation", () => {
 
       // Register and verify
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        headers: fromItsOwnAddress(),
         data: { email, first_name: "Test", last_name: "User", password },
       });
       expect(registerResponse.status()).toBeLessThan(400);
@@ -483,6 +489,7 @@ test.describe("Navigation", () => {
 
       // Register and verify
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        headers: fromItsOwnAddress(),
         data: { email, first_name: "Test", last_name: "User", password },
       });
       expect(registerResponse.status()).toBeLessThan(400);
@@ -566,6 +573,7 @@ test.describe("Navigation", () => {
 
       // Register and verify
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        headers: fromItsOwnAddress(),
         data: { email, first_name: "Test", last_name: "User", password },
       });
       expect(registerResponse.status()).toBeLessThan(400);
@@ -749,6 +757,7 @@ test.describe("Navigation", () => {
 
       // Register and verify
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        headers: fromItsOwnAddress(),
         data: { email, first_name: "Test", last_name: "User", password },
       });
       expect(registerResponse.status()).toBeLessThan(400);
@@ -774,6 +783,7 @@ test.describe("Navigation", () => {
 
       // Password change section
       await expect(page.locator('[data-test="change-password-card"]')).toBeVisible();
+      await expect(page.locator('[data-test="current-password-input"]')).toBeVisible();
       await expect(page.locator('[data-test="new-password-input"]')).toBeVisible();
       await expect(page.locator('[data-test="confirm-password-input"]')).toBeVisible();
 

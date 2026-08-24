@@ -681,12 +681,34 @@ for (let i = 0; i < events.length; i += batchSize) {
 }
 ```
 
-3. For self-hosted, adjust rate limits:
+3. For self-hosted, raise the limiter you are actually hitting. Hook0 sizes each one as a burst plus
+a replenish period, so there is no per-minute or per-hour setting. A quota holds `BURST_SIZE` calls
+and gets one call back every `REPLENISH_PERIOD_IN_MS` milliseconds. Sending events on a token runs
+into the per-token limiter first, which allows a burst of 20 with one call back every 100ms.
+
 ```yaml
 environment:
-  RATE_LIMIT_PER_MINUTE: 10000
-  RATE_LIMIT_PER_HOUR: 100000
+  # Raises the per-token quota to a burst of 200 and 100 calls/s sustained
+  API_RATE_LIMITING_TOKEN_BURST_SIZE: 200
+  API_RATE_LIMITING_TOKEN_REPLENISH_PERIOD_IN_MS: 10
 ```
+
+The per-IP limiter (200 of burst, one call back every 10ms) and the global one (2000 of burst, one
+call back every 1ms) sit in front of it, so raise those too when a single host or a single instance
+is doing all the sending. The [configuration reference](../reference/configuration.md) lists every
+limiter variable and its default.
+
+:::note
+
+A 429 on `POST /api/v1/auth/begin-reset-password` or `POST /api/v1/auth/resend-verification-email`
+comes from a different limiter, the one that bounds how much mail a caller can make Hook0 send. It
+allows 5 calls per IP with one call back every 60 seconds, and it is deliberately much tighter than
+the others. Before raising `API_RATE_LIMITING_EMAIL_BURST_SIZE`, check whether your API sits behind
+a reverse proxy whose address is missing from `REVERSE_PROXY_IPS`, since every caller then arrives
+as the proxy and shares a single quota. [Security](../resources/security.md) covers what that
+limiter is there for.
+
+:::
 
 :::info Webhook Rate Limiting
 For rate limiting issues at webhook endpoints, see [Debugging Failed Webhooks](./debug-failed-webhooks.md#scenario-4-rate-limiting).

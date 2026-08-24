@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { fromItsOwnAddress } from "../fixtures/test-setup";
 
 /**
  * Organizations E2E tests for Hook0.
@@ -22,6 +23,7 @@ test.describe("Organizations", () => {
 
     // Register via API
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: {
         email,
         first_name: "Test",
@@ -69,6 +71,7 @@ test.describe("Organizations", () => {
 
     // Register and verify email
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -138,6 +141,7 @@ test.describe("Organizations", () => {
 
     // Register and get organization ID
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -215,6 +219,7 @@ test.describe("Organizations", () => {
 
     // Register and verify
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -257,6 +262,7 @@ test.describe("Organizations", () => {
 
     // Register and get organization ID
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -301,6 +307,7 @@ test.describe("Organizations", () => {
 
     // Register and verify email
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -398,6 +405,7 @@ test.describe("Organizations", () => {
 
     // Register and get organization ID
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);

@@ -60,9 +60,11 @@ pub struct Hook0RateLimiters {
     disable_api_rate_limiting_global: bool,
     disable_api_rate_limiting_ip: bool,
     disable_api_rate_limiting_token: bool,
+    disable_api_rate_limiting_email: bool,
     global: GovernorConfig<InstanceKeyExtractor, NoOpMiddleware>,
     ip: GovernorConfig<UserIpKeyExtractor, NoOpMiddleware>,
     token: GovernorConfig<TokenKeyExtractor, NoOpMiddleware>,
+    email: GovernorConfig<UserIpKeyExtractor, NoOpMiddleware>,
 }
 
 impl Hook0RateLimiters {
@@ -78,6 +80,9 @@ impl Hook0RateLimiters {
         disable_api_rate_limiting_token: bool,
         api_rate_limiting_token_burst_size: u32,
         api_rate_limiting_token_replenish_period_in_ms: u64,
+        disable_api_rate_limiting_email: bool,
+        api_rate_limiting_email_burst_size: u32,
+        api_rate_limiting_email_replenish_period_in_ms: u64,
     ) -> Self {
         let global = GovernorConfigBuilder::default()
             .key_extractor(InstanceKeyExtractor)
@@ -97,6 +102,12 @@ impl Hook0RateLimiters {
             .milliseconds_per_request(api_rate_limiting_token_replenish_period_in_ms)
             .finish()
             .expect("Could not build per-token rate limiter; check configuration");
+        let email = GovernorConfigBuilder::default()
+            .key_extractor(UserIpKeyExtractor)
+            .burst_size(api_rate_limiting_email_burst_size)
+            .milliseconds_per_request(api_rate_limiting_email_replenish_period_in_ms)
+            .finish()
+            .expect("Could not build per-IP rate limiter for mail-sending endpoints; check configuration");
 
         if disable_api_rate_limiting {
             warn!("API rate limiting is disabled");
@@ -110,6 +121,9 @@ impl Hook0RateLimiters {
             if disable_api_rate_limiting_token {
                 warn!("Per-token API rate limiting is disabled");
             }
+            if disable_api_rate_limiting_email {
+                warn!("Per-IP API rate limiting of mail-sending endpoints is disabled");
+            }
         }
 
         Self {
@@ -117,9 +131,11 @@ impl Hook0RateLimiters {
             disable_api_rate_limiting_global,
             disable_api_rate_limiting_ip,
             disable_api_rate_limiting_token,
+            disable_api_rate_limiting_email,
             global,
             ip,
             token,
+            email,
         }
     }
 
@@ -144,6 +160,25 @@ impl Hook0RateLimiters {
         )
     }
 
+    /// Quota for the handful of endpoints that put a message in a mailbox the
+    /// caller names. The whole `/api/v1` scope is already covered per IP, but
+    /// that quota is sized for API traffic; an address-enumeration sweep is a
+    /// few hundred requests, well under it, and every one of them can cost a
+    /// mail. The per-account quotas in the database bound what one mailbox
+    /// receives, but they see nothing of a caller walking thousands of distinct
+    /// addresses — which is exactly what enumeration is. This is the quota that
+    /// does.
+    ///
+    /// It answers 429, so it is visible to a caller. That is deliberate and
+    /// costs nothing: what it reveals is the source address's own rate, never
+    /// whether any account exists.
+    pub fn email(&self) -> Condition<Governor<UserIpKeyExtractor, NoOpMiddleware>> {
+        Condition::new(
+            !self.disable_api_rate_limiting && !self.disable_api_rate_limiting_email,
+            Governor::new(&self.email),
+        )
+    }
+
     pub fn spawn_housekeeping_task(&self, interval: Duration) {
         let self_clone = self.clone();
         actix_web::rt::spawn(async move {
@@ -153,10 +188,12 @@ impl Hook0RateLimiters {
                 trace!("Removing old entries from rate limiters...");
                 self_clone.ip.limiter().retain_recent();
                 self_clone.token.limiter().retain_recent();
+                self_clone.email.limiter().retain_recent();
 
                 trace!("Shrinking rate limiters internal's structures...");
                 self_clone.ip.limiter().shrink_to_fit();
                 self_clone.token.limiter().shrink_to_fit();
+                self_clone.email.limiter().shrink_to_fit();
 
                 debug!("Rate limiters housekeeping done");
             }
@@ -173,6 +210,7 @@ impl Hook0RateLimiters {
                 report_rate_limiters_metrics(&[
                     ("ip", self_clone.ip.limiter().len()),
                     ("token", self_clone.token.limiter().len()),
+                    ("email", self_clone.email.limiter().len()),
                 ]);
             }
         });

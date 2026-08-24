@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    UPDATE iam.\"user\"\n                    SET password = $1,\n                        password_reset_nonce = public.gen_random_uuid()\n                    WHERE user__id = $2\n                        AND password_reset_nonce = $3\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "11d4746487210229d1bb7df3e012fb19f45ea8b27894156cf0537fd83fc27f09"
+}
