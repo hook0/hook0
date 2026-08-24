@@ -34,6 +34,7 @@ async function loginAsNewUser(
 
   // Register via API — response contains organization_id
   const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+    headers: fromItsOwnAddress(),
     data: { email, first_name: "Test", last_name: "User", password },
   });
   expect(registerResponse.status()).toBeLessThan(400);
@@ -123,6 +124,31 @@ async function loginAndCreateAppWithEventType(
 }
 
 /**
+ * Headers that make a call look like it comes from its own source address.
+ *
+ * The endpoints that put a message in a mailbox are capped per source address.
+ * A test suite drives them from one machine, so without this the whole run
+ * shares a single allowance: a test that legitimately makes a dozen calls
+ * starves every test after it, and the failure lands on whichever test happened
+ * to run next. In production those same calls would be a dozen different
+ * people, which is what this reproduces.
+ *
+ * The API reads the header only from a peer it has been told to trust — the
+ * real reverse proxy in production, the loopback range in the e2e stack — so
+ * nothing here changes what the header is allowed to mean.
+ *
+ * Addresses come from 198.18.0.0/15, reserved for benchmarking by RFC 2544, so
+ * one can never be confused with a real client. Only calls made straight to the
+ * API can carry it: a request issued by the page is refused at the CORS
+ * preflight, because the API allows a fixed short list of request headers and
+ * this is not one of them.
+ */
+function fromItsOwnAddress(): Record<string, string> {
+  const octet = () => Math.floor(Math.random() * 256);
+  return { "X-Forwarded-For": `198.18.${octet()}.${octet()}` };
+}
+
+/**
  * Assert a toast notification is visible. Centralizes the vue-sonner selector.
  */
 async function expectToast(
@@ -141,5 +167,5 @@ async function expectToast(
   }
 }
 
-export { loginAsNewUser, loginAndCreateApp, loginAndCreateAppWithEventType, expectToast, API_BASE_URL };
+export { loginAsNewUser, loginAndCreateApp, loginAndCreateAppWithEventType, expectToast, fromItsOwnAddress, API_BASE_URL };
 export { test, expect } from "@playwright/test";

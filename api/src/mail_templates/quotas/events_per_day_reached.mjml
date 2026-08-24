@@ -1,5 +1,5 @@
         <mj-text>
-          <h1>Daily limit hit &mdash; new events paused</h1>
+          <h1>Daily limit hit: new events paused</h1>
         </mj-text>
         <mj-text padding="14px 0 0 0">
           Hi { $recipient_first_name }, your account has reached its daily quota: <strong>{ $current_events_per_day }</strong> / <strong>{ $events_per_days_limit }</strong> events.

@@ -149,6 +149,7 @@ pub fn build_app(
                         )
                         .service(
                             web::resource("/resend-verification-email")
+                                .wrap(Compat::new(rate_limiters.email()))
                                 .route(web::post().to(handlers::auth::resend_verification_email)),
                         )
                         .service(
@@ -168,6 +169,7 @@ pub fn build_app(
                         )
                         .service(
                             web::resource("/begin-reset-password")
+                                .wrap(Compat::new(rate_limiters.email()))
                                 .route(web::post().to(handlers::auth::begin_reset_password)),
                         )
                         .service(
@@ -227,9 +229,21 @@ pub fn build_app(
                 .service(web::scope("/payload_content_types").service(
                     web::resource("").route(web::get().to(handlers::events::payload_content_types)),
                 ))
-                .service(web::scope("/register").service(
-                    web::resource("").route(web::post().to(handlers::registrations::register)),
-                ))
+                // Registration mails a verification link to an address the
+                // caller names, so it belongs to the same family as
+                // begin-reset-password and resend-verification-email and is
+                // bounded by the same per-IP limiter. Unlike those two it cannot
+                // be aimed at one mailbox twice — the address is unique — so what
+                // this bounds is a sweep across many addresses. Turnstile already
+                // stands in front of it wherever it is configured; this holds on
+                // the instances where it is not.
+                .service(
+                    web::scope("/register").service(
+                        web::resource("")
+                            .wrap(Compat::new(rate_limiters.email()))
+                            .route(web::post().to(handlers::registrations::register)),
+                    ),
+                )
                 // with authentication
                 .service(
                     web::scope("/organizations")
@@ -526,7 +540,7 @@ pub(crate) mod test_support {
             enable_security_headers: true,
             enable_hsts_header: false,
             rate_limiters: Hook0RateLimiters::new(
-                true, true, 2000, 1, true, 200, 10, true, 20, 100,
+                true, true, 2000, 1, true, 200, 10, true, 20, 100, true, 5, 60_000,
             ),
             disable_serving_webapp: true,
             webapp_path: String::new(),

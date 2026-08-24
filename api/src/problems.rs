@@ -660,11 +660,19 @@ impl From<Hook0Problem> for ProblemDetails {
                 validation: None,
                 status: StatusCode::CONFLICT,
             },
+            // Several ways of being dead answer with this one document — used
+            // already, superseded by a newer link, retired by a password change,
+            // past its lifetime — because telling them apart to whoever clicked
+            // would say which of them happened to an account, on a page anybody
+            // can reach with any address. It has to name them all, then: the
+            // common case after a double click is a reader holding the first of
+            // two links, and copy that only doubts the expiry sends them back to
+            // the dead one while the live mail sits above it in the mailbox.
             Hook0Problem::AuthEmailExpired => {
                 ProblemDetails {
                     id: Hook0Problem::AuthEmailExpired,
                     title: "Could not verify your link",
-                    detail: "The link you clicked might be expired. Please retry the whole process or contact support.".into(),
+                    detail: "This link no longer works. Links expire after a while and can only be used once. Asking for a new link retires the previous one straight away, and so does changing the password. If you asked more than once, the most recent email is the one that still works. Otherwise you can start again from the beginning, or contact support.".into(),
                     validation: None,
                     status: StatusCode::UNAUTHORIZED,
                 }
@@ -956,6 +964,65 @@ mod tests {
             Hook0Problem::iter().count(),
             "the published enumeration holds duplicate or unknown identifiers: {published:?}"
         );
+    }
+
+    /// Four different ways of being dead answer with one document, so that
+    /// document is the whole of what the reader gets: it has to name them
+    /// instead of hedging about the one it happens to mention. The copy it
+    /// replaced said only that the link "might be expired" and told the reader
+    /// to retry the process — which, for the commonest case by far, is a
+    /// double click that produced two mails and a reader holding the first,
+    /// meant sending them back to the dead link while the live one sat above it
+    /// in the same mailbox.
+    ///
+    /// Pinned on what the reader has to be able to act on, not on the wording:
+    /// the causes, and where the working link is. Reword freely, keep those.
+    #[test]
+    fn a_dead_link_is_told_what_killed_it_rather_than_asked_to_guess() {
+        let detail = ProblemDetails::from(Hook0Problem::AuthEmailExpired)
+            .detail
+            .to_string();
+
+        assert!(
+            !detail.contains("might"),
+            "a link that reached this document is dead, not possibly dead — hedging is what sends the reader back to it: {detail}"
+        );
+        assert!(
+            detail.contains("used once"),
+            "the reader who already used their link has to be told that is why it stopped: {detail}"
+        );
+        assert!(
+            detail.contains("retires the previous one"),
+            "the reader who asked twice has to be told the first link was retired by the second: {detail}"
+        );
+        assert!(
+            detail.contains("most recent email"),
+            "and told where the link that still works is: {detail}"
+        );
+    }
+
+    /// Same rule as the mail copy, over the other surface that reaches a reader: a
+    /// problem document is rendered on the page the failure lands on, and its text
+    /// is republished verbatim in the generated error reference. That republication
+    /// is how the one that shipped was found, and it is also why nothing caught it
+    /// first: the string ends up inside a JSON block, which the linter skips.
+    ///
+    /// Both members are checked, for every problem, so a variant added later cannot
+    /// bring it back through a surface nobody thought to look at.
+    #[test]
+    fn no_problem_document_carries_an_em_dash() {
+        for problem in Hook0Problem::iter() {
+            let details = ProblemDetails::from(problem.clone());
+            for (member, text) in [
+                ("title", details.title.to_owned()),
+                ("detail", details.detail.to_string()),
+            ] {
+                assert!(
+                    !text.contains('\u{2014}'),
+                    "the {member} of {problem} carries an em dash, which no text a reader meets may: rewrite the sentence rather than swapping the character"
+                );
+            }
+        }
     }
 
     /// The identifier a client reads in the spec is the one it actually receives on the wire.
@@ -1318,8 +1385,22 @@ mod tests {
         let documented = documented_problem_members(&document);
         let published = published_identifiers();
 
+        /// Reaches no database, so what the quota lets through stays cheap. Lists the problems
+        /// the API can answer with, so a request under quota is served `200`.
+        const CHEAP_URI: &str = "/api/v1/errors";
+        /// One of the endpoints the mail-sending quota wraps, and the only way to reach that
+        /// quota at all. Posted to with a payload its own validation refuses, so the request
+        /// that spends the quota is answered without a database either — which is why the
+        /// status expected of it under quota is the `422` of that refusal and not the `204` of
+        /// a link being sent. That is the payload doing its job, not the endpoint misbehaving.
+        const MAIL_SENDING_URI: &str = "/api/v1/auth/begin-reset-password";
+
         // Each limiter is exercised alone, so one still answering the plain-text default of the
-        // middleware cannot hide behind another refusing the request first.
+        // middleware cannot hide behind another refusing the request first. Each carries the
+        // status its URI answers with room left in the quota: asserting only that it is not a
+        // `429` would leave an endpoint free to start answering `500` under quota with nothing
+        // here to notice, and the refusal below would then be measured against a request that
+        // never really succeeded.
         let limiters = [
             (
                 "instance-wide",
@@ -1334,7 +1415,12 @@ mod tests {
                     true,
                     BURST,
                     REPLENISH_PERIOD_IN_MS,
+                    true,
+                    BURST,
+                    REPLENISH_PERIOD_IN_MS,
                 ),
+                CHEAP_URI,
+                StatusCode::OK,
             ),
             (
                 "per-IP",
@@ -1349,28 +1435,64 @@ mod tests {
                     true,
                     BURST,
                     REPLENISH_PERIOD_IN_MS,
+                    true,
+                    BURST,
+                    REPLENISH_PERIOD_IN_MS,
                 ),
+                CHEAP_URI,
+                StatusCode::OK,
+            ),
+            (
+                "per-IP on the endpoints that send mail",
+                Hook0RateLimiters::new(
+                    false,
+                    true,
+                    BURST,
+                    REPLENISH_PERIOD_IN_MS,
+                    true,
+                    BURST,
+                    REPLENISH_PERIOD_IN_MS,
+                    true,
+                    BURST,
+                    REPLENISH_PERIOD_IN_MS,
+                    false,
+                    BURST,
+                    REPLENISH_PERIOD_IN_MS,
+                ),
+                MAIL_SENDING_URI,
+                StatusCode::UNPROCESSABLE_ENTITY,
             ),
         ];
 
-        for (limiter, rate_limiters) in limiters {
+        for (limiter, rate_limiters, uri, under_quota) in limiters {
             let mut config = inert_app_factory_config().await;
             config.rate_limiters = rate_limiters;
             let app = test::init_service(build_app(&config)).await;
 
-            // `/api/v1/errors` reaches no database, so what the quota lets through stays cheap.
             let request = || {
-                test::TestRequest::get()
-                    .uri("/api/v1/errors")
-                    .peer_addr(SocketAddr::from(([127, 0, 0, 1], 5678)))
-                    .to_request()
+                if uri == MAIL_SENDING_URI {
+                    test::TestRequest::post()
+                        .uri(uri)
+                        .set_json(serde_json::json!({ "email": "not-an-address" }))
+                        .peer_addr(SocketAddr::from(([127, 0, 0, 1], 5678)))
+                        .to_request()
+                } else {
+                    test::TestRequest::get()
+                        .uri(uri)
+                        .peer_addr(SocketAddr::from(([127, 0, 0, 1], 5678)))
+                        .to_request()
+                }
             };
 
+            // The first request has to have been served, and served the way its URI is meant to
+            // answer: only then does the refusal below come from exceeding the quota rather than
+            // from a quota that was already spent, or from an endpoint that has started failing
+            // for a reason of its own.
             let allowed = test::call_service(&app, request()).await;
-            assert!(
-                allowed.status().is_success(),
-                "the {limiter} rate limiter refused the first request with {}, so nothing below is about exceeding a quota",
-                allowed.status()
+            assert_eq!(
+                allowed.status(),
+                under_quota,
+                "the {limiter} rate limiter had room left, so {uri} should have answered {under_quota} — nothing below is about exceeding a quota otherwise"
             );
 
             let refused = test::call_service(&app, request()).await;

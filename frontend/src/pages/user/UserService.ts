@@ -3,6 +3,7 @@ import type { components } from '@/types';
 import { unwrapResponse } from '@/utils/unwrapResponse';
 
 type LoginResponse = components['schemas']['LoginResponse'];
+type ChangePasswordPost = components['schemas']['ChangePasswordPost'];
 
 export async function deleteUser(): Promise<void> {
   return Promise.reject({
@@ -14,11 +15,15 @@ export async function deleteUser(): Promise<void> {
   });
 }
 
-export async function changePassword(new_password: string): Promise<void> {
+export async function changePassword(
+  current_password: string,
+  new_password: string
+): Promise<void> {
   return unwrapResponse(
     http.post<void>('/auth/password', {
+      current_password,
       new_password,
-    })
+    } satisfies ChangePasswordPost)
   );
 }
 

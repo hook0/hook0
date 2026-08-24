@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { fromItsOwnAddress } from "../fixtures/test-setup";
 
 /**
  * Event Types E2E tests for Hook0.
@@ -20,6 +21,7 @@ test.describe("Event Types", () => {
 
     // Register via API
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: {
         email,
         first_name: "Test",
@@ -133,6 +135,7 @@ test.describe("Event Types", () => {
 
     // Register and verify email
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -227,6 +230,7 @@ test.describe("Event Types", () => {
 
     // Register and verify
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -303,6 +307,7 @@ test.describe("Event Types", () => {
 
     // Register and verify
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -380,6 +385,7 @@ test.describe("Event Types", () => {
 
     // Register and verify
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -497,6 +503,7 @@ test.describe("Event Types", () => {
 
     // Register and verify
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);

@@ -346,6 +346,18 @@ struct Config {
     #[clap(long, env, default_value = "100")]
     api_rate_limiting_token_replenish_period_in_ms: u64,
 
+    /// [Rate Limiting] Set to true to disable per-IP API rate limiting of the endpoints that send an email to an address the caller names
+    #[clap(long, env)]
+    disable_api_rate_limiting_email: bool,
+
+    /// [Rate Limiting] Quota of calls per IP to the endpoints that send an email to an address the caller names, before rate limiting blocks incomming requests (must be ≥ 1)
+    #[clap(long, env, default_value = "5")]
+    api_rate_limiting_email_burst_size: u32,
+
+    /// [Rate Limiting] Duration (in millisecond) after which one call per IP to the endpoints that send an email is restored in the quota (must be ≥ 1)
+    #[clap(long, env, default_value = "60000")]
+    api_rate_limiting_email_replenish_period_in_ms: u64,
+
     /// [Rate Limiting] Duration to wait beetween rate limiters housekeeping
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "5m")]
     api_rate_limiting_housekeeping_period: Duration,
@@ -1015,6 +1027,9 @@ async fn main() -> anyhow::Result<()> {
             config.disable_api_rate_limiting_token,
             config.api_rate_limiting_token_burst_size,
             config.api_rate_limiting_token_replenish_period_in_ms,
+            config.disable_api_rate_limiting_email,
+            config.api_rate_limiting_email_burst_size,
+            config.api_rate_limiting_email_replenish_period_in_ms,
         );
 
         // Create a DB connection pool for housekeeping tasks (no timeout)

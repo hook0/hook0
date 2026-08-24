@@ -7,8 +7,8 @@ import { User, Lock, AlertTriangle, Trash2, Palette } from 'lucide-vue-next';
 
 import * as UserService from '@/pages/user/UserService';
 import { createPasswordChangeSchema } from '@/pages/user/passwordChange.schema';
+import { changePasswordFailure } from '@/pages/user/changePasswordFailure';
 import { DEFAULT_PASSWORD_MINIMUM_LENGTH, type UserIdentity } from '@/utils/passwordPolicy';
-import { passwordRejection } from '@/utils/passwordProblem';
 import { useInstanceConfig } from '@/composables/useInstanceConfig';
 import { toTypedSchema } from '@/utils/zod-adapter';
 import { useAuthStore } from '@/stores/auth';
@@ -77,28 +77,81 @@ const { errors, meta, defineField, handleSubmit, resetForm, setFieldError } = us
   ),
 });
 
+const [currentPassword, currentPasswordAttrs] = defineField('current_password');
 const [newPassword, newPasswordAttrs] = defineField('new_password');
 const [confirmNewPassword, confirmNewPasswordAttrs] = defineField('confirm_new_password');
 
+// The request runs two Argon2 hashes in series — one to check the password
+// being replaced, one to store the password replacing it — and both are slow
+// on purpose. Without a state to show for it the form looks untouched for the
+// best part of a second, and a second click really does leave: serialized
+// behind the first, it arrives after the change and presents a current
+// password that no longer opens the account, so the user reads the success and
+// the refusal at once.
+const isSubmitting = ref(false);
+
 const onChangePassword = handleSubmit((values) => {
-  UserService.changePassword(values.new_password)
-    .then(() => {
-      toast.success(t('common.success'), {
-        description: t('userSettings.passwordChanged'),
-        duration: 3000,
-      });
-      resetForm();
-    })
-    .catch((err: unknown) => {
-      handleMutationError(err);
-      // The blocklist and the length ceiling live on the server. When one of
-      // them is what refused the change, the field the user must fix says so.
-      const rejection = passwordRejection(err, 'new_password');
-      if (rejection.refused) {
-        setFieldError('new_password', rejection.reason);
+  if (isSubmitting.value) {
+    return;
+  }
+  isSubmitting.value = true;
+
+  // Both outcomes of the request are handled here rather than in a trailing
+  // `.catch`, which would also catch the navigation below: a router hiccup
+  // after the password was changed would then be read as the change failing,
+  // and put a refusal on a form the user has already left behind.
+  UserService.changePassword(values.current_password, values.new_password)
+    .then(
+      () => {
+        toast.success(t('common.success'), {
+          description: t('userSettings.passwordChanged'),
+          duration: 5000,
+        });
+        resetForm();
+        // The change ends every session the account had, this one included
+        // (`store_new_password`, api/src/handlers/auth.rs). Left where they
+        // are, the user learns that from whichever request happens to fail
+        // next; clearing the tokens takes them straight to the form they now
+        // have to use.
+        return authStore.clearTokens();
+      },
+      (err: unknown) => {
+        // Which field a refusal belongs under is decided in one place, because
+        // the errors this endpoint answers with do not all name a field and
+        // the two passwords it carries are not interchangeable.
+        const failure = changePasswordFailure(err, t('userSettings.currentPasswordRejected'));
+        if (failure.currentPassword.shown) {
+          setFieldError('current_password', failure.currentPassword.message);
+        }
+        if (failure.newPassword.shown) {
+          setFieldError('new_password', failure.newPassword.message);
+        }
+        // Only what no field on the form can account for: a reason already
+        // sitting under the field the user has to fix does not need repeating
+        // over the top of it.
+        if (failure.unexplained) {
+          handleMutationError(err);
+        }
       }
+    )
+    .finally(() => {
+      isSubmitting.value = false;
     });
 });
+
+// The button is gated on the form being valid and touched, and vee-validate
+// only writes a message for fields the user has already visited: someone who
+// fills in the two new passwords and never touches the current one sees a grey
+// button and no error anywhere. A native `<button disabled>` swallows the
+// click too, so there is not even a late explanation — hence the reason on
+// hover and on focus, which is what the tooltip branch of Hook0Button exists
+// for.
+const isSubmitBlocked = computed(
+  () => isSubmitting.value || !meta.value.valid || !meta.value.dirty
+);
+const submitHint = computed(() =>
+  isSubmitBlocked.value ? t('userSettings.changePasswordBlocked') : t('userSettings.changePassword')
+);
 
 const showDeleteAccountDialog = ref(false);
 
@@ -218,7 +271,11 @@ function confirmDeleteAccount() {
 
     <!-- Change Password -->
     <Hook0Card v-if="currentUser" data-test="change-password-card">
-      <Hook0Form data-test="change-password-form" @submit="onChangePassword">
+      <Hook0Form
+        data-test="change-password-form"
+        :loading="isSubmitting"
+        @submit="onChangePassword"
+      >
         <Hook0CardHeader>
           <template #header>
             <Hook0Stack direction="row" align="center" gap="sm">
@@ -234,16 +291,39 @@ function confirmDeleteAccount() {
         </Hook0CardHeader>
         <Hook0CardContent>
           <Hook0CardContentLine>
+            <template #label>{{ t('userSettings.currentPassword') }}</template>
+            <template #content>
+              <Hook0Input
+                id="current-password-input"
+                v-model="currentPassword"
+                v-bind="currentPasswordAttrs"
+                type="password"
+                required
+                show-password-toggle
+                autocomplete="current-password"
+                :aria-label="t('userSettings.currentPassword')"
+                :placeholder="t('userSettings.currentPasswordPlaceholder')"
+                :error="errors.current_password"
+                :disabled="isSubmitting"
+                data-test="current-password-input"
+              />
+            </template>
+          </Hook0CardContentLine>
+
+          <Hook0CardContentLine>
             <template #label>{{ t('userSettings.newPassword') }}</template>
             <template #content>
               <Hook0Input
                 v-model="newPassword"
                 v-bind="newPasswordAttrs"
                 type="password"
+                required
                 show-password-toggle
                 autocomplete="new-password"
+                :aria-label="t('userSettings.newPassword')"
                 :placeholder="t('userSettings.newPasswordPlaceholder')"
                 :error="errors.new_password"
+                :disabled="isSubmitting"
                 data-test="new-password-input"
               >
                 <template #helpText>{{
@@ -260,8 +340,11 @@ function confirmDeleteAccount() {
                 v-model="confirmNewPassword"
                 v-bind="confirmNewPasswordAttrs"
                 type="password"
+                required
+                :aria-label="t('userSettings.confirmPassword')"
                 :placeholder="t('userSettings.confirmPasswordPlaceholder')"
                 :error="errors.confirm_new_password"
+                :disabled="isSubmitting"
                 data-test="confirm-password-input"
               />
             </template>
@@ -271,9 +354,10 @@ function confirmDeleteAccount() {
           <Hook0Button
             variant="primary"
             submit
-            :disabled="!meta.valid || !meta.dirty"
+            :disabled="isSubmitBlocked"
+            :loading="isSubmitting"
+            :tooltip="submitHint"
             :aria-label="t('userSettings.changePassword')"
-            :title="t('userSettings.changePassword')"
             data-test="change-password-button"
           >
             <Lock :size="16" aria-hidden="true" />

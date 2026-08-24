@@ -35,6 +35,25 @@ e2e-playwright.test:
     ## Reactivation drip: on by default, but its production cadence (6h) would
     ## never fire inside a CI run, so passes are sped up for the e2e suite.
     REACTIVATION_EMAILS_PERIOD: "5s"
+    ## Lets a test say which address its call comes from, through the header a
+    ## real deployment's reverse proxy sets. Without it the whole suite counts
+    ## as one caller on the endpoints that send mail, and a test that
+    ## legitimately makes a dozen calls spends the allowance of the tests after
+    ## it. Trusting the loopback range is what a deployment does with its own
+    ## proxy, and it puts the trusted-proxy branch of the IP extractor under
+    ## test into the bargain.
+    REVERSE_PROXY_IPS: "127.0.0.0/8"
+    ## The endpoints that mail an address the caller names allow this many calls
+    ## per source address, one restored a minute. What has to fit under it is
+    ## only the calls a browser makes, since a page cannot claim an address of
+    ## its own — the API takes one only from a trusted peer, and never from a
+    ## header the CORS allow-list refuses — while calls made straight to the API
+    ## each bring their own. Registration joined that family, so a run's
+    ## browser-driven share grew from the reset submissions alone to those plus
+    ## a sign-up per test that drives the form. Sized on that count and no
+    ## higher, so the tests that have to see a 429 still reach it well inside
+    ## the bound each sets itself.
+    API_RATE_LIMITING_EMAIL_BURST_SIZE: "50"
     ## Playwright configuration
     BASE_URL: "http://localhost:8001"
     MAILPIT_URL: "http://mailpit:8025"
@@ -92,8 +111,10 @@ e2e-playwright.test:
           exit 1
         fi
       done
-    # Run tests
-    - npm run test -- --project=chromium
+    # Run tests. The second project holds the tests that spend this machine's
+    # allowance on the mail endpoints; it declares the first as a dependency, so
+    # naming both here runs them in that order rather than side by side.
+    - npm run test -- --project=chromium --project=chromium-rate-limit
   artifacts:
     when: always
     paths:
