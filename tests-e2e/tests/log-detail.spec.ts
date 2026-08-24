@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAndCreateApp } from "../fixtures/test-setup";
+import { loginAndCreateApp, selectEventType } from "../fixtures/test-setup";
 
 /**
  * Log Detail E2E tests for Hook0.
@@ -67,8 +67,7 @@ test.describe("Log Detail", () => {
 
     // Select event type
     const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
-    await expect(eventTypeCheckbox).toBeVisible({ timeout: 15000 });
-    await eventTypeCheckbox.click();
+    await selectEventType(eventTypeCheckbox);
 
     const createSubResponse = page.waitForResponse(
       (response) =>
