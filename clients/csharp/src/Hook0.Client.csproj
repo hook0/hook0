@@ -21,7 +21,7 @@
     <AnalysisLevel>latest</AnalysisLevel>
 
     <PackageId>Hook0.Client</PackageId>
-    <Version>1.1.0</Version>
+    <Version>2.0.0</Version>
     <Authors>David Sferruzza,François-Guillaume Ribreau</Authors>
     <Description>
       Send events to Hook0, upsert the event types your application uses, verify the signature of an
