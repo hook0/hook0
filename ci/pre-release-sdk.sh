@@ -116,6 +116,43 @@ while IFS= read -r directory; do
         --tag "$TAG" \
         --output "${directory}/CHANGELOG.md"
 
+    # Five clients also carry the version as a constant in their own source, because that is what
+    # goes in the `User-Agent` they introduce themselves with. `set-version` writes manifests and a
+    # source file is not one, so a bump left them announcing the release before: sdk-v2.0.0 built as
+    # 2.0.0 and said `hook0-client-typescript/1.1.0` on the wire, which the conformance corpus
+    # caught only once the tag had been pushed.
+    #
+    # Which files to look in is asked of git rather than listed, so a client that grows a second one
+    # is covered without editing this. Only a line whose name reads as `version` is rewritten, which
+    # leaves a dependency pinned at the same number where it is. The guard in release-packages holds
+    # the tree to exactly this rule.
+    git ls-files -z -- "$directory" | while IFS= read -r -d '' file; do
+        case "$file" in
+            *.md | *[Ll]ock* | *lock*) continue ;;
+        esac
+        sed -i -E \
+            "s/([Vv][Ee][Rr][Ss][Ii][Oo][Nn]_*[[:space:]]*=[[:space:]]*['\"])${CURRENT}(['\"])/\\1${NEW_VERSION}\\2/g" \
+            "$file"
+    done
+
+    # A file whose name carries the version, which is what LuaRocks asks for: a rockspec is named
+    # `<package>-<version>-<revision>.rockspec`, and `spec/rockspec_spec.lua` refuses one declaring
+    # a version it is not named after. `set-version` writes contents, and a file name is not one, so
+    # a bump left the rockspec declaring 2.0.0 under its 1.1.0 name and the Lua suite stopped the
+    # release on it.
+    #
+    # Asked of git and matched on the version rather than on an extension, so a client that starts
+    # naming a file after the release is carried without editing this.
+    escaped_current=$(printf %s "$CURRENT" | sed 's/\./\\./g')
+    git ls-files -z -- "$directory" | while IFS= read -r -d '' file; do
+        base=$(basename "$file")
+        case "$base" in
+            *"$CURRENT"*) ;;
+            *) continue ;;
+        esac
+        mv "$file" "$(dirname "$file")/$(printf %s "$base" | sed "s/${escaped_current}/${NEW_VERSION}/g")"
+    done
+
     # The four SDKs no registry resolves tell a reader to build from a checkout or to fetch a tag,
     # and so they name a version in prose. `set-version` writes manifests, and a README is not one,
     # so those four went on advertising the release before last until somebody noticed. The shapes

@@ -13,7 +13,7 @@
 
 rockspec_format = "3.0"
 package = "hook0-client"
-version = "2.0.0-1"
+version = "1.1.0-1"
 
 source = {
   url = "git+https://gitlab.com/hook0/hook0.git",
