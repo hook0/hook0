@@ -1,6 +1,7 @@
 import { test, expect, APIRequestContext } from "@playwright/test";
 import { Client } from "pg";
 import { API_BASE_URL, getEmailFromMailpit } from "../fixtures/email-verification";
+import { fromItsOwnAddress } from "../fixtures/test-setup";
 
 /**
  * End-to-end coverage of the "0 event sent" reactivation drip.
@@ -73,6 +74,7 @@ async function registerVerifiedUser(
   const password = `TestPassword123!${Date.now()}`;
 
   const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+    headers: fromItsOwnAddress(),
     data: { email, first_name: firstName, last_name: "Dormant", password },
   });
   expect(registerResponse.status(), await registerResponse.text()).toBeLessThan(400);

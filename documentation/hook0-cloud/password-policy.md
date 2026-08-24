@@ -53,6 +53,34 @@ than about the strength of the password.
 Only the minimum length is configurable; the other rules always apply. Existing
 passwords are never re-checked — the rules apply the next time a password is set.
 
+## Replacing an existing password
+
+Clearing the rules above is not the whole of it. Each of the two paths that
+replaces a password an account already has carries a precondition of its own.
+
+Changing the password from the account settings takes the current password
+alongside the new one. Holding a session is not enough on its own, so a token
+that leaks does not hand over the account. A wrong current password answers the
+same 403 an unusable session answers, which keeps a caller from learning which
+of the two it got wrong.
+
+A reset link works once, and only the newest one works. The link carries a value
+the account row holds, and every write that sets a password rotates that value,
+so:
+
+- a link that has already reset a password stops working;
+- asking for another link retires the ones issued before it;
+- changing the password from the account settings retires whatever links are
+  still outstanding.
+
+All three answer the expired-link error, listed in the [error codes
+reference](../reference/error-codes.md). A link also expires 30 minutes after it
+is issued, and the mail carrying it says so.
+
+Reset mail is rationed per address, at one message per minute and five per
+24 hours. Past either bound the endpoint answers exactly what it answers for an
+address with no account, and sends nothing.
+
 ## Server-side password storage
 
 - All user passwords are hashed using Argon2 with default parameters (memory-hard, resistant to GPU/ASIC attacks)

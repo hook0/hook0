@@ -13,6 +13,17 @@ export function createPasswordChangeSchema(identity: UserIdentity, minimumLength
   return (
     z
       .object({
+        // The account proves it is still the one at the keyboard. Only its
+        // presence is checked here: the policy that shapes a *new* password
+        // says nothing about one chosen years ago, and the ceiling is the same
+        // one the API enforced when it was set.
+        current_password: z
+          .string()
+          .min(1, t('validation.required', { field: t('fields.currentPassword') }))
+          .max(
+            PASSWORD_MAXIMUM_LENGTH,
+            t('validation.passwordMaxLength', { count: PASSWORD_MAXIMUM_LENGTH })
+          ),
         new_password: z
           .string()
           .min(minimumLength, t('validation.passwordMinLength', { count: minimumLength }))

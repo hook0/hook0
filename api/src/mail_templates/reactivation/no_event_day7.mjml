@@ -1,5 +1,5 @@
         <mj-text>
-          <h1>Still no event &mdash; can we help?</h1>
+          <h1>Still no event. Can we help?</h1>
         </mj-text>
         <mj-text padding="14px 0 0 0">
           Hi { $recipient_first_name }, this is the last reminder in this series. If sending a first webhook has not clicked yet, something is usually in the way, and we would rather unblock it than let your account go quiet.
@@ -9,5 +9,5 @@
           Prefer email? Reach us directly at <a href="mailto:{ $support_email_address }" style="font-weight:600;">{ $support_email_address }</a> and a human will help you get the first event through.
         </mj-text>
         <mj-text padding="16px 0 0 0" font-size="13px" color="#64748b" line-height="1.6">
-          Not the right time? No problem &mdash; we will stop these first-steps reminders here.
+          Not the right time? No problem. We will stop these first-steps reminders here.
         </mj-text>

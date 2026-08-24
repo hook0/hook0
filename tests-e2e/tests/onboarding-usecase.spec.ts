@@ -1,5 +1,6 @@
 import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { fromItsOwnAddress } from "../fixtures/test-setup";
 
 /**
  * Onboarding use-case personalization E2E.
@@ -38,6 +39,7 @@ async function registerAndLogin(
   const password = `TestPassword123!${timestamp}`;
 
   const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+    headers: fromItsOwnAddress(),
     data: { email, first_name: "Test", last_name: "User", password },
   });
   expect(registerResponse.status()).toBeLessThan(400);

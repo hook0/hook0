@@ -16,6 +16,7 @@ import {
   type CooldownStart,
 } from '@/utils/cooldown';
 import { readCheckEmailHandover, type ResendTarget } from '@/utils/checkEmailHandover';
+import { isRateLimited } from '@/utils/rateLimited';
 import Hook0PageLayout from '@/components/Hook0PageLayout.vue';
 import Hook0Card from '@/components/Hook0Card.vue';
 import Hook0CardContent from '@/components/Hook0CardContent.vue';
@@ -111,11 +112,20 @@ function resend() {
       startCooldown(email);
       toast.success(t('auth.checkEmail.resendSuccess'));
     })
-    .catch(() => {
+    .catch((err: unknown) => {
       // A failed attempt also starts the cooldown: the rate limiter in front of
       // the endpoint is exactly what a user hammering the button runs into, and
       // retrying immediately can only fail again.
       startCooldown(email);
+      // And that limiter is now a burst of five per IP rather than the hundred
+      // a second it used to be, so the sixth person signing up from behind one
+      // office address reaches it without doing anything wrong. "Try again in
+      // a moment" sends them straight back into it; naming the case tells them
+      // the address is fine and the wait is the whole of it.
+      if (isRateLimited(err)) {
+        toast.error(t('auth.checkEmail.resendRateLimited'));
+        return;
+      }
       toast.error(t('auth.checkEmail.resendError'));
     })
     .finally(() => {

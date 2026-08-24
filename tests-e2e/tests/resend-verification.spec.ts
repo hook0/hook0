@@ -1,6 +1,7 @@
 import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
 import { Client } from "pg";
 import { API_BASE_URL } from "../fixtures/email-verification";
+import { fromItsOwnAddress } from "../fixtures/test-setup";
 
 const MAILPIT_URL = process.env.MAILPIT_URL || "http://localhost:8025";
 const DATABASE_URL =
@@ -107,6 +108,8 @@ function tokenFrom(html: string): string {
 const COOLDOWN_LABEL = /Resend available in \d+s/;
 /** URL fragment identifying the real resend endpoint. */
 const RESEND_ENDPOINT = "/auth/resend-verification-email";
+/** How many calls the pacing test is willing to make before it gives up trying. */
+const MOST_CALLS_WORTH_TRYING = 200;
 
 /**
  * Land on /check-email carrying `email` exactly like the login redirect does:
@@ -200,6 +203,7 @@ test.describe("Resend verification email", () => {
     const password = `TestPassword123!${timestamp}`;
 
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -313,6 +317,7 @@ test.describe("Resend verification email", () => {
     const password = `TestPassword123!${timestamp}`;
 
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -372,6 +377,7 @@ test.describe("Resend verification email", () => {
     const password = `TestPassword123!${timestamp}`;
 
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -450,6 +456,7 @@ test.describe("Resend verification email", () => {
     const password = `TestPassword123!${timestamp}`;
 
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -495,6 +502,7 @@ test.describe("Resend verification email", () => {
     const password = `TestPassword123!${timestamp}`;
 
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -505,6 +513,7 @@ test.describe("Resend verification email", () => {
     await letTheCooldownElapse(email);
 
     const resendResponse = await request.post(`${API_BASE_URL}/auth/resend-verification-email`, {
+      headers: fromItsOwnAddress(),
       data: { email },
     });
     expect(resendResponse.status()).toBe(204);
@@ -539,6 +548,7 @@ test.describe("Resend verification email", () => {
     const password = `TestPassword123!${timestamp}`;
 
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: { email, first_name: "Test", last_name: "User", password },
     });
     expect(registerResponse.status()).toBeLessThan(400);
@@ -547,9 +557,13 @@ test.describe("Resend verification email", () => {
     // allowed to send and the rest have to be stopped by the throttle itself.
     await letTheCooldownElapse(email);
 
-    // Five back-to-back calls, no UI involved.
+    // Five back-to-back calls, no UI involved, each from its own source address
+    // so the per-IP limiter stops none of them: what has to hold the line here
+    // is the cooldown kept against the account, and it is the only thing left
+    // standing between these calls and the mailbox.
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const response = await request.post(`${API_BASE_URL}/auth/resend-verification-email`, {
+        headers: fromItsOwnAddress(),
         data: { email },
       });
       // Always the same answer — the endpoint never discloses whether it sent.
@@ -565,5 +579,74 @@ test.describe("Resend verification email", () => {
       delivered.length,
       "within one cooldown window only a single resend may actually be sent"
     ).toBe(2);
+  });
+
+  test("a resend refused for pacing is named as pacing, not blamed on the send @rate-limit", async ({
+    page,
+    request,
+  }) => {
+    // The allowance in front of this endpoint is a small burst per source
+    // address — five, on a stack that has not raised it — so a handful of
+    // people signing up from behind one office address is enough to meet it
+    // without anyone doing anything wrong. "Could not resend the email, try
+    // again in a moment" sends them straight back into it — the wait is the
+    // whole of the problem, and it is longer than a moment. Naming it also
+    // tells them the address is fine, which is the part they cannot check.
+    //
+    // Driven against the real limiter: the page's own call is the one refused.
+    // Tagged so it runs after everything else, because emptying that allowance
+    // empties it for every test on this machine.
+    const email = `test-resend-paced-${Date.now()}@hook0.local`;
+    await landOnCheckEmailWith(page, email);
+
+    const resendButton = page.locator('[data-test="resend-verification-email-button"]');
+    await expect(resendButton).toBeVisible({ timeout: 10000 });
+    await expect(resendButton).toBeEnabled();
+    // Nothing has been refused yet, so nothing is on screen to be mistaken for
+    // the assertion at the end.
+    await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
+
+    // Spend the allowance from this machine's own address — the one the browser
+    // is about to call from. Every address is one nobody registered, so none of
+    // this puts mail in anyone's mailbox: what is being consumed is the right
+    // to ask. The loop stops at the first refusal rather than at a count, so it
+    // stays true to whatever this stack is configured to allow, and it is
+    // bounded so a limiter that never refuses fails the test instead of running
+    // forever.
+    let refusedForPacing = false;
+    for (let attempt = 0; attempt < MOST_CALLS_WORTH_TRYING && !refusedForPacing; attempt += 1) {
+      const response = await request.post(`${API_BASE_URL}/auth/resend-verification-email`, {
+        data: { email: `spend-the-allowance-${attempt}@hook0.local` },
+        failOnStatusCode: false,
+      });
+      if (response.status() === 429) {
+        refusedForPacing = true;
+      } else {
+        expect(response.status(), "an accepted request answers no content").toBe(204);
+      }
+    }
+    expect(
+      refusedForPacing,
+      `the limiter must refuse a caller within ${MOST_CALLS_WORTH_TRYING} calls; check the burst configured for this stack`
+    ).toBe(true);
+
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes(RESEND_ENDPOINT) && response.request().method() === "POST",
+      { timeout: 15000 }
+    );
+    await resendButton.click();
+    expect(
+      (await responsePromise).status(),
+      "the page's own request must be the one the limiter refuses"
+    ).toBe(429);
+
+    const refusal = page.locator('[data-sonner-toast][data-type="error"]').first();
+    await expect(refusal).toBeVisible({ timeout: 10000 });
+    await expect(
+      refusal,
+      "the reader has to learn it is the pace and not their address"
+    ).toContainText(/too many requests have come from your network/i);
+    await expect(page.locator('[data-sonner-toast][data-type="success"]')).toHaveCount(0);
   });
 });

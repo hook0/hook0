@@ -12,4 +12,11 @@ module.exports = {
     },
   },
   testEnvironment: 'node',
+  // Mirrors the `@/*` alias from tsconfig.json. Without it the only testable
+  // modules are those importing nothing but relative paths, which left the
+  // validation schemas — the code deciding what the user is allowed to submit —
+  // outside the suite.
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
 };
