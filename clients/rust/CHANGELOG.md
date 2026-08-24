@@ -5,11 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [sdk-v2.0.0] - 2026-08-24
+## [Unreleased]
 
 ### Added
 
-- Ship SDKs for eleven languages, generated from a specification that now matches the API (clients,api)
+- Make a retried send unable to duplicate an event (client)
+- Drive every target from one registry (sdkgen)
+- Add the Go SDK, generated from the API surface (go)
+- Bring the published clients under the generator, and add Ruby (clients)
+- Bound the whole head of an answer, and check the contract is read (clients)
+- Add the PHP, C# and Java SDKs (clients)
+
+### CI/CD
+
+- Check the generator alongside the Rust client (sdkgen)
+
+### Changed
+
+- Make the generator the only OpenAPI parser (sdkgen)
+- Put the hand-written tests where the generator cannot reach (client)
+
+### Fixed
+
+- Bound the signature timestamp in both directions (client)
 
 ### Other
 
@@ -20,8 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update dependencies
 - Update dependencies
 - Update dependencies
-- Update dependencies
-- Update dependencies
+
+### Testing
+
+- Build the generator suites on the API's own snapshot (sdkgen)
+- Pin what the signature parser refuses (client)
 
 ## [sdk-v1.1.0] - 2026-04-03
 
@@ -188,6 +209,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add tests for v1 signature verification (clients/rust)
 
-[sdk-v2.0.0]: https://gitlab.com/hook0/hook0/-/compare/sdk-v1.1.0...sdk-v2.0.0
+[Unreleased]: https://gitlab.com/hook0/hook0/-/compare/sdk-v1.1.0...HEAD
 [sdk-v1.1.0]: https://gitlab.com/hook0/hook0/-/compare/sdk-v1.0.1...sdk-v1.1.0
 
