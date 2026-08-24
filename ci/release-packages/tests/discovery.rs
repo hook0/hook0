@@ -7,6 +7,7 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use release_packages::{
     Change, Error, Mirror, Package, TargetRoot, Version, check_mirrors, check_publishers,
@@ -1598,6 +1599,148 @@ fn a_readme_naming_a_version_of_its_own_package_names_the_one_the_release_is_at(
     assert!(
         named > 0,
         "no README names a version of its own package, so this proves nothing"
+    );
+    assert!(stale.is_empty(), "{}", stale.join("\n"));
+}
+
+/// The most bytes read out of one source file while looking for a version constant.
+const MAX_SOURCE_BYTES: u64 = 512 * 1024;
+
+/// The most bytes `git ls-files` may answer with for one client. Far above what any of them holds;
+/// a client above it is one this guard reports rather than one it half-reads, since a truncated
+/// answer here would read as a clean bill of health.
+const MAX_GIT_BYTES: usize = 8 * 1024 * 1024;
+
+/// Every file the repository tracks under a client, which is the set a release actually carries.
+///
+/// Asked of git rather than walked. A walk has to name what to skip, and the names that would need
+/// naming are exactly the ones an ignore rule already carries: `clients/java` holds 1778 files and
+/// tracks 167 of them, so a walk bounded at any sane ceiling spends it on Gradle's cache and
+/// answers "nothing declares a version" for the file that does.
+///
+/// Markdown is left out because the README guard beside this one reads it, and a lock file because
+/// the versions in one are other people's.
+fn tracked_under(root: &Path, directory: &str) -> Vec<PathBuf> {
+    let answer = Command::new("git")
+        .args(["ls-files", "-z", "--", directory])
+        .current_dir(root)
+        .output()
+        .unwrap_or_else(|failure| panic!("could not run `git ls-files` in {directory}: {failure}"));
+
+    assert!(
+        answer.status.success(),
+        "`git ls-files` failed under {directory}: {}",
+        String::from_utf8_lossy(&answer.stderr)
+    );
+    assert!(
+        answer.stdout.len() <= MAX_GIT_BYTES,
+        "`git ls-files` answered more than {MAX_GIT_BYTES} bytes for {directory}"
+    );
+
+    String::from_utf8_lossy(&answer.stdout)
+        .split('\0')
+        .filter(|path| !path.is_empty())
+        .filter(|path| !path.ends_with(".md"))
+        .filter(|path| {
+            !path
+                .rsplit('/')
+                .next()
+                .unwrap_or(path)
+                .to_ascii_lowercase()
+                .contains("lock")
+        })
+        .map(|path| root.join(path))
+        .collect()
+}
+
+/// The version a line declares, when the line declares one at all.
+///
+/// A line qualifies when what sits immediately left of its first `=` is an identifier that reads as
+/// `version` once case and underscores are set aside, which is what `VERSION`, `__version__` and
+/// `Hook0.VERSION` all have in common. Anything else carrying a version-shaped literal, a pinned
+/// dependency above all, is left alone because its version is somebody else's.
+fn version_declared_on(line: &str) -> Option<String> {
+    let (left, right) = line.split_once('=')?;
+    // Whatever sits between the name and the `=` is spacing, and dropping it is what lets the
+    // name be read by walking back from the `=`.
+    let left = left.trim_end();
+    // `==` is a comparison rather than a declaration, and `!=`, `<=`, `>=` likewise.
+    if right.starts_with('=') || left.ends_with(['!', '<', '>', '=']) {
+        return None;
+    }
+
+    let name: String = left
+        .chars()
+        .rev()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+        .collect();
+    let name: String = name.chars().rev().filter(|c| *c != '_').collect();
+    if !name.eq_ignore_ascii_case("version") {
+        return None;
+    }
+
+    let opening = right.find(['"', '\''])?;
+    let quote = right.as_bytes()[opening] as char;
+    let rest = &right[opening + 1..];
+    let literal = &rest[..rest.find(quote)?];
+
+    let parts: Vec<&str> = literal.split('.').collect();
+    let numeric = parts.len() == 3
+        && parts
+            .iter()
+            .all(|part| !part.is_empty() && part.chars().all(|c| c.is_ascii_digit()));
+    numeric.then(|| literal.to_owned())
+}
+
+/// A client that tells the API which version it is tells it the one the release is at.
+///
+/// `set-version` writes manifests. Five clients also carry the version as a constant in their own
+/// source, because that is what they put in the `User-Agent`, and a manifest is not a source file.
+/// Bumping the train therefore left them introducing themselves as the release before, which the
+/// conformance corpus caught on `sdk-v2.0.0` only after the tag had been pushed: the package built
+/// as `2.0.0` and said `hook0-client-typescript/1.1.0` on the wire.
+///
+/// Read from the tree rather than from a list of the five, so a sixth client written tomorrow is
+/// held to the same thing without this test changing.
+#[test]
+fn a_client_naming_its_own_version_in_its_source_names_the_one_the_release_is_at() {
+    let root = repository();
+    let packages = discover(&registry(), &root).expect("the packages the registry resolves to");
+    let train = sdk_train(&packages);
+    let version = current_version(&train).unwrap_or_else(|refusal| panic!("{refusal}"));
+
+    let mut stale = Vec::new();
+    let mut declared = 0usize;
+
+    for package in &train {
+        for path in tracked_under(&root, &package.directory) {
+            let readable = fs::metadata(&path).is_ok_and(|it| it.len() <= MAX_SOURCE_BYTES);
+            if !readable {
+                continue;
+            }
+            let Ok(body) = fs::read_to_string(&path) else {
+                continue;
+            };
+            for (number, line) in body.lines().enumerate() {
+                let Some(found) = version_declared_on(line) else {
+                    continue;
+                };
+                declared += 1;
+                if found != version.to_string() {
+                    stale.push(format!(
+                        "{}:{} declares version {found} while the release is at {version}, so this \
+                         client introduces itself as a release it is not",
+                        shown(&root, &path),
+                        number + 1
+                    ));
+                }
+            }
+        }
+    }
+
+    assert!(
+        declared > 0,
+        "no client declares a version in its source, so this proves nothing"
     );
     assert!(stale.is_empty(), "{}", stale.join("\n"));
 }
