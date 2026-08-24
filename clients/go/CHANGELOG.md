@@ -5,13 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [sdk-v2.0.0] - 2026-08-24
 
 ### Added
 
-- Add the Go SDK, generated from the API surface (go)
-- Make the shared behaviour a contract the SDKs are checked against (clients)
-- Bound the whole head of an answer, and check the contract is read (clients)
+- Ship SDKs for eleven languages, generated from a specification that now matches the API (clients,api)
 
-[Unreleased]: https://gitlab.com/hook0/hook0/-/compare/sdk-v1.1.0...HEAD
+### Fixed
+
+- Bump the version a client says it is, and re-cut 2.0.0 (release)
+
+[sdk-v2.0.0]: https://gitlab.com/hook0/hook0/-/compare/sdk-v1.1.0...sdk-v2.0.0
 
