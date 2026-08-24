@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAndCreateApp } from "../fixtures/test-setup";
+import { loginAndCreateApp, selectEventType } from "../fixtures/test-setup";
 
 /**
  * Logs (Request Attempts) E2E tests for Hook0.
@@ -93,8 +93,7 @@ test.describe("Logs", () => {
 
     // Select event type
     const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
-    await expect(eventTypeCheckbox).toBeVisible({ timeout: 15000 });
-    await eventTypeCheckbox.click();
+    await selectEventType(eventTypeCheckbox);
 
     const createSubResponse = page.waitForResponse(
       (response) =>
@@ -242,8 +241,7 @@ test.describe("Logs", () => {
 
     // Select event type using data-test selector
     const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
-    await expect(eventTypeCheckbox).toBeVisible({ timeout: 15000 });
-    await eventTypeCheckbox.click();
+    await selectEventType(eventTypeCheckbox);
 
     const createSubResponse = page.waitForResponse(
       (response) =>
