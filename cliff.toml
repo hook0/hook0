@@ -56,6 +56,24 @@ commit_parsers = [
     # matched nothing, and a commit breaking the wire through its footer was published under
     # Changed while the release it forced was a major.
     { footer = "^BREAKING[ -]CHANGE", group = "Breaking Changes" },
+    # A `Security:` trailer, and nothing else, is what files a commit here. A commit declares it
+    # the way it declares a break — a footer written for a reader that is not human — because the
+    # prose of a body is not a signal: it is written to explain a change to someone, not to
+    # classify it, and reading it did both wrong at once. `.*security` is case-sensitive, so
+    # `Security impact: …` in a body missed, and it is unanchored, so it caught
+    # `feat(api): answer every request with a set of security headers` — a commit whose own body
+    # says it is not a security fix — and filed it here instead of under Added. The group's only
+    # entry was a feature that did not belong in it, while the vulnerability fix of the same
+    # release sat under Fixed. The casing is forgiven on the trailer, where forgiving it costs
+    # nothing, since a footer token is one either way.
+    #
+    # git-cliff stops at the first parser whose regex matches, and both neighbours of this line
+    # are load-bearing. Below `^fix` the group empties, every commit carrying the trailer going to
+    # Fixed. Above the two parsers overhead the Breaking Changes group empties instead, a breaking
+    # commit that also carries the trailer being filed here — and `ci/release-packages` would
+    # still force a major for it, which is the disagreement `tests/breaking_changes.rs` exists to
+    # refuse.
+    { footer = "(?i)^security:", group = "Security" },
     { message = "^feat", group = "Added" },
     { message = "^fix", group = "Fixed" },
     { message = "^doc", group = "Documentation" },
@@ -69,7 +87,6 @@ commit_parsers = [
     { message = "^release", skip = true },
     { message = "^chore", group = "Other" },
     { message = "^ci", group = "CI" },
-    { body = ".*security", group = "Security" },
 ]
 filter_commits = false
 tag_pattern = "^[a-z-]+/v[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.]+)?$"

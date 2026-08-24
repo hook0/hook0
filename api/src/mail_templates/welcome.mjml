@@ -1,5 +1,5 @@
         <mj-text>
-          <h1>You're in &mdash; let's ship a webhook</h1>
+          <h1>You're in. Let's ship a webhook</h1>
         </mj-text>
         <mj-text padding="14px 0 0 0">
           Hi { $recipient_first_name }, your Hook0 account is active. Next step: create your first application and send one test event to a subscriber.
@@ -9,5 +9,5 @@
         </mj-text>
         <mj-button href="{ $app_url_tracked }" align="left" padding="20px 0 16px 0">Create your first webhook</mj-button>
         <mj-text padding="16px 0 0 0" font-size="13px" color="#475569" line-height="1.6">
-          Prefer to read first? The <a href="{ $doc_url_tracked }" style="font-weight:600;">5-minute Getting Started guide</a> covers it end to end. Running Hook0 on your own servers? It's open-source &mdash; self-hosting docs sit in the same place.
+          Prefer to read first? The <a href="{ $doc_url_tracked }" style="font-weight:600;">5-minute Getting Started guide</a> covers it end to end. Running Hook0 on your own servers? It's open-source, and the self-hosting docs sit in the same place.
         </mj-text>

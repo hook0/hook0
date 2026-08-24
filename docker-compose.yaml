@@ -55,6 +55,45 @@ services:
       - EMAIL_SENDER_ADDRESS=sender@hook0.local
       - APP_URL=http://localhost:8001
       - BISCUIT_PRIVATE_KEY=bbea79cd66926b219b3219a3186decb36136d774dd7c35a8239e512090fa8854  # DO NOT USE THIS KEY IN PRODUCTION
+      # Development stack only: the default burst of 5 is what bounds
+      # address-enumeration sweeps on the endpoints that send mail. The suite
+      # gives its direct API calls a source address of their own, so only the
+      # browser-driven ones draw on this quota — signing up included, now that
+      # registration mails an address the caller names and is held to the same
+      # allowance as the rest of that family. Raised rather than disabled, and
+      # not raised out of sight, so a loop that hammers the endpoint still meets
+      # a 429 here instead of meeting one for the first time in production.
+      - API_RATE_LIMITING_EMAIL_BURST_SIZE=50
+      # Development stack only, and the phrase is read rather than only meant:
+      # a setting whose comment carries it is one `self-hosting` is held not to
+      # declare, and one the compose file has to be free to shape for this stack
+      # without shaping a cluster.
+      #
+      # One address: this stack's own bridge gateway, which is what a caller on
+      # this host arrives as. It makes the API trust the client address
+      # announced in a proxy header when the peer is that gateway, and trust
+      # nobody else — a peer inside the trusted range can claim any address it
+      # likes and walk past every per-IP limiter, so the range is the whole of
+      # the setting's blast radius and it is held to one address.
+      #
+      # Not 127.0.0.0/8, and not the bridge pool either. Measured on the three
+      # ways in, against a container on a network this file shaped:
+      #
+      #   from this host, through the published port -> the gateway, 172.16.0.1
+      #   from another container on this network     -> its own address, .0.2 up
+      #   from off the host, at its LAN address      -> the caller's own address
+      #
+      # so loopback is never what arrives, and Docker's pool would have covered
+      # the second line: every sibling on this network, `frontend` and
+      # `output-worker` included, plus whatever an operator adds to it. The
+      # gateway is the one address on the network no container can be given.
+      #
+      # It is a fixed address rather than a guessed one because the network
+      # below fixes it. Left to itself Docker draws a /16 from its pool in the
+      # order they are free, so the gateway is 172.18.0.1 on one machine and
+      # 172.21.0.1 on the next, and a range wide enough to cover them all is
+      # the range this is not.
+      - REVERSE_PROXY_IPS=172.16.0.1/32
     ports:
       - "8081:8081"
     networks:
@@ -109,3 +148,14 @@ services:
 networks:
   hook0:
     driver: bridge
+    # Fixed rather than drawn from Docker's pool, so that the gateway the API is
+    # told to trust is an address this file knows rather than one that differs
+    # per machine. 172.16 is inside the pool's range and outside what it hands
+    # out: a daemon left to itself starts at 172.18 and walks up, so this is the
+    # one /16 in there it will not give to something else. Should an operator
+    # have taken it anyway, `docker compose up` refuses naming the overlap,
+    # which is the way to find out.
+    ipam:
+      config:
+        - subnet: 172.16.0.0/24
+          gateway: 172.16.0.1

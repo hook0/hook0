@@ -4,6 +4,7 @@ import {
   getEmailFromMailpit,
   type MailpitMessage,
 } from "../fixtures/email-verification";
+import { fromItsOwnAddress } from "../fixtures/test-setup";
 
 /**
  * Design / wording / tracking assertions for every transactional email.
@@ -81,6 +82,26 @@ function assertPlainTextWidth(message: MailpitMessage) {
   }
 }
 
+/**
+ * The rendered message with its preview line taken out.
+ *
+ * Every Hook0 email opens with a hidden div carrying the line an inbox shows
+ * next to the subject, and that line repeats the body's promises in almost the
+ * same words. A pattern matched against the whole document is therefore
+ * satisfied by the preview alone, and would sit green through a body that had
+ * lost the sentence entirely — which is the regression worth catching, since
+ * the body is what the reader opens the mail for.
+ *
+ * The preview has to be found for this to separate anything, so its absence
+ * fails here rather than quietly turning every assertion below into a scan of
+ * the whole document again.
+ */
+function bodyWithoutPreviewLine(html: string): string {
+  const previewLine = /<div style="display:none;[^"]*">[\s\S]*?<\/div>/;
+  expect(html, "the preview line must be present to be taken out").toMatch(previewLine);
+  return html.replace(previewLine, "");
+}
+
 test.describe("Transactional emails — design, wording, tracking", () => {
   test("Verify email — design + Matomo + first-name personalisation", async ({
     request,
@@ -90,6 +111,7 @@ test.describe("Transactional emails — design, wording, tracking", () => {
     const firstName = "Sarah";
 
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: {
         email,
         first_name: firstName,
@@ -118,6 +140,7 @@ test.describe("Transactional emails — design, wording, tracking", () => {
     const firstName = "Sarah";
 
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: {
         email,
         first_name: firstName,
@@ -146,9 +169,10 @@ test.describe("Transactional emails — design, wording, tracking", () => {
       "ship your first webhook"
     );
     const html = message.HTML ?? "";
-    // Welcome H1 is "You're in — let's ship a webhook" (no name); the
-    // personalisation lives in the body as "Hi {firstName}, your Hook0…".
-    // The first-name presence in the body is the load-bearing part.
+    // The H1 carries no name of its own; the personalisation lives in the body
+    // as "Hi {firstName}, …", which is the load-bearing part and the only one
+    // asserted. The heading's own wording is left unpinned on purpose — it has
+    // been reworded twice without changing what the reader is told.
     expect(html, "welcome body greets by first name").toContain(`Hi ${firstName},`);
     expect(html, "primary CTA").toContain("Create your first webhook");
     expect(html, "documentation link").toContain("documentation.hook0.com");
@@ -165,6 +189,7 @@ test.describe("Transactional emails — design, wording, tracking", () => {
 
     // Register a user first so the reset request finds a target.
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: {
         email,
         first_name: firstName,
@@ -194,7 +219,33 @@ test.describe("Transactional emails — design, wording, tracking", () => {
     expect(html, "CTA label must NOT say Verify email").not.toContain(
       ">Verify email<"
     );
-    expect(html, "5-minute expiration mention").toContain("5 minutes");
+    // The four things the mail has to leave the reader knowing, each pinned on
+    // what it says rather than on how it says it: this copy has been reworded
+    // twice already, and an assertion that spells out a sentence turns every
+    // rewrite into a broken suite while catching nothing a looser one misses.
+    //
+    // Read on the body rather than the document, because the preview line
+    // carries the first two in almost the same words.
+    //
+    // How long the link lasts. The number of minutes is deliberately not
+    // written here: the server owns it and a unit test pins the copy to that
+    // constant, so changing the lifetime stays a one-line change instead of a
+    // hunt through the suite.
+    const body = bodyWithoutPreviewLine(html);
+    expect(body, "how long the link lasts").toMatch(/expires in \d+ minutes?/i);
+    // That it is good for one use, which is what stops someone treating an old
+    // mail as a spare key.
+    expect(body, "that it is good for one use").toMatch(/(works once|used once|single use)/i);
+    // And the way it dies that a reader meets by accident: asking again — a
+    // double click on the button is enough — retires the link in the mail they
+    // are most likely to open, the first one. A link that stops working for a
+    // reason nobody wrote down reads as a broken product, on the one page a
+    // locked-out user has left.
+    expect(body, "that asking again retires this link").toMatch(
+      /(stops working|retire|replace|no longer work)/i
+    );
+    // Which is no help without saying which mail does work.
+    expect(body, "and where the link that works is").toMatch(/most recent/i);
     expect(html, "no-action reassurance").toMatch(/no action is needed/i);
     assertCommonFooter(html, "reset_password");
     assertPlainTextWidth(message);

@@ -11,6 +11,8 @@ updatedAt: "Sat Jul 22 2023 12:47:08 GMT+0000 (Coordinated Universal Time)"
 ---
 Alias: Vulnerability and threat management scan policy
 
+This page states the principles we hold ourselves to. The [vulnerability disclosure policy](../resources/vulnerability-disclosure-policy.md) is the operational document, and it sets out what is in scope, what is excluded, what we reward, and what we do once a report is fixed.
+
 ## Principles
 
 We consider the security of our systems a top priority. But no matter how much effort we put into system security, there can still be vulnerabilities present.
@@ -27,11 +29,13 @@ Please do the following:
 
 What we promise:
 
-- We will respond to your report within 3 business days with our evaluation of the report and an expected resolution date;
+- We will acknowledge your report as soon as we can, and come back to you with our evaluation and an expected resolution date. We are a small team, so we do not publish a response deadline we might miss;
 - If you have followed the instructions above, we will not take any legal action against you in regard to the report;
 - We will handle your report with strict confidentiality, and not pass on your personal details to third parties without your permission;
 - We will keep you informed of the progress towards resolving the problem;
 - In the public information concerning the problem reported, we will give your name as the discoverer of the problem (unless you desire otherwise)
+
+Every researcher whose report we act on is also listed on our [security acknowledgments](../resources/security-acknowledgments.md) page, whatever the severity of the finding.
 
 We strive to resolve all problems as quickly as possible, and we would like to play an active role in the ultimate publication on the problem after it is resolved.
 

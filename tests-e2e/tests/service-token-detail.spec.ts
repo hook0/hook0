@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { fromItsOwnAddress } from "../fixtures/test-setup";
 
 /**
  * Service Token Detail E2E tests for Hook0.
@@ -30,6 +31,7 @@ test.describe("Service Token Detail", () => {
 
     // Register via API
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: {
         email,
         first_name: "Test",

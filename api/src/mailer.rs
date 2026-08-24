@@ -203,7 +203,7 @@ const MJML_FOOTER_ONBOARDING: &str = r##"      </mj-column>
           Need a hand? <a href="mailto:{ $support_email_address }" style="color:#475569;">{ $support_email_address }</a> &middot; <a href="{ $app_url_tracked }" style="color:#475569;">Open dashboard</a> &middot; <a href="{ $privacy_policy_url_tracked }" style="color:#475569;">Privacy &amp; data rights</a>
         </mj-text>
         <mj-text align="left" font-size="11px" color="#94a3b8" line-height="1.7" padding="10px 0 0 0">
-          You created a Hook0 account but no event has come through yet, so we send a short series of first-steps reminders. <a href="{ $unsubscribe_url }" style="color:#475569;">Stop these reminders</a> &mdash; one click, no sign-in. Transactional email (verification, password reset) is unaffected. You have rights over your personal data (access, correction, deletion, portability, objection).
+          You created a Hook0 account but no event has come through yet, so we send a short series of first-steps reminders. <a href="{ $unsubscribe_url }" style="color:#475569;">Stop these reminders</a> in one click, no sign-in needed. Transactional email (verification, password reset) is unaffected. You have rights over your personal data (access, correction, deletion, portability, objection).
         </mj-text>
         <mj-text align="left" font-size="11px" color="#cbd5e1" line-height="1.7" padding="10px 0 0 0">
           &copy; { $current_year } { $company_legal_name } &middot; { $company_postal_address } &middot; { $company_rcs }
@@ -217,6 +217,23 @@ const MJML_FOOTER_ONBOARDING: &str = r##"      </mj-column>
 /// Matches the `{ $name }` placeholders of the MJML templates.
 static PLACEHOLDER: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\{ \$(\w+) \}").expect("placeholder regex must compile"));
+
+/// How long, in minutes, a reset link is announced to last. Derived from the
+/// lifetime the server actually enforces rather than written out, so changing
+/// the one place that decides it changes what the message says.
+fn reset_password_link_lifetime_minutes() -> u64 {
+    crate::iam::RESET_PASSWORD_TOKEN_EXPIRATION.as_secs() / 60
+}
+
+/// Preview line of the reset-password message, built once from the lifetime the
+/// server enforces. `preheader` hands out `&'static str`, which this is because
+/// it is borrowed from a static.
+static RESET_PASSWORD_PREHEADER: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "Link expires in {} minutes, works once, and is replaced as soon as you ask for another. All sessions will be signed out.",
+        reset_password_link_lifetime_minutes()
+    )
+});
 
 /// Escape a value before it is substituted into the MJML source.
 ///
@@ -310,9 +327,7 @@ impl Mail {
             Mail::VerifyUserEmail { .. } => {
                 "One click to activate your account. Link expires in 24 hours."
             }
-            Mail::ResetPassword { .. } => {
-                "Link expires in 5 minutes. All sessions will be signed out."
-            }
+            Mail::ResetPassword { .. } => RESET_PASSWORD_PREHEADER.as_str(),
             Mail::Welcome { .. } => {
                 "Create an application, send a test event, done in under 5 minutes."
             }
@@ -323,7 +338,7 @@ impl Mail {
                 "Hook0 will resume at the next daily reset, or as soon as you upgrade."
             }
             Mail::ReactivationNoEventDay1 { .. } => {
-                "Create an application and send one test event — the dashboard walks you through it."
+                "Create an application and send one test event. The dashboard walks you through it."
             }
             Mail::ReactivationNoEventDay3 { .. } => {
                 "Grab a throwaway endpoint on play.hook0.com and watch an event arrive live."
@@ -416,7 +431,10 @@ impl Mail {
     pub fn variables(&self) -> Vec<(String, String)> {
         match self {
             Mail::VerifyUserEmail { .. } => vec![],
-            Mail::ResetPassword { .. } => vec![],
+            Mail::ResetPassword { .. } => vec![(
+                "reset_password_link_lifetime_minutes".to_owned(),
+                reset_password_link_lifetime_minutes().to_string(),
+            )],
             Mail::Welcome { .. } => vec![],
             Mail::ReactivationNoEventDay1 { .. } => vec![],
             Mail::ReactivationNoEventDay3 { .. } => vec![],
@@ -1178,6 +1196,145 @@ mod tests {
         assert!(
             !html.contains(">Verify email<"),
             "Reset password email must NOT contain CTA label 'Verify email' (anti-regression)"
+        );
+    }
+
+    /// The lifetime the message announces is read from the one the server
+    /// enforces, so the two cannot drift apart. They had: the copy promised five
+    /// minutes against a token good for thirty, which is how a reader concludes
+    /// a working link is dead and asks for another one — and, on the report that
+    /// started this, how "the link never expires" became a plausible reading.
+    ///
+    /// Asserted over every duration the rendered message names rather than the
+    /// one sentence known to carry it, so a second place announcing a different
+    /// number is caught too. The number itself is never written here: the test
+    /// reads the constant.
+    #[test]
+    fn the_reset_password_email_announces_the_lifetime_the_server_enforces() {
+        let minutes = crate::iam::RESET_PASSWORD_TOKEN_EXPIRATION.as_secs() / 60;
+        let mail = Mail::ResetPassword {
+            recipient_first_name: Some("Sarah".to_owned()),
+            url: Url::from_str("https://app.hook0.com/reset").unwrap(),
+        };
+        let html = render(&mail);
+
+        assert!(
+            mail.preheader().contains(&format!("{minutes} minutes")),
+            "the preview line must announce the lifetime the server enforces, got {:?}",
+            mail.preheader()
+        );
+
+        // The preview line is rendered into the document too, so a scan of the
+        // whole of it was satisfied by the preheader alone: the sentence the
+        // reader actually opens the mail for could have dropped the duration —
+        // or drifted to another one — with this test none the wiser. Take the
+        // preview line out and require what is left to still announce it.
+        let body = html.replacen(&xml_escape(mail.preheader()), "", 1);
+        assert_ne!(
+            body, html,
+            "the preview line is no longer in the rendered document verbatim, so this test is not separating it from the body any more: {html}"
+        );
+
+        let announced = Regex::new(r"(\d+) minutes?").expect("duration regex must compile");
+        assert!(
+            announced.is_match(&body),
+            "the body of the reset password email must say how long the link lasts, not only its preview line: {body}"
+        );
+
+        let durations = announced
+            .captures_iter(&html)
+            .map(|caps| caps[1].to_owned())
+            .collect::<Vec<_>>();
+        assert!(
+            !durations.is_empty(),
+            "the reset password email must say how long the link lasts: {html}"
+        );
+        for duration in durations {
+            assert_eq!(
+                duration,
+                minutes.to_string(),
+                "the reset password email announces {duration} minutes where the server enforces {minutes}"
+            );
+        }
+    }
+
+    /// No mail Hook0 sends may carry an em dash. The rule is the project's and it
+    /// applies to every text a human reads, but the linter that enforces it runs
+    /// over the documentation tree, and mail copy never reaches it: the templates
+    /// live here, in Rust and MJML. So the copy drifted, and the three that shipped
+    /// were only found by someone reading the rendered mail.
+    ///
+    /// Asserted over the whole of what a recipient meets — the rendered body, the
+    /// subject line, the preview line — for every mail there is, because a variant
+    /// added later inherits this test without anyone remembering it exists. Both
+    /// spellings are checked: MJML sources write the character as an entity, and
+    /// whether MRML resolves it is not something this test should depend on.
+    #[test]
+    fn no_mail_carries_an_em_dash() {
+        for mail in all_variants() {
+            for (surface, text) in [
+                ("body", render(&mail)),
+                ("subject", mail.subject()),
+                ("preview line", mail.preheader().to_owned()),
+            ] {
+                for spelling in ["\u{2014}", "&mdash;", "&#8212;", "&#x2014;"] {
+                    assert!(
+                        !text.contains(spelling),
+                        "the {surface} of the {:?} mail carries an em dash ({spelling}), which no text a reader meets may: rewrite the sentence rather than swapping the character",
+                        mail.matomo_campaign()
+                    );
+                }
+            }
+        }
+    }
+
+    /// The link is single use, and the message has to say so — a reader who is
+    /// not told assumes otherwise and keeps the mail around as a way back in.
+    #[test]
+    fn the_reset_password_email_says_the_link_works_once() {
+        let mail = Mail::ResetPassword {
+            recipient_first_name: Some("Sarah".to_owned()),
+            url: Url::from_str("https://app.hook0.com/reset").unwrap(),
+        };
+
+        assert!(
+            render(&mail).contains("only works once"),
+            "the reset password email must tell the reader the link works once"
+        );
+    }
+
+    /// Single use was announced; being retired by the next one was not. That is
+    /// the half a reader meets by accident — a double click sends two mails, and
+    /// the one they open is usually the first — and a link that stops working
+    /// for a reason nobody wrote down reads as a broken product on the one page
+    /// a locked-out user has left. Both the body and the preview line have to
+    /// carry it: the preview is what a reader sees before opening anything.
+    #[test]
+    fn the_reset_password_email_says_a_newer_link_retires_this_one() {
+        let mail = Mail::ResetPassword {
+            recipient_first_name: Some("Sarah".to_owned()),
+            url: Url::from_str("https://app.hook0.com/reset").unwrap(),
+        };
+        let html = render(&mail);
+
+        let body = html.replacen(&xml_escape(mail.preheader()), "", 1);
+        assert_ne!(
+            body, html,
+            "the preview line is no longer in the rendered document verbatim: {html}"
+        );
+
+        assert!(
+            body.contains("stops working the moment a newer reset email is sent"),
+            "the body must tell the reader that asking again retires this link: {body}"
+        );
+        assert!(
+            body.contains("use the most recent one"),
+            "and point at the one that still works: {body}"
+        );
+        assert!(
+            mail.preheader().contains("replaced"),
+            "the preview line must carry it too, got {:?}",
+            mail.preheader()
         );
     }
 

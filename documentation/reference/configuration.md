@@ -104,6 +104,8 @@ own build.
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
+| `API_RATE_LIMITING_EMAIL_BURST_SIZE` | Quota of calls per IP to the endpoints that send an email to an address the caller names, before rate limiting blocks incomming requests (must be ≥ 1) | `5` |  |
+| `API_RATE_LIMITING_EMAIL_REPLENISH_PERIOD_IN_MS` | Duration (in millisecond) after which one call per IP to the endpoints that send an email is restored in the quota (must be ≥ 1) | `60000` |  |
 | `API_RATE_LIMITING_GLOBAL_BURST_SIZE` | Global quota of API calls before rate limiting blocks incomming requests (must be ≥ 1) | `2000` |  |
 | `API_RATE_LIMITING_GLOBAL_REPLENISH_PERIOD_IN_MS` | Duration (in millisecond) after which one global API call is restored in the quota (must be ≥ 1) | `1` |  |
 | `API_RATE_LIMITING_HOUSEKEEPING_PERIOD` | Duration to wait beetween rate limiters housekeeping | `5m` |  |
@@ -112,6 +114,7 @@ own build.
 | `API_RATE_LIMITING_TOKEN_BURST_SIZE` | Quota of API calls per token before rate limiting blocks incomming requests (must be ≥ 1) | `20` |  |
 | `API_RATE_LIMITING_TOKEN_REPLENISH_PERIOD_IN_MS` | Duration (in millisecond) after which one API call per token is restored in the quota (must be ≥ 1) | `100` |  |
 | `DISABLE_API_RATE_LIMITING` | Set to true to disable every API rate limiting | - |  |
+| `DISABLE_API_RATE_LIMITING_EMAIL` | Set to true to disable per-IP API rate limiting of the endpoints that send an email to an address the caller names | - |  |
 | `DISABLE_API_RATE_LIMITING_GLOBAL` | Set to true to disable global API rate limiting | - |  |
 | `DISABLE_API_RATE_LIMITING_IP` | Set to true to disable per-IP API rate limiting | - |  |
 | `DISABLE_API_RATE_LIMITING_TOKEN` | Set to true to disable per-token API rate limiting | - |  |

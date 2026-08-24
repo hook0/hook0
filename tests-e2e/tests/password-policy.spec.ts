@@ -4,7 +4,7 @@ import {
   getPasswordResetTokenFromMailpit,
   API_BASE_URL,
 } from "../fixtures/email-verification";
-import { expectToast } from "../fixtures/test-setup";
+import { expectToast, fromItsOwnAddress } from "../fixtures/test-setup";
 
 /**
  * The password policy, walked as a user walks it.
@@ -159,6 +159,7 @@ test.describe("Password policy", () => {
       const acceptedPassword = `QuiltLanternHarbour${timestamp}`;
 
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        headers: fromItsOwnAddress(),
         data: { email, first_name: "Policy", last_name: "Tester", password },
       });
       expect(registerResponse.status()).toBeLessThan(400);
@@ -184,6 +185,12 @@ test.describe("Password policy", () => {
           changeCalled = true;
         }
       });
+
+      // The account's current password, first. The weakness rule reads the
+      // account identity alongside the new password, so it only runs once the
+      // whole form parses; with this field empty the refusal below would never
+      // be reached and the test would be measuring an empty field instead.
+      await page.locator('[data-test="current-password-input"]').fill(password);
 
       await page.locator('[data-test="new-password-input"]').fill(email);
       await page.locator('[data-test="confirm-password-input"]').fill(email);
@@ -332,6 +339,7 @@ test.describe("Password policy", () => {
       const acceptedPassword = `QuiltLanternHarbour${timestamp}`;
 
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        headers: fromItsOwnAddress(),
         data: {
           email,
           first_name: "Policy",

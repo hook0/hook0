@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
-import { expectToast } from "../fixtures/test-setup";
+import { expectToast, fromItsOwnAddress } from "../fixtures/test-setup";
 
 /**
  * Authentication E2E tests for Hook0.
@@ -99,6 +99,7 @@ test.describe("Authentication", () => {
       const password = `TestPassword123!${timestamp}`;
 
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        headers: fromItsOwnAddress(),
         data: {
           email,
           first_name: "Test",
@@ -150,6 +151,7 @@ test.describe("Authentication", () => {
       const password = `TestPassword123!${timestamp}`;
 
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        headers: fromItsOwnAddress(),
         data: {
           email,
           first_name: "Test",
@@ -363,6 +365,7 @@ test.describe("Authentication", () => {
       const password = `TestPassword123!${timestamp}`;
 
       const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+        headers: fromItsOwnAddress(),
         data: {
           email,
           first_name: "First",

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { Client } from "pg";
 import { verifyEmailViaMailpit, API_BASE_URL } from "../fixtures/email-verification";
+import { fromItsOwnAddress } from "../fixtures/test-setup";
 
 const DATABASE_URL =
   process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/hook0";
@@ -76,6 +77,7 @@ test.describe("Members", () => {
 
     // Register via API
     const registerResponse = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: {
         email,
         first_name: "Test",
@@ -158,6 +160,7 @@ test.describe("Members", () => {
 
     // Register the invitee user first (API requires existing users)
     const inviteeRegister = await request.post(`${API_BASE_URL}/register`, {
+      headers: fromItsOwnAddress(),
       data: {
         email: inviteeEmail,
         first_name: "Invitee",

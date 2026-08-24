@@ -93,6 +93,18 @@ All API errors follow this structure (RFC 7807):
 }
 ```
 
+### InvalidDateRange
+
+```json
+{
+  "type": "https://documentation.hook0.com/reference/error-codes#invaliddaterange",
+  "id": "InvalidDateRange",
+  "title": "Invalid date range",
+  "detail": "'from' date must not be after 'to' date.",
+  "status": 400
+}
+```
+
 ### InvalidRole
 
 ```json
@@ -112,7 +124,7 @@ All API errors follow this structure (RFC 7807):
   "type": "https://documentation.hook0.com/reference/error-codes#jsonpayload",
   "id": "JsonPayload",
   "title": "Provided body could not be decoded as JSON",
-  "detail": "",
+  "detail": "Unknown JSON payload error",
   "status": 400
 }
 ```
@@ -141,26 +153,14 @@ All API errors follow this structure (RFC 7807):
 }
 ```
 
-### PasswordTooShort
+### PasswordNotDiverseEnough
 
 ```json
 {
-  "type": "https://documentation.hook0.com/reference/error-codes#passwordtooshort",
-  "id": "PasswordTooShort",
-  "title": "Provided password is too short",
-  "detail": "Password must be at least 0 characters long.",
-  "status": 400
-}
-```
-
-### PasswordTooLong
-
-```json
-{
-  "type": "https://documentation.hook0.com/reference/error-codes#passwordtoolong",
-  "id": "PasswordTooLong",
-  "title": "Provided password is too long",
-  "detail": "Password must be at most 100 characters long.",
+  "type": "https://documentation.hook0.com/reference/error-codes#passwordnotdiverseenough",
+  "id": "PasswordNotDiverseEnough",
+  "title": "Provided password is not diverse enough",
+  "detail": "Password is made of too few different characters, which makes it easy to guess despite its length. Please pick another one.",
   "status": 400
 }
 ```
@@ -201,14 +201,26 @@ All API errors follow this structure (RFC 7807):
 }
 ```
 
-### PasswordNotDiverseEnough
+### PasswordTooLong
 
 ```json
 {
-  "type": "https://documentation.hook0.com/reference/error-codes#passwordnotdiverseenough",
-  "id": "PasswordNotDiverseEnough",
-  "title": "Provided password is not diverse enough",
-  "detail": "Password is made of too few different characters, which makes it easy to guess despite its length. Please pick another one.",
+  "type": "https://documentation.hook0.com/reference/error-codes#passwordtoolong",
+  "id": "PasswordTooLong",
+  "title": "Provided password is too long",
+  "detail": "Password must be at most 100 characters long.",
+  "status": 400
+}
+```
+
+### PasswordTooShort
+
+```json
+{
+  "type": "https://documentation.hook0.com/reference/error-codes#passwordtooshort",
+  "id": "PasswordTooShort",
+  "title": "Provided password is too short",
+  "detail": "Password must be at least 0 characters long.",
   "status": 400
 }
 ```
@@ -234,7 +246,7 @@ All API errors follow this structure (RFC 7807):
   "type": "https://documentation.hook0.com/reference/error-codes#authemailexpired",
   "id": "AuthEmailExpired",
   "title": "Could not verify your link",
-  "detail": "The link you clicked might be expired. Please retry the whole process or contact support.",
+  "detail": "This link no longer works. Links expire after a while and can only be used once. Asking for a new link retires the previous one straight away, and so does changing the password. If you asked more than once, the most recent email is the one that still works. Otherwise you can start again from the beginning, or contact support.",
   "status": 401
 }
 ```
@@ -448,12 +460,24 @@ All API errors follow this structure (RFC 7807):
   "type": "https://documentation.hook0.com/reference/error-codes#validation",
   "id": "Validation",
   "title": "Provided input is malformed",
-  "detail": "",
+  "detail": "Provided input did not pass validation.",
   "status": 422
 }
 ```
 
 ## 429 Too Many Requests
+
+### RateLimited
+
+```json
+{
+  "type": "https://documentation.hook0.com/reference/error-codes#ratelimited",
+  "id": "RateLimited",
+  "title": "Too many requests",
+  "detail": "Requests are coming in faster than this Hook0 instance accepts them, so this one was not processed. This is a temporary, client-side pacing condition, not a rights issue: the request is safe to send again once the delay given by the `Retry-After` response header has elapsed.",
+  "status": 429
+}
+```
 
 ### TooManyApplicationsPerOrganization
 
@@ -478,8 +502,6 @@ All API errors follow this structure (RFC 7807):
   "status": 429
 }
 ```
-
-> **Note:** This error is only returned for organizations on the **Free (Developer) plan**. On paid plans (Startup, Pro), extra events are never blocked — they are billed as overage. See [Quotas and limits](/concepts/applications#quotas-and-limits).
 
 ### TooManyEventTypesPerApplication
 
@@ -552,6 +574,20 @@ All API errors follow this structure (RFC 7807):
   "title": "Something wrong happened",
   "detail": "Hook0 server had issue handling your request. Our team was notified.",
   "status": 500
+}
+```
+
+## 503 Service Unavailable
+
+### ServiceUnavailable
+
+```json
+{
+  "type": "https://documentation.hook0.com/reference/error-codes#serviceunavailable",
+  "id": "ServiceUnavailable",
+  "title": "Service temporarily unavailable",
+  "detail": "Hook0 is under heavy load and could not authorize your request in time. This is a temporary, server-side condition, not a rights issue: the request is safe to retry. Wait a moment and resubmit, honoring the Retry-After response header.",
+  "status": 503
 }
 ```
 

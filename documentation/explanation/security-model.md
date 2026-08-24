@@ -68,10 +68,13 @@ struct EventPayload {
 ```
 
 #### Rate limiting
-- Per-organization quotas
-- Per-IP rate limits
-- Adaptive rate limiting based on behavior
-- Protection against DoS attacks
+
+Four limiters bound how fast requests arrive. Three of them cover every request. One covers the instance as a whole, one is keyed on the caller's IP address, and one is keyed on the token once a request has been authenticated. The fourth guards the endpoints that send an email to an address the caller names, is keyed on the caller's IP address, and is much tighter than the others, which is what bounds account enumeration and mail sent at Hook0's expense. Each of them answers 429 with a `retry-after` header, and each can be tuned or switched off. [Security](../resources/security.md) covers what each one is for, and the [configuration reference](../reference/configuration.md) lists the variables.
+
+Two more bounds sit outside those limiters:
+
+- Per-account quotas held in the database bound how much mail one address can be made to receive, at one password reset message per minute and five per 24 hours, with the same shape for the address verification message. They hold across API replicas and survive a caller rotating its source address, which no per-IP limiter can.
+- Plan quotas bound what an organization may hold: members, applications, subscriptions, event types, and events per day. They answer 429 as well, with a problem document naming the quota that was reached.
 
 ### Webhook security
 

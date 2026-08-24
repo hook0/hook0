@@ -1,0 +1,139 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH claimable AS (\n                SELECT\n                    user__id,\n                    email,\n                    first_name,\n                    last_name,\n                    password_reset_nonce,\n                    password_reset_sent_at,\n                    password_reset_window_started_at,\n                    password_reset_count\n                FROM iam.\"user\"\n                WHERE email = $1\n                  AND (\n                      password_reset_sent_at IS NULL\n                      OR password_reset_sent_at < statement_timestamp() - MAKE_INTERVAL(secs => $2)\n                  )\n                  AND (\n                      password_reset_window_started_at IS NULL\n                      OR password_reset_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)\n                      OR password_reset_count < $4\n                  )\n                FOR UPDATE\n            )\n            UPDATE iam.\"user\" AS u\n            SET password_reset_nonce = public.gen_random_uuid(),\n                password_reset_sent_at = statement_timestamp(),\n                password_reset_window_started_at = CASE\n                    WHEN c.password_reset_window_started_at IS NULL\n                      OR c.password_reset_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)\n                    THEN statement_timestamp()\n                    ELSE c.password_reset_window_started_at\n                END,\n                password_reset_count = CASE\n                    WHEN c.password_reset_window_started_at IS NULL\n                      OR c.password_reset_window_started_at < statement_timestamp() - MAKE_INTERVAL(secs => $3)\n                    THEN 1\n                    ELSE c.password_reset_count + 1\n                END\n            FROM claimable AS c\n            WHERE u.user__id = c.user__id\n            RETURNING\n                c.user__id AS \"user_id!\",\n                c.email AS \"email!\",\n                c.first_name AS \"first_name!\",\n                c.last_name AS \"last_name!\",\n                u.password_reset_nonce AS \"nonce!\",\n                u.password_reset_sent_at AS \"claimed_at!\",\n                c.password_reset_nonce AS \"previous_nonce!\",\n                c.password_reset_sent_at AS \"previous_sent_at?\",\n                c.password_reset_window_started_at AS \"previous_window_started_at?\",\n                c.password_reset_count AS \"previous_count!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "user__id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "email!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "first_name!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "first_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "last_name!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "last_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "nonce!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "password_reset_nonce"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "claimed_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "password_reset_sent_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "previous_nonce!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "password_reset_nonce"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "previous_sent_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "password_reset_sent_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "previous_window_started_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "password_reset_window_started_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "previous_count!",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "iam.\"user\"",
+            "name": "password_reset_count"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Float8",
+        "Float8",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "fcc28d7688b8d504c2b343ec3040d0886b791937ab6527a2138f5b5f40deb795"
+}

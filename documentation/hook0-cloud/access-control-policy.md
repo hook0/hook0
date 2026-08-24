@@ -51,3 +51,11 @@ The policy is applicable to all internal and external personnel.
 - The reuse of the last three passwords should be prevented
 - The passwords should be stored in a secure way (encrypted/hashed and separated from other data)  
 - Login information should be transmitted encrypted (using TLS)
+
+These are requirements this policy sets, and, as with the MFA section above, their status on the customer-facing Hook0 platform differs from one to the next.
+
+Password quality is enforced on every path that sets a password, as described in the [password policy](password-policy.md). Passwords are stored as Argon2 hashes with a per-password salt, kept in a column no endpoint reads back, and every request runs over TLS.
+
+Password history is not kept, so reuse of a previous password is not currently prevented. The requirement stands and the control is not yet implemented.
+
+No Hook0 endpoint lets anyone set a password on someone else's account, so the change-at-first-login requirement has nothing to apply to on the platform itself. It covers the internal and hosted systems where an administrator does hand out credentials.
