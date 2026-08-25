@@ -36,6 +36,14 @@ module.exports = {
   'stripe-webhook-tester': {},
   'github-webhook-tester': {},
   'shopify-webhook-tester': {},
+  // Localized on measured vocabulary rather than on a literal translation: FR
+  // types "serveur mcp" (Suggest completes it with "c'est quoi", "claude",
+  // "open source", "gratuit") while "webhook ia" completes to nothing, so the
+  // French slug is built on "serveur mcp". DE keeps the English nouns and
+  // searches "mcp server webhook", hence "mcp-server-fuer-webhooks". A native
+  // German proofread is still owed before this page carries a paid DE campaign
+  // (the DE gate in website/CLAUDE.local.md).
+  'webhooks-for-ai-agents': { fr: 'serveur-mcp-webhook', de: 'mcp-server-fuer-webhooks' },
   // EN + FR only (DE gate: no second DE cluster until paid DE proves demand).
   'webhook-cost-comparison': { fr: 'comparatif-cout-webhook' },
   'eu-webhook-infrastructure': { fr: 'infrastructure-webhook-europeenne' },
