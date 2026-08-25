@@ -13,7 +13,7 @@ from __future__ import annotations
 # before anything below is imported because the transport reads it from here to compose the header
 # every request carries; the conformance suite reads `pyproject.toml` and holds that header against
 # it, so a number bumped in one place and not the other fails a case rather than shipping.
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 
 from .client import (
     ALREADY_INGESTED,

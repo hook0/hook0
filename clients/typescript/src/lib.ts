@@ -141,7 +141,7 @@ const MAX_USER_AGENT_PART_CHARS = 64;
  * points at. It is written here instead, and the conformance suite reads the manifest and holds
  * this header against it, so the two cannot disagree without a case failing.
  */
-const VERSION = '2.0.0';
+const VERSION = '2.0.1';
 
 /**
  * One part of the `User-Agent`, with everything the header's own grammar uses taken out of it and
