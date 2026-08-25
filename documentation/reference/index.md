@@ -50,7 +50,7 @@ Client libraries for integrating Hook0 into your applications.
 | Python | [`hook0-client`](sdk/python.md) | PyPI |
 | Ruby | [`hook0-client`](sdk/ruby.md) | RubyGems |
 | C# / .NET | [`Hook0.Client`](sdk/csharp.md) | NuGet |
-| Go | [`github.com/hook0/hook0-go`](sdk/go.md) | Go module proxy |
+| Go | [`github.com/hook0/hook0-go/v2`](sdk/go.md) | Go module proxy |
 | PHP | [`hook0/client`](sdk/php.md) | Packagist |
 | Java | [`com.hook0:hook0-client`](sdk/java.md) | source |
 | Kotlin | [`com.hook0:hook0-client-kotlin`](sdk/kotlin.md) | source |

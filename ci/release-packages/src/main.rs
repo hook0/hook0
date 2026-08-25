@@ -156,7 +156,13 @@ fn demanded(
 fn packages(tree: &Path) -> Result<Vec<release_packages::Package>, String> {
     let found = discover(&registry(), tree).map_err(|e| e.to_string())?;
     check_publishers(&found, tree).map_err(|e| e.to_string())?;
-    check_mirrors(&found).map_err(|e| e.to_string())?;
+    // A Go module path carries the major from v2 on, and the major the train is at is read off the
+    // packages that declare a version rather than passed in, so the two cannot be given separately
+    // and disagree.
+    let major = current_version(&sdk_train(&found))
+        .map_err(|e| e.to_string())?
+        .major;
+    check_mirrors(&found, major).map_err(|e| e.to_string())?;
     Ok(found)
 }
 

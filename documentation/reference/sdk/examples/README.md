@@ -103,7 +103,7 @@ package {{name}}
 import (
 	"context"
 
-	hook0 "github.com/hook0/hook0-go"
+	hook0 "github.com/hook0/hook0-go/v2"
 )
 
 // The event types an application declares before it sends anything of them.
