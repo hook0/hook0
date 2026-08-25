@@ -58,13 +58,13 @@ git clone https://gitlab.com/hook0/hook0.git
 mvn -f hook0/clients/kotlin/pom.xml install
 ```
 
-That puts `com.hook0:hook0-client-kotlin:1.1.0` in `~/.m2`, where your own build resolves it:
+That puts `com.hook0:hook0-client-kotlin:2.0.0` in `~/.m2`, where your own build resolves it:
 
 ```xml
 <dependency>
   <groupId>com.hook0</groupId>
   <artifactId>hook0-client-kotlin</artifactId>
-  <version>1.1.0</version>
+  <version>2.0.0</version>
 </dependency>
 ```
 
