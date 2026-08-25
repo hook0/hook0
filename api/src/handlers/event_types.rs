@@ -324,3 +324,124 @@ pub async fn delete(
         None => Err(Hook0Problem::NotFound),
     }
 }
+
+#[cfg(test)]
+mod quota_race_tests {
+    use crate::google_ads::test_support::{
+        issue_user_token, seed_membership, seed_org, seed_user, test_state,
+    };
+    use crate::quotas::{QuotaLimits, QuotaValue, Quotas};
+    use actix_web::{App, test, web};
+    use futures_util::future::join_all;
+    use sqlx::PgPool;
+    use sqlx::postgres::PgPoolOptions;
+    use uuid::Uuid;
+
+    const CONCURRENT_CALLERS: usize = 8;
+    const EVENT_TYPES_ALLOWED: QuotaValue = 1;
+
+    /// Same contract as the application limit, on the other side of the
+    /// application boundary: the count the check reads has to stay true until
+    /// the write lands, or callers arriving together all clear a limit only one
+    /// of them should have passed.
+    #[sqlx::test]
+    async fn concurrent_creations_cannot_take_an_application_past_its_event_type_limit(
+        pool: PgPool,
+    ) {
+        // Wide enough that the calls below are genuinely in flight together;
+        // on a sequential pool the limit would hold for want of a connection.
+        let options = (*pool.connect_options()).clone();
+        let pool = PgPoolOptions::new()
+            .max_connections(CONCURRENT_CALLERS as u32 + 2)
+            .connect_with(options)
+            .await
+            .expect("open a wider pool on the test database");
+
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        seed_membership(&pool, user, org, "editor").await;
+        let user_token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+
+        let application = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO event.application (application__id, organization__id, name) VALUES ($1, $2, 'race')",
+        )
+        .bind(application)
+        .bind(org)
+        .execute(&pool)
+        .await
+        .expect("seed the application the event types hang off");
+
+        let mut state = test_state(pool.clone(), private_key.clone(), None).await;
+        state.quotas = Quotas::new(
+            true,
+            QuotaLimits {
+                global_event_types_per_application_limit: EVENT_TYPES_ALLOWED,
+                global_applications_per_organization_limit: QuotaValue::MAX,
+                global_members_per_organization_limit: QuotaValue::MAX,
+                global_events_per_day_limit: QuotaValue::MAX,
+                global_days_of_events_retention_limit: QuotaValue::MAX,
+                global_subscriptions_per_application_limit: QuotaValue::MAX,
+            },
+        );
+
+        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+            db: pool.clone(),
+            biscuit_private_key: private_key.clone(),
+            master_api_key: None,
+            enable_application_secret_compatibility: true,
+        };
+
+        let app = test::init_service(
+            App::new().app_data(web::Data::new(state)).service(
+                web::scope("/api/v1").service(
+                    web::scope("/event_types")
+                        .wrap(biscuit_auth)
+                        .route("", web::post().to(super::create)),
+                ),
+            ),
+        )
+        .await;
+
+        let app_ref = &app;
+        let calls = (0..CONCURRENT_CALLERS).map(|i| {
+            let request = test::TestRequest::post()
+                .uri("/api/v1/event_types")
+                .insert_header(("Authorization", format!("Bearer {user_token}")))
+                .set_json(serde_json::json!({
+                    "application_id": application,
+                    "service": "race",
+                    "resource_type": format!("r{i}"),
+                    "verb": "created",
+                }))
+                .to_request();
+            test::call_service(app_ref, request)
+        });
+
+        let accepted = join_all(calls)
+            .await
+            .iter()
+            .filter(|response| response.status().is_success())
+            .count();
+
+        let stored: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM event.event_type WHERE application__id = $1")
+                .bind(application)
+                .fetch_one(&pool)
+                .await
+                .expect("count the event types the application ended up with");
+
+        assert_eq!(
+            stored,
+            i64::from(EVENT_TYPES_ALLOWED),
+            "the application is left holding more event types than its plan allows"
+        );
+        assert_eq!(
+            accepted, EVENT_TYPES_ALLOWED as usize,
+            "more callers were told their event type was created than the plan allows"
+        );
+    }
+}
