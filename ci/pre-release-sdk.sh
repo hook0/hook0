@@ -195,6 +195,34 @@ while IFS= read -r directory; do
 
 done <<< "$DIRECTORIES"
 
+# From v2 on, Go writes the major into the module path itself, so two majors of one module are two
+# paths rather than two versions of one. A path left on the major before is a path the proxy answers
+# `module path must match major version` to, which is what `sdk-v2.0.1` shipped with: every job
+# green, the mirror tagged, and `go get` resolving nothing.
+#
+# Repository-wide rather than per-client, because a module path is also what the documentation, its
+# compiled examples and the live smoke import by. The mirror slug is asked of the registry, so the
+# rewrite reaches whichever client is fetched by URL rather than a language written down here, and
+# anchoring on the slug means a plain repository link, which carries no `/vN`, is left alone.
+OLD_MAJOR=${CURRENT%%.*}
+NEW_MAJOR=${NEW_VERSION%%.*}
+if [ "$OLD_MAJOR" != "$NEW_MAJOR" ]; then
+    for mirror in $($PACKAGES mirrors | awk '{print $2}'); do
+        escaped_mirror=$(printf %s "$mirror" | sed 's/[.\/]/\\&/g')
+        git ls-files -z | while IFS= read -r -d '' file; do
+            case "$file" in
+                *[Ll]ock* | *lock*) continue ;;
+            esac
+            # The path first, then the version a `require` names beside it: Go refuses to parse a
+            # `go.mod` whose required major and path suffix disagree, so the two move together.
+            sed -i -E \
+                -e "s#(${escaped_mirror})/v${OLD_MAJOR}([^0-9]|\$)#\1/v${NEW_MAJOR}\2#g" \
+                -e "s#(${escaped_mirror}/v${NEW_MAJOR}[[:space:]]+)v${OLD_MAJOR}\\.#\1v${NEW_MAJOR}.#g" \
+                "$file"
+        done
+    done
+fi
+
 # Everything the two steps above touched, which is what a clean working directory
 # at the top of this script makes safe to stage without naming a single file.
 git add -A -- clients api/Cargo.toml

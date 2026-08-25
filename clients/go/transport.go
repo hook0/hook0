@@ -74,7 +74,7 @@ const jsonMediaType = "application/json"
 const maxUserAgentPartChars = 64
 
 // modulePath is what this module is imported under, which is the name the build records it by.
-const modulePath = "github.com/hook0/hook0-go"
+const modulePath = "github.com/hook0/hook0-go/v2"
 
 // unknownVersion is what the version reads as when the build recorded none for this module, which
 // is what a binary built without module information leaves behind.
