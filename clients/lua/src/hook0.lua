@@ -31,7 +31,7 @@ local Transport = require("hook0.transport")
 local Hook0 = {}
 
 --- What this rock is released as, which the rockspec is held against rather than repeats.
-Hook0.VERSION = "2.0.0"
+Hook0.VERSION = "1.1.0"
 
 Hook0.Client = Client
 Hook0.Options = Client.Options

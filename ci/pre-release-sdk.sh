@@ -94,7 +94,18 @@ $PACKAGES set-version "$NEW_VERSION"
 echo "Updating api/Cargo.toml hook0-client dependency..."
 sed -i.bak "s/\(hook0-client.*version = \"\)$CURRENT/\1$NEW_VERSION/" api/Cargo.toml
 rm -f api/Cargo.toml.bak
-cargo update --workspace
+# Every committed lockfile, not only the one at the root. A client's version is written into the
+# lock of any workspace that depends on it by path, and those workspaces are not members of the
+# root one, so a single `cargo update --workspace` here leaves them behind: after sdk-v2.0.0 was
+# tagged, `smoke/languages/rust/Cargo.lock` still said 1.1.0 and `cargo tree --locked` refused it.
+#
+# Found rather than listed, the same way smoke/tests/lockfiles.rs finds them, so a workspace added
+# later is re-resolved without editing this.
+LOCKFILES=$(git ls-files '*Cargo.lock')
+while IFS= read -r lock; do
+    [ -n "$lock" ] || continue
+    cargo update --workspace --manifest-path "$(dirname "$lock")/Cargo.toml"
+done <<< "$LOCKFILES"
 
 # One changelog per package, scoped to the package's own directory and to the
 # tags this release uses, as ADR 0004 requires. The set of packages is the one
@@ -170,7 +181,11 @@ done <<< "$DIRECTORIES"
 
 # Everything the two steps above touched, which is what a clean working directory
 # at the top of this script makes safe to stage without naming a single file.
-git add -A -- clients api/Cargo.toml Cargo.lock
+git add -A -- clients api/Cargo.toml
+while IFS= read -r lock; do
+    [ -n "$lock" ] || continue
+    git add -A -- "$lock"
+done <<< "$LOCKFILES"
 git commit -m "chore(release): bump SDK version to ${NEW_VERSION}"
 git tag -a "$TAG" -m "SDK Release ${NEW_VERSION}"
 git push origin HEAD "$TAG"
