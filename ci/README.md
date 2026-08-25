@@ -201,14 +201,21 @@ Three ecosystems can be published no other way, and their publish jobs are what
 the mirrors are for:
 
 - **Go** — a module is named by the address it is fetched at, so
-  `clients/go/go.mod` declares `github.com/hook0/hook0-go` and the mirror is what
-  answers there. `release-packages` refuses a release where the module path and
-  the mirror have come apart, since `go get` of a path nothing serves resolves
-  nothing while every job stays green. Publishing is asking `proxy.golang.org`
-  for the version, which is what makes it fetch and cache the tag.
+  `clients/go/go.mod` declares `github.com/hook0/hook0-go/v2` and the mirror is what
+  answers there. From v2 on the major is part of that address, so the path carries
+  it and moves with every major release; `sdk-v2.0.1` went out with a path still
+  written for v1, and the proxy answered `module path must match major version` to
+  everyone while every job stayed green. `release-packages` refuses a release where
+  the module path, the mirror and the major the train is at have come apart.
+  Publishing is asking `proxy.golang.org` for the version, which is what makes it
+  fetch and cache the tag.
 - **PHP** — Packagist accepts no uploads and reads no subdirectories. The mirror
   is the repository it is registered against; the release tells it to re-read the
-  tags and then waits, bounded, for the version to appear.
+  tags and then waits, bounded, for the version to appear. Registering the package
+  is a prerequisite of the same kind as the mirrors: the release calls
+  `update-package`, which refreshes a package Packagist already knows and answers
+  404 for one it does not, so submitting the mirror once has to happen before the
+  first release rather than during it.
 - **Zig** — there is no registry at all. What is published is the mirror's tag
   archive, whose root is the package; the release fetches it back and holds it to
   carrying `build.zig.zon` at the version being released.

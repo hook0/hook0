@@ -218,17 +218,33 @@ pub fn mirrors(packages: &[Package]) -> Result<Vec<Mirror>, Error> {
     }
 }
 
+/// Where a Go module of a given major is fetched, which is the mirror for a major below two and the
+/// mirror followed by the major for anything above.
+///
+/// Go writes the major into the path itself from v2 on, so two majors of one module are two module
+/// paths rather than two versions of one. A path that has not followed the train is not a path the
+/// proxy answers at: it replies `module path must match major version` and serves nothing, which is
+/// exactly what `sdk-v2.0.1` ran into with a path still written for v1.
+fn module_path(mirror: &str, major: u64) -> String {
+    if major < 2 {
+        mirror.to_string()
+    } else {
+        format!("{mirror}/v{major}")
+    }
+}
+
 /// Refuse a package fetched by URL whose name is not the URL its mirror answers at.
 ///
-/// A Go module is named by the address it is reached at, so its path and its mirror are one fact
-/// written in two places. Left to drift, `go get` resolves nothing and nothing goes red until a user
-/// reports it — which is the same silent failure the rest of this tool exists to remove.
-pub fn check_mirrors(packages: &[Package]) -> Result<(), Error> {
+/// A Go module is named by the address it is reached at, so its path, its mirror and the major the
+/// train is at are one fact written in several places. Left to drift, `go get` resolves nothing and
+/// nothing goes red until a user reports it — which is the same silent failure the rest of this tool
+/// exists to remove.
+pub fn check_mirrors(packages: &[Package], major: u64) -> Result<(), Error> {
     for package in packages.iter().filter(|package| package.on_sdk_train()) {
         if package.registry != Registry::GoProxy {
             continue;
         }
-        let expected = mirror_of(&package.directory).url_path();
+        let expected = module_path(&mirror_of(&package.directory).url_path(), major);
         if package.name != expected {
             return Err(Error::ModulePathNotTheMirror {
                 directory: package.directory.clone(),

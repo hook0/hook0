@@ -20,7 +20,7 @@ Every client does four things. It sends events, it declares the event types your
 | Python | [Python SDK](python.md) | `hook0-client` | PyPI | blocking and `asyncio` |
 | Ruby | [Ruby SDK](ruby.md) | `hook0-client` | RubyGems | blocking |
 | C# / .NET | [C# SDK](csharp.md) | `Hook0.Client` | NuGet | blocking and `Task` |
-| Go | [Go SDK](go.md) | `github.com/hook0/hook0-go` | Go module proxy | blocking |
+| Go | [Go SDK](go.md) | `github.com/hook0/hook0-go/v2` | Go module proxy | blocking |
 | PHP | [PHP SDK](php.md) | `hook0/client` | Packagist | blocking |
 | Java | [Java SDK](java.md) | `com.hook0:hook0-client` | source | blocking and `CompletableFuture` |
 | Kotlin | [Kotlin SDK](kotlin.md) | `com.hook0:hook0-client-kotlin` | source | blocking and suspending |

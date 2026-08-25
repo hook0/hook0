@@ -28,8 +28,8 @@ import (
 	"strings"
 	"time"
 
-	hook0 "github.com/hook0/hook0-go"
-	"github.com/hook0/hook0-go/generated"
+	hook0 "github.com/hook0/hook0-go/v2"
+	"github.com/hook0/hook0-go/v2/generated"
 )
 
 // How long the two sends together are given.
