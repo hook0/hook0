@@ -146,17 +146,19 @@ test.describe("TLS posture", () => {
   });
 
   /**
-   * The target state, and it does not hold: the hostnames behind the CDN
-   * negotiate ECDHE-ECDSA-AES128-SHA. Restricting the suites offered at that
-   * edge needs Advanced Certificate Manager on the zone — without it the API
-   * answers "Advanced Certificate Manager is required to set custom cipher
-   * suites" and the profile stays as it is. The origin the apex is served from
-   * refuses them already.
+   * The state we would prefer, and it does not hold. The hostnames behind the
+   * CDN negotiate ECDHE-ECDSA-AES128-SHA, and they keep doing so on purpose:
+   * customer integrations still reach the API over TLS 1.2, and dropping the
+   * protocol version to be rid of the suites would stop them at the handshake.
+   * Restricting the suites while keeping TLS 1.2 needs a paid option on the
+   * zone, which has not been bought. The origin the apex is served from refuses
+   * them already, which is why one hostname passes here and the rest do not.
    *
-   * Marked as an expected failure so the day the suites do go away this turns
-   * red for passing, and both this marker and the exception it stands for get
-   * removed. Deleting it while the suites are still offered is the one thing it
-   * must not be used for.
+   * So the marker below records a decision rather than a debt. It exists so
+   * that the day the suites do go away, this test passes, and a test marked
+   * this way passing is itself a red run, which forces the choice to be made
+   * again in the open. Deleting it while the suites are still offered is the
+   * one thing it must not be used for.
    */
   test("no public hostname negotiates a CBC-SHA1 suite", async ({ request, baseURL }) => {
     test.fail();
