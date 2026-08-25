@@ -11,15 +11,25 @@ Hook0 uses TLS encryption and HTTPS protocol to protect against various types of
 
 In order to secure the transmission of data between Hook0, customer's subscriptions and customer's applications, Hook0 uses TLS (Transport Layer Security) versions 1.2 and 1.3 for both the API and web application. TLS is a cryptographic protocol that ensures the confidentiality and integrity of data as it is transmitted over the internet. Additionally, the HTTPS (Hypertext Transfer Protocol Secure) protocol is required to further protect against potential attacks.
 
-Nothing below TLS 1.2 is served, and the cipher suites built on CBC with a
-SHA-1 MAC are not negotiated on any public hostname. Scanners regularly report
-those suites against Hook0 Cloud, so this is measured rather than asserted:
+Nothing below TLS 1.2 is served, on any hostname.
+
+The cipher suites built on CBC with a SHA-1 MAC are a separate question, and
+scanners report them against Hook0 Cloud regularly. They are right. The
+hostnames served through our CDN do negotiate `ECDHE-ECDSA-AES128-SHA` under
+TLS 1.2. Those suites still carry forward secrecy and AES, and what dates them
+is the SHA-1 MAC and CBC mode rather than a break anyone can use against a
+current client, but they are on their way out and we would rather not offer
+them. Narrowing the suites offered at that edge is a paid option on the CDN
+plan, and it is not enabled today. The origin our apex is served from refuses
+them already.
+
+That posture is measured rather than asserted:
 `tests-e2e/tests/website/tls-posture.spec.ts` discovers the hostnames the site
-links to and, for each, offers the weak suites and an obsolete protocol version
-and requires the server to refuse both. Every check is paired with an ordinary
-handshake to the same host, because a host that has moved, a proxy in the path
-and a server refusing a weak cipher otherwise look identical, and a probe that
-cannot connect would report a clean posture it never observed.
+links to and, for each, offers those suites and an obsolete protocol version.
+Every outcome has to come from the server, either a completed handshake or an
+alert the server sent. A probe that offers suites the client itself cannot put on the
+wire dies locally and reads exactly like a refusal, which is how an earlier
+version of that file reported a clean posture it had never observed.
 
 ## Rate-limiting
 
