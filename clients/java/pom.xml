@@ -6,7 +6,7 @@
 
   <groupId>com.hook0</groupId>
   <artifactId>hook0-client</artifactId>
-  <version>2.0.1</version>
+  <version>2.0.2</version>
   <packaging>jar</packaging>
 
   <name>hook0-client</name>

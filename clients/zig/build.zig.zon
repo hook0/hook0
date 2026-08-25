@@ -11,7 +11,7 @@
 // signatures and reads what the API answers with the standard library alone.
 .{
     .name = .hook0_client,
-    .version = "2.0.1",
+    .version = "2.0.2",
     .minimum_zig_version = "0.16.0",
     .fingerprint = 0x4eab91360ba14d80,
     .dependencies = .{},
