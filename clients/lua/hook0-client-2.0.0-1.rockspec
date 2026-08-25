@@ -13,11 +13,11 @@
 
 rockspec_format = "3.0"
 package = "hook0-client"
-version = "1.1.0-1"
+version = "2.0.0-1"
 
 source = {
   url = "git+https://gitlab.com/hook0/hook0.git",
-  tag = "sdk-v1.1.0",
+  tag = "sdk-v2.0.0",
   dir = "hook0/clients/lua",
 }
 
