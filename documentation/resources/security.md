@@ -13,15 +13,34 @@ In order to secure the transmission of data between Hook0, customer's subscripti
 
 Nothing below TLS 1.2 is served, on any hostname.
 
-The cipher suites built on CBC with a SHA-1 MAC are a separate question, and
+The cipher suites built on CBC with a SHA-1 MAC are a different matter, and
 scanners report them against Hook0 Cloud regularly. They are right. The
-hostnames served through our CDN do negotiate `ECDHE-ECDSA-AES128-SHA` under
-TLS 1.2. Those suites still carry forward secrecy and AES, and what dates them
-is the SHA-1 MAC and CBC mode rather than a break anyone can use against a
-current client, but they are on their way out and we would rather not offer
-them. Narrowing the suites offered at that edge is a paid option on the CDN
-plan, and it is not enabled today. The origin our apex is served from refuses
-them already.
+hostnames served through our CDN negotiate `ECDHE-ECDSA-AES128-SHA` under
+TLS 1.2, and we keep them on purpose.
+
+The reason is the traffic. Over a day, 99.7% of requests reach us over TLS 1.3
+and a fraction of a percent over TLS 1.2. That fraction is not idle. It is
+customer integrations calling the API and being served. Removing those suites
+means either dropping TLS 1.2 itself, which stops those integrations at the
+handshake with no warning they can act on, or a paid option on our CDN plan.
+We would rather keep a working integration than improve a scan result. This
+gets revisited when the traffic that depends on it goes away, not on a date we
+would invent today. The origin our apex is served from refuses those suites
+already, which is why one hostname behaves differently from the rest.
+
+What holds alongside that, and what does not:
+
+- TLS 1.0 and 1.1 are refused by the server, on every hostname.
+- Suites offering no encryption, and suites offering no authentication, are
+  refused.
+- Encrypt-then-MAC (RFC 7366) is **not** negotiated on those CBC suites. They
+  run MAC-then-Encrypt, which is the case RFC 9325 singles out, so what stands
+  between them and a padding-oracle timing attack is the edge's constant-time
+  verification rather than the protocol itself. That code is not ours and we
+  cannot check it from outside, so we are not going to tell you it is fine.
+- The SHA-1 in those suites is an HMAC. HMAC security does not rest on
+  collision resistance, so the collision work published against SHA-1 does not
+  carry over to it.
 
 That posture is measured rather than asserted:
 `tests-e2e/tests/website/tls-posture.spec.ts` discovers the hostnames the site
