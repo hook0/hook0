@@ -57,13 +57,13 @@ git clone https://gitlab.com/hook0/hook0.git
 mvn -f hook0/clients/java/pom.xml install
 ```
 
-That puts `com.hook0:hook0-client:2.0.0` in `~/.m2`, where your own build resolves it:
+That puts `com.hook0:hook0-client:1.1.0` in `~/.m2`, where your own build resolves it:
 
 ```xml
 <dependency>
   <groupId>com.hook0</groupId>
   <artifactId>hook0-client</artifactId>
-  <version>2.0.0</version>
+  <version>1.1.0</version>
 </dependency>
 ```
 
