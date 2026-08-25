@@ -22,6 +22,7 @@
 
 ## Docs
 - [Documentation](https://documentation.hook0.com/): Full reference, guides, API, deploy.
+- [Documentation index for assistants](https://documentation.hook0.com/llms.txt): Every published documentation page, with a one-line summary each.
 - [Getting Started](https://documentation.hook0.com/docs/getting-started): 30-minute setup, free tier.
 
 ## Optional
