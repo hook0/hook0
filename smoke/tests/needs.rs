@@ -863,3 +863,91 @@ fn a_deploy_whose_build_failed_can_be_run_a_second_time() {
         "nothing in the pipeline deploys to Clever Cloud, so this guard checked nothing"
     );
 }
+
+/// What tells git to look for hooks where there are none. The repository declares Git LFS filters
+/// at its root, so the runner installs LFS's `pre-push` hook into every clone it makes.
+const HOOKS_OFF: &str = "core.hooksPath";
+
+/// The other way out of the same problem: carry the tool the hook goes looking for.
+const LFS_TOOL: &str = "git-lfs";
+
+/// What a job does, `before_script` included, and what the scripts under `ci/` it calls do. A push
+/// written in a shell file is still a push the job makes, and the two jobs that release a package
+/// push from there rather than from their own YAML.
+fn commands(root: &Path, declared: &BTreeMap<String, Declared>, name: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+
+    for key in ["before_script", "script"] {
+        let Some(entries) = inherited(declared, name, key, MAX_EXTENDS).and_then(Yaml::as_vec)
+        else {
+            continue;
+        };
+        for line in entries
+            .iter()
+            .filter_map(Yaml::as_str)
+            .flat_map(str::lines)
+            .map(str::trim)
+        {
+            lines.push(line.to_owned());
+
+            // A call into the repository's own scripts, found by reading the line rather than by
+            // keeping a list of which jobs call which file.
+            let Some(start) = line.find("ci/") else {
+                continue;
+            };
+            let called: String = line[start..]
+                .chars()
+                .take_while(|c| !c.is_whitespace())
+                .collect();
+            if !called.ends_with(".sh") {
+                continue;
+            }
+            let path = root.join(&called);
+            if !fs::metadata(&path).is_ok_and(|it| it.len() <= MAX_BYTES) {
+                continue;
+            }
+            if let Ok(body) = fs::read_to_string(&path) {
+                lines.extend(body.lines().map(str::trim).map(str::to_owned));
+            }
+        }
+    }
+
+    lines
+}
+
+/// A push that Git LFS's leftover hook would refuse.
+///
+/// `sdk-release.mirrors` runs in an image carrying git and git-subtree and nothing else. The hook
+/// found no `git-lfs`, exited non-zero and took the push with it, so the first mirror answered
+/// `failed to push some refs` and the eleven repositories the Go, Packagist and Zig releases read
+/// from were never written. Nothing under `clients` is LFS-tracked, so the hook has no object to
+/// carry and declining to run it costs nothing.
+#[test]
+fn a_job_that_pushes_to_a_remote_is_not_stopped_by_the_hook_lfs_leaves_behind() {
+    let root = repository();
+    let declared = jobs(&root);
+
+    let mut pushing = Vec::new();
+    for name in declared.keys() {
+        let lines = commands(&root, &declared, name);
+        if !lines.iter().any(|line| line.contains("git push")) {
+            continue;
+        }
+        pushing.push(name.clone());
+
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.contains(HOOKS_OFF) || line.contains(LFS_TOOL)),
+            "{name} pushes to a remote without either turning hooks off with `{HOOKS_OFF}` or \
+             installing {LFS_TOOL}, so Git LFS's pre-push hook will refuse the push"
+        );
+    }
+
+    // A guard that found nothing to hold would pass by looking in the wrong place, and this one
+    // reads jobs out of YAML and scripts off disk, so either half going quiet hides it.
+    assert!(
+        !pushing.is_empty(),
+        "no job was found pushing to a remote, so nothing here was actually checked"
+    );
+}
