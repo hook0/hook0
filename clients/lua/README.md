@@ -52,8 +52,8 @@ and held to the published vectors of both.
 ```sh
 git clone https://gitlab.com/hook0/hook0.git
 cd hook0/clients/lua
-luarocks install --deps-only hook0-client-2.0.1-1.rockspec
-luarocks make hook0-client-2.0.1-1.rockspec
+luarocks install --deps-only hook0-client-2.0.2-1.rockspec
+luarocks make hook0-client-2.0.2-1.rockspec
 ```
 
 `spec/rockspec_spec.lua` fails if a third runtime dependency ever appears.
