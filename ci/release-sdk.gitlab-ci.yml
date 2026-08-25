@@ -308,6 +308,15 @@ sdk-release.mirrors:
     - apk add --no-cache git git-subtree
     - git config user.email "ci@hook0.com"
     - git config user.name "Hook0 CI"
+    # The runner installs Git LFS's pre-push hook into every clone, because the
+    # repository declares LFS filters at its root. This image carries git and
+    # git-subtree and nothing else, so that hook finds no git-lfs, exits non-zero
+    # and takes the push down with it: the first mirror answered `failed to push
+    # some refs` before a single byte of any client left. Nothing under `clients`
+    # is LFS-tracked, so there is no object for the hook to carry and refusing to
+    # run it loses nothing. `.release-trigger` neutralises it the same way, for
+    # the same reason.
+    - git config core.hooksPath /dev/null
   script:
     - |
       set -eu
