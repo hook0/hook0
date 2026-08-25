@@ -1,3 +1,8 @@
+---
+title: Balance test — intérêt légitime (art. 6.1.f RGPD)
+description: Mise en balance au titre de l'art. 6.1.f RGPD pour la mesure des conversions Google Ads de Hook0 (traitement n°8 du registre art. 30).
+---
+
 # Balance test — intérêt légitime (art. 6.1.f RGPD)
 
 | | |

@@ -7,10 +7,21 @@
 import { themes as prismThemes } from "prism-react-renderer";
 import poimandresTheme from "./src/prism/poimandres.js";
 import path from "path";
+import fs from "fs/promises";
 import { fileURLToPath } from "url";
+import sidebars from "./sidebars.js";
+import { buildLlmsTxt } from "./scripts/generate-llms-txt.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Opening line of /llms.txt. An assistant reads it before it reads anything
+// else, so it says what Hook0 does and under what licence, in one breath.
+const LLMS_TXT_SUMMARY =
+  "Hook0 sends webhooks on your behalf: one API call per event, HMAC signatures, " +
+  "retries with a dead letter queue, delivery logs, and a subscriber portal your " +
+  "customers manage themselves. Open-source (SSPL-1.0) — self-host it, or use the " +
+  "cloud hosted in the EU (France). Every page published here is listed below.";
 
 const url = process.env.DOCUMENTATION_URL || "http://localhost:3000/";
 const baseUrl = process.env.DOCUMENTATION_BASE_URL || "/";
@@ -131,6 +142,46 @@ const config = {
         },
       },
     ],
+    // Publishes /llms.txt: the index an assistant reads before answering a
+    // question about Hook0. www.hook0.com already serves one and points here,
+    // but the documentation — where the answers actually live — served none.
+    // Built from the pages Docusaurus has just emitted and ordered by the same
+    // sidebar as the navigation, so a page added tomorrow appears on its own.
+    () => ({
+      name: "generate-llms-txt",
+      async postBuild({ siteConfig, outDir, plugins }) {
+        const docsPlugin = plugins.find(
+          (plugin) => plugin.name === "docusaurus-plugin-content-docs"
+        );
+        if (!docsPlugin?.content?.loadedVersions?.length) {
+          throw new Error(
+            "generate-llms-txt: no loaded docs version to index. The docs " +
+              "plugin moved or changed shape; llms.txt would be published empty."
+          );
+        }
+
+        const docs = docsPlugin.content.loadedVersions
+          .flatMap((version) => version.docs)
+          .map(({ id, title, description, permalink }) => ({
+            id,
+            title,
+            description,
+            permalink,
+          }));
+
+        await fs.writeFile(
+          path.join(outDir, "llms.txt"),
+          buildLlmsTxt({
+            siteUrl: siteConfig.url + siteConfig.baseUrl,
+            title: siteConfig.title,
+            summary: LLMS_TXT_SUMMARY,
+            sidebarItems: sidebars.tutorialSidebar,
+            docs,
+          }),
+          "utf8"
+        );
+      },
+    }),
   ],
 
   themes: [
