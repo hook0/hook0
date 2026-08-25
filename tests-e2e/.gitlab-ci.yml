@@ -156,13 +156,23 @@ documentation-e2e-playwright.test:
   script:
     # Playwright's webServer serves ../documentation/build (documentation.build artifact)
     - npm run test:documentation -- --project=chromium
+    # The TLS posture of the live hostnames rides along in this job rather than in
+    # one of its own: same image, same install, and the rules above already fire on
+    # this directory. It measures production and not the branch, so it is the one
+    # thing here that can fail on something outside the diff, including the network
+    # between the runner and the edge. Playwright's CI retries absorb a flap; a
+    # sustained failure means the posture really moved.
+    - npm run test:website -- --project=chromium tests/website/tls-posture.spec.ts
   artifacts:
     when: always
     paths:
       - tests-e2e/playwright-report-documentation/
+      - tests-e2e/playwright-report-website/
       - tests-e2e/test-results/
     reports:
-      junit: tests-e2e/test-results/documentation-junit.xml
+      junit:
+        - tests-e2e/test-results/documentation-junit.xml
+        - tests-e2e/test-results/website-junit.xml
     expire_in: 30 days
   cache:
     key: playwright-${CI_COMMIT_REF_SLUG}
