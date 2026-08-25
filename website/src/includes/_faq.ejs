@@ -1,11 +1,15 @@
 <%
 var __c = (locals.chrome && locals.chrome.includes && locals.chrome.includes.faq) ? locals.chrome.includes.faq : null;
-var __faqItems = __c ? __c.items : [
+// The page-level FAQ (locales/<lang>/<page>.js) is what feeds the FAQPage
+// JSON-LD, so it wins here: Google requires the questions and answers declared
+// in the schema to be the ones the visitor actually sees on the page.
+var __pageFaq = (locals.t && locals.t.faq && locals.t.faq.items && locals.t.faq.items.length) ? locals.t.faq.items : null;
+var __faqItems = __pageFaq || (__c ? __c.items : [
   { q: 'What are Webhooks as a Service?', a: 'We took everything that goes into a webhook service (retries, fine-grained subscriptions management, etc) and packaged it up into a platform that you can easily integrate with using our API.' },
   { q: 'How long does it take to integrate with Hook0?', a: 'Every setup is different, but a senior developer should be able to build out a working version within a day and be live in under a week.' },
   { q: 'How is this different than Zapier, Make or n8n?', a: 'These services are automation tools that help connect online services together. Hook0 is a platform that gives your application the ability to send webhook events to your users (who may use these services).' },
   { q: "We've already built webhooks, can we still use Hook0?", a: "That is a great use case for using Hook0 since you've already validated that your users want webhooks. There is a good chance that what Hook0 offers is much more robust than your solution. If that is the case, then migrating your custom solution to Hook0 will allow you to <strong>focus</strong> on other priorities while offering a top notch webhook solution." },
-];
+]);
 %>
 <section class="relative bg-surface-secondary py-24 sm:py-32 overflow-hidden">
     <!-- Background Effects -->
