@@ -16,3 +16,5 @@ Severity plays no part in who gets an entry. A report we accept and fix earns on
 - tonghuaroot, who reported that IPv6 transition addresses could name a forbidden IPv4 address and get past the address check that guards webhook delivery.
 - Sagar Kirola, who reported that a password reset link stayed usable once it had already reset a password, so whoever got hold of a spent link could set the password again, and that the application limit a plan sets could be passed by asking for several at the same moment.
 - Nishant Lungare, who reported that the password reset endpoint answered one way for an address with an account and another way for an address without one, and that nothing bounded the number of messages it could be made to send.
+- zoha siddiqui, who reported that the hostnames served through our CDN accept cipher suites built on CBC with a SHA-1 MAC.
+- Emma Nair, who reported the same cipher suites, independently.
