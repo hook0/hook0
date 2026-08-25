@@ -762,3 +762,81 @@ pub async fn get(state: Data<crate::State>) -> Result<Json<QuotasResponse>, Hook
         limits: state.quotas.limits,
     }))
 }
+
+#[cfg(test)]
+mod call_site_contract_tests {
+    use std::fs;
+    use std::path::Path;
+
+    /// Every `enforce_*` above takes a row lock and counts under it. That count
+    /// is only true for as long as the lock is held, so the write it guards has
+    /// to run in the same transaction. Opening a second one in between drops the
+    /// first, which releases the lock before anything is written, and two
+    /// callers arriving together can then both clear a limit only one of them
+    /// should have passed.
+    ///
+    /// This reads the sources rather than the behaviour, on purpose. sqlx sends
+    /// the rollback of a dropped transaction only when the connection goes back
+    /// to the pool, so the lock currently outlives the transaction that took it
+    /// and a concurrency test stays green whether or not the contract is kept.
+    /// The property test belongs elsewhere; what is checked here is the shape
+    /// that made the property true by accident rather than by design.
+    #[test]
+    fn no_handler_opens_a_second_transaction_between_a_quota_check_and_its_commit() {
+        let handlers = Path::new("src/handlers");
+        let mut offenders = Vec::new();
+
+        let mut sources: Vec<_> = fs::read_dir(handlers)
+            .expect("read src/handlers")
+            .map(|entry| entry.expect("read a handler directory entry").path())
+            .filter(|path| path.extension().and_then(|e| e.to_str()) == Some("rs"))
+            .collect();
+        sources.sort();
+
+        assert!(
+            !sources.is_empty(),
+            "no handler source was read: this guard would pass by finding nothing"
+        );
+
+        for path in sources {
+            let source = fs::read_to_string(&path).expect("read a handler source");
+            let lines: Vec<&str> = source.lines().collect();
+
+            for (start, line) in lines.iter().enumerate() {
+                if !line.contains(".enforce_") {
+                    continue;
+                }
+                for (offset, later) in lines.iter().enumerate().skip(start + 1) {
+                    // The write this check guards has been committed: contract kept.
+                    if later.contains(".commit()") {
+                        break;
+                    }
+                    // A new item starts: the check guarded nothing that commits
+                    // here, and what follows belongs to another call site.
+                    if later.starts_with("pub async fn ")
+                        || later.starts_with("async fn ")
+                        || later.starts_with("pub fn ")
+                        || later.starts_with("fn ")
+                    {
+                        break;
+                    }
+                    if later.contains("db.begin()") {
+                        offenders.push(format!(
+                            "{}:{} opens a transaction after the quota check on line {}",
+                            path.display(),
+                            offset + 1,
+                            start + 1
+                        ));
+                        break;
+                    }
+                }
+            }
+        }
+
+        assert!(
+            offenders.is_empty(),
+            "a quota check no longer covers the write it guards:\n  {}",
+            offenders.join("\n  ")
+        );
+    }
+}
