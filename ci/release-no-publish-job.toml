@@ -57,15 +57,15 @@ directory = "clients/lua"
 published_as = "hook0-client"
 registry = "LuaRocks"
 reason = """
-A rock is uploaded as a file whose name states its version — LuaRocks reads a rockspec as
-`<package>-<version>-<revision>.rockspec` — and carries inside it the source it is built from. A
-bump writes the version and stops there: `hook0-client-1.1.0-1.rockspec` keeps the name it was born
-with, and its `source.tag = "sdk-v1.1.0"` keeps pointing at the release before. The first upload
-after a bump would therefore be a file whose name, whose contents and whose source disagree three
-ways, and it would either be refused or publish a rock that fetches the previous release.
+LuaRocks reads a rockspec as `<package>-<version>-<revision>.rockspec`, so the version is in the
+file name, and it fetches the source the rock is built from rather than carrying it, so the release
+is named again inside. Both of those used to drift on a bump: the file kept the name it was born
+with, and `source.tag` went on pointing at the release before. The bump now renames the rockspec and
+moves the tag inside it, and `spec/rockspec_spec.lua` holds it to both, so what a bump produces is a
+rockspec whose name, whose version and whose source agree.
 
-Closing this means teaching the bump to rename a rockspec and to move the source tag inside it,
-which would be the first thing `ci/release-packages` writes that is not a version. The upload then
-needs a luarocks.org account and the `LUAROCKS_API_KEY` that comes with it.
+What is left is an account. Uploading needs a luarocks.org account and the `LUAROCKS_API_KEY` it
+issues, and neither can be created from a pipeline. Nothing else stands between this package and its
+registry.
 """
 

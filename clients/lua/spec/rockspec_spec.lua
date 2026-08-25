@@ -49,6 +49,16 @@ describe("the rockspec", function()
       "the rockspec is not named after what it declares")
   end)
 
+  it("fetches the release it is itself part of", function()
+    -- A rock carries the source it is built from rather than containing it, so the tag here is what
+    -- an install actually downloads. A bump that writes the version and leaves the tag behind
+    -- produces a rock that installs the release before the one it announces, and nothing downstream
+    -- of the install would show the difference. The prefix is the per-package tag convention that
+    -- adr/0004-monorepo-tag-convention.md fixes for this train.
+    assert.are.equal("sdk-v" .. Hook0.VERSION, declared.source.tag,
+      "the rockspec fetches a release other than the one it declares")
+  end)
+
   it("is published under the name this SDK is published under everywhere else", function()
     assert.are.equal("hook0-client", declared.package)
   end)

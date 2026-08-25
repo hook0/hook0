@@ -146,6 +146,23 @@ while IFS= read -r directory; do
             "$file"
     done
 
+    # A package that fetches its own source names the release it is part of, and that name is a tag
+    # rather than a version. `set-version` writes manifests, and the tag inside a rockspec is not
+    # one, so a bump wrote `2.0.0` beside `tag = "sdk-v1.1.0"`: a rock announcing one release and
+    # installing the one before it, which nothing downstream of the install could tell apart.
+    #
+    # The tag of the release before is the tag of this one with the old version in it, so neither is
+    # spelled out twice. This runs before the rename below, because after a `mv` git still lists the
+    # path the file no longer has.
+    escaped_current=$(printf %s "$CURRENT" | sed 's/\./\\./g')
+    previous_tag="${TAG%$NEW_VERSION}${escaped_current}"
+    git ls-files -z -- "$directory" | while IFS= read -r -d '' file; do
+        case "$file" in
+            *.md | *[Ll]ock* | *lock*) continue ;;
+        esac
+        sed -i -E "s/${previous_tag}/${TAG}/g" "$file"
+    done
+
     # A file whose name carries the version, which is what LuaRocks asks for: a rockspec is named
     # `<package>-<version>-<revision>.rockspec`, and `spec/rockspec_spec.lua` refuses one declaring
     # a version it is not named after. `set-version` writes contents, and a file name is not one, so
@@ -154,7 +171,6 @@ while IFS= read -r directory; do
     #
     # Asked of git and matched on the version rather than on an extension, so a client that starts
     # naming a file after the release is carried without editing this.
-    escaped_current=$(printf %s "$CURRENT" | sed 's/\./\\./g')
     git ls-files -z -- "$directory" | while IFS= read -r -d '' file; do
         base=$(basename "$file")
         case "$base" in
