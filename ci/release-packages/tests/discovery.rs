@@ -561,7 +561,42 @@ fn one_module(module: &str) -> Vec<Package> {
 
 #[test]
 fn a_module_named_after_the_mirror_serving_it_is_what_a_user_can_install() {
-    check_mirrors(&one_module("github.com/hook0/hook0-goey")).expect("a path that resolves");
+    check_mirrors(&one_module("github.com/hook0/hook0-goey"), 1).expect("a path that resolves");
+}
+
+/// Go writes the major into the path itself from v2 on, so a module of one major and a module of the
+/// next are two paths rather than two versions of one. `sdk-v2.0.1` shipped with a path still written
+/// for v1: the mirror carried the tag, every job was green, and `proxy.golang.org` answered
+/// `module path must match major version` to anyone asking for it.
+#[test]
+fn a_module_past_its_first_major_is_named_with_the_major_it_is_at() {
+    check_mirrors(&one_module("github.com/hook0/hook0-goey/v2"), 2).expect("a path that resolves");
+    check_mirrors(&one_module("github.com/hook0/hook0-goey/v7"), 7).expect("a path that resolves");
+}
+
+#[test]
+fn a_module_that_did_not_follow_the_train_past_the_first_major_is_refused() {
+    let error = check_mirrors(&one_module("github.com/hook0/hook0-goey"), 2)
+        .expect_err("a path written for the major before");
+    let said = error.to_string();
+
+    assert!(said.contains("github.com/hook0/hook0-goey/v2"), "{said}");
+    assert!(
+        matches!(error, Error::ModulePathNotTheMirror { .. }),
+        "{error:?}"
+    );
+}
+
+/// The other direction, which a hand-written path would reach by being left behind rather than by
+/// being ahead: a suffix on a train that has not got there names a module the proxy has never seen.
+#[test]
+fn a_module_naming_a_major_the_train_is_not_at_is_refused() {
+    let error = check_mirrors(&one_module("github.com/hook0/hook0-goey/v3"), 2)
+        .expect_err("a path naming a major the train is not at");
+    let said = error.to_string();
+
+    assert!(said.contains("github.com/hook0/hook0-goey/v3"), "{said}");
+    assert!(said.contains("github.com/hook0/hook0-goey/v2"), "{said}");
 }
 
 /// The failure this catches is the one a user reports rather than a pipeline: a module path and the
@@ -569,7 +604,7 @@ fn a_module_named_after_the_mirror_serving_it_is_what_a_user_can_install() {
 /// resolves nothing while every job stays green.
 #[test]
 fn a_module_path_that_is_not_the_url_of_its_mirror_is_refused() {
-    let error = check_mirrors(&one_module("github.com/hook0/hook0/clients/goey"))
+    let error = check_mirrors(&one_module("github.com/hook0/hook0/clients/goey"), 1)
         .expect_err("a path pointing somewhere the mirror is not");
     let said = error.to_string();
 
