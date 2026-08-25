@@ -109,12 +109,16 @@ pub async fn create(
 
     let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
+    // The check below takes a row lock on the organization and counts the
+    // applications already there. That count is only true for as long as the
+    // lock is held, so the insert has to run in this same transaction. Opening
+    // a second one here drops this one, which releases the lock before anything
+    // has been written, and two concurrent calls then both read the same
+    // pre-insert count and both create an application past the plan's limit.
     state
         .quotas
         .enforce_applications_per_organization(&mut tx, &body.organization_id)
         .await?;
-
-    let mut tx = state.db.begin().await.map_err(Hook0Problem::from)?;
 
     let application = query_as!(
             Application,
@@ -765,5 +769,128 @@ mod default_secret_tests {
                 "the default secret of application A must be refused on {description}"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod quota_race_tests {
+    use crate::google_ads::test_support::{
+        issue_user_token, seed_membership, seed_org, seed_user, test_state,
+    };
+    use crate::quotas::{QuotaLimits, QuotaValue, Quotas};
+    use actix_web::{App, test, web};
+    use futures_util::future::join_all;
+    use sqlx::PgPool;
+    use sqlx::postgres::PgPoolOptions;
+
+    /// How many callers ask at the same instant. Enough that they genuinely
+    /// overlap on a busy runner, small enough to stay quick.
+    const CONCURRENT_CALLERS: usize = 8;
+
+    /// What the plan allows. One, like the Developer and Startup plans.
+    const APPLICATIONS_ALLOWED: QuotaValue = 1;
+
+    /// A plan limit is only worth what it holds under concurrency. The check
+    /// counts what is already there and the insert adds to it, so unless both
+    /// run under the same lock, callers arriving together all read the same
+    /// count and all pass a limit that only one of them should have cleared.
+    ///
+    /// Driven through the real endpoint and the real auth middleware against a
+    /// real Postgres. Nothing here mocks the handler: what is being measured is
+    /// how many applications the database is left holding.
+    #[sqlx::test]
+    async fn concurrent_creations_cannot_take_an_organization_past_its_application_limit(
+        pool: PgPool,
+    ) {
+        // A pool of this test's own, wide enough for the calls below to be in
+        // flight together. The pool `#[sqlx::test]` hands over is sized for a
+        // sequential test: run on that, the calls would queue for a connection
+        // and the limit would hold for a reason that has nothing to do with the
+        // code under test — green, and proving nothing.
+        let options = (*pool.connect_options()).clone();
+        let pool = PgPoolOptions::new()
+            .max_connections(CONCURRENT_CALLERS as u32 + 2)
+            .connect_with(options)
+            .await
+            .expect("open a wider pool on the test database");
+
+        let keypair = biscuit_auth::KeyPair::new();
+        let private_key = keypair.private();
+
+        let user = seed_user(&pool).await;
+        let org = seed_org(&pool, user).await;
+        seed_membership(&pool, user, org, "editor").await;
+        let user_token = issue_user_token(&pool, &private_key, user, org, "editor").await;
+
+        let mut state = test_state(pool.clone(), private_key.clone(), None).await;
+        state.quotas = Quotas::new(
+            true,
+            QuotaLimits {
+                global_applications_per_organization_limit: APPLICATIONS_ALLOWED,
+                global_members_per_organization_limit: QuotaValue::MAX,
+                global_events_per_day_limit: QuotaValue::MAX,
+                global_days_of_events_retention_limit: QuotaValue::MAX,
+                global_subscriptions_per_application_limit: QuotaValue::MAX,
+                global_event_types_per_application_limit: QuotaValue::MAX,
+            },
+        );
+
+        let biscuit_auth = crate::middleware_biscuit::BiscuitAuth {
+            db: pool.clone(),
+            biscuit_private_key: private_key.clone(),
+            master_api_key: None,
+            enable_application_secret_compatibility: true,
+        };
+
+        let app = test::init_service(
+            App::new().app_data(web::Data::new(state)).service(
+                web::scope("/api/v1").service(
+                    web::scope("/applications")
+                        .wrap(biscuit_auth)
+                        .route("", web::post().to(super::create)),
+                ),
+            ),
+        )
+        .await;
+
+        let calls = (0..CONCURRENT_CALLERS).map(|i| {
+            let request = test::TestRequest::post()
+                .uri("/api/v1/applications")
+                .insert_header(("Authorization", format!("Bearer {user_token}")))
+                .set_json(serde_json::json!({
+                    "organization_id": org,
+                    "name": format!("race-{i}"),
+                }))
+                .to_request();
+            test::call_service(&app, request)
+        });
+
+        let accepted = join_all(calls)
+            .await
+            .iter()
+            .filter(|response| response.status().is_success())
+            .count();
+
+        let stored: i64 = sqlx::query_scalar(
+            "
+                SELECT COUNT(*)
+                FROM event.application
+                WHERE organization__id = $1 AND deleted_at IS NULL
+            ",
+        )
+        .bind(org)
+        .fetch_one(&pool)
+        .await
+        .expect("count the applications the organization ended up with");
+
+        assert_eq!(
+            stored,
+            i64::from(APPLICATIONS_ALLOWED),
+            "the organization is left holding more applications than its plan allows"
+        );
+        assert_eq!(
+            accepted, APPLICATIONS_ALLOWED as usize,
+            "more callers were told their application was created than the plan allows"
+        );
     }
 }

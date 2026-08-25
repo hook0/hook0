@@ -11,6 +11,16 @@ Hook0 uses TLS encryption and HTTPS protocol to protect against various types of
 
 In order to secure the transmission of data between Hook0, customer's subscriptions and customer's applications, Hook0 uses TLS (Transport Layer Security) versions 1.2 and 1.3 for both the API and web application. TLS is a cryptographic protocol that ensures the confidentiality and integrity of data as it is transmitted over the internet. Additionally, the HTTPS (Hypertext Transfer Protocol Secure) protocol is required to further protect against potential attacks.
 
+Nothing below TLS 1.2 is served, and the cipher suites built on CBC with a
+SHA-1 MAC are not negotiated on any public hostname. Scanners regularly report
+those suites against Hook0 Cloud, so this is measured rather than asserted:
+`tests-e2e/tests/website/tls-posture.spec.ts` discovers the hostnames the site
+links to and, for each, offers the weak suites and an obsolete protocol version
+and requires the server to refuse both. Every check is paired with an ordinary
+handshake to the same host, because a host that has moved, a proxy in the path
+and a server refusing a weak cipher otherwise look identical, and a probe that
+cannot connect would report a clean posture it never observed.
+
 ## Rate-limiting
 
 Hook0 implements four rate limiters to control the flow of incoming requests. Three of them apply to every request. The global limiter caps the total number of requests per second that an instance can handle, while the per IP rate-limiter and the per token rate-limiter key their quota on the caller and on the token respectively. The fourth one guards a couple of endpoints only, and is described below.
