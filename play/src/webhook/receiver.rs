@@ -433,7 +433,7 @@ async fn process_webhook(
             "id": webhook_id,
             "status": "stored",
             "message": "Webhook stored. No client connected.",
-            "view_url": format!("{}/view/{}", state.base_url, token)
+            "view_url": crate::urls::inspector_url(&state.base_url, token)
         })),
     )
         .into_response()

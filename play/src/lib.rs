@@ -5,6 +5,7 @@ pub mod rate_limiter;
 pub mod relay;
 pub mod sanitize;
 pub mod storage;
+pub mod urls;
 pub mod webhook;
 
 use dashmap::DashMap;
