@@ -24,14 +24,16 @@ documentation.build:
       - documentation/build/
     expire_in: 1 week
   rules:
+    # No `changes:` on master. A pipeline that would have deployed gets
+    # auto-cancelled the moment a later merge lands, and the pipeline that
+    # replaces it carries no deploy job of its own unless its own diff happens
+    # to touch these paths. The change then sits on master, published nowhere,
+    # and nothing goes red. Building every time costs a couple of runner
+    # minutes per merge; the alternative costs a served page that silently
+    # disagrees with master.
+    - if: $CI_COMMIT_BRANCH == "master"
     # website/data.js is imported into the doc client bundle (@shared/website-data),
     # and tests-e2e drives the built output — rebuild so both stay in sync.
-    - if: $CI_COMMIT_BRANCH == "master"
-      changes:
-        - documentation/**/*
-        - website/data.js
-        - tests-e2e/**/*
-        - .gitlab-ci.yml
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - documentation/**/*
@@ -54,9 +56,6 @@ documentation.deploy:
     url: https://documentation.hook0.com
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
-      changes:
-        - documentation/**/*
-        - .gitlab-ci.yml
 
 # Preview deployment to Netlify (MR)
 documentation.deploy.preview:
