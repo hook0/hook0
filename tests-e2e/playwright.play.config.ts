@@ -10,6 +10,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  // A test that passes only on retry still fails. Never turn this off; the
+  // reasoning is written out in playwright.config.ts.
+  failOnFlakyTests: !!process.env.CI,
   workers: process.env.CI ? 1 : undefined,
   reporter: [
     ["html", { open: "never", outputFolder: "playwright-report-play" }],
