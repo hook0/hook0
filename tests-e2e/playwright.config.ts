@@ -28,6 +28,18 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  // A test that fails and then passes on retry is a test that fails. Playwright
+  // scores that "flaky" and hands the job a green tick anyway, which is exactly
+  // how a broken delivery path stayed hidden here: the run that had in fact
+  // caught it reported "209 passed, 5 flaky" and went green, and the five first
+  // attempts it swallowed were the bug.
+  //
+  // Never turn this off, and never trade it for a longer retry budget. Flakiness
+  // is either a real defect the retry is hiding or a test that lies about what it
+  // checks, and both have to stop the pipeline. Retries stay because a rerun that
+  // names the difference is worth having; what they must not do is decide the
+  // verdict.
+  failOnFlakyTests: !!process.env.CI,
   workers: process.env.CI ? 1 : undefined,
   reporter: [
     ["html", { open: "never" }],
