@@ -227,7 +227,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, client_ip: Strin
 
                 // Send confirmation
                 let webhook_url = format!("{}/in/{}/", state.base_url, token);
-                let view_url = format!("{}/view/{}", state.base_url, token);
+                let view_url = crate::urls::inspector_url(&state.base_url, &token);
                 let started = ServerMessage::started(webhook_url, view_url);
                 let _ = tx
                     .send(serde_json::to_string(&started).unwrap_or_default())
