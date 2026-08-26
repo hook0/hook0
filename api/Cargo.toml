@@ -14,14 +14,14 @@ release = true
 publish = false
 
 [dependencies]
-actix-cors = "0.7.1"
+actix-cors = "0.7.2"
 actix-files = "0.7.0"
 actix-governor = "0.10.0"
 actix-web = "4.15.0"
 anyhow = "1.0.104"
 argon2 = "0.5.3"
 async-recursion = "1.1.1"
-aws-sdk-s3 = { version = "1.143.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.144.0", features = ["behavior-version-latest"] }
 base64 = "0.23.1"
 biscuit-auth = { version = "6.0.0", features = ["uuid"] }
 chrono = { version = "0.4.45", features = ["serde"] }
@@ -45,7 +45,7 @@ opentelemetry = { version = "0.32.0", default-features = false, features = ["tra
 opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls"] }
 opentelemetry_sdk = { version = "0.32.1", default-features = false, features = ["trace", "metrics", "rt-tokio", "spec_unstable_metrics_views"] }
 paperclip = { version = "0.9.7", default-features = false, features = ["actix4", "v3", "chrono", "uuid"] }
-pulsar = { version = "6.8.0", default-features = false, features = ["tokio-rustls-runtime"] }
+pulsar = { version = "6.9.0", default-features = false, features = ["tokio-rustls-runtime"] }
 regex = "1.13.1"
 reqwest = { version = "0.13.4", features = ["hickory-dns", "form", "json"] }
 rustls = { version = "0.23.43", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }

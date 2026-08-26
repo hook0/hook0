@@ -12,12 +12,12 @@ license = "SSPL-1.0"
 [dependencies]
 chrono = "0.4.45"
 prost = "0.14.4"
-prost-wkt = "0.7.1"
-prost-wkt-types = "0.7.1"
+prost-wkt = "0.7.2"
+prost-wkt-types = "0.7.2"
 # The runtime feature its two consumers both ask for. Without it this crate only ever
 # compiled because building the API or the worker unified the feature in for it: on its
 # own, `cargo test -p hook0-protobuf` and `cargo publish` both failed inside `pulsar`.
-pulsar = { version = "6.8.0", default-features = false, features = ["tokio-rustls-runtime"] }
+pulsar = { version = "6.9.0", default-features = false, features = ["tokio-rustls-runtime"] }
 serde = "1.0.229"
 serde_json = "1.0.151"
 thiserror = "2.0.20"
@@ -25,4 +25,4 @@ uuid = "1.25.0"
 
 [build-dependencies]
 prost-build = "0.14.4"
-prost-wkt-build = "0.7.1"
+prost-wkt-build = "0.7.2"

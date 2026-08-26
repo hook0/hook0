@@ -15,7 +15,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.104"
-aws-sdk-s3 = { version = "1.143.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.144.0", features = ["behavior-version-latest"] }
 chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.6", features = ["derive", "env", "cargo", "wrap_help"] }
 futures = "0.3.34"
@@ -32,7 +32,7 @@ opentelemetry = { version = "0.32.0", default-features = false, features = ["tra
 opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "http-proto", "zstd-http", "internal-logs", "reqwest-blocking-client", "reqwest-rustls"] }
 opentelemetry_sdk = { version = "0.32.1", default-features = false, features = ["trace", "metrics", "rt-tokio"] }
 papaya = "0.2.5"
-pulsar = { version = "6.8.0", default-features = false, features = ["tokio-rustls-runtime"] }
+pulsar = { version = "6.9.0", default-features = false, features = ["tokio-rustls-runtime"] }
 rand = "0.10"
 reqwest = { version = "0.13.4", features = ["hickory-dns", "json"] }
 rustls = { version = "0.23.43", default-features = false, features = ["std", "tls12", "logging", "prefer-post-quantum"] }
