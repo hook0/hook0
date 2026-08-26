@@ -213,6 +213,10 @@ const labels = computed({
   set: (v: Hook0KeyValueKeyValuePair[]) => void setFieldValue('labels', v),
 });
 
+function onLabelsUpdate(pairs: Hook0KeyValueKeyValuePair[] | Record<string, string>) {
+  labels.value = Array.isArray(pairs) ? pairs : recordToKvPairs(pairs);
+}
+
 const occurredAt = computed({
   get: () => values.occurredAt ?? formatDateTimeLocal(new Date()),
   set: (v: string) => void setFieldValue('occurredAt', v),
@@ -504,6 +508,7 @@ function handleCancel() {
                 :value-placeholder="t('common.labelValue')"
                 :show-separator="true"
                 data-test="send-event-labels"
+                @update:model-value="onLabelsUpdate($event)"
               />
             </template>
           </Hook0CardContentLine>

@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
-import { loginAndCreateApp, selectEventType } from "../fixtures/test-setup";
+import {
+  loginAndCreateApp,
+  selectEventType,
+  submitEventWithLabels,
+  submitSubscriptionWithLabels,
+} from "../fixtures/test-setup";
+import { API_BASE_URL } from "../fixtures/email-verification";
 
 /**
  * Log Detail E2E tests for Hook0.
@@ -7,6 +13,24 @@ import { loginAndCreateApp, selectEventType } from "../fixtures/test-setup";
  * Tests for the split-panel detail view and LogDetail full page flows.
  */
 test.describe("Log Detail", () => {
+  /**
+   * Set a key/value field and leave it holding that value. Filling once is not
+   * enough here: the form re-renders while it is being built, and a field that
+   * held the right thing a moment ago is not the same claim as a field that
+   * holds it when the form is submitted.
+   */
+  async function setKeyValue(
+    input: import("@playwright/test").Locator,
+    value: string
+  ) {
+    if ((await input.inputValue()) !== value) {
+      await input.clear();
+      await input.fill(value);
+      await input.blur();
+    }
+    await expect(input).toHaveValue(value);
+  }
+
   /**
    * Helper to set up an environment with an event type, subscription, and sent event.
    * Navigates to the logs page and waits for at least one log row to appear.
@@ -56,27 +80,20 @@ test.describe("Log Detail", () => {
       '[data-test="subscription-labels"] [data-test="kv-value-input-0"]'
     );
     await expect(labelKeyInput).toBeVisible({ timeout: 5000 });
-    await labelKeyInput.clear();
-    await labelKeyInput.fill("all");
-    await labelKeyInput.blur();
-    await labelValueInput.clear();
-    await labelValueInput.fill("yes");
-    await labelValueInput.blur();
-    await expect(labelKeyInput).toHaveValue("all");
-    await expect(labelValueInput).toHaveValue("yes");
+    await setKeyValue(labelKeyInput, "all");
+    await setKeyValue(labelValueInput, "yes");
 
     // Select event type
     const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
     await selectEventType(eventTypeCheckbox);
 
-    const createSubResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/subscriptions") &&
-        response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-    await page.locator('[data-test="subscription-submit-button"]').click();
-    await createSubResponse;
+    // Ticking the box re-renders the form, and these two fields sit above it.
+    // The editor rebuilds a row from what the form holds, so a field settled
+    // before the tick can come back holding the form's default instead.
+    await setKeyValue(labelKeyInput, "all");
+    await setKeyValue(labelValueInput, "yes");
+
+    await submitSubscriptionWithLabels(page, { all: "yes" });
     await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
 
     // Send an event via UI (same pattern as logs.spec.ts)
@@ -113,18 +130,12 @@ test.describe("Log Detail", () => {
       .locator('[data-test="send-event-occurred-at-input"]')
       .fill(now.toISOString().slice(0, 16));
 
-    const sendEventResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/event") &&
-        response.request().method() === "POST" &&
-        !response.url().includes("/api/v1/event_types"),
-      { timeout: 15000 }
-    );
-    await page.locator('[data-test="send-event-submit-button"]').click();
-    await sendEventResponse;
+    await submitEventWithLabels(page, { all: "yes" });
 
-    // Wait for navigation to event detail before navigating away
-    await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
+    // Wait for navigation to event detail before navigating away. The send form
+    // itself lives at /events/send, which a looser pattern also matches, so the
+    // check would hold on the very page it is meant to prove we left.
+    await expect(page).toHaveURL(/\/events\/(?!send$)[^/]+$/, { timeout: 10000 });
 
     // Navigate to logs and wait for data
     await page.goto(
@@ -135,13 +146,68 @@ test.describe("Log Detail", () => {
     return env;
   }
 
-  async function waitForLogRow(page: import("@playwright/test").Page) {
+  async function waitForLogRow(
+    page: import("@playwright/test").Page,
+    applicationId: string
+  ) {
+    const accessToken = await page.evaluate(() => {
+      const stored = window.localStorage.getItem("auth");
+      if (stored === null) {
+        return null;
+      }
+      return (JSON.parse(stored) as { accessToken: string }).accessToken;
+    });
+    expect(accessToken, "the browser holds no session, so the API cannot be asked").not.toBeNull();
+
+    // A database trigger writes the delivery attempt in the same transaction as
+    // the event, once per enabled subscription whose label pair the event
+    // carries. The row is therefore already there when the event POST answers,
+    // or it is never coming. Reloading the page for a minute, which is what this
+    // used to do, could only ever turn that difference into "element not found".
+    let attemptCount = 0;
     await expect(async () => {
-      await page.reload();
-      await expect(
-        page.locator('[data-test="logs-table"] [row-id]').first()
-      ).toBeVisible({ timeout: 10000 });
-    }).toPass({ timeout: 60000, intervals: [2000] });
+      const response = await page.request.get(
+        `${API_BASE_URL}/request_attempts?application_id=${applicationId}`,
+        { headers: { Authorization: `Bearer ${accessToken!}` } }
+      );
+      expect(
+        response.status(),
+        `listing delivery attempts answered ${response.status()}: ${await response.text()}`
+      ).toBe(200);
+      const attempts = (await response.json()) as unknown[];
+      attemptCount = attempts.length;
+      expect(
+        attemptCount,
+        "the API lists no delivery attempt for this application"
+      ).toBeGreaterThan(0);
+    }).toPass({ timeout: 45000, intervals: [1500] })
+      .catch(async (error: Error) => {
+        // An empty list says nothing about which side of the match came up
+        // short, and the event POST answering 2xx does not say what the event
+        // was stored as carrying. Both sides are read back, so the run names
+        // the side instead of leaving it to be guessed from outside.
+        const readBack = (collection: string) =>
+          page.request
+            .get(`${API_BASE_URL}/${collection}?application_id=${applicationId}`, {
+              headers: { Authorization: `Bearer ${accessToken!}` },
+            })
+            .then((response) => response.text())
+            .catch(() => "(could not be read)");
+        const [subscriptions, events] = await Promise.all([
+          readBack("subscriptions"),
+          readBack("events"),
+        ]);
+        throw new Error(
+          `${error.message}\nsubscriptions on this application: ${subscriptions}` +
+            `\nevents on this application: ${events}`
+        );
+      });
+
+    await page.reload();
+    await expect(
+      page.locator('[data-test="logs-table"] [row-id]').first(),
+      `the API reports ${attemptCount} delivery attempt(s), so the table should show at least one`
+    ).toBeVisible({ timeout: 15000 });
   }
 
   test("should show delivery detail in split panel when clicking a log row", async ({
@@ -149,8 +215,8 @@ test.describe("Log Detail", () => {
     request,
   }) => {
     test.slow();
-    await setupLogsWithDelivery(page, request, "drawer-open");
-    await waitForLogRow(page);
+    const env = await setupLogsWithDelivery(page, request, "drawer-open");
+    await waitForLogRow(page, env.applicationId);
 
     // Click on the status column of the first row (not the event link which navigates away)
     const firstRow = page.locator('[data-test="logs-table"] [row-id]').first();
@@ -173,7 +239,7 @@ test.describe("Log Detail", () => {
   }) => {
     test.slow();
     const env = await setupLogsWithDelivery(page, request, "full-page");
-    await waitForLogRow(page);
+    await waitForLogRow(page, env.applicationId);
 
     // Get the first row's ID
     const firstRow = page.locator('[data-test="logs-table"] [row-id]').first();
@@ -225,7 +291,7 @@ test.describe("Log Detail", () => {
   test("should navigate back from LogDetail to logs", async ({ page, request }) => {
     test.slow();
     const env = await setupLogsWithDelivery(page, request, "back-nav");
-    await waitForLogRow(page);
+    await waitForLogRow(page, env.applicationId);
 
     // Get the first row's ID and navigate to full page
     const firstRow = page.locator('[data-test="logs-table"] [row-id]').first();
