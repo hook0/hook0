@@ -951,3 +951,173 @@ fn a_job_that_pushes_to_a_remote_is_not_stopped_by_the_hook_lfs_leaves_behind() 
         "no job was found pushing to a remote, so nothing here was actually checked"
     );
 }
+
+/// How much of a tag pattern or a stripped prefix is read before giving up, so a pattern somebody
+/// writes as one long line cannot turn this guard into an unbounded walk.
+const MAX_HEAD: usize = 32;
+
+/// How many tag comparisons are read out of one condition, for the same reason.
+const MAX_PATTERNS: usize = 8;
+
+/// Where a rule compares the tag against a pattern, and where a script cuts a prefix off it.
+const TAG: &str = "CI_COMMIT_TAG";
+const ANCHOR: &str = "/^";
+const STRIP: &str = "CI_COMMIT_TAG#";
+
+/// Below this, the guard is reading the wrong thing: four release trains publish from this
+/// repository and each of them takes its version off its own tag.
+const MIN_TAG_READERS: usize = 4;
+
+/// The literal head of a tag pattern — the part a script would cut off `CI_COMMIT_TAG`.
+///
+/// Reading stops at the first character that stands for something other than itself, so
+/// `sdk-v\d+\.\d+\.\d+$` yields `sdk-v` and `mcp\/v\d+\.\d+\.\d+$` yields `mcp/v`.
+fn literal_head(pattern: &str) -> String {
+    let mut head = String::new();
+    let mut chars = pattern.chars();
+    while head.len() < MAX_HEAD {
+        match chars.next() {
+            Some('\\') => match chars.next() {
+                Some(escaped @ ('/' | '-' | '.')) => head.push(escaped),
+                _ => break,
+            },
+            Some('(' | '[' | '{' | '.' | '$' | '+' | '*' | '?' | '|' | ')' | '/') => break,
+            Some(other) => head.push(other),
+            None => break,
+        }
+    }
+    head
+}
+
+/// Every tag head a condition compares the tag against.
+fn compared_heads(condition: &str) -> BTreeSet<String> {
+    let mut found = BTreeSet::new();
+    let mut rest = condition;
+    while found.len() < MAX_PATTERNS {
+        let Some(at) = rest.find(TAG) else {
+            break;
+        };
+        rest = &rest[at + TAG.len()..];
+        let Some(anchored) = rest.find(ANCHOR) else {
+            break;
+        };
+        // Another mention of the tag before the pattern would mean this one is not the pattern's,
+        // so the comparison is read only when nothing stands between the two.
+        if rest[..anchored].contains(TAG) {
+            continue;
+        }
+        let head = literal_head(&rest[anchored + ANCHOR.len()..]);
+        rest = &rest[anchored + ANCHOR.len()..];
+        if !head.is_empty() {
+            found.insert(head);
+        }
+    }
+    found
+}
+
+/// Every prefix a job's commands cut off the tag.
+fn stripped_heads(lines: &[String]) -> BTreeSet<String> {
+    let mut found = BTreeSet::new();
+    for line in lines {
+        let mut rest = line.as_str();
+        while let Some(at) = rest.find(STRIP) {
+            rest = &rest[at + STRIP.len()..];
+            let head: String = rest
+                .chars()
+                .take_while(|c| *c != '}')
+                .take(MAX_HEAD)
+                .collect();
+            if !head.is_empty() {
+                found.insert(head);
+            }
+        }
+    }
+    found
+}
+
+/// What a job's variables say a name holds, following `extends:` like every other key.
+///
+/// The prefix is written once as a variable by the jobs that share a promotion template, so the
+/// head has to be resolved before it can be held against what the rules let through. A name that
+/// resolves to nothing is a failure rather than a skip: the shell would cut nothing off the tag and
+/// publish the whole of it as a version.
+fn resolved<'a>(
+    declared: &'a BTreeMap<String, Declared>,
+    name: &str,
+    head: &'a str,
+) -> Option<String> {
+    let Some(variable) = head
+        .strip_prefix("${")
+        .and_then(|it| it.strip_suffix('}'))
+        .or_else(|| head.strip_prefix('$'))
+    else {
+        return Some(head.to_owned());
+    };
+    inherited(declared, name, "variables", MAX_EXTENDS)?[variable]
+        .as_str()
+        .map(str::to_owned)
+}
+
+/// A version read off a tag belonging to somebody else's release train.
+///
+/// `sdk.packages` runs on the SDK tag and on a change to any client, and on a tag pipeline GitLab
+/// counts a path rule as met whatever the tag is — so the `mcp/v3.0.0` pipeline reached it too,
+/// where cutting `sdk-v` off the tag left `mcp/v3.0.0` whole and `release-packages` answered that
+/// `m` is not a major version. The job failed in `build`, `test` never ran, and `mcp.publish`,
+/// which waits on a job in `test`, was skipped: the tag existed and the crate was never published.
+///
+/// A job may read a version off the tag either because its rules let no other train's tag reach it,
+/// or because its shell looks at the shape of the tag before cutting. What is refused here is a job
+/// doing neither.
+#[test]
+fn a_version_is_never_read_off_the_tag_of_another_release_train() {
+    let root = repository();
+    let declared = jobs(&root);
+
+    let mut readers = Vec::new();
+    for name in declared.keys() {
+        // A hidden job is a template GitLab never runs. What it says reaches this guard through
+        // the jobs that extend it, which are the ones carrying the rules and the variables.
+        if name.starts_with('.') {
+            continue;
+        }
+        let lines = commands(&root, &declared, name);
+        for written in stripped_heads(&lines) {
+            let head = resolved(&declared, name, &written).unwrap_or_else(|| {
+                panic!(
+                    "{name} cuts `{written}` off {TAG}, and that name holds nothing this job \
+                     declares, so the tag would be published whole as a version"
+                )
+            });
+            readers.push((name.clone(), head.clone()));
+
+            let gated_by_rules = rules(&declared, name, MAX_EXTENDS).is_some_and(|all| {
+                !all.is_empty()
+                    && all.iter().all(|rule| {
+                        rule["if"]
+                            .as_str()
+                            .is_some_and(|condition| compared_heads(condition).contains(&head))
+                    })
+            });
+            // The arm of a `case` naming the same head: the shell asks what the tag is before
+            // treating it as this train's.
+            let arm = format!("{head}*)");
+            let gated_by_shell = lines.iter().any(|line| line.contains(&arm));
+
+            assert!(
+                gated_by_rules || gated_by_shell,
+                "{name} cuts `{head}` off {TAG} while neither its rules nor its shell keep another \
+                 train's tag out, so a tag that is not a `{head}` one is read as a version"
+            );
+        }
+    }
+
+    // Both halves can go quiet on their own — the jobs come out of YAML and the commands off disk —
+    // and a guard that found no tag being read would pass without having checked anything.
+    assert!(
+        readers.len() >= MIN_TAG_READERS,
+        "only {} job(s) were found reading a version off {TAG}, fewer than the {MIN_TAG_READERS} \
+         release trains that publish from here, so this guard is looking in the wrong place",
+        readers.len()
+    );
+}

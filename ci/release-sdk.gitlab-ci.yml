@@ -80,14 +80,22 @@ sdk.packages:
     - cargo fmt -p release-packages -- --check
     - cargo clippy -p release-packages --all-targets -- -D warnings
     - cargo test -p release-packages
-    # On a tag, the inventory has to agree with what is being released. Off one,
-    # printing it is what proves every package is still readable.
+    # On the SDK tag, the inventory has to agree with what is being released.
+    # Anywhere else, printing it is what proves every package is still readable.
+    #
+    # The arms are chosen on the shape of the tag rather than on a tag merely
+    # being set, because the path rule above also brings this job into the tag
+    # pipelines of the other release trains, whose tags carry a version this
+    # inventory does not hold.
     - |
-      if [ -n "${CI_COMMIT_TAG:-}" ]; then
-        cargo run --locked -p release-packages -- check-version "${CI_COMMIT_TAG#sdk-v}"
-      else
-        cargo run --locked -p release-packages -- list
-      fi
+      case "${CI_COMMIT_TAG:-}" in
+        sdk-v*)
+          cargo run --locked -p release-packages -- check-version "${CI_COMMIT_TAG#sdk-v}"
+          ;;
+        *)
+          cargo run --locked -p release-packages -- list
+          ;;
+      esac
     # Which clients are mirrored, and to which repository, carried forward as a
     # file rather than reproduced in a shell: the mirror push and the three jobs
     # that publish out of a mirror all read this, so a client added to the
