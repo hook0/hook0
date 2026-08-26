@@ -7,10 +7,14 @@ website.build:
   stage: build
   dependencies: []
   rules:
+    # No `changes:` on master. A pipeline that would have deployed gets
+    # auto-cancelled the moment a later merge lands, and the pipeline that
+    # replaces it carries no deploy job of its own unless its own diff happens
+    # to touch these paths. The change then sits on master, published nowhere,
+    # and nothing goes red. Building every time costs a couple of runner
+    # minutes per merge; the alternative costs a served page that silently
+    # disagrees with master.
     - if: $CI_COMMIT_BRANCH == "master"
-      changes:
-        - website/**/*
-        - .gitlab-ci.yml
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - website/**/*
@@ -71,9 +75,6 @@ website.deploy:
     url: https://www.hook0.com
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
-      changes:
-        - website/**/*
-        - .gitlab-ci.yml
 
 # Preview deployment to Netlify (MR)
 website.deploy.preview:
