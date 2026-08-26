@@ -60,7 +60,7 @@ pub async fn get_webhooks(
             session,
             webhooks,
             webhook_url: format!("{}/in/{}/", state.base_url, token),
-            view_url: format!("{}/view/{}", state.base_url, token),
+            view_url: crate::urls::inspector_url(&state.base_url, &token),
         }),
     )
         .into_response()
@@ -132,7 +132,7 @@ pub async fn get_session(
         Json(serde_json::json!({
             "session": session,
             "webhook_url": format!("{}/in/{}/", state.base_url, token),
-            "view_url": format!("{}/view/{}", state.base_url, token)
+            "view_url": crate::urls::inspector_url(&state.base_url, &token)
         })),
     )
         .into_response()

@@ -40,9 +40,10 @@ export function buildPlayReceiveUrl(base: string, token: string): string {
   return `${normalizePlayBaseUrl(base)}/in/${token}/`;
 }
 
-// Human-facing inspector page: {base}/view/{token}
+// Human-facing inspector page: {base}/#{token} — the single-page inspector reads its
+// token from the URL fragment, so anything under a path segment renders no session.
 export function buildPlayViewUrl(base: string, token: string): string {
-  return `${normalizePlayBaseUrl(base)}/view/${token}`;
+  return `${normalizePlayBaseUrl(base)}/#${token}`;
 }
 
 // Inspection API returning received webhooks: {base}/api/tokens/{token}/webhooks
