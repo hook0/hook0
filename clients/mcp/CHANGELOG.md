@@ -1,5 +1,29 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [mcp/v3.0.0] - 2026-08-26
+
+### Added
+
+- Ship SDKs for eleven languages, generated from a specification that now matches the API (clients,api)
+
+### Changed
+
+- Fix (mcp)
+
+### Other
+
+- Update dependencies and remove unused ones
+- Update dependencies
+- Update dependencies
+- Update dependencies
+
+# Changelog
+
 All notable changes to the Hook0 MCP server are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
