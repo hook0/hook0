@@ -392,6 +392,13 @@ static DELIVERY_OUTCOMES: LazyLock<Counter<u64>> = LazyLock::new(|| {
 /// Bounded set of delivery outcomes. The metric attribute is derived exclusively
 /// from this enum so the `outcome` label can never take an unbounded value (raw
 /// status codes or error strings would blow up cardinality).
+///
+/// `InvalidTarget` and `Other` are kept apart from `ConnectionError` because they
+/// answer a different question. A target that is malformed, does not resolve, or
+/// resolves to a non-routable address says something about the subscriber's
+/// configuration; only `ConnectionError` and `Dns` say something about Hook0's own
+/// egress. Folding them together makes every egress-health query unreadable, since
+/// the subscriber-configuration cases vastly outnumber the transport ones.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeliveryOutcome {
     Success,
@@ -400,6 +407,8 @@ pub enum DeliveryOutcome {
     Http4xx,
     Http5xx,
     ConnectionError,
+    InvalidTarget,
+    Other,
 }
 
 impl DeliveryOutcome {
@@ -411,6 +420,8 @@ impl DeliveryOutcome {
             DeliveryOutcome::Http4xx => "http_4xx",
             DeliveryOutcome::Http5xx => "http_5xx",
             DeliveryOutcome::ConnectionError => "connection_error",
+            DeliveryOutcome::InvalidTarget => "invalid_target",
+            DeliveryOutcome::Other => "other",
         }
     }
 }
@@ -447,9 +458,10 @@ pub fn report_given_up(reason: GiveUpReason) {
 }
 
 /// Total mapping from a delivery `Response` to exactly one bounded `DeliveryOutcome`.
-/// A success maps to `Success`; an HTTP error with a 4xx/5xx code maps to the
-/// matching class; anything else falls back to the transport error (`Timeout` for a
-/// timeout, `Dns` for a resolution failure, `ConnectionError` otherwise).
+/// A success maps to `Success`; an HTTP error with a 4xx/5xx code maps to the matching
+/// class; every remaining case is spelled out by name rather than caught by a wildcard,
+/// so that a new `ResponseError` variant fails to compile here instead of silently
+/// landing in a transport bucket it does not belong to.
 pub fn classify_outcome(response: &Response) -> DeliveryOutcome {
     if response.is_success() {
         return DeliveryOutcome::Success;
@@ -464,7 +476,15 @@ pub fn classify_outcome(response: &Response) -> DeliveryOutcome {
     match response.response_error {
         Some(ResponseError::Timeout) => DeliveryOutcome::Timeout,
         Some(ResponseError::Dns) => DeliveryOutcome::Dns,
-        _ => DeliveryOutcome::ConnectionError,
+        Some(ResponseError::Connection) => DeliveryOutcome::ConnectionError,
+        Some(ResponseError::InvalidTarget) => DeliveryOutcome::InvalidTarget,
+        // `Http` only reaches this point with a status outside 4xx/5xx, and `None`
+        // only with a failure that `is_success()` already ruled out; neither is a
+        // transport fault, and neither is frequent enough to deserve its own label.
+        Some(ResponseError::InvalidHeader)
+        | Some(ResponseError::Unknown)
+        | Some(ResponseError::Http)
+        | None => DeliveryOutcome::Other,
     }
 }
 
@@ -475,13 +495,15 @@ mod tests {
     use std::collections::BTreeSet;
 
     /// The complete, closed set of labels the `outcome` attribute may ever take.
-    const OUTCOME_LABELS: [&str; 6] = [
+    const OUTCOME_LABELS: [&str; 8] = [
         "success",
         "timeout",
         "dns",
         "http_4xx",
         "http_5xx",
         "connection_error",
+        "invalid_target",
+        "other",
     ];
 
     fn response(response_error: Option<ResponseError>, http_code: Option<u16>) -> Response {
@@ -550,6 +572,42 @@ mod tests {
     }
 
     #[test]
+    fn an_unreachable_target_is_not_reported_as_a_connection_error() {
+        // A subscriber URL that is malformed, does not resolve, or points at a
+        // non-routable address is the subscriber's configuration. Reporting it as
+        // `connection_error` drowns Hook0's own egress signal: in production these
+        // outnumber genuine connection failures by more than an order of magnitude.
+        assert_eq!(
+            classify_outcome(&response(Some(ResponseError::InvalidTarget), None)),
+            DeliveryOutcome::InvalidTarget
+        );
+    }
+
+    #[test]
+    fn every_response_error_maps_to_its_own_documented_outcome() {
+        // Enumerated rather than sampled: the point of the closed set is that each
+        // failure kind lands where a query expects it, not merely somewhere legal.
+        let cases = [
+            (ResponseError::Timeout, DeliveryOutcome::Timeout),
+            (ResponseError::Dns, DeliveryOutcome::Dns),
+            (ResponseError::Connection, DeliveryOutcome::ConnectionError),
+            (ResponseError::InvalidTarget, DeliveryOutcome::InvalidTarget),
+            (ResponseError::InvalidHeader, DeliveryOutcome::Other),
+            (ResponseError::Unknown, DeliveryOutcome::Other),
+            // An HTTP failure carrying a status outside 4xx/5xx, e.g. a 1xx or 3xx.
+            (ResponseError::Http, DeliveryOutcome::Other),
+        ];
+        for (error, expected) in cases {
+            assert_eq!(
+                classify_outcome(&response(Some(error), None)),
+                expected,
+                "{error} must be reported as {}",
+                expected.as_str()
+            );
+        }
+    }
+
+    #[test]
     fn delivery_outcome_labels_are_the_closed_bounded_set() {
         let labels: BTreeSet<&str> = [
             DeliveryOutcome::Success,
@@ -558,6 +616,8 @@ mod tests {
             DeliveryOutcome::Http4xx,
             DeliveryOutcome::Http5xx,
             DeliveryOutcome::ConnectionError,
+            DeliveryOutcome::InvalidTarget,
+            DeliveryOutcome::Other,
         ]
         .iter()
         .map(DeliveryOutcome::as_str)
@@ -565,7 +625,7 @@ mod tests {
         let expected: BTreeSet<&str> = OUTCOME_LABELS.into_iter().collect();
         assert_eq!(labels, expected);
         // Each variant maps to a distinct label (no collisions).
-        assert_eq!(labels.len(), 6);
+        assert_eq!(labels.len(), 8);
     }
 
     #[test]
