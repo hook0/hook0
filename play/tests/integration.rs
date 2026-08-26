@@ -389,8 +389,12 @@ async fn test_websocket_connection_and_start() {
         let server_msg: ServerMessage = serde_json::from_str(&text).unwrap();
         match server_msg {
             ServerMessage::Started { data, .. } => {
-                assert!(data.webhook_url.contains(&token));
-                assert!(data.view_url.contains(&token));
+                assert!(data.webhook_url.ends_with(&format!("/in/{}/", token)));
+                assert!(
+                    data.view_url.ends_with(&format!("/#{}", token)),
+                    "the inspector page reads its token from the fragment, got {}",
+                    data.view_url
+                );
             }
             _ => panic!("Expected Started message, got {:?}", server_msg),
         }

@@ -57,9 +57,12 @@ describe('playEndpoint', () => {
       );
     });
 
-    it('builds the view URL', () => {
+    it('builds the view URL pointing at the inspector page fragment', () => {
       expect(buildPlayViewUrl('https://play.hook0.com', 'c_abc')).toBe(
-        'https://play.hook0.com/view/c_abc'
+        'https://play.hook0.com/#c_abc'
+      );
+      expect(buildPlayViewUrl('https://play.hook0.com/', 'c_abc')).toBe(
+        'https://play.hook0.com/#c_abc'
       );
     });
 
