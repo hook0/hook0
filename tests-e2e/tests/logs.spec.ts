@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { loginAndCreateApp, selectEventType } from "../fixtures/test-setup";
+import {
+  loginAndCreateApp,
+  selectEventType,
+  submitEventWithLabels,
+  submitSubscriptionWithLabels,
+} from "../fixtures/test-setup";
 
 /**
  * Logs (Request Attempts) E2E tests for Hook0.
@@ -95,13 +100,7 @@ test.describe("Logs", () => {
     const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
     await selectEventType(eventTypeCheckbox);
 
-    const createSubResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-    await page.locator('[data-test="subscription-submit-button"]').click();
-    await createSubResponse;
+    await submitSubscriptionWithLabels(page, { all: "yes" });
     await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
 
     // Send an event
@@ -138,15 +137,7 @@ test.describe("Logs", () => {
       .locator('[data-test="send-event-occurred-at-input"]')
       .fill(now.toISOString().slice(0, 16));
 
-    const sendEventResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/event") &&
-        response.request().method() === "POST" &&
-        !response.url().includes("/api/v1/event_types"),
-      { timeout: 15000 }
-    );
-    await page.locator('[data-test="send-event-submit-button"]').click();
-    await sendEventResponse;
+    await submitEventWithLabels(page, { all: "yes" });
 
     // After send, page navigates to event detail — wait for it before navigating away
     await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });
@@ -243,13 +234,7 @@ test.describe("Logs", () => {
     const eventTypeCheckbox = page.locator('[data-test="event-type-checkbox-0"]');
     await selectEventType(eventTypeCheckbox);
 
-    const createSubResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/subscriptions") && response.request().method() === "POST",
-      { timeout: 15000 }
-    );
-    await page.locator('[data-test="subscription-submit-button"]').click();
-    await createSubResponse;
+    await submitSubscriptionWithLabels(page, { all: "yes" });
 
     // Wait for navigation after subscription creation (router.back() is called)
     await expect(page).not.toHaveURL(/\/subscriptions\/new/, { timeout: 10000 });
@@ -291,13 +276,7 @@ test.describe("Logs", () => {
     const dateTimeValue = now.toISOString().slice(0, 16);
     await page.locator('[data-test="send-event-occurred-at-input"]').fill(dateTimeValue);
 
-    const sendEventResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/event") && response.request().method() === "POST" && !response.url().includes("/api/v1/event_types"),
-      { timeout: 15000 }
-    );
-    await page.locator('[data-test="send-event-submit-button"]').click();
-    await sendEventResponse;
+    await submitEventWithLabels(page, { all: "yes" });
 
     // After send, page navigates to event detail — wait for it before navigating away
     await expect(page).toHaveURL(/\/events\/[^/]+$/, { timeout: 10000 });

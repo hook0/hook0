@@ -190,5 +190,81 @@ async function selectEventType(checkbox: import("@playwright/test").Locator): Pr
   }).toPass({ timeout: 20000, intervals: [250, 500, 1000] });
 }
 
-export { loginAsNewUser, loginAndCreateApp, loginAndCreateAppWithEventType, expectToast, fromItsOwnAddress, selectEventType, API_BASE_URL };
+/**
+ * Submit a form carrying a key/value labels editor, and prove the request went
+ * out with the labels that were typed into it.
+ *
+ * The editor waits 150ms after the last keystroke before telling the
+ * surrounding form about an edit, so the form is not rebuilt on every
+ * character, and the form sends whatever its own copy holds when the button is
+ * clicked. Both of these forms start out holding user_id=1, a complete pair
+ * that satisfies every validation on the way out, so a click landing inside
+ * that window is accepted everywhere and quietly produces a subscription, or
+ * an event, that matches nothing. Reading what went on the wire says so at the
+ * submit, instead of a minute later as a logs table that stayed empty.
+ */
+async function submitWithLabels(
+  page: import("@playwright/test").Page,
+  form: { button: string; matches: (url: string) => boolean; what: string },
+  expectedLabels: Record<string, string>
+): Promise<import("@playwright/test").Response> {
+  await page.waitForTimeout(400);
+
+  const submitted = page.waitForResponse(
+    (response) => form.matches(response.url()) && response.request().method() === "POST",
+    { timeout: 15000 }
+  );
+  await page.locator(`[data-test="${form.button}"]`).click();
+  const response = await submitted;
+
+  const payload = response.request().postDataJSON() as { labels: Record<string, string> };
+  expect(payload, `${form.what} submit carried no JSON body`).toBeTruthy();
+  expect(
+    payload.labels,
+    `${form.what} went out with the form's own labels rather than the typed ones`
+  ).toEqual(expectedLabels);
+
+  // Read defensively: once the page navigates away the browser drops the body,
+  // and reading it unconditionally fails the assertion below for a reason that
+  // has nothing to do with what it is checking.
+  const body = await response.text().catch(() => "(body no longer available)");
+  expect(
+    response.status(),
+    `sending ${form.what} answered ${response.status()}: ${body}`
+  ).toBeLessThan(400);
+
+  return response;
+}
+
+function submitEventWithLabels(
+  page: import("@playwright/test").Page,
+  expectedLabels: Record<string, string>
+): Promise<import("@playwright/test").Response> {
+  return submitWithLabels(
+    page,
+    {
+      button: "send-event-submit-button",
+      matches: (url) => url.includes("/api/v1/event") && !url.includes("/api/v1/event_types"),
+      what: "the event",
+    },
+    expectedLabels
+  );
+}
+
+function submitSubscriptionWithLabels(
+  page: import("@playwright/test").Page,
+  expectedLabels: Record<string, string>
+): Promise<import("@playwright/test").Response> {
+  return submitWithLabels(
+    page,
+    {
+      button: "subscription-submit-button",
+      matches: (url) => url.includes("/api/v1/subscriptions"),
+      what: "the subscription",
+    },
+    expectedLabels
+  );
+}
+
+export { loginAsNewUser, loginAndCreateApp, loginAndCreateAppWithEventType, expectToast, fromItsOwnAddress, selectEventType, submitEventWithLabels, submitSubscriptionWithLabels, API_BASE_URL };
 export { test, expect } from "@playwright/test";
