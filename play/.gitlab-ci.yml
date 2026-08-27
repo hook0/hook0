@@ -115,7 +115,16 @@ play.docker:
     - |
       echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf '%s:%s' "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > ~/.docker/config.json
   script:
+    # `:latest` is the tag production pulls, so only the default branch may move it. This job has
+    # no branch condition — `Cargo.*` alone triggers it — so every branch touching the lockfile
+    # used to overwrite the tag a running deployment resolves, and the cluster then served code
+    # from whichever merge request built last. The per-commit tag is pushed either way, and it is
+    # what `play.deploy` deploys.
     - |
+      TAGS="${CI_REGISTRY_IMAGE}/play:${CI_COMMIT_SHORT_SHA}"
+      if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+        TAGS="${TAGS},${CI_REGISTRY_IMAGE}/play:latest"
+      fi
       buildctl-daemonless.sh build \
         --progress=plain \
         --frontend dockerfile.v0 \
@@ -124,7 +133,7 @@ play.docker:
         --local dockerfile="${CI_PROJECT_DIR}/play" \
         --export-cache type=registry,ref="${CI_REGISTRY_IMAGE}/play/cache:buildkit",mode=max \
         --import-cache type=registry,ref="${CI_REGISTRY_IMAGE}/play/cache:buildkit" \
-        --output "type=image,\"name=${CI_REGISTRY_IMAGE}/play:${CI_COMMIT_SHORT_SHA},${CI_REGISTRY_IMAGE}/play:latest\",push=true"
+        --output "type=image,\"name=${TAGS}\",push=true"
   after_script:
     - rm -f ~/.docker/config.json
 
@@ -147,8 +156,10 @@ play.deploy:
     name: production
     url: https://play.hook0.com
   script:
-    # Restart the deployment to pull the new :latest image (pullPolicy: Always)
-    - kubectl rollout restart deployment/hook0-play -n hosted-hook0-play-server-prod
+    # Name the image built from this very commit. Restarting to re-resolve `:latest` deployed
+    # whatever had been pushed to that tag most recently, which is not necessarily this commit,
+    # and left no way to tell afterwards which code a pod was running.
+    - kubectl set image deployment/hook0-play hook0-play="${CI_REGISTRY_IMAGE}/play:${CI_COMMIT_SHORT_SHA}" -n hosted-hook0-play-server-prod
     - kubectl rollout status deployment/hook0-play -n hosted-hook0-play-server-prod --timeout=120s
 
 play.smoke-test:
