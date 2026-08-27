@@ -1121,3 +1121,76 @@ fn a_version_is_never_read_off_the_tag_of_another_release_train() {
         readers.len()
     );
 }
+
+/// The tag a running deployment re-resolves every time it pulls. Whoever writes it last decides
+/// what the cluster runs the next time a pod starts.
+const MUTABLE_TAG: &str = ":latest";
+
+/// How a job names an image under the project's own registry.
+const OWN_REGISTRY: &str = "CI_REGISTRY_IMAGE";
+
+/// What keeps a write off every ref but the one production is built from.
+const BRANCH_GUARD: &str = "CI_DEFAULT_BRANCH";
+const TAG_GUARD: &str = "CI_COMMIT_TAG";
+
+/// At least this many jobs name an image under the project registry. Below it, the guard is
+/// reading the wrong thing rather than finding a repository that pushes no images.
+const MIN_REGISTRY_WRITERS: usize = 2;
+
+/// Only the default branch, or a release tag, may move a mutable tag under the project registry.
+///
+/// A job gated on `changes:` alone runs on every branch and every merge request that touches the
+/// paths it watches, and `Cargo.*` is touched by every dependency bump and most Rust changes. A
+/// build that writes `:latest` from there hands the tag a deployment resolves to whichever branch
+/// built last, so the cluster can end up running the code of a merge request nobody merged — and
+/// the deploy job still reports success, because restarting a deployment succeeds whatever the tag
+/// happens to point at. The per-commit tag stays unconditional: it is immutable, and naming it is
+/// how a deploy says which code it is putting in front of users.
+#[test]
+fn only_the_default_branch_moves_a_mutable_image_tag() {
+    let root = repository();
+    let declared = jobs(&root);
+
+    let mut writers = Vec::new();
+    for name in declared.keys() {
+        let lines = commands(&root, &declared, name);
+        if !lines.iter().any(|line| line.contains(OWN_REGISTRY)) {
+            continue;
+        }
+        writers.push(name.clone());
+
+        let moves_mutable_tag = lines
+            .iter()
+            .any(|line| line.contains(OWN_REGISTRY) && line.contains(MUTABLE_TAG));
+        if !moves_mutable_tag {
+            continue;
+        }
+
+        // The shell may ask which ref it is on itself, which is what a job that pushes both an
+        // immutable tag and a mutable one on the default branch has to do.
+        let gated_by_shell = lines.iter().any(|line| line.contains(BRANCH_GUARD));
+        let gated_by_rules = rules(&declared, name, MAX_EXTENDS).is_some_and(|all| {
+            all.iter().any(|rule| {
+                rule["if"]
+                    .as_str()
+                    .is_some_and(|it| it.contains(BRANCH_GUARD) || it.contains(TAG_GUARD))
+            })
+        });
+
+        assert!(
+            gated_by_shell || gated_by_rules,
+            "{name} writes `{MUTABLE_TAG}` under {OWN_REGISTRY} while neither its rules nor its \
+             shell keep it off other refs, so any branch running this job takes over the tag a \
+             deployment pulls"
+        );
+    }
+
+    // Jobs come out of YAML and their commands partly off disk, so either half going quiet would
+    // leave a guard that checked nothing and passed.
+    assert!(
+        writers.len() >= MIN_REGISTRY_WRITERS,
+        "only {} job(s) were found naming an image under {OWN_REGISTRY}, fewer than the \
+         {MIN_REGISTRY_WRITERS} expected, so this guard is looking in the wrong place",
+        writers.len()
+    );
+}
