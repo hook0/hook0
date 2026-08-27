@@ -85,6 +85,7 @@ curl -X POST "$HOOK0_API/event_types" \
 ```
 
 **Response:**
+<!-- openapi: EventType -->
 ```json
 {
   "service_name": "user",
@@ -109,6 +110,7 @@ curl -X POST "$HOOK0_API/event_types" \
 ```
 
 **Response:**
+<!-- openapi: EventType -->
 ```json
 {
   "service_name":"order",
@@ -356,6 +358,7 @@ curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID" \
 ```
 
 **Response:**
+<!-- openapi: RequestAttempt -->
 ```json
 [
   {
@@ -528,6 +531,7 @@ curl -X POST "$HOOK0_API/event_types" \
 ```
 
 **Response:**
+<!-- openapi: EventType -->
 ```json
 {
   "service_name": "billing",
