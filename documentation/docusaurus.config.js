@@ -243,8 +243,13 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      // Replace with your project's social card
-      image: "img/hook0-social-card.jpg",
+      // Social card for og:image / twitter:image. Points at the brand banner
+      // already deployed on the main site rather than a local file: the previous
+      // value img/hook0-social-card.jpg never existed in the repo, so every docs
+      // page emitted a broken preview. An absolute URL also sidesteps the LFS
+      // trap — a raster committed under static/ would ship as a pointer, since
+      // the docs build does no LFS smudge. This is the same asset website uses.
+      image: "https://www.hook0.com/mediakit/logo/1920x1920-banner.png",
       navbar: {
         title: "Hook0",
         logo: {

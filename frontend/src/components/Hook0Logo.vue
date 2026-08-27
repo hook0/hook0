@@ -12,8 +12,13 @@ type Props = {
   alt?: string;
 };
 
+// Default to 'image' — the real brand SVG. The 'icon' variant renders a generic
+// lucide Webhook glyph, not the Hook0 mark, so a plain <Hook0Logo /> used to ship
+// third-party artwork as the brand. Every current call site passes `variant`
+// explicitly, so this changes no existing render, only what a future
+// prop-less usage falls back to.
 const props = withDefaults(defineProps<Props>(), {
-  variant: 'icon',
+  variant: 'image',
   size: 'md',
   showText: true,
   alt: 'Hook0',

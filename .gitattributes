@@ -47,3 +47,11 @@
 *.dll filter=lfs diff=lfs merge=lfs -text
 *.so filter=lfs diff=lfs merge=lfs -text
 *.dylib filter=lfs diff=lfs merge=lfs -text
+
+# frontend/public/ is served to the browser exactly as it sits in the deploy —
+# that deploy does no LFS smudge, so any file left in LFS here reaches visitors
+# as pointer text instead of the asset (the favicon, the PWA icons and the Inter
+# fonts all shipped that way). These are small enough to live in the git blob, so
+# keep the whole directory out of LFS regardless of how the frontend is built.
+# `-text` marks them binary so no end-of-line normalisation touches the bytes.
+frontend/public/** !filter !diff !merge -text
