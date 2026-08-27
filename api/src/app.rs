@@ -617,7 +617,7 @@ mod tests {
     use super::test_support::openapi_spec;
 
     use serde_json::Value;
-    use std::collections::BTreeSet;
+    use std::collections::{BTreeMap, BTreeSet};
 
     /// The document generated clients and the MCP server are built from.
     /// Committed so neither has to reach a running instance.
@@ -1227,5 +1227,470 @@ mod tests {
             Some((cut, _)) => format!("{}…", &rendered[..cut]),
             None => rendered,
         }
+    }
+
+    // -- Documentation JSON examples against the OpenAPI schemas --------------
+    //
+    // A `json` example in the documentation that depicts an API object rots the
+    // same way an SDK snippet does: a field is renamed or invented, the reader
+    // copies it, and the page describes an API that never existed. This holds
+    // every such example to the schema the API actually serves (the committed
+    // snapshot), the same source the SDKs and the frontend types are built from.
+    //
+    // The binding is explicit: an example states the schema it shows with a
+    // marker on the line above its fence — `<!-- openapi: RequestAttempt -->` —
+    // and is then checked field-by-field against it. That an example carries the
+    // right marker is the one thing this cannot infer for a *renamed* block (it
+    // no longer looks like anything); what it can, and does, catch is the block
+    // that still reads unmistakably as a schema yet was left unbound, so nobody
+    // adds an API example past the check by forgetting to tag it.
+
+    /// The tree whose `json` examples are checked, relative to the crate.
+    const DOCUMENTATION_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../documentation");
+
+    /// Prefix a reported path is trimmed to, so a failure names
+    /// `documentation/…` rather than an absolute path.
+    const REPOSITORY_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/..");
+
+    /// Set to any value to insert the missing markers instead of reporting them.
+    const DOC_MARKER_UPDATE_VAR: &str = "UPDATE_DOC_OPENAPI_MARKERS";
+
+    /// What to run to bind every newly recognized example at once.
+    const DOC_MARKER_UPDATE_COMMAND: &str =
+        "UPDATE_DOC_OPENAPI_MARKERS=1 cargo test -p hook0-api doc_json_examples";
+
+    /// How many of a schema's *unique* fields an unbound example must show at its
+    /// top level before it is unmistakably that schema and has to be bound. Two
+    /// keeps a coincidental single field (an event payload that happens to carry
+    /// `amount`) from being mistaken for an API object.
+    const SIGNATURE_FIELDS_REQUIRING_A_MARKER: usize = 2;
+
+    /// Ceilings so a runaway tree cannot pull the process over: files walked,
+    /// bytes read per file, and examples examined.
+    const MAX_DOC_FILES: usize = 4096;
+    const MAX_DOC_FILE_BYTES: u64 = 4 * 1024 * 1024;
+    const MAX_DOC_EXAMPLES: usize = 8192;
+
+    /// How deep a nested example or schema is followed, a backstop against a
+    /// `$ref` cycle in the schemas or a pathological example.
+    const MAX_JSON_DEPTH: usize = 24;
+
+    /// The `components.schemas` object of the committed snapshot: the definitions
+    /// downstream is generated from, and the authority an example is held to.
+    fn snapshot_schemas() -> serde_json::Map<String, Value> {
+        let committed: Value = serde_json::from_slice(
+            &std::fs::read(SNAPSHOT_PATH).expect("the snapshot is readable"),
+        )
+        .expect("the committed snapshot is valid JSON");
+        committed
+            .get("components")
+            .and_then(|components| components.get("schemas"))
+            .and_then(Value::as_object)
+            .cloned()
+            .expect("the snapshot exposes components.schemas")
+    }
+
+    /// Follows a local `$ref` to the schema it names, leaving anything else as it
+    /// is. One hop: the caller recurses, so a chain still resolves.
+    fn resolve<'a>(schemas: &'a serde_json::Map<String, Value>, node: &'a Value) -> &'a Value {
+        if let Some(Value::String(reference)) = node.get("$ref")
+            && let Some(name) = reference.strip_prefix("#/components/schemas/")
+            && let Some(target) = schemas.get(name)
+        {
+            return target;
+        }
+        node
+    }
+
+    /// Every property name a schema declares, at any depth, following `$ref` once
+    /// per name so a cycle terminates.
+    fn collect_property_names(
+        schemas: &serde_json::Map<String, Value>,
+        node: &Value,
+        visited: &mut BTreeSet<String>,
+        out: &mut BTreeSet<String>,
+        depth: usize,
+    ) {
+        if depth == 0 {
+            return;
+        }
+        if let Some(Value::String(reference)) = node.get("$ref")
+            && let Some(name) = reference.strip_prefix("#/components/schemas/")
+        {
+            if !visited.insert(name.to_owned()) {
+                return;
+            }
+            if let Some(target) = schemas.get(name) {
+                collect_property_names(schemas, target, visited, out, depth - 1);
+            }
+            return;
+        }
+        if let Some(Value::Object(properties)) = node.get("properties") {
+            for (name, child) in properties {
+                out.insert(name.clone());
+                collect_property_names(schemas, child, visited, out, depth - 1);
+            }
+        }
+        if let Some(items) = node.get("items") {
+            collect_property_names(schemas, items, visited, out, depth - 1);
+        }
+    }
+
+    /// Field name → the one schema that declares it, kept only for names no other
+    /// schema shares. These are what let an unbound example be recognized: a
+    /// block carrying `request_attempt_id` can be nothing but a `RequestAttempt`.
+    fn signature_fields(schemas: &serde_json::Map<String, Value>) -> BTreeMap<String, String> {
+        let mut owners: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+        for (schema_name, schema) in schemas {
+            let mut names = BTreeSet::new();
+            let mut visited = BTreeSet::new();
+            collect_property_names(schemas, schema, &mut visited, &mut names, MAX_JSON_DEPTH);
+            for field in names {
+                owners.entry(field).or_default().insert(schema_name.clone());
+            }
+        }
+        owners
+            .into_iter()
+            .filter_map(|(field, schemas)| {
+                let mut schemas = schemas.into_iter();
+                match (schemas.next(), schemas.next()) {
+                    (Some(only), None) => Some((field, only)),
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+
+    /// The paths of an example that name a field its schema has no place for.
+    /// An array is read as a collection of the object schema (or of its `items`
+    /// when it declares them); an object whose schema declares no properties is
+    /// free-form and left alone rather than judged.
+    fn illegal_paths(
+        schemas: &serde_json::Map<String, Value>,
+        value: &Value,
+        schema: &Value,
+        base: &str,
+        out: &mut Vec<String>,
+        depth: usize,
+    ) {
+        if depth == 0 {
+            return;
+        }
+        let schema = resolve(schemas, schema);
+        match value {
+            Value::Array(items) => {
+                let element = match schema.get("items") {
+                    Some(items_schema) => resolve(schemas, items_schema),
+                    None => schema,
+                };
+                for (index, item) in items.iter().enumerate() {
+                    illegal_paths(
+                        schemas,
+                        item,
+                        element,
+                        &format!("{base}[{index}]"),
+                        out,
+                        depth - 1,
+                    );
+                }
+            }
+            Value::Object(map) => {
+                let properties = match schema.get("properties").and_then(Value::as_object) {
+                    Some(properties) => properties,
+                    None => return,
+                };
+                for (key, child_value) in map {
+                    let path = if base.is_empty() {
+                        key.clone()
+                    } else {
+                        format!("{base}.{key}")
+                    };
+                    match properties.get(key) {
+                        None => out.push(path),
+                        Some(child_schema) => {
+                            if matches!(child_value, Value::Object(_) | Value::Array(_)) {
+                                illegal_paths(
+                                    schemas,
+                                    child_value,
+                                    child_schema,
+                                    &path,
+                                    out,
+                                    depth - 1,
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// The object an example is about: itself, or the first element when it is a
+    /// non-empty array of objects (a list endpoint's response).
+    fn top_level_object(value: &Value) -> Option<&serde_json::Map<String, Value>> {
+        match value {
+            Value::Object(map) => Some(map),
+            Value::Array(items) => items.first().and_then(Value::as_object),
+            _ => None,
+        }
+    }
+
+    /// One fenced `json` example: where its fence is, the schema it bound itself
+    /// to (if any), and its body.
+    struct DocExample {
+        fence_line: usize,
+        marker: Option<String>,
+        body: String,
+    }
+
+    /// The schema a marker line names, e.g. `<!-- openapi: RequestAttempt -->`.
+    fn parse_marker(line: &str) -> Option<String> {
+        let inner = line.trim().strip_prefix("<!--")?.trim();
+        let inner = inner.strip_prefix("openapi:")?.trim();
+        let name = inner.strip_suffix("-->")?.trim();
+        let named = !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+        named.then(|| name.to_owned())
+    }
+
+    /// The `json` examples of a page, each with the marker on the line above its
+    /// fence when there is one.
+    fn json_examples(source: &str) -> Vec<DocExample> {
+        let lines: Vec<&str> = source.lines().collect();
+        let mut examples = Vec::new();
+        let mut last_nonblank: Option<usize> = None;
+        let mut i = 0;
+        while i < lines.len() {
+            if lines[i].trim() == "```json" {
+                let marker = last_nonblank.and_then(|index| parse_marker(lines[index]));
+                let mut body = String::new();
+                let mut j = i + 1;
+                while j < lines.len() && lines[j].trim() != "```" {
+                    body.push_str(lines[j]);
+                    body.push('\n');
+                    j += 1;
+                }
+                examples.push(DocExample {
+                    fence_line: i,
+                    marker,
+                    body,
+                });
+                last_nonblank = (j < lines.len()).then_some(j);
+                i = j + 1;
+                continue;
+            }
+            if !lines[i].trim().is_empty() {
+                last_nonblank = Some(i);
+            }
+            i += 1;
+        }
+        examples
+    }
+
+    /// The `.md`/`.mdx` files of the documentation tree, sorted, bounded, with
+    /// the build output skipped.
+    fn documentation_files() -> Vec<std::path::PathBuf> {
+        fn walk(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+            if out.len() >= MAX_DOC_FILES {
+                return;
+            }
+            let Ok(entries) = std::fs::read_dir(dir) else {
+                return;
+            };
+            let mut children: Vec<std::path::PathBuf> = entries
+                .filter_map(|entry| entry.ok().map(|entry| entry.path()))
+                .collect();
+            children.sort();
+            for path in children {
+                if out.len() >= MAX_DOC_FILES {
+                    return;
+                }
+                if path.is_dir() {
+                    let skipped =
+                        path.file_name()
+                            .and_then(|name| name.to_str())
+                            .is_some_and(|name| {
+                                matches!(name, "node_modules" | "build" | ".docusaurus")
+                            });
+                    if !skipped {
+                        walk(&path, out);
+                    }
+                } else if path
+                    .extension()
+                    .and_then(|extension| extension.to_str())
+                    .is_some_and(|extension| extension == "md" || extension == "mdx")
+                {
+                    out.push(path);
+                }
+            }
+        }
+        let mut files = Vec::new();
+        walk(std::path::Path::new(DOCUMENTATION_DIR), &mut files);
+        files
+    }
+
+    /// Reads a documentation page, refusing one past [`MAX_DOC_FILE_BYTES`]
+    /// rather than growing to hold it.
+    fn read_documentation_file(path: &std::path::Path) -> String {
+        use std::io::Read;
+
+        let file = std::fs::File::open(path)
+            .unwrap_or_else(|err| panic!("the page {} cannot be read ({err})", path.display()));
+        let mut source = String::new();
+        let read = file
+            .take(MAX_DOC_FILE_BYTES + 1)
+            .read_to_string(&mut source)
+            .unwrap_or_else(|err| panic!("the page {} is not UTF-8 ({err})", path.display()));
+        assert!(
+            read as u64 <= MAX_DOC_FILE_BYTES,
+            "the page {} is larger than the {MAX_DOC_FILE_BYTES} bytes this reads",
+            path.display()
+        );
+        source
+    }
+
+    /// Nothing downstream — SDKs, MCP tools, frontend types — reaches a `json`
+    /// example, so a reader is the only thing that catches one describing a field
+    /// the API does not have. This makes the check that reader: every bound
+    /// example is held to its schema's fields, and every unbound block that still
+    /// reads as a schema is reported until it is bound or corrected.
+    ///
+    /// Setting `UPDATE_DOC_OPENAPI_MARKERS` binds the recognized ones in place
+    /// instead, the way `UPDATE_OPENAPI_SNAPSHOT` adopts a surface change.
+    #[test]
+    fn doc_json_examples_match_the_openapi_schemas() {
+        let schemas = snapshot_schemas();
+        let signatures = signature_fields(&schemas);
+        let update = std::env::var_os(DOC_MARKER_UPDATE_VAR).is_some();
+
+        let mut problems: Vec<String> = Vec::new();
+        let mut examples_seen = 0usize;
+        let mut bound_examples = 0usize;
+        let mut markers_inserted = 0usize;
+
+        for path in documentation_files() {
+            let source = read_documentation_file(&path);
+            let display = path
+                .strip_prefix(REPOSITORY_ROOT)
+                .unwrap_or(path.as_path())
+                .display()
+                .to_string();
+            let mut insertions: Vec<(usize, String)> = Vec::new();
+
+            for example in json_examples(&source) {
+                examples_seen += 1;
+                if examples_seen > MAX_DOC_EXAMPLES {
+                    break;
+                }
+                let line = example.fence_line + 1;
+                let value: Value = match serde_json::from_str(&example.body) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+
+                match &example.marker {
+                    Some(schema_name) => {
+                        let Some(schema) = schemas.get(schema_name) else {
+                            problems.push(format!(
+                                "{display}:{line}  is bound to `{schema_name}`, which the API serves no schema of"
+                            ));
+                            continue;
+                        };
+                        bound_examples += 1;
+                        let mut illegal = Vec::new();
+                        illegal_paths(&schemas, &value, schema, "", &mut illegal, MAX_JSON_DEPTH);
+                        if !illegal.is_empty() {
+                            problems.push(format!(
+                                "{display}:{line}  [{schema_name}] shows fields the schema has no place for: {}",
+                                illegal.join(", ")
+                            ));
+                        }
+                    }
+                    None => {
+                        let Some(top) = top_level_object(&value) else {
+                            continue;
+                        };
+                        let mut hits: BTreeMap<&str, usize> = BTreeMap::new();
+                        for key in top.keys() {
+                            if let Some(schema_name) = signatures.get(key.as_str()) {
+                                *hits.entry(schema_name.as_str()).or_default() += 1;
+                            }
+                        }
+                        let Some((schema_name, count)) = hits
+                            .iter()
+                            .max_by_key(|(_, count)| **count)
+                            .map(|(name, count)| (*name, *count))
+                        else {
+                            continue;
+                        };
+                        if count < SIGNATURE_FIELDS_REQUIRING_A_MARKER {
+                            continue;
+                        }
+                        let candidates: Vec<&str> = hits
+                            .iter()
+                            .filter(|(_, other)| **other == count)
+                            .map(|(name, _)| *name)
+                            .collect();
+                        if candidates.len() > 1 {
+                            problems.push(format!(
+                                "{display}:{line}  reads as one of {candidates:?}; bind it with a `<!-- openapi: … -->` marker or correct its fields"
+                            ));
+                            continue;
+                        }
+                        if update {
+                            insertions.push((
+                                example.fence_line,
+                                format!("<!-- openapi: {schema_name} -->"),
+                            ));
+                            markers_inserted += 1;
+                        } else {
+                            problems.push(format!(
+                                "{display}:{line}  reads as `{schema_name}` ({count} of its unique fields present) but is not bound to it; add `<!-- openapi: {schema_name} -->` above the fence, or correct its fields"
+                            ));
+                        }
+                    }
+                }
+            }
+
+            if update && !insertions.is_empty() {
+                let mut lines: Vec<String> = source.lines().map(str::to_owned).collect();
+                insertions.sort_by_key(|insertion| std::cmp::Reverse(insertion.0));
+                for (fence_line, marker) in insertions {
+                    let indent: String = lines[fence_line]
+                        .chars()
+                        .take_while(|c| c.is_whitespace())
+                        .collect();
+                    lines.insert(fence_line, format!("{indent}{marker}"));
+                }
+                let mut rebuilt = lines.join("\n");
+                if source.ends_with('\n') {
+                    rebuilt.push('\n');
+                }
+                std::fs::write(&path, rebuilt).expect("the documentation page is writable");
+            }
+        }
+
+        if update {
+            println!("Inserted {markers_inserted} openapi marker(s)");
+            return;
+        }
+
+        assert!(
+            problems.is_empty(),
+            "documentation json examples drifted from the API schemas ({} issue(s)):\n{}\n\n\
+             An example that shows an API object binds itself to its schema with a marker on the \
+             line above its fence, e.g. `<!-- openapi: RequestAttempt -->`, and is then held to \
+             that schema's fields. Bind the recognized ones with:\n    {DOC_MARKER_UPDATE_COMMAND}\n\
+             Schemas: {SNAPSHOT_PATH}",
+            problems.len(),
+            problems
+                .iter()
+                .take(MAX_REPORTED_DIFFERENCES)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+
+        println!("{bound_examples} bound json example(s) validated against the OpenAPI schemas");
     }
 }

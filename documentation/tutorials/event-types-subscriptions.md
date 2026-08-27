@@ -151,6 +151,7 @@ curl -X POST "$HOOK0_API/event_types" \
 ```
 
 **Response:**
+<!-- openapi: EventType -->
 ```json
 {
   "service_name": "user",
@@ -292,6 +293,7 @@ curl -X POST "$HOOK0_API/subscriptions" \
 ```
 
 **Response:**
+<!-- openapi: Subscription -->
 ```json
 {
   "application_id": "{APP_ID}",
@@ -602,6 +604,7 @@ curl "$HOOK0_API/event_types/?application_id=$APP_ID" \
 ```
 
 **Response:**
+<!-- openapi: EventType -->
 ```json
 [
   {
@@ -632,6 +635,7 @@ curl "$HOOK0_API/subscriptions/?application_id=$APP_ID" \
 ```
 
 **Response:**
+<!-- openapi: Subscription -->
 ```json
 [
   {
@@ -668,6 +672,7 @@ curl "$HOOK0_API/subscriptions/{SUBSCRIPTION_ID}?application_id=$APP_ID" \
 ```
 
 **Response:**
+<!-- openapi: Subscription -->
 ```json
 {
   "application_id": "{APP_ID}",

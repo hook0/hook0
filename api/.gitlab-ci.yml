@@ -55,6 +55,11 @@ api.check:
         # against still name the operations the API serves, so a change to
         # those types alone has to run it too.
         - frontend/src/types.ts
+        # The suite also holds every `json` example in the documentation to the
+        # schema it depicts, so a docs-only edit that drifts an example from the
+        # API has to run it too — otherwise the drift ships on a green pipeline
+        # for want of a job that looked.
+        - documentation/**/*
         - .gitlab-ci.yml
   variables:
     SQLX_OFFLINE: "true"
