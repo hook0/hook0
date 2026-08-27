@@ -524,6 +524,44 @@ sdk-release.zig:
 
       echo "=== Published $url, whose root carries build.zig.zon at $version ==="
 
+# --- Publish to LuaRocks -----------------------------------------------------
+
+sdk-release.lua:
+  extends: .sdk-publish
+  dependencies: []
+  # The `-luarocks-` variant carries `luarocks`, so the upload runs in the same
+  # image the merge-request check builds and tests the rock in.
+  image: nickblah/lua:$LUA_VERSION
+  needs:
+    - job: sdk.packages
+      artifacts: false
+    - job: clients.lua.check
+      artifacts: false
+    - job: clients.live-smoke
+      artifacts: false
+  variables:
+    PUBLISHES: clients/lua
+  script:
+    - cd "$PUBLISHES"
+    - version="${CI_COMMIT_TAG#sdk-v}"
+    # The bump renames the rockspec after the version and moves the tag inside
+    # it, so the file that carries this release is named after it. Naming it from
+    # the tag rather than globbing means a rockspec left on an old version is a
+    # missing file here, not the wrong file uploaded.
+    - rockspec="hook0-client-${version}-1.rockspec"
+    - test -f "$rockspec"
+    # LuaRocks keeps the version in the file name and fetches the source the rock
+    # is built from rather than carrying it, so both used to drift on a bump.
+    # Held to agreeing here, the upload cannot put a rockspec on the registry
+    # whose name, version or source points at a release other than this one.
+    - grep -q "version = \"${version}-1\"" "$rockspec"
+    - grep -q "tag = \"${CI_COMMIT_TAG}\"" "$rockspec"
+    # `--skip-pack` uploads the rockspec alone: luarocks.org fetches the source
+    # from the tag on install, which is the model the rockspec is written for, so
+    # the job needs neither the source nor git to pack a rock nobody would read.
+    - luarocks upload "$rockspec" --api-key="$LUA_TOKEN" --skip-pack
+    - echo "=== Published hook0-client $version to LuaRocks ==="
+
 # =============================================================================
 # Manual SDK release triggers (master branch only)
 # =============================================================================
