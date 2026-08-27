@@ -51,21 +51,3 @@ The build is ready: `clients/kotlin/pom.xml` carries the same `release` profile 
 with Dokka writing the javadoc jar Central will not take a release without — Kotlin sources produce
 no javadoc of their own.
 """
-
-[[package]]
-directory = "clients/lua"
-published_as = "hook0-client"
-registry = "LuaRocks"
-reason = """
-LuaRocks reads a rockspec as `<package>-<version>-<revision>.rockspec`, so the version is in the
-file name, and it fetches the source the rock is built from rather than carrying it, so the release
-is named again inside. Both of those used to drift on a bump: the file kept the name it was born
-with, and `source.tag` went on pointing at the release before. The bump now renames the rockspec and
-moves the tag inside it, and `spec/rockspec_spec.lua` holds it to both, so what a bump produces is a
-rockspec whose name, whose version and whose source agree.
-
-What is left is an account. Uploading needs a luarocks.org account and the `LUAROCKS_API_KEY` it
-issues, and neither can be created from a pipeline. Nothing else stands between this package and its
-registry.
-"""
-
