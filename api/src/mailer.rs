@@ -107,10 +107,13 @@ pub enum Mail {
 // CSS classes, so we set every font-size/color directly via MJML attributes,
 // never via `css-class`.
 //
-// The header is a typographic wordmark ("Hook0" with a green zero) — the
-// stock PNG has a baked-in white background that reads as a sticker on the
-// canvas, and a wordmark renders identically in every email client without
-// images-disabled fallbacks.
+// The header logo carries a width but no height. The banner it points at is a
+// brand asset served from a stable URL, so its proportions change whenever the
+// brand does — a height written here is a second copy of that geometry, free to
+// drift from the image without anything failing. It already did: the box stayed
+// at the pre-2026 banner's 160x63 after the artwork moved to a wider crop, which
+// would have stretched the mark by a third the moment the CDN handed out the new
+// bytes. Width alone lets the client derive the height from the image it got.
 
 const MJML_HEADER: &str = r##"<mjml>
   <mj-head>
@@ -133,7 +136,7 @@ const MJML_HEADER: &str = r##"<mjml>
   <mj-body background-color="#f8fafc" width="600px">
     <mj-section padding="36px 0 20px 0">
       <mj-column>
-        <mj-image src="{ $logo_url }" alt="Hook0" width="160px" height="63px" align="left" padding="0 16px" />
+        <mj-image src="{ $logo_url }" alt="Hook0" width="160px" align="left" padding="0 16px" />
       </mj-column>
     </mj-section>
     <mj-section background-color="#ffffff" border="1px solid #e2e8f0" border-radius="14px" padding="40px 36px 32px 36px">
@@ -1431,6 +1434,49 @@ mod tests {
                 m.matomo_campaign()
             );
         }
+    }
+
+    /// The logo box must never pin a pixel height. The banner is fetched from a
+    /// stable brand URL whose proportions follow the brand, so a height written
+    /// into the template is a duplicate of geometry this repository does not
+    /// control — and a duplicate that silently stretches the mark once the two
+    /// disagree. Letting the client scale from the width keeps them from being
+    /// able to disagree at all.
+    #[test]
+    fn header_logo_declares_no_fixed_height() {
+        for m in all_variants() {
+            let html = render(&m);
+            for tag in img_tags_for_logo(&html) {
+                assert!(
+                    !HEIGHT_IN_PIXELS.is_match(&tag),
+                    "Logo image must not pin a pixel height (it would stretch the mark \
+                     whenever the artwork's proportions change). Got {tag} in {:?}",
+                    m.matomo_campaign()
+                );
+            }
+        }
+    }
+
+    /// A `height` attribute or CSS declaration resolving to a fixed pixel count.
+    /// `height="auto"` and percentage heights scale with the image and are what
+    /// the template is expected to produce, so neither matches.
+    static HEIGHT_IN_PIXELS: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r#"(?i)height\s*[:=]\s*"?\s*\d+(\.\d+)?\s*(px)?"#)
+            .expect("static regex compiles")
+    });
+
+    /// Every `<img>` in `html` whose `src` is the logo URL. Returned whole so a
+    /// failure names the tag it objected to.
+    fn img_tags_for_logo(html: &str) -> Vec<String> {
+        html.match_indices("<img")
+            .filter_map(|(start, _)| {
+                let tag = &html[start..];
+                let end = tag.find('>')? + 1;
+                let tag = tag[..end].to_string();
+                tag.contains("512x512-banner-transparent.png")
+                    .then_some(tag)
+            })
+            .collect()
     }
 
     /// Test #11 — recipient_first_name is substituted when provided.

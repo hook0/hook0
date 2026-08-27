@@ -337,10 +337,10 @@ fn main() {
     // hand-edited, so a mismatch means someone edited one without the other.
     check_entitymap(&dist, &mut failures);
 
-    // `immutable` is a promise that a URL's bytes never change. Files copied
-    // verbatim out of static/ keep stable names, so the promise can only be
-    // kept by a content hash in the filename.
-    check_immutable_assets_are_versioned(&dist, &mut failures);
+    // A URL copied verbatim out of static/ keeps its name when its bytes change,
+    // so however long a cache may reuse it without checking back is how long a
+    // deploy cannot reach anyone already holding the old response.
+    check_unversioned_assets_stay_revalidatable(&dist, &mut failures);
 
     if failures.is_empty() {
         println!("i18n-gate: PASS");
@@ -795,49 +795,74 @@ fn scan_reduced_motion_offenses(css: &str) -> (Vec<String>, bool) {
 
 // A mistakenly broad pattern must not walk the whole site, so the scan is
 // bounded. Well over the file count any single cache rule legitimately covers.
-const MAX_IMMUTABLE_FILES_SCANNED: usize = 5_000;
+const MAX_CACHED_FILES_SCANNED: usize = 5_000;
 
-/// `Cache-Control: immutable` promises a response will never change, so
-/// browsers and CDNs may keep it for the whole `max-age` without ever
-/// revalidating — even a reload does not dislodge it. That promise only holds
-/// when the URL changes as soon as the bytes do, which in practice means a
-/// content hash in the filename.
+/// The longest a cache may be allowed to reuse a response whose URL cannot
+/// change when its bytes do. Anchored to the widest window this site actually
+/// asks for (`/fonts/*`), so tightening that rule tightens this gate with it.
+const MAX_UNVERSIONED_REUSE_SECS: u64 = 604_800;
+
+/// How long a cache may reuse a response before it has to check back.
+#[derive(Clone, Copy)]
+enum ReuseWindow {
+    /// `immutable` — the response is promised never to change, so nothing
+    /// dislodges the bytes for the whole `max-age`. Not even a reload.
+    Forever,
+    /// The `max-age` the rule grants, in seconds.
+    Seconds(u64),
+}
+
+/// A cache may reuse a response for its whole freshness window without ever
+/// asking the origin whether it still holds. That is only safe when the URL
+/// changes as soon as the bytes do, which in practice means a content hash in
+/// the filename.
 ///
 /// `static/` is copied verbatim into `dist/` by
 /// parcel-reporter-static-files-copy, so anything shipped from there keeps a
-/// stable name for its whole life. Marking such a path `immutable` strands
-/// every returning visitor on the old bytes, with no deploy able to reach them.
+/// stable name for its whole life. Grant such a path a long window and the bytes
+/// behind it are frozen for everyone already holding them, with no deploy able
+/// to reach them — which is not hypothetical: the brand assets under
+/// `/mediakit/*` carried a 30-day `max-age`, and the logo the transactional
+/// emails embed went on being served from the CDN for weeks after the rebrand
+/// had shipped to the origin.
 ///
-/// Asserts that every file matched by an `immutable` rule in `dist/_headers`
-/// carries a content-hash-looking segment in its name.
-fn check_immutable_assets_are_versioned(dist: &Path, failures: &mut Vec<String>) {
+/// Asserts that every file matched by a rule granting more than
+/// `MAX_UNVERSIONED_REUSE_SECS` of unchecked reuse carries a content hash.
+fn check_unversioned_assets_stay_revalidatable(dist: &Path, failures: &mut Vec<String>) {
     let headers = match fs::read_to_string(dist.join("_headers")) {
         Ok(s) => s,
         Err(_) => return, // no _headers on this site
     };
 
-    for pattern in immutable_patterns(&headers) {
+    for (pattern, window) in long_reuse_rules(&headers) {
+        let grant = match window {
+            ReuseWindow::Forever => "is marked `immutable`".to_string(),
+            ReuseWindow::Seconds(secs) => {
+                format!("grants {secs}s of unchecked reuse (ceiling {MAX_UNVERSIONED_REUSE_SECS}s)")
+            }
+        };
         let matched = files_matching(dist, &pattern);
         if matched.is_empty() {
             failures.push(format!(
-                "_headers: `{pattern}` is marked immutable but matches no file in dist/ — a rule that caches nothing only hides intent"
+                "_headers: `{pattern}` {grant} but matches no file in dist/ — a rule that caches nothing only hides intent"
             ));
             continue;
         }
         for name in matched {
             if !looks_content_addressed(&name) {
                 failures.push(format!(
-                    "_headers: `{pattern}` serves `{name}` as immutable, but its name carries no content hash. The URL cannot change when the bytes do, so returning visitors keep the old file for the whole max-age and no deploy reaches them. Either hash the filename or drop `immutable` so the response stays revalidatable."
+                    "_headers: `{pattern}` {grant} for `{name}`, whose name carries no content hash. The URL cannot change when the bytes do, so whoever already holds the old response keeps it for that whole window and no deploy reaches them. Either hash the filename, shorten the window, or let the response stay revalidatable."
                 ));
             }
         }
     }
 }
 
-/// Collect the path patterns whose `Cache-Control` carries `immutable`.
-/// A `_headers` block opens on an unindented path line; the indented lines
-/// that follow belong to it.
-fn immutable_patterns(headers: &str) -> Vec<String> {
+/// Collect the path patterns whose `Cache-Control` lets a cache go longer than
+/// `MAX_UNVERSIONED_REUSE_SECS` without checking back, paired with what they
+/// grant. A `_headers` block opens on an unindented path line; the indented
+/// lines that follow belong to it.
+fn long_reuse_rules(headers: &str) -> Vec<(String, ReuseWindow)> {
     let mut out = Vec::new();
     let mut current = String::new();
     for line in headers.lines() {
@@ -852,14 +877,41 @@ fn immutable_patterns(headers: &str) -> Vec<String> {
         let Some((name, value)) = trimmed.split_once(':') else {
             continue;
         };
-        if name.trim().eq_ignore_ascii_case("cache-control")
-            && value.to_ascii_lowercase().contains("immutable")
-            && !current.is_empty()
-        {
-            out.push(current.clone());
+        if !name.trim().eq_ignore_ascii_case("cache-control") || current.is_empty() {
+            continue;
+        }
+        let Some(window) = reuse_window(value) else {
+            continue;
+        };
+        let unchecked_for_too_long = match window {
+            ReuseWindow::Forever => true,
+            ReuseWindow::Seconds(secs) => secs > MAX_UNVERSIONED_REUSE_SECS,
+        };
+        if unchecked_for_too_long {
+            out.push((current.clone(), window));
         }
     }
     out
+}
+
+/// Read how long `value` — one `Cache-Control` header value — lets a cache reuse
+/// the response without checking back. `immutable` outranks any `max-age`, since
+/// it withholds revalidation for the whole window.
+fn reuse_window(value: &str) -> Option<ReuseWindow> {
+    let value = value.to_ascii_lowercase();
+    if value.contains("immutable") {
+        return Some(ReuseWindow::Forever);
+    }
+    // `stale-while-revalidate` also carries a duration, but it licenses stale
+    // serving *alongside* a refresh rather than instead of one, so only the
+    // `max-age` directive answers this question.
+    value.split(',').find_map(|directive| {
+        let (name, secs) = directive.split_once('=')?;
+        match name.trim().eq_ignore_ascii_case("max-age") {
+            true => secs.trim().parse().ok().map(ReuseWindow::Seconds),
+            false => None,
+        }
+    })
 }
 
 /// Expand a Netlify `_headers` path pattern to the filenames it serves from
@@ -870,7 +922,7 @@ fn files_matching(dist: &Path, pattern: &str) -> Vec<String> {
         return Vec::new();
     };
     match rest.strip_suffix('*') {
-        Some(prefix) => collect_files(&dist.join(prefix), MAX_IMMUTABLE_FILES_SCANNED),
+        Some(prefix) => collect_files(&dist.join(prefix), MAX_CACHED_FILES_SCANNED),
         None => {
             let p = dist.join(rest);
             match p.is_file() {
