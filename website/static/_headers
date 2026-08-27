@@ -24,12 +24,20 @@
 # cannot keep: swapping Inter would never reach anyone who already had it
 # cached, and a reload would not dislodge it either. A long freshness window
 # plus revalidation costs the same in practice and leaves a way to push a fix.
-# scripts/i18n-gate fails the build if `immutable` comes back without hashed
-# filenames to back it.
+# scripts/i18n-gate fails the build if any rule here lets a cache go longer than
+# this window without checking back, unless hashed filenames back it up.
 /fonts/*
   Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
   Access-Control-Allow-Origin: *
 
-# Static assets get a long cache too.
+# Brand assets, under the same constraint as the fonts above: static/ is copied
+# verbatim into dist/, so these names never change when the artwork does. They
+# have one consumer the fonts do not, though — the transactional emails embed the
+# banner from here by absolute URL, and a wrong mark sitting in someone's inbox
+# is not a thing a reload fixes. A 30-day window let exactly that happen after
+# the 2026 rebrand: the origin served the new banner within the hour and the CDN
+# went on handing out the old one for weeks. A day of freshness plus revalidation
+# keeps the CDN doing its job for the media kit's bulk downloads while bounding
+# how long a brand change can stay invisible.
 /mediakit/*
-  Cache-Control: public, max-age=2592000
+  Cache-Control: public, max-age=86400, stale-while-revalidate=2592000
