@@ -243,13 +243,13 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      // Social card for og:image / twitter:image. Points at the brand banner
-      // already deployed on the main site rather than a local file: the previous
-      // value img/hook0-social-card.jpg never existed in the repo, so every docs
-      // page emitted a broken preview. An absolute URL also sidesteps the LFS
-      // trap — a raster committed under static/ would ship as a pointer, since
-      // the docs build does no LFS smudge. This is the same asset website uses.
-      image: "https://www.hook0.com/mediakit/logo/1920x1920-banner.png",
+      // Social card for og:image / twitter:image. An absolute URL hosted on the
+      // main site rather than a local file: img/hook0-social-card.jpg never
+      // existed in the repo (every docs page emitted a broken preview), and a
+      // raster committed under this static/ dir would ship as an LFS pointer,
+      // since the docs build does no LFS smudge. website serves it reliably.
+      // This is the doc-specific 1200x630 card, next to the site's own one.
+      image: "https://www.hook0.com/img/hook0-doc-social-card.png",
       navbar: {
         title: "Hook0",
         logo: {
