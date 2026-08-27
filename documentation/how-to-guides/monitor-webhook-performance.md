@@ -14,7 +14,7 @@ Hook0 tracks every webhook delivery attempt through the [request attempts](/conc
 - HTTP request details (method, URL, headers)
 - Response data (status code, headers, body)
 - Timing information (created_at, picked_at, succeeded_at/failed_at)
-- Worker information (worker_name, worker_version)
+- Delivery status and the reference to the endpoint's response (response_id)
 - Retry count and scheduling
 
 ### Set Up Environment Variables
@@ -91,21 +91,33 @@ curl -X GET "$HOOK0_API/request_attempts/?application_id=$APP_ID&event_id={EVENT
 
 **Response Example:**
 
+<!-- openapi: RequestAttempt -->
 ```json
 [
   {
     "request_attempt_id": "uuid",
     "event_id": "uuid",
-    "subscription_id": "uuid",
+    "event": {
+      "event_id": "uuid",
+      "event_type_name": "billing.invoice.paid"
+    },
+    "subscription": {
+      "subscription_id": "uuid",
+      "description": "Billing service webhook"
+    },
     "created_at": "2025-12-10T10:00:00Z",
     "picked_at": "2025-12-10T10:00:01Z",
     "succeeded_at": "2025-12-10T10:00:03Z",
     "failed_at": null,
-    "retry_count": 0,
-    "worker_name": "worker-01",
-    "worker_version": "0.1.0",
+    "delay_until": null,
     "response_id": "uuid",
-    "delay_until": null
+    "retry_count": 0,
+    "http_response_status": 200,
+    "status": {
+      "type": "successful",
+      "at": "2025-12-10T10:00:03Z",
+      "full_processing_ms": 2000
+    }
   }
 ]
 ```
@@ -121,6 +133,7 @@ curl -X GET "$HOOK0_API/responses/{RESPONSE_ID}?application_id=$APP_ID" \
 
 **Response Example:**
 
+<!-- openapi: Response -->
 ```json
 {
   "response_id": "uuid",

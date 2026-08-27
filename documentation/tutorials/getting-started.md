@@ -145,6 +145,7 @@ curl -X POST "$HOOK0_API/event_types" \
 ```
 
 **Response:**
+<!-- openapi: EventType -->
 ```json
 {
   "service_name": "user",

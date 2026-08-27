@@ -23,6 +23,7 @@ All API errors follow this structure (RFC 7807):
 
 ### ApplicationNameMissing
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#applicationnamemissing",
@@ -35,6 +36,7 @@ All API errors follow this structure (RFC 7807):
 
 ### AuthInvalidAuthorizationHeader
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#authinvalidauthorizationheader",
@@ -47,6 +49,7 @@ All API errors follow this structure (RFC 7807):
 
 ### EventInvalidBase64Payload
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#eventinvalidbase64payload",
@@ -59,6 +62,7 @@ All API errors follow this structure (RFC 7807):
 
 ### EventInvalidJsonPayload
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#eventinvalidjsonpayload",
@@ -71,6 +75,7 @@ All API errors follow this structure (RFC 7807):
 
 ### EventInvalidPayloadContentType
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#eventinvalidpayloadcontenttype",
@@ -83,6 +88,7 @@ All API errors follow this structure (RFC 7807):
 
 ### EventTypeDoesNotExist
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#eventtypedoesnotexist",
@@ -95,6 +101,7 @@ All API errors follow this structure (RFC 7807):
 
 ### InvalidDateRange
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#invaliddaterange",
@@ -107,6 +114,7 @@ All API errors follow this structure (RFC 7807):
 
 ### InvalidRole
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#invalidrole",
@@ -119,6 +127,7 @@ All API errors follow this structure (RFC 7807):
 
 ### JsonPayload
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#jsonpayload",
@@ -131,6 +140,7 @@ All API errors follow this structure (RFC 7807):
 
 ### LabelsAmbiguity
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#labelsambiguity",
@@ -143,6 +153,7 @@ All API errors follow this structure (RFC 7807):
 
 ### OrganizationNameMissing
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#organizationnamemissing",
@@ -155,6 +166,7 @@ All API errors follow this structure (RFC 7807):
 
 ### PasswordNotDiverseEnough
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#passwordnotdiverseenough",
@@ -167,6 +179,7 @@ All API errors follow this structure (RFC 7807):
 
 ### PasswordSimilarToEmail
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#passwordsimilartoemail",
@@ -179,6 +192,7 @@ All API errors follow this structure (RFC 7807):
 
 ### PasswordSimilarToName
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#passwordsimilartoname",
@@ -191,6 +205,7 @@ All API errors follow this structure (RFC 7807):
 
 ### PasswordTooCommon
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#passwordtoocommon",
@@ -203,6 +218,7 @@ All API errors follow this structure (RFC 7807):
 
 ### PasswordTooLong
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#passwordtoolong",
@@ -215,6 +231,7 @@ All API errors follow this structure (RFC 7807):
 
 ### PasswordTooShort
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#passwordtooshort",
@@ -227,6 +244,7 @@ All API errors follow this structure (RFC 7807):
 
 ### UnauthorizedWorkers
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#unauthorizedworkers",
@@ -241,6 +259,7 @@ All API errors follow this structure (RFC 7807):
 
 ### AuthEmailExpired
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#authemailexpired",
@@ -253,6 +272,7 @@ All API errors follow this structure (RFC 7807):
 
 ### AuthEmailNotVerified
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#authemailnotverified",
@@ -265,6 +285,7 @@ All API errors follow this structure (RFC 7807):
 
 ### AuthFailedLogin
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#authfailedlogin",
@@ -277,6 +298,7 @@ All API errors follow this structure (RFC 7807):
 
 ### AuthFailedRefresh
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#authfailedrefresh",
@@ -289,6 +311,7 @@ All API errors follow this structure (RFC 7807):
 
 ### AuthNoAuthorizationHeader
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#authnoauthorizationheader",
@@ -303,6 +326,7 @@ All API errors follow this structure (RFC 7807):
 
 ### AuthInvalidApplicationSecret
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#authinvalidapplicationsecret",
@@ -315,6 +339,7 @@ All API errors follow this structure (RFC 7807):
 
 ### AuthInvalidBiscuit
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#authinvalidbiscuit",
@@ -327,6 +352,7 @@ All API errors follow this structure (RFC 7807):
 
 ### Forbidden
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#forbidden",
@@ -341,6 +367,7 @@ All API errors follow this structure (RFC 7807):
 
 ### InvitedUserDoesNotExist
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#inviteduserdoesnotexist",
@@ -353,6 +380,7 @@ All API errors follow this structure (RFC 7807):
 
 ### NotFound
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#notfound",
@@ -367,6 +395,7 @@ All API errors follow this structure (RFC 7807):
 
 ### AuthEmailAlreadyVerified
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#authemailalreadyverified",
@@ -379,6 +408,7 @@ All API errors follow this structure (RFC 7807):
 
 ### EventAlreadyIngested
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#eventalreadyingested",
@@ -391,6 +421,7 @@ All API errors follow this structure (RFC 7807):
 
 ### EventTypeAlreadyExist
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#eventtypealreadyexist",
@@ -403,6 +434,7 @@ All API errors follow this structure (RFC 7807):
 
 ### InvitedUserAlreadyInOrganization
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#inviteduseralreadyinorganization",
@@ -415,6 +447,7 @@ All API errors follow this structure (RFC 7807):
 
 ### OrganizationIsNotEmpty
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#organizationisnotempty",
@@ -427,6 +460,7 @@ All API errors follow this structure (RFC 7807):
 
 ### UserAlreadyExist
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#useralreadyexist",
@@ -441,6 +475,7 @@ All API errors follow this structure (RFC 7807):
 
 ### RegistrationDisabled
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#registrationdisabled",
@@ -455,6 +490,7 @@ All API errors follow this structure (RFC 7807):
 
 ### Validation
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#validation",
@@ -469,6 +505,7 @@ All API errors follow this structure (RFC 7807):
 
 ### RateLimited
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#ratelimited",
@@ -481,6 +518,7 @@ All API errors follow this structure (RFC 7807):
 
 ### TooManyApplicationsPerOrganization
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#toomanyapplicationsperorganization",
@@ -493,6 +531,7 @@ All API errors follow this structure (RFC 7807):
 
 ### TooManyEventsToday
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#toomanyeventstoday",
@@ -505,6 +544,7 @@ All API errors follow this structure (RFC 7807):
 
 ### TooManyEventTypesPerApplication
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#toomanyeventtypesperapplication",
@@ -517,6 +557,7 @@ All API errors follow this structure (RFC 7807):
 
 ### TooManyMembersPerOrganization
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#toomanymembersperorganization",
@@ -529,6 +570,7 @@ All API errors follow this structure (RFC 7807):
 
 ### TooManySubscriptionsPerApplication
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#toomanysubscriptionsperapplication",
@@ -543,6 +585,7 @@ All API errors follow this structure (RFC 7807):
 
 ### AuthApplicationSecretLookupError
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#authapplicationsecretlookuperror",
@@ -555,6 +598,7 @@ All API errors follow this structure (RFC 7807):
 
 ### AuthBiscuitLookupError
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#authbiscuitlookuperror",
@@ -567,6 +611,7 @@ All API errors follow this structure (RFC 7807):
 
 ### InternalServerError
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#internalservererror",
@@ -581,6 +626,7 @@ All API errors follow this structure (RFC 7807):
 
 ### ServiceUnavailable
 
+<!-- openapi: Problem -->
 ```json
 {
   "type": "https://documentation.hook0.com/reference/error-codes#serviceunavailable",

@@ -75,19 +75,42 @@ EOF
 
 ### Analyze delivery attempts
 
-Look for these key details:
+A request attempt records where a delivery stands and how it got there:
 
+<!-- openapi: RequestAttempt -->
 ```json
 {
-  "attempt_number": 3,
-  "status_code": 500,
-  "response_body": "Internal Server Error",
-  "error_message": null,
-  "duration_ms": 5000,
+  "request_attempt_id": "b3f1c2a4-5d6e-47f8-9a0b-1c2d3e4f5a6b",
+  "event_id": "9f8e7d6c-5b4a-4938-8271-6a5b4c3d2e1f",
+  "event": {
+    "event_id": "9f8e7d6c-5b4a-4938-8271-6a5b4c3d2e1f",
+    "event_type_name": "billing.invoice.paid"
+  },
+  "subscription": {
+    "subscription_id": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    "description": "Billing service webhook"
+  },
   "created_at": "2024-01-15T10:30:00Z",
-  "next_retry_at": "2024-01-15T10:34:00Z"
+  "picked_at": "2024-01-15T10:30:01Z",
+  "failed_at": "2024-01-15T10:30:06Z",
+  "succeeded_at": null,
+  "delay_until": "2024-01-15T10:34:00Z",
+  "response_id": "7c6b5a49-3827-4160-9e5d-4c3b2a1f0e9d",
+  "retry_count": 3,
+  "http_response_status": 500,
+  "status": {
+    "type": "waiting",
+    "since": "2024-01-15T10:30:06Z",
+    "until": "2024-01-15T10:34:00Z"
+  }
 }
 ```
+
+`http_response_status` and `retry_count` tell you what happened and how many
+times Hook0 has tried. The response body, headers, and error name are **not** on
+the attempt: it links to them through `response_id`. Follow that id to
+`GET /responses/{response_id}` (Step 2 below) to read what your endpoint actually
+returned.
 
 ## Step 2: Using the API for analysis
 
