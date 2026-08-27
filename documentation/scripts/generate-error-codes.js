@@ -94,6 +94,9 @@ All API errors follow this structure (RFC 7807):
       };
 
       md += `### ${error.id}\n\n`;
+      // Binds the example to the Problem schema so the API test that guards
+      // documentation examples holds it to the fields the API actually serves.
+      md += `<!-- openapi: Problem -->\n`;
       md += `\`\`\`json\n${JSON.stringify(errorObj, null, 2)}\n\`\`\`\n\n`;
     }
   }
