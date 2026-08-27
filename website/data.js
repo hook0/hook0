@@ -50,7 +50,7 @@ locals.seo = {
   siteName: 'Hook0',
   defaultTitle: 'Hook0: Free Webhook Platform, HMAC Signatures, EU Hosting',
   defaultDescription: 'Free webhook platform with HMAC signatures, configurable retries, and delivery monitoring. Self-host the SSPL code or use our EU-hosted cloud. No credit card.',
-  defaultImage: '/mediakit/logo/1920x1920-banner.png',
+  defaultImage: '/img/hook0-social-card.png',
   twitterHandle: '@hook0_',
   locale: 'en_US',
   themeColor: '#0a0a0f',
