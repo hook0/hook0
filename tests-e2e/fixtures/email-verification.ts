@@ -14,10 +14,16 @@ const DATABASE_URL =
 
 /**
  * API base URL for direct API calls in tests.
- * The API always runs on port 8081 (both locally and in CI).
+ *
+ * Read from the environment like the two above it, and for a reason worth writing down: this said
+ * the API always runs on 8081, and wrote itself as a constant on the strength of that. It stopped
+ * being true the day a second worktree existed. A run brought up on any other port kept calling
+ * 8081 regardless, so it did not merely read a neighbouring stack, it registered its test users
+ * into that stack's database.
+ *
  * The frontend is served on port 8001 but doesn't proxy API requests.
  */
-export const API_BASE_URL = "http://localhost:8081/api/v1";
+export const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8081/api/v1";
 
 /**
  * Result of database verification including organization ID.
