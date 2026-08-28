@@ -107,8 +107,11 @@ const [name, nameAttrs] = defineField('name');
 <template>
   <Hook0PageLayout :title="isNew ? t('organizations.createTitle') : t('organizations.settings')">
     <Hook0Stack direction="column" gap="xl">
-      <!-- Loading for edit mode (also shown when query is disabled and data is undefined) -->
-      <Hook0Card v-if="!isNew && (isLoading || !orgDetail)">
+      <!-- Loading for edit mode (also shown when query is disabled and data is undefined).
+           `!orgDetail` alone would claim the refused state as well as the one still in flight: a
+           failed fetch leaves the data undefined for good, so the skeleton below never gave the
+           state up and the error card never rendered. Guarded the way the dashboards guard theirs. -->
+      <Hook0Card v-if="!isNew && (isLoading || (!orgDetail && !loadError))">
         <Hook0CardHeader>
           <template #header>{{ t('organizations.editTitle') }}</template>
         </Hook0CardHeader>

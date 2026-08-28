@@ -83,6 +83,13 @@ test.describe("Events", () => {
     const now = new Date();
     await page.locator('[data-test="send-event-occurred-at-input"]').fill(now.toISOString().slice(0, 16));
 
+    // The labels editor waits 150ms after the last keystroke before handing the edit to
+    // the surrounding form, so a submit fired inside that window sends the form's initial
+    // user_id=1 instead of the all=yes just typed — accepted everywhere, and the event
+    // ends up carrying labels nobody typed. Settle the debounce before clicking so the
+    // event is sent with the labels this helper set. See submitWithLabels in test-setup.ts.
+    await page.waitForTimeout(400);
+
     // Submit
     const responsePromise = page.waitForResponse(
       (response) =>
@@ -230,6 +237,88 @@ test.describe("Events", () => {
     await expect(page.locator('[data-test="side-panel"]')).not.toBeVisible({ timeout: 10000 });
   });
 
+  /**
+   * What the panel shows when that same fetch fails, which for a long time was nothing at all.
+   *
+   * The full page and the list both render Hook0ErrorCard when this query fails. The panel guarded
+   * its skeleton on the data being absent, and a refused fetch leaves it absent for good, so there
+   * was no error branch to reach: it stayed on skeletons, with no message and no retry, which reads
+   * as slow rather than as broken.
+   *
+   * The panel is teleported to the body and mounts only while open, so both counts are taken inside
+   * the panel; a page-wide count would take in whatever the list underneath is rendering. Reading
+   * them together is also what waits, so a failure prints the state that was on screen rather than
+   * "element not found". The panel count in the expectation is what stops the whole thing passing
+   * on a read that found nothing.
+   */
+  function panelState(page: import("@playwright/test").Page) {
+    return page.evaluate(() => {
+      const panels = Array.from(document.querySelectorAll('[data-test="side-panel"]'));
+      return {
+        panels: panels.length,
+        errorCards: panels.reduce(
+          (total, panel) => total + panel.querySelectorAll('[data-test="error-card"]').length,
+          0
+        ),
+        skeletons: panels.reduce(
+          (total, panel) => total + panel.querySelectorAll(".hook0-skeleton").length,
+          0
+        ),
+      };
+    });
+  }
+
+  test("should show error in side panel when the event cannot be loaded", async ({
+    page,
+    request,
+  }) => {
+    const env = await loginAndCreateAppWithEventType(page, request, "side-panel-error");
+
+    const response = await sendTestEvent(page, env);
+    expect(response.status()).toBeLessThan(400);
+
+    await page.goto(
+      `/organizations/${env.organizationId}/applications/${env.applicationId}/events`
+    );
+    const rows = page.locator('[data-test="events-table"] [row-id]');
+    await expect(async () => {
+      const rowCount = await rows.count();
+      expect(rowCount).toBeGreaterThanOrEqual(1);
+    }).toPass({ timeout: 15000 });
+
+    // Control: the same click with the request left alone fills the panel, so a card in the second
+    // half is the refusal and not a panel that never renders anything.
+    await rows.first().locator("td").nth(1).click();
+    await expect(page.locator('[data-test="side-panel"]')).toContainText(env.eventTypeName, {
+      timeout: 10000,
+    });
+    expect(await panelState(page)).toEqual({ panels: 1, errorCards: 0, skeletons: 0 });
+    await page.locator('[data-test="side-panel-close"]').click();
+
+    // The event detail request, and only that one: the list is one path segment shorter.
+    await page.route("**/api/v1/events/*", (route) => route.abort("connectionfailed"));
+    // The query cache lives in the page, so the reload is what makes the next open ask again.
+    await page.reload();
+
+    await expect(async () => {
+      const rowCount = await rows.count();
+      expect(rowCount).toBeGreaterThanOrEqual(1);
+    }).toPass({ timeout: 15000 });
+    await rows.first().locator("td").nth(1).click();
+
+    await expect
+      .poll(() => panelState(page), {
+        timeout: 15000,
+        message:
+          "the side panel must say the event could not be loaded rather than show a skeleton",
+      })
+      .toEqual({ panels: 1, errorCards: 1, skeletons: 0 });
+    await expect(
+      page.locator('[data-test="side-panel"] [data-test="error-card-retry"]'),
+      "and offer the retry, which is the only way back that is not a page reload"
+    ).toBeVisible();
+  });
+
   test("should navigate to event detail page", async ({ page, request }) => {
     const env = await loginAndCreateAppWithEventType(page, request, "detail");
 
@@ -282,9 +371,11 @@ test.describe("Events", () => {
     const detailPage = page.locator('[data-test="event-detail-page"]');
     await expect(detailPage).toContainText('application/json', { timeout: 30000 });
 
-    // Verify labels section displays the label we sent (default: user_id=1)
-    await expect(detailPage).toContainText("user_id", { timeout: 15000 });
-    await expect(detailPage).toContainText("1", { timeout: 15000 });
+    // Verify the labels section renders the label this event was sent with. sendTestEvent
+    // types all=yes; asserting that rather than a fixed key keeps the check tied to what
+    // actually went on the wire instead of the form's throwaway default.
+    await expect(detailPage).toContainText("all", { timeout: 15000 });
+    await expect(detailPage).toContainText("yes", { timeout: 15000 });
 
     // Verify payload content is displayed (we sent the default '{"test": true}')
     await expect(detailPage).toContainText("test", { timeout: 15000 });

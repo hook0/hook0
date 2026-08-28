@@ -118,8 +118,11 @@ function cancel() {
 <template>
   <Hook0PageLayout :title="isNew ? t('applications.createTitle') : t('applications.settings')">
     <Hook0Stack direction="column" gap="xl">
-      <!-- Loading for edit mode (also shown when query is disabled and data is undefined) -->
-      <Hook0Card v-if="!isNew && (isLoading || !appDetail)">
+      <!-- Loading for edit mode (also shown when query is disabled and data is undefined).
+           `!appDetail` alone would claim the refused state as well as the one still in flight: a
+           failed fetch leaves the data undefined for good, so the skeleton below never gave the
+           state up and the error card never rendered. Guarded the way the dashboards guard theirs. -->
+      <Hook0Card v-if="!isNew && (isLoading || (!appDetail && !loadError))">
         <Hook0CardHeader>
           <template #header>{{ t('applications.editTitle') }}</template>
         </Hook0CardHeader>
