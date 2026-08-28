@@ -562,6 +562,74 @@ sdk-release.lua:
     - luarocks upload "$rockspec" --api-key="$LUA_TOKEN" --skip-pack
     - echo "=== Published hook0-client $version to LuaRocks ==="
 
+# --- Publish to Maven Central ------------------------------------------------
+#
+# Java and Kotlin publish the same way to the same place: `mvn deploy` under the
+# `release` profile, which the plugin binds to an upload to the Central Portal
+# and to nothing else. One namespace claim and one credential set cover both,
+# and they are built for one Java release so that they sit on one classpath, so
+# either both go out or neither does.
+#
+# `.maven-publish` holds what the two share. The signing key is imported into a
+# keyring the runner throws away with the job; its passphrase reaches
+# `maven-gpg-plugin` through `MAVEN_GPG_PASSPHRASE`, which the plugin reads from
+# the environment, so it never becomes a file or a command-line argument. The
+# `central` server the publishing plugin reads takes its token pair from the
+# environment too, so the `settings.xml` the job writes carries no secret of its
+# own.
+
+.maven-publish:
+  extends: .sdk-publish
+  dependencies: []
+  image: maven:3.9.11-eclipse-temurin-$JAVA_VERSION
+  variables:
+    MAVEN_CLI_OPTS: "--batch-mode --no-transfer-progress --errors"
+  before_script:
+    # `maven-gpg-plugin` shells out to gpg, which the eclipse-temurin image does
+    # not carry, and base64 is what survives the private key being a variable.
+    - apt-get update && apt-get install -y --no-install-recommends gnupg
+    - printf %s "$MAVEN_GPG_PRIVATE_KEY" | base64 -d | gpg --batch --import
+  script:
+    - cd "$PUBLISHES"
+    - |
+      cat > settings.xml <<'EOF'
+      <settings>
+        <servers>
+          <server>
+            <id>central</id>
+            <username>${env.MAVEN_CENTRAL_USERNAME}</username>
+            <password>${env.MAVEN_CENTRAL_TOKEN}</password>
+          </server>
+        </servers>
+      </settings>
+      EOF
+    - mvn $MAVEN_CLI_OPTS -Prelease --settings settings.xml deploy
+    - echo "=== Published to Maven Central from $PUBLISHES ==="
+
+sdk-release.java:
+  extends: .maven-publish
+  needs:
+    - job: sdk.packages
+      artifacts: false
+    - job: clients.java.check
+      artifacts: false
+    - job: clients.live-smoke
+      artifacts: false
+  variables:
+    PUBLISHES: clients/java
+
+sdk-release.kotlin:
+  extends: .maven-publish
+  needs:
+    - job: sdk.packages
+      artifacts: false
+    - job: clients.kotlin.check
+      artifacts: false
+    - job: clients.live-smoke
+      artifacts: false
+  variables:
+    PUBLISHES: clients/kotlin
+
 # =============================================================================
 # Manual SDK release triggers (master branch only)
 # =============================================================================
