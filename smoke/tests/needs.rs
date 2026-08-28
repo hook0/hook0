@@ -282,7 +282,7 @@ const LIVE_SMOKE: &str = "clients.live-smoke";
 /// Fewest publish jobs `SDK_RELEASE` is expected to hold. One per registry the SDKs go out on,
 /// and the number only falls when a registry is dropped, which is a change somebody makes on
 /// purpose and can adjust here.
-const MIN_PUBLISH_JOBS: usize = 10;
+const MIN_PUBLISH_JOBS: usize = 12;
 
 /// The repository this crate sits in.
 fn repository() -> PathBuf {
