@@ -50,7 +50,7 @@ tag of `github.com/hook0/hook0-zig`, the read-only mirror this directory is push
 release: `zig fetch` needs an archive whose root is the package, which a monorepo cannot be.
 
 ```sh
-zig fetch --save=hook0 https://github.com/hook0/hook0-zig/archive/refs/tags/v2.0.2.tar.gz
+zig fetch --save=hook0 https://github.com/hook0/hook0-zig/archive/refs/tags/v2.0.3.tar.gz
 ```
 
 That writes a `.hash` beside the URL, and every later build is held to it. Then, in your `build.zig`:

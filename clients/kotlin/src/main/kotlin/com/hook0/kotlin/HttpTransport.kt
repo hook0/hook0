@@ -256,7 +256,7 @@ class HttpTransport(
      * the conformance suite holds it against the version `pom.xml` publishes, so the two cannot
      * drift apart.
      */
-    internal const val VERSION = "2.0.2"
+    internal const val VERSION = "2.0.3"
 
     /** The schemes this transport reaches. */
     private val SCHEMES = listOf("http", "https")
