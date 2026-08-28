@@ -10,6 +10,7 @@ import { routes } from '@/routes';
 
 import Hook0SidePanel from '@/components/Hook0SidePanel.vue';
 import Hook0Button from '@/components/Hook0Button.vue';
+import Hook0ErrorCard from '@/components/Hook0ErrorCard.vue';
 import Hook0Skeleton from '@/components/Hook0Skeleton.vue';
 
 type Props = {
@@ -31,7 +32,12 @@ const router = useRouter();
 const eventIdRef = computed(() => props.eventId);
 const applicationIdRef = computed(() => props.applicationId);
 
-const { data: eventData, isLoading: eventLoading } = useEventDetail(eventIdRef, applicationIdRef);
+const {
+  data: eventData,
+  isLoading: eventLoading,
+  error: eventError,
+  refetch: refetchEvent,
+} = useEventDetail(eventIdRef, applicationIdRef);
 
 function openFullPage() {
   emit('close');
@@ -63,7 +69,7 @@ function openFullPage() {
     </template>
 
     <!-- Loading -->
-    <template v-if="eventLoading || !eventData">
+    <template v-if="eventLoading">
       <div class="event-panel__section">
         <Hook0Skeleton size="text-truncated" />
         <Hook0Skeleton size="text" />
@@ -74,8 +80,11 @@ function openFullPage() {
       </div>
     </template>
 
+    <!-- Error state (checked before the payload so a failed fetch is not left showing as loading) -->
+    <Hook0ErrorCard v-else-if="eventError" :error="eventError" @retry="refetchEvent()" />
+
     <!-- Event loaded -->
-    <template v-else>
+    <template v-else-if="eventData">
       <!-- Metadata -->
       <div class="event-panel__section">
         <h3 class="event-panel__section-title">{{ t('events.metadata') }}</h3>
