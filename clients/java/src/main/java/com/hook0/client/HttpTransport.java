@@ -50,7 +50,7 @@ public final class HttpTransport implements Transport, AutoCloseable {
    * <p>A jar carries no build file to read the number back out of at runtime, so it is written here; the conformance
    * suite holds it against the version {@code pom.xml} publishes, so the two cannot drift apart.
    */
-  static final String VERSION = "2.0.2";
+  static final String VERSION = "2.0.3";
 
   /** The schemes this transport reaches. */
   private static final List<String> SCHEMES = List.of("http", "https");
