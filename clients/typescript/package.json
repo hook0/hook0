@@ -27,9 +27,10 @@
     "test": "jest",
     "api-surface:update": "ts-node tests/apiSurface.update.ts",
     "lint": "eslint .",
-    "format": "prettier --write ./{src,tests}/{*,**/*}.ts ./esm/*.{mjs,mts}",
-    "check": "prettier --check ./{src,tests}/{*,**/*}.ts ./esm/*.{mjs,mts}",
-    "check-full": "npm run --silent check && npm run --silent lint && npm run --silent build && npm run --silent test",
+    "format": "prettier --write './{src,tests,examples}/{*,**/*}.ts' './esm/*.{mjs,mts}'",
+    "check": "prettier --check './{src,tests,examples}/{*,**/*}.ts' './esm/*.{mjs,mts}'",
+    "check-examples": "tsc --noEmit -p examples",
+    "check-full": "npm run --silent check && npm run --silent lint && npm run --silent build && npm run --silent check-examples && npm run --silent test",
     "release-major": "npm run --silent check-full && npm-release major",
     "release-minor": "npm run --silent check-full && npm-release minor",
     "release-patch": "npm run --silent check-full && npm-release patch"

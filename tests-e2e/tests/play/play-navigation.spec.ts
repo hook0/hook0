@@ -3,9 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Play Navigation - Header Links (desktop)", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test("header has Docs link pointing to documentation.hook0.com", async ({
-    page,
-  }) => {
+  test("header has Docs link pointing to documentation.hook0.com", async ({ page }) => {
     await page.goto("/");
 
     const nav = page.locator('[data-test="header-nav"]');
@@ -16,17 +14,13 @@ test.describe("Play Navigation - Header Links (desktop)", () => {
     await expect(docsLink).toHaveText("Docs");
   });
 
-  test("header has Pricing link pointing to hook0.com/#pricing", async ({
-    page,
-  }) => {
+  test("header has Pricing link pointing to hook0.com/#pricing", async ({ page }) => {
     await page.goto("/");
 
     const nav = page.locator('[data-test="header-nav"]');
     await expect(nav).toBeVisible({ timeout: 10000 });
 
-    const pricingLink = nav.locator(
-      'a[href="https://www.hook0.com/#pricing"]',
-    );
+    const pricingLink = nav.locator('a[href="https://www.hook0.com/#pricing"]');
     await expect(pricingLink).toBeVisible();
     await expect(pricingLink).toHaveText("Pricing");
   });
@@ -40,9 +34,7 @@ test.describe("Play Navigation - Header Links (desktop)", () => {
     await expect(loginLink).toHaveText("Login");
   });
 
-  test("header has Get Started button pointing to app.hook0.com/register", async ({
-    page,
-  }) => {
+  test("header has Get Started button pointing to app.hook0.com/register", async ({ page }) => {
     await page.goto("/");
 
     const registerBtn = page.locator('[data-test="register-btn"]');
@@ -50,7 +42,7 @@ test.describe("Play Navigation - Header Links (desktop)", () => {
     // Points at the register app AND carries the play acquisition attribution.
     await expect(registerBtn).toHaveAttribute(
       "href",
-      /^https:\/\/app\.hook0\.com\/register\?.*utm_source=play/,
+      /^https:\/\/app\.hook0\.com\/register\?.*utm_source=play/
     );
     await expect(registerBtn).toContainText("Get Started");
   });
@@ -93,18 +85,10 @@ test.describe("Play Navigation - Mobile Menu", () => {
     await expect(mobileMenu).toBeVisible();
 
     // Check all expected links are present
-    await expect(
-      mobileMenu.locator('a[href="https://documentation.hook0.com"]'),
-    ).toBeVisible();
-    await expect(
-      mobileMenu.locator('a[href="https://www.hook0.com/#pricing"]'),
-    ).toBeVisible();
-    await expect(
-      mobileMenu.locator('[data-test="mobile-login-link"]'),
-    ).toBeVisible();
-    await expect(
-      mobileMenu.locator('[data-test="mobile-register-btn"]'),
-    ).toBeVisible();
+    await expect(mobileMenu.locator('a[href="https://documentation.hook0.com"]')).toBeVisible();
+    await expect(mobileMenu.locator('a[href="https://www.hook0.com/#pricing"]')).toBeVisible();
+    await expect(mobileMenu.locator('[data-test="mobile-login-link"]')).toBeVisible();
+    await expect(mobileMenu.locator('[data-test="mobile-register-btn"]')).toBeVisible();
 
     // Visual proof: screenshot with menu open
     await page.screenshot({
@@ -144,26 +128,14 @@ test.describe("Play Navigation - Footer", () => {
     const productLinks = productCol.locator("a");
     await expect(productLinks).toHaveCount(5);
 
-    await expect(productLinks.nth(0)).toHaveAttribute(
-      "href",
-      "https://www.hook0.com",
-    );
-    await expect(productLinks.nth(1)).toHaveAttribute(
-      "href",
-      "https://www.hook0.com/#pricing",
-    );
-    await expect(productLinks.nth(2)).toHaveAttribute(
-      "href",
-      "https://documentation.hook0.com",
-    );
+    await expect(productLinks.nth(0)).toHaveAttribute("href", "https://www.hook0.com");
+    await expect(productLinks.nth(1)).toHaveAttribute("href", "https://www.hook0.com/#pricing");
+    await expect(productLinks.nth(2)).toHaveAttribute("href", "https://documentation.hook0.com");
     await expect(productLinks.nth(3)).toHaveAttribute(
       "href",
-      "https://documentation.hook0.com/api",
+      "https://documentation.hook0.com/api"
     );
-    await expect(productLinks.nth(4)).toHaveAttribute(
-      "href",
-      "https://status.hook0.com",
-    );
+    await expect(productLinks.nth(4)).toHaveAttribute("href", "https://status.hook0.com");
   });
 
   test("footer has Community column with 4 links", async ({ page }) => {
@@ -229,9 +201,6 @@ test.describe("Play Navigation - Footer", () => {
     }
 
     const failures = results.filter((r) => r.status >= 400);
-    expect(
-      failures,
-      `Unreachable footer links: ${JSON.stringify(failures)}`,
-    ).toHaveLength(0);
+    expect(failures, `Unreachable footer links: ${JSON.stringify(failures)}`).toHaveLength(0);
   });
 });

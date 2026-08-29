@@ -1,0 +1,28 @@
+{
+  // What the two dashboard examples beside this file are resolved against.
+  //
+  // A project of their own rather than the package's `tsconfig.json`, for two reasons. The package
+  // is compiled to CommonJS into `dist`, which is what it publishes; these files are a consumer's,
+  // they are never emitted, and a top-level `await` — which is what a reader pastes and runs — needs
+  // an ES module. And putting them under the package's `include` would land them in `dist` and in
+  // the published tarball, which is not what an example is for.
+  //
+  // `hook0-client` resolves to the client's own TypeScript source rather than to `dist` or to a
+  // published version: `dist` is build output, gitignored, and not something a fresh checkout
+  // carries, so redirecting straight at `src` means no build is a precondition of this check, and a
+  // renamed method, a dropped argument or an argument of the wrong type still fails here.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "hook0-client": ["../src/index.ts"]
+    }
+  },
+  "include": ["**/*.ts"]
+}

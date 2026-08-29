@@ -201,6 +201,19 @@ test.describe("API Keys", () => {
     const provisionedToken = ((await secretsResponse.json()) as Array<{ token: string }>)[0].token;
     expect(provisionedToken).toBeTruthy();
 
+    // The send-event screen shows a code panel only once the application has an event type to send,
+    // so declare one before opening it, the way the sibling test above does.
+    const eventTypeResponse = await request.post(`${API_BASE_URL}/event_types`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: {
+        application_id: env.applicationId,
+        service: "test",
+        resource_type: "entity",
+        verb: "created",
+      },
+    });
+    expect(eventTypeResponse.status()).toBeLessThan(400);
+
     await page.goto(
       `/organizations/${env.organizationId}/applications/${env.applicationId}/events/send`
     );

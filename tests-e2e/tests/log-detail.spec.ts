@@ -19,10 +19,7 @@ test.describe("Log Detail", () => {
    * held the right thing a moment ago is not the same claim as a field that
    * holds it when the form is submitted.
    */
-  async function setKeyValue(
-    input: import("@playwright/test").Locator,
-    value: string
-  ) {
+  async function setKeyValue(input: import("@playwright/test").Locator, value: string) {
     if ((await input.inputValue()) !== value) {
       await input.clear();
       await input.fill(value);
@@ -104,9 +101,7 @@ test.describe("Log Detail", () => {
     await page.locator('[data-test="events-send-button"]').click();
     await page.waitForURL("**/events/send");
     await expect(page.locator('[data-test="send-event-form"]')).toBeVisible({ timeout: 10000 });
-    await page
-      .locator('[data-test="send-event-type-select"]')
-      .selectOption("log.test.created");
+    await page.locator('[data-test="send-event-type-select"]').selectOption("log.test.created");
 
     // Add event labels matching the subscription
     const eventLabelKey = page.locator(
@@ -138,18 +133,13 @@ test.describe("Log Detail", () => {
     await expect(page).toHaveURL(/\/events\/(?!send$)[^/]+$/, { timeout: 10000 });
 
     // Navigate to logs and wait for data
-    await page.goto(
-      `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
-    );
+    await page.goto(`/organizations/${env.organizationId}/applications/${env.applicationId}/logs`);
     await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
 
     return env;
   }
 
-  async function waitForLogRow(
-    page: import("@playwright/test").Page,
-    applicationId: string
-  ) {
+  async function waitForLogRow(page: import("@playwright/test").Page, applicationId: string) {
     const accessToken = await page.evaluate(() => {
       const stored = window.localStorage.getItem("auth");
       if (stored === null) {
@@ -180,7 +170,8 @@ test.describe("Log Detail", () => {
         attemptCount,
         "the API lists no delivery attempt for this application"
       ).toBeGreaterThan(0);
-    }).toPass({ timeout: 45000, intervals: [1500] })
+    })
+      .toPass({ timeout: 45000, intervals: [1500] })
       .catch(async (error: Error) => {
         // An empty list says nothing about which side of the match came up
         // short, and the event POST answering 2xx does not say what the event
@@ -220,10 +211,10 @@ test.describe("Log Detail", () => {
 
     // Click on the status column of the first row (not the event link which navigates away)
     const firstRow = page.locator('[data-test="logs-table"] [row-id]').first();
-    await firstRow.locator('.log-status').click();
+    await firstRow.locator(".log-status").click();
 
     // Verify the detail panel shows content (scoped to the detail side of the split)
-    const detail = page.locator('.hook0-split-layout__detail');
+    const detail = page.locator(".hook0-split-layout__detail");
     await expect(detail.getByText("log.test.created")).toBeVisible({ timeout: 10000 });
     await expect(detail.getByText("Request")).toBeVisible();
     await expect(detail.getByText("Payload")).toBeVisible();
@@ -233,10 +224,7 @@ test.describe("Log Detail", () => {
     await expect(page).toHaveURL(/delivery=/, { timeout: 5000 });
   });
 
-  test("should navigate to LogDetail full page", async ({
-    page,
-    request,
-  }) => {
+  test("should navigate to LogDetail full page", async ({ page, request }) => {
     test.slow();
     const env = await setupLogsWithDelivery(page, request, "full-page");
     await waitForLogRow(page, env.applicationId);
@@ -280,9 +268,7 @@ test.describe("Log Detail", () => {
     );
 
     await expect(page).toHaveURL(
-      new RegExp(
-        `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
-      ),
+      new RegExp(`/organizations/${env.organizationId}/applications/${env.applicationId}/logs`),
       { timeout: 10000 }
     );
     await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });
@@ -307,9 +293,7 @@ test.describe("Log Detail", () => {
     await page.goBack();
 
     await expect(page).toHaveURL(
-      new RegExp(
-        `/organizations/${env.organizationId}/applications/${env.applicationId}/logs`
-      ),
+      new RegExp(`/organizations/${env.organizationId}/applications/${env.applicationId}/logs`),
       { timeout: 10000 }
     );
     await expect(page.locator('[data-test="logs-card"]')).toBeVisible({ timeout: 10000 });

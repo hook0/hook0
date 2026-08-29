@@ -194,6 +194,32 @@
             <arg>-Xlint:-this-escape</arg>
           </compilerArgs>
         </configuration>
+        <executions>
+          <execution>
+            <!--
+              What the dashboard shows under "Send an event" is `examples/`, and it is compiled here
+              rather than anywhere else: a snippet written by hand in the dashboard is backed by
+              nothing and drifts the day a method is renamed, so it lives beside the client it calls
+              and rides the job that already builds it.
+
+              It joins the test compilation rather than the main one because it is not part of the
+              artefact: nothing here ships to Maven Central, and nothing runs it either — the values
+              in it are markers the dashboard substitutes, so a run would reach a host that does not
+              exist. It has to compile, which is the whole point.
+
+              The declared suite is named through `${project.build.testSourceDirectory}` rather than
+              written out again, so the one place that says where the suite lives stays the one
+              `PackagingTest` reads.
+            -->
+            <id>default-testCompile</id>
+            <configuration>
+              <compileSourceRoots>
+                <compileSourceRoot>${project.build.testSourceDirectory}</compileSourceRoot>
+                <compileSourceRoot>${project.basedir}/examples</compileSourceRoot>
+              </compileSourceRoots>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <plugin>

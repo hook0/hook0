@@ -1,6 +1,7 @@
-# Also covers the hook0-sdkgen crate: same image, same stage, same cadence, so it rides
-# along here instead of paying for a job of its own. Its fuzz smoke is a plain #[test]
-# and runs with the rest.
+# Also covers the hook0-sdkgen and hook0-dashboard-examples crates: same image, same
+# stage, same cadence, so they ride along here instead of paying for a job of their own.
+# The sdkgen fuzz smoke is a plain #[test] and runs with the rest, and so is the guard
+# holding the dashboard's artefact to the examples the eleven clients compile.
 client.rust.check:
   extends: .rust-cache-pull-only
   stage: test
@@ -34,6 +35,20 @@ client.rust.check:
         # here and dictated by the corpus every SDK reads, so a verdict edited there has to face
         # this client rather than the one language whoever edited it happened to be reading.
         - clients/conformance/**/*
+        # What the dashboard shows under "Send an event" is a region of a file each
+        # client compiles, aggregated by a crate that also holds the two to each
+        # other. So an example edited anywhere, the aggregator itself, and the
+        # artefact it writes into the frontend all have to face that guard — the
+        # last of the three because a hand edit of a generated file is exactly what
+        # it exists to catch.
+        - clients/*/examples/**/*
+        - clients/dashboard-examples/**/*
+        - frontend/src/generated/sdkExamples.ts
+        # The artefact carries what installs each SDK, which is read off the release
+        # inventory: the package's name, its registry, its version, and whether any
+        # job publishes it at all.
+        - ci/release-packages/**/*
+        - ci/release-no-publish-job.toml
         - Cargo.*
         - .gitlab-ci.yml
   before_script:
@@ -100,4 +115,7 @@ client.rust.check:
     - cargo fmt -p hook0-sdkgen -- --check
     - cargo clippy -p hook0-sdkgen --all-targets -- -D warnings
     - cargo test -p hook0-sdkgen
+    - cargo fmt -p hook0-dashboard-examples -- --check
+    - cargo clippy -p hook0-dashboard-examples --all-targets -- -D warnings
+    - cargo test -p hook0-dashboard-examples
 

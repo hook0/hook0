@@ -1,0 +1,22 @@
+# What holds the dashboard examples to the client they show, rather than only to PHP's grammar.
+#
+# `phpcs` tokenises and `php -l` parses; neither has ever loaded a class, so both would wave through
+# a call to a method the client dropped a release ago — and the dashboard would go on showing the
+# old spelling. PHPStan resolves `use Hook0\Client;` to the class in this commit, so a renamed
+# method, a changed argument or a dropped constructor parameter fails here, on the line of the
+# example. It is also a real parser, so a syntax error stops here too.
+#
+# `scanDirectories` rather than `paths` for the client: its own sources are read for the symbols
+# they declare, and are not themselves analysed. They are not held to this level today, and making
+# them so is a change of its own — the same line the reference pages draw with
+# `follow_imports = silent` on the Python side.
+#
+# Level 5 is what `documentation/reference/sdk/examples/php/phpstan.neon` holds the reference pages
+# to; the two agreeing is what keeps an example that passes on a page from failing beside the code
+# it shows.
+parameters:
+    level: 5
+    paths:
+        - examples
+    scanDirectories:
+        - src

@@ -1,0 +1,35 @@
+[package]
+name = "hook0-dashboard-examples"
+version = "0.0.0"
+edition = "2024"
+# Internal, like `hook0-sdkgen` beside it: this crate writes an artefact the frontend reads and is
+# not something anybody installs. Saying so is also what keeps it out of the release inventory —
+# `ci/release-packages` walks every directory under `clients/` and refuses one carrying a
+# publishable manifest that no generator target claims.
+publish = false
+
+[package.metadata.release]
+release = false
+publish = false
+
+[dependencies]
+# The registry of what the repository generates. It is the only thing here that knows a language
+# exists: which SDKs the dashboard shows is `Contract::Whole`, and how a file of one is named and
+# commented is that target's `LanguageSpec`.
+hook0-sdkgen = { path = "../sdkgen" }
+
+# The inventory of what the repository releases, which is where a package's name, its registry, its
+# version and whether any job publishes it come from. Nothing about publication is written here.
+release-packages = { path = "../../ci/release-packages" }
+
+toml = "1.1"
+thiserror = "2.0"
+
+[dev-dependencies]
+# The escaping rules a manifest declares are held to a property rather than to examples: no string
+# a user can type may close the literal it lands in.
+proptest = "1"
+
+# Packages are built by hand in the suite, which is what lets an ecosystem no release reaches today
+# be put in front of the tool that has to say what installs from it.
+release-packages = { path = "../../ci/release-packages" }

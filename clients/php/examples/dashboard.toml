@@ -1,0 +1,90 @@
+# What the dashboard cannot read off `dashboard_send.php` and `dashboard_verify.php` themselves.
+#
+# The dashboard renders a snippet by substituting strings and nothing else: it knows no PHP, and
+# must not learn any. Everything about this language that a substitution cannot express is declared
+# here, beside the code it describes, so that the day PHP is not the language somebody is reading
+# there is still only one place to look.
+
+# How this language is named on screen.
+#
+# Neither the registry nor the package name carries it: the target is `php` and the package is
+# published under a name of its own, while the screen says `PHP`. It is one line here rather
+# than a table in the generator because a name is a property of the language, and the day a target
+# is added is the day somebody is already editing this file.
+display_name = "PHP"
+
+# How far the pipeline holds this example to the client it shows, and by what.
+#
+# `type-checked` rather than `compiled`, because PHP has no compiler to hand a snippet to: PHPStan
+# resolves the example against the real `clients/php/src` and produces no artefact. It is not
+# `parsed` either, which is what `phpcs` alone amounted to — that tokenises and has never loaded a
+# class, so it waved through both a call to a dropped method and a file the interpreter refuses.
+# The vocabulary is the one `documentation/reference/sdk/examples/README.md` fixes, and it must not
+# overstate what the command does.
+#
+# Nothing is executed, so a call that type-checks and does the wrong thing at runtime is outside
+# what this catches.
+proof = "type-checked"
+proves = "`phpstan analyse` in `clients.php.check`, configured by `phpstan.neon.dist`: resolved against the real declared types of `clients/php/src`, so a renamed method, a renamed named argument or a dropped constructor parameter fails on the example's own line — measured in both directions, by renaming at the call site and by renaming in the client"
+
+# What puts `examples/` under that job, and what taking it away would look like.
+#
+# The directory is what PHPStan is pointed at. Both lines are held rather than the second alone,
+# because `scanDirectories` below it reads a directory for the symbols it declares without
+# analysing it: moving this entry from one key to the other leaves the word `examples` in the file
+# and stops the examples being checked at all.
+examples_named_in = "clients/php/phpstan.neon.dist"
+examples_named_by = ["    paths:\n        - examples"]
+
+# What share of developers write it, which is the order the languages are offered in.
+#
+# A datum rather than an opinion, so it is declared beside its source: Stack Overflow Developer
+# Survey 2025, 49,000 respondents across 177 countries —
+# https://survey.stackoverflow.co/2025/technology
+usage_share = 18.9
+
+
+# Joins two rendered labels.
+#
+# It carries the comma, and the region it joins must not: `Map.of("a", "b", "c", "d")` in Java is a
+# variadic argument list which admits no trailing comma, so a region carrying its own would be valid
+# in PHP and invalid there. Putting the separator between the repetitions is the one shape every
+# language agrees with, and it is what makes an empty list work too — repeat the region no times and
+# the container is simply empty, which is valid everywhere.
+#
+# PHP admits a trailing comma in an array literal and PSR-12 has no opinion either way, so the
+# region is written with one and the generator strips it. The region is read as the text between the
+# two markers, and a trailing separator is stripped from it if there is one; whichever way a
+# language's formatter wants the file written, the region joins the same.
+#
+# It carries no indentation either. Each repetition brings its own, because the region is taken with
+# the whitespace it sits on rather than trimmed down to the code.
+label_separator = ",\n"
+
+# How a value the user typed becomes a literal of this language.
+#
+# The payload is whatever was written in the editor, and it lands inside a string in the snippet.
+# The replacements below are applied in order, which is why the backslash comes first: escaping it
+# after the rest would escape the backslashes those had just introduced.
+#
+# `$` is escaped for a reason no other language on this list shares: in a double-quoted PHP string a
+# `$name` or a `{$name}` is interpolation, so a payload carrying one would not be a payload any more
+# — it would read a variable out of the reader's own program. `\$` is a `$` and nothing else, and
+# escaping it is also what defuses `{$`, since the brace only opens an interpolation when a `$`
+# follows it directly.
+#
+# Double quotes rather than the single ones the reference uses, because a single-quoted PHP string
+# has no escape for a newline: a payload carrying one would be spread over several lines of the
+# snippet rather than written as `\n`. The escapes below are what a double-quoted string costs, and
+# they are the same shape every other client declares.
+[string]
+open = '"'
+close = '"'
+escape = [
+    ['\', '\\'],
+    ['$', '\$'],
+    ['"', '\"'],
+    ["\n", '\n'],
+    ["\r", '\r'],
+    ["\t", '\t'],
+]

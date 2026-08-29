@@ -1,0 +1,76 @@
+# What the dashboard cannot read off `dashboard_send.lua` and `dashboard_verify.lua` themselves.
+#
+# The dashboard renders a snippet by substituting strings and nothing else: it knows no Lua, and must
+# not learn any. Everything about this language that a substitution cannot express is declared here,
+# beside the code it describes, so that the day Lua is not the language somebody is reading there is
+# still only one place to look.
+
+# How this language is named on screen.
+#
+# Nothing else in the tree carries it: the generator calls this target `lua` and the registry calls
+# the rock `hook0-client`, and neither is what a reader is looking for in a list of languages.
+display_name = "Lua"
+
+# What `clients.lua.check` actually establishes about the two examples beside this file, and nothing
+# more.
+#
+# `luacheck .` reads them with Lua's own parser — a syntax error stops the job — and resolves every
+# name against what each file declares, so a stray global or a misspelled local fails too. Measured
+# by breaking it: a `local` dropped from `client` stops the job with `setting non-standard global
+# variable client`. What it cannot do is look inside `require("hook0")`: Lua hands back an opaque
+# table and luacheck has no notion of what that table declares, so a method this client renamed is
+# invisible here. Claiming more than `parsed` would be claiming what nothing runs.
+proof = "parsed"
+proves = 'parsed by `luacheck .` in `clients.lua.check` the way `luac -p` would — a syntax error fails the job — and every name resolved against what the file itself declares, so a stray global or a misspelled local fails too; a method this client renamed does not, since luacheck cannot see inside `require("hook0")`'
+
+# What puts `examples/` under that job.
+#
+# Nothing names it. The `.` given to `luacheck` is the client, and `.luacheckrc` beside it names
+# `spec` only to widen what a spec file may read — it excludes nothing. So there is no line here to
+# hold: an `exclude_files` entry, or a narrower argument, takes these files out of the job without
+# a word of configuration having been deleted.
+examples_swept_by = "`luacheck .` in `clients.lua.check`, which reads every `.lua` file under the client"
+
+# What share of developers write it, which is the order the languages are offered in.
+#
+# A datum rather than an opinion, so it is declared beside its source: Stack Overflow Developer
+# Survey 2025, 49,000 respondents across 177 countries —
+# https://survey.stackoverflow.co/2025/technology
+usage_share = 9.2
+
+
+# Joins two rendered labels.
+#
+# It carries the comma, and the region it joins must not: `Map.of("a", "b", "c", "d")` in Java is a
+# variadic argument list which admits no trailing comma, so a region carrying its own would be valid
+# in Lua and invalid there. Putting the separator between the repetitions is the one shape every
+# language agrees with, and it is what makes an empty list work too — repeat the region no times and
+# the container is simply `{}`, which is the empty table Lua reads it as.
+#
+# A Lua table constructor does admit a trailing comma, and the example carries one so that the
+# region reads the same as every other language's. The region is read as the text between the two
+# markers and a trailing separator is stripped from it, which is what lets the same region join the
+# same way whichever side of that its language falls.
+#
+# It carries no indentation either. Each repetition brings its own, because the region is taken with
+# the whitespace it sits on rather than trimmed down to the code.
+label_separator = ",\n"
+
+# How a value the user typed becomes a literal of this language.
+#
+# The payload is whatever was written in the editor, and it lands inside a string in the snippet. Lua
+# writes three kinds: two quoted ones, which read the escapes below, and a long bracket `[[…]]`,
+# which reads none and cannot carry its own closing sequence — the shape a payload the user typed
+# would break. So the quoted one is what the example shows. The replacements are applied in order,
+# which is why the backslash comes first: escaping it after the quotes would escape the backslashes
+# those had just introduced.
+[string]
+open = '"'
+close = '"'
+escape = [
+    ['\', '\\'],
+    ['"', '\"'],
+    ["\n", '\n'],
+    ["\r", '\r'],
+    ["\t", '\t'],
+]

@@ -29,9 +29,18 @@ clients.python.check:
     # `pytest-cov` is what measures coverage at all, which is what makes the floor in
     # `pyproject.toml` enforceable; 7.1.0 is the version that floor was measured with, and the one
     # that works against the pytest pinned beside it.
-    - pip install --no-cache-dir ruff==0.15.0 pytest==9.0.1 pytest-timeout==2.4.0 hypothesis==6.145.1 pytest-cov==7.1.0
+    # `mypy` is what holds the dashboard examples to the client they show: `ruff` resolves no
+    # symbol, so a renamed method would leave them green. Same version as
+    # `documentation/reference/sdk/examples/python/mypy.ini` pins for the reference pages, so
+    # the two hold this client to the same checker rather than to two that may disagree.
+    - pip install --no-cache-dir ruff==0.15.0 pytest==9.0.1 pytest-timeout==2.4.0 hypothesis==6.145.1 pytest-cov==7.1.0 mypy==1.13.0
   script:
     - pushd clients/python
     - ruff format --check .
     - ruff check .
+    # No argument: `[tool.mypy]` in `pyproject.toml` says what is checked and where the client
+    # is found, beside the reasons it is checked at all. Measured rather than assumed: renaming
+    # `send_event` in `src/hook0/client.py` fails this line on the example's own line, while
+    # `ruff` above stays green through it.
+    - mypy
     - pytest -q
