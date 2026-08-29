@@ -10,7 +10,7 @@ import path from "path";
 import fs from "fs/promises";
 import { fileURLToPath } from "url";
 import sidebars from "./sidebars.js";
-import { buildLlmsTxt } from "./scripts/generate-llms-txt.js";
+import { buildLlmsTxt, buildLlmsFullTxt } from "./scripts/generate-llms-txt.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -142,11 +142,14 @@ const config = {
         },
       },
     ],
-    // Publishes /llms.txt: the index an assistant reads before answering a
-    // question about Hook0. www.hook0.com already serves one and points here,
-    // but the documentation — where the answers actually live — served none.
-    // Built from the pages Docusaurus has just emitted and ordered by the same
-    // sidebar as the navigation, so a page added tomorrow appears on its own.
+    // Publishes /llms.txt and /llms-full.txt: the index an assistant reads before
+    // answering a question about Hook0, and its full-text companion — every page
+    // inlined whole, in the same order — so a model can read the documentation in
+    // one file the way svix and webhookrelay already serve theirs. www.hook0.com
+    // serves an index and points here; the documentation, where the answers live,
+    // served neither. Built from the pages Docusaurus has just emitted and ordered
+    // by the same sidebar as the navigation, so a page added tomorrow appears on
+    // its own.
     () => ({
       name: "generate-llms-txt",
       async postBuild({ siteConfig, outDir, plugins }) {
@@ -160,23 +163,55 @@ const config = {
           );
         }
 
-        const docs = docsPlugin.content.loadedVersions
-          .flatMap((version) => version.docs)
-          .map(({ id, title, description, permalink }) => ({
-            id,
-            title,
-            description,
-            permalink,
-          }));
+        const loaded = docsPlugin.content.loadedVersions.flatMap(
+          (version) => version.docs
+        );
+
+        const siteUrl = siteConfig.url + siteConfig.baseUrl;
+        const sidebarItems = sidebars.tutorialSidebar;
+
+        const docs = loaded.map(({ id, title, description, permalink }) => ({
+          id,
+          title,
+          description,
+          permalink,
+        }));
 
         await fs.writeFile(
           path.join(outDir, "llms.txt"),
           buildLlmsTxt({
-            siteUrl: siteConfig.url + siteConfig.baseUrl,
+            siteUrl,
             title: siteConfig.title,
             summary: LLMS_TXT_SUMMARY,
-            sidebarItems: sidebars.tutorialSidebar,
+            sidebarItems,
             docs,
+          }),
+          "utf8"
+        );
+
+        // Docusaurus points each doc at its Markdown source through the `@site`
+        // alias; `__dirname` is that site directory, so the alias resolves to the
+        // file it built the page from.
+        const fullDocs = await Promise.all(
+          loaded.map(async ({ id, title, permalink, source }) => ({
+            id,
+            title,
+            permalink,
+            content: await fs.readFile(
+              path.join(__dirname, source.replace(/^@site\//, "")),
+              "utf8"
+            ),
+          }))
+        );
+
+        await fs.writeFile(
+          path.join(outDir, "llms-full.txt"),
+          buildLlmsFullTxt({
+            siteUrl,
+            title: siteConfig.title,
+            summary: LLMS_TXT_SUMMARY,
+            sidebarItems,
+            docs: fullDocs,
           }),
           "utf8"
         );
