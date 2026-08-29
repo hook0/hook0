@@ -17,9 +17,7 @@ export default defineConfig({
   reporter: [
     ["html", { open: "never", outputFolder: "playwright-report-play" }],
     ["list"],
-    ...(process.env.CI
-      ? [["junit", { outputFile: "test-results/play-junit.xml" }] as const]
-      : []),
+    ...(process.env.CI ? [["junit", { outputFile: "test-results/play-junit.xml" }] as const] : []),
   ],
 
   use: {

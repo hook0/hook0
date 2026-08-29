@@ -78,3 +78,29 @@ select = ["E", "F", "W", "I", "B", "UP"]
 # agreeing is what keeps a regenerated file from being reported as unsorted.
 case-sensitive = true
 order-by-type = false
+
+# What holds the dashboard examples to the client they show, rather than only to Python's grammar.
+#
+# `ruff` parses and lints; it resolves no symbol, so a method renamed on `Hook0Client` would leave
+# `examples/dashboard_send.py` green and the dashboard would go on showing the old spelling. mypy
+# pointed at `src` resolves `import hook0` to the real classes in this commit — a renamed method, a
+# dropped `Event` field or an argument of the wrong type fails here, on the line of the example.
+#
+# `mypy_path` rather than an install: the package ships no `py.typed` marker, and that marker only
+# governs a package found by searching installed distributions. It says nothing about one mypy is
+# pointed at directly, which is what this is. Same reasoning, and the same version, as
+# `documentation/reference/sdk/examples/python/mypy.ini`, which holds the reference pages to the
+# same client.
+#
+# `follow_imports = "silent"` keeps this a check of the examples rather than a second, unasked audit
+# of the client's own body: every type `hook0` declares is still resolved, so everything an example
+# reaches is still checked, but an error on a line no example imports its way into is not an example
+# showing something false.
+#
+# `files` is what lets the pipeline run `mypy` with no argument, and what keeps the client's own
+# sources out: they are not type-checked today, and making them so is a change of its own.
+[tool.mypy]
+files = ["examples"]
+mypy_path = "src"
+follow_imports = "silent"
+python_version = "3.11"

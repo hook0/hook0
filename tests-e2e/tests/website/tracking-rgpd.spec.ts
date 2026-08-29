@@ -10,9 +10,7 @@ test.describe("Tracking & RGPD compliance", () => {
       await page.waitForLoadState("networkidle");
 
       // gtag.js should NOT be in the DOM
-      const gtagScripts = await page.locator(
-        'script[src*="googletagmanager.com/gtag/js"]'
-      );
+      const gtagScripts = await page.locator('script[src*="googletagmanager.com/gtag/js"]');
       await expect(gtagScripts).toHaveCount(0);
     });
 
@@ -22,17 +20,13 @@ test.describe("Tracking & RGPD compliance", () => {
       await page.reload();
 
       // Click accept on cookie banner
-      const acceptButton = page.locator(
-        'button:has-text("Accept"), button:has-text("Accepter")'
-      );
+      const acceptButton = page.locator('button:has-text("Accept"), button:has-text("Accepter")');
       if (await acceptButton.isVisible({ timeout: 3000 }).catch(() => false)) {
         await acceptButton.click();
         await page.waitForTimeout(1000);
 
         // gtag.js should now be loaded
-        const gtagScripts = await page.locator(
-          'script[src*="googletagmanager.com/gtag/js"]'
-        );
+        const gtagScripts = await page.locator('script[src*="googletagmanager.com/gtag/js"]');
         await expect(gtagScripts).toHaveCount(1);
       }
     });
@@ -69,16 +63,12 @@ test.describe("Tracking & RGPD compliance", () => {
       await page.evaluate(() => localStorage.removeItem("hook0_cookie_consent"));
       await page.reload();
 
-      const declineButton = page.locator(
-        'button:has-text("Decline"), button:has-text("Refuser")'
-      );
+      const declineButton = page.locator('button:has-text("Decline"), button:has-text("Refuser")');
       if (await declineButton.isVisible({ timeout: 3000 }).catch(() => false)) {
         await declineButton.click();
         await page.waitForTimeout(500);
 
-        const gtagScripts = await page.locator(
-          'script[src*="googletagmanager.com/gtag/js"]'
-        );
+        const gtagScripts = await page.locator('script[src*="googletagmanager.com/gtag/js"]');
         await expect(gtagScripts).toHaveCount(0);
       }
     });
@@ -114,17 +104,11 @@ test.describe("Tracking & RGPD compliance", () => {
       expect(href).toContain("gclid=test-gclid-456");
     });
 
-    test("gclid is propagated to documentation.hook0.com links", async ({
-      page,
-    }) => {
-      await page.goto(
-        "/hook0-vs-svix?gclid=test-gclid-789&mtm_campaign=test"
-      );
+    test("gclid is propagated to documentation.hook0.com links", async ({ page }) => {
+      await page.goto("/hook0-vs-svix?gclid=test-gclid-789&mtm_campaign=test");
       await page.waitForLoadState("domcontentloaded");
 
-      const docLink = page
-        .locator('a[href*="documentation.hook0.com"]')
-        .first();
+      const docLink = page.locator('a[href*="documentation.hook0.com"]').first();
       if ((await docLink.count()) > 0) {
         const href = await docLink.evaluate((el) => {
           el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -136,9 +120,7 @@ test.describe("Tracking & RGPD compliance", () => {
     });
 
     test("wbraid and gbraid are also persisted", async ({ page }) => {
-      await page.goto(
-        "/build-vs-buy-webhooks?wbraid=test-wbraid&gbraid=test-gbraid"
-      );
+      await page.goto("/build-vs-buy-webhooks?wbraid=test-wbraid&gbraid=test-gbraid");
       await page.waitForLoadState("domcontentloaded");
 
       const storedParams = await page.evaluate(() => {

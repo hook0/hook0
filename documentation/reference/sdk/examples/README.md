@@ -81,6 +81,13 @@ GOPROXY = "off"
 | `type-checked` | Resolved against the real client's declared types without producing an artefact. Catches the same wherever the client's types reach. |
 | `parsed` | Read by the language's own parser. Catches syntax, and nothing about the client. |
 
+One other place reads this vocabulary. `clients/<lang>/examples/dashboard.toml` declares a `proof`
+of its own, for the snippets the dashboard's "Send an event" screen shows, and cites this table for
+what the three words mean. That is a separate mechanism with its own markers, its own manifest and
+its own crate, `hook0-dashboard-examples`, described in `clients/dashboard-examples/README.md`. The
+two directories are both called `examples/` and are not the same thing; only the meaning of these
+three words is shared, and a level written in either place is held to the same rule above.
+
 `each = [["ruby", "-c", "{{file}}"]]` runs once per assembled example instead, for the tools that
 take one file at a time. `{{name}}` is the example's name (`go_07`), `{{Name}}` the same in the
 casing a class wants (`Go07`); both are also substituted inside the harness, which is how a

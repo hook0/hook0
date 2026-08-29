@@ -282,15 +282,26 @@ trackEvent(category: string, action: string, name?: string, value?: number)
 - `event-type` - Event type management
 - `app-secret` - API key management
 - `api-docs` - API documentation interactions
+- `send-event` - Send-an-event screen interactions
+- `monetization` - Upgrade and quota nudges on the organization dashboard
 
 **Actions:**
-- `login`, `logout` - Authentication actions
+- `login` - Authentication actions
 - `form-start`, `form-submit` - Form interactions
+- `form-success`, `form-error` - Registration succeeded or was refused
 - `create`, `update`, `delete` - CRUD operations
+- `start`, `skip` - The tutorial wizard was started or dismissed from its intro screen
 - `step-complete` - Tutorial step completions
+- `complete` - The tutorial reached its success step
+- `usecase` - A use case was picked on the tutorial intro screen
 - `page-view` - Page views
 - `email-verified` - Email verification
+- `resend-verification-email` - Another verification email was requested
 - `attenuate` - Token attenuation
+- `open` - A panel of the send-an-event screen was opened
+- `copy` - A snippet was copied
+- `quota-card`, `quota-warning` - A quota card was activated, or a quota reached the gauge warning threshold
+- `upgrade-cta`, `pro-teaser` - An upgrade link or the inline Pro hint was clicked
 
 **Names:**
 - Use descriptive labels (e.g., `organization-name`, `success`)

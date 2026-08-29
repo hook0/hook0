@@ -1,0 +1,105 @@
+# How this language is named on screen.
+#
+# Nothing else in the tree carries it: the generator calls this target `zig`, the registry
+# calls the package `hook0_client`, and neither is what a reader is looking for in a
+# list of languages.
+display_name = "Zig"
+
+# What `clients.zig.check` actually establishes about the two examples beside this file, and nothing
+# more.
+#
+# `zig build test` compiles each one as an executable of its own against the `hook0` module, so Zig
+# analyses `main` and everything it reaches and every name in a snippet is resolved against the real
+# declaration. Compiled and never run: the values in these files are markers the dashboard
+# substitutes, so a run would reach a host that does not exist. Measured by breaking it:
+# `client.sendEvent` renamed to `sendEventRenamedByAMutation` stops the job with `no field or member
+# function named 'sendEventRenamedByAMutation' in 'client.Client'`. A renamed method, a changed
+# signature or a dropped field turns the job red.
+proof = "compiled"
+proves = 'built against clients/zig by `zig build test` in `clients.zig.check`, which compiles each example without running it; a renamed method, a changed signature or a dropped field fails the job'
+
+# What puts `examples/` under that job, and what taking it away would look like.
+#
+# The build walks this directory rather than naming the files in it, so an example added beside
+# these two is compiled without anything being edited. It is also the one language that guards its
+# own reach: an empty walk stops the build rather than reporting success over nothing.
+examples_named_in = "clients/zig/build.zig"
+examples_named_by = [
+    'openDir(io, "examples", .{ .iterate = true })',
+    'std.debug.panic("`examples` holds no example to compile", .{})',
+]
+
+# What share of developers write it, which is the order the languages are offered in.
+#
+# A datum rather than an opinion, so it is declared beside its source: Stack Overflow Developer
+# Survey 2025, 49,000 respondents across 177 countries —
+# https://survey.stackoverflow.co/2025/technology
+usage_share = 2.1
+
+# What the dashboard cannot read off `dashboard_send.zig` and `dashboard_verify.zig` themselves.
+#
+# The dashboard renders a snippet by substituting strings and nothing else: it knows no Zig, and
+# must not learn any. Everything about this language that a substitution cannot express is declared
+# here, beside the code it describes, so that the day Zig is not the language somebody is reading
+# there is still only one place to look.
+
+# What a reader wires beyond fetching the package before the snippet beside this file builds.
+#
+# `zig fetch --save=hook0` writes the URL and its hash into `build.zig.zon` and touches nothing
+# else, while `@import("hook0")` resolves against the modules a build hands the executable rather
+# than against what the manifest holds. These two lines are what puts one in the other's reach, and
+# they are the pair `clients/zig/README.md` shows a consumer. `build.zig` here declares the module
+# under the name they import, so the argument to `module` is the same word on both sides.
+snippet_also_needs = """
+const hook0 = b.dependency("hook0", .{ .target = target, .optimize = optimize });
+exe.root_module.addImport("hook0", hook0.module("hook0"));"""
+
+# Joins two rendered labels.
+#
+# It carries the comma, and the region it joins must not: `Map.of("a", "b", "c", "d")` in Java is a
+# variadic argument list which admits no trailing comma, so a region carrying its own would be valid
+# in Zig and invalid there. Putting the separator between the repetitions is the one shape every
+# language agrees with, and it is what makes an empty list work too — repeat the region no times and
+# `&.{}` is what is left, which is the empty slice this client's `labels` already defaults to.
+#
+# `zig fmt` does add that trailing comma back to the source, and nothing can talk it out of it. So
+# the region is read as the text between the two markers, and a trailing separator is stripped from
+# it.
+#
+# It carries no indentation either. Each repetition brings its own, because the region is taken with
+# the whitespace it sits on rather than trimmed down to the code.
+label_separator = ",\n"
+
+# How a value the user typed becomes a literal of this language.
+#
+# The payload is whatever was written in the editor, and it lands inside a string in the snippet.
+# Zig has no raw string with a closing sequence to trip over — a multiline literal is written line
+# by line with `\\` — so the quoted form below is the one shape a substitution can produce. The
+# replacements are applied in order, which is why the backslash comes first: escaping it after the
+# quotes would escape the backslashes those had just introduced.
+#
+# Zig refuses *every* raw ASCII control character in a string literal, all of U+0000 to U+001F and
+# U+007F alike — measured across all thirty-three, not only the three a newline, a carriage return
+# and a tab make obvious. Java and C# refuse two apiece, which is why this is the one language where
+# the difference is worth stating.
+#
+# Four of the thirty-three are what a payload can actually carry, and all four are escaped below.
+# The form takes the payload only if it parses as JSON, and JSON admits a raw control character in
+# exactly two places: U+0009, U+000A and U+000D as whitespace between tokens, and U+007F inside a
+# string, which is not in the range JSON makes an escape compulsory for. The other twenty-nine
+# cannot reach a payload at all.
+#
+# They can reach a label, which JSON does not gate — so a label refusing them is what keeps this
+# table complete, and the table cannot be what does it: thirty-three rules plus the backslash and
+# the quote is thirty-five, and `MAX_ESCAPE_RULES` is thirty-two.
+[string]
+open = '"'
+close = '"'
+escape = [
+    ['\', '\\'],
+    ['"', '\"'],
+    ["\n", '\n'],
+    ["\r", '\r'],
+    ["\t", '\t'],
+    ["\u007F", '\x7F'],
+]

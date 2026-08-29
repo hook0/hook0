@@ -1,0 +1,86 @@
+# What the dashboard cannot read off `dashboard_send.rs` and `dashboard_verify.rs` themselves.
+#
+# The dashboard renders a snippet by substituting strings and nothing else: it knows no Rust, and
+# must not learn any. Everything about this language that a substitution cannot express is declared
+# here, beside the code it describes, so that the day Rust is not the language somebody is reading
+# there is still only one place to look.
+
+# How this language is named on screen.
+#
+# Nothing else in the tree carries it: the generator calls this target `rust`, the registry calls
+# the package `hook0-client`, and neither is what a reader is looking for in a list of languages.
+display_name = "Rust"
+
+# What the job that carries this client actually does to these two files, and nothing more.
+#
+# `client.rust.check` runs `cargo clippy --all-targets`, which builds every example against the real
+# client: a renamed method, a changed signature or a dropped field stops it. That is the strongest of
+# the three levels, and most of the eleven do not reach it — `ruff`, `rubocop` and `phpcs` parse and
+# lint without resolving a single symbol, which was measured rather than assumed. Hence this field,
+# and the rule that comes with it in `documentation/reference/sdk/examples/README.md`: it must not
+# overstate what the command does.
+proof = "compiled"
+proves = "built against clients/rust by `cargo clippy --all-targets` in `client.rust.check`; a renamed method, a changed signature or a dropped field fails the job"
+
+# What puts `examples/` under that job, and what taking it away would look like.
+#
+# Cargo builds the targets the manifest declares, so each example is one declaration. Both are held
+# rather than the first alone: deleting either leaves its file where it is, compiled by nothing,
+# while the level above goes on reading `compiled` for the pair.
+examples_named_in = "clients/rust/Cargo.toml"
+examples_named_by = [
+    'path = "examples/dashboard_send.rs"',
+    'path = "examples/dashboard_verify.rs"',
+]
+
+# What share of developers write it, which is the order the languages are offered in.
+#
+# A datum rather than an opinion, so it is declared beside its source: Stack Overflow Developer
+# Survey 2025, 49,000 respondents across 177 countries —
+# https://survey.stackoverflow.co/2025/technology
+usage_share = 14.8
+
+# What a reader installs beyond the package itself before the snippet beside this file builds.
+#
+# `Hook0Client::send_event` is `async` and this client declares no blocking form of it, so anybody
+# calling it needs a runtime to await it under. The client's own `tokio` is optional and carries the
+# `time` feature alone, which delivers neither the attribute the example is written with nor a
+# runtime for that attribute to build: `#[tokio::main]` on `macros` alone is refused with `requires
+# rt or rt-multi-thread`, and multi-threaded is the flavour it reaches for when nothing says
+# otherwise. Nothing else is named here — the example parses its URL and its ID through the types
+# the client's own signature returns, so `reqwest` and `uuid` stay the client's business.
+snippet_also_needs = "cargo add tokio --features macros,rt-multi-thread"
+
+# Joins two rendered labels.
+#
+# It carries the comma, and the region it joins must not: `Map.of("a", "b", "c", "d")` in Java is a
+# variadic argument list which admits no trailing comma, so a region carrying its own would be valid
+# in Rust and invalid there. Putting the separator between the repetitions is the one shape every
+# language agrees with, and it is what makes an empty list work too — repeat the region no times and
+# the container is simply empty, which is valid everywhere.
+#
+# `rustfmt` does add that trailing comma back to the source, and nothing can talk it out of it. So
+# the region is read as the text between the two markers, and a trailing separator is stripped from
+# it. Whichever way a language's formatter wants the file written, the region joins the same.
+#
+# It carries no indentation either. Each repetition brings its own, because the region is taken with
+# the whitespace it sits on rather than trimmed down to the code.
+label_separator = ",\n"
+
+# How a value the user typed becomes a literal of this language.
+#
+# The payload is whatever was written in the editor, and it lands inside a string in the snippet. It
+# used to land inside a raw string, where a payload containing the closing sequence produced a
+# snippet that does not compile — a defect the user triggers, on their own data, in code we told
+# them to copy. The replacements below are applied in order, which is why the backslash comes first:
+# escaping it after the quotes would escape the backslashes those had just introduced.
+[string]
+open = '"'
+close = '"'
+escape = [
+    ['\', '\\'],
+    ['"', '\"'],
+    ["\n", '\n'],
+    ["\r", '\r'],
+    ["\t", '\t'],
+]

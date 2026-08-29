@@ -1,0 +1,79 @@
+# How this language is named on screen.
+#
+# Nothing else in the tree carries it: the generator calls this target `kotlin`, the registry
+# calls the package `com.hook0:hook0-client-kotlin`, and neither is what a reader is looking for in a
+# list of languages.
+display_name = "Kotlin"
+
+# What `clients.kotlin.check` actually establishes about the two examples beside this file, and
+# nothing more.
+#
+# `mvn ktlint:check verify` runs `kotlin-maven-plugin:test-compile` over them, which is kotlinc with
+# `-Werror`, against this client's own classes — so every name in a snippet is resolved against the
+# real declaration. Measured by breaking it: `client.sendEvent` renamed to
+# `sendEventRenamedByAMutation` stops the job with `Unresolved reference
+# 'sendEventRenamedByAMutation'`. A renamed method, a changed signature or a dropped field turns the
+# job red.
+proof = "compiled"
+proves = 'built against clients/kotlin by `kotlin-maven-plugin:test-compile` under `mvn verify` in `clients.kotlin.check`; a renamed method, a changed signature or a dropped field fails the job. Compiled but not linted: the ktlint plugin reads the project source roots, which are read-only parameters, so `examples` reaches the compiler and not the formatter'
+
+# What puts `examples/` under that job, and what taking it away would look like.
+#
+# The Kotlin plugin is given this directory as a source directory of the test compilation. Delete
+# the line and both files stop being compiled while both are still here and the level above still
+# reads `compiled` — which is the one failure the guard for a missing example cannot see.
+examples_named_in = "clients/kotlin/pom.xml"
+examples_named_by = ["<sourceDir>${project.basedir}/examples</sourceDir>"]
+
+# What share of developers write it, which is the order the languages are offered in.
+#
+# A datum rather than an opinion, so it is declared beside its source: Stack Overflow Developer
+# Survey 2025, 49,000 respondents across 177 countries —
+# https://survey.stackoverflow.co/2025/technology
+usage_share = 10.8
+
+# What the dashboard cannot read off `dashboard_send.kt` and `dashboard_verify.kt` themselves.
+#
+# The dashboard renders a snippet by substituting strings and nothing else: it knows no Kotlin, and
+# must not learn any. Everything about this language that a substitution cannot express is declared
+# here, beside the code it describes, so that the day Kotlin is not the language somebody is reading
+# there is still only one place to look.
+
+# Joins two rendered labels.
+#
+# It carries the comma, and the region it joins must not: `Map.of("a", "b", "c", "d")` in Java is a
+# variadic argument list which admits no trailing comma, so a region carrying its own would be valid
+# in Kotlin and invalid there. Putting the separator between the repetitions is the one shape every
+# language agrees with, and it is what makes an empty list work too — repeat the region no times and
+# `mapOf()` is what is left, which is the empty map this client's `labels` already defaults to.
+#
+# Kotlin would accept a trailing comma at a call site, but this client's `.editorconfig` refuses one
+# (`ij_kotlin_allow_trailing_comma_on_call_site = false`) and ktlint holds the source to it, so the
+# region here carries none to strip.
+#
+# It carries no indentation either. Each repetition brings its own, because the region is taken with
+# the whitespace it sits on rather than trimmed down to the code.
+label_separator = ",\n"
+
+# How a value the user typed becomes a literal of this language.
+#
+# The payload is whatever was written in the editor, and it lands inside a string in the snippet. It
+# lands inside the quoted form rather than a raw `"""` one, where a payload containing the closing
+# sequence produces a snippet that does not compile — a defect the user triggers, on their own data,
+# in code we told them to copy. The replacements are applied in order, which is why the backslash
+# comes first: escaping it after the quotes would escape the backslashes those had just introduced.
+#
+# The dollar is on the list and is not on any other language's: a Kotlin string is a template, so an
+# unescaped `$` in a payload is read as the start of an interpolation and the snippet stops
+# compiling — or, worse for a name that happens to resolve, compiles into something else.
+[string]
+open = '"'
+close = '"'
+escape = [
+    ['\', '\\'],
+    ['"', '\"'],
+    ['$', '\$'],
+    ["\n", '\n'],
+    ["\r", '\r'],
+    ["\t", '\t'],
+]

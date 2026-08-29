@@ -44,9 +44,7 @@ export default defineConfig({
   reporter: [
     ["html", { open: "never" }],
     ["list"],
-    ...(process.env.CI
-      ? [["junit", { outputFile: "test-results/junit.xml" }] as const]
-      : []),
+    ...(process.env.CI ? [["junit", { outputFile: "test-results/junit.xml" }] as const] : []),
   ],
 
   use: {
@@ -56,7 +54,8 @@ export default defineConfig({
     video: "on-first-retry",
   },
 
-  snapshotPathTemplate: "{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-{projectName}-{platform}{ext}",
+  snapshotPathTemplate:
+    "{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-{projectName}-{platform}{ext}",
 
   expect: {
     toHaveScreenshot: {

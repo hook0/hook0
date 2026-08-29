@@ -223,9 +223,16 @@ if [ "$OLD_MAJOR" != "$NEW_MAJOR" ]; then
     done
 fi
 
+# The dashboard reads what each SDK shows and what installs it out of a generated artefact, and
+# that artefact carries every package's version. A bump moves it, and the guard holding it to the
+# examples runs on this tag — so leaving it behind turns the release pipeline red on a file the
+# release itself made stale.
+cargo run --quiet --locked -p hook0-dashboard-examples
+
 # Everything the two steps above touched, which is what a clean working directory
-# at the top of this script makes safe to stage without naming a single file.
-git add -A -- clients api/Cargo.toml
+# at the top of this script makes safe to stage without naming a single file. The
+# artefact is named because it is the one thing written outside `clients`.
+git add -A -- clients api/Cargo.toml frontend/src/generated/sdkExamples.ts
 while IFS= read -r lock; do
     [ -n "$lock" ] || continue
     git add -A -- "$lock"

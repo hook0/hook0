@@ -88,7 +88,10 @@ function publicHostnames(baseUrl: string, html: string): string[] {
   return [...hosts].sort();
 }
 
-async function discoverHostnames(baseURL: string, request: { get: (url: string) => Promise<{ ok: () => boolean; text: () => Promise<string> }> }) {
+async function discoverHostnames(
+  baseURL: string,
+  request: { get: (url: string) => Promise<{ ok: () => boolean; text: () => Promise<string> }> }
+) {
   const homepage = await request.get(baseURL);
   expect(homepage.ok(), `could not read ${baseURL} to discover hostnames`).toBe(true);
   const hosts = publicHostnames(baseURL, await homepage.text());

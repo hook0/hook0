@@ -39,12 +39,29 @@ clients.go.check:
     - gofmt -l .
     - test -z "$(gofmt -l .)" || { echo 'the files above are not what gofmt writes; the generator emits already-formatted source, so a difference here is a defect in it or a hand edit beside it'; exit 1; }
     - go vet ./...
-    # `-coverpkg=./...` is what makes the generated half visible. The generator's 485 statements
-    # live in a package with no test file of its own; without this flag they are instrumented only
-    # for the tests that package has, which is none, so they land at 0% and the total reads 42.2%
-    # even though the suites here drive 484 of them. With it, the test binary carries the generated
-    # package's instrumentation too and what is actually driven is what is counted.
-    - go test -covermode=atomic -coverpkg=./... -coverprofile=coverage.out ./...
+    # `-coverpkg` is what makes the generated half visible. The generator's 485 statements live in a
+    # package with no test file of its own; without this flag they are instrumented only for the
+    # tests that package has, which is none, so they land at 0% and the total reads 42.2% even though
+    # the suites here drive 484 of them. With it, the test binary carries the generated package's
+    # instrumentation too and what is actually driven is what is counted.
+    #
+    # It names what the module ships rather than `./...`, which would also carry `examples`. What
+    # lives there is the source the dashboard displays under "Send an event" and "Verify a webhook",
+    # and it is compiled by the `go vet` and the `go test` above — a method renamed in this client
+    # stops the job at the example that still shows the old spelling, which is the whole reason those
+    # files sit here rather than in the dashboard. But it is a `main` package no consumer can import
+    # and no test drives, so counting its statements would decide a floor that is about the client on
+    # source that is not it: measured, 99.2% with it out and 97.6% with it in. It is the same line
+    # every other client draws — jest collects from `src`, luacov includes `src/`.
+    #
+    # Chosen by the property rather than by the directory's name, so a second example package needs
+    # nothing here. `go list` answers on its own before anything filters it, because a pipe answers
+    # with its last stage and a `go list` that could not answer would read here as a module with no
+    # package to measure — the same way it once read as a module with no dependency.
+    - packages="$(go list -f '{{if ne .Name "main"}}{{.ImportPath}}{{end}}' ./...)"
+    - shipped="$(echo "$packages" | grep . | paste -sd, -)"
+    - test -n "$shipped" || { echo 'no importable package was named, so the figure below would be measured over nothing'; exit 1; }
+    - go test -covermode=atomic -coverpkg="$shipped" -coverprofile=coverage.out ./...
     # Go ships no coverage threshold, so the comparison is made here rather than in a job or a
     # script of its own. The floor is what this suite reaches today — 843 of 850 statements — and
     # it is not headroom: these tests talk to a loopback socket and draw nothing random, so room

@@ -11,6 +11,7 @@ COPY api api
 COPY clients/rust clients/rust
 COPY clients/mcp clients/mcp
 COPY clients/sdkgen clients/sdkgen
+COPY clients/dashboard-examples clients/dashboard-examples
 COPY ci/release-packages ci/release-packages
 COPY output-worker output-worker
 COPY sentry-integration sentry-integration

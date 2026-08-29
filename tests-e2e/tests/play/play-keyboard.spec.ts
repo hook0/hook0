@@ -1,10 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Play Keyboard Shortcuts", () => {
-  test("pressing c copies the webhook URL to clipboard", async ({
-    page,
-    context,
-  }) => {
+  test("pressing c copies the webhook URL to clipboard", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await page.goto("/");
 
@@ -20,25 +17,18 @@ test.describe("Play Keyboard Shortcuts", () => {
     await expect(page.locator("#copyFeedback")).toHaveClass(/show/);
 
     // Verify clipboard
-    const clipboardContent = await page.evaluate(() =>
-      navigator.clipboard.readText(),
-    );
+    const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
     expect(clipboardContent).toBe(webhookUrl);
   });
 
-  test("pressing j/k navigates the webhook list", async ({
-    page,
-    baseURL,
-  }) => {
+  test("pressing j/k navigates the webhook list", async ({ page, baseURL }) => {
     await page.goto("/");
 
     await expect(page.locator("#connLabel")).toHaveText(/(Connected|Polling)/, {
       timeout: 15000,
     });
 
-    const token = await page.evaluate(() =>
-      location.hash.replace(/^#/, ""),
-    );
+    const token = await page.evaluate(() => location.hash.replace(/^#/, ""));
     const webhookUrl = `${baseURL}/in/${token}/`;
 
     // Send first webhook and wait for auto-select
@@ -68,19 +58,14 @@ test.describe("Play Keyboard Shortcuts", () => {
     await expect(page.locator(".feed-item").nth(1)).toHaveClass(/selected/);
   });
 
-  test("pressing Enter expands the selected webhook detail", async ({
-    page,
-    baseURL,
-  }) => {
+  test("pressing Enter expands the selected webhook detail", async ({ page, baseURL }) => {
     await page.goto("/");
 
     await expect(page.locator("#connLabel")).toHaveText(/(Connected|Polling)/, {
       timeout: 15000,
     });
 
-    const token = await page.evaluate(() =>
-      location.hash.replace(/^#/, ""),
-    );
+    const token = await page.evaluate(() => location.hash.replace(/^#/, ""));
     const webhookUrl = `${baseURL}/in/${token}/`;
 
     await page.request.post(webhookUrl, {
@@ -99,27 +84,18 @@ test.describe("Play Keyboard Shortcuts", () => {
 
     // Detail content should be visible
     await expect(page.locator("#detailContent")).toBeVisible();
-    await expect(
-      page.locator("#detailContent .method-badge"),
-    ).toHaveText("POST");
-    await expect(page.locator("#detailContent .body-display")).toContainText(
-      "enter-test",
-    );
+    await expect(page.locator("#detailContent .method-badge")).toHaveText("POST");
+    await expect(page.locator("#detailContent .body-display")).toContainText("enter-test");
   });
 
-  test("pressing Escape closes the detail panel", async ({
-    page,
-    baseURL,
-  }) => {
+  test("pressing Escape closes the detail panel", async ({ page, baseURL }) => {
     await page.goto("/");
 
     await expect(page.locator("#connLabel")).toHaveText(/(Connected|Polling)/, {
       timeout: 15000,
     });
 
-    const token = await page.evaluate(() =>
-      location.hash.replace(/^#/, ""),
-    );
+    const token = await page.evaluate(() => location.hash.replace(/^#/, ""));
     const webhookUrl = `${baseURL}/in/${token}/`;
 
     await page.request.post(webhookUrl, { data: "escape-test" });

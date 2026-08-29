@@ -3066,6 +3066,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "hook0-dashboard-examples"
+version = "0.0.0"
+dependencies = [
+ "hook0-sdkgen",
+ "proptest",
+ "release-packages",
+ "thiserror 2.0.20",
+ "toml",
+]
+
+[[package]]
 name = "hook0-mcp"
 version = "3.0.0"
 dependencies = [

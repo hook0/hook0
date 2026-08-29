@@ -23,9 +23,7 @@ test.describe("Play FAQ", () => {
     await expect(content).toBeVisible();
   });
 
-  test("FAQ accordion items can be collapsed by clicking again", async ({
-    page,
-  }) => {
+  test("FAQ accordion items can be collapsed by clicking again", async ({ page }) => {
     await page.goto("/");
 
     const faqDetails = page.locator(".seo-content details");

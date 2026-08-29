@@ -20,6 +20,7 @@
         "build.zig.zon",
         "src",
         "tests",
+        "examples",
         "README.md",
         "assets",
         "CHANGELOG.md",

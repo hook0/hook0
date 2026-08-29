@@ -3,18 +3,14 @@ import { test, expect } from "@playwright/test";
 /**
  * Extracts the token from the page URL hash.
  */
-async function getToken(
-  page: import("@playwright/test").Page,
-): Promise<string> {
+async function getToken(page: import("@playwright/test").Page): Promise<string> {
   return page.evaluate(() => location.hash.replace(/^#/, ""));
 }
 
 /**
  * Waits for the WebSocket connection (or polling fallback) to be established.
  */
-async function waitForConnection(
-  page: import("@playwright/test").Page,
-): Promise<void> {
+async function waitForConnection(page: import("@playwright/test").Page): Promise<void> {
   await expect(page.locator("#connLabel")).toHaveText(/(Connected|Polling)/, {
     timeout: 15000,
   });
@@ -39,7 +35,7 @@ async function sendAndWaitForFeedItem(
   request: import("@playwright/test").APIRequestContext,
   url: string,
   options: Parameters<typeof request.fetch>[1],
-  expectedCount: number,
+  expectedCount: number
 ) {
   const response = await request.fetch(url, options);
   expect(response.status()).toBeLessThan(400);
@@ -52,10 +48,7 @@ async function sendAndWaitForFeedItem(
 test.describe("Play Webhook Reception", () => {
   // ─── HTTP Methods ─────────────────────────────────────────────────
 
-  test("1 - GET webhook shows GET badge and query string in detail", async ({
-    page,
-    baseURL,
-  }) => {
+  test("1 - GET webhook shows GET badge and query string in detail", async ({ page, baseURL }) => {
     const { webhookUrl } = await setup(page, baseURL!);
 
     const response = await page.request.get(`${webhookUrl}?foo=bar`);
@@ -102,10 +95,7 @@ test.describe("Play Webhook Reception", () => {
     await expect(feedItem.locator(".method-badge")).toHaveText("PATCH");
   });
 
-  test("4 - DELETE webhook shows DELETE badge with empty body", async ({
-    page,
-    baseURL,
-  }) => {
+  test("4 - DELETE webhook shows DELETE badge with empty body", async ({ page, baseURL }) => {
     const { webhookUrl } = await setup(page, baseURL!);
 
     const response = await page.request.delete(webhookUrl);
@@ -135,10 +125,7 @@ test.describe("Play Webhook Reception", () => {
 
   // ─── Sub-paths ────────────────────────────────────────────────────
 
-  test("6 - Webhook with sub-path shows path in detail", async ({
-    page,
-    baseURL,
-  }) => {
+  test("6 - Webhook with sub-path shows path in detail", async ({ page, baseURL }) => {
     const { token } = await setup(page, baseURL!);
     const subPathUrl = `${baseURL}/in/${token}/orders/123/confirm`;
 
@@ -152,23 +139,16 @@ test.describe("Play Webhook Reception", () => {
     await expect(feedItem).toBeVisible({ timeout: 10000 });
 
     // Feed path should show the sub-path
-    await expect(feedItem.locator(".feed-path")).toContainText(
-      "/orders/123/confirm",
-    );
+    await expect(feedItem.locator(".feed-path")).toContainText("/orders/123/confirm");
 
     // Detail panel
     await feedItem.click();
     const detail = page.locator("#detailContent");
     await expect(detail).toBeVisible();
-    await expect(detail.locator(".detail-path")).toContainText(
-      "/orders/123/confirm",
-    );
+    await expect(detail.locator(".detail-path")).toContainText("/orders/123/confirm");
   });
 
-  test("7 - Webhook with deep path and query string", async ({
-    page,
-    baseURL,
-  }) => {
+  test("7 - Webhook with deep path and query string", async ({ page, baseURL }) => {
     const { token } = await setup(page, baseURL!);
     const deepUrl = `${baseURL}/in/${token}/api/v2/events?type=payment`;
 
@@ -182,27 +162,20 @@ test.describe("Play Webhook Reception", () => {
     await expect(feedItem).toBeVisible({ timeout: 10000 });
 
     // Feed path shows both path and query
-    await expect(feedItem.locator(".feed-path")).toContainText(
-      "/api/v2/events",
-    );
+    await expect(feedItem.locator(".feed-path")).toContainText("/api/v2/events");
     await expect(feedItem.locator(".feed-path")).toContainText("type=payment");
 
     // Detail panel
     await feedItem.click();
     const detail = page.locator("#detailContent");
     await expect(detail).toBeVisible();
-    await expect(detail.locator(".detail-path")).toContainText(
-      "/api/v2/events",
-    );
+    await expect(detail.locator(".detail-path")).toContainText("/api/v2/events");
     await expect(detail.locator(".detail-path")).toContainText("type=payment");
   });
 
   // ─── Headers ──────────────────────────────────────────────────────
 
-  test("8 - Custom headers are captured and visible in detail", async ({
-    page,
-    baseURL,
-  }) => {
+  test("8 - Custom headers are captured and visible in detail", async ({ page, baseURL }) => {
     const { webhookUrl } = await setup(page, baseURL!);
 
     const response = await page.request.post(webhookUrl, {
@@ -229,10 +202,7 @@ test.describe("Play Webhook Reception", () => {
     await expect(headersTable).toContainText("sha256=abc");
   });
 
-  test("9 - Content-Type header visible in feed and detail", async ({
-    page,
-    baseURL,
-  }) => {
+  test("9 - Content-Type header visible in feed and detail", async ({ page, baseURL }) => {
     const { webhookUrl } = await setup(page, baseURL!);
 
     const response = await page.request.post(webhookUrl, {
@@ -262,10 +232,7 @@ test.describe("Play Webhook Reception", () => {
 
   // ─── Body sizes ───────────────────────────────────────────────────
 
-  test("10 - Large JSON body is pretty-printed and displayed", async ({
-    page,
-    baseURL,
-  }) => {
+  test("10 - Large JSON body is pretty-printed and displayed", async ({ page, baseURL }) => {
     const { webhookUrl } = await setup(page, baseURL!);
 
     // Build a ~10KB JSON payload
@@ -306,10 +273,7 @@ test.describe("Play Webhook Reception", () => {
     expect(bodyText).toContain("item-49");
   });
 
-  test("11 - Empty body shows graceful message", async ({
-    page,
-    baseURL,
-  }) => {
+  test("11 - Empty body shows graceful message", async ({ page, baseURL }) => {
     const { webhookUrl } = await setup(page, baseURL!);
 
     const response = await page.request.post(webhookUrl);
@@ -324,10 +288,7 @@ test.describe("Play Webhook Reception", () => {
     await expect(detail.locator(".body-note")).toContainText("Empty body");
   });
 
-  test("12 - Form-encoded body is parsed as key-value pairs", async ({
-    page,
-    baseURL,
-  }) => {
+  test("12 - Form-encoded body is parsed as key-value pairs", async ({ page, baseURL }) => {
     const { webhookUrl } = await setup(page, baseURL!);
 
     const response = await page.request.post(webhookUrl, {
@@ -355,10 +316,7 @@ test.describe("Play Webhook Reception", () => {
 
   // ─── Rapid-fire / stress ──────────────────────────────────────────
 
-  test("13 - 10 webhooks in quick succession all appear in the feed", async ({
-    page,
-    baseURL,
-  }) => {
+  test("13 - 10 webhooks in quick succession all appear in the feed", async ({ page, baseURL }) => {
     const { webhookUrl } = await setup(page, baseURL!);
 
     // Fire 10 requests in parallel
@@ -366,7 +324,7 @@ test.describe("Play Webhook Reception", () => {
       page.request.post(webhookUrl, {
         headers: { "Content-Type": "application/json" },
         data: JSON.stringify({ index: i }),
-      }),
+      })
     );
     const responses = await Promise.all(promises);
     for (const r of responses) {
@@ -377,9 +335,7 @@ test.describe("Play Webhook Reception", () => {
     await expect(page.locator(".feed-item")).toHaveCount(10, {
       timeout: 15000,
     });
-    await expect(page.locator("#webhookCounter")).toHaveText(
-      "10 webhooks received",
-    );
+    await expect(page.locator("#webhookCounter")).toHaveText("10 webhooks received");
   });
 
   test("14 - New webhook appears while detail panel is open for another", async ({
@@ -458,8 +414,7 @@ test.describe("Play Webhook Reception", () => {
     const response = await page.request.post(webhookUrl, {
       headers: {
         "Content-Type": "application/json",
-        "Stripe-Signature":
-          "t=1680064028,v1=abcdef1234567890abcdef1234567890",
+        "Stripe-Signature": "t=1680064028,v1=abcdef1234567890abcdef1234567890",
       },
       data: JSON.stringify(stripePayload),
     });
@@ -484,10 +439,7 @@ test.describe("Play Webhook Reception", () => {
     await expect(headersTable).toContainText("stripe-signature");
   });
 
-  test("16 - GitHub-like webhook with X-GitHub-Event header", async ({
-    page,
-    baseURL,
-  }) => {
+  test("16 - GitHub-like webhook with X-GitHub-Event header", async ({ page, baseURL }) => {
     const { webhookUrl } = await setup(page, baseURL!);
 
     const githubPayload = {
@@ -543,10 +495,7 @@ test.describe("Play Webhook Reception", () => {
 
   // ─── WebSocket real-time verification ─────────────────────────────
 
-  test("17 - Webhook appears within 2 seconds of sending", async ({
-    page,
-    baseURL,
-  }) => {
+  test("17 - Webhook appears within 2 seconds of sending", async ({ page, baseURL }) => {
     const { webhookUrl } = await setup(page, baseURL!);
 
     const startTime = Date.now();
@@ -564,16 +513,11 @@ test.describe("Play Webhook Reception", () => {
     expect(elapsed).toBeLessThan(2000);
   });
 
-  test("18 - Counter updates in real-time without page reload", async ({
-    page,
-    baseURL,
-  }) => {
+  test("18 - Counter updates in real-time without page reload", async ({ page, baseURL }) => {
     const { webhookUrl } = await setup(page, baseURL!);
 
     // Counter starts at 0
-    await expect(page.locator("#webhookCounter")).toHaveText(
-      "0 webhooks received",
-    );
+    await expect(page.locator("#webhookCounter")).toHaveText("0 webhooks received");
 
     // Send 3 webhooks sequentially to avoid race conditions in counter display
     await page.request.post(webhookUrl, {
@@ -595,8 +539,6 @@ test.describe("Play Webhook Reception", () => {
     await expect(page.locator(".feed-item")).toHaveCount(3, { timeout: 10000 });
 
     // Counter should show 3 without any reload
-    await expect(page.locator("#webhookCounter")).toHaveText(
-      "3 webhooks received",
-    );
+    await expect(page.locator("#webhookCounter")).toHaveText("3 webhooks received");
   });
 });
