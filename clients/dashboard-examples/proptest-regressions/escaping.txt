@@ -1,0 +1,12 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+#
+# The seed below came from deliberately dropping the first escaping rule — the one that escapes the
+# backslash — and letting the property find what that lets through. It is kept rather than deleted
+# with the mutation: it is the shape of input the rule exists for, and replaying it first on every
+# run is what stops the rule being weakened again without anything going red.
+cc 4dce01bea807ce5453aae48fb737b2158bd10b1bc5ce0bfa7a1b17fc92688dc1 # shrinks to value = "\\'"

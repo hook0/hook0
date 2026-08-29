@@ -1,0 +1,82 @@
+# What the dashboard cannot read off `dashboard_send.go` and `dashboard_verify.go` themselves.
+#
+# The dashboard renders a snippet by substituting strings and nothing else: it knows no Go, and must
+# not learn any. Everything about this language that a substitution cannot express is declared here,
+# beside the code it describes, so that the day Go is not the language somebody is reading there is
+# still only one place to look.
+
+# How this language is named on screen.
+#
+# Nothing else in the tree carries it: the generator calls this target `go`, the registry calls the
+# package `github.com/hook0/hook0-go/v2`, and neither is what a reader is looking for in a list of
+# languages.
+display_name = "Go"
+
+# What `clients.go.check` actually establishes about the two examples beside this file, and nothing
+# more.
+#
+# `go vet ./...` and `go test ./...` both build the `examples` package against this client's own
+# source, so every name in a snippet is resolved against the real declaration. Measured by breaking
+# it: `hook0.DefaultOptions` renamed to `DefaultOptionz` stops the job with `undefined:
+# hook0.DefaultOptionz`. A renamed method, a changed signature or a dropped field turns the job red.
+proof = "compiled"
+proves = 'built against clients/go by `go vet ./...` and `go test ./...` in `clients.go.check`; a renamed method, a changed signature or a dropped field fails the job'
+
+# What puts `examples/` under that job.
+#
+# Nothing names it. `./...` is every package of the module and this directory is one of them, so
+# there is no line here to hold: narrow either command to named packages and the examples leave the
+# job without a word of configuration having been deleted. What stands in for a line is the job
+# itself — the coverage flag below the two commands names the shipped packages rather than `./...`
+# precisely because this directory is otherwise in everything they walk.
+examples_swept_by = "`go vet ./...` and `go test ./...` in `clients.go.check`, which walk every package of the module"
+
+# What share of developers write it, which is the order the languages are offered in.
+#
+# A datum rather than an opinion, so it is declared beside its source: Stack Overflow Developer
+# Survey 2025, 49,000 respondents across 177 countries —
+# https://survey.stackoverflow.co/2025/technology
+usage_share = 16.4
+
+
+# Joins two rendered labels.
+#
+# A newline and nothing else, where every other language joins with a comma — because the container
+# here is a map filled a statement at a time rather than a composite literal, and Go is the one
+# language of the eleven that forces that choice.
+#
+# The rule the contract sets is that the separator carries the comma and the region carries none, so
+# that `Map.of("a", "b", "c", "d")` in Java — a variadic argument list admitting no trailing comma —
+# renders as validly as anything else. Go wants the opposite of Java: a composite literal whose
+# closing brace begins a line is a syntax error *without* a trailing comma after the last element,
+# because the parser inserts a semicolon at that newline. So a region carrying no trailing separator
+# and a `}` on the next line cannot both hold, and a `}` written on the last element's line cannot
+# hold either — a line comment is the only marker form that leaves neither an opener nor a closer
+# inside the region, and a line comment runs to the end of its line.
+#
+# Assigning into the map is what dissolves it: the repetitions need nothing between them but a line
+# break, no repetition at all leaves `map[string]string{}` and a `Labels` field that reads it, and
+# the snippet a reader copies is ordinary Go either way.
+#
+# It carries no indentation. Each repetition brings its own, because the region is taken with the
+# whitespace it sits on rather than trimmed down to the code.
+label_separator = "\n"
+
+# How a value the user typed becomes a literal of this language.
+#
+# The payload is whatever was written in the editor, and it lands inside a string in the snippet. Go
+# writes two kinds: a raw one between backticks, which cannot carry a backtick at all and interprets
+# no escape, and the interpreted one below. The interpreted one is the one that can hold any payload
+# a user can type, which is why it is what the example shows. The replacements are applied in order,
+# which is why the backslash comes first: escaping it after the quotes would escape the backslashes
+# those had just introduced.
+[string]
+open = '"'
+close = '"'
+escape = [
+    ['\', '\\'],
+    ['"', '\"'],
+    ["\n", '\n'],
+    ["\r", '\r'],
+    ["\t", '\t'],
+]

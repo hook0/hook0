@@ -33,9 +33,7 @@ test.describe("Play Home", () => {
     await expect(page.locator("#copyFeedback")).toHaveClass(/show/);
 
     // Verify clipboard content
-    const clipboardContent = await page.evaluate(() =>
-      navigator.clipboard.readText(),
-    );
+    const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
     expect(clipboardContent).toBe(webhookUrl);
   });
 
@@ -46,14 +44,16 @@ test.describe("Play Home", () => {
     await expect(urlText).toBeVisible({ timeout: 10000 });
 
     const firstUrl = await urlText.textContent();
+    if (firstUrl === null) {
+      throw new Error("the page must show a webhook URL before a new one can be asked for");
+    }
 
     await page.locator("#btnNew").click();
 
     // Wait for hash to change and new URL to render
     await page.waitForFunction(
-      (oldUrl: string) =>
-        document.getElementById("webhookUrl")!.textContent !== oldUrl,
-      firstUrl,
+      (oldUrl: string) => document.getElementById("webhookUrl")!.textContent !== oldUrl,
+      firstUrl
     );
 
     const secondUrl = await urlText.textContent();
@@ -61,9 +61,7 @@ test.describe("Play Home", () => {
     expect(secondUrl).toMatch(/\/in\/c_[0-9A-Za-z]{27}\//);
   });
 
-  test("connection status shows Connected with green indicator", async ({
-    page,
-  }) => {
+  test("connection status shows Connected with green indicator", async ({ page }) => {
     await page.goto("/");
 
     // Wait for WebSocket to establish connection
@@ -73,14 +71,11 @@ test.describe("Play Home", () => {
     await expect(page.locator("#connDot")).toHaveClass(/green/);
   });
 
-  test("webhook counter shows 0 webhooks received initially", async ({
-    page,
-  }) => {
+  test("webhook counter shows 0 webhooks received initially", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.locator("#webhookCounter")).toHaveText(
-      "0 webhooks received",
-      { timeout: 10000 },
-    );
+    await expect(page.locator("#webhookCounter")).toHaveText("0 webhooks received", {
+      timeout: 10000,
+    });
   });
 });

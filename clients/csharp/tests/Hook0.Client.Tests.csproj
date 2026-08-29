@@ -44,4 +44,22 @@
     <ProjectReference Include="../src/Hook0.Client.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      What the dashboard shows under "Send an event", compiled here rather than anywhere else: a
+      snippet written by hand in the dashboard is backed by nothing and drifts the day a method is
+      renamed, so it lives beside the client it calls and rides the job that already builds it.
+
+      It joins this project rather than the package because it is not part of what ships, and
+      nothing runs it either — the values in it are markers the dashboard substitutes, so a run
+      would reach a host that does not exist. It has to compile, under the same analysers and the
+      same `dotnet format` as everything else here, which is the whole point.
+
+      A glob rather than a list, so an example added beside these two is held to the same thing
+      without this file being touched. Coverage is unaffected: coverlet leaves out the assembly the
+      suite itself is in.
+    -->
+    <Compile Include="../examples/*.cs" />
+  </ItemGroup>
+
 </Project>

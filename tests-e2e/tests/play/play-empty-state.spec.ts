@@ -17,9 +17,7 @@ test.describe("Play Empty State", () => {
     expect(urlText).toMatch(/\/in\/c_[0-9A-Za-z]{27}\//);
   });
 
-  test("empty state shows curl example with the correct token", async ({
-    page,
-  }) => {
+  test("empty state shows curl example with the correct token", async ({ page }) => {
     await page.goto("/");
 
     const emptyState = page.locator("#emptyState");
@@ -31,9 +29,7 @@ test.describe("Play Empty State", () => {
     const curlText = await curlExample.textContent();
 
     // Extract token from the URL hash
-    const token = await page.evaluate(() =>
-      location.hash.replace(/^#/, ""),
-    );
+    const token = await page.evaluate(() => location.hash.replace(/^#/, ""));
 
     // Curl example should contain the token
     expect(curlText).toContain(token);
@@ -41,10 +37,7 @@ test.describe("Play Empty State", () => {
     expect(curlText).toContain("curl");
   });
 
-  test("empty state disappears after first webhook arrives", async ({
-    page,
-    baseURL,
-  }) => {
+  test("empty state disappears after first webhook arrives", async ({ page, baseURL }) => {
     await page.goto("/");
 
     // Wait for connection
@@ -56,9 +49,7 @@ test.describe("Play Empty State", () => {
     await expect(emptyState).toBeVisible({ timeout: 10000 });
 
     // Extract token and send a webhook
-    const token = await page.evaluate(() =>
-      location.hash.replace(/^#/, ""),
-    );
+    const token = await page.evaluate(() => location.hash.replace(/^#/, ""));
     const webhookUrl = `${baseURL}/in/${token}/`;
 
     const response = await page.request.post(webhookUrl, {

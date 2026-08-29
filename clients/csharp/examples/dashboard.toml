@@ -1,0 +1,72 @@
+# How this language is named on screen.
+#
+# Nothing else in the tree carries it: the generator calls this target `csharp`, the registry
+# calls the package `Hook0.Client`, and neither is what a reader is looking for in a
+# list of languages.
+display_name = "C#"
+
+# What `clients.csharp.check` actually establishes about the two examples beside this file, and
+# nothing more.
+#
+# `dotnet build --configuration Release -warnaserror` compiles them into the test assembly against
+# this client's own project reference, so every name in a snippet is resolved against the real
+# declaration. Measured by breaking it: `client.SendEvent` renamed to `SendEventRenamedByAMutation`
+# stops the job with `CS1061: 'Hook0Client' does not contain a definition for
+# 'SendEventRenamedByAMutation'`. A renamed method, a changed signature or a dropped member turns
+# the job red.
+proof = "compiled"
+proves = 'built against clients/csharp by `dotnet build --configuration Release -warnaserror` in `clients.csharp.check`; a renamed method, a changed signature or a dropped member fails the job'
+
+# What puts `examples/` under that job, and what taking it away would look like.
+#
+# The test project pulls these two files into its own compilation. Delete the line and they stop
+# being compiled by anything while both files are still here and the level above still reads
+# `compiled` — which is the one failure the guard for a missing example cannot see.
+examples_named_in = "clients/csharp/tests/Hook0.Client.Tests.csproj"
+examples_named_by = ['<Compile Include="../examples/*.cs" />']
+
+# What share of developers write it, which is the order the languages are offered in.
+#
+# A datum rather than an opinion, so it is declared beside its source: Stack Overflow Developer
+# Survey 2025, 49,000 respondents across 177 countries —
+# https://survey.stackoverflow.co/2025/technology
+usage_share = 27.8
+
+# What the dashboard cannot read off `dashboard_send.cs` and `dashboard_verify.cs` themselves.
+#
+# The dashboard renders a snippet by substituting strings and nothing else: it knows no C#, and must
+# not learn any. Everything about this language that a substitution cannot express is declared here,
+# beside the code it describes, so that the day C# is not the language somebody is reading there is
+# still only one place to look.
+
+# Joins two rendered labels.
+#
+# It carries the comma, and the region it joins must not: `Map.of("a", "b", "c", "d")` in Java is a
+# variadic argument list which admits no trailing comma, so a region carrying its own would be valid
+# in C# and invalid there. Putting the separator between the repetitions is the one shape every
+# language agrees with, and it is what makes an empty list work too — repeat the region no times and
+# the dictionary initialiser is simply empty, which is valid.
+#
+# It carries no indentation either. Each repetition brings its own, because the region is taken with
+# the whitespace it sits on rather than trimmed down to the code.
+label_separator = ",\n"
+
+# How a value the user typed becomes a literal of this language.
+#
+# The payload is whatever was written in the editor, and it lands inside a string in the snippet. It
+# lands inside the quoted form rather than a raw `"""` one, where a payload containing the closing
+# sequence produces a snippet that does not compile — a defect the user triggers, on their own data,
+# in code we told them to copy. The replacements are applied in order, which is why the backslash
+# comes first: escaping it after the quotes would escape the backslashes those had just introduced.
+# C# refuses a literal carrying a raw newline or carriage return, so those are escapes rather than
+# niceties.
+[string]
+open = '"'
+close = '"'
+escape = [
+    ['\', '\\'],
+    ['"', '\"'],
+    ["\n", '\n'],
+    ["\r", '\r'],
+    ["\t", '\t'],
+]

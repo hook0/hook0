@@ -65,10 +65,9 @@ function assertCommonFooter(html: string, campaign: string) {
     for (const required of REQUIRED_MTM) {
       expect(href, `link must contain ${required}: ${href}`).toContain(required);
     }
-    expect(
-      href,
-      `link must contain mtm_campaign=${campaign}: ${href}`
-    ).toContain(`mtm_campaign=${campaign}`);
+    expect(href, `link must contain mtm_campaign=${campaign}: ${href}`).toContain(
+      `mtm_campaign=${campaign}`
+    );
   }
 }
 
@@ -103,9 +102,7 @@ function bodyWithoutPreviewLine(html: string): string {
 }
 
 test.describe("Transactional emails — design, wording, tracking", () => {
-  test("Verify email — design + Matomo + first-name personalisation", async ({
-    request,
-  }) => {
+  test("Verify email — design + Matomo + first-name personalisation", async ({ request }) => {
     const timestamp = Date.now();
     const email = `test-verify-design-${timestamp}@hook0.local`;
     const firstName = "Sarah";
@@ -132,9 +129,7 @@ test.describe("Transactional emails — design, wording, tracking", () => {
     assertPlainTextWidth(message);
   });
 
-  test("Welcome — arrives after verification, links to dashboard + docs", async ({
-    request,
-  }) => {
+  test("Welcome — arrives after verification, links to dashboard + docs", async ({ request }) => {
     const timestamp = Date.now();
     const email = `test-welcome-design-${timestamp}@hook0.local`;
     const firstName = "Sarah";
@@ -163,11 +158,7 @@ test.describe("Transactional emails — design, wording, tracking", () => {
     });
     expect(verifyResponse.status()).toBeLessThan(400);
 
-    const message = await getEmailFromMailpit(
-      request,
-      email,
-      "ship your first webhook"
-    );
+    const message = await getEmailFromMailpit(request, email, "ship your first webhook");
     const html = message.HTML ?? "";
     // The H1 carries no name of its own; the personalisation lives in the body
     // as "Hi {firstName}, …", which is the load-bearing part and the only one
@@ -180,9 +171,7 @@ test.describe("Transactional emails — design, wording, tracking", () => {
     assertPlainTextWidth(message);
   });
 
-  test("Reset password — correct CTA label, anti-regression on Verify", async ({
-    request,
-  }) => {
+  test("Reset password — correct CTA label, anti-regression on Verify", async ({ request }) => {
     const timestamp = Date.now();
     const email = `test-reset-design-${timestamp}@hook0.local`;
     const firstName = "Sarah";
@@ -203,10 +192,9 @@ test.describe("Transactional emails — design, wording, tracking", () => {
     // and the inbox is non-empty before we issue the reset.
     await getEmailFromMailpit(request, email, "Verify your Hook0 email");
 
-    const beginResetResponse = await request.post(
-      `${API_BASE_URL}/auth/begin-reset-password`,
-      { data: { email } }
-    );
+    const beginResetResponse = await request.post(`${API_BASE_URL}/auth/begin-reset-password`, {
+      data: { email },
+    });
     expect(beginResetResponse.status()).toBeLessThan(400);
 
     const message = await getEmailFromMailpit(request, email, "Reset your Hook0 password");
@@ -216,9 +204,7 @@ test.describe("Transactional emails — design, wording, tracking", () => {
     expect(html, "CTA label says Reset password").toContain("Reset password");
     // Anti-regression: the legacy template shipped a "Verify email" button on
     // the reset-password mail.
-    expect(html, "CTA label must NOT say Verify email").not.toContain(
-      ">Verify email<"
-    );
+    expect(html, "CTA label must NOT say Verify email").not.toContain(">Verify email<");
     // The four things the mail has to leave the reader knowing, each pinned on
     // what it says rather than on how it says it: this copy has been reworded
     // twice already, and an assertion that spells out a sentence turns every
@@ -251,9 +237,7 @@ test.describe("Transactional emails — design, wording, tracking", () => {
     assertPlainTextWidth(message);
   });
 
-  test("Logo image is fetchable (anti-regression for the LFS pointer bug)", async ({
-    request,
-  }) => {
+  test("Logo image is fetchable (anti-regression for the LFS pointer bug)", async ({ request }) => {
     // The logo URL is the same constant injected into every email by the
     // backend. We assert on the live URL to catch a regression where the
     // website would silently revert to serving an LFS pointer text file.
@@ -275,9 +259,7 @@ test.describe("Transactional emails — design, wording, tracking", () => {
   // This is doable but slow (requires sending dozens of real events). Pending
   // CI fixture work, these are added as design tests behind .skip so the spec
   // file documents the expectations and is ready to enable.
-  test.skip("Quota warning — design (TODO: requires quota fixture)", async ({
-    request,
-  }) => {
+  test.skip("Quota warning — design (TODO: requires quota fixture)", async ({ request }) => {
     const email = "skipped@hook0.local";
     const message = await getEmailFromMailpit(request, email, "% of your daily events");
     const html = message.HTML ?? "";
@@ -286,9 +268,7 @@ test.describe("Transactional emails — design, wording, tracking", () => {
     assertCommonFooter(html, "quota_warning");
   });
 
-  test.skip("Quota reached — design (TODO: requires quota fixture)", async ({
-    request,
-  }) => {
+  test.skip("Quota reached — design (TODO: requires quota fixture)", async ({ request }) => {
     const email = "skipped@hook0.local";
     const message = await getEmailFromMailpit(request, email, "Events paused");
     const html = message.HTML ?? "";

@@ -10,7 +10,11 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["../frontend/src/*"]
+    }
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]

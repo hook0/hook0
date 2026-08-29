@@ -1,0 +1,81 @@
+# What the dashboard cannot read off `dashboard_send.py` and `dashboard_verify.py` themselves.
+#
+# The dashboard renders a snippet by substituting strings and nothing else: it knows no Python, and
+# must not learn any. Everything about this language that a substitution cannot express is declared
+# here, beside the code it describes, so that the day Python is not the language somebody is reading
+# there is still only one place to look.
+
+# How this language is named on screen.
+#
+# Neither the registry nor the package name carries it: the target is `python` and the package is
+# published under a name of its own, while the screen says `Python`. It is one line here rather
+# than a table in the generator because a name is a property of the language, and the day a target
+# is added is the day somebody is already editing this file.
+display_name = "Python"
+
+# How far the pipeline holds this example to the client it shows, and by what.
+#
+# `type-checked` rather than `compiled`, because Python builds no artefact: `mypy` resolves
+# `import hook0` against `clients/python/src` and stops there. It is also not `parsed`, which is
+# what this was until the claim was measured — `ruff` reads the grammar and resolves no symbol, so
+# a renamed method left the example green. The vocabulary is the one
+# `documentation/reference/sdk/examples/README.md` fixes, and it must not overstate what the
+# command does.
+#
+# Nothing is executed, so a call that type-checks and does the wrong thing at runtime is outside
+# what this catches.
+proof = "type-checked"
+proves = "`mypy` in `clients.python.check`, configured by `[tool.mypy]` of `pyproject.toml`: resolved against the real declared types of `clients/python/src`, so a renamed method, a dropped `Event` field or an argument of the wrong type fails on the example's own line — measured in both directions, by renaming at the call site and by renaming in the client"
+
+# What puts `examples/` under that job, and what taking it away would look like.
+#
+# The directory is the whole of what mypy is given to check. Delete the line and mypy is pointed at
+# nothing, exits successfully, and the level above goes on reading `type-checked` — which is the
+# one failure the guard for a missing example cannot see.
+examples_named_in = "clients/python/pyproject.toml"
+examples_named_by = ['files = ["examples"]']
+
+# What share of developers write it, which is the order the languages are offered in.
+#
+# A datum rather than an opinion, so it is declared beside its source: Stack Overflow Developer
+# Survey 2025, 49,000 respondents across 177 countries —
+# https://survey.stackoverflow.co/2025/technology
+usage_share = 57.9
+
+
+# Joins two rendered labels.
+#
+# It carries the comma, and the region it joins must not: `Map.of("a", "b", "c", "d")` in Java is a
+# variadic argument list which admits no trailing comma, so a region carrying its own would be valid
+# in Python and invalid there. Putting the separator between the repetitions is the one shape every
+# language agrees with, and it is what makes an empty list work too — repeat the region no times and
+# the container is simply empty, which is valid everywhere.
+#
+# `ruff format` does add that trailing comma back to the source, and its magic trailing comma is
+# what keeps the dict written one entry per line at all. So the region is read as the text between
+# the two markers, and a trailing separator is stripped from it. Whichever way a language's
+# formatter wants the file written, the region joins the same.
+#
+# It carries no indentation either. Each repetition brings its own, because the region is taken with
+# the whitespace it sits on rather than trimmed down to the code.
+label_separator = ",\n"
+
+# How a value the user typed becomes a literal of this language.
+#
+# The payload is whatever was written in the editor, and it lands inside a string in the snippet.
+# The replacements below are applied in order, which is why the backslash comes first: escaping it
+# after the quotes would escape the backslashes those had just introduced.
+#
+# Double quotes rather than single ones because that is what `ruff format` writes, and a snippet
+# quoted the other way would be reformatted the moment a reader ran the formatter this client is
+# held to.
+[string]
+open = '"'
+close = '"'
+escape = [
+    ['\', '\\'],
+    ['"', '\"'],
+    ["\n", '\n'],
+    ["\r", '\r'],
+    ["\t", '\t'],
+]

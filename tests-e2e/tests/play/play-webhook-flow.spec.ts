@@ -17,10 +17,7 @@ async function waitForConnection(page: import("@playwright/test").Page): Promise
 }
 
 test.describe("Play Webhook Flow", () => {
-  test("sending a POST webhook makes it appear in the feed", async ({
-    page,
-    baseURL,
-  }) => {
+  test("sending a POST webhook makes it appear in the feed", async ({ page, baseURL }) => {
     await page.goto("/");
     await waitForConnection(page);
 
@@ -42,15 +39,10 @@ test.describe("Play Webhook Flow", () => {
     await expect(feedItem.locator(".method-badge")).toHaveText("POST");
 
     // Verify counter updated
-    await expect(page.locator("#webhookCounter")).toHaveText(
-      "1 webhook received",
-    );
+    await expect(page.locator("#webhookCounter")).toHaveText("1 webhook received");
   });
 
-  test("multiple webhooks appear in newest-first order", async ({
-    page,
-    baseURL,
-  }) => {
+  test("multiple webhooks appear in newest-first order", async ({ page, baseURL }) => {
     await page.goto("/");
     await waitForConnection(page);
 
@@ -106,20 +98,13 @@ test.describe("Play Webhook Flow", () => {
     await expect(detailContent.locator(".method-badge")).toHaveText("POST");
 
     // Headers table should contain our custom header
-    await expect(detailContent.locator(".headers-table")).toContainText(
-      "x-test-header",
-    );
+    await expect(detailContent.locator(".headers-table")).toContainText("x-test-header");
 
     // Body should contain the JSON we sent
-    await expect(detailContent.locator(".body-display")).toContainText(
-      "inspect.me",
-    );
+    await expect(detailContent.locator(".body-display")).toContainText("inspect.me");
   });
 
-  test("deleting a single webhook removes it from the feed", async ({
-    page,
-    baseURL,
-  }) => {
+  test("deleting a single webhook removes it from the feed", async ({ page, baseURL }) => {
     await page.goto("/");
     await waitForConnection(page);
 
@@ -146,9 +131,7 @@ test.describe("Play Webhook Flow", () => {
 
     // Feed should now be empty
     await expect(page.locator(".feed-item")).toHaveCount(0, { timeout: 10000 });
-    await expect(page.locator("#webhookCounter")).toHaveText(
-      "0 webhooks received",
-    );
+    await expect(page.locator("#webhookCounter")).toHaveText("0 webhooks received");
   });
 
   test("clear all webhooks empties the feed", async ({ page, baseURL }) => {
@@ -170,9 +153,7 @@ test.describe("Play Webhook Flow", () => {
 
     // Feed should be empty
     await expect(page.locator(".feed-item")).toHaveCount(0, { timeout: 5000 });
-    await expect(page.locator("#webhookCounter")).toHaveText(
-      "0 webhooks received",
-    );
+    await expect(page.locator("#webhookCounter")).toHaveText("0 webhooks received");
     // Empty state should reappear
     await expect(page.locator("#emptyState")).toBeVisible();
   });
@@ -207,9 +188,7 @@ test.describe("Play Webhook Flow", () => {
     // Detail panel should show the webhook content (not the empty state)
     await expect(page.locator("#detailEmpty")).not.toBeVisible();
     await expect(page.locator('[data-test="body-display"]')).toBeVisible();
-    await expect(page.locator('[data-test="body-display"]')).toContainText(
-      "auto.selected",
-    );
+    await expect(page.locator('[data-test="body-display"]')).toContainText("auto.selected");
 
     // Headers table should be visible
     await expect(page.locator('[data-test="headers-table"]')).toBeVisible();
@@ -232,9 +211,7 @@ test.describe("Play Webhook Flow", () => {
     });
     await expect(page.locator(".feed-item")).toHaveCount(1, { timeout: 10000 });
     await expect(page.locator(".feed-item.selected")).toHaveCount(1);
-    await expect(page.locator('[data-test="body-display"]')).toContainText(
-      "first",
-    );
+    await expect(page.locator('[data-test="body-display"]')).toContainText("first");
 
     // Send second webhook
     await page.request.post(webhookUrl, {
@@ -247,8 +224,6 @@ test.describe("Play Webhook Flow", () => {
     await expect(page.locator(".feed-item.selected")).toHaveCount(1);
 
     // Detail panel should still show the first webhook's content
-    await expect(page.locator('[data-test="body-display"]')).toContainText(
-      "first",
-    );
+    await expect(page.locator('[data-test="body-display"]')).toContainText("first");
   });
 });

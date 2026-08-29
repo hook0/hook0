@@ -10,7 +10,7 @@
 //! ```zig
 //! const hook0 = @import("hook0");
 //!
-//! var client: hook0.Client = .init(allocator, "https://app.hook0.com/api/v1", application_id, token, .{});
+//! var client: hook0.Client = .init(io, "https://app.hook0.com/api/v1", application_id, token, .{});
 //! const sent = try client.sendEvent(allocator, .{
 //!     .event_type = "billing.invoice.created",
 //!     .payload = "{\"invoice\":\"in_1\"}",

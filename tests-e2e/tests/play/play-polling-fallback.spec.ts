@@ -16,9 +16,7 @@ test.describe("Play Polling Fallback", () => {
     await expect(tab1.locator("#connDot")).toHaveClass(/green/);
 
     // Extract the token from tab 1
-    const token = await tab1.evaluate(() =>
-      location.hash.replace(/^#/, ""),
-    );
+    const token = await tab1.evaluate(() => location.hash.replace(/^#/, ""));
 
     // Tab 2: open the same token URL -- should get token_in_use -> polling fallback
     const context2 = await browser.newContext();
@@ -53,9 +51,7 @@ test.describe("Play Polling Fallback", () => {
       timeout: 15000,
     });
 
-    const token = await tab1.evaluate(() =>
-      location.hash.replace(/^#/, ""),
-    );
+    const token = await tab1.evaluate(() => location.hash.replace(/^#/, ""));
 
     // Tab 2: open same token -> polling
     const context2 = await browser.newContext();
@@ -76,9 +72,7 @@ test.describe("Play Polling Fallback", () => {
 
     // Tab 1 receives it via WebSocket (fast)
     await expect(tab1.locator(".feed-item")).toHaveCount(1, { timeout: 10000 });
-    await expect(
-      tab1.locator(".feed-item").first().locator(".method-badge"),
-    ).toHaveText("POST");
+    await expect(tab1.locator(".feed-item").first().locator(".method-badge")).toHaveText("POST");
 
     await context1.close();
     await context2.close();
