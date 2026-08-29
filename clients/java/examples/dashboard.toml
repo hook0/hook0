@@ -1,0 +1,82 @@
+# How this language is named on screen.
+#
+# Nothing else in the tree carries it: the generator calls this target `java`, the registry
+# calls the package `com.hook0:hook0-client`, and neither is what a reader is looking for in a
+# list of languages.
+display_name = "Java"
+
+# What `clients.java.check` actually establishes about the two examples beside this file, and
+# nothing more.
+#
+# `mvn checkstyle:check verify` runs `maven-compiler-plugin:testCompile` over them, which is javac
+# with `-Xlint:all` and warnings as failures, against this client's own classes — so every name in
+# a snippet is resolved against the real declaration. Measured by breaking it: `client.sendEvent`
+# renamed to `sendEventRenamedByAMutation` stops the job with `cannot find symbol: method
+# sendEventRenamedByAMutation(com.hook0.client.Event)`. A renamed method, a changed signature or a
+# dropped field turns the job red.
+proof = "compiled"
+proves = 'built against clients/java by `maven-compiler-plugin:testCompile` under `mvn verify` in `clients.java.check`; a renamed method, a changed signature or a dropped field fails the job. Compiled but not linted: checkstyle reads the two directories `pom.xml` names and this is not one of them, because `OuterTypeFilename` cannot be satisfied by a file the contract names `dashboard_send.java`'
+
+# What puts `examples/` under that job, and what taking it away would look like.
+#
+# The compiler plugin is given this directory as a source root of the test compilation. Delete the
+# line and both files stop being compiled while both are still here and the level above still reads
+# `compiled` — which is the one failure the guard for a missing example cannot see.
+examples_named_in = "clients/java/pom.xml"
+examples_named_by = ["<compileSourceRoot>${project.basedir}/examples</compileSourceRoot>"]
+
+# What share of developers write it, which is the order the languages are offered in.
+#
+# A datum rather than an opinion, so it is declared beside its source: Stack Overflow Developer
+# Survey 2025, 49,000 respondents across 177 countries —
+# https://survey.stackoverflow.co/2025/technology
+usage_share = 29.4
+
+# What the dashboard cannot read off `dashboard_send.java` and `dashboard_verify.java` themselves.
+#
+# The dashboard renders a snippet by substituting strings and nothing else: it knows no Java, and
+# must not learn any. Everything about this language that a substitution cannot express is declared
+# here, beside the code it describes, so that the day Java is not the language somebody is reading
+# there is still only one place to look.
+
+# Joins two rendered labels.
+#
+# A line break and no punctuation, because a label here is a statement rather than an argument: the
+# region ends at its own semicolon and two of them join by starting a new line. The separator still
+# lives between the repetitions rather than at the end of each, which is what lets the region repeat
+# no times and leave a map that is simply empty.
+#
+# It is a line break rather than a space for the reason every other manifest gives: a separator with
+# no line break in it joins the repetitions on a single line and drags the region's own indentation
+# into the middle of it. With the break each repetition brings its own indentation instead, because
+# the region is taken with the whitespace it sits on rather than trimmed down to the code.
+#
+# The snippet builds its map a line at a time rather than with `Map.of`, which two properties of the
+# form rule out. `Map.of` is a variadic argument list of at most ten pairs, and it throws
+# `IllegalArgumentException` on a key given twice. Neither is bounded where the labels come from:
+# the snippet is rendered from the form before any request is made, so what the API accepts
+# (`api/src/validators.rs`, `LABELS_MAX_SIZE`) settles what a send is answered with and settles
+# nothing about what a reader is shown. An eleventh row would have rendered `Map.of` with
+# twenty-two arguments — no applicable overload — and two rows sharing a key would have rendered a
+# snippet that compiles and crashes on the reader's own data, where the other ten take the last
+# value. Filling a `LinkedHashMap` has neither bound and keeps last-wins.
+label_separator = "\n"
+
+# How a value the user typed becomes a literal of this language.
+#
+# The payload is whatever was written in the editor, and it lands inside a string in the snippet.
+# Java has no raw string with a closing sequence to trip over at this release — a text block is
+# `"""`, which a payload could carry — so the quoted form below is the one shape a substitution can
+# produce. The replacements are applied in order, which is why the backslash comes first: escaping
+# it after the quotes would escape the backslashes those had just introduced. Java refuses a literal
+# carrying a raw newline or carriage return, so those are escapes rather than niceties.
+[string]
+open = '"'
+close = '"'
+escape = [
+    ['\', '\\'],
+    ['"', '\"'],
+    ["\n", '\n'],
+    ["\r", '\r'],
+    ["\t", '\t'],
+]

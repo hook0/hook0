@@ -9,6 +9,13 @@
 
     <file>src</file>
     <file>tests</file>
+    <!--
+        The dashboard examples too. They are neither shipped nor run, but they are read by
+        whoever copies the snippet out of the dashboard, so they are held to the same style as
+        the source they call — and this is what parses them at all: the pipeline has no PHP
+        checker beyond this one, so a file left out here is a file nothing reads.
+    -->
+    <file>examples</file>
     <exclude-pattern>vendor/*</exclude-pattern>
 
     <arg name="extensions" value="php"/>

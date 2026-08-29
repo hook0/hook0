@@ -42,3 +42,16 @@ producer = ["http", "lazy-regex", "reqwest", "serde", "serde_json", "tokio", "ur
 name = "actix-web"
 path = "examples/actix-web.rs"
 required-features = ["consumer"]
+
+# The two the dashboard shows. `--all-targets` builds every example, including in the run that
+# takes the producer half away, so each has to say which half it needs or the consumer-only leg
+# compiles a send against a client that does not have one.
+[[example]]
+name = "dashboard_send"
+path = "examples/dashboard_send.rs"
+required-features = ["producer"]
+
+[[example]]
+name = "dashboard_verify"
+path = "examples/dashboard_verify.rs"
+required-features = ["consumer"]

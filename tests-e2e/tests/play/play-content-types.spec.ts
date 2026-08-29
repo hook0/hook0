@@ -3,18 +3,14 @@ import { test, expect } from "@playwright/test";
 /**
  * Extracts the token from the page URL hash.
  */
-async function getToken(
-  page: import("@playwright/test").Page,
-): Promise<string> {
+async function getToken(page: import("@playwright/test").Page): Promise<string> {
   return page.evaluate(() => location.hash.replace(/^#/, ""));
 }
 
 /**
  * Waits for the WebSocket connection to be established.
  */
-async function waitForConnection(
-  page: import("@playwright/test").Page,
-): Promise<void> {
+async function waitForConnection(page: import("@playwright/test").Page): Promise<void> {
   await expect(page.locator("#connLabel")).toHaveText(/(Connected|Polling)/, {
     timeout: 15000,
   });
@@ -92,10 +88,7 @@ test.describe("Play Content Types", () => {
     expect(tableText).toContain("webhook");
   });
 
-  test("POST with Content-Type text/plain shows body as raw text", async ({
-    page,
-    baseURL,
-  }) => {
+  test("POST with Content-Type text/plain shows body as raw text", async ({ page, baseURL }) => {
     await page.goto("/");
     await waitForConnection(page);
 
@@ -118,15 +111,10 @@ test.describe("Play Content Types", () => {
     await expect(bodyDisplay.first()).toBeVisible();
 
     const bodyText = await bodyDisplay.first().textContent();
-    expect(bodyText).toContain(
-      "Hello, this is plain text content from Hook0 Play test",
-    );
+    expect(bodyText).toContain("Hello, this is plain text content from Hook0 Play test");
   });
 
-  test("POST with no Content-Type shows body as raw text", async ({
-    page,
-    baseURL,
-  }) => {
+  test("POST with no Content-Type shows body as raw text", async ({ page, baseURL }) => {
     await page.goto("/");
     await waitForConnection(page);
 
@@ -155,10 +143,7 @@ test.describe("Play Content Types", () => {
     expect(bodyText).toContain("raw body without content type header");
   });
 
-  test("POST with binary body shows base64 note", async ({
-    page,
-    baseURL,
-  }) => {
+  test("POST with binary body shows base64 note", async ({ page, baseURL }) => {
     await page.goto("/");
     await waitForConnection(page);
 
@@ -167,8 +152,8 @@ test.describe("Play Content Types", () => {
 
     // Send binary data (bytes that include control characters)
     const binaryData = Buffer.from([
-      0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x89, 0x50, 0x4e, 0x47, 0x0d,
-      0x0a, 0x1a, 0x0a, 0xff, 0xfe, 0xfd,
+      0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff,
+      0xfe, 0xfd,
     ]);
 
     const response = await page.request.post(webhookUrl, {

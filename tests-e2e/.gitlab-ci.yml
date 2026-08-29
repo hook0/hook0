@@ -76,6 +76,15 @@ e2e-playwright.test:
     - cd tests-e2e
     - npm ci
   script:
+    # Playwright strips types with esbuild rather than checking them, so a type
+    # error in a spec surfaces only if it happens to break a run. Ahead of the
+    # API and frontend boot, so finding one costs no stack.
+    - npx tsc --noEmit
+    # The globs this reads are quoted in `package.json`, so what it covers does not depend on
+    # which shell npm happened to pick. Unquoted, bash expands the braces before prettier sees
+    # them and `**` reaches one directory down instead of the whole tree, which put eighteen
+    # files outside the check without saying so.
+    - npm run check
     # Start API in background
     - chmod +x ../target/release/hook0-api
     - ../target/release/hook0-api &

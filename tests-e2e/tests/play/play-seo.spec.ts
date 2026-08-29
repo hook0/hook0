@@ -4,19 +4,14 @@ test.describe("Play SEO", () => {
   test("page has correct title tag", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page).toHaveTitle(
-      "Hook0 Play - Free Webhook Tester & Inspector Online",
-    );
+    await expect(page).toHaveTitle("Hook0 Play - Free Webhook Tester & Inspector Online");
   });
 
   test("page has meta description with expected content", async ({ page }) => {
     await page.goto("/");
 
     const description = page.locator('meta[name="description"]');
-    await expect(description).toHaveAttribute(
-      "content",
-      /free webhook tester/i,
-    );
+    await expect(description).toHaveAttribute("content", /free webhook tester/i);
   });
 
   test("page has canonical link", async ({ page }) => {
@@ -60,9 +55,7 @@ test.describe("Play SEO", () => {
     expect(noscriptContent).toContain("requires JavaScript");
   });
 
-  test("all 7 H2 sections are present in the SEO content below the fold", async ({
-    page,
-  }) => {
+  test("all 7 H2 sections are present in the SEO content below the fold", async ({ page }) => {
     await page.goto("/");
 
     const seoSection = page.locator(".seo-content");

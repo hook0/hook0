@@ -23,14 +23,21 @@ clients.php.check:
         - .gitlab-ci.yml
   before_script:
     - php --version
-    # Pinned, so that a release of either is a change somebody made rather than a pipeline that
-    # turned red on its own. Both are single files rather than an installed dependency tree: the
+    # Pinned, so that a release of any of them is a change somebody made rather than a pipeline
+    # that turned red on its own. All three are single files rather than an installed tree: the
     # package declares none, and resolving one here would put a lockfile and an archive extractor
     # in the way of running a suite that needs neither. What the package itself is allowed to
     # require is settled by `tests/ComposerTest.php`, which runs below.
     - curl -fsSL -o /usr/local/bin/phpunit https://phar.phpunit.de/phpunit-11.5.56.phar
     - curl -fsSL -o /usr/local/bin/phpcs https://github.com/PHPCSStandards/PHP_CodeSniffer/releases/download/3.13.6/phpcs.phar
-    - chmod +x /usr/local/bin/phpunit /usr/local/bin/phpcs
+    # What holds the dashboard examples to the client they show. `phpcs` above tokenises and
+    # never loads a class, so it waves through both a call to a method the client dropped and a
+    # file PHP itself refuses — measured: an unclosed parenthesis in an example passes `phpcs`
+    # with exit 0. PHPStan resolves against the real `src`, and is a real parser, so it catches
+    # both. The version is the one
+    # `documentation/reference/sdk/examples/php/composer.json` pins for the reference pages.
+    - curl -fsSL -o /usr/local/bin/phpstan https://github.com/phpstan/phpstan/releases/download/2.2.8/phpstan.phar
+    - chmod +x /usr/local/bin/phpunit /usr/local/bin/phpcs /usr/local/bin/phpstan
     # PHPUnit can only measure coverage through a driver, and the official image ships none — which
     # is the whole reason this job used to run `--no-coverage`. pcov rather than Xdebug: it does
     # nothing but record which lines ran, where Xdebug attaches a debugger to every call and costs
@@ -48,6 +55,11 @@ clients.php.check:
     # in it or a hand edit beside it. Nothing is corrected: a job that rewrote what it was checking
     # would report success on source nobody wrote.
     - phpcs
+    # What `phpstan.neon.dist` beside this file explains: the dashboard examples resolved against
+    # the real `src`, so a renamed method fails here rather than reaching the screen. It replaced a
+    # `php -l` loop, which this subsumes — PHPStan parses before it analyses, and refuses the same
+    # unclosed parenthesis.
+    - phpstan analyse --no-progress
     # Written as Clover rather than as the readable table, because of what the table leaves out: a
     # class that executed no line at all is absent from PHPUnit's text report entirely, so the one
     # regression most worth naming — a suite that stopped reaching a whole group of operations —

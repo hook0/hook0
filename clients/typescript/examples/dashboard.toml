@@ -1,0 +1,83 @@
+# What the dashboard cannot read off `dashboard_send.ts` and `dashboard_verify.ts` themselves.
+#
+# The dashboard renders a snippet by substituting strings and nothing else: it knows no TypeScript,
+# and must not learn any. Everything about this language that a substitution cannot express is
+# declared here, beside the code it describes, so that the day TypeScript is not the language
+# somebody is reading there is still only one place to look.
+
+# How this language is named on screen.
+#
+# Nothing else in the tree carries it: the generator calls this target `typescript`, the registry
+# calls the package `hook0-client`, and the tab a reader looks for says JavaScript — one package
+# serves both languages, and the more widely written of the two is the one that names the tab.
+display_name = "JavaScript"
+
+# What `clients.typescript.check` actually establishes about the two examples beside this file, and
+# nothing more.
+#
+# `npm run check-full` runs `tsc --noEmit -p examples`, which resolves every name in a snippet
+# against this client's own TypeScript source — `paths` in `examples/tsconfig.json` points at
+# `../src/index.ts`, not at a build and not at a published version. It produces no artefact, which is
+# the difference between this and `compiled`. Measured by breaking it: `sendEvent` renamed to
+# `sendEventz` stops the job with `TS2551`.
+proof = "type-checked"
+proves = 'resolved against the TypeScript source of clients/typescript by `tsc --noEmit -p examples` in `clients.typescript.check`, through a tsconfig path rather than a build or a published version; a renamed method, a dropped argument or an argument of the wrong type fails the job, and no artefact comes out of it'
+
+# What puts `examples/` under that job, and what taking it away would look like.
+#
+# One script names the directory and one composite script runs it. Both are held: dropping
+# `check-examples` from `check-full` leaves the first script in the file, reachable by hand and
+# reached by no job, while the level above goes on reading `type-checked`.
+examples_named_in = "clients/typescript/package.json"
+examples_named_by = [
+    '"check-examples": "tsc --noEmit -p examples"',
+    "npm run --silent check-examples",
+]
+
+# What share of developers write it, which is the order the languages are offered in.
+#
+# A datum rather than an opinion, so it is declared beside its source: Stack Overflow Developer
+# Survey 2025, 49,000 respondents across 177 countries —
+# https://survey.stackoverflow.co/2025/technology
+usage_share = 66.0
+
+
+# Joins two rendered labels.
+#
+# It carries the comma, and the region it joins must not: `Map.of("a", "b", "c", "d")` in Java is a
+# variadic argument list which admits no trailing comma, so a region carrying its own would be valid
+# here and invalid there. Putting the separator between the repetitions is the one shape every
+# language agrees with, and it is what makes an empty list work too — repeat the region no times and
+# the container is simply `{}`, which is the empty `Record<string, string>` an event with no label
+# takes.
+#
+# `prettier` does add that trailing comma back to the source under the `es5` setting this client
+# formats with, and nothing can talk it out of it. So the region is read as the text between the two
+# markers, and a trailing separator is stripped from it.
+#
+# It carries no indentation either. Each repetition brings its own, because the region is taken with
+# the whitespace it sits on rather than trimmed down to the code.
+label_separator = ",\n"
+
+# How a value the user typed becomes a literal of this language.
+#
+# The payload is whatever was written in the editor, and it lands inside a string in the snippet.
+# Single quotes because that is what this client's `prettier` writes, and a rendered snippet that
+# disagrees with the source beside it would be the one thing this whole arrangement exists to
+# prevent. A template literal was the other candidate and is worse: it reads `${…}` as an expression,
+# so a payload carrying one would not merely fail to compile, it would compile into something else.
+#
+# The replacements are applied in order, which is why the backslash comes first: escaping it after
+# the quotes would escape the backslashes those had just introduced. The same rule renders the label
+# key, which sits in a computed position — `['…']` — precisely so that a key which is not an
+# identifier stays a key rather than becoming a syntax error.
+[string]
+open = "'"
+close = "'"
+escape = [
+    ['\', '\\'],
+    ["'", "\\'"],
+    ["\n", '\n'],
+    ["\r", '\r'],
+    ["\t", '\t'],
+]

@@ -1,10 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Play Responsive Layout", () => {
-  test("desktop viewport shows two-panel layout", async ({
-    browser,
-    baseURL,
-  }) => {
+  test("desktop viewport shows two-panel layout", async ({ browser, baseURL }) => {
     const context = await browser.newContext({
       viewport: { width: 1280, height: 800 },
       baseURL: baseURL!,
@@ -34,10 +31,7 @@ test.describe("Play Responsive Layout", () => {
     await context.close();
   });
 
-  test("mobile viewport shows single-column layout", async ({
-    browser,
-    baseURL,
-  }) => {
+  test("mobile viewport shows single-column layout", async ({ browser, baseURL }) => {
     const context = await browser.newContext({
       viewport: { width: 375, height: 667 },
       baseURL: baseURL!,
@@ -78,9 +72,7 @@ test.describe("Play Responsive Layout", () => {
       timeout: 15000,
     });
 
-    const token = await page.evaluate(() =>
-      location.hash.replace(/^#/, ""),
-    );
+    const token = await page.evaluate(() => location.hash.replace(/^#/, ""));
     const webhookUrl = `${baseURL}/in/${token}/`;
 
     await page.request.post(webhookUrl, {
@@ -113,10 +105,7 @@ test.describe("Play Responsive Layout", () => {
     await context.close();
   });
 
-  test("mobile: URL card and copy button are visible", async ({
-    browser,
-    baseURL,
-  }) => {
+  test("mobile: URL card and copy button are visible", async ({ browser, baseURL }) => {
     const context = await browser.newContext({
       viewport: { width: 375, height: 667 },
       baseURL: baseURL!,

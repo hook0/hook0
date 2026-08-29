@@ -1,0 +1,87 @@
+# What the dashboard cannot read off `dashboard_send.rb` and `dashboard_verify.rb` themselves.
+#
+# The dashboard renders a snippet by substituting strings and nothing else: it knows no Ruby, and
+# must not learn any. Everything about this language that a substitution cannot express is declared
+# here, beside the code it describes, so that the day Ruby is not the language somebody is reading
+# there is still only one place to look.
+
+# How this language is named on screen.
+#
+# Neither the registry nor the package name carries it: the target is `ruby` and the package is
+# published under a name of its own, while the screen says `Ruby`. It is one line here rather
+# than a table in the generator because a name is a property of the language, and the day a target
+# is added is the day somebody is already editing this file.
+display_name = "Ruby"
+
+# How far the pipeline holds this example to the client it shows, and by what.
+#
+# `parsed`, and it stays there. Ruby resolves a method or a constant when it runs, not while it is
+# being read, and this gem ships no RBS signatures a static checker could be pointed at instead:
+# there is no `sig/` and no `Steepfile`, so there is nothing to hold an example against the way
+# `mypy` is pointed at `clients/python/src`. A renamed method, a dropped keyword argument and an
+# argument in the wrong position all parse exactly as cleanly as the version that calls something
+# real, and `rubocop` cannot tell them apart.
+#
+# Saying so is the point. An honest `parsed` is worth more than a `compiled` that is false, which
+# is the kind of claim this whole arrangement exists to remove. Getting past it means the gem
+# writing RBS for its own public surface first — a change of its own, not a line in this file.
+proof = "parsed"
+proves = "`rubocop` in `clients.ruby.check`: read whole by Ruby's own parser, which catches a mismatched `end`, an unclosed string or a stray comma — and nothing about the client, since `clients/ruby` declares no RBS a static checker could resolve a name against"
+
+# What puts `examples/` under that job.
+#
+# Nothing names it. `rubocop` with no argument reads every `.rb` file under the client, and
+# `.rubocop.yml` beside it lists no `Include` and no `Exclude` that would settle it either way. So
+# there is no line here to hold: adding one `Exclude` entry, or giving the command a directory,
+# takes these files out of the job without a word of configuration having been deleted.
+examples_swept_by = "`rubocop` in `clients.ruby.check`, which with no argument reads every `.rb` file under the client"
+
+# What share of developers write it, which is the order the languages are offered in.
+#
+# A datum rather than an opinion, so it is declared beside its source: Stack Overflow Developer
+# Survey 2025, 49,000 respondents across 177 countries —
+# https://survey.stackoverflow.co/2025/technology
+usage_share = 6.4
+
+
+# Joins two rendered labels.
+#
+# It carries the comma, and the region it joins must not: `Map.of("a", "b", "c", "d")` in Java is a
+# variadic argument list which admits no trailing comma, so a region carrying its own would be valid
+# in Ruby and invalid there. Putting the separator between the repetitions is the one shape every
+# language agrees with, and it is what makes an empty list work too — repeat the region no times and
+# the container is simply empty, which is valid everywhere.
+#
+# Here the region carries none to strip: `Style/TrailingCommaInHashLiteral` refuses one outright, so
+# what rustfmt insists on adding is what rubocop insists on removing. The region is read as the text
+# between the two markers and a trailing separator is stripped only if there is one, which is what
+# lets both formatters have their way without the join changing.
+#
+# It carries no indentation either. Each repetition brings its own, because the region is taken with
+# the whitespace it sits on rather than trimmed down to the code.
+label_separator = ",\n"
+
+# How a value the user typed becomes a literal of this language.
+#
+# The payload is whatever was written in the editor, and it lands inside a string in the snippet.
+# The replacements below are applied in order, which is why the backslash comes first: escaping it
+# after the rest would escape the backslashes those had just introduced.
+#
+# `#` is escaped for a reason no other language on this list shares: in a double-quoted Ruby string
+# `#{...}` is interpolation, so a payload carrying one would not be a payload any more — it would be
+# code, evaluated in the reader's own program. `\#` is a `#` and nothing else.
+#
+# Double quotes rather than single ones because `Style/StringLiterals` is set to `double_quotes` for
+# this client, and a snippet quoted the other way would be reported the moment a reader ran the
+# linter this client is held to.
+[string]
+open = '"'
+close = '"'
+escape = [
+    ['\', '\\'],
+    ['#', '\#'],
+    ['"', '\"'],
+    ["\n", '\n'],
+    ["\r", '\r'],
+    ["\t", '\t'],
+]

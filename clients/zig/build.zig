@@ -6,7 +6,9 @@
 //! rather than of packaging.
 //!
 //! `zig build test` runs the suite under `tests`, which is hand-written and never regenerated. Every
-//! case of it drives this client against a socket on the loopback interface.
+//! case of it drives this client against a socket on the loopback interface. The same step compiles
+//! what `examples` holds: those are what the dashboard shows under "Send an event", and a snippet
+//! nothing compiles is one that drifts the day a method is renamed.
 
 const std = @import("std");
 
@@ -45,5 +47,56 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_suite.step);
     test_step.dependOn(&run_module.step);
 
+    addExamples(b, target, optimize, hook0, test_step);
+
     b.getInstallStep().dependOn(&b.addTest(.{ .root_module = hook0 }).step);
+}
+
+/// Compiles every example against this package, without running any of them.
+///
+/// The examples are what the dashboard renders: the values in them are markers it substitutes, so
+/// running one would reach a host that does not exist. Compiling is the whole point — a method
+/// renamed in `src` fails here rather than reaching a reader as a snippet that does not build.
+///
+/// What is compiled is found by looking rather than by naming, so an example added beside these two
+/// is held to the same thing without this file being touched.
+fn addExamples(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    package: *std.Build.Module,
+    test_step: *std.Build.Step,
+) void {
+    const io = b.graph.io;
+    var directory = b.build_root.handle.openDir(io, "examples", .{ .iterate = true }) catch |unopenable|
+        std.debug.panic("`examples` cannot be read: {t}", .{unopenable});
+    defer directory.close(io);
+
+    var found: usize = 0;
+    var walked = directory.iterate();
+    while (walked.next(io) catch |unwalkable|
+        std.debug.panic("`examples` cannot be walked: {t}", .{unwalkable})) |entry|
+    {
+        if (entry.kind != .file) continue;
+        if (!std.mem.endsWith(u8, entry.name, ".zig")) continue;
+
+        const name = b.dupe(entry.name);
+        const example = b.createModule(.{
+            .root_source_file = b.path(b.pathJoin(&.{ "examples", name })),
+            .target = target,
+            .optimize = optimize,
+        });
+        example.addImport("hook0", package);
+
+        const built = b.addExecutable(.{
+            .name = b.fmt("example-{s}", .{std.fs.path.stem(name)}),
+            .root_module = example,
+        });
+        test_step.dependOn(&built.step);
+        found += 1;
+    }
+
+    // An empty directory would leave this step holding nothing while still reporting success, which
+    // is a guard that stopped existing without anything red saying so.
+    if (found == 0) std.debug.panic("`examples` holds no example to compile", .{});
 }

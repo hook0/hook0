@@ -64,7 +64,14 @@ const authStore = useAuthStore();
 authStore.initialize();
 authStore.setupRouterGuard();
 
-// Matomo (must resolve before mount to avoid Vue plugin warning)
-void setupMatomo(app, router).then(() => {
-  app.mount('#app');
-});
+// Matomo (settled before mount to avoid a Vue plugin warning). Matomo reads the instance config,
+// and that call can fail — a failure that must not keep the app from mounting, since analytics is
+// optional and the dashboard is not. Guarded so the app comes up either way rather than leaving a
+// blank page behind a refused `/instance`.
+void setupMatomo(app, router)
+  .catch((error: unknown) => {
+    console.error(error);
+  })
+  .then(() => {
+    app.mount('#app');
+  });

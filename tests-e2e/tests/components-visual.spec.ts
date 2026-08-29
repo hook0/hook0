@@ -58,10 +58,7 @@ test.describe("Component Visual Regression", () => {
       }
     });
 
-    test("button content should never wrap to multiple lines", async ({
-      page,
-      request,
-    }) => {
+    test("button content should never wrap to multiple lines", async ({ page, request }) => {
       await loginAsNewUser(page, request, "button-nowrap");
 
       // Navigate to settings
