@@ -15,20 +15,9 @@ It declares two dependencies, `luasocket` and `luasec`, and only those, because 
 
 Lua 5.3 or 5.4 is required (`>= 5.3, < 5.5`).
 
-:::warning Not published to LuaRocks yet
-`luarocks install hook0-client` does not resolve. No release job publishes this rock, so the only version that exists is the one in the repository.
-
-Build it from the rockspec in a checkout instead.
-:::
-
 ```bash
-git clone https://gitlab.com/hook0/hook0.git
-cd hook0/clients/lua
-luarocks install --deps-only hook0-client-1.1.0-1.rockspec
-luarocks make hook0-client-1.1.0-1.rockspec
+luarocks install hook0-client
 ```
-
-`luarocks make` builds from the directory you are in rather than fetching the source the rockspec names, which is what you want from a checkout.
 
 ## Send an event
 

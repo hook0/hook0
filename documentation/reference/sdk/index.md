@@ -22,12 +22,12 @@ Every client does four things. It sends events, it declares the event types your
 | C# / .NET | [C# SDK](csharp.md) | `Hook0.Client` | NuGet | blocking and `Task` |
 | Go | [Go SDK](go.md) | `github.com/hook0/hook0-go/v2` | Go module proxy | blocking |
 | PHP | [PHP SDK](php.md) | `hook0/client` | Packagist | blocking |
-| Java | [Java SDK](java.md) | `com.hook0:hook0-client` | source | blocking and `CompletableFuture` |
-| Kotlin | [Kotlin SDK](kotlin.md) | `com.hook0:hook0-client-kotlin` | source | blocking and suspending |
-| Lua | [Lua SDK](lua.md) | `hook0-client` | source | blocking |
+| Java | [Java SDK](java.md) | `com.hook0:hook0-client` | Maven Central | blocking and `CompletableFuture` |
+| Kotlin | [Kotlin SDK](kotlin.md) | `com.hook0:hook0-client-kotlin` | Maven Central | blocking and suspending |
+| Lua | [Lua SDK](lua.md) | `hook0-client` | LuaRocks | blocking |
 | Zig | [Zig SDK](zig.md) | `hook0_client` | tagged archive | blocking |
 
-Java, Kotlin and Lua are not on their language's registry yet. Nothing is wrong with the code; each one is waiting on something a pipeline cannot supply on its own, such as a namespace to claim. Each page says what stands in the way and how to depend on the client today. The rest install with one command.
+Every client installs from its language's registry with a single command; Zig, which has no registry, is fetched by URL from a tagged archive. Each page carries the exact line for its ecosystem.
 
 Go, PHP and Zig install from a repository rather than from a registry, because that is what those three ecosystems fetch from. Each client is pushed to a read-only mirror of its own on GitHub, `github.com/hook0/hook0-<language>`, tagged `vX.Y.Z` on every SDK release. The mirrors are derived from this monorepo, which stays the one place anything is changed.
 
