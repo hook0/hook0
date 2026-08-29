@@ -1,0 +1,18 @@
+# Hook0 — Netlify security headers
+# Applied to every response served from documentation.hook0.com.
+# Mirrors the baseline already proven on www.hook0.com (website/static/_headers):
+# nosniff, frame-ancestors control, referrer trimming, a restrictive
+# Permissions-Policy. No directive here changes how any existing resource is
+# fetched or rendered, so there is no report-only staging needed for this set.
+#
+# Content-Security-Policy is intentionally left out of this file: the docs
+# site loads Matomo (matomo.hook0.com) and the Scalar API reference widget
+# from a third-party CDN (cdn.jsdelivr.net), plus Docusaurus's own inline
+# bootstrap scripts. Authoring a blocking CSP for that mix without a
+# report-only measurement pass risks silently breaking the OpenAPI reference
+# page or analytics, the same risk already called out for app.hook0.com.
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()
