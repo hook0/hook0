@@ -1,6 +1,6 @@
 ---
 title: "Kotlin webhook SDK: com.hook0:hook0-client-kotlin"
-description: "Send Hook0 events and verify webhook signatures from Kotlin 2.4 on Java 21. Blocking and suspending calls, kotlin-stdlib only. Not yet on Maven Central."
+description: "Send Hook0 events and verify webhook signatures from Kotlin 2.4 on Java 21. Blocking and suspending calls, kotlin-stdlib only. On Maven Central as com.hook0:hook0-client-kotlin."
 keywords: [Kotlin webhook SDK, Hook0 Kotlin client, suspend function webhook, verify webhook signature Kotlin, Ktor webhook endpoint, send webhook event Kotlin]
 sdkTarget: kotlin
 ---
@@ -15,28 +15,15 @@ The Hook0 SDK for Kotlin sends events and verifies webhook signatures. Every cal
 
 Kotlin 2.4 and Java 21 or later are required.
 
-:::warning Not published to Maven Central yet
-`com.hook0:hook0-client-kotlin` does not resolve from Maven Central. No release job publishes it, and the `com.hook0` namespace has not been claimed on the Central Portal.
-
-Until then, build the jar from a checkout and install it into your local repository.
-:::
-
-```bash
-git clone https://gitlab.com/hook0/hook0.git
-mvn -f hook0/clients/kotlin/pom.xml install
-```
-
-That puts `com.hook0:hook0-client-kotlin:1.1.0` in `~/.m2`, where your own build resolves it:
-
 ```xml
 <dependency>
   <groupId>com.hook0</groupId>
   <artifactId>hook0-client-kotlin</artifactId>
-  <version>1.1.0</version>
+  <version>2.0.3</version>
 </dependency>
 ```
 
-For Gradle, the same coordinates: `implementation("com.hook0:hook0-client-kotlin:1.1.0")`, with `mavenLocal()` in your repositories.
+For Gradle: `implementation("com.hook0:hook0-client-kotlin:2.0.3")`.
 
 ## Send an event
 
