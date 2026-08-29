@@ -11,9 +11,11 @@ const assert = require('node:assert/strict');
 
 const {
   buildLlmsTxt,
+  buildLlmsFullTxt,
   readSidebarSections,
   MAX_DESCRIPTION_LENGTH,
   MAX_ENTRIES,
+  MAX_FULL_TXT_BYTES,
   UNSORTED_SECTION_LABEL,
 } = require('./generate-llms-txt.js');
 
@@ -222,5 +224,130 @@ test('reads the sidebar sections without needing the built pages', () => {
 
   assert.deepEqual(sections, [
     { label: 'Concepts', docIds: ['concepts/index', 'concepts/events'] },
+  ]);
+});
+
+/**
+ * llms-full.txt inlines the same pages llms.txt lists, whole, so an assistant
+ * can read the documentation without fetching each page. The property that
+ * matters is the same one — every built page reaches the file, exactly once —
+ * plus: the full text is actually there (not the one-line description), and the
+ * order never drifts from the index.
+ */
+
+const docF = (id, extra = {}) => doc(id, { content: `Body of ${id}.`, ...extra });
+
+const buildFull = (sidebarItems, docs) =>
+  buildLlmsFullTxt({
+    siteUrl: SITE_URL,
+    title: 'Hook0 Documentation',
+    summary: 'Webhooks as a service.',
+    sidebarItems,
+    docs,
+  });
+
+/** Every `<!-- Source: url -->` marker, in the order the file emits them. */
+const sourceUrls = (text) =>
+  text
+    .split('\n')
+    .filter((line) => line.startsWith('<!-- Source: '))
+    .map((line) => line.match(/<!-- Source: (\S+) -->/)[1]);
+
+test('inlines every built page exactly once, sidebar or no sidebar', () => {
+  const docs = [docF('index'), docF('concepts/events'), docF('orphan/page')];
+  const sidebar = [
+    'index',
+    { type: 'category', label: 'Concepts', items: ['concepts/events'] },
+  ];
+
+  const urls = sourceUrls(buildFull(sidebar, docs));
+
+  assert.equal(urls.length, docs.length);
+  assert.equal(new Set(urls).size, docs.length);
+  for (const built of docs) {
+    assert.ok(
+      urls.includes(`${SITE_URL}${built.id}`),
+      `${built.id} is built but absent from llms-full.txt`,
+    );
+  }
+});
+
+test('inlines the whole page body, not the one-line description', () => {
+  const output = buildFull(
+    ['guide'],
+    [docF('guide', { description: 'short blurb', content: 'A full paragraph a description would never carry.' })],
+  );
+
+  assert.ok(output.includes('A full paragraph a description would never carry.'));
+  assert.ok(!output.includes('short blurb'));
+});
+
+test('lists pages in the exact order the index lists them', () => {
+  const sidebar = [
+    { type: 'category', label: 'Zulu', items: ['z/one', 'z/two'] },
+    { type: 'category', label: 'Alpha', items: ['a/one'] },
+  ];
+  const docs = [docF('a/one'), docF('z/two'), docF('z/one'), docF('loose/tail')];
+
+  const indexOrder = bulletUrls(build(sidebar, docs));
+  const fullOrder = sourceUrls(buildFull(sidebar, docs));
+
+  assert.deepEqual(fullOrder, indexOrder);
+});
+
+test('strips the front matter so the metadata block is not inlined', () => {
+  const content = '---\ntitle: Events\nkeywords: [a, b]\n---\n\nEvents are how Hook0 works.\n';
+  const output = buildFull(['events'], [docF('events', { content })]);
+
+  assert.ok(output.includes('Events are how Hook0 works.'));
+  assert.ok(!output.includes('keywords: [a, b]'));
+});
+
+test('a fragment is inlined nowhere, even named in the sidebar', () => {
+  const output = buildFull(
+    [{ type: 'category', label: 'Reference', items: ['reference/cli', 'reference/_cli-generated'] }],
+    [docF('reference/cli'), docF('reference/_cli-generated')],
+  );
+
+  assert.deepEqual(sourceUrls(output), [`${SITE_URL}reference/cli`]);
+});
+
+test('Source markers are absolute URLs', () => {
+  for (const url of sourceUrls(buildFull(['index'], [docF('index')]))) {
+    assert.ok(url.startsWith(SITE_URL), `${url} is not absolute`);
+  }
+});
+
+test('the same input always produces the same file', () => {
+  const sidebar = [{ type: 'category', label: 'Concepts', items: ['b'] }];
+  const docs = [docF('b'), docF('c'), docF('a')];
+
+  assert.equal(buildFull(sidebar, docs), buildFull(sidebar, docs.slice().reverse()));
+});
+
+test('refuses to publish a page with no content rather than inline it empty', () => {
+  assert.throws(
+    () => buildFull(['blank'], [docF('blank', { content: '   \n  ' })]),
+    /page blank has no content/,
+  );
+});
+
+test('refuses to write a file past its byte cap rather than truncating it', () => {
+  const big = 'x'.repeat(MAX_FULL_TXT_BYTES + 1);
+  assert.throws(
+    () => buildFull(['huge'], [docF('huge', { content: big })]),
+    /over the 8000000 cap/,
+  );
+});
+
+test('inlines a page the sidebar never names, at the end', () => {
+  const output = buildFull(
+    [{ type: 'category', label: 'Concepts', items: ['concepts/events'] }],
+    [docF('concepts/events'), docF('added/yesterday')],
+  );
+
+  assert.deepEqual(sourceUrls(output), [
+    `${SITE_URL}concepts/events`,
+    `${SITE_URL}added/yesterday`,
   ]);
 });

@@ -24,6 +24,11 @@ const MAX_ENTRIES = 500;
 
 const UNSORTED_SECTION_LABEL = 'Other pages';
 
+// Guard against a full-text dump that grows without anyone noticing. The whole
+// prose documentation inlined is well under this today; crossing it means a page
+// pulled in something it should not (a generated file, a build artefact).
+const MAX_FULL_TXT_BYTES = 8_000_000;
+
 /**
  * A file whose name starts with an underscore is a fragment other pages pull
  * in, not a page anyone should be sent to. Docusaurus still emits a route for
@@ -144,10 +149,112 @@ function buildLlmsTxt({ siteUrl, title, summary, sidebarItems, docs }) {
   return `${lines.join('\n')}\n`;
 }
 
+/**
+ * The published pages, in the order llms.txt lists them: the sidebar's reading
+ * order first, then whatever the sidebar never names, sorted by URL so the file
+ * only moves when the docs do. Fragments (`_`-prefixed) are left out, exactly as
+ * the index leaves them out. This is the ordering the index and the full-text
+ * file share, so a page can never appear in one and not the other.
+ */
+function orderedPages({ sidebarItems, docs }) {
+  const pages = docs.filter((doc) => !isPartial(doc.id));
+
+  if (pages.length > MAX_ENTRIES) {
+    throw new Error(
+      `llms-full.txt would inline ${pages.length} pages, over the ${MAX_ENTRIES} cap. ` +
+        'Raise the cap deliberately or split the file.',
+    );
+  }
+
+  const byId = new Map(pages.map((doc) => [doc.id, doc]));
+  const listed = new Set();
+  const ordered = [];
+
+  for (const section of readSidebarSections(sidebarItems)) {
+    for (const id of section.docIds) {
+      const doc = byId.get(id);
+      if (!doc || listed.has(id)) continue;
+      listed.add(id);
+      ordered.push(doc);
+    }
+  }
+
+  const rest = pages
+    .filter((doc) => !listed.has(doc.id))
+    .sort((a, b) => a.permalink.localeCompare(b.permalink));
+  ordered.push(...rest);
+
+  return ordered;
+}
+
+/**
+ * Removes a leading YAML front-matter block (`---` … `---`) so the inlined page
+ * carries its prose, not the metadata Docusaurus already turned into a title and
+ * a description. Anything before the block, or a page without one, is left as is.
+ */
+function stripFrontMatter(content) {
+  const text = String(content || '');
+  const match = text.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/);
+  return match ? text.slice(match[0].length) : text;
+}
+
+/**
+ * The full-text companion to llms.txt: the same pages, in the same order, each
+ * one inlined whole so an assistant can read the whole documentation without
+ * fetching a hundred pages. Every page opens with a `<!-- Source: url -->`
+ * marker so a model (or a human) can trace a passage back to its page.
+ *
+ * @param {object} options
+ * @param {string} options.siteUrl      Site URL, e.g. https://documentation.hook0.com/
+ * @param {string} options.title        H1 of the file
+ * @param {string} options.summary      Blockquote under the H1
+ * @param {Array}  options.sidebarItems The sidebar that drives the site navigation
+ * @param {Array}  options.docs         Built docs: `{ id, title, permalink, content }`
+ * @returns {string} the contents of llms-full.txt
+ */
+function buildLlmsFullTxt({ siteUrl, title, summary, sidebarItems, docs }) {
+  const lines = [
+    `# ${title}`,
+    '',
+    `> ${truncate(summary, 600)}`,
+    '',
+    'This is the full-text companion to /llms.txt: every page it lists is inlined ' +
+      'below in full, in the same order, so an assistant can read the whole ' +
+      'documentation in one file.',
+  ];
+
+  for (const doc of orderedPages({ sidebarItems, docs })) {
+    const url = new URL(doc.permalink, siteUrl).toString();
+    const body = stripFrontMatter(doc.content).trim();
+    if (!body) {
+      throw new Error(
+        `llms-full.txt: page ${doc.id} has no content to inline; ` +
+          'refusing to publish it as an empty page.',
+      );
+    }
+    lines.push('', `<!-- Source: ${url} -->`, '', body);
+  }
+
+  const output = `${lines.join('\n')}\n`;
+  const bytes = Buffer.byteLength(output, 'utf8');
+  if (bytes > MAX_FULL_TXT_BYTES) {
+    throw new Error(
+      `llms-full.txt would be ${bytes} bytes, over the ${MAX_FULL_TXT_BYTES} cap. ` +
+        'The docs grew a lot, or a page inlined something it should not.',
+    );
+  }
+
+  return output;
+}
+
 module.exports = {
   buildLlmsTxt,
+  buildLlmsFullTxt,
+  orderedPages,
+  stripFrontMatter,
   readSidebarSections,
   MAX_DESCRIPTION_LENGTH,
   MAX_ENTRIES,
+  MAX_FULL_TXT_BYTES,
   UNSORTED_SECTION_LABEL,
 };
