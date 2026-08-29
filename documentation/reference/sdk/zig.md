@@ -18,7 +18,7 @@ The package declares no dependencies. HMAC-SHA256 comes from `std.crypto`, docum
 ## Installation
 
 ```bash
-zig fetch --save=hook0 https://github.com/hook0/hook0-zig/archive/refs/tags/v1.1.0.tar.gz
+zig fetch --save=hook0 https://github.com/hook0/hook0-zig/archive/refs/tags/v2.0.3.tar.gz
 ```
 
 That writes the URL and the hash of what it fetched into your `build.zig.zon`, and every later build is held to both.

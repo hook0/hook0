@@ -1,6 +1,6 @@
 ---
 title: "Java webhook SDK: com.hook0:hook0-client"
-description: "Send Hook0 events and verify webhook signatures from Java 21. Blocking and CompletableFuture methods, no transitive dependencies. Not yet on Maven Central."
+description: "Send Hook0 events and verify webhook signatures from Java 21. Blocking and CompletableFuture methods, no transitive dependencies. On Maven Central as com.hook0:hook0-client."
 keywords: [Java webhook SDK, Hook0 Java client, verify webhook signature Java, Spring Boot webhook endpoint, CompletableFuture webhook, send webhook event Java]
 sdkTarget: java
 ---
@@ -15,28 +15,15 @@ The SDK brings nothing with it. It reaches the network, verifies signatures and 
 
 Java 21 or later is required.
 
-:::warning Not published to Maven Central yet
-`com.hook0:hook0-client` does not resolve from Maven Central. The `com.hook0` namespace has not been claimed on the Central Portal, which is not something a pipeline can do. The pom already carries the rest under a `release` profile, the signing and javadoc plugins included, so the claim and four CI variables are all that stand in the way.
-
-Until then, build the jar from a checkout and install it into your local repository.
-:::
-
-```bash
-git clone https://gitlab.com/hook0/hook0.git
-mvn -f hook0/clients/java/pom.xml install
-```
-
-That puts `com.hook0:hook0-client:1.1.0` in `~/.m2`, where your own build resolves it:
-
 ```xml
 <dependency>
   <groupId>com.hook0</groupId>
   <artifactId>hook0-client</artifactId>
-  <version>1.1.0</version>
+  <version>2.0.3</version>
 </dependency>
 ```
 
-For Gradle, the same coordinates: `implementation("com.hook0:hook0-client:1.1.0")`, with `mavenLocal()` in your repositories.
+For Gradle: `implementation("com.hook0:hook0-client:2.0.3")`.
 
 ## Send an event
 

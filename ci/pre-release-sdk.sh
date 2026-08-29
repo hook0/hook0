@@ -180,18 +180,23 @@ while IFS= read -r directory; do
         mv "$file" "$(dirname "$file")/$(printf %s "$base" | sed "s/${escaped_current}/${NEW_VERSION}/g")"
     done
 
-    # The four SDKs no registry resolves tell a reader to build from a checkout or to fetch a tag,
-    # and so they name a version in prose. `set-version` writes manifests, and a README is not one,
-    # so those four went on advertising the release before last until somebody noticed. The shapes
-    # below are the ones a version appears in there, and the guard in release-packages holds the
-    # tree to them: a version written some other way is caught rather than quietly left behind.
-    [ -f "${directory}/README.md" ] || continue
-    sed -i \
-        -e "s|<version>${CURRENT}</version>|<version>${NEW_VERSION}</version>|g" \
-        -e "s|:${CURRENT}\([^0-9]\)|:${NEW_VERSION}\1|g" \
-        -e "s|-${CURRENT}-|-${NEW_VERSION}-|g" \
-        -e "s|/v${CURRENT}\.|/v${NEW_VERSION}.|g" \
-        "${directory}/README.md"
+    # A version appears in prose in two places set-version does not reach, because neither is a
+    # manifest: a client README, and the reference page under documentation/. Both name it the same
+    # way — a Maven <dependency>, a luarocks rockspec file, a zig fetch URL — for the SDKs a reader
+    # installs by naming a version rather than by one floating command. Rewritten from the same
+    # shapes so a release leaves neither advertising the version before it. The reference page is the
+    # client directory's basename under reference/sdk; the one client whose page is named otherwise
+    # names no version on it, so its absence here is a rewrite that finds nothing rather than a miss.
+    version_prose="documentation/reference/sdk/$(basename "${directory}").md"
+    for readme_or_doc in "${directory}/README.md" "$version_prose"; do
+        [ -f "$readme_or_doc" ] || continue
+        sed -i \
+            -e "s|<version>${CURRENT}</version>|<version>${NEW_VERSION}</version>|g" \
+            -e "s|:${CURRENT}\([^0-9]\)|:${NEW_VERSION}\1|g" \
+            -e "s|-${CURRENT}-|-${NEW_VERSION}-|g" \
+            -e "s|/v${CURRENT}\.|/v${NEW_VERSION}.|g" \
+            "$readme_or_doc"
+    done
 
 done <<< "$DIRECTORIES"
 
