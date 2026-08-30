@@ -1,4 +1,4 @@
-FROM debian:trixie-20250203-slim
+FROM debian:trixie-20260824-slim
 ARG TARGETARCH
 ARG UID=10001
 

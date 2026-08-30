@@ -130,7 +130,7 @@ osv_dependency_scan:
   # unscanned. The scan reads the source tree and consumes no artifact, so it
   # has nothing to wait for.
   needs: []
-  image: golang:1.25
+  image: golang:1.26
   retry:
     max: 2
     when:
