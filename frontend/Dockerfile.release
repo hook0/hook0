@@ -1,5 +1,5 @@
 # Same config as existing ./Dockerfile but no build stage.
-ARG CADDY_VERSION=2.10
+ARG CADDY_VERSION=2.11
 
 FROM caddy:${CADDY_VERSION}
 RUN sed -i '/file_server/i try_files {path} /index.html' /etc/caddy/Caddyfile

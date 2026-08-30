@@ -31,7 +31,7 @@ reqwest = "=0.13.4"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
 tokio = { version = "=1.53.1", features = ["macros", "rt-multi-thread", "time"] }
-uuid = { version = "=1.25.0", features = ["v4", "v7", "serde"] }
+uuid = { version = "=1.26.0", features = ["v4", "v7", "serde"] }
 
 [profile.dev]
 # Every example is built, never run, so the information a debugger would read off it is spent for
