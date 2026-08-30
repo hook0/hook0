@@ -127,6 +127,46 @@ async fn test_health_endpoint() {
 }
 
 #[tokio::test]
+async fn test_index_page_security_headers() {
+    let (addr, _state) = start_test_server().await;
+    let client = Client::new();
+
+    let response = client
+        .get(format!("http://{}/", addr))
+        .header("Accept", "text/html")
+        .send()
+        .await
+        .expect("Index request failed");
+
+    assert_eq!(response.status(), 200);
+    let headers = response.headers();
+    assert!(
+        headers.contains_key("Content-Security-Policy"),
+        "missing Content-Security-Policy"
+    );
+    assert!(
+        headers.contains_key("X-Content-Type-Options"),
+        "missing X-Content-Type-Options"
+    );
+    assert!(
+        headers.contains_key("X-Frame-Options"),
+        "missing X-Frame-Options"
+    );
+    assert!(
+        headers.contains_key("Referrer-Policy"),
+        "missing Referrer-Policy"
+    );
+    assert!(
+        headers.contains_key("Strict-Transport-Security"),
+        "missing Strict-Transport-Security"
+    );
+    assert!(
+        headers.contains_key("Permissions-Policy"),
+        "missing Permissions-Policy"
+    );
+}
+
+#[tokio::test]
 async fn test_webhook_receiver_invalid_token_format() {
     let (addr, _state) = start_test_server().await;
     let client = Client::new();

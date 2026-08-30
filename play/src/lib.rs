@@ -259,6 +259,16 @@ async fn serve_index(
         "Referrer-Policy",
         header::HeaderValue::from_static("strict-origin-when-cross-origin"),
     );
+    headers.insert(
+        "Strict-Transport-Security",
+        header::HeaderValue::from_static("max-age=31536000"),
+    );
+    headers.insert(
+        "Permissions-Policy",
+        header::HeaderValue::from_static(
+            "geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()",
+        ),
+    );
     response
 }
 
