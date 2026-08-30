@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [frontend/v1.1.0] - 2026-08-30
+
+### Added
+
+- Instrument monetization touchpoints and add near-limit Pro hint (frontend)
+- Ask one use-case question at onboarding start to tailor the first webhook (frontend)
+- Provision a default API key when an application is created (api)
+- Re-engagement email sequence for accounts that never sent an event (api)
+- Open a session on email verification (no re-login) (api)
+- Resend verification email + longer token TTL (api)
+- Record where a signup came from
+- Ship SDKs for eleven languages, generated from a specification that now matches the API (clients,api)
+- Show every published SDK on the send-event screen (frontend)
+
+### Fixed
+
+- Full logo lockup in auth + site header, SVG downloads, docs margin (brand)
+- Update in-app documentation links (frontend)
+- Refuse passwords built from the account's own identity (api)
+- Tell a sibling Hook0 property apart from an unknown origin (frontend)
+- Point the inspector link at the fragment the page reads (!399) (play)
+- Make the new logo actually reach every surface (!400) (brand)
+- Show the error card on the three screens that never could (frontend)
+
+### Other
+
+- Unblock master, and settle the E2E tracking test (deps)
+- Update dependencies
+- Update dependencies
+
 ## [frontend/v1.0.2] - 2026-08-05
 
 ### Added
