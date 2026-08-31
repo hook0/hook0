@@ -38,7 +38,12 @@ nodeSelector:
   node-role.kubernetes.io/worker: ""
 
 redis:
-  enabled: true
+  # play.hook0.com runs on in-memory storage in production (webhooks are
+  # ephemeral test data). Redis was never deployed there — the live release has
+  # no REDIS_URL — so the chart default matches reality. Enabling Redis is a
+  # deliberate infra decision (persistence / multi-replica), not the default;
+  # turn on auth before doing so.
+  enabled: false
   architecture: standalone
   auth:
     enabled: false
