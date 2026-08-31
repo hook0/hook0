@@ -41,7 +41,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'JavaScript',
     packageName: 'hook0-client',
     registry: 'npm',
-    version: '2.0.2',
+    version: '2.0.3',
     install: 'npm install hook0-client',
     publishedToRegistry: true,
     send: {
@@ -69,7 +69,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Python',
     packageName: 'hook0-client',
     registry: 'PyPI',
-    version: '2.0.2',
+    version: '2.0.3',
     install: 'pip install hook0-client',
     publishedToRegistry: true,
     send: {
@@ -97,10 +97,10 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Java',
     packageName: 'com.hook0:hook0-client',
     registry: 'Maven Central',
-    version: '2.0.2',
+    version: '2.0.3',
     install:
-      'git clone https://gitlab.com/hook0/hook0.git\nmvn -f hook0/clients/java/pom.xml install',
-    publishedToRegistry: false,
+      '<dependency>\n  <groupId>com.hook0</groupId>\n  <artifactId>hook0-client</artifactId>\n  <version>2.0.3</version>\n</dependency>',
+    publishedToRegistry: true,
     send: {
       body: 'import com.hook0.client.Event;\nimport com.hook0.client.Hook0Client;\nimport java.util.LinkedHashMap;\nimport java.util.Map;\nimport java.util.UUID;\n\nclass SendAnEvent {\n  public static void main(String[] args) {\n    // `Hook0Client` is `AutoCloseable`, and one of them is meant to live as long as the application\n    // rather than as long as a send.\n    try (Hook0Client client =\n        new Hook0Client("__HOOK0_API_URL__", "__HOOK0_APPLICATION_ID__", "__HOOK0_TOKEN__")) {\n      // What Hook0 routes the event by. A map filled a line at a time, which puts no ceiling on how\n      // many labels an event carries and sends the last value given for a repeated key, the way the\n      // other ten clients do.\n      Map<String, String> labels = new LinkedHashMap<>();\n      labels.put("__HOOK0_LABEL_KEY__", "__HOOK0_LABEL_VALUE__");\n      UUID sent =\n          client.sendEvent(\n              Event.of("__HOOK0_EVENT_TYPE__", "__HOOK0_PAYLOAD__", "application/json", labels));\n      System.out.println("ingested as " + sent);\n    }\n  }\n}',
       label: '      labels.put("__HOOK0_LABEL_KEY__", "__HOOK0_LABEL_VALUE__");',
@@ -126,7 +126,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'C#',
     packageName: 'Hook0.Client',
     registry: 'NuGet',
-    version: '2.0.2',
+    version: '2.0.3',
     install: 'dotnet add package Hook0.Client',
     publishedToRegistry: true,
     send: {
@@ -154,7 +154,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'PHP',
     packageName: 'hook0/client',
     registry: 'Packagist',
-    version: '2.0.2',
+    version: '2.0.3',
     install: 'composer require hook0/client',
     publishedToRegistry: true,
     send: {
@@ -183,7 +183,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Go',
     packageName: 'github.com/hook0/hook0-go/v2',
     registry: 'Go modules',
-    version: '2.0.2',
+    version: '2.0.3',
     install: 'go get github.com/hook0/hook0-go/v2',
     publishedToRegistry: true,
     send: {
@@ -211,7 +211,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Rust',
     packageName: 'hook0-client',
     registry: 'crates.io',
-    version: '2.0.2',
+    version: '2.0.3',
     install: 'cargo add hook0-client\ncargo add tokio --features macros,rt-multi-thread',
     publishedToRegistry: true,
     send: {
@@ -240,10 +240,10 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Kotlin',
     packageName: 'com.hook0:hook0-client-kotlin',
     registry: 'Maven Central',
-    version: '2.0.2',
+    version: '2.0.3',
     install:
-      'git clone https://gitlab.com/hook0/hook0.git\nmvn -f hook0/clients/kotlin/pom.xml install',
-    publishedToRegistry: false,
+      '<dependency>\n  <groupId>com.hook0</groupId>\n  <artifactId>hook0-client-kotlin</artifactId>\n  <version>2.0.3</version>\n</dependency>',
+    publishedToRegistry: true,
     send: {
       body: 'import com.hook0.kotlin.Event\nimport com.hook0.kotlin.Hook0Client\nimport java.util.UUID\n\nfun main() {\n  // `Hook0Client` is `AutoCloseable`, and one of them is meant to live as long as the application\n  // rather than as long as a send.\n  Hook0Client("__HOOK0_API_URL__", "__HOOK0_APPLICATION_ID__", "__HOOK0_TOKEN__").use { client ->\n    val sent: UUID = client.sendEvent(\n      Event(\n        eventType = "__HOOK0_EVENT_TYPE__",\n        payload = "__HOOK0_PAYLOAD__",\n        payloadContentType = "application/json",\n        labels = mapOf(\n          "__HOOK0_LABEL_KEY__" to "__HOOK0_LABEL_VALUE__"\n        )\n      )\n    )\n    println("ingested as $sent")\n  }\n}',
       label: '          "__HOOK0_LABEL_KEY__" to "__HOOK0_LABEL_VALUE__"',
@@ -270,10 +270,9 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Lua',
     packageName: 'hook0-client',
     registry: 'LuaRocks',
-    version: '2.0.2',
-    install:
-      'git clone https://gitlab.com/hook0/hook0.git\ncd hook0/clients/lua\nluarocks install --deps-only hook0-client-2.0.2-1.rockspec\nluarocks make hook0-client-2.0.2-1.rockspec',
-    publishedToRegistry: false,
+    version: '2.0.3',
+    install: 'luarocks install hook0-client',
+    publishedToRegistry: true,
     send: {
       body: 'local Hook0 = require("hook0")\n\nlocal client = Hook0.Client.new("__HOOK0_API_URL__", "__HOOK0_APPLICATION_ID__", "__HOOK0_TOKEN__")\n\nlocal event_id = client:send_event({\n  event_type = "__HOOK0_EVENT_TYPE__",\n  payload = "__HOOK0_PAYLOAD__",\n  payload_content_type = "application/json",\n  labels = {\n    ["__HOOK0_LABEL_KEY__"] = "__HOOK0_LABEL_VALUE__"\n  },\n})\n\nprint("ingested as " .. event_id)',
       label: '    ["__HOOK0_LABEL_KEY__"] = "__HOOK0_LABEL_VALUE__"',
@@ -299,7 +298,7 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Ruby',
     packageName: 'hook0-client',
     registry: 'RubyGems',
-    version: '2.0.2',
+    version: '2.0.3',
     install: 'gem install hook0-client',
     publishedToRegistry: true,
     send: {
@@ -328,9 +327,9 @@ export const HOOK0_SDKS: readonly Hook0Sdk[] = [
     displayName: 'Zig',
     packageName: 'hook0_client',
     registry: 'a tagged archive',
-    version: '2.0.2',
+    version: '2.0.3',
     install:
-      'zig fetch --save=hook0 https://github.com/hook0/hook0-zig/archive/refs/tags/v2.0.2.tar.gz\nconst hook0 = b.dependency("hook0", .{ .target = target, .optimize = optimize });\nexe.root_module.addImport("hook0", hook0.module("hook0"));',
+      'zig fetch --save=hook0 https://github.com/hook0/hook0-zig/archive/refs/tags/v2.0.3.tar.gz\nconst hook0 = b.dependency("hook0", .{ .target = target, .optimize = optimize });\nexe.root_module.addImport("hook0", hook0.module("hook0"));',
     publishedToRegistry: true,
     send: {
       body: 'const std = @import("std");\nconst hook0 = @import("hook0");\n\npub fn send(io: std.Io, allocator: std.mem.Allocator) !void {\n    var client: hook0.Client = .init(\n        io,\n        "__HOOK0_API_URL__",\n        "__HOOK0_APPLICATION_ID__",\n        "__HOOK0_TOKEN__",\n        .{},\n    );\n\n    // The answer owns the arena the identifier points into, so one `deinit` frees the identifier,\n    // the body that was sent and everything read back.\n    const sent = try client.sendEvent(allocator, .{\n        .event_type = "__HOOK0_EVENT_TYPE__",\n        .payload = "__HOOK0_PAYLOAD__",\n        .payload_content_type = "application/json",\n        .labels = &.{\n            .{ .key = "__HOOK0_LABEL_KEY__", .value = "__HOOK0_LABEL_VALUE__" }\n        },\n    });\n    defer sent.deinit();\n\n    std.log.info("ingested as {s}", .{sent.value});\n}',
