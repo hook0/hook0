@@ -1,0 +1,45 @@
+# Namespaced RBAC for a deploy ServiceAccount, scoped to THIS namespace only.
+# The Role/RoleBinding are namespaced (no ClusterRole/ClusterRoleBinding), so
+# the account has no rights or visibility on any other namespace or on
+# cluster-scoped resources.
+# The token Secret is an empty stub: the controller populates the token
+# in-cluster at apply time. No secret material is stored in git.
+# Apply: kubectl apply -f play/k8s/play-deployer-rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: play-deployer
+  namespace: hosted-hook0-play-server-prod
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: play-deployer
+  namespace: hosted-hook0-play-server-prod
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: play-deployer
+  namespace: hosted-hook0-play-server-prod
+subjects:
+  - kind: ServiceAccount
+    name: play-deployer
+    namespace: hosted-hook0-play-server-prod
+roleRef:
+  kind: Role
+  name: play-deployer
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: play-deployer-token
+  namespace: hosted-hook0-play-server-prod
+  annotations:
+    kubernetes.io/service-account.name: play-deployer
+type: kubernetes.io/service-account-token
