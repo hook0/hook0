@@ -95,7 +95,7 @@ spec:
             - name: APP_URL
               value: http://localhost:8001
             - name: BISCUIT_PRIVATE_KEY
-              value: bbea79cd66926b219b3219a3186decb36136d774dd7c35a8239e512090fa8854
+              value: bbea79cd66926b219b3219a3186decb36136d774dd7c35a8239e512090fa8854 # DO NOT USE THIS KEY IN PRODUCTION
             - name: CORS_ALLOWED_ORIGINS
               value: http://localhost:8001
             - name: DATABASE_URL
