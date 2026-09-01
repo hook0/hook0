@@ -200,7 +200,7 @@ struct Config {
     object_storage_key_secret: Option<String>,
 
     /// [Object Storage] Maximum number of attempts for object storage operations
-    #[clap(long, env, default_value_t = 3)]
+    #[clap(long, env, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 3)]
     object_storage_max_attempts: u32,
 
     /// [Object Storage] Connect timeout for object storage operations (time to initiate socket connection)
@@ -449,6 +449,18 @@ struct Config {
     /// [Housekeeping] Maximum number of prefixes to delete concurrently during object storage cleanup
     #[clap(long, env, value_parser = clap::value_parser!(u8).range(1..), default_value_t = 1)]
     object_storage_cleanup_delete_concurrency: u8,
+
+    /// [Housekeeping] Maximum number of attempts for object storage cleanup operations
+    #[clap(long, env, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 3)]
+    object_storage_cleanup_max_attempts: u32,
+
+    /// [Housekeeping] Connect timeout for object storage cleanup operations (time to initiate socket connection)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "10s")]
+    object_storage_cleanup_connect_timeout: Duration,
+
+    /// [Housekeeping] Read timeout for object storage cleanup operations (time to first byte)
+    #[clap(long, env, value_parser = humantime::parse_duration, default_value = "100s")]
+    object_storage_cleanup_read_timeout: Duration,
 
     /// [Housekeeping] Operation attempt timeout for object storage cleanup operations
     #[clap(long, env, value_parser = humantime::parse_duration, default_value = "2m")]
@@ -1503,6 +1515,9 @@ async fn main() -> anyhow::Result<()> {
                     config.object_storage_cleanup_report_and_delete,
                     config.object_storage_cleanup_collect_concurrency,
                     config.object_storage_cleanup_delete_concurrency,
+                    config.object_storage_cleanup_max_attempts,
+                    config.object_storage_cleanup_connect_timeout,
+                    config.object_storage_cleanup_read_timeout,
                     config.object_storage_cleanup_operation_attempt_timeout,
                     config.object_storage_cleanup_operation_timeout,
                 )

@@ -1,5 +1,6 @@
 use actix_web::rt::time::sleep;
 use aws_sdk_s3::Client;
+use aws_sdk_s3::config::retry::RetryConfig;
 use aws_sdk_s3::config::timeout::TimeoutConfig;
 use aws_sdk_s3::error::{DisplayErrorContext, SdkError};
 use aws_sdk_s3::operation::list_objects_v2::ListObjectsV2Error;
@@ -33,6 +34,9 @@ pub async fn periodically_clean_up_object_storage(
     delete: bool,
     collect_concurrency: u8,
     delete_concurrency: u8,
+    max_attempts: u32,
+    connect_timeout: Duration,
+    read_timeout: Duration,
     operation_attempt_timeout: Duration,
     operation_timeout: Duration,
 ) {
@@ -45,6 +49,9 @@ pub async fn periodically_clean_up_object_storage(
             delete,
             collect_concurrency,
             delete_concurrency,
+            max_attempts,
+            connect_timeout,
+            read_timeout,
             operation_attempt_timeout,
             operation_timeout,
         )
@@ -57,39 +64,44 @@ pub async fn periodically_clean_up_object_storage(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn delete_dangling_objects_from_object_storage(
     db: &PgPool,
     object_storage: &ObjectStorageConfig,
     delete: bool,
     collect_concurrency: u8,
     delete_concurrency: u8,
+    max_attempts: u32,
+    connect_timeout: Duration,
+    read_timeout: Duration,
     operation_attempt_timeout: Duration,
     operation_timeout: Duration,
 ) -> anyhow::Result<()> {
     trace!("Start cleaning up object storage...");
     let start = Instant::now();
 
-    // Build a dedicated S3 client with relaxed timeouts for the cleanup task.
+    // Build a dedicated S3 client for the cleanup task.
     // Listing many objects can be slow; this should not be constrained by the
     // tight timeouts used for latency-sensitive API operations.
-    // We clone the existing config and only override timeout settings.
-    let mut cleanup_timeout_builder = TimeoutConfig::builder()
-        .operation_attempt_timeout(operation_attempt_timeout)
-        .operation_timeout(operation_timeout);
-    // Preserve connect and read timeouts from the existing client.
-    if let Some(existing) = object_storage.client.config().timeout_config() {
-        if let Some(ct) = existing.connect_timeout() {
-            cleanup_timeout_builder = cleanup_timeout_builder.connect_timeout(ct);
-        }
-        if let Some(rt) = existing.read_timeout() {
-            cleanup_timeout_builder = cleanup_timeout_builder.read_timeout(rt);
-        }
-    }
+    // We clone the existing config (credentials, region, endpoint) and set all
+    // timeout and retry settings explicitly so they never depend on the API client's.
     let cleanup_config = object_storage
         .client
         .config()
         .to_builder()
-        .timeout_config(cleanup_timeout_builder.build())
+        .timeout_config(
+            TimeoutConfig::builder()
+                .connect_timeout(connect_timeout)
+                .read_timeout(read_timeout)
+                .operation_attempt_timeout(operation_attempt_timeout)
+                .operation_timeout(operation_timeout)
+                .build(),
+        )
+        .retry_config(
+            RetryConfig::standard()
+                .with_max_attempts(max_attempts)
+                .with_max_backoff(Duration::from_secs(2)),
+        )
         .build();
     let client = Client::from_conf(cleanup_config);
 

@@ -150,7 +150,7 @@ struct Config {
     object_storage_key_secret: Option<String>,
 
     /// Maximum number of attempts for object storage operations
-    #[clap(long, env, default_value_t = 3)]
+    #[clap(long, env, value_parser = clap::value_parser!(u32).range(1..), default_value_t = 3)]
     object_storage_max_attempts: u32,
 
     /// Connect timeout for object storage operations (time to initiate socket connection)

@@ -144,10 +144,13 @@ own build.
 | `EXPIRED_TOKENS_CLEANUP_REPORT_AND_DELETE` | If true, expired tokens will be reported and cleaned up; if false (default), they will only be reported | `false` |  |
 | `MATERIALIZED_VIEWS_REFRESH_PERIOD_IN_S` | Duration (in second) to wait between materialized views refreshes | `60` |  |
 | `OBJECT_STORAGE_CLEANUP_COLLECT_CONCURRENCY` | Maximum number of applications to process concurrently during object storage cleanup prefix collection | `1` |  |
+| `OBJECT_STORAGE_CLEANUP_CONNECT_TIMEOUT` | Connect timeout for object storage cleanup operations (time to initiate socket connection) | `10s` |  |
 | `OBJECT_STORAGE_CLEANUP_DELETE_CONCURRENCY` | Maximum number of prefixes to delete concurrently during object storage cleanup | `1` |  |
+| `OBJECT_STORAGE_CLEANUP_MAX_ATTEMPTS` | Maximum number of attempts for object storage cleanup operations | `3` |  |
 | `OBJECT_STORAGE_CLEANUP_OPERATION_ATTEMPT_TIMEOUT` | Operation attempt timeout for object storage cleanup operations | `2m` |  |
 | `OBJECT_STORAGE_CLEANUP_OPERATION_TIMEOUT` | Operation timeout for object storage cleanup operations | `7m` |  |
 | `OBJECT_STORAGE_CLEANUP_PERIOD` | Duration to wait between object storage cleanups | `1d` |  |
+| `OBJECT_STORAGE_CLEANUP_READ_TIMEOUT` | Read timeout for object storage cleanup operations (time to first byte) | `100s` |  |
 | `OBJECT_STORAGE_CLEANUP_REPORT_AND_DELETE` | If true, allow to delete outdated objects from object storage; if false (default), they will only be reported | `false` |  |
 | `OLD_EVENTS_CLEANUP_GRACE_PERIOD_IN_DAY` | Duration (in day) to wait before actually deleting events that are passed retention period | `30` |  |
 | `OLD_EVENTS_CLEANUP_PERIOD_IN_S` | Duration (in second) to wait between old events cleanups; set to 0 to disable the task | `3600` |  |
