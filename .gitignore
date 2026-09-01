@@ -30,7 +30,8 @@ api/.clever.json
 
 # for website & doc
 CLAUDE.local.md
-.claude
+.claude/*
+!.claude/skills/
 .agents
 .gemini
 .opencode
