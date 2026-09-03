@@ -27,6 +27,10 @@ module.exports = {
   'hook0-vs-convoy': { fr: 'hook0-vs-convoy', de: 'hook0-vs-convoy' },
   'self-hosted-webhooks': { fr: 'webhooks-auto-heberges', de: 'selbst-gehostete-webhooks' },
   'build-vs-buy-webhooks': { fr: 'build-vs-buy-webhooks', de: 'build-vs-buy-webhooks' },
+  // EN-only educational/GEO explainer (HOO-106): "how webhooks work", rebuilt
+  // from GitLab's. Informational cluster the site does not yet serve; strong
+  // answer-engine citation potential. Localize if it earns impressions.
+  'how-webhooks-work': {},
   'hook0-vs-svix': { fr: 'hook0-vs-svix', de: 'hook0-vs-svix' },
   'svix-alternatives': { fr: 'alternatives-a-svix', de: 'svix-alternativen' },
   'hook0-vs-hookdeck': { fr: 'hook0-vs-hookdeck', de: 'hook0-vs-hookdeck' },

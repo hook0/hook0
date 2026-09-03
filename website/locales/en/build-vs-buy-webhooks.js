@@ -66,6 +66,7 @@ module.exports = {
   related: {
     h2: 'Related',
     links: [
+      { enSlug: 'how-webhooks-work', label: 'How Webhooks Work' },
       { enSlug: 'hook0-vs-svix', label: 'Hook0 vs Svix' },
       { enSlug: 'hook0-vs-hookdeck', label: 'Hook0 vs Hookdeck' },
       { enSlug: 'self-hosted-webhooks', label: 'Self-Hosted Webhooks' },

@@ -25,6 +25,9 @@
 - [Hook0 vs Convoy](https://www.hook0.com/hook0-vs-convoy)
 - [Build vs Buy Webhooks](https://www.hook0.com/build-vs-buy-webhooks)
 
+## Learn
+- [How Webhooks Work](https://www.hook0.com/how-webhooks-work): Explains webhooks by rebuilding GitLab's push webhook from scratch. Covers the HTTP POST, the X-Gitlab-Event and X-Gitlab-Token headers, GitLab's shared-token auth versus HMAC-SHA256 signatures, and the six problems (retries with backoff, idempotency, delivery logs) that separate a 40-line prototype from production delivery.
+
 ## Docs
 - [Documentation](https://documentation.hook0.com/): Full reference, guides, API, deploy.
 - [Documentation index for assistants](https://documentation.hook0.com/llms.txt): Every published documentation page, with a one-line summary each.
