@@ -10,6 +10,11 @@
 - [Webhook API](https://www.hook0.com/webhook-api): One API call sends an event, Hook0 handles signing, fan-out, retries, replay.
 - [Security & Compliance](https://www.hook0.com/security): EU data residency (France, Clever Cloud), GDPR-aligned process, DPA on request.
 
+## Proof
+- Production customers include Coinbase, GEODIS, WoodWing, Optery, Eudonet, Alteos, ActiveAnts, and Apizee.
+- Coinbase is on the record. Ian Mukherjee (Coinbase): "Thank you for all of your help, we appreciate your partnership."
+- Platon Samuel left a 5/5 review on Product Hunt, and the GitHub star count is public and verifiable.
+
 ## Localized
 - [Webhook-Plattform (DE)](https://www.hook0.com/de/webhook-plattform): German page, EU-hosting and DSGVO angle for DACH.
 - [Plateforme de webhooks (FR)](https://www.hook0.com/fr/plateforme-webhook): Page française, hébergement UE et conformité RGPD.

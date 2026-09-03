@@ -48,6 +48,7 @@ module.exports = {
     h2: 'Häufige Fragen',
     lastReviewed: 'Zuletzt geprüft Juli 2026.',
     items: [
+      { q: 'Welche Unternehmen nutzen Hook0?', a: 'Hook0 stellt Webhooks in Produktion für Teams wie Coinbase, GEODIS, WoodWing, Optery und Eudonet zu. Coinbase hat sich öffentlich zur Partnerschaft geäußert: "Thank you for all of your help, we appreciate your partnership." (Ian Mukherjee, Coinbase).' },
       { q: 'Ist Hook0 Open Source wie Svix?', a: 'Der Hook0-Server wird unter SSPL-1.0 veröffentlicht und die Client-SDKs unter MIT, ohne proprietäre Enterprise-Stufe. SSPL ist eine Copyleft-Lizenz mit verfügbarem Quellcode, du darfst die gesamte Plattform frei lesen, ändern und selbst hosten. Der Svix-Kern ist MIT, aber mehrere Enterprise-Funktionen sind geschlossen und nur in bezahlten Tarifen verfügbar.' },
       { q: 'Wie verhält sich der kostenlose Tarif von Hook0 zu dem von Svix?', a: 'Der kostenlose Tarif von Hook0 bleibt für immer kostenlos, ohne Kreditkarte, 100 Events pro Tag, HMAC-Signaturen und Zustellungs-Monitoring, in der EU gehostet. Bezahlte Tarife wachsen mit deinem Volumen auf derselben verwalteten Infrastruktur, jede Funktion ist enthalten, keine Enterprise-Paywall. Svix behält mehrere Funktionen den bezahlten Tarifen vor.' },
       { q: 'Unterstützt Hook0 Standard Webhooks?', a: 'Standard Webhooks ist eine Spezifikation, die von Svix verfasst wurde. Hook0 signiert jede Payload mit HMAC-SHA256 und dokumentiert das Schema. Der Support für Standard Webhooks ist geplant.' },

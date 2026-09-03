@@ -2,6 +2,17 @@
 if (locals.i18nHelpers) { Object.assign(locals, locals.i18nHelpers.getPageLocals('hook0-vs-svix', locals.lang || 'en')); }
 var t = locals.t;
 var getPath = (locals.i18nHelpers && locals.i18nHelpers.getPath) ? locals.i18nHelpers.getPath : function (s) { return './' + s; };
+// Emit an FAQPage schema from the same FAQ strings the page renders, so answer
+// engines get the customer proof and comparison answers as structured data.
+if (t.faq && t.faq.items && t.faq.items.length) {
+  locals.pageFAQSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: t.faq.items.map(function (it) {
+      return { '@type': 'Question', name: it.q, acceptedAnswer: { '@type': 'Answer', text: it.a } };
+    })
+  };
+}
 %><!DOCTYPE html>
 <html lang="<%= locals.pageLang %>">
 <head>
