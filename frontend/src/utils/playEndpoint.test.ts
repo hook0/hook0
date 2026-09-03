@@ -5,6 +5,7 @@ import {
   buildPlayReceiveUrl,
   buildPlayViewUrl,
   buildPlayInspectUrl,
+  extractPlayToken,
 } from './playEndpoint';
 
 describe('playEndpoint', () => {
@@ -70,6 +71,45 @@ describe('playEndpoint', () => {
       expect(buildPlayInspectUrl('https://play.hook0.com', 'c_abc')).toBe(
         'https://play.hook0.com/api/tokens/c_abc/webhooks'
       );
+    });
+  });
+
+  describe('extractPlayToken', () => {
+    it('round-trips a generated token through the receive URL', () => {
+      const token = generatePlayToken();
+      const url = buildPlayReceiveUrl('https://play.hook0.com', token);
+      expect(extractPlayToken('https://play.hook0.com', url)).toBe(token);
+    });
+
+    it('ignores trailing slashes on the base URL', () => {
+      const token = generatePlayToken();
+      const url = buildPlayReceiveUrl('https://play.hook0.com', token);
+      expect(extractPlayToken('https://play.hook0.com///', url)).toBe(token);
+    });
+
+    it('returns null for a user-supplied endpoint', () => {
+      expect(extractPlayToken('https://play.hook0.com', 'https://api.example.com/webhooks')).toBe(
+        null
+      );
+    });
+
+    it('returns null for a play URL whose token is malformed', () => {
+      expect(extractPlayToken('https://play.hook0.com', 'https://play.hook0.com/in/c_short/')).toBe(
+        null
+      );
+    });
+
+    it('returns null when the path carries extra segments', () => {
+      const token = generatePlayToken();
+      expect(
+        extractPlayToken('https://play.hook0.com', `https://play.hook0.com/in/${token}/extra/`)
+      ).toBe(null);
+    });
+
+    it('returns null for a different play origin', () => {
+      const token = generatePlayToken();
+      const url = buildPlayReceiveUrl('https://evil.example.com', token);
+      expect(extractPlayToken('https://play.hook0.com', url)).toBe(null);
     });
   });
 });
