@@ -16,6 +16,7 @@ use tracing::{debug, error, instrument, trace, warn};
 
 use crate::dns::DnsResolver;
 use crate::opentelemetry::DeliveryTraceIds;
+use crate::standard_webhooks::StandardWebhooksSignature;
 use crate::{Config, RequestAttempt, SignatureVersion};
 
 const USER_AGENT: &str = concat!(crate_name!(), "/", crate_version!());
@@ -157,10 +158,11 @@ pub async fn work(
             headers.insert("X-Event-Id", event_id);
             headers.insert("X-Event-Type", et);
 
+            let signed_at = Utc::now();
             let s = Signature::new(
                 &attempt.secret.to_string(),
                 &attempt.payload,
-                Utc::now(),
+                signed_at,
                 &headers,
             )
             .map_err(|e| {
@@ -199,6 +201,31 @@ pub async fn work(
                 Ok(sig) => {
                     headers.insert(&config.signature_header_name, sig);
 
+                    // Standard Webhooks interop headers, emitted alongside Hook0's native
+                    // signature when opted in. Inserted after the native signature so its v1
+                    // header-signature never covers the `webhook-*` headers. The event id
+                    // (stable across retries) is the message id.
+                    if config.standard_webhooks_signature_enabled {
+                        let sw = StandardWebhooksSignature::new(
+                            &attempt.event_id.to_string(),
+                            &attempt.secret.to_string(),
+                            &attempt.payload,
+                            signed_at,
+                        );
+                        headers.insert(
+                            HeaderName::from_static(StandardWebhooksSignature::ID_HEADER),
+                            sw.id_header_value(),
+                        );
+                        headers.insert(
+                            HeaderName::from_static(StandardWebhooksSignature::TIMESTAMP_HEADER),
+                            sw.timestamp_header_value(),
+                        );
+                        headers.insert(
+                            HeaderName::from_static(StandardWebhooksSignature::SIGNATURE_HEADER),
+                            sw.signature_header_value(),
+                        );
+                    }
+
                     debug!("Calling webhook...");
                     let redacted_headers = RedactedHeaders {
                         headers: &headers,
@@ -206,6 +233,9 @@ pub async fn work(
                             HeaderName::from_static("content-type"),
                             HeaderName::from_static("x-event-id"),
                             HeaderName::from_static("x-event-type"),
+                            HeaderName::from_static(StandardWebhooksSignature::ID_HEADER),
+                            HeaderName::from_static(StandardWebhooksSignature::TIMESTAMP_HEADER),
+                            HeaderName::from_static(StandardWebhooksSignature::SIGNATURE_HEADER),
                             config.signature_header_name.clone(),
                         ],
                     };
